@@ -1870,6 +1870,13 @@ void Options::init()
     "exponential complexity";
     _lookup.insert(&_complexVarCondition);
     _complexVarCondition.tag(OptionTag::HIGHER_ORDER);
+
+    _prettyHolPrinting = BoolOptionValue("pretty_hol_printing","php",false);
+    _prettyHolPrinting.description=
+    "Outputs HOL terms in a 'pretty' but not TPTP compliant format.";
+    _lookup.insert(&_prettyHolPrinting);
+    _prettyHolPrinting.tag(OptionTag::HIGHER_ORDER);
+
 #endif
 
 //*********************** InstGen  ***********************

@@ -296,7 +296,7 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStac
 
   TermList res = head;
   TermList s1, s2;
-  
+
   for(int i = terms.size() - 1; i >= 0; i--){
     s1 = getNthArg(sort, 1);
     s2 = getResultApplieadToNArgs(sort, 1);
@@ -327,6 +327,9 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList
 TermList ApplicativeHelper::createLambdaTerm(TermList varSort, TermList termSort, TermList term)
 {
   CALL("ApplicativeHelper::createLambdaTerm");
+
+  ASS(varSort.isVar()  || varSort.term()->isSort());
+  ASS(termSort.isVar() || termSort.term()->isSort());
 
   static TermStack args;
   args.reset();
@@ -445,7 +448,6 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
 void ApplicativeHelper::getArgSorts(TermList t, TermStack& sorts)
 {
   CALL("ApplicativeHelper::getArgSorts");
-  ASS(t.isApplication());
 
   while(t.isApplication()){
     sorts.push(*t.term()->nthArgument(0));

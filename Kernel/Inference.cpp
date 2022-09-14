@@ -951,6 +951,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "cases simplifying";
   case InferenceRule::BETA_NORMALISE:
     return "beta normalization";
+  case InferenceRule::IMITATE:
+    return "imitate";
+  case InferenceRule::PROJECT:
+    return "project";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
   case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 

@@ -282,6 +282,13 @@ bool TermList::isArrowSort()
   return !isVar() && term()->isSort() && 
          static_cast<AtomicSort*>(term())->isArrowSort();
 }
+
+bool Term::isArrowSort() const
+{
+  CALL("Term::isArrowSort");
+  return isSort() && env.signature->isArrowCon(_functor);
+}
+
 #endif
 
 bool TermList::isBoolSort()
@@ -341,9 +348,8 @@ TermList TermList::result(){
 
 TermList TermList::finalResult(){
   CALL("AtomicSort::finalResult");
-  ASS(isArrowSort());
 
-  return isVar() ? *this : static_cast<AtomicSort*>(term())->finalResult();
+  return isVar() || !isArrowSort() ? *this : static_cast<AtomicSort*>(term())->finalResult();
 }
 
 TermList AtomicSort::result(){
@@ -862,13 +868,6 @@ vstring TermList::asArgsToString() const
       continue;
     }
     const Term* t = ts->term();
-  
-#if VHOL
-    if(!(t->isSort() && static_cast<AtomicSort*>(const_cast<Term*>(t))->isArrowSort())){
-      res += t->toString();
-      continue;
-    }
-#endif
 
     res += t->headToString();
 
@@ -912,7 +911,7 @@ vstring Term::toString(bool topLevel) const
 
 #if VHOL
   if(!isSpecial() && !isLiteral()){
-    if(isSort() && static_cast<AtomicSort*>(const_cast<Term*>(this))->isArrowSort()){
+    if(isArrowSort()){
       ASS(arity() == 2);
       vstring res;
       TermList arg1 = *(nthArgument(0));
@@ -921,6 +920,21 @@ vstring Term::toString(bool topLevel) const
       res += arg1.toString(false) + " > " + arg2.toString();
       res += topLevel ? "" : ")";
       return res;
+    }
+    if(env.options->prettyHolPrinting()){
+      vstring res;      
+      if(isApplication()){
+        TermList lhs = *(nthArgument(2));
+        TermList rhs = *(nthArgument(3));
+        res += topLevel ? "" : "("; 
+        res += lhs.toString() + " " + rhs.toString(false);
+        res += topLevel ? "" : ")";
+        return res;
+      }
+      if(isLambdaTerm()){
+        res = "(^." +  nthArgument(2)->toString() + ")";
+        return res;
+      }
     }
   }
 #endif

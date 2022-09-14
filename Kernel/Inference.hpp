@@ -316,6 +316,10 @@ enum class InferenceRule : unsigned char {
 
   NEGATIVE_EXT,
 
+  IMITATE,
+
+  PROJECT,
+
   EQ_TO_DISEQ,
   /** The next five rules can be either simplifying or generating */
   HOL_NOT_ELIMINATION,

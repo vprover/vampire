@@ -320,8 +320,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/CNFOnTheFly.hpp
     Inferences/BetaEtaISE.cpp
     Inferences/BetaEtaISE.hpp
-#    Inferences/CombinatorNormalisationISE.hpp
-#    Inferences/CombinatorNormalisationISE.cpp
+    Inferences/ImitateProject.hpp
+    Inferences/ImitateProject.cpp
     Inferences/ArgCong.hpp
     Inferences/ArgCong.cpp
     Inferences/NegativeExt.cpp

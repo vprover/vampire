@@ -2402,6 +2402,7 @@ public:
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   bool complexVarCondition() const { return _complexVarCondition.actualValue; }
+  bool prettyHolPrinting() const { return _prettyHolPrinting.actualValue; }
 #endif
   // For unit testing
 
@@ -2816,7 +2817,7 @@ private:
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
- 
+#if VHOL 
   //Higher-order options
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _choiceAxiom;
@@ -2836,6 +2837,8 @@ private:
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
   BoolOptionValue _complexVarCondition;
+  BoolOptionValue _prettyHolPrinting;
+#endif
 
 }; // class Options
 

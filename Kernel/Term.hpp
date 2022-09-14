@@ -679,6 +679,8 @@ public:
   bool isLambdaTerm() const;
   /** true if the term is a redex */
   bool isRedex();
+  /** true if term is a sort which is a arrow sort */
+  bool isArrowSort() const;
 
   void setHasRedex(bool b)
   {

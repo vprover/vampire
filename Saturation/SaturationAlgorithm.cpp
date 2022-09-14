@@ -85,6 +85,7 @@
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
+#include "Inferences/ImitateProject.hpp"
 #endif
 
 #include "Inferences/URResolution.hpp"
@@ -1565,11 +1566,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(prb.higherOrder()){
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
+    gie->addFront(new ImitateProject());
     /*if(opt.narrow() != Options::Narrow::OFF){
       gie->addFront(new Narrow());
-    }
-    if(!opt.pragmatic()){
-      gie->addFront(new SubVarSup());
     }*/
   }
 

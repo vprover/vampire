@@ -32,20 +32,15 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/LiteralSelector.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
 
-#include "EqualityResolution.hpp"
+#include "ImitateProject.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {
@@ -55,32 +50,68 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-struct ImitateProject::IsFlexRigid
+struct ImitateProject::CanImitateAndProject
 {
   bool operator()(Literal* l)
   { 
     ASS(l->isEquality());
-    return l->isFlexRigid();
+    return l->isFlexRigid() && !SortHelper::getEqualityArgumentSort(l).isArrowSort();
   }
 };
 
 
 struct ImitateProject::ResultFn
 {
+  void getConstraints(TermStack& lhss, TermStack& rhss, TermStack& sorts, LiteralStack& constraints)
+  {
+    CALL("ImitateProject::ResultFn::getConstraints");
+    ASS(!constraints.size());
+    ASS(lhss.size() == rhss.size());
+
+    for(unsigned i = 0; i < lhss.length(); i++){
+      TermList lhs = SubstHelper::apply(lhss[i], _subst);
+      TermList rhs = SubstHelper::apply(rhss[i], _subst);      
+      constraints.push(Literal::createEquality(false, lhs, rhs, sorts[i]));
+    }
+  }
+
+  Clause* createRes(InferenceRule rule, LiteralStack& constraints, Literal* lit, bool sameHeads)
+  {
+    CALL("ImitateProject::ResultFn::createRes");
+  
+    unsigned newLen = sameHeads ? _cLen - 1 + constraints.length() : _cLen;
+    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(rule, _cl));
+
+    unsigned next = 0;
+    for(unsigned i=0;i<_cLen;i++) {
+      Literal* curr=(*_cl)[i];
+      if(curr!=lit || !sameHeads) {
+        Literal* currAfter = SubstHelper::apply(curr, _subst);
+        (*res)[next++] = currAfter;
+      }
+    }
+    while(!constraints.isEmpty()){
+      (*res)[next++] = constraints.pop();
+    }
+    cout << "IN " << _cl->toString() << endl;
+    cout << "OUT " << res->toString() << endl;
+    return res;    
+  }
+
   ResultFn(Clause* cl)
       : _cl(cl), _cLen(cl->length()), _maxVar(cl->maxVar()) {}
   ClauseIterator operator() (Literal* lit)
   {
-    CALL("EqualityResolution::ResultFn::operator()");
+    CALL("ImitateProject::ResultFn::operator()");
 
     typedef ApplicativeHelper AH;
 
     ASS(lit->isEquality());
     ASS(lit->isFlexRigid());
 
-    static RobSubstitution subst;
     static ClauseStack results;
     results.reset();
+    _subst.reset();
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
@@ -95,95 +126,106 @@ struct ImitateProject::ResultFn
       rigidTerm = arg0;
     }
 
+    // since term is rigid, cannot be a variable
+    TermList sort = SortHelper::getResultSort(rigidTerm.term());
+    ASS(!sort.isArrowSort());
     TermList headFlex, headRigid;
-    TermStack argsFlex, argsRigid;
+    TermStack argsFlex;
+    TermStack argsRigid;
+    TermStack sortsFlex; //sorts of arguments of flex head
+    TermStack sortsRigid;
+    // after an imitation, or the projection of an argument with a rigid head, 
+    // we create a new set of constrainst literals    
+    LiteralStack newConstraints; 
 
     AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
     AH::getHeadAndArgs(rigidTerm, headRigid, argsRigid);
     ASS(argsFlex.size()); // Flex side is not a variable
 
-    // replaces the result sort with a new result sort
-    // e.g. i > i > o  ==> i > i > nat
-    auto replaceRes = [](TermList arrowSort, TermList newRes){
-      TermStack args;
-      while(arrowSort.isArrowSort()){
-        args.push(arrowSort.domain());
-        arrowSort = arrowSort.result();
+    AH::getArgSorts(flexTerm, sortsFlex);
+    AH::getArgSorts(rigidTerm, sortsRigid);  
+
+    TermStack deBruijnIndices;    
+    for(int i = 0; i < argsFlex.size(); i++){
+      // could get away with only creating these when we certainly need them
+      // but the logic becomes a lot more complicated
+      deBruijnIndices.push(AH::getDeBruijnIndex(i, sortsFlex[i]));
+    }
+
+    TermStack args;
+    TermStack args2;
+
+    auto surroundWithLambdas = [](TermList t, TermStack& sorts){
+      ASS(t.isTerm());
+      for(int i = 0; i < sorts.size(); i++){
+        t = AH::createLambdaTerm(sorts[i], SortHelper::getResultSort(t.term()), t);
       }
-      while(!args.isEmpty()){
-        newRes = AtomicSort::arrowSort(args.pop(), newRes);
-      }
-      return newRes;
+      return t;
     };
 
-    // imitation
-    TermStack sorts; //sorts of arguments of flex head
-    TermStack deBruijnIndices;
-    AH::getArgSorts(flexTerm, sorts); 
-    if(argsRigid.size()){
-      for(int i = argsFlex.size() - 1; i >= 0; i--){
-        deBruijnIndices.push(AH::getDeBruijnIndex(i, sorts[i]));
+    cout << "CLAUSE " << _cl->toString() << endl;
+
+    { // imitation
+      unsigned fVar = _maxVar;
+
+      for(unsigned i = 0; i < argsRigid.size(); i++){
+        TermList freshVar(++fVar, false);
+        TermList varSort = AtomicSort::arrowSort(sortsFlex, sortsRigid[i]);
+        args.push(AH::createAppTerm(varSort, freshVar, deBruijnIndices));
+        args2.push(AH::createAppTerm(varSort, freshVar, argsFlex));      
       }
-    } 
+      TermList headRigidSort = SortHelper::getResultSort(headRigid.term());
+      //pb stands for partial binding
+      TermList pb = AH::createAppTerm(headRigidSort, headRigid, args);
+      pb = surroundWithLambdas(pb, sortsFlex); 
 
-    for(unsigned i = 0; i < argsRigid.size(); i++){
-
+      _subst.bind(headFlex.var(), pb);
+      getConstraints(args2, argsRigid, sortsRigid, newConstraints);
+      results.push(createRes(InferenceRule::IMITATE, newConstraints, lit, true));
     }
-
   
-    static RobSubstitution subst(_handler);
-    subst.reset();
+    // projections
+    for(unsigned i = 0; i < argsFlex.size(); i++){
+      // try and project each of the arguments of the flex head in turn
+      _subst.reset();
+      args.reset();
+      args2.reset();
+      TermList arg = argsFlex[i];
+      TermList argSort = sortsFlex[i];
+      // sort wrong, cannot project this arg
+      if(argSort.finalResult() != sort) continue;
+      TermList head;
+      AH::getHeadAndArgs(arg, head, args2);
+      // argument has a rigid head different to that of rhs. no point projecting
+      if(!head.isVar() && head != headRigid) continue;
 
-    if(!subst.unify(arg0,0,arg1,0)){
-      return 0;    
-    }
-
-    //cout << "equalityResolution with " + _cl->toString() << endl;
-    //cout << "The literal is " + lit->toString() << endl;
-    //cout << "cLength " << cLength << endl;
-
-    unsigned newLen=_cLen-1+ subst.numberOfConstraints();
-
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
-
-    Literal* litAfter = 0;
-
-    if (_afterCheck && _cl->numSelected() > 1) {
-      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
-      litAfter = subst.apply(lit, 0);
-    }
-
-    unsigned next = 0;
-    for(unsigned i=0;i<_cLen;i++) {
-      Literal* curr=(*_cl)[i];
-      if(curr!=lit) {
-        Literal* currAfter = subst.apply(curr, 0);
-
-        if (litAfter) {
-          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
-
-          if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
-          }
-        }
-
-        (*res)[next++] = currAfter;
+      unsigned fVar = _maxVar;
+      for(unsigned j = 0; j < AH::getArity(argSort); j++){
+        TermList freshVar(++fVar, false);
+        TermList varSort = AtomicSort::arrowSort(sortsFlex, AH::getNthArg(argSort, j + 1));
+        args.push(AH::createAppTerm(varSort, freshVar, deBruijnIndices));
+        args2.push(AH::createAppTerm(varSort, freshVar, argsFlex));      
       }
-    }
-    auto constraints = subst.getConstraints();
-    while(constraints.hasNext()){
-      Literal* constraint = constraints.next();
-      (*res)[next++] = constraint;
-    }
-    ASS_EQ(next,newLen);
+      cout << "ARG " << arg.toString() << endl;
+      cout << "ARG SORT " << argSort.toString() << endl;
+      cout << "INDEX " << deBruijnIndices[i].toString() << endl;
+      cout << "INDEX SORT " << SortHelper::getResultSort(deBruijnIndices[i].term()).toString() << endl;
+      TermList pb = AH::createAppTerm(argSort, deBruijnIndices[i], args);
+      pb = surroundWithLambdas(pb, sortsFlex); 
+      cout << "PB " << pb.toString() << endl;
 
-    env.statistics->equalityResolution++;
+      _subst.bind(headFlex.var(), pb);
+      if(!head.isVar()){
+        getConstraints(args2, argsRigid, sortsRigid, newConstraints);
+      }
+      results.push(createRes(InferenceRule::PROJECT, newConstraints, lit, !head.isVar()));
+    }
+  
 
-    return res;
+    return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));;
   }
 private:
+  Substitution _subst;
   Clause* _cl;
   unsigned _cLen;
   unsigned _maxVar;
@@ -202,12 +244,12 @@ ClauseIterator ImitateProject::generateClauses(Clause* premise)
   auto it1 = premise->getSelectedLiteralIterator();
 
   // only selected literals which are flex rigid
-  auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
+  auto it2 = getFilteredIterator(it1,CanImitateAndProject());
 
   // carry out imitations and projections
   auto it3 = getMapAndFlattenIterator(it2,ResultFn(premise));
 
-  return pvi( it4 );
+  return pvi( it3 );
 }
 
 }

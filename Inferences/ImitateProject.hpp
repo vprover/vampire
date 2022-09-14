@@ -39,7 +39,7 @@ public:
   ClauseIterator generateClauses(Clause* premise);
 private:
   struct ResultFn;
-  struct IsFlexRigid;
+  struct CanImitateAndProject;
 
 };
 
