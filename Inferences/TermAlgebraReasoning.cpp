@@ -290,10 +290,11 @@ namespace Inferences {
     for (int i = length - 1; i >= 0; i--) {
       if (litCondition(c, i)) {
         Literal *lit = (*c)[i];
-        OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        TermList lhs = *lit->nthArgument(0);
+        ASS(lhs.isTerm());
         unsigned oldLength = c->length();
-        unsigned arity = lit->nthArgument(0)->term()->arity();
-        unsigned numTypeArgs = lit->nthArgument(0)->term()->numTypeArguments();
+        unsigned arity = lhs.term()->arity();
+        unsigned numTypeArgs = lhs.term()->numTypeArguments();
         unsigned newLength = oldLength + arity - numTypeArgs - 1;
 #if VDEBUG
         for (unsigned j = 0; j < numTypeArgs; j++) {
@@ -301,11 +302,11 @@ namespace Inferences {
             *lit->nthArgument(1)->term()->nthArgument(j));
         }
 #endif
-        Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
+        Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));       
         Literal *newLit = Literal::createEquality(false,
                                                   *lit->nthArgument(0)->term()->nthArgument(numTypeArgs),
                                                   *lit->nthArgument(1)->term()->nthArgument(numTypeArgs),
-                                                  type->arg(numTypeArgs));
+                                                  SortHelper::getArgSort(lhs.term(), numTypeArgs));
         unsigned j = 0;
         while ((*c)[j] != lit) { j++; }
         std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
@@ -315,7 +316,7 @@ namespace Inferences {
           newLit = Literal::createEquality(false,
                                            *lit->nthArgument(0)->term()->nthArgument(j),
                                            *lit->nthArgument(1)->term()->nthArgument(j),
-                                           type->arg(j));
+                                            SortHelper::getArgSort(lhs.term(), j));
           (*res)[oldLength + j - numTypeArgs - 1] = newLit;
         }
         env.statistics->taNegativeInjectivitySimplifications++;
