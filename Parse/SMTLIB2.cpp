@@ -33,6 +33,8 @@
 #include "Shell/SMTLIBLogic.hpp"
 #include "Shell/TermAlgebra.hpp"
 
+#include "Inferences/Subterm.hpp"
+
 #include "SMTLIB2.hpp"
 
 #include "TPTP.hpp"
@@ -2261,14 +2263,13 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       }
       TermList superterm_sort = _results.pop().asTerm(superterm);
 
-      if(!env.signature->isTermAlgebraSort(subterm_sort) || subterm_sort != superterm_sort)
-        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-
-      unsigned predicate = env.signature->getInterpretingSymbol(
-        Theory::SUBTERM,
-        OperatorType::getPredicateType({subterm_sort, superterm_sort})
-      );
-      _results.push(new AtomicFormula(Literal::create2(predicate, true, subterm, superterm)));
+      _results.push(new AtomicFormula(Inferences::SubtermGIE::createSubterm(
+        true,
+        subterm,
+        subterm_sort,
+        superterm,
+        superterm_sort
+      )));
       return true;
     }
 
