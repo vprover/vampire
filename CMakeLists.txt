@@ -866,7 +866,7 @@ FIND_PATH(GMP_INCLUDE_DIR gmpxx.h)
 FIND_PATH(GMPXX_INCLUDE_DIR gmpxx.h)
 include_directories(${GMPXX_INCLUDE_DIR} ${GMP_INCLUDE_DIR})
 
-find_library(GMP libgmp)
+find_library(GMP gmp)
 link_libraries(${GMP})
 
 ################################################################
