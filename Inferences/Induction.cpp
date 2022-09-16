@@ -1041,7 +1041,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
-  TermList sort = env.signature->getFunction(context._indTerm->functor())->fnType()->result();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
   TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();
@@ -1103,7 +1103,7 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
 {
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
-  TermList sort = env.signature->getFunction(context._indTerm->functor())->fnType()->result();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
   TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();
@@ -1189,7 +1189,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
-  TermList sort = env.signature->getFunction(context._indTerm->functor())->fnType()->result();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
   TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();

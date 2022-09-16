@@ -150,10 +150,11 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     Formula* c = rectify(sd->getCondition());
     TermList th = rectify(*t->nthArgument(0));
     TermList el = rectify(*t->nthArgument(1));
-    if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1)) {
+    TermList sort = rectify(sd->getSort());
+    if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1) && sort==sd->getSort()) {
 	return t;
     }
-    return Term::createITE(c, th, el, sd->getSort());
+    return Term::createITE(c, th, el, sort);
   }
   case Term::SF_LET:
   {
@@ -188,11 +189,12 @@ Term* Rectify::rectifySpecialTerm(Term* t)
 
     TermList binding = rectify(sd->getBinding());
     TermList contents = rectify(*t->nthArgument(0));
+    TermList sort = rectify(sd->getSort());
 
-    if (binding == sd->getBinding() && contents == *t->nthArgument(0)) {
+    if (binding == sd->getBinding() && contents == *t->nthArgument(0) && sort == sd->getSort()) {
       return t;
     }
-    return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
+    return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sort);
   } 
   case Term::SF_FORMULA:
   {
@@ -253,11 +255,13 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       terms[i] = rectify(*t->nthArgument(i));
       unchanged = unchanged && (terms[i] == *t->nthArgument(i));
     }
+    auto sort = rectify(sd->getSort());
+    auto matchedSort = rectify(sd->getMatchedSort());
 
-    if (unchanged) {
+    if (unchanged && sort == sd->getSort() && matchedSort == sd->getMatchedSort()) {
       return t;
     }
-    return Term::createMatch(sd->getSort(), sd->getMatchedSort(), t->arity(), terms.begin());
+    return Term::createMatch(sort, matchedSort, t->arity(), terms.begin());
   }
   default:
     ASSERTION_VIOLATION;

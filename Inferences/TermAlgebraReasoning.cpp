@@ -157,7 +157,6 @@ namespace Inferences {
         _clause(clause)
     {
       if (lit->polarity() && sameConstructorsEquality(lit)) {
-        _type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
         _index = lit->nthArgument(0)->term()->numTypeArguments();
         _length = lit->nthArgument(0)->term()->arity();
       } else {
@@ -178,7 +177,7 @@ namespace Inferences {
       Literal *l = Literal::createEquality(true,
                                            *_lit->nthArgument(0)->term()->nthArgument(_index),
                                            *_lit->nthArgument(1)->term()->nthArgument(_index),
-                                           _type->arg(_index));
+                                           SortHelper::getArgSort(_lit->nthArgument(0)->term(), _index));
       
       Clause * res = replaceLit(_clause, _lit, l, GeneratingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING, _clause));
       _index++;
@@ -194,7 +193,6 @@ namespace Inferences {
     unsigned int _index; // between 0 and _length
     Literal* _lit;
     Clause* _clause;
-    OperatorType* _type; // type of f
   };
 
   struct InjectivityGIE::SubtermEqualityFn
@@ -233,11 +231,10 @@ namespace Inferences {
       Literal *lit = (*c)[i];
       if (sameConstructorsEquality(lit) && lit->isPositive()) {
         if (lit->nthArgument(0)->term()->arity() == 1) {
-          OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
           Literal *newlit = Literal::createEquality(true,
                                                     *lit->nthArgument(0)->term()->nthArgument(0),
                                                     *lit->nthArgument(1)->term()->nthArgument(0),
-                                                    type->arg(0));
+                                                    SortHelper::getArgSort(lit->nthArgument(0)->term(), 0));
           Clause* res = replaceLit(c, lit, newlit, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
           env.statistics->taInjectivitySimplifications++;
           return res;
@@ -255,7 +252,6 @@ namespace Inferences {
     Literal *lit = (*c)[i];
     if (sameConstructorsEquality(lit) && !lit->polarity()) {
       unsigned arity = lit->nthArgument(0)->term()->arity();
-      OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
       for (unsigned j = 0; j < arity; j++) {
         if (j < lit->nthArgument(0)->term()->numTypeArguments()) {
           ASS_EQ(*lit->nthArgument(0)->term()->nthArgument(j),
@@ -265,7 +261,7 @@ namespace Inferences {
         Literal *l = Literal::createEquality(true,
                                              *lit->nthArgument(0)->term()->nthArgument(j),
                                              *lit->nthArgument(1)->term()->nthArgument(j),
-                                             type->arg(j));
+                                             SortHelper::getArgSort(lit->nthArgument(0)->term(),j));
         for (unsigned k = 0; k < c->length(); k++) {
           if (k != i) {
             if (_salg->getOrdering().compare((*c)[k], l) != Ordering::GREATER) {
