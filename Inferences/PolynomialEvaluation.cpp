@@ -106,6 +106,7 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
       case Kernel::Theory::ARRAY_BOOL_SELECT: break;
 
+      case Kernel::Theory::SUBTERM:
       case ANY_INTERPRETED_FUNCTION: 
       case Kernel::Theory::INVALID_INTERPRETATION: 
         ASSERTION_VIOLATION_REP(inter)

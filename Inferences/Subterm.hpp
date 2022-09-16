@@ -26,6 +26,14 @@ public:
   void detach();
 
   ClauseIterator generateClauses(Clause* premise);
+
+  static Literal *createSubterm(
+    bool polarity,
+    TermList subterm,
+    TermList subterm_sort,
+    TermList superterm,
+    TermList superterm_sort
+  );
 };
 
 }
