@@ -1429,7 +1429,18 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   Clause* cl = nullptr;
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
+
+    static unsigned instrLastTime = 0;
+    if (_opt.showPassiveTraffic()) {
+      cout << "t: " << Timer::elapsedMegaInstructions()-instrLastTime << endl;
+    }
+
     cl = _passive->popSelected();
+
+    if (_opt.showPassiveTraffic()) {
+      // only here, to exclude the expensive NN eval from the reported number
+      instrLastTime = Timer::elapsedMegaInstructions();
+    }
   }
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);

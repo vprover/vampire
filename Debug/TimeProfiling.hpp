@@ -103,6 +103,7 @@ public:
   static constexpr const char* const SHUFFLING = "shuffling things";
   static constexpr const char* const SINE_SELECTION = "sine selection";
   static constexpr const char* const TERM_SHARING = "term sharing";
+  static constexpr const char* const DEEP_STUFF = "neural model evaluation";
   
 private:
   using Clock = std::chrono::steady_clock;

@@ -839,6 +839,8 @@ public:
 
   friend ostream& operator<<(ostream& out, const Stack<C>& s) {
     out << "[";
+    out << "For now, printing only size: " << s.size();
+    /*
     auto iter = s.begin();
     if(iter != s.end()) {
       out << " " << *iter++;
@@ -846,6 +848,7 @@ public:
         out << ", " << *iter++;
       }
     }
+    */
     out << " ]";
     return out;
   }

@@ -51,7 +51,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
   ASS(_isOutermost);
 
-  TimeCounter t(TC_DEEP_STUFF);
+  TIME_TRACE(TimeTrace::DEEP_STUFF);
 
 #if DEBUG_MODEL
   auto start = env.timer->elapsedMilliseconds();
@@ -441,7 +441,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
   //of clauses, differing only in their order.
   //(unless one of _ageRation or _weightRatio is equal to 0)
 
-  static Stack<Clause*> toRemove(256);
+  static Lib::Stack<Clause*> toRemove(256);
   ClauseQueue::Iterator wit(_weightQueue);
   while (wit.hasNext()) {
     Clause* cl=wit.next();
