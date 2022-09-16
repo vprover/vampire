@@ -175,10 +175,12 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     ASS_EQ(VList::length(variables),VList::length(sd->getVariables()));
 
     TermList contents = rectify(*t->nthArgument(0));
-    if (sd->getVariables() == variables && binding == sd->getBinding() && contents == *t->nthArgument(0)) {
+    TermList sort = rectify(sd->getSort());
+    if (sd->getVariables() == variables && binding == sd->getBinding() && 
+        contents == *t->nthArgument(0) && sort == sd->getSort()) {
       return t;
     }
-    return Term::createLet(sd->getFunctor(), variables, binding, contents, sd->getSort());
+    return Term::createLet(sd->getFunctor(), variables, binding, contents, sort);
   }
   case Term::SF_LET_TUPLE:
   {
