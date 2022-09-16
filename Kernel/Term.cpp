@@ -1902,7 +1902,7 @@ std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
   return out<<l.toString();
 }
 
-bool operator<(const TermList& lhs, const TermList& rhs) 
+bool Kernel::operator<(const TermList& lhs, const TermList& rhs) 
 { 
   auto cmp = lhs.isTerm() - rhs.isTerm();
   if (cmp != 0) return cmp < 0;
@@ -1915,6 +1915,10 @@ bool operator<(const TermList& lhs, const TermList& rhs)
     return lhs.var() < rhs.var();
   }
 }
+
+
+bool ::operator<(const TermList& lhs, const TermList& rhs) 
+{ return Kernel::operator<(lhs,rhs); }
 
 bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
 {

@@ -43,6 +43,8 @@
 #define TERM_DIST_VAR_BITS 21
 #define TERM_DIST_VAR_UNKNOWN ((2 ^ TERM_DIST_VAR_BITS) - 1)
 
+bool operator<(Kernel::TermList const&, Kernel::TermList const&);
+
 namespace Kernel {
 
 using namespace Lib;
@@ -82,8 +84,6 @@ enum ArgumentOrderVals {
   AO_EQUAL=5,
   AO_INCOMPARABLE=6,
 };
-
-bool operator<(const TermList& lhs, const TermList& rhs);
 
 /**
  * Class containing either a pointer to a compound term or

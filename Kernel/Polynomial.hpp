@@ -46,6 +46,36 @@
 
 namespace Kernel {
 
+/**
+ * iterator over all terms t{i} in  a term (t1 + (t2 + (t3 + ... + t{n} ...)))
+ * where t{n} are variables or terms with a function symbol different from +
+ * the AC operation + can be passed as a constructor argument.
+ */
+class AcChainIter  {
+  unsigned _functor;
+  Option<TermList> _current;
+public:
+  AcChainIter(TermList current, unsigned functor)
+    : _functor(functor)
+    , _current(current) {}
+
+  DECL_ELEMENT_TYPE(TermList);
+  auto next() {
+    auto out = _current.take().unwrap();
+    if (out.isTerm() && out.term()->functor() == _functor)  {
+      ASS_EQ(out.term()->numTermArguments(), 1);
+      _current = some(out.term()->termArg(1));
+      return out.term()->termArg(0);
+    } else {
+      return out;
+    }
+  }
+
+  bool hasNext() {
+    return _current.isSome();
+  }
+};
+
 // TODO use this newtype in Term.hpp
 /** newtype for wrapping varible ids */
 class Variable 
@@ -281,8 +311,10 @@ public:
   auto iterSummands() const -> IterTraits<VirtualIterator<Monom>> ; //{ return iterTraits(_summands.iter()); }
 
   // Stack<Monom>& raw();
+  auto immediateSubterms() const -> IterTraits<VirtualIterator<PolyNf>> ; //{ return iterTraits(_summands.iter()); }
 
   static Option<Polynom> tryFromNormalized(TypedTermList t);
+
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
 };  
@@ -344,7 +376,12 @@ public:
         { return Polynom<decltype(numTraits)>::tryFromNormalized(t)
                    .map([](auto x) { return AnyPoly(std::move(x)); }); }); }
 
-  auto immediateSubterms() const -> IterTraits<VirtualIterator<PolyNf>>;
+  auto immediateSubterms() const 
+  {
+    return iterTraits(_self.apply([](auto& poly) 
+          { return pvi(poly.immediateSubterms()); }));
+  }
+  // auto immediateSubterms() const -> IterTraits<VirtualIterator<PolyNf>>;
   // using SubtermIter = decltype(this->immediateSubterms());
 };
 
@@ -465,7 +502,6 @@ class MonomFactors
   using Polynom     = Kernel::Polynom<Number>;
   using Numeral = typename Number::ConstantType;
 
-  // Stack<MonomFactor> _factors;
   TermList _inner;
 
 public:
@@ -534,8 +570,12 @@ public:
   { unsigned cnt; return replaceTerms(simplifiedTerms, cnt); }
 
   /** returns an iterator over all factors */
-  auto iter() const -> IterTraits<VirtualIterator<MonomFactor>>;
+  // auto iter() const -> IterTraits<VirtualIterator<MonomFactor>>;
   // { return iterTraits(_factors.iter()); }
+
+  auto iter() const 
+  { return iterTraits(AcChainIter(_inner, Number::mulF()))
+        .map([](auto t) { return MonomFactor::fromNormalized(t); }); }
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
