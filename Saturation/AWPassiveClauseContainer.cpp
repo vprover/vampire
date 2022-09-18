@@ -44,8 +44,106 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+
+LearnedPassiveClauseContainer::LearnedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
+  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _scores(), _queue(_scores), _size(0), _temperature(opt.npccTemperature())
+{
+  CALL("LearnedPassiveClauseContainer::LearnedPassiveClauseContainer");
+
+  ASS(_isOutermost);
+}
+
+void LearnedPassiveClauseContainer::add(Clause* cl)
+{
+  CALL("LearnedPassiveClauseContainer::add");
+
+  float* t;
+  if (_scores.getValuePtr(cl,t)) {
+    *t = scoreClause(cl);
+  } else {
+    ASS_EQ(*t,scoreClause(cl));
+  }
+  _queue.insert(cl);
+  _size++;
+
+  // cout << "Added " << cl->toString() << " size " << _size << endl;
+
+  ASS(cl->store() == Clause::PASSIVE);
+  addedEvent.fire(cl); 
+}
+
+void LearnedPassiveClauseContainer::remove(Clause* cl)
+{
+  CALL("LearnedPassiveClauseContainer::remove");
+  
+  // we never delete from _scores, maybe that's not the best?
+  _queue.remove(cl);
+
+  _size--;
+
+  // cout << "Removed " << cl->toString() << " size " << _size << endl;
+
+  removedEvent.fire(cl);
+  ASS(cl->store()!=Clause::PASSIVE);
+}
+
+Clause* LearnedPassiveClauseContainer::popSelected()
+{
+  CALL("LearnedPassiveClauseContainer::popSelected");
+
+  // TODO: here it will get trickier with the temperature and softmax sampling!
+
+  // we never delete from _scores, maybe that's not the best?
+  Clause* cl = _queue.pop();
+  _size--;
+
+  // cout << "Popped " << cl->toString() << " size " << _size << endl;
+
+  selectedEvent.fire(cl);
+  return cl;
+}
+
+float LearnedPassiveClauseContainerExper30Rich8::scoreClause(Clause* cl) 
+{
+  CALL("LearnedPassiveClauseContainerExper30Rich8::scoreClause");
+
+  Inference& inf = cl->inference();
+
+  float features[6] = {(float)cl->age(),
+                       (float)cl->size(),
+                       (float)cl->weight(),
+                       (float)cl->splitWeight(),
+                       (float)(cl->derivedFromGoal() ? 1 : 0),
+                       (float)inf.getSineLevel()};
+
+  float weight[] = {
+   0.17750899493694305, 0.4301970899105072, -0.22575949132442474, -0.5281910300254822, -0.3343266546726227, -0.3467724025249481,
+   0.9967665672302246, -0.032552435994148254, 0.12055815011262894, 0.7064186930656433, 0.5752375721931458, -0.03562523052096367,
+   -1.1139947175979614, -0.08131226152181625, 0.27828678488731384, -0.0036001463886350393, 1.0258698463439941, -0.0004782595206052065,
+   -1.667973518371582, -0.1800791174173355, 0.2666095197200775, -0.9580445289611816, -0.803350031375885, -0.06070465222001076,
+   0.16889645159244537, -0.450431764125824, 0.013268651440739632, -0.30909839272499084, 0.5091701149940491, -0.8680006861686707,
+   0.4304373562335968, 0.3508818745613098, -0.04628021642565727, -0.01123655866831541, 0.9596571326255798, 0.3488212525844574,
+   0.4510716199874878, 0.06400706619024277, 0.3206351697444916, -0.4565311670303345, -1.2873623371124268, 0.24093298614025116,
+   -0.9983522891998291, -0.34866684675216675, 0.14929981529712677, 0.027654409408569336, 1.3375648260116577, 0.1258217990398407};
+  float bias[] = {-0.10469218343496323, 0.43706417083740234, -0.4611364006996155, -0.36935943365097046, 0.11525914072990417, 0.2756221294403076, -0.45866015553474426, -0.8117114305496216};
+  float kweight[] = {0.6784864068031311, -0.7771093249320984, 1.138319730758667, 0.3890429139137268, 0.6841748356819153, 0.6464572548866272, -1.2347546815872192, 0.4839847981929779};
+
+  float res = 0.0;
+  for (int i = 0; i < 8; i++) {
+      float tmp = bias[i];
+      for (int j = 0; j < 6; j++) {
+          tmp += features[j]*weight[6*i+j];
+      }
+      if (tmp < 0.0) {
+          tmp = 0.0;
+      }
+      res += tmp*kweight[i];
+  }
+  return res;
+}
+
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
-  : PassiveClauseContainer(isOutermost, opt), _size(0), _temperature(opt.npccTemperature())
+  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _size(0), _temperature(opt.npccTemperature())
 {
   CALL("NeuralPassiveClauseContainer::NeuralPassiveClauseContainer");
 

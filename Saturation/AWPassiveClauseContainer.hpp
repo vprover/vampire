@@ -19,6 +19,7 @@
 #include <memory>
 #include <vector>
 #include "Lib/Comparison.hpp"
+#include "Lib/DHMap.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
@@ -60,33 +61,34 @@ private:
   const Shell::Options& _opt;
 };
 
-/**
- * 
- * 
- */
-class NeuralPassiveClauseContainer
-: public PassiveClauseContainer
+class ScoreQueue
+  : public ClauseQueue
 {
 public:
-  CLASS_NAME(NeuralPassiveClauseContainer);
-  USE_ALLOCATOR(NeuralPassiveClauseContainer);
-
-  NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
-  virtual ~NeuralPassiveClauseContainer(){}
-
-  unsigned sizeEstimate() const override { return _size; }
-  bool isEmpty() const override { return _size == 0; }
-  void add(Clause* cl) override;
-  void remove(Clause* cl) override;
-
-  Clause* popSelected() override; 
-  
+  ScoreQueue(const DHMap<Clause*,float>& scores) : _scores(scores) {}
+protected:
+  virtual bool lessThan(Clause* c1,Clause* c2) {
+    auto sc1 = _scores.get(c1);
+    auto sc2 = _scores.get(c2);
+    // reversing the order here: NNs think large is good, queues think small is good
+    if (sc1 > sc2) {
+      return true;
+    }
+    if (sc1 < sc2) {
+      return false;
+    }
+    return c1->number() < c2->number();
+  }
 private:
-  DHSet<Clause*> _known;
-  DHMap<unsigned,Clause*> _clausesById;
-  torch::jit::script::Module _model;
-  unsigned _size;
-  float _temperature;
+  const DHMap<Clause*,float>& _scores;
+};
+
+class LRSIgnoringPassiveClauseContainer
+: public PassiveClauseContainer 
+{
+public:
+  LRSIgnoringPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost,opt) {}
+  virtual ~LRSIgnoringPassiveClauseContainer() {}
 
   /*
    * LRS specific methods for computation of Limits
@@ -120,6 +122,74 @@ public:
   bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
 
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }  
+};
+
+class LearnedPassiveClauseContainer
+: public LRSIgnoringPassiveClauseContainer
+{
+protected:
+  virtual float scoreClause(Clause*) = 0;
+public:
+  CLASS_NAME(LearnedPassiveClauseContainer);
+  USE_ALLOCATOR(LearnedPassiveClauseContainer);
+
+  LearnedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
+  virtual ~LearnedPassiveClauseContainer() {}
+
+  unsigned sizeEstimate() const override { return _size; }
+  bool isEmpty() const override { return _size == 0; }
+
+  void add(Clause* cl) override;
+  void remove(Clause* cl) override;
+  Clause* popSelected() override; 
+private:
+  DHMap<Clause*,float> _scores;
+  ScoreQueue _queue;
+  unsigned _size;
+  float _temperature;
+};
+
+class LearnedPassiveClauseContainerExper30Rich8
+: public LearnedPassiveClauseContainer
+{
+public:
+  CLASS_NAME(LearnedPassiveClauseContainerExper30Rich8);
+  USE_ALLOCATOR(LearnedPassiveClauseContainerExper30Rich8);
+
+  LearnedPassiveClauseContainerExper30Rich8(bool isOutermost, const Shell::Options& opt) :
+    LearnedPassiveClauseContainer(isOutermost,opt) {}
+  ~LearnedPassiveClauseContainerExper30Rich8() override {}
+protected:
+  float scoreClause(Clause*) override;
+};
+
+/**
+ * 
+ * 
+ */
+class NeuralPassiveClauseContainer
+: public LRSIgnoringPassiveClauseContainer
+{
+public:
+  CLASS_NAME(NeuralPassiveClauseContainer);
+  USE_ALLOCATOR(NeuralPassiveClauseContainer);
+
+  NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
+  virtual ~NeuralPassiveClauseContainer(){}
+
+  unsigned sizeEstimate() const override { return _size; }
+  bool isEmpty() const override { return _size == 0; }
+  void add(Clause* cl) override;
+  void remove(Clause* cl) override;
+
+  Clause* popSelected() override; 
+  
+private:
+  DHSet<Clause*> _known;
+  DHMap<unsigned,Clause*> _clausesById;
+  torch::jit::script::Module _model;
+  unsigned _size;
+  float _temperature;
 };
 
 /**

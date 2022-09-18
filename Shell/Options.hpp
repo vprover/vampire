@@ -2249,7 +2249,7 @@ public:
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
 
-  vstring neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
+  const vstring& neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
   float npccTemperature() const { return _npccTemperature.actualValue; }
 
   int ageRatio() const { return _ageWeightRatio.actualValue; }
