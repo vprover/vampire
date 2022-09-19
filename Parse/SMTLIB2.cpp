@@ -901,6 +901,9 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 
     while (constrRdr.hasNext()) {
       LExpr *arg = constrRdr.next();
+      if (arg->isAtom()) {
+        USER_ERROR_EXPR("Constructor argument must be a pair of destructor name and argument type:" + arg->toString());
+      }
       LispListReader argRdr(arg);
       destructorNames.push(argRdr.readAtom());
       argSorts.push(parseSort(argRdr.next()));
