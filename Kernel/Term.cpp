@@ -20,6 +20,7 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+#include "ApplicativeHelper.hpp"
 
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"
@@ -486,6 +487,114 @@ bool Term::isRedex() {
   return TermList(this).isRedex();   
 }
 
+bool TermList::isNot() { 
+  CALL("TermList::isNot");
+  
+  return !isVar() && term()->isNot();
+}
+
+bool Term::isNot() const {
+  CALL("Term::isNot");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::NOT;  
+}
+
+bool TermList::isSigma() { 
+  CALL("TermList::isSigma");
+  
+  return !isVar() && term()->isSigma();
+}
+
+bool Term::isSigma() const {
+  CALL("Term::isSigma");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::SIGMA;  
+}
+
+bool TermList::isPi() { 
+  CALL("TermList::isPi");
+  
+  return !isVar() && term()->isPi();
+}
+
+bool Term::isPi() const {
+  CALL("Term::isPi");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::PI;  
+}
+
+bool TermList::isIff() { 
+  CALL("TermList::isIff");
+  
+  return !isVar() && term()->isIff();
+}
+
+bool Term::isIff() const {
+  CALL("Term::isIff");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::IFF;  
+}
+
+bool TermList::isAnd() { 
+  CALL("TermList::isAnd");
+  
+  return !isVar() && term()->isAnd();
+}
+
+bool Term::isAnd() const {
+  CALL("Term::isAnd");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::AND;  
+}
+
+bool TermList::isOr() { 
+  CALL("TermList::isOr");
+  
+  return !isVar() && term()->isOr();
+}
+
+bool Term::isOr() const {
+  CALL("Term::isOr");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::OR;  
+}
+
+bool TermList::isXOr() { 
+  CALL("TermList::isXOr");
+  
+  return !isVar() && term()->isXOr();
+}
+
+bool Term::isXOr() const {
+  CALL("Term::isXOr");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::XOR;  
+}
+
+bool TermList::isImp() { 
+  CALL("TermList::isImp");
+  
+  return !isVar() && term()->isImp();
+}
+
+bool Term::isImp() const {
+  CALL("Term::isImp");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::IMP;  
+}
+
+bool TermList::isEquals() { 
+  CALL("TermList::isEquals");
+  
+  return !isVar() && term()->isEquals();
+}
+
+bool Term::isEquals() const {
+  CALL("Term::isEquals");
+
+  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::EQUALS;  
+}
+
 Option<unsigned> TermList::deBruijnIndex() const {
   CALL("TermList::deBruijnIndex");
   return isVar() ? Option<unsigned>() : term()->deBruijnIndex();  
@@ -780,27 +889,8 @@ vstring Term::headToString() const
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
 #if VHOL
-      case Term:: SF_LAMBDA: {
-        VList* vars = sd->getLambdaVars();
-        SList* sorts = sd->getLambdaVarSorts();
-        TermList lambdaExp = sd->getLambdaExp();
-     
-        vstring varList = "[";
-         
-        VList::Iterator vs(vars);
-        SList::Iterator ss(sorts);
-        TermList sort;
-        bool first = true;
-        while(vs.hasNext()) {
-          if (!first){
-            varList += ", ";
-          }else{ first = false; }
-          varList += Term::variableToString(vs.next()) + " : ";
-          varList += ss.next().toString(); 
-        }
-        varList += "]";        
-        return "(^" + varList + " : (" + lambdaExp.toString() + "))";
-      }
+      case Term::SF_LAMBDA: 
+        ASSERTION_VIOLATION;
 #endif
       case Term::SF_MATCH: {
         // we simply let the arguments be written out
@@ -821,11 +911,6 @@ vstring Term::headToString() const
       name = static_cast<const AtomicSort *>(this)->typeConName();
     } else {
       name = functionName();
-#if VHOL
-      if(deBruijnIndex().isSome()){
-        name = name + "_" + Int::toString(deBruijnIndex().unwrap());
-      }
-#endif
     }
     return name + (arity() ? "(" : "");
   }
@@ -883,7 +968,7 @@ vstring TermList::asArgsToString() const
  * Write as a vstring the head of the term list.
  * @since 27/02/2008 Manchester
  */
-vstring TermList::toString(bool topLevel) const
+vstring TermList::toString() const
 {
   CALL("TermList::toString");
 
@@ -893,7 +978,19 @@ vstring TermList::toString(bool topLevel) const
   if (isVar()) {
     return Term::variableToString(*this);
   }
-  return term()->toString(topLevel);
+
+#if VHOL
+  if(env.options->holPrinting() == Options::HPrinting::PRETTY){
+    if(ApplicativeHelper::isTrue(*this)){
+      return "⊤";
+    }
+    if(ApplicativeHelper::isFalse(*this)){
+      return "⊥";
+    }    
+  }
+#endif
+
+  return term()->toString();
 } // TermList::toString
 
 
@@ -901,7 +998,7 @@ vstring TermList::toString(bool topLevel) const
  * Return the result of conversion of a term into a vstring.
  * @since 16/05/2007 Manchester
  */
-vstring Term::toString(bool topLevel) const
+vstring Term::toString() const
 {
   CALL("Term::toString");
 
@@ -910,32 +1007,9 @@ vstring Term::toString(bool topLevel) const
   }
 
 #if VHOL
-  if(!isSpecial() && !isLiteral()){
-    if(isArrowSort()){
-      ASS(arity() == 2);
-      vstring res;
-      TermList arg1 = *(nthArgument(0));
-      TermList arg2 = *(nthArgument(1));
-      res += topLevel ? "" : "("; 
-      res += arg1.toString(false) + " > " + arg2.toString();
-      res += topLevel ? "" : ")";
-      return res;
-    }
-    if(env.options->prettyHolPrinting()){
-      vstring res;      
-      if(isApplication()){
-        TermList lhs = *(nthArgument(2));
-        TermList rhs = *(nthArgument(3));
-        res += topLevel ? "" : "("; 
-        res += lhs.toString() + " " + rhs.toString(false);
-        res += topLevel ? "" : ")";
-        return res;
-      }
-      if(isLambdaTerm()){
-        res = "(^." +  nthArgument(2)->toString() + ")";
-        return res;
-      }
-    }
+  if(env.property->higherOrder() && env.options->holPrinting() != Options::HPrinting::RAW){
+    IndexVarStack st;
+    return toString(true, st);
   }
 #endif
 
@@ -946,6 +1020,173 @@ vstring Term::toString(bool topLevel) const
   }
   return s;
 } // Term::toString
+
+#if VHOL
+
+vstring Term::toString(bool topLevel, IndexVarStack& st) const
+{
+  CALL("Term::toString(bool, ...)");
+
+  auto termToStr = [](TermList t, bool top, IndexVarStack& st){
+    if (t.isVar()) {
+      return Term::variableToString(t);
+    }
+    return t.term()->toString(top, st);
+  };
+
+  auto incrementAll = [](IndexVarStack& st){
+    for(unsigned i=0; i < st.size(); i++){
+      st[i] = make_pair(++st[i].first, st[i].second);
+    }
+  };
+
+  auto findVar = [](int index, IndexVarStack& st){
+    for(unsigned i=0; i < st.size(); i++){
+      if(st[i].first == index){
+        return st[i].second;
+      }
+    }
+    ASSERTION_VIOLATION;
+  };
+
+  ASS(!isLiteral());
+
+  //TODO does not print polymorphic sorts correctly
+  auto printSetting = env.options->holPrinting();
+  bool pretty = printSetting == Options::HPrinting::PRETTY;
+  bool db     = printSetting == Options::HPrinting::DB_INDICES;
+
+  vstring res;
+  if(isSpecial()){
+    const Term::SpecialTermData* sd = getSpecialData();    
+    switch(functor()) {
+      case Term::SF_FORMULA: {
+        return sd->getFormula()->toString();
+      }
+      case Term:: SF_LAMBDA: {
+        VList* vars = sd->getLambdaVars();
+        SList* sorts = sd->getLambdaVarSorts();
+        TermList lambdaExp = sd->getLambdaExp();
+     
+        vstring varList = pretty ? "" : "[";
+         
+        VList::Iterator vs(vars);
+        SList::Iterator ss(sorts);
+        TermList sort;
+        bool first = true;
+        while(vs.hasNext()) {
+          varList += first ? "" : ", ";
+          first = false;
+          varList += Term::variableToString(vs.next()) + " : ";
+          varList += ss.next().toString(); 
+        }
+        varList += pretty ? "" : "]";      
+        vstring lambda = pretty ? "λ" : "^";
+        return "(" + lambda + varList + " : (" + lambdaExp.toString() + "))";
+      }
+      default:
+        // currently HOL doesn't support any other specials
+        ASSERTION_VIOLATION;
+    }    
+  }      
+  if(isArrowSort()){
+    ASS(arity() == 2);
+    TermList arg1 = *(nthArgument(0));
+    TermList arg2 = *(nthArgument(1));
+    vstring arrow = pretty ? " → " : " > ";
+    res += topLevel ? "" : "("; 
+    res += termToStr(arg1,false,st) + arrow + termToStr(arg2,true,st);
+    res += topLevel ? "" : ")";
+    return res;
+  }
+  if(isSort()){
+    auto sort = static_cast<const AtomicSort*>(this);
+    if(sort->isBoolSort() && pretty) return "ο";
+    if(sort->functor() == Signature::DEFAULT_SORT_CON && pretty) return "ι";
+    // any non-arrow sort
+    res = sort->typeConName();
+    if(pretty && arity()) res += "⟨";
+    for(unsigned i = 0; i < arity(); i++){
+      res += pretty && i != 0 ? ", " : "";
+      res += !pretty ? " @ " : "";
+      res += termToStr(*nthArgument(i),pretty,st);
+    }
+    if(pretty && arity()) res += "⟩";
+    return res;
+  }
+  if(isLambdaTerm()){
+    unsigned v = st.size() ? st.top().second + 1 : 0;
+    vstring bvar = (pretty ? "y" : "Y") + Int::toString(v);
+    bvar = !pretty ? "[" + bvar + " : " + termToStr(*nthArgument(0),true,st) + "]" : bvar;
+    bvar = db ? "" : bvar;
+
+    IndexVarStack newSt(st);
+    incrementAll(newSt);
+    newSt.push(make_pair(0, v));
+
+    vstring sep = pretty || db ? ". " : ": ";
+    vstring lambda = pretty ? "λ" : "^";
+
+    res = "(" + lambda + bvar + sep +  "(" + termToStr(*nthArgument(2),true,newSt) + "))";
+    return res;
+  }
+  if(deBruijnIndex().isSome() && !db){
+    unsigned var = findVar(deBruijnIndex().unwrap(), st);
+    return (pretty ? "y" : "Y") + Int::toString(var);
+  }
+
+  TermList head;
+  TermStack args;
+  ApplicativeHelper::getHeadAndArgs(this, head, args);
+
+  vstring headStr;
+  if(head.isVar() || (head.deBruijnIndex().isSome() && !db) || head.isLambdaTerm()){ 
+    headStr = termToStr(head,false,st);
+  }
+  else if(head.isNot()){ headStr = pretty ? "¬" : "~"; }
+  else if(head.isSigma()){ headStr = pretty ? "Σ" : "??"; }
+  else if(head.isPi()){ headStr = pretty ? "Π" : "!!"; }
+  else if(head.isAnd()){ headStr = pretty ? "∧" : "&"; }
+  else if(head.isOr()){ headStr = pretty ? "∨" : "|"; }
+  else if(head.isXOr()){ headStr = pretty ? "⊕" : "<~>"; }  
+  else if(head.isImp()){ headStr = pretty ? "⇒" : "=>"; }    
+  else if(head.isIff() || head.isEquals()){ headStr = pretty ? "≈" : "="; }
+  else { 
+    headStr = head.term()->functionName();
+    if(head.deBruijnIndex().isSome()){
+      headStr = headStr + "_" + Int::toString(head.deBruijnIndex().unwrap());
+    }
+  }
+
+  if(head.isTerm() && !head.isEquals() && !head.isLambdaTerm() && head.term()->arity()){
+    Term* t = head.term();
+    if(pretty) headStr += "⟨";
+    for(unsigned i = 0; i < t->arity(); i++){
+      headStr += pretty && i != 0 ? ", " : "";
+      headStr += !pretty ? " @ " : "";
+      headStr += termToStr(*t->nthArgument(i),pretty,st);
+    }
+    if(pretty) headStr += "⟩";
+  }
+
+  res += (!topLevel && args.size()) ? "(" : ""; 
+
+  if((head.isAnd() || head.isOr() || head.isIff() || head.isEquals() || head.isImp() || head.isXOr()) && 
+      args.size() == 2){
+    res += termToStr(args[0],false,st) + " " + headStr + " " + termToStr(args[1],false,st);
+  } else {
+    vstring app = pretty || head.isNot() ? " " : " @ ";
+    res += headStr;
+    for(unsigned i = 0; i < args.size(); i++){
+      res += app + termToStr(args[i],false,st);
+    }
+  }
+  res += (!topLevel && args.size()) ? ")" : "";
+  return res;
+}
+
+#endif
+
 
 /**
  * Return the result of conversion of a literal into a vstring.
@@ -958,12 +1199,13 @@ vstring Literal::toString() const
   if (isEquality()) {
     const TermList* lhs = args();
     vstring s = lhs->toString();
-    if (isPositive()) {
-      s += " = ";
+    vstring eqSym = isPositive() ? " = " : " != ";
+#if VHOL
+    if(env.options->holPrinting() == Options::HPrinting::PRETTY){
+      eqSym = isPositive() ? " ≈ " : " ≉ ";
     }
-    else {
-      s += " != ";
-    }
+#endif    
+    s += eqSym;
 
     vstring res = s + lhs->next()->toString();
     if (

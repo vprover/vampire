@@ -568,6 +568,27 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     sym = env.signature->getPredicate(symNumber);    
   }
 
+#if VHOL
+  auto printingMode = env.options->holPrinting();
+  if(printingMode != Options::HPrinting::RAW){
+    if(sym->proxy() != Signature::NOT_PROXY){
+      return;
+    }
+    if(sym->dbIndex().isSome()){
+      return;
+    }
+    if(function && env.signature->isAppFun(symNumber)){
+      return;
+    }
+    if(function && env.signature->isLamFun(symNumber)){
+      return;
+    }
+    if(typeCon && env.signature->isArrowCon(symNumber)){
+      return;
+    }         
+  }
+#endif
+
   if (typeCon && (env.signature->isArrayCon(symNumber) ||
                   env.signature->isTupleCon(symNumber))){
     return;
@@ -613,20 +634,15 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   bool higherOrder = false;
 #if VHOL
   higherOrder = env.property->higherOrder();
-
-  //don't output type of app. It is an internal Vampire thing
-  if(!(function && env.signature->isAppFun(symNumber))){
 #endif
 
-    out << (higherOrder ? "thf(" : "tff(")
-        << (function ? "func" : (typeCon ?  "type" : "pred")) 
-        << "_def_" << symNumber << ", type, "
-        << sym->name() << ": ";
-    out << type->toString();
-    out << ")." << endl;
-#if VHOL    
-  }
-#endif
+  out << (higherOrder ? "thf(" : "tff(")
+      << (function ? "func" : (typeCon ?  "type" : "pred")) 
+      << "_def_" << symNumber << ", type, "
+      << sym->name() << ": ";
+  out << type->toString();
+  out << ")." << endl;
+  
   //out << ")." << endl;
 }
 

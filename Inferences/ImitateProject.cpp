@@ -93,8 +93,6 @@ struct ImitateProject::ResultFn
     while(!constraints.isEmpty()){
       (*res)[next++] = constraints.pop();
     }
-    cout << "IN " << _cl->toString() << endl;
-    cout << "OUT " << res->toString() << endl;
     return res;    
   }
 
@@ -153,34 +151,14 @@ struct ImitateProject::ResultFn
     }
 
     TermStack args;
-    TermStack args2;
-
-    auto surroundWithLambdas = [](TermList t, TermStack& sorts){
-      ASS(t.isTerm());
-      for(int i = 0; i < sorts.size(); i++){
-        t = AH::createLambdaTerm(sorts[i], SortHelper::getResultSort(t.term()), t);
-      }
-      return t;
-    };
-
-    cout << "CLAUSE " << _cl->toString() << endl;
 
     { // imitation
       unsigned fVar = _maxVar;
 
-      for(unsigned i = 0; i < argsRigid.size(); i++){
-        TermList freshVar(++fVar, false);
-        TermList varSort = AtomicSort::arrowSort(sortsFlex, sortsRigid[i]);
-        args.push(AH::createAppTerm(varSort, freshVar, deBruijnIndices));
-        args2.push(AH::createAppTerm(varSort, freshVar, argsFlex));      
-      }
-      TermList headRigidSort = SortHelper::getResultSort(headRigid.term());
-      //pb stands for partial binding
-      TermList pb = AH::createAppTerm(headRigidSort, headRigid, args);
-      pb = surroundWithLambdas(pb, sortsFlex); 
+      TermList pb = AH::createGeneralBinding(fVar,headRigid,argsFlex,sortsFlex,deBruijnIndices,args);
 
       _subst.bind(headFlex.var(), pb);
-      getConstraints(args2, argsRigid, sortsRigid, newConstraints);
+      getConstraints(args, argsRigid, sortsRigid, newConstraints);
       results.push(createRes(InferenceRule::IMITATE, newConstraints, lit, true));
     }
   
@@ -189,34 +167,21 @@ struct ImitateProject::ResultFn
       // try and project each of the arguments of the flex head in turn
       _subst.reset();
       args.reset();
-      args2.reset();
       TermList arg = argsFlex[i];
       TermList argSort = sortsFlex[i];
       // sort wrong, cannot project this arg
       if(argSort.finalResult() != sort) continue;
       TermList head;
-      AH::getHeadAndArgs(arg, head, args2);
+      AH::getHeadAndArgs(arg, head, args);
       // argument has a rigid head different to that of rhs. no point projecting
       if(!head.isVar() && head != headRigid) continue;
 
       unsigned fVar = _maxVar;
-      for(unsigned j = 0; j < AH::getArity(argSort); j++){
-        TermList freshVar(++fVar, false);
-        TermList varSort = AtomicSort::arrowSort(sortsFlex, AH::getNthArg(argSort, j + 1));
-        args.push(AH::createAppTerm(varSort, freshVar, deBruijnIndices));
-        args2.push(AH::createAppTerm(varSort, freshVar, argsFlex));      
-      }
-      cout << "ARG " << arg.toString() << endl;
-      cout << "ARG SORT " << argSort.toString() << endl;
-      cout << "INDEX " << deBruijnIndices[i].toString() << endl;
-      cout << "INDEX SORT " << SortHelper::getResultSort(deBruijnIndices[i].term()).toString() << endl;
-      TermList pb = AH::createAppTerm(argSort, deBruijnIndices[i], args);
-      pb = surroundWithLambdas(pb, sortsFlex); 
-      cout << "PB " << pb.toString() << endl;
+      TermList pb = AH::createGeneralBinding(fVar,deBruijnIndices[i],argsFlex,sortsFlex,deBruijnIndices,args);
 
       _subst.bind(headFlex.var(), pb);
       if(!head.isVar()){
-        getConstraints(args2, argsRigid, sortsRigid, newConstraints);
+        getConstraints(args, argsRigid, sortsRigid, newConstraints);
       }
       results.push(createRes(InferenceRule::PROJECT, newConstraints, lit, !head.isVar()));
     }

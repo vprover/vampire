@@ -38,6 +38,21 @@ using namespace Lib;
 
 class Formula
 {
+private:
+
+  static vstring* names(){
+    CALL("Formula::names");
+#if VHOL
+    if(env.options->holPrinting() == Shell::Options::HPrinting::PRETTY){
+      static vstring names [] = { "", "∧", "∨", "⇒", "⇔", "⊕", "¬", "∀", "∃", "$var", "⊥", "⊤","",""};
+      return names;
+    }
+#endif
+
+    static vstring names [] = { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true","",""};
+    return names;
+  }
+
 public:
   /**
    * Constructor of constant formulas (true/false)

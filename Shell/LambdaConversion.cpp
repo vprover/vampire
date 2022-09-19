@@ -129,7 +129,7 @@ TermList LambdaConversion::convertLambda(Formula* formula, VarToIndexMap& map)
       SList* sort = SList::singleton(TermList(0, true)); //dummy data
       VList* var = VList::singleton(0);
 
-      TermList form = convertLambda(formula->qarg(), map);
+      TermList form = TermList(Term::createFormula(formula->qarg()));
       vstring name = (conn == FORALL ? "vPI" : "vSIGMA");
       unsigned proxy = env.signature->getPiSigmaProxy(name);
 
@@ -139,11 +139,11 @@ TermList LambdaConversion::convertLambda(Formula* formula, VarToIndexMap& map)
         ALWAYS(SortHelper::tryGetVariableSort(v, formula->qarg(), s));
         var->setHead(v);
         sort->setHead(s);
-        form = convertLambda(TermList(Term::createLambda(form, var, sort, AtomicSort::boolSort())), map); 
+        auto t = TermList(Term::createLambda(form, var, sort, AtomicSort::boolSort()));  
         constant = TermList(Term::create1(proxy, s));
-        form = AH::createAppTerm(sortOf(constant), constant, form);
+        form = AH::createAppTerm(sortOf(constant), constant, t);
       }
-      return form;
+      return convertLambda(form, map);
     }
     case BOOL_TERM:
       return convertLambda(formula->getBooleanTerm(), map);

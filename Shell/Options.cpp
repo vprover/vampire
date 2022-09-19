@@ -1871,11 +1871,16 @@ void Options::init()
     _lookup.insert(&_complexVarCondition);
     _complexVarCondition.tag(OptionTag::HIGHER_ORDER);
 
-    _prettyHolPrinting = BoolOptionValue("pretty_hol_printing","php",false);
-    _prettyHolPrinting.description=
-    "Outputs HOL terms in a 'pretty' but not TPTP compliant format.";
-    _lookup.insert(&_prettyHolPrinting);
-    _prettyHolPrinting.tag(OptionTag::HIGHER_ORDER);
+    _holPrinting = ChoiceOptionValue<HPrinting>("pretty_hol_printing","php",HPrinting::TPTP,
+                                                            {"raw","db","pretty","tptp"});
+    _holPrinting.description=
+    "Various methods of printing higher-order terms: \n"
+    " -raw : prints the internal representation of terms \n"
+    " -pretty : converts internal representation to somethign resemblign textbook notation \n"
+    " -tptp : matches tptp standards \n"
+    " -db : same as tptp, except that De Bruijn indices printed instead of named variables";
+    _lookup.insert(&_holPrinting);
+    _holPrinting.tag(OptionTag::HIGHER_ORDER);
 
 #endif
 

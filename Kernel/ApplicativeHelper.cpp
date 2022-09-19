@@ -1,3 +1,4 @@
+
 /*
  * This file is part of the source code of the software program
  * Vampire. It is protected by applicable
@@ -367,14 +368,6 @@ TermList ApplicativeHelper::getResultApplieadToNArgs(TermList arrowSort, unsigne
   return arrowSort;
 }
 
-TermList ApplicativeHelper::headSort(TermList app)
-{
-  CALL("ApplicativeHelper::getHeadSort");
-  ASS(app.isApplication());
-
-  return AtomicSort::arrowSort(*app.term()->nthArgument(0), *app.term()->nthArgument(1));
-}
-
 /** indexed from 1 */
 TermList ApplicativeHelper::getNthArg(TermList arrowSort, unsigned argNum)
 {
@@ -449,6 +442,11 @@ void ApplicativeHelper::getArgSorts(TermList t, TermStack& sorts)
 {
   CALL("ApplicativeHelper::getArgSorts");
 
+  while(t.isArrowSort()){
+    sorts.push(*t.term()->nthArgument(0));
+    t = *t.term()->nthArgument(1);    
+  }
+
   while(t.isApplication()){
     sorts.push(*t.term()->nthArgument(0));
     t = t.lhs();
@@ -489,6 +487,13 @@ void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& ar
 
 }
 
+void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, TermStack& args)
+{
+  CALL("ApplicativeHelper::getHeadAndArgs/5");
+
+  getHeadAndArgs(const_cast<Term*>(term),head,args);
+}
+
 void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args)
 {
   CALL("ApplicativeHelper::getHeadAndArgs/3");
@@ -522,13 +527,70 @@ bool ApplicativeHelper::isBool(TermList t){
 
 bool ApplicativeHelper::isTrue(TermList term){
   CALL("ApplicativeHelper::isTrue");
-  return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
+  return term.isTerm() && !term.term()->isSort() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
 }
 
 bool ApplicativeHelper::isFalse(TermList term){
   CALL("ApplicativeHelper::isFalse");
-  return term.isTerm() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
+  return term.isTerm() && !term.term()->isSort() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
 }
+
+TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList head, 
+  TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, TermStack& args2){
+  CALL("ApplicativeHelper::createGeneralBinding");
+  ASS(head.isTerm());
+  ASS(argsFlex.size() == sortsFlex.size());
+  ASS(indices.size() == argsFlex.size());
+
+  auto surroundWithLambdas = [](TermList t, TermStack& sorts){
+    ASS(t.isTerm());
+    for(int i = 0; i < sorts.size(); i++){
+      t = createLambdaTerm(sorts[i], SortHelper::getResultSort(t.term()), t);
+    }
+    return t;
+  };
+
+  TermStack args;
+  TermStack argSorts;
+  TermList headSort = SortHelper::getResultSort(head.term());
+  getArgSorts(headSort, argSorts);
+
+  for(unsigned i = 0; i < argSorts.size(); i++){
+    TermList fVar(++freshVar, false);
+    TermList varSort = AtomicSort::arrowSort(sortsFlex, argSorts[i]);
+    args.push(createAppTerm(varSort, fVar, indices));
+    args2.push(createAppTerm(varSort, fVar, argsFlex));      
+  }
+
+  TermList pb = createAppTerm(headSort, head, args);
+  return surroundWithLambdas(pb, sortsFlex); 
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #endif

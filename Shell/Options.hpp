@@ -744,6 +744,13 @@ public:
     FALSE_TRUE_NOT_EQ_NOT_EQ = 3
   };
 
+  enum class HPrinting : unsigned int {
+    RAW = 0,
+    DB_INDICES = 1,
+    PRETTY = 2,
+    TPTP = 3
+  };
+
     //==========================================================
     // The Internals
     //==========================================================
@@ -2402,7 +2409,7 @@ public:
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   bool complexVarCondition() const { return _complexVarCondition.actualValue; }
-  bool prettyHolPrinting() const { return _prettyHolPrinting.actualValue; }
+  HPrinting holPrinting() const { return _holPrinting.actualValue; }
 #endif
   // For unit testing
 
@@ -2837,7 +2844,7 @@ private:
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
   BoolOptionValue _complexVarCondition;
-  BoolOptionValue _prettyHolPrinting;
+  ChoiceOptionValue<HPrinting> _holPrinting;
 #endif
 
 }; // class Options

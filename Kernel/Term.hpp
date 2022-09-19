@@ -157,7 +157,7 @@ public:
   { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
-  vstring toString(bool topLevel = true) const;
+  vstring toString() const;
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
   { _content = vnumber * 4 + ORD_VAR; }
@@ -193,6 +193,15 @@ public:
   bool isApplication() const;
   bool isLambdaTerm() const;  
   bool isRedex();
+  bool isNot();
+  bool isSigma();
+  bool isPi();
+  bool isIff();
+  bool isAnd();
+  bool isOr();
+  bool isXOr();
+  bool isImp();
+  bool isEquals();
   Option<unsigned> deBruijnIndex() const;
   TermList lhs() const;
   TermList rhs() const;
@@ -441,7 +450,7 @@ public:
   /** Function or predicate symbol of a term */
   const unsigned functor() const { return _functor; }
 
-  vstring toString(bool topLevel = true) const;
+  vstring toString() const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
 
@@ -673,12 +682,27 @@ public:
   bool isSort() const { return _args[0]._info.sort; }
 
 #if VHOL
+
+  typedef Stack<pair<int, unsigned>> IndexVarStack;
+
+  vstring toString(bool topLevel, IndexVarStack& map) const;
   /** true if the term is an application */
   bool isApplication() const;
   /** true if the term is a lambda term */
   bool isLambdaTerm() const;
   /** true if the term is a redex */
   bool isRedex();
+  /** true if the term is a negation of a Boolean term*/
+  bool isNot() const;
+
+  bool isSigma() const;
+  bool isPi() const;
+  bool isIff() const;
+  bool isAnd() const;
+  bool isOr() const;
+  bool isXOr() const;
+  bool isImp() const;  
+  bool isEquals() const;  
   /** true if term is a sort which is a arrow sort */
   bool isArrowSort() const;
 
