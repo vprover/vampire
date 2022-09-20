@@ -46,12 +46,14 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+typedef ApplicativeHelper AH;
+
 Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 {
   CALL("Choice::createChoiceAxiom");
 
   TermList opType = SortHelper::getResultSort(op.term());
-  TermList setType = ApplicativeHelper::getNthArg(opType, 1);
+  TermList setType = AH::getNthArg(opType, 1);
 
   unsigned max = 0;
   FormulaVarIterator fvi(&set);
@@ -63,14 +65,14 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   }
   TermList freshVar = TermList(max+1, false);
 
-  TermList t1 = ApplicativeHelper::createAppTerm(setType, set, freshVar);
-  TermList t2 = ApplicativeHelper::createAppTerm(opType, op, set);
-  t2 =  ApplicativeHelper::createAppTerm(setType, set, t2);
+  TermList t1 = AH::app(setType, set, freshVar);
+  TermList t2 = AH::app(opType, op, set);
+  t2 =  AH::app(setType, set, t2);
 
   Clause* axiom = new(2) Clause(2, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM));
 
-  (*axiom)[0] = Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort());;
-  (*axiom)[1] = Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort());;
+  (*axiom)[0] = Literal::createEquality(true, t1, AH::bottom(), AtomicSort::boolSort());;
+  (*axiom)[1] = Literal::createEquality(true, t2, AH::top(), AtomicSort::boolSort());;
 
   return axiom;
 }
@@ -82,9 +84,9 @@ struct Choice::AxiomsIterator
     CALL("Choice::AxiomsIterator");
 
     ASS(term.isTerm());
-    _set = *term.term()->nthArgument(3);
+    _set = term.rhs();
     _headSort = AtomicSort::arrowSort(*term.term()->nthArgument(0),*term.term()->nthArgument(1));
-    _resultSort = ApplicativeHelper::getResultApplieadToNArgs(_headSort, 1);
+    _resultSort = AH::getResultApplieadToNArgs(_headSort, 1);
 
     //cout << "the result sort is " + _resultSort.toString() << endl;
 
@@ -212,16 +214,13 @@ ClauseIterator Choice::generateClauses(Clause* premise)
   
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();
-  //filter out literals that are not suitable for narrowing
+ 
   auto it2 = getMapAndFlattenIterator(it1, SubtermsFn());
 
-  //pair of literals and possible rewrites that can be applied to literals
   auto it3 = getFilteredIterator(it2, IsChoiceTerm());
   
-  //apply rewrite rules to literals
   auto it4 = getMapAndFlattenIterator(it3, ResultFn());
   
-
   return pvi( it4 );
 
 }

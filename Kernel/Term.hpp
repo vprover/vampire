@@ -207,6 +207,7 @@ public:
   TermList rhs() const;
   TermList lambdaBody() const;
   TermList head();
+  TermList domain();
   TermList result();
   TermList finalResult();
 #endif
@@ -451,6 +452,8 @@ public:
   const unsigned functor() const { return _functor; }
 
   vstring toString() const;
+  // auxiliary function to print lambda specials
+  vstring lambdaToString(const SpecialTermData* sd, bool pretty = false) const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
 

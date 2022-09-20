@@ -258,8 +258,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
   } else {
     TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));
-    TermList headS = SortHelper::getResultSort(head.term());
-    TermList t = ApplicativeHelper::createAppTerm(headS, head, arg);
+    TermList t = ApplicativeHelper::app(head, arg);
     return Literal::createEquality(true, t, boolT, AtomicSort::boolSort());
   }
 #endif

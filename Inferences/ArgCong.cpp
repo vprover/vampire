@@ -84,8 +84,8 @@ struct ArgCong::ResultFn
       alpha2 = TermList(_freshVar+2, false);
       subst.bind(eqSort.var(), AtomicSort::arrowSort(alpha1, alpha2));
     } else {
-      alpha1 = *eqSort.term()->nthArgument(0);
-      alpha2 = *eqSort.term()->nthArgument(1);
+      alpha1 = eqSort.domain();
+      alpha2 = eqSort.result();
     }
 
     TermList freshVar = TermList(_freshVar, false);
@@ -95,8 +95,8 @@ struct ArgCong::ResultFn
       lhs = SubstHelper::apply(lhs, subst);
       rhs = SubstHelper::apply(rhs, subst);
     }
-    TermList newLhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, lhs, freshVar);
-    TermList newRhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, rhs, freshVar);
+    TermList newLhs = ApplicativeHelper::app(alpha1, alpha2, lhs, freshVar);
+    TermList newRhs = ApplicativeHelper::app(alpha1, alpha2, rhs, freshVar);
 
     Literal* newLit = Literal::createEquality(true, newLhs, newRhs, alpha2);
 

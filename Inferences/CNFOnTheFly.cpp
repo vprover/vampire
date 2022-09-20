@@ -420,8 +420,8 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
   if(generating && (eager || simp)){ return ClauseIterator::getEmpty(); }
   if(!generating && gen){ return ClauseIterator::getEmpty(); }
 
-  TermList troo = TermList(Term::foolTrue());
-  TermList fols = TermList(Term::foolFalse());
+  TermList troo = AH::top();
+  TermList fols = AH::bottom();
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
@@ -564,7 +564,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
             TermQueryResult tqr = results.next();
             TermList skolemTerm = tqr.term;
             skolemTerm=tqr.substitution->applyToBoundResult(skolemTerm);
-            newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
+            newTerm = AH::app(srt, args[0], skolemTerm);
             newTermCreated = true;
           }
         }
@@ -573,7 +573,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           if(index){
             index->insertFormula(term, skolemTerm);
           }
-          newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
+          newTerm = AH::app(srt, args[0], skolemTerm);
         }
         rule = convert(Signature::SIGMA);
       }
@@ -687,9 +687,9 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
   unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-  TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
+  TermList skolemTerm = AH::app(head, termVars);
 
-  ASS(*expsrt.term()->nthArgument(1) == AtomicSort::boolSort());
+  ASS(expsrt.result().isBoolSort());
   //cout << "OUT OF sigmaRemoval " + sigmaTerm.toString() << endl;
 
   return skolemTerm;
@@ -701,11 +701,10 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
 
   unsigned maxVar = clause->maxVar();
   do{ 
-    maxVar++;
-    TermList newVar = TermList(maxVar, false);
-    piTerm = ApplicativeHelper::createAppTerm(expsrt, piTerm, newVar);
-    expsrt = *expsrt.term()->nthArgument(1);
-  }while(expsrt != AtomicSort::boolSort()); 
+    TermList newVar(++maxVar, false);
+    piTerm = AH::app(expsrt, piTerm, newVar);
+    expsrt = expsrt.result();
+  }while(!expsrt.isBoolSort()); 
   
   return piTerm;
 }

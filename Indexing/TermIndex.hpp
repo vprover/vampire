@@ -152,21 +152,6 @@ protected:
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////
 
-class PrimitiveInstantiationIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(PrimitiveInstantiationIndex);
-  USE_ALLOCATOR(PrimitiveInstantiationIndex);
-
-  PrimitiveInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
-  {
-    populateIndex();
-  }
-protected:
-  void populateIndex();
-};
-
 class SkolemisingFormulaIndex
 : public TermIndex
 {

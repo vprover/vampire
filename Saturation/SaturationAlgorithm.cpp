@@ -76,7 +76,7 @@
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
 //#include "Inferences/Narrow.hpp"
-//#include "Inferences/PrimitiveInstantiation.hpp"
+#include "Inferences/PrimitiveInstantiation.hpp"
 #include "Inferences/Choice.hpp"
 //#include "Inferences/ElimLeibniz.hpp"
 //#include "Inferences/SubVarSup.hpp"
@@ -1577,11 +1577,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new BoolEqToDiseq());
   }
 
-  /*if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
+  if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
      prb.higherOrder() && !opt.lambdaFreeHol()){
     gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
-    gie->addFront(new ElimLeibniz());
-  }*/
+  //  gie->addFront(new ElimLeibniz());
+  }
 
   if(env.options->choiceReasoning()){
     gie->addFront(new Choice());

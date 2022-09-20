@@ -97,6 +97,23 @@ TEST_FUN(beta_reduction05) {
   ASS_EQ(reduced, toDeBruijnIndices(res));
 }
 
+TEST_FUN(beta_reduction06) {            
+  DECL_SORT(srt)
+  DECL_HOL_VAR(x, 0, srt)
+  DECL_HOL_VAR(y, 1, srt)
+  DECL_CONST(a, srt)     
+  DECL_CONST(b, srt)     
+  DECL_ARROW_SORT(fSrt, {srt, srt, srt})
+  DECL_CONST(f, fSrt)     
+
+  BetaNormaliser bn;
+  auto t = ap( ap( lam(x, lam(y, ap(ap(f, x), y))), a), b) ;
+  auto res = ap(ap(f, a), b);
+  auto reduced = bn.normalise( toDeBruijnIndices(t) );
+
+  ASS_EQ(reduced, res.sugaredExpr());
+}
+
 TEST_FUN(eta_reduction01) {            
   DECL_SORT(srt)
   DECL_HOL_VAR(x, 0, srt)

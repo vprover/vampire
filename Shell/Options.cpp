@@ -1795,12 +1795,16 @@ void Options::init()
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());    
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
-
-    _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::ALL_EXCEPT_NOT_EQ,
+    _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::PRAGMATIC,
                                                                         {"all",
                                                                         "all_but_not_eq",
-                                                                        "false_true_not",
-                                                                        "small_set"});
+                                                                        "not",
+                                                                        "small_set",
+                                                                        "pragmatic",
+                                                                        "and",
+                                                                        "or",
+                                                                        "equals",
+                                                                        "pi_sigma" });
     _piSet.description="Controls the set of equations to use in primitive instantiation";
     _lookup.insert(&_piSet);
     _piSet.addProblemConstraint(hasHigherOrder());     

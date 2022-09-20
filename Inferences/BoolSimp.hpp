@@ -32,7 +32,6 @@ class BoolSimp : public ImmediateSimplificationEngine
 
   private:
     TermList boolSimplify(TermList term); 
-    TermList negate(TermList term);
     bool areComplements(TermList t1, TermList t2);
 };
 

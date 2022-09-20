@@ -25,6 +25,53 @@ using namespace Kernel;
 using namespace Shell;
 
 #if VHOL
+
+class ApplicativeHelper {
+public:
+
+  static TermList app(TermList sort, TermList head, TermList arg);
+  static TermList app(TermList head, TermList arg);  
+  static TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
+  static TermList app2(TermList sort, TermList head, TermList arg1, TermList arg2);
+  static TermList app2(TermList head, TermList arg1, TermList arg2);  
+  static TermList app(TermList sort, TermList head, TermStack& terms);
+  static TermList app(TermList head, TermStack& terms);    
+
+  static TermList createLambdaTerm(TermList varSort, TermList termSort, TermList term); 
+  static TermList getDeBruijnIndex(int index, TermList sort);
+  static TermList getNthArg(TermList arrowSort, unsigned argNum);
+  static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
+  static unsigned getArity(TermList sort);
+
+  static void getHeadAndArgs(TermList term, TermList& head, TermStack& args); 
+  static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);
+  static void getHeadAndArgs(const Term* term, TermList& head, TermStack& args);
+  
+  // both functions below ONLY used in AppliArgsIT which is used in SKIKBO. Leaving for now in case need to 
+  // revive 
+//  static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
+//  static void getHeadAndAllArgs(TermList term, TermList& head, TermStack& args); 
+  
+  static void getArgSorts(TermList t, TermStack& sorts);
+  static Signature::Proxy getProxy(const TermList t);
+  static bool isBool(TermList t);
+  static bool isTrue(TermList term);
+  static bool isFalse(TermList term);
+  static bool canHeadReduce(TermList t);
+  static TermList createGeneralBinding(unsigned freshVar, TermList head, 
+    TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, TermStack& args, bool surround = true);
+  static TermList surroundWithLambdas(TermList t, TermStack& sorts);
+  static TermList top();
+  static TermList bottom();
+  static TermList conj();
+  static TermList disj();
+  static TermList imp();  
+  static TermList neg();  
+  static TermList equality(TermList sort);
+  static TermList pi(TermList sort);
+  static TermList sigma(TermList sort);
+};
+
 // reduce a term to normal form
 // uses a applicative order reduction strategy
 // Currently use a leftmost outermost stratgey
@@ -64,6 +111,7 @@ private:
 class RedexReducer : public TermTransformer 
 {
 public:
+  typedef ApplicativeHelper AH;
   RedexReducer() {
     dontTransformSorts();
   }    
@@ -103,34 +151,6 @@ private:
   int _minFreeIndex;
 };
 
-class ApplicativeHelper {
-public:
-
-  static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2);
-  static TermList createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
-  static TermList createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3);
-  static TermList createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4); 
-  static TermList createAppTerm(TermList sort, TermList head, TermStack& terms); 
-  static TermList createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity, bool shared = true); 
-  static TermList createLambdaTerm(TermList varSort, TermList termSort, TermList term); 
-  static TermList getDeBruijnIndex(int index, TermList sort);
-  static TermList getNthArg(TermList arrowSort, unsigned argNum);
-  static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
-  static unsigned getArity(TermList sort);
-  static void getHeadAndAllArgs(TermList term, TermList& head, TermStack& args); 
-  static void getHeadAndArgs(TermList term, TermList& head, TermStack& args); 
-  static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);
-  static void getHeadAndArgs(const Term* term, TermList& head, TermStack& args);
-  static void getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args); 
-  static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
-  static void getArgSorts(TermList t, TermStack& sorts);
-  static Signature::Proxy getProxy(const TermList t);
-  static bool isBool(TermList t);
-  static bool isTrue(TermList term);
-  static bool isFalse(TermList term);
-  static TermList createGeneralBinding(unsigned freshVar, TermList head, 
-    TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, TermStack& args);
-};
 
 #endif
 

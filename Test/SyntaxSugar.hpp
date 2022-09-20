@@ -254,7 +254,7 @@ public:
   void setApply()
   {
     apply = [](TermList sort, TermList t1, TermList t2) {
-      TermList app = ApplicativeHelper::createAppTerm(sort, t1, t2);
+      TermList app = ApplicativeHelper::app(sort, t1, t2);
       return app;
     };
   }

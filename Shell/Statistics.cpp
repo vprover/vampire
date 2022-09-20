@@ -198,7 +198,7 @@ void Statistics::explainRefutationNotFound(ostream& out)
     out << "Refutation not found, SMT solver inside AVATAR failed to evaluate a literal\n";
   }
   else {
-    out << "Refutation not found, incomplete strategy";
+    out << "Refutation not found, incomplete strategy\n";
   }
 }
 

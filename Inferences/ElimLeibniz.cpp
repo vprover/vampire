@@ -160,15 +160,15 @@ afterLoop:
 
   TermList var = TermList(lerPosLit.var, false);
 
-  TermList vEquals = TermList(Term::create1(env.signature->getEqualityProxy(), argS));
-  TermList t1 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerNegLit.arg);
+  TermList vEquals = AH::equals(argS);
+  TermList t1 = AH::app(vEquals, lerNegLit.arg);
   if(subst.unify(var, 0, t1, 0)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
     clauses.push(c);
     subst.reset();
   }
 
-  TermList t2 = AH::createAppTerm(SH::getResultSort(vEquals.term()), vEquals, lerPosLit.arg);
+  TermList t2 = AH::app(vEquals, lerPosLit.arg);
   
   TermList typeArgs[] = {argS, AtomicSort::boolSort(), AtomicSort::boolSort()};
   unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);

@@ -146,8 +146,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   invFunc->setType(invFuncType);
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));
 
-  TermList invFuncHeadType = SortHelper::getResultSort(invFuncHead.term());
-  return ApplicativeHelper::createAppTerm(invFuncHeadType, invFuncHead, termArgs);  
+  return ApplicativeHelper::app(invFuncHead, termArgs);  
 }
 
 

@@ -740,8 +740,13 @@ public:
   enum class PISet : unsigned int {
     ALL = 0,
     ALL_EXCEPT_NOT_EQ = 1,
-    FALSE_TRUE_NOT = 2,
-    FALSE_TRUE_NOT_EQ_NOT_EQ = 3
+    NOT = 2,
+    NOT_EQ_NOT_EQ = 3,
+    PRAGMATIC = 4,
+    AND = 5,
+    OR = 6,
+    EQUALS = 7,
+    PI_SIGMA = 8
   };
 
   enum class HPrinting : unsigned int {

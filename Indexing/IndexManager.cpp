@@ -170,11 +170,6 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case PRIMITIVE_INSTANTIATION_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new PrimitiveInstantiationIndex(tis); 
-    isGenerating = true;
-    break;  
    case ACYCLICITY_INDEX:
     tis = new TermSubstitutionTree();
     res = new AcyclicityIndex(tis);

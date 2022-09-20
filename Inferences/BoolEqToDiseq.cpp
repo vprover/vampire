@@ -66,26 +66,14 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
         continue;
       }
       TermList head = lhs.head();
-      if(!head.isVar()){
-        Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
-        if(sym->proxy() != Signature::NOT){
-          TermList vNot = TermList(Term::createConstant(env.signature->getNotProxy()));
-          TermList vNotSort = SortHelper::getResultSort(vNot.term());
-          TermList newLhs = AH::createAppTerm(vNotSort, vNot, lhs);
-          newLit = Literal::createEquality(false, newLhs, rhs, AtomicSort::boolSort());
-          goto afterLoop;
-        } 
+      if(!head.isVar() && !head.isNot()){
+        newLit = Literal::createEquality(false, AH::app(AH::neg(), lhs), rhs, AtomicSort::boolSort());
+        goto afterLoop;
       }
       head = rhs.head();
-      if(!head.isVar()){
-        Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
-        if(sym->proxy() != Signature::NOT){
-          TermList vNot = TermList(Term::createConstant(env.signature->getNotProxy()));
-          TermList vNotSort = SortHelper::getResultSort(vNot.term());
-          TermList newRhs = AH::createAppTerm(vNotSort, vNot, rhs);
-          newLit = Literal::createEquality(false, lhs, newRhs, AtomicSort::boolSort());
-          goto afterLoop;
-        } 
+      if(!head.isVar() && !head.isNot()){
+        newLit = Literal::createEquality(false, lhs, AH::app(AH::neg(), rhs), AtomicSort::boolSort());
+        goto afterLoop; 
       }
     }
     pos++;

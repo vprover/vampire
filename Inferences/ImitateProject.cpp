@@ -55,7 +55,7 @@ struct ImitateProject::CanImitateAndProject
   bool operator()(Literal* l)
   { 
     ASS(l->isEquality());
-    return l->isFlexRigid() && !SortHelper::getEqualityArgumentSort(l).isArrowSort();
+    return l->isFlexRigid() && !l->polarity() && !SortHelper::getEqualityArgumentSort(l).isArrowSort();
   }
 };
 

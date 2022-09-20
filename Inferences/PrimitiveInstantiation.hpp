@@ -34,18 +34,12 @@ public:
   CLASS_NAME(PrimitiveInstantiation);
   USE_ALLOCATOR(PrimitiveInstantiation);
 
-  void attach(SaturationAlgorithm* salg);
-  void detach();
-
   ClauseIterator generateClauses(Clause* premise);
   
 private:
-  PrimitiveInstantiationIndex* _index;  
 
-  struct ApplicableRewritesFn;
   struct ResultFn;  
-  struct IsInstantiable;
-  
+  struct IsInstantiable;  
 };
 
 

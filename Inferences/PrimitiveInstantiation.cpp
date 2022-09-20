@@ -21,6 +21,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -42,93 +43,200 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void PrimitiveInstantiation::attach(SaturationAlgorithm* salg)
-{
-  CALL("PrimitiveInstantiation::attach");
-
-  GeneratingInferenceEngine::attach(salg);
-  _index=static_cast<PrimitiveInstantiationIndex*> (
-    _salg->getIndexManager()->request(PRIMITIVE_INSTANTIATION_INDEX) );
-}
-
-void PrimitiveInstantiation::detach()
-{
-  CALL("PrimitiveInstantiation::detach");
-
-  _index=0;
-  _salg->getIndexManager()->release(PRIMITIVE_INSTANTIATION_INDEX);
-  GeneratingInferenceEngine::detach();
-}
-
 struct PrimitiveInstantiation::IsInstantiable
 {
   bool operator()(Literal* l)
   { 
-    if(SortHelper::getEqualityArgumentSort(l) != AtomicSort::boolSort()){
-      return false;
-    }
-    
-    TermList lhs = *(l->nthArgument(0));
-    TermList rhs = *(l->nthArgument(1));
-    
-    TermList head;
-    TermStack args;
-    ApplicativeHelper::getHeadAndArgs(lhs, head, args);
-    if(head.isVar()){ return true; }
-    ApplicativeHelper::getHeadAndArgs(rhs, head, args);
-    if(head.isVar()){ return true; }
-
-    return false; 
+    return l->isFlexRigid() && SortHelper::getEqualityArgumentSort(l).isBoolSort();
   }
 };
 
 struct PrimitiveInstantiation::ResultFn
 {
-  ResultFn(Clause* cl): _cl(cl){}
+  typedef ApplicativeHelper AH;
+  typedef pair<unsigned, unsigned> IndexPair;
+  typedef Stack<IndexPair> IndexPairStack;
+
+  ResultFn(Clause* cl): _cl(cl), _freshVar(cl->maxVar() + 1){
+    TermList sortVar(_freshVar++, false);
+    _heads.push(AH::top());
+    _heads.push(AH::bottom());
+    auto piSet = env.options->piSet();
+    switch(piSet){
+      case Options::PISet::ALL_EXCEPT_NOT_EQ:
+      case Options::PISet::ALL:
+        _heads.push(AH::conj());
+        _heads.push(AH::disj());
+        _heads.push(AH::neg());
+        _heads.push(AH::equality(sortVar));
+        _heads.push(AH::pi(sortVar));
+        _heads.push(AH::sigma(sortVar));
+        break;
+      case Options::PISet::PRAGMATIC:      
+      case Options::PISet::NOT:
+        _heads.push(AH::neg());
+        break;
+      case Options::PISet::NOT_EQ_NOT_EQ:
+        _heads.push(AH::neg());
+        _heads.push(AH::equality(sortVar));
+        break;
+      case Options::PISet::AND:
+        _heads.push(AH::conj());
+        break;      
+      case Options::PISet::OR:
+        _heads.push(AH::disj());
+        break;
+      case Options::PISet::EQUALS:
+        _heads.push(AH::equality(sortVar));
+        break;      
+      case Options::PISet::PI_SIGMA:
+        _heads.push(AH::pi(sortVar));
+        _heads.push(AH::sigma(sortVar));
+        break;      
+    }
+
+  }
   
-  Clause* operator() (TermQueryResult tqr){
-    const int QUERY = 0;
-
-    ResultSubstitutionSP subst = tqr.substitution;
-
+  Clause* createRes()
+  {
+    CALL("PrimitiveInstantiation::ResultFn::createRes");
+  
     unsigned cLen = _cl->length(); 
-   
     Clause* res = new(cLen) Clause(cLen, GeneratingInference1(InferenceRule::PRIMITIVE_INSTANTIATION, _cl));
 
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*_cl)[i];
-      Literal* currAfter = subst->apply(curr, QUERY);
+      Literal* currAfter = SubstHelper::apply(curr, _subst);
       (*res)[i] = currAfter;
+    }
+    return res;    
+  }
+
+  void getSameSortIndices(TermStack& sorts, IndexPairStack& indices){
+    CALL("PrimitiveInstantiation::ResultFn::getSameSortIndices");
+
+    for(unsigned i = 0; i < sorts.size(); i++){
+      for(unsigned j = i + 1; j < sorts.size(); j++){
+        if(sorts[i] == sorts[j]){
+          indices.push(make_pair(i, j));
+        }
+      }
+    }
+  }
+
+  ClauseIterator operator() (Literal* lit){
+    CALL("PrimitiveInstantiation::ResultFn::operator()");
+
+    auto set = env.options->piSet();
+    static bool pragmatic = set == Options::PISet::PRAGMATIC;
+    static bool include_not_eq = set == Options::PISet::ALL || 
+                                 set == Options::PISet::NOT_EQ_NOT_EQ;
+
+    static ClauseStack results;
+    results.reset();
+
+    TermList arg0 = *lit->nthArgument(0);
+    TermList arg1 = *lit->nthArgument(1);
+
+    // Flex term is of form X a1 ... an
+    TermList flexTerm = arg0.head().isVar() ? arg0 : arg1;
+
+    // since term is rigid, cannot be a variable
+    TermList headFlex;
+    TermStack argsFlex;
+    TermStack sortsFlex; //sorts of arguments of flex head 
+
+    AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
+    ASS(argsFlex.size()); // Flex side is not a variable
+    AH::getArgSorts(flexTerm, sortsFlex);
+
+    TermStack deBruijnIndices;    
+    for(int i = 0; i < argsFlex.size(); i++){
+      deBruijnIndices.push(AH::getDeBruijnIndex(i, sortsFlex[i]));
+    }
+
+    // if any amongst a1 ... an is of sort $o, project that 
+    // argument to the top
+    for(unsigned i =0; i < sortsFlex.size() && pragmatic; i++){
+      if(sortsFlex[i].isBoolSort()){
+        _subst.reset();
+        TermList gb = AH::surroundWithLambdas(deBruijnIndices[i], sortsFlex);
+        _subst.bind(headFlex.var(), gb);
+        results.push(createRes());        
+      }
+    }
+
+    if(pragmatic){
+      IndexPairStack sameSortArgs;
+      getSameSortIndices(sortsFlex, sameSortArgs);
+      for(unsigned i = 0; i < sameSortArgs.size(); i++){
+        _subst.reset();
+        IndexPair p = sameSortArgs[i];
+  
+        TermList dbi = deBruijnIndices[p.first];
+        TermList dbj = deBruijnIndices[p.second];
+
+        // creating term dbi = dbj
+        TermList tm = AH::app2(AH::equality(sortsFlex[i]), dbi, dbj);
+        TermList gb = AH::surroundWithLambdas(tm, sortsFlex);
+        _subst.bind(headFlex.var(), gb);
+        results.push(createRes());     
+
+        //creating dbi != dbj
+        _subst.reset();
+        gb = AH::surroundWithLambdas(AH::app(AH::neg(), tm), sortsFlex);
+        _subst.bind(headFlex.var(), gb);
+        results.push(createRes());
+
+        if(sortsFlex[i].isBoolSort()){
+          //creating dbi \/ dbj
+          _subst.reset();
+          gb = AH::surroundWithLambdas(AH::app2(AH::disj(), dbi, dbj), sortsFlex);
+          _subst.bind(headFlex.var(), gb);
+          results.push(createRes());     
+
+          //creating dbi /\ dbj
+          _subst.reset();
+          gb = AH::surroundWithLambdas(AH::app2(AH::conj(), dbi, dbj), sortsFlex);
+          _subst.bind(headFlex.var(), gb);
+          results.push(createRes()); 
+        }             
+      }
+    }
+
+    TermStack args;
+    
+    // bind head variable to all general bindings produced using heads in _heads
+    for(unsigned i =0; i < _heads.size(); i++){
+      _subst.reset();
+      unsigned fVar = _freshVar;
+      
+      bool surround = (!_heads[i].isEquals() || !include_not_eq);
+      TermList gb = AH::createGeneralBinding(fVar,_heads[i],argsFlex,sortsFlex,deBruijnIndices,args,surround);
+      gb = surround ? gb : AH::surroundWithLambdas(gb, sortsFlex);
+
+      _subst.bind(headFlex.var(), gb);
+      results.push(createRes());
+
+      if(!surround){
+        // add not equals
+        _subst.reset();
+        gb = AH::surroundWithLambdas(AH::app(AH::neg(), gb), sortsFlex);
+
+        _subst.bind(headFlex.var(), gb);
+        results.push(createRes());        
+      }
     }
 
     env.statistics->primitiveInstantiations++;  
-    return res;
+    return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
   }
   
 private:
+  TermStack _heads;
   Clause* _cl;
-};
-
-struct PrimitiveInstantiation::ApplicableRewritesFn
-{
-  
-  ApplicableRewritesFn(PrimitiveInstantiationIndex* index) : _index(index){}
-  VirtualIterator<TermQueryResult> operator()(Literal* l)
-  {
-    CALL("PrimitiveInstantiation::ApplicableRewritesFn()");
-        
-    TermList lhs = *l->nthArgument(0);
-    TermList rhs = *l->nthArgument(1);
-   
-    TermStack args;
-    TermList head;
-
-    ApplicativeHelper::getHeadAndArgs(lhs, head, args);
-     
-    return pvi(_index->getUnifications((head.isVar() ? lhs : rhs)));
-  }
-private:
-  PrimitiveInstantiationIndex* _index;
+  unsigned _freshVar;
+  Substitution _subst;  
 };
 
 ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
@@ -137,18 +245,12 @@ ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
   
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();
-  //filter out literals that are not suitable for narrowing
+  //filter out literals that are not suitable for PI
   auto it2 = getFilteredIterator(it1, IsInstantiable());
-
-  //pair of literals and possible rewrites that can be applied to literals
-  auto it3 = getMapAndFlattenIterator(it2, ApplicableRewritesFn(_index));
+  //perform instantiations
+  auto it3 = getMapAndFlattenIterator(it2, ResultFn(premise));
   
-  //apply rewrite rules to literals
-  auto it4 = getMappingIterator(it3, ResultFn(premise));
-  
-
-  return pvi( it4 );
-
+  return pvi( it3 );
 }
 
 }

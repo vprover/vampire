@@ -340,8 +340,15 @@ TermList AtomicSort::domain(){
   return *nthArgument(0);
 }
 
+TermList TermList::domain(){
+  CALL("TermList::domain");
+  ASS(isArrowSort());
+
+  return *term()->nthArgument(0);
+}
+
 TermList TermList::result(){
-  CALL("AtomicSort::result");
+  CALL("TermList::result");
   ASS(isArrowSort());
 
   return *term()->nthArgument(1);
@@ -890,7 +897,8 @@ vstring Term::headToString() const
       }
 #if VHOL
       case Term::SF_LAMBDA: 
-        ASSERTION_VIOLATION;
+        // we can get here if holPrinting set to RAW
+        return lambdaToString(sd);
 #endif
       case Term::SF_MATCH: {
         // we simply let the arguments be written out
@@ -1021,6 +1029,31 @@ vstring Term::toString() const
   return s;
 } // Term::toString
 
+vstring Term::lambdaToString(const SpecialTermData* sd, bool pretty) const
+{
+  CALL("Term::lambdaToString");
+
+  VList* vars = sd->getLambdaVars();
+  SList* sorts = sd->getLambdaVarSorts();
+  TermList lambdaExp = sd->getLambdaExp();
+
+  vstring varList = pretty ? "" : "[";
+   
+  VList::Iterator vs(vars);
+  SList::Iterator ss(sorts);
+  TermList sort;
+  bool first = true;
+  while(vs.hasNext()) {
+    varList += first ? "" : ", ";
+    first = false;
+    varList += Term::variableToString(vs.next()) + " : ";
+    varList += ss.next().toString(); 
+  }
+  varList += pretty ? "" : "]";      
+  vstring lambda = pretty ? "λ" : "^";
+  return "(" + lambda + varList + " : (" + lambdaExp.toString() + "))";  
+}
+
 #if VHOL
 
 vstring Term::toString(bool topLevel, IndexVarStack& st) const
@@ -1051,7 +1084,6 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
 
   ASS(!isLiteral());
 
-  //TODO does not print polymorphic sorts correctly
   auto printSetting = env.options->holPrinting();
   bool pretty = printSetting == Options::HPrinting::PRETTY;
   bool db     = printSetting == Options::HPrinting::DB_INDICES;
@@ -1060,30 +1092,10 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
   if(isSpecial()){
     const Term::SpecialTermData* sd = getSpecialData();    
     switch(functor()) {
-      case Term::SF_FORMULA: {
+      case Term::SF_FORMULA: 
         return sd->getFormula()->toString();
-      }
-      case Term:: SF_LAMBDA: {
-        VList* vars = sd->getLambdaVars();
-        SList* sorts = sd->getLambdaVarSorts();
-        TermList lambdaExp = sd->getLambdaExp();
-     
-        vstring varList = pretty ? "" : "[";
-         
-        VList::Iterator vs(vars);
-        SList::Iterator ss(sorts);
-        TermList sort;
-        bool first = true;
-        while(vs.hasNext()) {
-          varList += first ? "" : ", ";
-          first = false;
-          varList += Term::variableToString(vs.next()) + " : ";
-          varList += ss.next().toString(); 
-        }
-        varList += pretty ? "" : "]";      
-        vstring lambda = pretty ? "λ" : "^";
-        return "(" + lambda + varList + " : (" + lambdaExp.toString() + "))";
-      }
+      case Term:: SF_LAMBDA: 
+        return lambdaToString(sd, pretty);
       default:
         // currently HOL doesn't support any other specials
         ASSERTION_VIOLATION;
@@ -1126,8 +1138,10 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
 
     vstring sep = pretty || db ? ". " : ": ";
     vstring lambda = pretty ? "λ" : "^";
+    vstring lbrac = pretty ? "" : "(";
+    vstring rbrac = pretty ? "" : ")";
 
-    res = "(" + lambda + bvar + sep +  "(" + termToStr(*nthArgument(2),true,newSt) + "))";
+    res = "(" + lambda + bvar + sep +  lbrac + termToStr(*nthArgument(2),!pretty,newSt) + rbrac + ")";
     return res;
   }
   if(deBruijnIndex().isSome() && !db){
@@ -1151,6 +1165,8 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
   else if(head.isXOr()){ headStr = pretty ? "⊕" : "<~>"; }  
   else if(head.isImp()){ headStr = pretty ? "⇒" : "=>"; }    
   else if(head.isIff() || head.isEquals()){ headStr = pretty ? "≈" : "="; }
+  else if(ApplicativeHelper::isTrue(head)){ headStr = pretty ? "⊤" : "$true"; }
+  else if(ApplicativeHelper::isFalse(head)){ headStr = pretty ? "⊥" : "$false"; }  
   else { 
     headStr = head.term()->functionName();
     if(head.deBruijnIndex().isSome()){
@@ -2283,7 +2299,7 @@ bool Literal::isFlexRigid() const
   TermList lhsHead = lhs.head();
   TermList rhsHead = rhs.head();
   
-  return !polarity() && (check(lhsHead, lhs, rhsHead) || check(rhsHead, rhs, lhsHead));
+  return check(lhsHead, lhs, rhsHead) || check(rhsHead, rhs, lhsHead);
 }
 
 #endif

@@ -56,7 +56,15 @@ using namespace Saturation;
 struct EqualityResolution::IsNegativeEqualityFn
 {
   bool operator()(Literal* l)
-  { return l->isEquality() && l->isNegative(); }
+  { 
+    return l->isEquality() && l->isNegative()
+#if VHOL
+        // no point trying to resolve too terms of functional sort
+        // instead, let negExt grow both sides and then resolve...
+        && !SortHelper::getEqualityArgumentSort(l).isArrowSort();
+#endif
+    ; 
+  }
 };
 
 void EqualityResolution::attach(SaturationAlgorithm* salg)

@@ -35,10 +35,10 @@ TermList BetaNormaliser::transformSubterm(TermList t)
 {
   CALL("BetaNormaliser::transformSubterm");
 
-  while(t.isRedex()){
+  while(ApplicativeHelper::canHeadReduce(t)){
     t = RedexReducer().reduce(t);
   }
-
+  
   return t;
 }
 
@@ -132,17 +132,22 @@ bool EtaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
 TermList RedexReducer::reduce(TermList redex)
 {
   CALL("RedexReducer::reduce");
-  ASS(redex.isRedex());
+  ASS(AH::canHeadReduce(redex));
+  
+  TermList head;
+  TermStack args;
+  AH::getHeadAndArgs(redex, head, args);
 
   _replace = 0;
-  TermList t1 = redex.lhs().lambdaBody();
-  _t2 = redex.rhs();
+  TermList t1 = head.lambdaBody();
+  TermList t1Sort = *head.term()->nthArgument(1);
+  _t2 = args.pop();
 
   if(t1.isTerm()) onTermEntry(t1.term());
   TermList transformed = transformSubterm(t1);
 
-  if(transformed != t1) return transformed;  
-  return transform(t1);
+  if(transformed != t1) return AH::app(t1Sort, transformed, args);  
+  return AH::app(t1Sort, transform(t1), args);
 }
 
 TermList RedexReducer::transformSubterm(TermList t)
@@ -245,37 +250,42 @@ bool TermShifter::exploreSubterms(TermList orig, TermList newTerm)
   return false;
 }
 
-TermList ApplicativeHelper::createAppTerm(TermList sort, TermList arg1, TermList arg2, TermList arg3, TermList arg4)
+TermList ApplicativeHelper::app2(TermList sort, TermList head, TermList arg1, TermList arg2)
 {
-  CALL("ApplicativeHelper::createAppTerm/3");
-
-  TermList t1 = createAppTerm3(sort, arg1, arg2, arg3);
-  return createAppTerm(SortHelper::getResultSort(t1.term()), t1, arg4);
+  CALL("ApplicativeHelper::app2");
+  
+  return app(app(sort, head, arg1), arg2);
 }
 
-TermList ApplicativeHelper::createAppTerm3(TermList sort, TermList arg1, TermList arg2, TermList arg3)
+TermList ApplicativeHelper::app2(TermList head, TermList arg1, TermList arg2)
+{ 
+  CALL("ApplicativeHelper::app2");
+  ASS(head.isTerm());
+  
+  TermList headSort = SortHelper::getResultSort(head.term());
+  return app2(headSort, head, arg1, arg2);
+}  
+
+TermList ApplicativeHelper::app(TermList sort, TermList head, TermList arg)
 {
-  CALL("ApplicativeHelper::createAppTerm3");
+  CALL("ApplicativeHelper::app");
   
   TermList s1 = getNthArg(sort, 1);
   TermList s2 = getResultApplieadToNArgs(sort, 1);
-  TermList s3 = getNthArg(s2, 1);
-  TermList s4 = getResultApplieadToNArgs(s2, 1);
-  return createAppTerm(s3, s4, createAppTerm(s1, s2, arg1, arg2), arg3);
+  return app(s1, s2, head, arg);
 }
 
-TermList ApplicativeHelper::createAppTerm(TermList sort, TermList arg1, TermList arg2)
+TermList ApplicativeHelper::app(TermList head, TermList arg)
 {
-  CALL("ApplicativeHelper::createAppTerm/2");
-  
-  TermList s1 = getNthArg(sort, 1);
-  TermList s2 = getResultApplieadToNArgs(sort, 1);
-  return createAppTerm(s1, s2, arg1, arg2);
+  CALL("ApplicativeHelper::app/2");
+  ASS(head.isTerm());
+
+  return app(SortHelper::getResultSort(head.term()), head, arg);
 }
 
-TermList ApplicativeHelper::createAppTerm(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared)
+TermList ApplicativeHelper::app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared)
 {
-  CALL("ApplicativeHelper::createAppTerm/1");
+  CALL("ApplicativeHelper::app/3");
  
   static TermStack args;
   args.reset();
@@ -290,9 +300,9 @@ TermList ApplicativeHelper::createAppTerm(TermList s1, TermList s2, TermList arg
   return TermList(Term::createNonShared(app, 4, args.begin()));    
 }
 
-TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStack& terms)
+TermList ApplicativeHelper::app(TermList sort, TermList head, TermStack& terms)
 {
-  CALL("ApplicativeHelper::createAppTerm/4");
+  CALL("ApplicativeHelper::app/4");
   ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort);
 
   TermList res = head;
@@ -301,29 +311,21 @@ TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermStac
   for(int i = terms.size() - 1; i >= 0; i--){
     s1 = getNthArg(sort, 1);
     s2 = getResultApplieadToNArgs(sort, 1);
-    res = createAppTerm(s1, s2, res, terms[i]);
+    res = app(s1, s2, res, terms[i]);
     sort = s2;
   }
   return res; 
 
 }
 
-TermList ApplicativeHelper::createAppTerm(TermList sort, TermList head, TermList* args, unsigned arity, bool shared)
+TermList ApplicativeHelper::app(TermList head, TermStack& terms)
 {
-  CALL("ApplicativeHelper::createAppTerm/5");
-  ASS_REP(head.isVar() || SortHelper::getResultSort(head.term()) == sort, sort.toString() );
+  CALL("ApplicativeHelper::app/5");
+  ASS(head.isTerm());
 
-  TermList res = head;
-  TermList s1, s2;
-
-  for(unsigned i = 0; i < arity; i++){
-    s1 = getNthArg(sort, 1);
-    s2 = getResultApplieadToNArgs(sort, 1);
-    res = createAppTerm(s1, s2, res, args[i], shared);
-    sort = s2;
-  }
-  return res; 
-}  
+  TermList sort = SortHelper::getResultSort(head.term());
+  return app(sort, head, terms); 
+}
 
 TermList ApplicativeHelper::createLambdaTerm(TermList varSort, TermList termSort, TermList term)
 {
@@ -362,7 +364,7 @@ TermList ApplicativeHelper::getResultApplieadToNArgs(TermList arrowSort, unsigne
   
   while(argNum > 0){
     ASS(arrowSort.isArrowSort());
-    arrowSort = *arrowSort.term()->nthArgument(1);
+    arrowSort = arrowSort.result();
     argNum--;
   }
   return arrowSort;
@@ -377,8 +379,8 @@ TermList ApplicativeHelper::getNthArg(TermList arrowSort, unsigned argNum)
   TermList res;
   while(argNum >=1){
     ASS(arrowSort.isArrowSort());
-    res = *arrowSort.term()->nthArgument(0);
-    arrowSort = *arrowSort.term()->nthArgument(1);
+    res = arrowSort.domain();
+    arrowSort = arrowSort.result();
     argNum--;
   }
   return res;
@@ -390,13 +392,13 @@ unsigned ApplicativeHelper::getArity(TermList sort)
 
   unsigned arity = 0;
   while(sort.isArrowSort()){
-    sort = *sort.term()->nthArgument(1);
+    sort = sort.result();
     arity++; 
   }
   return arity;
 }
 
-void ApplicativeHelper::getHeadAndAllArgs(TermList term, TermList& head, TermStack& args)
+/*void ApplicativeHelper::getHeadAndAllArgs(TermList term, TermList& head, TermStack& args)
 {
   CALL("ApplicativeHelper::getHeadAndAllArgs");
 
@@ -436,15 +438,15 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
   }
   head = term;
   
-}
+}*/
 
 void ApplicativeHelper::getArgSorts(TermList t, TermStack& sorts)
 {
   CALL("ApplicativeHelper::getArgSorts");
 
   while(t.isArrowSort()){
-    sorts.push(*t.term()->nthArgument(0));
-    t = *t.term()->nthArgument(1);    
+    sorts.push(t.domain());
+    t = t.result();    
   }
 
   while(t.isApplication()){
@@ -461,8 +463,8 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
   if(!args.isEmpty()){ args.reset(); }
 
   while(term.isApplication()){
-    args.push(*term.term()->nthArgument(3)); 
-    term = *term.term()->nthArgument(2);
+    args.push(term.rhs()); 
+    term = term.lhs();
   }
   head = term;
 
@@ -473,7 +475,9 @@ void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& ar
 {
   CALL("ApplicativeHelper::getHeadAndArgs/2");
 
-  if(!args.isEmpty()){ args.reset(); }
+  getHeadAndArgs(TermList(term), head, args);
+
+  /*if(!args.isEmpty()){ args.reset(); }
 
   head = TermList(term);
 
@@ -483,8 +487,7 @@ void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& ar
     if(head.isTerm()){ 
       term = head.term();
     } else { break; }
-  }
-
+  }*/
 }
 
 void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, TermStack& args)
@@ -492,23 +495,6 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, TermSta
   CALL("ApplicativeHelper::getHeadAndArgs/5");
 
   getHeadAndArgs(const_cast<Term*>(term),head,args);
-}
-
-void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, Deque<TermList>& args)
-{
-  CALL("ApplicativeHelper::getHeadAndArgs/3");
-
-  ASS(term->isApplication());
-
-  if(!args.isEmpty()){ args.reset(); }
-
-  while(term->isApplication()){
-    args.push_front(*term->nthArgument(3)); 
-    head = *term->nthArgument(2);
-    if(head.isTerm()){ 
-      term = head.term();
-    } else {  break; }
-  }  
 }
 
 Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
@@ -535,20 +521,21 @@ bool ApplicativeHelper::isFalse(TermList term){
   return term.isTerm() && !term.term()->isSort() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
 }
 
+bool ApplicativeHelper::canHeadReduce(TermList t){
+  CALL("ApplicativeHelper::canHeadReduce");
+  
+  TermList head;
+  TermStack args;
+  getHeadAndArgs(t, head, args);
+  return head.isLambdaTerm() && args.size();
+}
+
 TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList head, 
-  TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, TermStack& args2){
+  TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, TermStack& args2, bool surround){
   CALL("ApplicativeHelper::createGeneralBinding");
   ASS(head.isTerm());
   ASS(argsFlex.size() == sortsFlex.size());
   ASS(indices.size() == argsFlex.size());
-
-  auto surroundWithLambdas = [](TermList t, TermStack& sorts){
-    ASS(t.isTerm());
-    for(int i = 0; i < sorts.size(); i++){
-      t = createLambdaTerm(sorts[i], SortHelper::getResultSort(t.term()), t);
-    }
-    return t;
-  };
 
   TermStack args;
   TermStack argSorts;
@@ -558,39 +545,77 @@ TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList hea
   for(unsigned i = 0; i < argSorts.size(); i++){
     TermList fVar(++freshVar, false);
     TermList varSort = AtomicSort::arrowSort(sortsFlex, argSorts[i]);
-    args.push(createAppTerm(varSort, fVar, indices));
-    args2.push(createAppTerm(varSort, fVar, argsFlex));      
+    args.push(app(varSort, fVar, indices));
+    args2.push(app(varSort, fVar, argsFlex));      
   }
 
-  TermList pb = createAppTerm(headSort, head, args);
-  return surroundWithLambdas(pb, sortsFlex); 
+  TermList pb = app(headSort, head, args);
+  return surround ? surroundWithLambdas(pb, sortsFlex) : pb; 
 }
 
+TermList ApplicativeHelper::surroundWithLambdas(TermList t, TermStack& sorts)
+{
+  CALL("ApplicativeHelper::surroundWithLambdas");
 
+  ASS(t.isTerm());
+  for(int i = 0; i < sorts.size(); i++){
+    t = createLambdaTerm(sorts[i], SortHelper::getResultSort(t.term()), t);
+  }
+  return t;  
+}
 
+TermList ApplicativeHelper::top(){
+  CALL("ApplicativeHelper::top");
 
+  return TermList(Term::foolTrue());
+}
 
+TermList ApplicativeHelper::bottom(){
+  CALL("ApplicativeHelper::bottom");
 
+  return TermList(Term::foolFalse());
+}
 
+TermList ApplicativeHelper::conj(){
+  CALL("ApplicativeHelper::conj");
 
+  return TermList(Term::createConstant(env.signature->getBinaryProxy("vAND")));
+}
 
+TermList ApplicativeHelper::disj(){
+  CALL("ApplicativeHelper::disj");
 
+  return TermList(Term::createConstant(env.signature->getBinaryProxy("vOR")));
+}
 
+TermList ApplicativeHelper::imp(){
+  CALL("ApplicativeHelper::imp");
 
+  return TermList(Term::createConstant(env.signature->getBinaryProxy("vIMP")));
+}
 
+TermList ApplicativeHelper::neg(){
+  CALL("ApplicativeHelper::neg");
 
+  return TermList(Term::createConstant(env.signature->getNotProxy()));
+} 
 
+TermList ApplicativeHelper::equality(TermList sort){
+  CALL("ApplicativeHelper::equality");
 
+  return TermList(Term::create1(env.signature->getEqualityProxy(), sort));
+}
 
+TermList ApplicativeHelper::pi(TermList sort){
+  CALL("ApplicativeHelper::pi");
 
+  return TermList(Term::create1(env.signature->getPiSigmaProxy("vPI"), sort));
+}
 
+TermList ApplicativeHelper::sigma(TermList sort){
+  CALL("ApplicativeHelper::sigma");
 
-
-
-
-
-
-
-
+  return TermList(Term::create1(env.signature->getPiSigmaProxy("vSIGMA"), sort));
+}
 
 #endif

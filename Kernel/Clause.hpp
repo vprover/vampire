@@ -122,7 +122,7 @@ public:
   Literal** literals() { return _literals; }
 
   /** True if the clause is empty */
-  bool isEmpty() const { return _length == 0; }
+  bool isEmpty() const; 
 
   void destroy();
   void destroyExceptInferenceObject();
