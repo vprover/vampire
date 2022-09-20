@@ -21,18 +21,19 @@ struct BottomUpChildIter<Kernel::PolyNf>
   struct PolynomialBottomUpChildIter 
   {
     Kernel::AnyPoly _self;
-    decltype(_self.immediateSubterms()) _childIter;
+    decltype(Kernel::ImmediateSubterms{}(_self)) _childIter;
     unsigned _nChildren;
 
     PolynomialBottomUpChildIter(Kernel::AnyPoly self) 
       : _self(std::move(self))
-      , _childIter(_self.immediateSubterms())
-      , _nChildren(_self.immediateSubterms().count())
+      , _childIter(Kernel::ImmediateSubterms{}(_self))
+      , _nChildren(Kernel::ImmediateSubterms{}(_self).count())
     { }
 
     bool hasNext()        { return _childIter.hasNext(); }
     Kernel::PolyNf next() { return _childIter.next(); }
 
+    // TODO I think we can comment this out
     unsigned nChildren() const
     { return _nChildren; }
 
@@ -46,7 +47,8 @@ struct BottomUpChildIter<Kernel::PolyNf>
     Kernel::FuncTerm _self;
     unsigned _idx;
 
-    FuncTermBottomUpChildIter(Kernel::FuncTerm self) : _self(std::move(self)), _idx(0) {}
+    FuncTermBottomUpChildIter(Kernel::FuncTerm self) 
+      : _self(std::move(self)), _idx(0) {}
 
     bool hasNext() const
     { return _idx < _self.numTermArguments(); }
@@ -65,7 +67,9 @@ struct BottomUpChildIter<Kernel::PolyNf>
   struct VariableBottomUpChildIter 
   {
     Kernel::Variable _self;
-    VariableBottomUpChildIter(Kernel::Variable self) : _self(self) {}
+
+    VariableBottomUpChildIter(Kernel::Variable self) 
+      : _self(self) {}
 
     bool hasNext() const
     { return false; }
@@ -80,14 +84,19 @@ struct BottomUpChildIter<Kernel::PolyNf>
     { return out << self._self; }
   };
 
-  using Inner = Coproduct<FuncTermBottomUpChildIter, VariableBottomUpChildIter, PolynomialBottomUpChildIter>;
+  using Inner = Coproduct< FuncTermBottomUpChildIter
+                         , VariableBottomUpChildIter
+                         , PolynomialBottomUpChildIter
+                         >;
+
   Inner _self;
 
   BottomUpChildIter(Kernel::PolyNf self) : _self(self.match(
-        [&](Kernel::FuncTerm self) { return Inner( FuncTermBottomUpChildIter(std::move(self))); },
-        [&](Kernel::Variable self) { return Inner( VariableBottomUpChildIter(std::move(self))); },
-        [&](Kernel::AnyPoly  self) { return Inner(PolynomialBottomUpChildIter(std::move(self))); }
-      ))
+        [&](Kernel::FuncTerm self) { return Inner::template variant<0>(  FuncTermBottomUpChildIter(std::move(self))); },
+        [&](Kernel::Variable self) { return Inner::template variant<1>(  VariableBottomUpChildIter(std::move(self))); },
+        // [&](Kernel::Variable self) -> Inner {ASSERTION_VIOLATION},
+        [&](Kernel::AnyPoly  self) { return Inner::template variant<2>(PolynomialBottomUpChildIter(std::move(self))); }
+        ))
   {}
 
   Kernel::PolyNf next() 

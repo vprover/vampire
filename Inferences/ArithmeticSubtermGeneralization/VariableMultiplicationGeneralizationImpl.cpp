@@ -129,7 +129,7 @@ struct Preprocess
     for (auto summand : p.iterSummands()) {
 
       auto varIter = summand.factors.iter()
-            .filter([](auto& factor) { return factor.term.isVar(); });
+            .filter([](auto& factor) { return factor.term().isVar(); });
 
       auto varIter2 = varIter;
       auto varStack = VariableRegion(
@@ -137,7 +137,7 @@ struct Preprocess
             .map([](MonomFactor<NumTraits> factor) { return AnyNumber<MonomFactor>(factor); })
             .template collect<Stack>());
 
-      auto vars = varIter.map([](MonomFactor<NumTraits> factor) { return factor.term.unwrapVar(); });
+      auto vars = varIter.map([](MonomFactor<NumTraits> factor) { return factor.term().unwrapVar(); });
 
       if (vars.hasNext())  {
         auto cur = root(vars.next());
@@ -200,7 +200,7 @@ struct Generalize
     auto rm = facIter.tryNext(); 
 
     auto push = [&]() { 
-      out.push(MonomFactor<NumTraits>(evaluatedArgs[offs], cur.unwrap().power)); 
+      out.push(MonomFactor<NumTraits>(evaluatedArgs[offs], cur.unwrap().power())); 
       cur = facIter.tryNext();
       offs++;
     };

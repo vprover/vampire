@@ -40,14 +40,14 @@ struct Preprocess
   {
     for (auto summand : p.iterSummands()) {
       for (auto factor : summand.factors.iter()) {
-        auto var = factor.term.tryVar();
+        auto var = factor.term().tryVar();
         if (var.isSome()) {
 
 
-          auto current = factor.power == 0 || factor.power == 1  /* <- power 0 should never happen. 
-                                                                       power 1 yields a nop-generalization */
+          auto current = factor.power() == 0 || factor.power() == 1  /* <- power 0 should never happen. 
+                                                                           power 1 yields a nop-generalization */
             ? IntLattice::bot()
-            : IntLattice(factor.power);
+            : IntLattice(factor.power());
 
           powers.updateOrInit(var.unwrap(),
               [&](IntLattice old) { return current.meet(old); },
@@ -79,12 +79,12 @@ struct Generalize
           p.factors.iter()
            .map([&](MonomFactor<RealTraits> m) 
              { 
-                auto var = m.term.tryVar();
+                auto var = m.term().tryVar();
                 if (var.isSome() && !powers.get(var.unwrap()).isBot()) {
                   ASS_EQ(evaluatedArgs[i], var.unwrap());
-                  return MonomFactor<RealTraits>(evaluatedArgs[i++], 2 - ( m.power % 2 ));
+                  return MonomFactor<RealTraits>(evaluatedArgs[i++], 2 - ( m.power() % 2 ));
                 } else {
-                  return MonomFactor<RealTraits>(evaluatedArgs[i++], m.power); 
+                  return MonomFactor<RealTraits>(evaluatedArgs[i++], m.power()); 
                 }
               })
            .template collect<Stack>()));

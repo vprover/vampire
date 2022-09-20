@@ -323,7 +323,7 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
 
   auto offs = 0;
   auto args = in.factors.iter()
-    .map([&](auto f) { return MonomFactor(simplifiedArgs[offs++], f.power); })
+    .map([&](auto f) { return MonomFactor(simplifiedArgs[offs++], f.power()); })
     .template collect<Stack>();
 
   std::sort(args.begin(), args.end());
@@ -332,16 +332,16 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
   auto numeral = in.numeral;
   for (unsigned i = 0; i < args.size(); i++) {
     auto& arg = args[i];
-    auto c = arg.term.template tryNumeral<Number>();
+    auto c = arg.term().template tryNumeral<Number>();
     if (c.isSome()) {
       // arg is a number constant
-      numeral = numeral * pow(c.unwrap(), arg.power);
+      numeral = numeral * pow(c.unwrap(), arg.power());
     } else {
       // arg is a non-number term
-      auto term  = arg.term;
-      auto power = arg.power;
-      while (i + 1 < args.size() && args[i + 1].term == term) {
-        power += args[i + 1].power;
+      auto term  = arg.term();
+      auto power = arg.power();
+      while (i + 1 < args.size() && args[i + 1].term() == term) {
+        power += args[i + 1].power();
         i++;
       }
       if (power != 0)

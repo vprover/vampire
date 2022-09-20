@@ -76,11 +76,11 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
       for (auto monom : poly.iterSummands()) {
         for (auto factor : monom.factors.iter()) {
           
-          auto var = factor.term.tryVar();
+          auto var = factor.term().tryVar();
           if (var.isSome()) {
             auto numeral = FlatMeetLattice<AnyNumber<Numeral>>(AnyNumber<Numeral>(monom.numeral));
 
-            if (factor.power == 1 && canDivideBy(monom.numeral)) {
+            if (factor.power() == 1 && canDivideBy(monom.numeral)) {
               /* we found numeral * var */
               numerals.updateOrInit(var.unwrap(), 
                   /* update the numeral if there was already one associated with this variable */
@@ -89,7 +89,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
                   /* init the numeral if there was none */
                   [&]() { return numeral; });
             } else {
-              ASS_NEQ(factor.power, 0)
+              ASS_NEQ(factor.power(), 0)
               /* x^n ==> we cannot generalize. hence we set the numeral for this variable to bottom. */
               numerals.replaceOrInsert(var.unwrap(), FlatMeetLattice<AnyNumber<Numeral>>::bot());
             }

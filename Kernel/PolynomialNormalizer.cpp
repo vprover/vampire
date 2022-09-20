@@ -52,21 +52,21 @@ struct PolyNormTerm
 //     unsigned len = 0;
 //     for (auto x : raw) {
 //       ASS_EQ(x.power, 1)
-//       Option<Numeral> attempt(x.term.template tryNumeral<NumTraits>());
+//       Option<Numeral> attempt(x.term().template tryNumeral<NumTraits>());
 //       if (!found && attempt.isSome()) {
 //         found = true;
 //         num = attempt.unwrap();
 //       } else if (len == 0) {
 //         len++;
-//         raw[len - 1].term = x.term;
+//         raw[len - 1].term() = x.term();
 //         ASS_EQ(raw[len - 1].power, 1);
 //
-//       } else if (raw[len - 1].term == x.term) {
+//       } else if (raw[len - 1].term() == x.term()) {
 //         raw[len - 1].power++;
 //
 //       } else {
 //         len++;
-//         raw[len - 1].term = x.term;
+//         raw[len - 1].term() = x.term();
 //         ASS_EQ(raw[len - 1].power, 1)
 //
 //       }
@@ -250,7 +250,7 @@ struct PolyNormTerm
 //     if (term.raw().size() == 1)  {
 //       auto fac = term.raw()[0];
 //       ASS_EQ(fac.power, 1);
-//       return fac.term.template tryNumeral<NumTraits>();
+//       return fac.term().template tryNumeral<NumTraits>();
 //     } else {
 //       return Option<Numeral>();
 //     }
@@ -402,7 +402,7 @@ PolyNf normalizeTerm(TypedTermList t)
               //   .template collect<Stack>();
               //
               // std::sort(facs.begin(), facs.end(),
-              //     [](auto& l, auto& r) { return l.term < r.term; });
+              //     [](auto& l, auto& r) { return l.term() < r.term(); });
               //
               // return some(PolyNf(AnyPoly(Polynom<NumTraits>({Monom<NumTraits>(NumTraits::constant(1), std::move(facs))}))));
             } else {
