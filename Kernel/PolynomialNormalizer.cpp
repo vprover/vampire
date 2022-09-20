@@ -347,6 +347,7 @@ struct PolyNormTerm
 PolyNf normalizeTerm(TypedTermList t) 
 {
   CALL("PolyNf::normalize")
+  TIME_TRACE("PolyNf::normalize")
   DEBUG("normalizing ", t)
   Memo::None<PolyNormTerm,NormalizationResult> memo;
   struct Eval 
@@ -425,6 +426,7 @@ template<>
 struct BottomUpChildIter<Kernel::PolyNormTerm>
 {
   struct AcIter {
+    AcIter(AcIter &&) = default;
     unsigned _symbol;
     Term* _self;
     Stack<TermList> _next;

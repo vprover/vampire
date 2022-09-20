@@ -95,6 +95,7 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, const Variable& self);
   TermList denormalize() const { return TermList::var(_num); }
+  void integrity() const {}
 };
 
 // TODO use this newtype in Term.hpp
@@ -190,7 +191,12 @@ public:
   TermList denormalize() const;
 
   PolyNf term() const;
-  int power() const { return _power; }
+
+  int power() const 
+  { return _power; }
+
+  void integrity() const 
+  { term().integrity(); }
 };
 
 
@@ -375,6 +381,7 @@ public:
   static FuncTerm fromNormalized(Term* t) { return FuncTerm(t); }
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   TermList denormalize() const { return TermList(_self); }
+  void integrity() const;
 };
 
 template<class Number>
@@ -386,8 +393,8 @@ class Polynom
   using MonomFactors = Kernel::MonomFactors<Number>;
   using Monom        = Kernel::Monom<Number>;
 
-  // Stack<Monom> _summands;
   TermList _inner;
+  explicit Polynom(TermList inner) : _inner(inner) {}
 
 public:
   USE_ALLOCATOR(Polynom)
@@ -478,9 +485,9 @@ public:
   static Option<Polynom> tryFromNormalized(TypedTermList t);
   static Polynom fromNormalized(TermList t)
   {
-    auto tt = t.isTerm() ? TypedTermList(t.term())
-                        : TypedTermList(t, Number::sort());
-    return tryFromNormalized(tt).unwrap();
+    // TODO assertnormalized
+    ASS(t.isVar() || SortHelper::getResultSort(t.term()) == Number::sort());
+    return Polynom(t);
   }
 
 
@@ -548,6 +555,7 @@ public:
         { return Polynom<decltype(numTraits)>::tryFromNormalized(t)
                    .map([](auto x) { return AnyPoly(std::move(x)); }); }); }
 
+  void integrity() { return _self.apply([](auto& a) { return a.integrity(); }); }
 };
 
 
@@ -621,6 +629,7 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const PolyNf& self);
 
   static PolyNf fromNormalized(TypedTermList);
+  void integrity() { _self.apply([](auto& x) -> void { x.integrity(); }); }
 };
 
 
@@ -1048,16 +1057,20 @@ Option<Variable> MonomFactors<Number>::tryVar() const
 template<class Number>
 void MonomFactors<Number>::integrity() const 
 {
+
 #if VDEBUG
-  ASSERTION_VIOLATION_REP("TODO")
-  // if (_factors.size() > 0) {
-  //   auto iter = this->_factors.begin();
-  //   auto last = iter++;
-  //   while (iter != _factors.end()) {
-  //     ASS_REP(last->term <= iter->term, *this);
-  //     last = iter++;
-  //   }
-  // }
+  for (auto fac : this->iter()) {
+    fac.integrity();
+    ASS_REP(!theory->isInterpretedFunction(fac.denormalize(), Number::mulI), fac)
+  }
+  auto iter = this->iter();
+  ASS(iter.hasNext())
+  auto x0 = iter.next();
+  while (iter.hasNext()) {
+    auto x1 = iter.next();
+    ASS_L(x0.term(), x1.term())
+    x0 = std::move(x1);
+  }
 #endif
 }
 
@@ -1159,18 +1172,25 @@ Option<Polynom<NumTraits>> Polynom<NumTraits>::tryFromNormalized(TypedTermList t
   if (t.sort() != NumTraits::sort()) {
     return Option<Polynom>();
   } else {
-    auto isAdd = [](auto t) 
-    { return t.isTerm() && t.term()->functor() == NumTraits::addF(); };
+    // auto isAdd = [](auto t) 
+    // { return t.isTerm() && t.term()->functor() == NumTraits::addF(); };
+    //
+    // auto isMul = [](auto t) 
+    // { return t.isTerm() && t.term()->functor() == NumTraits::mulF(); };
 
-    Stack<Monom> summands(1);
-    TermList curr = t;
-    while (isAdd(curr)) {
-      ASS(!isAdd(curr.term()->termArg(0)))
-      summands.push(Monom::fromNormalized(curr.term()->termArg(0)));
-      curr = curr.term()->termArg(1);
-    }
-  // TODO sorted assertions
-    return Option<Polynom>(Polynom(std::move(summands)));
+    return some(Polynom(t));
+    // if (isMul(t)) {
+    //   return some(Polynom::fromNormalized(t))
+    // } else if (isMul){}
+    // Stack<Monom> summands(1);
+    // TermList curr = t;
+    // while (isAdd(curr)) {
+    //   ASS(!isAdd(curr.term()->termArg(0)))
+    //   summands.push(Monom::fromNormalized(curr.term()->termArg(0)));
+    //   curr = curr.term()->termArg(1);
+    // }
+  // // TODO sorted assertions
+  //   return Option<Polynom>(Polynom(std::move(summands)));
   }
 }
 
@@ -1344,18 +1364,18 @@ Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const
 template<class Number>
 void Polynom<Number>::integrity() const {
 #if VDEBUG
-  ASSERTION_VIOLATION_REP("TODO")
-  // ASS(_summands.size() > 0)
-  // if (_summands.size() > 0) {
-  //   auto iter = this->_summands.begin();
-  //   auto last = iter++;
-  //   while (iter != _summands.end()) {
-  //     // ASS_REP(std::less<MonomFactors>{}(last->factors, iter->factors), *this);
-  //     ASS_REP(last->factors <= iter->factors, *this);
-  //     iter->integrity();
-  //     last = iter++;
-  //   }
-  // } 
+  for (auto s : this->iterSummands()) {
+    s.integrity();
+    ASS_REP(!theory->isInterpretedFunction(s.denormalize(), Number::addI), s)
+  }
+  auto iter = this->iterSummands();
+  ASS(iter.hasNext())
+  auto x0 = iter.next();
+  while (iter.hasNext()) {
+    auto x1 = iter.next();
+    ASS_L(x0.factors, x1.factors)
+    x0 = std::move(x1);
+  }
 #endif
 }
 

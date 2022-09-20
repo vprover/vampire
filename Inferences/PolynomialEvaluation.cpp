@@ -209,6 +209,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
 {
   CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
 
+  TIME_TRACE("PolynomialEvaluation::evaluate(TypedTermList term) const")
   DEBUG("evaluating ", normalized)
   struct Eval 
   {
@@ -255,6 +256,7 @@ template<class Number>
 Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs)
 { 
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
+  TIME_TRACE("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
   try {

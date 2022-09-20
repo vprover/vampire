@@ -93,6 +93,12 @@ FuncTerm::FuncTerm(FuncId f, PolyNf* args)
         ))
 { }
 
+
+void FuncTerm::integrity() const
+{ for (unsigned i = 0; i < numTermArguments(); i++) arg(i).integrity(); }
+
+
+
 unsigned FuncTerm::numTermArguments() const 
 { return _self->numTermArguments(); }
 
@@ -104,21 +110,18 @@ PolyNf FuncTerm::arg(unsigned i) const
 
 std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
 { 
-  // TODO nicer outputting?!
-  return out << self._self;
-  // out << self._fun;
-  // auto& stack = self._args;
-  // auto iter = stack.iterFifo();
-  //
-  // if (iter.hasNext()) {
-  //   out << "(" << iter.next();
-  //   while (iter.hasNext()) {
-  //     out << ", " << iter.next();
-  //   }
-  //   out << ")";
-  // }
-  //
-  // return out;
+  out << self.function();
+  out << "(";
+  auto iter = iterTraits(getRangeIterator((unsigned)0, self.numTermArguments()))
+    .map([&](auto i) { return self.arg(i); });
+
+  if (iter.hasNext()) {
+    out << iter.next();
+    while (iter.hasNext()) {
+      out << ", " << iter.next();
+    }
+  }
+  return out << ")";
 }
 
 
@@ -156,9 +159,18 @@ PolyNf::PolyNf(AnyPoly  t) : _self(std::move(t)) { }
 
 PolyNf PolyNf::fromNormalized(TypedTermList t)
 {
-    return AnyPoly::tryFromNormalized(t).map([](auto p) { return PolyNf(std::move(p)); })
-       || [&]() { return t.isTerm() ? PolyNf(FuncTerm::fromNormalized(t.term()))
-                                    : PolyNf(Variable(t.var())); };
+  if (t.isTerm()) {
+    auto term = t.term();
+    auto f = term->functor();
+    auto poly = tryNumTraits([&](auto numTraits) {
+        return numTraits.addF() == f || numTraits.mulF() == f
+                ? some(PolyNf(AnyPoly(Polynom<decltype(numTraits)>::fromNormalized(t))))
+                : none<PolyNf>();
+        });
+    return poly || [&]() { return PolyNf(FuncTerm::fromNormalized(term)); };
+  } else {
+    return PolyNf(Variable(t.var()));
+  }
 }
 
 std::ostream& operator<<(std::ostream& out, const PolyNf& self)
