@@ -247,6 +247,10 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   {
     if (npcc == "__exper30_RICH_8") {
       _passive = std::make_unique<LearnedPassiveClauseContainerExper30Rich8>(true, opt);
+    } else if (npcc == "__exper50_AW_8") {
+      _passive = std::make_unique<LearnedPassiveClauseContainerExper50AW8>(true, opt);
+    } else if (npcc == "__exper53_AW_16") {
+      _passive = std::make_unique<LearnedPassiveClauseContainerExper53AW16>(true, opt);
     } else {
       _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt);
     }    

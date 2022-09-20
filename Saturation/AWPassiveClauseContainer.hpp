@@ -77,6 +77,9 @@ protected:
     if (sc1 < sc2) {
       return false;
     }
+
+    // TODO: could collect clause's literal's getId's to cheaply get more randomness with randomTraversals
+
     return c1->number() < c2->number();
   }
 private:
@@ -159,6 +162,34 @@ public:
   LearnedPassiveClauseContainerExper30Rich8(bool isOutermost, const Shell::Options& opt) :
     LearnedPassiveClauseContainer(isOutermost,opt) {}
   ~LearnedPassiveClauseContainerExper30Rich8() override {}
+protected:
+  float scoreClause(Clause*) override;
+};
+
+class LearnedPassiveClauseContainerExper50AW8
+: public LearnedPassiveClauseContainer
+{
+public:
+  CLASS_NAME(LearnedPassiveClauseContainerExper50AW8);
+  USE_ALLOCATOR(LearnedPassiveClauseContainerExper50AW8);
+
+  LearnedPassiveClauseContainerExper50AW8(bool isOutermost, const Shell::Options& opt) :
+    LearnedPassiveClauseContainer(isOutermost,opt) {}
+  ~LearnedPassiveClauseContainerExper50AW8() override {}
+protected:
+  float scoreClause(Clause*) override;
+};
+
+class LearnedPassiveClauseContainerExper53AW16
+: public LearnedPassiveClauseContainer
+{
+public:
+  CLASS_NAME(LearnedPassiveClauseContainerExper53AW16);
+  USE_ALLOCATOR(LearnedPassiveClauseContainerExper53AW16);
+
+  LearnedPassiveClauseContainerExper53AW16(bool isOutermost, const Shell::Options& opt) :
+    LearnedPassiveClauseContainer(isOutermost,opt) {}
+  ~LearnedPassiveClauseContainerExper53AW16() override {}
 protected:
   float scoreClause(Clause*) override;
 };
