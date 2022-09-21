@@ -13,7 +13,7 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -35,6 +35,7 @@ Literal* cancelAdd(Literal* lit) {
   CALL("cancelAdd(Literal* lit)")
   ASS_EQ(lit->numTypeArguments(), 0) // <- we only have equality, or inequality literals, which are not polymorphic
   ASS_EQ(lit->numTermArguments(), 2)
+
   auto normL = PolyNf::normalize(TypedTermList((*lit)[0], SortHelper::getTermArgSort(lit, 0)));
   auto normR = PolyNf::normalize(TypedTermList((*lit)[1], SortHelper::getTermArgSort(lit, 1)));
 
@@ -102,7 +103,6 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
   using Numeral = typename Number::ConstantType;
   using Monom        = Monom       <Number>;
   using MonomFactors = MonomFactors<Number>;
-  using NumeralVec   = Stack<Monom>;
   auto itl = oldl.iterSummands();
   auto itr = oldr.iterSummands();
 
@@ -123,18 +123,24 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
     return Numeral::comparePrecedence(l,r) == Comparison::LESS;
   };
 
-  NumeralVec newl;
-  NumeralVec newr;
-  auto l = itl.next();
-  auto r = itr.next();
-  while(itl.hasNext() && itr.hasNext()) {
+
+  // TODO performance: make canellation quicker by not allocating intermediate stacks, but straight building the normalized terms
+  Stack<Monom> newl;
+  Stack<Monom> newr;
+  auto pushRes = [&](auto& res, auto t) { res.push(t); };
+
+  auto _l = itl.tryNext();
+  auto _r = itr.tryNext();
+  while (_l.isSome() && _r.isSome()) {
+    auto const &l = _l.unwrap();
+    auto const &r = _r.unwrap();
     if (l.factors == r.factors) {
       auto& m = l.factors;
 
       auto lMinusR = safeMinus(l.numeral, r.numeral);
       auto rMinusL = safeMinus(r.numeral, l.numeral);
-      auto pushDiffLeft  = [&]() { newl.push(Monom(lMinusR.unwrap(), MonomFactors(m))); };
-      auto pushDiffRight = [&]() { newr.push(Monom(rMinusL.unwrap(), MonomFactors(m))); };
+      auto pushDiffLeft  = [&]() { pushRes(newl, Monom(lMinusR.unwrap(), MonomFactors(m))); };
+      auto pushDiffRight = [&]() { pushRes(newr, Monom(rMinusL.unwrap(), MonomFactors(m))); };
       auto pushSmaller = [&] () {
         if (cmpPrecedence(rMinusL, lMinusR.unwrap())) {
           pushDiffRight();
@@ -172,26 +178,29 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
         } else {
           ASS_EQ(m, l.factors);
           ASS_EQ(m, r.factors);
-          newl.push(l);
-          newr.push(r);
+          pushRes(newl, l);
+          pushRes(newr, r);
         }
       }
-      l = itl.next();
-      r = itr.next();
+      _l = itl.tryNext();
+      _r = itr.tryNext();
     } else if (l.factors < r.factors) {
-      newl.push(l);
-      l = itl.next();
+      pushRes(newl, l);
+      _l = itl.tryNext();
     } else {
       ASS(r.factors < l.factors)
-      newr.push(r);
-      r = itr.next();
+      pushRes(newr, r);
+      _r = itr.tryNext();
     }
+  } 
+
+  while (_l.isSome()) {
+    pushRes(newl, _l.unwrap());
+    _l = itl.tryNext();
   }
-  while (itl.hasNext()) {
-    newl.push(itl.next());
-  }
-  while (itr.hasNext()) {
-    newr.push(itr.next());
+  while (_r.isSome()) {
+    pushRes(newr, _r.unwrap());
+    _r = itr.tryNext();
   }
   auto outl = Polynom<Number>(std::move(newl));
   auto outr = Polynom<Number>(std::move(newr));

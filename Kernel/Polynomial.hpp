@@ -64,7 +64,7 @@ public:
   auto next() {
     auto out = _current.take().unwrap();
     if (out.isTerm() && out.term()->functor() == _functor)  {
-      ASS_EQ(out.term()->numTermArguments(), 1);
+      ASS_EQ(out.term()->numTermArguments(), 2);
       _current = some(out.term()->termArg(1));
       return out.term()->termArg(0);
     } else {
@@ -177,6 +177,8 @@ public:
     DERIVE_HASH
 
   friend struct ImmediateSubterms;
+  template<class N>
+  friend std::ostream& operator<<(std::ostream& out, MonomFactor<N> const& self);
 
   MonomFactor(PolyNf term, int power);
 
@@ -227,6 +229,8 @@ public:
    * \pre factors must be sorted
    */
   MonomFactors(Stack<MonomFactor>&& factors);
+
+  MonomFactors(TermList factors);
 
   /** constructs an empty product, which corresponds to the numeral one.  */
   MonomFactors();
@@ -317,7 +321,7 @@ struct Monom
 
   CLASS_NAME(Monom)
   USE_ALLOCATOR(Monom)
-  MAKE_DERIVABLE(Monom, numeral, factors)
+  MAKE_DERIVABLE(Monom, factors, numeral)
     DERIVE_EQ
     DERIVE_CMP
     DERIVE_HASH
@@ -479,7 +483,7 @@ public:
 
   /** returns iterator over all summands of this Polyom */
   auto iterSummands() const 
-  { return iterTraits(AcChainIter(_inner, Number::mulF()))
+  { return iterTraits(AcChainIter(_inner, Number::addF()))
         .map([](auto t) { return Monom::fromNormalized(t); }); }
 
   static Option<Polynom> tryFromNormalized(TypedTermList t);
@@ -943,13 +947,14 @@ namespace Kernel {
 
 template<class Number>
 MonomFactor<Number>::MonomFactor(PolyNf term, int power) 
-  : _term(term.denormalize())
-  , _power(power)
+  : _term( power == 0 ? Number::one() : term.denormalize())
+  , _power(power == 0 ? 1             : power)
 {}
 
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
-  out << self.term();
+  out << self._term;
+  // out << self.term();
   if (self.power() != 1) 
     out << "^" << self.power();
   return out;
@@ -968,16 +973,20 @@ Option<Variable> MonomFactor<Number>::tryVar() const
 namespace Kernel {
 
 template<class Number>
+MonomFactors<Number>::MonomFactors(TermList t) 
+  : _inner(t) { integrity(); }
+
+template<class Number>
 MonomFactors<Number>::MonomFactors(Stack<MonomFactor>&& factors) 
-  : _inner(Number::sum(iterTraits(factors.iter()).map([](auto f) { return f.denormalize(); }))) { }
+  : MonomFactors(Number::product(iterTraits(factors.iter()).map([](auto f) { return f.denormalize(); }))) { }
 
 template<class Number>
 MonomFactors<Number>::MonomFactors() 
-  : MonomFactors(Stack<MonomFactor>()) { }
+  : MonomFactors(MonomFactors::fromNormalized(Number::one())) { }
 
 template<class Number>
 MonomFactors<Number>::MonomFactors(PolyNf t) 
-  : MonomFactors(Stack<MonomFactor>{ MonomFactor ( t, 1 ) }) { }
+  : MonomFactors(MonomFactors::fromNormalized(t.denormalize())) { }
 
 template<class Number>
 MonomFactors<Number>::MonomFactors(PolyNf t1, PolyNf t2) 
@@ -1068,7 +1077,7 @@ void MonomFactors<Number>::integrity() const
   auto x0 = iter.next();
   while (iter.hasNext()) {
     auto x1 = iter.next();
-    ASS_L(x0.term(), x1.term())
+    ASS_LE(x0.term(), x1.term())
     x0 = std::move(x1);
   }
 #endif
@@ -1123,7 +1132,7 @@ Polynom<Number>::Polynom(PolyNf t)
 template<class Number>
 Polynom<Number>::Polynom(Numeral constant) 
   : Polynom(Monom(constant, MonomFactors::one())) 
-{  }
+{ }
 
 
 template<class Number>
@@ -1147,7 +1156,7 @@ std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
 template<class Number>
 Polynom<Number> Polynom<Number>::zero() 
 { 
-  auto out = Polynom(Stack<Monom>{Monom::zero()}); 
+  auto out = Polynom::fromNormalized(Number::zero()); 
   out.integrity();
   return std::move(out);
 }
@@ -1223,18 +1232,19 @@ template<class NumTraits>
 MonomFactors<NumTraits> MonomFactors<NumTraits>::fromNormalized(TermList t)
 {
   ASS(t.isVar() || SortHelper::getResultSort(t.term()) == NumTraits::sort())
-  auto isMul = [](auto t) 
-  { return t.isTerm() && t.term()->functor() == NumTraits::mulF(); };
-
-  Stack<MonomFactor> factors(1);
-  TermList curr = t;
-  while (isMul(curr)) {
-    // ASS(!isMul(curr.term()->termArg(0)))
-    factors.push(MonomFactor::fromNormalized(curr.term()->termArg(0)));
-    curr = curr.term()->termArg(1);
-  }
-  // TODO sorted assertions
-  return MonomFactors(std::move(factors));
+  return MonomFactors(t);
+  // auto isMul = [](auto t) 
+  // { return t.isTerm() && t.term()->functor() == NumTraits::mulF(); };
+  //
+  // Stack<MonomFactor> factors(1);
+  // TermList curr = t;
+  // while (isMul(curr)) {
+  //   // ASS(!isMul(curr.term()->termArg(0)))
+  //   factors.push(MonomFactor::fromNormalized(curr.term()->termArg(0)));
+  //   curr = curr.term()->termArg(1);
+  // }
+  // // TODO sorted assertions
+  // return MonomFactors(std::move(factors));
 }
 
 
@@ -1373,7 +1383,7 @@ void Polynom<Number>::integrity() const {
   auto x0 = iter.next();
   while (iter.hasNext()) {
     auto x1 = iter.next();
-    ASS_L(x0.factors, x1.factors)
+    ASS_LE(x0.factors, x1.factors)
     x0 = std::move(x1);
   }
 #endif

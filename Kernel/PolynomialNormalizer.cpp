@@ -27,7 +27,10 @@ struct PolyNormTerm
 {
   TypedTermList _self;
   PolyNormTerm(TypedTermList t) : _self(std::move(t)) {}
+  friend std::ostream& operator<<(std::ostream& out, PolyNormTerm const& self)
+  { return out << self._self; }
 };
+
 
 
 
@@ -365,11 +368,16 @@ PolyNf normalizeTerm(TypedTermList t)
         auto poly = tryNumTraits([&](auto n) -> Option<PolyNf> {
             using NumTraits = decltype(n);
             if (NumTraits::addF() == t.term()->functor()) {
+            DBG("normalizing ", t)
+            DBGE(nTs)
               auto summands = range(0, nTs)
                 .map([&](auto i) { return Monom<NumTraits>::fromNormalized(ts[i].denormalize()); })
                 .template collect<Stack<Monom<NumTraits>>>();
               std::sort(summands.begin(), summands.end());
-              return some(PolyNf(AnyPoly(Polynom<NumTraits>(std::move(summands)))));
+              DBGE(summands)
+              auto out = some(PolyNf(AnyPoly(Polynom<NumTraits>(std::move(summands)))));
+              DBGE(out)
+              return out;
             } else if (NumTraits::mulF() == t.term()->functor()) {
               Stack<pair<PolyNf, unsigned>> facs = range(0, nTs)
                 .map([&](auto i) { return make_pair(ts[i], unsigned(0)); })

@@ -16,7 +16,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation/PolyNf.hpp"
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 using namespace Lib;
 
 
@@ -56,16 +56,21 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
 {
   CALL("PolynomialEvaluation::simplifyLiteral");
   TIME_TRACE("polynomial evaluation");
+  DEBUG("simplifying literal ", *lit)
 
   Stack<PolyNf> terms(lit->numTermArguments());
   auto anyChange = false;
   for (unsigned i = 0; i < lit->numTermArguments(); i++) {
     auto term = lit->termArg(i);
+    DEBUG("normalizing arg ", i, ": ", term);
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
+    DEBUG("normalized ", term, " -> ", norm);
     auto ev = evaluate(norm);
+    DEBUG("evaluated ", norm, " -> ", ev);
     anyChange = anyChange || ev.isSome();
     terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));
   }
+  DBGE(terms)
   auto simplified = tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
 
@@ -208,8 +213,8 @@ AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
   CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
-
   TIME_TRACE("PolynomialEvaluation::evaluate(TypedTermList term) const")
+
   DEBUG("evaluating ", normalized)
   struct Eval 
   {
@@ -259,7 +264,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs)
   TIME_TRACE("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
-  try {
+  try { 
 
     // first we simplify all the monoms containted in this polynom
     auto offs = 0;
