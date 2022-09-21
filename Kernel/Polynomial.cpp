@@ -111,17 +111,18 @@ PolyNf FuncTerm::arg(unsigned i) const
 std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
 { 
   out << self.function();
-  out << "(";
   auto iter = iterTraits(getRangeIterator((unsigned)0, self.numTermArguments()))
     .map([&](auto i) { return self.arg(i); });
 
   if (iter.hasNext()) {
+    out << "(";
     out << iter.next();
     while (iter.hasNext()) {
       out << ", " << iter.next();
     }
+    out << ")";
   }
-  return out << ")";
+  return out;
 }
 
 

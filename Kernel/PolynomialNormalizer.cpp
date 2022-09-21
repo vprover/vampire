@@ -465,18 +465,24 @@ PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
               unsigned nums = 0;
               while (i < facs.size()) {
                 auto n = NumTraits::tryNumeral(facs[i].first.denormalize());
+                auto collectSameNonNumerals = [&]() {
+                    facs[offs].first = facs[i].first;
+                    while (i < facs.size() && facs[i].first == facs[offs].first) {
+                      facs[offs].second++;
+                      i++;
+                    }
+                    offs++;
+                };
                 if (n.isSome()) {
-                  nums++;
-              DBGE(numeral)
-                  numeral = numeral * n.unwrap();
-                  i++;
-                } else {
-                  facs[offs].first = facs[i].first;
-                  while (i < facs.size() && facs[i].first == facs[offs].first) {
-                    facs[offs].second++;
+                  try {
+                    numeral = numeral * n.unwrap();
+                    nums++;
                     i++;
+                  } catch (MachineArithmeticException) {
+                    collectSameNonNumerals();
                   }
-                  offs++;
+                } else {
+                  collectSameNonNumerals();
                 }
               }
               if (nums > 1 || (nums == 1 && numeral == Numeral(1))) 

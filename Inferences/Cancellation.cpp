@@ -124,7 +124,6 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
   };
 
 
-  // TODO performance: make canellation quicker by not allocating intermediate stacks, but straight building the normalized terms
   Stack<Monom> newl;
   Stack<Monom> newr;
   auto pushRes = [&](auto& res, auto t) { res.push(t); };

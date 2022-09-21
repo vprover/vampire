@@ -284,7 +284,8 @@ Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs)
       .template collect<Stack>();
 
     // then we sort them by their monom, in order to add up the coefficients efficiently
-    std::sort(out.begin(), out.end());
+    std::sort(out.begin(), out.end(), 
+        [](auto& l, auto& r) { return l.factors < r.factors; });
 
     // add up the coefficient (in place)
     {
@@ -335,7 +336,8 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
     .map([&](auto f) { return MonomFactor(simplifiedArgs[offs++], f.power()); })
     .template collect<Stack>();
 
-  std::sort(args.begin(), args.end());
+  std::sort(args.begin(), args.end(), 
+      [](auto& l, auto& r) { return l.term() < r.term(); });
 
   offs = 0;
   auto numeral = in.numeral;
@@ -363,6 +365,7 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs)
     return Monom::zero();
   } else {
     args.truncate(offs);
+    DBGE(args)
     return Monom(numeral, MonomFactors(std::move(args))); 
   }
 }

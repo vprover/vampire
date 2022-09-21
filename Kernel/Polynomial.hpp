@@ -1125,7 +1125,7 @@ void MonomFactors<Number>::integrity() const
 #if POLYNF_INTEGRITY_CHECKS
   for (auto fac : this->iter()) {
     fac.integrity();
-    ASS_REP(!theory->isInterpretedFunction(fac.denormalize(), Number::mulI), fac)
+    ASS_REP(!theory->isInterpretedFunction(fac.term().denormalize(), Number::mulI), fac)
   }
   auto iter = this->iter();
   ASS(iter.hasNext())
