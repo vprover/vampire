@@ -63,14 +63,16 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
   for (unsigned i = 0; i < lit->numTermArguments(); i++) {
     auto term = lit->termArg(i);
     DEBUG("normalizing arg ", i, ": ", term);
-    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
+    bool normEvaluated = false;
+    auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)), normEvaluated);
     DEBUG("normalized ", term, " -> ", norm);
     auto ev = evaluate(norm);
     DEBUG("evaluated ", norm, " -> ", ev);
-    anyChange = anyChange || ev.isSome();
+    anyChange = anyChange || normEvaluated || ev.isSome();
     terms.push(std::move(ev).unwrapOrElse([&](){ return norm; }));
   }
   DBGE(terms)
+  DBGE(anyChange)
   auto simplified = tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
 

@@ -44,6 +44,11 @@
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
+#if VDEBUG
+#define POLYNF_INTEGRITY_CHECKS 1
+#else 
+#define POLYNF_INTEGRITY_CHECKS 0
+#endif
 namespace Kernel {
 
 
@@ -198,9 +203,37 @@ public:
   { return _power; }
 
   void integrity() const 
-  { term().integrity(); }
+  { 
+#if POLYNF_INTEGRITY_CHECKS
+    term().integrity(); 
+#endif
+  }
 };
 
+template<class Add, class Zero, class Iter>
+TermList denormalizeAndNormalizedFromIterator(Add add, Zero zero, Iter iter)
+{
+  return normalizedFromIterator(add, zero, 
+      iterTraits(iter)
+        .map([](auto a){ return a.denormalize(); }));
+}
+
+template<class Add, class Zero, class Iter>
+TermList normalizedFromIterator(Add add, Zero zero, Iter iter)
+{
+  // TODO check whether the iterator is reverable (?)
+  auto ts = Stack<TermList>::fromIterator(iter);
+  auto rev = range(0, ts.size()).map([&](auto i) { return ts[ts.size() - 1 - i]; });
+  if (!rev.hasNext()) {
+    return zero();
+  } else {
+    auto out = rev.next();
+    while (rev.hasNext()) {
+      out = add(rev.next(), out);
+    }
+    return out;
+  }
+}
 
 /** 
  * Represents the non-numeral part of a monom. this means it is a sorted list of MonomFactor s.
@@ -228,7 +261,21 @@ public:
    * constructs a new MonomFactors. 
    * \pre factors must be sorted
    */
-  MonomFactors(Stack<MonomFactor>&& factors);
+  MonomFactors(Stack<MonomFactor> const& factors);
+
+  explicit MonomFactors(const MonomFactors&) = default;
+  explicit MonomFactors(MonomFactors&) = default;
+
+  MonomFactors& operator=(MonomFactors&&) = default;
+  MonomFactors(MonomFactors&&) = default;
+
+
+  // \pre iter must be sorted
+  template<class Iter>
+  static MonomFactors fromIterator(Iter iter)
+  { return MonomFactors::fromNormalized(
+      denormalizeAndNormalizedFromIterator(Number::mul, Number::one, iter)); }
+
 
   MonomFactors(TermList factors);
 
@@ -290,12 +337,6 @@ public:
   auto iter() const 
   { return iterTraits(AcChainIter(_inner, Number::mulF()))
         .map([](auto t) { return MonomFactor::fromNormalized(t); }); }
-
-  explicit MonomFactors(const MonomFactors&) = default;
-  explicit MonomFactors(MonomFactors&) = default;
-
-  MonomFactors& operator=(MonomFactors&&) = default;
-  MonomFactors(MonomFactors&&) = default;
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
 
@@ -398,7 +439,7 @@ class Polynom
   using Monom        = Kernel::Monom<Number>;
 
   TermList _inner;
-  explicit Polynom(TermList inner) : _inner(inner) {}
+  explicit Polynom(TermList inner) : _inner(inner) { integrity(); }
 
 public:
   USE_ALLOCATOR(Polynom)
@@ -414,16 +455,17 @@ public:
    * constructs a new Polynom with a list of summands 
    * \pre summands must be sorted
    */
+  // TODO get rid of this?
   explicit Polynom(Stack<Monom> const& summands) 
-        : Polynom(Polynom::fromIter(summands.iter())) 
+        : Polynom(Polynom::fromIterator(summands.iterFifo())) 
   {}
 
   Polynom(Polynom const& summands)  = default;
 
   template<class Iter>
-  static Polynom fromIter(Iter iter)
-  { return Polynom::fromNormalized(Number::sum(iterTraits(iter)
-        .map([](Monom s) { return s.denormalize(); }))); }
+  static Polynom fromIterator(Iter iter)
+  { return Polynom::fromNormalized(
+      denormalizeAndNormalizedFromIterator(Number::add, Number::zero, iter)); }
 
   /** creates a Polynom that consists of only one summand */
   explicit Polynom(Monom m);
@@ -559,7 +601,11 @@ public:
         { return Polynom<decltype(numTraits)>::tryFromNormalized(t)
                    .map([](auto x) { return AnyPoly(std::move(x)); }); }); }
 
-  void integrity() { return _self.apply([](auto& a) { return a.integrity(); }); }
+  void integrity() { 
+#if POLYNF_INTEGRITY_CHECKS
+    return _self.apply([](auto& a) { return a.integrity(); }); 
+#endif
+  }
 };
 
 
@@ -584,7 +630,9 @@ public:
   PolyNf(Variable          t);
   PolyNf(AnyPoly           t);
 
-  static PolyNf normalize(TypedTermList t);
+  static PolyNf normalize(TypedTermList t, bool& evaluated);
+  static PolyNf normalize(TypedTermList t) 
+  { bool ev; return PolyNf::normalize(t, ev); }
 
   template<class FUnint, class FVar, class FPoly>
   auto match(FUnint unint, FVar var, FPoly poly) const
@@ -633,7 +681,11 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const PolyNf& self);
 
   static PolyNf fromNormalized(TypedTermList);
-  void integrity() { _self.apply([](auto& x) -> void { x.integrity(); }); }
+  void integrity() { 
+#if POLYNF_INTEGRITY_CHECKS
+    _self.apply([](auto& x) -> void { x.integrity(); }); 
+#endif
+  }
 };
 
 
@@ -761,7 +813,7 @@ Option<Variable> Monom<Number>::tryVar() const
 template<class Number>
 void Monom<Number>::integrity() const 
 {
-#if VDEBUG
+#if POLYNF_INTEGRITY_CHECKS
   this->factors.integrity();
 #endif // VDEBUG
 }
@@ -953,11 +1005,15 @@ MonomFactor<Number>::MonomFactor(PolyNf term, int power)
 
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
-  out << self._term;
-  // out << self.term();
+  // out << self._term;
+// #if POLYNF_NICE_OUTPUT
+  out << self.term();
   if (self.power() != 1) 
     out << "^" << self.power();
   return out;
+// #else 
+//   return out << "MonomFactor(" << self.asTuple() << ")";
+// #endif
 }
 
 template<class Number>
@@ -977,8 +1033,8 @@ MonomFactors<Number>::MonomFactors(TermList t)
   : _inner(t) { integrity(); }
 
 template<class Number>
-MonomFactors<Number>::MonomFactors(Stack<MonomFactor>&& factors) 
-  : MonomFactors(Number::product(iterTraits(factors.iter()).map([](auto f) { return f.denormalize(); }))) { }
+MonomFactors<Number>::MonomFactors(Stack<MonomFactor> const& factors) 
+  : MonomFactors(MonomFactors::fromIterator(factors.iterFifo())) { }
 
 template<class Number>
 MonomFactors<Number>::MonomFactors() 
@@ -1066,8 +1122,7 @@ Option<Variable> MonomFactors<Number>::tryVar() const
 template<class Number>
 void MonomFactors<Number>::integrity() const 
 {
-
-#if VDEBUG
+#if POLYNF_INTEGRITY_CHECKS
   for (auto fac : this->iter()) {
     fac.integrity();
     ASS_REP(!theory->isInterpretedFunction(fac.denormalize(), Number::mulI), fac)
@@ -1215,8 +1270,11 @@ Monom<NumTraits> Monom<NumTraits>::fromNormalized(TermList t)
       auto num = NumTraits::tryNumeral(trm->termArg(0));
       if (num.isSome()) {
         ASS(num.unwrap() != Numeral(1))
+        ASS(num.unwrap() != Numeral(-1))
         return Monom(num.unwrap(), MonomFactors<NumTraits>::fromNormalized(t.term()->termArg(1)));
       }
+    } else if (trm->functor() == NumTraits::minusF()) {
+      return Monom(Numeral(-1), MonomFactors<NumTraits>::fromNormalized(t.term()->termArg(0)));
 
     } else if (NumTraits::tryNumeral(t).isSome()) {
       auto num = NumTraits::tryNumeral(t).unwrap();
@@ -1346,7 +1404,7 @@ template<class Number>
 Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
 {
   CALL("Polynom::replaceTerms(PolyNf*)")
-  return Polynom::fromIter(this->iterSummands()
+  return Polynom::fromIterator(this->iterSummands()
     .map([&](Monom summand) -> Monom {
         unsigned cnt;
         auto newSummand = summand.replaceTerms(simplifiedTerms, cnt);
@@ -1373,7 +1431,7 @@ Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const
 
 template<class Number>
 void Polynom<Number>::integrity() const {
-#if VDEBUG
+#if POLYNF_INTEGRITY_CHECKS
   for (auto s : this->iterSummands()) {
     s.integrity();
     ASS_REP(!theory->isInterpretedFunction(s.denormalize(), Number::addI), s)

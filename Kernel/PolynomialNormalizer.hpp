@@ -41,7 +41,7 @@
 namespace Kernel {
 
 using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
-PolyNf normalizeTerm(TypedTermList t);
+PolyNf normalizeTerm(TypedTermList t, bool& evaluated);
 
 } // namespace Kernel
 

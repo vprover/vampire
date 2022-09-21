@@ -33,6 +33,76 @@ struct PolyNormTerm
 
 
 
+template<class NumTraits>
+struct GetSumArgs {
+  static bool isAcTerm(TermList t) 
+  { return t.isTerm() && t.term()->functor() == NumTraits::addF(); }    
+
+  static TermList getAcArg(TermList t, unsigned i)
+  { 
+    ASS(i < 2)
+    return t.term()->termArg(i);
+  }
+};
+
+bool isNumeralDiv(IntTraits, Term& term, unsigned f)
+{ return false; }
+
+template<class NumTraits>
+bool isNumeralDiv(NumTraits, Term& term, unsigned f)
+{ 
+  if (NumTraits::divF() == f) {
+     auto num = NumTraits::tryNumeral(term.termArg(1));
+     return num.isSome() && num.unwrap() != NumTraits::constant(0);
+  }
+  return false;
+}
+
+
+TermList getDivArg(IntTraits, Term& term, unsigned f, unsigned i)
+{ ASSERTION_VIOLATION }
+
+
+template<class NumTraits>
+TermList getDivArg(NumTraits, Term& term, unsigned f, unsigned i)
+{ 
+  ASS(f == NumTraits::divF())
+  return i == 0 ? term.termArg(0) 
+                : NumTraits::constantTl(NumTraits::constant(1) / NumTraits::tryNumeral(term.termArg(1)).unwrap());
+}
+
+template<class NumTraits>
+struct GetProductArgs {
+  static bool isAcTerm(TermList t) 
+  { 
+    if (t.isVar()) {
+      return false;
+    } else {
+      auto& term = *t.term();
+      auto f = term.functor();
+
+      return f == NumTraits::mulF() 
+          || f == NumTraits::minusF() 
+          || isNumeralDiv(NumTraits{}, term, f);
+    }
+  }    
+
+  static TermList getAcArg(TermList t, unsigned i)
+  { 
+    ASS(i < 2);
+    auto& term = *t.term();
+    auto f = term.functor();
+    if (f == NumTraits::minusF()) {
+      return (i == 0  ? NumTraits::constantTl(-1) : term.termArg(0));
+    } else if (f == NumTraits::mulF())  {
+      return term.termArg(i);
+    } else {
+      return getDivArg(NumTraits{}, term, f, i);
+    }
+  }
+};
+
+
 
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
@@ -347,14 +417,16 @@ struct PolyNormTerm
 //   return out;                                                                                                 \
 //
 
-PolyNf normalizeTerm(TypedTermList t) 
+PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
 {
   CALL("PolyNf::normalize")
   TIME_TRACE("PolyNf::normalize")
   DEBUG("normalizing ", t)
   Memo::None<PolyNormTerm,NormalizationResult> memo;
-  struct Eval 
+  struct Eval
   {
+    bool& evaluated;
+
     using Arg    = PolyNormTerm;
     using Result = NormalizationResult;
 
@@ -362,23 +434,24 @@ PolyNf normalizeTerm(TypedTermList t)
     { 
       // ASSERTION_VIOLATION_REP("unimplemented")
       auto t = t_._self;
+      DBG("normalizing ", t)
       if (t.isVar()) {
         return PolyNf(Variable(t.var()));
       } else {
+        auto term = t.term();
+        auto f = term->functor();
         auto poly = tryNumTraits([&](auto n) -> Option<PolyNf> {
             using NumTraits = decltype(n);
-            if (NumTraits::addF() == t.term()->functor()) {
-            DBG("normalizing ", t)
-            DBGE(nTs)
+            using Numeral = typename NumTraits::ConstantType;
+
+            if (NumTraits::addF() == f) {
               auto summands = range(0, nTs)
                 .map([&](auto i) { return Monom<NumTraits>::fromNormalized(ts[i].denormalize()); })
                 .template collect<Stack<Monom<NumTraits>>>();
               std::sort(summands.begin(), summands.end());
-              DBGE(summands)
               auto out = some(PolyNf(AnyPoly(Polynom<NumTraits>(std::move(summands)))));
-              DBGE(out)
               return out;
-            } else if (NumTraits::mulF() == t.term()->functor()) {
+            } else if (GetProductArgs<NumTraits>::isAcTerm(t)) {
               Stack<pair<PolyNf, unsigned>> facs = range(0, nTs)
                 .map([&](auto i) { return make_pair(ts[i], unsigned(0)); })
                 .template collect<Stack>();
@@ -386,12 +459,16 @@ PolyNf normalizeTerm(TypedTermList t)
               std::sort(facs.begin(), facs.end(),
                   [](auto& l, auto& r) { return l.first < r.first; });
 
-              typename NumTraits::ConstantType numeral(1);
+              Numeral numeral(1);
               unsigned offs = 0;
               unsigned i = 0;
+              unsigned nums = 0;
               while (i < facs.size()) {
-                if (NumTraits::isNumeral(facs[i].first.denormalize())) {
-                  numeral = numeral * NumTraits::tryNumeral(facs[i].first.denormalize()).unwrap();
+                auto n = NumTraits::tryNumeral(facs[i].first.denormalize());
+                if (n.isSome()) {
+                  nums++;
+              DBGE(numeral)
+                  numeral = numeral * n.unwrap();
                   i++;
                 } else {
                   facs[offs].first = facs[i].first;
@@ -402,18 +479,17 @@ PolyNf normalizeTerm(TypedTermList t)
                   offs++;
                 }
               }
+              if (nums > 1 || (nums == 1 && numeral == Numeral(1))) 
+                this->evaluated = true;
 
-              return some(PolyNf(AnyPoly(Polynom<NumTraits>({Monom<NumTraits>(NumTraits::constant(1), std::move(iterTraits(facs.iter())
-                            .map([](pair<PolyNf, unsigned> x) { return MonomFactor<NumTraits>(x.first, x.second); })
-                            .template collect<Stack>()))}))));
-              // Stack<MonomFactor<NumTraits>> facs = range(0, nTs)
-              //   .map([&](auto i) { return MonomFactor<NumTraits>::fromNormalized(ts[i].denormalize()); })
-              //   .template collect<Stack>();
-              //
-              // std::sort(facs.begin(), facs.end(),
-              //     [](auto& l, auto& r) { return l.term() < r.term(); });
-              //
-              // return some(PolyNf(AnyPoly(Polynom<NumTraits>({Monom<NumTraits>(NumTraits::constant(1), std::move(facs))}))));
+              return some(PolyNf(AnyPoly(Polynom<NumTraits>(Monom<NumTraits>(
+                          numeral, 
+                          // TODO  pass straght a reverse sorted iterator
+                          MonomFactors<NumTraits>::fromIterator(
+                            range(0, offs)
+                              .map([&](auto i) { return MonomFactor<NumTraits>(facs[i].first, facs[i].second); })
+                            )
+                          )))));
             } else {
               return Option<PolyNf>();
             }
@@ -422,7 +498,7 @@ PolyNf normalizeTerm(TypedTermList t)
       }
     }
   };
-  NormalizationResult r = evaluateBottomUp(PolyNormTerm(t), Eval{}, memo);
+  NormalizationResult r = evaluateBottomUp(PolyNormTerm(t), Eval{.evaluated = evaluated}, memo);
   return r;
 }
 
@@ -433,6 +509,38 @@ namespace Lib {
 template<>
 struct BottomUpChildIter<Kernel::PolyNormTerm>
 {
+  template<class GetAcArgs>
+  struct AcIter_ {
+
+    AcIter_(AcIter_ &&) = default;
+
+    unsigned _symbol;
+    PolyNormTerm _self;
+    Stack<TermList> _next;
+    unsigned _idx;
+
+    AcIter_(PolyNormTerm self) : _self(self), _next{ TermList(self._self) } {
+      // ASS(self->numTermArguments() == 2)
+      // ASS(SortHelper::getTermArgSort(self, 0) == SortHelper::getResultSort(self))
+      // ASS(SortHelper::getTermArgSort(self, 1) == SortHelper::getResultSort(self))
+    }
+
+    Kernel::PolyNormTerm self() { return _self; }
+    Kernel::PolyNormTerm next() 
+    { 
+      auto val = _next.pop();
+      
+      // while (val.isTerm() && val.term()->functor() == _self->functor()) {
+      while (GetAcArgs::isAcTerm(val)) {
+        _next.push(GetAcArgs::getAcArg(val, 1));
+        val = GetAcArgs::getAcArg(val, 0);
+      }
+      return TypedTermList(val, _self._self.sort()); 
+    }
+
+    bool hasNext() { return _next.isNonEmpty(); }
+  };
+
   struct AcIter {
     AcIter(AcIter &&) = default;
     unsigned _symbol;
@@ -476,21 +584,41 @@ struct BottomUpChildIter<Kernel::PolyNormTerm>
     bool hasNext() 
     { return _self._self.isTerm() && _idx < _self._self.term()->numTermArguments(); }
 
-    unsigned nChildren()
-    { return _self._self.isVar() ? 0 : _self._self.term()->numTermArguments(); }
+    // unsigned nChildren()
+    // { return _self._self.isVar() ? 0 : _self._self.term()->numTermArguments(); }
   };
 
   static bool isSum (unsigned functor) { return forAnyNumTraits([=](auto n) { return n.addF() == functor; }); }
   static bool isProd(unsigned functor) { return forAnyNumTraits([=](auto n) { return n.mulF() == functor; }); }
   static bool isSum (TermList t) { return t.isTerm() && isSum (t.term()->functor()); }
   static bool isProd(TermList t) { return t.isTerm() && isProd(t.term()->functor()); }
+  //
+  // Coproduct<AcIter, Uninter> _self;
+  // BottomUpChildIter(Kernel::PolyNormTerm t) 
+  //   : _self((isSum(t._self) || isProd(t._self))
+  //                      ? decltype(_self)(AcIter(t._self.term()))
+  //                      : decltype(_self)(Uninter(t))) 
+  //   {}
 
-  Coproduct<AcIter, Uninter> _self;
+
+  using Inner = Coproduct< Uninter
+                         , AcIter_<GetProductArgs< IntTraits>>
+                         , AcIter_<GetProductArgs< RatTraits>>
+                         , AcIter_<GetProductArgs<RealTraits>>
+                         , AcIter_<GetSumArgs    < IntTraits>>
+                         , AcIter_<GetSumArgs    < RatTraits>>
+                         , AcIter_<GetSumArgs    <RealTraits>>
+                         >;
+  Inner _self;
   BottomUpChildIter(Kernel::PolyNormTerm t) 
-    : _self((isSum(t._self) || isProd(t._self))
-                       ? decltype(_self)(AcIter(t._self.term()))
-                       : decltype(_self)(Uninter(t))) 
-    {}
+    : _self( GetProductArgs< IntTraits>::isAcTerm(t._self) ? Inner(AcIter_<GetProductArgs< IntTraits>>(t))
+           : GetProductArgs< RatTraits>::isAcTerm(t._self) ? Inner(AcIter_<GetProductArgs< RatTraits>>(t))
+           : GetProductArgs<RealTraits>::isAcTerm(t._self) ? Inner(AcIter_<GetProductArgs<RealTraits>>(t))
+           : GetSumArgs    < IntTraits>::isAcTerm(t._self) ? Inner(AcIter_<GetSumArgs    < IntTraits>>(t))
+           : GetSumArgs    < RatTraits>::isAcTerm(t._self) ? Inner(AcIter_<GetSumArgs    < RatTraits>>(t))
+           : GetSumArgs    <RealTraits>::isAcTerm(t._self) ? Inner(AcIter_<GetSumArgs    <RealTraits>>(t))
+           : Inner(Uninter(t)) )
+           {}
 
   Kernel::PolyNormTerm next() 
   { return _self.apply([](auto& x) { return x.next(); }); }
