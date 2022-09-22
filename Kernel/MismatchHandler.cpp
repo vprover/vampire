@@ -29,6 +29,8 @@
 namespace Kernel
 {
 
+VSpecVarToTermMap MismatchHandler::_termMap;
+
 bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
   CALL("UWAMismatchHandler::isConstraintPair");
@@ -52,7 +54,7 @@ TermList UWAMismatchHandler::transformSubterm(TermList trm)
  
   if(isConstraintTerm(trm).isTrue()){
     ASS(trm.term()->shared());
-    return TermList::getVSpecVar(trm.term(), &_termMap);
+    return MismatchHandler::getVSpecVar(trm.term());
   }
   return trm;
 }
@@ -146,6 +148,15 @@ MaybeBool MismatchHandler::isConstraintTerm(TermList t){
 TermList MismatchHandler::transformSubterm(TermList trm){
   CALL("MismatchHandler::transformSubterm");
 
+  if(_appTerms.size()){
+    TermList t = _appTerms.pop();
+    if(t.isApplication() && trm == t.lhs()){
+      _appTerms.push(t.lhs());
+      return trm;
+    }  
+    _appTerms.push(t);  
+  }
+
   for (auto& h : _inners) {
     TermList t = h->transformSubterm(trm);
     if(t != trm){
@@ -155,23 +166,35 @@ TermList MismatchHandler::transformSubterm(TermList trm){
   return trm;
 }
 
+void MismatchHandler::onTermEntry(Term* t) {
+  CALL("MismatchHandler::onTermEntry");
+
+  if(t->isApplication()){
+    _appTerms.push(TermList(t));
+  }
+}
+
+void MismatchHandler::onTermExit(Term* t){
+  CALL("MismatchHandler::onTermExit");
+ 
+  if(t->isApplication()){
+    _appTerms.pop();
+  }
+}
+
 Term* MismatchHandler::get(unsigned var)
 {
   CALL("MismatchHandler::get");
 
-  for (auto& h : _inners) {
-    auto res = h->getTermMap()->tryGet(var);
-    if(res.isSome()){
-      return res.unwrap();
-    }
-  } 
-  ASSERTION_VIOLATION;
+  auto res = _termMap.tryGet(var);
+  ASS(res.isSome());
+  return res.unwrap();
 }
 
 #if VHOL
-bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
+bool ExtensionalityMismatchHandler::isConstraintPair(TermList t1, TermList t2)
 {
-  CALL("HOMismatchHandler::isConstraintPair");
+  CALL("ExtensionalityMismatchHandler::isConstraintPair");
 
   auto isBooleanOrConstraintTerm = [&](TermList t){
     TermList sort = SortHelper::getResultSort(t.term());
@@ -181,8 +204,8 @@ bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
   return isBooleanOrConstraintTerm(t1) && isBooleanOrConstraintTerm(t2);
 }
 
-MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
-  CALL("MismatcHandler::isConstraintTerm");
+MaybeBool ExtensionalityMismatchHandler::isConstraintTerm(TermList t){
+  CALL("ExtensionalityMismatchHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
 
@@ -199,6 +222,44 @@ MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
   return false;
 }
 
+TermList ExtensionalityMismatchHandler::transformSubterm(TermList trm)
+{
+  CALL("ExtensionalityMismatchHandler::transformSubterm");
+
+  if(trm.isVar()) return trm;
+
+  ASS(trm.term()->shared());
+
+  TermList sort = SortHelper::getResultSort(trm.term());
+  if(sort.isBoolSort()){
+    return MismatchHandler::getVSpecVar(trm.term());    
+  }
+
+  if(!isConstraintTerm(trm).isFalse()){
+    return MismatchHandler::getVSpecVar(trm.term());
+  }
+  return trm;
+}
+
+bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
+{
+  CALL("HOMismatchHandler::isConstraintPair");
+
+  return isConstraintTerm(t1).isTrue() || isConstraintTerm(t2).isTrue();
+}
+
+MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
+  CALL("HOMismatchHandler::isConstraintTerm");
+  
+  if(t.isVar()){ return false; }
+
+  if(!t.isLambdaTerm() && t.head().isVar()){
+    return true;
+  }
+  
+  return MaybeBool::UNKNOWN;
+}
+
 TermList HOMismatchHandler::transformSubterm(TermList trm)
 {
   CALL("HOMismatchHandler::transformSubterm");
@@ -207,16 +268,13 @@ TermList HOMismatchHandler::transformSubterm(TermList trm)
 
   ASS(trm.term()->shared());
 
-  TermList sort = SortHelper::getResultSort(trm.term());
-  if(sort.isBoolSort()){
-    return TermList::getVSpecVar(trm.term(), &_termMap);    
-  }
-
-  if(!isConstraintTerm(trm).isFalse()){
-    return TermList::getVSpecVar(trm.term(), &_termMap);
+  if(isConstraintTerm(trm).isTrue()){
+    return MismatchHandler::getVSpecVar(trm.term());
   }
   return trm;
 }
+
+
 #endif
 
 }

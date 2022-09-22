@@ -533,6 +533,7 @@ class Signature
     return _predNames.find(symbolKey,tmp);
   }
 
+#if VHOL
   void addChoiceOperator(unsigned fun){
     _choiceSymbols.insert(fun);
   }
@@ -544,6 +545,7 @@ class Signature
   DHSet<unsigned>* getChoiceOperators(){
     return &_choiceSymbols;
   }
+#endif
 
   /** return the number of functions */
   unsigned functions() const { return _funs.length(); }
@@ -870,7 +872,9 @@ private:
   /** Stack of type constructor symbols */  
   Stack<Symbol*> _typeCons;
 
+#if VHOL
   DHSet<unsigned> _choiceSymbols;
+#endif
   /**
    * Map from vstring "name_arity" to their numbers
    *

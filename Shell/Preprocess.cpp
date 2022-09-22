@@ -739,7 +739,6 @@ void Preprocess::preprocess3 (Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    cout << "U " << u->toString() << endl;
     Unit* v = preprocess3(u
 #if VHOL
      ,prb.higherOrder()

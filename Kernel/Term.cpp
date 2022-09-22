@@ -256,21 +256,6 @@ bool TermList::allShared(TermList* args)
   return true;
 }
 
-TermList TermList::getVSpecVar(Term* trm, VSpecVarToTermMap* map)
-{
-  CALL("TermList::getVSpecVar");
-
-  unsigned vNum;
-  if(map->find(trm, vNum)){
-    ASS(vNum > TermList::SPEC_UPPER_BOUND);
-    return TermList(vNum, true);
-  } else {
-    unsigned vNum = TermList::SPEC_UPPER_BOUND + map->size() + 1;
-    map->insert(vNum, trm);
-    return TermList(vNum, true);
-  }
-}
-
 unsigned TermList::weight() const
 {
   return isVar() ? 1 : term()->weight();
@@ -454,7 +439,7 @@ TermList TermList::lambdaBody() const {
 
 TermList TermList::head() {
   CALL("TermList::head");
-  if(!isApplication()){
+  if(!isApplication() && !isLambdaTerm()){
     return *this;
   }
   return term()->head();
@@ -464,6 +449,9 @@ TermList Term::head() {
   CALL("Term::head");
 
   TermList trm = TermList(this);
+  while(trm.isLambdaTerm()){
+    trm = trm.lambdaBody();
+  }
   while(trm.isApplication()){
     trm = trm.lhs(); 
   }
@@ -625,7 +613,7 @@ unsigned Term::numTypeArguments() const {
       : env.signature->getFunction(_functor)->numTypeArguments();
 }
 
-TermList* Term::termArgs()
+const TermList* Term::termArgs() const
 {
   CALL("Term::termArgs");
   ASS(!isSort());
@@ -1152,6 +1140,7 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
   TermList head;
   TermStack args;
   ApplicativeHelper::getHeadAndArgs(this, head, args);
+  bool hasArgs = args.size();
 
   vstring headStr;
   if(head.isVar() || (head.deBruijnIndex().isSome() && !db) || head.isLambdaTerm()){ 
@@ -1185,19 +1174,19 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
     if(pretty) headStr += "⟩";
   }
 
-  res += (!topLevel && args.size()) ? "(" : ""; 
+  res += (!topLevel && hasArgs) ? "(" : ""; 
 
   if((head.isAnd() || head.isOr() || head.isIff() || head.isEquals() || head.isImp() || head.isXOr()) && 
       args.size() == 2){
-    res += termToStr(args[0],false,st) + " " + headStr + " " + termToStr(args[1],false,st);
+    res += termToStr(args[1],false,st) + " " + headStr + " " + termToStr(args[0],false,st);
   } else {
     vstring app = pretty || head.isNot() ? " " : " @ ";
     res += headStr;
-    for(unsigned i = 0; i < args.size(); i++){
-      res += app + termToStr(args[i],false,st);
+    while(!args.isEmpty()){
+      res += app + termToStr(args.pop(),false,st);
     }
   }
-  res += (!topLevel && args.size()) ? ")" : "";
+  res += (!topLevel && hasArgs) ? ")" : "";
   return res;
 }
 

@@ -56,10 +56,8 @@
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
-#include "Inferences/BoolEqToDiseq.hpp"
 #include "Inferences/ExtensionalityResolution.hpp"
 #include "Inferences/FOOLParamodulation.hpp"
-//#include "Inferences/Injectivity.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
@@ -75,17 +73,19 @@
 #if VHOL
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
-//#include "Inferences/Narrow.hpp"
 #include "Inferences/PrimitiveInstantiation.hpp"
 #include "Inferences/Choice.hpp"
-//#include "Inferences/ElimLeibniz.hpp"
-//#include "Inferences/SubVarSup.hpp"
+#include "Inferences/ElimLeibniz.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
 //#include "Inferences/RenamingOnTheFly.hpp"
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/ImitateProject.hpp"
+#include "Inferences/BoolEqToDiseq.hpp"
+//#include "Inferences/Injectivity.hpp"
+#include "Inferences/BetaEtaISE.hpp"
+#include "Inferences/FlexFlexSimplify.hpp"
 #endif
 
 #include "Inferences/URResolution.hpp"
@@ -94,7 +94,6 @@
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/BetaEtaISE.hpp"
 
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -1567,9 +1566,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
     gie->addFront(new ImitateProject());
-    /*if(opt.narrow() != Options::Narrow::OFF){
-      gie->addFront(new Narrow());
-    }*/
   }
 
   if(prb.hasFOOL() &&
@@ -1580,7 +1576,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
      prb.higherOrder() && !opt.lambdaFreeHol()){
     gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
-  //  gie->addFront(new ElimLeibniz());
+    gie->addFront(new ElimLeibniz());
   }
 
   if(env.options->choiceReasoning()){
@@ -1827,6 +1823,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }  
 
   res->addFront(new BetaEtaSimplify());
+  res->addFront(new FlexFlexSimplify());
 #endif
 
   // Only add if there are distinct groups 

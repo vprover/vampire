@@ -44,9 +44,9 @@ IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler()
     _handler.addHandler(make_unique<UWAMismatchHandler>(env.options->unificationWithAbstraction()));
   }
 #if VHOL
-  if((env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) 
-      && env.property->higherOrder()){
-    _handler.addHandler(make_unique<HOMismatchHandler>());
+  if(env.property->higherOrder()){
+    _handler.addHandler(make_unique<ExtensionalityMismatchHandler>());
+    _handler.addHandler(make_unique<HOMismatchHandler>());    
   }
 #endif
 }

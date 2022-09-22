@@ -233,7 +233,9 @@ public:
   bool hasApp() const { return _hasApp; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool higherOrder() const { return hasApp() || hasLogicalProxy() ||
-                                    hasArrowSort() || _hasLambda; }
+                                    hasArrowSort() || _hasLambda || _higherOrder; }
+  // for use in unit tests
+  void forceHigherOrder() { _higherOrder = true; }
 #endif
 
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
@@ -338,6 +340,7 @@ public:
   bool _hasApp;
   bool _hasLogicalProxy;
   bool _hasLambda;
+  bool _higherOrder;
 #endif
   bool _hasPolymorphicSym;
   bool _quantifiesOverPolymorphicVar;

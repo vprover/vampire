@@ -59,9 +59,6 @@ public:
   // - It may be convenient to use this function in the implementation of transformSubterm
   //   View UWAMismatchHandler::transformSubterm() for an example of this
   virtual MaybeBool isConstraintTerm(TermList t) = 0;
-  VSpecVarToTermMap* getTermMap() { return &_termMap; }
-protected:
-  VSpecVarToTermMap _termMap;
 };
 
 /**
@@ -88,8 +85,11 @@ public:
               UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
 
   TermList transformSubterm(TermList trm) override;
+  void onTermEntry(Term* t) override;
+  void onTermExit(Term* t) override;
   MaybeBool isConstraintTerm(TermList t); 
-  Term* get(unsigned var);
+
+  static Term* get(unsigned var);
 
   void addHandler(unique_ptr<AtomicMismatchHandler> hndlr);
   bool isEmpty() const { return _inners.isEmpty(); }
@@ -97,12 +97,29 @@ public:
   CLASS_NAME(MismatchHandler);
   USE_ALLOCATOR(MismatchHandler);
 
+  static TermList getVSpecVar(Term* trm)
+  {
+    CALL("MismatchHandler::getVSpecVar");
+
+    unsigned vNum;
+    if(_termMap.find(trm, vNum)){
+      ASS(vNum > TermList::SPEC_UPPER_BOUND);
+      return TermList(vNum, true);
+    } else {
+      unsigned vNum = TermList::SPEC_UPPER_BOUND + _termMap.size() + 1;
+      _termMap.insert(vNum, trm);
+      return TermList(vNum, true);
+    }
+  }
+
 private:
   void introduceConstraint(
       TermList t1, unsigned index1, 
       TermList t2, unsigned index2, 
       UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
 
+  TermStack _appTerms;
+  static VSpecVarToTermMap _termMap;
   Stack<unique_ptr<AtomicMismatchHandler>> _inners;
 };
 
@@ -124,6 +141,20 @@ private:
 };
 
 #if VHOL
+class ExtensionalityMismatchHandler : public AtomicMismatchHandler
+{
+public:
+  ExtensionalityMismatchHandler() {}
+  ~ExtensionalityMismatchHandler() override {}
+  
+  bool isConstraintPair(TermList t1, TermList t2) override;
+  TermList transformSubterm(TermList trm) override;
+  MaybeBool isConstraintTerm(TermList t) override; 
+
+  CLASS_NAME(ExtensionalityMismatchHandler);
+  USE_ALLOCATOR(ExtensionalityMismatchHandler);
+};
+
 class HOMismatchHandler : public AtomicMismatchHandler
 {
 public:
@@ -137,6 +168,7 @@ public:
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);
 };
+
 #endif
 
 }

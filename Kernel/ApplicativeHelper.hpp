@@ -37,8 +37,11 @@ public:
   static TermList app(TermList sort, TermList head, TermStack& terms);
   static TermList app(TermList head, TermStack& terms);    
 
-  static TermList createLambdaTerm(TermList varSort, TermList termSort, TermList term); 
+  static TermList lambda(TermList varSort, TermList termSort, TermList term);
+  static TermList lambda(TermList varSort, TermList term); 
+
   static TermList getDeBruijnIndex(int index, TermList sort);
+
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static unsigned getArity(TermList sort);
@@ -52,6 +55,9 @@ public:
 //  static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
 //  static void getHeadAndAllArgs(TermList term, TermList& head, TermStack& args); 
   
+  static TermList lhsSort(TermList t);   
+  static TermList rhsSort(TermList t);   
+
   static void getArgSorts(TermList t, TermStack& sorts);
   static Signature::Proxy getProxy(const TermList t);
   static bool isBool(TermList t);
@@ -59,7 +65,7 @@ public:
   static bool isFalse(TermList term);
   static bool canHeadReduce(TermList t);
   static TermList createGeneralBinding(unsigned freshVar, TermList head, 
-    TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, TermStack& args, bool surround = true);
+    TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, bool surround = true);
   static TermList surroundWithLambdas(TermList t, TermStack& sorts);
   static TermList top();
   static TermList bottom();

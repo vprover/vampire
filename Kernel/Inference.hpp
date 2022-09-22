@@ -260,6 +260,8 @@ enum class InferenceRule : unsigned char {
 
   BETA_NORMALISE,
 
+  FLEX_FLEX_SIMPLIFY,
+
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
 

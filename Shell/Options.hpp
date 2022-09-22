@@ -2415,6 +2415,7 @@ public:
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   bool complexVarCondition() const { return _complexVarCondition.actualValue; }
   HPrinting holPrinting() const { return _holPrinting.actualValue; }
+  void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
 #endif
   // For unit testing
 

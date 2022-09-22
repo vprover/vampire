@@ -203,8 +203,6 @@ struct PrimitiveInstantiation::ResultFn
         }             
       }
     }
-
-    TermStack args;
     
     // bind head variable to all general bindings produced using heads in _heads
     for(unsigned i =0; i < _heads.size(); i++){
@@ -212,7 +210,7 @@ struct PrimitiveInstantiation::ResultFn
       unsigned fVar = _freshVar;
       
       bool surround = (!_heads[i].isEquals() || !include_not_eq);
-      TermList gb = AH::createGeneralBinding(fVar,_heads[i],argsFlex,sortsFlex,deBruijnIndices,args,surround);
+      TermList gb = AH::createGeneralBinding(fVar,_heads[i],argsFlex,sortsFlex,deBruijnIndices,surround);
       gb = surround ? gb : AH::surroundWithLambdas(gb, sortsFlex);
 
       _subst.bind(headFlex.var(), gb);

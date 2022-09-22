@@ -31,6 +31,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -886,10 +887,11 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
   if (!lhs->arity()) {
-    if(env.signature->isFoolConstantSymbol(true , f) ||
-       env.signature->isFoolConstantSymbol(false, f)){
+#if VHOL    
+    if(ApplicativeHelper::isBool(TermList(lhs))){
       return 0;
     }
+#endif
     //Higher-order often contains definitions of the form
     //f = ^x^y...
     if (rhs->arity() 

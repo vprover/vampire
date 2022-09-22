@@ -439,8 +439,8 @@ public:
 
   bool isPositive(Literal* lit);
  
-  bool is_of_form_xy(Literal* lit,  TermList& x);
-  bool is_of_form_xfx(Literal* lit, TermList x, TermList& f);
+  bool isOfFormXY(Literal* lit,  TermList& x);
+  bool isOfFormXfX(Literal* lit, TermList x, TermList& f);
 };
 
 class TautologyDeletionISE2

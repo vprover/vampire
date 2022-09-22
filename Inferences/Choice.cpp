@@ -52,8 +52,7 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 {
   CALL("Choice::createChoiceAxiom");
 
-  TermList opType = SortHelper::getResultSort(op.term());
-  TermList setType = AH::getNthArg(opType, 1);
+  TermList setSort = SortHelper::getResultSort(op.term()).result();
 
   unsigned max = 0;
   FormulaVarIterator fvi(&set);
@@ -65,9 +64,9 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   }
   TermList freshVar = TermList(max+1, false);
 
-  TermList t1 = AH::app(setType, set, freshVar);
-  TermList t2 = AH::app(opType, op, set);
-  t2 =  AH::app(setType, set, t2);
+  TermList t1 = AH::app(setSort, set, freshVar);
+  TermList t2 = AH::app(op, set);
+  t2 =          AH::app(setSort, set, t2);
 
   Clause* axiom = new(2) Clause(2, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM));
 
@@ -82,11 +81,11 @@ struct Choice::AxiomsIterator
   AxiomsIterator(TermList term)
   {
     CALL("Choice::AxiomsIterator");
+    ASS(term.isApplication());
 
-    ASS(term.isTerm());
     _set = term.rhs();
-    _headSort = AtomicSort::arrowSort(*term.term()->nthArgument(0),*term.term()->nthArgument(1));
-    _resultSort = AH::getResultApplieadToNArgs(_headSort, 1);
+    _headSort = AH::lhsSort(term);
+    _resultSort = SortHelper::getResultSort(term.term());
 
     //cout << "the result sort is " + _resultSort.toString() << endl;
 
@@ -156,11 +155,11 @@ struct Choice::ResultFn
   ResultFn(){}
   
   VirtualIterator<Clause*> operator() (TermList term){
-    TermList op = *term.term()->nthArgument(2);
+    TermList op = term.lhs();
     if(op.isVar()){
       return pvi(AxiomsIterator(term));
     } else {
-      Clause* axiom = createChoiceAxiom(op, *term.term()->nthArgument(3));
+      Clause* axiom = createChoiceAxiom(op, term.rhs());
       env.statistics->choiceInstances++;
       return pvi(getSingletonIterator(axiom));
     }
@@ -174,21 +173,22 @@ struct Choice::IsChoiceTerm
     TermStack args;
     TermList head;
     ApplicativeHelper::getHeadAndArgs(t, head, args);
-    if(args.size() != 1){ return false; }
+    if(args.size() == 1){
     
-    TermList headSort = AtomicSort::arrowSort(*t.term()->nthArgument(0), *t.term()->nthArgument(1));
+      TermList headSort = AH::lhsSort(t);
 
-    TermList tv = TermList(0, false);
-    TermList o  = AtomicSort::boolSort();
-    TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
- 
-    static RobSubstitution subst;
-    subst.reset();
+      TermList tv = TermList(0, false);
+      TermList o  = AtomicSort::boolSort();
+      TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
+   
+      static RobSubstitution subst;
+      subst.reset();
 
-    subst.reset();
-    return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
-           subst.match(sort,0,headSort,1));
-
+      subst.reset();
+      return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
+             subst.match(sort,0,headSort,1));
+    }
+    return false;
   }
 };
 

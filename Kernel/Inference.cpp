@@ -951,6 +951,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "cases simplifying";
   case InferenceRule::BETA_NORMALISE:
     return "beta normalization";
+  case InferenceRule::FLEX_FLEX_SIMPLIFY:
+    return "flex-flex simplify";
   case InferenceRule::IMITATE:
     return "imitate";
   case InferenceRule::PROJECT:

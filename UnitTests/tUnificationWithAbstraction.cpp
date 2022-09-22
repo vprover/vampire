@@ -49,6 +49,16 @@ TermIndexingStructure* getTermIndex(unique_ptr<AtomicMismatchHandler> handler)
   return new TermSubstitutionTree(cmh); 
 }
 
+TermIndexingStructure* getTermIndex(
+  unique_ptr<AtomicMismatchHandler> handler1,
+  unique_ptr<AtomicMismatchHandler> handler2)
+{
+  auto cmh = new MismatchHandler();
+  cmh->addHandler(std::move(handler1));
+  cmh->addHandler(std::move(handler2));
+  return new TermSubstitutionTree(cmh); 
+}
+
 TermIndexingStructure* getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
 { return getTermIndex(make_unique<UWAMismatchHandler>(uwa)); }
 
@@ -120,6 +130,7 @@ void checkLiteralMatches(LiteralIndexingStructure* index, Literal* lit, Stack<Li
 void checkTermMatches(TermIndexingStructure* index, TermList term, TermList sort, Stack<TermUnificationResultSpec> expected)
 {
   Stack<TermUnificationResultSpec> is;
+
   for (auto qr : iterTraits(index->getUnificationsUsingSorts(term,sort,true)) ) {
     qr.substitution->numberOfConstraints();
 
@@ -402,9 +413,13 @@ TEST_FUN(literal_indexing)
 
 }
 
+#if VHOL
+
 TEST_FUN(higher_order)
 {
-  TermIndexingStructure* index = getTermIndex(make_unique<HOMismatchHandler>());
+  TermIndexingStructure* index = getTermIndex(make_unique<ExtensionalityMismatchHandler>());
+  env.options->setHolPrinting(Options::HPrinting::PRETTY);
+  env.property->forceHigherOrder();
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -435,19 +450,58 @@ TEST_FUN(higher_order)
   index->insert(ap(g,c), 0, 0);
   index->insert(g, 0, 0);
 
-  // TODO
-  // reportTermMatches(index,x0,xSrt);
+  checkTermMatches(index,x0,xSrt, Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+        { .querySigma  = ap(g,c),
+          .resultSigma = ap(g,c),
+          .constraints = Stack<Literal*>{} }, 
+
+        { .querySigma  = ap(f,a),
+          .resultSigma = ap(f,a),
+          .constraints = Stack<Literal*>{} },
+      });
 
   index->insert(h(alpha), 0, 0);
 
-  // TODO
-  // reportTermMatches(index,h(beta),beta);
-  // reportTermMatches(index,h(srt),srt);
+  checkTermMatches(index,h(beta),beta, Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+
+        { .querySigma  = h(xSrt),
+          .resultSigma = ap(g,c),
+          .constraints = Stack<Literal*>{ h(xSrt) != ap(g,c)} },
+
+        { .querySigma  = h(gSrt),
+          .resultSigma = g,
+          .constraints = Stack<Literal*>{ h(gSrt) != g} },
+
+        // suboptimal that we have to use x here due to normalisation of variables
+        // during unification...
+        { .querySigma  = h(x),
+          .resultSigma = h(x),
+          .constraints = Stack<Literal*>{} },
+
+        { .querySigma  = h(x),
+          .resultSigma = h(x),
+          .constraints = Stack<Literal*>{} },          
+      });
+
+  checkTermMatches(index,h(srt),srt, Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+
+        { .querySigma  = h(srt),
+          .resultSigma = h(srt),
+          .constraints = Stack<Literal*>{} },      
+      });
 }
 
 TEST_FUN(higher_order2)
 {
-  TermIndexingStructure* index = getTermIndex(make_unique<HOMismatchHandler>());
+  TermIndexingStructure* index = getTermIndex(make_unique<ExtensionalityMismatchHandler>());
+  env.options->setHolPrinting(Options::HPrinting::PRETTY);
+  env.property->forceHigherOrder();
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -461,9 +515,80 @@ TEST_FUN(higher_order2)
 
   index->insert(ap(ap(f,a),b), 0, 0);
 
-  // TODO
-  // reportTermMatches(index,ap(ap(f,b),a),srt);
+  checkTermMatches(index,ap(ap(f,b),a),srt, Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+
+        { .querySigma  = ap(ap(f,b),a),
+          .resultSigma = ap(ap(f,a),b),
+          .constraints = Stack<Literal*>{ a != b, } },      
+      });
+
 }
+
+TEST_FUN(higher_order3)
+{
+  TermIndexingStructure* index = getTermIndex(make_unique<HOMismatchHandler>());
+  env.options->setHolPrinting(Options::HPrinting::PRETTY);
+  env.property->forceHigherOrder();
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS  
+  NUMBER_SUGAR(Int)
+  DECL_SORT(srt) 
+  DECL_ARROW_SORT(xSrt, {srt, srt})   
+  DECL_HOL_VAR(x0, 0, xSrt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_CONST(f, xSrt)
+
+  index->insert(ap(f,ap(x0, a)), 0, 0);
+
+  checkTermMatches(index,ap(f,b),srt, Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+
+        { .querySigma  = ap(f,b),
+          .resultSigma = ap(f,ap(x0, a)),
+          .constraints = Stack<Literal*>{ ap(x0, a) != b, } },      
+      });
+
+}
+
+TEST_FUN(higher_order4)
+{
+  TermIndexingStructure* index = getTermIndex(
+    make_unique<HOMismatchHandler>(),
+    make_unique<ExtensionalityMismatchHandler>());
+  env.options->setHolPrinting(Options::HPrinting::PRETTY);
+  env.property->forceHigherOrder();
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS  
+  NUMBER_SUGAR(Int)
+  DECL_SORT(srt) 
+  DECL_ARROW_SORT(xSrt, {srt, srt})   
+  DECL_ARROW_SORT(fSrt, {srt, xSrt, srt})     
+  DECL_HOL_VAR(x0, 0, xSrt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, xSrt)
+  DECL_CONST(c, xSrt)  
+  DECL_CONST(f, fSrt)
+
+  index->insert(ap(ap(f,ap(x0, a)), b), 0, 0);
+
+  checkTermMatches(index,ap(ap(f,a),c),srt, Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+
+        { .querySigma  = ap(ap(f,a),c),
+          .resultSigma = ap(ap(f,ap(x0, a)), b),
+          .constraints = Stack<Literal*>{ ap(x0, a) != a, b != c, } },      
+      });
+
+}
+
+#endif
 
 static const int NORM_QUERY_BANK=2;
 static const int NORM_RESULT_BANK=3;

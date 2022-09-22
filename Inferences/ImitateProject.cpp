@@ -75,23 +75,16 @@ struct ImitateProject::ResultFn
     }
   }
 
-  Clause* createRes(InferenceRule rule, LiteralStack& constraints, Literal* lit, bool sameHeads)
+  Clause* createRes(InferenceRule rule)
   {
     CALL("ImitateProject::ResultFn::createRes");
   
-    unsigned newLen = sameHeads ? _cLen - 1 + constraints.length() : _cLen;
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(rule, _cl));
+    Clause* res = new(_cLen) Clause(_cLen, GeneratingInference1(rule, _cl));
 
-    unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
-      if(curr!=lit || !sameHeads) {
-        Literal* currAfter = SubstHelper::apply(curr, _subst);
-        (*res)[next++] = currAfter;
-      }
-    }
-    while(!constraints.isEmpty()){
-      (*res)[next++] = constraints.pop();
+      Literal* currAfter = SubstHelper::apply(curr, _subst);
+      (*res)[i] = currAfter;    
     }
     return res;    
   }
@@ -132,9 +125,6 @@ struct ImitateProject::ResultFn
     TermStack argsRigid;
     TermStack sortsFlex; //sorts of arguments of flex head
     TermStack sortsRigid;
-    // after an imitation, or the projection of an argument with a rigid head, 
-    // we create a new set of constrainst literals    
-    LiteralStack newConstraints; 
 
     AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
     AH::getHeadAndArgs(rigidTerm, headRigid, argsRigid);
@@ -150,40 +140,32 @@ struct ImitateProject::ResultFn
       deBruijnIndices.push(AH::getDeBruijnIndex(i, sortsFlex[i]));
     }
 
-    TermStack args;
-
     { // imitation
       unsigned fVar = _maxVar;
 
-      TermList pb = AH::createGeneralBinding(fVar,headRigid,argsFlex,sortsFlex,deBruijnIndices,args);
+      TermList pb = AH::createGeneralBinding(fVar,headRigid,argsFlex,sortsFlex,deBruijnIndices);
 
       _subst.bind(headFlex.var(), pb);
-      getConstraints(args, argsRigid, sortsRigid, newConstraints);
-      results.push(createRes(InferenceRule::IMITATE, newConstraints, lit, true));
+      results.push(createRes(InferenceRule::IMITATE));
     }
-  
+
     // projections
     for(unsigned i = 0; i < argsFlex.size(); i++){
       // try and project each of the arguments of the flex head in turn
       _subst.reset();
-      args.reset();
       TermList arg = argsFlex[i];
       TermList argSort = sortsFlex[i];
       // sort wrong, cannot project this arg
       if(argSort.finalResult() != sort) continue;
-      TermList head;
-      AH::getHeadAndArgs(arg, head, args);
+      TermList head = arg.head();
       // argument has a rigid head different to that of rhs. no point projecting
       if(!head.isVar() && head != headRigid) continue;
 
       unsigned fVar = _maxVar;
-      TermList pb = AH::createGeneralBinding(fVar,deBruijnIndices[i],argsFlex,sortsFlex,deBruijnIndices,args);
+      TermList pb = AH::createGeneralBinding(fVar,deBruijnIndices[i],argsFlex,sortsFlex,deBruijnIndices);
 
       _subst.bind(headFlex.var(), pb);
-      if(!head.isVar()){
-        getConstraints(args, argsRigid, sortsRigid, newConstraints);
-      }
-      results.push(createRes(InferenceRule::PROJECT, newConstraints, lit, !head.isVar()));
+      results.push(createRes(InferenceRule::PROJECT));
     }
   
 

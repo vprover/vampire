@@ -29,6 +29,8 @@ Term* TermTransformer::transform(Term* term)
 {
   CALL("TermTransformer::transform(Term* term)");
 
+  onTermEntry(term);
+
   if (term->isSpecial()) {
     return transformSpecial(term);
   }

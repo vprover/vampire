@@ -320,22 +320,20 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/CNFOnTheFly.hpp
     Inferences/BetaEtaISE.cpp
     Inferences/BetaEtaISE.hpp
+    Inferences/FlexFlexSimplify.cpp
+    Inferences/FlexFlexSimplify.hpp    
     Inferences/ImitateProject.hpp
     Inferences/ImitateProject.cpp
     Inferences/ArgCong.hpp
     Inferences/ArgCong.cpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp
-#    Inferences/Narrow.hpp
-#    Inferences/Narrow.cpp
-#    Inferences/SubVarSup.hpp
-#    Inferences/SubVarSup.cpp
     Inferences/BoolEqToDiseq.hpp
     Inferences/BoolEqToDiseq.cpp
     Inferences/PrimitiveInstantiation.cpp
     Inferences/PrimitiveInstantiation.hpp
-#    Inferences/ElimLeibniz.cpp
-#    Inferences/ElimLeibniz.hpp
+    Inferences/ElimLeibniz.cpp
+    Inferences/ElimLeibniz.hpp
     Inferences/Choice.cpp
     Inferences/Choice.hpp
 #    Inferences/Injectivity.hpp

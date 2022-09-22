@@ -282,13 +282,14 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
   
   TermList x, f;
 
-  if(!isPositive(lit1) && is_of_form_xy(lit1, x) &&
-      isPositive(lit2) && is_of_form_xfx(lit2, x, f)){
+  if(!isPositive(lit1) && isOfFormXY(lit1, x) &&
+      isPositive(lit2) && isOfFormXfX(lit2, x, f)){
     unsigned fun = f.term()->functor();
     env.signature->addChoiceOperator(fun);
     return 0;
-  } else if(!isPositive(lit2) && is_of_form_xy(lit2, x) && 
-             isPositive(lit1) && is_of_form_xfx(lit1, x, f)) {
+  } else 
+  if(!isPositive(lit2) && isOfFormXY(lit2, x) && 
+      isPositive(lit1) && isOfFormXfX(lit1, x, f)) {
     unsigned fun = f.term()->functor();
     env.signature->addChoiceOperator(fun);
     return 0;
@@ -312,8 +313,8 @@ bool ChoiceDefinitionISE::isPositive(Literal* lit) {
   return false;
 };
 
-bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
-  CALL("ChoiceDefinitionISE::is_of_form_xy");
+bool ChoiceDefinitionISE::isOfFormXY(Literal* lit, TermList& x){
+  CALL("ChoiceDefinitionISE::isOfFormXY");
 
   TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
   
@@ -322,8 +323,8 @@ bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
   return (x.isVar() && args.size() == 1 && args[0].isVar());
 }
 
-bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
-  CALL("ChoiceDefinitionISE::is_of_form_xfx");
+bool ChoiceDefinitionISE::isOfFormXfX(Literal* lit, TermList x, TermList& f){
+  CALL("ChoiceDefinitionISE::isOfFormXfX");
   
   TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
   

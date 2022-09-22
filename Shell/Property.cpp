@@ -82,6 +82,7 @@ Property::Property()
     _hasApp(false),
     _hasLogicalProxy(false),
     _hasLambda(false),
+    _higherOrder(false),
 #endif
     _hasPolymorphicSym(false),
     _quantifiesOverPolymorphicVar(false),

@@ -191,20 +191,7 @@ void Clause::destroyIfUnnecessary()
 
 bool Clause::isEmpty() const
 { 
-#if VHOL 
-  //if(!env.property->higherOrder()){   
-#endif
-    return _length == 0; 
-#if VHOL
-  /*} else {
-    // redefine the empty clause to be any claus consisting of 
-    // only flex-flex pairs, since these are always solvable
-    for(unsigned i = 1; i < _length; i++) {
-      if(!_literals[i]->isFlexFlex()){ return false; }
-    }     
-    return true;
-  }*/
-#endif
+  return _length == 0; 
 }
 
 /**
@@ -352,6 +339,11 @@ vstring Clause::literalsOnlyToString() const
   CALL("Clause::literalsOnlyToString");
 
   if (_length == 0) {
+#if VHOL
+    if(env.options->holPrinting() == Options::HPrinting::PRETTY){
+      return "⊥";
+    }
+#endif
     return "$false";
   } else {
     vstring result;

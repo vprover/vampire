@@ -143,7 +143,6 @@ TermList RedexReducer::reduce(TermList redex)
   TermList t1Sort = *head.term()->nthArgument(1);
   _t2 = args.pop();
 
-  if(t1.isTerm()) onTermEntry(t1.term());
   TermList transformed = transformSubterm(t1);
 
   if(transformed != t1) return AH::app(t1Sort, transformed, args);  
@@ -200,7 +199,6 @@ TermList TermShifter::shift(TermList term, int shiftBy)
   _cutOff = 0;
   _shiftBy = shiftBy;
 
-  if(term.isTerm()) onTermEntry(term.term());  
   TermList transformed = transformSubterm(term);
   if(transformed != term) return transformed;    
   return transform(term);
@@ -327,9 +325,9 @@ TermList ApplicativeHelper::app(TermList head, TermStack& terms)
   return app(sort, head, terms); 
 }
 
-TermList ApplicativeHelper::createLambdaTerm(TermList varSort, TermList termSort, TermList term)
+TermList ApplicativeHelper::lambda(TermList varSort, TermList termSort, TermList term)
 {
-  CALL("ApplicativeHelper::createLambdaTerm");
+  CALL("ApplicativeHelper::lambda");
 
   ASS(varSort.isVar()  || varSort.term()->isSort());
   ASS(termSort.isVar() || termSort.term()->isSort());
@@ -342,6 +340,15 @@ TermList ApplicativeHelper::createLambdaTerm(TermList varSort, TermList termSort
   unsigned lam = env.signature->getLam();
   return TermList(Term::create(lam, 3, args.begin()));
 } 
+
+TermList ApplicativeHelper::lambda(TermList varSort, TermList term)
+{
+  CALL("ApplicativeHelper::lambda/2");
+  ASS(term.isTerm());
+  
+  TermList termSort = SortHelper::getResultSort(term.term());
+  return lambda(varSort, termSort, term);
+}
 
 
 TermList ApplicativeHelper::getDeBruijnIndex(int index, TermList sort)
@@ -467,27 +474,13 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
     term = term.lhs();
   }
   head = term;
-
 }
-
 
 void ApplicativeHelper::getHeadAndArgs(Term* term, TermList& head, TermStack& args)
 {
   CALL("ApplicativeHelper::getHeadAndArgs/2");
 
   getHeadAndArgs(TermList(term), head, args);
-
-  /*if(!args.isEmpty()){ args.reset(); }
-
-  head = TermList(term);
-
-  while(term->isApplication()){
-    args.push(*term->nthArgument(3)); 
-    head = *term->nthArgument(2);
-    if(head.isTerm()){ 
-      term = head.term();
-    } else { break; }
-  }*/
 }
 
 void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, TermStack& args)
@@ -496,6 +489,24 @@ void ApplicativeHelper::getHeadAndArgs(const Term* term, TermList& head, TermSta
 
   getHeadAndArgs(const_cast<Term*>(term),head,args);
 }
+
+TermList ApplicativeHelper::lhsSort(TermList t)
+{
+  CALL("ApplicativeHelper::lhsSort");
+  ASS(t.isApplication());
+
+  TermList s1 = *t.term()->nthArgument(0);
+  TermList s2 = *t.term()->nthArgument(1);
+  return AtomicSort::arrowSort(s1,s2);
+}   
+
+TermList ApplicativeHelper::rhsSort(TermList t)
+{
+  CALL("ApplicativeHelper::rhsSort")
+  ASS(t.isApplication());
+
+  return *t.term()->nthArgument(0);
+}   
 
 Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
 {
@@ -531,7 +542,7 @@ bool ApplicativeHelper::canHeadReduce(TermList t){
 }
 
 TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList head, 
-  TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, TermStack& args2, bool surround){
+  TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, bool surround){
   CALL("ApplicativeHelper::createGeneralBinding");
   ASS(head.isTerm());
   ASS(argsFlex.size() == sortsFlex.size());
@@ -542,14 +553,13 @@ TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList hea
   TermList headSort = SortHelper::getResultSort(head.term());
   getArgSorts(headSort, argSorts);
 
-  for(unsigned i = 0; i < argSorts.size(); i++){
+  while(!argSorts.isEmpty()){
     TermList fVar(++freshVar, false);
-    TermList varSort = AtomicSort::arrowSort(sortsFlex, argSorts[i]);
+    TermList varSort = AtomicSort::arrowSort(sortsFlex, argSorts.pop());
     args.push(app(varSort, fVar, indices));
-    args2.push(app(varSort, fVar, argsFlex));      
   }
 
-  TermList pb = app(headSort, head, args);
+  TermList pb = app(head, args);
   return surround ? surroundWithLambdas(pb, sortsFlex) : pb; 
 }
 
@@ -559,7 +569,7 @@ TermList ApplicativeHelper::surroundWithLambdas(TermList t, TermStack& sorts)
 
   ASS(t.isTerm());
   for(int i = 0; i < sorts.size(); i++){
-    t = createLambdaTerm(sorts[i], SortHelper::getResultSort(t.term()), t);
+    t = lambda(sorts[i], t);
   }
   return t;  
 }

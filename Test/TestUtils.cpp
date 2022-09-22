@@ -67,8 +67,17 @@ std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
     return out << "X" << t.var();
   } else {
     auto term = t.term();
+#if VHOL
+    if(env.property->higherOrder()){
+      // higher order has its own pretty printing 
+      // procedure
+      out << term->toString();
+      return out;
+    }
+#endif
+
     auto func = term->functor();
-    if (theory->isInterpretedFunction(func)) {
+    if (!term->isSort() && theory->isInterpretedFunction(func)) {
       switch(theory->interpretFunction(func)) {
 #define NUM_CASE(oper) \
         case Kernel::Theory::INT_  ## oper: \
@@ -86,7 +95,9 @@ std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
       }
     }
 
-    Signature::Symbol* sym = env.signature->getFunction(func);
+    Signature::Symbol* sym = term->isSort() ?
+      env.signature->getTypeCon(func) :
+      env.signature->getFunction(func);
     out << sym->name();
     if (sym->arity() > 0) {
       out << "(" << pretty(*term->nthArgument(0));
@@ -172,6 +183,8 @@ bool TestUtils::isAC(Term* t)
   auto f = t->functor();
   if (t->isLiteral()) {
     return theory->isInterpretedPredicate(f) && isAC(theory->interpretPredicate(f));
+  } else if(t->isSort()){
+    return false;
   } else {
     return theory->isInterpretedFunction(f) && isAC(theory->interpretFunction(f));
   }

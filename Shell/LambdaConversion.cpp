@@ -225,7 +225,7 @@ TermList LambdaConversion::convertLambda(VList* vars, SList* sorts,
   }
 
   bodySort = converted.isVar() ? bodySort : sortOf(converted);
-  return AH::createLambdaTerm(s, bodySort, converted);
+  return AH::lambda(s, bodySort, converted);
 }
 
 TermList LambdaConversion::convertLambda(Term* lambdaTerm)

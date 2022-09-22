@@ -108,13 +108,11 @@ ClauseIterator ElimLeibniz::generateClauses(Clause* premise)
 {
   CALL("ElimLeibniz::generateClauses");
 
-  typedef SortHelper SH;
-
   static TermStack args;
   TermList head;
 
-  Stack<Literal*> positiveLits;
-  Stack<Literal*> negativeLits;
+  LiteralStack positiveLits;
+  LiteralStack negativeLits;
 
   Literal* posLit;
   Literal* negLit;
@@ -140,8 +138,8 @@ ClauseIterator ElimLeibniz::generateClauses(Clause* premise)
         goto afterLoop;
       } 
     }
-    if(pol){ positiveLits.push(lit); } else 
-           { negativeLits.push(lit); }
+    if(pol){ positiveLits.push(lit); }
+    else { negativeLits.push(lit); }
   }
   
   return ClauseIterator::getEmpty();  
@@ -160,7 +158,8 @@ afterLoop:
 
   TermList var = TermList(lerPosLit.var, false);
 
-  TermList vEquals = AH::equals(argS);
+  TermList vEquals = AH::equality(argS);
+  // creating the term  = arg  (which is eta-equivalent to ^x. arg = x)
   TermList t1 = AH::app(vEquals, lerNegLit.arg);
   if(subst.unify(var, 0, t1, 0)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
@@ -168,14 +167,9 @@ afterLoop:
     subst.reset();
   }
 
-  TermList t2 = AH::app(vEquals, lerPosLit.arg);
-  
-  TermList typeArgs[] = {argS, AtomicSort::boolSort(), AtomicSort::boolSort()};
-  unsigned b_comb = env.signature->getCombinator(Signature::B_COMB);
-  
-  TermList bComb  = TermList(Term::create(b_comb, 3, typeArgs));
-  TermList vNot   = TermList(Term::createConstant(env.signature->getNotProxy()));
-  t2 = AH::createAppTerm3(SH::getResultSort(bComb.term()), bComb,vNot,t2);
+  TermList db = AH::getDeBruijnIndex(0, argS);
+  // creating the term ^x. arg != x
+  TermList t2 = AH::lambda(argS, AH::app(AH::neg(), AH::app(AH::app(vEquals, lerPosLit.arg),db)));
 
   if(subst.unify(var, 0, t2, 0)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
