@@ -434,7 +434,6 @@ PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
     { 
       // ASSERTION_VIOLATION_REP("unimplemented")
       auto t = t_._self;
-      DBG("normalizing ", t)
       if (t.isVar()) {
         return PolyNf(Variable(t.var()));
       } else {
@@ -488,14 +487,15 @@ PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
               if (nums > 1 || (nums == 1 && numeral == Numeral(1))) 
                 this->evaluated = true;
 
-              return some(PolyNf(AnyPoly(Polynom<NumTraits>(Monom<NumTraits>(
+              auto out =  PolyNf(AnyPoly(Polynom<NumTraits>(Monom<NumTraits>(
                           numeral, 
                           // TODO  pass straght a reverse sorted iterator
                           MonomFactors<NumTraits>::fromIterator(
                             range(0, offs)
                               .map([&](auto i) { return MonomFactor<NumTraits>(facs[i].first, facs[i].second); })
                             )
-                          )))));
+                          ))));
+              return some(out);
             } else {
               return Option<PolyNf>();
             }

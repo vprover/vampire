@@ -391,20 +391,33 @@ public:
                 ? MOVE(*this)                                                                       \
                 : Option();                                                                         \
   }                                                                                                 \
-                                                                                                    \
-  /**                                                                                               \
-   * turns an Option<A&>, Option<A const&>, or Option<A&&> into an Option<A> by calling the appropriate move  \
-   * or copy constructor.                                                                           \
-   */                                                                                               \
-  Option<typename std::remove_const<typename std::remove_reference<A>::type>::type>  toOwned() REF  \
-  {                                                                                                 \
-    using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;          \
-    return map([](A REF  elem) -> Out { return Out(MOVE(elem)); });                                 \
-  }                                                                                                 \
 
   FOR_REF_QUALIFIER(ref_polymorphic)
 
 #undef ref_polymorphic
+
+  /**
+   * turns an Option<A&>, Option<A const&>, or Option<A&&> into an Option<A> by calling the appropriate move
+   * or copy constructor.
+   */
+  auto toOwned() &&
+  {
+    using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;
+    return map([](A&&  elem) -> Out { return Out(move_if_value<A>(elem)); });
+  }
+
+  auto toOwned() const&
+  {
+    using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;
+    return map([](A const&  elem) -> Out { return Out(elem); });
+  }
+
+  auto toOwned() &
+  {
+    using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;
+    return map([](A &  elem) -> Out { return Out(elem); });
+  }
+
 
   Option take() 
   {

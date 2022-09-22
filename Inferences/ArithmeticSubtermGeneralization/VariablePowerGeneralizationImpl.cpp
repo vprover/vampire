@@ -42,7 +42,7 @@ struct Preprocess
       for (auto factor : summand.factors.iter()) {
         auto var = factor.term().tryVar();
         if (var.isSome()) {
-
+          DBGE(factor)
 
           auto current = factor.power() == 0 || factor.power() == 1  /* <- power 0 should never happen. 
                                                                            power 1 yields a nop-generalization */
@@ -120,6 +120,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
   if (applicable) {
     return generalizeBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers, doOrderingCheck } });
   } else {
+    DEBUG("not applicable")
     return SimplifyingGeneratingInference1::Result::nop(cl);
   }
 }

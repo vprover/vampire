@@ -71,7 +71,10 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
   NumeralMap numerals;
 
   /* scan candidate numeral multiplications n * x  */
-  for (auto poly : iterPolynoms(cl)) {
+  auto iter = iterPolynoms(cl);
+  while (iter.hasNext()) {
+    auto poly = iter.next();
+  // for (auto poly : iterPolynoms(cl)) {
     poly.apply([&](auto& poly) {
       for (auto monom : poly.iterSummands()) {
         for (auto factor : monom.factors.iter()) {
@@ -118,7 +121,9 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
     auto& e = selected.unwrap();
     DEBUG("selected generalization: (", e.key(), ", ", e.value(), ")");
     Generalize gen { e.key(), e.value().unwrap(), doOrderingCheck };
-    return generalizeBottomUp(cl, EvaluateMonom<Generalize> {gen});
+    auto out = generalizeBottomUp(cl, EvaluateMonom<Generalize> {gen});
+    DEBUG("result: ", *out.simplified);
+    return out;
   }
 }
 

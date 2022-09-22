@@ -44,6 +44,7 @@
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
+#define POLYNF_NICE_OUTPUT 1
 #if VDEBUG
 #define POLYNF_INTEGRITY_CHECKS 1
 #else 
@@ -262,6 +263,7 @@ public:
    * \pre factors must be sorted
    */
   MonomFactors(Stack<MonomFactor> const& factors);
+  MonomFactors(MonomFactor const& f) : MonomFactors(Stack<MonomFactor>{f}) {}
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
@@ -318,6 +320,20 @@ public:
   bool isOne() const;
 
 
+  // Option<MonomFactor> asSingleFactor() const 
+  // {
+  //   auto iter = iter();
+  //   if (!iter.hasNext()) {
+  //     return none<MonomFactor>();
+  //   } else {
+  //       auto out = iter.tryNext();
+  //       if (iter.hasNext()) {
+  //         return none<MonomFactor>();
+  //       } else {
+  //         return out;
+  //       }
+  //   }
+  // }
   /** if this MonomFactors consist of a single variable if will be returnd  */
   Option<Variable> tryVar() const;
 
@@ -335,8 +351,29 @@ public:
   // { return iterTraits(_factors.iter()); }
 
   auto iter() const 
-  { return iterTraits(AcChainIter(_inner, Number::mulF()))
-        .map([](auto t) { return MonomFactor::fromNormalized(t); }); }
+  { 
+    // check whether the inner term is a singleton factor x * (x * x)
+    // in this case we generate a monomfactor x^3 instead of iterating over all individual x^1
+    bool isSingleton = false;
+    if (_inner.isTerm()) {
+      auto term = _inner.term();
+      if (term->functor() == Number::mulF()) {
+        auto t0 = term->termArg(0);
+        auto t1 = term->termArg(1);
+        if (t1 == t0) {
+          /* _inner = t^2 */ 
+          isSingleton = true;
+        } else if (t1.isTerm() && t1.term()->termArg(0) == t0) {
+          /* _inner = t^i with i > 2 */ 
+          isSingleton = true;
+        }
+      }
+    }
+    return iterTraits(ifElseIter(
+        isSingleton, [&] () { return getSingletonIterator(_inner); }
+                   , [&] () { return AcChainIter(_inner, Number::mulF()); }))
+       .map([](auto t) { return MonomFactor::fromNormalized(t); }); 
+  }
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
 
@@ -370,6 +407,7 @@ struct Monom
   friend struct ImmediateSubterms;
 
   Monom(Numeral numeral, MonomFactors<Number> factors);
+  Monom(MonomFactors<Number> factors) : Monom(Numeral(1), std::move(factors)) {}
 
   static Monom zero();
 
@@ -497,6 +535,21 @@ public:
   TermList denormalize() const 
   { return _inner; }
 
+  Option<Monom> asMonom() const 
+  {
+    auto iter = iterSummands();
+    if (!iter.hasNext()) {
+      return none<Monom>();
+    } else {
+        auto out = iter.tryNext();
+        if (iter.hasNext()) {
+          return none<Monom>();
+        } else {
+          return out;
+        }
+    }
+  }
+
   /**
    * replaces all subterms of this poly, by given array of subterms. the resulting polynom will be sorted correctly. 
    * here a monom does not count as a subterm, but all the subterms of the monom themselves do:
@@ -559,6 +612,8 @@ public:
     DERIVE_HASH
 
   friend struct ImmediateSubterms;
+  AnyPoly() = delete;
+  AnyPoly(AnyPoly const&) = default;
 
   /** creates a new dynamically typed polynom from a statically typed one */
   template<class NumTraits> AnyPoly(Polynom<NumTraits> self) 
@@ -638,9 +693,8 @@ public:
   auto match(FUnint unint, FVar var, FPoly poly) const
   { return _self.match(unint, var, poly); }
 
-  Option<Variable const&> asVar() const { return _self.as<Variable>(); }
-  Option<AnyPoly const&> asPoly() const { return _self.as<AnyPoly>(); }
-  Option<AnyPoly      &> asPoly()       { return _self.as<AnyPoly>(); }
+  Option<Variable> asVar() const { return _self.as<Variable>().toOwned(); }
+  Option<AnyPoly>  asPoly() const { return _self.as<AnyPoly>().toOwned(); }
 
   Variable unwrapVar() const { return asVar().unwrap(); }
   bool isVar() const { return asVar().isSome(); }
@@ -669,8 +723,9 @@ public:
   template<class Number>
   Option<typename Number::ConstantType> tryNumeral() const;
 
+  // TODO why do we have both tryVar and asVar
   /** if this PolyNf is a Variable, the variable is returned */
-  Option<Variable> tryVar() const { return asVar().toOwned(); }
+  Option<Variable> tryVar() const { return asVar(); }
 
   /** an iterator over all PolyNf s that are subterms of this one */
   class SubtermIter;
@@ -790,7 +845,7 @@ namespace Kernel {
 template<class Number>
 Monom<Number>::Monom(Monom<Number>::Numeral numeral, MonomFactors<Number> factors) 
   : numeral(numeral), factors(factors)
-{}
+{ }
 
 template<class Number>
 Monom<Number> Monom<Number>::zero() 
@@ -831,7 +886,7 @@ template<class Number>
 std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
 { 
   if (self.numeral != typename Number::ConstantType(1)) {
-    out << self.numeral;
+    out << self.numeral << " ";
   }
   return out << self.factors; 
 }
@@ -1006,14 +1061,14 @@ MonomFactor<Number>::MonomFactor(PolyNf term, int power)
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
   // out << self._term;
-// #if POLYNF_NICE_OUTPUT
+#if POLYNF_NICE_OUTPUT
   out << self.term();
   if (self.power() != 1) 
     out << "^" << self.power();
   return out;
-// #else 
-//   return out << "MonomFactor(" << self.asTuple() << ")";
-// #endif
+#else 
+  out << "pow(" self.term() << ", " << self.power() << ")";
+#endif
 }
 
 template<class Number>
@@ -1104,13 +1159,28 @@ bool MonomFactors<Number>::isOne() const
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const MonomFactors<Number>& self) 
 {
-  out << "(";
+#if POLYNF_NICE_OUTPUT
+  auto iter = self.iter();
+  auto first = iter.next();
+  if (iter.hasNext()) {
+    out << "(";
+    out << first;
+    while (iter.hasNext())
+      out << " " << iter.next();
+    out << ")";
+  } else {
+    out << first;
+  }
+  return out;
+#else
+  out << "prod(";
   auto iter = self.iter();
   out << iter.next();
   while (iter.hasNext())
     out << " " << iter.next();
   out << ")";
   return out;
+#endif
 }
 
 
@@ -1193,6 +1263,18 @@ Polynom<Number>::Polynom(Numeral constant)
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
   auto iter = self.iterSummands();
+#if POLYNF_NICE_OUTPUT
+  auto first = iter.next();
+  if (!iter.hasNext()) {
+    return out << first;
+  } else {
+    out << "(" << first;
+    while (iter.hasNext()) {
+      out << " + " << iter.next();
+    }
+    return out << ")";
+  }
+#else
   out << "Poly(";
   if (!iter.hasNext()) {
     out << "<empty>";
@@ -1204,6 +1286,7 @@ std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
   }
   out << ")";
   return out;
+#endif
 }
 
 

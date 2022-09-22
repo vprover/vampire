@@ -18,7 +18,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
 
 namespace Inferences {
 
@@ -27,7 +27,7 @@ static const auto iterTerms = [](Clause* cl)
 {
   return iterTraits(cl->iterLits())
     .flatMap([](Literal* lit) { return iterArgsPnf(lit); }) 
-    .flatMap([](PolyNf arg) { return arg.iterSubterms();  });
+    .flatMap([](PolyNf arg) { return arg.iterSubterms(/* singleton monoms */ true);  });
 };
 
 /**
@@ -73,7 +73,7 @@ static const auto iterPolynoms = [](Clause* cl) {
 static const auto iterVars = [](Clause* cl) {
   return iterTerms(cl)
     .filterMap([](PolyNf subterm) 
-        { return subterm.asVar().toOwned(); });
+        { return subterm.asVar(); });
 };
 
 template<class EvalFn>

@@ -82,7 +82,9 @@ struct Preprocess
     CALL("AdditionGeneralizationImpl::Preprocess::operator()")
     // a variable might occur twice within one sum.
     Set<Variable, StlHash> didOccur;
+    DBGE(poly)
     for (auto monom : poly.iterSummands()) {
+    DBGE(monom)
       auto var = monom.tryVar();
 
       if (var.isSome() && !didOccur.contains(var.unwrap())) {
@@ -219,7 +221,9 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
     auto& e = selected.unwrap();
     DEBUG("selected generalization: ", e.key(), " ", e.value());
     Generalize gen { e.key(), e.value(), doOrderingCheck };
-    return generalizeBottomUp(cl, EvaluatePolynom<Generalize> {gen});
+    auto out = generalizeBottomUp(cl, EvaluatePolynom<Generalize> {gen});
+    DEBUG("result: ", *out.simplified);
+    return out;
   }
 
 }

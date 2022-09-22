@@ -668,6 +668,47 @@ TEST_SIMPLIFY_NUMBER(bug_02,
       .input(    clause({ ((x+(1*x)) + ((1*y)+y)) == (2*(x+y))}))
     )
 
+  // TODO move to tInterpretedFunctions
+TEST_FUN(misc_polynomial_test) {
+   __ALLOW_UNUSED(
+        SIMPL_SUGAR_(Real)
+   )
+
+   auto norm = [](auto a) { return PolyNf::normalize(TypedTermList(TermList(a), RealTraits::sort())); };
+   {
+     PolyNf pnf = norm(x * x * x + y * y * y);
+     ASS_EQ(pnf.denormalize(), TermList((x * (x * x)) + (y * (y * y))));
+   }
+
+   auto facToPolyNf = [](auto f) {
+     return PolyNf(AnyPoly(Polynom<RealTraits>(Monom<RealTraits>(MonomFactors<RealTraits>(f)))));
+   };
+
+   ASS_EQ(TermList(x * (x * x)), MonomFactor<RealTraits>(norm(x), 3).denormalize())
+   ASS_EQ(MonomFactors<RealTraits>::fromNormalized(x * (x * x)), MonomFactor<RealTraits>(norm(x), 3))
+
+   {
+     PolyNf pnf = norm(x * x * x);
+     ASS_EQ(pnf, facToPolyNf(MonomFactor<RealTraits>(norm(x), 3)))
+     Polynom<RealTraits> poly = pnf.asPoly().unwrap().downcast<RealTraits>().unwrap();
+     DBG(poly)
+     auto facs = poly.asMonom().unwrap().factors;
+     auto fac = facs.tryMonomFactor().unwrap();
+     ASS_EQ(fac, MonomFactor<RealTraits>(norm(x), 3))
+
+   }
+
+}
+// TEST_FUN(misc_polynomial_test){
+//    __ALLOW_UNUSED(
+//    SIMPL_SUGAR_(Real)
+//    )
+//    PolyNf pnf = PolyNf::normalize(TermList(x + x + x + x ).term());
+//    PolyNf pnf2 = pnf;
+//    // Option<AnyPoly &> poly =  pnf.asPoly();
+//
+// }
+
 // TODO: what about { y = 0 \/ p(y*x) } ===> { p(x) }
 // TODO: what about { p(f * x) } ===> { p(x) } if f isNonZero
 // TODO: what about { p(f * x) } ===> { p(0) } if f isZero
