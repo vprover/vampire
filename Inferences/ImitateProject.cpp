@@ -62,19 +62,6 @@ struct ImitateProject::CanImitateAndProject
 
 struct ImitateProject::ResultFn
 {
-  void getConstraints(TermStack& lhss, TermStack& rhss, TermStack& sorts, LiteralStack& constraints)
-  {
-    CALL("ImitateProject::ResultFn::getConstraints");
-    ASS(!constraints.size());
-    ASS(lhss.size() == rhss.size());
-
-    for(unsigned i = 0; i < lhss.length(); i++){
-      TermList lhs = SubstHelper::apply(lhss[i], _subst);
-      TermList rhs = SubstHelper::apply(rhss[i], _subst);      
-      constraints.push(Literal::createEquality(false, lhs, rhs, sorts[i]));
-    }
-  }
-
   Clause* createRes(InferenceRule rule)
   {
     CALL("ImitateProject::ResultFn::createRes");
@@ -159,7 +146,7 @@ struct ImitateProject::ResultFn
       if(argSort.finalResult() != sort) continue;
       TermList head = arg.head();
       // argument has a rigid head different to that of rhs. no point projecting
-      if(!head.isVar() && head != headRigid) continue;
+      if(head.isTerm() &&  head.deBruijnIndex().isNone() &&  head != headRigid) continue;
 
       unsigned fVar = _maxVar;
       TermList pb = AH::createGeneralBinding(fVar,deBruijnIndices[i],argsFlex,sortsFlex,deBruijnIndices);
