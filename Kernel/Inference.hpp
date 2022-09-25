@@ -258,7 +258,7 @@ enum class InferenceRule : unsigned char {
 
   BOOL_SIMP,
 
-  BETA_NORMALISE,
+  BETA_ETA_NORMALISE,
 
   FLEX_FLEX_SIMPLIFY,
 

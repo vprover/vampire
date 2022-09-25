@@ -118,8 +118,6 @@ TermList LambdaConversion::convertLambda(Formula* formula, VarToIndexMap& map)
     case EXISTS: {
       VList* vars = formula->vars();
       VList::Iterator vit(vars);
-      SList* sort = SList::singleton(TermList(0, true)); //dummy data
-      VList* var = VList::singleton(0);
 
       TermList form = TermList(Term::createFormula(formula->qarg()));
       bool pi = conn == FORALL;
@@ -128,8 +126,8 @@ TermList LambdaConversion::convertLambda(Formula* formula, VarToIndexMap& map)
       while(vit.hasNext()){
         int v = vit.next();
         ALWAYS(SortHelper::tryGetVariableSort(v, formula->qarg(), s));
-        var->setHead(v);
-        sort->setHead(s);
+        VList* var = VList::singleton(v);        
+        SList* sort = SList::singleton(s); 
         auto t = TermList(Term::createLambda(form, var, sort, AtomicSort::boolSort()));  
         form = AH::app((pi ? AH::pi(s) : AH::sigma(s)), t);
       }

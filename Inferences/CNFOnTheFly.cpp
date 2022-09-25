@@ -679,7 +679,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
     }
   }
 
-  TermList resultSort = *expsrt.term()->nthArgument(0);
+  TermList resultSort = expsrt.domain();
 
   SortHelper::normaliseArgSorts(typeVars, termVarSorts);
   SortHelper::normaliseSort(typeVars, resultSort);

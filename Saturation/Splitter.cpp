@@ -48,6 +48,8 @@
 
 #include "SaturationAlgorithm.hpp"
 
+#include "Shell/UIHelper.hpp"
+
 namespace Saturation
 {
 
@@ -73,13 +75,27 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
-        _solverIsSMT = true;
-        _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
-        if(_parent.getOptions().satFallbackForSMT()){
-          // TODO make fallback minimizing?
-          SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
-          _solver = new FallbackSolverWrapper(_solver.release(),fallback);
-        } 
+  #if VHOL      
+        if(env.property->higherOrder()){
+          if (outputAllowed()) {
+            env.beginOutput();
+            addCommentSignForSZS(env.out());
+            env.out() << "WARNING: Z3 as SAT solver not compatible with higher-order. Using Minisat instead" << endl;
+            env.endOutput();
+          }          
+          _solver = new MinisatInterfacing(_parent.getOptions(),true);
+        } else {
+   #endif
+          _solverIsSMT = true;
+          _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
+          if(_parent.getOptions().satFallbackForSMT()){
+            // TODO make fallback minimizing?
+            SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
+            _solver = new FallbackSolverWrapper(_solver.release(),fallback);
+          }
+  #if VHOL         
+        }
+  #endif
       }
       break;
 #endif

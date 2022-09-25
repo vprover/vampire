@@ -59,7 +59,7 @@ Clause* BetaEtaSimplify::simplify(Clause* c)
     return c;
   }
 
-  Inference inf = SimplifyingInference1(InferenceRule::BETA_NORMALISE, c);
+  Inference inf = SimplifyingInference1(InferenceRule::BETA_ETA_NORMALISE, c);
   Clause* newC = Clause::fromStack(litStack, inf);
 
   return newC;

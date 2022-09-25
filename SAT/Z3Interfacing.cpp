@@ -1096,7 +1096,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
       SortHelper::getTypeSub(functor.forSorts, typeSubst);
       namebuf += '$';
       for(unsigned i = 0; i < functor.forSorts->numTypeArguments(); i++)
-        namebuf += functor.forSorts->termArg(i).toString();
+        namebuf += functor.forSorts->typeArg(i).toString();
     }
 
     z3::sort_vector domain_sorts = z3::sort_vector(self._context);

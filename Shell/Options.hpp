@@ -721,6 +721,7 @@ public:
     WARNING = 1,
   };
 
+#if VHOL
   enum class FunctionExtensionality : unsigned int {
     OFF = 0,
     AXIOM = 1,
@@ -755,6 +756,7 @@ public:
     PRETTY = 2,
     TPTP = 3
   };
+#endif
 
     //==========================================================
     // The Internals

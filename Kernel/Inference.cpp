@@ -949,8 +949,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "leibniz equality elimination";
   case InferenceRule::CASES_SIMP:
     return "cases simplifying";
-  case InferenceRule::BETA_NORMALISE:
-    return "beta normalization";
+  case InferenceRule::BETA_ETA_NORMALISE:
+    return "beta eta normalization";
   case InferenceRule::FLEX_FLEX_SIMPLIFY:
     return "flex-flex simplify";
   case InferenceRule::IMITATE:
