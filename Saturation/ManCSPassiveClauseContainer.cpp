@@ -41,6 +41,7 @@ private:
 
 void ManCSPassiveClauseContainer::add(Clause* cl)
 {
+  BYPASSING_ALLOCATOR;
   CALL("ManCSPassiveClauseContainer::add");
   clauses.push_back(cl);
   addedEvent.fire(cl);

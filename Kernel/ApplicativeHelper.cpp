@@ -217,7 +217,10 @@ TermList TermShifter::transformSubterm(TermList t)
         ASS(_shiftBy >= 0 || index >= std::abs(_shiftBy));
         return ApplicativeHelper::getDeBruijnIndex(index + _shiftBy, sort);
       } else {
-        _minFreeIndex = (int)(index - _cutOff);
+        int j = (int)(index - _cutOff);
+        if(j < _minFreeIndex || _minFreeIndex == -1){
+          _minFreeIndex = j;
+        }
       }
     }
   }

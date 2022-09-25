@@ -177,7 +177,7 @@ struct PrimitiveInstantiation::ResultFn
         TermList dbj = deBruijnIndices[p.second];
 
         // creating term dbi = dbj
-        TermList tm = AH::app2(AH::equality(sortsFlex[i]), dbi, dbj);
+        TermList tm = AH::app2(AH::equality(sortsFlex[p.first]), dbi, dbj);
         TermList gb = AH::surroundWithLambdas(tm, sortsFlex);
         _subst.bind(headFlex.var(), gb);
         results.push(createRes());     
@@ -188,7 +188,7 @@ struct PrimitiveInstantiation::ResultFn
         _subst.bind(headFlex.var(), gb);
         results.push(createRes());
 
-        if(sortsFlex[i].isBoolSort()){
+        if(sortsFlex[p.first].isBoolSort()){
           //creating dbi \/ dbj
           _subst.reset();
           gb = AH::surroundWithLambdas(AH::app2(AH::disj(), dbi, dbj), sortsFlex);
