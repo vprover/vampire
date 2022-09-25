@@ -240,7 +240,7 @@ private:
    *
    * Defining a function extends the signature and adds the new function's definition into _formulas.
    */
-  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
+  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive);
 
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
@@ -366,7 +366,7 @@ private:
 
   [[noreturn]] void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp);
 
-  void tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup);
+  void tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts = nullptr);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);

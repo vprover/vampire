@@ -171,7 +171,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       _scopes.push(lookup);
       if (iSortRdr.hasNext() && iSortRdr.peekAtNext()->isAtom() && iSortRdr.peekAtNext()->str == PAR) {
         ibRdr.acceptEOL();
-        iSortRdr.readAtom();
+        iSortRdr.readAtom(); // the "par" atom
         tryReadTypeParameters(iSortRdr, lookup);
         iSorts = iSortRdr.readList();
         ibRdr = iSortRdr;
@@ -184,7 +184,6 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       readDeclareFun(name,iSorts,oSort,lookup->size());
 
       ibRdr.acceptEOL();
-
       delete _scopes.pop();
 
       continue;
@@ -229,24 +228,43 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         USER_ERROR_EXPR("declare-const expects a const definition body");
       }
       LExpr* oSort = ibRdr.readNext();
+      unsigned taArity = 0;
+      if (oSort->isList()) {
+        LispListReader oSortRdr(oSort);
+        auto lookup = new TermLookup();
+        _scopes.push(lookup);
+        if (oSortRdr.hasNext() && oSortRdr.peekAtNext()->isAtom() && oSortRdr.peekAtNext()->str == PAR) {
+          ibRdr.acceptEOL();
+          oSortRdr.readAtom(); // the "par" atom
+          tryReadTypeParameters(oSortRdr, lookup);
+          oSort = oSortRdr.readNext();
+          ibRdr = oSortRdr;
+        } else {
+          USER_ERROR_EXPR("declare-const expects either a `par` block or one output sort");
+        }
+        taArity = lookup->size();
+      }
 
-      readDeclareFun(name,nullptr,oSort,0);
+      readDeclareFun(name,nullptr,oSort,taArity);
 
       ibRdr.acceptEOL();
+      delete _scopes.pop();
 
       continue;
     }
 
-    if (ibRdr.tryAcceptAtom("define-fun")) {
+    bool recursive = false;
+    if (ibRdr.tryAcceptAtom("define-fun") || (recursive = ibRdr.tryAcceptAtom("define-fun-rec"))) {
       vstring name = ibRdr.readAtom();
       LExprList* iArgs = ibRdr.readList();
       LispListReader iArgRdr(iArgs);
       auto lookup = new TermLookup();
+      TermStack typeArgs;
       _scopes.push(lookup);
       if (iArgRdr.hasNext() && iArgRdr.peekAtNext()->isAtom() && iArgRdr.peekAtNext()->str == PAR) {
         ibRdr.acceptEOL();
         iArgRdr.readAtom(); // the "par" atom
-        tryReadTypeParameters(iArgRdr, lookup);
+        tryReadTypeParameters(iArgRdr, lookup, &typeArgs);
         iArgs = iArgRdr.readList();
         ibRdr = iArgRdr;
       }
@@ -259,23 +277,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       }
       LExpr* body = ibRdr.readNext();
 
-      readDefineFun(name,iArgs,oSort,body);
+      readDefineFun(name,iArgs,oSort,body,typeArgs,recursive);
 
       ibRdr.acceptEOL();
       delete _scopes.pop();
-
-      continue;
-    }
-
-    if (ibRdr.tryAcceptAtom("define-fun-rec")) {
-      vstring name = ibRdr.readAtom();
-      LExprList *iArgs = ibRdr.readList();
-      LExpr *oSort = ibRdr.readNext();
-      LExpr *body = ibRdr.readNext();
-
-      readDefineFun(name, iArgs, oSort, body, true /*recursive*/);
-
-      ibRdr.acceptEOL();
 
       continue;
     }
@@ -750,7 +755,7 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name,
 
 //  ----------------------------------------------------------------------
 
-void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive)
+void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive)
 {
   CALL("SMTLIB2::readDefineFun");
 
@@ -760,8 +765,6 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   TermList rangeSort = parseSort(oSort);
 
-  _nextVar = 0;
-  // ASS(_scopes.isEmpty());
   TermLookup* lookup = new TermLookup();
 
   static TermStack argSorts;
@@ -769,6 +772,9 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   static TermStack args;
   args.reset();
+  for (const auto& ta : typeArgs) {
+    args.push(ta);
+  }
 
   LispListReader iaRdr(iArgs);
   while (iaRdr.hasNext()) {
@@ -794,7 +800,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   DeclaredSymbol fun;
   if (recursive) {
-    fun = declareFunctionOrPredicate(name, rangeSort, argSorts, 0);
+    fun = declareFunctionOrPredicate(name, rangeSort, argSorts, typeArgs.size());
   }
 
   ParseResult res = parseTermOrFormula(body);
@@ -807,7 +813,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   }
 
   if (!recursive) {
-    fun = declareFunctionOrPredicate(name, rangeSort, argSorts, 0);
+    fun = declareFunctionOrPredicate(name, rangeSort, argSorts, typeArgs.size());
   }
 
   unsigned symbIdx = fun.first;
@@ -829,7 +835,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
-void SMTLIB2::tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup)
+void SMTLIB2::tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
 {
   CALL("SMTLIB2::tryReadTypeParameters");
 
@@ -849,6 +855,9 @@ void SMTLIB2::tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup)
     TermList sortVar(_nextVar++, false);
     if (!lookup->insert(par->str, make_tuple(sortVar, AtomicSort::superSort(), false))) {
       USER_ERROR_EXPR("Type parameter '" + par->str + "' has already been defined");
+    }
+    if (ts) {
+      ts->push(sortVar);
     }
   }
 }
