@@ -451,8 +451,10 @@ public:
   const unsigned functor() const { return _functor; }
 
   vstring toString() const;
+#if VHOL  
   // auxiliary function to print lambda specials
   vstring lambdaToString(const SpecialTermData* sd, bool pretty = false) const;
+#endif
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
 

@@ -138,6 +138,9 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && env.options->kboWeightGenerationScheme() == Options::KboWeightGenerationScheme::CONST
         && !env.options->kboMaxZero()
         && !prb.hasInterpretedOperations()
+#if VHOL        
+        && !env.property->higherOrder()
+#endif
         ) {
       out = new KBOForEPR(prb, opt);
     } else {

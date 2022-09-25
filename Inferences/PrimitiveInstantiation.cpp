@@ -12,6 +12,8 @@
  * Implements class PrimitiveInstantiation.
  */
 
+#if VHOL
+
 #include "Debug/RuntimeStatistics.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -252,3 +254,5 @@ ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
 }
 
 }
+
+#endif

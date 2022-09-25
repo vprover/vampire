@@ -15,6 +15,8 @@
 #ifndef __ElimLeibniz__
 #define __ElimLeibniz__
 
+#if VHOL
+
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
@@ -50,5 +52,7 @@ class ElimLeibniz : public GeneratingInferenceEngine
 };
 
 }
+
+#endif
 
 #endif

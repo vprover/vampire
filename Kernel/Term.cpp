@@ -1017,6 +1017,8 @@ vstring Term::toString() const
   return s;
 } // Term::toString
 
+#if VHOL
+
 vstring Term::lambdaToString(const SpecialTermData* sd, bool pretty) const
 {
   CALL("Term::lambdaToString");
@@ -1041,8 +1043,6 @@ vstring Term::lambdaToString(const SpecialTermData* sd, bool pretty) const
   vstring lambda = pretty ? "λ" : "^";
   return "(" + lambda + varList + " : (" + lambdaExp.toString() + "))";  
 }
-
-#if VHOL
 
 vstring Term::toString(bool topLevel, IndexVarStack& st) const
 {

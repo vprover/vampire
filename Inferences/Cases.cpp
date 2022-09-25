@@ -29,7 +29,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
-#include "Kernel/SortHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -39,19 +38,11 @@ namespace Inferences {
 
 Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
   CALL("Cases::performParamodulation");
-
+ 
   ASS(t.isTerm());
-
-  TermList lhs = *lit->nthArgument(0);
-  TermList rhs = *lit->nthArgument(1);
-
-  if((t == lhs) || (t == rhs)){
-    return 0;
-  }
 
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
-
 
   // Create the C[true] \/ s = false clause
   unsigned conclusionLength = premise->length() + 1;

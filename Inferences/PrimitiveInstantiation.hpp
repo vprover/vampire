@@ -16,6 +16,8 @@
 #ifndef __PrimitiveInstantiation__
 #define __PrimitiveInstantiation__
 
+#if VHOL
+
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
 
@@ -44,5 +46,7 @@ private:
 
 
 };
+
+#endif
 
 #endif /* __PrimitiveInstantiation__ */

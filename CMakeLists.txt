@@ -808,8 +808,10 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
 endif()
 
 if(CMAKE_BUILD_HOL STREQUAL On)
+  message(STATUS "Building with HOL support")
   add_compile_definitions(VHOL=1)
-elseif(CMAKE_BUILD_HOL STREQUAL Off)
+else()
+  message(STATUS "Building without HOL support")
   add_compile_definitions(VHOL=0)
 endif()
 

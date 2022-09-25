@@ -173,8 +173,11 @@ Term* TermSharing::insert(Term* t)
       t->setColor(color);
     }
 
+#if VHOL
     t->setHasRedex(hasRedex);
-    t->setHasDBIndex(hasDBIndex);      
+    t->setHasDBIndex(hasDBIndex);
+    t->setHasLambda(hasLambda);
+#endif      
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
     _totalTerms++;
 

@@ -1523,10 +1523,6 @@ void Options::init()
     _binaryResolution.setRandomChoices(And(isRandSat(),saNotInstGen(),Or(hasEquality(),hasCat(Property::HNE))),{"on"});
     _binaryResolution.setRandomChoices({"on","off"});
 
-    _superposition = BoolOptionValue("superposition","sup",true);
-    _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
-    _lookup.insert(&_superposition);
-
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
        "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
@@ -1738,6 +1734,10 @@ void Options::init()
 //*********************** Higher-order  ***********************
 
 #if VHOL
+    _superposition = BoolOptionValue("superposition","sup",true);
+    _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
+    _lookup.insert(&_superposition);
+
     _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
     _addProxyAxioms.description="Add logical proxy axioms";
     _lookup.insert(&_addProxyAxioms);
@@ -3463,7 +3463,9 @@ bool Options::complete(const Problem& prb) const
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
+#if VHOL
   if (hasEquality && !_superposition.actualValue) return false;
+#endif
 
   if (!unitEquality) {
     if (_selection.actualValue <= -1000 || _selection.actualValue >= 1000) return false;

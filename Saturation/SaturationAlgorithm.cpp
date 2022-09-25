@@ -1554,9 +1554,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (prb.hasEquality()) {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
+#if VHOL
     if(env.options->superposition()){
+#endif
       gie->addFront(new Superposition());
+#if VHOL
     }
+#endif
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
   }
@@ -1822,8 +1826,10 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new TautologyDeletionISE2());
   }  
 
-  res->addFront(new BetaEtaSimplify());
-  res->addFront(new FlexFlexSimplify());
+  if(prb.higherOrder()){
+    res->addFront(new BetaEtaSimplify());
+    res->addFront(new FlexFlexSimplify());
+  }
 #endif
 
   // Only add if there are distinct groups 

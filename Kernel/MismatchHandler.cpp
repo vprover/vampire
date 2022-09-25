@@ -148,6 +148,7 @@ MaybeBool MismatchHandler::isConstraintTerm(TermList t){
 TermList MismatchHandler::transformSubterm(TermList trm){
   CALL("MismatchHandler::transformSubterm");
 
+#if VHOL
   if(_appTerms.size()){
     TermList t = _appTerms.pop();
     if(t.isApplication() && trm == t.lhs()){
@@ -156,6 +157,7 @@ TermList MismatchHandler::transformSubterm(TermList trm){
     }  
     _appTerms.push(t);  
   }
+#endif
 
   for (auto& h : _inners) {
     TermList t = h->transformSubterm(trm);
@@ -166,6 +168,7 @@ TermList MismatchHandler::transformSubterm(TermList trm){
   return trm;
 }
 
+#if VHOL
 void MismatchHandler::onTermEntry(Term* t) {
   CALL("MismatchHandler::onTermEntry");
 
@@ -181,6 +184,7 @@ void MismatchHandler::onTermExit(Term* t){
     _appTerms.pop();
   }
 }
+#endif
 
 Term* MismatchHandler::get(unsigned var)
 {

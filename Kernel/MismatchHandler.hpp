@@ -85,8 +85,10 @@ public:
               UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
 
   TermList transformSubterm(TermList trm) override;
+#if VHOL  
   void onTermEntry(Term* t) override;
   void onTermExit(Term* t) override;
+#endif
   MaybeBool isConstraintTerm(TermList t); 
 
   static Term* get(unsigned var);
@@ -118,7 +120,9 @@ private:
       TermList t2, unsigned index2, 
       UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
 
+#if VHOL
   TermStack _appTerms;
+#endif
   static VSpecVarToTermMap _termMap;
   Stack<unique_ptr<AtomicMismatchHandler>> _inners;
 };

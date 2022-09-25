@@ -12,6 +12,8 @@
  * Implements class PrimitiveInstantiation.
  */
 
+#if VHOL
+
 #include "Debug/RuntimeStatistics.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -182,3 +184,5 @@ afterLoop:
 }
 
 }
+
+#endif
