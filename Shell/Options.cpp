@@ -949,6 +949,12 @@ void Options::init()
     _npccTemperature.tag(OptionTag::SATURATION);
     _npccTemperature.onlyUsefulWith(_neuralPassiveClauseContainer.is(notEqual(vstring(""))));
 
+    _neuralPassiveClauseContainerTweaks = StringOptionValue("npcc_tweaks","npccw","");
+    _neuralPassiveClauseContainerTweaks.description="String representation of a vector passed as addtional ``problem-tweak'' to the npcc on contruction";
+    _lookup.insert(&_neuralPassiveClauseContainerTweaks);
+    _neuralPassiveClauseContainerTweaks.tag(OptionTag::SATURATION);
+    _neuralPassiveClauseContainerTweaks.onlyUsefulWith(ProperSaturationAlgorithm());
+
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "

@@ -2251,6 +2251,7 @@ public:
 
   const vstring& neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
   float npccTemperature() const { return _npccTemperature.actualValue; }
+  const vstring& neuralPassiveClauseContainerTweaks() const { return _neuralPassiveClauseContainerTweaks.actualValue; }
 
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2543,6 +2544,7 @@ private:
 
   StringOptionValue _neuralPassiveClauseContainer;
   FloatOptionValue _npccTemperature;
+  StringOptionValue _neuralPassiveClauseContainerTweaks;
 
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
