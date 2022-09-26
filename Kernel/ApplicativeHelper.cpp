@@ -59,6 +59,9 @@ TermList EtaNormaliser::normalise(TermList t)
   return transform(t);
 }
 
+// uses algorithm for eta-reduction that can be found here:
+// https://matryoshka-project.github.io/pubs/lambdae.pdf
+
 TermList EtaNormaliser::transformSubterm(TermList t)
 {
   CALL("EtaNormaliser::transformSubterm");

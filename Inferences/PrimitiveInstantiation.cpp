@@ -61,6 +61,14 @@ struct PrimitiveInstantiation::ResultFn
 
   ResultFn(Clause* cl): _cl(cl), _freshVar(cl->maxVar() + 1){
     TermList sortVar(_freshVar++, false);
+
+    // rather than constantly recreating this stack
+    // and pushing on the terms every time we run a prim inst inference
+    // another option is to use RobSubstitution and allow it to 
+    // rename terms apart. That way, we don't need to worry about freshness 
+    // of variables. The potential downside is that the whole RobSubstitution
+    // mechanism is complicated a may add its own overhead. Worth investigating 
+    // though
     _heads.push(AH::top());
     _heads.push(AH::bottom());
     auto piSet = env.options->piSet();
