@@ -404,13 +404,6 @@ protected:
         out << _is->getUnitIdStr(prem);
         first=false;
       }
-
-      // print Extra
-      vstring extra;
-      if (env.proofExtra && env.proofExtra->find(cs,extra) && extra != "") {
-        out << ", " << extra;
-      }
-      out << "]" << endl;
     }
   }
 

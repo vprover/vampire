@@ -57,7 +57,7 @@ public:
 
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
-  DHMap<Kernel::Unit*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
+  DHMap<const Kernel::Unit*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
 
   bool haveOutput();
   void beginOutput();
