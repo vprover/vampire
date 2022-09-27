@@ -64,8 +64,7 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
 
   ApplicativeHelper::getHeadAndArgs(lhsM, headLhs, argsLhs);
   ApplicativeHelper::getHeadAndArgs(rhsM, headRhs, argsRhs);
-  if(headLhs != headRhs || headLhs.isVar() || 
-    ApplicativeHelper::isComb(headLhs)){
+  if(headLhs != headRhs || headLhs.isVar()){
     return ClauseIterator::getEmpty();
   }
   ASS(argsLhs.size() == argsRhs.size());
@@ -119,12 +118,10 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
     typeArg = typeArg->next();
   }
 
-  Signature::Symbol* func = env.signature->getFunction(oldhead.term()->functor());
   vstring pref = "inv_" + func->name() + "_";
-  unsigned iFunc = env.signature->addFreshFunction(func->arity(), pref.c_str() ); 
+  unsigned iFunc = env.signature->addFreshFunction(oldhead.term()->arity(), pref.c_str() ); 
 
-  OperatorType* funcType = func->fnType();
-  TermList type = funcType->result(); 
+  TermList type = SortHelper::getResultSort(oldhead.term());
 
   TermList oldResult = ApplicativeHelper::getResultApplieadToNArgs(type, termArgs.size());
   TermStack sorts;
