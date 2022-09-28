@@ -262,6 +262,12 @@ enum class InferenceRule : unsigned char {
 
   BOOL_SIMP,
 
+  BACKWARD_INEQUALITY_RESOLUTION,
+
+  FORWARD_INEQUALITY_RESOLUTION,
+
+  INEQUALITY_SIMP,
+
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
@@ -307,7 +313,6 @@ enum class InferenceRule : unsigned char {
   INTERMEDIATE_VALUE,
 
   CHAIN_REASONING,
-
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
   /* narrow with combinator axiom */

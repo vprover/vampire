@@ -94,7 +94,6 @@ struct NumTraits;
       return functor;                                                                                         \
     }                                                                                                         \
 
-
 #define IMPL_NUM_TRAITS__INTERPRETED_PRED(name, SORT_SHORT, _INTERPRETATION, arity)                           \
     IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION)                                    \
                                                                                                               \
@@ -104,7 +103,6 @@ struct NumTraits;
                   polarity,                                                                                   \
                   { IMPL_NUM_TRAITS__ARG_EXPR( arity ) });                                                    \
     }                                                                                                         \
-
 
 
 #define IMPL_NUM_TRAITS__INTERPRETED_FUN(name, SORT_SHORT, _INTERPRETATION, arity)                            \
@@ -134,10 +132,10 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(remainder ## X, SHORT, _REMAINDER_ ## X, 2)                              \
     
 
-#define IMPL_NUM_TRAITS(CamelCase, lowerCase, LONG, SHORT)                                                               \
+#define IMPL_NUM_TRAITS(CamelCase, lowerCase, LONG, SHORT)                                                    \
   template<> struct NumTraits<CamelCase ## ConstantType> {                                                    \
     using ConstantType = CamelCase ## ConstantType;                                                           \
-    static TermList sort() { return AtomicSort::lowerCase ## Sort(); };                                              \
+    static TermList sort() { return AtomicSort::lowerCase ## Sort(); };                                       \
                                                                                                               \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    SHORT, _LESS,          2)                                      \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     SHORT, _LESS_EQUAL,    2)                                      \
@@ -165,6 +163,7 @@ struct NumTraits;
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )                                                        \
     IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)                                                        \
                                                                                                               \
+    using TermPair = pair<TermList, TermList>;                                                                \
     static ConstantType constant(int i) { return ConstantType(i); }                                           \
     static Term* constantT(int i) { return constantT(constant(i)); }                                          \
     static Term* constantT(ConstantType i) { return theory->representConstant(i); }                           \
@@ -178,7 +177,15 @@ struct NumTraits;
       }                                                                                                       \
     }                                                                                                         \
     static Option<ConstantType> tryNumeral(Term* t) { return tryNumeral(TermList(t)); }                       \
-                                                                                                              \
+    static Option<TermPair> isLess(Literal* lit) {                                                            \
+      if (theory->isInterpretedPredicate(lit, Theory::SHORT ## _LESS)) {                                      \
+        auto arg1 = *lit->nthArgument(0);                                                                     \
+        auto arg2 = *lit->nthArgument(1);                                                                     \
+        return Option<TermPair>(make_pair(arg1, arg2));                                                       \
+      } else {                                                                                                \
+        return Option<TermPair>();                                                                            \
+      }                                                                                                       \
+    }                                                                                                         \
     static const char* name() {return #CamelCase;}                                                            \
   };                                                                                                          \
 

@@ -1805,6 +1805,15 @@ void Options::init()
     _lookup.insert(&_intermediateValue);
     _intermediateValue.tag(OptionTag::INFERENCES);
 
+    _inequalityResolution = BoolOptionValue("inequality_res", "ir", false);
+    _inequalityResolution.description =
+      "Carries out some lightweight, heuristic, resolution of inequalities."
+      "For example, faced with (t1 < 3) and (2 < t1) \\/ C, will derive C";
+    _inequalityResolution.tag(OptionTag::INFERENCES);
+    _inequalityResolution.setExperimental();
+    _lookup.insert(&_inequalityResolution);
+
+
 //*********************** Higher-order  ***********************
 
     _addCombAxioms = BoolOptionValue("add_comb_axioms","aca",false);

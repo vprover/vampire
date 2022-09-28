@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Signature.hpp"
+#include "Kernel/NumTraits.hpp"
 
 namespace Kernel {
 
@@ -28,6 +29,8 @@ public:
   USE_ALLOCATOR(RapidHelper);
 
   RapidHelper() {}
+
+  using number = NumTraits<IntegerConstantType>;
 
   static bool isFinalLoopCount(TermList t);
   static bool isTimePoint(TermList t);
@@ -60,7 +63,6 @@ public:
   //if literal is a constant of the form Dense-x-l# for some variable x
   //and some time point l#
   static bool isDensityLiteral(Literal* l, unsigned& varFunctor, unsigned& tpFunctor);
-  static bool isIntegerComparisonLiteral(Literal* l);
   
   /** Returns true if the literal is of the form $less(t1, t2) 
    *  where t1 and t2 are ground. Perhaps update to return true only if
@@ -105,6 +107,12 @@ public:
   static bool increasing(Literal* lit, TermList term);
 
   static bool isZeroLessThanLit(Literal* lit);
+
+  // returns non-empty option if literal is of the form [~](t < num) or
+  // [~](num < t). In either case returns t wrapped in option  
+  static Option<TermList> isIntComparisonLit(Literal* lit);
+
+  static bool resolveInequalities(Literal* lit1, Literal* lit2);
 
   static inline bool isChain(TermList t) {
     if(t.isVar()){ return false; }

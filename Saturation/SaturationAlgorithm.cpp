@@ -94,6 +94,9 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/MultiClauseNatInduction.hpp"
+#include "Inferences/BackwardInequalityResolution.hpp"
+#include "Inferences/ForwardInequalityResolution.hpp"
+#include "Inferences/InequalityISE.hpp"
 #include "Inferences/RapidArrayInduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -1745,6 +1748,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
   }
+  if(opt.inequalityResolution()){
+    res->addForwardSimplifierToFront(new ForwardInequalityResolution());    
+  }
 
   // create backward simplification engine
   if (prb.hasEquality()) {
@@ -1771,6 +1777,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.backwardSubsumptionResolution() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::Subsumption::UNIT_ONLY;
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
+  }
+  if(opt.inequalityResolution()){
+    res->addBackwardSimplifierToFront(new BackwardInequalityResolution());    
   }
 
   if (opt.mode()==Options::Mode::CONSEQUENCE_ELIMINATION) {
@@ -1874,6 +1883,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new PushUnaryMinus()); 
     }
 
+    // TODO add an option?
+    res->addFront(new InequalityISE());
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

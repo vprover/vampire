@@ -912,6 +912,12 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "intermediate value induction";
   case InferenceRule::CHAIN_REASONING:
     return "chain reasoning";
+  case InferenceRule::FORWARD_INEQUALITY_RESOLUTION:
+    return "forward inequality resolution";
+  case InferenceRule::BACKWARD_INEQUALITY_RESOLUTION:
+    return "backward inequality resolution";    
+  case InferenceRule::INEQUALITY_SIMP:
+    return "inequality simplification";
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
   case InferenceRule::INSTANCE_GENERATION:

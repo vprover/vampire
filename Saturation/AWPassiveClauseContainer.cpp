@@ -301,7 +301,7 @@ Clause* AWPassiveClauseContainer::popSelected()
           break;
         }
       }
-      ASS(c->number() == selectedId);
+      ASS_REP(c->number() == selectedId, c->number());
     } else {
 
       while(true)

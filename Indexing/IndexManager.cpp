@@ -312,7 +312,7 @@ Index* IndexManager::create(IndexType t)
 
   case CHAIN_TERM_INDEX:
     tis = new TermSubstitutionTree();
-    res = new ChainReasoningChainTermIndex(tis, _alg->getOrdering());
+    res = new ChainReasoningChainTermIndex(tis);
     isGenerating = true;
     break;
 
@@ -321,6 +321,18 @@ Index* IndexManager::create(IndexType t)
     res = new ChainReasoningLengthClauseIndex(tis);
     isGenerating = true;
     break;    
+
+  case INEQUALITY_RESOLUTION_UNIT_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new InequalityResolutionUnitIndex(tis);
+    isGenerating = true;
+    break;  
+
+  case INEQUALITY_RESOLUTION_NON_UNIT_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new InequalityResolutionNonUnitIndex(tis);
+    isGenerating = true;
+    break;  
 
   default:
     INVALID_OPERATION("Unsupported IndexType.");

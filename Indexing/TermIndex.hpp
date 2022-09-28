@@ -231,15 +231,41 @@ public:
   CLASS_NAME(ChainReasoningChainTermIndex);
   USE_ALLOCATOR(ChainReasoningChainTermIndex);
 
-  ChainReasoningChainTermIndex(TermIndexingStructure* is, Ordering& ord)
-  : TermIndex(is), _ord(ord) {};
+  ChainReasoningChainTermIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
 
 protected:
   void handleClause(Clause* c, bool adding);
-private:
-  Ordering& _ord;
 };
 
+
+class InequalityResolutionUnitIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(InequalityResolutionUnitIndex);
+  USE_ALLOCATOR(InequalityResolutionUnitIndex);
+
+  InequalityResolutionUnitIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+class InequalityResolutionNonUnitIndex
+: public TermIndex
+{
+public:  
+  CLASS_NAME(InequalityResolutionNonUnitIndex);
+  USE_ALLOCATOR(InequalityResolutionNonUnitIndex);
+
+  InequalityResolutionNonUnitIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
 
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
@@ -319,22 +345,6 @@ public:
   SkolemisingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
   {}
   void insertFormula(TermList formula, TermList skolem);
-};
-
-class HeuristicInstantiationIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(HeuristicInstantiationIndex);
-  USE_ALLOCATOR(HeuristicInstantiationIndex);
-
-  HeuristicInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
-  {}
-protected:
-  void insertInstantiation(TermList sort, TermList instantiation);
-  void handleClause(Clause* c, bool adding);
-private:
-  Set<TermList> _insertedInstantiations;
 };
 
 class RenamingFormulaIndex

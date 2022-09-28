@@ -441,6 +441,9 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/IntermediateValue.cpp    
     Inferences/MultiClauseNatInduction.cpp
     Inferences/RapidArrayInduction.cpp
+    Inferences/BackwardInequalityResolution.cpp
+    Inferences/ForwardInequalityResolution.cpp  
+    Inferences/InequalityISE.cpp      
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
@@ -485,7 +488,10 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/PolynomialEvaluation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.cpp
-    Inferences/MultiClauseNatInduction.hpp 
+    Inferences/MultiClauseNatInduction.hpp
+    Inferences/BackwardInequalityResolution.hpp
+    Inferences/ForwardInequalityResolution.hpp   
+    Inferences/InequalityISE.hpp           
     Inferences/RapidArrayInduction.hpp       
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})

@@ -31,27 +31,6 @@
 
 namespace Kernel {
 
-
-bool RapidHelper::isIntegerComparisonLiteral(Literal* lit) {
-  CALL("RapidHelper::isIntegerComparisonLiteral");
-
-  if (!theory->isInterpretedPredicate(lit)) return false;
-  switch (theory->interpretPredicate(lit)) {
-    case Theory::INT_LESS:
-      // The only supported integer comparison predicate is INT_LESS.
-      break;
-    case Theory::INT_LESS_EQUAL:
-    case Theory::INT_GREATER_EQUAL:
-    case Theory::INT_GREATER:
-      // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
-      ASSERTION_VIOLATION;
-    default:
-      // Not an integer comparison.
-      return false;
-  }
-  return true;
-}
-
 bool RapidHelper::maybeDifferentBounds(Literal* l) {
   CALL("RapidHelper::maybeDifferentBounds");
 
@@ -71,27 +50,23 @@ bool RapidHelper::maybeDifferentBounds(Literal* l) {
 bool RapidHelper::mallocClause(Clause* c) {
   CALL("RapidHelper::mallocClause");
 
-  auto isMallocOrMallocPlusIntConst = [](TermList t, Term*& mallocTerm) {
+  auto isMalloc = [](TermList t){
     if(t.isVar()){ return false; }
-    Term* tt = t.term();
-    if(env.signature->getFunction(tt->functor())->malloc()){
-      mallocTerm = tt;
+    return env.signature->getFunction(t.term()->functor())->malloc();
+  };
+
+  auto isMallocOrMallocPlusIntConst = [&](TermList t, Term*& mallocTerm) {
+    if(isMalloc(t)){
+      mallocTerm = t.term();
       return true;
     }
 
     if(theory->isInterpretedFunction(t, Theory::INT_PLUS)){
-      TermList t1 = *tt->nthArgument(0);
-      TermList t2 = *tt->nthArgument(1);
-      IntegerConstantType a;
-      if ( theory->tryInterpretConstant(t1, a) && t2.isTerm() &&
-           env.signature->getFunction(t2.term()->functor())->malloc()) {
-        mallocTerm = t2.term();
-        return true;
-      }
-
-      if ( theory->tryInterpretConstant(t2, a) && t1.isTerm() &&
-           env.signature->getFunction(t1.term()->functor())->malloc()) {
-        mallocTerm = t1.term();
+      TermList t1 = *t.term()->nthArgument(0);
+      TermList t2 = *t.term()->nthArgument(1);
+      if ((number::tryNumeral(t1).isSome() && isMalloc(t2)) ||
+          (number::tryNumeral(t2).isSome() && isMalloc(t1) )) {
+        mallocTerm = isMalloc(t1) ? t1.term() : t2.term();
         return true;
       }
     }
@@ -316,26 +291,15 @@ bool RapidHelper::isSuitableForInduction(Literal* lit, vstring& tpName)
     return false;
   };
   
-  if(isIntegerComparisonLiteral(lit)){
+  if(number::isLess(lit).isSome()){
     TermList arg1 = *lit->nthArgument(0);
     TermList arg2 = *lit->nthArgument(1);
 
-    IntegerConstantType a;
-    if ( theory->tryInterpretConstant(arg1, a)) {
-      if(isProgramVarAtSkolem(arg2)){
+    if ((number::tryNumeral(arg1).isSome() && isProgramVarAtSkolem(arg2)) || 
+        (number::tryNumeral(arg2).isSome() && isProgramVarAtSkolem(arg1)) ||
+        (isProgramVarAtSkolem(arg1)        && isProgramVarAtSkolem(arg2))) {
         return true;
-      }
-    }
-
-    if ( theory->tryInterpretConstant(arg2, a)) {
-      if(isProgramVarAtSkolem(arg1)){
-        return true;
-      }
-    }
-
-    if (isProgramVarAtSkolem(arg1) && isProgramVarAtSkolem(arg2)) {
-      return true;
-    }    
+    }  
   }
   return false;
 }
@@ -344,16 +308,16 @@ bool RapidHelper::isRightLimitLiteral(Literal* l) {
   CALL("RapidHelper::isLimitLiteral");
 
   //only interested in <
-  if(!isIntegerComparisonLiteral(l) || !l->polarity()){
+  auto res = number::isLess(l);
+  if(!res.isSome() || !l->polarity()){
     return false;
   }
 
-  TermList rhs = *l->nthArgument(1);
-  if(rhs.isVar()){
+  if(res.unwrap().second.isVar()){
     return false;
   }
 
-  Term* t = rhs.term();
+  Term* t = res.unwrap().second.term();
   if(t->arity() != 1){
     return false;
   }
@@ -790,14 +754,74 @@ bool RapidHelper::increasing(Literal* lit, TermList term) {
 bool RapidHelper::isZeroLessThanLit(Literal* lit) {
   CALL("RapidHelper::isZeroLessThanLit");
 
-  if(isIntegerComparisonLiteral(lit) && lit->isPositive()){
-    TermList arg1 = *lit->nthArgument(0);
-    if(theory->isZero(arg1)){
-      return true;
-    }
+  if(number::isLess(lit).isSome() && lit->isPositive() &&
+     number::isZero(*lit->nthArgument(0))){
+    return true;
   }
   return false;
 }
+
+Option<TermList> RapidHelper::isIntComparisonLit(Literal* lit) {
+  CALL("RapidHelper::isIntComparisonLit");
+  
+  auto res = number::isLess(lit);
+  if(res.isSome()){
+    if(number::tryNumeral(res.unwrap().first).isSome()){
+      return Option<TermList>(res.unwrap().second);
+    } else if(number::tryNumeral(res.unwrap().second).isSome()) {
+      return Option<TermList>(res.unwrap().first);
+    }
+  }
+  return Option<TermList>();
+}
+
+bool RapidHelper::resolveInequalities(Literal* lit1, Literal* lit2) {
+  CALL("RapidHelper::resolveInequalities");
+  ASS(isIntComparisonLit(lit1).isSome() && isIntComparisonLit(lit2).isSome());
+
+  auto getPos = [](Literal* lit, TermList t){
+    return (*lit->nthArgument(0) == t) ? 0 : 1;
+  };
+  
+  bool pol1 = lit1->polarity();
+  bool pol2 = lit2->polarity();
+
+  TermList t1 = isIntComparisonLit(lit1).unwrap();
+  TermList t2 = isIntComparisonLit(lit2).unwrap();
+  // add asssertion that either t1 is an instance of t2 or vice versa
+  unsigned pos1 = getPos(lit1, t1);
+  unsigned pos2 = getPos(lit2, t2);
+
+  int num1 = number::tryNumeral(*lit1->nthArgument(1 - pos1)).unwrap().toInner();
+  int num2 = number::tryNumeral(*lit2->nthArgument(1 - pos2)).unwrap().toInner();
+
+  if(pol1 != pol2){
+    if(!pol1){
+      // either ~(t < m) or ~(m < t)
+      num1 = pos1 ? num1 + 1 : num1 - 1; 
+      pos1 = !pos1; // swap t and m
+      pol1 = !pol1; // swap polarity
+    } else {
+      ASS(!pol2);
+      num2 = pos2 ? num2 + 1 : num2 - 1; 
+      pos2 = !pos2; // swap t and m  
+      pol2 = !pol2; // swap polarity          
+    }
+  }
+  ASS(pol1 == pol2);
+  
+  if(pos1 == pos2){
+    // this case, we have:
+    // (t1 < n) and (t2 < m)
+    // and can't resolve
+    return false;
+  }
+  if(!pol1) // ~(m < t)  and ~(t < n)
+    return pos1 ? num2 > num1 : num1 > num2;
+
+  return pos1 ? num1 > num2 - 1 : num2 > num1 - 1;
+}
+
 
 bool RapidHelper::forceOrder(TermList t1, TermList t2)
 {
@@ -865,7 +889,7 @@ bool RapidHelper::isLeftLimitLiteral(Literal* l) {
   CALL("RapidHelper::isLimitLiteral");
 
   //only interested in >=
-  if(!isIntegerComparisonLiteral(l) || l->polarity()){
+  if(!number::isLess(l).isSome() || l->polarity()){
     return false;
   }
 
