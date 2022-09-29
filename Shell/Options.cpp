@@ -1208,7 +1208,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                      UnificationWithAbstraction::OFF,
-                                     {"off","interpreted_only","one_side_interpreted"});
+                                     {"off","interpreted_only","one_side_interpreted","one_side_nl"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1216,9 +1216,8 @@ void Options::init()
       "- off: do not introduce a constraint\n"
       "- interpreted_only: only if s and t have interpreted top symbols\n"
       "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
+      "- one_side_nl: only if one of s or t have an in top symbol and the other is a final loop counter symbol\n"
       "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
-      "- all: always apply\n"
-      "- ground: only if both s and t are ground\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstraction);

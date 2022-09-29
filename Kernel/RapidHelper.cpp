@@ -822,6 +822,54 @@ bool RapidHelper::resolveInequalities(Literal* lit1, Literal* lit2) {
   return pos1 ? num1 > num2 - 1 : num2 > num1 - 1;
 }
 
+tuple<TermList, int> RapidHelper::decompose(TermList t)
+{
+  CALL("RapidHelper::decompose");
+
+  int num;
+  TermList tt;
+
+  if(theory->isInterpretedFunction(t, Theory::INT_PLUS)) {
+    Term* trm = t.term();
+    TermList operand1 = *trm->nthArgument(0);
+    TermList operand2 = *trm->nthArgument(1);
+
+    auto numeral1 = number::tryNumeral(operand1);
+    auto numeral2 = number::tryNumeral(operand2);
+
+    // can't have 2 + 5, as evaluation should have simplified this
+    ASS(!numeral1.isSome() || !numeral2.isSome());
+
+    if(!numeral1.isSome() && !numeral2.isSome()){
+      // TODO unary minus? $sum(nl15, $uminus(5))
+      num = 0;
+      tt = t;
+    } else {
+      num = numeral1.isSome() ? numeral1.unwrap().toInner() : numeral2.unwrap().toInner();
+      tt =  numeral1.isSome() ? operand2                    : operand1;
+    }
+  } else if(theory->isInterpretedFunction(t, Theory::INT_MINUS)) {
+    Term* trm = t.term();
+    TermList operand1 = *trm->nthArgument(0);
+    TermList operand2 = *trm->nthArgument(1);
+
+    auto numeral = number::tryNumeral(operand2);
+
+    if(!numeral.isSome()){
+      num = 0;
+      tt = t;
+    } else {
+      num = -1 * numeral.unwrap().toInner();
+      tt = operand1;
+    } 
+  } else {
+    num = 0;
+    tt = t;
+  }
+
+  return make_tuple(tt,num);
+}
+
 
 bool RapidHelper::forceOrder(TermList t1, TermList t2)
 {

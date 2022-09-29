@@ -27,12 +27,30 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 
+using number = NumTraits<IntegerConstantType>;
+
+MaybeBool InequalityISE::greaterEqual(TermList t1, TermList t2)
+{
+  CALL("InequalityISE::greaterEqual");
+
+  auto [tt1, num1] = RapidHelper::decompose(t1);
+  auto [tt2, num2] = RapidHelper::decompose(t2);
+
+  // could replace syntactic equality with
+  // with matchability, but code becomes a lot more bothersome...
+  if(tt1 == tt2 && num1 >= num2)
+    return true;
+
+  if(tt1 == tt2 && num1 < num2)
+    return false;
+    
+  return MaybeBool::UNKNOWN;
+}
+
 
 Clause* InequalityISE::simplify(Clause* c)
 {
   CALL("InequalityISE::simplify");
-
-  using number = NumTraits<IntegerConstantType>;
 
   auto getPos = [](Literal* lit, TermList t){
     return (*lit->nthArgument(0) == t) ? 0 : 1;
@@ -48,18 +66,20 @@ Clause* InequalityISE::simplify(Clause* c)
     if(res.isSome()){
       TermList t1 = res.unwrap().first;
       TermList t2 = res.unwrap().second;
-      if(t1 == t2){ 
-        // could replace syntactic equality with
-        // with matchability, but code becomes a lot more bothersome...
+      auto geq = greaterEqual(t1, t2);
 
-        if(lit->polarity()){
-          // $less(t1, t1), which is false. can remove literal
-          posOfLitToRemove = i;
-          goto after_loop;
-        }
-        // ~$less(t1, t1), which is true. can remove cause
+      if((geq.isTrue()  &&  lit->polarity()) || 
+         (geq.isFalse() && !lit->polarity())){
+        // $less(t1, t2), which is false. can remove literal
+        posOfLitToRemove = i;
+        goto after_loop;
+      }
+
+      if((geq.isTrue()  && !lit->polarity()) ||
+         (geq.isFalse() &&  lit->polarity())  ){
+        // ~$less(t1, t2), which is true. can remove cause
         return 0;
-      }  
+      }
 
 
       auto res2 = RapidHelper::isIntComparisonLit(lit);
@@ -92,19 +112,7 @@ Clause* InequalityISE::simplify(Clause* c)
           if(!pol2){
             num2 = pos2 ? num2 + 1 : num2 - 1; 
             pos2 = !pos2; // swap t and m  
-          }          
-
-          /*if(pos1 == pos2 && pos1 == 0){
-            // t < num1 | t < num2
-            posOfLitToRemove = num1 <= num2 ? std::get<2>(tup) : i;   
-            goto after_loop;
-          }
-
-          if(pos1 == pos2 && pos1 == 1){
-            // num1 < t  | num2 < t
-            posOfLitToRemove = num1 <= num2 ? i : std::get<2>(tup);   
-            goto after_loop;
-          } */         
+          }        
 
           // num1 < t | t < num2
           // t < num1 | num2 < t

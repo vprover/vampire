@@ -129,6 +129,9 @@ public:
     return env.signature->getFunction(t.term()->functor())->objArray();
   };
 
+  // attempts to decompose t into term +- num if possible
+  static tuple<TermList, int> decompose(TermList t);  
+
 
 private:
 

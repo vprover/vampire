@@ -38,9 +38,12 @@ bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2)
   switch(opt){
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
       return isConstraintTerm(t1).isTrue() || isConstraintTerm(t2).isTrue();
-    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:{
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
       return isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
-    }
+    case Shell::Options::UnificationWithAbstraction::ONE_SIDE_NL:
+      return (isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).maybe()) ||
+             (isConstraintTerm(t2).isTrue() && isConstraintTerm(t1).maybe()) ||
+             (isConstraintTerm(t2).isTrue() && isConstraintTerm(t1).isTrue());
     default:
       // handler should never be called if UWA is off
       ASSERTION_VIOLATION;
@@ -65,7 +68,6 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
   if(t.isVar()){ return false; }
 
   static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-  bool onlyInterpreted = opt == Shell::Options::UnificationWithAbstraction::INTERP_ONLY;
 
   auto trm = t.term();
   bool isNumeral = Shell::UnificationWithAbstractionConfig::isNumeral(t);
@@ -74,12 +76,25 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
     return true;    
   }
 
-  TermList sort = SortHelper::getResultSort(t.term()); 
-  if(!onlyInterpreted && (sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort())){
-    return MaybeBool::UNKNOWN;
-  }  
-
-  return false;
+  TermList sort = SortHelper::getResultSort(trm); 
+  switch(opt){
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+      if(sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort()){
+        return MaybeBool::UNKNOWN;
+      }
+      return false;      
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
+      return false;
+    case Shell::Options::UnificationWithAbstraction::ONE_SIDE_NL:
+      if(env.signature->getFunction(trm->functor())->finalLoopCount()){
+        return MaybeBool::UNKNOWN;        
+      }
+      return false;
+    default:
+      // handler should never be called if UWA is off
+      ASSERTION_VIOLATION;
+      return false;
+  }
 }
 
 void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 

@@ -20,6 +20,8 @@
 #include "InferenceEngine.hpp"
 #include "Kernel/TermTransformer.hpp"
 
+#include "Lib/MaybeBool.hpp"
+
 namespace Inferences {
 
 class InequalityISE
@@ -28,6 +30,12 @@ class InequalityISE
 public:
   CLASS_NAME(InequalityISE);
   USE_ALLOCATOR(InequalityISE);
+
+  // returns true if function can deduce t1 >= t2
+  // returns false if function can deduce t1 < t2
+  // returns maybe otherwise
+  // t1 and t2 must both be of sort $int
+  MaybeBool greaterEqual(TermList t1, TermList t2);
 
   Clause* simplify(Clause* cl);
 };

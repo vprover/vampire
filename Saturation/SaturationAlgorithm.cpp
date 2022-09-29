@@ -1868,6 +1868,9 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(&(new Cancellation(ordering))->asISE()); 
     }
 
+    // TODO add an option?
+    res->addFront(new InequalityISE());
+
     switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::SIMPLE: 
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
@@ -1882,9 +1885,6 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     if (env.options->pushUnaryMinus()) {
       res->addFront(new PushUnaryMinus()); 
     }
-
-    // TODO add an option?
-    res->addFront(new InequalityISE());
   }
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());

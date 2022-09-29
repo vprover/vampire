@@ -219,7 +219,8 @@ public:
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
     INTERP_ONLY,
-    ONE_INTERP//,
+    ONE_INTERP,
+    ONE_SIDE_NL
     //CONSTANT,
     //ALL,
     //GROUND
