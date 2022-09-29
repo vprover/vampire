@@ -404,6 +404,7 @@ protected:
         out << _is->getUnitIdStr(prem);
         first=false;
       }
+      out << "]" << endl;
     }
   }
 
