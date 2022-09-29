@@ -918,6 +918,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "backward inequality resolution";    
   case InferenceRule::INEQUALITY_SIMP:
     return "inequality simplification";
+  case InferenceRule::EQ_TO_INEQ:
+    return "equality to inequality";
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
   case InferenceRule::INSTANCE_GENERATION:

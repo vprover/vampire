@@ -97,6 +97,7 @@
 #include "Inferences/BackwardInequalityResolution.hpp"
 #include "Inferences/ForwardInequalityResolution.hpp"
 #include "Inferences/InequalityISE.hpp"
+#include "Inferences/EqualityToInequality.hpp"
 #include "Inferences/RapidArrayInduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -1650,6 +1651,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new InjectivityGIE());
     }
   }
+
+  // TODO add option
+  gie->addFront(new EqualityToInequality());
 
   CompositeSGI* sgi = new CompositeSGI();
   sgi->push(gie);
