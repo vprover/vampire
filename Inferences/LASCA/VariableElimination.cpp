@@ -102,12 +102,18 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
       }
     }
   }
+  auto out = Option<AnyFoundVariable>();
+
   for (auto v : vars) {
     if (!shielded.contains(v)) {
-      return Option<AnyFoundVariable>(std::move(unshielded.get(v)));
+      auto& var = unshielded.get(v);
+      if (out.isNone() 
+          || (!isOneSideBounded(out.unwrap()) && isOneSideBounded(var))) {
+        out = Option<AnyFoundVariable>(std::move(var));
+      }
     }
   }
-  return Option<AnyFoundVariable>();
+  return out;
 }
 
 SimplifyingGeneratingInference::ClauseGenerationResult VariableElimination::generateSimplify(Clause* premise) 

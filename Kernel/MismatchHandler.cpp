@@ -93,7 +93,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
       case Shell::Options::UnificationWithAbstraction::LASCA2:  {
         return (ircAbsractCoarse(t1) || ircAbsractCoarse(t2)) 
-          && !LascaState::globalState->equivalent(t1.term(), t2.term());
+          && !LascaState::globalState->equivalent(t1, t2);
       }
 
       case Shell::Options::UnificationWithAbstraction::LASCA3:  {

@@ -73,7 +73,13 @@ public:
     Stack<FoundVarInLiteral<NumTraits>> negIneq;
     Stack<FoundVarInLiteral<NumTraits>> eq;
     Stack<FoundVarInLiteral<NumTraits>> neq;
+
+    bool isOneSideBounded() const
+    {
+      return (this->posIneq.size() != 0 && this->negIneq.size() == 0 && this->eq.size() == 0 && this->neq.size() == 0)
+          || (this->posIneq.size() == 0 && this->negIneq.size() != 0 && this->eq.size() == 0 && this->neq.size() == 0); }
   };
+
 
   using AnyFoundVariable = Coproduct< FoundVariable< IntTraits> 
                                     , FoundVariable< RatTraits> 
@@ -93,6 +99,9 @@ public:
 #endif
 
 private:
+
+  static auto isOneSideBounded(AnyFoundVariable const& v)
+  { return v.apply([](auto& v) { return v.isOneSideBounded(); }); }
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 

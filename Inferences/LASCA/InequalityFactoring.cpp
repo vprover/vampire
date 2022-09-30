@@ -17,7 +17,7 @@
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 #define FACTOR_NEGATIVE 0
 
 namespace Inferences {

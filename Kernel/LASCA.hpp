@@ -638,6 +638,25 @@ namespace Kernel {
       return globalState;
     }
 
+    bool equivalent(TermList lhs, TermList rhs) 
+    { 
+      if (lhs.isVar() && rhs.isVar()) {
+        return lhs == rhs;
+      } 
+      TermList sort;
+      if (lhs.isTerm() && rhs.isTerm()) {
+        auto s1 = SortHelper::getResultSort(lhs.term());
+        auto s2 = SortHelper::getResultSort(rhs.term());
+
+        if (s1 != s2) return false;
+        else sort = s1;
+      } else {
+        sort = lhs.isTerm() ? SortHelper::getResultSort(lhs.term()) 
+                            : SortHelper::getResultSort(rhs.term());
+      }
+      return equivalent(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
+    }
+
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
      { return normalize(lhs) == normalize(rhs); }
 
