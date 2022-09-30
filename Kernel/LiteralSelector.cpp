@@ -66,7 +66,7 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
   Signature::Symbol* psym=env.signature->getPredicate(l->functor());
   if(psym->label() || psym->answerPredicate() 
 #if VHOL
-    || (env.property->higerOrder() && l->isFlexFlex())  // don't select flex-flex literals
+    || (env.property->higherOrder() && l->isFlexFlex())  // don't select flex-flex literals
 #endif
     ) {
     return -2;

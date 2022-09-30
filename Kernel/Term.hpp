@@ -38,6 +38,7 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Hash.hpp"
+#include "Lib/Option.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
 #if VHOL

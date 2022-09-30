@@ -76,6 +76,28 @@ struct ImitateProject::ResultFn
     return res;    
   }
 
+  void addProofExtraString(Clause* c, Literal* lit, TermList headFlex, TermList pb, int pos = -1)
+  {
+    CALL("ImitateProject::ResultFn::addProofExtraString");
+
+    bool projecting = pos > -1;
+
+    vstring litPosition = Lib::Int::toString(_cl->getLiteralPosition(lit));
+
+    vstring suffix = pos == 1 ? "st" : (pos == 2 ? "nd" : (pos == 3 ? "nd" : "th"));
+    vstring projArgString = projecting ? ", projecting the " + Int::toString(pos) + suffix + " argument" : "";
+
+    vstring extra = "at literal " + litPosition + projArgString + ", binding: [" 
+     + headFlex.toString() + " -> " + pb.toString() + "]";
+
+    if (!env.proofExtra) {
+      env.proofExtra = new DHMap<const Unit*,vstring>();
+    }
+    env.proofExtra->insert(c,extra);
+    
+  }
+
+
   ResultFn(Clause* cl)
       : _cl(cl), _cLen(cl->length()), _maxVar(cl->maxVar()) {}
   ClauseIterator operator() (Literal* lit)
@@ -133,7 +155,13 @@ struct ImitateProject::ResultFn
       TermList pb = AH::createGeneralBinding(fVar,headRigid,argsFlex,sortsFlex,deBruijnIndices);
 
       _subst.bind(headFlex.var(), pb);
-      results.push(createRes(InferenceRule::IMITATE));
+      Clause* res = createRes(InferenceRule::IMITATE);
+
+      if(env.options->proofExtra()==Options::ProofExtra::FULL){
+        addProofExtraString(res, lit, headFlex, pb);
+      }
+
+      results.push(res);
     }
 
     // projections
@@ -152,7 +180,13 @@ struct ImitateProject::ResultFn
       TermList pb = AH::createGeneralBinding(fVar,deBruijnIndices[i],argsFlex,sortsFlex,deBruijnIndices);
 
       _subst.bind(headFlex.var(), pb);
-      results.push(createRes(InferenceRule::PROJECT));
+      Clause* res = createRes(InferenceRule::PROJECT);     
+
+      if(env.options->proofExtra()==Options::ProofExtra::FULL){
+        addProofExtraString(res, lit, headFlex, pb, (int)(argsFlex.size() - i));
+      }
+
+      results.push(res);
     }
   
 
