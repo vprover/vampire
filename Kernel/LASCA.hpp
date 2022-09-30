@@ -50,7 +50,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/OrderingUtils.hpp"
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 
 
@@ -298,7 +298,8 @@ namespace Kernel {
         .map([&](auto c){
           auto toTerm = [&](pair<TermList, unsigned> & constraintPair) -> TermList
                         { return applySubst(sigma, constraintPair.first, constraintPair.second); };
-          auto sort = SortHelper::getResultSort(c.first.first.term());
+         auto sort = c.first.first.isTerm() ? SortHelper::getResultSort(c.first.first.term())
+                                            : SortHelper::getResultSort(c.second.first.term());
           // lσ != rσ
           return Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort);
         });

@@ -49,10 +49,10 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 {
   CALL("UWAMismatchHandler::checkUWA");
 
-    if(!(t1.isTerm() && t2.isTerm())) return false;
+    // if(!(t1.isTerm() && t2.isTerm())) return false;
 
-    bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
-    bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
+    bool t1Interp = t1.isTerm() && Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
+    bool t2Interp = t2.isTerm() && Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
     bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
 
     auto ircAbsractCoarse = [&](auto t) { 

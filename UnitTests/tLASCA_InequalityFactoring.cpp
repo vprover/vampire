@@ -150,6 +150,24 @@ TEST_GENERATION(uwa1,
       ))
     )
 
+TEST_GENERATION(uwa2,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected(  f(2 * x) > 0)  , selected(f(x + 1) > 0)  }) })
+      .expected(exactly(
+            clause({  f(2 * x) > 0, num(0) > 0, 2 * x != x + 1  })
+          , clause({  f(x + 1) > 0, num(0) > 0, 2 * x != x + 1  })
+      ))
+    )
+
+TEST_GENERATION(uwa3,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected(  f(2 * x) > 0)  , selected(f(x) > 0)  }) })
+      .expected(exactly(
+            clause({  f(2 * x) > 0, num(0) > 0, 2 * x != x  })
+          , clause({  f(    x) > 0, num(0) > 0, 2 * x != x  })
+      ))
+    )
+
 TEST_GENERATION(misc1,
     Generation::SymmetricTest()
       .inputs  ({  clause({ selected( f(x) + f(y) > 0 )  , selected( f(y) + f(x) > 0 )  }) })
@@ -298,6 +316,7 @@ TEST_GENERATION(check_symbols_07,
         // we don't use this rule for equality
       ))
     )
+
 TEST_GENERATION(check_symbols_08,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( f(x) + a != 0 ), selected(f(x) + b != 0)   }) })

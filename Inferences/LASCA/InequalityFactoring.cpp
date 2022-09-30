@@ -17,7 +17,8 @@
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) DBG(__VA_ARGS__)
+#define FACTOR_NEGATIVE 0
 
 namespace Inferences {
 namespace LASCA {
@@ -81,8 +82,13 @@ Option<Clause*> InequalityFactoring::applyRule(
   // applicability checks
   //////////////////////////////////////////////////////
 
+#if FACTOR_NEGATIVE
+  CHECK_CONDITION("sign(j) == sign(k)", j.sign() == k.sign())
+  ASS(j.sign() != Sign::Zero)
+#else 
   ASS(j.isPositive())
   ASS(k.isPositive())
+#endif
 
   auto s1_sigma = sigma(s1);
   Stack<TermList> t1_sigma;
@@ -183,7 +189,11 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
           .filter([](auto& s) { return s.isInequality(); })
+#if FACTOR_NEGATIVE
+          .filter([](auto& s) { return s.sign() != Sign::Zero; })
+#else 
           .filter([](auto& s) { return s.sign() == Sign::Pos; })
+#endif
           .template collect<Stack>());
 
   auto rest = make_shared(
@@ -192,7 +202,11 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
                     /* summand */ SelectionCriterion::NOT_LEQ,
                     /* include number vars */ false)
         .filter([](auto& s) { return s.isInequality(); })
+#if FACTOR_NEGATIVE
+        .filter([](auto& s) { return s.sign() != Sign::Zero; })
+#else 
         .filter([](auto& s) { return s.sign() == Sign::Pos; })
+#endif
         .template collect<Stack>());
 
   auto selIdx = make_shared(Set<pair<unsigned, unsigned>>());

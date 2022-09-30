@@ -325,6 +325,8 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   EncStore encountered;
   encountered.reset();
 
+  static bool higherOrder = env.property->higherOrder();
+  if (higherOrder) throw new Exception("this branch is not yet compatible with higher order reasoning");
   // Iteratively resolve unification pairs in toDo
   // the current pair is always in t1 and t2 with their dereferenced
   // version in dt1 and dt2
@@ -334,27 +336,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
     if(dt1.sameTermContent(dt2)) {
+    // } else if () {
+    //   /* we introduced a constraint */
     } else if(dt1.isVSpecialVar() && dt2.isVSpecialVar()){
       ASS(hndlr);
       addToConstraints(getVarSpec(dt1), getVarSpec(dt2), hndlr);
-    } 
-    // Deal with the case where eithe rare variables
-    // Do an occurs-check and note that the variable 
-    // cannot be currently bound as we already dereferenced
-    else if(dt1.isVar() && !dt1.isVSpecialVar()) {
-      VarSpec v1=getVarSpec(dt1);
-      if(occurs(v1, dt2)) {
-        mismatch=true;
-        break;
-      }
-      bind(v1,dt2);
-    } else if(dt2.isVar() && !dt2.isVSpecialVar()) {
-      VarSpec v2=getVarSpec(dt2);
-      if(occurs(v2, dt1)) {
-        mismatch=true;
-        break;
-      }
-      bind(v2,dt1);
     } else if(dt1.isVSpecialVar()){
       Term* t = _funcSubtermMap->get(dt1.term.var());
       t1 = TermSpec(TermList(t), dt1.index);
@@ -363,72 +349,33 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       Term* t = _funcSubtermMap->get(dt2.term.var());
       t2 = TermSpec(TermList(t), dt2.index);
       toDo.push(TTPair(dt1, t2));
-    } else {
-    // Case where both are terms
-      // TermList* ss=&dt1.term;
-      // TermList* tt=&dt2.term;
+    // Deal with the case where eithe rare variables
+    // Do an occurs-check and note that the variable 
+    // cannot be currently bound as we already dereferenced
+    } else if(dt1.isVar() && !occurs(getVarSpec(dt1), dt2)) {
+      bind(getVarSpec(dt1), dt2);
 
-      static Stack<pair<TermList*,TermList*>> subterms(64);
-      ASS(subterms.isEmpty());
+    } else if(dt2.isVar() && !occurs(getVarSpec(dt2), dt1)) {
+      bind(getVarSpec(dt2), dt1);
 
-      TermList ss_[] { TermList::empty(), dt1.term, };
-      TermList tt_[] { TermList::empty(), dt2.term, };
-      ASS(ss_[1].next()->isEmpty())
-      ASS(tt_[1].next()->isEmpty())
-      subterms.push(make_pair(&ss_[1], &tt_[1]));
-      // Generate todo unification pairs by traversing subterms
-      // until those subterms either definitely don't unify (report mismatch)
-      // or until we need to unify them to check 
-      while(!subterms.isEmpty()) {
-        auto next = subterms.pop();
-        auto ss = next.first;
-        auto tt = next.second;
-        auto tsss = TermSpec(*ss, dt1.index);
-        auto tstt = TermSpec(*tt, dt2.index);
-        if (!next.first->next()->isEmpty()) {
-          ASS(!next.second->next()->isEmpty())
-          subterms.push(make_pair(next.first->next(), next.second->next()));
-        }
+    } else if (hndlr && hndlr->handle(this, dt1.term, dt1.index, dt2.term, dt2.index)) {
+      /* handler introduced a constraint */
 
-
-        //TODO this is currently hard-coded to happen whenever hndlr is set (e.g. some uwa option is being used), shoudld it be behind an option? 
-        // if both terms are interpreted then call the mismatch handlr
-        if(hndlr && ss->isTerm() && tt->isTerm() && theory->isInterpretedFunction(*ss) && theory->isInterpretedFunction(*tt) && hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
-          /* do nothing; the hander introduced a constraint */
-        } else if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(tsss.term,tstt.term)) {
-        // If they don't have the same content but have the same top functor
-        // then we need to get their subterm arguments and check those
-          subterms.push(make_pair(ss->term()->args(), tt->term()->args()));
-
-        } else {
-          // If they do have the same top functor then their content is the same and
-          // we can ignore. Otherwise, if one is a variable we create a unification 
-          // pair and if neither are variables we consult the mismatch handler
-          if (! TermList::sameTopFunctor(*ss,*tt)) {
-            if(ss->isVar()||tt->isVar()) {
-              TTPair itm(tsss,tstt);
-              if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
-                 (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
-                toDo.push(itm);
-              } else if(!encountered.find(itm)) {
-                toDo.push(itm);
-                encountered.insert(itm);
-              }
-            } else {
-              // Eventually, we want to make theories using the hashing/very special variable
-              // mechanism used by higher-order logic to pruduce constraints.
-              // until then the first condition ensures that the handler is never called
-              // incorrectly. HOL also uses a handler, but it shouldn't be called here.
-              if(env.property->higherOrder() || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
-                mismatch=true;
-                subterms.reset();
-                break;
-              }
-            }
-          }
-        }
+    } else if (dt1.term.isTerm() && dt2.term.isTerm() 
+        && TermList::sameTopFunctor(dt1.term,dt2.term)) {
+      auto a1 = dt1.term.term()->args();
+      auto a2 = dt2.term.term()->args();
+      while (a1->isNonEmpty()) {
+        ASS(a2->isNonEmpty())
+        toDo.push(TTPair(
+              TermSpec(*a1, dt1.index), 
+              TermSpec(*a2, dt2.index)));
+        a1 = a1->next();
+        a2 = a2->next();
       }
-      ASS(subterms.isEmpty())
+    } else {
+      mismatch=true;
+      break;
     }
 
     if(toDo.isEmpty() || mismatch) {
