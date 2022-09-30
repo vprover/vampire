@@ -95,8 +95,12 @@ TermList EtaNormaliser::transformSubterm(TermList t)
   unsigned k = std::min(l, std::min(n, j));
 
   if(!k){
-    _ignoring = true;
-    _awaiting = newBody;
+    // only start awaiting if we are going to explore the 
+    // subterm ...
+    if(!newBody.isVar() && newBody.term()->hasLambda()){
+      _ignoring = true;
+      _awaiting = newBody;
+    }
     return t;
   }
 
@@ -115,8 +119,10 @@ TermList EtaNormaliser::transformSubterm(TermList t)
     return newBody;
   }
 
-  _ignoring = true;
-  _awaiting = newBody;
+  if(!newBody.isVar() && newBody.term()->hasLambda()){
+    _ignoring = true;
+    _awaiting = newBody;
+  }
 
   return SubtermReplacer(body, newBody).transform(t);
 }
