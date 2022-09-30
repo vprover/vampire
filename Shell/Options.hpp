@@ -379,7 +379,7 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
-if VHOL        
+#if VHOL        
     CASC_HOL,
 #endif
     CASC_SAT,
@@ -406,7 +406,7 @@ if VHOL
     CASC_2019,
     CASC_SAT,
     CASC_SAT_2019,
-if VHOL    
+#if VHOL    
     CASC_HOL_2020,
 #endif
     FILE,
