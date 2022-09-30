@@ -717,6 +717,7 @@ int main(int argc, char* argv[])
       }
       break;
 
+#if VHOL
     case Options::Mode::CASC_HOL: {
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
@@ -733,6 +734,8 @@ int main(int argc, char* argv[])
       }
       break;
     }
+#endif
+
     case Options::Mode::CASC_SAT:
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
       env.options->setSchedule(Options::Schedule::CASC_SAT);

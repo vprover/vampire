@@ -379,7 +379,9 @@ public:
   enum class Mode : unsigned int {
     AXIOM_SELECTION,
     CASC,
+if VHOL        
     CASC_HOL,
+#endif
     CASC_SAT,
     CASC_LTB,
     CLAUSIFY,
@@ -404,7 +406,9 @@ public:
     CASC_2019,
     CASC_SAT,
     CASC_SAT_2019,
+if VHOL    
     CASC_HOL_2020,
+#endif
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,

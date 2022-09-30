@@ -102,7 +102,9 @@ void Options::init()
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
+#if VHOL                                        
                                         "casc_hol",
+#endif
                                         "casc_sat",
                                         "casc_ltb",
                                         "clausify",
@@ -148,7 +150,9 @@ void Options::init()
          "casc_2019",
          "casc_sat",
          "casc_sat_2019",
+#if VHOL                                             
          "casc_hol_2020",
+#endif         
          "file",
          "induction",
          "integer_induction",

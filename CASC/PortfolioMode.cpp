@@ -382,9 +382,11 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
 
+#if VHOL
   case Options::Schedule::CASC_HOL_2020:
     Schedules::getHigherOrderSchedule2020(quick,fallback);
     break;
+#endif
 
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:

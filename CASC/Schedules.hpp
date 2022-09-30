@@ -27,7 +27,10 @@ class Schedules
 public:
   static void getScheduleFromFile(const vstring& filename, Schedule& quick);
 
+#if VHOL
+  //TODO update schedule with new options
   static void getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback);
+#endif
   static void getCasc2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getCascSat2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
