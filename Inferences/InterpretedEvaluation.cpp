@@ -80,7 +80,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   try { 
 
 
-    TimeCounter tc(TC_INTERPRETED_EVALUATION);
+    TIME_TRACE("interpreted evaluation");
 
     /* do not evaluate theory axioms (both internal and external theory axioms)
      * Note: We want to skip the evaluation of internal theory axioms, because we already assume that

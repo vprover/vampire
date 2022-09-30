@@ -30,21 +30,6 @@ static const unsigned FNV32_OFFSET_BASIS = 2166136261;
 
 namespace Lib {
 
-// C++17: has_unique_object_representation
-template<typename T, typename=void> struct is_safely_hashable {
-  static constexpr bool value = false;
-};
-// fundamental types are safely hashable (?)
-template<typename T>
-struct is_safely_hashable<T, typename std::enable_if<std::is_fundamental<T>::value>::type> {
-  static constexpr bool value = true;
-};
-// enumerations are safely hashable (?)
-template<typename T>
-struct is_safely_hashable<T, typename std::enable_if<std::is_enum<T>::value>::type> {
-  static constexpr bool value = true;
-};
-
 struct HashUtils
 {
   /**
@@ -90,10 +75,6 @@ struct StlHash {
   { return std::hash<T>{}(self); }
 };
 
-template<class T>
-size_t stlHash(const T& self)
-{ return std::hash<T>{}(self); }
-
 // dereference a pointer and apply InnerHash
 template<class InnerHash>
 struct DerefPtrHash {
@@ -111,13 +92,12 @@ template<class ElementHash>
 struct StackHash {
   // TODO equals()?
   template<typename T>
-  static unsigned hash(const Stack<T>& s) {
-    unsigned res = FNV32_OFFSET_BASIS;
+  static unsigned hash(const Stack<T>& s, unsigned hash = FNV32_OFFSET_BASIS) {
     typename Stack<T>::ConstIterator it(s);
     while(it.hasNext()) {
-      res = HashUtils::combine(res, ElementHash::hash(it.next()));
+      hash = HashUtils::combine(hash, ElementHash::hash(it.next()));
     }
-    return res;
+    return hash;
   }
 };
 
@@ -141,67 +121,105 @@ struct VectorHash {
  * Therefore it assumes (incorrectly) that `unsigned` is always 32 bits in size
  * Nothing terrible will happen, but it's not going to win any hashing competitions
  */
-class Hash
+class DefaultHash
 {
 public:
-
-  /** Return true if the two objects coincide. */
+  // dispatch to operator==(const T&, const T&)
   template<typename T>
-  static bool equals(T o1, T o2)
+  static bool equals(const T &o1, const T &o2)
   { return o1 == o2; }
+
+  // if T has a unsigned defaultHash() method, invoke that
+  template<typename T>
+  static typename std::enable_if<
+    std::is_same<
+      //C++17: repace with std::invoke_result
+      typename std::result_of<decltype(&T::defaultHash)(T)>::type,
+      unsigned
+    >::value,
+    unsigned
+  >::type hash(const T &ref) {
+    return ref.defaultHash();
+  }
 
   // special-case for Units (and their descendants) as they have a unique incrementing identifier  
   template<typename T>
-  static unsigned hash(typename std::enable_if<std::is_base_of<Kernel::Unit, T>::value,T>::type *unit) 
-  { return unit ? unit->number() : 0; }
+  static typename std::enable_if<
+    std::is_base_of<Kernel::Unit, T>::value,
+    unsigned
+  >::type hash(T *unit) 
+  { return hash(unit ? unit->number() : 0); }
 
-  // containers hash their contents
-  static unsigned hash(const vstring& str)
-  { return hash(str.c_str()); }
-
-  template<typename T>
-  static unsigned hash(const Vector<T> &obj)
-  { return VectorHash<Hash>::hash(obj); }
-
-  template<typename T>
-  static unsigned hash(const Stack<T> &obj)
-  { return StackHash<Hash>::hash(obj); }
-
-  // pointers are hashed as bytes without dereference
+  // other pointers are hashed as bytes without dereference
   // if this isn't what you want, consider using DerefPtrHash
   template<typename T>
-  static unsigned hash(T* ptr) {
-    return hash(reinterpret_cast<const unsigned char*>(&ptr),sizeof(ptr));
+  static typename std::enable_if<
+    !std::is_base_of<Kernel::Unit, T>::value,
+    unsigned
+  >::type hash(T* ptr, unsigned hash = FNV32_OFFSET_BASIS) {
+    return hashBytes(
+      reinterpret_cast<const unsigned char*>(&ptr),
+      sizeof(ptr),
+      hash
+    );
   }
 
-  // types that can be safely hashed as their bytes, see is_safely_hashable
-  template<typename T>
-  static typename std::enable_if<is_safely_hashable<T>::value, unsigned>::type hash(T obj) {
-    return hash(reinterpret_cast<const unsigned char*>(&obj),sizeof(obj));
-  }
-
-  // overload for types with a content() method to get a hashable representation of the type
-  // e.g. TermList, SATLiteral
-  // hashes the result of content()
+  // arithmetic and enumeration types are hashed as bytes
   template<typename T>
   static typename std::enable_if<
-    !is_safely_hashable<T>::value &&
-    is_safely_hashable<typename std::result_of<decltype(&T::content)(T)>::type>::value,
+    std::is_arithmetic<T>::value || std::is_enum<T>::value,
     unsigned
-  >::type hash(const T &obj) {
-    return hash(obj.content());
+  >::type hash(T val, unsigned hash = FNV32_OFFSET_BASIS) {
+    return hashBytes(
+      reinterpret_cast<const unsigned char *>(&val),
+      sizeof(val),
+      hash
+    );
   }
 
-  // std::pair
+  // vstrings hash the underlying C-style string
+  static unsigned hash(const vstring& str)
+  { return DefaultHash::hashNulTerminated(str.c_str()); }
+
+  // dispatch to VectorHash<DefaultHash>
+  template<typename T>
+  static unsigned hash(const Vector<T> &obj)
+  { return VectorHash<DefaultHash>::hash(obj); }
+
+  // dispatch to StackHash<DefaultHash>
+  template<typename T>
+  static unsigned hash(const Stack<T> &obj, unsigned hash = FNV32_OFFSET_BASIS)
+  { return StackHash<DefaultHash>::hash(obj, hash); }
+
+  // std::pair combines default hashes of first and second
   template<typename T, typename U>
-  static unsigned hash(std::pair<T,U> obj)
-  { return HashUtils::combine(hash(obj.first), hash(obj.second)); }
+  static unsigned hash(const std::pair<T,U> &obj) {
+    return HashUtils::combine(
+      DefaultHash::hash(obj.first),
+      DefaultHash::hash(obj.second)
+    );
+  }
 
   /**
-   * The FNV-hashing.
+   * FNV-1a with initial value @b hash.
    * @since 31/03/2006
    */
-  static unsigned hash(const char* val) {
+  static unsigned hashBytes(
+    const unsigned char *val,
+    size_t size,
+    unsigned hash = FNV32_OFFSET_BASIS
+  ) {
+    CALL("DefaultHash::hashBytes");
+    for (size_t i = 0; i < size; i++) {
+      hash = (hash ^ val[i]) * FNV32_PRIME;
+    }
+    return hash;
+  }
+
+  /**
+   * FNV-1a applied to a NUL-terminated C-style string
+   */
+  static unsigned hashNulTerminated(const char* val) {
     CALL("Hash::hash(const char *)");
 
     unsigned hash = FNV32_OFFSET_BASIS;
@@ -211,76 +229,74 @@ public:
     }
     return hash;
   }
-
-  /**
-   * The FNV-hashing.
-   * @since 31/03/2006
-   */
-  static unsigned hash(const unsigned char *val, size_t size)
-  { return hash(val, size, FNV32_OFFSET_BASIS); }
-
-  /**
-   * The FNV-hashing where the initial value for hashing is @b hash.
-   * Useful for computing hash value of anything consisting of several
-   * parts: first the first part is hashed and then the hashing continues
-   * on the remaining parts but using the previously computed value as
-   * @b hash.
-   * @since 31/03/2006
-   */
-  static unsigned hash(const unsigned char *val, size_t size, unsigned hash) {
-    CALL("Hash::hash(const unsigned char *, size_t, unsigned)");
-    ASS(size > 0);
-
-    for (size_t i = 0; i < size; i++) {
-      hash = (hash ^ val[i]) * FNV32_PRIME;
-    }
-    return hash;
-  }
 };
 
-// template specializations for SecondaryHash
-// used to fill out default template parameters for DH{Map,Set} in Forwards.hpp
+// a default secondary hash for doubly-hashed containers
 // these hash functions should be cheap and not worry too much about distribution
 // NB: should not be the same as the first hash!
+class DefaultHash2 {
+public:
+  // if T has a unsigned defaultHash2() method, invoke that
+  template<typename T>
+  static typename std::enable_if<
+    std::is_same<
+      //C++17: repace with std::invoke_result
+      typename std::result_of<decltype(&T::defaultHash2)(T)>::type,
+      unsigned
+    >::value,
+    unsigned
+  >::type hash(const T &ref) {
+    return ref.defaultHash2();
+  }
 
-template<typename T>
-struct SecondaryHash<
-  T,
-  typename std::enable_if<
-    std::is_fundamental<T>::value ||
-    std::is_enum<T>::value
-  >::type
-> {
-  typedef IdentityHash Type;
-};
+  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
+  template<typename T>
+  static typename std::enable_if<
+    std::is_base_of<Kernel::Unit, T>::value,
+    unsigned
+  >::type hash(T *unit) 
+  { return unit ? unit->number() : 0; }
 
-template<typename T>
-struct SecondaryHash<T*> {
-  struct Type {
-    static unsigned hash(const T* ptr) {
-      return static_cast<unsigned>(reinterpret_cast<uintptr_t>(ptr));
-    }
-  };
-};
+  // other pointer types are cast to unsigned
+  template<typename T>
+  static typename std::enable_if<
+    !std::is_base_of<Kernel::Unit, T>::value,
+    unsigned
+  >::type hash(T* ptr) {
+    return static_cast<unsigned>(reinterpret_cast<uintptr_t>(ptr));
+  }
 
-template<>
-struct SecondaryHash<vstring> {
-  struct Type {
-    static unsigned hash(const vstring &str) {
-      return str.length();
-    }
-  };
-};
+  // arithmetic and enumeration types are cast to unsigned
+  template<typename T> static typename std::enable_if<
+    std::is_fundamental<T>::value || std::is_enum<T>::value,
+    unsigned
+  >::type hash(T val) {
+    return static_cast<unsigned>(val);
+  }
 
-template<typename T, typename U>
-struct SecondaryHash<std::pair<T,U> > {
-  struct Type {
-    static unsigned hash(const std::pair<T,U> &pp) {
-      unsigned h1=SecondaryHash<T>::Type::hash(pp.first);
-      unsigned h2=SecondaryHash<U>::Type::hash(pp.second);
-      return HashUtils::combine(h1, h2);
-    }
-  };
+  // vstrings use their length
+  static unsigned hash(const vstring &str) {
+    return str.length();
+  }
+
+  // containers use their length
+  template<typename T> static unsigned hash(const Stack<T> &stack) {
+    return stack.length();
+  }
+
+  // containers use their length
+  template<typename T> static unsigned hash(const Vector<T> &vector) {
+    return vector.length();
+  }
+
+  // std::pair combines default secondary hashes of first and second
+  template<typename T, typename U>
+  static unsigned hash(const std::pair<T, U> &pp) {
+    return HashUtils::combine(
+      DefaultHash2::hash(pp.first),
+      DefaultHash2::hash(pp.second)
+    );
+  }
 };
 
 } // namespace Lib

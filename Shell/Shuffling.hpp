@@ -60,7 +60,7 @@ public:
   static void shuffleArray(Arrayish& a, unsigned len) {
     CALL("Shuffling::shuffleArray");
 
-    for(unsigned i=0;i<len-1;i++){
+    for(unsigned i=0;i<len;i++){
       unsigned j = Random::getInteger(len-i)+i;
       std::swap(a[i],a[j]);
     }

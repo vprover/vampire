@@ -57,10 +57,11 @@ void MainLoopResult::updateStatistics()
 MainLoopResult MainLoop::run()
 {
   CALL("MainLoop::run");
+  TIME_TRACE("main loop");
 
   try {
-    init();
-    return runImpl();
+    TIME_TRACE_EXPR("init", init());
+    return TIME_TRACE_EXPR("run", runImpl());
   }
   catch(RefutationFoundException& rs)
   {

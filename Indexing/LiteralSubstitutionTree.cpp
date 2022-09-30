@@ -14,7 +14,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/TimeCounter.hpp"
 
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Signature.hpp"

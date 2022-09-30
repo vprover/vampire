@@ -129,7 +129,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
-    Lib/TimeCounter.cpp
     Lib/Timer.cpp
 
     Lib/Allocator.hpp
@@ -188,7 +187,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/STLAllocator.hpp
     Lib/StringUtils.hpp
     Lib/System.hpp
-    Lib/TimeCounter.hpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
     Lib/Vector.hpp
@@ -586,6 +584,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/SineUtils.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
+    Debug/TimeProfiling.hpp
+    Debug/TimeProfiling.cpp
     Shell/SymbolDefinitionInlining.cpp
     Shell/SymbolOccurrenceReplacement.cpp
     Shell/SymCounter.cpp
@@ -814,6 +814,7 @@ else()
   message(STATUS "Building without HOL support")
   add_compile_definitions(VHOL=0)
 endif()
+add_compile_definitions(VTIME_PROFILING=1)
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)

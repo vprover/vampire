@@ -224,7 +224,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 
   // The outer iterator ensures we update the time counter for superposition
-  auto it7 = getTimeCountedIterator(it6, TC_SUPERPOSITION);
+  auto it7 = timeTraceIter("superposition", it6);
 
   return pvi( it7 );
 }
@@ -384,6 +384,7 @@ Clause* Superposition::performSuperposition(
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
 {
   CALL("Superposition::performSuperposition");
+  TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
@@ -540,7 +541,7 @@ Clause* Superposition::performSuperposition(
     //NOT_IMPLEMENTED;
 
     if (!env.proofExtra) {
-      env.proofExtra = new DHMap<void*,vstring>();
+      env.proofExtra = new DHMap<const Unit*,vstring>();
     }
     env.proofExtra->insert(res,extra);
   }
@@ -573,7 +574,7 @@ Clause* Superposition::performSuperposition(
       }
 
       if (afterCheck) {
-        TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;
@@ -587,7 +588,7 @@ Clause* Superposition::performSuperposition(
   {
     Literal* eqLitS = 0;
     if (afterCheck && eqClause->numSelected() > 1) {
-      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
       eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
     }
 
@@ -609,7 +610,7 @@ Clause* Superposition::performSuperposition(
         }
 
         if (eqLitS && i < eqClause->numSelected()) {
-          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           Ordering::Result o = ordering.compare(currAfter,eqLitS);
 

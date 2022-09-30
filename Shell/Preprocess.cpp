@@ -114,7 +114,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.shuffleInput()) {
-    TimeCounter tc(TC_SHUFFLING);
+    TIME_TRACE(TimeTrace::SHUFFLING);
     env.statistics->phase=Statistics::SHUFFLING;    
 
     if (env.options->showPreprocessing())
@@ -238,7 +238,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.shuffleInput()) {
-    TimeCounter tc(TC_SHUFFLING);
+   TIME_TRACE(TimeTrace::SHUFFLING);
     env.statistics->phase=Statistics::SHUFFLING;
     if (env.options->showPreprocessing())
       env.out() << "shuffling2" << std::endl;
@@ -275,7 +275,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.shuffleInput()) {
-    TimeCounter tc(TC_SHUFFLING);
+    TIME_TRACE(TimeTrace::SHUFFLING);
     env.statistics->phase=Statistics::SHUFFLING;
     if (env.options->showPreprocessing())
       env.out() << "shuffling3" << std::endl;
@@ -460,7 +460,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (_options.shuffleInput()) {
-     TimeCounter tc(TC_SHUFFLING);
+     TIME_TRACE(TimeTrace::SHUFFLING);
      env.statistics->phase=Statistics::SHUFFLING;
      if (env.options->showPreprocessing())
        env.out() << "shuffling4" << std::endl;
@@ -470,7 +470,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (_options.randomPolarities()) {
-     TimeCounter tc(TC_SHUFFLING);
+     TIME_TRACE(TimeTrace::SHUFFLING);
      env.statistics->phase=Statistics::SHUFFLING;
      if (env.options->showPreprocessing())
        env.out() << "flipping polarities" << std::endl;

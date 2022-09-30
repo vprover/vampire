@@ -562,7 +562,7 @@ void FiniteModelBuilder::init()
   // Apply GeneralSplitting
   GeneralSplitting splitter;
   {
-    TimeCounter tc(TC_FMB_SPLITTING);
+    TIME_TRACE("fmb splitting");
     splitter.apply(_clauses);
   }
 
@@ -616,7 +616,7 @@ void FiniteModelBuilder::init()
   // perform SortInference on ground and non-ground clauses
   // preprocessing should preserve sorts and doing this here means that introduced symbols get sorts
   {
-    TimeCounter tc(TC_FMB_SORT_INFERENCE);
+    TIME_TRACE("fmb sort inference");
     //ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
     SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
     inference.doInference();
@@ -1641,7 +1641,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
 
     {
-    TimeCounter tc(TC_FMB_CONSTRAINT_CREATION);
+    TIME_TRACE("fmb constraint creation");
 
     // add the new clauses to _clausesToBeAdded
 #if VTRACE_FMB
@@ -1673,18 +1673,18 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
+    SATSolver::Status satResult;
     {
-      TimeCounter tc(TC_FMB_SAT_SOLVING);
       if (_opt.randomTraversals()) {
+        TIME_TRACE(TimeTrace::SHUFFLING);
         Shuffling::shuffleArray(_clausesToBeAdded,_clausesToBeAdded.size());
       }
-      _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
-    }
+      TIME_TRACE("fmb sat solving");
 
-    SATSolver::Status satResult = SATSolver::UNKNOWN;
-    {
+      _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
+
+      satResult = SATSolver::UNKNOWN;
       env.statistics->phase = Statistics::FMB_SOLVING;
-      TimeCounter tc(TC_FMB_SAT_SOLVING);
 
       static SATLiteralStack assumptions(_distinctSortSizes.size());
       assumptions.reset();
@@ -2647,7 +2647,7 @@ bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newS
   BYPASSING_ALLOCATOR;
 
   try {
-    TimeCounter tc(TC_Z3_IN_FMB);
+    TIME_TRACE("smt search for next domain size assignment");
 
     z3::check_result result = _smtSolver.check();
 

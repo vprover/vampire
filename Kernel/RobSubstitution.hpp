@@ -20,6 +20,8 @@
 #include "Lib/Backtrackable.hpp"
 #include "Term.hpp"
 #include "MismatchHandler.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/DHMap.hpp"
 
 #if VDEBUG
 #include <iostream>

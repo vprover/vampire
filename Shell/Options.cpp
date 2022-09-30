@@ -80,9 +80,9 @@ void Options::init()
 
     _memoryLimit = UnsignedOptionValue("memory_limit","m",
 #if VDEBUG
-                                       1000
+                                       1024     //   1 GB
 #else
-                                       128000
+                                       131072   // 128 GB (current max on the StarExecs)
 #endif
                                        );
     _memoryLimit.description="Memory limit in MB";
@@ -159,6 +159,8 @@ void Options::init()
          "ltb_mzr_2017",
          "smtcomp",
          "smtcomp_2018",
+         "snake_tptp_uns",
+         "snake_tptp_sat",
          "struct_induction"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
@@ -178,6 +180,11 @@ void Options::init()
     _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
     _lookup.insert(&_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
+
+    _randomizSeedForPortfolioWorkers = BoolOptionValue("randomize_seed_for_portfolio_workers","",true);
+    _randomizSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
+    _lookup.insert(&_randomizSeedForPortfolioWorkers);
+    _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
 
     _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
     _ltbLearning.description = "Perform learning in LTB mode";
@@ -346,10 +353,12 @@ void Options::init()
     _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m. Setting it to 0 effectively gives no time limit.";
     _lookup.insert(&_timeLimitInDeciseconds);
 
+#if VTIME_PROFILING
     _timeStatistics = BoolOptionValue("time_statistics","tstat",false);
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
     _timeStatistics.tag(OptionTag::OUTPUT);
+#endif // VTIME_PROFILING
 
 //*********************** Input  ***********************
 
@@ -2250,7 +2259,7 @@ void Options::init()
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
-    _randomSeed = UnsignedOptionValue("random_seed","",Random::seed());
+    _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducability of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
@@ -2421,6 +2430,7 @@ void Options::init()
 
 void Options::copyValuesFrom(const Options& that)
 {
+  CALL("Options::copyValuesFrom");
   //copy across the actual values in that
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
 
@@ -2796,7 +2806,7 @@ bool Options::OptionValue<T>::randomize(Property* prop){
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
      CALL("Options::OptionValue::checkConstraints");
-     typename Lib::Stack<OptionValueConstraintUP<T>>::Iterator it(_constraints);
+     typename Lib::Stack<OptionValueConstraintUP<T>>::RefIterator it(_constraints);
      while(it.hasNext()){
        const OptionValueConstraintUP<T>& con = it.next();
        if(!con->check(*this)){
@@ -2837,7 +2847,7 @@ template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
     CALL("Options::OptionValue::checkProblemConstraints");
 
-    Lib::Stack<OptionProblemConstraintUP>::Iterator it(_prob_constraints);
+    Lib::Stack<OptionProblemConstraintUP>::RefIterator it(_prob_constraints);
     while(it.hasNext()){
       OptionProblemConstraintUP& con = it.next();
       // Constraint should hold whenever the option is set
@@ -3100,7 +3110,7 @@ void Options::randomizeStrategy(Property* prop)
   CALL("Options::randomizeStrategy");
   if(_randomStrategy.actualValue==RandomStrategy::OFF) return;
 
-  TimeCounter tc(TC_RAND_OPT);
+  TIME_TRACE("random option generation");
 
   // The pseudo random sequence is deterministic given a seed.
   // By default the seed is 1
@@ -3198,7 +3208,6 @@ void Options::readOptionsString(vstring optionsString,bool assign)
                 USER_ERROR("value "+value+" for option "+ param +" not known");
                 break;
               case IgnoreMissing::WARN:
-                env.beginOutput();
                 if (outputAllowed()) {
                   env.beginOutput();
                   addCommentSignForSZS(env.out());

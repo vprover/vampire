@@ -88,7 +88,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   //
   // For condition 2, we check that l = r < M for some M in L \/ D.
 
-  TimeCounter const tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
+  TIME_TRACE("forward subsumption demodulation");
 
   Ordering const& ordering = _salg->getOrdering();
 

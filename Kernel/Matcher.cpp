@@ -121,8 +121,8 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   ASS_EQ(l1->arity(), 2);
   ASS_EQ(l2->arity(), 2);
 
-  static DHMap<unsigned,unsigned,IdentityHash,Hash> leftToRight;
-  static DHMap<unsigned,unsigned,IdentityHash,Hash> rightToLeft;
+  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> leftToRight;
+  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> rightToLeft;
   leftToRight.reset();
   rightToLeft.reset();
 
@@ -177,8 +177,8 @@ bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
     return true;
   }
 
-  static DHMap<unsigned,unsigned,IdentityHash,Hash> leftToRight;
-  static DHMap<unsigned,unsigned,IdentityHash,Hash> rightToLeft;
+  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> leftToRight;
+  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> rightToLeft;
   leftToRight.reset();
   rightToLeft.reset();
 
