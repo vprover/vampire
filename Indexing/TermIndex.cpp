@@ -241,7 +241,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       }
       ASS(tl.isTerm());
       if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-          InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
+          InductionHelper::isStructInductionTerm(tl.term())) {
         if (adding) {
           _is->insert(tl, lit, c);
         } else {

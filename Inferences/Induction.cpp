@@ -47,7 +47,7 @@ Term* getPlaceholderForTerm(Term* t)
 {
   CALL("getPlaceholderForTerm");
   static DHMap<TermList,Term*> placeholders;
-  TermList srt = env.signature->getFunction(t->functor())->fnType()->result();
+  TermList srt = SortHelper::getResultSort(t);
   if(!placeholders.find(srt)){
     unsigned fresh = env.signature->addFreshFunction(0,(srt.toString() + "_placeholder").c_str());
     env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
@@ -412,13 +412,14 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       NonVariableNonTypeIterator it(lit);
       while(it.hasNext()){
         TermList ts = it.next();
-        unsigned f = ts.term()->functor(); 
-        if(InductionHelper::isInductionTermFunctor(f)){
-          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionFunctor(f)){
-            ta_terms.insert(ts.term());
+        auto t = ts.term();
+
+        if(InductionHelper::isInductionTermFunctor(t->functor())){
+          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(t)){
+            ta_terms.insert(t);
           }
           if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(ts, lit)){
-            int_terms.insert(ts.term());
+            int_terms.insert(t);
           }
         }
       }
