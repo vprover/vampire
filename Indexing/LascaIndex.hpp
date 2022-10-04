@@ -52,12 +52,15 @@ public:
       .filter([=](auto& x) {
           Stack<UnificationConstraint> c;
           UWAMismatchHandler hndlr(_uwa, c);
-          auto result = get<1>(x).cnstLiterals()
+          auto& uwa = get<1>(x);
+          auto result = uwa.cnstLiterals()
             .all([&](auto lit) {
                 ASS(lit->isEquality() && lit->isNegative())
-                return hndlr.checkUWA(lit->termArg(0), lit->termArg(1));
+                auto l = lit->termArg(0);
+                auto r = lit->termArg(1);
+                return l == r || hndlr.checkUWA(l,r);
             });
-          if (!result) { DEBUG("skipping wrong constraints: ", c) }
+          if (!result) { DEBUG("skipping wrong constraints: ", uwa) }
           ASS(c.isEmpty());
           return result;
       })
@@ -76,8 +79,9 @@ public:
     TIME_TRACE(_maintainanceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
+        auto k = appl.key();
         _index.insert(std::move(appl));
-        ASS(find(appl.key()).hasNext())
+        ASS_REP(find(k).hasNext(), k)
       } else {
         _index.remove(std::move(appl));
       }
