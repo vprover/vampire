@@ -302,12 +302,12 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
+bool RobSubstitution::unify(TermSpec l, TermSpec r,MismatchHandler* hndlr)
 {
   CALL("RobSubstitution::unify/2");
   ASS_NO_EXCEPT(
 
-  if(t1.sameTermContent(t2)) {
+  if(l.sameTermContent(r)) {
     return true;
   }
 
@@ -315,8 +315,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   BacktrackData localBD;
   bdRecord(localBD);
 
-  static Stack<TTPair> toDo(64);
-  ASS(toDo.isEmpty());
+  Stack<TTPair>* _toDo;//(64);
+  Recycler::get(_toDo);
+  auto& toDo = *_toDo;
+  ASS_REP(toDo.isEmpty(), toDo);
+  toDo.push(TTPair(l,r));
 
   // Save encountered unification pairs to avoid
   // recomputing their unification
@@ -330,9 +333,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   // Iteratively resolve unification pairs in toDo
   // the current pair is always in t1 and t2 with their dereferenced
   // version in dt1 and dt2
-  for(;;) {
-    TermSpec dt1=derefBound(t1);
-    TermSpec dt2=derefBound(t2);
+  while (toDo.isNonEmpty() && !mismatch) {
+    TermSpec dt1 = derefBound(toDo.top().first);
+    TermSpec dt2 = derefBound(toDo.pop().second);
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
     if(dt1.sameTermContent(dt2)) {
@@ -343,11 +346,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       addToConstraints(getVarSpec(dt1), getVarSpec(dt2), hndlr);
     } else if(dt1.isVSpecialVar()){
       Term* t = _funcSubtermMap->get(dt1.term.var());
-      t1 = TermSpec(TermList(t), dt1.index);
+      auto t1 = TermSpec(TermList(t), dt1.index);
       toDo.push(TTPair(t1, dt2));
     } else if(dt2.isVSpecialVar()){
       Term* t = _funcSubtermMap->get(dt2.term.var());
-      t2 = TermSpec(TermList(t), dt2.index);
+      auto t2 = TermSpec(TermList(t), dt2.index);
       toDo.push(TTPair(dt1, t2));
     // Deal with the case where eithe rare variables
     // Do an occurs-check and note that the variable 
@@ -375,14 +378,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       }
     } else {
       mismatch=true;
-      break;
     }
-
-    if(toDo.isEmpty() || mismatch) {
-      break;
-    }
-    t1=toDo.top().first;
-    t2=toDo.pop().second;
   }
 
   if(mismatch) {
@@ -401,6 +397,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   }
 
   ASS(toDo.isEmpty());
+  Recycler::release(_toDo);
   return !mismatch;
   )
 }
