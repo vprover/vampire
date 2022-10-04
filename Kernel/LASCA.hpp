@@ -605,6 +605,40 @@ namespace Kernel {
   };
   using SelectionCriterion = OrderingUtils2::SelectionCriterion;
 
+  // TODO move to right place (LASCA.hpp ?)
+  struct SignedTerm
+  {
+    Sign sign;
+    TermList term;
+
+    static SignedTerm pos(TermList t)
+    { return { .sign = Sign::Pos, .term = t, }; }
+
+    static SignedTerm neg(TermList t)
+    { return { .sign = Sign::Neg, .term = t, }; }
+
+    static SignedTerm zero(TermList t)
+    { return { .sign = Sign::Zero, .term = t, }; }
+
+    friend std::ostream& operator<<(std::ostream& out, SignedTerm const& self)
+    { return out << self.sign << self.term; }
+
+    friend bool operator==(SignedTerm const& lhs, SignedTerm const& rhs)
+    { return lhs.sign == rhs.sign && lhs.term == rhs.term; }
+
+    friend bool operator!=(SignedTerm const& lhs, SignedTerm const& rhs)
+    { return !(lhs == rhs); }
+
+    friend bool operator<(SignedTerm const& l, SignedTerm const& r)
+    { return std::tie(l.term, l.sign) < std::tie(r.term, r.sign); }
+
+    friend bool operator> (SignedTerm const& l, SignedTerm const& r) { return r < l; }
+    friend bool operator<=(SignedTerm const& l, SignedTerm const& r) { return l == r || l < r; }
+    friend bool operator>=(SignedTerm const& l, SignedTerm const& r) { return l == r || l > r; }
+  };
+
+  using SignedAtoms = WeightedMultiSet<SignedTerm>;
+
   struct LascaState 
   {
     CLASS_NAME(LascaState);
@@ -623,10 +657,68 @@ namespace Kernel {
       , ordering(std::move(ordering))
       , uwa(std::move(uwa)) {}
 
+    std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
+    { return std::make_tuple(IntegerConstantType(1), t); }
+
+    bool hasSubstitutionProperty(SignedAtoms const& l);
+
+    template<class NumTraits>
+    std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> divNf(Perfect<Polynom<NumTraits>> t) const
+    {
+      auto l = t->iterSummands()
+        .map([](auto s) { return s.numeral.denominator(); })
+        .fold(IntegerConstantType(1), [&](auto acc, auto next)
+                 { return IntegerConstantType::lcm(acc, next); });
+      return std::make_tuple(l.abs(), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
+    }
+
+
+    template<class NumTraits>
+    WeightedMultiSet<SignedTerm> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
+    {
+      auto counts =  std::get<1>(t)->iterSummands()
+            .map([](auto s) {
+              auto count  = ifOfType<IntegerConstantType>(s.numeral,
+                             [&](IntegerConstantType num) { return num; },
+                              /* decltype(num) in { RatTraits, RealTraits } */
+                             [&](auto num) {
+                               ASS_EQ(num.denominator(), IntegerConstantType(1))
+                               return num.numerator();
+                             }).abs();
+              if (count == IntegerConstantType(0)) {
+                ASS(s.numeral.sign() == Sign::Zero)
+                count = IntegerConstantType(1);
+              }
+              SignedTerm term = {
+                .sign = s.numeral.sign(),
+                .term = s.factors->denormalize(),
+              };
+              return std::make_tuple(term, count);
+            })
+            .template collect<Stack>();
+      std::sort(counts.begin(), counts.end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
+      return WeightedMultiSet<SignedTerm>(std::get<0>(t), MultiSet<SignedTerm>::fromSortedStack(std::move(counts)));
+    }
+
   public:
     InequalityNormalizer normalizer;
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction const uwa;
+
+        
+    // TODO move to LASCA.hpp
+    template<class NumTraits>
+    Option<SignedAtoms> signedAtoms(TermList t)
+    {
+      auto norm = this->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
+      auto atoms = rmNum(divNf(norm));
+      if (hasSubstitutionProperty(atoms)) {
+        return Option<decltype(atoms)>(std::move(atoms));
+      } else {
+        return Option<decltype(atoms)>();
+      }
+    }
+
 
     static std::shared_ptr<LascaState> create(
           InequalityNormalizer normalizer,
@@ -827,6 +919,17 @@ namespace Kernel {
     }
 
 
+    bool interpretedFunction(TermList t) 
+    { return t.isTerm() && interpretedFunction(t.term()); }
+
+    bool interpretedFunction(Term* t) 
+    { return forAnyNumTraits([&](auto numTraits) -> bool {
+            return theory->isInterpretedFunction(t, numTraits.addI)
+                || theory->isInterpretedConstant(t)
+                || (theory->isInterpretedFunction(t, numTraits.mulI)
+                    && theory->isInterpretedConstant(t->termArg(0)));
+      }); }
+
     bool interpretedPred(Literal* t) {
       auto f = t->functor();
       return t->isEquality()
@@ -918,6 +1021,9 @@ namespace Kernel {
     Option<AnyLascaLiteral> renormalize(Literal*);
     Option<AnyInequalityLiteral> renormalizeIneq(Literal*);
     PolyNf normalize(TypedTermList);
+    PolyNf normalize(TermList t) 
+    { return t.isTerm() ? normalize(t.term())
+                        : PolyNf(Variable(t.var())); }
 
     template<class LitOrTerm, class Iter>
     bool strictlyMaximal(LitOrTerm pivot, Iter lits)

@@ -46,16 +46,72 @@ namespace Test {
     return res;                                                                                     \
   }
 
-template<class... As>
-Stack<ClausePattern> exactly(As... as) 
-{
-  Stack<ClausePattern> out { as... };
-  return out;
+namespace Generation {
+template<class R>
+class GenerationTester;
 }
 
-inline Stack<ClausePattern> none() {
-  return Stack<ClausePattern>();
-}
+class ContainsStackMatcher {
+  Stack<ClausePattern> _patterns;
+
+public:
+  ContainsStackMatcher(Stack<ClausePattern> self) : _patterns(self) {}
+
+  template<class Rule>
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  { 
+    return iterTraits(_patterns.iter())
+      .all([&](auto& p) {
+          return iterTraits(sRes.iter())
+             .any([&](auto& cl) { return p.matches(simpl, cl); });
+      });
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, ContainsStackMatcher const& self)
+  { return out << "contains: " << self._patterns; }
+};
+
+
+class ExactlyStackMatcher {
+  Stack<ClausePattern> _patterns;
+
+public:
+  ExactlyStackMatcher(Stack<ClausePattern> self) : _patterns(self) {}
+
+  template<class Rule>
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  { return TestUtils::permEq(_patterns, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); }); }
+
+  friend std::ostream& operator<<(std::ostream& out, ExactlyStackMatcher const& self)
+  { return out << "exactly: " << self._patterns; }
+};
+
+using AnyStackMatcher = Coproduct< ContainsStackMatcher
+                                 , ExactlyStackMatcher>;
+class StackMatcher: public AnyStackMatcher {
+public:
+  StackMatcher(std::initializer_list<ClausePattern> clauses) : StackMatcher(ExactlyStackMatcher(Stack<ClausePattern>(clauses))) {}
+  template<class C> StackMatcher(C c) : AnyStackMatcher(std::move(c)) {}
+
+  template<class Rule>
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  { return apply([&](auto& self) { return self.matches(sRes, simpl); }); }
+
+  // friend std::ostream& operator<<(std::ostream& out, StackMatcher const& self)
+  // { return self.apply([&](auto& inner) { return out << inner; }); }
+};
+
+
+template<class... As>
+StackMatcher exactly(As... as) 
+{ return ExactlyStackMatcher(Stack<ClausePattern>({ as... })); }
+
+template<class... As>
+StackMatcher contains(As... as) 
+{ return ContainsStackMatcher(Stack<ClausePattern>({ as... })); }
+
+inline StackMatcher none() 
+{ return ExactlyStackMatcher(Stack<ClausePattern>()); }
 
 namespace Generation {
 class AsymmetricTest;
@@ -86,7 +142,7 @@ class AsymmetricTest
   using Condition = std::function<bool(vstring&, vstring&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
-  Stack<ClausePattern> _expected;
+  Option<StackMatcher> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
   bool _selfApplications;
@@ -119,7 +175,7 @@ public:
 
   BUILDER_METHOD(Clause*, input)
   BUILDER_METHOD(Stack<Clause*>, context)
-  BUILDER_METHOD(Stack<ClausePattern>, expected)
+  BUILDER_METHOD(StackMatcher, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(bool, selfApplications)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
@@ -167,15 +223,29 @@ public:
       _input->setStore(Clause::ACTIVE);
       container.add(_input);
     }
+
+    {
+      auto res = rule.generateSimplify(_input);
+
+      // run checks
+      auto sExp = this->_expected.unwrap();
+      auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
+    }
+
+
     auto res = rule.generateSimplify(_input);
 
     // run checks
-    auto sExp = this->_expected;
+    auto sExp = this->_expected.unwrap();
     auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
-    if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); })) {
+    if (!sExp.matches(sRes, simpl)) {
       testFail(sRes, sExp);
     }
+
+    // if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); })) {
+    //   testFail(sRes, sExp);
+    // }
 
     if (_premiseRedundant != res.premiseRedundant) {
       auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premise is not redundant"; };
@@ -209,7 +279,7 @@ class SymmetricTest
   using Clause = Kernel::Clause;
   Option<SimplifyingGeneratingInference*> _rule;
   Stack<Clause*> _inputs;
-  Stack<ClausePattern> _expected;
+  Option<StackMatcher> _expected;
   bool _premiseRedundant;
   bool _selfApplications;
   Stack<std::function<Indexing::Index*()>> _indices;
@@ -235,7 +305,7 @@ public:
   }                                                                                                 \
 
   _BUILDER_METHOD(Stack<Clause*>, inputs)
-  _BUILDER_METHOD(Stack<ClausePattern>, expected)
+  _BUILDER_METHOD(StackMatcher, expected)
   _BUILDER_METHOD(bool, premiseRedundant)
   _BUILDER_METHOD(bool, selfApplications)
   _BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
@@ -260,7 +330,7 @@ public:
     AsymmetricTest()
       .input(input)
       .context(context)
-      .expected(_expected)
+      .expected(_expected.unwrap())
       .premiseRedundant(_premiseRedundant)
       .selfApplications(_selfApplications)
       .rule(rule)

@@ -28,6 +28,7 @@ const QKbo::Result Greater = QKbo::Result::GREATER;
 const QKbo::Result Less    = QKbo::Result::LESS;
 const QKbo::Result Equal   = QKbo::Result::EQUAL;
 const QKbo::Result Incomp  = QKbo::Result::INCOMPARABLE;
+using namespace Kernel;
 
 DArray<int> funcPrec() {
   unsigned num = env.signature->functions();
@@ -312,13 +313,13 @@ TEST_FUN(normal_subsafe) {
   // DECL_CONST(c, Real)
   DECL_FUNC (f, {Real}, Real)
 
-  auto& ord = qkbo();
-  auto signedAtoms = [&](auto t) 
-    { return ord.template signedAtoms<RealTraits>(t); };
+  (void) qkbo();
+  auto signedAtoms = [&](auto t) -> Option<SignedAtoms>
+    { return LascaState::globalState->template signedAtoms<RealTraits>(t); };
 
-  auto none = Option<QKbo::SignedAtoms>();
+  auto none = Option<SignedAtoms>();
   auto some = [&](int i, std::initializer_list<SignedTerm> ts) 
-  { return Option<QKbo::SignedAtoms>(QKbo::SignedAtoms(ict(i), ts)); };
+  { return Option<SignedAtoms>(SignedAtoms(ict(i), ts)); };
 
   ASS_EQ(signedAtoms(frac(1,2) * x + 7 * a), none);
   ASS_EQ(signedAtoms( x +  7 * a), none);
@@ -364,12 +365,12 @@ TEST_FUN(normal_form_lcm) {
   // DECL_CONST(c, Real)
   // DECL_FUNC (f, {Real}, Real)
 
-  auto& ord = qkbo();
-  auto signedAtoms = [&](auto t) 
-    { return ord.template signedAtoms<RealTraits>(t); };
+  (void) qkbo();
+  auto signedAtoms = [&](auto t) -> Option<SignedAtoms>
+    { return LascaState::globalState->template signedAtoms<RealTraits>(t); };
 
   auto ok = [&](int i, std::initializer_list<SignedTerm> ts) 
-  { return Option<QKbo::SignedAtoms>(QKbo::SignedAtoms(ict(i), ts)); };
+  { return Option<SignedAtoms>(SignedAtoms(ict(i), ts)); };
 
   ASS_EQ(signedAtoms(frac(1,2) * a + b), 
       ok(2, {
@@ -571,9 +572,9 @@ TEST_FUN(normal_form01) {
   // DECL_CONST(c, Real)
   DECL_FUNC (f, {Real}, Real)
 
-  auto& ord = qkbo();
-  auto signedAtoms = [&](auto t) 
-    { return ord.template signedAtoms<RealTraits>(t); };
+  (void) qkbo();
+  auto signedAtoms = [&](auto t) -> Option<SignedAtoms>
+    { return LascaState::globalState->template signedAtoms<RealTraits>(t); };
 #define CHECK_EQ(is, exp) {                                                                         \
     if (is != exp) {                                                                                \
       std::cout << "[ FAIL ] ";                                                                     \
@@ -587,7 +588,7 @@ TEST_FUN(normal_form01) {
   };                                                                                                \
 
   auto ok = [&](int i, std::initializer_list<SignedTerm> ts) 
-  { return Option<QKbo::SignedAtoms>(QKbo::SignedAtoms(ict(i), ts)); };
+  { return Option<SignedAtoms>(SignedAtoms(ict(i), ts)); };
 
   CHECK_EQ(signedAtoms(2 * a + b), 
       ok(1, {

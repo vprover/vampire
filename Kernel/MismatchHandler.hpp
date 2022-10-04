@@ -39,8 +39,8 @@ public:
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
 
-private:
   bool checkUWA(TermList t1, TermList t2); 
+private:
   virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2);
 
   const Shell::Options::UnificationWithAbstraction _mode;

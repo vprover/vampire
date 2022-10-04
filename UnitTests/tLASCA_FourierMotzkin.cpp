@@ -51,6 +51,25 @@ using namespace Inferences::LASCA;
   DECL_VAR(x8, 8)                                                                                   \
   DECL_VAR(x9, 9)                                                                                   \
   DECL_VAR(x10, 10)                                                                                 \
+  DECL_VAR(x11, 11)                                                                                 \
+  DECL_VAR(x12, 12)                                                                                 \
+  DECL_VAR(x13, 13)                                                                                 \
+  DECL_VAR(x14, 14)                                                                                 \
+  DECL_VAR(x15, 15)                                                                                 \
+  DECL_VAR(x16, 16)                                                                                 \
+  DECL_VAR(x17, 17)                                                                                 \
+  DECL_VAR(x18, 18)                                                                                 \
+  DECL_VAR(x19, 19)                                                                                 \
+  DECL_VAR(x20, 20)                                                                                 \
+  DECL_VAR(x21, 21)                                                                                 \
+  DECL_VAR(x22, 22)                                                                                 \
+  DECL_VAR(x23, 23)                                                                                 \
+  DECL_VAR(x24, 24)                                                                                 \
+  DECL_VAR(x25, 25)                                                                                 \
+  DECL_VAR(x26, 26)                                                                                 \
+  DECL_VAR(x27, 27)                                                                                 \
+  DECL_VAR(x28, 28)                                                                                 \
+  DECL_VAR(x29, 29)                                                                                 \
   DECL_FUNC(f, {Num}, Num)                                                                          \
   DECL_FUNC(g, {Num, Num}, Num)                                                                     \
   DECL_CONST(a, Num)                                                                                \
@@ -61,10 +80,16 @@ using namespace Inferences::LASCA;
   DECL_CONST(b, Num)                                                                                \
   DECL_CONST(c, Num)                                                                                \
   DECL_PRED(r, {Num,Num})                                                                           \
-DECL_SORT(srt)                                                                                      \
+  DECL_SORT(srt)                                                                                    \
   DECL_CONST(au, srt)                                                                               \
+  DECL_CONST(bu, srt)                                                                               \
   DECL_FUNC(fu, {Num}, srt)                                                                         \
   DECL_FUNC(fn, {srt}, Num)                                                                         \
+  DECL_CONST(delta, Num)                                                                            \
+  DECL_FUNC(gg, {Num}, Num)                                                                         \
+  DECL_FUNC(ff, {Num}, Num)                                                                         \
+  DECL_FUNC(ab, {Num}, Num)                                                                         \
+  DECL_FUNC(skx, {Num}, Num)                                                                         \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -330,6 +355,122 @@ TEST_GENERATION(basic17b,
                        , clause({ f(z) > 0, g(x,x) + f(x) > 0   }) 
           ))
     )
+
+TEST_GENERATION(uwa01,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(a + b) > 0, }) 
+                       , clause({  f(x + 1) > 0  }) })
+      .expected(exactly( clause({ num(0) > 0, x + 1 != a + b }) ))
+    )
+
+
+TEST_GENERATION(uwa02,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(a + b) > 0, }) 
+                       , clause({  f(a + 1) > 0  }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(uwa03,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
+                       , clause({  f(f(y) + 1) > 0  }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(uwa04,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
+                       , clause({  f(f(y) + b) > 0  }) })
+      .expected(exactly( clause({ num(0) > 0, f(x) + b != f(y) + b }) ))
+    )
+
+TEST_GENERATION(uwa05,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
+                       , clause({  f(f(y) + b + a) > 0  }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(uwa06,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(f(x) + b + a) > 0, }) 
+                       , clause({  f(f(y) + b) > 0  }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(uwa07,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(f(x) + 2 * b) > 0, }) 
+                       , clause({  f(f(y) + b) > 0  }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(uwa08,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
+                       , clause({  f(f(y) + b) > 0  }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(uwa09,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
+                       , clause({  f(f(y) + b - z) > 0  }) })
+      .expected(exactly( clause({ num(0) > 0, f(x) - b != f(y) + b - z }) ))
+    )
+
+TEST_GENERATION(uwa10,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
+                       , clause({  f(f(y) + b - z) > 0  }) })
+      .expected(exactly( clause({ num(0) > 0, f(x) - b != f(y) + b - z }) ))
+    )
+
+TEST_GENERATION(uwa11,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(fn(au)) > 0, }) 
+                       , clause({  f(fn(bu)) > 0  }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(uwa12,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ ab(ff(skx(x0)) + gg(skx(x0))) + -2 * c >= 0 })
+                       , clause({-ab(gg(x0)) + c > 0 })
+                      })
+      .expected(exactly( /* nothing */ ))
+    )
+
+TEST_GENERATION(uwa13,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -2 * c + ab(ff(skx(x0)) + gg(skx(x0))) >= 0 })
+                       , clause({-ab(gg(x0)) + c > 0 }) })
+      .expected(exactly( /* nothing */ ))
+    )
+
+
+TEST_GENERATION(uwa14,
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .inputs         ({ clause({ -f(2 * x) > 0, }) 
+                       , clause({  f(2 * f(y)) > 0  }) })
+      .expected(exactly( clause({ num(0) > 0, 2 * x != 2 * f(y) }) ))
+    )
+
 
 
 TEST_GENERATION(greater_equal01a,
@@ -764,15 +905,70 @@ TEST_GENERATION_WITH_SUGAR(bug05,
                        ))
     )
 
-// TEST_GENERATION_WITH_SUGAR(don_t_resolve_with_self,
-//     SUGAR(Real),
-//     Generation::AsymmetricTest()
-//       .indices(inequalityResolutionIdx())
-//       .input   (         clause({ f(x) + -f(y) > 0, -x + y >= 0 }))
-//       .context ({ })
-//       .expected(exactly( {}
-//                        ))
-//     )
+TEST_GENERATION_WITH_SUGAR(bug06,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .inputs  ({ clause({  gg(x) >= 0   , delta + -ab(x + 1) >= 0, c > 0 })
+                , clause({ -gg(x) + c > 0, delta + -ab(x + 1) >= 0, -gg(x) > 0 })
+                })
+      .expected(exactly(  clause({ delta + -ab(x + 1) >= 0, c > 0
+                                 , delta + -ab(x + 1) >= 0, -gg(x) > 0,
+                                 c > 0
+                                 })
+                       ))
+    )
+
+#define _SUM(L,R) (L + R)
+
+TEST_GENERATION_WITH_SUGAR(bug07,
+    SUGAR(Real),
+    Generation::AsymmetricTest()
+      .indices(inequalityResolutionIdx())
+      .input  ( clause({ -gg(x) + c > 0, delta + -ab(x + 1) >= 0, -gg(x) > 0 }) )
+      .context({
+                clause({ _SUM(ab(1 + skx(x)),-delta) > 0 , }) // 19
+              , clause({ 0 == _SUM(-x,-ab(x)) , x >= 0 , }) // 21
+              , clause({ 0 == _SUM(-x,ab(x)) , -x > 0 , }) // 22
+              , clause({ -z > 0 , z >= 0 , 0 == -z , }) // 29
+              , clause({ _SUM(ab(ff(skx(x)) + gg(skx(x))),(-2 * c)) >= 0 , }) // 20
+              , clause({ _SUM(delta,-ab(x + 1)) >= 0 , _SUM(c,-ab(gg(x))) > 0 , }) // 23
+              , clause({ 0 != _SUM(x,-skx(x3)) , _SUM(c,-ab(gg(x))) > 0 , }) // 50
+              , clause({ _SUM(-1,_SUM(-skx(x),-delta)) > 0 , _SUM(1,skx(x)) >= 0 , }) // 26
+              , clause({ _SUM(1,_SUM(skx(x),-delta)) > 0 , _SUM(-1,-skx(x)) > 0 , }) // 30
+              , clause({ _SUM(delta,-ab(x + 1)) >= 0 , _SUM(c,-ab(ff(x))) > 0 , }) // 24
+              , clause({ 0 != _SUM(x,-skx(x3)) , _SUM(c,-ab(ff(x))) > 0 , }) // 77
+              , clause({ 0 != _SUM(z,-skx(x3)) , gg(z) >= 0 , _SUM(c,gg(z)) > 0 , }) // 56
+              , clause({ 0 != _SUM(x,-skx(y)) , gg(x) >= 0 , c > 0 , }) // 86
+              , clause({ _SUM(delta,-ab(1 + y)) >= 0 , gg(y) >= 0 , _SUM(c,gg(y)) > 0 , }) // 43
+              , clause({ _SUM(delta,-ab(x + 1)) >= 0 , gg(x) >= 0 , c > 0 , }) // 102
+              , clause({ _SUM(-1,-skx(x)) > 0 , _SUM(1,skx(x)) >= 0 , -delta > 0 , }) // 61
+              , clause({ 0 != _SUM(z,-skx(x3)) , ff(z) >= 0 , _SUM(c,ff(z)) > 0 , }) // 83
+              , clause({ _SUM(delta,-ab(1 + y)) >= 0 , ff(y) >= 0 , _SUM(c,ff(y)) > 0 , }) // 70
+              , clause({ 0 != _SUM(x,-skx(y)) , ff(x) >= 0 , c > 0 , }) // 112
+              , clause({ _SUM(delta,-ab(x + 1)) >= 0 , ff(x) >= 0 , c > 0 , }) // 127
+              , clause({ 0 != _SUM(x,-skx(y)) , _SUM(c,gg(x)) > 0 , -c >= 0 , }) // 87
+              , clause({ _SUM(c,-ab(gg(y))) > 0 , _SUM(1,y) >= 0 , _SUM(1,_SUM(delta,y)) >= 0 , }) // 44
+              , clause({ 0 != _SUM(x,-skx(y)) , _SUM(c,ff(x)) > 0 , -c >= 0 , }) // 113
+              , clause({ 0 != _SUM(x,-skx(y)) , -gg(x) > 0 , _SUM(c,-gg(x)) > 0 , }) // 53
+              , clause({ 0 != _SUM(x,-skx(y)) , c > 0 , -gg(x) > 0 , }) // 157
+              , clause({ _SUM(c,-ab(ff(y))) > 0 , _SUM(1,y) >= 0 , _SUM(1,_SUM(delta,y)) >= 0 , }) // 71
+              , clause({ 0 != _SUM(x,-skx(y)) , c > 0 , }) // 173
+              , clause({ c > 0 , }) // 189
+              , clause({ 0 != _SUM(x,-skx(y)) , -ff(x) > 0 , _SUM(c,-ff(x)) > 0 , }) // 80
+              , clause({ _SUM(delta,-ab(x + 1)) >= 0 , -gg(x) > 0 , _SUM(c,-gg(x)) > 0 , }) // 41
+
+        })
+      .expected(
+            contains(
+                        clause({ delta + -ab(x + 1) >= 0, c > 0
+                                 , delta + -ab(x + 1) >= 0, -gg(x) > 0,
+                                 c > 0
+                                 })
+              )
+    )
+      )
+
 
 // [       is ]: [ $greater(0.0, 0.0) | ~((((15.0 * X0) + ((-15.0 * X1) + g((15.0 * X0), X1))) = ((15.0 * X2) + $uminus(g(X3, X2))))) ]
 // [ expected ]: [ $greater(0.0, 0.0) | ~(((((15.0 * X0) + (-15.0 * X1)) + g((15.0 * X0), X1)) = ((15.0 * X0) + $uminus(g(X2, X0))))) ]

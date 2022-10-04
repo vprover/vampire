@@ -18,6 +18,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/LASCA.hpp"
+#include "Kernel/QKbo.hpp"
 
 
 #include "Forwards.hpp"
@@ -68,6 +69,8 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
       }
     };
 
+    // TODO get rid of globalState
+    auto shared = LascaState::globalState;
     switch(_mode) {
       case Shell::Options::UnificationWithAbstraction::OFF:
         return false;
@@ -93,7 +96,55 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
       case Shell::Options::UnificationWithAbstraction::LASCA2:  {
         return (ircAbsractCoarse(t1) || ircAbsractCoarse(t2)) 
-          && !LascaState::globalState->equivalent(t1, t2);
+          && !shared->equivalent(t1, t2);
+      }
+
+      case Shell::Options::UnificationWithAbstraction::LASCA4:  {
+
+        TIME_TRACE("unification with abstraction LASCA4")
+
+
+        if (t1.isVar() && t2.isVar()) return true;
+        TermList sort;
+        if (t1.isTerm() && t2.isTerm()) {
+          sort = SortHelper::getResultSort(t1.term());
+          if (SortHelper::getResultSort(t2.term()) != sort) {
+            return false;
+          }
+
+        } else {
+          sort = t1.isTerm() ? SortHelper::getResultSort(t1.term()) 
+                             : SortHelper::getResultSort(t2.term());
+        }
+
+        if (!shared->interpretedFunction(t1) && !shared->interpretedFunction(t2))
+          return false;
+
+        auto canAbstract = forAnyNumTraits([&](auto numTraits) {
+            if (numTraits.sort() == sort) {
+                auto a1 = shared->signedAtoms<decltype(numTraits)>(t1);
+                auto a2 = shared->signedAtoms<decltype(numTraits)>(t2);
+
+                if (a1.isNone() || a2.isNone()) 
+                  return Option<bool>(true);
+
+                // we have s or t being a sum `k x + ... `
+                if (concatIters(a1.unwrap().elems.iter(), a2.unwrap().elems.iter())
+                       .any([&](auto& x) { return get<0>(x).term.isVar(); }))
+                  return Option<bool>(true);
+
+                return Option<bool>(Ordering::Result::EQUAL == OrderingUtils2::weightedMulExt(
+                    a1.unwrap(),
+                    a2.unwrap(),
+                    [](auto& l, auto& r) { return (l.sign == r.sign && l.term.term()->functor() == r.term.term()->functor())
+                      ? Ordering::Result::EQUAL
+                      : Ordering::Result::INCOMPARABLE; }));
+            } else {
+                return Option<bool>();
+            }
+        });
+
+        return canAbstract.unwrap();
       }
 
       case Shell::Options::UnificationWithAbstraction::LASCA3:  {

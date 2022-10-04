@@ -86,6 +86,7 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG("rhs: ", rhs)
+
     for (auto lhs_sigma : _lhsIndex->find(rhs.monom())) {
       auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
@@ -98,6 +99,7 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
       }
     }
   }
+
   return pvi(ownedArrayishIterator(std::move(out)));
 }
 
@@ -136,11 +138,16 @@ Option<Clause*> FourierMotzkin::applyRule(
     UwaResult& uwa
     ) const 
 {
+
+#define __LASCA_FM_DERIVE_EQUALITIES 1
+
   CALL("FourierMotzkin::applyRule")
   TIME_TRACE("fourier motzkin")
 
+
   return lhs.numTraits().apply([&](auto numTraits) {
     using NumTraits = decltype(numTraits);
+
 
 
 
@@ -167,7 +174,9 @@ Option<Clause*> FourierMotzkin::applyRule(
     Stack<Literal*> out( lhs.clause()->size() - 1 // <- C1
                        + rhs.clause()->size() - 1 // <- C2
                        + 1                        // <- k t₁ + j t₂ > 0
+#if __LASCA_FM_DERIVE_EQUALITIES
                        + (tight ? 1 : 0)          // <- -k s₂ + t₂ ≈ 0
+#endif // __LASCA_FM_DERIVE_EQUALITIES
                        + uwa.cnst().size());      // Cnst
 
 
@@ -245,6 +254,8 @@ Option<Clause*> FourierMotzkin::applyRule(
       resolventTerm = add(resolventTerm, NumTraits::constantTl(-1));
     }
 
+#if __LASCA_FM_DERIVE_EQUALITIES
+    // (k t₁ + j t₂ > 0)σ
     out.push(NumTraits::greater(true, resolventTerm, NumTraits::zero()));
 
     if (tight) {
@@ -252,6 +263,13 @@ Option<Clause*> FourierMotzkin::applyRule(
         uwa.sigma(rhs.literal(), rhsVarBank)->termArg(0);
       out.push(NumTraits::eq(true, rhsSum, NumTraits::zero()));
     }
+#else 
+                   // (k t₁ + j t₂ >= 0)σ
+    out.push(tight ? NumTraits::geq    (true, resolventTerm, NumTraits::zero())
+                   // (k t₁ + j t₂ > 0)σ
+                   : NumTraits::greater(true, resolventTerm, NumTraits::zero()));
+
+#endif
 
     out.loadFromIterator(uwa.cnstLiterals());
 

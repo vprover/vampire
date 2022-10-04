@@ -24,6 +24,8 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 
+#define DEBUG(...) // DBG(__VA_ARGS__)
+
 namespace Indexing {
 
 template<class T>
@@ -35,18 +37,30 @@ public:
 
   LascaIndex(Options::UnificationWithAbstraction uwa)
     : _index(uwa, /* use constraints */  true)
+    , _uwa(uwa)
     , _shared()
   {}
 
   void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
 
-  // TODO remove?!
   auto find(TermList key)
-  { 
+  {
     CALL("LascaIndex::find")
     return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
-      .map([](TermQueryResult<T> r) 
+      .map([](TermQueryResult<T> r)
            { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  })
+      .filter([=](auto& x) {
+          Stack<UnificationConstraint> c;
+          UWAMismatchHandler hndlr(_uwa, c);
+          auto result = get<1>(x).cnstLiterals()
+            .all([&](auto lit) {
+                ASS(lit->isEquality() && lit->isNegative())
+                return hndlr.checkUWA(lit->termArg(0), lit->termArg(1));
+            });
+          if (!result) { DEBUG("skipping wrong constraints: ", c) }
+          ASS(c.isEmpty());
+          return result;
+      })
       .timeTraced(_lookupStr.c_str()); }
 
 
@@ -56,13 +70,14 @@ public:
   auto instances(TermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
-  virtual void handleClause(Clause* c, bool adding) final override 
+  virtual void handleClause(Clause* c, bool adding) final override
   {
     CALL("LascaIndex::handleClause")
     TIME_TRACE(_maintainanceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
         _index.insert(std::move(appl));
+        ASS(find(appl.key()).hasNext())
       } else {
         _index.remove(std::move(appl));
       }
@@ -71,6 +86,7 @@ public:
 
 private:
   TermSubstitutionTree<T> _index;
+  Options::UnificationWithAbstraction _uwa;
   shared_ptr<Kernel::LascaState> _shared;
   static vstring _lookupStr;
   static vstring _maintainanceStr;
@@ -80,5 +96,7 @@ template<class T> vstring LascaIndex<T>::_lookupStr = T::name() + vstring(" look
 template<class T> vstring LascaIndex<T>::_maintainanceStr = T::name() + vstring(" maintainance");
 
 } // namespace Indexing
+
+#undef DEBUG
 
 #endif // __LASCA_LascaIndex__

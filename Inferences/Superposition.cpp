@@ -635,7 +635,7 @@ Clause* Superposition::performSuperposition(
       TermList qT = subst->applyTo(con.first.first,con.first.second);
       TermList rT = subst->applyTo(con.second.first,con.second.second);
 
-      TermList sort = SortHelper::getResultSort(rT.term());
+      TermList sort = SortHelper::getResultSort(rT.isTerm() ? rT.term() : qT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
       static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();

@@ -277,8 +277,8 @@ Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const
                ( t1.isTerm() && SortHelper::getResultSort(t1.term()) == numTraits.sort() )
             || ( t2.isTerm() && SortHelper::getResultSort(t2.term()) == numTraits.sort() )
             ) {
-          auto a1 = signedAtoms<NumTraits>(t1);
-          auto a2 = signedAtoms<NumTraits>(t2);
+          auto a1 = _shared->signedAtoms<NumTraits>(t1);
+          auto a2 = _shared->signedAtoms<NumTraits>(t2);
           if (a1.isNone() || a2.isNone()) {
             return Option<Result>(Result::INCOMPARABLE);
           } else {
@@ -371,53 +371,5 @@ Option<TermList> QKbo::abstr(TermList t) const
 
 void QKbo::show(ostream& out) const 
 { _kbo.show(out); }
-
-bool QKbo::hasSubstitutionProperty(SignedAtoms const& l) const
-{
-
-  auto maybeEquiv = [this](TermList l, TermList r) -> bool 
-  {
-    ASS_NEQ(l, r)
-
-    if (l.ground() && r.ground()) {
-      return _shared->equivalent(l.term(), r.term());
-
-    } else if (_shared->unify(l, r).isSome()) {
-      return true;
-
-    } else {
-      return false;
-    }
-  };
-
-  Stack<TermList> pos;
-  Stack<TermList> neg;
-  for (auto const& t_ : l.elems.iter()) {
-    auto const& sign = std::get<0>(t_).sign;
-    auto const& term = std::get<0>(t_).term;
-
-    if (term.isVar() && sign != Sign::Zero) {
-      if (concatIters(pos.iterFifo(), neg.iterFifo()).any([&](auto s) { return maybeEquiv(s, term); })) {
-        return false;
-      }
-      pos.push(term);
-      neg.push(term);
-    } else if (sign != Sign::Zero) {
-
-      auto& same  = sign == Sign::Pos ? pos : neg;
-      auto& other = sign == Sign::Pos ? neg : pos;
-
-
-
-      if (iterTraits(other.iterFifo())
-        .any([&](auto& s) { return maybeEquiv(s, term); })) 
-      {
-          return false;
-      }
-      same.push(term);
-    }
-  }
-  return true;
-}
 
 } // Kernel
