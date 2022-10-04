@@ -55,27 +55,31 @@ void TypeSubstitutionTree::remove(TermList sort, LeafData ld)
 
 struct TypeSubstitutionTree::ToTermUnifier
 {
-  ToTermUnifier(TermList queryTerm, bool retrieveSubstitutions, MismatchHandler* hndlr)
-  : _queryTerm(queryTerm), _retrieveSubstitutions(retrieveSubstitutions), _handler(hndlr) {}
+  ToTermUnifier(TermList queryTerm, TermList sort, bool retrieveSubstitutions, MismatchHandler* hndlr)
+  : _queryTerm(queryTerm), _sort(sort), _retrieveSubstitutions(retrieveSubstitutions), _handler(hndlr) {}
 
   bool enter (const TermQueryResult& tqr) {
     CALL("TypeSubstitutionTree::ToTermUnifier::enter");
     if(_retrieveSubstitutions){
       RobSubstitution* subst=tqr.substitution->tryGetRobSubstitution();
       ASS(subst);
+      // instantiate the sort
+      TermList sortI = subst->apply(_sort,QRS_QUERY_BANK);
+     
       if(_queryTerm.isVar() || tqr.term.isVar()){
-        if(_handler){
-          ASS(!tqr.term.isVar()); // constraints should never be variables
-          if(_handler->isConstraintTerm(tqr.term).maybe()){
-            // term is also in the standard tree and we will unify with it there
-            return false;
-          }
+        // If one of the terms is a variable, we extend the sort unifier to 
+        // a term unifier if this isnt going to take place in the standard tree
+        ASS(_handler)
+        if(_handler->isConstraintTerm(tqr.term, sortI).maybe()){
+          // term is also in the standard tree and we will unify with it there
+          return false;
         }
+        
         subst->bdRecord(_bdata);
         ALWAYS(subst->unify(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK));
         subst->bdDone();        
-      } else {
-        return subst->tryAddConstraint(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK, _bdata);
+      } else{
+        return subst->tryAddConstraint(_queryTerm, QRS_QUERY_BANK, tqr.term, QRS_RESULT_BANK, sortI, _bdata);
       }
     }
     return true;
@@ -92,6 +96,7 @@ struct TypeSubstitutionTree::ToTermUnifier
 
 private:
   TermList _queryTerm;
+  TermList _sort;
   bool _retrieveSubstitutions;
   MismatchHandler* _handler;
   BacktrackData _bdata;
@@ -142,15 +147,15 @@ TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, Ter
  
   if(sort.isOrdinaryVar()) {
     return pvi(getContextualIterator(getAllUnifyingIterator(sort,retrieveSubstitutions), 
-      ToTermUnifier(trm, retrieveSubstitutions, _handler)));
+      ToTermUnifier(trm, sort, retrieveSubstitutions, _handler)));
   } else {
     ASS(sort.isTerm());
     auto it1 = 
       pvi(getContextualIterator(ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), sort, retrieveSubstitutions), 
-        ToTermUnifier(trm, retrieveSubstitutions, _handler)));
+        ToTermUnifier(trm, sort, retrieveSubstitutions, _handler)));
     auto it2 = getContextualIterator(
 	    getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions), 
-        ToTermUnifier(trm, retrieveSubstitutions, _handler));
+        ToTermUnifier(trm, sort, retrieveSubstitutions, _handler));
     return pvi(getConcatenatedIterator(it1, it2));     
   }
 }

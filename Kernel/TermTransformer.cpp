@@ -29,6 +29,8 @@ Term* TermTransformer::transform(Term* term)
 {
   CALL("TermTransformer::transform(Term* term)");
 
+  onTermEntry(term);
+
   if (term->isSpecial()) {
     return transformSpecial(term);
   }
@@ -127,6 +129,8 @@ Term* TermTransformer::transform(Term* term)
   ASS(terms.isEmpty());
   ASS_EQ(modified.length(), 1);
   ASS_EQ(args.length(), term->arity());
+
+  onTermExit(term);
 
   if (!modified.pop()) {
     return term;

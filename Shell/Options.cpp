@@ -1189,14 +1189,15 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                      UnificationWithAbstraction::OFF,
-                                     {"off","interpreted_only","one_side_interpreted"});
+                                     {"off","interp_only","one_side_interp","one_side_interp_no_vars"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
       "use case is in theory reasoning. The possible values are:"
       "- off: do not introduce a constraint\n"
-      "- interpreted_only: only if s and t have interpreted top symbols\n"
-      "- one_side_interpreted: only if one of s or t have interpreted top symbols\n"
+      "- interp_only: only if s and t have interpreted top symbols\n"
+      "- one_side_interp: only if one of s or t have interpreted top symbols\n"
+      "- one_side_interp_no_vars: same as one_side_interp, but neither s nor t can be a var \n"
       "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
       "- all: always apply\n"
       "- ground: only if both s and t are ground\n"

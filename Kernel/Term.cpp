@@ -254,21 +254,6 @@ bool TermList::allShared(TermList* args)
   return true;
 }
 
-TermList TermList::getVSpecVar(Term* trm, VSpecVarToTermMap* map)
-{
-  CALL("TermList::getVSpecVar");
-
-  unsigned vNum;
-  if(map->find(trm, vNum)){
-    ASS(vNum > TermList::SPEC_UPPER_BOUND);
-    return TermList(vNum, true);
-  } else {
-    unsigned vNum = TermList::SPEC_UPPER_BOUND + map->size() + 1;
-    map->insert(vNum, trm);
-    return TermList(vNum, true);
-  }
-}
-
 unsigned TermList::weight() const
 {
   return isVar() ? 1 : term()->weight();

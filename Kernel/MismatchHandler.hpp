@@ -36,8 +36,8 @@ public:
   // Implementors NEED to override this function with
   // their specific logic. 
   // It shold be possible to make use of isConstraintTerm() here
-  virtual bool isConstraintPair(TermList t1, TermList t2) = 0;
-  virtual TermList transformSubterm(TermList t) = 0;
+  virtual bool isConstraintPair(TermList t1, TermList t2, TermList sort) = 0;
+  virtual TermList transformSubterm(TermList t, TermList sort) = 0;
 
   // With polymorphism, a term may end up being a constraint term
   // depending on type substitutions.
@@ -58,10 +58,7 @@ public:
   //   + If it returns maybe, we attempt to find BOTH type of partners for trm
   // - It may be convenient to use this function in the implementation of transformSubterm
   //   View UWAMismatchHandler::transformSubterm() for an example of this
-  virtual MaybeBool isConstraintTerm(TermList t) = 0;
-  VSpecVarToTermMap* getTermMap() { return &_termMap; }
-protected:
-  VSpecVarToTermMap _termMap;
+  virtual MaybeBool isConstraintTerm(TermList t, TermList sort) = 0;
 };
 
 /**
@@ -80,16 +77,24 @@ public:
   }
 
   // Returns true if the mismatch can be handled by some handler
-  //
-  // Implementors do NOT need to override this function. Only the composite handler
-  // needs to.
+  // to be used from locations other than RobSubstitution
+  bool handle(TermList t1, unsigned index1, 
+              TermList t2, unsigned index2, 
+              TermList sort,
+              UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
+
+  // for use in RobSubstitution where we don't always know the sort of the
+  // the very special vars
   bool handle(TermList t1, unsigned index1, 
               TermList t2, unsigned index2, 
               UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
 
   TermList transformSubterm(TermList trm) override;
-  MaybeBool isConstraintTerm(TermList t); 
-  Term* get(unsigned var);
+  void onTermEntry(Term* t) override;
+  void onTermExit(Term* t) override;
+
+  MaybeBool isConstraintTerm(TermList t, TermList sort); 
+  TermList get(unsigned var);
 
   void addHandler(unique_ptr<AtomicMismatchHandler> hndlr);
   bool isEmpty() const { return _inners.isEmpty(); }
@@ -97,12 +102,30 @@ public:
   CLASS_NAME(MismatchHandler);
   USE_ALLOCATOR(MismatchHandler);
 
+  static TermList getVSpecVar(TermList trm)
+  {
+    CALL("TermList::getVSpecVar");
+
+    unsigned vNum;
+    if(_termMap.find(trm, vNum)){
+      ASS(vNum > TermList::SPEC_UPPER_BOUND);
+      return TermList(vNum, true);
+    } else {
+      unsigned vNum = TermList::SPEC_UPPER_BOUND + _termMap.size() + 1;
+      _termMap.insert(vNum, trm);
+      return TermList(vNum, true);
+    }
+  }
+
 private:
   void introduceConstraint(
       TermList t1, unsigned index1, 
       TermList t2, unsigned index2, 
       UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
-
+  
+  TermStack _appTerms;  
+  Stack<Term*> _terms;
+  static VSpecVarToTermMap _termMap;
   Stack<unique_ptr<AtomicMismatchHandler>> _inners;
 };
 
@@ -112,9 +135,9 @@ public:
   UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
   ~UWAMismatchHandler() override {}
 
-  bool isConstraintPair(TermList t1, TermList t2) override; 
-  TermList transformSubterm(TermList trm) override;
-  MaybeBool isConstraintTerm(TermList t) override; 
+  bool isConstraintPair(TermList t1, TermList t2, TermList sort) override; 
+  TermList transformSubterm(TermList trm, TermList sort) override;
+  MaybeBool isConstraintTerm(TermList t, TermList sort) override; 
 
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
@@ -129,9 +152,9 @@ public:
   HOMismatchHandler() {}
   ~HOMismatchHandler() override {}
   
-  bool isConstraintPair(TermList t1, TermList t2) override;
-  TermList transformSubterm(TermList trm) override;
-  MaybeBool isConstraintTerm(TermList t) override; 
+  bool isConstraintPair(TermList t1, TermList t2, TermList sort) override;
+  TermList transformSubterm(TermList trm, TermList sort) override;
+  MaybeBool isConstraintTerm(TermList t, TermList sort) override; 
 
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);

@@ -98,7 +98,7 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
 
   LeafData ld(cls, lit, t);
 
-  if(_handler && constraintTermHandled(t, ld, insert)) return;
+  if(_handler && constraintTermHandled(t, lit, ld, insert)) return;
 
   if(t.isOrdinaryVar()) {
     if(insert) {
@@ -129,14 +129,17 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
   }
 }
 
-bool TermSubstitutionTree::constraintTermHandled(TermList t, LeafData ld, bool insert){
+bool TermSubstitutionTree::constraintTermHandled(TermList t, Literal* lit, LeafData ld, bool insert){
   CALL("TermSubstitutionTree::constraintTermHandled");
 
   ASS(_handler);
-
-  auto res = _handler->isConstraintTerm(t);
+  
+  // where t is a variable, using getTerSort is suboptimal
+  // It would be far better to pass the sort into handleTerm
+  // as this would save having to ttraverse the term a second time
+  TermList sort = SortHelper::getTermSort(t, lit);
+  auto res = _handler->isConstraintTerm(t, sort);
   if(!res.isFalse()){
-    auto sort = SortHelper::getResultSort(t.term()); 
     _constraintTerms->handleTerm(sort, ld, insert);
     // if it is only possibly a constraint term, we still want to insert
     // it into the standard tree as well
@@ -186,13 +189,13 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
 
     // get top level constraints
     // if @param t can play no part in constraints, we optimise
-    auto it2 = !_handler->isConstraintTerm(t).isFalse() ?
+    auto it2 = !_handler->isConstraintTerm(t, sort).isFalse() ?
        _constraintTerms->getUnifications(sort, t, retrieveSubstitutions) :
        TermQueryResultIterator::getEmpty();
 
     // get unifiers from standard tree
     // again we optimise and avoid uselessly traversing the tree
-    auto it3 = !_handler->isConstraintTerm(t).isTrue() ?
+    auto it3 = !_handler->isConstraintTerm(t, sort).isTrue() ?
        getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions) :
        TermQueryResultIterator::getEmpty();
 

@@ -89,7 +89,7 @@ public:
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
-  bool tryAddConstraint(TermList t1,int index1, TermList t2, int index2, BacktrackData& bd);
+  bool tryAddConstraint(TermList t1,int index1, TermList t2, int index2, TermList sort, BacktrackData& bd);
   // WARNING functions below must only be called
   // at a point where this object represents the complete
   // substitution between two terms. It is not safe to call either function

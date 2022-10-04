@@ -175,7 +175,6 @@ public:
   static bool equals(TermList t1, TermList t2);
   static bool allShared(TermList* args);
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
-  static TermList getVSpecVar(Term* trm, VSpecVarToTermMap* map);
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */

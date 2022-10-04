@@ -83,7 +83,7 @@ private:
 
   void insert(TermList t, LeafData ld);
   void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
-  bool constraintTermHandled(TermList t, LeafData ld, bool insert);
+  bool constraintTermHandled(TermList t, Literal* lit, LeafData ld, bool insert);
 
   struct TermQueryResultFn;
 
