@@ -493,8 +493,16 @@ TEST_FUN(term_indexing_interp_only_diff_tops2)
           .constraints = { 1 + a != num(3), } },
       });
 
-  index->insert(f(num(4), b)), p(f(1 + a, x)), unit(p(f(1 + a, x))));
+  index->insert(f(num(4), b), p(f(num(4), b)), unit(p(f(num(4), b))));
 
+  checkTermMatches(index, f(num(3),b), Int,
+      { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(num(3),b),
+          .resultSigma = f(1 + a, b),
+          .constraints = { 1 + a != num(3), } },
+      });
 
 }
 
