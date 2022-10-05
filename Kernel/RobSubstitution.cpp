@@ -341,7 +341,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
       ASS(_handler);
       // if both are constraint terms (e.g. $sum(...)  or $product(...) or higher-order stuff)
       // then hand pair over to relevant handler to create constraint
-      ALWAYS(_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording));
+      if(!_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording)){
+        TermList t1 = _handler->get(dt1.term.var());
+        TermList t2 = _handler->get(dt2.term.var());
+        toDo.push(TTPair(TermSpec(t1, dt1.index), TermSpec(t2, dt2.index)));
+      }    
     } 
     // Deal with the case where either are variables
     // Do an occurs-check and note that the variable 

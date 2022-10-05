@@ -178,6 +178,21 @@ TEST_FUN(term_indexing_one_side_interp_no_vars)
 
       });
 
+  checkTermMatches(index, num(4), Int,
+      { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = num(4),
+          .resultSigma = 1 + a,
+          .constraints = { 1 + a != num(4), } },
+
+        TermUnificationResultSpec 
+        { .querySigma  = num(4),
+          .resultSigma = 1 + num(1),
+          .constraints = { num(4) != 1 + num(1), } }, 
+
+      });
+
   index->insert(a,p(a),unit(p(a)));
 
   checkTermMatches(index,b + 2, Int, {
@@ -296,6 +311,21 @@ TEST_FUN(term_indexing_one_side_interp)
 
       });
 
+  checkTermMatches(index, num(3), Int,
+      { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = num(3),
+          .resultSigma = 1 + a,
+          .constraints = { 1 + a != num(3), } },
+
+        TermUnificationResultSpec 
+        { .querySigma  = num(3),
+          .resultSigma = 1 + num(1),
+          .constraints = {num(3) != 1 + num(1), } }, 
+
+      });
+
   index->insert(a,p(a),unit(p(a)));
 
   checkTermMatches(index, x, Int, {
@@ -368,6 +398,30 @@ TEST_FUN(term_indexing_one_side_interp)
           .resultSigma = f(x, 2+x),
           .constraints = Stack<Literal*>{x != 2 + x } },     
       });
+
+  checkTermMatches(index, f(a,num(4)), Int, {
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(a,num(4)),
+          .resultSigma = f(a,num(4)),
+          .constraints = Stack<Literal*>{} },
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(a,num(4)),
+          .resultSigma = 1 + a,
+          .constraints = { 1 + a != f(a,num(4)), } },
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(a,num(4)),
+          .resultSigma = 1 + num(1),
+          .constraints = { f(a,num(4)) != 1 + num(1), } }, 
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(a,num(4)),
+          .resultSigma = f(a, 2+a),
+          .constraints = Stack<Literal*>{num(4) != 2 + a } },     
+      });
+
 }
 
 TEST_FUN(term_indexing_interp_only_diff_tops)
@@ -415,6 +469,33 @@ TEST_FUN(term_indexing_interp_only_diff_tops)
         .constraints = Stack<Literal*>{ b * 2 != 1 + x} },
 
     });
+}
+
+TEST_FUN(term_indexing_interp_only_diff_tops2)
+{
+  TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::INTERP_DIFF_TOPS);
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
+  DECL_FUNC(f, {Int, Int}, Int)
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
+
+  index->insert(f(1 + a, x), p(f(1 + a, x)), unit(p(f(1 + a, x))));
+  
+  checkTermMatches(index, f(num(3),b), Int,
+      { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(num(3),b),
+          .resultSigma = f(1 + a, b),
+          .constraints = { 1 + a != num(3), } },
+      });
+
+  index->insert(f(num(4), b)), p(f(1 + a, x)), unit(p(f(1 + a, x))));
+
+
 }
 
 

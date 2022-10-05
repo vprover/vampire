@@ -31,9 +31,15 @@ namespace Kernel
 
 VSpecVarToTermMap MismatchHandler::_termMap;
 
+typedef Shell::UnificationWithAbstractionConfig uwaconf;
+
 bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2, TermList sort)
 {
   CALL("UWAMismatchHandler::isConstraintPair");
+
+  if(uwaconf::isNumeral(t1) && uwaconf::isNumeral(t2)){
+    return false;
+  }
 
   switch (_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_DIFF_TOPS: 
@@ -54,10 +60,23 @@ bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2, TermList sor
 TermList UWAMismatchHandler::transformSubterm(TermList trm, TermList sort)
 {
   CALL("UWAMismatchHandler::transformSubterm");
- 
-  if(isConstraintTerm(trm, sort).isTrue()){
-    return MismatchHandler::getVSpecVar(trm);
-  }
+
+  switch (_mode) {
+    case Shell::Options::UnificationWithAbstraction::INTERP_DIFF_TOPS: 
+      if(isConstraintTerm(trm, sort).maybe()){
+        return MismatchHandler::getVSpecVar(trm);
+      }
+      break;
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP_NO_VARS:
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+      if(isConstraintTerm(trm, sort).isTrue()){
+        return MismatchHandler::getVSpecVar(trm);
+      }
+      break;
+    case Shell::Options::UnificationWithAbstraction::OFF:
+      ASSERTION_VIOLATION
+  } 
   return trm;
 }
 
@@ -68,14 +87,12 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t, TermList sort){
     return sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort();
   };
 
-  typedef Shell::UnificationWithAbstractionConfig uwaconf;
-
   switch (_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY: {
-      return uwaconf::isInterpreted(t) && !uwaconf::isNumeral(t);
+      return uwaconf::isInterpreted(t);
     }
     case Shell::Options::UnificationWithAbstraction::INTERP_DIFF_TOPS:{
-      if(uwaconf::isInterpreted(t) && !uwaconf::isNumeral(t)){
+      if(uwaconf::isInterpreted(t)){
         return MaybeBool::UNKNOWN;
       }
       return false;
@@ -88,7 +105,7 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t, TermList sort){
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP_NO_VARS:{
       if(t.isVar()) return false;
 
-      if(uwaconf::isInterpreted(t) && !uwaconf::isNumeral(t)){
+      if(uwaconf::isInterpreted(t)){
         return true;
       }
       
