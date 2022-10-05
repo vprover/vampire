@@ -68,7 +68,7 @@ struct TypeSubstitutionTree::ToTermUnifier
      
       if(_queryTerm.isVar() || tqr.term.isVar()){
         // If one of the terms is a variable, we extend the sort unifier to 
-        // a term unifier if this isnt going to take place in the standard tree
+        // a term unifier if this isn't going to take place in the standard tree
         ASS(_handler)
         if(_handler->isConstraintTerm(tqr.term, sortI).maybe()){
           // term is also in the standard tree and we will unify with it there

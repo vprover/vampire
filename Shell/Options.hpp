@@ -220,7 +220,8 @@ public:
     OFF,
     INTERP_ONLY,
     ONE_INTERP,
-    ONE_INTERP_NO_VARS
+    ONE_INTERP_NO_VARS,
+    INTERP_DIFF_TOPS,
     //CONSTANT,
     //ALL,
     //GROUND

@@ -35,9 +35,20 @@ bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2, TermList sor
 {
   CALL("UWAMismatchHandler::isConstraintPair");
 
-  return (isConstraintTerm(t1, sort).isTrue() && isConstraintTerm(t2, sort).maybe())  ||
-         (isConstraintTerm(t1, sort).maybe()  && isConstraintTerm(t2, sort).isTrue()) ||
-         (isConstraintTerm(t1, sort).isTrue() && isConstraintTerm(t2, sort).isTrue());
+  switch (_mode) {
+    case Shell::Options::UnificationWithAbstraction::INTERP_DIFF_TOPS: 
+      return isConstraintTerm(t1, sort).maybe() && isConstraintTerm(t2, sort).maybe() &&
+             t1.term()->functor() != t2.term()->functor();
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP_NO_VARS:
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+      return (isConstraintTerm(t1, sort).isTrue() && isConstraintTerm(t2, sort).maybe())  ||
+             (isConstraintTerm(t1, sort).maybe()  && isConstraintTerm(t2, sort).isTrue()) ||
+             (isConstraintTerm(t1, sort).isTrue() && isConstraintTerm(t2, sort).isTrue());
+    case Shell::Options::UnificationWithAbstraction::OFF:
+      ASSERTION_VIOLATION
+      return false;
+  }
 }
 
 TermList UWAMismatchHandler::transformSubterm(TermList trm, TermList sort)
@@ -62,6 +73,12 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t, TermList sort){
   switch (_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY: {
       return uwaconf::isInterpreted(t) && !uwaconf::isNumeral(t);
+    }
+    case Shell::Options::UnificationWithAbstraction::INTERP_DIFF_TOPS:{
+      if(uwaconf::isInterpreted(t) && !uwaconf::isNumeral(t)){
+        return MaybeBool::UNKNOWN;
+      }
+      return false;
     }
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
       if(t.isVar() && isInterpretedOrPoly(sort)){
