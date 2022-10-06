@@ -206,7 +206,8 @@ private:
   static TermSymbol getBuiltInTermSymbol(const vstring& str);
 
   /**
-   * Is the given vstring a built-in FormulaSymbol, built-in TermSymbol or a declared function?
+   * Is the given vstring a built-in FormulaSymbol, built-in TermSymbol
+   * or a declared function/predicate/type constructor?
    */
   bool isAlreadyKnownSymbol(const vstring& name);
 
@@ -217,7 +218,7 @@ private:
   };
   /** <vampire signature id, symbol type> */
   typedef std::pair<unsigned,SymbolType> DeclaredSymbol;
-  /** functions are implicitly declared also when they are defined (see below) */
+  /** symbols are implicitly declared also when they are defined (see below) */
   DHMap<vstring, DeclaredSymbol> _declaredSymbols;
 
   /**
@@ -246,7 +247,7 @@ private:
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
-  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort, unsigned numPars,
+  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort, unsigned numTypeArgs,
                                                       Stack<vstring> destructorNames, TermStack argSorts);
 
   /**
@@ -317,7 +318,9 @@ private:
   /** For generating fresh vampire variables */
   unsigned _nextVar;
 
-  /** < termlist, vampire sort id > */
+  /** < termlist, vampire sort id, flag for let variables with type args >
+   * @see parseAsScopeLookup
+   */
   typedef tuple<TermList,TermList,bool> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<vstring,SortedTerm> TermLookup;
@@ -352,8 +355,8 @@ private:
     PO_MATCH_CASE_START,   // takes LExpr*, a list containing the matched term, pattern, case
     PO_MATCH_CASE_END,     // takes LExpr*, a list containing the matched term, pattern, case
     PO_MATCH_END,          // takes LExpr* (the whole match again)
-    PO_QUANT,
-    PO_POP_LOOKUP,
+    PO_QUANT,              // takes LExpr* (the whole quantified expression again)
+    PO_POP_LOOKUP,         // takes nothing
   };
   /**
    * Main smtlib term parsing stack.

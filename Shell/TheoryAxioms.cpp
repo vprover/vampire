@@ -1175,7 +1175,7 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
 
   TermList x(0, false);
   TermStack typeVars;
-  for (unsigned i = 0; i < ta->nPars(); i++) {
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
     typeVars.push(TermList(i+1,false));
   }
   TermStack dargTerms = typeVars;
@@ -1190,8 +1190,8 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
     TermAlgebraConstructor *c = ta->constructor(i);
     argTerms = typeVars;
 
-    for (unsigned j = ta->nPars(); j < c->arity(); j++) {
-      auto k = j-ta->nPars();
+    for (unsigned j = ta->nTypeArgs(); j < c->arity(); j++) {
+      auto k = j-ta->nTypeArgs();
       if (c->argSort(j) == AtomicSort::boolSort()) {
         addsFOOL = true;
         Literal* lit = Literal::create(c->destructorFunctor(k), dargTerms.size(), true, false, dargTerms.begin());
@@ -1245,14 +1245,14 @@ void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta) {
 
   unsigned var = 0;
   TermStack typeVars;
-  for (unsigned i = 0; i < ta->nPars(); i++) {
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
     typeVars.push(TermList(var++,false));
   }
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
 
     Stack<TermList> args = typeVars;
-    for (unsigned j = ta->nPars(); j < c->arity(); j++) {
+    for (unsigned j = ta->nTypeArgs(); j < c->arity(); j++) {
       args.push(TermList(var++, false));
     }
     TermList term(Term::create(c->functor(), (unsigned)args.size(), args.begin()));
@@ -1273,7 +1273,7 @@ void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
 
   TermStack typeVars;
   unsigned var = 0;
-  for (unsigned i = 0; i < ta->nPars(); i++) {
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
     typeVars.push(TermList(var++,false));
   }
 
@@ -1283,7 +1283,7 @@ void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
     Stack<TermList> lhsArgs = typeVars;
     Stack<TermList> rhsArgs = typeVars;
 
-    for (unsigned j = ta->nPars(); j < c->arity(); j++) {
+    for (unsigned j = ta->nTypeArgs(); j < c->arity(); j++) {
       lhsArgs.push(TermList(j * 2, false));
       rhsArgs.push(TermList(j * 2 + 1, false));
     }
@@ -1292,7 +1292,7 @@ void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
     TermList rhs(Term::create(c->functor(), (unsigned)rhsArgs.size(), rhsArgs.begin()));
     Literal* eql = Literal::createEquality(false, lhs, rhs, ta->sort());
 
-    for (unsigned j = ta->nPars(); j < c->arity(); j++) {
+    for (unsigned j = ta->nTypeArgs(); j < c->arity(); j++) {
       Literal* eqr = Literal::createEquality(true, TermList(j * 2, false), TermList(j * 2 + 1, false), c->argSort(j));
 
       addTheoryClauseFromLits({eql,eqr},InferenceRule::TERM_ALGEBRA_INJECTIVITY_AXIOM,CHEAP);
@@ -1352,13 +1352,13 @@ void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta)
   }
 
   TermStack args;
-  for (unsigned i = 0; i < ta->nPars(); i++) {
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
     args.push(TermList(i,false));
   }
-  args.push(TermList(ta->nPars(),false));
-  args.push(TermList(ta->nPars(),false));
+  args.push(TermList(ta->nTypeArgs(),false));
+  args.push(TermList(ta->nTypeArgs(),false));
 
-  Literal* sub = Literal::create(pred, ta->nPars()+2, false, false, args.begin());
+  Literal* sub = Literal::create(pred, ta->nTypeArgs()+2, false, false, args.begin());
   addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM,CHEAP);
 }
 
@@ -1369,12 +1369,12 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
   TermList z(c->arity(), false);
 
   TermStack typeVars;
-  for (unsigned i = 0; i < c->pars(); i++) {
+  for (unsigned i = 0; i < c->numTypeArgs(); i++) {
     typeVars.push(TermList(i,false));
   }
 
   Stack<TermList> args = typeVars;
-  for (unsigned i = c->pars(); i < c->arity(); i++) {
+  for (unsigned i = c->numTypeArgs(); i < c->arity(); i++) {
     args.push(TermList(i, false));
   }
   TermList right(Term::create(c->functor(), (unsigned)args.size(), args.begin()));
@@ -1389,18 +1389,18 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
     TermStack subargs = typeVars;
     subargs.push(y);
     subargs.push(right);
-    Literal* sub = Literal::create(subtermPredicate, c->pars()+2, true, false, subargs.begin());
+    Literal* sub = Literal::create(subtermPredicate, c->numTypeArgs()+2, true, false, subargs.begin());
     addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM,CHEAP);
 
     // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
     TermStack trans1args = typeVars;
     trans1args.push(z);
     trans1args.push(y);
-    Literal* trans1 = Literal::create(subtermPredicate, c->pars()+2, false, false, trans1args.begin());
+    Literal* trans1 = Literal::create(subtermPredicate, c->numTypeArgs()+2, false, false, trans1args.begin());
     TermStack trans2args = typeVars;
     trans2args.push(z);
     trans2args.push(right);
-    Literal* trans2 = Literal::create(subtermPredicate, c->pars()+2, true, false, trans2args.begin());
+    Literal* trans2 = Literal::create(subtermPredicate, c->numTypeArgs()+2, true, false, trans2args.begin());
     addTheoryClauseFromLits({trans1,trans2}, InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM,CHEAP);
 
     added = true;

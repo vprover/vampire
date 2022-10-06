@@ -566,7 +566,6 @@ void SMTLIB2::readDeclareSort(const vstring& name, const vstring& arity)
   env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(val));
 }
 
-// TODO sort definitions are not yet handled anywhere
 void SMTLIB2::readDefineSort(const vstring& name, LExprList* args, LExpr* body)
 {
   CALL("SMTLIB2::readDefineSort");
@@ -583,6 +582,9 @@ void SMTLIB2::readDefineSort(const vstring& name, LExprList* args, LExpr* body)
 
 //  ----------------------------------------------------------------------
 
+/**
+ * Helper function for parsing a sort expression.
+ */
 TermList SMTLIB2::parseSort(LExpr* sExpr)
 {
   ParseResult pr = parseTermOrFormula(sExpr);
@@ -896,7 +898,7 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
   for (unsigned i = 0; i < numTypeVars; i++) {
     parSorts.push(TermList(i,false));
   }
-  TermList taSort = TermList(AtomicSort::create(srt,parSorts.size(),parSorts.begin()));
+  TermList taSort(AtomicSort::create(srt,parSorts.size(),parSorts.begin()));
 
   while (dtypeRdr.hasNext()) {
     argSorts.reset();
@@ -984,7 +986,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     bool added = false;
     unsigned sort = env.signature->addTypeCon(taName,0,added);
     ASS(!added);
-    TermList taSort = TermList(AtomicSort::createConstant(sort));
+    TermList taSort(AtomicSort::createConstant(sort));
 
     LispListReader dtypeRdr(dtypesDefsRdr.readList());
     while (dtypeRdr.hasNext()) {
@@ -1025,7 +1027,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
   }
 }
 
-TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, TermList taSort, unsigned numPars,
+TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, TermList taSort, unsigned numTypeArgs,
                                                              Stack<vstring> destructorNames, TermStack argSorts) {
   CALL("SMTLIB2::buildTermAlgebraConstructor");
 
@@ -1036,10 +1038,10 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
   unsigned arity = (unsigned)argSorts.size();
 
   bool added;
-  unsigned functor = env.signature->addFunction(constrName, numPars+arity, added);
+  unsigned functor = env.signature->addFunction(constrName, numTypeArgs+arity, added);
   ASS(added);
 
-  OperatorType* constructorType = OperatorType::getFunctionType(arity, argSorts.begin(), taSort, numPars);
+  OperatorType* constructorType = OperatorType::getFunctionType(arity, argSorts.begin(), taSort, numTypeArgs);
   env.signature->getFunction(functor)->setType(constructorType);
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
@@ -1058,12 +1060,12 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
 
     bool isPredicate = destructorSort == AtomicSort::boolSort();
     bool added;
-    unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, numPars+1, added)
-                                             : env.signature->addFunction(destructorName,  numPars+1, added);
+    unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, numTypeArgs+1, added)
+                                             : env.signature->addFunction(destructorName,  numTypeArgs+1, added);
     ASS(added);
 
-    OperatorType* destructorType = isPredicate ? OperatorType::getPredicateType(1, &taSort, numPars)
-                                           : OperatorType::getFunctionType(1, &taSort, destructorSort, numPars);
+    OperatorType* destructorType = isPredicate ? OperatorType::getPredicateType(1, &taSort, numTypeArgs)
+                                           : OperatorType::getFunctionType(1, &taSort, destructorSort, numTypeArgs);
 
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
@@ -1077,7 +1079,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
     destructorFunctors[i] = destructorFunctor;
   }
 
-  return new TermAlgebraConstructor(functor, destructorFunctors, numPars);
+  return new TermAlgebraConstructor(functor, destructorFunctors, numTypeArgs);
 }
 
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
@@ -1339,7 +1341,6 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     ParseResult* pr = (--boundExprs);
     TermList t;
     TermList sort = pr->asTerm(t);
-    // TermList sort = (--boundExprs)->sort; // the should be big enough (
     auto numTypeArgs = VList::length(sort.freeVariables());
     TermStack typeArgs;
     ASS(t.isTerm());
@@ -1410,6 +1411,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     SortedTerm term = lookup->get(cName);
     TermList exprTerm = get<0>(term);
     TermList exprSort = get<1>(term);
+    // TODO here the exact structure of the type expression f(x1,...,xn) could be checked
     VList* vars = exprTerm.freeVariables();
 
     unsigned symbol;
@@ -1532,13 +1534,13 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     LispListReader tRdr(pattern);
     auto ctorName = tRdr.readAtom();
     // whether it is a ctor we check in MATCH_END
-    auto fn = env.signature->getFunction(_declaredSymbols.get(ctorName).first);
-    auto type = fn->fnType();
+    auto type = env.signature->getFunction(_declaredSymbols.get(ctorName).first)->fnType();
     unsigned i = 0;
     Substitution subst;
     while (tRdr.hasNext()) {
       auto arg = tRdr.readNext();
-      if (i < fn->numTypeArguments()) {
+      ASS_L(i,type->arity());
+      if (i < type->numTypeArguments()) {
         if (_results.isEmpty() || _results.top().isSeparator()) {
           complainAboutArgShortageOrWrongSorts("match pattern",exp);
         }
@@ -1551,7 +1553,8 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
       if (!arg->isAtom() || isAlreadyKnownSymbol(arg->str)) {
         USER_ERROR_EXPR("Nested ctors ("+arg->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
       }
-      if (!lookup->insert(arg->str, make_tuple(TermList(_nextVar++, false), SubstHelper::apply(fn->fnType()->arg(i++), subst), false))) {
+      // from the type arguments used in the matched term we instantiate the type of the other variables
+      if (!lookup->insert(arg->str, make_tuple(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst), false))) {
         USER_ERROR_EXPR("Variable '" + arg->str + "' has already been defined");
       }
     }
@@ -1597,7 +1600,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   DEBUG_CODE(const vstring &theMatchAtom =) lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theMatchAtom), TS_MATCH);
 
-  lRdr.readNext();
+  lRdr.readNext(); // the matched term
   TermList matchedTerm;
   auto matchedTermSort = _results.pop().asTerm(matchedTerm);
 
@@ -1633,7 +1636,9 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
       ALWAYS(_results.pop().asTerm(p) == matchedTermSort);
     }
     TermList b;
-    sort = _results.pop().asTerm(b);
+    TermList currSort = _results.pop().asTerm(b);
+    ASS(sort == AtomicSort::defaultSort() || sort == currSort);
+    sort = currSort;
 
     LOG2("CASE pattern ", p.toString());
     LOG2("CASE body    ", b.toString());
@@ -1694,6 +1699,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 void SMTLIB2::parseQuantBegin(LExpr* exp)
 {
   CALL("SMTLIB2::parseQuantBegin");
+
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
 
@@ -1838,17 +1844,21 @@ bool SMTLIB2::parseAsScopeLookup(const vstring& id, LExpr* exp)
 
     SortedTerm st;
     if (lookup->find(id,st)) {
+      // A special case for lookups is let expressions with type arguments.
+      // These should be handled by the SMTLIB2 standard as variables but
+      // since we convert them to terms, we have to also parse the concrete
+      // type arguments they are instantiated with (as in TPTP).
       if (get<2>(st)) {
-        auto t = get<0>(st);
-        auto s = get<1>(st);
-        ASS(t.isTerm());
-        auto f = t.term()->functor();
+        auto term = get<0>(st);
+        auto sort = get<1>(st);
+        ASS(term.isTerm());
+        auto f = term.term()->functor();
         Signature::Symbol* symbol;
         OperatorType* type;
-        if (s == AtomicSort::boolSort()) {
+        if (sort == AtomicSort::boolSort()) {
           symbol = env.signature->getPredicate(f);
           type = symbol->predType();
-        } else if (s == AtomicSort::superSort()) {
+        } else if (sort == AtomicSort::superSort()) {
           symbol = env.signature->getTypeCon(f);
           type = symbol->typeConType();
         } else {
@@ -1886,17 +1896,17 @@ bool SMTLIB2::parseAsScopeLookup(const vstring& id, LExpr* exp)
           args.push(arg);
         }
 
-        if (s == AtomicSort::boolSort()) {
+        if (sort == AtomicSort::boolSort()) {
           Formula* res = new AtomicFormula(Literal::create(f,arity,true,false,args.begin()));
           _results.push(ParseResult(res));
-        } else if (s == AtomicSort::superSort()) {
+        } else if (sort == AtomicSort::superSort()) {
           TermList res = TermList(AtomicSort::create(f,arity,args.begin()));
-          TermList sort = SortHelper::getResultSort(res.term());
-          _results.push(ParseResult(sort,res));
+          TermList rsort = SortHelper::getResultSort(res.term());
+          _results.push(ParseResult(rsort,res));
         } else {
           TermList res = TermList(Term::create(f,arity,args.begin()));
-          TermList sort = SortHelper::getResultSort(res.term());
-          _results.push(ParseResult(sort,res));
+          TermList rsort = SortHelper::getResultSort(res.term());
+          _results.push(ParseResult(rsort,res));
         }
       } else {
         _results.push(ParseResult(get<1>(st),get<0>(st)));

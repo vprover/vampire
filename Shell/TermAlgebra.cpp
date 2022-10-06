@@ -18,33 +18,33 @@ using namespace Lib;
 
 namespace Shell {
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors, unsigned pars)
-  : TermAlgebraConstructor(functor, Lib::Array<unsigned>(destructors), pars)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors, unsigned numTypeArgs)
+  : TermAlgebraConstructor(functor, Lib::Array<unsigned>(destructors), numTypeArgs)
 { }
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors, unsigned pars)
-  : _functor(functor), _hasDiscriminator(false), _destructors(destructors), _pars(pars)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors, unsigned numTypeArgs)
+  : _functor(functor), _hasDiscriminator(false), _destructors(destructors), _numTypeArgs(numTypeArgs)
 {
   _type = env.signature->getFunction(_functor)->fnType();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
-  ASS_EQ(_type->arity(), _pars+destructors.size());
+  ASS_EQ(_type->arity(), _numTypeArgs+destructors.size());
   unsigned i = 0;
   for (auto d : destructors) {
-    auto sym = _type->arg(_pars+i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
+    auto sym = _type->arg(_numTypeArgs+i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
                                                    : env.signature->getFunction(d);
     ASS_REP(sym->termAlgebraDest(), sym->name())
   }
 #endif
 }
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors, unsigned pars)
-  : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors), _pars(pars)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors, unsigned numTypeArgs)
+  : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors), _numTypeArgs(numTypeArgs)
 {
   _type = env.signature->getFunction(_functor)->fnType();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
-  ASS_EQ(_type->arity(), _pars+destructors.size());
+  ASS_EQ(_type->arity(), _numTypeArgs+destructors.size());
   for (auto d : destructors) {
     ASS(env.signature->getFunction(d)->termAlgebraDest())
   }
@@ -131,11 +131,11 @@ TermAlgebra::TermAlgebra(TermList sort,
                          Lib::Array<TermAlgebraConstructor*> constrs,
                          bool allowsCyclicTerms) :
   _sort(sort),
-  _pars(VList::length(_sort.freeVariables())),
   _n(constrs.size()),
   _allowsCyclicTerms(allowsCyclicTerms),
   _constrs(constrs)
 {
+  ASS(_sort.isTerm());
   for (unsigned i = 0; i < constrs.size(); i++) {
     ASS(constrs[i]->rangeSort() == _sort);
   }
@@ -146,11 +146,11 @@ TermAlgebra::TermAlgebra(TermList sort,
                          TermAlgebraConstructor** constrs,
                          bool allowsCyclicTerms) :
   _sort(sort),
-  _pars(VList::length(_sort.freeVariables())),
   _n(n),
   _allowsCyclicTerms(allowsCyclicTerms),
   _constrs(n)
 {
+  ASS(_sort.isTerm());
   for (unsigned i = 0; i < n; i++) {
     ASS(constrs[i]->rangeSort() == _sort);
     _constrs[i] = constrs[i];
@@ -212,14 +212,14 @@ unsigned TermAlgebra::getSubtermPredicate() {
   CALL("TermAlgebra::getSubtermPredicate");
 
   bool added;
-  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), _pars+2, added);
+  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), _sort.term()->arity()+2, added);
 
   if (added) {
     // declare a binary predicate subterm
     TermStack args;
-    args.push(_sort); 
     args.push(_sort);
-    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin(),_pars));
+    args.push(_sort);
+    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin(),_sort.term()->arity()));
   }
 
   return s;
