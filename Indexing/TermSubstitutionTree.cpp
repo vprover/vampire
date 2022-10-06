@@ -138,7 +138,7 @@ bool TermSubstitutionTree::constraintTermHandled(TermList t, Literal* lit, LeafD
   // It would be far better to pass the sort into handleTerm
   // as this would save having to ttraverse the term a second time
   TermList sort = SortHelper::getTermSort(t, lit);
-  auto res = _handler->isConstraintTerm(t, sort);
+  auto res = _handler->isConstraintTerm(t, sort, false);
   if(!res.isFalse()){
     _constraintTerms->handleTerm(sort, ld, insert);
     // if it is only possibly a constraint term, we still want to insert
@@ -189,13 +189,13 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
 
     // get top level constraints
     // if @param t can play no part in constraints, we optimise
-    auto it2 = !_handler->isConstraintTerm(t, sort).isFalse() ?
+    auto it2 = !_handler->isConstraintTerm(t, sort, true).isFalse() ?
        _constraintTerms->getUnifications(sort, t, retrieveSubstitutions) :
        TermQueryResultIterator::getEmpty();
 
     // get unifiers from standard tree
     // again we optimise and avoid uselessly traversing the tree
-    auto it3 = !_handler->isConstraintTerm(t, sort).isTrue() ?
+    auto it3 = !_handler->isConstraintTerm(t, sort, true).isTrue() ?
        getResultIterator<UnificationsIterator>(t.term(), retrieveSubstitutions) :
        TermQueryResultIterator::getEmpty();
 

@@ -80,9 +80,17 @@ TermList UWAMismatchHandler::transformSubterm(TermList trm, TermList sort)
   return trm;
 }
 
-MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t, TermList sort){
+MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t, TermList sort, bool topLevel){
   CALL("UWAMismatchHandler::isConstraintTerm");
   
+  static bool uwaAtTop = env.options->uwaAtTopLevel();
+
+  if(!uwaAtTop && topLevel){
+    // the case where we are checking whether a top level term is a constraint term
+    // but we don't want to create constraints at the top. Just return false
+    return false;
+  }
+
   auto isInterpretedOrPoly = [](TermList sort){
     return sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort();
   };
@@ -179,11 +187,11 @@ void MismatchHandler::addHandler(unique_ptr<AtomicMismatchHandler> hndlr){
   _inners.push(std::move(hndlr));
 }
 
-MaybeBool MismatchHandler::isConstraintTerm(TermList t, TermList sort){
+MaybeBool MismatchHandler::isConstraintTerm(TermList t, TermList sort, bool topLevel){
   CALL("MismatchHandler::isConstraintTerm");
   
   for (auto& h : _inners) {
-    auto res = h->isConstraintTerm(t, sort);
+    auto res = h->isConstraintTerm(t, sort, topLevel);
     if(!res.isFalse()){
       return res;
     }
@@ -271,19 +279,17 @@ bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2, TermList sort
 {
   CALL("HOMismatchHandler::isConstraintPair");
 
-  auto isBooleanOrConstraintTerm = [&](TermList t){
-    return !isConstraintTerm(t, sort).isFalse() || sort.isBoolSort();
-  };
-
-  return isBooleanOrConstraintTerm(t1) && isBooleanOrConstraintTerm(t2);
+  return !isConstraintTerm(t1, sort).isFalse() && !isConstraintTerm(t2, sort).isFalse();
 }
 
-MaybeBool HOMismatchHandler::isConstraintTerm(TermList t, TermList sort){
+MaybeBool HOMismatchHandler::isConstraintTerm(TermList t, TermList sort, bool topLevel){
   CALL("MismatcHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
   
-  if(sort.isArrowSort()){
+  // don't create Boolean constraints at the top level
+  // these are too explosive
+  if(sort.isArrowSort() || (sort.isBoolSort() && !topLevel)){
     return true;
   }
 
@@ -300,10 +306,6 @@ TermList HOMismatchHandler::transformSubterm(TermList trm, TermList sort)
   if(trm.isVar()) return trm;
 
   ASS(trm.term()->shared());
-
-  if(sort.isBoolSort()){
-    return MismatchHandler::getVSpecVar(trm);    
-  }
 
   if(!isConstraintTerm(trm, sort).isFalse()){
     return MismatchHandler::getVSpecVar(trm);

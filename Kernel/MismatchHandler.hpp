@@ -58,7 +58,7 @@ public:
   //   + If it returns maybe, we attempt to find BOTH type of partners for trm
   // - It may be convenient to use this function in the implementation of transformSubterm
   //   View UWAMismatchHandler::transformSubterm() for an example of this
-  virtual MaybeBool isConstraintTerm(TermList t, TermList sort) = 0;
+  virtual MaybeBool isConstraintTerm(TermList t, TermList sort, bool topLevel = false) = 0;
 };
 
 /**
@@ -93,7 +93,7 @@ public:
   void onTermEntry(Term* t) override;
   void onTermExit(Term* t) override;
 
-  MaybeBool isConstraintTerm(TermList t, TermList sort); 
+  MaybeBool isConstraintTerm(TermList t, TermList sort, bool topLevel = false); 
   TermList get(unsigned var);
 
   void addHandler(unique_ptr<AtomicMismatchHandler> hndlr);
@@ -137,7 +137,7 @@ public:
 
   bool isConstraintPair(TermList t1, TermList t2, TermList sort) override; 
   TermList transformSubterm(TermList trm, TermList sort) override;
-  MaybeBool isConstraintTerm(TermList t, TermList sort) override; 
+  MaybeBool isConstraintTerm(TermList t, TermList sort, bool topLevel = false) override; 
 
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
@@ -154,7 +154,7 @@ public:
   
   bool isConstraintPair(TermList t1, TermList t2, TermList sort) override;
   TermList transformSubterm(TermList trm, TermList sort) override;
-  MaybeBool isConstraintTerm(TermList t, TermList sort) override; 
+  MaybeBool isConstraintTerm(TermList t, TermList sort, bool topLevel = false) override; 
 
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);

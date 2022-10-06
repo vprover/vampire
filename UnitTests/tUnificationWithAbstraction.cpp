@@ -152,6 +152,7 @@ void checkTermMatches(TermIndexingStructure* index, TermList term, TermList sort
 TEST_FUN(term_indexing_one_side_interp_no_vars)
 {
   TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP_NO_VARS);
+  env.options->setUWAatTopLevel(true);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -285,6 +286,7 @@ TEST_FUN(term_indexing_one_side_interp_no_vars)
 TEST_FUN(term_indexing_one_side_interp)
 {
   TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP);
+  env.options->setUWAatTopLevel(true);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -427,6 +429,7 @@ TEST_FUN(term_indexing_one_side_interp)
 TEST_FUN(term_indexing_interp_only_diff_tops)
 {
   TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::INTERP_DIFF_TOPS);
+  env.options->setUWAatTopLevel(true);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -474,6 +477,7 @@ TEST_FUN(term_indexing_interp_only_diff_tops)
 TEST_FUN(term_indexing_interp_only_diff_tops2)
 {
   TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::INTERP_DIFF_TOPS);
+  env.options->setUWAatTopLevel(true);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -506,10 +510,47 @@ TEST_FUN(term_indexing_interp_only_diff_tops2)
 
 }
 
+TEST_FUN(diff_tops_no_top_level)
+{
+  TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::INTERP_DIFF_TOPS);
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Int)
+  DECL_PRED(p, {Int})
+  DECL_FUNC(f, {Int, Int}, Int)
+  DECL_CONST(a, Int) 
+  DECL_CONST(b, Int) 
+
+  index->insert(f(1 + a, x), p(f(1 + a, x)), unit(p(f(1 + a, x))));
+  
+  checkTermMatches(index, f(num(3),b), Int,
+      { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(num(3),b),
+          .resultSigma = f(1 + a, b),
+          .constraints = { 1 + a != num(3), } },
+      });
+
+  index->insert(2 + x, p(2 + x), unit(p((2 + x))));
+  index->insert(y, p(y), unit(p((y))));
+
+  checkTermMatches(index, 3 * a, Int,
+      { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = 3 * a,
+          .resultSigma = 3 * a,
+          .constraints = Stack<Literal*>{ } },
+      });
+
+}
+
 
 TEST_FUN(term_indexing_poly)
 {
   TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP);
+  env.options->setUWAatTopLevel(true);
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -542,6 +583,7 @@ TEST_FUN(term_indexing_poly)
 TEST_FUN(term_indexing_interp_only)
 {
   TermIndexingStructure* index = getTermIndex(Options::UnificationWithAbstraction::INTERP_ONLY);
+  env.options->setUWAatTopLevel(true);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -650,7 +692,6 @@ TEST_FUN(higher_order)
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
-  NUMBER_SUGAR(Int)
   DECL_SORT(srt) 
   DECL_ARROW_SORT(xSrt, {srt, srt}) 
   DECL_ARROW_SORT(fSrt, {xSrt, srt}) 
@@ -730,7 +771,6 @@ TEST_FUN(higher_order2)
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
-  NUMBER_SUGAR(Int)
   DECL_SORT(srt) 
   DECL_ARROW_SORT(xSrt, {srt, srt}) 
   DECL_ARROW_SORT(fSrt, {xSrt, xSrt, srt}) 
@@ -749,6 +789,49 @@ TEST_FUN(higher_order2)
           .constraints = Stack<Literal*>{ a != b, } },
       });
 }
+
+
+TEST_FUN(higher_order3)
+{
+  TermIndexingStructure* index = getTermIndex(make_unique<HOMismatchHandler>());
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt) 
+  BOOL_SORT(o);
+  DECL_ARROW_SORT(fSrt, {o, srt}) 
+  DECL_HOL_VAR(x0, 0, o)
+  DECL_CONST(a, o)
+  DECL_CONST(b, o)
+  DECL_CONST(f, fSrt)
+
+  index->insert(ap(f,a), 0, 0);
+
+  checkTermMatches(index,ap(f,b),srt, Stack<TermUnificationResultSpec>{
+        
+        TermUnificationResultSpec
+        
+        { .querySigma  = ap(f,b),
+          .resultSigma = ap(f,a),
+          .constraints = Stack<Literal*>{ a != b, } },
+      });
+
+  auto lit = (x0 != fool(true));
+
+  index->insert(a, 0, 0);
+  index->insert(x0, lit, unit(lit));
+
+  checkTermMatches(index,b,srt, Stack<TermUnificationResultSpec>{
+        
+        TermUnificationResultSpec
+        
+        { .querySigma  = b,
+          .resultSigma = b,
+          .constraints = Stack<Literal*>{ } },
+      });
+
+}
+
 
 static const int NORM_QUERY_BANK=2;
 static const int NORM_RESULT_BANK=3;

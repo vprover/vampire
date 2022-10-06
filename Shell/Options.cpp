@@ -1206,6 +1206,13 @@ void Options::init()
     _unificationWithAbstraction.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstraction);
 
+    _uwaAtTopLevel = BoolOptionValue("uwa_at_top","uat",false);
+    _uwaAtTopLevel.description=
+     "Carry out unification for top level terms, not just subterms.\n"
+     "Set to false by default due to how explosive it is.";
+    _uwaAtTopLevel.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_uwaAtTopLevel);
+
     _useACeval = BoolOptionValue("use_ac_eval","uace",true);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
     _useACeval.tag(OptionTag::INFERENCES);
