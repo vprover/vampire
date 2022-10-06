@@ -35,7 +35,8 @@ struct Relocator
   
 struct EmptyStruct {};
 
-class Hash;
+class DefaultHash;
+class DefaultHash2;
 struct IdentityHash;
 
 template<typename T> class VirtualIterator;
@@ -56,8 +57,8 @@ template<typename T> class List;
 template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;
 
-template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
-template<class A, class B, class HashA = Lib::Hash, class HashB = Lib::Hash> class BiMap; 
+template <typename Key, typename Val,class Hash=DefaultHash> class Map;
+template<class A, class B, class HashA=DefaultHash, class HashB=DefaultHash> class BiMap;
 
 template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
@@ -70,28 +71,12 @@ typedef List<VoidFunc> VoidFuncList;
 
 typedef Stack<vstring> StringStack;
 
-typedef Map<vstring,unsigned,Hash> SymbolMap;
+typedef Map<vstring,unsigned> SymbolMap;
 
-template<typename T, typename=void> struct SecondaryHash;
-/**
- * Second hash for DHMap and DHMultiset classes.
- */
-#define SECONDARY_HASH(Cl) typename SecondaryHash<Cl>::Type
-
-//There is a bug (what else can it be?) in the VS2008 compiler that
-//requires the name of the template parameter in the declaration to
-//be the same as the name of the parameter used in definition, as
-//long as the parameter is used in another parameter's default value.
-//
-//E.g. if the first parameter name here would be K instead of Key, we
-//would get a compiler error, because in the Lib/DHMap.hpp file the
-//definition of the class starts with
-//template <typename Key, typename Val, class Hash1, class Hash2> class DHMap
-//                   ^^^
-template <typename Key, typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Key)> class DHMap;
-template <typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Val)> class DHSet;
-template <typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Val)> class DHMultiset;
-template <typename Val,class Hash=Lib::Hash> class Set;
+template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMap;
+template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHSet;
+template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMultiset;
+template <typename Val, class Hash=DefaultHash> class Set;
 
 
 template <typename Value,class ValueComparator> class SkipList;
@@ -163,7 +148,7 @@ typedef Stack<UnificationConstraint> UnificationConstraintStack;
 typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 
 class Term;
-typedef BiMap<unsigned, Term*> VSpecVarToTermMap;
+typedef BiMap<unsigned, TermList> VSpecVarToTermMap;
 class Literal;
 typedef List<Literal*> LiteralList;
 typedef Stack<Literal*> LiteralStack;
@@ -247,7 +232,7 @@ enum Color {
   COLOR_INVALID = 3u
 };
 
-enum SymbolType{FUNC, PRED, TYPE_CON};
+enum class SymbolType {FUNC, PRED, TYPE_CON};
 
 class MainLoop;
 typedef Lib::SmartPtr<MainLoop> MainLoopSP;

@@ -33,37 +33,21 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler(0)
+IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler()
 {
   CALL("IndexManager::IndexManager");
 
-  static bool const uwa = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool const eba = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                          env.property->higherOrder();
-
   // other handlers can be added here
-  
-  if(uwa || eba){
- 
-    _handler = new CompositeMismatchHandler();
-   
-    if(uwa){
-      _handler->addHandler(new UWAMismatchHandler());
-    }
-    if(eba){
-      _handler->addHandler(new HOMismatchHandler());
-    }
+  if(env.options->unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF){
+    _handler.addHandler(make_unique<UWAMismatchHandler>(env.options->unificationWithAbstraction()));
+  }
+  if((env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) 
+      && env.property->higherOrder()){
+    _handler.addHandler(make_unique<HOMismatchHandler>());
   }
 }
 
-IndexManager::~IndexManager()
-{
-  CALL("IndexManager::~IndexManager");
-
-  if(_handler){
-    delete _handler;
-  }
-}
+IndexManager::~IndexManager() { }
 
 Index* IndexManager::request(IndexType t)
 {
@@ -140,7 +124,7 @@ Index* IndexManager::create(IndexType t)
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree(_handler);
+    is=new LiteralSubstitutionTree(mismatchHandler());
     res=new BinaryResolutionIndex(is);
     isGenerating = true;
     break;
@@ -172,12 +156,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(_handler);
+    tis=new TermSubstitutionTree(mismatchHandler());
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(_handler);
+    tis=new TermSubstitutionTree(mismatchHandler());
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;

@@ -72,7 +72,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SuperpositionSubtermIndex::handleClause");
 
-  TimeCounter tc(TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+  TIME_TRACE("backward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
@@ -100,7 +100,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SuperpositionLHSIndex::handleClause");
 
-  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+  TIME_TRACE("forward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
@@ -123,7 +123,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 {
   CALL("DemodulationSubtermIndex::handleClause");
 
-  TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
+  TIME_TRACE("backward demodulation index maintenance");
 
   static DHSet<TermList> inserted;
 
@@ -169,8 +169,8 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   if (c->length()!=1 || RapidHelper::forceOrder((*c)[0])) {
     return;
   }
-              
-  TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
+
+  TIME_TRACE("forward demodulation index maintenance");
 
   Literal* lit=(*c)[0];
   TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
@@ -188,7 +188,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("InductionTermIndex::handleClause");
 
-  TimeCounter tc(TC_INDUCTION_TERM_INDEX_MAINTENANCE);
+  TIME_TRACE("induction term index maintenance");
 
   if (InductionHelper::isInductionClause(c)) {
   // Iterate through literals & check if the literal is suitable for induction

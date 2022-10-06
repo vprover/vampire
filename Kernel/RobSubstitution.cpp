@@ -195,8 +195,12 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
       binding.term.makeVar(_nextUnboundAvailable++);
       const_cast<RobSubstitution&>(*this).bind(v,binding);
       return binding;
-    } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()
-              || binding.term.isVSpecialVar()) {
+    } else if (binding.term.isVSpecialVar()){
+      TermList t = _handler->get(binding.term.var());
+      TermSpec ts(t, binding.index);
+      if(t.isTerm()) return ts;
+      binding = ts;
+    } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
       return binding;
     }
     v=getVarSpec(binding);
@@ -246,8 +250,8 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   Stack<TermSpec> toDo(8);
   if(ts.isVSpecialVar()){
     ASS(_handler)
-    Term* t = _handler->get(ts.term.var());
-    ts = TermSpec(TermList(t), ts.index);
+    TermList t = _handler->get(ts.term.var());
+    ts = TermSpec(t, ts.index);
   }else if(ts.isVar()) {
     ts=derefBound(ts);
     if(ts.isVar()) {
@@ -275,14 +279,14 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
           dtvar=derefBound(TermSpec(tvar));
         } else {
           ASS(_handler)
-          Term* t = _handler->get(var.var());
-          dtvar = TermSpec(TermList(t), ts.index);
+          TermList t = _handler->get(var.var());
+          dtvar = TermSpec(t, ts.index);
         }
         if(!dtvar.isVar() || dtvar.isVSpecialVar()) {
           if(dtvar.isVSpecialVar()){
             ASS(_handler);
-            Term* t = _handler->get(dtvar.term.var());
-            dtvar = TermSpec(TermList(t), dtvar.index);            
+            TermList t = _handler->get(dtvar.term.var());
+            dtvar = TermSpec(t, dtvar.index);            
           }
           encountered.insert(tvar);
           toDo.push(dtvar);
@@ -329,6 +333,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
   for(;;) {
     TermSpec dt1=derefBound(t1);
     TermSpec dt2=derefBound(t2);
+
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
     if(dt1.sameTermContent(dt2)) {
@@ -336,7 +341,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
       ASS(_handler);
       // if both are constraint terms (e.g. $sum(...)  or $product(...) or higher-order stuff)
       // then hand pair over to relevant handler to create constraint
-      ALWAYS(_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording));
+      if(!_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording)){
+        TermList t1 = _handler->get(dt1.term.var());
+        TermList t2 = _handler->get(dt2.term.var());
+        toDo.push(TTPair(TermSpec(t1, dt1.index), TermSpec(t2, dt2.index)));
+      }    
     } 
     // Deal with the case where either are variables
     // Do an occurs-check and note that the variable 
@@ -344,15 +353,31 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
     else if(dt1.isVar() && !dt1.isVSpecialVar()) {
       VarSpec v1=getVarSpec(dt1);
       if(occurs(v1, dt2)) {
-        mismatch=true;
-        break;
+        // if dt1 occurs in dt2, we try and create a constraint
+        // if not we cannot unify
+        // creating a constraint can be useful for example when dt1 = x and dt2 = 2 x
+        //
+        // NOTE: code assumes that all handlers only want to create a constraint involving a variable
+        // when syntactic unification fails. If this assumtion turns out to be false, code will need to
+        // be modified.
+
+        if(dt2.isVSpecialVar() && _handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording)){
+          break;
+        } else {
+          mismatch=true;
+          break;
+        }
       }
       bind(v1,dt2);
     } else if(dt2.isVar() && !dt2.isVSpecialVar()) {
       VarSpec v2=getVarSpec(dt2);
       if(occurs(v2, dt1)) {
-        mismatch=true;
-        break;
+        if(dt1.isVSpecialVar() && _handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording)){
+          break;
+        } else {
+          mismatch=true;
+          break;
+        }
       }
       bind(v2,dt1);
     } else if(dt1.isVSpecialVar()){    
@@ -362,14 +387,14 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2)
       // If they do not, handler will return false and we continue with
       // standard unification.
       if(!_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording)){
-        Term* t = _handler->get(dt1.term.var());
-        t1 = TermSpec(TermList(t), dt1.index);
+        TermList t = _handler->get(dt1.term.var());
+        t1 = TermSpec(t, dt1.index);
         toDo.push(TTPair(t1, dt2));
       }
     } else if(dt2.isVSpecialVar()){    
       if(!_handler->handle(dt1.term, dt1.index, dt2.term, dt2.index, _constraints, localBD, recording)){
-        Term* t = _handler->get(dt2.term.var());
-        t2 = TermSpec(TermList(t), dt2.index);
+        TermList t = _handler->get(dt2.term.var());
+        t2 = TermSpec(t, dt2.index);
         toDo.push(TTPair(dt1, t2));
       }
     } else {
@@ -643,10 +668,16 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       }
     }
 
-    TermSpec ts(*tt,index);
+    TermList ttt = *tt;
+    if(tt->isVSpecialVar()){
+      ttt = _handler->get(tt->var());
+    }
+
+    TermSpec ts(ttt,index);
+    ASS(!ts.term.isVSpecialVar());
 
     VarSpec vs;
-    if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+    if(ts.term.isVar()) {
       vs=root(getVarSpec(ts) );
 
       TermList found;
@@ -656,7 +687,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       }
 
       ts=deref(vs);
-      if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+      if(ts.term.isVar()) {
         ASS(ts.index==UNBOUND_INDEX);
         args.push(ts.term);
         continue;
@@ -664,13 +695,8 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     } else {
       vs=nilVS;
     }
-    Term* t;
-    if(ts.term.isVSpecialVar()){
-      ASS(_handler);
-      t = _handler->get(ts.term.var());
-    } else {
-      t = ts.term.term();
-    }
+    Term* t = ts.term.term();
+    
     if(t->shared() && t->ground()) {
       args.push(TermList(t));
       continue;
@@ -739,10 +765,16 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
       }
     }
 
-    TermSpec ts(*tt,index);
+    TermList ttt = *tt;
+    if(tt->isVSpecialVar()){
+      ttt = _handler->get(tt->var());
+    }
+
+    TermSpec ts(ttt,index);
+    ASS(!ts.term.isVSpecialVar());
 
     VarSpec vs;
-    if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+    if(ts.term.isVar()) {
       vs=root(getVarSpec(ts));
 
       size_t found;
@@ -752,7 +784,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
       }
 
       ts=deref(vs);
-      if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+      if(ts.term.isVar()) {
         ASS(ts.index==UNBOUND_INDEX);
         argSizes.push(1);
         continue;
@@ -760,13 +792,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
     } else {
       vs=nilVS;
     }
-    Term* t;
-    if(ts.term.isVSpecialVar()){
-      ASS(_handler);
-      t = _handler->get(ts.term.var());
-    }else{
-      t=ts.term.term();
-    }
+    Term* t =ts.term.term();
     if(t->shared() && t->ground()) {
       argSizes.push(t->weight());
       continue;
@@ -1022,12 +1048,12 @@ private:
   bool _used;
 };
 
-bool RobSubstitution::tryAddConstraint(TermList t1,int index1, TermList t2, int index2, BacktrackData& bd)
+bool RobSubstitution::tryAddConstraint(TermList t1,int index1, TermList t2, int index2, TermList sort, BacktrackData& bd)
 {
   CALL("RobSubstitution::tryAddConstraint");
   
   if(_handler){
-    return _handler->handle(t1, index1, t2, index2, _constraints, bd, true);
+    return _handler->handle(t1, index1, t2, index2, sort, _constraints, bd, true);
   }
   return false;
 }
@@ -1049,7 +1075,9 @@ unsigned RobSubstitution::numberOfConstraints() {
     TermList rhs = apply(uc.second.first,uc.second.second);
     
     if(lhs != rhs){
-      TermList sort = SortHelper::getResultSort(lhs.term());
+      // assuming that we never create a constraint between variables
+      ASS(lhs.isTerm() || rhs.isTerm());
+      TermList sort = SortHelper::getResultSort(lhs.isTerm() ? lhs.term() : rhs.term());
       Literal* lit = Literal::createEquality(false, lhs, rhs, sort);
       if(literals.insert(lit)){
         count++;

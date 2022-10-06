@@ -64,7 +64,7 @@ void EqualityResolution::attach(SaturationAlgorithm* salg)
   CALL("EqualityResolution::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  _handler = salg->getIndexManager()->getHandler();
+  _handler = salg->getIndexManager()->mismatchHandler();
 }
 
 struct EqualityResolution::ResultFn
@@ -99,7 +99,7 @@ struct EqualityResolution::ResultFn
     Literal* litAfter = 0;
 
     if (_afterCheck && _cl->numSelected() > 1) {
-      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
       litAfter = subst.apply(lit, 0);
     }
 
@@ -110,7 +110,7 @@ struct EqualityResolution::ResultFn
         Literal* currAfter = subst.apply(curr, 0);
 
         if (litAfter) {
-          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;

@@ -29,78 +29,119 @@
 namespace Kernel
 {
 
-bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2)
+VSpecVarToTermMap MismatchHandler::_termMap;
+
+typedef Shell::UnificationWithAbstractionConfig uwaconf;
+
+bool UWAMismatchHandler::isConstraintPair(TermList t1, TermList t2, TermList sort)
 {
   CALL("UWAMismatchHandler::isConstraintPair");
 
-  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
+  if(uwaconf::isNumeral(t1) && uwaconf::isNumeral(t2)){
+    return false;
+  }
 
-  switch(opt){
-    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
-      return isConstraintTerm(t1).isTrue() || isConstraintTerm(t2).isTrue();
+  switch (_mode) {
+    case Shell::Options::UnificationWithAbstraction::INTERP_DIFF_TOPS: 
+      return isConstraintTerm(t1, sort).maybe() && isConstraintTerm(t2, sort).maybe() &&
+             t1.term()->functor() != t2.term()->functor();
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
-      return isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).isTrue();
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP_NO_VARS:
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
     case Shell::Options::UnificationWithAbstraction::ONE_SIDE_NL:
-      return (isConstraintTerm(t1).isTrue() && isConstraintTerm(t2).maybe()) ||
-             (isConstraintTerm(t2).isTrue() && isConstraintTerm(t1).maybe()) ||
-             (isConstraintTerm(t2).isTrue() && isConstraintTerm(t1).isTrue());
-    default:
-      // handler should never be called if UWA is off
-      ASSERTION_VIOLATION;
+      return (isConstraintTerm(t1, sort).isTrue() && isConstraintTerm(t2, sort).maybe())  ||
+             (isConstraintTerm(t1, sort).maybe()  && isConstraintTerm(t2, sort).isTrue()) ||
+             (isConstraintTerm(t1, sort).isTrue() && isConstraintTerm(t2, sort).isTrue());
+    case Shell::Options::UnificationWithAbstraction::OFF:
+      ASSERTION_VIOLATION
       return false;
   }
 }
 
-TermList UWAMismatchHandler::transformSubterm(TermList trm)
+TermList UWAMismatchHandler::transformSubterm(TermList trm, TermList sort)
 {
   CALL("UWAMismatchHandler::transformSubterm");
- 
-  if(isConstraintTerm(trm).isTrue()){
-    ASS(trm.term()->shared());
-    return TermList::getVSpecVar(trm.term(), &_termMap);
-  }
+
+  switch (_mode) {
+    case Shell::Options::UnificationWithAbstraction::INTERP_DIFF_TOPS: 
+      if(isConstraintTerm(trm, sort).maybe()){
+        return MismatchHandler::getVSpecVar(trm);
+      }
+      break;
+    case Shell::Options::UnificationWithAbstraction::ONE_SIDE_NL:      
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP_NO_VARS:
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+      if(isConstraintTerm(trm, sort).isTrue()){
+        return MismatchHandler::getVSpecVar(trm);
+      }
+      break;
+    case Shell::Options::UnificationWithAbstraction::OFF:
+      ASSERTION_VIOLATION
+  } 
   return trm;
 }
 
-MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t){
+MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t, TermList sort, bool topLevel){
   CALL("UWAMismatchHandler::isConstraintTerm");
   
-  if(t.isVar()){ return false; }
+  static bool uwaAtTop = env.options->uwaAtTopLevel();
 
-  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-
-  auto trm = t.term();
-  bool isNumeral = Shell::UnificationWithAbstractionConfig::isNumeral(t);
-
-  if(Shell::UnificationWithAbstractionConfig::isInterpreted(trm) && !isNumeral){
-    return true;    
+  if(!uwaAtTop && topLevel){
+    // the case where we are checking whether a top level term is a constraint term
+    // but we don't want to create constraints at the top. Just return false
+    return false;
   }
 
-  TermList sort = SortHelper::getResultSort(trm); 
-  switch(opt){
-    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
-      if(sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort()){
-        return MaybeBool::UNKNOWN;
-      }
-      return false;      
-    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
-      return false;
-    case Shell::Options::UnificationWithAbstraction::ONE_SIDE_NL:
-      if(env.signature->getFunction(trm->functor())->finalLoopCount()){
+  auto isInterpretedOrPoly = [](TermList sort){
+    return sort.isVar() || sort.isIntSort() || sort.isRatSort() || sort.isRealSort();
+  };
+
+  switch (_mode) {
+    case Shell::Options::UnificationWithAbstraction::ONE_SIDE_NL:{
+      if(t.isTerm() && env.signature->getFunction(t.term()->functor())->finalLoopCount()){
         return MaybeBool::UNKNOWN;        
       }
+      return uwaconf::isInterpreted(t);
+    }
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY: {
+      return uwaconf::isInterpreted(t);
+    }
+    case Shell::Options::UnificationWithAbstraction::INTERP_DIFF_TOPS:{
+      if(uwaconf::isInterpreted(t)){
+        return MaybeBool::UNKNOWN;
+      }
       return false;
-    default:
-      // handler should never be called if UWA is off
-      ASSERTION_VIOLATION;
+    }
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+      if(t.isVar() && isInterpretedOrPoly(sort)){
+        return MaybeBool::UNKNOWN;
+      }
+      // deliberately no break here
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP_NO_VARS:{
+      if(t.isVar()) return false;
+
+      if(uwaconf::isInterpreted(t)){
+        return true;
+      }
+      
+      if(isInterpretedOrPoly(sort)){
+        return MaybeBool::UNKNOWN;
+      } 
+
+      return false;
+    }
+    case Shell::Options::UnificationWithAbstraction::OFF:
+      ASSERTION_VIOLATION
       return false;
   }
+  ASSERTION_VIOLATION
 }
 
 void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2, 
   UnificationConstraintStack& ucs, BacktrackData& bd, bool recording)
 {
-  CALL("MismatchHandler::introduceConstraint");
+  CALL("AtomicMismatchHandler::introduceConstraint");
 
   auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
   if(recording){
@@ -110,109 +151,153 @@ void MismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList 
   }
 }
 
-CompositeMismatchHandler::~CompositeMismatchHandler(){
-  CALL("CompositeMismatchHandler::~CompositeMismatchHandler");
+AtomicMismatchHandler::~AtomicMismatchHandler() {}
 
-  MHList::destroyWithDeletion(_inners);
-}
-
-bool CompositeMismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
+bool MismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
   UnificationConstraintStack& ucs,BacktrackData& bd, bool recording)
 {
-  CALL("CompositeMismatchHandler::handle");
+  CALL("MismatchHandler::handle");
+  ASS(t1.isVSpecialVar() || t2.isVSpecialVar());
 
-  // make assumtion that we never create a constraint involving a variable
-  // this seems reasonable
-  if(t1.isOrdinaryVar() || t2.isOrdinaryVar())
-    return false;
+  t1 = t1.isVSpecialVar() ? get(t1.var()) : t1;
+  t2 = t2.isVSpecialVar() ? get(t2.var()) : t2;
 
-  t1 = t1.isVSpecialVar() ? TermList(get(t1.var())) : t1;
-  t2 = t2.isVSpecialVar() ? TermList(get(t2.var())) : t2;
+  // assuming that we never want to create a constraint between 2 variables
+  // will probably be proved wrong at some point...
+  if(t1.isVar() && t2.isVar()) return false;
 
-  MHList* hit=_inners;
-  while(hit) {
-    if(hit->head()->isConstraintPair(t1,t2)){
-      introduceConstraint(t1,index1,t2,index2,ucs,bd,recording);      
+  TermList sort = SortHelper::getResultSort(t1.isTerm() ? t1.term() : t2.term());
+
+  // should never be trying to create a constraint between terms of
+  // of different sorts
+  ASS(t1.isVar() || t2.isVar() || SortHelper::getResultSort(t1.term()) == SortHelper::getResultSort(t2.term()));
+
+  return handle(t1, index1, t2, index2, sort, ucs, bd, recording);
+}
+
+bool MismatchHandler::handle(TermList t1, unsigned index1, TermList t2, unsigned index2, 
+  TermList sort, UnificationConstraintStack& ucs,BacktrackData& bd, bool recording)
+{
+  CALL("MismatchHandler::handle");
+  ASS(!t1.isVSpecialVar() && !t2.isVSpecialVar());
+
+  for (auto& h : _inners) {
+    if(h->isConstraintPair(t1,t2,sort)){
+      introduceConstraint(t1,index1,t2,index2,ucs,bd,recording); 
       return true;
     }
-    hit=hit->tail();
   }
   return false;
 }
 
-void CompositeMismatchHandler::addHandler(MismatchHandler* hndlr){
-  CALL("CompositeMismatchHandler::addHandler");
-
-  MHList::push(hndlr,_inners);
+void MismatchHandler::addHandler(unique_ptr<AtomicMismatchHandler> hndlr){
+  CALL("MismatchHandler::addHandler");
+  _inners.push(std::move(hndlr));
 }
 
-MaybeBool CompositeMismatchHandler::isConstraintTerm(TermList t){
-  CALL("CompositeMismatchHandler::isConstraintTerm");
+MaybeBool MismatchHandler::isConstraintTerm(TermList t, TermList sort, bool topLevel){
+  CALL("MismatchHandler::isConstraintTerm");
   
-  if(t.isVar()){ return false; }
-
-  MHList* hit=_inners;
-  while(hit) {
-    auto res = hit->head()->isConstraintTerm(t);
+  for (auto& h : _inners) {
+    auto res = h->isConstraintTerm(t, sort, topLevel);
     if(!res.isFalse()){
       return res;
     }
-    hit=hit->tail();
   }
   return false; 
 }
 
-TermList CompositeMismatchHandler::transformSubterm(TermList trm){
-  CALL("CompositeMismatchHandler::transformSubterm");
+TermList MismatchHandler::transformSubterm(TermList trm){
+  CALL("MismatchHandler::transformSubterm");
 
-  MHList* hit=_inners;
-  while(hit) {
-    TermList t = hit->head()->transformSubterm(trm);
+  if(_appTerms.size()){
+    TermList t = _appTerms.pop();
+    if(t.isApplication() && trm == *t.term()->nthArgument(2)){
+      _appTerms.push( *t.term()->nthArgument(2));
+      return trm;
+    }
+    _appTerms.push(t);
+  }
+
+  TermList sort;
+  if(trm.isTerm()){
+    sort = SortHelper::getResultSort(trm.term());
+  } else {
+    // trm is a variable ocurring at the top level
+    // we don't create vSpecialVars at the top level
+    if(_terms.isEmpty()) return trm;
+    // we do not use SortHelper::getVariableSort for efficiency reasons.
+    int idx = 0; 
+    Term* t = _terms.top();   
+    TermList* args = t->args();
+#if VDEBUG
+    bool found = false;
+#endif
+    while (!args->isEmpty()) {
+      if (*args==trm) {
+#if VDEBUG
+        found = true;
+#endif        
+        sort = SortHelper::getArgSort(t, idx);
+      }
+      idx++;
+      args=args->next();
+    }
+    ASS(found);
+  }
+
+  for (auto& h : _inners) {
+    TermList t = h->transformSubterm(trm, sort);
     if(t != trm){
       return t;
     }
-    hit=hit->tail();
   }
   return trm;
 }
 
-Term* CompositeMismatchHandler::get(unsigned var)
-{
-  CALL("CompositeMismatchHandler::get");
+void MismatchHandler::onTermEntry(Term* t) {
+  CALL("MismatchHandler::onTermEntry");
 
-  MHList* hit=_inners;
-  while(hit) {
-    auto res = hit->head()->getTermMap()->tryGet(var);
-    if(res.isSome()){
-      return res.unwrap();
-    }
-    hit=hit->tail();
-  } 
-  ASSERTION_VIOLATION;
+  if(t->isApplication()){
+    _appTerms.push(TermList(t));
+  }
+  _terms.push(t);
+}
+
+void MismatchHandler::onTermExit(Term* t){
+  CALL("MismatchHandler::onTermExit");
+
+  if(t->isApplication()){
+    _appTerms.pop();
+  }
+  _terms.pop();
+}
+
+TermList MismatchHandler::get(unsigned var)
+{
+  CALL("MismatchHandler::get");
+
+  auto res = _termMap.tryGet(var);
+  ASS(res.isSome());
+  return res.unwrap();
 }
 
 
-bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2)
+bool HOMismatchHandler::isConstraintPair(TermList t1, TermList t2, TermList sort)
 {
   CALL("HOMismatchHandler::isConstraintPair");
 
-  auto isBooleanOrConstraintTerm = [&](TermList t){
-    TermList sort = SortHelper::getResultSort(t.term());
-    return !isConstraintTerm(t).isFalse() || sort.isBoolSort();
-  };
-
-  return isBooleanOrConstraintTerm(t1) && isBooleanOrConstraintTerm(t2);
+  return !isConstraintTerm(t1, sort).isFalse() && !isConstraintTerm(t2, sort).isFalse();
 }
 
-MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
-  CALL("CompositeMismatcHandler::isConstraintTerm");
+MaybeBool HOMismatchHandler::isConstraintTerm(TermList t, TermList sort, bool topLevel){
+  CALL("MismatcHandler::isConstraintTerm");
   
   if(t.isVar()){ return false; }
-
-  auto trm = t.term();
-  auto sort = SortHelper::getResultSort(trm);
   
-  if(sort.isArrowSort()){
+  // don't create Boolean constraints at the top level
+  // these are too explosive
+  if(sort.isArrowSort() || (sort.isBoolSort() && !topLevel)){
     return true;
   }
 
@@ -222,7 +307,7 @@ MaybeBool HOMismatchHandler::isConstraintTerm(TermList t){
   return false;
 }
 
-TermList HOMismatchHandler::transformSubterm(TermList trm)
+TermList HOMismatchHandler::transformSubterm(TermList trm, TermList sort)
 {
   CALL("HOMismatchHandler::transformSubterm");
 
@@ -230,13 +315,8 @@ TermList HOMismatchHandler::transformSubterm(TermList trm)
 
   ASS(trm.term()->shared());
 
-  TermList sort = SortHelper::getResultSort(trm.term());
-  if(sort.isBoolSort()){
-    return TermList::getVSpecVar(trm.term(), &_termMap);    
-  }
-
-  if(!isConstraintTerm(trm).isFalse()){
-    return TermList::getVSpecVar(trm.term(), &_termMap);
+  if(!isConstraintTerm(trm, sort).isFalse()){
+    return MismatchHandler::getVSpecVar(trm);
   }
   return trm;
 }

@@ -14,7 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralSelector.hpp"
@@ -52,7 +52,7 @@ void LRS::onUnprocessedSelected(Clause* c)
   SaturationAlgorithm::onUnprocessedSelected(c);
 
   if(shouldUpdateLimits()) {
-    TimeCounter tc(TC_LRS_LIMIT_MAINTENANCE);
+    TIME_TRACE("LRS limit maintenance");
 
     long long estimatedReachable=estimatedReachableCount();
     if(estimatedReachable>=0) {

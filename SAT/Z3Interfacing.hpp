@@ -248,7 +248,7 @@ private:
   z3::solver _solver;
   z3::model _model;
   Stack<z3::expr> _assumptions;
-  BiMap<SATLiteral, z3::expr, Hash, Z3Hash> _assumptionLookup;
+  BiMap<SATLiteral, z3::expr, DefaultHash, Z3Hash> _assumptionLookup;
   const bool _showZ3;
   const bool _unsatCore;
   Option<std::ofstream> _out;

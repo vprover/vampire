@@ -502,7 +502,7 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 	    "FunctionDefinition::Def::argOccurs"));
   std::memset(updDef->argOccurs, 0, updDef->lhs->arity() * sizeof(bool));
 
-  static DHMap<unsigned, unsigned, IdentityHash, Hash> var2argIndex;
+  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> var2argIndex;
   var2argIndex.reset();
   int argIndex=0;
   for (TermList* ts = updDef->lhs->args(); ts->isNonEmpty(); ts=ts->next()) {

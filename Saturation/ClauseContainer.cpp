@@ -162,6 +162,7 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
 void ActiveClauseContainer::add(Clause* c)
 {
   CALL("ActiveClauseContainer::add");
+  TIME_TRACE("add clause")
 
   ASS(c->store()==Clause::ACTIVE);
   ALWAYS(_clauses.insert(c));  

@@ -210,9 +210,14 @@
 #define NUMBER_SUGAR(Sort)                                                                                    \
   __ALLOW_UNUSED(                                                                                             \
     using NumTraits = Sort##Traits;                                                                           \
-    syntaxSugarGlobals().setNumTraits(NumTraits{});                                            \
+    syntaxSugarGlobals().setNumTraits(NumTraits{});                                                           \
     auto Sort = SortSugar(NumTraits::sort());                                                                 \
   )
+
+#define BOOL_SORT(Sort)                                                                                       \
+  __ALLOW_UNUSED(                                                                                             \
+    auto Sort = SortSugar(AtomicSort::boolSort());                                                            \
+  ) 
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
 

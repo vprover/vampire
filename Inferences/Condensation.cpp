@@ -15,7 +15,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Term.hpp"
@@ -43,7 +43,7 @@ using namespace Saturation;
 Clause* Condensation::simplify(Clause* cl)
 {
   CALL("Condensation::perform");
-  TimeCounter tc(TC_CONDENSATION);
+  TIME_TRACE("condensation");
 
   unsigned clen=cl->length();
   if(clen<=1) {

@@ -114,7 +114,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
 Formula* Naming::apply_iter(Formula* top_f) {
   CALL("Naming::apply_iter");
 
-  TimeCounter tc(TC_NAMING);
+  TIME_TRACE("naming");
 
   Stack<Task> todo_stack;
   Stack<Result> result_stack;
@@ -1263,7 +1263,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   }
   Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 
-  InferenceStore::instance()->recordIntroducedSymbol(definition, PRED,
+  InferenceStore::instance()->recordIntroducedSymbol(definition, Kernel::SymbolType::PRED,
       atom->functor());
 
   UnitList::push(definition, _defs);

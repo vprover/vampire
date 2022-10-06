@@ -22,13 +22,16 @@
 
 namespace Inferences {
 
-class TermReducer : public TermTransformer {
+class TermReducer : public ApplicativeTermTransformer {
 public:
-  TermReducer() : TermTransformer(true, true), _reducLen(0) {} 
-  TermList transformSubterm(TermList trm) override;
+  TermReducer() : _reducLen(0) {
+    recurseIntoReplaced();
+    dontTransformSorts();
+  } 
+  TermList transformFirstOrderSubterm(TermList trm) override;
   
   // TODO are we calculating reduction length in the best way?
-  // should we not be counting individual reductions rahter than the number
+  // should we not be counting individual reductions rather than the number
   // of separate head normal forms achieved?
   unsigned getReductionLen(){ return _reducLen; }
  

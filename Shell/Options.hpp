@@ -220,7 +220,9 @@ public:
     OFF,
     INTERP_ONLY,
     ONE_INTERP,
-    ONE_SIDE_NL
+    ONE_SIDE_NL,
+    ONE_INTERP_NO_VARS,
+    INTERP_DIFF_TOPS,
     //CONSTANT,
     //ALL,
     //GROUND
@@ -418,6 +420,8 @@ public:
     SMTCOMP_2018, 
     RAPID,
     RAPID_INDUCTION,
+    SNAKE_TPTP_UNS,
+    SNAKE_TPTP_SAT,
     STRUCT_INDUCTION
   };
 
@@ -2013,7 +2017,7 @@ bool _hard;
       bool check(Property*p){
         CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
-        Stack<OptionProblemConstraintUP>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         while(it.hasNext()){ 
           bool n=it.next()->check(p);res = is_and ? (res && n) : (res || n);}
         return res;
@@ -2021,7 +2025,7 @@ bool _hard;
 
       vstring msg(){
         vstring res="";
-        Stack<OptionProblemConstraintUP>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         if(it.hasNext()){ res=it.next()->msg();}
         while(it.hasNext()){ res+=",and\n"+it.next()->msg();}
         return res;
@@ -2133,6 +2137,7 @@ public:
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
+  void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
@@ -2185,6 +2190,8 @@ public:
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
+  bool uwaAtTopLevel() const { return _uwaAtTopLevel.actualValue; }
+  void setUWAatTopLevel(bool val) { _uwaAtTopLevel.actualValue = val; }
   bool useACeval() const { return _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
@@ -2300,7 +2307,8 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
-
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
 
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
@@ -2330,7 +2338,9 @@ public:
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   Condensation condensation() const { return _condensation.actualValue; }
   bool generalSplitting() const { return _generalSplitting.actualValue; }
+#if VTIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
+#endif // VTIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
@@ -2432,7 +2442,6 @@ public:
   bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
   int maxXXNarrows() const { return _maximumXXNarrows.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
-  void setFE(FunctionExtensionality value){ _functionExtensionality.actualValue = value; } 
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
   Narrow narrow() const { return _narrow.actualValue; }
@@ -2735,6 +2744,7 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
+  BoolOptionValue _randomizSeedForPortfolioWorkers;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
@@ -2800,6 +2810,7 @@ private:
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
+  BoolOptionValue _uwaAtTopLevel;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   FloatOptionValue _lrsEstimateCorrectionCoef;

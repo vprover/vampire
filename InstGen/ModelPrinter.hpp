@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Term.hpp"

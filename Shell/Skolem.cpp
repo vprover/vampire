@@ -104,9 +104,9 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
     auto symPair = _introducedSkolemSyms.pop();
 
     if(symPair.first){
-      InferenceStore::instance()->recordIntroducedSymbol(res,TYPE_CON,symPair.second);
+      InferenceStore::instance()->recordIntroducedSymbol(res,Kernel::SymbolType::TYPE_CON,symPair.second);
     } else {
-      InferenceStore::instance()->recordIntroducedSymbol(res,FUNC,symPair.second);
+      InferenceStore::instance()->recordIntroducedSymbol(res,Kernel::SymbolType::FUNC,symPair.second);
     }
 
     if(unit->derivedFromGoal()){
@@ -493,7 +493,6 @@ Formula* Skolem::skolemise (Formula* f)
         reuse_key = name_reuse->key(before);
         successfully_reused = name_reuse->get(reuse_key, sym);
         if (successfully_reused) { // only counts one per the whole quantifier block
-          cout << "SYM " << sym << endl;
           env.statistics->reusedSkolemFunctions++;
         }
       }

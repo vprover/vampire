@@ -37,12 +37,13 @@
 
 namespace Inferences {
 
-class CombinatorNormaliser : public TermTransformer {
+class CombinatorNormaliser : public ApplicativeTermTransformer {
 public:
-  // true means create shared terms
-  // true means recurse into replaced terms
-  CombinatorNormaliser() : TermTransformer(true, true) {} 
-  TermList transformSubterm(TermList trm) override;
+  CombinatorNormaliser() {
+    recurseIntoReplaced();
+    dontTransformSorts();
+  } 
+  TermList transformFirstOrderSubterm(TermList trm) override;
 };
 
 class CombinatorNormalisationISE

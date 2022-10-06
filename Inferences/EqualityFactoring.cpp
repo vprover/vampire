@@ -88,7 +88,7 @@ void EqualityFactoring::attach(SaturationAlgorithm* salg)
   CALL("EqualityFactoring::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  _handler = salg->getIndexManager()->getHandler();
+  _handler = salg->getIndexManager()->mismatchHandler();
 }
 
 struct EqualityFactoring::ResultFn
@@ -144,7 +144,7 @@ struct EqualityFactoring::ResultFn
 
     Literal* sLitAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
-      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
       sLitAfter = subst.apply(sLit, 0);
     }
 
@@ -155,7 +155,7 @@ struct EqualityFactoring::ResultFn
         Literal* currAfter = subst.apply(curr, 0);
 
         if (sLitAfter) {
-          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
           if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
             res->destroy();

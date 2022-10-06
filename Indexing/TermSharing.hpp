@@ -69,7 +69,7 @@ public:
     Literal* l;
   };
   inline static unsigned hash(const OpLitWrapper& w)
-  { return w.l->oppositeHash(); }
+  { return w.l->hash(true); }
   static bool equals(const Literal* l1,const OpLitWrapper& w) {
     return equals(l1, w.l, true);
   }

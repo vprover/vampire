@@ -129,7 +129,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
-    Lib/TimeCounter.cpp
     Lib/Timer.cpp
 
     Lib/Allocator.hpp
@@ -188,7 +187,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/STLAllocator.hpp
     Lib/StringUtils.hpp
     Lib/System.hpp
-    Lib/TimeCounter.hpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
     Lib/Vector.hpp
@@ -608,6 +606,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/SineUtils.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
+    Debug/TimeProfiling.hpp
+    Debug/TimeProfiling.cpp
     Shell/SymbolDefinitionInlining.cpp
     Shell/SymbolOccurrenceReplacement.cpp
     Shell/SymCounter.cpp
@@ -846,6 +846,8 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
+
+add_compile_definitions(VTIME_PROFILING=1)
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)

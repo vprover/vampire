@@ -21,6 +21,7 @@
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
 #include "Ordering.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"
@@ -252,21 +253,6 @@ bool TermList::allShared(TermList* args)
     args = args->next();
   }
   return true;
-}
-
-TermList TermList::getVSpecVar(Term* trm, VSpecVarToTermMap* map)
-{
-  CALL("TermList::getVSpecVar");
-
-  unsigned vNum;
-  if(map->find(trm, vNum)){
-    ASS(vNum > TermList::SPEC_UPPER_BOUND);
-    return TermList(vNum, true);
-  } else {
-    unsigned vNum = TermList::SPEC_UPPER_BOUND + map->size() + 1;
-    map->insert(vNum, trm);
-    return TermList(vNum, true);
-  }
 }
 
 unsigned TermList::weight() const
@@ -959,57 +945,6 @@ Literal* Literal::apply(Substitution& subst)
 
   return SubstHelper::apply(this, subst);
 } // Literal::apply
-
-/**
- * Return the hash function of the top-level of a complex term.
- * @pre The term must be non-variable
- * @since 28/12/2007 Manchester
- */
-unsigned Term::hash() const
-{
-  CALL("Term::hash");
-
-  unsigned hash = Hash::hash(_functor);
-  if (_arity == 0) {
-    return hash;
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
-
-/**
- * Return the hash function of the top-level of a literal.
- * @since 30/03/2008 Flight Murcia-Manchester
- */
-unsigned Literal::hash() const
-{
-  CALL("Literal::hash");
-
-  unsigned hash = Hash::hash(isPositive() ? (2*_functor) : (2*_functor+1));
-  if (_arity == 0) {
-    return hash;
-  }
-  if (isTwoVarEquality()) {
-    hash ^= Hash::hash(twoVarEqSort());
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
-
-/**
- * Return the hash function of the top-level of a literal with opposite polarity.
- */
-unsigned Literal::oppositeHash() const
-{
-  CALL("Literal::hash");
-
-  unsigned hash = Hash::hash( (!isPositive()) ? (2*_functor) : (2*_functor+1));
-  if (_arity == 0) {
-    return hash;
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
 
 /**
  * Return literal opposite to @b l.
