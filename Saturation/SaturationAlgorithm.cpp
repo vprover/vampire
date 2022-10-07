@@ -1248,6 +1248,14 @@ void SaturationAlgorithm::activate(Clause* cl)
     _selector->select(cl);
   }
 
+  if(env.options->useManualClauseSelection() && !env.options->useManualLiteralSelection() && !env.options->useManualSupLhsSelection()){
+    cout << "Activating: " << cl->toString() << endl;
+    cout << "Selected literals: " << endl;
+    for(unsigned i = 0; i < cl->numSelected(); i++){
+      cout << "   " << (*cl)[i]->toString() << endl;
+    }
+  }
+
   //std::cout << "Activated: " << cl->toString() << "    " <<  cl->numSelected() << "  !\n";
 
   ASS_EQ(cl->store(), Clause::SELECTED);

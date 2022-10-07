@@ -876,6 +876,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
   // to compare equalities with non-equalities
   case Shell::Options::LiteralComparisonMode::ALL_SAME:
     predicateLevels.init(nPredicates, 1);
+    predicateLevels[0] = 2;
     return predicateLevels;    
   case Shell::Options::LiteralComparisonMode::STANDARD:
     predicateLevels.init(nPredicates, 1);
