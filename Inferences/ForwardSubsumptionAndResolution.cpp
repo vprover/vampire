@@ -12,7 +12,6 @@
  * Implements class ForwardSubsumptionAndResolution.
  */
 
-
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/List.hpp"
@@ -44,15 +43,11 @@
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
-
-namespace Inferences
-{
+namespace Inferences {
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-
 
 #if VDEBUG
 #define CHECK_SMT_SUBSUMPTION 1
@@ -64,16 +59,13 @@ using namespace Saturation;
 
 #define USE_SMT_SUBSUMPTION 0
 
-
-
 class SubsumptionLogger;
-
 
 class FwSubsAndResStats {
 public:
   std::unique_ptr<SubsumptionLogger> m_logger;
-  int64_t m_logged_count = 0;  // count how many we would have logged even if there's no logger attached
-  int64_t m_logged_count_sr = 0;  // count how many we would have logged even if there's no logger attached
+  int64_t m_logged_count = 0;    // count how many we would have logged even if there's no logger attached
+  int64_t m_logged_count_sr = 0; // count how many we would have logged even if there's no logger attached
 
   // Store numDecisions as histogram
   // first two are originationg from subsumption
@@ -88,13 +80,11 @@ public:
 
 static FwSubsAndResStats fsstats;
 
-
-
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
-  : _subsumptionResolution(subsumptionResolution)
+    : _subsumptionResolution(subsumptionResolution)
 {
   CALL("ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution");
-  vstring const& logfile = env.options->subsumptionLogfile();
+  vstring const &logfile = env.options->subsumptionLogfile();
   if (!logfile.empty()) {
     BYPASSING_ALLOCATOR;
     fsstats.m_logger = make_unique<SubsumptionLogger>(logfile);
@@ -111,14 +101,14 @@ ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
   // }
 }
 
-void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
+void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   CALL("ForwardSubsumptionAndResolution::attach");
   ForwardSimplificationEngine::attach(salg);
-  _unitIndex=static_cast<UnitClauseLiteralIndex*>(
-	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
-  _fwIndex=static_cast<FwSubsSimplifyingLiteralIndex*>(
-	  _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE) );
+  _unitIndex = static_cast<UnitClauseLiteralIndex *>(
+      _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE));
+  _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
+      _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
   env.beginOutput();
 #if USE_SMT_SUBSUMPTION
   env.out() << "\% Subsumption algorithm: smt3\n";
@@ -131,164 +121,164 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm* salg)
 void ForwardSubsumptionAndResolution::detach()
 {
   CALL("ForwardSubsumptionAndResolution::detach");
-  _unitIndex=0;
-  _fwIndex=0;
+  _unitIndex = 0;
+  _fwIndex = 0;
   _salg->getIndexManager()->release(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
   _salg->getIndexManager()->release(FW_SUBSUMPTION_SUBST_TREE);
   ForwardSimplificationEngine::detach();
 }
-
 
 struct ClauseMatches {
   CLASS_NAME(ForwardSubsumptionAndResolution::ClauseMatches);
   USE_ALLOCATOR(ClauseMatches);
 
 private:
-  //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  ClauseMatches(const ClauseMatches&);
-  ClauseMatches& operator=(const ClauseMatches&);
+  // private and undefined operator= and copy constructor to avoid implicitly generated ones
+  ClauseMatches(const ClauseMatches &);
+  ClauseMatches &operator=(const ClauseMatches &);
+
 public:
-  ClauseMatches(Clause* cl) : _cl(cl), _zeroCnt(cl->length())
+  ClauseMatches(Clause *cl) : _cl(cl), _zeroCnt(cl->length())
   {
-    unsigned clen=_cl->length();
-    _matches=static_cast<LiteralList**>(ALLOC_KNOWN(clen*sizeof(void*), "Inferences::ClauseMatches"));
-    for(unsigned i=0;i<clen;i++) {
-      _matches[i]=0;
+    unsigned clen = _cl->length();
+    _matches = static_cast<LiteralList **>(ALLOC_KNOWN(clen * sizeof(void *), "Inferences::ClauseMatches"));
+    for (unsigned i = 0; i < clen; i++) {
+      _matches[i] = 0;
     }
   }
   ~ClauseMatches()
   {
-    unsigned clen=_cl->length();
-    for(unsigned i=0;i<clen;i++) {
+    unsigned clen = _cl->length();
+    for (unsigned i = 0; i < clen; i++) {
       LiteralList::destroy(_matches[i]);
     }
-    DEALLOC_KNOWN(_matches, clen*sizeof(void*), "Inferences::ClauseMatches");
+    DEALLOC_KNOWN(_matches, clen * sizeof(void *), "Inferences::ClauseMatches");
   }
 
-  void addMatch(Literal* baseLit, Literal* instLit)
+  void addMatch(Literal *baseLit, Literal *instLit)
   {
     addMatch(_cl->getLiteralPosition(baseLit), instLit);
   }
-  void addMatch(unsigned bpos, Literal* instLit)
+  void addMatch(unsigned bpos, Literal *instLit)
   {
-    if(!_matches[bpos]) {
+    if (!_matches[bpos]) {
       _zeroCnt--;
     }
-    LiteralList::push(instLit,_matches[bpos]);
+    LiteralList::push(instLit, _matches[bpos]);
   }
-  void fillInMatches(LiteralMiniIndex* miniIndex)
+  void fillInMatches(LiteralMiniIndex *miniIndex)
   {
-    unsigned blen=_cl->length();
+    unsigned blen = _cl->length();
 
-    for(unsigned bi=0;bi<blen;bi++) {
+    for (unsigned bi = 0; bi < blen; bi++) {
       LiteralMiniIndex::InstanceIterator instIt(*miniIndex, (*_cl)[bi], false);
-      while(instIt.hasNext()) {
-	Literal* matched=instIt.next();
-	addMatch(bi, matched);
+      while (instIt.hasNext()) {
+        Literal *matched = instIt.next();
+        addMatch(bi, matched);
       }
     }
   }
   bool anyNonMatched() { return _zeroCnt; }
 
-  Clause* _cl;
+  Clause *_cl;
   unsigned _zeroCnt;
-  LiteralList** _matches;
+  LiteralList **_matches;
 
-  class ZeroMatchLiteralIterator
-  {
+  class ZeroMatchLiteralIterator {
   public:
-    ZeroMatchLiteralIterator(ClauseMatches* cm)
-    : _lits(cm->_cl->literals()), _mlists(cm->_matches), _remaining(cm->_cl->length())
+    ZeroMatchLiteralIterator(ClauseMatches *cm)
+        : _lits(cm->_cl->literals()), _mlists(cm->_matches), _remaining(cm->_cl->length())
     {
-      if(!cm->_zeroCnt) {
-	_remaining=0;
+      if (!cm->_zeroCnt) {
+        _remaining = 0;
       }
     }
     bool hasNext()
     {
-      while(_remaining>0 && *_mlists) {
-	_lits++; _mlists++; _remaining--;
+      while (_remaining > 0 && *_mlists) {
+        _lits++;
+        _mlists++;
+        _remaining--;
       }
       return _remaining;
     }
-    Literal* next()
+    Literal *next()
     {
       _remaining--;
       _mlists++;
       return *(_lits++);
     }
+
   private:
-    Literal** _lits;
-    LiteralList** _mlists;
+    Literal **_lits;
+    LiteralList **_mlists;
     unsigned _remaining;
   };
 };
 
+typedef Stack<ClauseMatches *> CMStack;
 
-typedef Stack<ClauseMatches*> CMStack;
-
-Clause* ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause)
+Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause)
 {
   CALL("ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause");
   int clen = cl->length();
-  int nlen = clen-1;
+  int nlen = clen - 1;
 
-  Clause* res = new(nlen) Clause(nlen,
-      SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
+  Clause *res = new (nlen) Clause(nlen,
+                                  SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
 
   int next = 0;
-  bool found=false;
-  for(int i=0;i<clen;i++) {
-    Literal* curr=(*cl)[i];
-    //As we will apply subsumption resolution after duplicate literal
-    //deletion, the same literal should never occur twice.
-    ASS(curr!=lit || !found);
-    if(curr!=lit || found) {
-	(*res)[next++] = curr;
-    } else {
-      found=true;
+  bool found = false;
+  for (int i = 0; i < clen; i++) {
+    Literal *curr = (*cl)[i];
+    // As we will apply subsumption resolution after duplicate literal
+    // deletion, the same literal should never occur twice.
+    ASS(curr != lit || !found);
+    if (curr != lit || found) {
+      (*res)[next++] = curr;
+    }
+    else {
+      found = true;
     }
   }
 
   return res;
 }
 
-class SubsumptionLogger
-{
-  private:
-    std::ofstream m_file_slog;
-    std::ofstream m_file_clauses;
-    TPTPPrinter m_tptp;  // this needs to be a member so we get the type definitions only once at the beginning
-    unsigned int m_seq = 1;  // sequence number of logged inferences
-    unsigned int m_last_side_premise = -1;
-    unsigned int m_last_main_premise = -1;
-    int m_last_reslitidx = -1;
-    bool m_new_round = true;
-    DHMap<unsigned int, vvector<Literal*>> m_logged_clauses;
-  public:
-    CLASS_NAME(SubsumptionLogger);
-    USE_ALLOCATOR(SubsumptionLogger);
-    SubsumptionLogger(vstring logfile_path);
-    void logNextRound();
-    // Only log the clauses; must call logS... afterwards or the file will not be formatted correctly!
-    // resLitIdx only matters for SR, value < 0 means "all".
-    void logClauses(Clause* side_premise, Clause* main_premise, int resLitIdx);
-    void logSubsumption(int result);
-    void logSubsumptionResolution(int result);
-    // convenience function
-    void logSubsumption(Clause* side_premise, Clause* main_premise, int result);
-    void logSubsumptionResolution(Clause* side_premise, Clause* main_premise, int resLitIdx, int result);
-    void flush()
-    {
-      m_file_slog.flush();
-      m_file_clauses.flush();
-    }
+class SubsumptionLogger {
+private:
+  std::ofstream m_file_slog;
+  std::ofstream m_file_clauses;
+  TPTPPrinter m_tptp;     // this needs to be a member so we get the type definitions only once at the beginning
+  unsigned int m_seq = 1; // sequence number of logged inferences
+  unsigned int m_last_side_premise = -1;
+  unsigned int m_last_main_premise = -1;
+  int m_last_reslitidx = -1;
+  bool m_new_round = true;
+  DHMap<unsigned int, vvector<Literal *>> m_logged_clauses;
+
+public:
+  CLASS_NAME(SubsumptionLogger);
+  USE_ALLOCATOR(SubsumptionLogger);
+  SubsumptionLogger(vstring logfile_path);
+  void logNextRound();
+  // Only log the clauses; must call logS... afterwards or the file will not be formatted correctly!
+  // resLitIdx only matters for SR, value < 0 means "all".
+  void logClauses(Clause *side_premise, Clause *main_premise, int resLitIdx);
+  void logSubsumption(int result);
+  void logSubsumptionResolution(int result);
+  // convenience function
+  void logSubsumption(Clause *side_premise, Clause *main_premise, int result);
+  void logSubsumptionResolution(Clause *side_premise, Clause *main_premise, int resLitIdx, int result);
+  void flush()
+  {
+    m_file_slog.flush();
+    m_file_clauses.flush();
+  }
 };
 
 SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
-  : m_file_slog{}
-  , m_file_clauses{}
-  , m_tptp{&m_file_clauses}
+    : m_file_slog{}, m_file_clauses{}, m_tptp{&m_file_clauses}
 {
   CALL("SubsumptionLogger::SubsumptionLogger");
   vstring slog_path = logfile_path + ".slog";
@@ -304,12 +294,12 @@ void SubsumptionLogger::logNextRound()
   m_new_round = true;
 }
 
-void SubsumptionLogger::logClauses(Clause* side_premise, Clause* main_premise, int resLitIdx)
+void SubsumptionLogger::logClauses(Clause *side_premise, Clause *main_premise, int resLitIdx)
 {
   // Print clauses if they haven't been printed yet
-  for (Clause* clause : {side_premise, main_premise}) {
+  for (Clause *clause : {side_premise, main_premise}) {
     if (!m_logged_clauses.find(clause->number())) {
-      vvector<Literal*> literals;
+      vvector<Literal *> literals;
       literals.reserve(clause->length());
       // NOTE: we store the order the literals are printed in.
       //       Because the clause may later be reordered due to literal selection.
@@ -329,8 +319,8 @@ void SubsumptionLogger::logClauses(Clause* side_premise, Clause* main_premise, i
   m_last_side_premise = side_premise->number();
   if (resLitIdx >= 0) {
     // correct resLitIdx (required if clause has been reordered since printing)
-    Literal* resLit = (*main_premise)[resLitIdx];
-    vvector<Literal*>& lits = m_logged_clauses.get(main_premise->number());
+    Literal *resLit = (*main_premise)[resLitIdx];
+    vvector<Literal *> &lits = m_logged_clauses.get(main_premise->number());
     for (unsigned k = 0; k < lits.size(); ++k) {
       if (resLit == lits[k]) {
         resLitIdx = k;
@@ -359,7 +349,8 @@ void SubsumptionLogger::logSubsumptionResolution(int result)
   m_file_slog << "SR " << m_last_side_premise;
   if (m_last_reslitidx < 0) {
     m_file_slog << " *";
-  } else {
+  }
+  else {
     m_file_slog << ' ' << m_last_reslitidx;
   }
   m_file_slog << ' ' << result << '\n';
@@ -369,19 +360,19 @@ void SubsumptionLogger::logSubsumptionResolution(int result)
   m_last_reslitidx = -1;
 }
 
-void SubsumptionLogger::logSubsumption(Clause* side_premise, Clause* main_premise, int result)
+void SubsumptionLogger::logSubsumption(Clause *side_premise, Clause *main_premise, int result)
 {
   logClauses(side_premise, main_premise, -1);
   logSubsumption(result);
 }
 
-void SubsumptionLogger::logSubsumptionResolution(Clause* side_premise, Clause* main_premise, int resLitIdx, int result)
+void SubsumptionLogger::logSubsumptionResolution(Clause *side_premise, Clause *main_premise, int resLitIdx, int result)
 {
   logClauses(side_premise, main_premise, resLitIdx);
   logSubsumptionResolution(result);
 }
 
-void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
+void ForwardSubsumptionAndResolution::printStats(std::ostream &out)
 {
   if (fsstats.m_logger) {
     fsstats.m_logger->flush();
@@ -406,8 +397,7 @@ void ForwardSubsumptionAndResolution::printStats(std::ostream& out)
   }
 }
 
-
-bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resLit, int resLitIdx)
+bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resLit, int resLitIdx)
 {
   bool should_log = true;
   ASS_GE(resLitIdx, 0);
@@ -418,13 +408,13 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
     ASS_EQ(resLit, (*cl)[resLitIdx]);
   }
 
-  Clause* mcl = cms->_cl;
+  Clause *mcl = cms->_cl;
   unsigned mclen = mcl->length();
 
   ClauseMatches::ZeroMatchLiteralIterator zmli(cms);
   if (zmli.hasNext()) {
     while (zmli.hasNext()) {
-      Literal* bl = zmli.next();
+      Literal *bl = zmli.next();
       if (!MatchingUtils::match(bl, resLit, true)) {
         if (fsstats.m_logger && should_log) {
           fsstats.m_logger->logSubsumptionResolution(mcl, cl, resLitIdx, false);
@@ -466,7 +456,7 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
     RSTAT_CTR_INC("MLSubsumptionResolution Calls");
     isSR = MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit);
   }
-  catch(...) {
+  catch (...) {
     std::cout << "BIG SUBSUMPTION RESOLUTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
     if (fsstats.m_logger) {
       fsstats.m_logger->logSubsumptionResolution(-2);
@@ -497,26 +487,25 @@ bool checkForSubsumptionResolution(Clause* cl, ClauseMatches* cms, Literal* resL
   return isSR;
 }
 
-
-bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
   CALL("ForwardSubsumptionAndResolution::perform");
   if (fsstats.m_logger) {
     fsstats.m_logger->logNextRound();
   }
 #if CHECK_SMT_SUBSUMPTION || CHECK_SMT_SUBSUMPTION_RESOLUTION
-  static vvector<Clause*> s_mcl_tried;
+  static vvector<Clause *> s_mcl_tried;
   s_mcl_tried.clear();
-  static vvector<Clause*> sr_mcl_tried;
+  static vvector<Clause *> sr_mcl_tried;
   sr_mcl_tried.clear();
   bool we_did_subsumption_resolution = false;
   bool fin_print_extra_info = false;
 #endif
 
-  Clause* resolutionClause = nullptr;
+  Clause *resolutionClause = nullptr;
 
-  unsigned clen=cl->length();
-  if(clen==0) {
+  unsigned clen = cl->length();
+  if (clen == 0) {
     return false;
   }
 
@@ -529,17 +518,16 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
   static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
 
-
   /*********************************************************************************
    * Subsumption by unit clauses
    ********************************************************************************/
 
-  for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_unitIndex->getGeneralizations( (*cl)[li], false, false);
-    while(rit.hasNext()) {
-      Clause* premise=rit.next().clause;
-      if(ColorHelper::compatible(cl->color(), premise->color()) ) {
-        premises = pvi( getSingletonIterator(premise) );
+  for (unsigned li = 0; li < clen; li++) {
+    SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
+    while (rit.hasNext()) {
+      Clause *premise = rit.next().clause;
+      if (ColorHelper::compatible(cl->color(), premise->color())) {
+        premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
         ASS_LE(premise->weight(), cl->weight());
         result = true;
@@ -557,7 +545,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
     }
   }
 
-
   /*********************************************************************************
    * Subsumption by long clauses
    ********************************************************************************/
@@ -569,170 +556,227 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
     LiteralMiniIndex miniIndex(cl);
 #endif
 
-  for(unsigned li=0;li<clen;li++) {
-    SLQueryResultIterator rit=_fwIndex->getGeneralizations( (*cl)[li], false, false);
-    while(rit.hasNext()) {
-      SLQueryResult res=rit.next();
-      Clause* mcl=res.clause;
-      if(mcl->hasAux()) {
-        //we've already checked this clause
-        continue;
-      }
-      ASS_G(mcl->length(),1);
+    for (unsigned li = 0; li < clen; li++) {
+      SLQueryResultIterator rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
+      while (rit.hasNext()) {
+        SLQueryResult res = rit.next();
+        Clause *mcl = res.clause;
+        if (mcl->hasAux()) {
+          // we've already checked this clause
+          continue;
+        }
+        ASS_G(mcl->length(), 1);
 
-      // disable this for now (not done in master, needs to be checked and discussed)
-      // if (mcl->length() > cl->length()) {
-      //   RSTAT_CTR_INC("fw subsumption impossible due to length");
-      // }
+        // disable this for now (not done in master, needs to be checked and discussed)
+        // if (mcl->length() > cl->length()) {
+        //   RSTAT_CTR_INC("fw subsumption impossible due to length");
+        // }
 
-      // disable this for now (not done in master, needs to be checked and discussed)
-      // if (mcl->weight() > cl->weight()) {
-      //   RSTAT_CTR_INC("fw subsumption impossible due to weight");
-      // }
+        // disable this for now (not done in master, needs to be checked and discussed)
+        // if (mcl->weight() > cl->weight()) {
+        //   RSTAT_CTR_INC("fw subsumption impossible due to weight");
+        // }
 
 #if USE_SMT_SUBSUMPTION
-      mcl->setAux(this);
-      bool const isSubsumed = smtsubs.setupSubsumption(mcl) && smtsubs.solve() && ColorHelper::compatible(cl->color(), mcl->color());
+        mcl->setAux(this);
+        bool const isSubsumed = smtsubs.setupSubsumption(mcl) && smtsubs.solve() && ColorHelper::compatible(cl->color(), mcl->color());
 #else
-      ClauseMatches* cms=new ClauseMatches(mcl);
-      mcl->setAux(cms);
-      cmStore.push(cms);
-      cms->fillInMatches(&miniIndex);
+        ClauseMatches *cms = new ClauseMatches(mcl);
+        mcl->setAux(cms);
+        cmStore.push(cms);
+        cms->fillInMatches(&miniIndex);
 
-      if(cms->anyNonMatched()) {
+        if (cms->anyNonMatched()) {
+          fsstats.m_logged_count += 1;
+          if (fsstats.m_logger) {
+            fsstats.m_logger->logSubsumption(mcl, cl, false);
+          }
+          continue;
+        }
+
         fsstats.m_logged_count += 1;
         if (fsstats.m_logger) {
-          fsstats.m_logger->logSubsumption(mcl, cl, false);
+          ASS_EQ(Timer::s_limitEnforcement, false);
+          // we log the clauses first to make sure they haven't been deallocated yet (might happen due to weird code paths when exiting)
+          // this is important because we want to catch subsumptions that cause vampire to time out! because these are the cases that the new algorithm should improve.
+          fsstats.m_logger->logClauses(mcl, cl, -1);
+          if (env.timeLimitReached()) {
+            fsstats.m_logger->logSubsumption(-4);
+            fsstats.m_logger->flush();
+            throw TimeLimitExceededException();
+          }
         }
-        continue;
-      }
+        int isSubsumed = -1;
+        try {
+          RSTAT_CTR_INC("MLSubsumption Calls");
+          isSubsumed =
+              MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0) && ColorHelper::compatible(cl->color(), mcl->color());
+        }
+        catch (...) {
+          std::cout << "BIG SUBSUMPTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
+          if (fsstats.m_logger) {
+            fsstats.m_logger->logSubsumption(-2);
+            fsstats.m_logger->flush();
+          }
+          throw;
+        }
 
-      fsstats.m_logged_count += 1;
-      if (fsstats.m_logger) {
-        ASS_EQ(Timer::s_limitEnforcement, false);
-        // we log the clauses first to make sure they haven't been deallocated yet (might happen due to weird code paths when exiting)
-        // this is important because we want to catch subsumptions that cause vampire to time out! because these are the cases that the new algorithm should improve.
-        fsstats.m_logger->logClauses(mcl, cl, -1);
-        if (env.timeLimitReached()) {
-          fsstats.m_logger->logSubsumption(-4);
-          fsstats.m_logger->flush();
-          throw TimeLimitExceededException();
-        }
-      }
-      int isSubsumed = -1;
-      try {
-        RSTAT_CTR_INC("MLSubsumption Calls");
-        isSubsumed =
-          MLMatcher::canBeMatched(mcl,cl,cms->_matches,0)
-          && ColorHelper::compatible(cl->color(), mcl->color());
-      }
-      catch(...) {
-        std::cout << "BIG SUBSUMPTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
         if (fsstats.m_logger) {
-          fsstats.m_logger->logSubsumption(-2);
-          fsstats.m_logger->flush();
+          fsstats.m_logger->logSubsumption(isSubsumed);
+          if (env.timeLimitReached()) {
+            fsstats.m_logger->flush();
+            throw TimeLimitExceededException();
+          }
         }
-        throw;
-      }
 
-      if (fsstats.m_logger) {
-        fsstats.m_logger->logSubsumption(isSubsumed);
-        if (env.timeLimitReached()) {
-          fsstats.m_logger->flush();
-          throw TimeLimitExceededException();
+        auto stats = MLMatcher::getStaticStats();
+        if (stats.numDecisions >= fsstats.m_numDecisions_frequency.size()) {
+          size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions + 1), fsstats.m_numDecisions_frequency.size() * 2);
+          fsstats.m_numDecisions_frequency.resize(new_size, 0);
+          fsstats.m_numDecisions_successes.resize(new_size, 0);
         }
-      }
-
-      auto stats = MLMatcher::getStaticStats();
-      if (stats.numDecisions >= fsstats.m_numDecisions_frequency.size()) {
-        size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions + 1), fsstats.m_numDecisions_frequency.size() * 2);
-        fsstats.m_numDecisions_frequency.resize(new_size, 0);
-        fsstats.m_numDecisions_successes.resize(new_size, 0);
-      }
-      fsstats.m_numDecisions_frequency[stats.numDecisions] += 1;
-      if (stats.result) {
-        fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
-      }
+        fsstats.m_numDecisions_frequency[stats.numDecisions] += 1;
+        if (stats.result) {
+          fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
+        }
 
 #if CHECK_SMT_SUBSUMPTION
-      s_mcl_tried.push_back(mcl);
-      // if (smtsubs.checkSubsumption(mcl, cl) != isSubsumed) {
-      //   std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION***    MULTI expecting " << isSubsumed << std::endl;
-      //   std::cerr << "\% mcl = " << mcl->toString() << std::endl;
-      //   std::cerr << "\%  cl = " <<  cl->toString() << std::endl;
-      // };
+        s_mcl_tried.push_back(mcl);
+        // if (smtsubs.checkSubsumption(mcl, cl) != isSubsumed) {
+        //   std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION***    MULTI expecting " << isSubsumed << std::endl;
+        //   std::cerr << "\% mcl = " << mcl->toString() << std::endl;
+        //   std::cerr << "\%  cl = " <<  cl->toString() << std::endl;
+        // };
 #endif
 #endif
 
-      if (isSubsumed) {
-        premises = pvi( getSingletonIterator(mcl) );
-        env.statistics->forwardSubsumed++;
-        ASS_LE(mcl->weight(), cl->weight());
-        result = true;
-        goto fin;
-      }
-    }
-  }
-
-  tc_fs.stop();
-
-
-  /*********************************************************************************
-   * Subsumption resolution
-   ********************************************************************************/
-
-  if(!_subsumptionResolution) {
-    goto fin;
-  }
-
-  {
-#if CHECK_SMT_SUBSUMPTION_RESOLUTION
-    we_did_subsumption_resolution = true;
-#endif
-    TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
-
-    // This is subsumption resolution with unit clauses. We don't log these because we don't do smt-subsumption for these.
-    for (unsigned li = 0; li < clen; li++) {
-      Literal* resLit = (*cl)[li];
-      SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
-      while (rit.hasNext()) {
-        Clause* mcl = rit.next().clause;
-        ASS(!resolutionClause);
-        if (ColorHelper::compatible(cl->color(), mcl->color())) {
-          resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
-          ASS(resolutionClause);
-          env.statistics->forwardSubsumptionResolution++;
+        if (isSubsumed) {
           premises = pvi(getSingletonIterator(mcl));
-          replacement = resolutionClause;
+          env.statistics->forwardSubsumed++;
+          ASS_LE(mcl->weight(), cl->weight());
           result = true;
-        }
-#if CHECK_SMT_SUBSUMPTION_RESOLUTION
-        sr_mcl_tried.push_back(mcl);
-        // smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
-#endif
-        if (resolutionClause) {
           goto fin;
         }
       }
     }
 
-#if USE_SMT_SUBSUMPTION
-    ASS(cmStore.isEmpty());
-#else
-    // Note that we only index the "least matchable" literal in the _fwIndex.
-    // This performs SR when the indexed literal is in the subsumption part.
+    tc_fs.stop();
+
+    /*********************************************************************************
+     * Subsumption resolution
+     ********************************************************************************/
+
+    if (!_subsumptionResolution) {
+      goto fin;
+    }
+
     {
-      CMStack::Iterator csit(cmStore);
-      while (csit.hasNext()) {
-        ClauseMatches* cms = csit.next();
-        Clause* mcl = cms->_cl;
-        ASS_EQ(mcl->getAux<ClauseMatches>(), cms);
-        for (unsigned li = 0; li < cl->length(); li++) {
-          Literal* resLit = (*cl)[li];
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+      we_did_subsumption_resolution = true;
+#endif
+      TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
+
+      // This is subsumption resolution with unit clauses. We don't log these because we don't do smt-subsumption for these.
+      for (unsigned li = 0; li < clen; li++) {
+        Literal *resLit = (*cl)[li];
+        SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
+        while (rit.hasNext()) {
+          Clause *mcl = rit.next().clause;
           ASS(!resolutionClause);
-          // only log the first occurrence with resLit *, because for these we always check all.
-          // (actually not completely true if we encounter success... then we skip the remaining ones. and we can't replicate this behaviour during replay because of clause reordering)
-          // if (checkForSubsumptionResolution(cl, cms, resLit, -1, li == 0) && ColorHelper::compatible(cl->color(), mcl->color())) {
+          if (ColorHelper::compatible(cl->color(), mcl->color())) {
+            resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
+            ASS(resolutionClause);
+            env.statistics->forwardSubsumptionResolution++;
+            premises = pvi(getSingletonIterator(mcl));
+            replacement = resolutionClause;
+            result = true;
+          }
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+          sr_mcl_tried.push_back(mcl);
+          // smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
+#endif
+          if (resolutionClause) {
+            goto fin;
+          }
+        }
+      }
+
+#if USE_SMT_SUBSUMPTION
+      ASS(cmStore.isEmpty());
+#else
+      // Note that we only index the "least matchable" literal in the _fwIndex.
+      // This performs SR when the indexed literal is in the subsumption part.
+      {
+        CMStack::Iterator csit(cmStore);
+        while (csit.hasNext()) {
+          ClauseMatches *cms = csit.next();
+          Clause *mcl = cms->_cl;
+          ASS_EQ(mcl->getAux<ClauseMatches>(), cms);
+          for (unsigned li = 0; li < cl->length(); li++) {
+            Literal *resLit = (*cl)[li];
+            ASS(!resolutionClause);
+            // only log the first occurrence with resLit *, because for these we always check all.
+            // (actually not completely true if we encounter success... then we skip the remaining ones. and we can't replicate this behaviour during replay because of clause reordering)
+            // if (checkForSubsumptionResolution(cl, cms, resLit, -1, li == 0) && ColorHelper::compatible(cl->color(), mcl->color())) {
+            if (checkForSubsumptionResolution(cl, cms, resLit, li) && ColorHelper::compatible(cl->color(), mcl->color())) {
+              resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
+              ASS(resolutionClause);
+              env.statistics->forwardSubsumptionResolution++;
+              premises = pvi(getSingletonIterator(mcl));
+              replacement = resolutionClause;
+              result = true;
+            }
+#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+            sr_mcl_tried.push_back(mcl);
+            // NOTE: we can't do the check here because we might encounter the same clause again in the loop below (it's possible that we fail here but succeed later).
+            // if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
+            //   fin_print_extra_info = true;
+            // }
+#endif
+            if (resolutionClause) {
+              goto fin;
+            }
+          }
+          ASS_EQ(mcl->getAux<ClauseMatches>(), cms);
+          mcl->setAux(nullptr);
+        }
+      }
+#endif
+
+#if USE_SMT_SUBSUMPTION
+      LiteralMiniIndex miniIndex(cl);
+#endif
+
+      // This performs SR when the indexed literal is the resolved literal.
+      for (unsigned li = 0; li < cl->length(); li++) {
+        Literal *resLit = (*cl)[li]; // resolved literal
+        SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
+        while (rit.hasNext()) {
+          SLQueryResult res = rit.next();
+          Clause *mcl = res.clause;
+
+          // See https://github.com/vprover/vampire/pull/214
+          ClauseMatches *cms = nullptr;
+          if (mcl->hasAux()) {
+            // We have seen the clause already, try to re-use the literal matches.
+            // (Note that we can't just skip the clause: if our previous check
+            // failed to detect subsumption resolution, it might still work out
+            // with a different resolved literal.)
+            cms = mcl->getAux<ClauseMatches>();
+            // Already handled in the loop over cmStore above.
+            if (!cms) {
+              continue;
+            }
+          }
+          if (!cms) {
+            cms = new ClauseMatches(mcl);
+            mcl->setAux(cms);
+            cmStore.push(cms);
+            cms->fillInMatches(&miniIndex);
+          }
+          ASS_EQ(mcl, cms->_cl);
+
+          ASS(!resolutionClause);
           if (checkForSubsumptionResolution(cl, cms, resLit, li) && ColorHelper::compatible(cl->color(), mcl->color())) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             ASS(resolutionClause);
@@ -743,8 +787,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
           }
 #if CHECK_SMT_SUBSUMPTION_RESOLUTION
           sr_mcl_tried.push_back(mcl);
-          // NOTE: we can't do the check here because we might encounter the same clause again in the loop below (it's possible that we fail here but succeed later).
-          // if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
+          // // NOTE: we can't do the check here because we might encounter the same clause again in the loop with another resLit
+          // if (!smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause)) {
           //   fin_print_extra_info = true;
           // }
 #endif
@@ -752,119 +796,61 @@ bool ForwardSubsumptionAndResolution::perform(Clause* cl, Clause*& replacement, 
             goto fin;
           }
         }
-        ASS_EQ(mcl->getAux<ClauseMatches>(), cms);
-        mcl->setAux(nullptr);
       }
     }
-#endif
-
-#if USE_SMT_SUBSUMPTION
-    LiteralMiniIndex miniIndex(cl);
-#endif
-
-    // This performs SR when the indexed literal is the resolved literal.
-    for (unsigned li = 0; li < cl->length(); li++) {
-      Literal* resLit = (*cl)[li]; //resolved literal
-      SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
-      while (rit.hasNext()) {
-        SLQueryResult res = rit.next();
-        Clause* mcl = res.clause;
-
-        // See https://github.com/vprover/vampire/pull/214
-        ClauseMatches* cms = nullptr;
-        if (mcl->hasAux()) {
-          // We have seen the clause already, try to re-use the literal matches.
-          // (Note that we can't just skip the clause: if our previous check
-          // failed to detect subsumption resolution, it might still work out
-          // with a different resolved literal.)
-          cms = mcl->getAux<ClauseMatches>();
-          // Already handled in the loop over cmStore above.
-          if (!cms) {
-            continue;
-          }
-        }
-        if (!cms) {
-          cms = new ClauseMatches(mcl);
-          mcl->setAux(cms);
-          cmStore.push(cms);
-          cms->fillInMatches(&miniIndex);
-        }
-        ASS_EQ(mcl, cms->_cl);
-
-        ASS(!resolutionClause);
-        if (checkForSubsumptionResolution(cl, cms, resLit, li) && ColorHelper::compatible(cl->color(), mcl->color())) {
-          resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
-          ASS(resolutionClause);
-          env.statistics->forwardSubsumptionResolution++;
-          premises = pvi(getSingletonIterator(mcl));
-          replacement = resolutionClause;
-          result = true;
-        }
-#if CHECK_SMT_SUBSUMPTION_RESOLUTION
-        sr_mcl_tried.push_back(mcl);
-        // // NOTE: we can't do the check here because we might encounter the same clause again in the loop with another resLit
-        // if (!smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause)) {
-        //   fin_print_extra_info = true;
-        // }
-#endif
-        if (resolutionClause) {
-          goto fin;
-        }
-      }
-    }
-  }
   }
 
 fin:
   Clause::releaseAux();
-  while(cmStore.isNonEmpty()) {
+  while (cmStore.isNonEmpty()) {
     delete cmStore.pop();
   }
   {
 #if CHECK_SMT_SUBSUMPTION || CHECK_SMT_SUBSUMPTION_RESOLUTION
-  auto tok = smtsubs.setupMainPremise(cl);
-  if (fin_print_extra_info) {
-    std::cerr << "% result = " << result << std::endl;
-    std::cerr << "% replacement = " << (replacement ? replacement->toString() : "nullptr") << std::endl;
-  }
+    auto tok = smtsubs.setupMainPremise(cl);
+    if (fin_print_extra_info) {
+      std::cerr << "% result = " << result << std::endl;
+      std::cerr << "% replacement = " << (replacement ? replacement->toString() : "nullptr") << std::endl;
+    }
 #endif
 #if CHECK_SMT_SUBSUMPTION
-  if (!we_did_subsumption_resolution) {
-    if (result) {
-      // successful subsumption is the last one
-      Clause* mcl = s_mcl_tried.back();
-      s_mcl_tried.pop_back();
-      if (!smtsubs.checkSubsumption(mcl, cl)) {
-        std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION*** (should be 1, got 0)" << std::endl;
-        std::cerr << "\% mcl = " << mcl->toString() << std::endl;
-        std::cerr << "\%  cl = " <<  cl->toString() << std::endl;
+    if (!we_did_subsumption_resolution) {
+      if (result) {
+        // successful subsumption is the last one
+        Clause *mcl = s_mcl_tried.back();
+        s_mcl_tried.pop_back();
+        if (!smtsubs.checkSubsumption(mcl, cl)) {
+          std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION*** (should be 1, got 0)" << std::endl;
+          std::cerr << "\% mcl = " << mcl->toString() << std::endl;
+          std::cerr << "\%  cl = " << cl->toString() << std::endl;
+        }
+      }
+      for (Clause *mcl : s_mcl_tried) {
+        if (smtsubs.checkSubsumption(mcl, cl)) {
+          std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION*** (should be 0, got 1)" << std::endl;
+          std::cerr << "\% mcl = " << mcl->toString() << std::endl;
+          std::cerr << "\%  cl = " << cl->toString() << std::endl;
+        }
       }
     }
-    for (Clause* mcl : s_mcl_tried) {
-      if (smtsubs.checkSubsumption(mcl, cl)) {
-        std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION*** (should be 0, got 1)" << std::endl;
-        std::cerr << "\% mcl = " << mcl->toString() << std::endl;
-        std::cerr << "\%  cl = " <<  cl->toString() << std::endl;
-      }
-    }
-  }
 #endif
 #if CHECK_SMT_SUBSUMPTION_RESOLUTION
-  if (we_did_subsumption_resolution) {
-    if (result) {
-      // In this case we can only check the last side premise... for the others we don't know yet whether we missed an inference or if we just discovered the current one before.
-      ASS(resolutionClause);
-      smtsubs.checkSubsumptionResolution(sr_mcl_tried.back(), cl, resolutionClause);
-    } else {
-      ASS(!resolutionClause);
-      for (Clause* mcl : sr_mcl_tried) {
-        smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
+    if (we_did_subsumption_resolution) {
+      if (result) {
+        // In this case we can only check the last side premise... for the others we don't know yet whether we missed an inference or if we just discovered the current one before.
+        ASS(resolutionClause);
+        smtsubs.checkSubsumptionResolution(sr_mcl_tried.back(), cl, resolutionClause);
+      }
+      else {
+        ASS(!resolutionClause);
+        for (Clause *mcl : sr_mcl_tried) {
+          smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
+        }
       }
     }
-  }
 #endif
   }
   return result;
 }
 
-}
+} // namespace Inferences
