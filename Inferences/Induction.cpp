@@ -1022,15 +1022,6 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
   e->add(std::move(cls), std::move(subst));
 }
 
-inline TermStack getTypeArgs(TermList sort) {
-  TermStack typeArgs;
-  for (unsigned i = 0; i < sort.term()->arity(); i++) {
-    TermList ins = *sort.term()->nthArgument(i);
-    typeArgs.push(ins);
-  }
-  return typeArgs;
-}
-
 /**
  * Introduce the Induction Hypothesis
  * ( L[base1] & ... & L[basen] & (L[x] => L[c1(x)]) & ... (L[x] => L[cm(x)]) ) => L[x]
@@ -1046,7 +1037,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
   TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();
-  TermStack typeArgs = getTypeArgs(sort);
+  TermStack typeArgs = SortHelper::getTypeArguments(sort);
 
   FormulaList* formulas = FormulaList::empty();
 
@@ -1108,7 +1099,7 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
   TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();
-  TermStack typeArgs = getTypeArgs(sort);
+  TermStack typeArgs = SortHelper::getTypeArguments(sort);
 
   // make L[y]
   TermList y(0,false); 
@@ -1194,7 +1185,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
   TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();
-  TermStack typeArgs = getTypeArgs(sort);
+  TermStack typeArgs = SortHelper::getTypeArguments(sort);
 
   // make L[y]
   TermList x(0,false); 
