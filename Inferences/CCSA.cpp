@@ -12,7 +12,7 @@
  * Inferences about a subterm relation
  */
 
-#include "Subterm.hpp"
+#include "CCSA.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
