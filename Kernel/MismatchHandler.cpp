@@ -102,7 +102,7 @@ MaybeBool UWAMismatchHandler::isConstraintTerm(TermList t, TermList sort, bool t
       if(t.isTerm() && env.signature->getFunction(t.term()->functor())->finalLoopCount()){
         return MaybeBool::UNKNOWN;        
       }
-      return uwaconf::isInterpreted(t);
+      return uwaconf::isInterpreted(t) && !uwaconf::isNumeral(t);
     }
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY: {
       return uwaconf::isInterpreted(t);
