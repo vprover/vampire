@@ -172,7 +172,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       if (iSortRdr.hasNext() && iSortRdr.peekAtNext()->isAtom() && iSortRdr.peekAtNext()->str == PAR) {
         ibRdr.acceptEOL();
         iSortRdr.readAtom(); // the "par" atom
-        tryReadTypeParameters(iSortRdr, lookup);
+        readTypeParameters(iSortRdr, lookup);
         iSorts = iSortRdr.readList();
         ibRdr = iSortRdr;
       }
@@ -236,7 +236,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         if (oSortRdr.hasNext() && oSortRdr.peekAtNext()->isAtom() && oSortRdr.peekAtNext()->str == PAR) {
           ibRdr.acceptEOL();
           oSortRdr.readAtom(); // the "par" atom
-          tryReadTypeParameters(oSortRdr, lookup);
+          readTypeParameters(oSortRdr, lookup);
           oSort = oSortRdr.readNext();
           ibRdr = oSortRdr;
         } else {
@@ -264,7 +264,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       if (iArgRdr.hasNext() && iArgRdr.peekAtNext()->isAtom() && iArgRdr.peekAtNext()->str == PAR) {
         ibRdr.acceptEOL();
         iArgRdr.readAtom(); // the "par" atom
-        tryReadTypeParameters(iArgRdr, lookup, &typeArgs);
+        readTypeParameters(iArgRdr, lookup, &typeArgs);
         iArgs = iArgRdr.readList();
         ibRdr = iArgRdr;
       }
@@ -837,9 +837,9 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
-void SMTLIB2::tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
+void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
 {
-  CALL("SMTLIB2::tryReadTypeParameters");
+  CALL("SMTLIB2::readTypeParameters");
 
   if (!rdr.hasNext()) {
     USER_ERROR_EXPR("'par' keyword must be followed by a list of parameters");
@@ -878,7 +878,7 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
   _scopes.push(lookup);
   if (dtypeRdr.hasNext() && dtypeRdr.peekAtNext()->isAtom() && dtypeRdr.peekAtNext()->str == PAR) {
     dtypeRdr.readAtom();
-    tryReadTypeParameters(dtypeRdr, lookup);
+    readTypeParameters(dtypeRdr, lookup);
     auto rest = dtypeRdr.readList();
     dtypeRdr.acceptEOL();
     dtypeRdr = LispListReader(rest);
@@ -1785,7 +1785,7 @@ void SMTLIB2::parseParametric(LExpr* exp)
   lRdr.readAtom();
 
   TermLookup* lookup = new TermLookup();
-  tryReadTypeParameters(lRdr, lookup);
+  readTypeParameters(lRdr, lookup);
   _scopes.push(lookup);
 
   if (!lRdr.hasNext()) {

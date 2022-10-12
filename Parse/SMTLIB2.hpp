@@ -369,7 +369,11 @@ private:
 
   [[noreturn]] void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp);
 
-  void tryReadTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts = nullptr);
+  /**
+   * Read `[vars]` from a `(par ([vars]) body)` block into `lookup`.
+   * Note that `rdr.next()` gives `body` after the function returns.
+   */
+  void readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts = nullptr);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
