@@ -475,8 +475,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/PolynomialEvaluation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.cpp
-    Inferences/Subterm.hpp
-    Inferences/Subterm.cpp
+    Inferences/CCSA.hpp
+    Inferences/CCSA.cpp
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})
 

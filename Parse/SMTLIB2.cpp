@@ -33,7 +33,7 @@
 #include "Shell/SMTLIBLogic.hpp"
 #include "Shell/TermAlgebra.hpp"
 
-#include "Inferences/Subterm.hpp"
+#include "Inferences/CCSA.hpp"
 
 #include "SMTLIB2.hpp"
 

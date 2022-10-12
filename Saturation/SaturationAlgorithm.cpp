@@ -69,7 +69,7 @@
 #include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
-#include "Inferences/Subterm.hpp"
+#include "Inferences/CCSA.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
