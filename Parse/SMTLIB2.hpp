@@ -247,7 +247,7 @@ private:
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
-  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort, unsigned numTypeArgs,
+  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort,
                                                       Stack<vstring> destructorNames, TermStack argSorts);
 
   /**

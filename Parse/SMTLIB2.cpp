@@ -228,11 +228,10 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         USER_ERROR_EXPR("declare-const expects a const definition body");
       }
       LExpr* oSort = ibRdr.readNext();
-      unsigned taArity = 0;
+      auto lookup = new TermLookup();
+      _scopes.push(lookup);
       if (oSort->isList()) {
         LispListReader oSortRdr(oSort);
-        auto lookup = new TermLookup();
-        _scopes.push(lookup);
         if (oSortRdr.hasNext() && oSortRdr.peekAtNext()->isAtom() && oSortRdr.peekAtNext()->str == PAR) {
           ibRdr.acceptEOL();
           oSortRdr.readAtom(); // the "par" atom
@@ -242,10 +241,9 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         } else {
           USER_ERROR_EXPR("declare-const expects either a `par` block or one output sort");
         }
-        taArity = lookup->size();
       }
 
-      readDeclareFun(name,nullptr,oSort,taArity);
+      readDeclareFun(name,nullptr,oSort,lookup->size());
 
       ibRdr.acceptEOL();
       delete _scopes.pop();
@@ -730,7 +728,6 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name,
     if (argSorts.size() > 0 || taArity > 0) {
       symNum = env.signature->addFunction(name, argSorts.size()+taArity, added);
     } else {
-      // TODO what about taArity here?
       symNum = TPTP::addUninterpretedConstant(name,_overflow,added);
     }
 
@@ -923,7 +920,7 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
         USER_ERROR_EXPR("Bad constructor argument:" + arg->toString());
       }
     }
-    constructors.push(buildTermAlgebraConstructor(constrName, taSort, parSorts.size(), destructorNames, argSorts));
+    constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
   }
   delete _scopes.pop();
 
@@ -1013,7 +1010,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
           }
         }
       }
-      constructors.push(buildTermAlgebraConstructor(constrName, taSort, 0, destructorNames, argSorts));
+      constructors.push(buildTermAlgebraConstructor(constrName, taSort, destructorNames, argSorts));
     }
 
     ASS(!env.signature->isTermAlgebraSort(taSort));
@@ -1027,7 +1024,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
   }
 }
 
-TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, TermList taSort, unsigned numTypeArgs,
+TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, TermList taSort,
                                                              Stack<vstring> destructorNames, TermStack argSorts) {
   CALL("SMTLIB2::buildTermAlgebraConstructor");
 
@@ -1035,6 +1032,8 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
     USER_ERROR_EXPR("Redeclaring function symbol: " + constrName);
   }
 
+  ASS(taSort.isTerm() && taSort.term()->isSort());
+  unsigned numTypeArgs = taSort.term()->arity();
   unsigned arity = (unsigned)argSorts.size();
 
   bool added;

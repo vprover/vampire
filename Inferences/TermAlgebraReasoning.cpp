@@ -251,13 +251,9 @@ namespace Inferences {
     CALL("NegativeInjectivityISE::litCondition");
     Literal *lit = (*c)[i];
     if (sameConstructorsEquality(lit) && !lit->polarity()) {
+      unsigned numTypeArguments = lit->nthArgument(0)->term()->numTypeArguments();
       unsigned arity = lit->nthArgument(0)->term()->arity();
-      for (unsigned j = 0; j < arity; j++) {
-        if (j < lit->nthArgument(0)->term()->numTypeArguments()) {
-          ASS_EQ(*lit->nthArgument(0)->term()->nthArgument(j),
-                 *lit->nthArgument(1)->term()->nthArgument(j));
-          continue;
-        }
+      for (unsigned j = numTypeArguments; j < arity; j++) {
         Literal *l = Literal::createEquality(true,
                                              *lit->nthArgument(0)->term()->nthArgument(j),
                                              *lit->nthArgument(1)->term()->nthArgument(j),
@@ -292,12 +288,7 @@ namespace Inferences {
         unsigned arity = lhs.term()->arity();
         unsigned numTypeArgs = lhs.term()->numTypeArguments();
         unsigned newLength = oldLength + arity - numTypeArgs - 1;
-#if VDEBUG
-        for (unsigned j = 0; j < numTypeArgs; j++) {
-          ASS_EQ(*lit->nthArgument(0)->term()->nthArgument(j),
-            *lit->nthArgument(1)->term()->nthArgument(j));
-        }
-#endif
+
         Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));       
         Literal *newLit = Literal::createEquality(false,
                                                   *lit->nthArgument(0)->term()->nthArgument(numTypeArgs),

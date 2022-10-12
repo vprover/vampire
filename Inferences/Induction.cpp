@@ -1035,7 +1035,6 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
 
   TermList sort = SortHelper::getResultSort(context._indTerm);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-  TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();
   TermStack typeArgs = SortHelper::getTypeArguments(sort);
 
@@ -1052,7 +1051,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
       for(unsigned j=numTypeArgs;j<arity;j++){
         TermList x(var,false);
         var++;
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           ta_vars.push(x);
         }
         argTerms.push(x);
@@ -1097,7 +1096,6 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
 
   TermList sort = SortHelper::getResultSort(context._indTerm);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-  TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();
   TermStack typeArgs = SortHelper::getTypeArguments(sort);
 
@@ -1127,14 +1125,14 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
         dargTerms.push(y);
         TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         argTerms.push(djy);
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           taTerms.push(djy);
         }
       }
       ASS(taTerms.isNonEmpty());
       // create y = con1(...d1(y)...d2(y)...)
       TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
-      Literal* kneq = Literal::createEquality(true,y,coni,ta_sort);
+      Literal* kneq = Literal::createEquality(true,y,coni,con->rangeSort());
       FormulaList* And = FormulaList::empty(); 
       Stack<TermList>::Iterator tit(taTerms);
       while(tit.hasNext()){
@@ -1183,7 +1181,6 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
   TermList sort = SortHelper::getResultSort(context._indTerm);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
-  TermList ta_sort = ta->sort();
   unsigned numTypeArgs = sort.term()->arity();
   TermStack typeArgs = SortHelper::getTypeArguments(sort);
 
@@ -1220,7 +1217,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
         argTerms.push(djy);
         TermList xj(vars,false);
         varTerms.push(xj);
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           taTerms.push(djy);
           ta_vars.push(vars);
         }
