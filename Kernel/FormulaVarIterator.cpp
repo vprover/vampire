@@ -220,8 +220,6 @@ bool FormulaVarIterator::hasNext()
               _termLists.push(sd->getLambdaExp());
               _instructions.push(FVI_BIND);
               _vars.push(sd->getLambdaVars());
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getSort());
               break;
             }
 
