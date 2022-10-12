@@ -120,9 +120,8 @@ bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
      || sort == RealTraits::sort() ){
     return true;
   } else if (env.signature->isTermAlgebraSort(sort)) {
-    return env.signature->getTermAlgebraOfSort(sort)
-                        ->subSorts().iter()
-                         .all([&](auto s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
+    return TermAlgebra::subSorts(sort).iter()
+      .all([&](auto s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
   } else {
     return false;
   }

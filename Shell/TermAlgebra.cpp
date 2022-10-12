@@ -12,39 +12,40 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 using namespace Kernel;
 using namespace Lib;
 
 namespace Shell {
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors, unsigned numTypeArgs)
-  : TermAlgebraConstructor(functor, Lib::Array<unsigned>(destructors), numTypeArgs)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors)
+  : TermAlgebraConstructor(functor, Lib::Array<unsigned>(destructors))
 { }
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors, unsigned numTypeArgs)
-  : _functor(functor), _hasDiscriminator(false), _destructors(destructors), _numTypeArgs(numTypeArgs)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
+  : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
-  ASS_EQ(_type->arity(), _numTypeArgs+destructors.size());
+  ASS_EQ(arity(), numTypeArguments()+destructors.size());
   unsigned i = 0;
   for (auto d : destructors) {
-    auto sym = _type->arg(_numTypeArgs+i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
-                                                   : env.signature->getFunction(d);
+    auto sym = argSort(numTypeArguments()+i++) == AtomicSort::boolSort() ? env.signature->getPredicate(d)
+                                                                         : env.signature->getFunction(d);
     ASS_REP(sym->termAlgebraDest(), sym->name())
   }
 #endif
 }
 
-TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors, unsigned numTypeArgs)
-  : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors), _numTypeArgs(numTypeArgs)
+TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
+  : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
 {
   _type = env.signature->getFunction(_functor)->fnType();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
-  ASS_EQ(_type->arity(), _numTypeArgs+destructors.size());
+  ASS_EQ(arity(), numTypeArguments()+destructors.size());
   for (auto d : destructors) {
     ASS(env.signature->getFunction(d)->termAlgebraDest())
   }
@@ -53,6 +54,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discri
 
 //This is only safe for monomorphic term algebras AYB
 unsigned TermAlgebraConstructor::arity() const { return _type->arity();  }
+unsigned TermAlgebraConstructor::numTypeArguments() const { return _type->numTypeArguments(); }
 
 unsigned TermAlgebraConstructor::createDiscriminator() 
 {
@@ -67,22 +69,29 @@ unsigned TermAlgebraConstructor::createDiscriminator()
   }
 }
 
-Lib::Set<TermList> TermAlgebra::subSorts()
+Lib::Set<TermList> TermAlgebra::subSorts(TermList sort)
 {
+  CALL("TermAlgebra::subSorts");
+  ASS(sort.isTerm() && sort.term()->isSort());
 
   Set<TermList> out; 
   /* connected component finding without recursion */
-  Stack<TermAlgebra*> work; // <- stack for simulating recursion
-  work.push(this);
-  out.insert(this->sort());
-  while (!work.isEmpty()) {
-    auto& ta = *work.pop();
-    for (auto cons : ta.iterCons()) {
+  TermStack work; // <- stack for simulating recursion
+  work.push(sort);
+  out.insert(sort);
+  while (work.isNonEmpty()) {
+    auto t = work.pop();
+    auto ta = env.signature->getTermAlgebraOfSort(t);
+    Substitution typeSubst;
+    SortHelper::getTypeSub(t.term(), typeSubst);
+    for (auto cons : ta->iterCons()) {
       for (auto s : cons->iterArgSorts()) {
+        s = SubstHelper::apply(s, typeSubst);
+        if (!s.isTerm()) { continue; }
         if (!out.contains(s)) {
           out.insert(s);
           if (env.signature->isTermAlgebraSort(s)) {
-            work.push(env.signature->getTermAlgebraOfSort(s));
+            work.push(s);
           }
         }
       }

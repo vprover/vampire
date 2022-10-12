@@ -567,7 +567,7 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
       dtors[i] = dtor(i).functor();
     }
 
-    cons.push(new TermAlgebraConstructor(f.functor(), dtors, 0));
+    cons.push(new TermAlgebraConstructor(f.functor(), dtors));
   }
   auto ta = new TermAlgebra(sort.sortId(), cons.size(), cons.begin());
   env.signature->addTermAlgebra(ta);

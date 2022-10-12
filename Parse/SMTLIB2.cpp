@@ -1079,7 +1079,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
     destructorFunctors[i] = destructorFunctor;
   }
 
-  return new TermAlgebraConstructor(functor, destructorFunctors, numTypeArgs);
+  return new TermAlgebraConstructor(functor, destructorFunctors);
 }
 
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)

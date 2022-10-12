@@ -31,13 +31,13 @@ namespace Shell {
     /* A term algebra constructor, described by its name, range,
        arity, and for each argument: the name of its destructor and
        its sort*/
-    TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors, unsigned numTypeArgs);
-    TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors, unsigned numTypeArgs);
-    TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors, unsigned numTypeArgs);
+    TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors);
+    TermAlgebraConstructor(unsigned functor, std::initializer_list<unsigned> destructors);
+    TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors);
     ~TermAlgebraConstructor() {}
 
     unsigned arity() const;
-    unsigned numTypeArgs() const { return _numTypeArgs; }
+    unsigned numTypeArguments() const;
     TermList argSort(unsigned ith) const;
     TermList rangeSort() const;
 
@@ -84,7 +84,6 @@ namespace Shell {
     bool _hasDiscriminator;
     unsigned _discriminator;
     Lib::Array<unsigned> _destructors;
-    unsigned _numTypeArgs;
   };
 
   typedef Lib::Array<TermAlgebraConstructor*> ConstructorArray;
@@ -137,14 +136,15 @@ namespace Shell {
     { return Lib::iterTraits(IterCons(*this)); }
 
 
-    /** returns all sorts contained in this term algebra, including the term algebra sort itself. 
-     * consider for example: 
-     *  intList ::= Cons(int,      intList) | Nil
-     * listList ::= Cons(intList, listList) | Nil
+    /** returns all sorts contained in the term algebra instance `sort`, including `sort` itself.
+     * consider for example:
+     *  nat      ::= S(nat)                           | Zero
+     *  atree(x) ::= Node(atree(x), x, nat, atree(x)) | Leaf
+     *  intp     ::= P(int,int)
      *
-     * then listList.subSorts() == { int, intList, listLit }
+     * then subSorts(atree(intp)) == { int, nat, intp, atree(intp) }
      */
-    Lib::Set<TermList> subSorts();
+    static Lib::Set<TermList> subSorts(TermList sort);
   private:
     void subSorts(Lib::Set<unsigned>);
   public:

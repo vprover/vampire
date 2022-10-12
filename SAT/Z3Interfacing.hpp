@@ -207,8 +207,8 @@ private:
   Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
-  z3::func_decl const& findConstructor(FuncId id);
-  void createTermAlgebra(Shell::TermAlgebra&);
+  z3::func_decl const& findConstructor(Term* t);
+  void createTermAlgebra(TermList sort);
 
   z3::sort getz3sort(SortId s);
 

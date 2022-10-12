@@ -1369,12 +1369,12 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
   TermList z(c->arity(), false);
 
   TermStack typeVars;
-  for (unsigned i = 0; i < c->numTypeArgs(); i++) {
+  for (unsigned i = 0; i < c->numTypeArguments(); i++) {
     typeVars.push(TermList(i,false));
   }
 
   Stack<TermList> args = typeVars;
-  for (unsigned i = c->numTypeArgs(); i < c->arity(); i++) {
+  for (unsigned i = c->numTypeArguments(); i < c->arity(); i++) {
     args.push(TermList(i, false));
   }
   TermList right(Term::create(c->functor(), (unsigned)args.size(), args.begin()));
@@ -1389,18 +1389,18 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
     TermStack subargs = typeVars;
     subargs.push(y);
     subargs.push(right);
-    Literal* sub = Literal::create(subtermPredicate, c->numTypeArgs()+2, true, false, subargs.begin());
+    Literal* sub = Literal::create(subtermPredicate, c->numTypeArguments()+2, true, false, subargs.begin());
     addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM,CHEAP);
 
     // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
     TermStack trans1args = typeVars;
     trans1args.push(z);
     trans1args.push(y);
-    Literal* trans1 = Literal::create(subtermPredicate, c->numTypeArgs()+2, false, false, trans1args.begin());
+    Literal* trans1 = Literal::create(subtermPredicate, c->numTypeArguments()+2, false, false, trans1args.begin());
     TermStack trans2args = typeVars;
     trans2args.push(z);
     trans2args.push(right);
-    Literal* trans2 = Literal::create(subtermPredicate, c->numTypeArgs()+2, true, false, trans2args.begin());
+    Literal* trans2 = Literal::create(subtermPredicate, c->numTypeArguments()+2, true, false, trans2args.begin());
     addTheoryClauseFromLits({trans1,trans2}, InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM,CHEAP);
 
     added = true;
