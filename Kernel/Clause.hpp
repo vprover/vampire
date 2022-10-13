@@ -27,9 +27,11 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Unit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Term.hpp"
 
 namespace Kernel {
 
@@ -52,7 +54,7 @@ private:
   ~Clause() { ASSERTION_VIOLATION; }
   /** Should never be used, just that compiler requires it */
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
-  
+
   template<class VarIt>
   void collectVars2(DHSet<unsigned>& acc);
 public:
@@ -70,7 +72,7 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u,  
+    NONE = 3u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
     SELECTED = 4u
@@ -110,6 +112,105 @@ public:
   /** Return the (reference to) the nth literal */
   Literal*const& operator[] (int n) const
   { return _literals[n]; }
+
+  class FeatureIterator {
+    Clause* _cl;
+    unsigned _featureId;
+    unsigned _numPosEq;
+    unsigned _numNegEq;
+    unsigned _numPosNeq;
+    unsigned _numNegNeq;
+    unsigned _numPosTwoVarEq;
+    unsigned _numNegTwoVarEq;
+
+  public:
+    static constexpr const unsigned NUM_FEATURES = 12;
+
+    FeatureIterator(Clause* cl) :
+      _cl(cl), _featureId(0),
+      _numPosEq(0), _numNegEq(0), _numPosNeq(0), _numNegNeq(0),
+      _numPosTwoVarEq(0), _numNegTwoVarEq(0)
+    {
+      CALL("FeatureIterator::FeatureIterator");
+
+      for (unsigned i = 0; i < cl->length(); i++) {
+        Literal* l = (*cl)[i];
+        if (l->isPositive()) {
+          if (l->isEquality()) {
+            _numPosEq++;
+          } else {
+            _numPosNeq++;
+          }
+          if (l->isTwoVarEquality()) {
+            _numPosTwoVarEq++;
+          }
+        } else {
+          if (l->isEquality()) {
+            _numNegEq++;
+          } else {
+            _numNegNeq++;
+          }
+          if (l->isTwoVarEquality()) {
+            _numNegTwoVarEq++;
+          }
+        }
+      }
+    }
+
+    bool hasNext() {
+      return _featureId < NUM_FEATURES;
+    }
+
+    double next() {
+      Inference& inf = _cl->inference();
+
+      // TODO: could add, e.g., a one hot encoding of the deriving inference rules
+
+      switch (_featureId++) {
+        // generalized length
+        case 0:
+          return _numPosEq;
+        case 1:
+          return _numNegEq;
+        case 2:
+          return _numPosNeq;
+        case 3:
+          return _numNegNeq;
+        case 4:
+          return _numPosTwoVarEq;
+        case 5:
+          return _numNegTwoVarEq;
+
+        // good old AW
+        case 6:
+          return _cl->age();
+        case 7:
+          return _cl->weight();
+
+        // a bit of AVATAR
+        case 8:
+          return _cl->splitWeight();
+
+        // SineLevels
+        case 9:  // redundant: the same as SineLevel == 0
+          return (_cl->derivedFromGoal() ? 1.0 : 0.0);
+        case 10: // redundant: the same as SineLevel == 255
+          return (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) ? 1.0 : 0.0;
+        case 11:
+          ASS_GE(env.maxSineLevel,2);
+          return (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) ?
+                    1.0 : (0.5 * inf.getSineLevel()) / (env.maxSineLevel - 2);
+        default:
+          ASSERTION_VIOLATION;
+
+        // TODO: add stuff regarding arithmetic
+        // << (c->isPureTheoryDescendant() ? '1' : '0') << " "
+        // << inf.th_ancestors << " "
+        // << inf.all_ancestors << " "
+        // << inf.th_ancestors / inf.all_ancestors << endl;
+      }
+    }
+  };
 
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }

@@ -413,32 +413,24 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.out() << "[SA] passive: " << c->toString() << std::endl;
     env.endOutput();
   }
-  
-  if (_opt.showPassiveTraffic()) {
-    if (!_shown.find(c)) { // TODO: keep in sync with NeuralPassiveClauseContainer::add
-      Inference& inf = c->inference();
 
+  if (_opt.showPassiveTraffic()) {
+    if (!_shown.find(c)) {
       // cout << cl->toString() << endl;
 
       // show the clause's features when arriving for the first time
-      cout << "i: "
-        << c->number() << " "
-        << c->age() << " "
-        << c->size() << " "
-        << c->weight() << " "
-        << c->splitWeight() << " "
-        << (c->derivedFromGoal() ? '1' : '0') << " "
-        << (unsigned)inf.getSineLevel() << " "
-        // << cl->getNumeralWeight() << " " -- only makes sense in arithmetic an requires a deep clause scan
-        << (c->isPureTheoryDescendant() ? '1' : '0') << " "
-        << inf.th_ancestors << " "
-        << inf.all_ancestors << " "
-        << inf.th_ancestors / inf.all_ancestors << endl;
+      cout << "i: " << c->number();
+
+      Clause::FeatureIterator it(c);
+      while (it.hasNext()) {
+        cout << " " << it.next();
+      }
+      cout << '\n';
 
       ALWAYS(_shown.insert(c));
     }
 
-    cout << "a: " << c->number() << endl;
+    cout << "a: " << c->number() << '\n';
   }
 
   //when a clause is added to the passive container,
@@ -456,7 +448,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
   CALL("SaturationAlgorithm::onPassiveRemoved");
 
   if (_opt.showPassiveTraffic()) {
-    cout << "r: " << c->number() << endl;
+    cout << "r: " << c->number() << '\n';
   }
 
   ASS(c->store()==Clause::PASSIVE);
@@ -474,7 +466,7 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
   if (_opt.showPassiveTraffic()) {
-    cout << "s: " << c->number() << endl;
+    cout << "s: " << c->number() << '\n';
   }
 }
 

@@ -15,6 +15,7 @@
 
 #include <cmath>
 #include <climits>
+#include <tuple>
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -167,25 +168,20 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
 
   std::vector<torch::jit::IValue> inputs;
 
-  if (!_known.find(cl)) { // TODO: keep in sync with SaturationAlgorithm::onPassiveAdded
+  if (!_known.find(cl)) {
     // argument 1 - the clause id
     inputs.push_back((int64_t)cl->number());
 
-    Inference& inf = cl->inference();
+    Clause::FeatureIterator it(cl);
 
-    // argumet 2 - a tuple of doubles, the features
-    inputs.push_back(std::make_tuple(
-      (double)cl->age(),
-      (double)cl->size(),
-      (double)cl->weight(),
-      (double)cl->splitWeight(),
-      (double)(cl->derivedFromGoal() ? 1 : 0),
-      (double)inf.getSineLevel(),
-      (double)(cl->isPureTheoryDescendant() ? 1 : 0),
-      (double)inf.th_ancestors,
-      (double)inf.all_ancestors,
-      (double)(inf.th_ancestors / inf.all_ancestors)
-    ));
+    // argument 2 - a tuple of doubles, the features
+    auto tuple = std::make_tuple(
+      it.next(),it.next(),it.next(),it.next(),
+      it.next(),it.next(),it.next(),it.next(),
+      it.next(),it.next(),it.next(),it.next()
+    );
+    static_assert(std::tuple_size<decltype(tuple)>::value == Clause::FeatureIterator::NUM_FEATURES,"Did I forget a feature?");
+    inputs.push_back(tuple);
 
     ALWAYS(_known.insert(cl));
     ALWAYS(_clausesById.insert(cl->number(),cl));

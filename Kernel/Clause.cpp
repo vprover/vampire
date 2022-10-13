@@ -57,6 +57,7 @@ size_t Clause::_auxCurrTimestamp = 0;
 bool Clause::_auxInUse = false;
 #endif
 
+const unsigned Clause::FeatureIterator::NUM_FEATURES;
 
 /** New clause */
 Clause::Clause(unsigned length,const Inference& inf)
