@@ -501,10 +501,6 @@ void Preprocess::preprocess_very_lightly(Problem& prb) {
     Normalisation().normalise(prb);
   }
 
-  if (prb.hasInterpretedOperations()) {
-    env.interpretedOperationsUsed = true;
-  }
-
   /*
   // If there are interpreted operations
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
