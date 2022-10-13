@@ -837,10 +837,10 @@ tuple<TermList, int> RapidHelper::decompose(TermList t)
     auto numeral1 = number::tryNumeral(operand1);
     auto numeral2 = number::tryNumeral(operand2);
 
-    // can't have 2 + 5, as evaluation should have simplified this
-    ASS(!numeral1.isSome() || !numeral2.isSome());
-
-    if(!numeral1.isSome() && !numeral2.isSome()){
+    if((!numeral1.isSome() && !numeral2.isSome()) ||
+        (numeral1.isSome() &&  numeral2.isSome())){
+      // second part of condition should never normally occur,
+      // but can if there is overflow
       // TODO unary minus? $sum(nl15, $uminus(5))
       num = 0;
       tt = t;

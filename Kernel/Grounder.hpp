@@ -21,6 +21,8 @@
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/SmartPtr.hpp"
 
+#include "SAT/SAT2FO.hpp"
+
 #include "Kernel/Term.hpp"
 
 namespace Kernel {
@@ -33,7 +35,8 @@ public:
   CLASS_NAME(Grounder);
   USE_ALLOCATOR(Grounder);
   
-  Grounder(SATSolver* satSolver) : _satSolver(satSolver) {}
+  Grounder(SATSolver* satSolver, SAT2FO* s2f = 0) : 
+    _sat2fo(s2f), _satSolver(satSolver) {}
   virtual ~Grounder() { CALL("Grounder::~Grounder"); }
 
   // TODO: sort out the intended semantics and the names of these four beasts:
@@ -55,8 +58,11 @@ protected:
 private:
   SATLiteral groundNormalized(Literal*);
 
+  // would like to replace _asgn with _sat2fo 
+  // but not sure that this is safe in general
   /** Map from positive literals to SAT variable numbers */
   DHMap<Literal*, unsigned> _asgn;
+  SAT2FO* _sat2fo; // Memory belongs to GroundingIndex  
   
   /** Pointer to a SATSolver instance for which the grounded clauses
    * are being prepared. Used to request new variables from the Solver.
@@ -75,7 +81,11 @@ public:
 
   GlobalSubsumptionGrounder(SATSolver* satSolver, bool doNormalization=true) 
           : Grounder(satSolver), _doNormalization(doNormalization) {}
-protected:
+
+  GlobalSubsumptionGrounder(SATSolver* satSolver, SAT2FO* s2f, bool doNormalization=true) 
+          : Grounder(satSolver, s2f), _doNormalization(doNormalization) {}
+
+protected:  
   virtual void normalize(unsigned cnt, Literal** lits);
 };
 

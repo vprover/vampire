@@ -138,6 +138,10 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
 {
   CALL("Grounder::groundNormalized");
 
+  if(_sat2fo){
+    return _sat2fo->toSAT(lit);
+  }
+
   bool isPos = lit->isPositive();
   Literal* posLit = Literal::positiveLiteral(lit);
 
@@ -148,12 +152,12 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
   return SATLiteral(*pvar, isPos);
 }
 
-LiteralIterator Grounder::groundedLits()
+/*LiteralIterator Grounder::groundedLits()
 {
   CALL("Grounder::groundedLits");
 
   return _asgn.domain();
-}
+}*/
 
 
 ////////////////////////////////

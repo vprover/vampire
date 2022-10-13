@@ -20,6 +20,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "SAT/SATSolver.hpp"
+#include "SAT/SAT2FO.hpp"
 
 #include "Index.hpp"
 
@@ -44,6 +45,9 @@ protected:
 private:
   ScopedPtr<SATSolverWithAssumptions> _solver;
   ScopedPtr<GlobalSubsumptionGrounder> _grounder;
+#if VZ3
+  SAT2FO _sat2fo;
+#endif  
 };
 
 }

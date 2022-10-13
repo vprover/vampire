@@ -36,7 +36,8 @@ GroundingIndex::GroundingIndex(const Options& opt)
   switch(opt.satSolver()){
 #if VZ3
     case Options::SatSolver::Z3:
-      //cout << "Warning, Z3 not curently used for Global Subsumption" << endl;
+      _solver = new Z3Interfacing(opt,_sat2fo, /* unsat core */ false,"");
+      break;    
 #endif
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(opt,true);
@@ -45,7 +46,11 @@ GroundingIndex::GroundingIndex(const Options& opt)
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
   
+#if VZ3
+  _grounder = new GlobalSubsumptionGrounder(_solver.ptr(), &_sat2fo);
+#else
   _grounder = new GlobalSubsumptionGrounder(_solver.ptr());
+#endif
 }
 
 void GroundingIndex::handleClause(Clause* c, bool adding)
