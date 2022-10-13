@@ -15,7 +15,19 @@
  * @since 10/01/2008 Manchester, reimplemented
  */
 #if VTHREADED
+#ifdef __APPLE__
+#include <malloc/malloc.h>
+static size_t allocated_size(void *mem) {
+  return malloc_usable_size(mem);
+}
+#else
 #include <malloc.h>
+static size_t allocated_size(void *mem) {
+  return malloc_usable_size(mem);
+}
+#endif
+
+#include <cstdlib>
 #include "Threading.hpp"
 
 VTHREAD_LOCAL static size_t memoryLimit(0);
@@ -23,19 +35,19 @@ VATOMIC(size_t) usedMemory(0);
 
 void *vmalloc(size_t size) {
   void *mem = malloc(size);
-  usedMemory += malloc_usable_size(mem);
+  usedMemory += allocated_size(mem);
   return mem;
 }
 
 void *vrealloc(void *mem, size_t size) {
-  usedMemory -= malloc_usable_size(mem);
+  usedMemory -= allocated_size(mem);
   mem = realloc(mem, size);
-  usedMemory += malloc_usable_size(mem);
+  usedMemory += allocated_size(mem);
   return mem;
 }
 
 void vfree(void *mem, size_t) {
-  usedMemory -= malloc_usable_size(mem);
+  usedMemory -= allocated_size(mem);
   free(mem);
 }
 
