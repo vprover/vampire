@@ -8,14 +8,14 @@
  * and in the source directory
  */
 /**
- * @file ClauseQueue.hpp
- * Defines class ClauseQueue.
+ * @file SoftmaxClauseQueue.hpp
+ * Defines class SoftmaxClauseQueue.
  *
- * @since 30/12/2007 Manchester
+ * @since 12/10/2022 Dagstuhl
  */
 
-#ifndef __ClauseQueue__
-#define __ClauseQueue__
+#ifndef __SoftmaxClauseQueue__
+#define __SoftmaxClauseQueue__
 
 #if VDEBUG
 #include <ostream>
@@ -31,15 +31,21 @@ namespace Kernel {
 class Clause;
 
 /**
- * A clause queue organised as a skip list. The comparison of elements
- * is made using the virtual function compare.
+ * Based on ClauseQueue, this class assumes Clauses have probability scores (logits)
+ * and is designed to efficiently sample the softmax (with a fixed temperatore) distribution
+ * corresponding to these logits (see https://en.wikipedia.org/wiki/Softmax_function)
+ *
+ * On the skip list side, we need to extend the nodes with partial sums, to know how
+ * much probability volume we skip over what traversing each "highway".
+ *
  * @since 30/12/2007 Manchester
+ * @since 12/10/2022 Dagstuhl
  */
-class ClauseQueue
+class SoftmaxClauseQueue
 {
 public:
-  ClauseQueue();
-  virtual ~ClauseQueue();
+  SoftmaxClauseQueue();
+  virtual ~SoftmaxClauseQueue();
   void insert(Clause*);
   bool remove(Clause*);
   void removeAll();
@@ -77,7 +83,7 @@ public:
     DECL_ELEMENT_TYPE(Clause*);
 
     /** Create a new iterator */
-    inline explicit Iterator(ClauseQueue& queue)
+    inline explicit Iterator(SoftmaxClauseQueue& queue)
       : _current(queue._left)
     {}
     /** true if there is a next clause */
@@ -93,8 +99,8 @@ public:
   private:
     /** Current node */
     Node* _current;
-  }; // class ClauseQueue::Iterator
-}; // class ClauseQueue
+  }; // class SoftmaxClauseQueue::Iterator
+}; // class SoftmaxClauseQueue
 
 } // namespace Kernel
 
