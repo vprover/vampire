@@ -1941,8 +1941,6 @@ bool SMTLIB2::parseAsSortDefinition(const vstring& id,LExpr* exp)
   }
 
   _scopes.push(lookup);
-  // TODO do we really need to forbid ids?
-  // forbidden.push(id);
 
   _todo.push(make_pair(PO_POP_LOOKUP,nullptr)); //schedule lookup deletion (see above)
   _todo.push(make_pair(PO_PARSE,def->body));

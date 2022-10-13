@@ -213,22 +213,21 @@ bool TermAlgebra::infiniteDomain()
 }
   
 Lib::vstring TermAlgebra::getSubtermPredicateName() {
-  // TODO maybe change this for polymorphic types
-  return "$subterm" + _sort.toString();
+  return "$subterm" + env.signature->getTypeCon(_sort.term()->functor())->name();
 }
 
 unsigned TermAlgebra::getSubtermPredicate() {
   CALL("TermAlgebra::getSubtermPredicate");
 
   bool added;
-  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), _sort.term()->arity()+2, added);
+  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), nTypeArgs()+2, added);
 
   if (added) {
     // declare a binary predicate subterm
     TermStack args;
     args.push(_sort);
     args.push(_sort);
-    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin(),_sort.term()->arity()));
+    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin(),nTypeArgs()));
   }
 
   return s;
