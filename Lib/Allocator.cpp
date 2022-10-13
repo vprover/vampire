@@ -18,7 +18,7 @@
 #ifdef __APPLE__
 #include <malloc/malloc.h>
 static size_t allocated_size(void *mem) {
-  return malloc_usable_size(mem);
+  return malloc_size(mem);
 }
 #else
 #include <malloc.h>
