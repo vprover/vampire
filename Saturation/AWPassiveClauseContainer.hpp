@@ -152,48 +152,6 @@ private:
   float _temperature;
 };
 
-class LearnedPassiveClauseContainerExper30Rich8
-: public LearnedPassiveClauseContainer
-{
-public:
-  CLASS_NAME(LearnedPassiveClauseContainerExper30Rich8);
-  USE_ALLOCATOR(LearnedPassiveClauseContainerExper30Rich8);
-
-  LearnedPassiveClauseContainerExper30Rich8(bool isOutermost, const Shell::Options& opt) :
-    LearnedPassiveClauseContainer(isOutermost,opt) {}
-  ~LearnedPassiveClauseContainerExper30Rich8() override {}
-protected:
-  float scoreClause(Clause*) override;
-};
-
-class LearnedPassiveClauseContainerExper50AW8
-: public LearnedPassiveClauseContainer
-{
-public:
-  CLASS_NAME(LearnedPassiveClauseContainerExper50AW8);
-  USE_ALLOCATOR(LearnedPassiveClauseContainerExper50AW8);
-
-  LearnedPassiveClauseContainerExper50AW8(bool isOutermost, const Shell::Options& opt) :
-    LearnedPassiveClauseContainer(isOutermost,opt) {}
-  ~LearnedPassiveClauseContainerExper50AW8() override {}
-protected:
-  float scoreClause(Clause*) override;
-};
-
-class LearnedPassiveClauseContainerExper53AW16
-: public LearnedPassiveClauseContainer
-{
-public:
-  CLASS_NAME(LearnedPassiveClauseContainerExper53AW16);
-  USE_ALLOCATOR(LearnedPassiveClauseContainerExper53AW16);
-
-  LearnedPassiveClauseContainerExper53AW16(bool isOutermost, const Shell::Options& opt) :
-    LearnedPassiveClauseContainer(isOutermost,opt) {}
-  ~LearnedPassiveClauseContainerExper53AW16() override {}
-protected:
-  float scoreClause(Clause*) override;
-};
-
 /**
  * 
  * 
@@ -213,8 +171,8 @@ public:
   void add(Clause* cl) override;
   void remove(Clause* cl) override;
 
-  Clause* popSelected() override; 
-  
+  Clause* popSelected() override;
+
 private:
   DHSet<Clause*> _known;
   DHMap<unsigned,Clause*> _clausesById;
