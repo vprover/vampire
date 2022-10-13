@@ -57,7 +57,7 @@ void LearnedPassiveClauseContainer::add(Clause* cl)
 {
   CALL("LearnedPassiveClauseContainer::add");
 
-  float* t;
+  double* t;
   if (_scores.getValuePtr(cl,t)) {
     *t = scoreClause(cl);
   } else {
@@ -69,13 +69,13 @@ void LearnedPassiveClauseContainer::add(Clause* cl)
   // cout << "Added " << cl->toString() << " size " << _size << endl;
 
   ASS(cl->store() == Clause::PASSIVE);
-  addedEvent.fire(cl); 
+  addedEvent.fire(cl);
 }
 
 void LearnedPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("LearnedPassiveClauseContainer::remove");
-  
+
   // we never delete from _scores, maybe that's not the best?
   _queue.remove(cl);
 
@@ -162,7 +162,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 }
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
-{ 
+{
   CALL("NeuralPassiveClauseContainer::add");
 
   std::vector<torch::jit::IValue> inputs;
@@ -173,7 +173,7 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
 
     Inference& inf = cl->inference();
 
-    // argumet 2 - a tuple of floats, the features
+    // argumet 2 - a tuple of doubles, the features
     inputs.push_back(std::make_tuple(
       (double)cl->age(),
       (double)cl->size(),
@@ -200,28 +200,28 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
   _size++;
 
   ASS(cl->store() == Clause::PASSIVE);
-  addedEvent.fire(cl); 
+  addedEvent.fire(cl);
 }
 
-void NeuralPassiveClauseContainer::remove(Clause* cl) 
-{ 
+void NeuralPassiveClauseContainer::remove(Clause* cl)
+{
   CALL("NeuralPassiveClauseContainer::remove");
 
   ASS(cl->store()==Clause::PASSIVE);
-  
+
   std::vector<torch::jit::IValue> inputs;
-  
+
   inputs.push_back((int64_t)cl->number());
   _model.get_method("remove")(std::move(inputs));
 
   _size--;
 
-  removedEvent.fire(cl); 
+  removedEvent.fire(cl);
   ASS(cl->store()!=Clause::PASSIVE);
 }
 
-Clause* NeuralPassiveClauseContainer::popSelected() 
-{ 
+Clause* NeuralPassiveClauseContainer::popSelected()
+{
   CALL("NeuralPassiveClauseContainer::popSelected");
   ASS(_size);
 

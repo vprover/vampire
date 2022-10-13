@@ -65,7 +65,7 @@ class ScoreQueue
   : public ClauseQueue
 {
 public:
-  ScoreQueue(const DHMap<Clause*,float>& scores) : _scores(scores) {}
+  ScoreQueue(const DHMap<Clause*,double>& scores) : _scores(scores) {}
 protected:
   virtual bool lessThan(Clause* c1,Clause* c2) {
     auto sc1 = _scores.get(c1);
@@ -83,11 +83,11 @@ protected:
     return c1->number() < c2->number();
   }
 private:
-  const DHMap<Clause*,float>& _scores;
+  const DHMap<Clause*,double>& _scores;
 };
 
 class LRSIgnoringPassiveClauseContainer
-: public PassiveClauseContainer 
+: public PassiveClauseContainer
 {
 public:
   LRSIgnoringPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost,opt) {}
@@ -131,7 +131,7 @@ class LearnedPassiveClauseContainer
 : public LRSIgnoringPassiveClauseContainer
 {
 protected:
-  virtual float scoreClause(Clause*) = 0;
+  virtual double scoreClause(Clause*) = 0;
 public:
   CLASS_NAME(LearnedPassiveClauseContainer);
   USE_ALLOCATOR(LearnedPassiveClauseContainer);
@@ -144,12 +144,12 @@ public:
 
   void add(Clause* cl) override;
   void remove(Clause* cl) override;
-  Clause* popSelected() override; 
+  Clause* popSelected() override;
 private:
-  DHMap<Clause*,float> _scores;
+  DHMap<Clause*,double> _scores;
   ScoreQueue _queue;
   unsigned _size;
-  float _temperature;
+  double _temperature;
 };
 
 /**
@@ -178,7 +178,7 @@ private:
   DHMap<unsigned,Clause*> _clausesById;
   torch::jit::script::Module _model;
   unsigned _size;
-  float _temperature;
+  double _temperature;
 };
 
 /**
