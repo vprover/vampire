@@ -237,6 +237,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
   torch::manual_seed(opt.randomSeed());
 
   _model = torch::jit::load(opt.neuralPassiveClauseContainer().c_str());
+  _model.eval();
 
   if (auto m = _model.find_method("eatMyTweaks")) { // if the model is not interested in tweaks, it will get none!
     c10::List<double> tweaks;
