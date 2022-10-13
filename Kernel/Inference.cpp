@@ -791,6 +791,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "positive subterm";
   case InferenceRule::NEGATIVE_SUBTERM:
     return "negative subterm";
+  case InferenceRule::REWRITE:
+    return "rewrite";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
     return "term algebras injectivity";

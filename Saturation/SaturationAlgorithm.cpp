@@ -1573,8 +1573,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (opt.termAlgebraInferences()) {
       gie->addFront(new InjectivityGIE());
     }
-    gie->addFront(new SubtermGIE());
   }
+
+  gie->addFront(new SubtermGIE());
 
   CompositeSGI* sgi = new CompositeSGI();
   sgi->push(gie);
@@ -1721,6 +1722,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
   }
+
+  res->addFront(new RewriteISE());
 
   switch(opt.condensation()) {
   case Options::Condensation::ON:

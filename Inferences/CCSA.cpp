@@ -15,8 +15,12 @@
 #include "CCSA.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TermIterators.hpp"
+
+#include "Indexing/TermSubstitutionTree.hpp"
 
 using Kernel::Clause;
 using Kernel::Interpretation;
@@ -24,22 +28,13 @@ using Kernel::SortHelper;
 using Kernel::Theory;
 using Symbol = Kernel::Signature::Symbol;
 using InterpretedSymbol = Kernel::Signature::InterpretedSymbol;
+using TermSubstitutionTree = Indexing::TermSubstitutionTree;
+using TermQueryResultIterator = Indexing::TermQueryResultIterator;
+using TermQueryResult = Indexing::TermQueryResult;
 
 namespace Inferences {
 
-void SubtermGIE::attach(SaturationAlgorithm *salg)
-{
-  CALL("SubtermGIE::attach")
-  GeneratingInferenceEngine::attach(salg);
-}
-
-void SubtermGIE::detach()
-{
-  CALL("SubtermGIE::detach")
-  GeneratingInferenceEngine::detach();
-}
-
-static bool filter(Literal *l) {
+static bool isInterestingSubterm(Literal *l) {
   unsigned functor = l->functor();
   Symbol *symbol = env.signature->getPredicate(functor);
   if (!symbol->interpreted())
@@ -136,7 +131,7 @@ ClauseIterator SubtermGIE::generateClauses(Clause *premise) {
   CALL("SubtermGIE::generateClauses")
 
   auto selected = premise->getSelectedLiteralIterator();
-  auto filtered = getFilteredIterator(selected, filter);
+  auto filtered = getFilteredIterator(selected, isInterestingSubterm);
   auto mapped = getMapAndFlattenIterator(filtered, [premise](Literal *l) {
     return perform(premise, l);
   });
@@ -156,6 +151,38 @@ Literal *SubtermGIE::createSubterm(
     OperatorType::getPredicateType({subterm_sort, superterm_sort})
   );
   return Literal::create2(predicate, polarity, subterm, superterm);
+}
+
+static TermSubstitutionTree index;
+
+void RewriteISE::registerRewrite(Literal *rewrite) {
+  CALL("RewriteISE::registerRewrite")
+  TermList left = (*rewrite)[0];
+  index.insert(left, rewrite, nullptr);
+}
+
+Clause *RewriteISE::simplify(Clause *cl) {
+  for(unsigned i = 0; i < cl->length(); i++) {
+    Literal *literal = cl->literals()[i];
+    NonVariableNonTypeIterator subterms(literal);
+    while(subterms.hasNext()) {
+      TermList subterm = subterms.next();
+      TermQueryResultIterator results = index.getGeneralizations(subterm, true);
+      if(!results.hasNext())
+        continue;
+
+      TermQueryResult result = results.next();
+      TermList rhs = result.substitution->applyToBoundResult((*result.literal)[1]);
+      Literal *rewritten = EqHelper::replace(literal, subterm, rhs);
+
+      Inference inference(GeneratingInference1(InferenceRule::REWRITE, cl));
+      Clause *simplified = replaceLiteral(cl, literal, rewritten, inference);
+      ASS_REP(SortHelper::areSortsValid(simplified), simplified->toString());
+      return simplified;
+    }
+  }
+
+  return cl;
 }
 
 } // namespace Inferences

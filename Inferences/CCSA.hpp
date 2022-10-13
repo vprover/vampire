@@ -21,11 +21,7 @@ class SubtermGIE : public GeneratingInferenceEngine
 public:
   CLASS_NAME(SubtermGIE);
   USE_ALLOCATOR(SubtermGIE);
-
-  void attach(SaturationAlgorithm* salg);
-  void detach();
-
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
   static Literal *createSubterm(
     bool polarity,
@@ -34,6 +30,16 @@ public:
     TermList superterm,
     TermList superterm_sort
   );
+};
+
+class RewriteISE : public ImmediateSimplificationEngine
+{
+public:
+  CLASS_NAME(RewriteISE);
+  USE_ALLOCATOR(RewriteISE);
+  Clause* simplify(Clause* cl) override;
+
+  static void registerRewrite(Literal *rewrite);
 };
 
 }

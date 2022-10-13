@@ -23,6 +23,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -330,6 +331,32 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
       ibRdr.acceptEOL();
 
+      continue;
+    }
+
+    // not an official SMTLIB command
+    if (ibRdr.tryAcceptAtom("declare-rewrite")) {
+      if (!ibRdr.hasNext())
+        USER_ERROR("declare-rewrite expects a body");
+
+      LExpr* body = ibRdr.readNext();
+      ParseResult result = parseTermOrFormula(body);
+      Formula* formula;
+      if (!result.asFormula(formula))
+        USER_ERROR("declare-rewrite body is not a formula: "+body->toString());
+
+      while(formula->connective() == FORALL)
+        formula = formula->qarg();
+      if(formula->connective() != LITERAL)
+        USER_ERROR("declare-rewrite expects a universally-quantified literal");
+
+      Literal *literal = formula->literal();
+      if(!literal->polarity() || literal->arity() != 2)
+        USER_ERROR("declare-rewrite expects a positive binary literal");
+
+      Literal *renamed = Renaming::normalize(literal);
+      Inferences::RewriteISE::registerRewrite(renamed);
+      ibRdr.acceptEOL();
       continue;
     }
 
