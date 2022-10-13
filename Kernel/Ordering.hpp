@@ -48,7 +48,7 @@ public:
    * in the @c ArgumentOrderVals enum, so that one can convert between the
    * enums using static_cast.
    */
-  enum Result {
+  enum VWARN_UNUSED_TYPE Result {
     GREATER=1,
     LESS=2,
     GREATER_EQ=3,
@@ -69,8 +69,6 @@ public:
   virtual void show(ostream& out) const = 0;
 
   static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
-
-  virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const = 0;
 
   void removeNonMaximal(LiteralList*& lits) const;
 
@@ -110,30 +108,6 @@ protected:
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 private:
-
-  enum ArgumentOrderVals {
-    /**
-     * Values representing order of arguments in equality,
-     * to be stores in the term sharing structure.
-     *
-     * The important thing is that the UNKNOWN value is
-     * equal to 0, as this will be the default value inside
-     * the term objects
-     *
-     * Values of elements must be equal to values of corresponding elements
-     * in the @c Result enum, so that one can convert between the
-     * enums using static_cast.
-     */
-    AO_UNKNOWN=0,
-    AO_GREATER=1,
-    AO_LESS=2,
-    AO_GREATER_EQ=3,
-    AO_LESS_EQ=4,
-    AO_EQUAL=5,
-    AO_INCOMPARABLE=6
-  };
-
-
   void createEqualityComparator();
   void destroyEqualityComparator();
 
@@ -157,18 +131,20 @@ class PrecedenceOrdering
 {
 public:
   Result compare(Literal* l1, Literal* l2) const override;
-  Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
   void show(ostream&) const override;
   virtual void showConcrete(ostream&) const = 0;
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
-  
-  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
+
+  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
+                     const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
   PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
   PrecedenceOrdering(Problem& prb, const Options& opt);
 
+
+  static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
@@ -189,6 +165,8 @@ protected:
   DArray<int> _predicatePrecedences;
   /** Array of function precedences */
   DArray<int> _functionPrecedences;
+  /** Array of type con precedences */
+  DArray<int> _typeConPrecedences;
 
   bool _reverseLCM;
 };

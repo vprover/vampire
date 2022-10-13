@@ -67,13 +67,13 @@ struct BottomUpChildIter<Kernel::PolyNf>
     FuncTermBottomUpChildIter(Perfect<Kernel::FuncTerm> self) : _self(self), _idx(0) {}
 
     bool hasNext() const
-    { return _idx < _self->arity(); }
+    { return _idx < _self->numTermArguments(); }
 
     Kernel::PolyNf next() 
     { return _self->arg(_idx++); }
 
     unsigned nChildren() const
-    { return _self->arity(); }
+    { return _self->numTermArguments(); }
 
     friend ostream& operator<<(ostream& out, FuncTermBottomUpChildIter const& self) 
     { return out << self._self << "@" << self._idx; }

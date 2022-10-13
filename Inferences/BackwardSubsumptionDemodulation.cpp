@@ -66,7 +66,7 @@ void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   CALL("BackwardSubsumptionDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
 
-  _index.request(salg->getIndexManager(), SIMPLIFYING_SUBST_TREE);
+  _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
 }
 
 
@@ -116,7 +116,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   CALL("BackwardSubsumptionDemodulation::perform");
   ASSERT_VALID(*sideCl);
 
-  TimeCounter tc(TC_BACKWARD_SUBSUMPTION_DEMODULATION);
+  TIME_TRACE("backward subsumption demodulation");
 
   simplifications = BwSimplificationRecordIterator::getEmpty();
 

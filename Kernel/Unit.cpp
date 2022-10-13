@@ -22,6 +22,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Inference.hpp"
 #include "InferenceStore.hpp"
@@ -222,6 +223,12 @@ vstring Unit::inferenceAsString() const
     first = false;
     result += infS.getUnitIdStr(parent);
   }
+  // print Extra
+  vstring extra;
+  if (env.proofExtra && env.proofExtra->find(this,extra) && extra != "") {
+    result += ", " + extra;
+  }
+
   return result + ']';
 #else
   vstring result = (vstring)"[" + _inference->name();

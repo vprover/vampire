@@ -57,10 +57,11 @@ void MainLoopResult::updateStatistics()
 MainLoopResult MainLoop::run()
 {
   CALL("MainLoop::run");
+  TIME_TRACE("main loop");
 
   try {
-    init();
-    return runImpl();
+    TIME_TRACE_EXPR("init", init());
+    return TIME_TRACE_EXPR("run", runImpl());
   }
   catch(RefutationFoundException& rs)
   {
@@ -97,26 +98,29 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
   CALL("MainLoop::createFromOptions");
 
+
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
-
+  /*
   if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround() 
                         && prb.getProperty()->hasInterpretedOperations()){
     return new SAT::Z3MainLoop(prb,opt);
   }
+  */
 #endif
+
 
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
   case Options::SaturationAlgorithm::INST_GEN:
-    if(env.statistics->polymorphic || env.statistics->higherOrder){
+    if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
       USER_ERROR("The inst gen calculus is currently not compatible with polymorphism or higher-order constructs");       
     }
     res = new IGAlgorithm(prb, opt);
     break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(env.statistics->polymorphic || env.statistics->higherOrder){
+    if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
       USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");       
     }
     if(env.options->outputMode() == Shell::Options::Output::UCORE){

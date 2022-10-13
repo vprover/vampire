@@ -40,6 +40,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/TheoryFlattening.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SAT2FO.hpp"
@@ -74,9 +75,11 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   switch (mode) {
     case Options::TheoryInstSimp::FULL:
     case Options::TheoryInstSimp::NEW:
-      env.beginOutput();
-      env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
-      env.endOutput();
+      if(outputAllowed()) {
+        env.beginOutput();
+        env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
+        env.endOutput();
+      }
       return Options::TheoryInstSimp::ALL;
     default:
       return mode;
@@ -143,10 +146,22 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
   }
 
   //check if arguments of predicate are supported
-  for (unsigned i=0; i<lit->arity(); i++) {
+  for (unsigned i=0; i<lit->numTermArguments(); i++) {
     TermList sort = SortHelper::getArgSort(lit,i);
     if (! isSupportedSort(sort))
       return false;
+  }
+
+  //check if this is an interpreted predicate that is not supported by Z3Interfacing
+  switch(theory->interpretPredicate(lit->functor())){
+    case Theory::INT_IS_RAT:
+    case Theory::INT_IS_REAL:
+    case Theory::RAT_IS_RAT:
+    case Theory::RAT_IS_REAL:
+    case Theory::REAL_IS_RAT:
+    case Theory::REAL_IS_REAL:
+      return false;
+    default:;
   }
 
   return true;
@@ -167,6 +182,11 @@ bool TheoryInstAndSimp::isSupportedFunction(Theory::Interpretation itp) {
     case Theory::ARRAY_BOOL_SELECT:
     case Theory::ARRAY_SELECT:
     case Theory::ARRAY_STORE:
+    case Theory::INT_SUCCESSOR:
+    case Theory::INT_TO_INT:
+    case Theory::RAT_TO_RAT:
+    case Theory::REAL_TO_RAT:
+    case Theory::REAL_TO_REAL:
       return false;
     default: return true;
   }
@@ -207,7 +227,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       //check if arguments of term are supported. covers e.g. f(X) = 0 where
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
-      for (unsigned i=0; i<term->arity(); i++) {
+      for (unsigned i=0; i<term->numTermArguments(); i++) {
         TermList sort = SortHelper::getArgSort(term,i);
         if (! isSupportedSort(sort))
           return false;
@@ -222,10 +242,10 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   return true;
 }
 
-bool TheoryInstAndSimp::isXeqTerm(const TermList* left, const TermList* right) {
-  bool r = left->isVar() &&
-    right->isTerm() &&
-    !VList::member(left->var(), right->term()->freeVariables());
+bool TheoryInstAndSimp::isXeqTerm(TermList left, TermList right) {
+  bool r = left.isVar() &&
+    right.isTerm() &&
+    !VList::member(left.var(), right.term()->freeVariables());
   return r;
 }
 
@@ -234,15 +254,15 @@ unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit,bool flip) {
   ASS(! lit->isPositive());
   //add assertion
   if (lit->isEquality()) {
-    const TermList* left = lit->nthArgument(0);
-    const TermList* right = lit->nthArgument(1);
-    if (isXeqTerm(left,right)){ return left->var();}
-    if (isXeqTerm(right,left)){ return right->var();}
+    TermList left = lit->termArg(0);
+    TermList right = lit->termArg(1);
+    if (isXeqTerm(left,right)){ return left.var();}
+    if (isXeqTerm(right,left)){ return right.var();}
     ASS(lit->isTwoVarEquality());
     if(flip){
-      return left->var(); 
+      return left.var(); 
     }else{
-      return right->var();
+      return right.var();
     }
   }
   ASSERTION_VIOLATION ;
@@ -310,17 +330,17 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
 #if DPRINT
         cout << "checking " << c->toString() << endl;
 #endif
-        const TermList* left = c->nthArgument(0);
-        const TermList* right = c->nthArgument(1);
+        TermList left = c->termArg(0);
+        TermList right = c->termArg(1);
         /* distinguish between X = s where s not a variable, X = Y and X = X */
         if (TheoryInstAndSimp::isXeqTerm(left, right) ||
             TheoryInstAndSimp::isXeqTerm(right, left) ) {
           triv_candidates.push(c);
         } else {
           // X=Y case
-          if( left->isVar()
-              && right->isVar()) {
-            if (left->var() != right->var()) {
+          if( left.isVar()
+              && right.isVar()) {
+            if (left.var() != right.var()) {
               triv_candidates.push(c);
             } else {
               //this is required by the definition, but making X=X trivial would
@@ -481,10 +501,10 @@ public:
   GeneralisationTree(Term* name, TermList toAbstract, ConstantCache& cache) 
     : _introduced(TermList(name))
     , _functor(toAbstract.term()->functor())
-    , _args(toAbstract.term()->arity())
+    , _args(toAbstract.term()->numTermArguments())
   {
-    for (unsigned i = 0; i < toAbstract.term()->arity(); i++) {
-      auto arg  = *toAbstract.term()->nthArgument(i);
+    for (unsigned i = 0; i < toAbstract.term()->numTermArguments(); i++) {
+      auto arg  = toAbstract.term()->termArg(i);
       auto sort = SortHelper::getResultSort(arg.term());
       _args.push(GeneralisationTree(cache.freshConstant(sort), arg, cache));
     }
@@ -561,7 +581,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
       });
     }
 
-    auto res = _solver->solveUnderAssumptions(theoryLits, 0, false);
+    DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0, false);
     ASS_EQ(res, SATSolver::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
@@ -690,7 +710,7 @@ Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const
     Literal* lit_inst = SubstHelper::apply(lit,subst);
     SubtermIterator iter(lit_inst);
     while (iter.hasNext()) {
-      auto t = iter.next();
+      DEBUG_CODE(auto t =) iter.next();
       ASS_REP(t.isVar() || SortHelper::areSortsValid(t.term()), t);
     }
     ASS_REP(SortHelper::areSortsValid(lit_inst), *lit_inst);
@@ -777,7 +797,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
       auto ctor = findConstructor(env.signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
       auto discr = ctor->createDiscriminator();
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
-      return Literal::create1(discr, /* polarity */ true, *destr->nthArgument(0));
+      return Literal::create1(discr, /* polarity */ true, destr->termArg(0));
   };
 
 
@@ -809,7 +829,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
             case Theory::REAL_QUOTIENT_T:
             case Theory::REAL_REMAINDER_T:
             case Theory::REAL_REMAINDER_F:
-              out.push(Literal::createEquality(false, RealTraits::zero(), *term->nthArgument(1), RealTraits::sort()));
+              out.push(Literal::createEquality(false, RealTraits::zero(), term->termArg(1), RealTraits::sort()));
               break;
 
             case Theory::RAT_QUOTIENT:
@@ -818,7 +838,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
             case Theory::RAT_QUOTIENT_F:
             case Theory::RAT_REMAINDER_F:
             case Theory::RAT_REMAINDER_E:
-              out.push(Literal::createEquality(false, RatTraits::zero(), *term->nthArgument(1), RatTraits::sort()));
+              out.push(Literal::createEquality(false, RatTraits::zero(), term->termArg(1), RatTraits::sort()));
               break;
 
             case Theory::INT_QUOTIENT_F:
@@ -827,7 +847,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
             case Theory::INT_QUOTIENT_T:
             case Theory::INT_REMAINDER_T:
             case Theory::INT_REMAINDER_E:
-              out.push(Literal::createEquality(false, IntTraits::zero(), *term->nthArgument(1), IntTraits::sort()));
+              out.push(Literal::createEquality(false, IntTraits::zero(), term->termArg(1), IntTraits::sort()));
               break;
 
             default:; /* no guard */
@@ -907,6 +927,7 @@ unsigned getFreshVar(Clause& clause)
   }
   return freshVar;
 }
+static const char* THEORY_INST_SIMP = "theory instantiation and simplification";
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
@@ -942,7 +963,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   DEBUG("guards:            ", iterTraits(guards.iterFifo())
                                  .map([](Literal* l) -> vstring { return l->toString(); })
                                  .collect<Stack>())
-  TimeCounter t(TC_THEORY_INST_SIMP);
+  TIME_TRACE(THEORY_INST_SIMP);
 
   auto invertedLiterals = iterTraits(selectedLiterals.iterFifo())
     .map(Literal::complementaryLiteral)
@@ -957,7 +978,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
-  auto it2 = getTimeCountedIterator(it1,TC_THEORY_INST_SIMP);
+  auto it2 = timeTraceIter(THEORY_INST_SIMP, it1);
 
   // we need to strictily evaluate the iterator to 
   auto clauses =  getPersistentIterator(it2);

@@ -21,12 +21,13 @@
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Formula.hpp"
@@ -114,7 +115,7 @@ void SplittingBranchSelector::init()
     if (_ccModel) {
       _dpModel = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     }
-  }
+  }  
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -149,6 +150,11 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
     break;
+    case Options::SplittingLiteralPolarityAdvice::RANDOM:
+      _solver->suggestPolarity(lit.var(),Random::getBit());
+    break;
+    default:
+      ASSERTION_VIOLATION;
   }
 }
 
@@ -396,7 +402,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
   while (true) { // breaks inside
     {
-      TimeCounter tc(TC_CONGRUENCE_CLOSURE);
+      TIME_TRACE("congruence closure");
     
       gndAssignment.reset();
       // collects only ground literals, because it known only about them ...
@@ -429,7 +435,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     // there was conflict, so we try looking for a different model
     {
-      TimeCounter tca(TC_SAT_SOLVER);
+      TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
       
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
@@ -439,7 +445,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
   if (_ccModel) {
-    TimeCounter tc(TC_CCMODEL);
+    TIME_TRACE("model from congruence closure");
 
 #if VDEBUG
     // to keep track of SAT variables introduce just for the sake of the latest call to _ccModel
@@ -585,7 +591,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   
   SATSolver::Status stat;
   {
-    TimeCounter tc1(TC_SAT_SOLVER);
+    TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
     if (randomize) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }
@@ -702,10 +708,16 @@ void Splitter::init(SaturationAlgorithm* sa)
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
 
-  if (opts.splittingAvatimer() > 0.0) {
-    _stopSplittingAt = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
+  if (opts.splittingAvatimer() < 1.0) {
+    _stopSplittingAtTime = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
+#ifdef __linux__
+    _stopSplittingAtInst = opts.splittingAvatimer() * opts.instructionLimit();
+#endif
   } else {
-    _stopSplittingAt = 0;
+    _stopSplittingAtTime = 0;
+#ifdef __linux__
+    _stopSplittingAtInst = 0;
+#endif
   }
 
   _fastRestart = opts.splittingFastRestart();
@@ -765,9 +777,8 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   CALL("Splitter::getDefinitionFromName");
 
-  Unit* def;
-  ALWAYS(_defs.find((compName&~1) /*always stored positively*/,def));
-  return def;
+  // always stored positively
+  return _defs.get(compName & ~1);
 }
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
@@ -833,7 +844,7 @@ void Splitter::onAllProcessed()
   }
 
   {
-    TimeCounter tc(TC_SPLITTING_MODEL_UPDATE); // includes component removals and additions, also processing fast clauses and zero implied splits
+    TIME_TRACE("splitting model update"); // includes component removals and additions, also processing fast clauses and zero implied splits
 
     if(toRemove.isNonEmpty()) {
       removeComponents(toRemove);
@@ -1038,7 +1049,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1093,7 +1104,11 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
-  if (_stopSplittingAt && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAt) {
+  if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
+#ifdef __linux__
+    || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
+#endif
+    ) {
     if (_showSplitting) {
       env.beginOutput();
       env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;
@@ -1187,7 +1202,7 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
 
   ClauseIterator existingComponents;
   { 
-    TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
+    TIME_TRACE("splitting component index usage");
     existingComponents = _componentIdx->retrieveVariants(lits, size);
   }
 
@@ -1293,7 +1308,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   }
   
   {
-    TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_MAINTENANCE);
+    TIME_TRACE("splitting component index maintenance");
     _componentIdx->insert(compCl);
   }
   _compNames.insert(compCl, name);
@@ -1547,7 +1562,6 @@ void Splitter::onNewClause(Clause* cl)
   //bool isComponent = false;
   //{
   //  //TODO - would it be better to use tryGetExistingComponent here?
-  //  TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
   //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
   //}
   //if(isComponent){

@@ -73,17 +73,17 @@ template<> struct std::hash<Kernel::Variable>
 
 namespace Kernel {
 
-
-
 // TODO use this newtype in Term.hpp
 /** newtype for wrapping function ids (also often called functors in vampire) */
 class FuncId 
 {
   unsigned _num;
+  // const TermList* _typeArgs; // private field not used
   
 public: 
-  explicit FuncId(unsigned num);
-  unsigned arity();
+  explicit FuncId(unsigned num, const TermList* typeArgs);
+  static FuncId symbolOf(Term* term);
+  unsigned numTermArguments();
 
   friend struct std::hash<FuncId>;
   friend bool operator==(FuncId const& lhs, FuncId const& rhs);
@@ -167,7 +167,7 @@ public:
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
 
-  unsigned arity() const;
+  unsigned numTermArguments() const;
   FuncId function() const;
   PolyNf const& arg(unsigned i) const;
 
@@ -789,10 +789,10 @@ struct std::hash<Kernel::MonomFactor<NumTraits>>
 {
   size_t operator()(Kernel::MonomFactor<NumTraits> const& x) const noexcept 
   {
-    using namespace Lib;
-    using namespace Kernel;
-
-    return HashUtils::combine(stlHash(x.term), stlHash(x.power));
+    return HashUtils::combine(
+      StlHash::hash(x.term),
+      StlHash::hash(x.power)
+    );
   }
 };
 
@@ -969,14 +969,7 @@ struct std::hash<Kernel::MonomFactors<NumTraits>>
 {
   size_t operator()(Kernel::MonomFactors<NumTraits> const& x) const noexcept 
   {
-    using namespace Lib;
-    using namespace Kernel;
-
-    unsigned out = HashUtils::combine(84586,10);
-    for (auto f : x._factors) {
-      out = HashUtils::combine(stlHash(f), out);
-    }
-    return out;
+    return StackHash<StlHash>::hash(x._factors);
   }
 };
 
@@ -1187,9 +1180,10 @@ struct std::hash<Kernel::Polynom<NumTraits>>
     unsigned out = HashUtils::combine(0,0);
     for (auto c : x._summands) {
       out = HashUtils::combine(
-              stlHash(c.factors),
-              stlHash(c.numeral),
-              out);
+        StlHash::hash(c.factors),
+        StlHash::hash(c.numeral),
+        out
+      );
     }
     return out;
   }

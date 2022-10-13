@@ -54,10 +54,17 @@ Environment::Environment()
 {
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
+
   options = new Options;
+
+  // statistics calls the timer
+  timer = Timer::instance();
+  timer->start();
+
   statistics = new Statistics;  
   signature = new Signature;
   sharing = new TermSharing;
+  property = new Property;
 
   //view comment in Signature.cpp
   signature->addEquality();
@@ -71,9 +78,6 @@ Environment::Environment()
   AtomicSort::intSort();
   AtomicSort::realSort();
   AtomicSort::rationalSort();
-
-  timer = Timer::instance();
-  timer->start();
 } // Environment::Environment
 
 Environment::~Environment()
@@ -94,6 +98,7 @@ Environment::~Environment()
   delete sharing;
   delete signature;
   delete statistics;
+  delete property;
   if (predicateSineLevels) delete predicateSineLevels;
   {
     BYPASSING_ALLOCATOR; // use of std::function in options
@@ -125,9 +130,9 @@ bool Environment::timeLimitReached() const
  */
 int Environment::remainingTime() const
 {
-  // If time limit is set to 0 then assume we always have a minute left
+  // If time limit is set to 0 then assume we always have an hour left
   if(options->timeLimitInDeciseconds() == 0){
-    return 60000;
+    return 3600000;
   }
   return options->timeLimitInDeciseconds()*100 - timer->elapsedMilliseconds();
 }

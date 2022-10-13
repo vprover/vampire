@@ -687,7 +687,7 @@ bool SubstitutionTree::FastInstancesIterator::findNextLeaf()
   CALL("SubstitutionTree::FastInstancesIterator::findNextLeaf");
 
   Node* curr;
-  bool sibilingsRemain;
+  bool sibilingsRemain = false;
   if(_inLeaf) {
     if(_alternatives.isEmpty()) {
       return false;
@@ -707,7 +707,7 @@ bool SubstitutionTree::FastInstancesIterator::findNextLeaf()
   }
   for(;;) {
 main_loop_start:
-    unsigned currSpecVar;
+    unsigned currSpecVar = 0;
 
     if(curr) {
       if(sibilingsRemain) {
@@ -746,7 +746,7 @@ main_loop_start:
 	}
       } else {
 	ASS_EQ(parentType,SKIP_LIST)
-	NodeList* alts=static_cast<NodeList*>(currAlt);
+	auto alts = static_cast<SListIntermediateNode::NodeSkipList::Node *>(currAlt);
 	ASS(alts);
 
 	curr=alts->head();
@@ -882,9 +882,8 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
       return true;
     }
   } else {
-    NodeList* nl;
     ASS_EQ(currType, SKIP_LIST);
-    nl=static_cast<SListIntermediateNode*>(inode)->_nodes.toList();
+    auto nl=static_cast<SListIntermediateNode*>(inode)->_nodes.listLike();
     ASS(nl); //inode is not empty
     if(query.isTerm()) {
       //only term with the same top functor will be matched by a term

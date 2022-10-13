@@ -53,7 +53,7 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   _allowIncompleteness = false;
 
   if (_doSubsumption) {
-    _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+    _unitIndex.request(salg->getIndexManager(), FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   }
 }
 
@@ -87,7 +87,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   //
   // For condition 2, we check that l = r < M for some M in L \/ D.
 
-  TimeCounter const tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
+  TIME_TRACE("forward subsumption demodulation");
 
   Ordering const& ordering = _salg->getOrdering();
 

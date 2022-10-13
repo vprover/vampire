@@ -35,10 +35,9 @@ struct Relocator
   
 struct EmptyStruct {};
 
-class Hash;
+class DefaultHash;
+class DefaultHash2;
 struct IdentityHash;
-struct PtrIdentityHash;
-
 
 template<typename T> class VirtualIterator;
 
@@ -58,8 +57,8 @@ template<typename T> class List;
 template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;
 
-template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
-template<class A, class B, class HashA = Lib::Hash, class HashB = Lib::Hash> class BiMap; 
+template <typename Key, typename Val,class Hash=DefaultHash> class Map;
+template<class A, class B, class HashA=DefaultHash, class HashB=DefaultHash> class BiMap;
 
 template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 template<typename T> class ArrayMap;
@@ -72,29 +71,12 @@ typedef List<VoidFunc> VoidFuncList;
 
 typedef Stack<vstring> StringStack;
 
-typedef Map<vstring,unsigned,Hash> SymbolMap;
+typedef Map<vstring,unsigned> SymbolMap;
 
-template<typename T> struct FirstHashTypeInfo;
-/**
- * First hash for DHMap and DHMultiset classes.
- */
-#define FIRST_HASH(Cl) typename FirstHashTypeInfo<Cl>::Type
-
-//There is a bug (what else can it be?) in the VS2008 compiler that
-//requires the name of the template parameter in the declaration to
-//be the same as the name of the parameter used in definition, as
-//long as the parameter is used in another parameter's default value.
-//
-//E.g. if the first parameter name here would be K instead of Key, we
-//would get a compiler error, because in the Lib/DHMap.hpp file the
-//definition of the class starts with
-//template <typename Key, typename Val, class Hash1, class Hash2> class DHMap
-//                   ^^^
-template <typename Key, typename Val, class Hash1=FIRST_HASH(Key), class Hash2=Hash> class DHMap;
-template <typename Val, class Hash1=FIRST_HASH(Val), class Hash2=Hash> class DHSet;
-template <typename K,typename V, class Hash1=FIRST_HASH(K), class Hash2=Hash> class MapToLIFO;
-
-template <typename Val,class Hash=Lib::Hash> class Set;
+template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMap;
+template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHSet;
+template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMultiset;
+template <typename Val, class Hash=DefaultHash> class Set;
 
 
 template <typename Value,class ValueComparator> class SkipList;
@@ -205,18 +187,13 @@ class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
-class EGSubstitution;
-typedef VirtualIterator<EGSubstitution*> RSubstIterator;
-typedef Lib::SmartPtr<EGSubstitution> EGSubstitutionSP;
-
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
 class TermTransformer;
-class TermTransformerTransformTransformed;
+class BottomUpTermTransformer;
 class FormulaTransformer;
 class FormulaUnitTransformer;
-
 
 class LiteralSelector;
 typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;
@@ -284,8 +261,8 @@ typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 struct SLQueryResult;
 struct TermQueryResult;
 
-class GeneratingLiteralIndex;
-class SimplifyingLiteralIndex;
+class BinaryResolutionIndex;
+class BackwardSubsumptionIndex;
 class UnitClauseLiteralIndex;
 class FwSubsSimplifyingLiteralIndex;
 

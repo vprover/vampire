@@ -17,6 +17,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -25,17 +26,12 @@ using namespace Kernel;
 
 TEST_FUN(dis1)
 {
-
-  unsigned p = env.signature->addFunction("p",1);
-  TermList x(0,false);
-  TermList y(1,false);
-  Term* px = Term::create1(p,x);
-  Term* py = Term::create1(p,y);
-
-  cout << endl;
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (p, {srt}, srt)
 
   static DisagreementSetIterator dsit;
-  dsit.reset(px, py, true);
+  dsit.reset(p(x), p(y), true);
 
   ASS(dsit.hasNext());
 
@@ -43,7 +39,7 @@ TEST_FUN(dis1)
   TermList st1=diff.first;
   TermList st2=diff.second;
 
-  ASS(st1 == x)
-  ASS(st2 == y)
+  ASS(st1 == x.sugaredExpr())
+  ASS(st2 == y.sugaredExpr())
   ASS(!dsit.hasNext())
 }

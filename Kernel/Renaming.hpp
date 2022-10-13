@@ -96,7 +96,7 @@ private:
     Renaming* _parent;
   };
 
-  typedef DHMap<unsigned, unsigned, IdentityHash> VariableMap;
+  typedef DHMap<unsigned, unsigned, IdentityHash, DefaultHash> VariableMap;
   VariableMap _data;
   unsigned _nextVar;
   bool _identity;

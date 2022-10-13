@@ -30,7 +30,7 @@ namespace VariableMultiplicationGeneralizationImpl {
 template<class A>
 class IntMap
 {
-  Map<A, unsigned> _map;
+  Map<A, unsigned, StlHash> _map;
   Stack<A> _stack;
 public:
   unsigned insert(A obj) 
@@ -265,7 +265,8 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
 
       /* one variable with power one needs to be kept, per varible region */
       auto var = iterTraits(region.iter())
-        .filter([](auto p) { return p.apply([](auto& t){ return t.tryVar(); }).isSome(); })
+        .map([](auto& x) { return x; })
+        .filter([](auto& p) { return p.apply([](auto& t){ return t.tryVar(); }).isSome(); })
         .tryNext();
 
       if (var.isSome()) {

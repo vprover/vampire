@@ -57,7 +57,7 @@ public:
 
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
-  DHMap<void*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
+  DHMap<const Kernel::Unit*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
 
   bool haveOutput();
   void beginOutput();
@@ -88,8 +88,6 @@ public:
   int remainingTime() const;
   /** set to true when coloring is used for symbol elimination or interpolation */
   bool colorUsed;
-  /** set to true when there are some interpreted operations */
-  bool interpretedOperationsUsed;
 
 private:
   int _outputDepth;

@@ -50,7 +50,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 
   Ordering& ordering = _salg->getOrdering();
 
-  TimeCounter tc(TC_FORWARD_LITERAL_REWRITING);
+  TIME_TRACE("forward literal rewriting");
 
   unsigned clen=cl->length();
 

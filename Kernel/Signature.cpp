@@ -46,6 +46,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skip(0),
     _label(0),
     _equalityProxy(0),
+    _wasFlipped(0),
     _color(COLOR_TRANSPARENT),
     _stringConstant(stringConstant ? 1: 0),
     _numericConstant(numericConstant ? 1: 0),
@@ -162,7 +163,7 @@ void Signature::Symbol::setType(OperatorType* type)
   ASS_REP(!_type, _type->toString());
 
   // this is copied out to the Symbol for convenience
-  _typeArgsArity = type->typeArgsArity(); 
+  _typeArgsArity = type->numTypeArguments(); 
   _type = type;  
 }
 
@@ -246,16 +247,13 @@ Signature::Signature ():
     _integers(0),
     _rationals(0),
     _reals(0),
-    _arrayCon(0),
-    _arrowCon(0),
-    _appFun(0),
+    _arrayCon(UINT_MAX),
+    _arrowCon(UINT_MAX),
+    _appFun(UINT_MAX),
     _termAlgebras()
 {
   CALL("Signature::Signature");
-
-  unsigned aux;
-  aux = createDistinctGroup();
-  ASS_EQ(STRING_DISTINCT_GROUP, aux);
+  ALWAYS(createDistinctGroup() == STRING_DISTINCT_GROUP);
 } // Signature::Signature
 
 /* Adding equality predicate used to be carried out in the constructor.
@@ -1171,7 +1169,7 @@ bool Signature::symbolNeedsQuoting(vstring name, bool interpreted, unsigned arit
   //also don't want them to be treated as interpreted symbols
   //hence the hack below, AYB
   if(name=="$int" || name=="$real" || name=="$rat" || 
-     name=="$i" || name=="$o" || name==">"){
+     name=="$i" || name=="$o"){
     return false;
   }
 

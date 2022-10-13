@@ -39,7 +39,7 @@ class IntNameTable
 //   int numberOfSymbols();
 
  private:
-  Map <vstring,int,Hash> _map;
+  Map <vstring,int> _map;
 //  Array<vstring> _names;
   int _nextNumber;
 }; // class NameTable

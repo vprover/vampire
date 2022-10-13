@@ -41,7 +41,7 @@ using namespace Lib;
 using namespace Kernel;
 
 
-typedef DHMap<unsigned,unsigned, IdentityHash> UUMap;
+typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
 
 
 /**

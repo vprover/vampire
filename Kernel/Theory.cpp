@@ -1203,7 +1203,7 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
       case Theory::INT_REMAINDER_E:
       case Theory::INT_REMAINDER_T:
       case Theory::INT_REMAINDER_F:
-        return IntTraits::isZero(*t->nthArgument(1));
+        return IntTraits::isZero(t->termArg(1));
       case Theory::RAT_QUOTIENT:
       case Theory::RAT_QUOTIENT_E:
       case Theory::RAT_QUOTIENT_T:
@@ -1211,7 +1211,7 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
       case Theory::RAT_REMAINDER_E:
       case Theory::RAT_REMAINDER_T:
       case Theory::RAT_REMAINDER_F:
-        return RatTraits::isZero(*t->nthArgument(1));
+        return RatTraits::isZero(t->termArg(1));
       case Theory::REAL_QUOTIENT:
       case Theory::REAL_QUOTIENT_E:
       case Theory::REAL_QUOTIENT_T:
@@ -1219,7 +1219,7 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
       case Theory::REAL_REMAINDER_E:
       case Theory::REAL_REMAINDER_T:
       case Theory::REAL_REMAINDER_F:
-        return RealTraits::isZero(*t->nthArgument(1));
+        return RealTraits::isZero(t->termArg(1));
       default:
         return false;
     }
@@ -1229,7 +1229,7 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
       return false;
     } else {
       ASS(sym->termAlgebraDest());
-      auto arg = *t->nthArgument(0);
+      auto arg = t->termArg(0);
       if (arg.isVar())  {
         return false;
       } else {
@@ -1625,7 +1625,7 @@ bool Theory::isInterpretedConstant(Term* t)
 
   if (t->isSpecial()) { return false; }
 
-  return t->arity()==0 && env.signature->getFunction(t->functor())->interpreted();
+  return t->numTermArguments()==0 && env.signature->getFunction(t->functor())->interpreted();
 }
 
 /**
@@ -1760,12 +1760,20 @@ bool Theory::isInterpretedFunction(TermList t)
  * Return true iff @b t is an interpreted function interpreted
  * as @b itp
  */
+bool Theory::isInterpretedFunction(unsigned f, Interpretation itp)
+{
+  CALL("Theory::isInterpretedFunction(unsigned,Interpretation)");
+  return isInterpretedFunction(f) && interpretFunction(f)==itp;
+}
+/**
+ * Return true iff @b t is an interpreted function interpreted
+ * as @b itp
+ */
 bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
 {
   CALL("Theory::isInterpretedFunction(Term*,Interpretation)");
 
-  return isInterpretedFunction(t->functor()) &&
-      interpretFunction(t)==itp;
+  return isInterpretedFunction(t->functor(), itp);
 }
 
 /**
@@ -1847,7 +1855,7 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
 {
   CALL("Theory::tryInterpretConstant(Term*,IntegerConstantType)");
 
-  if (t->arity() != 0 || t->isSpecial()) {
+  if (t->numTermArguments() != 0 || t->isSpecial()) {
     return false;
   }
   unsigned func = t->functor();
@@ -1879,7 +1887,7 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
 {
   CALL("Theory::tryInterpretConstant(Term*,RationalConstantType)");
 
-  if (t->arity() != 0 || t->isSpecial()) {
+  if (t->numTermArguments() != 0 || t->isSpecial()) {
     return false;
   }
   unsigned func = t->functor();
@@ -1909,7 +1917,7 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
 {
   CALL("Theory::tryInterpretConstant(Term*,RealConstantType)");
 
-  if (t->arity() != 0 || t->isSpecial()) {
+  if (t->numTermArguments() != 0 || t->isSpecial()) {
     return false;
   }
   unsigned func = t->functor();

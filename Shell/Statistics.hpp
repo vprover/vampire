@@ -25,7 +25,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Allocator.hpp"
-
+#include "Lib/Option.hpp"
 
 extern const char* VERSION_STRING;
 
@@ -58,8 +58,6 @@ public:
   unsigned inputClauses;
   /** number of input formulas */
   unsigned inputFormulas;
-  /** has types */
-  bool hasTypes;
 
   // Preprocessing
   /** number of formula names introduced during preprocessing */
@@ -130,10 +128,6 @@ public:
   unsigned theoryInstSimpEmptySubstitution;
   /** number of induction applications **/
   unsigned maxInductionDepth;
-  unsigned induction;
-  unsigned inductionInProof;
-  unsigned generalizedInduction;
-  unsigned generalizedInductionInProof;
   unsigned structInduction;
   unsigned structInductionInProof;
   unsigned intInfInduction;
@@ -154,6 +148,10 @@ public:
   unsigned intFinDownInductionInProof;
   unsigned intDBDownInduction;
   unsigned intDBDownInductionInProof;
+  unsigned inductionApplication;
+  unsigned inductionApplicationInProof;
+  unsigned generalizedInductionApplication;
+  unsigned generalizedInductionApplicationInProof;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;
@@ -242,12 +240,8 @@ public:
   unsigned taNegativeInjectivitySimplifications;
   unsigned taAcyclicityGeneratedDisequalities;
 
-  //to be moved to the property object once that
-  //is controlled by environment
-  bool higherOrder;
-  bool polymorphic;
-
   // Saturation
+  unsigned activations;
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */
@@ -353,6 +347,7 @@ public:
     /** Scanning for properties to be passed to preprocessing */
     PROPERTY_SCANNING,
     NORMALIZATION,
+    SHUFFLING,
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,
@@ -360,6 +355,7 @@ public:
     PREDICATE_DEFINITION_INLINING,
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     BLOCKED_CLAUSE_ELIMINATION,
+    TWEE,
     PREPROCESS_2,
     NEW_CNF,
     NAMING,

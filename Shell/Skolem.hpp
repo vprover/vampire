@@ -62,29 +62,42 @@ private:
 
   void ensureHavingVarSorts();
 
-  /** collected substitution */
+  /** the collected substitution */
   Substitution _subst;
 
   typedef List<bool> BoolList;
 
-  /** In the first pass we collect information about
-   * whether a variable appears in a subformula
-   * (occurs_below list is used to reset computation when
-   * descending below the next quantifier;
-   * thus this list works like a stack) */
+  /** In the first pass (preskolemise) we collect information 
+   * for each variable and in each quantified subformula
+   * whether the variable appears in the subformula
+   * 
+   * this will get stored in _varDeps eventually,
+   * but the computation uses _varOccs as a scrathpad
+   * that changes through the preskolemise traversal
+   * 
+   * (occurs_below list in VarOccInfo below 
+   *  is used to reset computation when
+   *  descending below the next quantifier;
+   *  thus this list works like a stack) */
   struct VarOccInfo {
     bool existential;
     BoolList* occurs_below;
   };
+  // from vars to their VarOccInfo
   typedef DHMap<unsigned,VarOccInfo> VarOccInfos;
+  /* starts empty at the top level, and fininshes also empty 
+     after bubbling up from the recursion;
+     Only used temporarily during preskolemise! */
   VarOccInfos _varOccs;
 
+  // we are only interested in this for the existential variables
+  // but still want to know both about the existential and universal occurences below "us"
   struct ExVarDepInfo {
     VarSet* univ;
     VarSet* exist;
   };
-
-  typedef DHMap<Formula*,ExVarDepInfo> ExVarDepInfos; // stored by the blocks
+  // stored by the blocks, i.e. those Formulas* with the EXISTS connective
+  typedef DHMap<Formula*,ExVarDepInfo> ExVarDepInfos; 
   ExVarDepInfos _varDeps;
 
   // map from an existential variable to its quantified formula (= block of quantifiers)
@@ -93,10 +106,12 @@ private:
   /** map var --> sort */
   DHMap<unsigned,TermList> _varSorts;
 
+  // for some heuristic evaluations after we are done
   Stack<unsigned> _introducedSkolemSyms;
 
   FormulaUnit* _beingSkolemised;
 
+  // to create one big inference after we are done
   UnitList* _skolimizingDefinitions;
 
   bool _appify; // a higher-order solution

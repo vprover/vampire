@@ -87,7 +87,7 @@ UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
  *
  *  Further notes on creating inferences:
  *  - Immediate simplification inferences cannot be linked to an index
- *  - For an infernce that works at subterms, please consider carefully
+ *  - For an inference that works at subterms, please consider carefully
  *    which iterator to use to return these subterms. In Vampire, terms are
  *    of the form f(type_args, term_args). In most cases, inferences should NOT
  *    be working on type arguments. Please view TermIterators.hpp for a list of
@@ -194,7 +194,6 @@ enum class InferenceRule : unsigned char {
 //     MINISCOPE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
-
   /** skolemization */
   SKOLEMIZE,
   /** obtain clause from a formula */
@@ -297,6 +296,10 @@ enum class InferenceRule : unsigned char {
   UNIT_RESULTING_RESOLUTION,
   /** hyper-superposition */
   HYPER_SUPERPOSITION_GENERATING,
+  /* Induction hyperresolution */
+  INDUCTION_HYPERRESOLUTION,
+  /* Generalized induction hyperresolution */
+  GEN_INDUCTION_HYPERRESOLUTION,
   /** generated as instance of its parent */
   INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
@@ -364,6 +367,9 @@ enum class InferenceRule : unsigned char {
   /** unfolding by definitions f(x1,...,xn)=t */
   DEFINITION_UNFOLDING,
 
+  /** introduction of a new symbol f, f = term */
+  FUNCTION_DEFINITION,
+
   /** introduction of new name p, p <=> C */
   PREDICATE_DEFINITION,
   /** unfolding predicate definitions */
@@ -371,6 +377,8 @@ enum class InferenceRule : unsigned char {
   /** merging predicate definitions */
   PREDICATE_DEFINITION_MERGING,
 
+  /** (consistent) polarity flipping of (some selected) predicates **/
+  POLARITY_FLIPPING,
 
   /** unused predicate definition removal */
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
@@ -380,10 +388,6 @@ enum class InferenceRule : unsigned char {
   INEQUALITY_SPLITTING,
   /** inequality splitting name introduction */
   INEQUALITY_SPLITTING_NAME_INTRODUCTION,
-  /** grounding */
-  GROUNDING,
-  /** equality axiom */
-  EQUALITY_AXIOM,
   /** distinctness axiom */
   DISTINCTNESS_AXIOM,
   /** Introduction of formula to convert formulas used as argument positions.
@@ -444,28 +448,17 @@ enum class InferenceRule : unsigned char {
   /** a premise to skolemization */
   CHOICE_AXIOM,
 
-  /* Induction hypothesis*/
-  INDUCTION_AXIOM,
-  /* Generalized induction hypothesis*/
-  GEN_INDUCTION_AXIOM,
+  /* Structural induction hypothesis*/
+  STRUCT_INDUCTION_AXIOM,
   /* Integer induction hypothesis for infinite intervals */
   INT_INF_UP_INDUCTION_AXIOM,
   INT_INF_DOWN_INDUCTION_AXIOM,
-  /* Generalized induction hypothesis for infinite intervals*/
-  INT_INF_UP_GEN_INDUCTION_AXIOM,
-  INT_INF_DOWN_GEN_INDUCTION_AXIOM,
   /* Integer induction hypothesis for finite intervals */
   INT_FIN_UP_INDUCTION_AXIOM,
   INT_FIN_DOWN_INDUCTION_AXIOM,
-  /* Generalized induction hypothesis for finite intervals*/
-  INT_FIN_UP_GEN_INDUCTION_AXIOM,
-  INT_FIN_DOWN_GEN_INDUCTION_AXIOM,
   /* Integer induction hypothesis for infinite interval and the default bound */
   INT_DB_UP_INDUCTION_AXIOM,
   INT_DB_DOWN_INDUCTION_AXIOM,
-  /* Generalized induction hypothesis for infinite interval and the default bound*/
-  INT_DB_UP_GEN_INDUCTION_AXIOM,
-  INT_DB_DOWN_GEN_INDUCTION_AXIOM,
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
