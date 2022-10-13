@@ -114,6 +114,10 @@ static_assert(Var::max_index() == static_cast<uint32_t>(INT32_MAX - 1), "unexpec
 static_assert(Var::max_index() < Var::invalid().index(), "valid variable indices overlap with invalid sentinel value");
 static_assert(!Var::invalid().is_valid(), "");
 static_assert(Var{Var::max_index()}.is_valid(), "");
+static_assert(std::is_nothrow_copy_constructible<Var>::value, "");
+static_assert(std::is_nothrow_copy_assignable<Var>::value, "");
+static_assert(std::is_nothrow_move_constructible<Var>::value, "");
+static_assert(std::is_nothrow_move_assignable<Var>::value, "");
 static_assert(std::is_trivially_destructible<Var>::value, "");
 
 NODISCARD static constexpr bool operator==(Var lhs, Var rhs) noexcept
@@ -154,7 +158,7 @@ public:
 
 private:
   friend class Constraint;
-  /// Uninitialized value (for clause constructor)
+  /// Uninitialized value (for constraint constructor)
   Lit() noexcept = default;
 
   explicit constexpr Lit(index_type index) noexcept
@@ -244,6 +248,10 @@ static_assert(Lit{Var{0}, false}.index() == 1, "");
 static_assert(Lit{Var{Var::max_index()}, true}.is_valid(), "");
 static_assert(Lit{Var{Var::max_index()}, false}.is_valid(), "");
 // static_assert(std::is_trivially_constructible<Lit>::value, "");
+static_assert(std::is_nothrow_copy_constructible<Lit>::value, "");
+static_assert(std::is_nothrow_copy_assignable<Lit>::value, "");
+static_assert(std::is_nothrow_move_constructible<Lit>::value, "");
+static_assert(std::is_nothrow_move_assignable<Lit>::value, "");
 static_assert(std::is_trivially_destructible<Lit>::value, "");
 
 NODISCARD static constexpr bool operator==(Lit lhs, Lit rhs) noexcept
