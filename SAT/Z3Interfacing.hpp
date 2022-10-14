@@ -253,6 +253,7 @@ private:
   const bool _unsatCore;
   Option<std::ofstream> _out;
   Map<unsigned, z3::expr> _varNames;
+  Map<vstring, z3::expr> _stringIndexedConstants;  
   Map<TermList, z3::expr> _termIndexedConstants;
   Map<Signature::Symbol*, z3::expr> _constantNames;
 

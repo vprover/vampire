@@ -32,6 +32,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/BottomUpEvaluation/TermList.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
@@ -832,7 +833,21 @@ namespace tptp {
 struct ToZ3Expr
 {
   Z3Interfacing& self;
-  Stack<z3::expr> _defs;
+  Stack<z3::expr>& _defs;
+  Term* orig;
+  DHMap<unsigned,TermList> varSorts;
+
+  ToZ3Expr(Z3Interfacing& z3i,  Stack<z3::expr>& defs, Term* t) : 
+   self(z3i), _defs(defs), orig(t) {
+
+    if(!t->ground()){
+      VariableWithSortIterator vwsi(t);
+      while(vwsi.hasNext()){
+        pair<TermList, SortId> p = vwsi.next();
+        varSorts.insert(p.first.var(), p.second);
+      }
+    }
+  }
 
   using Arg    = TermList;
   using Result = z3::expr;
@@ -841,12 +856,24 @@ struct ToZ3Expr
   {
     CALL("ToZ3Expr::operator()");
     // DEBUG("in: ", toEval)
-    ASS(toEval.isTerm())
+    //ASS(toEval.isTerm())
+
+    SortId range_sort;
+    if(toEval.isVar()){
+      range_sort = varSorts.get(toEval.var());
+      auto z3_sort = self.getz3sort(range_sort);
+      auto name    = "v" + toEval.toString() + range_sort.toString();
+
+      return self._stringIndexedConstants.getOrInit(name, [&](){
+          self.outputln("(declare-fun ", name, " () ", range_sort, ")");
+          return self._context.constant(name.c_str(), z3_sort); 
+      });
+    }
+
     auto trm = toEval.term();
     bool isLit = trm->isLiteral();
 
     Signature::Symbol* symb;
-    SortId range_sort;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
@@ -1126,7 +1153,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
   CALL("Z3Interfacing::getRepresentation(Term*)");
   Stack<z3::expr> defs;
-  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
+  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr(*this, defs, trm));
   return Representation(expr, std::move(defs));
 }
 
@@ -1138,7 +1165,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 
   //First, does this represent a ground literal
   Literal* lit = _sat2fo.toFO(slit);
-  if(lit && lit->ground()){
+  if(lit /*&& lit->ground()*/){
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object
     try{
