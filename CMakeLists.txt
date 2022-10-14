@@ -715,6 +715,8 @@ set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
     SATSubsumption/SMTSubsumptionImpl2.hpp
     SATSubsumption/SMTSubsumptionImpl3.cpp
     SATSubsumption/SMTSubsumptionImpl3.hpp
+    SATSubsumption/SATSubsumptionResolution.cpp
+    SATSubsumption/SATSubsumptionResolution.hpp
     SATSubsumption/Util.cpp
     SATSubsumption/Util.hpp
 
@@ -778,6 +780,7 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
+    UnitTests/tSATSubsumptionResolution.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
