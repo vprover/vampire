@@ -723,11 +723,12 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
       }
       for (unsigned iDestr = 0; iDestr < ctorTermArity; iDestr++)  {
         auto dtor = z3::func_decl(_context, destr[iDestr]);
+
         // careful: datatypes can have boolean fields!
-        auto id = FuncOrPredId(
-          ctor->destructorFunctor(iDestr),
-          dtor.range().is_bool()
-        );
+        // NB: polymorphic destructors instantiated with booleans are still functions (?)
+        bool is_predicate = ctor->argSort(iDestr).isBoolSort();
+        auto id = FuncOrPredId(ctor->destructorFunctor(iDestr), is_predicate);
+
         _toZ3.insert(id, dtor);
         _fromZ3.insert(dtor, id);
       }
@@ -874,7 +875,7 @@ struct ToZ3Expr
     }
 
     //if constant treat specially
-    if(trm->numTermArguments()==0) {
+    if(trm->arity() == 0) {
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
         return self._context.int_val(value.toInner());
@@ -915,7 +916,7 @@ struct ToZ3Expr
       // If not value then create constant symbol
       return self.getConst(symb, self.getz3sort(range_sort));
     }
-    ASS(trm->numTermArguments()>0);
+    ASS_G(trm->arity(), 0);
 
     // Currently do not deal with all intepreted operations, should extend
     // - constants dealt with above
@@ -1099,7 +1100,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
       SortHelper::getTypeSub(functor.forSorts, typeSubst);
       namebuf += '$';
       for(unsigned i = 0; i < functor.forSorts->numTypeArguments(); i++)
-        namebuf += functor.forSorts->termArg(i).toString();
+        namebuf += functor.forSorts->typeArg(i).toString();
     }
 
     z3::sort_vector domain_sorts = z3::sort_vector(self._context);
