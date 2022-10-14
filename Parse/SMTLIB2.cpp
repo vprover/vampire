@@ -2635,23 +2635,22 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
       if (s.second==SymbolType::FUNCTION) {
         TermAlgebraConstructor* c = env.signature->getTermAlgebraConstructor(s.first);
         if (c) /* else the symbol is not a TA constructor */ {
-          TermList sort = env.signature->getFunction(s.first)->fnType()->result();
-          if (!c->hasDiscriminator()) {
-            // add discriminator predicate
-            bool added;
-            unsigned pred = env.signature->addPredicate(c->discriminatorName(), 1, added);
-            ASS(added);
-            OperatorType* type = OperatorType::getPredicateType({ sort });
-            env.signature->getPredicate(pred)->setType(type);
-            c->addDiscriminator(pred);
-            // this predicate is not declare for the parser as it has a reserved name
-          }
+          TermList sort = c->rangeSort();
           TermList arg;
-          if (_results.isEmpty() || _results.top().isSeparator() ||
-              _results.pop().asTerm(arg) != sort) {
+          if (_results.isEmpty() || _results.top().isSeparator()) {
             complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
           }
-          Formula* res = new AtomicFormula(Literal::create1(c->discriminator(),true,arg));
+          TermList argSort = _results.pop().asTerm(arg);
+          if (!TermList::sameTopFunctor(argSort, sort))
+          {
+            complainAboutArgShortageOrWrongSorts("ranked function symbol",exp);
+          }
+          TermStack args(c->numTypeArguments()+1);
+          for (unsigned i = 0; i < argSort.term()->arity(); i++) {
+            args.push(*argSort.term()->nthArgument(i));
+          }
+          args.push(arg);
+          Formula* res = new AtomicFormula(Literal::create(c->discriminator(),args.size(),true,false,args.begin()));
           
           _results.push(ParseResult(res));
           return;

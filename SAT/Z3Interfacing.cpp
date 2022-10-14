@@ -586,8 +586,9 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
     }
   }
 
-  auto new_string_symbol = [&](vstring const& str)
-  { return Z3_mk_string_symbol(_context, str.c_str()); };
+  auto new_string_symbol = [this](unsigned f, const vstring& typePostfix, bool pred = false)
+  { return Z3_mk_string_symbol(_context,
+    ((pred ? env.signature->getPredicate(f) : env.signature->getFunction(f))->name()+'_'+typePostfix).c_str()); };
 
   // create the data needed for Z3_mk_datatypes(...)
   Stack<Stack<Z3_constructor>> ctorss(taSorts.size());
@@ -607,9 +608,9 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
     auto ta = env.signature->getTermAlgebraOfSort(taSort);
     Substitution typeSubst;
     vstring typePostfix = "$";
-    SortHelper::getTypeSub(taSortT, typeSubst);
+    ta->getTypeSub(taSortT, typeSubst);
     for(unsigned i = 0; i < taSortT->arity(); i++) {
-      typePostfix += taSortT->termArg(i).toString();
+      typePostfix += taSortT->nthArgument(i)->toString();
     }
     Stack<Z3_constructor> ctors(ta->nConstructors());
     Stack<SerCtor> serCtors;
@@ -624,7 +625,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
 
       for (unsigned i = cons->numTypeArguments(); i < cons->arity(); i++) {
         auto argSort = SubstHelper::apply(cons->argSort(i),typeSubst);
-        auto dtorName = new_string_symbol(env.signature->getFunction(cons->functor())->name() + "_arg" + to_vstring(i) + "_" + typePostfix);
+        auto dtorName = new_string_symbol(cons->destructorFunctor(i-cons->numTypeArguments()),typePostfix);
         if (_out.isSome())
           serDtors.push(SerDtor {
               .name = z3::symbol(_context, dtorName),
@@ -644,10 +645,6 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
               });
       }
 
-      // TODO this has to be adapted at some point to polymorphism
-      cons->createDiscriminator();
-      vstring discrName = cons->discriminatorName();
-
       DEBUG("\t", taSort.toString(), "::", env.signature->getFunction(cons->functor())->name(), ": ");//, SubstHelper::apply(cons->sort(), typeSubst));
 
       Z3_symbol ctorName = Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str());
@@ -662,7 +659,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
         });
       ctors.push(Z3_mk_constructor(_context,
           ctorName,
-          Z3_mk_string_symbol(_context, discrName.c_str()),
+          new_string_symbol(cons->discriminator(), typePostfix, true/*predicate*/),
           consTermArity,
           consTermArity == 0 ? nullptr : argNames.begin(),
           consTermArity == 0 ? nullptr : argSorts.begin(),

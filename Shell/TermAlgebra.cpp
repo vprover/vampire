@@ -56,15 +56,17 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discri
 unsigned TermAlgebraConstructor::arity() const { return _type->arity();  }
 unsigned TermAlgebraConstructor::numTypeArguments() const { return _type->numTypeArguments(); }
 
-unsigned TermAlgebraConstructor::createDiscriminator() 
+unsigned TermAlgebraConstructor::discriminator()
 {
+  CALL("TermAlgebraConstructor::discriminator");
   if (hasDiscriminator()) {
-    return discriminator();
+    return _discriminator;
   } else {
     auto sym = env.signature->getFunction(functor());
-    auto discr = env.signature->addFreshPredicate(1, ( "$$is_" + sym->name() ).c_str());
-    env.signature->getPredicate(discr)->setType(OperatorType::getPredicateType({_type->result()}));
-    addDiscriminator(discr);
+    auto discr = env.signature->addFreshPredicate(numTypeArguments()+1, discriminatorName().c_str());
+    env.signature->getPredicate(discr)->setType(OperatorType::getPredicateType({_type->result()},numTypeArguments()));
+     _hasDiscriminator = true;
+     _discriminator = discr;
     return discr;
   }
 }
@@ -83,7 +85,7 @@ Lib::Set<TermList> TermAlgebra::subSorts(TermList sort)
     auto t = work.pop();
     auto ta = env.signature->getTermAlgebraOfSort(t);
     Substitution typeSubst;
-    SortHelper::getTypeSub(t.term(), typeSubst);
+    ta->getTypeSub(t.term(), typeSubst);
     for (auto cons : ta->iterCons()) {
       for (auto s : cons->iterArgSorts()) {
         s = SubstHelper::apply(s, typeSubst);
@@ -231,6 +233,17 @@ unsigned TermAlgebra::getSubtermPredicate() {
   }
 
   return s;
+}
+
+void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
+{
+  CALL("TermAlgebra::getTypeSub");
+  auto t = _sort.term();
+  ASS_EQ(sort->functor(), t->functor());
+  for (unsigned i = 0; i < sort->arity(); i++) {
+    ASS(t->nthArgument(i)->isVar());
+    subst.bind(t->nthArgument(i)->var(), *sort->nthArgument(i));
+  }
 }
 
 std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self) 

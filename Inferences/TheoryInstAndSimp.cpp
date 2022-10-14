@@ -794,7 +794,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
   auto destructorGuard = [&findConstructor](Term* destr, SortId sort, bool predicate) -> Literal*
   {
       auto ctor = findConstructor(env.signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
-      auto discr = ctor->createDiscriminator();
+      auto discr = ctor->discriminator();
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
       return Literal::create1(discr, /* polarity */ true, destr->termArg(0));
   };

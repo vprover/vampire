@@ -51,11 +51,7 @@ namespace Shell {
     unsigned destructorFunctor(unsigned ith) { return _destructors[ith]; }
 
     bool hasDiscriminator() { return _hasDiscriminator; }
-    unsigned discriminator() { ASS(_hasDiscriminator); return _discriminator; }
-    unsigned createDiscriminator();
-    void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
-
-    Lib::vstring discriminatorName();
+    unsigned discriminator();
  
     class IterArgSorts 
     {
@@ -79,6 +75,8 @@ namespace Shell {
    
     friend std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self);
   private:
+    Lib::vstring discriminatorName();
+
     Kernel::OperatorType* _type;
     unsigned _functor;
     bool _hasDiscriminator;
@@ -145,9 +143,6 @@ namespace Shell {
      * then subSorts(atree(intp)) == { int, nat, intp, atree(intp) }
      */
     static Lib::Set<TermList> subSorts(TermList sort);
-  private:
-    void subSorts(Lib::Set<unsigned>);
-  public:
 
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
 
@@ -167,6 +162,7 @@ namespace Shell {
        -tac is set to "axiom"*/
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
+    void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
 
     friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
   private:

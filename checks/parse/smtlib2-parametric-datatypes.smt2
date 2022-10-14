@@ -111,6 +111,8 @@
 (declare-fun append (par (a) ((list a) (list a)) (list a)))
 (assert (par (a) (forall ((ys (list a))) (= (append a (Nil a) ys) ys))))
 (assert (par (a) (forall ((x a) (xs (list a)) (ys (list a))) (= (append a (Cons a x xs) ys) (Cons a x (append a xs ys))))))
+(define-fun-rec append2 (par (a) ((x (list a)) (y (list a))) (list a)
+  (ite ((_ is Nil) x) y (Cons a (Cons_0 a x) (append2 a (Cons_1 a x) y)))))
 (declare-fun len (par (a) ((list a)) nat))
 (assert (par (a) (= (len a (Nil a)) zero)))
 (assert (par (a) (forall ((x a) (xs (list a))) (= (len a (Cons a x xs)) (s (len a xs))))))

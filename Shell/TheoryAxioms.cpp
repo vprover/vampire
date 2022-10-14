@@ -1303,12 +1303,17 @@ void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
 void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
   CALL("addDiscriminationAxiom");
 
+  TermStack args(ta->nTypeArgs());
+  unsigned v = 0;
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
+    args.push(TermList(v++,false));
+  }
   Array<TermList> cases(ta->nConstructors());
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
 
-    Stack<TermList> variables;
-    for (unsigned var = 0; var < c->arity(); var++) {
+    TermStack variables = args;
+    for (unsigned var = c->numTypeArguments(); var < c->arity(); var++) {
       variables.push(TermList(var, false));
     }
 
@@ -1322,7 +1327,9 @@ void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
     if (!constructor->hasDiscriminator()) continue;
 
     for (unsigned c = 0; c < cases.size(); c++) {
-      Literal* lit = Literal::create1(constructor->discriminator(), c == i, cases[c]);
+      args.push(cases[c]);
+      Literal* lit = Literal::create(constructor->discriminator(), args.size(), c == i, false, args.begin());
+      args.pop();
       addTheoryClauseFromLits({lit}, InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM,CHEAP);
     }
   }
