@@ -836,6 +836,9 @@ void Splitter::onAllProcessed()
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     env->beginOutput();
+#if VTHREADED
+    env->out() << "(" << std::this_thread::get_id() << ")";
+#endif
     env->out() << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
       env->out() << getLiteralFromName(toAdd[i]) << ",";
@@ -1002,6 +1005,9 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     if (_showSplitting) {
       env->beginOutput();
+#if VTHREADED
+    env->out() << "(" << std::this_thread::get_id() << ")";
+#endif
       env->out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
       env->endOutput();
     }
@@ -1121,6 +1127,9 @@ bool Splitter::doSplitting(Clause* cl)
   if (_stopSplittingAt && (unsigned)env->timer->elapsedMilliseconds() >= _stopSplittingAt) {
     if (_showSplitting) {
       env->beginOutput();
+#if VTHREADED
+    env->out() << "(" << std::this_thread::get_id() << ")";
+#endif
       env->out() << "[AVATAR] Stopping the splitting process."<< std::endl;
       env->endOutput();
     }
@@ -1174,6 +1183,9 @@ bool Splitter::doSplitting(Clause* cl)
 
   if (_showSplitting) {
     env->beginOutput();
+#if VTHREADED
+    env->out() << "(" << std::this_thread::get_id() << ")";
+#endif
     env->out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
     env->endOutput();
   }
@@ -1741,6 +1753,9 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
     if (_showSplitting) {
       env->beginOutput();
+#if VTHREADED
+      env->out() << "(" << std::this_thread::get_id() << ")";
+#endif
       env->out() << "[AVATAR] proved ";
       SplitSet::Iterator sit(*cl->splits());
       while(sit.hasNext()){
