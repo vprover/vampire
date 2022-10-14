@@ -50,14 +50,14 @@ using namespace Indexing;
 using namespace Saturation;
 
 #if VDEBUG
-#define CHECK_SMT_SUBSUMPTION 1
-#define CHECK_SMT_SUBSUMPTION_RESOLUTION 1
+#define CHECK_SAT_SUBSUMPTION 1
+#define CHECK_SAT_SUBSUMPTION_RESOLUTION 1
 #else
-#define CHECK_SMT_SUBSUMPTION 0
-#define CHECK_SMT_SUBSUMPTION_RESOLUTION 0
+#define CHECK_SAT_SUBSUMPTION 0
+#define CHECK_SAT_SUBSUMPTION_RESOLUTION 0
 #endif
 
-#define USE_SMT_SUBSUMPTION 0
+#define USE_SAT_SUBSUMPTION 0
 
 class SubsumptionLogger;
 
@@ -110,8 +110,8 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
   env.beginOutput();
-#if USE_SMT_SUBSUMPTION
-  env.out() << "\% Subsumption algorithm: smt3\n";
+#if USE_SAT_SUBSUMPTION
+  env.out() << "\% Subsumption algorithm: sat3\n";
 #else
   env.out() << "\% Subsumption algorithm: original\n";
 #endif
@@ -493,7 +493,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   if (fsstats.m_logger) {
     fsstats.m_logger->logNextRound();
   }
-#if CHECK_SMT_SUBSUMPTION || CHECK_SMT_SUBSUMPTION_RESOLUTION
+#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION
   static vvector<Clause *> s_mcl_tried;
   s_mcl_tried.clear();
   static vvector<Clause *> sr_mcl_tried;
@@ -531,15 +531,15 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         env.statistics->forwardSubsumed++;
         ASS_LE(premise->weight(), cl->weight());
         result = true;
-#if CHECK_SMT_SUBSUMPTION
+#if CHECK_SAT_SUBSUMPTION
         s_mcl_tried.push_back(premise);
-        // if (!smtsubs.checkSubsumption(premise, cl)) {
-        //   std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION***    UNIT expecting 1" << std::endl;
+        // if (!satsubs.checkSubsumption(premise, cl)) {
+        //   std::cerr << "\% ***WRONG RESULT OF SAT-SUBSUMPTION***    UNIT expecting 1" << std::endl;
         //   std::cerr << "\% premise = " << premise->toString() << std::endl;
         //   std::cerr << "\% cl = " << cl->toString() << std::endl;
         // }
 #endif
-        // NOTE: we do not care about outputting the inference here, since this branch is not a target where we want to use SMT-Subsumption.
+        // NOTE: we do not care about outputting the inference here, since this branch is not a target where we want to use SAT-Subsumption.
         goto fin;
       }
     }
@@ -550,8 +550,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
    ********************************************************************************/
 
   {
-#if USE_SMT_SUBSUMPTION
-    smtsubs.setupMainPremise(cl);
+#if USE_SAT_SUBSUMPTION
+    satsubs.setupMainPremise(cl);
 #else
     LiteralMiniIndex miniIndex(cl);
 #endif
@@ -572,9 +572,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         //   RSTAT_CTR_INC("fw subsumption impossible due to length");
         // }
 
-#if USE_SMT_SUBSUMPTION
+#if USE_SAT_SUBSUMPTION
         mcl->setAux(this);
-        bool const isSubsumed = smtsubs.setupSubsumption(mcl) && smtsubs.solve() && ColorHelper::compatible(cl->color(), mcl->color());
+        bool const isSubsumed = satsubs.setupSubsumption(mcl) && satsubs.solve() && ColorHelper::compatible(cl->color(), mcl->color());
 #else
         ClauseMatches *cms = new ClauseMatches(mcl);
         mcl->setAux(cms);
@@ -635,10 +635,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
           fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
         }
 
-#if CHECK_SMT_SUBSUMPTION
+#if CHECK_SAT_SUBSUMPTION
         s_mcl_tried.push_back(mcl);
-        // if (smtsubs.checkSubsumption(mcl, cl) != isSubsumed) {
-        //   std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION***    MULTI expecting " << isSubsumed << std::endl;
+        // if (satsubs.checkSubsumption(mcl, cl) != isSubsumed) {
+        //   std::cerr << "\% ***WRONG RESULT OF SAT-SUBSUMPTION***    MULTI expecting " << isSubsumed << std::endl;
         //   std::cerr << "\% mcl = " << mcl->toString() << std::endl;
         //   std::cerr << "\%  cl = " <<  cl->toString() << std::endl;
         // };
@@ -664,13 +664,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     }
 
     {
-#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+#if CHECK_SAT_SUBSUMPTION_RESOLUTION
       we_did_subsumption_resolution = true;
 #endif
       // TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
       TIME_TRACE("forward subsumption resolution");
 
-      // This is subsumption resolution with unit clauses. We don't log these because we don't do smt-subsumption for these.
+      // This is subsumption resolution with unit clauses. We don't log these because we don't do sat-subsumption for these.
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li];
         SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
@@ -685,9 +685,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             replacement = resolutionClause;
             result = true;
           }
-#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+#if CHECK_SAT_SUBSUMPTION_RESOLUTION
           sr_mcl_tried.push_back(mcl);
-          // smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
+          // satsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
 #endif
           if (resolutionClause) {
             goto fin;
@@ -695,7 +695,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         }
       }
 
-#if USE_SMT_SUBSUMPTION
+#if USE_SAT_SUBSUMPTION
       ASS(cmStore.isEmpty());
 #else
       // Note that we only index the "least matchable" literal in the _fwIndex.
@@ -720,10 +720,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
               replacement = resolutionClause;
               result = true;
             }
-#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+#if CHECK_SAT_SUBSUMPTION_RESOLUTION
             sr_mcl_tried.push_back(mcl);
             // NOTE: we can't do the check here because we might encounter the same clause again in the loop below (it's possible that we fail here but succeed later).
-            // if (!smtsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
+            // if (!satsubs.checkSubsumptionResolution(cms->_cl, cl, resolutionClause)) {
             //   fin_print_extra_info = true;
             // }
 #endif
@@ -737,7 +737,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       }
 #endif
 
-#if USE_SMT_SUBSUMPTION
+#if USE_SAT_SUBSUMPTION
       LiteralMiniIndex miniIndex(cl);
 #endif
 
@@ -779,10 +779,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             replacement = resolutionClause;
             result = true;
           }
-#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+#if CHECK_SAT_SUBSUMPTION_RESOLUTION
           sr_mcl_tried.push_back(mcl);
           // // NOTE: we can't do the check here because we might encounter the same clause again in the loop with another resLit
-          // if (!smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause)) {
+          // if (!satsubs.checkSubsumptionResolution(mcl, cl, resolutionClause)) {
           //   fin_print_extra_info = true;
           // }
 #endif
@@ -800,45 +800,45 @@ fin:
     delete cmStore.pop();
   }
   {
-#if CHECK_SMT_SUBSUMPTION || CHECK_SMT_SUBSUMPTION_RESOLUTION
-    auto tok = smtsubs.setupMainPremise(cl);
+#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION
+    auto tok = satsubs.setupMainPremise(cl);
     if (fin_print_extra_info) {
       std::cerr << "% result = " << result << std::endl;
       std::cerr << "% replacement = " << (replacement ? replacement->toString() : "nullptr") << std::endl;
     }
 #endif
-#if CHECK_SMT_SUBSUMPTION
+#if CHECK_SAT_SUBSUMPTION
     if (!we_did_subsumption_resolution) {
       if (result) {
         // successful subsumption is the last one
         Clause *mcl = s_mcl_tried.back();
         s_mcl_tried.pop_back();
-        if (!smtsubs.checkSubsumption(mcl, cl)) {
-          std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION*** (should be 1, got 0)" << std::endl;
+        if (!satsubs.checkSubsumption(mcl, cl)) {
+          std::cerr << "\% ***WRONG RESULT OF SAT-SUBSUMPTION*** (should be 1, got 0)" << std::endl;
           std::cerr << "\% mcl = " << mcl->toString() << std::endl;
           std::cerr << "\%  cl = " << cl->toString() << std::endl;
         }
       }
       for (Clause *mcl : s_mcl_tried) {
-        if (smtsubs.checkSubsumption(mcl, cl)) {
-          std::cerr << "\% ***WRONG RESULT OF SMT-SUBSUMPTION*** (should be 0, got 1)" << std::endl;
+        if (satsubs.checkSubsumption(mcl, cl)) {
+          std::cerr << "\% ***WRONG RESULT OF SAT-SUBSUMPTION*** (should be 0, got 1)" << std::endl;
           std::cerr << "\% mcl = " << mcl->toString() << std::endl;
           std::cerr << "\%  cl = " << cl->toString() << std::endl;
         }
       }
     }
 #endif
-#if CHECK_SMT_SUBSUMPTION_RESOLUTION
+#if CHECK_SAT_SUBSUMPTION_RESOLUTION
     if (we_did_subsumption_resolution) {
       if (result) {
         // In this case we can only check the last side premise... for the others we don't know yet whether we missed an inference or if we just discovered the current one before.
         ASS(resolutionClause);
-        smtsubs.checkSubsumptionResolution(sr_mcl_tried.back(), cl, resolutionClause);
+        satsubs.checkSubsumptionResolution(sr_mcl_tried.back(), cl, resolutionClause);
       }
       else {
         ASS(!resolutionClause);
         for (Clause *mcl : sr_mcl_tried) {
-          smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
+          satsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
         }
       }
     }
