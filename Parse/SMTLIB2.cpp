@@ -347,15 +347,52 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
       while(formula->connective() == FORALL)
         formula = formula->qarg();
-      if(formula->connective() != LITERAL)
-        USER_ERROR("declare-rewrite expects a universally-quantified literal");
 
-      Literal *literal = formula->literal();
-      if(!literal->polarity() || literal->arity() != 2)
-        USER_ERROR("declare-rewrite expects a positive binary literal");
+      Connective conn = formula->connective();
+      if(conn != LITERAL && conn != IMP)
+        USER_ERROR("declare-rewrite expects a universally-quantified rewrite: "+formula->toString());
 
-      Literal *renamed = Renaming::normalize(literal);
-      Inferences::RewriteISE::registerRewrite(renamed);
+      if(conn == LITERAL) {
+        Literal *literal = formula->literal();
+        if(!literal->polarity() || literal->arity() != 2)
+          USER_ERROR("declare-rewrite expects a positive binary literal: "+literal->toString());
+
+        TermList left_sort = SortHelper::getArgSort(literal, 0);
+        TermList right_sort = SortHelper::getArgSort(literal, 1);
+        if(left_sort != right_sort)
+          USER_ERROR("rewrite not well-sorted: "+literal->toString());
+
+        Literal *renamed = Renaming::normalize(literal);
+        Inferences::RewriteISE::registerTermRewrite((*renamed)[0], (*renamed)[1]);
+      }
+      else {
+        Formula *left = formula->left();
+        bool left_flip = false;
+        if(left->connective() == NOT)
+          left = left->uarg(), left_flip = true;
+        if(left->connective() != LITERAL)
+          USER_ERROR("declare-rewrite expects a literal: "+left->toString());
+
+        Formula *right = formula->right();
+        bool right_flip = false;
+        if(right->connective() == NOT)
+          right = right->uarg(), right_flip = false;
+        if(right->connective() != LITERAL)
+          USER_ERROR("declare-rewrite expects a literal: "+right->toString());
+
+        Literal *left_literal = left->literal();
+        if(left_flip)
+          left_literal = Literal::complementaryLiteral(left_literal);
+
+        Literal *right_literal = right->literal();
+        if(right_flip)
+          right_literal = Literal::complementaryLiteral(right_literal);
+
+        Renaming renaming;
+        left_literal = renaming.apply(left_literal);
+        right_literal = renaming.apply(right_literal);
+        Inferences::RewriteISE::registerLiteralRewrite(left_literal, right_literal);
+      }
       ibRdr.acceptEOL();
       continue;
     }

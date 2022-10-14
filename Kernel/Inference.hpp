@@ -259,6 +259,9 @@ enum class InferenceRule : unsigned char {
 
   BOOL_SIMP,
 
+  /** inference for manually-specified rewrites */
+  REWRITE,
+
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
 
@@ -290,8 +293,6 @@ enum class InferenceRule : unsigned char {
   /** inferences for subterm relations (of a term algebra) */
   POSITIVE_SUBTERM,
   NEGATIVE_SUBTERM,
-  /** inference for manually-specified rewrites */
-  REWRITE,
   /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
   FOOL_PARAMODULATION,
   /** unit resulting resolution */

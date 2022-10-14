@@ -791,8 +791,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "positive subterm";
   case InferenceRule::NEGATIVE_SUBTERM:
     return "negative subterm";
-  case InferenceRule::REWRITE:
-    return "rewrite";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING:
     return "term algebras injectivity";
@@ -934,6 +932,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
+  case InferenceRule::REWRITE:
+    return "rewrite";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
   case InferenceRule::PRIMITIVE_INSTANTIATION:

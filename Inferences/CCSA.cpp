@@ -21,6 +21,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Indexing/TermSubstitutionTree.hpp"
+#include "Indexing/LiteralSubstitutionTree.hpp"
 
 using Kernel::Clause;
 using Kernel::Interpretation;
@@ -29,8 +30,12 @@ using Kernel::Theory;
 using Symbol = Kernel::Signature::Symbol;
 using InterpretedSymbol = Kernel::Signature::InterpretedSymbol;
 using TermSubstitutionTree = Indexing::TermSubstitutionTree;
+using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree;
 using TermQueryResultIterator = Indexing::TermQueryResultIterator;
 using TermQueryResult = Indexing::TermQueryResult;
+using LiteralQueryResultIterator = Indexing::SLQueryResultIterator;
+using LiteralQueryResult = Indexing::SLQueryResult;
+using LeafData = Indexing::SubstitutionTree::LeafData;
 
 namespace Inferences {
 
@@ -153,29 +158,50 @@ Literal *SubtermGIE::createSubterm(
   return Literal::create2(predicate, polarity, subterm, superterm);
 }
 
-static TermSubstitutionTree index;
+static TermSubstitutionTree term_index;
+static DHMap<TermList, TermList> term_map;
 
-void RewriteISE::registerRewrite(Literal *rewrite) {
+void RewriteISE::registerTermRewrite(TermList left, TermList right) {
   CALL("RewriteISE::registerRewrite")
-  TermList left = (*rewrite)[0];
-  index.insert(left, rewrite, nullptr);
+  term_index.insert(left, nullptr, nullptr);
+  term_map.insert(left, right);
+}
+
+static LiteralSubstitutionTree literal_index;
+static DHMap<Literal *, Literal *> literal_map;
+
+void RewriteISE::registerLiteralRewrite(Literal *left, Literal *right) {
+  CALL("RewriteISE::registerRewrite")
+  literal_index.insert(left, nullptr);
+  literal_map.insert(left, right);
 }
 
 Clause *RewriteISE::simplify(Clause *cl) {
   for(unsigned i = 0; i < cl->length(); i++) {
     Literal *literal = cl->literals()[i];
+
+    LiteralQueryResultIterator literal_results = literal_index.getGeneralizations(literal, false, true);
+    if(literal_results.hasNext()) {
+      LiteralQueryResult result = literal_results.next();
+      Literal *rewritten = result.substitution->applyToBoundResult(literal_map.get(result.literal));
+
+      Inference inference(SimplifyingInference1(InferenceRule::REWRITE, cl));
+      Clause *simplified = replaceLiteral(cl, literal, rewritten, inference);
+      return simplified;
+    }
+
     NonVariableNonTypeIterator subterms(literal);
     while(subterms.hasNext()) {
       TermList subterm = subterms.next();
-      TermQueryResultIterator results = index.getGeneralizations(subterm, true);
-      if(!results.hasNext())
+      TermQueryResultIterator term_results = term_index.getGeneralizations(subterm, true);
+      if(!term_results.hasNext())
         continue;
 
-      TermQueryResult result = results.next();
-      TermList rhs = result.substitution->applyToBoundResult((*result.literal)[1]);
+      TermQueryResult result = term_results.next();
+      TermList rhs = result.substitution->applyToBoundResult(term_map.get(result.term));
       Literal *rewritten = EqHelper::replace(literal, subterm, rhs);
 
-      Inference inference(GeneratingInference1(InferenceRule::REWRITE, cl));
+      Inference inference(SimplifyingInference1(InferenceRule::REWRITE, cl));
       Clause *simplified = replaceLiteral(cl, literal, rewritten, inference);
       ASS_REP(SortHelper::areSortsValid(simplified), simplified->toString());
       return simplified;

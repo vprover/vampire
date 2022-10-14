@@ -39,7 +39,8 @@ public:
   USE_ALLOCATOR(RewriteISE);
   Clause* simplify(Clause* cl) override;
 
-  static void registerRewrite(Literal *rewrite);
+  static void registerTermRewrite(TermList left, TermList right);
+  static void registerLiteralRewrite(Literal *left, Literal *right);
 };
 
 }
