@@ -1,5 +1,5 @@
-#ifndef SMTSUBSUMPTIONIMPL3_HPP
-#define SMTSUBSUMPTIONIMPL3_HPP
+#ifndef SATSUBSUMPTIONIMPL3_HPP
+#define SATSUBSUMPTIONIMPL3_HPP
 
 #include "Kernel/Clause.hpp"
 #include "Lib/STL.hpp"
@@ -9,22 +9,22 @@
 #define SUBSAT_SOLVER_REUSE 1
 
 
-namespace SMTSubsumption {
+namespace SATSubsumption {
 
-class SMTSubsumptionImpl3;
+class SATSubsumptionImpl3;
 
-class SMTSubsumptionImpl3_Token {
-  SMTSubsumptionImpl3* impl;
-  SMTSubsumptionImpl3_Token(SMTSubsumptionImpl3& impl) : impl(&impl) {}
-  friend class SMTSubsumptionImpl3;
+class SATSubsumptionImpl3_Token {
+  SATSubsumptionImpl3* impl;
+  SATSubsumptionImpl3_Token(SATSubsumptionImpl3& impl) : impl(&impl) {}
+  friend class SATSubsumptionImpl3;
 public:
-  CLASS_NAME(SMTSubsumptionImpl3_Token);
-  USE_ALLOCATOR(SMTSubsumptionImpl3_Token);
-  SMTSubsumptionImpl3_Token(SMTSubsumptionImpl3_Token&& other) : impl(std::exchange(other.impl, nullptr)) {}
-  ~SMTSubsumptionImpl3_Token();
+  CLASS_NAME(SATSubsumptionImpl3_Token);
+  USE_ALLOCATOR(SATSubsumptionImpl3_Token);
+  SATSubsumptionImpl3_Token(SATSubsumptionImpl3_Token&& other) : impl(std::exchange(other.impl, nullptr)) {}
+  ~SATSubsumptionImpl3_Token();
 };
 
-class SMTSubsumptionImpl3
+class SATSubsumptionImpl3
 {
   private:
 
@@ -36,8 +36,8 @@ class SMTSubsumptionImpl3
     using allocator_type = std::allocator<T>;
 #endif
 
-    using Token = SMTSubsumptionImpl3_Token;
-    friend class SMTSubsumptionImpl3_Token;
+    using Token = SATSubsumptionImpl3_Token;
+    friend class SATSubsumptionImpl3_Token;
     using Solver = subsat::Solver<allocator_type>;
     using BindingsManager = typename Solver::BindingsManager;
 
@@ -61,8 +61,8 @@ class SMTSubsumptionImpl3
     };
 
     struct MatchCache {
-      CLASS_NAME(SMTSubsumptionImpl3::MatchCache);
-      USE_ALLOCATOR(SMTSubsumptionImpl3::MatchCache);
+      CLASS_NAME(SATSubsumptionImpl3::MatchCache);
+      USE_ALLOCATOR(SATSubsumptionImpl3::MatchCache);
 
       BindingsManager bm;
       vvector<BaseLitInfo> bli;  // index is the index of the base literal; size tells us how many base literals we matched (in case of early exit during subsumption)
@@ -103,8 +103,8 @@ class SMTSubsumptionImpl3
 
     // just to satisfy Vampire's custom allocator
     struct SolverWrapper {
-      CLASS_NAME(SMTSubsumptionImpl3::SolverWrapper);
-      USE_ALLOCATOR(SMTSubsumptionImpl3::SolverWrapper);
+      CLASS_NAME(SATSubsumptionImpl3::SolverWrapper);
+      USE_ALLOCATOR(SATSubsumptionImpl3::SolverWrapper);
       Solver s;
     };
 
@@ -136,11 +136,11 @@ class SMTSubsumptionImpl3
     void endMainPremise();
 
   public:
-    CLASS_NAME(SMTSubsumptionImpl3);
-    USE_ALLOCATOR(SMTSubsumptionImpl3);
+    CLASS_NAME(SATSubsumptionImpl3);
+    USE_ALLOCATOR(SATSubsumptionImpl3);
 
-    SMTSubsumptionImpl3();
-    ~SMTSubsumptionImpl3();
+    SATSubsumptionImpl3();
+    ~SATSubsumptionImpl3();
 
     /// Set up forward subsumption and subsumption resolution for the given main premise.
     /// Hold on to the returned token until done.
@@ -176,4 +176,4 @@ class SMTSubsumptionImpl3
 
 }
 
-#endif /* !SMTSUBSUMPTIONIMPL3_HPP */
+#endif /* !SATSUBSUMPTIONIMPL3_HPP */

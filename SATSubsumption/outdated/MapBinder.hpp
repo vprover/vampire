@@ -1,11 +1,11 @@
-#ifndef SMTSUBSUMPTION_MAPBINDER_HPP
-#define SMTSUBSUMPTION_MAPBINDER_HPP
+#ifndef SATSUBSUMPTION_MAPBINDER_HPP
+#define SATSUBSUMPTION_MAPBINDER_HPP
 
 
 #include "Kernel/Term.hpp"
 #include "Lib/STL.hpp"
 
-namespace SMTSubsumption {
+namespace SATSubsumption {
 
 using namespace Kernel;
 
@@ -122,4 +122,4 @@ using MapBinder = MapBinderVampire;
 
 }
 
-#endif /* !SMTSUBSUMPTION_MAPBINDER_HPP */
+#endif /* !SATSUBSUMPTION_MAPBINDER_HPP */

@@ -336,7 +336,7 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa);
 
 
 
-/// SMT solver especially for subsumption-type problems.
+/// SAT solver especially for subsumption-type problems.
 ///
 /// Native support for
 /// - boolean variables and clauses,

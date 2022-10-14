@@ -408,6 +408,6 @@ private:
 };
 
 
-}  // namespace SMTSubsumption
+}  // namespace SATSubsumption
 
 #endif /* !SUBSTITUTIONTHEORY_HPP */

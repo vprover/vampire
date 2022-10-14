@@ -1,7 +1,7 @@
 #include "MapBinder.hpp"
 #include <iostream>
 
-namespace SMTSubsumption {
+namespace SATSubsumption {
 
 
 std::ostream& operator<<(std::ostream& o, MapBinderSTL const& binder)

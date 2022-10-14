@@ -1,4 +1,4 @@
-#include "SMTSubsumptionImpl3.hpp"
+#include "SATSubsumptionImpl3.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 #include "Util.hpp"
@@ -6,11 +6,11 @@
 
 using namespace Indexing;
 using namespace Kernel;
-using namespace SMTSubsumption;
+using namespace SATSubsumption;
 
 // TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
 
-SMTSubsumptionImpl3::SMTSubsumptionImpl3()
+SATSubsumptionImpl3::SATSubsumptionImpl3()
 {
 #if SUBSAT_SOLVER_REUSE
   recreate_solver();
@@ -19,7 +19,7 @@ SMTSubsumptionImpl3::SMTSubsumptionImpl3()
   instance_constraints.reserve(16);
 }
 
-void SMTSubsumptionImpl3::recreate_solver()
+void SATSubsumptionImpl3::recreate_solver()
 {
   shared_solver = nullptr;
   shared_solver = std::make_unique<SolverWrapper>();
@@ -29,7 +29,7 @@ void SMTSubsumptionImpl3::recreate_solver()
   solver.theory().reserve(64, 2, 16);
 }
 
-SMTSubsumptionImpl3::~SMTSubsumptionImpl3()
+SATSubsumptionImpl3::~SATSubsumptionImpl3()
 {
   for (auto* p : mcs)
     delete p;
@@ -38,7 +38,7 @@ SMTSubsumptionImpl3::~SMTSubsumptionImpl3()
 
 
 
-SMTSubsumptionImpl3::Token SMTSubsumptionImpl3::setupMainPremise(Kernel::Clause* new_instance)
+SATSubsumptionImpl3::Token SATSubsumptionImpl3::setupMainPremise(Kernel::Clause* new_instance)
 {
   // std::cerr << "\n\n\nINSTANCE " << new_instance->number() << " " << new_instance->length() << std::endl;
   instance = new_instance;
@@ -53,7 +53,7 @@ SMTSubsumptionImpl3::Token SMTSubsumptionImpl3::setupMainPremise(Kernel::Clause*
 
 
 
-void SMTSubsumptionImpl3::endMainPremise()
+void SATSubsumptionImpl3::endMainPremise()
 {
   // std::cerr << "END" << std::endl;
   Kernel::Clause::releaseAux();
@@ -62,7 +62,7 @@ void SMTSubsumptionImpl3::endMainPremise()
 
 
 
-SMTSubsumptionImpl3_Token::~SMTSubsumptionImpl3_Token()
+SATSubsumptionImpl3_Token::~SATSubsumptionImpl3_Token()
 {
   if (impl)
     impl->endMainPremise();
@@ -70,7 +70,7 @@ SMTSubsumptionImpl3_Token::~SMTSubsumptionImpl3_Token()
 
 
 
-void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
+void SATSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
 {
   // std::cerr << "F  " << &mc << " " << instance->number() << " " << base->number() << std::endl;
   ASS(mc.empty());
@@ -157,9 +157,9 @@ void SMTSubsumptionImpl3::fillMatches(MatchCache& mc, Kernel::Clause* base)
 /// Set up the subsumption problem. Must have called setupMainPremise first.
 /// Returns false if no solution is possible.
 /// Otherwise, solve() needs to be called.
-bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
+bool SATSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
 {
-  CALL("SMTSubsumptionImpl3::setupSubsumption");
+  CALL("SATSubsumptionImpl3::setupSubsumption");
   // std::cerr << "S " << base->toString() << std::endl;
 
   if (base->hasAux()) {
@@ -247,9 +247,9 @@ bool SMTSubsumptionImpl3::setupSubsumption(Kernel::Clause* base)
 
 
 
-bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
+bool SATSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
 {
-  CALL("SMTSubsumptionImpl3::setupSubsumptionResolution");
+  CALL("SATSubsumptionImpl3::setupSubsumptionResolution");
   // std::cerr << "SR " << base->toString() << std::endl;
   if (base->hasAux()) {
     last_mc = base->getAux<MatchCache>();
@@ -489,7 +489,7 @@ bool SMTSubsumptionImpl3::setupSubsumptionResolution(Kernel::Clause* base)
 
 
 
-bool SMTSubsumptionImpl3::solve()
+bool SATSubsumptionImpl3::solve()
 {
   Solver& solver = shared_solver->s;
   return solver.solve() == subsat::Result::Sat;
@@ -497,7 +497,7 @@ bool SMTSubsumptionImpl3::solve()
 
 
 
-Kernel::Clause* SMTSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::Clause* base)
+Kernel::Clause* SATSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::Clause* base)
 {
   ASS_GE(instance->length(), 1);
   unsigned int const conclusion_len = instance->length() - 1;
@@ -544,16 +544,16 @@ Kernel::Clause* SMTSubsumptionImpl3::getSubsumptionResolutionConclusion(Kernel::
 
 
 
-bool SMTSubsumptionImpl3::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
+bool SATSubsumptionImpl3::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
 {
-  CALL("SMTSubsumptionImpl2::checkSubsumption");
+  CALL("SATSubsumptionImpl2::checkSubsumption");
   ASS_EQ(this->instance, instance);
   return setupSubsumption(base) && solve();
 }
 
 
 
-bool SMTSubsumptionImpl3::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
+bool SATSubsumptionImpl3::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
 {
   ASS_EQ(this->instance, instance);
   bool const res0 = setupSubsumptionResolution(base);
@@ -563,7 +563,7 @@ bool SMTSubsumptionImpl3::checkSubsumptionResolution(Kernel::Clause* base, Kerne
       std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
       std::cerr << "\%    base       = " << base->toString() << std::endl;
       std::cerr << "\%    instance   = " << instance->toString() << std::endl;
-      std::cerr << "\% Should NOT be possible but SMT3-SR found the following result:" << std::endl;
+      std::cerr << "\% Should NOT be possible but SAT3-SR found the following result:" << std::endl;
       std::cerr << "\%    conclusion = " << getSubsumptionResolutionConclusion(base)->toString() << std::endl;
       return false;
     } else {
@@ -583,7 +583,7 @@ bool SMTSubsumptionImpl3::checkSubsumptionResolution(Kernel::Clause* base, Kerne
     std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
     std::cerr << "\%    base     = " << base->toString() << std::endl;
     std::cerr << "\%    instance = " << instance->toString() << std::endl;
-    std::cerr << "\% No result from SMT3-SR, but should have found this conclusion:" << std::endl;
+    std::cerr << "\% No result from SAT3-SR, but should have found this conclusion:" << std::endl;
     std::cerr << "\%    expected = " << conclusion->toString() << std::endl;
   }
   return (found > 0);

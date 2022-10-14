@@ -1,4 +1,4 @@
-#include "SMTSubsumption.hpp"
+#include "SATSubsumption.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
 #include "Lib/BinaryHeap.hpp"
@@ -16,13 +16,13 @@
 #include <cstdint>
 #include <climits>
 
-#include "SMTSubsumptionImpl2.hpp"
-#include "SMTSubsumptionImpl3.hpp"
+#include "SATSubsumptionImpl2.hpp"
+#include "SATSubsumptionImpl3.hpp"
 #include "SATSubsumption/cdebug.hpp"
 
 using namespace Indexing;
 using namespace Kernel;
-using namespace SMTSubsumption;
+using namespace SATSubsumption;
 
 /*
 struct SubsumptionBenchmark {
@@ -304,14 +304,14 @@ using Impl = OriginalSubsumptionImpl;  // shorthand if we use qualified namespac
 void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 {
   CALL("ProofOfConcept::test");
-  std::cout << "\% SMTSubsumption::test" << std::endl;
+  std::cout << "\% SATSubsumption::test" << std::endl;
   std::cout << "\% side_premise: " << side_premise->toString() << std::endl;
   std::cout << "\% main_premise: " << main_premise->toString() << std::endl;
   std::cout << std::endl;
   BYPASSING_ALLOCATOR;
 
   {
-    SMTSubsumptionImpl2 impl;
+    SATSubsumptionImpl2 impl;
     std::cout << "\nTESTING 'subsat' subsumption (v2)" << std::endl;
     subsat::print_config(std::cout);
     std::cout << "SETUP" << std::endl;
@@ -323,7 +323,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   }
 
   {
-    SMTSubsumptionImpl3 impl;
+    SATSubsumptionImpl3 impl;
     std::cout << "\nTESTING 'subsat' subsumption (v3)" << std::endl;
     subsat::print_config(std::cout);
     std::cout << "SETUP" << std::endl;
@@ -347,7 +347,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   }
 
   {
-    SMTSubsumptionImpl2 impl;
+    SATSubsumptionImpl2 impl;
     std::cout << "\nTESTING 'subsat' subsumption resolution (v2)" << std::endl;
     subsat::print_config(std::cout);
     std::cout << "SETUP" << std::endl;
@@ -361,7 +361,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
   }
 
   {
-    SMTSubsumptionImpl3 impl;
+    SATSubsumptionImpl3 impl;
     std::cout << "\nTESTING 'subsat' subsumption resolution (v3)" << std::endl;
     subsat::print_config(std::cout);
     std::cout << "SETUP" << std::endl;
@@ -379,18 +379,18 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 
 ProofOfConcept::ProofOfConcept()
 {
-  m_subsat_impl2.reset(new SMTSubsumptionImpl2());
-  m_subsat_impl3.reset(new SMTSubsumptionImpl3());
+  m_subsat_impl2.reset(new SATSubsumptionImpl2());
+  m_subsat_impl3.reset(new SATSubsumptionImpl3());
 }
 
 ProofOfConcept::~ProofOfConcept() = default;
 
 Token::~Token() {}
-Token::Token(std::unique_ptr<SMTSubsumptionImpl3_Token> tok) : tok(std::move(tok)) {}
+Token::Token(std::unique_ptr<SATSubsumptionImpl3_Token> tok) : tok(std::move(tok)) {}
 Token::Token(Token&&) = default;
 
 Token ProofOfConcept::setupMainPremise(Kernel::Clause* new_instance) {
-  return {std::make_unique<SMTSubsumptionImpl3_Token>(m_subsat_impl3->setupMainPremise(new_instance))};
+  return {std::make_unique<SATSubsumptionImpl3_Token>(m_subsat_impl3->setupMainPremise(new_instance))};
 }
 
 bool ProofOfConcept::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
@@ -514,10 +514,10 @@ private:
 };
 
 
-void bench_smt2_run_setup(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
+void bench_sat2_run_setup(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
 {
   for (auto _ : state) {
-    SMTSubsumptionImpl2 impl;
+    SATSubsumptionImpl2 impl;
     int count = 0;
     for (auto const& round : fw_rounds) {
       Kernel::Clause::requestAux();
@@ -547,10 +547,10 @@ void bench_smt2_run_setup(benchmark::State& state, vvector<FwSubsumptionRound> c
   }
 }
 
-void bench_smt2_run(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
+void bench_sat2_run(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
 {
   for (auto _ : state) {
-    SMTSubsumptionImpl2 impl;
+    SATSubsumptionImpl2 impl;
     int count = 0;
     for (auto const& round : fw_rounds) {
       Kernel::Clause::requestAux();
@@ -579,12 +579,12 @@ void bench_smt2_run(benchmark::State& state, vvector<FwSubsumptionRound> const& 
   }
 }
 
-void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
+void bench_sat3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
 {
   for (auto _ : state) {
     int count = 0;  // counter to introduce data dependency which should prevent compiler optimization from removing code
 
-    SMTSubsumptionImpl3 impl;
+    SATSubsumptionImpl3 impl;
     for (auto const& round : fw_rounds) {
       // Set up main premise
       auto token = impl.setupMainPremise(round.main_premise());
@@ -611,12 +611,12 @@ void bench_smt3_fwrun_setup(benchmark::State& state, vvector<FwSubsumptionRound>
   }
 }
 
-void bench_smt3_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
+void bench_sat3_fwrun(benchmark::State& state, vvector<FwSubsumptionRound> const& fw_rounds)
 {
   for (auto _ : state) {
     int count = 0;  // counter to introduce data dependency which should prevent compiler optimization from removing code
 
-    SMTSubsumptionImpl3 impl;
+    SATSubsumptionImpl3 impl;
 
     for (auto const& round : fw_rounds) {
       // Set up main premise
@@ -849,7 +849,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   CALL("ProofOfConcept::benchmark_run");
   BYPASSING_ALLOCATOR;  // google-benchmark needs its own memory
 
-  std::cerr << "\% SMTSubsumption: benchmarking " << b.subsumptions.size() << " S and " << b.subsumptionResolutions.size() << " SR" << std::endl;
+  std::cerr << "\% SATSubsumption: benchmarking " << b.subsumptions.size() << " S and " << b.subsumptionResolutions.size() << " SR" << std::endl;
 #if VDEBUG
   std::cerr << "\n\n\nWARNING: compiled in debug mode!\n\n\n" << std::endl;
 #endif
@@ -861,7 +861,7 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
       std::cerr << "working on unknown subsumption, number= " << s.number << std::endl;
       std::cerr << "    main premise: " << s.main_premise->toString() << std::endl;
       std::cerr << "    side premise: " << s.side_premise->toString() << std::endl;
-      SMTSubsumptionImpl3 impl;
+      SATSubsumptionImpl3 impl;
       auto token = impl.setupMainPremise(s.main_premise);
       bool const subsumed = impl.setupSubsumption(s.side_premise) && impl.solve();
       std::cerr << "    subsumed? " << subsumed << std::endl;
@@ -955,18 +955,18 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
   bool also_setup = true;
 
   // if (also_setup)
-  //   benchmark::RegisterBenchmark("smt2 S    (setup)", bench_smt2_run_setup, fw_rounds_only_subsumption);
-  // benchmark::RegisterBenchmark(  "smt2 S    (full)", bench_smt2_run, fw_rounds_only_subsumption);
+  //   benchmark::RegisterBenchmark("sat2 S    (setup)", bench_sat2_run_setup, fw_rounds_only_subsumption);
+  // benchmark::RegisterBenchmark(  "sat2 S    (full)", bench_sat2_run, fw_rounds_only_subsumption);
   // if (also_setup)
-  //   benchmark::RegisterBenchmark("smt2 S+SR (setup)", bench_smt2_run_setup, fw_rounds);
-  // benchmark::RegisterBenchmark(  "smt2 S+SR (full)", bench_smt2_run, fw_rounds);
+  //   benchmark::RegisterBenchmark("sat2 S+SR (setup)", bench_sat2_run_setup, fw_rounds);
+  // benchmark::RegisterBenchmark(  "sat2 S+SR (full)", bench_sat2_run, fw_rounds);
 
   if (also_setup)
-    benchmark::RegisterBenchmark("smt3 S    (setup)", bench_smt3_fwrun_setup, fw_rounds_only_subsumption);
-  benchmark::RegisterBenchmark(  "smt3 S    (full)", bench_smt3_fwrun, fw_rounds_only_subsumption);
+    benchmark::RegisterBenchmark("sat3 S    (setup)", bench_sat3_fwrun_setup, fw_rounds_only_subsumption);
+  benchmark::RegisterBenchmark(  "sat3 S    (full)", bench_sat3_fwrun, fw_rounds_only_subsumption);
   // if (also_setup)
-  //   benchmark::RegisterBenchmark("smt3 S+SR (setup)", bench_smt3_fwrun_setup, fw_rounds);
-  // benchmark::RegisterBenchmark(  "smt3 S+SR (full)", bench_smt3_fwrun, fw_rounds);
+  //   benchmark::RegisterBenchmark("sat3 S+SR (setup)", bench_sat3_fwrun_setup, fw_rounds);
+  // benchmark::RegisterBenchmark(  "sat3 S+SR (full)", bench_sat3_fwrun, fw_rounds);
 
   if (also_setup)
     benchmark::RegisterBenchmark("orig S    (setup)", bench_orig_fwrun_setup, fw_rounds_only_subsumption);
@@ -977,14 +977,14 @@ void ProofOfConcept::benchmark_run(SubsumptionBenchmark b)
 
 #if SAT_VS_UNSAT
   if (also_setup)
-    benchmark::RegisterBenchmark("smt3 S    (setup) sat", bench_smt3_fwrun_setup, fw_rounds_sat);
-  benchmark::RegisterBenchmark(  "smt3 S    (full)  sat", bench_smt3_fwrun, fw_rounds_sat);
+    benchmark::RegisterBenchmark("sat3 S    (setup) sat", bench_sat3_fwrun_setup, fw_rounds_sat);
+  benchmark::RegisterBenchmark(  "sat3 S    (full)  sat", bench_sat3_fwrun, fw_rounds_sat);
   if (also_setup)
     benchmark::RegisterBenchmark("orig S    (setup) sat", bench_orig_fwrun_setup, fw_rounds_sat);
   benchmark::RegisterBenchmark(  "orig S    (full)  sat", bench_orig_fwrun, fw_rounds_sat);
   if (also_setup)
-    benchmark::RegisterBenchmark("smt3 S    (setup) unsat", bench_smt3_fwrun_setup, fw_rounds_unsat);
-  benchmark::RegisterBenchmark(  "smt3 S    (full)  unsat", bench_smt3_fwrun, fw_rounds_unsat);
+    benchmark::RegisterBenchmark("sat3 S    (setup) unsat", bench_sat3_fwrun_setup, fw_rounds_unsat);
+  benchmark::RegisterBenchmark(  "sat3 S    (full)  unsat", bench_sat3_fwrun, fw_rounds_unsat);
   if (also_setup)
     benchmark::RegisterBenchmark("orig S    (setup) unsat", bench_orig_fwrun_setup, fw_rounds_unsat);
   benchmark::RegisterBenchmark(  "orig S    (full)  unsat", bench_orig_fwrun, fw_rounds_unsat);
