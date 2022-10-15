@@ -146,7 +146,7 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
 
   //check if arguments of predicate are supported
   for (unsigned i=0; i<lit->numTermArguments(); i++) {
-    TermList sort = SortHelper::getArgSort(lit,i);
+    TermList sort = SortHelper::getTermArgSort(lit,i);
     if (! isSupportedSort(sort))
       return false;
   }
@@ -170,8 +170,8 @@ bool TheoryInstAndSimp::isSupportedFunction(Term* trm) {
   auto sym = env.signature->getFunction(trm->functor());
   return !(theory->isInterpretedConstant(trm) 
       || (theory->isInterpretedFunction(trm) && isSupportedFunction(theory->interpretFunction(trm)) )
-      || (sym->termAlgebraCons() && isSupportedSort(sym->fnType()->result()))
-      || (sym->termAlgebraDest() && isSupportedSort(sym->fnType()->arg(0)))
+      || (sym->termAlgebraCons() && isSupportedSort(SortHelper::getResultSort(trm)))
+      || (sym->termAlgebraDest() && isSupportedSort(SortHelper::getTermArgSort(trm, 0)))
       );
 }
 
@@ -227,7 +227,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
       // f could map uninterpreted sorts to integer. when iterating over X
       // itself, its sort cannot be checked.
       for (unsigned i=0; i<term->numTermArguments(); i++) {
-        TermList sort = SortHelper::getArgSort(term,i);
+        TermList sort = SortHelper::getTermArgSort(term,i);
         if (! isSupportedSort(sort))
           return false;
       }
@@ -795,8 +795,13 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
   {
       auto ctor = findConstructor(env.signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
       auto discr = ctor->discriminator();
+      TermStack args;
+      for (unsigned i = 0; i < destr->numTypeArguments(); i++) {
+        args.push(destr->typeArg(i));
+      }
+      args.push(destr->termArg(0));
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
-      return Literal::create1(discr, /* polarity */ true, destr->termArg(0));
+      return Literal::create(discr, args.size(), /* polarity */ true, false, args.begin());
   };
 
 

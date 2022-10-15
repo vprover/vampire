@@ -884,7 +884,7 @@ class Signature
   unsigned formulaCount(Term* t);
 
 
-  bool isTermAlgebraSort(TermList sort) { return _termAlgebras.find(sort.term()->functor()); }
+  bool isTermAlgebraSort(TermList sort) { return sort.isTerm() && _termAlgebras.find(sort.term()->functor()); }
   Shell::TermAlgebra *getTermAlgebraOfSort(TermList sort) { return _termAlgebras.get(sort.term()->functor()); }
   void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort().term()->functor(), ta); }
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
