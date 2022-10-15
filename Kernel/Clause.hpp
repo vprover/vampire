@@ -197,9 +197,14 @@ public:
         case 10: // redundant: the same as SineLevel == 255
           return (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) ? 1.0 : 0.0;
         case 11:
-          ASS_GE(env.maxSineLevel,2);
-          return (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) ?
-                    1.0 : (0.5 * inf.getSineLevel()) / (env.maxSineLevel - 2);
+          if (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) {
+            return 1.0;
+          } else if (inf.getSineLevel() == 0) {
+            return 0.0;
+          } else {
+            ASS_G(env.maxSineLevel,2);
+            return (0.5 * inf.getSineLevel()) / (env.maxSineLevel - 2);
+          }
         default:
           ASSERTION_VIOLATION;
 
