@@ -32,11 +32,11 @@ class Clause;
 
 /**
  * Based on ClauseQueue, this class assumes Clauses have probability scores (logits)
- * and is designed to efficiently sample the softmax (with a fixed temperatore) distribution
+ * and is designed to efficiently sample the softmax (with a fixed temperature) distribution
  * corresponding to these logits (see https://en.wikipedia.org/wiki/Softmax_function)
  *
  * On the skip list side, we need to extend the nodes with partial sums, to know how
- * much probability volume we skip over what traversing each "highway".
+ * much probability volume we skip over when traversing each "highway".
  *
  * @since 30/12/2007 Manchester
  * @since 12/10/2022 Dagstuhl

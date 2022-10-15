@@ -175,11 +175,13 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
     Clause::FeatureIterator it(cl);
 
     // argument 2 - a tuple of doubles, the features
-    auto tuple = std::make_tuple(
+    auto tuple = std::tuple<double,double,double,double,
+                            double,double,double,double,
+                            double,double,double,double>{ // with curly, the order is guaranteed left-to-right (I hope)
       it.next(),it.next(),it.next(),it.next(),
       it.next(),it.next(),it.next(),it.next(),
       it.next(),it.next(),it.next(),it.next()
-    );
+    };
     static_assert(std::tuple_size<decltype(tuple)>::value == Clause::FeatureIterator::NUM_FEATURES,"Did I forget a feature?");
     inputs.push_back(tuple);
 
