@@ -5,7 +5,7 @@
 #include "Lib/STL.hpp"
 #include "./subsat/subsat.hpp"
 
-// TODO : remove that when the real VTEST flag is added
+/// @todo TODO : remove that when the real VTEST flag is added
 #define VTEST
 
 
@@ -33,76 +33,90 @@ class SATSubsumption
     };
 
     /**
-     * A Match represents a binding between two literals of different clauses.
+     * A Match represents a binding between two literals L_i and M_j of different clauses L and M.
      * The binding can be either positive or negative
      */
     struct Match {
       CLASS_NAME(SATSubsumption::Match);
       USE_ALLOCATOR(SATSubsumption::Match);
-      // The index of the literal in the base clause
-      unsigned _baseLitIndex;
-      // The index of the literal in the instance clause
-      unsigned _instanceLitIndex;
+      // The index of the literal in L (base clause for subsumption resolution)
+      unsigned _i;
+      // The index of the literal in M (instance clause for subsumption resolution)
+      unsigned _j;
       // The polarity of the match (true for positive, false for negative)
-      bool _isPositive;
+      bool _polarity;
       // The variable associated in the sat solver
-      subsat::Var _satVar;
+      subsat::Var _var;
 
       Match() :
-        _baseLitIndex(0),
-        _instanceLitIndex(0),
-        _isPositive(false),
-        _satVar(subsat::Var(0)) {}
+        _i(0),
+        _j(0),
+        _polarity(true),
+        _var(subsat::Var(0)) {}
 
       Match(unsigned baseLitIndex, unsigned instanceLitIndex, bool isPositive, subsat::Var satVar) :
-        _baseLitIndex(baseLitIndex),
-        _instanceLitIndex(instanceLitIndex),
-        _isPositive(isPositive),
-        _satVar(satVar) {}
+        _i(baseLitIndex),
+        _j(instanceLitIndex),
+        _polarity(isPositive),
+        _var(satVar) {}
 
       std::string toString() const {
-        return "Match(" + to_string(_baseLitIndex) + ", " + to_string(_instanceLitIndex) + ", " + to_string(_isPositive) + ", " + to_string(_satVar.index
+        return "Match(" + to_string(_i) + ", " + to_string(_j) + ", " + to_string(_polarity) + ", " + to_string(_var.index
         ()) + ")";
       }
     };
 
     /**
-     * A Match set is a facitlity to store matches, and enumerate them either according to the base clause or the instance clause indices.
+     * A Match set is a facitlity to store matches, and allows to ennumerate them either according to the clause L or M indices.
+     * The Match Set, when filled contains all the bindings possible between the clauses L and M
+     * The match set can be abstracted as a sparse matrix holding the associated sat variable and polarity of the matches
      *
+     * @example For example, here is a table of matches (not necessarily coherent with the subsumption resolutio problem)
+     *
+     *      i=0  i=1  i=2  i=3  i=4
+     * j=0 | 0+ |    |    | 3- |    |
+     *     --------------------------
+     * j=1 |    | 1+ |    | 2+ |    |
+     *     --------------------------
+     * j=2 | 4- |    |    |    |    |
+     *     --------------------------
+     * j=3 |    |    | 5+ |    | 6- |
+     *     --------------------------
+     * j=4 |    | 7+ |    | 8- |    |
+     *
+     * The Match set allows to get a line or column of the matrix
      */
     struct MatchSet {
       CLASS_NAME(SATSubsumption::MatchSet);
       USE_ALLOCATOR(SATSubsumption::MatchSet);
       friend struct Match;
 
-      /// @brief for each literal in the base clause, holds a list of matches to the instance clause
-      /// _i_matches[i] holds the list of matches for the i'th literal in the base clause
-      /// the list is not stored in any particular order
-      vvector<vvector<Match*>> _i_matches;
-      /// @brief for each literal in the instance clause, holds a list of matches to the base clause
-      /// _j_matches[j] holds the list of matches for the j'th literal in the instance clause
-      /// the list is not stored in any particular order
-      vvector<vvector<Match*>> _j_matches;
+      /// @brief Holds the matches grouped by _i
+      /// _iMatches[i] holds the list of matches for the i'th literal in L
+      /// the list is stored in the order in which they are added to the set
+      vvector<vvector<Match*>> _iMatches;
+      /// @brief Holds the matches grouped by _j
+      /// _jMatches[j] holds the list of matches for the j'th literal in M
+      /// the list is stored in the order in which they are added to the set
+      vvector<vvector<Match*>> _jMatches;
 
-      /// @brief Remembers whether some positive match or negative match was found for each literal in the base clause
-      /// - 0 -> no match
-      /// - 1 -> positive match
-      /// - 2 -> negative match
-      /// - 3 -> both positive and negative match
+      /// @brief Metadata remembering whether some positive match or negative match was found for each literal in L
       /// @remark
-      /// Add a positive match : |= 01
-      /// Add a negative match : |= 10
+      /// This information only needs 2 bits
+      /// - 00 -> no match
+      /// - 01 -> positive match
+      /// - 10 -> negative match
+      /// - 11 -> both positive and negative match
       /// Since we only need 2 bits, 4 values fit in one byte
-      /// j -> j/4 -> j >> 2*j%4
-      /// 00011000, j=0 -> 00, j=1 -> 10,...
-      /// 3 2 1 0
-      vvector<uint8_t> _i_matcheState;
-      vvector<uint8_t> _j_matcheState;
+      /// The interest value for i is therefore
+      /// state[i / 4] & (0b11 << (2 * (i % 4)))) >> (2 * (i % 4)
+      vvector<uint8_t> _iStates;
+      vvector<uint8_t> _jStates;
 
-      /// @brief the number literals in the base clause
-      unsigned _nBaseLits;
-      /// @brief the number literals in the instance clause
-      unsigned _nInstanceLits;
+      /// @brief the number literals in L
+      unsigned _m;
+      /// @brief the number literals in M
+      unsigned _n;
 
       /// @brief vector of matches used to associate a sat variable index to a match
       vvector<Match*> _varToMatch;
@@ -114,79 +128,101 @@ class SATSubsumption
       /// This is used to avoid allocating and deallocating memory at each resolutiton check
       /// The memory is allocated by batches of powers of 2
       /// In the order of allocations, we would have :
-      /// 0 1 1 2 2 2 2 3 3 3 3 3 3 3 3 ...
-      /// ^ ^   ^       ^               ^
-      /// such that we have to free the memory only at the start of the next batch (i.e. at position 0, 1, 3, 7... = 2^k - 1)
+      /// 0 1 2 2 3 3 3 3 ...
+      /// ^ ^ ^   ^       ^
+      /// such that we have to free the memory only at the start of the next batch (i.e. at position 0, 1, 2, 4... = 2^k)
       /// It is therefore important to start allocating at 1.
       Match **_allocatedMatches;
 
       /**
-       * Creates a new match set for the given base and instance clauses
-       * Allocates memory for 1 Match
+       * Creates a new match set for clauses L of size m and M of size n
        *
-       * @param base the base clause
-       * @param instance the instance clause
+       * @param m the length of clause L
+       * @param n the length of clause M
        */
-      MatchSet(unsigned nBaseLits, unsigned nInstanceLits);
+      MatchSet(unsigned m, unsigned n);
 
+      /**
+       * Frees all the matches allocated by the set
+       */
       ~MatchSet();
 
       /**
-       * Returns one Match from the pool of available matches
-       * or allocates more memory and returns one of the newly allocated matches
-       */
-      Match* allocateMatch();
-
-      /**
-       * Resizes the match vectors to the given size
-       * Garantees that the a match can be added at index ( @b nBaseLits - 1, @b nInstanceLits - 1 )
+       * Resizes the match matrix to the given size and clears the matrix
+       * Garantees that the a match can be added at index ( @b m - 1, @b n - 1 )
        *
-       * Warning, if any dimension is shrinked, the matches may be lost.
+       * @param m the new length of L
+       * @param n the new length of M
+       *
+       * @warning the allocated matches will remain accessible but will be no longer be reserved. I would therefore be prefereable to not keep the matches after calling this function.
        */
-      void resize(unsigned nBaseLits, unsigned nInstanceLits);
+      void resize(unsigned m, unsigned n);
 
       /**
        * Adds a new match to the set
+       * @pre Assumes that the matches fields i and j are set and will not change
+       * @pre Assumes that the match was allocated by allocateMatch()
        *
-       * Assumes that the match was allocated by allocateMatch()
-       *
-       * @param match the match to add
+       * @param i the index of the literal in L
+       * @param j the index of the literal in M
+       * @param polarity the polarity of the match
+       * @param var the sat variable associated with the match
+       * @return a reference to the new match
        */
-      void addMatch(Match *match);
+      Match* addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var);
 
       /**
-       * Returns the vector of matches for the given literal in the base clause.
+       * Returns the vector of matches for the given literal in L.
        * The vectors should not be modified
-       * @param baseLitIndex the index of the literal in the base clause
+       * @param i the index of the literal in L
+       * @return the vector of matches for the i-th literal in L
        */
-      vvector<Match*>& getMatchesForBaseLit(unsigned baseLitIndex);
-
-      bool hasPositiveMatchForBaseLit(unsigned baseLitIndex);
-
-      bool hasNegativeMatchForBaseLit(unsigned baseLitIndex);
+      vvector<Match*>& getIMatches(unsigned i);
 
       /**
-       * Returns the vector of matches for the given literal in the instance clause.
+       * Returns true if the i-th literal in L has a positive match in the set
+       * @param i the index of the literal in L
+       * @return whether L_i has a positive match in the set
+       */
+      bool hasPositiveMatchI(unsigned i);
+
+      /**
+       * Returns true if the i-th literal in L has a negative match in the set
+       * @param i the index of the literal in L
+       * @return whether L_i has a negative match in the set
+       */
+      bool hasNegativeMatchI(unsigned i);
+
+      /**
+       * Returns the vector of matches for the given literal in M.
        * The vectors should not be modified
-       * @param instanceLitIndex the index of the literal in the instance clause
+       * @param j the index of the literal in M
+       * @return the vector of matches for the i-th literal in M
        */
-      vvector<Match*>& getMatchesForInstanceLit(unsigned instanceLitIndex);
-
-      bool hasPositiveMatchForInstanceLit(unsigned instanceLitIndex);
-
-      bool hasNegativeMatchForInstanceLit(unsigned instanceLitIndex);
+      vvector<Match*>& getJMatches(unsigned j);
 
       /**
-       * Returns all the used matches
-       *
-       * Warning : Any match allocated by the match set is returned, even if it was not added to the set yet.
-       *
-       * TODO Add safety check in debug mode
+       * Returns true if the j-th literal in M has a positive match in the set
+       * @param j the index of the literal in M
+       * @return whether M_j has a positive match in the set
+       */
+      bool hasPositiveMatchJ(unsigned j);
+
+      /**
+       * Returns true if the j-th literal in M has a negative match in the set
+       * @param j the index of the literal in M
+       * @return whether M_j has a negative match in the set
+       */
+      bool hasNegativeMatchJ(unsigned j);
+
+      /**
+       * Returns all the matches in the set
+       * @return all the matches in the set
        */
       vvector<Match*> getAllMatches();
 
       /**
-       * Returns the match for a given variable
+       * Returns the match for a given sat variable
        * @param v the variable
        * @return the match for the variable, or nullptr if no match exists
        */
@@ -194,20 +230,29 @@ class SATSubsumption
 
       /**
        * Clears the match set
+       * @warning the allocated matches will remain accessible but will be no longer be reserved. I would therefore be prefereable to not keep the matches after calling this function.
        */
       void clear();
+
+      private :
+      /**
+       * Returns one Match from the pool of allocated matches
+       * or allocates more memory and returns one of the newly allocated matches
+       * @return a reserved match
+       */
+      Match* allocateMatch();
     };
 
     /* Variables */
 
     /// @brief the base clause
-    Kernel::Clause *_base;
+    Kernel::Clause *_L;
     /// @brief the instance clause
-    Kernel::Clause *_instance;
+    Kernel::Clause *_M;
     /// @brief the number of literals in the base clause
-    unsigned _nBaseLits;
+    unsigned _m;
     /// @brief the number of literals in the instance clause
-    unsigned _nInstanceLits;
+    unsigned _n;
     /// @brief the SAT solver
     SolverWrapper *_solver;
     /// @brief the bindings manager
@@ -222,27 +267,35 @@ class SATSubsumption
     vvector<subsat::Lit> _model;
 
     /* Methods */
+    /**
+     * Set up the subsumption resolution problem.
+     * @pre _L and _M must be set in the checker
+     * @return false if no solution is possible and true if there may exist a solution.
+     */
+    bool setupSubsumptionResolution();
 
-    /// Set up the subsumption resolution problem. Must have called setupMainPremise first.
-    /// Returns false if no solution is possible.
-    /// Otherwise, solve() needs to be called.
-    bool setupSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance);
+    /**
+     * @brief Adds one binding to the SAT solver and the match set
+     * @param binder the binder between the literals
+     * @param varNumber the variable number of the binder
+     * @param i the index of the literal in the base clause
+     * @param j the index of the literal in the instance clause
+     * @param polarity the polarity of the match
+     */
+    void addBinding(BindingsManager::Binder *binder, unsigned varNumber, unsigned i, unsigned j, bool polarity);
 
-    /// @brief Adds one binding to the SAT solver and the match set
-    /// @param binder the binder between the literals
-    /// @param varNumber the variable number of the binder
-    /// @param i the index of the literal in the base clause
-    /// @param j the index of the literal in the instance clause
-    void addBinding(BindingsManager::Binder *binder, unsigned varNumber, unsigned i, unsigned j, bool isPositive);
-
-    /// Fills the MatchSet with the matches between the base and instance clauses
-    /// Also fills the bindings manager with the bindings between the literals of the base and instance clauses
-    /// Returns the number of variables added to the SAT solver
-    /// Returns 0 if no solution is possible
+    /**
+     * Fills the match set and the bindings manager will all the possible positive and negative bindings between the literals of L and M.
+     * @return 0 if no solution is possible, the number of sat variables allocated otherwise.
+     */
     unsigned fillMatches();
 
-    /// Call this function after solve() has returned true for an SR instance
-    /// Returns a the clause that will replace instance
+    /**
+     * Generates the conclusion clause based on the model provided by the sat solver
+     * @pre the match set must fill filled
+     * @pre the model must be set by the sat solver
+     * @return the conclusion clause
+     */
     Kernel::Clause* generateConclusion();
 
 
@@ -254,18 +307,31 @@ class SATSubsumption
     ~SATSubsumption();
 
     ///
-    bool checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance);
+    bool checkSubsumption(Kernel::Clause* L, Kernel::Clause* M);
 
-    /// For correctness checking: if the original subsumption resolution finds a conclusion, call this to check whether we can also find this conclusion.
-    /// Note that SR is not unique, so there could be multiple possible conclusions, and both approaches may return a different one.
-    ///
-    /// Example for multiple possible subsumption resolutions:
-    ///     base = P(x) \/ Q(x) \/ R(x)
-    ///     inst = P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ R(d)
-    ///
-    /// Pass NULL for the conclusion to check that subsumption resolution isn't possible.
-    Kernel::Clause* checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance);
+    /**
+     * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
+     *
+     * L /\ M => L /\ C where C is the conclusion of the subsumption resolution
+     *
+     * Subsumption resolution is possible for two clauses (~A V C) and (B V D) if there exists a substition "s" such that
+     * s(A V C) \\subseteq (B V D)
+     * Where A and B are sigle literals and D becomes the conclusion of the subsumption resolution
+     * @example
+     * [p(x1, x2) V p(f(x2), x3)] /\ [~p2(f(y1), d) V p2(g(y1), c) V ~p2(f(c), e)]
+     * ---------------------------------------------------------------------------
+     *                  ~p2(f(y1),d) V p2(g(y1),c)
+     * thank's to the substitution S = {x1 -> g(y1), x2 -> c, x3 -> e}
+     * @remark Subsumption resolution may not be unique, this method has no garantee on which solution will be generated.
+     * @example
+     * [p(x) V q(x) V r(x)] /\ [P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ R(d)]
+     * may have several conclusion.
+     */
+    Kernel::Clause* checkSubsumptionResolution(Kernel::Clause* L, Kernel::Clause* M);
 
+    /**
+     * Clears all the caches.
+     */
     void clear();
 };
 
