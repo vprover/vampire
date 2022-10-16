@@ -2383,6 +2383,8 @@ public:
   bool goalSkolemsHighWeight() const { return _goalSkolemsHighWeight.actualValue;}
   unsigned maxDistanceFromGoal() const { return _maxDistanceFromGoal.actualValue; }
 
+  bool forceValueChainOrientation() const { return _forceValueChainOrientation.actualValue; }
+
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
   int instGenResolutionRatioInstGen() const { return _instGenResolutionInstGenRatio.actualValue; }
@@ -2722,6 +2724,8 @@ private:
   BoolOptionValue _multiLiteralClauses;
   BoolOptionValue _goalSkolemsHighWeight;
   UnsignedOptionValue _maxDistanceFromGoal;  
+
+  BoolOptionValue _forceValueChainOrientation;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

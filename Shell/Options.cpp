@@ -1461,6 +1461,11 @@ void Options::init()
     _maxDistanceFromGoal.reliesOn(_multiClauseNatInduction.is(equal(true)));
     _maxDistanceFromGoal.addHardConstraint(lessThan(7u));
     _lookup.insert(&_maxDistanceFromGoal);
+    
+    _forceValueChainOrientation = BoolOptionValue("force_value_chain_orientation","fvco",true);
+    _forceValueChainOrientation.description = "if a literal is an equality between a value and a chain, orient towards chain (which will normally be against the natural ordering)";
+    _forceValueChainOrientation.tag(OptionTag::OTHER);
+    _lookup.insert(&_forceValueChainOrientation);
 
     OptionChoiceValues integerInductionLiteralStrictnessValues {
       "none",

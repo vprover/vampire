@@ -875,7 +875,9 @@ bool RapidHelper::forceOrder(TermList t1, TermList t2)
 {
   CALL("RapidHelper::forceOrder");
 
-  //return false;
+  if(!env.options->forceValueChainOrientation()){
+    return false;
+  }
 
   auto isObjectArrayOrMalloc = [](Signature::Symbol* sym){
     return sym->objArray() /*|| sym->malloc()*/;
@@ -894,7 +896,9 @@ ArgumentOrderVals RapidHelper::forceOrder(Literal* l)
 {
   CALL("RapidHelper::forceOrder");
 
-  //return ArgumentOrderVals::AO_UNKNOWN;
+  if(!env.options->forceValueChainOrientation()){
+    return ArgumentOrderVals::AO_UNKNOWN;
+  }
 
   auto isObjectArrayOrMalloc = [](Signature::Symbol* sym){
     return sym->objArray() /*|| sym->malloc()*/;
