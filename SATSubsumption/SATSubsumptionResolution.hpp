@@ -268,11 +268,20 @@ class SATSubsumption
 
     /* Methods */
     /**
-     * Set up the subsumption resolution problem.
+     * Set up the subsumption problem.
      * @pre _L and _M must be set in the checker
+     * @pre the Match set is already filled
      * @return false if no solution is possible and true if there may exist a solution.
      */
-    bool setupSubsumptionResolution();
+    bool cnfForSubsumption();
+
+    /**
+     * Set up the subsumption resolution problem.
+     * @pre _L and _M must be set in the checker
+     * @pre the Match set is already filled
+     * @return false if no solution is possible and true if there may exist a solution.
+     */
+    bool cnfForSubsumptionResolution();
 
     /**
      * @brief Adds one binding to the SAT solver and the match set
@@ -282,13 +291,30 @@ class SATSubsumption
      * @param j the index of the literal in the instance clause
      * @param polarity the polarity of the match
      */
-    void addBinding(BindingsManager::Binder *binder, unsigned varNumber, unsigned i, unsigned j, bool polarity);
+    void addBinding(BindingsManager::Binder *binder, unsigned i, unsigned j, bool polarity);
 
     /**
-     * Fills the match set and the bindings manager will all the possible positive and negative bindings between the literals of L and M.
-     * @return 0 if no solution is possible, the number of sat variables allocated otherwise.
+     * Sets up the problem and cleans the match set
+    */
+    void setupProblem(Kernel::Clause* L, Kernel::Clause* M);
+
+    /**
+     * Checks whether the literals L_i and M_j are can be unified according to the polarity (false meaning negative and true meaning positive)
+     * @return true if the literals can be unified
      */
-    unsigned fillMatches();
+    bool checkAndAddMatch(Kernel::Literal* L_i, Kernel::Literal* M_j, unsigned i, unsigned j, bool polarity);
+
+    /**
+     * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of L and M.
+     * @return false if no subsumption solution is possible, the number of sat variables allocated otherwise.
+     */
+    bool fillMatchesS();
+
+    /**
+     * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of L and M.
+     * @return false if no subsumption resolution solution is possible, the number of sat variables allocated otherwise.
+     */
+    bool fillMatchesSR();
 
     /**
      * Generates the conclusion clause based on the model provided by the sat solver

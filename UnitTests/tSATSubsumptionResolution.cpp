@@ -25,7 +25,8 @@ __ALLOW_UNUSED(                        \
     DECL_VAR(x1,1)                     \
     DECL_VAR(x2,2)                     \
     DECL_VAR(x3,3)                     \
-    DECL_VAR(y1,4)                     \
+    DECL_VAR(x4,4)                     \
+    DECL_VAR(y1,5)                     \
     DECL_SORT(s)                       \
     DECL_CONST(c, s)                   \
     DECL_CONST(d, s)                   \
@@ -34,6 +35,7 @@ __ALLOW_UNUSED(                        \
     DECL_FUNC(g, {s}, s)               \
     DECL_PRED(p, {s})                  \
     DECL_PRED(p2, {s, s})              \
+    DECL_PRED(p3, {s, s, s})              \
     DECL_PRED(q, {s})                  \
     DECL_PRED(r, {s})                  \
   )
@@ -179,12 +181,20 @@ TEST_FUN(TestSetBitTricks)
     }
 }
 
+TEST_FUN(PositiveSubsumption) {
+    __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
+    Kernel::Clause* L1 = clause({ p3(x1, x2, x3), p3(f(x2), x4, x4)});
+    Kernel::Clause* M1 = clause({ p3(f(c), d, y1), p3(f(d), c, c)});
+    Kernel::Clause* M2 = clause({ p3(f(c), d, y1), p3(f(d), c, c), r(x1)});
+    ASS(L1);
+    ASS(M1);
+    SATSubsumption subsumption;
+    ASS(subsumption.checkSubsumption(L1, M1));
+    ASS(subsumption.checkSubsumption(L1, M2));
+}
+
 /**
  * Check that the subsumption resolution works for positive instances
- *
- * L = {-p(x), q(y)}
- * M = {p(c), q(d), r(e)}
- * => Conclusion = {q(d), r(e)}
  */
 TEST_FUN(PositiveSubsumptionResolution)
 {
