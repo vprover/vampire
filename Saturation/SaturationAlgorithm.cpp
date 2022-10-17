@@ -241,9 +241,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
-  const vstring& npcc = opt.neuralPassiveClauseContainer();
-
-  if (!npcc.empty())
+  if (!opt.neuralPassiveClauseContainer().empty())
   {
     _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt);
   }

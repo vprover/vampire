@@ -27,6 +27,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/SoftmaxClauseQueue.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 
@@ -105,11 +106,17 @@ Clause* LearnedPassiveClauseContainer::popSelected()
 }
 
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
-  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _size(0), _temperature(opt.npccTemperature())
+  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _size(0), _temp(opt.npccTemperature())
 {
   CALL("NeuralPassiveClauseContainer::NeuralPassiveClauseContainer");
 
   ASS(_isOutermost);
+
+  if (_temp == 0.0) {
+    _queue = SmartPtr<AbstractClauseQueue>(new ShuffledScoreQueue(_scores));
+  } else {
+    _queue = SmartPtr<AbstractClauseQueue>(new SoftmaxClauseQueue(_scores));
+  }
 
   TIME_TRACE(TimeTrace::DEEP_STUFF);
 
@@ -166,9 +173,9 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
 {
   CALL("NeuralPassiveClauseContainer::add");
 
-  std::vector<torch::jit::IValue> inputs;
+  if (!_scores.find(cl)) {
+    std::vector<torch::jit::IValue> inputs;
 
-  if (!_known.find(cl)) {
     // argument 1 - the clause id
     inputs.push_back((int64_t)cl->number());
 
@@ -185,16 +192,20 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
     static_assert(std::tuple_size<decltype(tuple)>::value == Clause::FeatureIterator::NUM_FEATURES,"Did I forget a feature?");
     inputs.push_back(tuple);
 
-    ALWAYS(_known.insert(cl));
-    ALWAYS(_clausesById.insert(cl->number(),cl));
+    double logit = _model.forward(std::move(inputs)).toDouble();
+    unsigned salt = Random::getInteger(1073741824); // 2^30, because why not
 
-    _model.get_method("regClause")(std::move(inputs));
+    double score;
+    if (_temp == 0.0) {
+      score = logit;
+    } else {
+      score = exp((logit-1.0)/_temp);
+    }
+
+    _scores.insert(cl,make_pair(score,salt));
   }
 
-  inputs.clear();
-  inputs.push_back((int64_t)cl->number());
-  _model.get_method("add")(std::move(inputs));
-
+  _queue->insert(cl);
   _size++;
 
   ASS(cl->store() == Clause::PASSIVE);
@@ -207,11 +218,7 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
 
   ASS(cl->store()==Clause::PASSIVE);
 
-  std::vector<torch::jit::IValue> inputs;
-
-  inputs.push_back((int64_t)cl->number());
-  _model.get_method("remove")(std::move(inputs));
-
+  _queue->remove(cl);
   _size--;
 
   removedEvent.fire(cl);
@@ -223,17 +230,10 @@ Clause* NeuralPassiveClauseContainer::popSelected()
   CALL("NeuralPassiveClauseContainer::popSelected");
   ASS(_size);
 
-  std::vector<torch::jit::IValue> inputs;
-  inputs.push_back(_temperature);
-  auto out = _model.get_method("popSelected")(std::move(inputs));
-  unsigned id = out.toInt();
-
-  Clause* cl = nullptr;
-  ALWAYS(_clausesById.find(id,cl));
-
+  Clause* cl = _queue->pop();
   _size--;
-  selectedEvent.fire(cl);
 
+  selectedEvent.fire(cl);
   return cl;
 }
 

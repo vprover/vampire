@@ -59,7 +59,7 @@ public:
     CALL("Random::getDouble");
     return std::uniform_real_distribution<double>(min,max)(_eng);
   }
-  
+
   /**
    * Return a random bit.
    */

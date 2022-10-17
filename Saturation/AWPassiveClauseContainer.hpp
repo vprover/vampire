@@ -20,6 +20,7 @@
 #include <vector>
 #include "Lib/Comparison.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/SmartPtr.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
@@ -78,12 +79,41 @@ protected:
       return false;
     }
 
-    // TODO: could collect clause's literal's getId's to cheaply get more randomness with randomTraversals
-
     return c1->number() < c2->number();
   }
 private:
   const DHMap<Clause*,double>& _scores;
+};
+
+class ShuffledScoreQueue
+  : public ClauseQueue
+{
+public:
+  ShuffledScoreQueue(const DHMap<Clause*,std::pair<double,unsigned>>& scores) : _scores(scores) {}
+protected:
+  virtual bool lessThan(Clause* c1,Clause* c2) {
+    auto sc1 = _scores.get(c1);
+    auto sc2 = _scores.get(c2);
+    // reversing the order here: NNs think large is good, queues think small is good
+    if (sc1.first > sc2.first) {
+      return true;
+    }
+    if (sc1.first < sc2.first) {
+      return false;
+    }
+
+    // here, the second coord are just fixed random numbers for breaking ties (before we go down to number())
+    if (sc1.second > sc2.second) {
+      return true;
+    }
+    if (sc1.second < sc2.second) {
+      return false;
+    }
+
+    return c1->number() < c2->number();
+  }
+private:
+  const DHMap<Clause*,std::pair<double,unsigned>>& _scores;
 };
 
 class LRSIgnoringPassiveClauseContainer
@@ -124,7 +154,7 @@ public:
   // this method internally takes care of computing the corresponding weightForClauseSelection.
   bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
 
-  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }  
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 };
 
 class LearnedPassiveClauseContainer
@@ -174,11 +204,17 @@ public:
   Clause* popSelected() override;
 
 private:
-  DHSet<Clause*> _known;
-  DHMap<unsigned,Clause*> _clausesById;
+  // this is either ShuffledScoreQueue (over the logits) for _temperature==0
+  // or SoftmaxClauseQueue (for e^logits/temp-1.0/temp) for _temperature > 0
+  SmartPtr<AbstractClauseQueue> _queue;
+
+  // this is either the logits or the e^(logits/temp-1.0/temp)
+  // alogn with randomly assigned salts for each clause for tie breaking
+  DHMap<Clause*,std::pair<double,unsigned>> _scores;
+
   torch::jit::script::Module _model;
   unsigned _size;
-  double _temperature;
+  double _temp;
 };
 
 /**

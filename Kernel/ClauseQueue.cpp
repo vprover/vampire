@@ -49,10 +49,6 @@ ClauseQueue::~ClauseQueue ()
   DEALLOC_KNOWN(_left,sizeof(Node)+MAX_HEIGHT*sizeof(Node*),"ClauseQueue::Node");
 } // ClauseQueue::~ClauseQueue
 
-/**
- * Bind @b v to @b t.
- * @pre @b v must previously be unbound
- */
 void ClauseQueue::insert(Clause* c)
 {
   CALL("ClauseQueue::insert");
