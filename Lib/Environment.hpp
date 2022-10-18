@@ -25,6 +25,10 @@
 
 namespace Lib {
 
+namespace Sys {
+  class SyncPipe;
+}
+
 using namespace std;
 using namespace Sys;
 

@@ -27,16 +27,6 @@
 #include "Kernel/Connective.hpp"
 #include "Kernel/InferenceStore.hpp"
 
-// #include "VS/Connective.hpp"
-// #include "Var.hpp"
-
-// namespace VS {
-//   class Symbol;
-//   class SymbolMap;
-// }
-
-// using namespace VS;
-
 namespace Shell {
 
 using namespace Kernel;
@@ -54,16 +44,10 @@ public:
   vstring footer();
   vstring refutationToString(Unit* ref);
 
-//  LaTeX(const Options& options,const SymbolMap* map);
-//  void output (const Refutation&) const;
   vstring toString(const Term&) const;
   vstring toString(const vstring& funOrPred,const TermList& args) const;
   vstring toString(Unit*);
 private:
-//  /** options used for output */
-//  const Options& _options;
-//  /** symbol map for printing atoms, functions and variables */
-//  const SymbolMap* _map;
   vstring varToString(unsigned num) const;
   vstring toString(TermList*,bool single=false) const;
   vstring toString(Literal*) const;
@@ -82,8 +66,6 @@ private:
 
 }; // class LaTeX
 
-
 }
 
 #endif // _LaTeX__
-

@@ -209,7 +209,9 @@ public:
     C* afterLast=_array+_capacity;
 
     while(nptr!=firstEmpty) {
-      Relocator<C>::relocate(optr++, nptr++);
+      C *oldAddr = optr++, *newAddr = nptr++;
+      new(newAddr) C(std::move(*oldAddr));
+      oldAddr->~C();
     }
     while(nptr!=afterLast) {
       new(nptr++) C();

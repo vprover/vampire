@@ -18,7 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Inference.hpp"
-#include "OperatorType.hpp"
+#include "TermTransformer.hpp"
 
 namespace Kernel {
 

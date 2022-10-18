@@ -27,6 +27,10 @@
 
 #include "Inferences/TautologyDeletionISE.hpp"
 
+namespace Lib {
+  template <typename Value,class ValueComparator> class SkipList;
+}
+
 namespace Saturation {
 
 using namespace Kernel;

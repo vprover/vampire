@@ -39,6 +39,8 @@
 #include<iostream>
 #endif
 
+namespace Shell { class AnswerLiteralManager; }
+
 namespace Saturation
 {
 
@@ -46,6 +48,11 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Inferences;
+
+class ConsequenceFinder;
+class LabelFinder;
+class SymElOutput;
+class Splitter;
 
 class SaturationAlgorithm : public MainLoop
 {
@@ -100,7 +107,6 @@ public:
 
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
-  AnswerLiteralManager* getAnswerLiteralManager() { return _answerLiteralManager; }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
 

@@ -44,7 +44,6 @@
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
 
-#include "Lib/RCPtr.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
