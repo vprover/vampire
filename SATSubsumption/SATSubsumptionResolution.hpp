@@ -266,6 +266,11 @@ class SATSubsumption
     /// @brief model of the SAT solver
     vvector<subsat::Lit> _model;
 
+    unsigned _nSubsumptionCalls;
+    unsigned _nSubsumptionResolutionCalls;
+    unsigned _nSubsumptionSolverCalls;
+    unsigned _nSubsumptionResolutionSolverCalls;
+
     /* Methods */
     /**
      * Set up the subsumption problem.

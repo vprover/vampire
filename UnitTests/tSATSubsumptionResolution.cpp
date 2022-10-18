@@ -18,6 +18,7 @@
 
 using namespace std;
 using namespace SMTSubsumption;
+using namespace Test;
 
 #define SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION \
 __ALLOW_UNUSED(                        \
@@ -26,17 +27,23 @@ __ALLOW_UNUSED(                        \
     DECL_VAR(x2,2)                     \
     DECL_VAR(x3,3)                     \
     DECL_VAR(x4,4)                     \
-    DECL_VAR(y1,5)                     \
+    DECL_VAR(y1,11)                    \
+    DECL_VAR(y2,12)                    \
+    DECL_VAR(y3,13)                    \
+    DECL_VAR(y4,14)                    \
     DECL_SORT(s)                       \
     DECL_CONST(c, s)                   \
     DECL_CONST(d, s)                   \
     DECL_CONST(e, s)                   \
     DECL_FUNC(f, {s}, s)               \
+    DECL_FUNC(f2, {s, s}, s)           \
     DECL_FUNC(g, {s}, s)               \
+    DECL_FUNC(g2, {s, s}, s)           \
     DECL_PRED(p, {s})                  \
     DECL_PRED(p2, {s, s})              \
-    DECL_PRED(p3, {s, s, s})              \
+    DECL_PRED(p3, {s, s, s})           \
     DECL_PRED(q, {s})                  \
+    DECL_PRED(q2, {s, s})              \
     DECL_PRED(r, {s})                  \
   )
 
@@ -186,11 +193,43 @@ TEST_FUN(PositiveSubsumption) {
     Kernel::Clause* L1 = clause({ p3(x1, x2, x3), p3(f(x2), x4, x4)});
     Kernel::Clause* M1 = clause({ p3(f(c), d, y1), p3(f(d), c, c)});
     Kernel::Clause* M2 = clause({ p3(f(c), d, y1), p3(f(d), c, c), r(x1)});
+    Kernel::Clause* L3 = clause({ p(f2(f(g(x1)),x1)), c == g(x1)});
+    Kernel::Clause* M3 = clause({ g(y1) == c, p(f2(f(g(y1)),y1))});
+    Kernel::Clause* L4 = clause({ f2(x1,x2) == c, ~p2(x1,x3), p2(f(f2(x1,x2)),f(x3))});
+    Kernel::Clause* M4 = clause({ c == f2(x3,y2), ~p2(x3,y1), p2(f(f2(x3,y2)),f(y1))});
+    Kernel::Clause* L5 = clause({ p(f2(f(e), g2(x4, x3))), p2(f2(f(e), g2(x4, x3)), x3), f(e)==g2(x4, x3)});
+    Kernel::Clause* M5 = clause({ p(f2(f(e), g2(y1, y3))), p2(f2(f(e), g2(y1, y3)), y3), f(e)==g2(y1, y3)});
     ASS(L1);
     ASS(M1);
     SATSubsumption subsumption;
     ASS(subsumption.checkSubsumption(L1, M1));
     ASS(subsumption.checkSubsumption(L1, M2));
+    ASS(subsumption.checkSubsumption(L3, M3));
+    ASS(subsumption.checkSubsumption(L4, M4));
+    ASS(subsumption.checkSubsumption(L5, M5));
+}
+
+TEST_FUN(NegativeSubsumption) {
+    __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
+    Kernel::Clause* L1 = clause({p2(f2(g2(x1, x2), x3), x3),
+                                 p2(f2(g2(x1, x2), x3), x2),
+                                 g2(x1, x2) == x3});
+    Kernel::Clause* M1 = clause({p2(f2(g2(y1, y2), y2), y2),
+                                 g2(y1, y2) == y2,
+                                 ~p2(f2(g2(y1, y2), y2), g2(y1, y2))});
+    Kernel::Clause* L2 = clause({~p2(x1,x2),
+                                 p(x1)});
+    Kernel::Clause* M2 = clause({p(y1),
+                                 ~p(f(f2(f2(y2,y2),f2(y2,y3)))),
+                                 ~p(y3),
+                                 ~p(y2)});
+    ASS(L1);
+    ASS(M1);
+    ASS(L2);
+    ASS(M2);
+    SATSubsumption subsumption;
+    ASS(!subsumption.checkSubsumption(L1, M1));
+    ASS(!subsumption.checkSubsumption(L2, M2));
 }
 
 /**

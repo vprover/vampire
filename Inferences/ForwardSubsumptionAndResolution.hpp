@@ -19,7 +19,7 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
-#include "SATSubsumption/SMTSubsumption.hpp"
+#include "SATSubsumption/SATSubsumptionResolution.hpp"
 #include "Lib/STL.hpp"
 
 namespace Inferences {
@@ -54,7 +54,7 @@ private:
 
   bool _subsumptionResolution;
 
-  SMTSubsumption::ProofOfConcept smtsubs;
+  SMTSubsumption::SATSubsumption smtsubs;
 };
 
 

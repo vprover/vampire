@@ -53,8 +53,8 @@ using namespace Saturation;
 #define CHECK_SMT_SUBSUMPTION 1
 #define CHECK_SMT_SUBSUMPTION_RESOLUTION 1
 #else
-#define CHECK_SMT_SUBSUMPTION 0
-#define CHECK_SMT_SUBSUMPTION_RESOLUTION 0
+#define CHECK_SMT_SUBSUMPTION 1
+#define CHECK_SMT_SUBSUMPTION_RESOLUTION 1
 #endif
 
 #define USE_SMT_SUBSUMPTION 0
@@ -801,7 +801,7 @@ fin:
   }
   {
 #if CHECK_SMT_SUBSUMPTION || CHECK_SMT_SUBSUMPTION_RESOLUTION
-    auto tok = smtsubs.setupMainPremise(cl);
+    //auto tok = smtsubs.setupMainPremise(cl);
     if (fin_print_extra_info) {
       std::cerr << "% result = " << result << std::endl;
       std::cerr << "% replacement = " << (replacement ? replacement->toString() : "nullptr") << std::endl;
@@ -833,12 +833,12 @@ fin:
       if (result) {
         // In this case we can only check the last side premise... for the others we don't know yet whether we missed an inference or if we just discovered the current one before.
         ASS(resolutionClause);
-        smtsubs.checkSubsumptionResolution(sr_mcl_tried.back(), cl, resolutionClause);
+        resolutionClause = smtsubs.checkSubsumptionResolution(sr_mcl_tried.back(), cl);
       }
       else {
         ASS(!resolutionClause);
         for (Clause *mcl : sr_mcl_tried) {
-          smtsubs.checkSubsumptionResolution(mcl, cl, resolutionClause);
+          resolutionClause = smtsubs.checkSubsumptionResolution(mcl, cl);
         }
       }
     }
