@@ -326,10 +326,10 @@ bool SATSubsumption::fillMatchesSR()
 
   // used ot check that the SR is even possible
   // the intersection represents the set of M_j that have been matched only negatively by some L_i
-  vvector<unsigned> intersection;
+  _intersection.clear();
 
   // for some L_i, stores the set of M_j that have been negatively matched by L_i
-  vvector<unsigned> negativeMatches = vvector<unsigned>(_n);
+  _negativeMatches.resize(_m);
 
   bool hasNegativeMatch = false;
 
@@ -338,7 +338,7 @@ bool SATSubsumption::fillMatchesSR()
   {
     Literal* L_i = _L->literals()[i];
     bool foundPositiveMatch = false;
-    negativeMatches.clear();
+    _negativeMatches.clear();
 
     for (unsigned j = 0; j < _n; ++j)
     {
@@ -351,7 +351,7 @@ bool SATSubsumption::fillMatchesSR()
       } // end of positive literal match
       else {
         if (checkAndAddMatch(L_i, M_j, i, j, false)) {
-          negativeMatches.push_back(j);
+          _negativeMatches.push_back(j);
           hasNegativeMatch = true;
         }
       } // end of negative literal matches
@@ -366,14 +366,14 @@ bool SATSubsumption::fillMatchesSR()
       if (lastHeader == numeric_limits<unsigned>::max()) {
         lastHeader = L_i->header();
         // set up the first intersection
-        intersection = vvector<unsigned>(negativeMatches);
+        _intersection = vvector<unsigned>(_negativeMatches);
         continue;
       } else if (lastHeader != L_i->header()) {
         return false;
       }
 
-      intersect(intersection, negativeMatches);
-      if (intersection.empty()) {
+      intersect(_intersection, _negativeMatches);
+      if (_intersection.empty()) {
         // It is impossible to find a SR because some L_i have no possible match
         return false;
       }
@@ -413,7 +413,7 @@ bool SATSubsumption::cnfForSubsumption()
   // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
   // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.
   // uint32_t const instance_constraint_maxsize = 2 * base_len;
-  for(unsigned j = 0; j < _m; ++j) {
+  for(unsigned j = 0; j < _n; ++j) {
     solver.constraint_start();
     for (Match* match : _matchSet.getJMatches(j)) {
       if (match->_polarity) {

@@ -27,10 +27,12 @@ __ALLOW_UNUSED(                        \
     DECL_VAR(x2,2)                     \
     DECL_VAR(x3,3)                     \
     DECL_VAR(x4,4)                     \
+    DECL_VAR(x5,5)                     \
     DECL_VAR(y1,11)                    \
     DECL_VAR(y2,12)                    \
     DECL_VAR(y3,13)                    \
     DECL_VAR(y4,14)                    \
+    DECL_VAR(y5,15)                    \
     DECL_SORT(s)                       \
     DECL_CONST(c, s)                   \
     DECL_CONST(d, s)                   \
@@ -207,6 +209,7 @@ TEST_FUN(PositiveSubsumption) {
     ASS(subsumption.checkSubsumption(L3, M3));
     ASS(subsumption.checkSubsumption(L4, M4));
     ASS(subsumption.checkSubsumption(L5, M5));
+
 }
 
 TEST_FUN(NegativeSubsumption) {
@@ -230,6 +233,13 @@ TEST_FUN(NegativeSubsumption) {
     SATSubsumption subsumption;
     ASS(!subsumption.checkSubsumption(L1, M1));
     ASS(!subsumption.checkSubsumption(L2, M2));
+
+    Kernel::Clause* L6 = clause({p2(y5, f(f2(c, x1))), ~p(c), ~p(y5)});
+    Kernel::Clause* M6 = clause({~q(f(d)), p2(c, f(f2(c, x4))), r(e), ~p(c), d==g(c)});
+    ASS(!subsumption.checkSubsumption(L6, M6));
+    Kernel::Clause* L7 = clause({p2(y5, f(f2(x1, c))), ~p(c), ~p(y5)});
+    Kernel::Clause* M7 = clause({~q(d), p2(c, f(f2(x4, c))), r(d), ~p(c), d==g(c)});
+    ASS(!subsumption.checkSubsumption(L7, M7));
 }
 
 /**

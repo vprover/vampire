@@ -265,6 +265,11 @@ class SATSubsumption
     MatchSet _matchSet;
     /// @brief model of the SAT solver
     vvector<subsat::Lit> _model;
+    /// @brief The current intersection of the M_j's that are only negatively matched to L_i's
+    vvector<unsigned> _intersection;
+    /// @brief For some L_i, remembers the M_j that are negatively matched to L_i
+    vvector<unsigned> _negativeMatches;
+
 
     unsigned _nSubsumptionCalls;
     unsigned _nSubsumptionResolutionCalls;
