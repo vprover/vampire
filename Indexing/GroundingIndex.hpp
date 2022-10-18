@@ -23,6 +23,7 @@
 
 #include "Index.hpp"
 
+namespace Kernel { class GlobalSubsumptionGrounder; };
 namespace Indexing {
 
 using namespace SAT;

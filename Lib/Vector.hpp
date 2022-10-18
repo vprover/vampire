@@ -24,6 +24,11 @@
 #include "Allocator.hpp"
 #include "VString.hpp"
 
+namespace Indexing {
+  class CodeTree;
+  class ClauseCodeTree;
+}
+
 namespace Lib {
 
 using namespace std;

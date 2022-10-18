@@ -9,11 +9,11 @@
  */
 /**
  * @file OperatorType.hpp
- * Defines class Sorts.
+ * Defines class OperatorType.
  */
 
-#ifndef __Sorts__
-#define __Sorts__
+#ifndef __OperatorType__
+#define __OperatorType__
 
 #include "Forwards.hpp"
 
@@ -221,4 +221,4 @@ private:
 
 }
 
-#endif // __Sorts__
+#endif // __OperatorType__

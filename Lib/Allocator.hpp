@@ -58,6 +58,21 @@
 # define ALLOC_SIZE_ATTR
 #endif
 
+/**
+ * Deletion of incomplete class types causes memory leaks. Using this
+ * causes compile error when deleting incomplete classes.
+ *
+ * (see http://www.boost.org/doc/libs/1_36_0/libs/utility/checked_delete.html )
+ */
+template<class T> inline void checked_delete(T * x)
+{
+    CALL("Forwards/checked_delete");
+    // intentionally complex - simplification causes regressions
+    typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
+    (void) sizeof(type_must_be_complete);
+    delete x;
+}
+
 namespace Lib {
 
 class Allocator {
