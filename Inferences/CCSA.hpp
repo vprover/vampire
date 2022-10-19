@@ -25,11 +25,14 @@ public:
 
   static Literal *createSubterm(
     bool polarity,
+    TermList relation,
     TermList subterm,
     TermList subterm_sort,
     TermList superterm,
     TermList superterm_sort
   );
+
+  static void registerCommutes(unsigned relation, unsigned functor);
 };
 
 class RewriteISE : public ImmediateSimplificationEngine

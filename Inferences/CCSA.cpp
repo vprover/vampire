@@ -39,6 +39,13 @@ using LeafData = Indexing::SubstitutionTree::LeafData;
 
 namespace Inferences {
 
+static DHSet<std::pair<unsigned, unsigned>> commutes;
+
+void SubtermGIE::registerCommutes(unsigned relation, unsigned functor) {
+  CALL("SubtermGIE::registerCommutes");
+  commutes.insert(std::make_pair(relation, functor));
+}
+
 static bool isInterestingSubterm(Literal *l) {
   unsigned functor = l->functor();
   Symbol *symbol = env.signature->getPredicate(functor);
@@ -50,12 +57,15 @@ static bool isInterestingSubterm(Literal *l) {
   if (itp != Theory::SUBTERM)
     return false;
 
-  TermList rhs = (*l)[1];
+  TermList rhs = (*l)[2];
   if(!rhs.isTerm())
     return false;
 
-  Term *superterm = rhs.term();
-  return env.signature->getFunction(superterm->functor())->termAlgebraCons();
+  TermList rel = (*l)[0];
+  if(!rel.isTerm())
+    return false;
+
+  return commutes.contains(std::make_pair(rel.term()->functor(), rhs.term()->functor()));
 }
 
 static Clause *replaceLiteral(Clause *premise, Literal *remove, Literal *add, const Inference &inference) {
@@ -68,11 +78,12 @@ static Clause *replaceLiteral(Clause *premise, Literal *remove, Literal *add, co
 static ClauseIterator perform(Clause *premise, Literal *selected) {
   CALL("SubtermGIE::perform")
 
-  TermList subterm = (*selected)[0];
-  TermList subterm_sort = SortHelper::getArgSort(selected, 0);
-  TermList superterm = (*selected)[1];
+  TermList relation = (*selected)[0];
+  TermList subterm = (*selected)[1];
+  TermList subterm_sort = SortHelper::getArgSort(selected, 1);
+  TermList superterm = (*selected)[2];
   Term *super = superterm.term();
-  TermList superterm_sort = SortHelper::getArgSort(selected, 1);
+  TermList superterm_sort = SortHelper::getArgSort(selected, 2);
   unsigned super_args = super->numTermArguments();
 
   bool equality_would_be_wellsorted = subterm_sort == superterm_sort;
@@ -90,6 +101,7 @@ static ClauseIterator perform(Clause *premise, Literal *selected) {
     for (unsigned i = 0; i < super_args; i++)
       (*generated)[j++] = SubtermGIE::createSubterm(
         true,
+        relation,
         subterm,
         subterm_sort,
         super->termArg(i),
@@ -106,9 +118,10 @@ static ClauseIterator perform(Clause *premise, Literal *selected) {
     Inference inference(GeneratingInference1(InferenceRule::NEGATIVE_SUBTERM, premise));
     auto subterm_clauses = getMappingIterator(
       getRangeIterator(0u, super_args),
-      [premise, selected, inference, subterm, subterm_sort, super](unsigned i) {
+      [premise, selected, inference, relation, subterm, subterm_sort, super](unsigned i) {
         Literal *new_subterm = SubtermGIE::createSubterm(
           false,
+          relation,
           subterm,
           subterm_sort,
           super->termArg(i),
@@ -145,6 +158,7 @@ ClauseIterator SubtermGIE::generateClauses(Clause *premise) {
 
 Literal *SubtermGIE::createSubterm(
   bool polarity,
+  TermList relation,
   TermList subterm,
   TermList subterm_sort,
   TermList superterm,
@@ -153,9 +167,9 @@ Literal *SubtermGIE::createSubterm(
   CALL("SubtermGIE::createSubterm")
   unsigned predicate = env.signature->getInterpretingSymbol(
     Theory::SUBTERM,
-    OperatorType::getPredicateType({subterm_sort, superterm_sort})
+    OperatorType::getPredicateType({AtomicSort::defaultSort(), subterm_sort, superterm_sort})
   );
-  return Literal::create2(predicate, polarity, subterm, superterm);
+  return Literal::create(predicate, polarity, {relation, subterm, superterm});
 }
 
 static TermSubstitutionTree term_index;

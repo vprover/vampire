@@ -397,6 +397,32 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    // not an official SMTLIB command
+    if (ibRdr.tryAcceptAtom("declare-subterm-relation")) {
+      vstring relation_name;
+      if(!ibRdr.tryReadAtom(relation_name))
+        USER_ERROR("declare-subterm-relation expects a relation name");
+
+      if(isAlreadyKnownFunctionSymbol(relation_name))
+        USER_ERROR("subterm relation already declared: " + relation_name);
+
+      TermList default_sort = AtomicSort::defaultSort();
+      TermStack domain;
+      unsigned relation = declareFunctionOrPredicate(relation_name, default_sort, domain).first;
+
+      vstring name;
+      while(ibRdr.tryReadAtom(name)) {
+        DeclaredFunction function;
+        if(!_declaredFunctions.find(name, function))
+          USER_ERROR("undeclared function: " + name);
+
+        unsigned functor = function.first;
+        Inferences::SubtermGIE::registerCommutes(relation, functor);
+      }
+      ibRdr.acceptEOL();
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("check-sat")) {
       ibRdr.acceptEOL();
       afterCheckSat = true;
@@ -2323,6 +2349,14 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       return true;
     }
     case FS_SUBTERM: {
+      TermList relation;
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+      }
+      TermList relation_sort = _results.pop().asTerm(relation);
+      if(!relation.isTerm() || relation.term()->arity() != 0 || relation_sort != AtomicSort::defaultSort())
+        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
+
       TermList subterm;
       if (_results.isEmpty() || _results.top().isSeparator()) {
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
@@ -2337,6 +2371,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
 
       _results.push(new AtomicFormula(Inferences::SubtermGIE::createSubterm(
         true,
+        relation,
         subterm,
         subterm_sort,
         superterm,

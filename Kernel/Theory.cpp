@@ -677,8 +677,6 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_LESS:
   case REAL_LESS_EQUAL:
 
-  case SUBTERM:
-
   case INT_PLUS:
   case INT_MINUS:
   case INT_MULTIPLY:
@@ -717,6 +715,7 @@ unsigned Theory::getArity(Interpretation i)
     return 2;
           
   case ARRAY_STORE:
+  case SUBTERM:
 
     return 3;
           
