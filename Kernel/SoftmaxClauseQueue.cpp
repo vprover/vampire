@@ -162,6 +162,8 @@ void SoftmaxClauseQueue::insert(Clause* c)
   // additionally, maintain the correct "volume" associated with each link
   integrate(c,sc,newNode,h,_left,_height);
   _total += sc.first; // adding the score of the to-be-inserted element to total
+
+  ASS(consistent());
 } // SoftmaxClauseQueue::insert
 
 /**
@@ -201,6 +203,9 @@ bool SoftmaxClauseQueue::remove(Clause* c)
 	      _height--;
       }
       _total -= sc.first;
+
+      ASS(consistent());
+
       return true;
     }
 
@@ -264,6 +269,9 @@ Clause* SoftmaxClauseQueue::pop()
   // (However, note that unlike with remove, we don't know the score of the to be removed
   //  element for shorting the tall links at the moment of the descent)
   remove(cl);
+
+  ASS(consistent());
+
   return cl;
 } // SoftmaxClauseQueue::pop
 
