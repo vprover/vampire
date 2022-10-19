@@ -272,14 +272,13 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
 {
   ClauseQueue::Iterator cit(_ageQueue);
-  while (cit.hasNext()) 
+  while (cit.hasNext())
   {
     Clause* cl=cit.next();
     ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
     cl->setStore(Clause::NONE);
   }
 }
-
 
 /**
  * Weight comparison of clauses.
@@ -409,6 +408,7 @@ void AWPassiveClauseContainer::add(Clause* cl)
 void AWPassiveClauseContainer::remove(Clause* cl)
 {
   CALL("AWPassiveClauseContainer::remove");
+
   if (_isOutermost)
   {
     ASS(cl->store()==Clause::PASSIVE);

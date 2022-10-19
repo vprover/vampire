@@ -36,6 +36,7 @@ SoftmaxClauseQueue::SoftmaxClauseQueue(DHMap<Clause*,std::pair<double,unsigned>>
   void* mem = ALLOC_KNOWN(sizeof(Node)+MAX_HEIGHT*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
   _left = reinterpret_cast<Node*>(mem);
 #if VDEBUG
+  _left->id = 0;
   _left->height = MAX_HEIGHT;
   _left->clause = nullptr;
 #endif
@@ -49,7 +50,7 @@ SoftmaxClauseQueue::~SoftmaxClauseQueue ()
 
   removeAll();
 
-  DEALLOC_KNOWN(_left,sizeof(Node)+MAX_HEIGHT*sizeof(LinkInfo),"ClauseQueue::Node");
+  DEALLOC_KNOWN(_left,sizeof(Node)+MAX_HEIGHT*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
 } // SoftmaxClauseQueue::~SoftmaxClauseQueue
 
 bool SoftmaxClauseQueue::lessThan(Clause* c1, ScoreInfo sc1, Clause* c2)
@@ -82,7 +83,7 @@ bool SoftmaxClauseQueue::lessThan(Clause* c1, ScoreInfo sc1, Clause* c2)
 // lh is the height on which we search for the next node
 /**
  * The following loop does all the necessary stuff for ClauseQueue (but maintining link lengths requries an addtional "post order" update)
- * 
+ *
   for (;;) {
     Node* next = left->nodes[lh];
     if (next == 0 || lessThan(c,next->clause)) {
@@ -107,9 +108,9 @@ double SoftmaxClauseQueue::integrate(Clause* c, ScoreInfo sc, Node* newNode, uns
   for (;;) {
     auto link = left->nodes[lh];
     Node* next = link.first;
-    if (next == 0 || lessThan(c,sc,next->clause)) {
+    if (next == nullptr || lessThan(c,sc,next->clause)) {
       if (lh == 0) {
-        // don't need to change the lenght of a level-0 link
+        // don't need to change the score mass of a level-0 link
         left->nodes[0].first = newNode;
         newNode->nodes[0] = make_pair(next,sc.first);
         return dist + left->nodes[0].second;
@@ -117,12 +118,13 @@ double SoftmaxClauseQueue::integrate(Clause* c, ScoreInfo sc, Node* newNode, uns
       double idist = integrate(c,sc,newNode,h,left,lh-1);
       if (lh <= h) {
         left->nodes[lh] = make_pair(newNode,idist);
-        newNode->nodes[lh] = make_pair(next,link.second-idist);
+        newNode->nodes[lh] = make_pair(next,link.second-idist+sc.first); // not much sense here, if next == nullptr
         return dist + idist;
       }
       // the target stays the same, but we shoot further
+      // (unless left->nodes[lh].first == nullptr, and again, then the update below makes no sense)
       left->nodes[lh].second += sc.first;
-      return 0.0; // We didn't care anymore, and higher up callers don't care either
+      return 0.0; // We didn't care anymore, and higher-up callers don't care either
     } else {
       left = next;
       dist += link.second;
@@ -136,6 +138,9 @@ void SoftmaxClauseQueue::insert(Clause* c)
 
   ScoreInfo sc = _scores.get(c);
 
+  // zero score elements are evil for sampling
+  ASS_G(sc.first,0);
+
   // select a random height between 0 and top
   unsigned h = 0;
   while (Random::getBit()) {
@@ -146,11 +151,13 @@ void SoftmaxClauseQueue::insert(Clause* c)
       _height++;
     }
     h = _height;
-    _left->nodes[h] = make_pair(nullptr,_total);
+    _left->nodes[h] = make_pair(nullptr,0.0);
   }
   void* mem = ALLOC_KNOWN(sizeof(Node)+h*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
   Node* newNode = reinterpret_cast<Node*>(mem);
 #if VDEBUG
+  static unsigned ids = 0;
+  newNode->id = ++ids;
   newNode->height = h;
 #endif
   newNode->clause = c;
@@ -180,8 +187,9 @@ bool SoftmaxClauseQueue::remove(Clause* c)
       // found, first change the links going to next
       for (;;) {
 	      left->nodes[h].first = next->nodes[h].first;
+        // as usual, the below is bogus if the pointee is nullptr
         left->nodes[h].second += next->nodes[h].second - sc.first;
-	      if (h == 0) {
+        if (h == 0) {
 	        break;
 	      }
 	      h--;
@@ -201,8 +209,9 @@ bool SoftmaxClauseQueue::remove(Clause* c)
 
     if (next == 0 || lessThan(c,sc,next->clause)) {
       if(h==0) {
-        // At the moment, it's evil to delete something that's not store,
+        // At the moment, it's evil to delete something that's not stored,
         // because we preemptively decrease the length of traversed links just below
+        // (the next == 0 case would be fine, but the other wouldn't)
         ASSERTION_VIOLATION;
 	      return false;
       }
@@ -215,10 +224,9 @@ bool SoftmaxClauseQueue::remove(Clause* c)
   }
 } // SoftmaxClauseQueue::remove
 
-
 /**
  * Randomly sample a clause proportionally to its score.
- * @since 17/10/2022 Prague
+ * @since 19/10/2022 Prague
  */
 Clause* SoftmaxClauseQueue::pop()
 {
@@ -226,13 +234,58 @@ Clause* SoftmaxClauseQueue::pop()
   ASS(_height >= 0);
   ASS(_left->nodes[0].first != nullptr);
 
-  // double sample = Random::getDouble(0.0,_total)
+  double sample = Random::getDouble(0.0,_total);
+  // cout << "Sample " << sample <<" out of total " << _total << endl;
+
+  unsigned h = _height;
+  Node* node = _left;
+
+  for (;;) {
+    LinkInfo li = node->nodes[h];
+    Node* next = li.first;
+    double mass = li.second;
+    if (next == nullptr || sample - mass < 0.0 ||    // the link on level h shoots out, or is long enough to satisfy sample, or
+       (node != _left && sample - mass == sample)) { // or subtraction stopped working (underflows? / zero mass elelements?)
+      if (h > 0) {
+        h--;
+        continue;
+      }
+      ASS(next != nullptr || sample - mass < 0.0); // wanting to overshoot a nullptr for h == 0 is evil. It means we jumped out of our collection
+      // found our node!
+      // cout << "popping an element of mass " << mass << endl;
+      break;
+    } else {
+      sample = sample - mass;
+      node = node->nodes[h].first;
+    }
+  }
+  ASS_EQ(h,0);
+  ASS(node != nullptr);
+
+  Clause* cl = node->clause;
+  // could we do better here by having kept some update info during the decent?
+  // (However, note that unlike with remove, we don't know the score of the to be removed
+  //  element for shorting the tall links at the moment of the descent)
+  remove(cl);
+  return cl;
+} // SoftmaxClauseQueue::pop
+
+/**
+ * Adapting the old ClauseQueue pop to maintain score mass invariants too.
+ * @since 17/10/2022 Prague
+ */
+Clause* SoftmaxClauseQueue::popOld()
+{
+  CALL("SoftmaxClauseQueue::popOld");
+  ASS(_height >= 0);
+  ASS(_left->nodes[0].first != nullptr);
 
   Node* node = _left->nodes[0].first;
   unsigned h = 0;
   _left->nodes[0].first = node->nodes[0].first;
   // on level 0, .second stays the same (and is equal 0.0, because _left does not store any clause)
   double cs = node->nodes[0].second;
+  _total -= cs;
   while (h < _height && _left->nodes[h+1].first == node) {
     h++;
     _left->nodes[h].first = node->nodes[h].first;
@@ -253,7 +306,7 @@ Clause* SoftmaxClauseQueue::pop()
   }
 
   return c;
-} // SoftmaxClauseQueue::pop
+} // SoftmaxClauseQueue::popOld
 
 /**
  * Remove all clauses from the queue.
@@ -269,10 +322,92 @@ void SoftmaxClauseQueue::removeAll()
 } // removeAll
 
 #if VDEBUG
+bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, double& sumLinks) const
+{
+  CALL("SoftmaxClauseQueue::consistentRec");
+
+  if (cur == nullptr) {
+    for (unsigned h = 0; h <= _height; h++) {
+      whatsSeen->nodes[h] = make_pair(nullptr,0.0);
+    }
+    return true;
+  }
+  if (!consistentRec(cur->nodes[0].first,whatsSeen,sumLinks)) {
+    // fail fast
+    return false;
+  }
+  // keep checking, everything was OK until now
+  ScoreInfo sc = (cur == _left) ? std::make_pair(0.0,0u) : _scores.get(cur->clause);
+  sumLinks += sc.first;
+  for (unsigned h = 0; h <= _height; h++) {
+    if (h > cur->height) {
+      // "the beam runs above our head"
+      whatsSeen->nodes[h].second += sc.first;
+      continue;
+    }
+    auto link = cur->nodes[h];
+    // the pointers are fine:
+    if (link.first != whatsSeen->nodes[h].first) {
+      cout << "Node " << cur->id << " failed the link check for h = " << h << endl;
+      return false;
+    }
+    whatsSeen->nodes[h].first = cur;  // now you see me
+    // the score mass is fine:
+    if ((link.first != nullptr || h == 0) && // h > 0 nullptrs are fine with rubbish score mass (we wont want to just to the nullptr place)
+        link.second != whatsSeen->nodes[h].second + sc.first) {
+      cout << "Node " << cur->id << " failed the mass check for h = " << h << endl;
+      return false;
+    }
+    whatsSeen->nodes[h].second = 0.0; // from close by
+  }
+
+  return true;
+}
+
+bool SoftmaxClauseQueue::consistent() const
+{
+  CALL("SoftmaxClauseQueue::consistent");
+
+  void* mem = ALLOC_KNOWN(sizeof(Node)+_height*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
+  Node* whatsSeen = reinterpret_cast<Node*>(mem);
+  double sumLinks = 0.0;
+  bool res = consistentRec(_left,whatsSeen,sumLinks);
+  DEALLOC_KNOWN(whatsSeen,sizeof(Node)+_height*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
+  if (sumLinks != _total) {
+    cout << "Total sum check failed." << endl;
+    return false;
+  }
+  return res;
+}
+
 void SoftmaxClauseQueue::output(ostream& str) const
 {
-  for (const Node* node = _left->nodes[0].first; node; node=node->nodes[0].first) {
-    str << node->clause->toString() << '\n';
+  CALL("SoftmaxClauseQueue::output");
+
+  ASS(consistent());
+
+  str << "SoftmaxClauseQueue with a total " << _total << endl;
+  for (const Node* node = _left; node; node=node->nodes[0].first) {
+    Clause* cl = node->clause;
+    unsigned height;
+    if (cl) {
+      height = node->height;
+      str << "Node " << node->id << " of mass " << node->clause->weight() << " and with clause " << node->clause->toString() << endl;
+    } else {
+      height = _height;
+      str << "Node " << node->id << " with no clause" << endl;
+    }
+    for (unsigned h = 0; h <= height; h++) {
+      str << "(";
+      if (node->nodes[h].first) {
+        str << std::setw(3) << node->nodes[h].first->id;
+      } else {
+        str << "nil";
+      }
+      str << "," << std::setw(3) << node->nodes[h].second << ") | ";
+    }
+    str << endl;
   }
+  str << endl;
 } // SoftmaxClauseQueue::output
 #endif
