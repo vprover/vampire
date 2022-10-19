@@ -18,10 +18,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Environment.hpp"
-
-#if VDEBUG
 #include "Clause.hpp"
-#endif
 
 #include "SoftmaxClauseQueue.hpp"
 
