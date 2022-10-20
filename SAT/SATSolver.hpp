@@ -227,6 +227,8 @@ public:
    */
   virtual bool hasAssumptions() const = 0;
 
+  virtual void resetSolver() { return; }
+
   // ... a better alternative could be the interface below.
 
   // It is currently implemented in terms of the one above

@@ -627,6 +627,25 @@ Clause* Superposition::performSuperposition(
     auto constraints = subst->getConstraints();  
     while(constraints.hasNext()){
       Literal* constraint = constraints.next();
+      auto uwa = env.options->unificationWithAbstraction();
+      if(uwa == Shell::Options::UnificationWithAbstraction::ONE_SIDE_NL){
+
+        auto isLoopCount = [](unsigned fun){
+          return env.signature->getFunction(fun)->finalLoopCount();
+        };
+
+        TermList lhs = *constraint->nthArgument(0);
+        TermList rhs = *constraint->nthArgument(1);
+        
+        // hack to avoid unrolling loop
+        if(lhs.term()->ground() && !isLoopCount(lhs.term()->functor())){
+          goto construction_fail;
+        }
+
+        if(rhs.term()->ground() && !isLoopCount(rhs.term()->functor())){
+          goto construction_fail;
+        }
+      }
       (*res)[next++] = constraint;
     }
   } 

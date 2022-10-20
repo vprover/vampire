@@ -1467,6 +1467,12 @@ void Options::init()
     _forceValueChainOrientation.tag(OptionTag::OTHER);
     _lookup.insert(&_forceValueChainOrientation);
 
+
+    _eqToIneq = BoolOptionValue("eq_to_ineq","eti",true);
+    _eqToIneq.description = "given a clause of the form t = s + n, adds clauses t != s and t <> s";
+    _eqToIneq.tag(OptionTag::OTHER);
+    _lookup.insert(&_eqToIneq);
+
     OptionChoiceValues integerInductionLiteralStrictnessValues {
       "none",
       "toplevel_not_in_other",

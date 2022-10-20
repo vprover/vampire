@@ -2384,6 +2384,7 @@ public:
   unsigned maxDistanceFromGoal() const { return _maxDistanceFromGoal.actualValue; }
 
   bool forceValueChainOrientation() const { return _forceValueChainOrientation.actualValue; }
+  bool eqToIneq() const { return _eqToIneq.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2726,6 +2727,7 @@ private:
   UnsignedOptionValue _maxDistanceFromGoal;  
 
   BoolOptionValue _forceValueChainOrientation;
+  BoolOptionValue _eqToIneq;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

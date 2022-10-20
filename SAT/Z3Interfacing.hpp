@@ -117,6 +117,12 @@ public:
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) override;
 
+  void resetSolver() override { 
+    BYPASSING_ALLOCATOR;
+    _solver.reset();
+  }
+
+
   /**
    * The set of inserted clauses may not be propositionally UNSAT
    * due to theory reasoning inside Z3.

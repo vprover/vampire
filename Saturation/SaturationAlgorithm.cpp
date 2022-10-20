@@ -736,7 +736,7 @@ void SaturationAlgorithm::addInputSOSClause(Clause* cl)
   cl->incRefCnt();
 
   onNewClause(cl);
-
+ 
 simpl_start:
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
@@ -1256,7 +1256,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  //std::cout << "Activated: " << cl->toString() << "    " <<  cl->numSelected() << "  !\n";
+  //static unsigned activations = 0;
+  //std::cout << "Activated: " << cl->toString() << "    " <<  ++activations << "  !\n";
 
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
@@ -1671,8 +1672,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  // TODO add option
-  gie->addFront(new EqualityToInequality());
+  if(opt.eqToIneq()){
+    gie->addFront(new EqualityToInequality());
+  }
 
   CompositeSGI* sgi = new CompositeSGI();
   sgi->push(gie);
