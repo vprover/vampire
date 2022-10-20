@@ -306,7 +306,7 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
   {
     for(unsigned i=0;i<eligible;i++) {
       Signature::Symbol* psym=env.signature->getPredicate(((*c)[i]->functor()));
-      if(psym->lemmaPred() && isNegativeForSelection((*c)[i]))
+      if(psym->lemmaPred() /*&& isNegativeForSelection((*c)[i])*/)
       {
         swap((*c)[i], (*c)[0]);
         c->setSelected(1);
