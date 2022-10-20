@@ -5,9 +5,12 @@
 #include "Lib/STL.hpp"
 #include "./subsat/subsat.hpp"
 
+#include <iostream> //include the header files like input-output streams
+#include <fstream> //include the filestreamobject as the header files
+
 /// @todo TODO : remove that when the real VTEST flag is added
 #define VTEST
-
+#define SAT_SR_IMPL 1
 
 namespace SMTSubsumption {
 class SATSubsumption;
@@ -100,18 +103,19 @@ class SATSubsumption
       /// the list is stored in the order in which they are added to the set
       vvector<vvector<Match*>> _jMatches;
 
-      /// @brief Metadata remembering whether some positive match or negative match was found for each literal in L
-      /// @remark
-      /// This information only needs 2 bits
-      /// - 00 -> no match
-      /// - 01 -> positive match
-      /// - 10 -> negative match
-      /// - 11 -> both positive and negative match
-      /// Since we only need 2 bits, 4 values fit in one byte
-      /// The interest value for i is therefore
-      /// state[i / 4] & (0b11 << (2 * (i % 4)))) >> (2 * (i % 4)
-      vvector<uint8_t> _iStates;
-      vvector<uint8_t> _jStates;
+      #if SAT_SR_IMPL == 1
+        /// @brief Metadata remembering whether some positive match or negative match was found for each literal in L
+        /// @remark
+        /// This information only needs 2 bits
+        /// - 00 -> no match
+        /// - 01 -> positive match
+        /// - 10 -> negative match
+        /// - 11 -> both positive and negative match
+        /// Since we only need 2 bits, 4 values fit in one byte
+        /// The interest value for i is therefore
+        /// state[i / 4] & (0b11 << (2 * (i % 4)))) >> (2 * (i % 4)
+        vvector<uint8_t> _jStates;
+      #endif
 
       /// @brief the number literals in L
       unsigned _m;
@@ -180,27 +184,14 @@ class SATSubsumption
       vvector<Match*>& getIMatches(unsigned i);
 
       /**
-       * Returns true if the i-th literal in L has a positive match in the set
-       * @param i the index of the literal in L
-       * @return whether L_i has a positive match in the set
-       */
-      bool hasPositiveMatchI(unsigned i);
-
-      /**
-       * Returns true if the i-th literal in L has a negative match in the set
-       * @param i the index of the literal in L
-       * @return whether L_i has a negative match in the set
-       */
-      bool hasNegativeMatchI(unsigned i);
-
-      /**
        * Returns the vector of matches for the given literal in M.
        * The vectors should not be modified
        * @param j the index of the literal in M
-       * @return the vector of matches for the i-th literal in M
+       * @return the vector of matches for the j-th literal in M
        */
       vvector<Match*>& getJMatches(unsigned j);
 
+      #if SAT_SR_IMPL == 1
       /**
        * Returns true if the j-th literal in M has a positive match in the set
        * @param j the index of the literal in M
@@ -214,6 +205,7 @@ class SATSubsumption
        * @return whether M_j has a negative match in the set
        */
       bool hasNegativeMatchJ(unsigned j);
+      #endif
 
       /**
        * Returns all the matches in the set
@@ -270,6 +262,10 @@ class SATSubsumption
     /// @brief For some L_i, remembers the M_j that are negatively matched to L_i
     vvector<unsigned> _negativeMatches;
 
+    // output file for cache profiling
+    std::ofstream _fileOut;
+
+    void writeInFile(char head, Kernel::Clause *L, Kernel::Clause *M);
 
     unsigned _nSubsumptionCalls;
     unsigned _nSubsumptionResolutionCalls;

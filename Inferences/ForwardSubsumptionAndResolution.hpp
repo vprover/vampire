@@ -20,6 +20,7 @@
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
 #include "SATSubsumption/SATSubsumptionResolution.hpp"
+#include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
 
 namespace Inferences {
@@ -32,6 +33,28 @@ using namespace Saturation;
 class ForwardSubsumptionAndResolution
 : public ForwardSimplificationEngine
 {
+    struct SubsumptionInstance
+  {
+    SubsumptionInstance(Clause* L, Clause* M, bool result)
+    : _L(L), _M(M), _result(result)
+    {
+    }
+    Clause * _L;
+    Clause * _M;
+    bool _result;
+  };
+
+  struct SubsumptionResolutionInstance
+  {
+    SubsumptionResolutionInstance(Clause* L, Clause* M, Clause* conclusion)
+    : _L(L), _M(M), _conclusion(conclusion)
+    {
+    }
+    Clause * _L;
+    Clause * _M;
+    Clause* _conclusion;
+  };
+
 public:
   CLASS_NAME(ForwardSubsumptionAndResolution);
   USE_ALLOCATOR(ForwardSubsumptionAndResolution);
@@ -55,6 +78,13 @@ private:
   bool _subsumptionResolution;
 
   SMTSubsumption::SATSubsumption smtsubs;
+
+  vvector<SubsumptionInstance> subsumption_tried;
+  vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
+
+  bool checkSubsumption(Clause *mcl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
+
+  Clause* checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 };
 
 
