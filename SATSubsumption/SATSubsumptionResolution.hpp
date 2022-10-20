@@ -10,7 +10,7 @@
 
 /// @todo TODO : remove that when the real VTEST flag is added
 #define VTEST
-#define SAT_SR_IMPL 1
+#define SAT_SR_IMPL 2
 
 namespace SMTSubsumption {
 class SATSubsumption;

@@ -169,12 +169,6 @@ TEST_FUN(PositiveSubsumptionResolution)
     conclusion = subsumption.checkSubsumptionResolution(L2, M2);
     ASS(conclusion)
     ASS(checkClauseEquality(conclusion, expected2));
-
-    Kernel::Clause* L3 = clause({p3(x4, y4, y4), ~p3(x4, c, c)});
-    Kernel::Clause* M3 = clause({p3(c, c, y2),   ~p3(y2, y4, y4)});
-    conclusion = subsumption.checkSubsumptionResolution(L3, M3);
-    ASS(subsumption.checkSubsumptionResolution(L3, M3));
-
 }
 
 TEST_FUN(NegativeSubsumptionResolution)
@@ -209,11 +203,39 @@ TEST_FUN(NegativeSubsumptionResolution)
     }
     ASS(!subsumption.checkSubsumptionResolution(L5, M5));
 
-    Kernel::Clause* L6 = clause({p3(x4, y4, y4), ~p3(x4, c, c)});
-    Kernel::Clause* M6 = clause({p3(y2, c, c), ~p3(y2, y4, y4)});
+    Kernel::Clause* L6 = clause({p3(x5, x1, x1), ~p3(x5, e, e)});
+    Kernel::Clause* M6 = clause({p3(x4, e, e), ~p3(x4, x1, x1)});
     conclusion = subsumption.checkSubsumptionResolution(L6, M6);
     if(conclusion) {
     cout << conclusion->toString() << endl;
     }
-    ASS(!subsumption.checkSubsumptionResolution(L6, M6));
+    ASS(!conclusion);
+    Kernel::Clause* L7 = clause({~p3(x5, e, e), p3(x5, x1, x1)});
+    Kernel::Clause* M7 = clause({~p3(x4, x3, f(f2(y4, f(x2)))), p3(y2, e, e), ~p3(y1, y4, x2), ~p3(y2, f2(x4, x3), y1)});
+    conclusion = subsumption.checkSubsumptionResolution(L7, M7);
+    if(conclusion) {
+    cout << conclusion->toString() << endl;
+    }
+    ASS(!conclusion);
+    Kernel::Clause* L8 = clause({~p3(x5, e, e), p3(x5, x1, x1)});
+    Kernel::Clause* M8 = clause({~p3(x4, x1, x1), p3(e, e, x4)});
+    conclusion = subsumption.checkSubsumptionResolution(L8, M8);
+    if(conclusion) {
+    cout << conclusion->toString() << endl;
+    }
+    ASS(!conclusion);
+    Kernel::Clause* L9 = clause({~p3(e, x5, e), p3(x1, x5, x1)});
+    Kernel::Clause* M9 = clause({p3(e, x4, e), ~p3(x3, f(x3), f(x4))});
+    conclusion = subsumption.checkSubsumptionResolution(L9, M9);
+    if(conclusion) {
+    cout << conclusion->toString() << endl;
+    }
+    ASS(!conclusion);
+    Kernel::Clause* L10 = clause({~p3(e, e, e), p3(f(f(x5)), e, x5)});
+    Kernel::Clause* M10 = clause({p3(e, x1, x1)});
+    conclusion = subsumption.checkSubsumptionResolution(L10, M10);
+    if(conclusion) {
+    cout << conclusion->toString() << endl;
+    }
+    ASS(!conclusion);
 }

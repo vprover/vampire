@@ -12,10 +12,8 @@
  * Defines class ForwardSubsumptionAndResolution.
  */
 
-
 #ifndef __ForwardSubsumptionAndResolution__
 #define __ForwardSubsumptionAndResolution__
-
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
@@ -29,65 +27,72 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+#if VDEBUG
+#define CHECK_SAT_SUBSUMPTION 1
+#define CHECK_SAT_SUBSUMPTION_RESOLUTION 1
+#else
+#define CHECK_SAT_SUBSUMPTION 0
+#define CHECK_SAT_SUBSUMPTION_RESOLUTION 0
+#endif
+
+#define USE_SAT_SUBSUMPTION 1
 
 class ForwardSubsumptionAndResolution
-: public ForwardSimplificationEngine
-{
-    struct SubsumptionInstance
-  {
-    SubsumptionInstance(Clause* L, Clause* M, bool result)
-    : _L(L), _M(M), _result(result)
+    : public ForwardSimplificationEngine {
+  struct SubsumptionInstance {
+    SubsumptionInstance(Clause *L, Clause *M, bool result)
+        : _L(L), _M(M), _result(result)
     {
     }
-    Clause * _L;
-    Clause * _M;
+    Clause *_L;
+    Clause *_M;
     bool _result;
   };
 
-  struct SubsumptionResolutionInstance
-  {
-    SubsumptionResolutionInstance(Clause* L, Clause* M, Clause* conclusion)
-    : _L(L), _M(M), _conclusion(conclusion)
+  struct SubsumptionResolutionInstance {
+    SubsumptionResolutionInstance(Clause *L, Clause *M, Clause *conclusion)
+        : _L(L), _M(M), _conclusion(conclusion)
     {
     }
-    Clause * _L;
-    Clause * _M;
-    Clause* _conclusion;
+    Clause *_L;
+    Clause *_M;
+    Clause *_conclusion;
   };
 
 public:
   CLASS_NAME(ForwardSubsumptionAndResolution);
   USE_ALLOCATOR(ForwardSubsumptionAndResolution);
 
-  ForwardSubsumptionAndResolution(bool subsumptionResolution=true);
+  ForwardSubsumptionAndResolution(bool subsumptionResolution = true);
   ~ForwardSubsumptionAndResolution();
 
-  void attach(SaturationAlgorithm* salg) override;
+  void attach(SaturationAlgorithm *salg) override;
   void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  bool perform(Clause *cl, Clause *&replacement, ClauseIterator &premises) override;
 
-  static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
+  static Clause *generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause);
 
-  static void printStats(std::ostream& out);
+  static void printStats(std::ostream &out);
 
 private:
   /** Simplification unit index */
-  UnitClauseLiteralIndex* _unitIndex;
-  FwSubsSimplifyingLiteralIndex* _fwIndex;
+  UnitClauseLiteralIndex *_unitIndex;
+  FwSubsSimplifyingLiteralIndex *_fwIndex;
 
   bool _subsumptionResolution;
 
-  SMTSubsumption::SATSubsumption smtsubs;
+  SMTSubsumption::SATSubsumption satSubs;
 
   vvector<SubsumptionInstance> subsumption_tried;
   vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
 
+#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION
   bool checkSubsumption(Clause *mcl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 
-  Clause* checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
+  Clause *checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
+#endif
 };
 
-
-};
+}; // namespace Inferences
 
 #endif /* __ForwardSubsumptionAndResolution__ */

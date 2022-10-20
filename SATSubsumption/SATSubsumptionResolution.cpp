@@ -213,7 +213,6 @@ SATSubsumption::SATSubsumption() : _L(nullptr),
 SATSubsumption::~SATSubsumption()
 {
   delete _bindingsManager;
-  cerr << "SATSubsumption: " << _nSubsumptionCalls << " subsumption calls, " << _nSubsumptionResolutionCalls << " resolution calls, " << _nSubsumptionSolverCalls << " solver calls, " << _nSubsumptionResolutionSolverCalls << " resolution solver calls" << endl;
   //_fileOut.close();
 }
 
@@ -715,6 +714,26 @@ bool SATSubsumption::cnfForSubsumptionResolution()
     solver.add_clause_unsafe(build);
   }
 
+  // -> If M_j is matched negatively, then all the other matches to M_j are also negative
+  //    for each j, forall i, forall i', ~b_ij V ~b_ij'
+  for (unsigned j = 0; j < _n; j++) {
+    vvector<Match *> &matches = _matchSet.getJMatches(j);
+    for (unsigned i1 = 0; i1 < matches.size(); i1++) {
+      Match *match1 = matches[i1];
+      for (unsigned i2 = i1 + 1; i2 < matches.size(); i2++) {
+        Match *match2 = matches[i2];
+        if (match2->_polarity == match1->_polarity) {
+          continue;
+        }
+        solver.constraint_start();
+        solver.constraint_push_literal(~match1->_var);
+        solver.constraint_push_literal(~match2->_var);
+        auto build = solver.constraint_end();
+        solver.add_clause_unsafe(build);
+      }
+    }
+  }
+
   // -> At most one M_j is matched by a negative polarity variable
   //    for each j : b_1j- V ... V b_nj- => ~b_ij', j' != j
   for (unsigned it1 = 0; it1 < allMatches.size(); it1++) {
@@ -818,7 +837,7 @@ Kernel::Clause *SATSubsumption::checkSubsumptionResolution(Kernel::Clause *L, Ke
   CALL("SATSubsumption::checkSubsumptionResolution");
   // writeInFile('R', L, M);
   //_fileOut << "R " << L->number() << " " << M->number() << endl;
-  if (M->length() < L->length()) {
+  if (M->length() < L->length() || M->length() == 1) {
     return nullptr;
   }
   setupProblem(L, M);
