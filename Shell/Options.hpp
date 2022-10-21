@@ -2228,6 +2228,9 @@ public:
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
   const vstring& typeConPrecedence() const { return _typeConPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
+
+  bool functionCuts() const { return _functionCuts.actualValue; }
+
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
@@ -2794,6 +2797,8 @@ private:
   StringOptionValue _typeConPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
+
+  BoolOptionValue _functionCuts;
 
   StringOptionValue _testId;
   ChoiceOptionValue<Output> _outputMode;

@@ -2391,6 +2391,11 @@ void Options::init()
     _predicatePrecedence.setExperimental();
     _lookup.insert(&_predicatePrecedence);
 
+    _functionCuts = BoolOptionValue("function_cuts", "fc", false);
+    _functionCuts.description = "Inject 'cuts' in preprocessing for various functional properties.";
+    _functionCuts.setExperimental();
+    _lookup.insert(&_functionCuts);
+
     _symbolPrecedenceBoost = ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units",
                                       "non_intro","intro"});

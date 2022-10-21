@@ -603,6 +603,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/VarManager.cpp
     Shell/Lexer.cpp
     Shell/Preprocess.cpp
+    Shell/FunctionCuts.cpp
     Shell/AnswerExtractor.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
@@ -655,6 +656,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/VarManager.hpp
     Shell/Lexer.hpp
     Shell/Preprocess.hpp
+    Shell/FunctionCuts.hpp
     Shell/SubexpressionIterator.cpp
     Shell/SubexpressionIterator.hpp
     )

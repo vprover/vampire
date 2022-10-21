@@ -54,6 +54,7 @@
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
 #include "BlockedClauseElimination.hpp"
+#include "FunctionCuts.hpp"
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
@@ -430,6 +431,11 @@ void Preprocess::preprocess(Problem& prb)
 
      BlockedClauseElimination bce;
      bce.apply(prb);
+   }
+
+   if (_options.functionCuts()) {
+     // TODO phase stuff
+     FunctionCuts::apply(prb);
    }
 
    if (_options.shuffleInput()) {
