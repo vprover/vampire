@@ -78,27 +78,11 @@ void FunctionCuts::apply(Problem &prb)
     Literal *plit = Literal::createEquality(true, TermList(plhs), TermList(prhs), sort);
     Literal *nlit = Literal::createEquality(false, TermList(nlhs), TermList(nrhs), sort);
 
-    unsigned sp1 = env.signature->addFreshPredicate(0, "$$commutative");
-    unsigned sp2 = env.signature->addFreshPredicate(0, "$$commutative");
-    Literal *plabel = Literal::create(sp1, true, {});
-    Literal *nlabel = Literal::create(sp2, true, {});
-
-    Clause *pdef = new (2) Clause(2, inference);
-    (*pdef)[0] = Literal::complementaryLiteral(plabel);
-    (*pdef)[1] = plit;
-
-    Clause *ndef = new (2) Clause(2, inference);
-    (*ndef)[0] = Literal::complementaryLiteral(nlabel);
-    (*ndef)[1] = nlit;
-
-    Clause *split = new(2) Clause(2, inference);
-    (*split)[0] = plabel;
-    (*split)[1] = nlabel;
-
-    UnitList *list = UnitList::singleton(pdef);
-    list = UnitList::cons(ndef, list);
-    list = UnitList::cons(split, list);
-    prb.addUnits(list);
+    Clause *cut = new (2) Clause(2, inference);
+    (*cut)[0] = plit;
+    (*cut)[1] = nlit;
+  
+    prb.addUnits(UnitList::singleton(cut));
   }
 }
 
