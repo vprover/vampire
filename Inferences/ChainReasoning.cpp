@@ -195,8 +195,16 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
     (*r)[2] = l3;
     (*r)[3] = l4;   
 
-    cout << "R IS " << r->toString() << endl;
     resultStack.push(r);
+
+    TermList oneLonger(Term::create(chainTerm->functor(),{loc, tp, number::add(len, one)}));
+
+    Literal* l5 = Literal::createEquality(true, oneLonger, selValT, chainTermSort);
+
+    Clause* r2 = new(1) Clause(1, GeneratingInference1(InferenceRule::CHAIN_REASONING, premise));
+    (*r2)[0] = l5;
+
+    resultStack.push(r2);
   }
 
   if(RapidHelper::isChainEqualsNullClause(premise, chainTerm)){
