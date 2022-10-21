@@ -921,6 +921,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "inequality simplification";
   case InferenceRule::EQ_TO_INEQ:
     return "equality to inequality";
+  case InferenceRule::INEQUALITY_CHAINING:
+    return "inequality chaining";
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
   case InferenceRule::INSTANCE_GENERATION:

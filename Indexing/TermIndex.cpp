@@ -407,6 +407,44 @@ void InequalityResolutionNonUnitIndex::handleClause(Clause* c, bool adding)
   } 
 }
 
+void UnitInequalityLhsIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("UnitInequalityLhsIndex::handleClause");
+
+  if(c->length() == 1){
+    Literal* lit = (*c)[0];
+    auto res = RapidHelper::number::isLess(lit);
+    if(res.isSome()){
+      auto pair = res.unwrap();
+      TermList inserting = lit->polarity() ? pair.first : pair.second;
+      if (adding) {
+        _is->insert(inserting, lit, c);
+      } else {
+        _is->remove(inserting, lit, c);
+      }       
+    }
+  }   
+}
+
+void UnitInequalityRhsIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("UnitInequalityLhsIndex::handleClause");
+
+  if(c->length() == 1){
+    Literal* lit = (*c)[0];
+    auto res = RapidHelper::number::isLess(lit);
+    if(res.isSome()){
+      auto pair = res.unwrap();
+      TermList inserting = lit->polarity() ? pair.second : pair.first;     
+      if (adding) {
+        _is->insert(inserting, lit, c);
+      } else {
+        _is->remove(inserting, lit, c);
+      }       
+    }
+  }   
+}
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

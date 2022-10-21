@@ -25,8 +25,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RapidHelper.hpp"
-#include "Kernel/NumTraits.hpp"
-
 
 #include "EqualityToInequality.hpp"
 
@@ -42,8 +40,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-using number = NumTraits<IntegerConstantType>;
 
 ClauseIterator EqualityToInequality::generateClauses(Clause* premise)
 {
@@ -80,10 +76,10 @@ ClauseIterator EqualityToInequality::generateClauses(Clause* premise)
       Literal* less;
       if(diff < 0){
         // t2 > t1
-        less = number::less(true, t1, t2);
+        less = RapidHelper::number::less(true, t1, t2);
       } else {
         // t2 < t1
-        less = number::less(true, t2, t1);      
+        less = RapidHelper::number::less(true, t2, t1);      
       } 
 
       Clause* res2 = new(1) Clause(1, GeneratingInference1(InferenceRule::EQ_TO_INEQ, premise));

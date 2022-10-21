@@ -98,6 +98,7 @@
 #include "Inferences/ForwardInequalityResolution.hpp"
 #include "Inferences/InequalityISE.hpp"
 #include "Inferences/EqualityToInequality.hpp"
+#include "Inferences/UnitInequalityChaining.hpp"
 #include "Inferences/RapidArrayInduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -1256,8 +1257,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  //static unsigned activations = 0;
-  //std::cout << "Activated: " << cl->toString() << "    " <<  ++activations << "  !\n";
+  static unsigned activations = 0;
+  std::cout << "Activated: " << cl->toString() << "    " <<  ++activations << "  !\n";
 
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
@@ -1675,6 +1676,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.eqToIneq()){
     gie->addFront(new EqualityToInequality());
   }
+
+  gie->addFront(new UnitInequalityChaining());
 
   CompositeSGI* sgi = new CompositeSGI();
   sgi->push(gie);

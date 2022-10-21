@@ -267,6 +267,36 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class UnitInequalityLhsIndex
+: public TermIndex
+{
+public:  
+  CLASS_NAME(UnitInequalityLhsIndex);
+  USE_ALLOCATOR(UnitInequalityLhsIndex);
+
+  UnitInequalityLhsIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+
+class UnitInequalityRhsIndex
+: public TermIndex
+{
+public:  
+  CLASS_NAME(UnitInequalityRhsIndex);
+  USE_ALLOCATOR(UnitInequalityRhsIndex);
+
+  UnitInequalityRhsIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

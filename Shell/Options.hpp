@@ -2385,6 +2385,7 @@ public:
 
   bool forceValueChainOrientation() const { return _forceValueChainOrientation.actualValue; }
   bool eqToIneq() const { return _eqToIneq.actualValue; }
+  bool inequalityChaining() const { return _inequalityChaining.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2728,6 +2729,7 @@ private:
 
   BoolOptionValue _forceValueChainOrientation;
   BoolOptionValue _eqToIneq;
+  BoolOptionValue _inequalityChaining;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

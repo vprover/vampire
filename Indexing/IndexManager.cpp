@@ -318,6 +318,18 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;  
 
+  case UNIT_INEQUALITY_LHS_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new UnitInequalityLhsIndex(tis);
+    isGenerating = true;
+    break;  
+
+  case UNIT_INEQUALITY_RHS_INDEX:    
+    tis = new TermSubstitutionTree();
+    res = new UnitInequalityRhsIndex(tis);
+    isGenerating = true;
+    break;  
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }
