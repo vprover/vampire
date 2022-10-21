@@ -12,6 +12,8 @@
 #define VTEST
 #define SAT_SR_IMPL 2
 
+#define WRITE_LITERAL_MATCHES_FILE 0
+
 namespace SMTSubsumption {
 class SATSubsumption;
 
@@ -67,11 +69,11 @@ private:
   };
 
   /**
-   * A Match set is a facitlity to store matches, and allows to ennumerate them either according to the clause L or M indices.
+   * A Match set is a facility to store matches, and allows to enumerate them either according to the clause L or M indices.
    * The Match Set, when filled contains all the bindings possible between the clauses L and M
    * The match set can be abstracted as a sparse matrix holding the associated sat variable and polarity of the matches
    *
-   * @example For example, here is a table of matches (not necessarily coherent with the subsumption resolutio problem)
+   * @example For example, here is a table of matches (not necessarily coherent with the subsumption resolution problem)
    *
    *      i=0  i=1  i=2  i=3  i=4
    * j=0 | 0+ |    |    | 3- |    |
@@ -126,7 +128,7 @@ private:
     /// @brief the number of matches currently allocated
     unsigned _nAllocatedMatches;
     /// @brief the matches available for use
-    /// This is used to avoid allocating and deallocating memory at each resolutiton check
+    /// This is used to avoid allocating and deallocating memory at each resolution check
     /// The memory is allocated by batches of powers of 2
     /// In the order of allocations, we would have :
     /// 0 1 2 2 3 3 3 3 ...
@@ -150,12 +152,12 @@ private:
 
     /**
      * Resizes the match matrix to the given size and clears the matrix
-     * Garantees that the a match can be added at index ( @b m - 1, @b n - 1 )
+     * Guarantees that the a match can be added at index ( @b m - 1, @b n - 1 )
      *
      * @param m the new length of L
      * @param n the new length of M
      *
-     * @warning the allocated matches will remain accessible but will be no longer be reserved. I would therefore be prefereable to not keep the matches after calling this function.
+     * @warning the allocated matches will remain accessible but will be no longer be reserved. It would therefore be preferable to not keep the matches after calling this function.
      */
     void resize(unsigned m, unsigned n);
 
@@ -219,7 +221,7 @@ private:
 
     /**
      * Clears the match set
-     * @warning the allocated matches will remain accessible but will be no longer be reserved. I would therefore be prefereable to not keep the matches after calling this function.
+     * @warning the allocated matches will remain accessible but will be no longer be reserved. I would therefore be preferable to not keep the matches after calling this function.
      */
     void clear();
 
@@ -259,10 +261,15 @@ private:
   /// @brief For some L_i, remembers the M_j that are negatively matched to L_i
   vvector<unsigned> _negativeMatches;
 
+  #if WRITE_LITERAL_MATCHES_FILE
   // output file for cache profiling
   std::ofstream _fileOut;
+  #endif
 
-  void writeInFile(char head, Kernel::Clause *L, Kernel::Clause *M);
+  // remembers if the fillMatchesSR concluded that subsumption is impossible
+  bool _subsumption_impossible;
+  // remembers if the fillMatchesSR concluded that subsumption resolution is impossible
+  bool _sr_impossible;
 
   unsigned _nSubsumptionCalls;
   unsigned _nSubsumptionResolutionCalls;
@@ -317,7 +324,7 @@ private:
    * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of L and M.
    * @return false if no subsumption resolution solution is possible, the number of sat variables allocated otherwise.
    */
-  bool fillMatchesSR();
+  void fillMatchesSR();
 
   /**
    * Generates the conclusion clause based on the model provided by the sat solver
@@ -335,27 +342,27 @@ public:
   ~SATSubsumption();
 
   ///
-  bool checkSubsumption(Kernel::Clause *L, Kernel::Clause *M);
+  bool checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool setNegative = false);
 
   /**
    * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
    *
    * L /\ M => L /\ C where C is the conclusion of the subsumption resolution
    *
-   * Subsumption resolution is possible for two clauses (~A V C) and (B V D) if there exists a substition "s" such that
+   * Subsumption resolution is possible for two clauses (~A V C) and (B V D) if there exists a substitution "s" such that
    * s(A V C) \\subseteq (B V D)
-   * Where A and B are sigle literals and D becomes the conclusion of the subsumption resolution
+   * Where A and B are single literals and D becomes the conclusion of the subsumption resolution
    * @example
    * [p(x1, x2) V p(f(x2), x3)] /\ [~p2(f(y1), d) V p2(g(y1), c) V ~p2(f(c), e)]
    * ---------------------------------------------------------------------------
    *                  ~p2(f(y1),d) V p2(g(y1),c)
    * thank's to the substitution S = {x1 -> g(y1), x2 -> c, x3 -> e}
-   * @remark Subsumption resolution may not be unique, this method has no garantee on which solution will be generated.
+   * @remark Subsumption resolution may not be unique, this method has no guarantee on which solution will be generated.
    * @example
    * [p(x) V q(x) V r(x)] /\ [P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ R(d)]
    * may have several conclusion.
    */
-  Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *L, Kernel::Clause *M);
+  Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *L, Kernel::Clause *M, bool usePreviousMatchSet = false);
 
   /**
    * Clears all the caches.

@@ -66,7 +66,7 @@ public:
   int64_t m_logged_useless_sat_checks_sr = 0;
 
   // Store numDecisions as histogram
-  // first two are originationg from subsumption
+  // first two are originating from subsumption
   // m_numDecisions_frequency[numDecisions] = absolute number of MLMatcher calls that return numDecisions
   vvector<int64_t> m_numDecisions_frequency;
   // only those where MLMatcher returned 'true'
@@ -916,7 +916,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     SLQueryResult res = rit.next();
     Clause *mcl = res.clause;
     fsstats.m_logged_sat_checks++;
-    bool result = satSubs.checkSubsumption(mcl, cl);
+    bool result = satSubs.checkSubsumption(mcl, cl, _subsumptionResolution && !conclusion);
     if (result) {
       premises = pvi(getSingletonIterator(mcl));
 #if CHECK_SAT_SUBSUMPTION
@@ -943,7 +943,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     if (_subsumptionResolution && !conclusion) {
       n_sr_checks++;
       fsstats.m_logged_sat_checks_sr++;
-      conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+      conclusion = satSubs.checkSubsumptionResolution(mcl, cl, true);
       if (conclusion) {
         conclusionPremise = mcl;
 #if CHECK_SAT_SUBSUMPTION_RESOLUTION

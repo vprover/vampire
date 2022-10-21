@@ -206,14 +206,19 @@ SATSubsumption::SATSubsumption() : _L(nullptr),
                                    _nSubsumptionSolverCalls(0),
                                    _nSubsumptionResolutionSolverCalls(0)
 {
-  // nothing to do
-  //_fileOut.open("subsumptionLog.txt");
+// nothing to do
+#if WRITE_LITERAL_MATCHES_FILE
+  _fileOut.open("subsumptionLog.txt");
+#endif
+  cout << "***SAT subsumption resolution is enabled -- Encoding " << SAT_SR_IMPL << "***" << endl;
 }
 
 SATSubsumption::~SATSubsumption()
 {
   delete _bindingsManager;
-  //_fileOut.close();
+#if WRITE_LITERAL_MATCHES_FILE
+  _fileOut.close();
+#endif
 }
 
 void SATSubsumption::setupProblem(Kernel::Clause *L, Kernel::Clause *M)
@@ -229,6 +234,9 @@ void SATSubsumption::setupProblem(Kernel::Clause *L, Kernel::Clause *M)
 
   _matchSet.clear();
   _matchSet.resize(_m, _n);
+
+  _subsumption_impossible = false;
+  _sr_impossible = false;
 
   _solver->s.clear();
   _bindingsManager->clear();
@@ -249,30 +257,45 @@ void SATSubsumption::addBinding(BindingsManager::Binder *binder, unsigned i, uns
 bool SATSubsumption::checkAndAddMatch(Literal *L_i, Literal *M_j, unsigned i, unsigned j, bool polarity)
 {
   CALL("SATSubsumption::checkAndAddMatch");
+#if WRITE_LITERAL_MATCHES_FILE
+  _fileOut << L_i->getId() << " " << M_j->getId();
+#endif
   if (!Literal::headersMatch(L_i, M_j, !polarity)) {
+#if WRITE_LITERAL_MATCHES_FILE
+    _fileOut << " 0" << endl;
+#endif
     return false;
   }
   if (L_i->arity() == 0) {
+#if WRITE_LITERAL_MATCHES_FILE
+    _fileOut << " 1" << endl;
+#endif
     return true;
   }
 
   bool match = false;
-  // Need to use the matchNoSwap function to avoid having twice the same binding
-  // (e.g L_i : f(x) == g(y)  M_j : g(c) == f(d), if using match, we would have twice the binding {x -> d, y -> c})
   {
     auto binder = _bindingsManager->start_binder();
-    if (MatchingUtils::matchNoSwap(L_i, M_j, !polarity, binder)) {
+    if (MatchingUtils::matchArgs(L_i, M_j, binder)) {
       addBinding(&binder, i, j, polarity);
       match = true;
     }
   }
   if (L_i->commutative()) {
     auto binder = _bindingsManager->start_binder();
-    if (MatchingUtils::swapMatch(L_i, M_j, !polarity, binder)) {
+    if (MatchingUtils::matchReversedArgs(L_i, M_j, binder)) {
       addBinding(&binder, i, j, polarity);
       match = true;
     }
   }
+#if WRITE_LITERAL_MATCHES_FILE
+  if (match) {
+    _fileOut << " 1" << endl;
+  }
+  else {
+    _fileOut << " 0" << endl;
+  }
+#endif
   return match;
 }
 
@@ -309,7 +332,7 @@ bool SATSubsumption::fillMatchesS()
   return true;
 } // SATSubsumption::fillMatchesS()
 
-bool SATSubsumption::fillMatchesSR()
+void SATSubsumption::fillMatchesSR()
 {
   CALL("SATSubsumption::fillMatchesSR");
   ASS(_L);
@@ -340,21 +363,22 @@ bool SATSubsumption::fillMatchesSR()
           foundPositiveMatch = true;
         }
       } // end of positive literal match
-      else {
-        if (checkAndAddMatch(L_i, M_j, i, j, false)) {
-          hasNegativeMatch = true;
-          if (!foundPositiveMatch) {
-            // no need to push back if we already found a positive match
-            _negativeMatches.push_back(j);
-          }
+      // dont check for negative literals if it was established that
+      else if (!_sr_impossible && checkAndAddMatch(L_i, M_j, i, j, false)) {
+        hasNegativeMatch = true;
+        if (!foundPositiveMatch) {
+          // no need to push back if we already found a positive match
+          _negativeMatches.push_back(j);
         }
       } // end of negative literal matches
     }   // for (unsigned j = 0; j < _nInstanceLits; ++j)
 
     if (!foundPositiveMatch) {
+      _subsumption_impossible = true;
       if (!hasNegativeMatch) {
         // no positive or negative matches found
-        return false;
+        _sr_impossible = true;
+        return;
       }
       if (lastHeader == numeric_limits<unsigned>::max()) {
         lastHeader = L_i->header();
@@ -363,13 +387,18 @@ bool SATSubsumption::fillMatchesSR()
         continue;
       }
       else if (lastHeader != L_i->header()) {
-        return false;
+        _sr_impossible = true;
+        return;
       }
 
       intersect(_intersection, _negativeMatches);
       if (_intersection.empty()) {
         // It is impossible to find a SR because some L_i have no possible match
-        return false;
+        _sr_impossible = true;
+        return;
+      }
+      if (_subsumption_impossible && _sr_impossible) {
+        return;
       }
     }
 
@@ -377,9 +406,9 @@ bool SATSubsumption::fillMatchesSR()
 
   if (!hasNegativeMatch) {
     // If there are no negative matches, then the SR is not possible
-    return false;
+    _sr_impossible = true;
+    return;
   }
-  return true;
 } // SATSubsumption::fillMatchesSR()
 
 bool SATSubsumption::cnfForSubsumption()
@@ -422,50 +451,6 @@ bool SATSubsumption::cnfForSubsumption()
   return !solver.inconsistent();
 }
 
-void SATSubsumption::writeInFile(char head, Clause *L, Clause *M)
-{
-  auto L_id = L->toString();
-  unsigned pos = L_id.find(" ");
-  while (pos != string::npos && pos < L_id.size()) {
-    L_id.replace(pos, 1, "");
-    pos = L_id.find(" ");
-  }
-  auto M_id = M->toString();
-  pos = M_id.find(" ");
-  while (pos != string::npos && pos < M_id.size()) {
-    M_id.replace(pos, 1, "");
-    pos = M_id.find(" ");
-  }
-
-  //_fileOut << head << " " << L_id << " " << M_id << endl;
-}
-
-bool SATSubsumption::checkSubsumption(Kernel::Clause *L, Kernel::Clause *M)
-{
-  CALL("SATSubsumption::checkSubsumption");
-  // writeInFile('S', L, M);
-  //_fileOut << "S " << L->number() << " " << M->number() << endl;
-  if (L->length() > M->length()) {
-    return false;
-  }
-
-  setupProblem(L, M);
-
-  // Fill the matches
-  if (!fillMatchesS()) {
-    return false;
-  }
-
-  if (!cnfForSubsumption()) {
-    return false;
-  }
-  // Solve the SAT problem
-  if (_solver->s.solve() == subsat::Result::Sat) {
-    return true;
-  }
-  return false;
-}
-
 #if SAT_SR_IMPL == 1
 /**
  * First encoding of the sat subsumption resolution
@@ -490,7 +475,7 @@ bool SATSubsumption::checkSubsumption(Kernel::Clause *L, Kernel::Clause *M)
  *  - At least one negative polarity match exists
  *    c_1 V c_2 V ... V c_n
  *  - At most one M_j is matched by a negative polarity variable
- *    At most one c_j is true (embeded in the sat solver)
+ *    At most one c_j is true (embedded in the sat solver)
  *    (~c_1 V ~c_2) /\ (~c_1 V ~c_3) /\ ... /\ (~c_2 V ~c_3) /\ ...
  *  - Each L_i is matched by at least one M_j
  *    b_11 V ... V b_1k /\ b_21 V ... V b_2k /\ ... /\ b_n1 V ... V b_nk
@@ -510,7 +495,7 @@ bool SATSubsumption::cnfForSubsumptionResolution()
   ASS(_L);
   ASS(_M);
   ASS(_solver->s.theory().empty());
-  // Checks for all the literal mapings and store them in a cache
+  // Checks for all the literal mappings and store them in a cache
   // nVar is the number of variables that are of the form b_ij
 
   // -> b_ij implies a certain substitution is valid
@@ -531,7 +516,7 @@ bool SATSubsumption::cnfForSubsumptionResolution()
   solver.constraint_start();
   for (unsigned j = 0; j < _n; ++j) {
     // Do not add useless variables in the solver
-    // It would compromise correctness since a c_j without binding coud be true and satisfy c_1 V ... V c_n without making any other clause false.
+    // It would compromise correctness since a c_j without binding could be true and satisfy c_1 V ... V c_n without making any other clause false.
     if (_matchSet.hasNegativeMatchJ(j)) {
       subsat::Var c_j = solver.new_variable();
       _atMostOneVars.push_back(pair<unsigned, subsat::Var>(j, c_j));
@@ -548,7 +533,7 @@ bool SATSubsumption::cnfForSubsumptionResolution()
 #endif
   // add the c_1 V ... V c_n clause
   // -> At most one M_j is matched by a negative polarity variable
-  //    At most one c_j is true (embeded in the sat solver)
+  //    At most one c_j is true (embedded in the sat solver)
   solver.constraint_start();
   for (auto var : _atMostOneVars) {
     solver.constraint_push_literal(var.second);
@@ -832,19 +817,50 @@ Kernel::Clause *SATSubsumption::generateConclusion()
   return conclusion;
 }
 
-Kernel::Clause *SATSubsumption::checkSubsumptionResolution(Kernel::Clause *L, Kernel::Clause *M)
+bool SATSubsumption::checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool setSR)
+{
+  CALL("SATSubsumption::checkSubsumption");
+  if (L->length() > M->length()) {
+    return false;
+  }
+
+  setupProblem(L, M);
+
+  // Fill the matches
+  if (setSR) {
+    fillMatchesSR();
+    if (_subsumption_impossible) {
+      return false;
+    }
+  }
+  else if (!fillMatchesS()) {
+    return false;
+  }
+
+  if (!cnfForSubsumption()) {
+    return false;
+  }
+  // Solve the SAT problem
+  if (_solver->s.solve() == subsat::Result::Sat) {
+    return true;
+  }
+  return false;
+}
+
+Kernel::Clause *SATSubsumption::checkSubsumptionResolution(Kernel::Clause *L, Kernel::Clause *M, bool usePreviousSetUp)
 {
   CALL("SATSubsumption::checkSubsumptionResolution");
-  // writeInFile('R', L, M);
-  //_fileOut << "R " << L->number() << " " << M->number() << endl;
   if (M->length() < L->length() || M->length() == 1) {
     return nullptr;
   }
-  setupProblem(L, M);
 
-  // Checks for all the literal mapings and store them in a cache
+  // Checks for all the literal mappings and store them in a cache
   // nVar is the number of variables that are of the form b_ij
-  if (!fillMatchesSR()) {
+  if (!usePreviousSetUp) {
+    setupProblem(L, M);
+    fillMatchesSR();
+  }
+  if (_sr_impossible) {
     return nullptr;
   }
 

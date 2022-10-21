@@ -105,67 +105,6 @@ public:
     }
   }
 
-    /**
-   * Matches two literals without checking for cummutativity.
-   * using @b binder to store and check bindings of base variables.
-   * If the literals are commutative, this method does not try to match the swapped arguments.
-   *
-   * @b binder must have the following functions:
-   * - void reset()
-   *   resets the bindings,
-   * - bool bind(unsigned var, TermList term)
-   *   if variable @b var is unbound, binds it to @b term and returns true,
-   *   otherwise returns true iff it is bound to @b term,
-   * - void specVar(unsigned var, TermList term)
-   *   called to bind special variable @b var to @b term.
-   *
-   * The @b binder will be reset before the first time it is used.
-   *
-   * @pre Assumes that base does not have a 0 arity
-   *
-   * @return true if the binding was successful.
-   */
-  template<class Binder>
-  static bool matchNoSwap(Literal* base, Literal* instance, bool complementary, Binder& binder)
-  {
-    CALL("MatchingUtils::matchOrSwapMatch(Literal* base, Literal* instance, bool complementary, Binder& binder)");
-    if(!Literal::headersMatch(base,instance,complementary)) {
-      return false;
-    }
-    return matchArgs(base, instance, binder);
-  }
-
-  /**
-   * Matches two literals after swapping the arguments.
-   * using @b binder to store and check bindings of base variables.
-   * If the literals are commutative, this method does not try to match the swapped arguments.
-   *
-   * @b binder must have the following functions:
-   * - void reset()
-   *   resets the bindings,
-   * - bool bind(unsigned var, TermList term)
-   *   if variable @b var is unbound, binds it to @b term and returns true,
-   *   otherwise returns true iff it is bound to @b term,
-   * - void specVar(unsigned var, TermList term)
-   *   called to bind special variable @b var to @b term.
-   *
-   * The @b binder will be reset before the first time it is used.
-   *
-   * @pre Assumes that base does not have a 0 arity
-   *
-   * @return true if the binding was successful.
-   */
-  template<class Binder>
-  static bool swapMatch(Literal* base, Literal* instance, bool complementary, Binder& binder)
-  {
-    CALL("MatchingUtils::swapMatch(Literal* base, Literal* instance, bool complementary, Binder& binder)");
-    ASS(base->commutative());
-    if(!Literal::headersMatch(base,instance,complementary)) {
-      return false;
-    }
-    return matchReversedArgs(base, instance, binder);
-  }
-
   static bool matchReversedArgs(Literal* base, Literal* instance);
   static bool matchArgs(Term* base, Term* instance);
   static bool matchTerms(TermList base, TermList instance);
