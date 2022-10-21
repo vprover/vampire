@@ -364,6 +364,10 @@ enum class InferenceRule : unsigned char {
 
   EQ_TO_INEQ,
 
+  // unit inequality chaining e.g.
+  // a < b && b < c ====> a < c
+  INEQUALITY_CHAINING,
+
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
