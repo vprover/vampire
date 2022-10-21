@@ -86,9 +86,10 @@ private:
   vvector<SubsumptionInstance> subsumption_tried;
   vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
 
-#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION
+#if CHECK_SAT_SUBSUMPTION || !USE_SAT_SUBSUMPTION
   bool checkSubsumption(Clause *mcl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
-
+#endif
+#if CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION
   Clause *checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 #endif
 };
