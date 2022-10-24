@@ -85,6 +85,15 @@ private:
 
   vvector<SubsumptionInstance> subsumption_tried;
   vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
+#if USE_SAT_SUBSUMPTION
+  DHSet<Clause *> _checked;
+  Clause* _conclusion = nullptr;
+  bool _subsumes = false;
+  Clause* _premise = nullptr;
+
+  inline bool loopSubsumptionAndResolution(LiteralIndex *index, Clause* cl, unsigned clen);
+  void loopSubsumptionResolution(LiteralIndex *index, Clause* cl, unsigned clen);
+#endif
 
 #if CHECK_SAT_SUBSUMPTION || !USE_SAT_SUBSUMPTION
   bool checkSubsumption(Clause *mcl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
@@ -92,6 +101,7 @@ private:
 #if CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION
   Clause *checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 #endif
+
 };
 
 }; // namespace Inferences

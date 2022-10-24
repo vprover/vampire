@@ -11,7 +11,6 @@
 /// @todo TODO : remove that when the real VTEST flag is added
 #define VTEST
 #define SAT_SR_IMPL 2
-
 #define WRITE_LITERAL_MATCHES_FILE 0
 
 namespace SMTSubsumption {
@@ -271,11 +270,6 @@ private:
   // remembers if the fillMatchesSR concluded that subsumption resolution is impossible
   bool _sr_impossible;
 
-  unsigned _nSubsumptionCalls;
-  unsigned _nSubsumptionResolutionCalls;
-  unsigned _nSubsumptionSolverCalls;
-  unsigned _nSubsumptionResolutionSolverCalls;
-
   /* Methods */
   /**
    * Set up the subsumption problem.
@@ -341,11 +335,29 @@ public:
   SATSubsumption();
   ~SATSubsumption();
 
-  ///
+  /**
+   * Checks whether the instance clause is subsumed by the base clause
+   * @param L the base clause
+   * @param M the instance clause
+   * @param setNegative if true, the Match set will be filled with negative matches as well.
+   * @return true if M is subsumed by L
+   *
+   * @remark The @b setNegative parameter is used to save time on the setup of subsumption resolution. If it is intended to check for subsumption resolution right after, it is better to set it to true and call checkSubsumptionResolution with the flag usePreviousMatchSet set to true.
+   *
+   * A clause L subsumes a clause M if there exists a substitution \f$\sigma\f$ such that \f$\sigma(M)\subseteq L\f$.
+   * Where L and M are considered as multisets of literals.
+   */
   bool checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool setNegative = false);
 
   /**
    * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
+   *
+   * @param L the base clause
+   * @param M the instance clause
+   * @param usePreviousMatchSet whether to use the previous match set or not. If false, the match set will be cleared and filled again.
+   * @return the conclusion of the resolution, or NULL if no resolution is possible
+   *
+   * @warning if the @b usePreviousMatchSet flag is true, the last call must have been a call to checkSubsumption with the flag setNegative set to true.
    *
    * L /\ M => L /\ C where C is the conclusion of the subsumption resolution
    *

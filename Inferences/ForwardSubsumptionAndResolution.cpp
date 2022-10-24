@@ -878,6 +878,70 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 #endif
 
 #if USE_SAT_SUBSUMPTION
+
+bool ForwardSubsumptionAndResolution::loopSubsumptionAndResolution(LiteralIndex *index, Clause *cl, unsigned clen)
+{
+  CALL("ForwardSubsumptionAndResolution::loopSubsumptionAndResolution")
+  // Check the unit clauses first
+  Clause *mcl;
+  unsigned n_sr_checks = 0;
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = index->getGeneralizations(lit, false, false);
+    while (it.hasNext()) {
+      mcl = it.next().clause;
+      if (!_checked.insert(mcl)) {
+        continue;
+      }
+
+      bool checkSR = _subsumptionResolution && !_conclusion;
+      fsstats.m_logged_sat_checks++;
+      if (satSubs.checkSubsumption(mcl, cl, checkSR)) {
+        _subsumes = true;
+        _premise = mcl;
+        fsstats.m_logged_useless_sat_checks_sr += n_sr_checks;
+        return true;
+      }
+      else if (checkSR) {
+        fsstats.m_logged_sat_checks_sr++;
+        n_sr_checks++;
+        _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, true);
+        if (_conclusion) {
+          ASS(_premise == nullptr);
+          // cannot override the premise since the loop would have ended otherwise
+          _premise = mcl;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+void ForwardSubsumptionAndResolution::loopSubsumptionResolution(LiteralIndex *index, Clause *cl, unsigned clen)
+{
+  CALL("ForwardSubsumptionAndResolution::loopSubsumptionResolution")
+  // Check the unit clauses first
+  Clause *mcl;
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = index->getGeneralizations(lit, true, false);
+    while (it.hasNext()) {
+      mcl = it.next().clause;
+      if (!_checked.insert(mcl)) {
+        continue;
+      }
+
+      fsstats.m_logged_sat_checks_sr++;
+      _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, false);
+      if (_conclusion) {
+        ASS(_premise == nullptr);
+        _premise = mcl;
+        return;
+      }
+    }
+  }
+}
+
 /**
  * Checks whether the clause @b cl can be subsumed or resolved and subsumed by any clause is @b premises .
  * If the clause is subsumed, returns true
@@ -901,133 +965,40 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   if (clen == 0) {
     return false;
   }
+  _subsumes = false;
+  _conclusion = nullptr;
+  _premise = nullptr;
+  _checked.reset();
+
+  if (!loopSubsumptionAndResolution(_unitIndex, cl, clen)) {
+    if (!loopSubsumptionAndResolution(_fwIndex, cl, clen)
+     && !_conclusion && _subsumptionResolution) {
+      loopSubsumptionResolution(_unitIndex, cl, clen);
+      if (!_conclusion) {
+        loopSubsumptionResolution(_fwIndex, cl, clen);
+      }
+    }
+  }
 
 #if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION
   LiteralMiniIndex miniIndex(cl);
   Clause::requestAux();
 #endif
 
-  Clause *conclusion = nullptr;
-  Clause *conclusionPremise = nullptr;
-  static DHSet<Clause *> toCheckSubsumption;
-  toCheckSubsumption.reset();
-  static DHSet<Clause *> toCheckSR;
-  toCheckSR.reset();
-
-  // Establish all the subsumption and subsumption resolution checks worth trying
-  for (unsigned li = 0; li < clen; li++) {
-    Literal *lit = (*cl)[li];
-    SLQueryResultIterator it = _unitIndex->getGeneralizations(lit, false, false);
-    while (it.hasNext()) {
-      Clause *premise = it.next().clause;
-      toCheckSubsumption.insert(premise);
-    }
-    it = _fwIndex->getGeneralizations(lit, false, false);
-    while (it.hasNext()) {
-      Clause *premise = it.next().clause;
-      toCheckSubsumption.insert(premise);
-      // no need to add to toCheckSR since the subsumption resolution check will follow the subsumption check anyway
-    }
-    if (_subsumptionResolution && clen > 1) {
-      it = _unitIndex->getGeneralizations(lit, true, false);
-      while (it.hasNext()) {
-        Clause *premise = it.next().clause;
-        toCheckSR.insert(premise);
-      }
-      it = _fwIndex->getGeneralizations(lit, true, false);
-      while (it.hasNext()) {
-        Clause *premise = it.next().clause;
-        if (toCheckSubsumption.contains(premise)) {
-          // Do not add to toCheckSR if the subsumption check is already in toCheckSubsumption
-          toCheckSR.insert(premise);
-        }
-      }
-    }
-  }
-  unsigned n_sr_checks = 0;
-  auto it = toCheckSubsumption.iterator();
-  while (it.hasNext()) {
-    Clause *mcl = it.next();
-    fsstats.m_logged_sat_checks++;
-    bool checkSR = _subsumptionResolution && !conclusion && clen > 1;
-    bool result = satSubs.checkSubsumption(mcl, cl, checkSR);
-    if (result) {
-      premises = pvi(getSingletonIterator(mcl));
-#if CHECK_SAT_SUBSUMPTION
-      ClauseIterator premises_aux;
-      if (!checkSubsumption(cl, premises_aux, miniIndex)) {
-        env.beginOutput();
-        env.out() << "------------- FALSE POSITIVE S  -------------" << endl;
-        env.out() << "Subsumption check mismatch: (" << result << " != " << false << ")" << endl;
-        env.out() << "L: " << mcl->toString() << endl;
-        env.out() << "M: " << cl->toString() << endl;
-        env.endOutput();
-      }
-#endif
-#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION
-      Clause::releaseAux();
-      while (cmStore.isNonEmpty()) {
-        delete cmStore.pop();
-      }
-#endif
-      fsstats.m_logged_useless_sat_checks_sr += n_sr_checks;
-      return true;
-    }
-
-    if (checkSR) {
-      n_sr_checks++;
-      fsstats.m_logged_sat_checks_sr++;
-      conclusion = satSubs.checkSubsumptionResolution(mcl, cl, true);
-      if (conclusion) {
-        conclusionPremise = mcl;
-#if CHECK_SAT_SUBSUMPTION_RESOLUTION
-        ClauseIterator premises_aux;
-        Clause *conclusion = checkSubsumptionResolution(cl, premises_aux, miniIndex);
-        if (!conclusion) {
-          env.beginOutput();
-          env.out() << "------------- FALSE POSITIVE SR -------------" << endl;
-          env.out() << "Subsumption resolution check mismatch:" << endl;
-          env.out() << "L: " << cl->toString() << endl;
-          env.out() << "M: " << mcl->toString() << endl;
-          env.out() << "Expected: " << conclusion->toString() << endl;
-          env.out() << "Actual: nullptr" << endl;
-          env.endOutput();
-        }
-#endif
-      }
-#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION
-      Clause::releaseAux();
-      while (cmStore.isNonEmpty()) {
-        delete cmStore.pop();
-      }
-#endif
-    }
-  } // for (Clause *mcl : toCheckSubsumption)
-
-  if (!conclusion && _subsumptionResolution && clen > 1) {
-    // If no conclusion was found yet, then try the one in the toCheckSR set
-    auto it = toCheckSR.iterator();
-    while (it.hasNext()) {
-      Clause *mcl = it.next();
-      if (toCheckSubsumption.contains(mcl)) {
-        // Do not check if the subsumption check is already in toCheckSubsumption
-        continue;
-      }
-      fsstats.m_logged_sat_checks_sr++;
-      conclusion = satSubs.checkSubsumptionResolution(mcl, cl, false);
-      if (conclusion) {
-        conclusionPremise = mcl;
-        break;
-      }
-    }
-  }
-
 #if CHECK_SAT_SUBSUMPTION
   ClauseIterator premises_aux;
-  if (checkSubsumption(cl, premises_aux, miniIndex)) {
+  if (_subsumes) {
+    if (!checkSubsumption(cl, premises_aux, miniIndex)) {
+      env.beginOutput();
+      env.out() << "------------- FALSE POSITIVE S  -------------" << endl;
+      env.out() << "L: " << _premise->toString() << endl;
+      env.out() << "M: " << cl->toString() << endl;
+      env.endOutput();
+    }
+  }
+  else if (checkSubsumption(cl, premises_aux, miniIndex)) {
     env.beginOutput();
     env.out() << "------------- FALSE NEGATIVE S  -------------" << endl;
-    env.out() << "Subsumption check mismatch: (" << false << " != " << true << ")" << endl;
     env.out() << "L: " << cl->toString() << endl;
     Clause *mcl = premises_aux.next();
     env.out() << "M: " << mcl->toString() << endl;
@@ -1036,14 +1007,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 #endif
 
 #if CHECK_SAT_SUBSUMPTION_RESOLUTION
-  {
-    if (!conclusion) {
+  if (!_subsumes) {
+    if (!_conclusion) {
       ClauseIterator premises_aux;
       Clause *conclusion = checkSubsumptionResolution(cl, premises_aux, miniIndex);
       if (conclusion) {
         env.beginOutput();
         env.out() << "------------- FALSE NEGATIVE SR -------------" << endl;
-        env.out() << "Subsumption resolution check mismatch:" << endl;
         Clause *mcl = premises_aux.next();
         env.out() << "L: " << mcl->toString() << endl;
         env.out() << "M: " << cl->toString() << endl;
@@ -1058,7 +1028,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       if (!conclusion) {
         env.beginOutput();
         env.out() << "------------- FALSE POSITIVE SR -------------" << endl;
-        env.out() << "Subsumption resolution check mismatch:" << endl;
         Clause *mcl = premises_aux.next();
         env.out() << "L: " << mcl->toString() << endl;
         env.out() << "M: " << cl->toString() << endl;
@@ -1068,6 +1037,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       }
     }
   }
+
 #endif
 
 #if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION
@@ -1076,9 +1046,14 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     delete cmStore.pop();
   }
 #endif
-  if (conclusion) {
-    replacement = conclusion;
-    premises = pvi(getSingletonIterator(conclusionPremise));
+
+  if (_subsumes) {
+    premises = pvi(getSingletonIterator(_premise));
+    return true;
+  }
+  if (_conclusion) {
+    replacement = _conclusion;
+    premises = pvi(getSingletonIterator(_premise));
     return true;
   }
 
