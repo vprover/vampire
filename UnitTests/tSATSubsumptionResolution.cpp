@@ -169,6 +169,12 @@ TEST_FUN(PositiveSubsumptionResolution)
     conclusion = subsumption.checkSubsumptionResolution(L2, M2);
     ASS(conclusion)
     ASS(checkClauseEquality(conclusion, expected2));
+    Kernel::Clause* L3 = clause({p3(x2, f(x2), e)});
+    Kernel::Clause* M3 = clause({p3(f(e), x5, x5), ~p3(x4, f(x4), e)});
+    Kernel::Clause* expected3 = clause({p3(f(e), x5, x5)});
+    conclusion = subsumption.checkSubsumptionResolution(L3, M3);
+    ASS(conclusion);
+    ASS(checkClauseEquality(conclusion, expected3));
 }
 
 TEST_FUN(NegativeSubsumptionResolution)

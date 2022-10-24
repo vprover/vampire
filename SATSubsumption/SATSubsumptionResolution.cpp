@@ -232,10 +232,12 @@ void SATSubsumption::setupProblem(Kernel::Clause *L, Kernel::Clause *M)
   _m = L->length();
   _n = M->length();
 
+
   _matchSet.clear();
   _matchSet.resize(_m, _n);
 
-  _subsumption_impossible = false;
+    // There cannot be any subsumption resolution, if there isn't at least 2 literals.
+  _subsumption_impossible = _n < 1;
   _sr_impossible = false;
 
   _solver->s.clear();
@@ -827,7 +829,7 @@ bool SATSubsumption::checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool
   setupProblem(L, M);
 
   // Fill the matches
-  if (setSR) {
+  if (setSR && !_sr_impossible) {
     fillMatchesSR();
     if (_subsumption_impossible) {
       return false;
@@ -853,11 +855,20 @@ Kernel::Clause *SATSubsumption::checkSubsumptionResolution(Kernel::Clause *L, Ke
   if (M->length() < L->length() || M->length() == 1) {
     return nullptr;
   }
+#if VDEBUG
+  if(usePreviousSetUp) {
+    ASS(_L == L);
+    ASS(_M == M);
+  }
+#endif
 
   // Checks for all the literal mappings and store them in a cache
   // nVar is the number of variables that are of the form b_ij
   if (!usePreviousSetUp) {
     setupProblem(L, M);
+    if(_subsumption_impossible) {
+      return nullptr;
+    }
     fillMatchesSR();
   }
   if (_sr_impossible) {
