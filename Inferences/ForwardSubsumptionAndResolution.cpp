@@ -909,10 +909,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
   Clause *conclusion = nullptr;
   Clause *conclusionPremise = nullptr;
-  static vset<Clause *> toCheckSubsumption;
-  toCheckSubsumption.clear();
-  static vset<Clause *> toCheckSR;
-  toCheckSR.clear();
+  static DHSet<Clause *> toCheckSubsumption;
+  toCheckSubsumption.reset();
+  static DHSet<Clause *> toCheckSR;
+  toCheckSR.reset();
 
   // Establish all the subsumption and subsumption resolution checks worth trying
   for (unsigned li = 0; li < clen; li++) {
@@ -928,7 +928,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       toCheckSubsumption.insert(premise);
       // no need to add to toCheckSR since the subsumption resolution check will follow the subsumption check anyway
     }
-    if (_subsumptionResolution) {
+    if (_subsumptionResolution && clen > 1) {
       it = _unitIndex->getGeneralizations(lit, true, false);
       while (it.hasNext()) {
         Clause *premise = it.next().clause;
@@ -937,7 +937,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       it = _fwIndex->getGeneralizations(lit, true, false);
       while (it.hasNext()) {
         Clause *premise = it.next().clause;
-        if(toCheckSubsumption.find(premise) == toCheckSubsumption.end()) {
+        if (toCheckSubsumption.contains(premise)) {
           // Do not add to toCheckSR if the subsumption check is already in toCheckSubsumption
           toCheckSR.insert(premise);
         }
@@ -945,11 +945,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     }
   }
   unsigned n_sr_checks = 0;
-  // SLQueryResultIterator rit = _unitIndex->getAll();
-  // bool firstTraversal = true;
-  for (Clause *mcl : toCheckSubsumption) {
+  auto it = toCheckSubsumption.iterator();
+  while (it.hasNext()) {
+    Clause *mcl = it.next();
     fsstats.m_logged_sat_checks++;
-    bool result = satSubs.checkSubsumption(mcl, cl, _subsumptionResolution && !conclusion);
+    bool checkSR = _subsumptionResolution && !conclusion && clen > 1;
+    bool result = satSubs.checkSubsumption(mcl, cl, checkSR);
     if (result) {
       premises = pvi(getSingletonIterator(mcl));
 #if CHECK_SAT_SUBSUMPTION
@@ -973,7 +974,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       return true;
     }
 
-    if (_subsumptionResolution && !conclusion) {
+    if (checkSR) {
       n_sr_checks++;
       fsstats.m_logged_sat_checks_sr++;
       conclusion = satSubs.checkSubsumptionResolution(mcl, cl, true);
@@ -1003,10 +1004,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     }
   } // for (Clause *mcl : toCheckSubsumption)
 
-  if (!conclusion && _subsumptionResolution) {
+  if (!conclusion && _subsumptionResolution && clen > 1) {
     // If no conclusion was found yet, then try the one in the toCheckSR set
-    for (Clause *mcl : toCheckSR) {
-      if(toCheckSubsumption.find(mcl) != toCheckSubsumption.end()) {
+    auto it = toCheckSR.iterator();
+    while (it.hasNext()) {
+      Clause *mcl = it.next();
+      if (toCheckSubsumption.contains(mcl)) {
         // Do not check if the subsumption check is already in toCheckSubsumption
         continue;
       }
