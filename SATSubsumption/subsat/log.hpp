@@ -33,7 +33,7 @@ inline std::ostream &operator<<(std::ostream &os, unsigned char c) {
 #include "Lib/STLAllocator.hpp"
 #endif
 
-namespace log {
+namespace log_sat {
 
 #if SUBSAT_STANDALONE
 template <typename T>
@@ -44,7 +44,7 @@ using allocator_type = Lib::STLAllocator<T>;
 #endif
 
 using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
-} // namespace log
+} // namespace log_sat
 
 template <typename T, typename Allocator>
 struct ShowVecImpl {
@@ -101,10 +101,10 @@ enum class LogLevel : int {
 
 /// Filter log messages
 bool
-subsat_should_log(LogLevel msg_level, log::string fn, log::string pretty_fn);
+subsat_should_log(LogLevel msg_level, log_sat::string fn, log_sat::string pretty_fn);
 
 std::pair<std::ostream&, bool>
-subsat_log(LogLevel msg_level, log::string fn, log::string pretty_fn);
+subsat_log(LogLevel msg_level, log_sat::string fn, log_sat::string pretty_fn);
 
 #define LOG(lvl, x)                                               \
   do {                                                            \
