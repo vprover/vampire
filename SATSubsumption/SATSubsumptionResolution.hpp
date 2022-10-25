@@ -1,3 +1,16 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+/**
+ * @file SATSubsumptionResolution.cpp
+ * Defines class SATSubsumption.
+ */
 #ifndef SAT_SUBSUMPTION_RESOLUTION_HPP
 #define SAT_SUBSUMPTION_RESOLUTION_HPP
 
@@ -5,17 +18,25 @@
 #include "Lib/STL.hpp"
 #include "./subsat/subsat.hpp"
 
-#include <iostream> //include the header files like input-output streams
-#include <fstream>  //include the filestreamobject as the header files
-
 /// @todo TODO : remove that when the real VTEST flag is added
 #define VTEST
 #define SAT_SR_IMPL 2
 #define WRITE_LITERAL_MATCHES_FILE 0
 
+#if WRITE_LITERAL_MATCHES_FILE
+#include <iostream> //include the header files like input-output streams
+#include <fstream>  //include the filestreamobject as the header files
+#endif
+
 namespace SMTSubsumption {
 class SATSubsumption;
 
+/**
+ * Class implementing the simplifying rules of subsumption and subsumption resolution using SAT.
+ *
+ * @since 24/10/2022
+ * @author Robin Coutelier (contribution Micheal Rawson & Jakob Rath)
+ */
 class SATSubsumption {
 #ifdef VTEST
   // Make it public to allow unit testing

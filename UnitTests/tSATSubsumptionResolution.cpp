@@ -20,33 +20,37 @@ using namespace std;
 using namespace SMTSubsumption;
 using namespace Test;
 
-#define SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION                                                                             \
-  __ALLOW_UNUSED(                                                                                                       \
-      DECL_DEFAULT_VARS                                                                                                 \
-          DECL_VAR(x1, 1)                                                                                               \
-              DECL_VAR(x2, 2)                                                                                           \
-                  DECL_VAR(x3, 3)                                                                                       \
-                      DECL_VAR(x4, 4)                                                                                   \
-                          DECL_VAR(x5, 5)                                                                               \
-                              DECL_VAR(y1, 11)                                                                          \
-                                  DECL_VAR(y2, 12)                                                                      \
-                                      DECL_VAR(y3, 13)                                                                  \
-                                          DECL_VAR(y4, 14)                                                              \
-                                              DECL_VAR(y5, 15)                                                          \
-                                                  DECL_SORT(s)                                                          \
-                                                      DECL_CONST(c, s)                                                  \
-                                                          DECL_CONST(d, s)                                              \
-                                                              DECL_CONST(e, s)                                          \
-                                                                  DECL_FUNC(f, {s}, s)                                  \
-                                                                      DECL_FUNC(f2, {s, s}, s)                          \
-                                                                          DECL_FUNC(g, {s}, s)                          \
-                                                                              DECL_FUNC(g2, {s, s}, s)                  \
-                                                                                  DECL_PRED(p, {s})                     \
-                                                                                      DECL_PRED(p2, {s, s})             \
-                                                                                          DECL_PRED(p3, {s, s, s})      \
-                                                                                              DECL_PRED(q, {s})         \
-                                                                                                  DECL_PRED(q2, {s, s}) \
-                                                                                                      DECL_PRED(r, {s}))
+#define SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION     \
+  __ALLOW_UNUSED(                               \
+  DECL_DEFAULT_VARS                             \
+  DECL_VAR(x1, 1)                               \
+  DECL_VAR(x2, 2)                               \
+  DECL_VAR(x3, 3)                               \
+  DECL_VAR(x4, 4)                               \
+  DECL_VAR(x5, 5)                               \
+  DECL_VAR(y1, 11)                              \
+  DECL_VAR(y2, 12)                              \
+  DECL_VAR(y3, 13)                              \
+  DECL_VAR(y4, 14)                              \
+  DECL_VAR(y5, 15)                              \
+  DECL_SORT(s)                                  \
+  DECL_CONST(c, s)                              \
+  DECL_CONST(d, s)                              \
+  DECL_CONST(e, s)                              \
+  DECL_FUNC(f, {s}, s)                          \
+  DECL_FUNC(f2, {s, s}, s)                      \
+  DECL_FUNC(g, {s}, s)                          \
+  DECL_FUNC(g2, {s, s}, s)                      \
+  DECL_FUNC(h, {s}, s)                          \
+  DECL_FUNC(h2, {s, s}, s)                      \
+  DECL_FUNC(i, {s}, s)                          \
+  DECL_FUNC(i2, {s, s}, s)                      \
+  DECL_PRED(p, {s})                             \
+  DECL_PRED(p2, {s, s})                         \
+  DECL_PRED(p3, {s, s, s})                      \
+  DECL_PRED(q, {s})                             \
+  DECL_PRED(q2, {s, s})                         \
+  DECL_PRED(r, {s}))
 
 static bool vectorContains(vvector<SATSubsumption::Match *> vec, SATSubsumption::Match *match)
 {
@@ -176,6 +180,40 @@ TEST_FUN(PositiveSubsumptionResolution)
   conclusion = subsumption.checkSubsumptionResolution(L4, M4);
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected4));
+
+  /*
+  Kernel::Clause* L5 = clause({~p(f(x1)), q(x1)});
+  Kernel::Clause* M5 = clause({~p2(x2, x5), q(x2), p(f(x2)), ~q(g(x5))});
+  Kernel::Clause* expected5 = clause({~p2(x2, x5), q(x2)});
+  conclusion = subsumption.checkSubsumptionResolution(L5, M5);
+  ASS(conclusion);
+  ASS(checkClauseEquality(conclusion, expected5));
+
+  Kernel::Clause* L6 = clause({p(f2(x1, x2)), p2(x1, x2)});
+  Kernel::Clause* M6 = clause({p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4)), ~p2(f2(f(g(x5)), y4), x5)});
+  conclusion = subsumption.checkSubsumptionResolution(L6, M6);
+  ASS(conclusion);
+
+  Kernel::Clause* L7 = clause({p(f2(x1, x2)),
+                               p2(x1, x2)});
+  Kernel::Clause* M7 = clause({p2(f(g(x5)), y4),
+                               ~p(f2(f(g(x5)), y4)),
+                               ~p2(f2(f(g(x5)), y4), x5)});
+  Kernel::Clause* expected7 = clause({p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4))});
+  conclusion = subsumption.checkSubsumptionResolution(L7, M7);
+  ASS(conclusion);
+  ASS(checkClauseEquality(conclusion, expected7));
+  */
+
+  Kernel::Clause* L8 = clause({p(g2(x1,x2)),
+                               q2(x1,x2)});
+  Kernel::Clause* M8 = clause({q2(f(y1),y2),
+                               ~p(g2(f(y1),y2)),
+                               ~q2(g2(f(y1),y2),y1)});
+  Kernel::Clause* expected8 = clause({q2(f(y1),y2), ~q2(g2(f(y1),y2),y1)});
+  conclusion = subsumption.checkSubsumptionResolution(L8, M8);
+  ASS(conclusion);
+  ASS(checkClauseEquality(conclusion, expected8));
 }
 
 TEST_FUN(NegativeSubsumptionResolution)

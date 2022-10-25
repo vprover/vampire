@@ -49,6 +49,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+#define CHAIN_RESOLUTION 0
+
 #define LOG_S_AND_R_INSTANCES 0
 #if LOG_S_AND_R_INSTANCES
 ofstream fileOut("subsumption_tried.txt");
@@ -63,6 +65,7 @@ public:
   int64_t m_logged_count_sr = 0; // count how many we would have logged even if there's no logger attached
   int64_t m_logged_sat_checks = 0;
   int64_t m_logged_sat_checks_sr = 0;
+  int64_t m_logged_chained_sr = 0;
   int64_t m_logged_useless_sat_checks_sr = 0;
 
   // Store numDecisions as histogram
@@ -385,6 +388,7 @@ void ForwardSubsumptionAndResolution::printStats(std::ostream &out)
   out << "\% Subsumptions sat checks: " << fsstats.m_logged_sat_checks << "\n";
   out << "\% Subsumption Resolutions sat checks: " << fsstats.m_logged_sat_checks_sr << "\n";
   out << "\% Useless Subsumptions Resolution sat checks : " << fsstats.m_logged_useless_sat_checks_sr << "\n";
+  out << "\% Chained resolutions: " << fsstats.m_logged_chained_sr << "\n";
   out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
   for (size_t n = 0; n < fsstats.m_numDecisions_frequency.size(); ++n) {
     if (fsstats.m_numDecisions_frequency[n] > 0) {
@@ -490,7 +494,6 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 }
 
 #if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION
-
 /**
  * Checks whether there if @b cl is subsumed by any clause in the @b miniIndex.
  *
@@ -879,68 +882,37 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
 #if USE_SAT_SUBSUMPTION
 
-bool ForwardSubsumptionAndResolution::loopSubsumptionAndResolution(LiteralIndex *index, Clause *cl, unsigned clen)
+#if CHAIN_RESOLUTION
+/**
+ * Creates a clause whose literals are the literals of @b cl except for the literal in @b litToExclude
+ * @param cl the clause whose literals are to be copied
+ * @param litToExclude the literal to exclude
+ * @return the new clause
+ *
+ * @pre Assumes that the literals in @b litToExclude are in the same order as in cl
+ */
+static Clause *generateNSimplificationClause(Clause *cl, vvector<Literal *> litToExclude, Stack<Unit *> premises)
 {
-  CALL("ForwardSubsumptionAndResolution::loopSubsumptionAndResolution")
-  // Check the unit clauses first
-  Clause *mcl;
-  unsigned n_sr_checks = 0;
-  for (unsigned li = 0; li < clen; li++) {
-    Literal *lit = (*cl)[li];
-    auto it = index->getGeneralizations(lit, false, false);
-    while (it.hasNext()) {
-      mcl = it.next().clause;
-      if (!_checked.insert(mcl)) {
-        continue;
-      }
-
-      bool checkSR = _subsumptionResolution && !_conclusion;
-      fsstats.m_logged_sat_checks++;
-      if (satSubs.checkSubsumption(mcl, cl, checkSR)) {
-        _subsumes = true;
-        _premise = mcl;
-        fsstats.m_logged_useless_sat_checks_sr += n_sr_checks;
-        return true;
-      }
-      else if (checkSR) {
-        fsstats.m_logged_sat_checks_sr++;
-        n_sr_checks++;
-        _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, true);
-        if (_conclusion) {
-          ASS(_premise == nullptr);
-          // cannot override the premise since the loop would have ended otherwise
-          _premise = mcl;
-        }
-      }
+  CALL("generateNSimplificationClause");
+  unsigned nlen = cl->length() - litToExclude.size();
+  // convert premises into a list of units
+  UnitList *premLst = 0;
+  UnitList::pushFromIterator(Stack<Unit *>::Iterator(premises), premLst);
+  Clause *res = new (nlen) Clause(nlen,
+                                  SimplifyingInferenceMany(InferenceRule::SUBSUMPTION_RESOLUTION, premLst));
+  unsigned j = 0;
+  for (unsigned i = 0; i < cl->length(); i++) {
+    Literal *lit = (*cl)[i];
+    if (j < litToExclude.size() && lit == litToExclude[j]) {
+      j++;
+      continue;
     }
+    (*res)[i - j] = lit;
   }
-  return false;
-}
 
-void ForwardSubsumptionAndResolution::loopSubsumptionResolution(LiteralIndex *index, Clause *cl, unsigned clen)
-{
-  CALL("ForwardSubsumptionAndResolution::loopSubsumptionResolution")
-  // Check the unit clauses first
-  Clause *mcl;
-  for (unsigned li = 0; li < clen; li++) {
-    Literal *lit = (*cl)[li];
-    auto it = index->getGeneralizations(lit, true, false);
-    while (it.hasNext()) {
-      mcl = it.next().clause;
-      if (!_checked.insert(mcl)) {
-        continue;
-      }
-
-      fsstats.m_logged_sat_checks_sr++;
-      _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, false);
-      if (_conclusion) {
-        ASS(_premise == nullptr);
-        _premise = mcl;
-        return;
-      }
-    }
-  }
+  return res;
 }
+#endif
 
 /**
  * Checks whether the clause @b cl can be subsumed or resolved and subsumed by any clause is @b premises .
@@ -970,15 +942,151 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   _premise = nullptr;
   _checked.reset();
 
-  if (!loopSubsumptionAndResolution(_unitIndex, cl, clen)) {
-    if (!loopSubsumptionAndResolution(_fwIndex, cl, clen)
-     && !_conclusion && _subsumptionResolution) {
-      loopSubsumptionResolution(_unitIndex, cl, clen);
-      if (!_conclusion) {
-        loopSubsumptionResolution(_fwIndex, cl, clen);
+  Clause *mcl;
+  unsigned n_sr_checks = 0;
+
+#if CHAIN_RESOLUTION
+  static Stack<Unit *> premiseStack;
+  premiseStack.reset();
+  static vvector<Literal *> litToExclude;
+  litToExclude.clear();
+#endif
+
+  /*******************************************************/
+  /*              SUBSUMPTION UNIT CLAUSE                */
+  /*******************************************************/
+  // In case of unit clauses, no need to check subsumption since
+  // L = a where a is a single literal
+  // M = b v C where sigma(a) = b is a given from the index
+  // Therefore L subsumes M
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _unitIndex->getGeneralizations(lit, false, false);
+    if (it.hasNext()) {
+      mcl = it.next().clause;
+      _subsumes = true;
+      _premise = mcl;
+      goto check_correctness;
+    }
+  }
+
+  /*******************************************************/
+  /*       SUBSUMPTION & RESOLUTION MULTI-LITERAL        */
+  /*******************************************************/
+  // For each clauses mcl, first check for subsumption, then for subsumption resolution
+  // During subsumption, setup the subsumption resolution solver. This is an overhead
+  // largely compensated because the success rate of subsumption is fairly low, and
+  // in case of failure, having the solver ready is a great saving on subsumption resolution
+  //
+  // Since subsumption is stronger than subsumption, if a subsumption resolution check is found,
+  // keep it until the end of the loop to make sure no subsumption is possible.
+  // Only when it has been checked that subsumption is not possible does the conclusion of
+  // subsumption resolution become relevant
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _fwIndex->getGeneralizations(lit, false, false);
+    while (it.hasNext()) {
+      mcl = it.next().clause;
+      if (!_checked.insert(mcl)) {
+        continue;
+      }
+
+      bool checkSR = _subsumptionResolution && !_conclusion;
+      // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
+      bool checkS = mcl->length() <= clen;
+      fsstats.m_logged_sat_checks++;
+      if (checkS && satSubs.checkSubsumption(mcl, cl, checkSR)) {
+        _subsumes = true;
+        _premise = mcl;
+        fsstats.m_logged_useless_sat_checks_sr += n_sr_checks;
+        goto check_correctness;
+      }
+      else if (checkSR) {
+        fsstats.m_logged_sat_checks_sr++;
+        n_sr_checks++;
+        _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);
+        if (_conclusion) {
+          ASS(_premise == nullptr);
+          // cannot override the premise since the loop would have ended otherwise
+          _premise = mcl;
+        }
       }
     }
   }
+
+  if (_conclusion || !_subsumptionResolution) {
+    goto check_correctness;
+  }
+
+  /*******************************************************/
+  /*         SUBSUMPTION RESOLUTION UNIT CLAUSE          */
+  /*******************************************************/
+  // In case of unit clauses, no need to check subsumption resolution since
+  // L = a where a is a single literal
+  // M = ~b v C where sigma(a) = ~b is a given from the index
+  // Therefore M can be replaced by C
+  //
+  // This behavior can be chained by enabling the CHAIN_RESOLUTION parameter
+  // When CHAIN_RESOLUTION is true, the negatively matching literals are stacked
+  // and removed at the same time
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _unitIndex->getGeneralizations(lit, true, false);
+    if (it.hasNext()) {
+      mcl = it.next().clause;
+      // do it only once per literal
+#if CHAIN_RESOLUTION
+      premiseStack.push(mcl);
+      litToExclude.push_back(lit);
+#else
+      _conclusion = generateSubsumptionResolutionClause(cl, lit, mcl);
+      _premise = mcl;
+      break;
+#endif
+    }
+  }
+#if CHAIN_RESOLUTION
+  if (premiseStack.size() == 1) {
+    _premise = (Clause *) premiseStack.pop();
+    _conclusion = generateSubsumptionResolutionClause(cl, litToExclude[0], _premise);
+    goto check_correctness;
+  }
+  else if (premiseStack.size() > 1) {
+    fsstats.m_logged_chained_sr++;
+    _conclusion = generateNSimplificationClause(cl, litToExclude, premiseStack);
+    _premise = nullptr;
+    goto check_correctness;
+  }
+#else
+  if (_conclusion) {
+    goto check_correctness;
+  }
+#endif
+
+  /*******************************************************/
+  /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
+  /*******************************************************/
+  // Check for the last clauses that are negatively matched in th index.
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _fwIndex->getGeneralizations(lit, true, false);
+    while (it.hasNext()) {
+      mcl = it.next().clause;
+      if (!_checked.insert(mcl)) {
+        continue;
+      }
+
+      fsstats.m_logged_sat_checks_sr++;
+      _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+      if (_conclusion) {
+        ASS(_premise == nullptr);
+        _premise = mcl;
+        goto check_correctness;
+      }
+    }
+  }
+
+check_correctness:
 
 #if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION
   LiteralMiniIndex miniIndex(cl);
@@ -1053,6 +1161,19 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   }
   if (_conclusion) {
     replacement = _conclusion;
+#if CHAIN_RESOLUTION
+    if (!_premise) {
+      ClauseList *premiseList = new ClauseList();
+      cout << "cl : " << cl->toString() << endl;
+      for (unsigned i = 0; i < premiseStack.size(); i++) {
+        premiseList = ClauseList::addLast(premiseList, (Clause *)premiseStack[i]);
+        cout << "Premise " << i << " : " << ((Clause *)premiseStack[i])->toString() << endl;
+      }
+      premises = pvi(ClauseList::Iterator(premiseList));
+      cout << "Conclusion " << _conclusion->toString() << endl;
+      return true;
+    }
+#endif
     premises = pvi(getSingletonIterator(_premise));
     return true;
   }
