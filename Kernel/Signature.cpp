@@ -262,6 +262,7 @@ Signature::Signature ():
     _arrayCon(UINT_MAX),
     _arrowCon(UINT_MAX),
     _appFun(UINT_MAX),
+    _timeCon(UINT_MAX),
     _termAlgebras()
 {
   CALL("Signature::Signature");

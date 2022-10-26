@@ -699,6 +699,10 @@ class Signature
     return getTypeCon(con)->tupleSort();
   }
 
+  bool isTimeCon(unsigned con) const{
+    return con == _timeCon && _timeCon != UINT_MAX;
+  }
+
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
@@ -804,6 +808,16 @@ class Signature
       getTypeCon(ratSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     }
     return ratSort;    
+  }
+
+  unsigned getTimeSort(){
+    bool added = false;
+    unsigned timeSort = addTypeCon("Time",0, added);
+    if(added){
+      _timeCon = timeSort;
+      getTypeCon(timeSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+    }
+    return timeSort;    
   }
 
   unsigned getArrowConstructor(){
@@ -979,6 +993,10 @@ class Signature
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
+  bool isStructSort(TermList sort) { return _structs.find(sort); }
+  Shell::ProgramStruct* getStructOfSort(TermList sort) { return _structs.get(sort); }
+  void addStruct(Shell::ProgramStruct* strct) { _structs.insert(strct->sort(), strct); }
+
   /** Returns nullptr if nat is not used */
   Shell::NatTermAlgebra* getNat() { return _natTermAlgebra; }
   void setNat(Shell::NatTermAlgebra* nta) { ASS(!_natTermAlgebra); _natTermAlgebra = nta; }
@@ -1064,11 +1082,13 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
+  unsigned _timeCon;
 
   /**
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
   DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
+  DHMap<TermList, Shell::ProgramStruct*> _structs;
 
   Stack<unsigned> _autoSelects;
   unsigned _indexIntoAutoSelect;

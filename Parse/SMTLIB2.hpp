@@ -106,7 +106,8 @@ private:
     BS_BOOL,
     BS_INT,
     BS_REAL,
-
+    BS_TIME,
+    
     BS_INVALID
   };
   static const char * s_builtInSortNameStrings[];
@@ -286,11 +287,16 @@ private:
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
 
+  void readDeclareStruct(LExpr* sort, LExpr* nullLoc, LExprList* fields);
+
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
   void readDeclareNat(const vstring& nat, const vstring& zero, const vstring& succ, const vstring& pred, const vstring& less);
+
+  StructField* buildStructField(TermList structSort, vstring fieldName, TermList fieldSort, 
+    vstring chainName, vstring suppPredName);
 
   TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort,
                                                       Stack<vstring> destructorNames, TermStack argSorts);

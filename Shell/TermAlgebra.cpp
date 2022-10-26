@@ -242,6 +242,75 @@ NatTermAlgebra::NatTermAlgebra(TermAlgebra* ta, unsigned lessPredicate)
   }
 }
 
+StructField::StructField(unsigned functor) : _selfPointer(false), _field(functor)
+{ }
+
+StructField::StructField(unsigned functor, unsigned chainFun, unsigned supPred)
+  : _selfPointer(true), _field(functor), _chain(chainFun), _support(supPred)
+{ }
+
+
+ProgramStruct::ProgramStruct(TermList sort,
+                            unsigned n,
+                            StructField** fields,
+                            unsigned nullFun) : _sort(sort), _nullFunctor(nullFun)
+{
+  for (unsigned i = 0; i < n; i++) {
+    _fields[i] = fields[i];
+  } 
+}
+
+ProgramStruct::ProgramStruct(TermList sort,
+                             std::initializer_list<StructField*> fields,
+                             unsigned nullFun) :
+  ProgramStruct(sort, Lib::Array<StructField*>(fields), nullFun)
+{ }
+
+ProgramStruct::ProgramStruct(TermList sort,
+                             Lib::Array<StructField*> fields,
+                             unsigned nullFun) :
+  _sort(sort),
+  _nullFunctor(nullFun),
+  _fields(fields)
+{}
+
+
+StructField* ProgramStruct::getFieldByFunctor(unsigned functor)
+{
+  CALL("ProgramStruct::getFieldByFunctor");
+
+  for(unsigned i = 0; i < _fields.size(); i++){
+    if(_fields[i]->functor() == functor){
+      return _fields[i];
+    }
+  }
+  return 0;
+}
+
+StructField* ProgramStruct::getFieldByChain(unsigned chain)
+{
+  CALL("ProgramStruct::getFieldByChain");
+
+  for(unsigned i = 0; i < _fields.size(); i++){
+    if(_fields[i]->isSelfPointer() && _fields[i]->chain() == chain){
+      return _fields[i];
+    }
+  }
+  return 0;
+}
+
+StructField* ProgramStruct::getFieldBySupp(unsigned suppPred)
+{
+  CALL("ProgramStruct::getFieldBySupp");
+
+  for(unsigned i = 0; i < _fields.size(); i++){
+    if(_fields[i]->isSelfPointer() && _fields[i]->support() == suppPred){
+      return _fields[i];
+    }
+  }
+  return 0;
+}
+
 std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self) 
 { return out << "ctor " << env.signature->getFunction(self.functor())->name(); }
 

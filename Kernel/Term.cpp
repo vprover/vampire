@@ -306,6 +306,12 @@ bool TermList::isRealSort(){
          static_cast<AtomicSort*>(term())->isRealSort();
 }
 
+bool TermList::isTimeSort(){
+  CALL("TermList::isTimeSort");    
+  return !isVar() && term()->isSort() && 
+         static_cast<AtomicSort*>(term())->isTimeSort();
+}
+
 bool AtomicSort::isArrowSort() const { 
   CALL("AtomicSort::isArrowSort");
   
@@ -346,6 +352,12 @@ bool AtomicSort::isRealSort() const {
   CALL("AtomicSort::isRealSort");
 
   return env.signature->isRealCon(_functor);
+}
+
+bool AtomicSort::isTimeSort() const {
+  CALL("AtomicSort::isTimeSort");
+
+  return env.signature->isTimeCon(_functor);
 }
 
 bool TermList::isApplication() const { 
@@ -1345,6 +1357,12 @@ TermList AtomicSort::rationalSort(){
   CALL("AtomicSort::rationalSort()");
   static AtomicSort* _rat = createConstant(env.signature->getRatSort());
   return TermList(_rat); 
+}
+
+TermList AtomicSort::timeSort(){
+  CALL("AtomicSort::timeSort()");
+  static AtomicSort* _time = createConstant(env.signature->getTimeSort()); 
+  return TermList(_time); 
 }
 
 TermList AtomicSort::arrowSort(TermList s1, TermList s2){

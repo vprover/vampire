@@ -185,6 +185,7 @@ public:
   bool isIntSort();
   bool isRatSort();
   bool isRealSort();
+  bool isTimeSort();
   bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
@@ -872,6 +873,8 @@ public:
   /** True if real sort */  
   bool isRealSort() const;
 
+  bool isTimeSort() const;
+
   const vstring& typeConName() const;  
   
   static TermList arrowSort(TermStack& domSorts, TermList range);
@@ -885,6 +888,8 @@ public:
   static TermList intSort();
   static TermList realSort();
   static TermList rationalSort();
+  // Rapid specific
+  static TermList timeSort();
 
 private:
   static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);

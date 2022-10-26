@@ -218,6 +218,66 @@ namespace Shell {
       unsigned _lessPredicate;
   };
 
+
+  class StructField {
+  public:
+    CLASS_NAME(StructField);
+    USE_ALLOCATOR(StructField);
+
+
+    StructField(unsigned functor);
+    StructField(unsigned functor, unsigned chainFun, unsigned supPred);
+
+    unsigned functor() { return _field; }
+    unsigned chain() { return _chain; }
+    unsigned support() { return _support; }
+    bool isSelfPointer() { return _selfPointer; }
+
+  private:
+   
+    // if _selfPointer is set to true, then this field is a pointer to a struct
+    // of the type that contains the field 
+    // in this case _chain and _support functors are set
+    // At the moment we ignore the mutual recursive case
+    bool _selfPointer;
+    unsigned _field;
+    unsigned _chain;
+    unsigned _support;
+  };
+
+  typedef Lib::Array<StructField*> FieldArray;
+
+  class ProgramStruct {
+    public:
+      CLASS_NAME(ProgramStruct);
+      USE_ALLOCATOR(ProgramStruct);
+
+      ProgramStruct(TermList sort,
+                  unsigned n,
+                  StructField** fields,
+                  unsigned nullFun);
+      ProgramStruct(TermList sort,
+                  Lib::Array<StructField*> constrs,
+                  unsigned nullFun);
+      ProgramStruct(TermList sort,
+                  std::initializer_list<StructField*> constrs,
+                  unsigned nullFun);
+      ~ProgramStruct() {}
+
+      StructField* getFieldByFunctor(unsigned functor);
+      StructField* getFieldByChain(unsigned chain);
+      StructField* getFieldBySupp(unsigned suppPred);
+
+      unsigned nullFunctor() const { return _nullFunctor; }
+
+      TermList sort() const { return _sort; }    
+
+    private:
+      TermList _sort;
+      unsigned _nullFunctor;
+      FieldArray _fields;
+  };
+
 }
 
 #endif

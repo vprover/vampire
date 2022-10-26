@@ -221,6 +221,17 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if(ibRdr.tryAcceptAtom("declare-struct")) {
+      LExpr *sort = ibRdr.readNext();
+      LExpr *nullLoc = ibRdr.readNext();
+      LExprList *fields = ibRdr.readList();
+
+      readDeclareStruct(sort, nullLoc, fields);
+
+      ibRdr.acceptEOL();
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("declare-datatype")) {
       LExpr *sort = ibRdr.readNext();
       LExprList *datatype = ibRdr.readList();
@@ -589,7 +600,8 @@ const char * SMTLIB2::s_builtInSortNameStrings[] = {
     "Array",
     "Bool",
     "Int",
-    "Real"
+    "Real",
+    "Time"
 };
 
 SMTLIB2::BuiltInSorts SMTLIB2::getBuiltInSortFromString(const vstring& str)
@@ -827,6 +839,9 @@ TermList SMTLIB2::declareSort(LExpr* sExpr)
             results.push(AtomicSort::arraySort(indexSort,innerSort));
             continue;
           }
+        case BS_TIME:
+          results.push(AtomicSort::timeSort());
+          continue;          
 
         default:
           ASS_EQ(bs,BS_INVALID);
@@ -1127,6 +1142,63 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   UnitList::push(fu, _formulas);
 }
 
+void SMTLIB2::readDeclareStruct(LExpr* sort, LExpr* nullLoc, LExprList* fields)
+{
+  CALL("SMTLIB2::readDeclareStruct");
+
+  // first declare the sort
+  vstring structName = sort->str;
+  if (isAlreadyKnownSortSymbol(structName)) {
+    USER_ERROR("Redeclaring built-in, declared or defined sort symbol as struct: " + structName);
+  }
+  ALWAYS(_declaredSorts.insert(structName, 0));
+  Stack<StructField*> fieldStack;
+
+  bool added = false;
+  vstring strName = structName + "()";
+  unsigned srt = env.signature->addTypeCon(strName,0,added);
+  ASS(added);
+  env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
+  TermList structSort = TermList(AtomicSort::createConstant(srt));
+
+  added = false;
+  vstring nullName = nullLoc->str;
+  unsigned nullFunc = env.signature->addFunction(nullName, 0, added);
+  ASS(added);
+  env.signature->getFunction(nullFunc)->setType(OperatorType::getConstantsType(structSort));
+  env.signature->getFunction(nullFunc)->markNullPtr();
+
+  ALWAYS(_declaredFunctions.insert(nullName, make_pair(nullFunc, true)));
+
+
+  LispListReader fieldsRdr(fields);
+  while (fieldsRdr.hasNext()) {
+
+    LExpr *field =  fieldsRdr.next();
+    ASS(!field->isAtom());
+
+    LispListReader fieldRdr(field);
+    vstring fieldName = fieldRdr.readAtom();
+
+    TermList fieldSort = declareSort(fieldRdr.next());
+  
+    vstring chainName = "";
+    vstring suppPredName = "";
+
+    if(fieldRdr.hasNext()){
+      chainName = fieldRdr.readAtom();
+      suppPredName = fieldRdr.readAtom();
+    }
+
+    fieldStack.push(buildStructField(structSort, fieldName, fieldSort, chainName, suppPredName));
+  }
+
+  ASS(!env.signature->isStructSort(structSort));
+  ProgramStruct* ps = new ProgramStruct(structSort, fieldStack.size(), fieldStack.begin(), nullFunc);
+
+  env.signature->addStruct(ps);
+}
+
 void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 {
   CALL("SMTLIB2::readDeclareDatatype");
@@ -1317,6 +1389,68 @@ void SMTLIB2::readDeclareNat(const vstring& nat, const vstring& zero, const vstr
   auto pair = declareFunctionOrPredicate(less, AtomicSort::boolSort(), argSorts);
   NatTermAlgebra* nta = new NatTermAlgebra(ta, pair.first);
   env.signature->setNat(nta);
+}
+
+StructField* SMTLIB2::buildStructField(
+    TermList structSort, vstring fieldName, TermList fieldSort, 
+    vstring chainName, vstring suppPredName) {
+  CALL("SMTLIB2::buildStructField");
+
+  static TermStack argSorts;
+  argSorts.reset();
+  argSorts.push(AtomicSort::timeSort());
+  argSorts.push(structSort);
+  
+  bool added = false;
+  unsigned functor = env.signature->addFunction(fieldName, 2, added);
+  ASS(added);
+
+  OperatorType* fieldType = OperatorType::getFunctionType(2, argSorts.begin(), fieldSort);
+  env.signature->getFunction(functor)->setType(fieldType);
+
+// TODO
+//  env.signature->getFunction(functor)->markTermAlgebraCons();
+
+  LOG1("build field "+fieldName+": "+fieldType->toString());
+  ALWAYS(_declaredFunctions.insert(fieldName, make_pair(functor, true)));  
+
+  if(chainName == ""){
+    ASS(fieldSort != structSort);
+    return new StructField(functor);
+  }
+
+  ASS(fieldSort == structSort);
+  argSorts.reset();
+  argSorts.push(structSort);
+  argSorts.push(AtomicSort::timeSort());  
+  argSorts.push(AtomicSort::intSort());
+
+  added = false;
+  unsigned chain = env.signature->addFunction(chainName, 3, added);
+  ASS(added);
+
+  OperatorType* chainType = OperatorType::getFunctionType(3, argSorts.begin(), structSort);
+  env.signature->getFunction(chain)->setType(chainType);
+  env.signature->getFunction(chain)->markChain();
+
+  ALWAYS(_declaredFunctions.insert(chainName, make_pair(chain, true)));  
+
+  argSorts.pop();
+  argSorts.push(structSort);
+  argSorts.push(AtomicSort::intSort());
+
+
+  added = false;
+  unsigned support = env.signature->addPredicate(suppPredName, 4, added);
+  ASS(added);
+
+  OperatorType* supportType = OperatorType::getPredicateType(4, argSorts.begin());
+  env.signature->getPredicate(support)->setType(supportType);
+
+  ALWAYS(_declaredFunctions.insert(suppPredName, make_pair(support, false)));  
+
+  //TODO mark?
+  return new StructField(functor, chain, support);
 }
 
 TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, TermList taSort,
