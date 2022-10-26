@@ -71,18 +71,16 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
   auto createChainOneShorter = [](TermList chainTerm){
     Term* ct = chainTerm.term();
 
+    TermList structSort = SortHelper::getResultSort(ct);
+
+    auto strct = env.signature->getStructOfSort(structSort);
+    auto field = strct->getFieldByChain(ct->functor());
+
     auto location = *ct->nthArgument(0);
     auto time = *ct->nthArgument(1);
     auto length = *ct->nthArgument(2);    
     
-    auto chainName = env.signature->getFunction(ct->functor())->name();                     
-
-    // TODO, this is bad, we should not be manipulating strings like this
-    auto pos = chainName.find_last_of("_");
-    auto nextName = chainName.substr(0, pos);
-
-    auto next = env.signature->getFunctionNumber(nextName, 2);
-    auto nextLoc = TermList(Term::create2(next, time, location));
+    auto nextLoc = TermList(Term::create2(field->functor(), time, location));
 
     auto lenLessOne = number::add(length, number::minus(one));
     return TermList(Term::create(ct->functor(),{nextLoc, time, lenLessOne}));
@@ -167,25 +165,16 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
     TermList freshVar = TermList(premise->maxVar() + 1, false);
     TermList value = TermList(valueTerm);
 
-    auto chainTermSort = SortHelper::getResultSort(chainTerm);
-    auto sName = chainTermSort.term()->toString();
-    auto cName = env.signature->getFunction(chainTerm->functor())->name();
+    auto structSort = SortHelper::getResultSort(chainTerm);
 
-    //std::transform(sName.begin(), sName.begin() + 1, sName.begin(), ::tolower);
-    // hard coding for now to avoid having to sanitise 'Node()'
-    auto nullName = "node_null_loc";
-    auto selName = "node_next";
+    auto strct = env.signature->getStructOfSort(structSort);
+    auto field = strct->getFieldByChain(chainTerm->functor());
 
-    auto nullLoc = env.signature->getFunctionNumber(nullName, 0);
-    auto sel     = env.signature->getFunctionNumber(selName, 2);    
-    auto nullLocT = TermList(Term::createConstant(nullLoc));
-    auto selValT = TermList(Term::create2(sel, tp, value));
+    auto nullLoc = TermList(Term::createConstant(strct->nullFunctor()));
+    auto selVal = TermList(Term::create2(field->functor(), tp, value));
 
-    auto supName = "in_support_" + cName;
-    auto supPred = env.signature->getPredicateNumber(supName, 4);
-
-    Literal* l1 = Literal::createEquality(false, selValT, nullLocT, chainTermSort);
-    Literal* l2 = Literal::create(supPred, false, {value, tp, loc, freshVar});
+    Literal* l1 = Literal::createEquality(false, selVal, nullLoc, structSort);
+    Literal* l2 = Literal::create(field->support(), false, {value, tp, loc, freshVar});
     Literal* l3 = number::less(true, freshVar, TermList(number::zeroT()));
     Literal* l4 = number::less(true, len, freshVar);
 
@@ -197,14 +186,14 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
 
     resultStack.push(r);
 
-    TermList oneLonger(Term::create(chainTerm->functor(),{loc, tp, number::add(len, one)}));
+    /*TermList oneLonger(Term::create(chainTerm->functor(),{loc, tp, number::add(len, one)}));
 
     Literal* l5 = Literal::createEquality(true, oneLonger, selValT, chainTermSort);
 
     Clause* r2 = new(1) Clause(1, GeneratingInference1(InferenceRule::CHAIN_REASONING, premise));
     (*r2)[0] = l5;
 
-    resultStack.push(r2);
+    resultStack.push(r2);*/
   }
 
   if(RapidHelper::isChainEqualsNullClause(premise, chainTerm)){
