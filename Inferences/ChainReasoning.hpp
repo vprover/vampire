@@ -35,6 +35,11 @@ class ChainReasoning : public GeneratingInferenceEngine {
   private:
     ChainReasoningChainTermIndex* _chainIndex;
     ChainReasoningLengthClauseIndex* _boundIndex;
+    // used to connect locations to chains for chains that are equal to null
+    // for example, if C = chain(loc, tp, len) = null, then
+    // loc -> chain(...) inserted into map
+    DHSet<Term*> _chainTerms;
+    DHMap<Term*, Clause*> _chainClauses;
 
 };
 

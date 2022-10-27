@@ -34,7 +34,6 @@
 
 namespace Inferences {
 
-
 void ChainReasoning::attach(SaturationAlgorithm* salg)
 {
   CALL("ChainReasoning::attach");
@@ -185,37 +184,43 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
     (*r)[3] = l4;   
 
     resultStack.push(r);
-
-    /*TermList oneLonger(Term::create(chainTerm->functor(),{loc, tp, number::add(len, one)}));
-
-    Literal* l5 = Literal::createEquality(true, oneLonger, selValT, chainTermSort);
-
-    Clause* r2 = new(1) Clause(1, GeneratingInference1(InferenceRule::CHAIN_REASONING, premise));
-    (*r2)[0] = l5;
-
-    resultStack.push(r2);*/
   }
 
+
+  // if we have two clauses of the form:
+  // C1 = chain(loc, tp, len1) = null
+  // C2 = chain(loc, tp, len2) = null
+  // conclude len1 = len2
+  // Potential variants:
+  //   1) instead of demanding syntactic equality of location and timepoint
+  //      allow them to be unifiable
+  //   2) don't insist on unit clauses
+  // Implementation could be improved by indexing loc and tp terms in some 
+  // way. However, I doubt that this will be a big time gain
   if(RapidHelper::isChainEqualsNullClause(premise, chainTerm)){
-    auto sort = AtomicSort::intSort();
-    auto chainTermSort = SortHelper::getResultSort(chainTerm);
+    if(!_chainTerms.find(chainTerm)){
+      DHSet<Term*>::Iterator it(_chainTerms);
+      TermList loc = *chainTerm->nthArgument(0);
+      TermList tp = *chainTerm->nthArgument(1);
 
-    unsigned freshVar = premise->maxVar() + 1;
-    TermList x = TermList(freshVar, false);
-    TermList y = TermList(freshVar + 1, false);
-    
-    TermList arg0 = *chainTerm->nthArgument(0);
-    TermList arg1 = *chainTerm->nthArgument(1);
-    TermList xLenChain = TermList(Term::create(chainTerm->functor(), {arg0, arg1, x}));
-    TermList yLenChain = TermList(Term::create(chainTerm->functor(), {arg0, arg1, y}));
+      while(it.hasNext()){
+        Term* chainOther = it.next();
+        TermList locOther = *chainOther->nthArgument(0);
+        TermList tpOther = *chainOther->nthArgument(1);
+        if(loc == locOther && tp == tpOther){
+          TermList len = *chainTerm->nthArgument(2);
+          TermList lenOther = *chainOther->nthArgument(2);
+          Literal* eq = Literal::createEquality(true, len, lenOther, AtomicSort::intSort());
+          Clause* other = _chainClauses.get(chainOther);  
+          Clause* res = new(1) Clause(1, GeneratingInference2(InferenceRule::CHAIN_REASONING, premise, other));
+          (*res)[0] = eq;
+          resultStack.push(res);
+        }
+      } 
+      _chainTerms.insert(chainTerm);
+      ALWAYS(_chainClauses.insert(chainTerm,premise));     
+    }
 
-    Literal* varEq = Literal::createEquality(true, x, y, sort);
-    Literal* disequality = Literal::createEquality(false, xLenChain, yLenChain, chainTermSort);
-
-    Clause* res = new(2) Clause(2, GeneratingInference1(InferenceRule::CHAIN_REASONING, premise));
-    (*res)[0] = varEq;
-    (*res)[1] = disequality;
-    resultStack.push(res);
   }
 
   if(!resultStack.size())

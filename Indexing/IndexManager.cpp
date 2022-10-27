@@ -330,6 +330,18 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;  
 
+  case POINTER_CHAIN_LHS_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new PointerChainLhsIndex(tis);
+    isGenerating = true;
+    break; 
+
+  case POINTER_CHAIN_RHS_INDEX:  
+    tis = new TermSubstitutionTree();
+    res = new PointerChainRhsIndex(tis);
+    isGenerating = true;
+    break; 
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

@@ -296,6 +296,34 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class PointerChainRhsIndex
+: public TermIndex
+{
+public:  
+  CLASS_NAME(PointerChainRhsIndex);
+  USE_ALLOCATOR(PointerChainRhsIndex);
+
+  PointerChainRhsIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+
+class PointerChainLhsIndex
+: public TermIndex
+{
+public:  
+  CLASS_NAME(PointerChainLhsIndex);
+  USE_ALLOCATOR(PointerChainLhsIndex);
+
+  PointerChainLhsIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
 
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//

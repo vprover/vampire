@@ -177,6 +177,10 @@ class Signature
 
     unsigned _objArray : 1;
 
+    /** true if symbol represents a field of a struct that points
+     *  to a struct of the same type */
+    unsigned _selfPointer : 1;
+
     /** if arrow constructor */
     unsigned _arrow : 1;
     /** if app function symbol */
@@ -240,6 +244,8 @@ class Signature
     void markNullPtr() { _nullPtr=1; }
 
     void markObjectArray() { _objArray=1; }
+
+    void markSelfPointer() { _selfPointer=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -308,6 +314,8 @@ class Signature
     inline bool nullPtr() const { return _nullPtr; }
 
     inline bool objArray() const { return _objArray; }
+
+    inline bool selfPointingField() const { return _selfPointer; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

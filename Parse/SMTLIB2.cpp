@@ -1407,9 +1407,9 @@ StructField* SMTLIB2::buildStructField(
 
   OperatorType* fieldType = OperatorType::getFunctionType(2, argSorts.begin(), fieldSort);
   env.signature->getFunction(functor)->setType(fieldType);
-
-// TODO
-//  env.signature->getFunction(functor)->markTermAlgebraCons();
+  if(chainName != ""){
+    env.signature->getFunction(functor)->markSelfPointer();
+  }
 
   LOG1("build field "+fieldName+": "+fieldType->toString());
   ALWAYS(_declaredFunctions.insert(fieldName, make_pair(functor, true)));  

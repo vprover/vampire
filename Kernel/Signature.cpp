@@ -68,6 +68,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _chain(0),
     _nullPtr(0),
     _objArray(0),
+    _selfPointer(0),
     _arrow(0),
     _app(0),
     _tuple(0),

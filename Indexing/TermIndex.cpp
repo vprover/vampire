@@ -445,6 +445,78 @@ void UnitInequalityRhsIndex::handleClause(Clause* c, bool adding)
   }   
 }
 
+void PointerChainRhsIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("PointerChainRhsIndex::handleClause");
+
+  typedef RapidHelper RH;
+
+  auto isChainOrPointer = [](TermList t){
+    return RH::isChain(t) || RH::isPointer(t);
+  };
+
+  if(c->length() == 1){
+    Literal* lit = (*c)[0];
+    if(lit->isEquality()){
+      TermList lhs = *lit->nthArgument(0);
+      TermList rhs = *lit->nthArgument(1);
+      bool handle = false;
+      TermList handling;
+      if(isChainOrPointer(lhs) && !RH::isNull(rhs) && !isChainOrPointer(rhs)){
+        handle = true;
+        handling = rhs;
+      }
+      if(isChainOrPointer(rhs) && !RH::isNull(lhs) && !isChainOrPointer(lhs)){
+        handle = true;
+        handling = lhs;
+      }
+      if(handle){
+        if (adding) {
+          _is->insert(handling, lit, c);
+        } else {
+          _is->remove(handling, lit, c);
+        }          
+      }
+    }
+  }   
+}
+
+void PointerChainLhsIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("PointerChainLhsIndex::handleClause");
+
+  typedef RapidHelper RH;
+
+  auto isChainOrPointer = [](TermList t){
+    return RH::isChain(t) || RH::isPointer(t);
+  }; 
+
+  if(c->length() == 1){
+    Literal* lit = (*c)[0];
+    if(lit->isEquality()){
+      TermList lhs = *lit->nthArgument(0);
+      TermList rhs = *lit->nthArgument(1);
+      bool handle = false;
+      TermList handling;
+      if(isChainOrPointer(lhs) && !isChainOrPointer(rhs)){
+        handle = true;
+        handling = RH::getLoc(lhs);
+      }
+      if(isChainOrPointer(rhs) && !isChainOrPointer(lhs)){
+        handle = true;
+        handling = RH::getLoc(rhs);
+      }
+      if(handle){
+        if (adding) {
+          _is->insert(handling, lit, c);
+        } else {
+          _is->remove(handling, lit, c);
+        }          
+      }
+    }
+  }  
+}
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

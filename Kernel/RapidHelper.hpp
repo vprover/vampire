@@ -113,6 +113,27 @@ public:
   static Option<TermList> isIntComparisonLit(Literal* lit);
 
   static bool resolveInequalities(Literal* lit1, Literal* lit2);
+ 
+  // given a chain term chain(loc, tp, len) returns loc
+  // given a field pointer node_next(tp, node) returns node
+  static inline TermList getLoc(TermList chainOrPointer){
+    ASS(isChain(chainOrPointer) || isPointer(chainOrPointer));
+    return isChain(chainOrPointer) ?
+      *chainOrPointer.term()->nthArgument(0) :
+      *chainOrPointer.term()->nthArgument(1) ;
+  };    
+
+  static inline TermList getTP(TermList chainOrPointer){
+    ASS(isChain(chainOrPointer) || isPointer(chainOrPointer));    
+    return isChain(chainOrPointer) ?
+      *chainOrPointer.term()->nthArgument(1) :
+      *chainOrPointer.term()->nthArgument(0) ;
+  };    
+
+  static inline bool isPointer(TermList t) {
+    if(t.isVar()){ return false; }
+    return env.signature->getFunction(t.term()->functor())->selfPointingField();    
+  }
 
   static inline bool isChain(TermList t) {
     if(t.isVar()){ return false; }

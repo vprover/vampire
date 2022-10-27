@@ -1477,6 +1477,11 @@ void Options::init()
     _inequalityChaining.tag(OptionTag::INFERENCES);
     _lookup.insert(&_inequalityChaining);
 
+    _pointerChaining = BoolOptionValue("pointer_chaining","pc",true);
+    _pointerChaining.description = "chains unit pointer clauses to form longer chains. For example a -> b && b ->* c  ===> a ->* c";
+    _pointerChaining.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_pointerChaining);
+
     OptionChoiceValues integerInductionLiteralStrictnessValues {
       "none",
       "toplevel_not_in_other",

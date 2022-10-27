@@ -99,6 +99,7 @@
 #include "Inferences/InequalityISE.hpp"
 #include "Inferences/EqualityToInequality.hpp"
 #include "Inferences/UnitInequalityChaining.hpp"
+#include "Inferences/PointerChaining.hpp"
 #include "Inferences/RapidArrayInduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -1676,6 +1677,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if(opt.inequalityChaining()){
     gie->addFront(new UnitInequalityChaining());
+  }
+
+  if(opt.pointerChaining()){
+    gie->addFront(new PointerChaining());
   }
 
   CompositeSGI* sgi = new CompositeSGI();
