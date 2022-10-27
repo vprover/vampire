@@ -146,7 +146,7 @@ VList* TermList::freeVariables() const
   VList* result = VList::empty();
   VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push(fvi.next());
+    stack.pushBack(fvi.next());
   }
   return result;
 } // TermList::freeVariables
@@ -1354,7 +1354,7 @@ VList* Term::freeVariables() const
   VList* result = VList::empty();
   VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push(fvi.next());
+    stack.pushBack(fvi.next());
   }
   return result;
 } // Term::freeVariables
