@@ -457,7 +457,7 @@ void PointerChainRhsIndex::handleClause(Clause* c, bool adding)
 
   if(c->length() == 1){
     Literal* lit = (*c)[0];
-    if(lit->isEquality()){
+    if(lit->isEquality() && lit->isPositive()){
       TermList lhs = *lit->nthArgument(0);
       TermList rhs = *lit->nthArgument(1);
       bool handle = false;
@@ -493,7 +493,7 @@ void PointerChainLhsIndex::handleClause(Clause* c, bool adding)
 
   if(c->length() == 1){
     Literal* lit = (*c)[0];
-    if(lit->isEquality()){
+    if(lit->isEquality() && lit->isPositive()){
       TermList lhs = *lit->nthArgument(0);
       TermList rhs = *lit->nthArgument(1);
       bool handle = false;

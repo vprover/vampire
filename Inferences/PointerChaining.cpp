@@ -149,7 +149,7 @@ ClauseIterator PointerChaining::generateClauses(Clause* premise)
 
   if(premise->length() == 1){
     Literal* lit = (*premise)[0];
-    if(lit->isEquality()){
+    if(lit->isEquality() && lit->isPositive()){
       TermList lhs = *lit->nthArgument(0);
       TermList rhs = *lit->nthArgument(1);
       if((isChainOrPointer(lhs) && !isChainOrPointer(rhs) ) ||
