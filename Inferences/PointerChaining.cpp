@@ -154,6 +154,9 @@ ClauseIterator PointerChaining::generateClauses(Clause* premise)
       TermList rhs = *lit->nthArgument(1);
       if((isChainOrPointer(lhs) && !isChainOrPointer(rhs) ) ||
          (isChainOrPointer(rhs) && !isChainOrPointer(lhs) )){
+
+        results.reset();
+
         TermList chainOrPointer = isChainOrPointer(lhs) ? lhs : rhs;
         TermList l = RH::getLoc(chainOrPointer);
         TermList r = isChainOrPointer(lhs) ? rhs : lhs;
