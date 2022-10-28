@@ -206,32 +206,25 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
     return false;
   }
   //check all (proper) subterms
-  SubtermIterator sti(lit);
-  while( sti.hasNext() ) {
-    TermList tl = sti.next();
-    if ( tl.isEmpty() || tl.isVar() ){
-      continue;
+  NonVariableNonTypeIterator nvi(lit);
+  while( nvi.hasNext() ) {
+    Term* term = nvi.next().term();
+
+    //we can stop if we found an uninterpreted function / constant
+    if (isSupportedFunction(term)){
+      return false;
     }
-    if ( tl.isTerm()   ) {
-      Term* term = tl.term();
-
-      //we can stop if we found an uninterpreted function / constant
-      if (isSupportedFunction(term)){
+    //check if return value of term is supported
+    if (! isSupportedSort(SortHelper::getResultSort(term))){
+      return false;
+    }
+    //check if arguments of term are supported. covers e.g. f(X) = 0 where
+    // f could map uninterpreted sorts to integer. when iterating over X
+    // itself, its sort cannot be checked.
+    for (unsigned i=0; i<term->numTermArguments(); i++) {
+      TermList sort = SortHelper::getTermArgSort(term,i);
+      if (! isSupportedSort(sort))
         return false;
-      }
-      //check if return value of term is supported
-      if (! isSupportedSort(SortHelper::getResultSort(term))){
-        return false;
-      }
-      //check if arguments of term are supported. covers e.g. f(X) = 0 where
-      // f could map uninterpreted sorts to integer. when iterating over X
-      // itself, its sort cannot be checked.
-      for (unsigned i=0; i<term->numTermArguments(); i++) {
-        TermList sort = SortHelper::getTermArgSort(term,i);
-        if (! isSupportedSort(sort))
-          return false;
-      }
-
     }
   }
 

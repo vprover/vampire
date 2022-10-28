@@ -73,12 +73,12 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   }  
 } // getTypeSub
 
-TermStack SortHelper::getTypeArguments(TermList sort)
+void SortHelper::getTypeArguments(TermList sort, TermStack& res)
 {
   CALL("SortHelper::getTypeArguments");
   ASS(sort.isTerm() && sort.term()->isSort());
 
-  return TermStack::fromIterator(Term::Iterator(sort.term()));
+  return res.loadFromIterator(Term::Iterator(sort.term()));
 }
 
 /**
