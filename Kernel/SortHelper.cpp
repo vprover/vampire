@@ -78,7 +78,7 @@ void SortHelper::getTypeArguments(TermList sort, TermStack& res)
   CALL("SortHelper::getTypeArguments");
   ASS(sort.isTerm() && sort.term()->isSort());
 
-  return res.loadFromIterator(Term::Iterator(sort.term()));
+  res.loadFromIterator(Term::Iterator(sort.term()));
 }
 
 /**
