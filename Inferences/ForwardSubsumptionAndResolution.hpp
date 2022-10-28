@@ -35,7 +35,7 @@ using namespace Saturation;
 #define CHECK_SAT_SUBSUMPTION_RESOLUTION 0
 #endif
 
-#define USE_SAT_SUBSUMPTION 1
+#define USE_SAT_SUBSUMPTION_FORWARD 1
 
 class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
@@ -81,21 +81,21 @@ private:
 
   bool _subsumptionResolution;
 
-  SMTSubsumption::SATSubsumption satSubs;
 
   vvector<SubsumptionInstance> subsumption_tried;
   vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
-#if USE_SAT_SUBSUMPTION
+#if USE_SAT_SUBSUMPTION_FORWARD
+  SMTSubsumption::SATSubsumption satSubs;
   DHSet<Clause *> _checked;
   Clause* _conclusion = nullptr;
   bool _subsumes = false;
   Clause* _premise = nullptr;
 #endif
 
-#if CHECK_SAT_SUBSUMPTION || !USE_SAT_SUBSUMPTION
+#if CHECK_SAT_SUBSUMPTION || !USE_SAT_SUBSUMPTION_FORWARD
   bool checkSubsumption(Clause *mcl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 #endif
-#if CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION
+#if CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION_FORWARD
   Clause *checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 #endif
 

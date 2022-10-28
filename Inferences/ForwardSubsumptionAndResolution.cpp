@@ -49,7 +49,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-#define CHAIN_RESOLUTION 0
+#define CHAIN_RESOLUTION 1
 
 #define LOG_S_AND_R_INSTANCES 0
 #if LOG_S_AND_R_INSTANCES
@@ -111,7 +111,7 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
   env.beginOutput();
-#if USE_SAT_SUBSUMPTION
+#if USE_SAT_SUBSUMPTION_FORWARD
   env.out() << "\% Subsumption algorithm: smt3\n";
 #else
   env.out() << "\% Subsumption algorithm: original\n";
@@ -493,7 +493,7 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
   return isSR;
 }
 
-#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION
+#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION_FORWARD
 /**
  * Checks whether there if @b cl is subsumed by any clause in the @b miniIndex.
  *
@@ -766,7 +766,7 @@ Clause *ForwardSubsumptionAndResolution::checkSubsumptionResolution(Clause *cl, 
 
 #endif
 
-#if !USE_SAT_SUBSUMPTION
+#if !USE_SAT_SUBSUMPTION_FORWARD
 /**
  * Checks whether the clause @b cl can be subsumed or resolved and subsumed by any clause is @b premises .
  * If the clause is subsumed, returns true
@@ -880,7 +880,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
 #endif
 
-#if USE_SAT_SUBSUMPTION
+#if USE_SAT_SUBSUMPTION_FORWARD
 
 #if CHAIN_RESOLUTION
 /**
@@ -896,10 +896,10 @@ static Clause *generateNSimplificationClause(Clause *cl, vvector<Literal *> litT
   CALL("generateNSimplificationClause");
   unsigned nlen = cl->length() - litToExclude.size();
   // convert premises into a list of units
-  UnitList *premLst = 0;
-  UnitList::pushFromIterator(Stack<Unit *>::Iterator(premises), premLst);
+  UnitList *premList = UnitList::singleton(cl);
+  UnitList::pushFromIterator(Stack<Unit *>::Iterator(premises), premList);
   Clause *res = new (nlen) Clause(nlen,
-                                  SimplifyingInferenceMany(InferenceRule::SUBSUMPTION_RESOLUTION, premLst));
+                                  SimplifyingInferenceMany(InferenceRule::SUBSUMPTION_RESOLUTION, premList));
   unsigned j = 0;
   for (unsigned i = 0; i < cl->length(); i++) {
     Literal *lit = (*cl)[i];
@@ -1163,14 +1163,12 @@ check_correctness:
     replacement = _conclusion;
 #if CHAIN_RESOLUTION
     if (!_premise) {
-      ClauseList *premiseList = new ClauseList();
-      cout << "cl : " << cl->toString() << endl;
+      ASS(premiseStack.size() > 1);
+      ClauseList *premiseList = ClauseList::empty();
       for (unsigned i = 0; i < premiseStack.size(); i++) {
-        premiseList = ClauseList::addLast(premiseList, (Clause *)premiseStack[i]);
-        cout << "Premise " << i << " : " << ((Clause *)premiseStack[i])->toString() << endl;
+        ClauseList::push((Clause *)premiseStack[i], premiseList);
       }
       premises = pvi(ClauseList::Iterator(premiseList));
-      cout << "Conclusion " << _conclusion->toString() << endl;
       return true;
     }
 #endif

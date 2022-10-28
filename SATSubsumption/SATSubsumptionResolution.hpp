@@ -287,9 +287,9 @@ private:
   #endif
 
   // remembers if the fillMatchesSR concluded that subsumption is impossible
-  bool _subsumption_impossible;
+  bool _subsumptionImpossible;
   // remembers if the fillMatchesSR concluded that subsumption resolution is impossible
-  bool _sr_impossible;
+  bool _srImpossible;
 
   /* Methods */
   /**

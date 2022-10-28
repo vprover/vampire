@@ -234,8 +234,8 @@ void SATSubsumption::setupProblem(Kernel::Clause *L, Kernel::Clause *M)
   _matchSet.resize(_m, _n);
 
   // There cannot be any subsumption resolution, if there isn't at least 2 literals.
-  _subsumption_impossible = false;
-  _sr_impossible = false;
+  _subsumptionImpossible = L->length() > M->length();
+  _srImpossible = false;
 
   _solver->s.clear();
   _bindingsManager->clear();
@@ -365,7 +365,7 @@ void SATSubsumption::fillMatchesSR()
         }
       } // end of positive literal match
       // dont check for negative literals if it was established that _sr_impossible
-      else if (!_sr_impossible && checkAndAddMatch(L_i, M_j, i, j, false)) {
+      else if (!_srImpossible && checkAndAddMatch(L_i, M_j, i, j, false)) {
         hasNegativeMatch = true;
         if (!foundPositiveMatch) {
           // no need to push back if we already found a positive match
@@ -375,10 +375,10 @@ void SATSubsumption::fillMatchesSR()
     }   // for (unsigned j = 0; j < _nInstanceLits; ++j)
 
     if (!foundPositiveMatch) {
-      _subsumption_impossible = true;
+      _subsumptionImpossible = true;
       if (!hasNegativeMatch) {
         // no positive or negative matches found
-        _sr_impossible = true;
+        _srImpossible = true;
         return;
       }
       if (lastHeader == numeric_limits<unsigned>::max()) {
@@ -389,17 +389,17 @@ void SATSubsumption::fillMatchesSR()
         continue;
       }
       else if (lastHeader != L_i->header()) {
-        _sr_impossible = true;
+        _srImpossible = true;
         return;
       }
 
       intersect(_intersection, _negativeMatches);
       if (_intersection.empty()) {
         // It is impossible to find a SR because some L_i have no possible match
-        _sr_impossible = true;
+        _srImpossible = true;
         return;
       }
-      if (_subsumption_impossible && _sr_impossible) {
+      if (_subsumptionImpossible && _srImpossible) {
         return;
       }
     } // if (!foundPositiveMatch)
@@ -407,7 +407,7 @@ void SATSubsumption::fillMatchesSR()
 
   if (!hasNegativeMatch) {
     // If there are no negative matches, then the SR is not possible
-    _sr_impossible = true;
+    _srImpossible = true;
     return;
   }
 } // SATSubsumption::fillMatchesSR()
@@ -866,13 +866,13 @@ bool SATSubsumption::checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool
   setupProblem(L, M);
 
   // Fill the matches
-  if (setSR && !_sr_impossible) {
+  if (setSR && !_srImpossible) {
     fillMatchesSR();
-    if (_subsumption_impossible) {
+    if (_subsumptionImpossible) {
       return false;
     }
   }
-  else if (!fillMatchesS()) {
+  else if (_subsumptionImpossible || !fillMatchesS()) {
     return false;
   }
 
@@ -903,7 +903,7 @@ Kernel::Clause *SATSubsumption::checkSubsumptionResolution(Kernel::Clause *L, Ke
   // nVar is the number of variables that are of the form b_ij
   if (!usePreviousSetUp) {
     setupProblem(L, M);
-    if (_subsumption_impossible) {
+    if (_srImpossible) {
 #if PRINT_CLAUSES_SUBS
       cout << "Setup failed" << endl;
 #endif
@@ -921,7 +921,7 @@ Kernel::Clause *SATSubsumption::checkSubsumptionResolution(Kernel::Clause *L, Ke
     }
   }
 
-  if (_sr_impossible) {
+  if (_srImpossible) {
 #if PRINT_CLAUSES_SUBS
     cout << "SR impossible" << endl;
 #endif

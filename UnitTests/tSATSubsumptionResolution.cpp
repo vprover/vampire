@@ -181,10 +181,9 @@ TEST_FUN(PositiveSubsumptionResolution)
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected4));
 
-  /*
   Kernel::Clause* L5 = clause({~p(f(x1)), q(x1)});
   Kernel::Clause* M5 = clause({~p2(x2, x5), q(x2), p(f(x2)), ~q(g(x5))});
-  Kernel::Clause* expected5 = clause({~p2(x2, x5), q(x2)});
+  Kernel::Clause* expected5 = clause({~p2(x2, x5), q(x2), ~q(g(x5))});
   conclusion = subsumption.checkSubsumptionResolution(L5, M5);
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected5));
@@ -202,8 +201,11 @@ TEST_FUN(PositiveSubsumptionResolution)
   Kernel::Clause* expected7 = clause({p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4))});
   conclusion = subsumption.checkSubsumptionResolution(L7, M7);
   ASS(conclusion);
+  if (!checkClauseEquality(conclusion, expected7)) {
+    cout << "Expected: " << expected7->toNiceString() << endl;
+    cout << "Got     : " << conclusion->toNiceString() << endl;
+  }
   ASS(checkClauseEquality(conclusion, expected7));
-  */
 
   Kernel::Clause* L8 = clause({p(g2(x1,x2)),
                                q2(x1,x2)});
