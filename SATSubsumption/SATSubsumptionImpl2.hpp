@@ -1,5 +1,5 @@
-#ifndef SMTSUBSUMPTIONIMPL2_HPP
-#define SMTSUBSUMPTIONIMPL2_HPP
+#ifndef SATSUBSUMPTIONIMPL2_HPP
+#define SATSUBSUMPTIONIMPL2_HPP
 
 #include "Kernel/Clause.hpp"
 #include "Lib/STL.hpp"
@@ -9,9 +9,9 @@
 // Maybe it's more helpful with induction enabled? since that adds a lot of ground clauses.
 #define GROUND_LITERAL_PREFILTER 0
 
-namespace SMTSubsumption {
+namespace SATSubsumption {
 
-class SMTSubsumptionImpl2
+class SATSubsumptionImpl2
 {
   private:
 
@@ -47,10 +47,10 @@ class SMTSubsumptionImpl2
     vvector<subsat::Var> inst_is_compl_matched;
 
   public:
-    CLASS_NAME(SMTSubsumptionImpl2);
-    USE_ALLOCATOR(SMTSubsumptionImpl2);
+    CLASS_NAME(SATSubsumptionImpl2);
+    USE_ALLOCATOR(SATSubsumptionImpl2);
 
-    SMTSubsumptionImpl2();
+    SATSubsumptionImpl2();
 
     /// Set up the subsumption problem.
     /// Returns false if no solution is possible.
@@ -83,4 +83,4 @@ class SMTSubsumptionImpl2
 
 }
 
-#endif /* !SMTSUBSUMPTIONIMPL2_HPP */
+#endif /* !SATSUBSUMPTIONIMPL2_HPP */

@@ -708,13 +708,13 @@ set(VAMPIRE_CASC_SOURCES
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
 set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
-    SATSubsumption/SMTSubsumption.cpp
-    SATSubsumption/SMTSubsumption_benchmark.cpp
-    SATSubsumption/SMTSubsumption.hpp
-    SATSubsumption/SMTSubsumptionImpl2.cpp
-    SATSubsumption/SMTSubsumptionImpl2.hpp
-    SATSubsumption/SMTSubsumptionImpl3.cpp
-    SATSubsumption/SMTSubsumptionImpl3.hpp
+    SATSubsumption/SATSubsumption.cpp
+    SATSubsumption/SATSubsumption_benchmark.cpp
+    SATSubsumption/SATSubsumption.hpp
+    SATSubsumption/SATSubsumptionImpl2.cpp
+    SATSubsumption/SATSubsumptionImpl2.hpp
+    SATSubsumption/SATSubsumptionImpl3.cpp
+    SATSubsumption/SATSubsumptionImpl3.hpp
     SATSubsumption/SATSubsumptionResolution.cpp
     SATSubsumption/SATSubsumptionResolution.hpp
     SATSubsumption/Util.cpp

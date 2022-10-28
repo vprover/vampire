@@ -1,4 +1,4 @@
-#include "SMTSubsumptionImpl2.hpp"
+#include "SATSubsumptionImpl2.hpp"
 #include "Util.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Debug/RuntimeStatistics.hpp"
@@ -6,7 +6,7 @@
 
 using namespace Indexing;
 using namespace Kernel;
-using namespace SMTSubsumption;
+using namespace SATSubsumption;
 
 // TODO: early exit in case time limit hits, like in MLMatcher which checks every 50k iterations if time limit has been exceeded
 
@@ -17,7 +17,7 @@ using namespace SMTSubsumption;
 
 
 
-SMTSubsumptionImpl2::SMTSubsumptionImpl2()
+SATSubsumptionImpl2::SATSubsumptionImpl2()
 {
   solver.reserve_variables(64);
   solver.reserve_clause_storage(512);
@@ -31,9 +31,9 @@ SMTSubsumptionImpl2::SMTSubsumptionImpl2()
 /// Set up the subsumption problem.
 /// Returns false if no solution is possible.
 /// Otherwise, solve() needs to be called.
-bool SMTSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
+bool SATSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
 {
-  CALL("SMTSubsumptionImpl2::setupSubsumption");
+  CALL("SATSubsumptionImpl2::setupSubsumption");
 
   if (base->length() > instance->length()) {
     return false;
@@ -215,9 +215,9 @@ bool SMTSubsumptionImpl2::setupSubsumption(Kernel::Clause* base, Kernel::Clause*
 /// Set up the subsumption resolution problem from scratch.
 /// Returns false if no solution is possible.
 /// Otherwise, solve() needs to be called.
-bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance)
+bool SATSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance)
 {
-  CALL("SMTSubsumptionImpl2::setupSubsumptionResolution");
+  CALL("SATSubsumptionImpl2::setupSubsumptionResolution");
   solver.clear();
   ASS(solver.empty());
   ASS(solver.theory().empty());
@@ -389,13 +389,13 @@ bool SMTSubsumptionImpl2::setupSubsumptionResolution(Kernel::Clause* base, Kerne
 }  // setupSubsumptionResolution
 
 
-bool SMTSubsumptionImpl2::solve()
+bool SATSubsumptionImpl2::solve()
 {
-  CALL("SMTSubsumptionImpl2::solve");
+  CALL("SATSubsumptionImpl2::solve");
   return solver.solve() == subsat::Result::Sat;
 }
 
-Kernel::Clause* SMTSubsumptionImpl2::getSubsumptionResolutionConclusion()
+Kernel::Clause* SATSubsumptionImpl2::getSubsumptionResolutionConclusion()
 {
   int const conclusion_len = m_instance->length() - 1;
   Clause* conclusion = new (conclusion_len) Clause(conclusion_len,
@@ -425,15 +425,15 @@ Kernel::Clause* SMTSubsumptionImpl2::getSubsumptionResolutionConclusion()
 
 
 
-bool SMTSubsumptionImpl2::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
+bool SATSubsumptionImpl2::checkSubsumption(Kernel::Clause* base, Kernel::Clause* instance)
 {
-  CALL("SMTSubsumptionImpl2::checkSubsumption");
+  CALL("SATSubsumptionImpl2::checkSubsumption");
   return setupSubsumption(base, instance) && solve();
 }
 
 
 
-bool SMTSubsumptionImpl2::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
+bool SATSubsumptionImpl2::checkSubsumptionResolution(Kernel::Clause* base, Kernel::Clause* instance, Kernel::Clause* conclusion)
 {
   bool const res0 = setupSubsumptionResolution(base, instance);
   if (conclusion == nullptr) {
@@ -442,7 +442,7 @@ bool SMTSubsumptionImpl2::checkSubsumptionResolution(Kernel::Clause* base, Kerne
       std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
       std::cerr << "\%    base       = " << base->toString() << std::endl;
       std::cerr << "\%    instance   = " << instance->toString() << std::endl;
-      std::cerr << "\% Should NOT be possible but SMT2-SR found the following result:" << std::endl;
+      std::cerr << "\% Should NOT be possible but SAT2-SR found the following result:" << std::endl;
       std::cerr << "\%    conclusion = " << getSubsumptionResolutionConclusion()->toString() << std::endl;
       return false;
     } else {
@@ -462,7 +462,7 @@ bool SMTSubsumptionImpl2::checkSubsumptionResolution(Kernel::Clause* base, Kerne
     std::cerr << "\% ***WRONG RESULT OF SUBSUMPTION RESOLUTION***" << std::endl;
     std::cerr << "\%    base     = " << base->toString() << std::endl;
     std::cerr << "\%    instance = " << instance->toString() << std::endl;
-    std::cerr << "\% No result from SMT2-SR, but should have found this conclusion:" << std::endl;
+    std::cerr << "\% No result from SAT2-SR, but should have found this conclusion:" << std::endl;
     std::cerr << "\%    expected = " << conclusion->toString() << std::endl;
   }
   return (found > 0);

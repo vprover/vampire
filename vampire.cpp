@@ -52,7 +52,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "SATSubsumption/SMTSubsumption.hpp"
+#include "SATSubsumption/SATSubsumption.hpp"
 #include "SATSubsumption/cdebug.hpp"
 
 //#include "InstGen/IGAlgorithm.hpp"
@@ -506,7 +506,7 @@ bool subsumptionBenchmarkMode_parseAxiomName(vstring const& name, vstring const&
   }
 }
 
-vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(UnitList const* units)
+vvector<SATSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(UnitList const* units)
 {
   // Components of key: sequence number, whether side premise subsumes main premise
   using Key = std::pair<unsigned int, bool>;
@@ -561,7 +561,7 @@ vvector<SMTSubsumption::SubsumptionInstance> getOldFormatSubsumptionInstances(Un
     units = units->tail();
   }
 
-  vvector<SMTSubsumption::SubsumptionInstance> instances;
+  vvector<SATSubsumption::SubsumptionInstance> instances;
 
   for (auto p : side_premises) {
     Key k = p.first;
@@ -654,10 +654,10 @@ vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
   return clauses;
 }
 
-SMTSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* units)
+SATSubsumption::SubsumptionBenchmark getSubsumptionBenchmark(UnitList const* units)
 {
   BYPASSING_ALLOCATOR;
-  SMTSubsumption::SubsumptionBenchmark b;
+  SATSubsumption::SubsumptionBenchmark b;
 
   vstring slog_path = env.options->subsumptionLogfile();
   if (slog_path.empty()) {
@@ -803,7 +803,7 @@ void subsumptionBenchmarkMode(bool simulate_full_run)
   }
   std::cerr << "Subsumption SAT vs. UNSAT: total= " << n_total << " sat= " << n_sat << " unsat= " << n_unsat << " unknown= " << n_unknown << std::endl;
 
-  SMTSubsumption::ProofOfConcept s;
+  SATSubsumption::ProofOfConcept s;
   if (simulate_full_run) {
     s.benchmark_run(std::move(b));
   } else {
@@ -839,7 +839,7 @@ void subsumptionTestingMode()
 
   auto instance = instances.at(0);
 
-  SMTSubsumption::ProofOfConcept s;
+  SATSubsumption::ProofOfConcept s;
   s.test(instance.side_premise, instance.main_premise);
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;

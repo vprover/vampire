@@ -81,7 +81,6 @@ private:
 
   bool _subsumptionResolution;
 
-
   vvector<SubsumptionInstance> subsumption_tried;
   vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
 #if USE_SAT_SUBSUMPTION_FORWARD

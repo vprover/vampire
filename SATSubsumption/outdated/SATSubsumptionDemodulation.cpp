@@ -1,9 +1,9 @@
 #if 0
 
-#include "SMTSubsumption.hpp"
+#include "SATSubsumption.hpp"
 #include "SubstitutionTheory.hpp"
-#include "SMTSubsumption/minisat/Solver.h"
-#include "SMTSubsumption/slice.hpp"
+#include "SATSubsumption/minisat/Solver.h"
+#include "SATSubsumption/slice.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
 #include "Lib/BinaryHeap.hpp"
@@ -19,9 +19,9 @@
 
 using namespace Indexing;
 using namespace Kernel;
-using namespace SMTSubsumption;
+using namespace SATSubsumption;
 
-#include "SMTSubsumption/cdebug.hpp"
+#include "SATSubsumption/cdebug.hpp"
 
 
 #define ENABLE_BENCHMARK 1
@@ -206,7 +206,7 @@ using Impl = OriginalSubsumptionImpl;  // shorthand if we use qualified namespac
 
 
 /****************************************************************************
- * SMT-Subsumption for benchmark
+ * SAT-Subsumption for benchmark
  ****************************************************************************/
 
 
@@ -311,7 +311,7 @@ private:
 // - allocate all variables at once: ~2000ns
 // - remove clause deletion from solver: imperceptible (but note that this is only setup)
 // - use DHMap instead of std::unordered_map: ~5000ns
-// (benchmark smt_setup_1 of file slog_GEO312+1_manydecisions.txt)
+// (benchmark sat_setup_1 of file slog_GEO312+1_manydecisions.txt)
 
 
 /// Possible match alternative for a certain literal of the side premise.
@@ -324,7 +324,7 @@ struct Alt
 };
 
 
-class SMTSubsumptionImpl
+class SATSubsumptionImpl
 {
   private:
     Minisat::Solver solver;
@@ -349,7 +349,7 @@ class SMTSubsumptionImpl
     /// Otherwise, solve() needs to be called.
     bool setup2(Kernel::Clause* side_premise, Kernel::Clause* main_premise)
     {
-      CDEBUG("SMTSubsumptionImpl::setup2()");
+      CDEBUG("SATSubsumptionImpl::setup2()");
 
       // TODO: use miniindex
       // LiteralMiniIndex const main_premise_mini_index(main_premise);
@@ -392,7 +392,7 @@ class SMTSubsumptionImpl
       // vvector<uint32_t> instance_constraints_storage;
       // instance_constraints_storage.resize( main_premise->length() * (1 + max_instance_constraint_len) );
       DArray<uint32_t> instance_constraints_storage;
-      instance_constraints_storage.ensure(instance_constraints_storage_size);  // TODO: if VDEBUG, set all entries to 999999 or smth like that
+      instance_constraints_storage.ensure(instance_constraints_storage_size);  // TODO: if VDEBUG, set all entries to 999999 or sath like that
       // uint32_t* instance_constraints_storage = static_cast<uint32_t*>(ALLOC_UNKNOWN(instance_constraints_storage_size * sizeof(uint32_t), "hoho"));  // somehow even this initializes the memory? so whatever...
       // initialize sizes to 0
       for (size_t i = 0; i < instance_constraints_storage.size(); i += max_instance_constraint_len) {
@@ -761,7 +761,7 @@ class SMTSubsumptionImpl
     /// Otherwise, solve() needs to be called.
     bool setup(Kernel::Clause* side_premise, Kernel::Clause* main_premise, Minisat::VarOrderStrategy vo_strategy = Minisat::VarOrderStrategy::MinisatDefault)
     {
-      CDEBUG("SMTSubsumptionImpl::setup()");
+      CDEBUG("SATSubsumptionImpl::setup()");
       // solver.reset();  // TODO
       // solver.verbosity = 2;  // maybe only for debug...
 
@@ -979,7 +979,7 @@ class SMTSubsumptionImpl
     /// Solve the subsumption instance created by the previous call to setup()
     bool solve()
     {
-      CDEBUG("SMTSubsumptionImpl::solve()");
+      CDEBUG("SATSubsumptionImpl::solve()");
       return solver.solve({});
     }
 
@@ -987,7 +987,7 @@ class SMTSubsumptionImpl
     {
       return setup(side_premise, main_premise) && solve();
     }
-};  // class SMTSubsumptionImpl
+};  // class SATSubsumptionImpl
 
 
 /****************************************************************************/
@@ -1010,7 +1010,7 @@ class SMTSubsumptionImpl
 void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 {
   CALL("ProofOfConcept::test");
-  std::cout << "\% SMTSubsumption::test" << std::endl;
+  std::cout << "\% SATSubsumption::test" << std::endl;
   std::cout << "\% side_premise: " << side_premise->toString() << std::endl;
   std::cout << "\% main_premise: " << main_premise->toString() << std::endl;
   std::cout << std::endl;
@@ -1045,7 +1045,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     ASS_EQ((*c1)[3], ~Lit(8));
   }
 
-  SMTSubsumptionImpl impl;
+  SATSubsumptionImpl impl;
   std::cout << "SETUP" << std::endl;
   bool subsumed1 = impl.setup2(side_premise, main_premise);
   std::cout << "  => " << subsumed1 << std::endl;
@@ -1068,8 +1068,8 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
     auto vo_strategy_name = p.first;
     auto vo_strategy = p.second;
 
-    SMTSubsumptionImpl impl;
-    std::cout << "SMTSubsumption with vo_strategy = " << vo_strategy_name << std::endl;
+    SATSubsumptionImpl impl;
+    std::cout << "SATSubsumption with vo_strategy = " << vo_strategy_name << std::endl;
     bool subsumed = impl.setup(side_premise, main_premise, vo_strategy) && impl.solve();
     std::cout << "Subsumed: " << subsumed << std::endl;
     impl.printStats(std::cout);
@@ -1085,7 +1085,7 @@ void ProofOfConcept::test(Clause* side_premise, Clause* main_premise)
 
 bool ProofOfConcept::checkSubsumption(Kernel::Clause *side_premise, Kernel::Clause *main_premise)
 {
-  SMTSubsumptionImpl impl;
+  SATSubsumptionImpl impl;
   return impl.checkSubsumption(side_premise, main_premise);
 }
 
@@ -1128,35 +1128,35 @@ uint64_t rdtscp()
 #include <benchmark/benchmark.h>
 
 
-void bench_smt_total(benchmark::State& state, SubsumptionInstance instance)
+void bench_sat_total(benchmark::State& state, SubsumptionInstance instance)
 {
   for (auto _ : state) {
-    SMTSubsumptionImpl smt_impl;
-    bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.subsumed) {
+    SATSubsumptionImpl sat_impl;
+    bool sat_result = sat_impl.checkSubsumption(instance.side_premise, instance.main_premise);
+    benchmark::DoNotOptimize(sat_result);
+    if (sat_result != instance.subsumed) {
       state.SkipWithError("Wrong result!");
       return;
     }
   }
 }
 
-void bench_smt_setup(benchmark::State& state, SubsumptionInstance instance)
+void bench_sat_setup(benchmark::State& state, SubsumptionInstance instance)
 {
   for (auto _ : state) {
-    SMTSubsumptionImpl smt_impl;
-    bool smt_setup_result = smt_impl.setup(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(smt_setup_result);
+    SATSubsumptionImpl sat_impl;
+    bool sat_setup_result = sat_impl.setup(instance.side_premise, instance.main_premise);
+    benchmark::DoNotOptimize(sat_setup_result);
     benchmark::ClobberMemory();
   }
 }
 
-void bench_smt_setup2(benchmark::State& state, SubsumptionInstance instance)
+void bench_sat_setup2(benchmark::State& state, SubsumptionInstance instance)
 {
   for (auto _ : state) {
-    SMTSubsumptionImpl smt_impl;
-    bool smt_setup_result = smt_impl.setup2(instance.side_premise, instance.main_premise);
-    benchmark::DoNotOptimize(smt_setup_result);
+    SATSubsumptionImpl sat_impl;
+    bool sat_setup_result = sat_impl.setup2(instance.side_premise, instance.main_premise);
+    benchmark::DoNotOptimize(sat_setup_result);
     benchmark::ClobberMemory();
   }
 }
@@ -1512,7 +1512,7 @@ void bench_general_matching_array2(benchmark::State& state, SubsumptionInstance 
 
 
 
-void bench_smt_matching(benchmark::State& state, SubsumptionInstance instance)
+void bench_sat_matching(benchmark::State& state, SubsumptionInstance instance)
 {
   Clause* side_premise = instance.side_premise;
   Clause* main_premise = instance.main_premise;
@@ -1618,7 +1618,7 @@ void bench_smt_matching(benchmark::State& state, SubsumptionInstance instance)
 // Removing SubstitutionAtom::from_binder and stc.register_atom calls: ~10000ns
 //
 // Changelog:
-void bench_smt_matching_with_stc(benchmark::State& state, SubsumptionInstance instance)
+void bench_sat_matching_with_stc(benchmark::State& state, SubsumptionInstance instance)
 {
   Clause* side_premise = instance.side_premise;
   Clause* main_premise = instance.main_premise;
@@ -1724,7 +1724,7 @@ void bench_smt_matching_with_stc(benchmark::State& state, SubsumptionInstance in
 
 
 // Lines with !!! are new compared to previous test
-void bench_smt_until_create_solver(benchmark::State& state, SubsumptionInstance instance)
+void bench_sat_until_create_solver(benchmark::State& state, SubsumptionInstance instance)
 {
   Clause* side_premise = instance.side_premise;
   Clause* main_premise = instance.main_premise;
@@ -1831,7 +1831,7 @@ void bench_smt_until_create_solver(benchmark::State& state, SubsumptionInstance 
 
 
 // Lines with !!! are new compared to previous test
-void bench_smt_until_create_theory(benchmark::State& state, SubsumptionInstance instance)
+void bench_sat_until_create_theory(benchmark::State& state, SubsumptionInstance instance)
 {
   Clause* side_premise = instance.side_premise;
   Clause* main_premise = instance.main_premise;
@@ -1943,17 +1943,17 @@ void bench_smt_until_create_theory(benchmark::State& state, SubsumptionInstance 
 
 
 
-void bench_smt_search(benchmark::State& state, SubsumptionInstance instance)
+void bench_sat_search(benchmark::State& state, SubsumptionInstance instance)
 {
   for (auto _ : state) {
     state.PauseTiming();
-    SMTSubsumptionImpl smt_impl;
-    bool smt_setup_result = smt_impl.setup(instance.side_premise, instance.main_premise);
+    SATSubsumptionImpl sat_impl;
+    bool sat_setup_result = sat_impl.setup(instance.side_premise, instance.main_premise);
     state.ResumeTiming();
     benchmark::ClobberMemory();
-    bool smt_result = smt_setup_result && smt_impl.solve();
-    benchmark::DoNotOptimize(smt_result);
-    if (smt_result != instance.subsumed) {
+    bool sat_result = sat_setup_result && sat_impl.solve();
+    benchmark::DoNotOptimize(sat_result);
+    if (sat_result != instance.subsumed) {
       state.SkipWithError("Wrong result!");
       return;
     }
@@ -2022,7 +2022,7 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
   CALL("ProofOfConcept::benchmark_micro");
   BYPASSING_ALLOCATOR;  // google-benchmark needs its own memory
 
-  std::cerr << "\% SMTSubsumption: micro-benchmarking " << instances.size() << " instances" << std::endl;
+  std::cerr << "\% SATSubsumption: micro-benchmarking " << instances.size() << " instances" << std::endl;
 #if VDEBUG
   std::cerr << "\n\n\nWARNING: compiled in debug mode!\n\n\n" << std::endl;
 #endif
@@ -2060,23 +2060,23 @@ void ProofOfConcept::benchmark_micro(vvector<SubsumptionInstance> instances)
     name = "general_matching_array2_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_general_matching_array2, instance);
 
-    name = "smt_matching_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_matching, instance);
-    name = "smt_matching_with_stc_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_matching_with_stc, instance);
-    name = "smt_until_create_solver_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_until_create_solver, instance);
-    name = "smt_until_create_theory_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_until_create_theory, instance);
-    name = "smt_setup_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup, instance);
-    // name = "smt_setup2_" + suffix;
-    // benchmark::RegisterBenchmark(name.c_str(), bench_smt_setup2, instance);
+    name = "sat_matching_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_sat_matching, instance);
+    name = "sat_matching_with_stc_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_sat_matching_with_stc, instance);
+    name = "sat_until_create_solver_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_sat_until_create_solver, instance);
+    name = "sat_until_create_theory_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_sat_until_create_theory, instance);
+    name = "sat_setup_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_sat_setup, instance);
+    // name = "sat_setup2_" + suffix;
+    // benchmark::RegisterBenchmark(name.c_str(), bench_sat_setup2, instance);
     // break;
-    name = "smt_search_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_search, instance);
-    name = "smt_total_" + suffix;
-    benchmark::RegisterBenchmark(name.c_str(), bench_smt_total, instance);
+    name = "sat_search_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_sat_search, instance);
+    name = "sat_total_" + suffix;
+    benchmark::RegisterBenchmark(name.c_str(), bench_sat_total, instance);
 
     name = "orig_setup_" + suffix;
     benchmark::RegisterBenchmark(name.c_str(), bench_orig_setup, instance);
@@ -2121,15 +2121,15 @@ void ProofOfConcept::benchmark_micro1(SubsumptionInstance instance)
 
   // TODO: this includes all allocation overhead, which is not what we want
   using namespace std::chrono;
-  steady_clock::time_point smt_ts_begin = steady_clock::now();
+  steady_clock::time_point sat_ts_begin = steady_clock::now();
   clobber();
   // uint64_t c1 = rdtscp();
-  SMTSubsumptionImpl smt_impl;
-  bool smt_result = smt_impl.checkSubsumption(instance.side_premise, instance.main_premise);
+  SATSubsumptionImpl sat_impl;
+  bool sat_result = sat_impl.checkSubsumption(instance.side_premise, instance.main_premise);
   // uint64_t c2 = rdtscp();
   clobber();
-  steady_clock::time_point smt_ts_end = steady_clock::now();
-  steady_clock::duration smt_duration = smt_ts_end - smt_ts_begin;
+  steady_clock::time_point sat_ts_end = steady_clock::now();
+  steady_clock::duration sat_duration = sat_ts_end - sat_ts_begin;
 
   clobber();
 
@@ -2147,15 +2147,15 @@ void ProofOfConcept::benchmark_micro1(SubsumptionInstance instance)
 
 
   std::cout << "Instance #" << instance.number << ": ";
-  std::cout << "SMTS: " << fmt_nanosecs(smt_duration) << " / ";
+  std::cout << "SATS: " << fmt_nanosecs(sat_duration) << " / ";
   std::cout << "Orig: " << fmt_nanosecs(orig_duration);
-  if (smt_duration < orig_duration) {
+  if (sat_duration < orig_duration) {
     std::cout << "  !!!!!!";
   }
   std::cout << std::endl;
-  // std::cout << "SMT Subsumption: rdtscp: " << c2 - c1 << std::endl;
+  // std::cout << "SAT Subsumption: rdtscp: " << c2 - c1 << std::endl;
 
-  if (smt_result != instance.subsumed) {
+  if (sat_result != instance.subsumed) {
     std::cout << "ERROR: wrong result!" << std::endl;
   }
 }

@@ -1,5 +1,5 @@
-#ifndef SMTSUBSUMPTION_HPP
-#define SMTSUBSUMPTION_HPP
+#ifndef SATSUBSUMPTION_HPP
+#define SATSUBSUMPTION_HPP
 
 #include "Kernel/Clause.hpp"
 #include "Lib/STL.hpp"
@@ -7,7 +7,7 @@
 
 #include <memory>
 
-namespace SMTSubsumption {
+namespace SATSubsumption {
 
 
 struct SubsumptionInstance
@@ -23,7 +23,7 @@ struct SubsumptionResolutionInstance
   Kernel::Clause* side_premise;  ///< also called "base clause"
   Kernel::Clause* main_premise;  ///< also called "instance clause"
   /// Index into main_premise; the literal for which SR is tested
-  /// - only relevant for the original SR... SMT-SR always tests all of them.
+  /// - only relevant for the original SR... SAT-SR always tests all of them.
   /// - value UINT_MAX means 'all of them' (denoted as '*' in the logfile).
   unsigned res_lit;
   unsigned int number;
@@ -48,17 +48,17 @@ struct SubsumptionBenchmark {
 };
 
 
-class SMTSubsumptionImpl2;
+class SATSubsumptionImpl2;
 
-class SMTSubsumptionImpl3;
-class SMTSubsumptionImpl3_Token;
+class SATSubsumptionImpl3;
+class SATSubsumptionImpl3_Token;
 class ProofOfConcept;
 
 class Token {
-  std::unique_ptr<SMTSubsumptionImpl3_Token> tok;
-  Token(std::unique_ptr<SMTSubsumptionImpl3_Token> tok);
+  std::unique_ptr<SATSubsumptionImpl3_Token> tok;
+  Token(std::unique_ptr<SATSubsumptionImpl3_Token> tok);
   Token(Token&) = delete;
-  friend class ::SMTSubsumption::ProofOfConcept;
+  friend class ::SATSubsumption::ProofOfConcept;
 public:
   CLASS_NAME(Token);
   USE_ALLOCATOR(Token);
@@ -93,11 +93,11 @@ class ProofOfConcept {
     void init_benchmark(vvector<vstring> the_args);
 
   private:
-    std::unique_ptr<SMTSubsumptionImpl2> m_subsat_impl2;
-    std::unique_ptr<SMTSubsumptionImpl3> m_subsat_impl3;
+    std::unique_ptr<SATSubsumptionImpl2> m_subsat_impl2;
+    std::unique_ptr<SATSubsumptionImpl3> m_subsat_impl3;
 };
 
 
 }
 
-#endif /* !SMTSUBSUMPTION_HPP */
+#endif /* !SATSUBSUMPTION_HPP */

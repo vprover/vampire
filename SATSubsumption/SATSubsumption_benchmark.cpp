@@ -1,4 +1,4 @@
-#include "SMTSubsumption.hpp"
+#include "SATSubsumption.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
 
@@ -10,7 +10,7 @@
 // https://github.com/google/benchmark
 #include <benchmark/benchmark.h>
 
-void SMTSubsumption::ProofOfConcept::add_common_benchmark_args(vvector<vstring>& args)
+void SATSubsumption::ProofOfConcept::add_common_benchmark_args(vvector<vstring>& args)
 {
   if (!env.options->benchmarkOut().empty()) {
     vstringstream s;
@@ -26,7 +26,7 @@ void SMTSubsumption::ProofOfConcept::add_common_benchmark_args(vvector<vstring>&
   }
 }
 
-void SMTSubsumption::ProofOfConcept::init_benchmark(vvector<vstring> the_args)
+void SATSubsumption::ProofOfConcept::init_benchmark(vvector<vstring> the_args)
 {
   // Need to keep the strings alive while benchmarking is in progress
   static vvector<vstring> args;

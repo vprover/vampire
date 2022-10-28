@@ -1,12 +1,12 @@
 #if 0
-#ifndef SMTSUBSUMPTION_HPP
-#define SMTSUBSUMPTION_HPP
+#ifndef SATSUBSUMPTION_HPP
+#define SATSUBSUMPTION_HPP
 
 #include "Kernel/Clause.hpp"
 #include "Lib/STL.hpp"
 #include "Inferences/InferenceEngine.hpp"
 
-namespace SMTSubsumption {
+namespace SATSubsumption {
 
 
 struct SubsumptionInstance
@@ -31,6 +31,6 @@ class ProofOfConcept {
 
 }
 
-#endif /* !SMTSUBSUMPTION_HPP */
+#endif /* !SATSUBSUMPTION_HPP */
 
 #endif
