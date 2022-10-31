@@ -212,7 +212,7 @@ check_correctness:
     while(oldSimplifications.hasNext()) {
       BwSimplificationRecord rec = oldSimplifications.next();
       checkedSimplifications.insert(rec.toRemove);
-      auto it = List<BwSimplificationRecord>::Iterator(simplRes);
+      auto it = List<BwSimplificationRecord>::Iterator(simplificationBuffer);
       bool found = false;
       while(it.hasNext()) {
         BwSimplificationRecord rec2 = it.next();
@@ -227,7 +227,7 @@ check_correctness:
         cout << "Subsumed: " << rec.toRemove->toNiceString() << endl;
       }
     }
-    auto it = List<BwSimplificationRecord>::Iterator(simplRes);
+    auto it = List<BwSimplificationRecord>::Iterator(simplificationBuffer);
     while(it.hasNext()) {
       BwSimplificationRecord rec = it.next();
       if(rec.replacement == nullptr && !checkedSimplifications.contains(rec.toRemove)) {
@@ -244,7 +244,7 @@ check_correctness:
     while(oldSimplifications.hasNext()) {
       BwSimplificationRecord rec = oldSimplifications.next();
       checkedSimplifications.insert(rec.toRemove);
-      auto it = List<BwSimplificationRecord>::Iterator(simplRes);
+      auto it = List<BwSimplificationRecord>::Iterator(simplificationBuffer);
       bool found = false;
       while(it.hasNext()) {
         BwSimplificationRecord rec2 = it.next();
@@ -260,7 +260,7 @@ check_correctness:
         cout << "Resolution: " << rec.replacement->toNiceString() << endl;
       }
     }
-    auto it = List<BwSimplificationRecord>::Iterator(simplRes);
+    auto it = List<BwSimplificationRecord>::Iterator(simplificationBuffer);
     while(it.hasNext()) {
       BwSimplificationRecord rec = it.next();
       if(rec.replacement != nullptr && !checkedSimplifications.contains(rec.toRemove)) {
