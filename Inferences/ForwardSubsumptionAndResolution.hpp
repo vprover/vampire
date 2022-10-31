@@ -81,8 +81,6 @@ private:
 
   bool _subsumptionResolution;
 
-  vvector<SubsumptionInstance> subsumption_tried;
-  vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
 #if USE_SAT_SUBSUMPTION_FORWARD
   SMTSubsumption::SATSubsumption satSubs;
   DHSet<Clause *> _checked;
@@ -92,9 +90,11 @@ private:
 #endif
 
 #if CHECK_SAT_SUBSUMPTION || !USE_SAT_SUBSUMPTION_FORWARD
+  vvector<SubsumptionInstance> subsumption_tried;
   bool checkSubsumption(Clause *mcl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 #endif
 #if CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION_FORWARD
+  vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
   Clause *checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 #endif
 

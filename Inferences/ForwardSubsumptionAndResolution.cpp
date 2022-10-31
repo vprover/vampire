@@ -1002,6 +1002,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         goto check_correctness;
       }
       else if (checkSR) {
+        // In this case, the literals come from the non complementary list, and there is therefore
+        // a low chance of it being resolved. However, in the case where there is no negative match,
+        // checkSubsumption resolution is very fast after subsumption, since filling the match set
+        // for subsumption will have already detected that subsumption resolution is impossible
         fsstats.m_logged_sat_checks_sr++;
         n_sr_checks++;
         _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);

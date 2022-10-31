@@ -11,7 +11,7 @@
  * @file SaturationAlgorithm.cpp
  * Implementing SaturationAlgorithm class.
  */
-
+#define USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD 1
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/DHSet.hpp"
@@ -52,6 +52,9 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BackwardSubsumptionResolution.hpp"
+#if USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD
+#include "Inferences/BackwardSubsumptionAndResolution.hpp"
+#endif
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/EqualityFactoring.hpp"
@@ -361,10 +364,10 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
   CALL("SaturationAlgorithm::onActiveAdded");
 
   if (env.options->showActive()) {
-    env.beginOutput();    
+    env.beginOutput();
     env.out() << "[SA] active: " << c->toString() << std::endl;
-    env.endOutput();             
-  }          
+    env.endOutput();
+  }
 }
 
 /**
@@ -407,7 +410,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.out() << "[SA] passive: " << c->toString() << std::endl;
     env.endOutput();
   }
-  
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -451,12 +454,12 @@ void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
  */
 void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
 {
-  
+
 }
 
 void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 {
-  
+
 }
 
 
@@ -490,7 +493,7 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 {
   CALL("SaturationAlgorithm::onNewUsefulPropositionalClause");
   ASS(c->isPropositional());
-  
+
   if (env.options->showNewPropositional()) {
     env.beginOutput();
     env.out() << "[SA] new propositional: " << c->toString() << std::endl;
@@ -527,7 +530,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
   ASS(cl);
 
   ClauseIterator premises;
-  
+
   if (premise) {
     premises = pvi( getSingletonIterator(premise) );
   }
@@ -571,12 +574,12 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
   }
 
   if (replacement) {
-    //Where an inference has multiple conclusions, onParenthood will only be run 
+    //Where an inference has multiple conclusions, onParenthood will only be run
     //for the final conclusion. This is unsafe when running with symbol elimination.
     //At the moment the only simplification rules that have multiple conclusions
     //are higher-order and it is assumed that we will not run higher-order along
     //with symbol elimination.
-    //In the future if a first-order simplification rule is added with multiple 
+    //In the future if a first-order simplification rule is added with multiple
     //conclusions, this code should be updated.
     onParenthood(replacement, cl);
     while (premStack.isNonEmpty()) {
@@ -660,7 +663,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     _symEl->onInputClause(cl);
   }
 
-  bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL; 
+  bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL;
   sosForAxioms = sosForAxioms && cl->inputType()==UnitInputType::AXIOM;
 
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
@@ -985,7 +988,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
-    
+
 
     // Global Subsumption doesn't set the input type the way we want so we can't do this for now
     // TODO think of a better fix
@@ -996,7 +999,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 
     throw RefutationFoundException(cl);
   }
-  // as Clauses no longer have prop parts the only reason for an empty 
+  // as Clauses no longer have prop parts the only reason for an empty
   // clause not being a refutation is if it has splits
 
   if (_splitter && _splitter->handleEmptyClause(cl)) {
@@ -1057,7 +1060,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
     {
       ClauseIterator results = se->perform(cl);
- 
+
       if (results.hasNext()) {
         while(results.hasNext()){
           Clause* simpedCl = results.next();
@@ -1236,7 +1239,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-    
+
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = timeTraceIter(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
@@ -1355,7 +1358,7 @@ UnitList* SaturationAlgorithm::collectSaturatedSet()
   while (it.hasNext()) {
     Clause* cl = it.next();
     cl->incRefCnt();
-    UnitList::push(cl, res);    
+    UnitList::push(cl, res);
   }
   return res;
 }
@@ -1565,7 +1568,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new Superposition());
     }
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
-    gie->addFront(new EqualityResolution()); 
+    gie->addFront(new EqualityResolution());
   }
 
   if(opt.combinatorySup()){
@@ -1644,11 +1647,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.options->cancellation() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new Cancellation(ordering)); 
+    sgi->push(new Cancellation(ordering));
   }
 
   if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
-    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination())); 
+    sgi->push(new LfpRule<GaussianVariableElimination>(GaussianVariableElimination()));
   }
 
   if (env.options->arithmeticSubtermGeneralizations() == Options::ArithmeticSimplificationMode::CAUTIOUS) {
@@ -1677,7 +1680,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       res->addSimplifierToFront(new LazyClausification());
     }
     //res->addSimplifierToFront(new RenamingOnTheFly());
-  }  
+  }
 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
@@ -1750,6 +1753,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
     res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
+  #if USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD
+  bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
+  bool backSR = opt.backwardSubsumptionResolution() != Options::Subsumption::OFF;
+  bool subsumptionUnitOnly = opt.backwardSubsumption() == Options::Subsumption::UNIT_ONLY;
+  bool srUnitOnly = opt.backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY;
+  if (backSubsumption || backSR) {
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionAndResolution(backSubsumption, backSR, subsumptionUnitOnly, srUnitOnly));
+  }
+
+  #else
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
     res->addBackwardSimplifierToFront(new SLQueryBackwardSubsumption(byUnitsOnly));
@@ -1758,6 +1771,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::Subsumption::UNIT_ONLY;
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }
+  #endif
 
   if (opt.mode()==Options::Mode::CONSEQUENCE_ELIMINATION) {
     res->_consFinder=new ConsequenceFinder();
@@ -1810,8 +1824,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       /*res->addFrontMany(new ProxyISE());
       res->addFront(new OrImpAndProxyISE());
-      res->addFront(new NotProxyISE());   
-      res->addFront(new EqualsProxyISE());   
+      res->addFront(new NotProxyISE());
+      res->addFront(new EqualsProxyISE());
       res->addFront(new PiSigmaProxyISE());*/
       res->addFrontMany(new EagerClausificationISE());
     } else {
@@ -1824,7 +1838,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFrontMany(new CasesSimp());
   }
 
-  // Only add if there are distinct groups 
+  // Only add if there are distinct groups
   if(prb.hasEquality() && env.signature->hasDistinctGroups()) {
     res->addFront(new DistinctEqualitySimplifier());
   }
@@ -1843,15 +1857,15 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
     if (env.options->gaussianVariableElimination() == Options::ArithmeticSimplificationMode::FORCE) {
-      res->addFront(&(new GaussianVariableElimination())->asISE()); 
+      res->addFront(&(new GaussianVariableElimination())->asISE());
     }
 
     if (env.options->cancellation() == Options::ArithmeticSimplificationMode::FORCE) {
-      res->addFront(&(new Cancellation(ordering))->asISE()); 
+      res->addFront(&(new Cancellation(ordering))->asISE());
     }
 
     switch (env.options->evaluationMode()) {
-      case Options::EvaluationMode::SIMPLE: 
+      case Options::EvaluationMode::SIMPLE:
         res->addFront(new InterpretedEvaluation(env.options->inequalityNormalization(), ordering));
         break;
       case Options::EvaluationMode::POLYNOMIAL_FORCE:
@@ -1862,7 +1876,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
     if (env.options->pushUnaryMinus()) {
-      res->addFront(new PushUnaryMinus()); 
+      res->addFront(new PushUnaryMinus());
     }
 
   }
@@ -1877,4 +1891,3 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
 
   return res;
 }
-

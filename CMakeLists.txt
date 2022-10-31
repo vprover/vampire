@@ -398,6 +398,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.cpp
     Inferences/BackwardSubsumptionDemodulation.cpp
     Inferences/BackwardSubsumptionResolution.cpp
+    Inferences/BackwardSubsumptionAndResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
     Inferences/DistinctEqualitySimplifier.cpp
@@ -434,6 +435,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/URResolution.cpp
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionResolution.hpp
+    Inferences/BackwardSubsumptionAndResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
     Inferences/DistinctEqualitySimplifier.hpp
