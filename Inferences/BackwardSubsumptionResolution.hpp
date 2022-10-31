@@ -21,9 +21,7 @@
 
 namespace Inferences {
 
-using namespace Indexing;
-
-#define USE_SAT_SUBSUMPTION_BACKWARD 1
+#define USE_SAT_SUBSUMPTION_BACKWARD 0
 
 class BackwardSubsumptionResolution
 : public BackwardSimplificationEngine

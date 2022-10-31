@@ -411,7 +411,7 @@ void BackwardSubsumptionResolution::perform(Clause *cl,
   }
   return;
 }
-#endif
+#else
 
 void BackwardSubsumptionResolution::perform(Clause *cl,
                                             BwSimplificationRecordIterator &simplifications)
@@ -509,5 +509,6 @@ void BackwardSubsumptionResolution::perform(Clause *cl,
     simplifications = pvi(List<BwSimplificationRecord>::DestructiveIterator(simplRes));
   }
 }
+#endif
 
 } // namespace Inferences
