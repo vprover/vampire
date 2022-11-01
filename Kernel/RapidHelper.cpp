@@ -751,12 +751,20 @@ bool RapidHelper::increasing(Literal* lit, TermList term) {
   return true;
 }
 
-bool RapidHelper::isZeroLessThanLit(Literal* lit) {
+bool RapidHelper::isZeroLessThanLit(Literal* lit, TermList& term) {
   CALL("RapidHelper::isZeroLessThanLit");
 
-  if(number::isLess(lit).isSome() && lit->isPositive() &&
-     number::isZero(*lit->nthArgument(0))){
-    return true;
+  if(number::isLess(lit).isSome()){
+    TermList arg1 = *lit->nthArgument(0);
+    TermList arg2 = *lit->nthArgument(1);
+    if(number::isZero(arg1) && lit->isPositive()){
+      term = arg2;
+      return true;
+    }
+    if(number::isZero(arg2) && !lit->isPositive()){
+      term = number::add(arg1, number::one());
+      return true;
+    }  
   }
   return false;
 }

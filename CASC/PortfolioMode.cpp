@@ -461,6 +461,9 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       vstring code = it.next();
 
       int* fd = (int*)(malloc(2 * sizeof(int)));
+      auto res = pipe(fd);
+      ASS_NEQ(res, -1);
+
       pid_t process = Multiprocessing::instance()->fork();
 
       ASS_NEQ(process, -1);
@@ -474,8 +477,8 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       } else {
         // parent
         close(fd[WRITE]);
-        ALWAYS(ptpm.insert(process, fd));
       }
+      ALWAYS(ptpm.insert(process, fd));
       ALWAYS(processes.insert(process));
     }
 
@@ -506,7 +509,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
         read(fd[READ],&r,sizeof(r));
         close(fd[READ]);
         // store in boss env for use via API
-        env.statistics->terminationReason = r;                 
+        env.statistics->terminationReason = r;
         success = true;
         break;
       }

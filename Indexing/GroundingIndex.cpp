@@ -36,9 +36,10 @@ GroundingIndex::GroundingIndex(const Options& opt)
   switch(opt.satSolver()){
 #if VZ3
     case Options::SatSolver::Z3:
-      _solver = new Z3Interfacing(opt,_sat2fo, /* unsat core */ false,"");
-      _grounder = new GlobalSubsumptionGrounder(_solver.ptr(), &_sat2fo);
-      break;    
+      // TODO still some issues to resolve here when running with AVATAR
+      //_solver = new Z3Interfacing(opt,_sat2fo, /* unsat core */ false,"");
+      //_grounder = new GlobalSubsumptionGrounder(_solver.ptr(), &_sat2fo);
+      //break;    
 #endif
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(opt,true);

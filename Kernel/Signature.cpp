@@ -290,6 +290,8 @@ void Signature::addEquality()
  * Destroy a Signature.
  * @since 07/05/2007 Manchester
  */
+// TODO what about destroying term algebras?
+// and now programStructs?
 Signature::~Signature ()
 {
   for (int i = _funs.length()-1;i >= 0;i--) {

@@ -43,6 +43,7 @@
 #include "Shell/Preprocess.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -104,10 +105,10 @@ namespace Vampire
     }
   }
 
-  void Solver::setVerbose(){
+  void Solver::setVerbose(bool val){
     CALL("Solver::setVerbose");
 
-    verbose = true;
+    verbose = val;
   }
 
   void Solver::resetHard(){
@@ -250,6 +251,13 @@ namespace Vampire
     return fb.realSort();
   }
 
+  Sort Solver::timeSort()
+  {
+    CALL("Solver::timeSort");
+
+    return fb.timeSort();
+  }
+
   std::string Solver::version()
   {
     CALL("Solver::version");
@@ -265,6 +273,47 @@ namespace Vampire
     string str =  VERSION_STRING;
     return str.substr(23,7);
   } 
+
+  void Solver::declareStruct(const std::string& structName, const std::string& nullName, 
+    std::vector<Field>& fields)
+  {
+    CALL("Solver::declareStruct");
+
+    std::vector<Sort> sorts;
+
+    Sort structSort = sort(structName);
+    if(env.signature->isStructSort(structSort)){
+      // already declared previously
+      return;
+    }
+
+    Symbol sym = fb.symbol(nullName, 0, structSort, sorts, RapidSym::NULL_PTR); 
+
+    Stack<StructField*> fieldStack;
+    for(auto& field : fields){
+      sorts = {fb.timeSort(), structSort};
+      
+      if(!field.hasChain()){
+        Symbol sym = fb.symbol(field.name(), 2, field.sort(), sorts);   
+        fieldStack.push(new StructField(sym));
+        continue;
+      }
+
+      Symbol sym = fb.symbol(field.name(), 2, field.sort(), sorts, RapidSym::STRUCT_FIELD_SELF_POINTER);   
+
+      sorts = {structSort, fb.timeSort(), fb.integerSort()};
+      Symbol chain = fb.symbol(field.chain(), 3, structSort, sorts, RapidSym::CHAIN);   
+
+      sorts = {structSort, fb.timeSort(), structSort, fb.integerSort()};
+      Symbol support = fb.symbol(field.support(), 4, fb.boolSort(), sorts);   
+
+      fieldStack.push(new StructField(sym, chain, support));
+    }
+
+    ProgramStruct* ps = new ProgramStruct(structSort, fieldStack.size(), fieldStack.begin(), sym);
+
+    env.signature->addStruct(ps);  
+  }
 
   Sort Solver::defaultSort()
   {
@@ -287,6 +336,20 @@ namespace Vampire
     return fb.arraySort(indexSort, innerSort);
   }
 
+  Field Solver::field(std::string& fieldName, Sort fieldSort)
+  {
+    CALL("Solver::field");
+
+    return fb.field(fieldName, fieldSort);
+  }
+
+  Field Solver::field(std::string& fieldName, Sort fieldSort, std::string& chain,
+    std::string& support)
+  {
+    CALL("Solver::field/2");
+
+    return fb.field(fieldName, fieldSort, chain, support);
+  }
 
   Var Solver::var(const string& varName)
   {

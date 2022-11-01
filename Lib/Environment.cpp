@@ -59,8 +59,10 @@ Environment::Environment()
 
   // statistics calls the timer
   timer = Timer::instance();
+#if ! VAPI_LIBRARY  
   timer->start();
-
+#endif
+  
   statistics = new Statistics;  
   signature = new Signature;
   sharing = new TermSharing;

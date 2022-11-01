@@ -96,6 +96,13 @@ Sort FormulaBuilder::realSort()
   return Sort(AtomicSort::realSort());
 }
 
+Sort FormulaBuilder::timeSort()
+{
+  CALL("FormulaBuilder::timeSort");
+
+  return Sort(AtomicSort::timeSort());
+}
+
 Sort FormulaBuilder::boolSort()
 {
   CALL("FormulaBuilder::integerSort");
@@ -118,6 +125,25 @@ Sort FormulaBuilder::arraySort(const Sort& indexSort, const Sort& innerSort)
   Sort sort(res);
   sort._aux=_aux;
   return sort;  
+}
+
+Field FormulaBuilder::field(std::string& fieldName, Sort fieldSort)
+{
+  CALL("FormulaBuilder::field");
+
+  Field field(fieldName, fieldSort);
+  field._aux=_aux;
+  return field;
+}
+
+Field FormulaBuilder::field(std::string& fieldName, Sort fieldSort, std::string& chain,
+  std::string& support)
+{
+  CALL("FormulaBuilder::field/2");
+
+  Field field(fieldName, fieldSort, chain, support);
+  field._aux=_aux;
+  return field;
 }
 
 string FormulaBuilder::getSortName(Sort s)
@@ -226,6 +252,9 @@ Symbol FormulaBuilder::symbol(const string& name, unsigned arity, Sort rangeSort
   }  
   if(rs == RapidSym::OBJ_ARRAY){
     sym->markObjectArray();
+  }
+  if(rs == RapidSym::STRUCT_FIELD_SELF_POINTER){
+    sym->markSelfPointer();
   }                
   if(builtIn) {
     sym->markProtected();

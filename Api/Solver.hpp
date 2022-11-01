@@ -161,6 +161,8 @@ public:
   Sort rationalSort();
   /** Return sort for reals */
   Sort realSort();  
+  /** sort for timepoints, Rapid specific */
+  Sort timeSort();
   /** Return array sort */
   Sort arraySort(const Sort& indexSort, const Sort& innerSort);
 
@@ -174,7 +176,7 @@ public:
    * By default, when running from the API, Vampire produces no 
    * output. When set to verbose Vampire emits strategy and proof information
    */
-  void setVerbose();
+  void setVerbose(bool val = true);
 
   // TODO implement
   void saveProofToFile(std::string fileName);
@@ -262,6 +264,9 @@ public:
    */
   void preprocess();
 
+  /** declare a struct within Vampire's signature. Used for Rapid problems */
+  void declareStruct(const std::string& strucName, const std::string& nullName, std::vector<Field>& fields);
+
   /** Attempt to derive a contradiction from the currently asserted set of
    *  formulas.
    *  Notes on usage:
@@ -306,6 +311,13 @@ public:
    * Get the Boolean sort (TPTP $o)
    */
   Sort boolSort();
+
+  /** creates a field object that can be used when declaring a struct */
+  Field field(std::string& fieldName, Sort fieldSort);
+
+  Field field(std::string& fieldName, Sort fieldSort, std::string& chain,
+    std::string& support);
+
 
   /** Create a variable with the default sort
    * @param varName name of the variable. If the logic is set to TPTP, must be a valid TPTP variable name, 

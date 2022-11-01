@@ -106,7 +106,7 @@ public:
 
   static bool increasing(Literal* lit, TermList term);
 
-  static bool isZeroLessThanLit(Literal* lit);
+  static bool isZeroLessThanLit(Literal* lit, TermList& term);
 
   // returns non-empty option if literal is of the form [~](t < num) or
   // [~](num < t). In either case returns t wrapped in option  

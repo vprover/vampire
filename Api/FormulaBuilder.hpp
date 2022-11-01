@@ -90,6 +90,7 @@ class Sort;
 class Symbol;
 class Expression;
 class AnnotatedFormula;
+class Field;
 
 /* Enum used to provide special semantics to symbols 
  * coming from Rapid program translations
@@ -105,6 +106,7 @@ enum RapidSym {
   CHAIN,  
   NULL_PTR,
   OBJ_ARRAY,
+  STRUCT_FIELD_SELF_POINTER,
   NONE
 };
 
@@ -158,6 +160,8 @@ private:
   Sort rationalSort();
   /** Return sort for reals */
   Sort realSort();
+  /** Sort representing timepoints. Rapid sepcific*/
+  Sort timeSort();
   /** Return array sort */
   Sort arraySort(const Sort& indexSort, const Sort& innerSort);
   
@@ -168,6 +172,12 @@ private:
    * Return the default sort that is used when no sort is specified.
    */
   static Sort defaultSort();
+
+  /** creates a field object that can be used when declaring a struct */
+  Field field(std::string& fieldName, Sort fieldSort);
+
+  Field field(std::string& fieldName, Sort fieldSort, std::string& chain,
+    std::string& support);
 
   /** Create a variable with the default sort
    * @param varName name of the variable. Must be a valid TPTP variable name, that is, start
@@ -492,6 +502,7 @@ public:
 //  VirtualIterator<Lib::vstring>* _impl;
 //}; */
 
+
 class Sort
 {
 public:
@@ -525,6 +536,33 @@ private:
   size_t _content;
   friend class FormulaBuilder;
 };
+
+class Field
+{
+public:
+  Field(std::string name, Sort sort) : 
+   _fieldName(name), _sort(sort), _hasChain(false) {}
+
+  Field(std::string name, Sort sort, std::string chain, std::string support) : 
+   _fieldName(name), _sort(sort), _hasChain(true), _chain(chain), _support(support) {}
+
+  std::string name() { return _fieldName; }
+  std::string chain() { return _chain; }
+  std::string support() { return _support; }
+  Sort sort() { return _sort; }
+  bool hasChain() { return _hasChain; }
+
+private:
+  ApiHelper _aux;
+  
+  std::string _fieldName;
+  Sort _sort;
+  bool _hasChain;
+  std::string _chain;
+  std::string _support;
+  friend class FormulaBuilder;  
+};
+
 
 class Symbol
 {

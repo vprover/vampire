@@ -78,20 +78,22 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
     auto location = *ct->nthArgument(0);
     auto time = *ct->nthArgument(1);
     auto length = *ct->nthArgument(2);    
-    
-    auto nextLoc = TermList(Term::create2(field->functor(), time, location));
+  
+  //  auto nextLoc = TermList(Term::create2(field->functor(), time, location));
 
     auto lenLessOne = number::add(length, number::minus(one));
-    return TermList(Term::create(ct->functor(),{nextLoc, time, lenLessOne}));
+    auto chainShort = TermList(Term::create(ct->functor(),{location, time, lenLessOne}));
+
+  //  return TermList(Term::create(ct->functor(),{nextLoc, time, lenLessOne}));
+    return TermList(Term::create2(field->functor(), time, chainShort));
   };
 
+  TermList num;
   if(premise->length() ==1 && 
-     RapidHelper::isZeroLessThanLit((*premise)[0])){
-    auto lit = (*premise)[0];
-    TermList arg2 = *lit->nthArgument(1);
+     RapidHelper::isZeroLessThanLit((*premise)[0], num)){
 
     // false means we don't need substitution
-    auto results = _chainIndex->getInstances(arg2, false);
+    auto results = _chainIndex->getInstances(num, false);
     while(results.hasNext()){
       auto res = results.next();
       TermList len = res.term;

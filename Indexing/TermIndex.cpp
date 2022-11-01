@@ -361,13 +361,14 @@ void ChainReasoningLengthClauseIndex::handleClause(Clause* c, bool adding)
   }
 
   Literal* lit = (*c)[0];
-  if(RapidHelper::isZeroLessThanLit(lit)){
+  TermList num;
+  if(RapidHelper::isZeroLessThanLit(lit, num)){
     // we know that clause is of the form
     // 0 < term
     if (adding) {
-      _is->insert(*lit->nthArgument(1), lit, c);
+      _is->insert(num, lit, c);
     } else {
-      _is->remove(*lit->nthArgument(1), lit, c);
+      _is->remove(num, lit, c);
     } 
   }
 }
