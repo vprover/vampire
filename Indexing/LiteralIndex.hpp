@@ -57,27 +57,27 @@ protected:
   LiteralIndexingStructure* _is;
 };
 
-class GeneratingLiteralIndex
+class BinaryResolutionIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(GeneratingLiteralIndex);
-  USE_ALLOCATOR(GeneratingLiteralIndex);
+  CLASS_NAME(BinaryResolutionIndex);
+  USE_ALLOCATOR(BinaryResolutionIndex);
 
-  GeneratingLiteralIndex(LiteralIndexingStructure* is)
+  BinaryResolutionIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 };
 
-class SimplifyingLiteralIndex
+class BackwardSubsumptionIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(SimplifyingLiteralIndex);
-  USE_ALLOCATOR(SimplifyingLiteralIndex);
+  CLASS_NAME(BackwardSubsumptionIndex);
+  USE_ALLOCATOR(BackwardSubsumptionIndex);
 
-  SimplifyingLiteralIndex(LiteralIndexingStructure* is)
+  BackwardSubsumptionIndex(LiteralIndexingStructure* is)
   : LiteralIndex(is) {};
 protected:
   void handleClause(Clause* c, bool adding);

@@ -67,7 +67,10 @@ public:
     { 
       OperatorKey& key = *ot->key();
       unsigned typeArgsArity = ot->numTypeArguments();
-      return HashUtils::combine(Hash::hash(key), Hash::hash(typeArgsArity)); 
+      return HashUtils::combine(
+        DefaultHash::hash(key),
+        DefaultHash::hash(typeArgsArity)
+      );
     }
   };
 

@@ -22,6 +22,7 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"
@@ -34,6 +35,15 @@ const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
 const unsigned Term::SF_LAMBDA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
+
+void Term::setId(unsigned id)
+{
+  CALL("Term::setId");
+  if (env.options->randomTraversals()) {
+    id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
+  }
+   _args[0]._info.id = id;
+}
 
 /**
  * Allocate enough bytes to fit a term of a given arity.
@@ -873,57 +883,6 @@ Literal* Literal::apply(Substitution& subst)
 
   return SubstHelper::apply(this, subst);
 } // Literal::apply
-
-/**
- * Return the hash function of the top-level of a complex term.
- * @pre The term must be non-variable
- * @since 28/12/2007 Manchester
- */
-unsigned Term::hash() const
-{
-  CALL("Term::hash");
-
-  unsigned hash = Hash::hash(_functor);
-  if (_arity == 0) {
-    return hash;
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
-
-/**
- * Return the hash function of the top-level of a literal.
- * @since 30/03/2008 Flight Murcia-Manchester
- */
-unsigned Literal::hash() const
-{
-  CALL("Literal::hash");
-
-  unsigned hash = Hash::hash(isPositive() ? (2*_functor) : (2*_functor+1));
-  if (_arity == 0) {
-    return hash;
-  }
-  if (isTwoVarEquality()) {
-    hash ^= Hash::hash(twoVarEqSort());
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
-
-/**
- * Return the hash function of the top-level of a literal with opposite polarity.
- */
-unsigned Literal::oppositeHash() const
-{
-  CALL("Literal::hash");
-
-  unsigned hash = Hash::hash( (!isPositive()) ? (2*_functor) : (2*_functor+1));
-  if (_arity == 0) {
-    return hash;
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
 
 /**
  * Return literal opposite to @b l.
@@ -1887,6 +1846,7 @@ Term::Term() throw()
   _args[0]._info.shared = 0;
   _args[0]._info.literal = 0;
   _args[0]._info.sort = 0;
+  _args[0]._info.hasTermVar = 0;
   _args[0]._info.order = 0;
   _args[0]._info.tag = FUN;
   _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;

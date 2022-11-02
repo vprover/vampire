@@ -18,6 +18,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Clause.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"
@@ -28,7 +29,6 @@ namespace FMB {
 
   //TODO mark as an actual iterator?
   class DefinitionIntroduction{
-
   public:
     DefinitionIntroduction(ClauseIterator cit) : _cit(cit) {
       //_ng = env.options->fmbNonGroundDefs();
@@ -36,7 +36,7 @@ namespace FMB {
 
 
     bool hasNext(){
-      TimeCounter tc(TC_FMB_DEF_INTRO);
+      TIME_TRACE(TimeTrace::FMB_DEFINITION_INTRODUCTION);
       CALL("DefinitionIntroduction::hasNext");
       // first see if we have any processed clauses
       if(_processed.length()==0){
@@ -49,11 +49,12 @@ namespace FMB {
     }
 
     Clause* next(){
-      TimeCounter tc(TC_FMB_DEF_INTRO);
+      TIME_TRACE(TimeTrace::FMB_DEFINITION_INTRODUCTION);
       CALL("DefinitionIntroduction::next");
       ASS_G(_processed.length(),0);
       return _processed.pop();
     }
+
 
   private:
 

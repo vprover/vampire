@@ -56,15 +56,15 @@ void BackwardSubsumptionResolution::attach(SaturationAlgorithm* salg)
 {
   CALL("BackwardSubsumptionResolution::attach");
   BackwardSimplificationEngine::attach(salg);
-  _index=static_cast<SimplifyingLiteralIndex*>(
-	  _salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE) );
+  _index=static_cast<BackwardSubsumptionIndex*>(
+	  _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE) );
 }
 
 void BackwardSubsumptionResolution::detach()
 {
   CALL("BackwardSubsumptionResolution::detach");
   _index=0;
-  _salg->getIndexManager()->release(SIMPLIFYING_SUBST_TREE);
+  _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
   BackwardSimplificationEngine::detach();
 }
 
@@ -93,7 +93,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   //we do all work in this method, so we can just measure time simply
   //(which cannot generally be done when iterators are involved)
-  TimeCounter tc(TC_BACKWARD_SUBSUMPTION_RESOLUTION);
+  TIME_TRACE("backward subsumption resolution");
 
   unsigned clen=cl->length();
 

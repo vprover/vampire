@@ -21,6 +21,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Random.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
@@ -67,6 +68,7 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
     _ageRatio = 1;
     _weightRatio = 1;
   }
+
   ASS_GE(_ageRatio, 0);
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
@@ -295,7 +297,13 @@ Clause* AWPassiveClauseContainer::popSelected()
   _size--;
 
   Clause* cl;
-  if (byWeight(_balance)) {
+  bool selByWeight = _opt.randomAWR() ? 
+    // we respect the ratio, but choose probabilistically
+    (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio) : 
+    // the deterministic way
+    byWeight(_balance);
+
+  if (selByWeight) {
     _balance -= _ageRatio;
     cl = _weightQueue.pop();
     _ageQueue.remove(cl);
@@ -715,7 +723,7 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositi
 }
 
 AWClauseContainer::AWClauseContainer(const Options& opt)
-: _ageQueue(opt), _weightQueue(opt), _ageRatio(1), _weightRatio(1), _balance(0), _size(0)
+: _ageQueue(opt), _weightQueue(opt), _ageRatio(1), _weightRatio(1), _balance(0), _size(0), _randomized(opt.randomAWR())
 {
 }
 
@@ -789,7 +797,9 @@ Clause* AWClauseContainer::popSelected()
   else if (! _weightRatio) {
     byWeight = false;
   }
-  else if (_balance > 0) {
+  else if (_randomized) {
+    byWeight = (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio);
+  } else if (_balance > 0) {
     byWeight = true;
   }
   else if (_balance < 0) {

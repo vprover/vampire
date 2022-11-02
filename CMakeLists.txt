@@ -129,7 +129,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
-    Lib/TimeCounter.cpp
     Lib/Timer.cpp
 
     Lib/Allocator.hpp
@@ -188,7 +187,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/STLAllocator.hpp
     Lib/StringUtils.hpp
     Lib/System.hpp
-    Lib/TimeCounter.hpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
     Lib/Vector.hpp
@@ -244,6 +242,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SortHelper.cpp
     Kernel/OperatorType.cpp
     Kernel/SpassLiteralSelector.cpp
+    Kernel/RndLiteralSelector.cpp    
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
     Kernel/Term.cpp
@@ -293,6 +292,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SortHelper.hpp
     Kernel/OperatorType.hpp
     Kernel/SpassLiteralSelector.hpp
+    Kernel/RndLiteralSelector.hpp    
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
     Kernel/Substitution.hpp
@@ -574,6 +574,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Naming.cpp
     Shell/NNF.cpp
     Shell/Normalisation.cpp
+    Shell/Shuffling.cpp
+    Shell/Shuffling.hpp
     Shell/Options.cpp
     Shell/PredicateDefinition.cpp
     Shell/Preprocess.cpp
@@ -584,6 +586,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/SineUtils.cpp
     Shell/FOOLElimination.cpp
     Shell/Statistics.cpp
+    Debug/TimeProfiling.hpp
+    Debug/TimeProfiling.cpp
     Shell/SymbolDefinitionInlining.cpp
     Shell/SymbolOccurrenceReplacement.cpp
     Shell/SymCounter.cpp
@@ -733,6 +737,7 @@ set(UNIT_TESTS
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp
+    UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
     UnitTests/tTwoVampires.cpp
@@ -802,6 +807,8 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
+
+add_compile_definitions(VTIME_PROFILING=1)
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
