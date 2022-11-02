@@ -384,6 +384,39 @@ public:
     return l->head();
   } // nth
 
+  /** delete the nth element and return it */
+  static C deleteNth(List*& lst, int n)
+  {
+    // nth element, counting from 0
+    ASS (n >= 0);
+
+    C result;
+    List* l = lst;
+    ASS (isNonEmpty(lst));
+
+    if (n == 0) {
+      result = l->head();
+      lst = l->tail();
+      delete l;
+      return result;
+    }
+
+    // n != 0
+    List* next = l->tail();
+
+    while (--n != 0) {
+      l = next;
+      next = next->tail();
+      ASS (isNonEmpty(next));
+    }
+    //  now next must be deleted
+    result = next->head();
+    l->setTail(next->tail());
+    delete next;
+
+    return result;
+  } // deleteNth
+
   /** Add  elem as the last element and return the resulting list */
   static List* addLast (List* l, C elem)
   {
@@ -398,6 +431,33 @@ public:
 
     return l;
   } // List::addLast
+
+  /** Split the list into two sublists, first of the length n. Return
+   *  the first sublist and save the second sublist in the variable rest. */
+  static List* split (List* l, int n, List*& rest)
+  {
+    if (! l) {
+      ASS_EQ(n,0);
+      rest = empty();
+      return empty();
+    }
+
+    if (n == 0) {
+      rest = empty();
+      return l;
+    }
+
+    List* nth = l;
+    while (--n > 0) {
+      ASS_NEQ(nth,0);
+      nth = nth->_tail;
+    }
+
+    ASS_NEQ(nth,0);
+    rest = nth->_tail;
+    nth->_tail = empty();
+    return l;
+  } // List::split
 
 #if VDEBUG
 // Only works if called on a List of elements with toString functions
