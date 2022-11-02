@@ -219,7 +219,7 @@ ClauseIterator RewriteGIE::generateClauses(Clause *cl) {
       TermList rhs = result.substitution->applyToBoundResult(term_map.get(result.term));
       Literal *rewritten = EqHelper::replace(literal, subterm, rhs);
 
-      Inference inference(SimplifyingInference1(InferenceRule::REWRITE, cl));
+      Inference inference(GeneratingInference1(InferenceRule::REWRITE, cl));
       results.push(replaceLiteral(cl, literal, rewritten, inference));
     }
   }
