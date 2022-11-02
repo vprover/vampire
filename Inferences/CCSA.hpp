@@ -35,12 +35,12 @@ public:
   static void registerCommutes(unsigned relation, unsigned functor);
 };
 
-class RewriteISE : public ImmediateSimplificationEngine
+class RewriteGIE : public GeneratingInferenceEngine
 {
 public:
   CLASS_NAME(RewriteISE);
-  USE_ALLOCATOR(RewriteISE);
-  Clause* simplify(Clause* cl) override;
+  USE_ALLOCATOR(RewriteGIE);
+  ClauseIterator generateClauses(Clause* cl) override;
 
   static void registerTermRewrite(TermList left, TermList right);
   static void registerLiteralRewrite(Literal *left, Literal *right);

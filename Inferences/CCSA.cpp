@@ -175,8 +175,8 @@ Literal *SubtermGIE::createSubterm(
 static TermSubstitutionTree term_index;
 static DHMap<TermList, TermList> term_map;
 
-void RewriteISE::registerTermRewrite(TermList left, TermList right) {
-  CALL("RewriteISE::registerRewrite")
+void RewriteGIE::registerTermRewrite(TermList left, TermList right) {
+  CALL("RewriteGIE::registerRewrite")
   term_index.insert(left, nullptr, nullptr);
   term_map.insert(left, right);
 }
@@ -184,13 +184,18 @@ void RewriteISE::registerTermRewrite(TermList left, TermList right) {
 static LiteralSubstitutionTree literal_index;
 static DHMap<Literal *, Literal *> literal_map;
 
-void RewriteISE::registerLiteralRewrite(Literal *left, Literal *right) {
-  CALL("RewriteISE::registerRewrite")
+void RewriteGIE::registerLiteralRewrite(Literal *left, Literal *right) {
+  CALL("RewriteGIE::registerRewrite")
   literal_index.insert(left, nullptr);
   literal_map.insert(left, right);
 }
 
-Clause *RewriteISE::simplify(Clause *cl) {
+ClauseIterator RewriteGIE::generateClauses(Clause *cl) {
+  CALL("RewriteGIE::generateClauses")
+
+  static ClauseStack results;
+  results.reset();
+
   for(unsigned i = 0; i < cl->length(); i++) {
     Literal *literal = cl->literals()[i];
 
@@ -199,9 +204,8 @@ Clause *RewriteISE::simplify(Clause *cl) {
       LiteralQueryResult result = literal_results.next();
       Literal *rewritten = result.substitution->applyToBoundResult(literal_map.get(result.literal));
 
-      Inference inference(SimplifyingInference1(InferenceRule::REWRITE, cl));
-      Clause *simplified = replaceLiteral(cl, literal, rewritten, inference);
-      return simplified;
+      Inference inference(GeneratingInference1(InferenceRule::REWRITE, cl));
+      results.push(replaceLiteral(cl, literal, rewritten, inference));
     }
 
     NonVariableNonTypeIterator subterms(literal);
@@ -216,13 +220,12 @@ Clause *RewriteISE::simplify(Clause *cl) {
       Literal *rewritten = EqHelper::replace(literal, subterm, rhs);
 
       Inference inference(SimplifyingInference1(InferenceRule::REWRITE, cl));
-      Clause *simplified = replaceLiteral(cl, literal, rewritten, inference);
-      ASS_REP(SortHelper::areSortsValid(simplified), simplified->toString());
-      return simplified;
+      results.push(replaceLiteral(cl, literal, rewritten, inference));
     }
   }
 
-  return cl;
+  ClauseStack::BottomFirstIterator it(results);
+  return pvi(it);
 }
 
 } // namespace Inferences
