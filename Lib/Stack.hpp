@@ -57,8 +57,6 @@ public:
 
   CLASS_NAME(Stack);
   USE_ALLOCATOR(Stack);
-  DECLARE_PLACEMENT_NEW;
-
 
   /**
    * Create a stack having initialCapacity.
