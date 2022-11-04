@@ -121,7 +121,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
         altBindingPtrs++;
         altBindingData+=numVars;
         // add index of the literal in instance clause at the end of the binding sequence
-        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
@@ -130,7 +130,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
         altBindingPtrs++;
         altBindingData+=numVars;
         // add index of the literal in instance clause at the end of the binding sequence
-        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
     } else {
       if(numVars) {
@@ -142,7 +142,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
       altBindingPtrs++;
       altBindingData+=numVars;
       // add index of the literal in instance clause at the end of the binding sequence
-      new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+      ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
     }
   }
 }
