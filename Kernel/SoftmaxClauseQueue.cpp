@@ -54,7 +54,7 @@ bool SoftmaxClauseQueue::lessThan(Clause* c1, ScoreInfo sc1, Clause* c2)
 {
   CALL("SoftmaxClauseQueue::~lessThan");
 
-  // based on ShuffleScoreQueue's lessThan - how to best prevent code reuse?
+  // based on ShuffleScoreQueue's lessThan - how to best ensure code reuse?
   auto sc2 = _scores.get(c2);
   // reversing the order here: NNs think large is good, queues think small is good
   if (sc1.first > sc2.first) {
@@ -209,11 +209,11 @@ bool SoftmaxClauseQueue::remove(Clause* c)
       return true;
     }
 
-    if (next == 0 || lessThan(c,sc,next->clause)) {
+    if (next == nullptr || lessThan(c,sc,next->clause)) {
       if(h==0) {
         // At the moment, it's evil to delete something that's not stored,
         // because we preemptively decrease the length of traversed links just below
-        // (the next == 0 case would be fine, but the other wouldn't)
+        // (the next == nullptr case would be fine, but the other wouldn't)
         ASSERTION_VIOLATION;
 	      return false;
       }
