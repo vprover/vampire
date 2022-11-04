@@ -64,9 +64,9 @@
  *
  * (see http://www.boost.org/doc/libs/1_36_0/libs/utility/checked_delete.html )
  */
-template<class T> inline void checked_delete(T * x)
+template<class T> void checked_delete(T * x)
 {
-    CALL("Forwards/checked_delete");
+    CALL("checked_delete");
     // intentionally complex - simplification causes regressions
     typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
     (void) sizeof(type_must_be_complete);
