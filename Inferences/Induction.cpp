@@ -1046,7 +1046,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
       TermStack argTerms(arity);
-      SortHelper::getTypeArguments(sort, argTerms);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
       TermStack ta_vars;
       for(unsigned j=numTypeArgs;j<arity;j++){
         TermList x(var,false);
@@ -1117,12 +1117,12 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
   
       // First generate all argTerms and remember those that are of sort ta_sort 
       TermStack argTerms(arity);
-      SortHelper::getTypeArguments(sort, argTerms);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
       TermStack taTerms;
       for(unsigned j=numTypeArgs;j<arity;j++){
         unsigned dj = con->destructorFunctor(j-numTypeArgs);
         TermStack dargTerms(numTypeArgs+1);
-        SortHelper::getTypeArguments(sort, dargTerms);
+        dargTerms.loadFromIterator(Term::Iterator(sort.term()));
         dargTerms.push(y);
         TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         argTerms.push(djy);
@@ -1206,15 +1206,15 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
     if(con->recursive()){
       // First generate all argTerms and remember those that are of sort ta_sort 
       TermStack argTerms(arity);
-      SortHelper::getTypeArguments(sort, argTerms);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
       TermStack taTerms;
       Stack<unsigned> ta_vars;
       TermStack varTerms(arity);
-      SortHelper::getTypeArguments(sort, varTerms);
+      varTerms.loadFromIterator(Term::Iterator(sort.term()));
       for(unsigned j=numTypeArgs;j<arity;j++){
         unsigned dj = con->destructorFunctor(j-numTypeArgs);
         TermStack dargTerms(numTypeArgs+1);
-        SortHelper::getTypeArguments(sort, dargTerms);
+        dargTerms.loadFromIterator(Term::Iterator(sort.term()));
         dargTerms.push(y);
         TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         argTerms.push(djy);

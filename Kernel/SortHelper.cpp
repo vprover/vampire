@@ -73,14 +73,6 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   }  
 } // getTypeSub
 
-void SortHelper::getTypeArguments(TermList sort, TermStack& res)
-{
-  CALL("SortHelper::getTypeArguments");
-  ASS(sort.isTerm() && sort.term()->isSort());
-
-  res.loadFromIterator(Term::Iterator(sort.term()));
-}
-
 /**
  * Return the sort of a non-variable term t. This function cannot be applied
  * to a special term, such as if-then-else.

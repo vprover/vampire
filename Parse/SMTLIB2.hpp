@@ -318,10 +318,8 @@ private:
   /** For generating fresh vampire variables */
   unsigned _nextVar;
 
-  /** < termlist, vampire sort id, flag for let variables with type args >
-   * @see parseAsScopeLookup
-   */
-  typedef tuple<TermList,TermList,bool> SortedTerm;
+  /** < termlist, vampire sort id > */
+  typedef pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<vstring,SortedTerm> TermLookup;
   typedef Stack<TermLookup*> Scopes;
