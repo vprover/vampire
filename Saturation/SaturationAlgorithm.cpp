@@ -1759,16 +1759,18 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   bool subsumptionUnitOnly = opt.backwardSubsumption() == Options::Subsumption::UNIT_ONLY;
   bool srUnitOnly = opt.backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY;
   if (backSubsumption || backSR) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionAndResolution(backSubsumption, backSR, subsumptionUnitOnly, srUnitOnly));
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionAndResolution(backSubsumption, subsumptionUnitOnly,  backSR, srUnitOnly));
   }
 
   #else
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
+    cout << "Subsumption byUnitsOnly: " << byUnitsOnly << endl;
     res->addBackwardSimplifierToFront(new SLQueryBackwardSubsumption(byUnitsOnly));
   }
   if (opt.backwardSubsumptionResolution() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::Subsumption::UNIT_ONLY;
+    cout << "Subsumption resolution byUnitsOnly: " << byUnitsOnly << endl;
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }
   #endif

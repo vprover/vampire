@@ -40,7 +40,7 @@ public:
   CLASS_NAME(BackwardSubsumptionAndResolution);
   USE_ALLOCATOR(BackwardSubsumptionAndResolution);
 
-  BackwardSubsumptionAndResolution(bool subsumptionByUnitsOnly, bool subsumption, bool srByUnitsOnly, bool subsumptionResolution) : _subsumption(subsumption), _subsumptionResolution(subsumptionResolution), _subsumptionByUnitsOnly(subsumptionByUnitsOnly), _srByUnitsOnly(srByUnitsOnly),
+  BackwardSubsumptionAndResolution(bool subsumption, bool subsumptionByUnitsOnly, bool subsumptionResolution, bool srByUnitsOnly) : _subsumption(subsumption), _subsumptionResolution(subsumptionResolution), _subsumptionByUnitsOnly(subsumptionByUnitsOnly), _srByUnitsOnly(srByUnitsOnly),
 #if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION
         _index(nullptr), _slqbs(subsumptionByUnitsOnly), _bsr(srByUnitsOnly)
 #else
