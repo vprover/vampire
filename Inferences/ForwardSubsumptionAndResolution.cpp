@@ -43,13 +43,17 @@
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
+#include <chrono>
+
 namespace Inferences {
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using namespace std::chrono;
 
 #define CHAIN_RESOLUTION 1
+#define SEPARATE_LOOPS_FORWARD 1
 
 #define LOG_S_AND_R_INSTANCES 0
 #if LOG_S_AND_R_INSTANCES
@@ -61,12 +65,18 @@ class SubsumptionLogger;
 class FwSubsAndResStats {
 public:
   std::unique_ptr<SubsumptionLogger> m_logger;
-  int64_t m_logged_count = 0;    // count how many we would have logged even if there's no logger attached
-  int64_t m_logged_count_sr = 0; // count how many we would have logged even if there's no logger attached
-  int64_t m_logged_sat_checks = 0;
-  int64_t m_logged_sat_checks_sr = 0;
+  int64_t m_logged_count_s = 0;
+  int64_t m_logged_success_s = 0;
+  int64_t m_logged_count_sr = 0;
+  int64_t m_logged_success_sr = 0;
   int64_t m_logged_chained_sr = 0;
   int64_t m_logged_useless_sat_checks_sr = 0;
+  duration<int64_t, std::nano> m_time_on_perform = duration<int64_t, std::nano>::zero();
+  duration<int64_t, std::nano> m_time_on_subsumption = duration<int64_t, std::nano>::zero();
+  duration<int64_t, std::nano> m_time_on_resolution = duration<int64_t, std::nano>::zero();
+  std::chrono::_V2::system_clock::time_point start_time_perform = high_resolution_clock::now();
+  std::chrono::_V2::system_clock::time_point start_time_subsumption = high_resolution_clock::now();
+  std::chrono::_V2::system_clock::time_point start_time_resolution = high_resolution_clock::now();
 
   // Store numDecisions as histogram
   // first two are originating from subsumption
@@ -77,6 +87,23 @@ public:
   // same but for MLMatcher calls originating from SR
   vvector<int64_t> m_numDecisions_frequency_SR;
   vvector<int64_t> m_numDecisions_successes_SR;
+
+  void startPerform() { start_time_perform = high_resolution_clock::now(); }
+  void startSubsumption() { start_time_subsumption = high_resolution_clock::now(); }
+  void startResolution() { start_time_resolution = high_resolution_clock::now(); }
+  void stopPerform() { m_time_on_perform += high_resolution_clock::now() - start_time_perform; }
+  void stopSubsumption(bool success)
+  {
+    m_time_on_subsumption += high_resolution_clock::now() - start_time_subsumption;
+    m_logged_count_s++;
+    m_logged_success_s += success;
+  }
+  void stopResolution(bool success)
+  {
+    m_time_on_resolution += high_resolution_clock::now() - start_time_resolution;
+    m_logged_count_sr++;
+    m_logged_success_sr += success;
+  }
 };
 
 static FwSubsAndResStats fsstats;
@@ -112,7 +139,7 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
   env.beginOutput();
 #if USE_SAT_SUBSUMPTION_FORWARD
-  env.out() << "\% Subsumption algorithm: smt3\n";
+  env.out() << "\% Subsumption algorithm: sat based\n";
 #else
   env.out() << "\% Subsumption algorithm: original\n";
 #endif
@@ -246,7 +273,6 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
 
   return res;
 }
-
 class SubsumptionLogger {
 private:
   std::ofstream m_file_slog;
@@ -383,13 +409,20 @@ void ForwardSubsumptionAndResolution::printStats(std::ostream &out)
       fsstats.m_logger.reset();
     }
   }
-  out << "\% Subsumptions to be logged: " << fsstats.m_logged_count << "\n";
+  out << "\% Total time on perform: " << ((double)fsstats.m_time_on_perform.count() / 1000000000) << " s\n";
+
+  out << "\% Total time on subsumption: " << ((double)fsstats.m_time_on_subsumption.count() / 1000000000) << " s\n";
+  out << "\% Subsumptions to be logged: " << fsstats.m_logged_count_s << "\n";
+  out << "\% Subsumption Successes    : " << fsstats.m_logged_success_s << "\n\n";
+
+  out << "\% Total time on subsumption resolution: " << ((double)fsstats.m_time_on_resolution.count() / 1000000000) << " s\n";
   out << "\% Subsumption Resolutions to be logged: " << fsstats.m_logged_count_sr << "\n";
-  out << "\% Subsumptions sat checks: " << fsstats.m_logged_sat_checks << "\n";
-  out << "\% Subsumption Resolutions sat checks: " << fsstats.m_logged_sat_checks_sr << "\n";
-  out << "\% Useless Subsumptions Resolution sat checks : " << fsstats.m_logged_useless_sat_checks_sr << "\n";
+  out << "\% Subsumption Resolution Successes    : " << fsstats.m_logged_success_sr << "\n";
+  out << "\% Useless Subsumptions Resolution sat checks : " << fsstats.m_logged_useless_sat_checks_sr << "\n\n";
+
   out << "\% Chained resolutions: " << fsstats.m_logged_chained_sr << "\n";
   out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
+
   for (size_t n = 0; n < fsstats.m_numDecisions_frequency.size(); ++n) {
     if (fsstats.m_numDecisions_frequency[n] > 0) {
       out << "\% " << n << ' ' << fsstats.m_numDecisions_frequency[n] << ' ' << fsstats.m_numDecisions_successes[n] << '\n';
@@ -554,14 +587,14 @@ bool ForwardSubsumptionAndResolution::checkSubsumption(Clause *cl, ClauseIterato
       cms->fillInMatches(&miniIndex);
 
       if (cms->anyNonMatched()) {
-        fsstats.m_logged_count += 1;
+        fsstats.m_logged_count_s += 1;
         if (fsstats.m_logger) {
           fsstats.m_logger->logSubsumption(mcl, cl, false);
         }
         continue;
       }
 
-      fsstats.m_logged_count += 1;
+      fsstats.m_logged_count_s += 1;
       if (fsstats.m_logger) {
         ASS_EQ(Timer::s_limitEnforcement, false);
         // we log the clauses first to make sure they haven't been deallocated yet (might happen due to weird code paths when exiting)
@@ -782,6 +815,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 {
   CALL("ForwardSubsumptionAndResolution::perform");
   TIME_TRACE("forward subsumption");
+  fsstats.startPerform();
   if (fsstats.m_logger) {
     fsstats.m_logger->logNextRound();
   }
@@ -792,6 +826,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
   unsigned clen = cl->length();
   if (clen == 0) {
+    fsstats.stopPerform();
     return false;
   }
 
@@ -801,80 +836,29 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
   LiteralMiniIndex miniIndex(cl);
 
+  fsstats.startSubsumption();
   if (checkSubsumption(cl, premises, miniIndex)) {
+    fsstats.stopSubsumption(true);
     result = true;
   }
   else if (_subsumptionResolution) {
+    fsstats.stopSubsumption(false);
+    fsstats.startResolution();
     replacement = checkSubsumptionResolution(cl, premises, miniIndex);
+    fsstats.stopResolution(replacement != nullptr);
     if (replacement) {
       result = true;
     }
+  }
+  else {
   }
   Clause::releaseAux();
   // clear the stored matches
   while (cmStore.isNonEmpty()) {
     delete cmStore.pop();
   }
-#if CHECK_SAT_SUBSUMPTION
 
-  for (SubsumptionInstance si : subsumption_tried) {
-#if LOG_S_AND_R_INSTANCES
-    fileOut << "S " << si._L->toString() << " " << si._M->toString() << " " << si._result << endl;
-#endif
-    bool expected = si._result;
-    fsstats.m_logged_sat_checks++;
-    bool actual = satSubs.checkSubsumption(si._L, si._M);
-    if (expected != actual) {
-      env.beginOutput();
-      if (!expected) {
-        env.out() << "------------- FALSE POSITIVE S  -------------" << endl;
-      }
-      else {
-        env.out() << "------------- FALSE NEGATIVE S -------------" << endl;
-      }
-      env.out() << "Subsumption check mismatch: (" << expected << " != " << actual << ")" << endl;
-      env.out() << "L: " << si._L->toString() << endl;
-      env.out() << "M: " << si._M->toString() << endl;
-      env.endOutput();
-    }
-  }
-#endif
-#if CHECK_SAT_SUBSUMPTION_RESOLUTION
-  for (SubsumptionResolutionInstance sir : subsumptionResolution_tried) {
-#if LOG_S_AND_R_INSTANCES
-    fileOut << "R " << sir._L->toString() << " " << sir._M->toString() << " " << (sir._conclusion != nullptr) << endl;
-#endif
-    Clause *expected = sir._conclusion;
-    fsstats.m_logged_sat_checks_sr++;
-    Clause *actual = satSubs.checkSubsumptionResolution(sir._L, sir._M);
-    if ((expected == nullptr) != (actual == nullptr)) {
-      env.beginOutput();
-      if (expected == nullptr) {
-        env.out() << "------------- FALSE POSITIVE SR -------------" << endl;
-      }
-      else {
-        env.out() << "------------- FALSE NEGATIVE SR-------------" << endl;
-      }
-      env.out() << "Subsumption resolution check mismatch:" << endl;
-      env.out() << "L: " << sir._L->toString() << endl;
-      env.out() << "M: " << sir._M->toString() << endl;
-      if (expected) {
-        env.out() << "Expected: " << expected->toString() << endl;
-      }
-      else {
-        env.out() << "Expected: nullptr" << endl;
-      }
-      if (actual) {
-        env.out() << "Actual: " << actual->toString() << endl;
-      }
-      else {
-        env.out() << "Actual: nullptr" << endl;
-      }
-      env.endOutput();
-    }
-  }
-#endif
-
+  fsstats.stopPerform();
   return result;
 }
 
@@ -909,7 +893,6 @@ static Clause *generateNSimplificationClause(Clause *cl, vvector<Literal *> litT
     }
     (*res)[i - j] = lit;
   }
-
   return res;
 }
 #endif
@@ -929,12 +912,14 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 {
   CALL("ForwardSubsumptionAndResolution::perform");
   TIME_TRACE("forward subsumption");
+  fsstats.startPerform();
   if (fsstats.m_logger) {
     fsstats.m_logger->logNextRound();
   }
 
   unsigned clen = cl->length();
   if (clen == 0) {
+    fsstats.stopPerform();
     return false;
   }
   _subsumes = false;
@@ -943,13 +928,17 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   _checked.reset();
 
   Clause *mcl;
-  unsigned n_sr_checks = 0;
 
 #if CHAIN_RESOLUTION
   static Stack<Unit *> premiseStack;
   premiseStack.reset();
   static vvector<Literal *> litToExclude;
   litToExclude.clear();
+#endif
+
+#if !SEPARATE_LOOPS_FORWARD
+  // must be here to not mess up the goto with variable declarations
+  unsigned n_sr_checks = 0;
 #endif
 
   /*******************************************************/
@@ -963,13 +952,45 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, false, false);
     if (it.hasNext()) {
+      fsstats.startSubsumption();
       mcl = it.next().clause;
       _subsumes = true;
       _premise = mcl;
+      fsstats.stopSubsumption(true);
       goto check_correctness;
     }
   }
 
+#if SEPARATE_LOOPS_FORWARD
+  /*******************************************************/
+  /*               SUBSUMPTION MULTI-LITERAL             */
+  /*******************************************************/
+  // For each clauses mcl, check for subsumption
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _fwIndex->getGeneralizations(lit, false, false);
+    while (it.hasNext()) {
+      mcl = it.next().clause;
+      // if mcl is longer than cl, then it cannot subsume cl
+      if (!_checked.insert(mcl)) {
+        continue;
+      }
+      fsstats.startSubsumption();
+      if (mcl->length() <= clen && satSubs.checkSubsumption(mcl, cl)) {
+        fsstats.stopSubsumption(true);
+        _subsumes = true;
+        _premise = mcl;
+        goto check_correctness;
+      }
+      fsstats.stopSubsumption(false);
+    }
+  }
+
+  if (!_subsumptionResolution) {
+    goto check_correctness;
+  }
+
+#else
   /*******************************************************/
   /*       SUBSUMPTION & RESOLUTION MULTI-LITERAL        */
   /*******************************************************/
@@ -994,24 +1015,28 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       bool checkSR = _subsumptionResolution && !_conclusion;
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
       bool checkS = mcl->length() <= clen;
-      fsstats.m_logged_sat_checks++;
+      fsstats.startSubsumption();
       if (checkS && satSubs.checkSubsumption(mcl, cl, checkSR)) {
         _subsumes = true;
         _premise = mcl;
+        fsstats.stopSubsumption(true);
         fsstats.m_logged_useless_sat_checks_sr += n_sr_checks;
         goto check_correctness;
       }
       else if (checkSR) {
+        fsstats.stopSubsumption(false);
         // In this case, the literals come from the non complementary list, and there is therefore
         // a low chance of it being resolved. However, in the case where there is no negative match,
         // checkSubsumption resolution is very fast after subsumption, since filling the match set
         // for subsumption will have already detected that subsumption resolution is impossible
-        fsstats.m_logged_sat_checks_sr++;
         n_sr_checks++;
+        fsstats.startResolution();
         _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);
+        fsstats.stopResolution(_conclusion != nullptr);
         if (_conclusion) {
           ASS(_premise == nullptr);
           // cannot override the premise since the loop would have ended otherwise
+          // the premise will be overriden if a subsumption is found
           _premise = mcl;
         }
       }
@@ -1021,6 +1046,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   if (_conclusion || !_subsumptionResolution) {
     goto check_correctness;
   }
+#endif
 
   /*******************************************************/
   /*         SUBSUMPTION RESOLUTION UNIT CLAUSE          */
@@ -1037,6 +1063,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, true, false);
     if (it.hasNext()) {
+      fsstats.startResolution();
       mcl = it.next().clause;
       // do it only once per literal
 #if CHAIN_RESOLUTION
@@ -1044,14 +1071,16 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       litToExclude.push_back(lit);
 #else
       _conclusion = generateSubsumptionResolutionClause(cl, lit, mcl);
+      ASS(_conclusion != nullptr);
       _premise = mcl;
       break;
 #endif
+      fsstats.stopResolution(true);
     }
   }
 #if CHAIN_RESOLUTION
   if (premiseStack.size() == 1) {
-    _premise = (Clause *) premiseStack.pop();
+    _premise = (Clause *)premiseStack.pop();
     _conclusion = generateSubsumptionResolutionClause(cl, litToExclude[0], _premise);
     goto check_correctness;
   }
@@ -1067,6 +1096,43 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   }
 #endif
 
+#if SEPARATE_LOOPS_FORWARD
+  /*******************************************************/
+  /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
+  /*******************************************************/
+  _checked.reset();
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _fwIndex->getGeneralizations(lit, true, false);
+    if (!it.hasNext()) {
+      it = _fwIndex->getGeneralizations(lit, false, false);
+    }
+    bool firstPass = true;
+    while (it.hasNext()) {
+      mcl = it.next().clause;
+
+      if (firstPass && !it.hasNext()) {
+        // since the positive matches have not been found,
+        // they must be checked as well
+        firstPass = false;
+        it = _fwIndex->getGeneralizations(lit, false, false);
+      }
+
+      if (!_checked.insert(mcl)) {
+        continue;
+      }
+
+      fsstats.startResolution();
+      _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+      fsstats.stopResolution(_conclusion != nullptr);
+      if (_conclusion) {
+        ASS(_premise == nullptr);
+        _premise = mcl;
+        goto check_correctness;
+      }
+    }
+  }
+#else
   /*******************************************************/
   /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
   /*******************************************************/
@@ -1080,8 +1146,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         continue;
       }
 
-      fsstats.m_logged_sat_checks_sr++;
+      fsstats.startResolution();
       _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+      fsstats.stopResolution(_conclusion != nullptr);
       if (_conclusion) {
         ASS(_premise == nullptr);
         _premise = mcl;
@@ -1089,6 +1156,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       }
     }
   }
+#endif
 
 check_correctness:
 
@@ -1119,7 +1187,7 @@ check_correctness:
 #endif
 
 #if CHECK_SAT_SUBSUMPTION_RESOLUTION
-  if (!_subsumes) {
+  if (!_subsumes && _subsumptionResolution) {
     if (!_conclusion) {
       ClauseIterator premises_aux;
       Clause *conclusion = checkSubsumptionResolution(cl, premises_aux, miniIndex);
@@ -1131,6 +1199,12 @@ check_correctness:
         env.out() << "M: " << cl->toString() << endl;
         env.out() << "Expected: " << conclusion->toString() << endl;
         env.out() << "Actual: nullptr" << endl;
+        if (_checked.contains(mcl)) {
+          env.out() << "M was checked" << endl;
+        }
+        else {
+          env.out() << "M was not checked" << endl;
+        }
         env.endOutput();
       }
     }
@@ -1161,6 +1235,7 @@ check_correctness:
 
   if (_subsumes) {
     premises = pvi(getSingletonIterator(_premise));
+    fsstats.m_time_on_perform += duration_cast<nanoseconds>(high_resolution_clock::now() - fsstats.start_time_perform);
     return true;
   }
   if (_conclusion) {
@@ -1173,13 +1248,15 @@ check_correctness:
         ClauseList::push((Clause *)premiseStack[i], premiseList);
       }
       premises = pvi(ClauseList::Iterator(premiseList));
+      fsstats.m_time_on_perform += duration_cast<nanoseconds>(high_resolution_clock::now() - fsstats.start_time_perform);
       return true;
     }
 #endif
     premises = pvi(getSingletonIterator(_premise));
+    fsstats.m_time_on_perform += duration_cast<nanoseconds>(high_resolution_clock::now() - fsstats.start_time_perform);
     return true;
   }
-
+  fsstats.m_time_on_perform += duration_cast<nanoseconds>(high_resolution_clock::now() - fsstats.start_time_perform);
   return false;
 }
 #endif
