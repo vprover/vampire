@@ -28,11 +28,15 @@ using namespace Test;
   DECL_VAR(x3, 3)                               \
   DECL_VAR(x4, 4)                               \
   DECL_VAR(x5, 5)                               \
+  DECL_VAR(x6, 6)                               \
+  DECL_VAR(x7, 7)                               \
   DECL_VAR(y1, 11)                              \
   DECL_VAR(y2, 12)                              \
   DECL_VAR(y3, 13)                              \
   DECL_VAR(y4, 14)                              \
   DECL_VAR(y5, 15)                              \
+  DECL_VAR(y6, 16)                              \
+  DECL_VAR(y7, 17)                              \
   DECL_SORT(s)                                  \
   DECL_CONST(c, s)                              \
   DECL_CONST(d, s)                              \
@@ -198,27 +202,16 @@ TEST_FUN(PositiveSubsumptionResolution)
   Kernel::Clause* M7 = clause({p2(f(g(x5)), y4),
                                ~p(f2(f(g(x5)), y4)),
                                ~p2(f2(f(g(x5)), y4), x5)});
-  Kernel::Clause* expected7 = clause({p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4))});
   conclusion = subsumption.checkSubsumptionResolution(L7, M7);
   ASS(conclusion);
-  if (!checkClauseEquality(conclusion, expected7)) {
-    cout << "Expected: " << expected7->toNiceString() << endl;
-    cout << "Got     : " << conclusion->toNiceString() << endl;
-  }
-  ASS(checkClauseEquality(conclusion, expected7));
 
-  Kernel::Clause* L8 = clause({p(g2(x1,x2)),
-                               q2(x1,x2)});
-  Kernel::Clause* M8 = clause({q2(f(y1),y2),
-                               ~p(g2(f(y1),y2)),
-                               ~q2(g2(f(y1),y2),y1)});
-  Kernel::Clause* expected8 = clause({q2(f(y1),y2), ~q2(g2(f(y1),y2),y1)});
+  Kernel::Clause* L8 = clause({~p2(x6, d)});
+  Kernel::Clause* M8 = clause({~p(y1), ~p(x3), ~p2(f(f2(f2(x3, x3), f2(x3, y1))), y1), p2(f2(f2(x3, x3), f2(x3, y1)), d)});
   conclusion = subsumption.checkSubsumptionResolution(L8, M8);
   ASS(conclusion);
-  ASS(checkClauseEquality(conclusion, expected8));
-}
+  }
 
-TEST_FUN(NegativeSubsumptionResolution)
+  TEST_FUN(NegativeSubsumptionResolution)
 {
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
   // Create the the L clause
