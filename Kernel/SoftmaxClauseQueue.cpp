@@ -365,42 +365,30 @@ Clause* SoftmaxClauseQueue::pop()
 } // SoftmaxClauseQueue::pop
 
 /**
- * Adapting the old ClauseQueue pop to maintain score mass invariants too.
+ * Abusing the old ClauseQueue pop,
+ * the extra "Softmax" invariants are not maintained.
  * @since 17/10/2022 Prague
  */
-Clause* SoftmaxClauseQueue::popOld()
+void SoftmaxClauseQueue::dropFirst()
 {
-  CALL("SoftmaxClauseQueue::popOld");
+  CALL("SoftmaxClauseQueue::dropFirst");
   ASS(_height >= 0);
   ASS(_left->nodes[0].first != nullptr);
 
   Node* node = _left->nodes[0].first;
   unsigned h = 0;
   _left->nodes[0].first = node->nodes[0].first;
-  // on level 0, .second stays the same (and is equal 0.0, because _left does not store any clause)
-  double cs = node->nodes[0].second;
-  _total -= cs;
   while (h < _height && _left->nodes[h+1].first == node) {
     h++;
     _left->nodes[h].first = node->nodes[h].first;
-    _left->nodes[h].second += node->nodes[h].second - cs;
   }
-  // now h is the height of the node
-  Clause* c = node->clause;
 
   // deallocate the node
-  ASS_EQ(h,node->height);
   DEALLOC_KNOWN(node,sizeof(Node)+h*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
-  // update the length of the upper links
-  while (++h <= _height) {
-    _left->nodes[h].second -= cs;
-  }
-  while (_height > 0 && !_left->nodes[_height].first) {
+  while (_height > 0 && ! _left->nodes[_height].first) {
     _height--;
   }
-
-  return c;
-} // SoftmaxClauseQueue::popOld
+} // SoftmaxClauseQueue::dropFirst
 
 /**
  * Remove all clauses from the queue.
@@ -411,8 +399,10 @@ void SoftmaxClauseQueue::removeAll()
   CALL("SoftmaxClauseQueue::removeAll");
 
   while (_left->nodes[0].first) {
-    remove(_left->nodes[0].first->clause);
+    dropFirst();
   }
+  
+  _total = 0.0;
 } // removeAll
 
 #if VDEBUG

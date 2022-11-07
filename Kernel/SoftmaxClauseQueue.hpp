@@ -54,7 +54,6 @@ public:
   bool remove(Clause*) override;
   void removeAll();
   Clause* pop() override;
-  Clause* popOld(); // actually popping the first element (no sampling, e.g. boring)
   /** True if the queue is empty */
   bool isEmpty() const override
   { return _left->nodes[0].first == 0; }
@@ -66,6 +65,9 @@ public:
 
   friend class Iterator;
 protected:
+  // just a helper to implement removeAll
+  void dropFirst(); 
+
   // the pair means: (the node pointed to, the score mass traversed by jumping)
   // if .first == nullptr, .second is undef unless on h == 0 (in which case it's the score mass of the stored clause)
   typedef std::pair<Node*,double> LinkInfo;
