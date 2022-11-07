@@ -61,7 +61,7 @@ public:
 #if VDEBUG
   bool consistent() const;
   bool consistentRec(Node*, Node*, double&) const;
-  void output(ostream&) const;
+  void output(ostream&) const override;
 #endif
 
   friend class Iterator;
@@ -95,8 +95,6 @@ protected:
   const DHMap<Clause*,ScoreInfo>& _scores;
 
   bool lessThan(Clause* c1, ScoreInfo sc1, Clause* c2);
-
-  double integrate(Clause*, ScoreInfo, Node*, unsigned, Node*, unsigned);
 public:
   /** Iterator over the queue
    * @since 04/01/2008 flight Manchester-Murcia

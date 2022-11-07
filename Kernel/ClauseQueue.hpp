@@ -38,6 +38,9 @@ public:
   virtual bool remove(Clause*) = 0; // ClauseQueue can tell whether it deleted or not; however, AbstractClauseQueue is only promising to delete elements that are present (otherwise undefined behaviour)
   virtual Clause* pop() = 0;
   virtual bool isEmpty() const = 0;
+#if VDEBUG
+  virtual void output(ostream& str) const {}
+#endif
 };
 
 /**

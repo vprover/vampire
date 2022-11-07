@@ -75,60 +75,6 @@ bool SoftmaxClauseQueue::lessThan(Clause* c1, ScoreInfo sc1, Clause* c2)
   return c1->number() < c2->number();
 }
 
-// left is a node with a value smaller than that of newNode and having a large enough height.
-// this node is on the left of the inserted one
-// lh is the height on which we search for the next node
-/**
- * The following loop does all the necessary stuff for ClauseQueue (but maintining link lengths requries an addtional "post order" update)
- *
-  for (;;) {
-    Node* next = left->nodes[lh];
-    if (next == 0 || lessThan(c,next->clause)) {
-      if (lh <= h) {
-        left->nodes[lh] = newNode;
-        newNode->nodes[lh] = next;
-      }
-      if (lh == 0) {
-    	  return;
-      }
-      lh--;
-      continue;
-    }
-    left = next;
-  }
-*/
-double SoftmaxClauseQueue::integrate(Clause* c, ScoreInfo sc, Node* newNode, unsigned h, Node* left, unsigned lh)
-{
-  CALL("SoftmaxClauseQueue::integrate");
-
-  double dist = 0.0;
-  for (;;) {
-    auto link = left->nodes[lh];
-    Node* next = link.first;
-    if (next == nullptr || lessThan(c,sc,next->clause)) {
-      if (lh == 0) {
-        // don't need to change the score mass of a level-0 link
-        left->nodes[0].first = newNode;
-        newNode->nodes[0] = make_pair(next,sc.first);
-        return dist + left->nodes[0].second;
-      }
-      double idist = integrate(c,sc,newNode,h,left,lh-1);
-      if (lh <= h) {
-        left->nodes[lh] = make_pair(newNode,idist);
-        newNode->nodes[lh] = make_pair(next,link.second-idist+sc.first); // not much sense here, if next == nullptr
-        return dist + idist;
-      }
-      // the target stays the same, but we shoot further
-      // (unless left->nodes[lh].first == nullptr, and again, then the update below makes no sense)
-      left->nodes[lh].second += sc.first;
-      return 0.0; // We didn't care anymore, and higher-up callers don't care either
-    } else {
-      left = next;
-      dist += link.second;
-    }
-  }
-}
-
 void SoftmaxClauseQueue::insert(Clause* c)
 {
   CALL("SoftmaxClauseQueue::insert");
@@ -158,11 +104,91 @@ void SoftmaxClauseQueue::insert(Clause* c)
   newNode->height = h;
 #endif
   newNode->clause = c;
-  // set newNode's nodes but, obviously, also update those who will now point to newNone
+
+  // set newNode's nodes but, obviously, also update those that will now point to newNone
   // additionally, maintain the correct "volume" associated with each link
-  integrate(c,sc,newNode,h,_left,_height);
+  Node* left = _left;
+  unsigned lh = _height;
+  // traversing the "overshooters" first
+  while (lh > h) {
+    auto& link = left->nodes[lh];
+    Node* next = link.first;
+    if (next == nullptr || lessThan(c,sc,next->clause)) {
+      // the change is only in the distance traveled now
+      // (and if next == nullptr, there are no guarantees about link.second anyway)
+      link.second += sc.first;
+      lh--;
+    } else {
+      // just move forward
+      left = next;
+    }
+  }
+  // these guys will shoot into newNode and we need to know, how far exactly this is going to be on each level
+  // will use "update" for it
+  LinkInfo update[MAX_HEIGHT];
+  for (;;) {
+    auto& link = left->nodes[lh];
+    Node* next = link.first;
+    if (next == nullptr || lessThan(c,sc,next->clause)) {
+      // remember current "left" for level "lh" is "first" ...
+      update[lh].first = left;
+      if (lh == 0) {
+        break;
+      } else {
+        lh--;
+        // ... and start accumalating the distance in "second"
+        // it's only important to zero this out from the first descend on,
+        // (the node update[h] does not need to report the "distance traveled" upwards anymore)
+        update[lh].second = 0.0;
+      }
+    } else {
+      left = next;
+      update[lh].second += link.second;
+    }
+  }
+  ASS_EQ(lh,0);
+  ASS(left == update[0].first);
+  // init "dist" by the last (not yer recorded) jump on level 0
+  double dist = left->nodes[0].second;
+  // go up again, and update nodes waiting for it
+  for (;;) {
+    Node* updNode = update[lh].first;
+    newNode->nodes[lh].first = updNode->nodes[lh].first;
+    updNode->nodes[lh].first = newNode;
+    updNode->nodes[lh].second = dist;
+    if (lh == h) {
+      break;
+    } else {
+      // all the remaining jumps on level lh:
+      dist += update[lh].second;
+      // (notice we won't need to use update[h].second, so it's OK it contains rubbish)
+      lh++;
+    }
+  }
+  // what we need to finish off is newNode->nodes[lh].second
+  // (which we didn't want to derive from updNode->nodes[lh].second using subtraction,
+  //  so we keep hopping beyond newNode now)
+  newNode->nodes[0].second = sc.first;
+  dist = 0.0;
+  Node* right = newNode;
+  unsigned rh = 0; // traveling at "rh", but aiming for "rh+1" to write the result to
+  while (rh < h) {
+    Node* target = newNode->nodes[rh+1].first;
+    if (target == nullptr) {
+      break;
+    }
+    while (right != target) {
+      auto link = right->nodes[rh];
+      right = link.first;
+      dist += link.second;
+    }
+    rh++;
+    newNode->nodes[rh].second = dist;
+  }
+
   _total += sc.first; // adding the score of the to-be-inserted element to total
 
+  // output(cout);
   ASS(consistent());
 } // SoftmaxClauseQueue::insert
 
@@ -174,56 +200,110 @@ bool SoftmaxClauseQueue::remove(Clause* c)
 {
   CALL("SoftmaxClauseQueue::remove");
 
+  // cout << "Before remove of " << c->toString() << endl;
+  // output(cout);
+
   ScoreInfo sc = _scores.get(c);
 
   unsigned h = _height;
   Node* left = _left;
+  Node* found = nullptr;
 
+  LinkInfo update[MAX_HEIGHT];
+  update[h].second = 0.0; // other second's get zero-ed out when we descend to meet them
+  // as we go forward and down to locate the node (although, potentially, there is no such),
+  // we remember the nodes that we will need to update with new dist
+  // and keep collecting the traveled distances on each level (both in "update" like with "insert")
   for (;;) {
-    Node* next = left->nodes[h].first;
+    auto link = left->nodes[h];
+    Node* next = link.first;
     if (next && c == next->clause) {
-      unsigned height = h;
-      // found, first change the links going to next
-      for (;;) {
-	      left->nodes[h].first = next->nodes[h].first;
-        // as usual, the below is bogus if the pointee is nullptr
-        left->nodes[h].second += next->nodes[h].second - sc.first;
-        if (h == 0) {
-	        break;
-	      }
-	      h--;
-        while (left->nodes[h].first != next) {
-          left = left->nodes[h].first;
-        }
-      }
-      // deallocate the node
-      ASS_EQ(height,next->height);
-      DEALLOC_KNOWN(next,sizeof(Node)+height*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
-      while (_height > 0 && !_left->nodes[_height].first) {
-	      _height--;
-      }
-      _total -= sc.first;
-
-      ASS(consistent());
-
-      return true;
+      found = next;
+      break;
     }
-
     if (next == nullptr || lessThan(c,sc,next->clause)) {
       if(h==0) {
-        // At the moment, it's evil to delete something that's not stored,
-        // because we preemptively decrease the length of traversed links just below
-        // (the next == nullptr case would be fine, but the other wouldn't)
+        // with clause selection, we never delete things not previously stored
+        // (However, we could. So feel free to remove the below assertion if you want.)
         ASSERTION_VIOLATION;
 	      return false;
       }
-      left->nodes[h].second -= sc.first;
+      update[h].first = left;
       h--;
+      update[h].second = 0.0; // starting a new counter
     }
     else {
       left = next;
+      update[h].second += link.second;
     }
   }
+
+  unsigned height = h;
+  // found! now change the links going to "found" and keep descending, still storing "left"'s in "update"
+  for (;;) {
+    left->nodes[h].first = found->nodes[h].first;
+    if (h == 0) {
+      break;
+    }
+    // (no need to strore "left" on level 0)
+    update[h].first = left;
+    h--;
+    update[h].second = 0.0; // starting a new counter
+    while (left->nodes[h].first != found) {
+      update[h].second += left->nodes[h].second;
+      left = left->nodes[h].first;
+    }
+  }
+
+  // deallocate the node
+  ASS_EQ(height,found->height);
+  DEALLOC_KNOWN(found,sizeof(Node)+height*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
+  while (_height > 0 && !_left->nodes[_height].first) {
+    _height--;
+  }
+
+  ASS_EQ(h,0);
+  double dist = update[0].second; // does not include left->nodes[0].second
+  Node* right = left;
+  // we start from "left", which, on level 0, used to point to "found"
+  // we start traversing from level 0
+  while (h < _height) {
+    Node* target = update[h+1].first->nodes[h+1].first;
+    if (target == nullptr) {
+      // let's add overshooters' distance (later on, we only descend from "h" again down to 0)
+      for (unsigned th = h+1; th <= _height; th++) {
+        dist += update[th].second;
+      }
+      break;
+    }
+    while (right != target) {
+      auto link = right->nodes[h];
+      right = link.first;
+      dist += link.second;
+    }
+    h++;
+    update[h].first->nodes[h].second = dist;
+    dist += update[h].second;
+  }
+  // nobody is overshooting "right" anymore, but we need to find the end to properly compute the new "_total"
+  for (;;) {
+    while (right->nodes[h].first) {
+      dist += right->nodes[h].second;
+      right = right->nodes[h].first;
+    }
+    if (h==0) {
+      break;
+    }
+    h--;
+  }
+  ASS_EQ(h,0);
+  ASS(right->nodes[0].first == nullptr);
+  _total = dist + right->nodes[0].second;
+
+  // cout << "After remove" << endl;
+  // output(cout);
+  ASS(consistent());
+  return true;
 } // SoftmaxClauseQueue::remove
 
 /**
@@ -271,7 +351,6 @@ Clause* SoftmaxClauseQueue::pop()
   remove(cl);
 
   ASS(consistent());
-
   return cl;
 } // SoftmaxClauseQueue::pop
 
@@ -322,11 +401,20 @@ void SoftmaxClauseQueue::removeAll()
   CALL("SoftmaxClauseQueue::removeAll");
 
   while (_left->nodes[0].first) {
-    pop();
+    remove(_left->nodes[0].first->clause);
   }
 } // removeAll
 
 #if VDEBUG
+/**
+ * Are the two given POSITIVE doubles roughly the same?
+ */
+static bool roughlyTheSame(double a, double b) {
+  ASS_G(a,0.0);
+  ASS_G(b,0.0);
+  return abs((a-b)/max(a,b)) < 0.0000001;
+}
+
 bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, double& sumLinks) const
 {
   CALL("SoftmaxClauseQueue::consistentRec");
@@ -358,9 +446,10 @@ bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, double& sumLi
     }
     whatsSeen->nodes[h].first = cur;  // now you see me
     // the score mass is fine:
-    if ((link.first != nullptr || h == 0) && // h > 0 nullptrs are fine with rubbish score mass (we wont want to just to the nullptr place)
-        link.second != whatsSeen->nodes[h].second + sc.first) {
+    if ((link.first != nullptr || h == 0) && // h > 0 nullptrs are fine with rubbish score mass
+        cur != _left && !roughlyTheSame(link.second,whatsSeen->nodes[h].second + sc.first)) {
       cout << "Node " << cur->id << " failed the mass check for h = " << h << endl;
+      cout << "link.second is " << link.second << " and whatsSeen->nodes[h].second + sc.first is " << whatsSeen->nodes[h].second + sc.first << endl;
       return false;
     }
     whatsSeen->nodes[h].second = 0.0; // from close by
@@ -378,8 +467,12 @@ bool SoftmaxClauseQueue::consistent() const
   double sumLinks = 0.0;
   bool res = consistentRec(_left,whatsSeen,sumLinks);
   DEALLOC_KNOWN(whatsSeen,sizeof(Node)+_height*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
-  if (sumLinks != _total) {
+  // cout << "Total sum check diff " << sumLinks - _total << " from " <<  sumLinks << " and " << _total << endl;
+  if (_left->nodes[0].first && // non-empty
+      !roughlyTheSame(sumLinks,_total)) {
     cout << "Total sum check failed." << endl;
+    cout << "sumLinks is " << sumLinks << " and _total is " << _total << endl;
+    cout << "The difference being " << sumLinks-_total << endl;
     return false;
   }
   return res;
@@ -389,15 +482,13 @@ void SoftmaxClauseQueue::output(ostream& str) const
 {
   CALL("SoftmaxClauseQueue::output");
 
-  ASS(consistent());
-
   str << "SoftmaxClauseQueue with a total " << _total << endl;
   for (const Node* node = _left; node; node=node->nodes[0].first) {
     Clause* cl = node->clause;
     unsigned height;
     if (cl) {
       height = node->height;
-      str << "Node " << node->id << " of mass " << node->clause->weight() << " and with clause " << node->clause->toString() << endl;
+      str << "Node " << node->id << " of mass " << _scores.get(node->clause).first << " and with clause " << node->clause->toString() << endl;
     } else {
       height = _height;
       str << "Node " << node->id << " with no clause" << endl;

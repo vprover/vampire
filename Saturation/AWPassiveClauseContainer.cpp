@@ -202,9 +202,11 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
       score = exp((logit-1.0)/_temp);
     }
 
+    // cout << "New clause has " << make_pair(score,salt) << " with number " << cl->number() << endl;
     _scores.insert(cl,make_pair(score,salt));
   }
 
+  // cout << "Inserting " << cl->number() << endl;
   _queue->insert(cl);
   _size++;
 
@@ -218,6 +220,7 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
 
   ASS(cl->store()==Clause::PASSIVE);
 
+  // cout << "Removing " << cl->number() << endl;
   _queue->remove(cl);
   _size--;
 
@@ -230,7 +233,9 @@ Clause* NeuralPassiveClauseContainer::popSelected()
   CALL("NeuralPassiveClauseContainer::popSelected");
   ASS(_size);
 
+  // cout << "About to pop" << endl;
   Clause* cl = _queue->pop();
+  // cout << "Got " << cl->number() << endl;
   _size--;
 
   selectedEvent.fire(cl);
