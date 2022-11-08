@@ -272,6 +272,7 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
       found = true;
     }
   }
+  ASS_EQ(next, nlen)
 
   return res;
 }
@@ -937,14 +938,16 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       if (!_checked.insert(mcl)) {
         continue;
       }
-      fsstats.startSubsumption();
-      if (mcl->length() <= clen && satSubs.checkSubsumption(mcl, cl)) {
-        fsstats.stopSubsumption(true);
-        _subsumes = true;
-        _premise = mcl;
-        goto check_correctness;
+      if (mcl->length() <= clen) {
+        fsstats.startSubsumption();
+        if (satSubs.checkSubsumption(mcl, cl)) {
+          fsstats.stopSubsumption(true);
+          _subsumes = true;
+          _premise = mcl;
+          goto check_correctness;
+        }
+        fsstats.stopSubsumption(false);
       }
-      fsstats.stopSubsumption(false);
     }
   }
 
@@ -977,16 +980,18 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       bool checkSR = _subsumptionResolution && !_conclusion;
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
       bool checkS = mcl->length() <= clen;
-      fsstats.startSubsumption();
-      if (checkS && satSubs.checkSubsumption(mcl, cl, checkSR)) {
-        _subsumes = true;
-        _premise = mcl;
-        fsstats.stopSubsumption(true);
-        fsstats.m_logged_useless_sat_checks_sr += n_sr_checks;
-        goto check_correctness;
+      if (checkS) {
+        fsstats.startSubsumption();
+        if (satSubs.checkSubsumption(mcl, cl, checkSR)) {
+          _subsumes = true;
+          _premise = mcl;
+          fsstats.stopSubsumption(true);
+          fsstats.m_logged_useless_sat_checks_sr += n_sr_checks;
+          goto check_correctness;
+        }
+        fsstats.stopSubsumption(false);
       }
       else if (checkSR) {
-        fsstats.stopSubsumption(false);
         // In this case, the literals come from the non complementary list, and there is therefore
         // a low chance of it being resolved. However, in the case where there is no negative match,
         // checkSubsumption resolution is very fast after subsumption, since filling the match set
@@ -1001,9 +1006,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
           // the premise will be overriden if a subsumption is found
           _premise = mcl;
         }
-      }
-      else {
-        fsstats.stopSubsumption(false);
       }
     }
   }
@@ -1073,6 +1075,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       mcl = it.next().clause;
 
       if (!_checked.insert(mcl)) {
+        ASS(false) // TODO check that
         continue;
       }
 
@@ -1090,6 +1093,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       mcl = it.next().clause;
 
       if (!_checked.insert(mcl)) {
+        ASS(false)
         continue;
       }
 

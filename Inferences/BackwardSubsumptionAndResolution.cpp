@@ -258,7 +258,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         if (subsumedSet.contains(icl) || !_checked.insert(icl)) {
           continue;
         }
-        Clause *conclusion = ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(icl, lit, cl);
+        Clause *conclusion = ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(icl, (*icl)[0], cl);
         ASS(conclusion);
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }

@@ -69,7 +69,7 @@ SATSubsumptionAndResolution::MatchSet::MatchSet(unsigned m, unsigned n)
 SATSubsumptionAndResolution::MatchSet::~MatchSet()
 {
   CALL("SATSubsumptionAndResolution::MatchSet::~MatchSet");
-  for (Match* match : _allocatedMatches) {
+  for (Match *match : _allocatedMatches) {
     delete match;
   }
 }
@@ -193,31 +193,24 @@ void SATSubsumptionAndResolution::MatchSet::clear()
 /****************************************************************************/
 /*                                 Stats                                    */
 /****************************************************************************/
-static Clause* lastL = nullptr;
-static Clause* lastM = nullptr;
-
-void SATSubsumptionAndResolution::printStats(std::ostream &out) {
+void SATSubsumptionAndResolution::printStats(std::ostream &out)
+{
   out << "**** SAT subsumption stats ****" << endl;
-  out << "last L: " << ((void*) lastL) << endl;
-  out << "last M: " << ((void*) lastM) << endl;
-  out << "last L: " << lastL->toNiceString() << endl;
-  out << "last M: " << lastM->toNiceString() << endl;
 }
-
 
 /****************************************************************************/
 /*                    SATSubsumptionAndResolution::SATSubsumptionAndResolution                        */
 /****************************************************************************/
 
 SATSubsumptionAndResolution::SATSubsumptionAndResolution() : _L(nullptr),
-                                   _M(nullptr),
-                                   _m(0),
-                                   _n(0),
-                                   _solver(new SolverWrapper()),
-                                   _bindingsManager(new BindingsManager()),
-                                   _atMostOneVars(),
-                                   _matchSet(1, 1),
-                                   _model()
+                                                             _M(nullptr),
+                                                             _m(0),
+                                                             _n(0),
+                                                             _solver(new SolverWrapper()),
+                                                             _bindingsManager(new BindingsManager()),
+                                                             _atMostOneVars(),
+                                                             _matchSet(1, 1),
+                                                             _model()
 {
 // nothing to do
 #if WRITE_LITERAL_MATCHES_FILE
@@ -248,9 +241,6 @@ void SATSubsumptionAndResolution::setupProblem(Kernel::Clause *L, Kernel::Clause
   _M = M;
   _m = L->length();
   _n = M->length();
-
-  lastL = L;
-  lastM = M;
 
   _matchSet.clear();
   _matchSet.resize(_m, _n);
@@ -335,8 +325,7 @@ bool SATSubsumptionAndResolution::fillMatchesS()
 
     for (unsigned j = 0; j < _n; ++j) {
       M_j = _M->literals()[j];
-      if (L_i->functor()  != M_j->functor()
-       || L_i->polarity() != M_j->polarity()) {
+      if (L_i->functor() != M_j->functor() || L_i->polarity() != M_j->polarity()) {
         continue;
       }
       if (checkAndAddMatch(L_i, M_j, i, j, true)) {
@@ -828,7 +817,7 @@ Kernel::Clause *SATSubsumptionAndResolution::generateConclusion()
   ASS(_model.size() > 0);
 
 // Provided the solution of the sat solver, we can create the conclusion clause
-#ifndef NDEBUG
+#if VDEBUG
   unsigned j = 0;
   // Check that there is only one negative polarity match to j inside the model
   for (subsat::Lit lit : _model) {
@@ -865,14 +854,15 @@ Kernel::Clause *SATSubsumptionAndResolution::generateConclusion()
       }
     }
   }
+  ASS_EQ(_n, _M->size())
   ASS(toRemove != numeric_limits<unsigned>::max());
   // Create the conclusion clause
-  Kernel::Clause *conclusion = new (_n - 1) Kernel::Clause(_n - 1, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, _M, _L));
+  Kernel::Clause *conclusion = new (_n - 1) Kernel::Clause(_n - 1,
+                                                           SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, _M, _L));
   unsigned k = 0;
   for (unsigned j = 0; j < _n; ++j) {
     if (j != toRemove) {
-      conclusion->literals()[k] = _M->literals()[j];
-      k++;
+      conclusion->literals()[k++] = _M->literals()[j];
     }
   }
   ASS(k == _n - 1);
@@ -920,7 +910,6 @@ Kernel::Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Kernel::
     ASS(_L == L);
     ASS(_M == M);
   }
-
 #endif
 
   // Checks for all the literal mappings and store them in a cache
@@ -940,7 +929,7 @@ Kernel::Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Kernel::
     // Some clauses could have been added if it uses the previous setup.
     _solver->s.clear();
     // now reallocates the variables
-    for (unsigned i=0; i<_matchSet._nUsedMatches; i++) {
+    for (unsigned i = 0; i < _matchSet._nUsedMatches; i++) {
       _solver->s.new_variable();
     }
   }
