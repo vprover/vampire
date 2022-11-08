@@ -17,11 +17,9 @@
 #define __BackwardSubsumptionResolution__
 
 #include "InferenceEngine.hpp"
-#include "SATSubsumption/SATSubsumptionResolution.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 
 namespace Inferences {
-
-#define USE_SAT_SUBSUMPTION_BACKWARD 0
 
 class BackwardSubsumptionResolution
 : public BackwardSimplificationEngine
@@ -43,9 +41,6 @@ private:
   bool _byUnitsOnly;
   BackwardSubsumptionIndex* _index;
 
-  #if USE_SAT_SUBSUMPTION_BACKWARD
-  SMTSubsumption::SATSubsumption satSubs;
-  #endif
 };
 
 };

@@ -16,17 +16,20 @@
 #define __BackwardSubsumptionAndResolution__
 
 #include "InferenceEngine.hpp"
-#include "SATSubsumption/SATSubsumptionResolution.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
 
 #if VDEBUG
-#define CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION 1
+#define CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION 0
 #else
 #define CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION 0
 #endif
 
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION
+#define USE_SAT_SUBSUMPTION_BACKWARD 1
+#define SEPARATE_LOOPS_BACKWARD 0
+
+#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
 #include "BackwardSubsumptionResolution.hpp"
 #include "SLQueryBackwardSubsumption.hpp"
 #endif
@@ -41,19 +44,19 @@ public:
   USE_ALLOCATOR(BackwardSubsumptionAndResolution);
 
   BackwardSubsumptionAndResolution(bool subsumption, bool subsumptionByUnitsOnly, bool subsumptionResolution, bool srByUnitsOnly) : _subsumption(subsumption), _subsumptionResolution(subsumptionResolution), _subsumptionByUnitsOnly(subsumptionByUnitsOnly), _srByUnitsOnly(srByUnitsOnly),
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION
-        _index(nullptr), _slqbs(subsumptionByUnitsOnly), _bsr(srByUnitsOnly)
+#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
+        _bwIndex(nullptr), _slqbs(subsumptionByUnitsOnly), _bsr(srByUnitsOnly)
 #else
-        _index(nullptr)
+        _bwIndex(nullptr)
 #endif
   {
     // do nothing
   }
   ~BackwardSubsumptionAndResolution() {}
 
-  void attach(SaturationAlgorithm *salg) override;
+  void attach(Saturation::SaturationAlgorithm *salg) override;
   void detach() override;
-  void perform(Kernel::Clause *premise, BwSimplificationRecordIterator &simplifications);
+  void perform(Kernel::Clause *premise, Inferences::BwSimplificationRecordIterator &simplifications);
 
   static Kernel::Clause *generateSubsumptionResolutionClause(Kernel::Clause *cl, Kernel::Literal *lit, Kernel::Clause *baseClause);
 
@@ -65,13 +68,13 @@ private:
   bool _subsumptionByUnitsOnly;
   bool _srByUnitsOnly;
 
-  BackwardSubsumptionIndex *_index;
-  SMTSubsumption::SATSubsumption satSubs;
+  Indexing::BackwardSubsumptionIndex *_bwIndex;
+  SATSubsumption::SATSubsumptionAndResolution satSubs;
   Lib::DHSet<Clause *> _checked;
 
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION
-  SLQueryBackwardSubsumption _slqbs;
-  BackwardSubsumptionResolution _bsr;
+#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
+  Inferences::SLQueryBackwardSubsumption _slqbs;
+  Inferences::BackwardSubsumptionResolution _bsr;
 #endif
 };
 

@@ -1,4 +1,4 @@
-#include "SATSubsumptionResolution.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 #include "Util.hpp"
@@ -6,7 +6,7 @@
 
 using namespace Indexing;
 using namespace Kernel;
-using namespace SMTSubsumption;
+using namespace SATSubsumption;
 
 #define PRINT_CLAUSES_SUBS 0
 #define PRINT_CLAUSE_COMMENTS_SUBS 0
@@ -17,6 +17,7 @@ using namespace SMTSubsumption;
  */
 static void intersect(vvector<unsigned> &first, vvector<unsigned> &second)
 {
+  CALL("SATSubsumptionResolution::intersect")
 #ifndef NDEBUG
   for (unsigned i = 1; i < first.size(); i++) {
     ASS(first[i - 1] <= first[i]);
@@ -46,9 +47,9 @@ static void intersect(vvector<unsigned> &first, vvector<unsigned> &second)
 }
 
 /****************************************************************************/
-/*                       SATSubsumption::MatchSet                           */
+/*                       SATSubsumptionAndResolution::MatchSet                           */
 /****************************************************************************/
-SATSubsumption::MatchSet::MatchSet(unsigned m, unsigned n)
+SATSubsumptionAndResolution::MatchSet::MatchSet(unsigned m, unsigned n)
     : _iMatches(m),
       _jMatches(n),
 #if SAT_SR_IMPL == 1
@@ -58,47 +59,45 @@ SATSubsumption::MatchSet::MatchSet(unsigned m, unsigned n)
       _n(n),
       _varToMatch(),
       _nUsedMatches(0),
-      _nAllocatedMatches(1),
-      _allocatedMatches(nullptr)
+      _allocatedMatches(0)
 {
   ASS(m > 0);
   ASS(n > 0);
-  _allocatedMatches = (Match **)malloc(_nAllocatedMatches * sizeof(Match *));
-  ASS(_allocatedMatches);
-  _allocatedMatches[0] = (Match *)malloc(sizeof(Match));
-  ASS(_allocatedMatches[0]);
+  _allocatedMatches.push_back(new Match());
 }
 
-SATSubsumption::MatchSet::~MatchSet()
+SATSubsumptionAndResolution::MatchSet::~MatchSet()
 {
-  free(_allocatedMatches[0]);
-  for (unsigned i = 1; i < _nAllocatedMatches; i *= 2) {
-    free(_allocatedMatches[i]);
+  CALL("SATSubsumptionAndResolution::MatchSet::~MatchSet");
+  for (Match* match : _allocatedMatches) {
+    delete match;
   }
-  free(_allocatedMatches);
 }
 
-SATSubsumption::Match *SATSubsumption::MatchSet::allocateMatch()
+SATSubsumptionAndResolution::Match *SATSubsumptionAndResolution::MatchSet::allocateMatch()
 {
-  ASS(_nUsedMatches <= _nAllocatedMatches);
-  if (_nUsedMatches == _nAllocatedMatches) {
-    _nAllocatedMatches *= 2;
-    _allocatedMatches = (Match **)realloc(_allocatedMatches, _nAllocatedMatches * sizeof(Match *));
-
-    Match *newMatches = (Match *)malloc((_nAllocatedMatches - _nUsedMatches) * sizeof(Match));
-    for (unsigned i = 0; i < _nAllocatedMatches - _nUsedMatches; i++) {
-      _allocatedMatches[_nUsedMatches + i] = newMatches + i;
+  CALL("SATSubsumptionAndResolution::MatchSet::allocateMatch");
+  ASS(_nUsedMatches <= _allocatedMatches.size());
+  ASS(_allocatedMatches.size() > 0)
+  unsigned nAllocatedMatches = _allocatedMatches.size();
+  if (_nUsedMatches == nAllocatedMatches) {
+    _allocatedMatches.resize(2 * nAllocatedMatches);
+    for (unsigned i = _nUsedMatches; i < 2 * nAllocatedMatches; i++) {
+      _allocatedMatches[i] = new Match();
+      ASS(_allocatedMatches[i])
     }
   }
   return _allocatedMatches[_nUsedMatches++];
 }
 
-SATSubsumption::Match *SATSubsumption::MatchSet::addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var)
+SATSubsumptionAndResolution::Match *SATSubsumptionAndResolution::MatchSet::addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var)
 {
+  CALL("SATSubsumptionAndResolution::MatchSet::addMatch");
   ASS(i < _m);
   ASS(j < _n);
 
   Match *match = allocateMatch();
+  ASS(match)
   *match = Match(i, j, polarity, var);
   _iMatches[i].push_back(match);
   _jMatches[j].push_back(match);
@@ -120,27 +119,27 @@ SATSubsumption::Match *SATSubsumption::MatchSet::addMatch(unsigned i, unsigned j
   return match;
 }
 
-vvector<SATSubsumption::Match *> &SATSubsumption::MatchSet::getIMatches(unsigned baseLitIndex)
+vvector<SATSubsumptionAndResolution::Match *> &SATSubsumptionAndResolution::MatchSet::getIMatches(unsigned baseLitIndex)
 {
   ASS(baseLitIndex < _m);
   return _iMatches[baseLitIndex];
 }
 
-vvector<SATSubsumption::Match *> &SATSubsumption::MatchSet::getJMatches(unsigned instanceLitIndex)
+vvector<SATSubsumptionAndResolution::Match *> &SATSubsumptionAndResolution::MatchSet::getJMatches(unsigned instanceLitIndex)
 {
   ASS(instanceLitIndex < _n);
   return _jMatches[instanceLitIndex];
 }
 
-vvector<SATSubsumption::Match *> SATSubsumption::MatchSet::getAllMatches()
+vvector<SATSubsumptionAndResolution::Match *> SATSubsumptionAndResolution::MatchSet::getAllMatches()
 {
-  vvector<SATSubsumption::Match *> result(_allocatedMatches, _allocatedMatches + _nUsedMatches);
+  vvector<SATSubsumptionAndResolution::Match *> result(_allocatedMatches.begin(), _allocatedMatches.begin() + _nUsedMatches);
   return result;
 }
 
-SATSubsumption::Match *SATSubsumption::MatchSet::getMatchForVar(subsat::Var satVar)
+SATSubsumptionAndResolution::Match *SATSubsumptionAndResolution::MatchSet::getMatchForVar(subsat::Var satVar)
 {
-
+  CALL("SATSubsumptionAndResolution::MatchSet::getMatchForVar");
   if (satVar.index() >= _nUsedMatches) {
     return nullptr;
   }
@@ -150,21 +149,22 @@ SATSubsumption::Match *SATSubsumption::MatchSet::getMatchForVar(subsat::Var satV
 }
 
 #if SAT_SR_IMPL == 1
-bool SATSubsumption::MatchSet::hasPositiveMatchJ(unsigned j)
+bool SATSubsumptionAndResolution::MatchSet::hasPositiveMatchJ(unsigned j)
 {
   // the wizardry is explained in the header file
   return (_jStates[j / 4] & (1 << (2 * (j % 4)))) != 0;
 }
 
-bool SATSubsumption::MatchSet::hasNegativeMatchJ(unsigned j)
+bool SATSubsumptionAndResolution::MatchSet::hasNegativeMatchJ(unsigned j)
 {
   // the wizardry is explained in the header file
   return (_jStates[j / 4] & (2 << (2 * (j % 4)))) != 0;
 }
 #endif
 
-void SATSubsumption::MatchSet::resize(unsigned newM, unsigned newN)
+void SATSubsumptionAndResolution::MatchSet::resize(unsigned newM, unsigned newN)
 {
+  CALL("SATSubsumptionAndResolution::MatchSet::resize");
   ASS(newM > 0);
   ASS(newN > 0);
   if (newM > _iMatches.size()) {
@@ -177,8 +177,9 @@ void SATSubsumption::MatchSet::resize(unsigned newM, unsigned newN)
   _n = newN;
 }
 
-void SATSubsumption::MatchSet::clear()
+void SATSubsumptionAndResolution::MatchSet::clear()
 {
+  CALL("SATSubsumptionAndResolution::MatchSet::clear");
   for (unsigned i = 0; i < _m; i++) {
     _iMatches[i].clear();
   }
@@ -190,10 +191,25 @@ void SATSubsumption::MatchSet::clear()
 }
 
 /****************************************************************************/
-/*                    SATSubsumption::SATSubsumption                        */
+/*                                 Stats                                    */
+/****************************************************************************/
+static Clause* lastL = nullptr;
+static Clause* lastM = nullptr;
+
+void SATSubsumptionAndResolution::printStats(std::ostream &out) {
+  out << "**** SAT subsumption stats ****" << endl;
+  out << "last L: " << ((void*) lastL) << endl;
+  out << "last M: " << ((void*) lastM) << endl;
+  out << "last L: " << lastL->toNiceString() << endl;
+  out << "last M: " << lastM->toNiceString() << endl;
+}
+
+
+/****************************************************************************/
+/*                    SATSubsumptionAndResolution::SATSubsumptionAndResolution                        */
 /****************************************************************************/
 
-SATSubsumption::SATSubsumption() : _L(nullptr),
+SATSubsumptionAndResolution::SATSubsumptionAndResolution() : _L(nullptr),
                                    _M(nullptr),
                                    _m(0),
                                    _n(0),
@@ -207,20 +223,23 @@ SATSubsumption::SATSubsumption() : _L(nullptr),
 #if WRITE_LITERAL_MATCHES_FILE
   _fileOut.open("subsumptionLiteralLog.txt");
 #endif
-  cout << "***SAT subsumption resolution is enabled -- Encoding " << SAT_SR_IMPL << "***" << endl;
+  // cout << "***SAT subsumption resolution is enabled -- Encoding " << SAT_SR_IMPL << "***" << endl;
 }
 
-SATSubsumption::~SATSubsumption()
+SATSubsumptionAndResolution::~SATSubsumptionAndResolution()
 {
+  CALL("SATSubsumptionAndResolution::~SATSubsumptionAndResolution");
   delete _bindingsManager;
 #if WRITE_LITERAL_MATCHES_FILE
   _fileOut.close();
 #endif
 }
 
-void SATSubsumption::setupProblem(Kernel::Clause *L, Kernel::Clause *M)
+void SATSubsumptionAndResolution::setupProblem(Kernel::Clause *L, Kernel::Clause *M)
 {
-  CALL("SATSubsumption::setupProblem");
+  CALL("SATSubsumptionAndResolution::setupProblem");
+  ASS(L);
+  ASS(M);
 #if PRINT_CLAUSES_SUBS
   cout << "----------------------------------------------" << endl;
   cout << "Setting up problem " << L->toString() << " " << M->toString() << endl;
@@ -229,6 +248,9 @@ void SATSubsumption::setupProblem(Kernel::Clause *L, Kernel::Clause *M)
   _M = M;
   _m = L->length();
   _n = M->length();
+
+  lastL = L;
+  lastM = M;
 
   _matchSet.clear();
   _matchSet.resize(_m, _n);
@@ -241,8 +263,9 @@ void SATSubsumption::setupProblem(Kernel::Clause *L, Kernel::Clause *M)
   _bindingsManager->clear();
 }
 
-void SATSubsumption::addBinding(BindingsManager::Binder *binder, unsigned i, unsigned j, bool polarity)
+void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder, unsigned i, unsigned j, bool polarity)
 {
+  CALL("SATSubsumptionAndResolution::addBinding");
   ASS(i < _m);
   ASS(j < _n);
   subsat::Var satVar = _solver->s.new_variable();
@@ -253,9 +276,9 @@ void SATSubsumption::addBinding(BindingsManager::Binder *binder, unsigned i, uns
   _bindingsManager->commit_bindings(*binder, satVar, i, j);
 }
 
-bool SATSubsumption::checkAndAddMatch(Literal *L_i, Literal *M_j, unsigned i, unsigned j, bool polarity)
+bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *L_i, Literal *M_j, unsigned i, unsigned j, bool polarity)
 {
-  CALL("SATSubsumption::checkAndAddMatch");
+  CALL("SATSubsumptionAndResolution::checkAndAddMatch");
 #if WRITE_LITERAL_MATCHES_FILE
   _fileOut << L_i->getId() << " " << M_j->getId();
 #endif
@@ -292,9 +315,9 @@ bool SATSubsumption::checkAndAddMatch(Literal *L_i, Literal *M_j, unsigned i, un
   return match;
 }
 
-bool SATSubsumption::fillMatchesS()
+bool SATSubsumptionAndResolution::fillMatchesS()
 {
-  CALL("SATSubsumption::fillMatchesS");
+  CALL("SATSubsumptionAndResolution::fillMatchesS");
   ASS(_L);
   ASS(_M);
   ASS(_m > 0);
@@ -327,11 +350,11 @@ bool SATSubsumption::fillMatchesS()
   }   // for (unsigned i = 0; i < _nBaseLits; ++i)
 
   return true;
-} // SATSubsumption::fillMatchesS()
+} // SATSubsumptionAndResolution::fillMatchesS()
 
-void SATSubsumption::fillMatchesSR()
+void SATSubsumptionAndResolution::fillMatchesSR()
 {
-  CALL("SATSubsumption::fillMatchesSR");
+  CALL("SATSubsumptionAndResolution::fillMatchesSR");
   ASS(_L);
   ASS(_M);
   ASS(_m > 0);
@@ -410,11 +433,11 @@ void SATSubsumption::fillMatchesSR()
     _srImpossible = true;
     return;
   }
-} // SATSubsumption::fillMatchesSR()
+} // SATSubsumptionAndResolution::fillMatchesSR()
 
-bool SATSubsumption::cnfForSubsumption()
+bool SATSubsumptionAndResolution::cnfForSubsumption()
 {
-  CALL("SATSubsumption::cnfForSubsumption");
+  CALL("SATSubsumptionAndResolution::cnfForSubsumption");
   ASS(_L);
   ASS(_M);
 
@@ -489,7 +512,7 @@ bool SATSubsumption::cnfForSubsumption()
  *    for each i, j : b_ij => (S(L_i) = M_j V S(L_i) = ~M_j)
  *
  */
-bool SATSubsumption::cnfForSubsumptionResolution()
+bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 {
   CALL("SATSubsumptionResolution::cnfForSubsumptionResolution");
   ASS(_L);
@@ -666,7 +689,7 @@ bool SATSubsumption::cnfForSubsumptionResolution()
  *    for each i, j : b_ij => (S(L_i) = M_j V S(L_i) = ~M_j)
  *
  */
-bool SATSubsumption::cnfForSubsumptionResolution()
+bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 {
   CALL("SATSubsumptionResolution::cnfForSubsumptionResolution");
   ASS(_L);
@@ -792,7 +815,7 @@ bool SATSubsumption::cnfForSubsumptionResolution()
  *
  * Assumes that the solver has already been called and that the model is already stored in _model.
  */
-Kernel::Clause *SATSubsumption::generateConclusion()
+Kernel::Clause *SATSubsumptionAndResolution::generateConclusion()
 {
   CALL("SATSubsumptionResolution::generateConclusion");
   ASS(_L);
@@ -856,9 +879,9 @@ Kernel::Clause *SATSubsumption::generateConclusion()
   return conclusion;
 }
 
-bool SATSubsumption::checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool setSR)
+bool SATSubsumptionAndResolution::checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool setSR)
 {
-  CALL("SATSubsumption::checkSubsumption");
+  CALL("SATSubsumptionAndResolution::checkSubsumption");
   if (L->length() > M->length()) {
     return false;
   }
@@ -886,9 +909,9 @@ bool SATSubsumption::checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool
   return false;
 }
 
-Kernel::Clause *SATSubsumption::checkSubsumptionResolution(Kernel::Clause *L, Kernel::Clause *M, bool usePreviousSetUp)
+Kernel::Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Kernel::Clause *L, Kernel::Clause *M, bool usePreviousSetUp)
 {
-  CALL("SATSubsumption::checkSubsumptionResolution");
+  CALL("SATSubsumptionAndResolution::checkSubsumptionResolution");
   if (M->length() < L->length()) {
     return nullptr;
   }
@@ -897,6 +920,7 @@ Kernel::Clause *SATSubsumption::checkSubsumptionResolution(Kernel::Clause *L, Ke
     ASS(_L == L);
     ASS(_M == M);
   }
+
 #endif
 
   // Checks for all the literal mappings and store them in a cache

@@ -17,7 +17,7 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
-#include "SATSubsumption/SATSubsumptionResolution.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
 
@@ -36,29 +36,10 @@ using namespace Saturation;
 #endif
 
 #define USE_SAT_SUBSUMPTION_FORWARD 1
+#define SEPARATE_LOOPS_FORWARD 0
 
 class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
-  struct SubsumptionInstance {
-    SubsumptionInstance(Clause *L, Clause *M, bool result)
-        : _L(L), _M(M), _result(result)
-    {
-    }
-    Clause *_L;
-    Clause *_M;
-    bool _result;
-  };
-
-  struct SubsumptionResolutionInstance {
-    SubsumptionResolutionInstance(Clause *L, Clause *M, Clause *conclusion)
-        : _L(L), _M(M), _conclusion(conclusion)
-    {
-    }
-    Clause *_L;
-    Clause *_M;
-    Clause *_conclusion;
-  };
-
 public:
   CLASS_NAME(ForwardSubsumptionAndResolution);
   USE_ALLOCATOR(ForwardSubsumptionAndResolution);
@@ -82,7 +63,7 @@ private:
   bool _subsumptionResolution;
 
 #if USE_SAT_SUBSUMPTION_FORWARD
-  SMTSubsumption::SATSubsumption satSubs;
+  SATSubsumption::SATSubsumptionAndResolution satSubs;
   DHSet<Clause *> _checked;
   Clause* _conclusion = nullptr;
   bool _subsumes = false;
@@ -90,11 +71,9 @@ private:
 #endif
 
 #if CHECK_SAT_SUBSUMPTION || !USE_SAT_SUBSUMPTION_FORWARD
-  vvector<SubsumptionInstance> subsumption_tried;
   bool checkSubsumption(Clause *mcl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 #endif
 #if CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION_FORWARD
-  vvector<SubsumptionResolutionInstance> subsumptionResolution_tried;
   Clause *checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
 #endif
 

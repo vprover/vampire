@@ -12,12 +12,12 @@
 #include "Test/TestUtils.hpp"
 #include "Test/GenerationTester.hpp"
 
-#include "SATSubsumption/SATSubsumptionResolution.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "SATSubsumption/Util.hpp"
 #include "Kernel/Inference.hpp"
 
 using namespace std;
-using namespace SMTSubsumption;
+using namespace SATSubsumption;
 using namespace Test;
 
 #define SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION     \
@@ -56,7 +56,7 @@ using namespace Test;
   DECL_PRED(q2, {s, s})                         \
   DECL_PRED(r, {s}))
 
-static bool vectorContains(vvector<SATSubsumption::Match *> vec, SATSubsumption::Match *match)
+static bool vectorContains(vvector<SATSubsumptionAndResolution::Match *> vec, SATSubsumptionAndResolution::Match *match)
 {
   for (auto m : vec) {
     if (m == match) {
@@ -66,7 +66,7 @@ static bool vectorContains(vvector<SATSubsumption::Match *> vec, SATSubsumption:
   return false;
 }
 
-static void checkConsistency(SATSubsumption::MatchSet *matchSet, vvector<SATSubsumption::Match *> matches)
+static void checkConsistency(SATSubsumptionAndResolution::MatchSet *matchSet, vvector<SATSubsumptionAndResolution::Match *> matches)
 {
   ASS(matchSet->getAllMatches().size() == matches.size());
   for (auto match : matches) {
@@ -79,11 +79,11 @@ static void checkConsistency(SATSubsumption::MatchSet *matchSet, vvector<SATSubs
 
 TEST_FUN(MatchSetIndexing)
 {
-  SATSubsumption::MatchSet *matchSet = new SATSubsumption::MatchSet(3, 3);
-  vvector<SATSubsumption::Match *> matches;
-  SATSubsumption::Match *match1 = matchSet->addMatch(0, 0, true, subsat::Var(0));
-  SATSubsumption::Match *match2 = matchSet->addMatch(2, 1, true, subsat::Var(1));
-  SATSubsumption::Match *match3 = matchSet->addMatch(2, 2, true, subsat::Var(2));
+  SATSubsumptionAndResolution::MatchSet *matchSet = new SATSubsumptionAndResolution::MatchSet(3, 3);
+  vvector<SATSubsumptionAndResolution::Match *> matches;
+  SATSubsumptionAndResolution::Match *match1 = matchSet->addMatch(0, 0, true, subsat::Var(0));
+  SATSubsumptionAndResolution::Match *match2 = matchSet->addMatch(2, 1, true, subsat::Var(1));
+  SATSubsumptionAndResolution::Match *match3 = matchSet->addMatch(2, 2, true, subsat::Var(2));
 
   ASS(match1);
   ASS(match2);
@@ -102,10 +102,17 @@ TEST_FUN(MatchSetIndexing)
   delete matchSet;
 }
 
+TEST_FUN(Allocation)
+{
+  SATSubsumptionAndResolution *subsumption = new SATSubsumptionAndResolution();
+  ASS(subsumption);
+  delete subsumption;
+}
+
 TEST_FUN(PositiveSubsumption)
 {
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
-  SATSubsumption subsumption;
+  SATSubsumptionAndResolution subsumption;
   Kernel::Clause *L1 = clause({p3(x1, x2, x3), p3(f(x2), x4, x4)});
   Kernel::Clause *M1 = clause({p3(f(c), d, y1), p3(f(d), c, c)});
   ASS(subsumption.checkSubsumption(L1, M1));
@@ -129,7 +136,7 @@ TEST_FUN(PositiveSubsumption)
 TEST_FUN(NegativeSubsumption)
 {
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
-  SATSubsumption subsumption;
+  SATSubsumptionAndResolution subsumption;
 
   Kernel::Clause *L1 = clause({p2(f2(g2(x1, x2), x3), x3), p2(f2(g2(x1, x2), x3), x2), g2(x1, x2) == x3});
   Kernel::Clause *M1 = clause({p2(f2(g2(y1, y2), y2), y2), g2(y1, y2) == y2, ~p2(f2(g2(y1, y2), y2), g2(y1, y2))});
@@ -155,7 +162,7 @@ TEST_FUN(PositiveSubsumptionResolution)
 {
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
   Kernel::Clause *conclusion;
-  SATSubsumption subsumption;
+  SATSubsumptionAndResolution subsumption;
 
   Kernel::Clause *L1 = clause({~p(x1), q(x1)});
   Kernel::Clause *M1 = clause({p(c), q(c), r(e)});
@@ -225,7 +232,7 @@ TEST_FUN(PositiveSubsumptionResolution)
   ASS(L1);
   ASS(M1);
 
-  SATSubsumption subsumption;
+  SATSubsumptionAndResolution subsumption;
   Kernel::Clause *conclusion = subsumption.checkSubsumptionResolution(L1, M1);
   ASS(!conclusion)
   conclusion = subsumption.checkSubsumptionResolution(L2, M1);
@@ -283,7 +290,7 @@ TEST_FUN(PositiveSubsumptionResolution)
 TEST_FUN(UsePreviousSettings)
 {
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
-  SATSubsumption subsumption;
+  SATSubsumptionAndResolution subsumption;
   Kernel::Clause *conclusion = nullptr;
 
   // subsumption works but not SR

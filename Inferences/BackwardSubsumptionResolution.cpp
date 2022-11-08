@@ -79,7 +79,6 @@ struct BackwardSubsumptionResolution::ClauseToBwSimplRecordFn {
   }
 };
 
-#if !USE_SAT_SUBSUMPTION_BACKWARD
 void BackwardSubsumptionResolution::perform(Clause *cl,
                                             BwSimplificationRecordIterator &simplifications)
 {
@@ -411,104 +410,5 @@ void BackwardSubsumptionResolution::perform(Clause *cl,
   }
   return;
 }
-#else
-
-void BackwardSubsumptionResolution::perform(Clause *cl,
-                                            BwSimplificationRecordIterator &simplifications)
-{
-  CALL("BackwardSubsumptionResolution::perform");
-  ASSERT_VALID(*cl);
-  // cl is a unit clause and will subsume all clauses that contain its literal
-  // and will be resolved with all clauses that contain its negation
-  static DHSet<Clause *> checkedClauses;
-  checkedClauses.reset();
-
-  /********************************************************/
-  /*                      cl is UNIT                      */
-  /********************************************************/
-  List<BwSimplificationRecord> *simplRes = List<BwSimplificationRecord>::empty();
-  if (cl->length() == 1) {
-    Literal *lit = (*cl)[0];
-    // Check for the subsumptions
-    SLQueryResultIterator rit = _index->getInstances(lit, false, false);
-    while (rit.hasNext()) {
-      SLQueryResult qr = rit.next();
-      Clause *icl = qr.clause;
-      List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplRes);
-      checkedClauses.insert(icl);
-    }
-    // Check for subsumption resolution
-    rit = _index->getInstances(lit, true, false);
-    while (rit.hasNext()) {
-      SLQueryResult qr = rit.next();
-      Clause *icl = qr.clause;
-      if (checkedClauses.contains(icl)) {
-        continue;
-      }
-      Clause *resCl = ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(icl, lit, cl);
-      List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, resCl), simplRes);
-      checkedClauses.insert(icl);
-    }
-    if (simplRes) {
-      simplifications = pvi(List<BwSimplificationRecord>::DestructiveIterator(simplRes));
-    }
-    return;
-  }
-  if (_byUnitsOnly) {
-    return;
-  }
-
-  /********************************************************/
-  /*      SUBSUMPTION AND RESOLUTION cl is NOT UNIT       */
-  /********************************************************/
-  for (unsigned i = 0; i < cl->length(); i++) {
-    Literal *lit = (*cl)[i];
-    // find the positively matched literals
-    SLQueryResultIterator rit = _index->getInstances(lit, false, false);
-    while (rit.hasNext()) {
-      SLQueryResult qr = rit.next();
-      Clause *icl = qr.clause;
-      if (!checkedClauses.insert(icl)) {
-        continue;
-      }
-      // check subsumption and setup subsumption resolution at the same time
-      if (satSubs.checkSubsumptionResolution(cl, icl, true)) {
-        List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplRes);
-      }
-      else {
-        // check subsumption resolution
-        Clause *resCl = satSubs.checkSubsumptionResolution(cl, icl, true);
-        if (resCl) {
-          List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, resCl), simplRes);
-        }
-      }
-    }
-  }
-
-  /********************************************************/
-  /*        SUBSUMPTION RESOLUTION cl is NOT UNIT         */
-  /********************************************************/
-  for (unsigned i = 0; i < cl->length(); i++) {
-    Literal *lit = (*cl)[i];
-    // find the negatively matched literals
-    SLQueryResultIterator rit = _index->getInstances(lit, true, false);
-    while (rit.hasNext()) {
-      SLQueryResult qr = rit.next();
-      Clause *icl = qr.clause;
-      if (!checkedClauses.insert(icl)) {
-        continue;
-      }
-      // check subsumption resolution
-      Clause *resCl = satSubs.checkSubsumptionResolution(cl, icl, false);
-      if (resCl) {
-        List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, resCl), simplRes);
-      }
-    }
-  }
-  if (simplRes) {
-    simplifications = pvi(List<BwSimplificationRecord>::DestructiveIterator(simplRes));
-  }
-}
-#endif
 
 } // namespace Inferences

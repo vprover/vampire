@@ -15,6 +15,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -28,6 +29,9 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/BackwardSubsumptionAndResolution.hpp"
+
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -484,9 +488,52 @@ void Statistics::print(ostream& out)
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
+  /*
+  ofstream statFile;
+  vstring fileName = "../../statistics/stat";
+  #if !USE_SAT_SUBSUMPTION_FORWARD
+  fileName += "_fwd_nosat";
+  #else
+  #if SEPARATE_LOOPS_FORWARD
+  fileName += "_fwd_sep";
+  #else
+  fileName += "_fwd_shared";
+  #endif
+  #endif
+
+  #if !USE_SAT_SUBSUMPTION_BACKWARD
+  fileName += "_bwd_nosat";
+  #else
+  #if SEPARATE_LOOPS_BACKWARD
+  fileName += "_bwd_sep";
+  #else
+  fileName += "_bwd_shared";
+  #endif
+  #endif
+  #if USE_SAT_SUBSUMPTION_FORWARD || USE_SAT_SUBSUMPTION_BACKWARD
+  #if SAT_SR_IMPL == 1
+  fileName += "_sat_1";
+  #elif SAT_SR_IMPL == 2
+  fileName += "_sat_2";
+  #endif
+  #endif
+  fileName += "_" + env.options->problemName() + ".txt";
+  cerr << "Statistics file: " << fileName << endl;
+  statFile.open(fileName.c_str());
+
+  */
   ForwardSubsumptionAndResolution::printStats(out);
   addCommentSignForSZS(out);
   out << "------------------------------\n";
+
+  BackwardSubsumptionAndResolution::printStats(out);
+  addCommentSignForSZS(out);
+  out << "------------------------------\n";
+
+  SATSubsumption::SATSubsumptionAndResolution::printStats(out);
+  addCommentSignForSZS(out);
+  out << "------------------------------\n";
+  //statFile.close();
 
 #undef SEPARATOR
 #undef COND_OUT
@@ -569,5 +616,3 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Invalid ExecutionPhase value";
   }
 }
-
-

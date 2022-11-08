@@ -717,8 +717,8 @@ set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
     SATSubsumption/SATSubsumptionImpl2.hpp
     SATSubsumption/SATSubsumptionImpl3.cpp
     SATSubsumption/SATSubsumptionImpl3.hpp
-    SATSubsumption/SATSubsumptionResolution.cpp
-    SATSubsumption/SATSubsumptionResolution.hpp
+    SATSubsumption/SATSubsumptionAndResolution.cpp
+    SATSubsumption/SATSubsumptionAndResolution.hpp
     SATSubsumption/Util.cpp
     SATSubsumption/Util.hpp
 

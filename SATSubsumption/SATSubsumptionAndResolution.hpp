@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file SATSubsumptionResolution.cpp
- * Defines class SATSubsumption.
+ * @file SATSubsumptionAndResolution.cpp
+ * Defines class SATSubsumptionAndResolution.
  */
 #ifndef SAT_SUBSUMPTION_RESOLUTION_HPP
 #define SAT_SUBSUMPTION_RESOLUTION_HPP
@@ -28,8 +28,8 @@
 #include <fstream>  //include the filestreamobject as the header files
 #endif
 
-namespace SMTSubsumption {
-class SATSubsumption;
+namespace SATSubsumption {
+class SATSubsumptionAndResolution;
 
 /**
  * Class implementing the simplifying rules of subsumption and subsumption resolution using SAT.
@@ -37,7 +37,7 @@ class SATSubsumption;
  * @since 24/10/2022
  * @author Robin Coutelier (contribution Micheal Rawson & Jakob Rath)
  */
-class SATSubsumption {
+class SATSubsumptionAndResolution {
 #ifdef VTEST
   // Make it public to allow unit testing
 public:
@@ -51,8 +51,8 @@ private:
 
   // just to satisfy Vampire's custom allocator
   struct SolverWrapper {
-    CLASS_NAME(SATSubsumption::SolverWrapper);
-    USE_ALLOCATOR(SATSubsumption::SolverWrapper);
+    CLASS_NAME(SATSubsumptionAndResolution::SolverWrapper);
+    USE_ALLOCATOR(SATSubsumptionAndResolution::SolverWrapper);
     Solver s;
   };
 
@@ -61,8 +61,8 @@ private:
    * The binding can be either positive or negative
    */
   struct Match {
-    CLASS_NAME(SATSubsumption::Match);
-    USE_ALLOCATOR(SATSubsumption::Match);
+    CLASS_NAME(SATSubsumptionAndResolution::Match);
+    USE_ALLOCATOR(SATSubsumptionAndResolution::Match);
     // The index of the literal in L (base clause for subsumption resolution)
     unsigned _i;
     // The index of the literal in M (instance clause for subsumption resolution)
@@ -109,18 +109,18 @@ private:
    * The Match set allows to get a line or column of the matrix
    */
   struct MatchSet {
-    CLASS_NAME(SATSubsumption::MatchSet);
-    USE_ALLOCATOR(SATSubsumption::MatchSet);
+    CLASS_NAME(SATSubsumptionAndResolution::MatchSet);
+    USE_ALLOCATOR(SATSubsumptionAndResolution::MatchSet);
     friend struct Match;
 
     /// @brief Holds the matches grouped by _i
     /// _iMatches[i] holds the list of matches for the i'th literal in L
     /// the list is stored in the order in which they are added to the set
-    vvector<vvector<Match *>> _iMatches;
+    Lib::vvector<Lib::vvector<Match *>> _iMatches;
     /// @brief Holds the matches grouped by _j
     /// _jMatches[j] holds the list of matches for the j'th literal in M
     /// the list is stored in the order in which they are added to the set
-    vvector<vvector<Match *>> _jMatches;
+    Lib::vvector<Lib::vvector<Match *>> _jMatches;
 
 #if SAT_SR_IMPL == 1
     /// @brief Metadata remembering whether some positive match or negative match was found for each literal in L
@@ -133,7 +133,7 @@ private:
     /// Since we only need 2 bits, 4 values fit in one byte
     /// The interest value for i is therefore
     /// state[i / 4] & (0b11 << (2 * (i % 4)))) >> (2 * (i % 4)
-    vvector<uint8_t> _jStates;
+    Lib::vvector<uint8_t> _jStates;
 #endif
 
     /// @brief the number literals in L
@@ -142,20 +142,11 @@ private:
     unsigned _n;
 
     /// @brief vector of matches used to associate a sat variable index to a match
-    vvector<Match *> _varToMatch;
-    /// @brief the number of matches currently at use
+    Lib::vvector<Match *> _varToMatch;
+    /// @brief number of matches currently at use
     unsigned _nUsedMatches;
-    /// @brief the number of matches currently allocated
-    unsigned _nAllocatedMatches;
-    /// @brief the matches available for use
-    /// This is used to avoid allocating and deallocating memory at each resolution check
-    /// The memory is allocated by batches of powers of 2
-    /// In the order of allocations, we would have :
-    /// 0 1 2 2 3 3 3 3 ...
-    /// ^ ^ ^   ^       ^
-    /// such that we have to free the memory only at the start of the next batch (i.e. at position 0, 1, 2, 4... = 2^k)
-    /// It is therefore important to start allocating at 1.
-    Match **_allocatedMatches;
+    /// @brief contains the list of all the the allocated matches
+    Lib::vvector<Match *> _allocatedMatches;
 
     /**
      * Creates a new match set for clauses L of size m and M of size n
@@ -200,7 +191,7 @@ private:
      * @param i the index of the literal in L
      * @return the vector of matches for the i-th literal in L
      */
-    vvector<Match *> &getIMatches(unsigned i);
+    Lib::vvector<Match *> &getIMatches(unsigned i);
 
     /**
      * Returns the vector of matches for the given literal in M.
@@ -208,7 +199,7 @@ private:
      * @param j the index of the literal in M
      * @return the vector of matches for the j-th literal in M
      */
-    vvector<Match *> &getJMatches(unsigned j);
+    Lib::vvector<Match *> &getJMatches(unsigned j);
 
 #if SAT_SR_IMPL == 1
     /**
@@ -230,7 +221,7 @@ private:
      * Returns all the matches in the set
      * @return all the matches in the set
      */
-    vvector<Match *> getAllMatches();
+    Lib::vvector<Match *> getAllMatches();
 
     /**
      * Returns the match for a given sat variable
@@ -270,16 +261,15 @@ private:
   BindingsManager *_bindingsManager;
   /// @brief a vector used to store the sat variables that are subjected to the at most one constraint (will hold the c_j)
   /// The unsigned value is the index of the literal in the instance clause
-  vvector<std::pair<unsigned, subsat::Var>> _atMostOneVars;
-  // vvector<subsat::Var> _atMostOneVars;
+  Lib::vvector<std::pair<unsigned, subsat::Var>> _atMostOneVars;
   /// @brief the match set used to store the matches between the base and instance clauses
   MatchSet _matchSet;
   /// @brief model of the SAT solver
-  vvector<subsat::Lit> _model;
+  Lib::vvector<subsat::Lit> _model;
   /// @brief The current intersection of the M_j's that are only negatively matched to L_i's
-  vvector<unsigned> _intersection;
+  Lib::vvector<unsigned> _intersection;
   /// @brief For some L_i, remembers the M_j that are negatively matched to L_i
-  vvector<unsigned> _negativeMatches;
+  Lib::vvector<unsigned> _negativeMatches;
 
   #if WRITE_LITERAL_MATCHES_FILE
   // output file for cache profiling
@@ -350,11 +340,11 @@ private:
   Kernel::Clause *generateConclusion();
 
 public:
-  CLASS_NAME(SATSubsumption);
-  USE_ALLOCATOR(SATSubsumption);
+  CLASS_NAME(SATSubsumptionAndResolution);
+  USE_ALLOCATOR(SATSubsumptionAndResolution);
 
-  SATSubsumption();
-  ~SATSubsumption();
+  SATSubsumptionAndResolution();
+  ~SATSubsumptionAndResolution();
 
   /**
    * Checks whether the instance clause is subsumed by the base clause
@@ -401,8 +391,10 @@ public:
    * Clears all the caches.
    */
   void clear();
+
+  static void printStats(std::ostream &out);
 };
 
-} // namespace SMTSubsumption
+} // namespace SATSubsumption
 
 #endif /* !SAT_SUBSUMPTION_RESOLUTION_HPP */
