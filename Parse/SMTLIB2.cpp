@@ -37,6 +37,8 @@
 
 #include "TPTP.hpp"
 
+using namespace Lib;
+
 #undef LOGGING
 #define LOGGING 0
 
