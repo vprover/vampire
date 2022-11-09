@@ -81,11 +81,11 @@ void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
   }
 }
 
-void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
+void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("GeneratingLiteralIndex::handleClause");
+  CALL("BinaryResolutionIndex::handleClause");
 
-  TimeCounter tc(TC_BINARY_RESOLUTION_INDEX_MAINTENANCE);
+  TIME_TRACE("binary resolution index maintenance");
 
   int selCnt=c->numSelected();
   for(int i=0; i<selCnt; i++) {
@@ -96,11 +96,11 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
+void BackwardSubsumptionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SimplifyingLiteralIndex::handleClause");
+  CALL("BackwardSubsumptionIndex::handleClause");
 
-  TimeCounter tc(TC_BACKWARD_SUBSUMPTION_INDEX_MAINTENANCE);
+  TIME_TRACE("backward subsumption index maintenance");
 
   unsigned clen=c->length();
   for(unsigned i=0; i<clen; i++) {
@@ -117,7 +117,7 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
     return;
   }
 
-  TimeCounter tc(TC_FORWARD_SUBSUMPTION_INDEX_MAINTENANCE);
+  TIME_TRACE("forward subsumption index maintenance");
 
   Literal* best = LiteralByMatchability::find_least_matchable_in(c).lit();
   handleLiteral(best, c, adding);
@@ -131,7 +131,7 @@ void FSDLiteralIndex::handleClause(Clause* c, bool adding)
     return;
   }
 
-  TimeCounter tc(TC_FORWARD_SUBSUMPTION_DEMODULATION_INDEX_MAINTENANCE);
+  TIME_TRACE("forward subsumption demodulation index maintenance");
 
   bool hasPosEquality = false;
   for (unsigned i = 0; i < c->length(); ++i) {
@@ -165,8 +165,8 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   CALL("UnitClauseLiteralIndex::handleClause");
 
   if(c->length()==1) {
-    TimeCounter tc(TC_SIMPLIFYING_UNIT_LITERAL_INDEX_MAINTENANCE);
-
+    TIME_TRACE("unit clause index maintenance");
+    
     handleLiteral((*c)[0], c, adding);
   }
 }
@@ -179,7 +179,7 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   if(clen<2) {
     return;
   }
-  TimeCounter tc(TC_NON_UNIT_LITERAL_INDEX_MAINTENANCE);
+  TIME_TRACE("non unit clause index maintenance");
   unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
   for(unsigned i=0; i<activeLen; i++) {
     handleLiteral((*c)[i], c, adding);
@@ -242,7 +242,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     return;
   }
 
-  TimeCounter tc(TC_LITERAL_REWRITE_RULE_INDEX_MAINTENANCE);
+  TIME_TRACE("literal rewrite rule index maintenance");
 
   Literal* greater=getGreater(c);
 
@@ -412,7 +412,7 @@ void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
 {
   CALL("UnitIntegerComparisonLiteralIndex::handleClause");
 
-  TimeCounter tc(TC_UNIT_INTEGER_COMPARISON_INDEX_MAINTENANCE);
+  TIME_TRACE("unit integer comparison literal index maintenance");
   
   if (!Inferences::InductionHelper::isIntegerComparison(c)) {
     return;

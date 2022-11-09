@@ -13,39 +13,17 @@
  * @date 2020-04-29
  */
 
-#include "Test/UnitTesting.hpp"
-#include "Test/SyntaxSugar.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
+#include "tKBO.hpp"
 
 //////////////////////////////////////////////////////////////////////////////// 
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
 //////////////////////////////////////////////////////////////////////////////// 
 
-DArray<int> predLevels() {
-  DArray<int> out(env.signature->predicates());
-  out.init(out.size(), 1);
-  return out;
-}
 using namespace Kernel;
-
-template<class SigTraits>
-KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
-{
-  auto df = KboWeightMap<SigTraits>::dflt();
-  df._specialWeights = ws;
-
-  DArray<KboWeight> out(sz);
-  for (unsigned i = 0; i < sz; i++) {
-    auto w = xs.getPtr(i);
-    out[i] = w == NULL ? df.symbolWeight(i) : *w;
-  }
-  return  {
-    ._weights = out,
-    ._introducedSymbolWeight = introducedSymbolWeight,
-    ._specialWeights         = ws,
-  };
-}
 
 KBO kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
@@ -71,28 +49,9 @@ KBO kbo(unsigned introducedSymbolWeight,
              /*revereseLCM*/ false);
 }
 
-
 KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
   return kbo(1, 1, funcs, preds);
 }
-
-void __weights(Map<unsigned, KboWeight>& ws) {
-}
-
-template<class A, class... As>
-void __weights(Map<unsigned, KboWeight>& ws, pair<A, KboWeight> a, pair<As, KboWeight>... as) {
-  ws.insert(get<0>(a).functor(), get<1>(a));
-  __weights(ws, as...);
-}
-
-template<class... As>
-Map<unsigned, KboWeight> weights(pair<As, KboWeight>... as) {
-  Map<unsigned, KboWeight> out;
-  __weights(out, as...);
-  return out;
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// TEST CASES //////////////////////////////////
@@ -399,4 +358,25 @@ TEST_FUN(kbo_test22) {
   }
 }
 
+// POLYMORPHIC TESTS START FROM HERE
+
+TEST_FUN(kbo_test23) {
+  DECL_DEFAULT_SORT_VARS  
+  DECL_TYPE_CON(list, 1)
+
+  auto s1 = list(alpha);
+  auto s2 = list(beta);
+
+  DECL_POLY_CONST(f,1,s1)
+  DECL_POLY_CONST(g,1,s2)
+
+  auto ord = kbo(
+    weights(
+      make_pair(f, 10u),
+      make_pair(g, 10u)
+    ), 
+    weights());
+
+  ASS_EQ(ord.compare(f(alpha), g(beta)), Ordering::Result::INCOMPARABLE)
+}
 

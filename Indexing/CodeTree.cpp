@@ -20,7 +20,6 @@
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Sort.hpp"
-#include "Lib/TimeCounter.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"

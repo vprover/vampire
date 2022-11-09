@@ -1361,7 +1361,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
         if (kv.second != AtomicSort::superSort()) {
           return;
         }
-        tvs.push(kv.first);
+        tvs.pushBack(kv.first);
         args.push(TermList(kv.first,false));
       });
     iterTraits(vs.items())
@@ -1445,7 +1445,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     Substitution subst;
     for (unsigned i = 0; i < exprT->arity(); i++) {
       subst.bind(exprT->nthArgument(i)->var(),TermList(_nextVar,false));
-      vs.push(_nextVar++);
+      vs.pushBack(_nextVar++);
     }
 
     unsigned symbol;

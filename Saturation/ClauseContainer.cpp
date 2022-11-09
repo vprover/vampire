@@ -15,7 +15,6 @@
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
@@ -163,10 +162,10 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
 void ActiveClauseContainer::add(Clause* c)
 {
   CALL("ActiveClauseContainer::add");
-
-  _size++;
+  TIME_TRACE("add clause")
 
   ASS(c->store()==Clause::ACTIVE);
+  ALWAYS(_clauses.insert(c));  
   addedEvent.fire(c);
 }
 
@@ -179,9 +178,9 @@ void ActiveClauseContainer::add(Clause* c)
 void ActiveClauseContainer::remove(Clause* c)
 {
   CALL("ActiveClauseContainer::remove");
-  ASS(c->store()==Clause::ACTIVE);
 
-  _size--;
+  ASS(c->store()==Clause::ACTIVE);
+  ALWAYS(_clauses.remove(c));
   removedEvent.fire(c);
 } // Active::ClauseContainer::remove
 
@@ -189,30 +188,19 @@ void ActiveClauseContainer::onLimitsUpdated()
 {
   CALL("ActiveClauseContainer::onLimitsUpdated");
 
-  LiteralIndexingStructure* gis=getSaturationAlgorithm()->getIndexManager()
-      ->getGeneratingLiteralIndexingStructure();
-  if (!gis) {
-    return;
-  }
   auto limits=getSaturationAlgorithm()->getPassiveClauseContainer();
   ASS(limits);
   if (!limits->ageLimited() || !limits->weightLimited()) {
     return;
   }
 
-  static DHSet<Clause*> checked;
   static Stack<Clause*> toRemove(64);
-  checked.reset();
   toRemove.reset();
 
-  SLQueryResultIterator rit=gis->getAll();
+  auto rit = _clauses.iter();
   while (rit.hasNext()) {
-    Clause* cl=rit.next().clause;
+    Clause* cl=rit.next();
     ASS(cl);
-    if (checked.contains(cl)) {
-      continue;
-    }
-    checked.insert(cl);
 
     if (!limits->childrenPotentiallyFulfilLimits(cl, cl->numSelected()))
     {

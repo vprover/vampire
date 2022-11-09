@@ -20,7 +20,6 @@
 #include <sys/wait.h>
 
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Sys/SyncPipe.hpp"
@@ -52,7 +51,6 @@ void runChild(UnitList* units, vstring slice)
   try {    
     env.timer->reset();
     env.timer->start();
-    TimeCounter::reinitialize();
 
     env.options->readFromEncodedOptions(slice);
 

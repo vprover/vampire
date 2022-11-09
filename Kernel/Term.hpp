@@ -37,10 +37,10 @@
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Metaiterators.hpp"
+#include "Lib/Hash.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 22
+#define TERM_DIST_VAR_BITS 21
 #define TERM_DIST_VAR_UNKNOWN ((2 ^ TERM_DIST_VAR_BITS) - 1)
 
 namespace Kernel {
@@ -153,6 +153,10 @@ public:
   { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
+  /** default hash is to hash the content */
+  unsigned defaultHash() const { return DefaultHash::hash(content()); }
+  unsigned defaultHash2() const { return content(); }
+
   vstring toString(bool topLevel = true) const;
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
@@ -230,6 +234,8 @@ private:
       unsigned literal : 1;
       /** true if atomic sort */
       unsigned sort : 1;
+      /** true if term contains at least one term var */
+      unsigned hasTermVar : 1;
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
        * @see Term::ArgumentOrder */
@@ -238,6 +244,7 @@ private:
       /** Number of distinct variables in the term, equal
        * to TERM_DIST_VAR_UNKNOWN if the number has not been
        * computed yet. */
+
       mutable unsigned distinctVars : TERM_DIST_VAR_BITS;
       /** term id hiding in this _info */
       // this should not be removed without care,
@@ -443,6 +450,7 @@ public:
    * Return the number of type arguments for a polymorphic term (or 0 if monomorphic).
    */
   unsigned numTypeArguments() const;
+
   /**
    * Return the number of term arguments for a term (equal to _arity if monomorphic).
    */  
@@ -480,7 +488,21 @@ public:
    */  
   TermList* args()
   { return _args + _arity; }
-  unsigned hash() const;
+
+  /**
+   * Return the hash function of the top-level of a complex term.
+   * @pre The term must be non-variable
+   * @since 28/12/2007 Manchester
+   */
+  unsigned hash() const {
+    CALL("Term::hash");
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char*>(_args+1),
+      _arity*sizeof(TermList),
+      DefaultHash::hash(_functor)
+    );
+  }
+
   /** return the arity */
   unsigned arity() const
   { return _arity; }
@@ -502,6 +524,14 @@ public:
     return numVarOccs() == 0;
   } // ground
 
+  /** True if the term contains a term variable (type variables don't count)
+   *  Only applicable to shared terms */
+  bool hasTermVar() const
+  {
+    ASS(_args[0]._info.shared);
+    return _args[0]._info.hasTermVar;
+  } // ground
+
   /** True if the term is shared */
   bool shared() const
   { return _args[0]._info.shared; } // shared
@@ -514,6 +544,17 @@ public:
   {
     return _args[0]._info.commutative;
   } // commutative
+
+  // destructively swap arguments of a (binary) commutative term
+  // the term is assumed to be non-shared
+  void argSwap() {
+    ASS(commutative() && !shared());
+    ASS(arity() == 2);
+
+    TermList* ts1 = args();
+    TermList* ts2 = ts1->next();
+    swap(ts1->_content, ts2->_content);
+  }
 
   /** Return the weight. Applicable only to shared terms */
   unsigned weight() const
@@ -542,10 +583,7 @@ public:
   } // setWeight
 
   /** Set term id */
-  void setId(unsigned id)
-  {
-    _args[0]._info.id = id;
-  } // setWeight
+  void setId(unsigned id);
 
   /** Set (shared) term's id */
   unsigned getId() const
@@ -570,6 +608,13 @@ public:
     }
     _vars = v;
   } // setVars
+
+  void setHasTermVar(bool b)
+  {
+    CALL("setHasTermVar");
+    ASS(shared() && !isSort());
+    _args[0]._info.hasTermVar = b;
+  }
 
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
@@ -892,8 +937,28 @@ public:
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
   static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
-  unsigned hash() const;
-  unsigned oppositeHash() const;
+  /**
+   * Return the hash function of the top-level of a literal.
+   * @since 30/03/2008 Flight Murcia-Manchester
+   */
+  unsigned hash(bool flip = false) const
+  {
+    CALL("Literal::hash");
+    bool positive = (flip ^ isPositive());
+    unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
+    if (isTwoVarEquality()) {
+      hash = HashUtils::combine(
+        DefaultHash::hash(twoVarEqSort()),
+        hash
+      );
+    }
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char*>(_args+1),
+      _arity*sizeof(TermList),
+      hash
+    );
+  }
+
   static Literal* complementaryLiteral(Literal* l);
   /** If l is positive, return l; otherwise return its complementary literal. */
   static Literal* positiveLiteral(Literal* l) {
@@ -977,29 +1042,10 @@ private:
 bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
-struct TermListHash {
-  static unsigned hash(TermList t) {
-    return static_cast<unsigned>(t.content());
-  }
-};
-
 std::ostream& operator<< (ostream& out, TermList tl );
 std::ostream& operator<< (ostream& out, const Term& tl );
 std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
-
-/* template specializations */
-namespace Lib
-{
-
-
-template<>
-struct SecondaryHash<Kernel::TermList> {
-  typedef Kernel::TermListHash Type;
-};
-
-
-}
 
 #endif
