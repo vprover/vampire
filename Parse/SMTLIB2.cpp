@@ -1340,31 +1340,57 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     ParseResult* pr = (--boundExprs);
     TermList t;
     TermList sort = pr->asTerm(t);
-    Set<unsigned> vs;
-    vs.insertFromIterator(VList::Iterator(sort.freeVariables()));
-    TermStack typeArgs(vs.size());
-    decltype(vs)::Iterator vit(vs);
-    while (vit.hasNext()) {
-      typeArgs.push(TermList(vit.next(),false));
+    DHMap<unsigned,TermList> vs;
+    if (t.isVar()) {
+      if (sort.isVar()) {
+        vs.insert(sort.var(),AtomicSort::superSort());
+      } else {
+        SortHelper::collectVariableSorts(sort.term(),vs);
+      }
+      ALWAYS(vs.insert(t.var(),sort));
+    } else {
+      SortHelper::collectVariableSorts(t.term(),vs);
     }
+    TermStack args;
+    TermStack varSorts;
+    auto typeVars = VList::empty();
+    VList::FIFO tvs(typeVars);
+    // type vars are before term vars in the args list, so process them first
+    iterTraits(vs.items())
+      .forEach([&tvs,&args](std::pair<unsigned,TermList> kv) {
+        if (kv.second != AtomicSort::superSort()) {
+          return;
+        }
+        tvs.push(kv.first);
+        args.push(TermList(kv.first,false));
+      });
+    iterTraits(vs.items())
+      .forEach([&varSorts,&args](std::pair<unsigned,TermList> kv) {
+        if (kv.second == AtomicSort::superSort()) {
+          return;
+        }
+        varSorts.push(kv.second);
+        args.push(TermList(kv.first,false));
+      });
     ASS(t.isTerm());
+    SortHelper::normaliseArgSorts(typeVars,varSorts);
 
     TermList trm;
     if (sort == AtomicSort::boolSort()) {
-      unsigned symb = env.signature->addFreshPredicate(typeArgs.size(),"sLP");
-      OperatorType* type = OperatorType::getPredicateType(0, nullptr, typeArgs.size());
+      unsigned symb = env.signature->addFreshPredicate(args.size(),"sLP");
+      OperatorType* type = OperatorType::getPredicateType(varSorts.size(), varSorts.begin(), args.size()-varSorts.size());
       env.signature->getPredicate(symb)->setType(type);
 
-      Formula* atom = new AtomicFormula(Literal::create(symb,typeArgs.size(),true,false,typeArgs.begin()));
+      Formula* atom = new AtomicFormula(Literal::create(symb,args.size(),true,false,args.begin()));
       trm = TermList(Term::createFormula(atom));
     } else {
       TermList nSort = sort;
-      SortHelper::normaliseSort(typeArgs,nSort);
-      unsigned symb = env.signature->addFreshFunction (typeArgs.size(),"sLF");
-      OperatorType* type = OperatorType::getFunctionType(0, nullptr, nSort, typeArgs.size());
+      SortHelper::normaliseSort(typeVars,nSort);
+      unsigned symb = env.signature->addFreshFunction (args.size(),"sLF");
+      OperatorType* type = OperatorType::getFunctionType(varSorts.size(), varSorts.begin(), nSort, args.size()-varSorts.size());
       env.signature->getFunction(symb)->setType(type);
 
-      trm = TermList(Term::create(symb,typeArgs.size(),typeArgs.begin()));
+      trm = TermList(Term::create(symb,args.size(),args.begin()));
     }
 
     if (!lookup->insert(cName,make_pair(trm,sort))) {
@@ -1410,13 +1436,16 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     LOG2("BOUND term  ",boundExpr.toString());
 
     SortedTerm term = lookup->get(cName);
-    TermList exprTerm = get<0>(term);
-    TermList exprSort = get<1>(term);
+    TermList exprTerm = term.first;
+    TermList exprSort = term.second;
     ASS(exprTerm.isTerm());
     auto exprT = exprTerm.term();
     auto vars = VList::empty();
+    VList::FIFO vs(vars);
+    Substitution subst;
     for (unsigned i = 0; i < exprT->arity(); i++) {
-      VList::push(_nextVar++, vars);
+      subst.bind(exprT->nthArgument(i)->var(),TermList(_nextVar,false));
+      vs.push(_nextVar++);
     }
 
     unsigned symbol;
@@ -1426,7 +1455,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
       symbol = exprT->functor();
     }
 
-    let = TermList(Term::createLet(symbol, vars, boundExpr, let, letSort));
+    let = TermList(Term::createLet(symbol, vars, SubstHelper::apply(boundExpr,subst), let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));

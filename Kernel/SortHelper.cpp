@@ -674,7 +674,11 @@ void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
   CALL("SortHelper::collectVariableSorts(Term*,...)");
 
   CollectTask t;
-  t.fncTag = COLLECT_TERM;
+  if (term->isSpecial()) {
+    t.fncTag = COLLECT_SPECIALTERM;
+  } else {
+    t.fncTag = COLLECT_TERM;
+  }
   t.t = term;
 
   collectVariableSortsIter(t,map);
