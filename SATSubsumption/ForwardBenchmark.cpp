@@ -367,6 +367,33 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl, ClauseIterator 
     return nullptr;
   }
 
+  #if USE_SAT_SUBSUMPTION_FORWARD
+  // Need to fill the cms as the subsumption procedure does do it
+  ASS(cmStore.isEmpty());
+  // check long clauses
+  for (unsigned li = 0; li < clen; li++) {
+    SLQueryResultIterator rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
+    while (rit.hasNext()) {
+      SLQueryResult res = rit.next();
+      Clause *mcl = res.clause;
+      if (mcl->hasAux()) {
+        // we've already checked this clause
+        continue;
+      }
+      ASS_G(mcl->length(), 1);
+
+      ClauseMatches *cms = new ClauseMatches(mcl);
+      mcl->setAux(cms);
+      cmStore.push(cms);
+      cms->fillInMatches(&miniIndex);
+
+      if (cms->anyNonMatched()) {
+        continue;
+      }
+    }
+  }
+  #endif
+
   Clause *resolutionClause = nullptr;
   TIME_TRACE("forward subsumption resolution");
   vset<pair<Clause *, Clause *>> alreadyAdded;
@@ -614,19 +641,15 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
   bool result = false;
 
   LiteralMiniIndex miniIndex(cl);
-  cout << "perform start" << endl;
   if (checkSubsumption(cl)) {
     premises = pvi(getSingletonIterator(_premise));
-    cout << "perform end" << endl;
     return true;
   }
   else if (_subsumptionResolution) {
-    cout << "checkSubsumptionResolution" << endl;
     Clause::requestAux();
     // Check for subsumption resolution
     replacement = checkSubsumptionResolution(cl, premises, miniIndex);
     if (replacement) {
-      cout << "Found result" << endl;
       premises = pvi(getSingletonIterator(_premise));
       result = true;
     }
@@ -635,11 +658,8 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
     while (cmStore.isNonEmpty()) {
       delete cmStore.pop();
     }
-    cout << "checkSubsumptionResolution end" << endl;
-    cout << "perform end" << endl;
     return result;
   }
-  cout << "perform end" << endl;
   return false;
 }
 #elif USE_SAT_SUBSUMPTION_FORWARD && USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD && !USE_OPTIMIZED_FORWARD // Configuration 3
