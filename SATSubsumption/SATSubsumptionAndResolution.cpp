@@ -8,9 +8,6 @@ using namespace Indexing;
 using namespace Kernel;
 using namespace SATSubsumption;
 
-#define PRINT_CLAUSES_SUBS 0
-#define PRINT_CLAUSE_COMMENTS_SUBS 0
-
 /**
  * Updates the first set to hold only the matches that are also in the second set.
  * Assumes that the sets are sorted.

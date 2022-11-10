@@ -20,15 +20,6 @@
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
 
-#if VDEBUG
-#define CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION 0
-#else
-#define CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION 0
-#endif
-
-#define USE_SAT_SUBSUMPTION_BACKWARD 1
-#define SEPARATE_LOOPS_BACKWARD 0
-
 #if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
 #include "BackwardSubsumptionResolution.hpp"
 #include "SLQueryBackwardSubsumption.hpp"

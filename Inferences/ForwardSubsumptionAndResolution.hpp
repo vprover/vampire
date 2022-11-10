@@ -27,17 +27,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-#if VDEBUG
-#define CHECK_SAT_SUBSUMPTION 1
-#define CHECK_SAT_SUBSUMPTION_RESOLUTION 1
-#else
-#define CHECK_SAT_SUBSUMPTION 0
-#define CHECK_SAT_SUBSUMPTION_RESOLUTION 0
-#endif
-
-#define USE_SAT_SUBSUMPTION_FORWARD 1
-#define SEPARATE_LOOPS_FORWARD 0
-
 class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
 public:
@@ -57,17 +46,17 @@ public:
 
 private:
   /** Simplification unit index */
-  UnitClauseLiteralIndex *_unitIndex;
-  FwSubsSimplifyingLiteralIndex *_fwIndex;
+  Indexing::UnitClauseLiteralIndex *_unitIndex;
+  Indexing::FwSubsSimplifyingLiteralIndex *_fwIndex;
 
   bool _subsumptionResolution;
 
 #if USE_SAT_SUBSUMPTION_FORWARD
   SATSubsumption::SATSubsumptionAndResolution satSubs;
-  DHSet<Clause *> _checked;
-  Clause* _conclusion = nullptr;
+  Lib::DHSet<Clause *> _checked;
+  Kernel::Clause* _conclusion = nullptr;
   bool _subsumes = false;
-  Clause* _premise = nullptr;
+  Kernel::Clause* _premise = nullptr;
 #endif
 
 #if CHECK_SAT_SUBSUMPTION || !USE_SAT_SUBSUMPTION_FORWARD

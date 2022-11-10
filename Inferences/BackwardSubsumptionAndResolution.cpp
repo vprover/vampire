@@ -244,7 +244,9 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         if (!_checked.insert(icl)) {
           continue;
         }
+        bwStats.startSubsumption();
         subsumedSet.insert(icl);
+        bwStats.stopSubsumption(true);
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
       }
     }
@@ -258,7 +260,9 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         if (subsumedSet.contains(icl) || !_checked.insert(icl)) {
           continue;
         }
+        bwStats.startResolution();
         Clause *conclusion = ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(icl, (*icl)[0], cl);
+        bwStats.stopResolution(true);
         ASS(conclusion);
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
@@ -351,9 +355,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       auto it = _bwIndex->getInstances(lit, false, false);
       while (it.hasNext()) {
         Clause *icl = it.next().clause;
-        if(!icl) {
-          cerr << "icl is null 1" << endl;
-        }
         if (!_checked.insert(icl)) {
           continue;
         }
@@ -393,9 +394,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       auto it = _bwIndex->getInstances(lit, true, false);
       while (it.hasNext()) {
         Clause *icl = it.next().clause;
-        if(!icl) {
-          cerr << "icl is null 2" << endl;
-        }
         if (!_checked.insert(icl)) {
           continue;
         }

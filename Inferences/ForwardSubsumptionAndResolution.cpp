@@ -39,34 +39,31 @@
 #include "Shell/TPTPPrinter.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 #include <fstream>
-#include "Shell/TPTPPrinter.hpp"
 
 #include "ForwardSubsumptionAndResolution.hpp"
 
 #include <chrono>
 
 namespace Inferences {
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 using namespace std::chrono;
 
-#define CHAIN_RESOLUTION 1
-
-#define LOG_S_AND_R_INSTANCES 0
 #if LOG_S_AND_R_INSTANCES
 ofstream fileOut("subsumption_tried.txt");
 #endif
-
-class SubsumptionLogger;
 
 /***************************************************************/
 /*                     STATS COMPUTATION                       */
 /***************************************************************/
 class FwSubsAndResStats {
+  CLASS_NAME(FwSubsAndResStats);
+  USE_ALLOCATOR(FwSubsAndResStats);
 public:
-  std::unique_ptr<SubsumptionLogger> m_logger;
+  int64_t m_logged_count_perform = 0;
   int64_t m_logged_count_s = 0;
   int64_t m_logged_success_s = 0;
   int64_t m_logged_count_sr = 0;
@@ -80,20 +77,14 @@ public:
   std::chrono::_V2::system_clock::time_point start_time_subsumption = high_resolution_clock::now();
   std::chrono::_V2::system_clock::time_point start_time_resolution = high_resolution_clock::now();
 
-  // Store numDecisions as histogram
-  // first two are originating from subsumption
-  // m_numDecisions_frequency[numDecisions] = absolute number of MLMatcher calls that return numDecisions
-  vvector<int64_t> m_numDecisions_frequency;
-  // only those where MLMatcher returned 'true'
-  vvector<int64_t> m_numDecisions_successes;
-  // same but for MLMatcher calls originating from SR
-  vvector<int64_t> m_numDecisions_frequency_SR;
-  vvector<int64_t> m_numDecisions_successes_SR;
-
   void startPerform() { start_time_perform = high_resolution_clock::now(); }
   void startSubsumption() { start_time_subsumption = high_resolution_clock::now(); }
   void startResolution() { start_time_resolution = high_resolution_clock::now(); }
-  void stopPerform() { m_time_on_perform += high_resolution_clock::now() - start_time_perform; }
+  void stopPerform()
+  {
+    m_time_on_perform += high_resolution_clock::now() - start_time_perform;
+    m_logged_count_perform++;
+  }
   void stopSubsumption(bool success)
   {
     m_time_on_subsumption += high_resolution_clock::now() - start_time_subsumption;
@@ -110,25 +101,33 @@ public:
 
 static FwSubsAndResStats fsstats;
 
+void ForwardSubsumptionAndResolution::printStats(std::ostream &out)
+{
+  out << "**** Forward subsumption and resolution statistics ****" << endl;
+  out << "\% Total time on perform:   " << ((double)fsstats.m_time_on_perform.count() / 1000000000) << " s\n";
+  out << "\% Total number of perform: " << fsstats.m_logged_count_perform << endl;
+
+  out << "\% Total time on subsumption: " << ((double)fsstats.m_time_on_subsumption.count() / 1000000000) << " s\n";
+  out << "\% Subsumptions to be logged: " << fsstats.m_logged_count_s << "\n";
+  out << "\% Subsumption Successes    : " << fsstats.m_logged_success_s << "\n\n";
+
+  out << "\% Total time on subsumption resolution: " << ((double)fsstats.m_time_on_resolution.count() / 1000000000) << " s\n";
+  out << "\% Subsumption Resolutions to be logged: " << fsstats.m_logged_count_sr << "\n";
+  out << "\% Subsumption Resolution Successes    : " << fsstats.m_logged_success_sr << "\n";
+  out << "\% Useless Subsumptions Resolution sat checks : " << fsstats.m_logged_useless_sat_checks_sr << "\n\n";
+
+  out << "\% Chained resolutions: " << fsstats.m_logged_chained_sr << "\n";
+}
+
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
     : _subsumptionResolution(subsumptionResolution)
 {
   CALL("ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution");
-  vstring const &logfile = env.options->subsumptionLogfile();
-  if (!logfile.empty()) {
-    BYPASSING_ALLOCATOR;
-    fsstats.m_logger = make_unique<SubsumptionLogger>(logfile);
-    // We cannot use the signal handler for termination if we want to log stuff properly
-    Timer::setLimitEnforcement(false);
-  }
 }
 
 ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
 {
-  // if (fsstats.m_logger) {
-  //   BYPASSING_ALLOCATOR;
-  //   fsstats.m_logger.reset();
-  // }
+
 }
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
@@ -139,20 +138,13 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
-  env.beginOutput();
-#if USE_SAT_SUBSUMPTION_FORWARD
-  env.out() << "\% Subsumption algorithm: sat based\n";
-#else
-  env.out() << "\% Subsumption algorithm: original\n";
-#endif
-  env.endOutput();
 }
 
 void ForwardSubsumptionAndResolution::detach()
 {
   CALL("ForwardSubsumptionAndResolution::detach");
-  _unitIndex = 0;
-  _fwIndex = 0;
+  _unitIndex = nullptr;
+  _fwIndex = nullptr;
   _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   _salg->getIndexManager()->release(FW_SUBSUMPTION_SUBST_TREE);
   ForwardSimplificationEngine::detach();
@@ -276,173 +268,10 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
 
   return res;
 }
-class SubsumptionLogger {
-private:
-  std::ofstream m_file_slog;
-  std::ofstream m_file_clauses;
-  TPTPPrinter m_tptp;     // this needs to be a member so we get the type definitions only once at the beginning
-  unsigned int m_seq = 1; // sequence number of logged inferences
-  unsigned int m_last_side_premise = -1;
-  unsigned int m_last_main_premise = -1;
-  int m_last_reslitidx = -1;
-  bool m_new_round = true;
-  DHMap<unsigned int, vvector<Literal *>> m_logged_clauses;
 
-public:
-  CLASS_NAME(SubsumptionLogger);
-  USE_ALLOCATOR(SubsumptionLogger);
-  SubsumptionLogger(vstring logfile_path);
-  void logNextRound();
-  // Only log the clauses; must call logS... afterwards or the file will not be formatted correctly!
-  // resLitIdx only matters for SR, value < 0 means "all".
-  void logClauses(Clause *side_premise, Clause *main_premise, int resLitIdx);
-  void logSubsumption(int result);
-  void logSubsumptionResolution(int result);
-  // convenience function
-  void logSubsumption(Clause *side_premise, Clause *main_premise, int result);
-  void logSubsumptionResolution(Clause *side_premise, Clause *main_premise, int resLitIdx, int result);
-  void flush()
-  {
-    m_file_slog.flush();
-    m_file_clauses.flush();
-  }
-};
-
-SubsumptionLogger::SubsumptionLogger(vstring logfile_path)
-    : m_file_slog{}, m_file_clauses{}, m_tptp{&m_file_clauses}
-{
-  CALL("SubsumptionLogger::SubsumptionLogger");
-  vstring slog_path = logfile_path + ".slog";
-  vstring clauses_path = logfile_path + ".p";
-  m_file_slog.open(slog_path.c_str());
-  m_file_clauses.open(clauses_path.c_str());
-  ASS(m_file_slog.is_open());
-  ASS(m_file_clauses.is_open());
-}
-
-void SubsumptionLogger::logNextRound()
-{
-  m_new_round = true;
-}
-
-void SubsumptionLogger::logClauses(Clause *side_premise, Clause *main_premise, int resLitIdx)
-{
-  // Print clauses if they haven't been printed yet
-  for (Clause *clause : {side_premise, main_premise}) {
-    if (!m_logged_clauses.find(clause->number())) {
-      vvector<Literal *> literals;
-      literals.reserve(clause->length());
-      // NOTE: we store the order the literals are printed in.
-      //       Because the clause may later be reordered due to literal selection.
-      //       So we need to keep this data to preserve the correct resLitIdx.
-      for (unsigned k = 0; k < clause->length(); ++k) {
-        literals.push_back((*clause)[k]);
-      }
-      ASS_EQ(literals.size(), clause->length());
-      m_logged_clauses.emplace(clause->number(), std::move(literals));
-      // std::cerr << "printing " << clause << " " << clause->toString() << std::endl;
-      vstringstream id_stream;
-      id_stream << "clause_" << clause->number();
-      m_tptp.printWithRole(id_stream.str(), "hypothesis", clause, false);
-    }
-  }
-  m_last_main_premise = main_premise->number();
-  m_last_side_premise = side_premise->number();
-  if (resLitIdx >= 0) {
-    // correct resLitIdx (required if clause has been reordered since printing)
-    Literal *resLit = (*main_premise)[resLitIdx];
-    vvector<Literal *> &lits = m_logged_clauses.get(main_premise->number());
-    for (unsigned k = 0; k < lits.size(); ++k) {
-      if (resLit == lits[k]) {
-        resLitIdx = k;
-        break;
-      }
-    }
-  }
-  m_last_reslitidx = resLitIdx;
-  if (m_new_round) {
-    m_file_slog << "R " << m_last_main_premise << '\n';
-    m_new_round = false;
-  }
-}
-
-void SubsumptionLogger::logSubsumption(int result)
-{
-  m_file_slog << "S " << m_last_side_premise << ' ' << result << '\n';
-  m_seq += 1;
-  m_last_main_premise = -1;
-  m_last_side_premise = -1;
-  m_last_reslitidx = -1;
-}
-
-void SubsumptionLogger::logSubsumptionResolution(int result)
-{
-  m_file_slog << "SR " << m_last_side_premise;
-  if (m_last_reslitidx < 0) {
-    m_file_slog << " *";
-  }
-  else {
-    m_file_slog << ' ' << m_last_reslitidx;
-  }
-  m_file_slog << ' ' << result << '\n';
-  m_seq += 1;
-  m_last_main_premise = -1;
-  m_last_side_premise = -1;
-  m_last_reslitidx = -1;
-}
-
-void SubsumptionLogger::logSubsumption(Clause *side_premise, Clause *main_premise, int result)
-{
-  logClauses(side_premise, main_premise, -1);
-  logSubsumption(result);
-}
-
-void SubsumptionLogger::logSubsumptionResolution(Clause *side_premise, Clause *main_premise, int resLitIdx, int result)
-{
-  logClauses(side_premise, main_premise, resLitIdx);
-  logSubsumptionResolution(result);
-}
-
-void ForwardSubsumptionAndResolution::printStats(std::ostream &out)
-{
-  if (fsstats.m_logger) {
-    fsstats.m_logger->flush();
-    {
-      BYPASSING_ALLOCATOR;
-      fsstats.m_logger.reset();
-    }
-  }
-  out << "**** Forward subsumption and resolution statistics ****" << endl;
-  out << "\% Total time on perform: " << ((double)fsstats.m_time_on_perform.count() / 1000000000) << " s\n";
-
-  out << "\% Total time on subsumption: " << ((double)fsstats.m_time_on_subsumption.count() / 1000000000) << " s\n";
-  out << "\% Subsumptions to be logged: " << fsstats.m_logged_count_s << "\n";
-  out << "\% Subsumption Successes    : " << fsstats.m_logged_success_s << "\n\n";
-
-  out << "\% Total time on subsumption resolution: " << ((double)fsstats.m_time_on_resolution.count() / 1000000000) << " s\n";
-  out << "\% Subsumption Resolutions to be logged: " << fsstats.m_logged_count_sr << "\n";
-  out << "\% Subsumption Resolution Successes    : " << fsstats.m_logged_success_sr << "\n";
-  out << "\% Useless Subsumptions Resolution sat checks : " << fsstats.m_logged_useless_sat_checks_sr << "\n\n";
-
-  out << "\% Chained resolutions: " << fsstats.m_logged_chained_sr << "\n";
-  out << "\% Subsumption MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
-
-  for (size_t n = 0; n < fsstats.m_numDecisions_frequency.size(); ++n) {
-    if (fsstats.m_numDecisions_frequency[n] > 0) {
-      out << "\% " << n << ' ' << fsstats.m_numDecisions_frequency[n] << ' ' << fsstats.m_numDecisions_successes[n] << '\n';
-    }
-  }
-  out << "\% Subsumption Resolution MLMatcher Statistics\n\% (numDecisions Frequency Successes)\n";
-  for (size_t n = 0; n < fsstats.m_numDecisions_frequency_SR.size(); ++n) {
-    if (fsstats.m_numDecisions_frequency_SR[n] > 0) {
-      out << "\% " << n << ' ' << fsstats.m_numDecisions_frequency_SR[n] << ' ' << fsstats.m_numDecisions_successes_SR[n] << '\n';
-    }
-  }
-}
-
+#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION_FORWARD
 bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resLit, int resLitIdx)
 {
-  bool should_log = true;
   ASS_GE(resLitIdx, 0);
 
   fsstats.m_logged_count_sr += 1;
@@ -459,9 +288,6 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
     while (zmli.hasNext()) {
       Literal *bl = zmli.next();
       if (!MatchingUtils::match(bl, resLit, true)) {
-        if (fsstats.m_logger && should_log) {
-          fsstats.m_logger->logSubsumptionResolution(mcl, cl, resLitIdx, false);
-        }
         return false;
       }
     }
@@ -475,22 +301,7 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
       }
     }
     if (!anyResolvable) {
-      if (fsstats.m_logger && should_log) {
-        fsstats.m_logger->logSubsumptionResolution(mcl, cl, resLitIdx, false);
-      }
       return false;
-    }
-  }
-
-  if (fsstats.m_logger && should_log) {
-    ASS_EQ(Timer::s_limitEnforcement, false);
-    // we log the clauses first to make sure they haven't been deallocated yet (might happen due to weird code paths when exiting)
-    // this is important because we want to catch subsumptions that cause vampire to time out! because these are the cases that the new algorithm should improve.
-    fsstats.m_logger->logClauses(mcl, cl, resLitIdx);
-    if (env.timeLimitReached()) {
-      fsstats.m_logger->logSubsumptionResolution(-4);
-      fsstats.m_logger->flush();
-      throw TimeLimitExceededException();
     }
   }
 
@@ -501,36 +312,11 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
   }
   catch (...) {
     std::cout << "BIG SUBSUMPTION RESOLUTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
-    if (fsstats.m_logger) {
-      fsstats.m_logger->logSubsumptionResolution(-2);
-      fsstats.m_logger->flush();
-    }
     throw;
-  }
-
-  if (fsstats.m_logger && should_log) {
-    fsstats.m_logger->logSubsumptionResolution(isSR);
-    if (env.timeLimitReached()) {
-      fsstats.m_logger->flush();
-      throw TimeLimitExceededException();
-    }
-  }
-
-  auto stats = MLMatcher::getStaticStats();
-  if (stats.numDecisions >= fsstats.m_numDecisions_frequency_SR.size()) {
-    size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions + 1), fsstats.m_numDecisions_frequency_SR.size() * 2);
-    fsstats.m_numDecisions_frequency_SR.resize(new_size, 0);
-    fsstats.m_numDecisions_successes_SR.resize(new_size, 0);
-  }
-  fsstats.m_numDecisions_frequency_SR[stats.numDecisions] += 1;
-  if (stats.result) {
-    fsstats.m_numDecisions_successes_SR[stats.numDecisions] += 1;
   }
 
   return isSR;
 }
-
-#if CHECK_SAT_SUBSUMPTION || CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION_FORWARD
 /**
  * Checks whether there if @b cl is subsumed by any clause in the @b miniIndex.
  *
@@ -588,25 +374,10 @@ bool ForwardSubsumptionAndResolution::checkSubsumption(Clause *cl, ClauseIterato
       cms->fillInMatches(&miniIndex);
 
       if (cms->anyNonMatched()) {
-        fsstats.m_logged_count_s += 1;
-        if (fsstats.m_logger) {
-          fsstats.m_logger->logSubsumption(mcl, cl, false);
-        }
         continue;
       }
 
       fsstats.m_logged_count_s += 1;
-      if (fsstats.m_logger) {
-        ASS_EQ(Timer::s_limitEnforcement, false);
-        // we log the clauses first to make sure they haven't been deallocated yet (might happen due to weird code paths when exiting)
-        // this is important because we want to catch subsumptions that cause vampire to time out! because these are the cases that the new algorithm should improve.
-        fsstats.m_logger->logClauses(mcl, cl, -1);
-        if (env.timeLimitReached()) {
-          fsstats.m_logger->logSubsumption(-4);
-          fsstats.m_logger->flush();
-          throw TimeLimitExceededException();
-        }
-      }
       int isSubsumed = -1;
       try {
         RSTAT_CTR_INC("MLSubsumption Calls");
@@ -615,30 +386,7 @@ bool ForwardSubsumptionAndResolution::checkSubsumption(Clause *cl, ClauseIterato
       }
       catch (...) {
         std::cout << "BIG SUBSUMPTION INTERRUPTED BY EXCEPTION!!! (time limit?)" << std::endl;
-        if (fsstats.m_logger) {
-          fsstats.m_logger->logSubsumption(-2);
-          fsstats.m_logger->flush();
-        }
         throw;
-      }
-
-      if (fsstats.m_logger) {
-        fsstats.m_logger->logSubsumption(isSubsumed);
-        if (env.timeLimitReached()) {
-          fsstats.m_logger->flush();
-          throw TimeLimitExceededException();
-        }
-      }
-
-      auto stats = MLMatcher::getStaticStats();
-      if (stats.numDecisions >= fsstats.m_numDecisions_frequency.size()) {
-        size_t new_size = std::max(std::max(256ul, (size_t)stats.numDecisions + 1), fsstats.m_numDecisions_frequency.size() * 2);
-        fsstats.m_numDecisions_frequency.resize(new_size, 0);
-        fsstats.m_numDecisions_successes.resize(new_size, 0);
-      }
-      fsstats.m_numDecisions_frequency[stats.numDecisions] += 1;
-      if (stats.result) {
-        fsstats.m_numDecisions_successes[stats.numDecisions] += 1;
       }
 
       if (isSubsumed) {
@@ -781,9 +529,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   CALL("ForwardSubsumptionAndResolution::perform");
   TIME_TRACE("forward subsumption");
   fsstats.startPerform();
-  if (fsstats.m_logger) {
-    fsstats.m_logger->logNextRound();
-  }
 
   unsigned clen = cl->length();
   if (clen == 0) {
@@ -876,9 +621,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   CALL("ForwardSubsumptionAndResolution::perform");
   TIME_TRACE("forward subsumption");
   fsstats.startPerform();
-  if (fsstats.m_logger) {
-    fsstats.m_logger->logNextRound();
-  }
 
   unsigned clen = cl->length();
   if (clen == 0) {
@@ -1210,7 +952,7 @@ check_correctness:
 
   if (_subsumes) {
     premises = pvi(getSingletonIterator(_premise));
-    fsstats.m_time_on_perform += duration_cast<nanoseconds>(high_resolution_clock::now() - fsstats.start_time_perform);
+    fsstats.stopPerform();
     return true;
   }
   if (_conclusion) {
@@ -1223,15 +965,15 @@ check_correctness:
         ClauseList::push((Clause *)premiseStack[i], premiseList);
       }
       premises = pvi(ClauseList::Iterator(premiseList));
-      fsstats.m_time_on_perform += duration_cast<nanoseconds>(high_resolution_clock::now() - fsstats.start_time_perform);
+      fsstats.stopPerform();
       return true;
     }
 #endif
     premises = pvi(getSingletonIterator(_premise));
-    fsstats.m_time_on_perform += duration_cast<nanoseconds>(high_resolution_clock::now() - fsstats.start_time_perform);
+    fsstats.stopPerform();
     return true;
   }
-  fsstats.m_time_on_perform += duration_cast<nanoseconds>(high_resolution_clock::now() - fsstats.start_time_perform);
+  fsstats.stopPerform();
   return false;
 }
 #endif

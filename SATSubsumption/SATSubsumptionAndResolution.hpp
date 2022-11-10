@@ -18,10 +18,7 @@
 #include "Lib/STL.hpp"
 #include "./subsat/subsat.hpp"
 
-/// @todo TODO : remove that when the real VTEST flag is added
-#define VTEST
-#define SAT_SR_IMPL 2
-#define WRITE_LITERAL_MATCHES_FILE 0
+#include "SATSubsumption/SATSubsumptionConfig.hpp"
 
 #if WRITE_LITERAL_MATCHES_FILE
 #include <iostream> //include the header files like input-output streams
