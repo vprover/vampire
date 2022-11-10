@@ -1,7 +1,38 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+/**
+ * @file SATSubsumptionConfig.hpp
+ * Defines a set of options for benchmarking subsumption resolution
+ */
 #ifndef SAT_SUBSUMPTION_AND_RESOLUTION_CONFIG_HPP_
 #define SAT_SUBSUMPTION_AND_RESOLUTION_CONFIG_HPP_
 
+/// Choose the global configuration of the Forward Subsumption and Resolution
+/// Inference Engine
+/// 0 - No configuration (manual)
+/// 1 - No SAT (old implementation)
+/// 2 - SAT Subsumption
+/// 3 - SAT Subsumption + SAT Subsumption Resolution
+/// 4 - SAT Subsumption + SAT Subsumption Resolution + Optimized Forward (fastest)
 #define CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION 4
+
+/*****************************************************************************/
+/*                          SATURATION ALGORITHM                             */
+/*****************************************************************************/
+/// If 1 then use the new implementation of backward subsumption and resolution
+/// instead of the two old separate implementations
+#define USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD 1
+
+/// If 1, then use the wrapped forward subsumption and resolution to measure
+/// the time spent in the forward subsumption and resolution
+#define USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION 1
 
 /*****************************************************************************/
 /*                          SUBSUMPTION RESOLUTION                           */
@@ -83,17 +114,6 @@
 /// If 1, then use the unoptimized loop with sat subsumption for backward subsumption
 /// If 0, then use the optimized loop with sat subsumption for backward subsumption
 #define SEPARATE_LOOPS_BACKWARD 0
-
-/*****************************************************************************/
-/*                          SATURATION ALGORITHM                             */
-/*****************************************************************************/
-/// If 1 then use the new implementation of backward subsumption and resolution
-/// instead of the two old separate implementations
-#define USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD 1
-
-/// If 1, then use the wrapped forward subsumption and resolution to measure
-/// the time spent in the forward subsumption and resolution
-#define USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION 1
 
 /*****************************************************************************/
 /*                           FULL CONFIGURATION                              */

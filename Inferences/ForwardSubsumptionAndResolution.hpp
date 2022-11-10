@@ -12,11 +12,10 @@
  * Defines class ForwardSubsumptionAndResolution.
  */
 
-#ifndef __ForwardSubsumptionAndResolution__
-#define __ForwardSubsumptionAndResolution__
+#ifndef __Forward_Subsumption_And_Resolution__
+#define __Forward_Subsumption_And_Resolution__
 
-#include "Forwards.hpp"
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
@@ -36,38 +35,57 @@ public:
   ForwardSubsumptionAndResolution(bool subsumptionResolution = true);
   ~ForwardSubsumptionAndResolution();
 
-  void attach(SaturationAlgorithm *salg) override;
+  /**
+   * Attaches the inference engine to the saturation algorithm.
+   * Also fetches the unit and forward index from the saturation algorithm.
+   * @param salg the saturation algorithm
+   */
+  void attach(Saturation::SaturationAlgorithm *salg) override;
+
+  /**
+   * Detaches the inference engine from the saturation algorithm.
+   * Also clears the unit and forward index.
+   */
   void detach() override;
-  bool perform(Clause *cl, Clause *&replacement, ClauseIterator &premises) override;
 
-  static Clause *generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause);
+  /**
+   * @brief Performs forward subsumption and resolution on the given clause.
+   * If the clause is subsumed, then the @b premises iterator is set to the subsuming clause and the function returns true.
+   * If the clause is resolved and subsumed, then the @b replacement clause is set to the conclusion clause, the @b premises iterator is set to the subsuming clause and the function returns true.
+   * If the clause is not subsumed or resolved and subsumed, then the function returns false.
+   * @param cl the clause to be simplified
+   * @param replacement the references to the replacement clause
+   * @param premises the reference to the premises of the inference
+   * @return true if the clause was simplified
+   */
+  bool perform(Kernel::Clause *cl,
+               Kernel::Clause *&replacement,
+               Kernel::ClauseIterator &premises) override;
 
-  static void printStats(std::ostream &out);
+  /**
+   * @brief Generates a clause that is the result of subsumption resolution of @b cl and @b baseClause over the literal @b lit ( @b lit in @b cl )
+   * @param cl the clause to be resolved (the clause that will be subsumed by the conclusion)
+   * @param lit the literal to be resolved
+   * @param baseClause the clause resolving @b cl
+   */
+  static Kernel::Clause *generateSubsumptionResolutionClause(Kernel::Clause *cl,
+                                                             Kernel::Literal *lit,
+                                                             Kernel::Clause *baseClause);
 
 private:
-  /** Simplification unit index */
+  /// @brief Unit index of the saturation algorithm
   Indexing::UnitClauseLiteralIndex *_unitIndex;
+  /// @brief Forward index containing the clauses with which the inference engine can perform forward subsumption and resolution
   Indexing::FwSubsSimplifyingLiteralIndex *_fwIndex;
 
+  /// @brief Parameter to enable or disable subsumption resolution
+  /// @note If the parameter is set to false, then the inference engine will only perform forward subsumption
   bool _subsumptionResolution;
 
-#if USE_SAT_SUBSUMPTION_FORWARD
+  /// @brief Engine performing subsumption and subsumption resolution using a sat solver
   SATSubsumption::SATSubsumptionAndResolution satSubs;
-  Lib::DHSet<Clause *> _checked;
-  Kernel::Clause* _conclusion = nullptr;
-  bool _subsumes = false;
-  Kernel::Clause* _premise = nullptr;
-#endif
-
-#if CHECK_SAT_SUBSUMPTION || !USE_SAT_SUBSUMPTION_FORWARD
-  bool checkSubsumption(Clause *mcl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
-#endif
-#if CHECK_SAT_SUBSUMPTION_RESOLUTION || !USE_SAT_SUBSUMPTION_FORWARD
-  Clause *checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex);
-#endif
-
 };
 
 }; // namespace Inferences
 
-#endif /* __ForwardSubsumptionAndResolution__ */
+#endif /* __Forward_Subsumption_And_Resolution__ */

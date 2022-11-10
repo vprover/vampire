@@ -55,7 +55,6 @@ SATSubsumptionAndResolution::MatchSet::MatchSet(unsigned m, unsigned n)
       _m(m),
       _n(n),
       _varToMatch(),
-      _nUsedMatches(0),
       _referencedMatches(0)
 {
   ASS(m > 0);
@@ -82,7 +81,6 @@ SATSubsumptionAndResolution::Match SATSubsumptionAndResolution::MatchSet::addMat
   }
   _varToMatch[index] = match;
   _referencedMatches.push_back(match);
-  _nUsedMatches++;
 // update the match state
 // the wizardry is explained in the header file
 #if SAT_SR_IMPL == 1
@@ -116,7 +114,7 @@ vvector<SATSubsumptionAndResolution::Match> SATSubsumptionAndResolution::MatchSe
 SATSubsumptionAndResolution::Match SATSubsumptionAndResolution::MatchSet::getMatchForVar(subsat::Var satVar)
 {
   CALL("SATSubsumptionAndResolution::MatchSet::getMatchForVar");
-  if (satVar.index() >= _nUsedMatches) {
+  if (satVar.index() >= _referencedMatches.size()) {
     ASS(false);
   }
   return _varToMatch[satVar.index()];
@@ -125,7 +123,7 @@ SATSubsumptionAndResolution::Match SATSubsumptionAndResolution::MatchSet::getMat
 bool SATSubsumptionAndResolution::MatchSet::isMatchVar(subsat::Var satVar)
 {
   CALL("SATSubsumptionAndResolution::MatchSet::isMatchVar");
-  return satVar.index() < _nUsedMatches;
+  return satVar.index() < _referencedMatches.size();
 }
 
 #if SAT_SR_IMPL == 1
@@ -166,7 +164,6 @@ void SATSubsumptionAndResolution::MatchSet::clear()
   for (unsigned j = 0; j < _n; j++) {
     _jMatches[j].clear();
   }
-  _nUsedMatches = 0;
   _varToMatch.clear();
   _referencedMatches.clear();
 }
@@ -915,7 +912,7 @@ Kernel::Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Kernel::
     // Some clauses could have been added if it uses the previous setup.
     _solver->s.clear();
     // now reallocates the variables
-    for (unsigned i = 0; i < _matchSet._nUsedMatches; i++) {
+    for (unsigned i = 0; i < _matchSet._referencedMatches.size(); i++) {
       _solver->s.new_variable();
     }
   }

@@ -147,9 +147,7 @@ private:
 
     /// @brief vector of matches used to associate a sat variable index to a match
     Lib::vvector<Match> _varToMatch;
-    /// @brief number of matches currently at use
-    unsigned _nUsedMatches;
-    /// @brief contains the list of all the the allocated matches
+    /// @brief contains the list of all the the matches indexed in the match set
     Lib::vvector<Match> _referencedMatches;
 
     /**
@@ -228,7 +226,10 @@ private:
     Lib::vvector<Match> getAllMatches();
 
     /**
-     * Returns the match for a given sat variable
+     * Checks whether the sat variable @b v is linked to a match
+     * * @pre Assumes that the matches are linked to variables in an increasing order
+     * (the first match being associated with variable 0, then 1, and so on)
+     * No leaps are authorized
      * @param v the variable
      * @return true if the variable is a match variable
      */
@@ -236,6 +237,10 @@ private:
 
     /**
      * Returns the match for a given sat variable
+     *
+     * @pre Assumes that the matches are linked to variables in an increasing order
+     * (the first match being associated with variable 0, then 1, and so on)
+     * No leaps are authorized
      * @param v the variable
      * @return the match for the variable, or nullptr if no match exists
      */
