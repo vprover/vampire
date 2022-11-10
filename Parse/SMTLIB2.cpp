@@ -1440,6 +1440,10 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     TermList exprSort = term.second;
     ASS(exprTerm.isTerm());
     auto exprT = exprTerm.term();
+    if (exprSort == AtomicSort::boolSort()) { // it has to be formula term, with atomic formula
+      exprT = exprT->getSpecialData()->getFormula()->literal();
+    }
+
     auto vars = VList::empty();
     VList::FIFO vs(vars);
     Substitution subst;
@@ -1448,14 +1452,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
       vs.pushBack(_nextVar++);
     }
 
-    unsigned symbol;
-    if (exprSort == AtomicSort::boolSort()) { // it has to be formula term, with atomic formula
-      symbol = exprT->getSpecialData()->getFormula()->literal()->functor();
-    } else {
-      symbol = exprT->functor();
-    }
-
-    let = TermList(Term::createLet(symbol, vars, SubstHelper::apply(boundExpr,subst), let, letSort));
+    let = TermList(Term::createLet(exprT->functor(), vars, SubstHelper::apply(boundExpr,subst), let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));
