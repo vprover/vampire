@@ -1,6 +1,8 @@
 #ifndef SAT_SUBSUMPTION_AND_RESOLUTION_CONFIG_HPP_
 #define SAT_SUBSUMPTION_AND_RESOLUTION_CONFIG_HPP_
 
+#define CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION 4
+
 /*****************************************************************************/
 /*                          SUBSUMPTION RESOLUTION                           */
 /*****************************************************************************/
@@ -44,16 +46,20 @@
 #define CHECK_SAT_SUBSUMPTION_RESOLUTION 0
 #endif
 
+/// If 1, use the best implementation of the forward subsumption
+#define USE_OPTIMIZED_FORWARD 1
+
+#if USE_OPTIMIZED_FORWARD
 /// If 1, then use the sat subsumption for forward subsumption
 /// If 0, then use the old implementation
 #define USE_SAT_SUBSUMPTION_FORWARD 1
 /// If 1, then use the sat subsumption for forward subsumption resolution
 /// If 0, then use the old implementation
-#define USE_SAT_SUBSUMPTION_RESOLUTION_BACKWARD 1
-
+#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
 /// If 1, then use the unoptimized loop with sat subsumption for forward subsumption
 /// If 0, then use the optimized loop with sat subsumption for forward subsumption
 #define SEPARATE_LOOPS_FORWARD 0
+#endif
 
 /*****************************************************************************/
 /*                 BACKWARD SUBSUMPTION AND RESOLUTION                       */
@@ -88,5 +94,47 @@
 /// If 1, then use the wrapped forward subsumption and resolution to measure
 /// the time spent in the forward subsumption and resolution
 #define USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION 1
+
+/*****************************************************************************/
+/*                           FULL CONFIGURATION                              */
+/*****************************************************************************/
+// the full configuration overrides the above configurations (use 0 to do nothing)
+#if CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 1
+// Old configuration
+#undef USE_SAT_SUBSUMPTION_FORWARD
+#define USE_SAT_SUBSUMPTION_FORWARD 0
+#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
+#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 0
+#undef USE_OPTIMIZED_FORWARD
+#define USE_OPTIMIZED_FORWARD 0
+
+#elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 2
+// SAT subsumption but no SAT subsumption resolution
+#undef USE_SAT_SUBSUMPTION_FORWARD
+#define USE_SAT_SUBSUMPTION_FORWARD 1
+#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
+#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 0
+#undef USE_OPTIMIZED_FORWARD
+#define USE_OPTIMIZED_FORWARD 0
+
+#elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 3
+// SAT subsumption and SAT subsumption resolution but no optimized forward
+#undef USE_SAT_SUBSUMPTION_FORWARD
+#define USE_SAT_SUBSUMPTION_FORWARD 1
+#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
+#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
+#undef USE_OPTIMIZED_FORWARD
+#define USE_OPTIMIZED_FORWARD 0
+
+#elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 4
+// SAT subsumption and SAT subsumption resolution and optimized forward
+#undef USE_SAT_SUBSUMPTION_FORWARD
+#define USE_SAT_SUBSUMPTION_FORWARD 1
+#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
+#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
+#undef USE_OPTIMIZED_FORWARD
+#define USE_OPTIMIZED_FORWARD 1
+
+#endif
 
 #endif /* SAT_SUBSUMPTION_AND_RESOLUTION_CONFIG_HPP_ */

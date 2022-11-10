@@ -56,7 +56,7 @@ using namespace Test;
   DECL_PRED(q2, {s, s})                         \
   DECL_PRED(r, {s}))
 
-static bool vectorContains(vvector<SATSubsumptionAndResolution::Match *> vec, SATSubsumptionAndResolution::Match *match)
+static bool vectorContains(vvector<SATSubsumptionAndResolution::Match> vec, SATSubsumptionAndResolution::Match match)
 {
   for (auto m : vec) {
     if (m == match) {
@@ -66,13 +66,13 @@ static bool vectorContains(vvector<SATSubsumptionAndResolution::Match *> vec, SA
   return false;
 }
 
-static void checkConsistency(SATSubsumptionAndResolution::MatchSet *matchSet, vvector<SATSubsumptionAndResolution::Match *> matches)
+static void checkConsistency(SATSubsumptionAndResolution::MatchSet *matchSet, vvector<SATSubsumptionAndResolution::Match> matches)
 {
-  ASS(matchSet->getAllMatches().size() == matches.size());
+  ASS_EQ(matchSet->getAllMatches().size(), matches.size());
   for (auto match : matches) {
-    ASS(vectorContains(matchSet->getIMatches(match->_i), match));
-    ASS(vectorContains(matchSet->getJMatches(match->_j), match));
-    ASS(matchSet->getMatchForVar(match->_var) == match);
+    ASS(vectorContains(matchSet->getIMatches(match._i), match));
+    ASS(vectorContains(matchSet->getJMatches(match._j), match));
+    ASS(matchSet->getMatchForVar(match._var) == match);
     ASS(vectorContains(matchSet->getAllMatches(), match));
   }
 }
@@ -80,14 +80,11 @@ static void checkConsistency(SATSubsumptionAndResolution::MatchSet *matchSet, vv
 TEST_FUN(MatchSetIndexing)
 {
   SATSubsumptionAndResolution::MatchSet *matchSet = new SATSubsumptionAndResolution::MatchSet(3, 3);
-  vvector<SATSubsumptionAndResolution::Match *> matches;
-  SATSubsumptionAndResolution::Match *match1 = matchSet->addMatch(0, 0, true, subsat::Var(0));
-  SATSubsumptionAndResolution::Match *match2 = matchSet->addMatch(2, 1, true, subsat::Var(1));
-  SATSubsumptionAndResolution::Match *match3 = matchSet->addMatch(2, 2, true, subsat::Var(2));
+  vvector<SATSubsumptionAndResolution::Match> matches;
+  SATSubsumptionAndResolution::Match match1 = matchSet->addMatch(0, 0, true, subsat::Var(0));
+  SATSubsumptionAndResolution::Match match2 = matchSet->addMatch(2, 1, true, subsat::Var(1));
+  SATSubsumptionAndResolution::Match match3 = matchSet->addMatch(2, 2, true, subsat::Var(2));
 
-  ASS(match1);
-  ASS(match2);
-  ASS(match3);
   ASS(match1 != match2);
   ASS(match2 != match3);
   ASS(match3 != match1);
@@ -131,6 +128,11 @@ TEST_FUN(PositiveSubsumption)
   Kernel::Clause *L5 = clause({p(f2(f(e), g2(x4, x3))), p2(f2(f(e), g2(x4, x3)), x3), f(e) == g2(x4, x3)});
   Kernel::Clause *M5 = clause({p(f2(f(e), g2(y1, y3))), p2(f2(f(e), g2(y1, y3)), y3), f(e) == g2(y1, y3)});
   ASS(subsumption.checkSubsumption(L5, M5));
+
+  Kernel::Clause* L6 = clause({p3(y7, f(y1), x4), ~p3(y7, y1, x4)});
+  Kernel::Clause* M6 = clause({p3(x6, f(y3), d), ~p3(x6, y3, d)});
+  ASS(subsumption.checkSubsumption(L6, M6));
+
 }
 
 TEST_FUN(NegativeSubsumption)
@@ -285,6 +287,11 @@ TEST_FUN(PositiveSubsumptionResolution)
     cout << conclusion->toString() << endl;
   }
   ASS(!conclusion);
+
+  Kernel::Clause* L11 = clause({~p3(d, y7, d), ~p3(y7, c, e)});
+  Kernel::Clause* M11 = clause({p3(d, y1, d), ~p3(y1, c, e)});
+  conclusion = subsumption.checkSubsumptionResolution(L11, M11);
+  ASS(conclusion);
 }
 
 TEST_FUN(UsePreviousSettings)

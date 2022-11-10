@@ -67,7 +67,7 @@
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
-#include "SATSubsumption/ForwardSubsumptionAndResolutionWrapper.hpp"
+#include "SATSubsumption/ForwardBenchmarkWrapper.hpp"
 #endif
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
@@ -1704,7 +1704,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
     if (opt.forwardSubsumptionResolution()) {
       // res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
 #if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolutionWrapper(true));
+      res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(true));
 #else
       res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
 #endif
@@ -1712,7 +1712,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
     else {
 // res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
 #if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolutionWrapper(false));
+      res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(false));
 #else
       res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false));
 #endif

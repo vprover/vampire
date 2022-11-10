@@ -12,8 +12,8 @@
  * Defines class ForwardOracle.
  */
 
-#ifndef __ForwardOracle__
-#define __ForwardOracle__
+#ifndef __Forward_Oracle_HPP__
+#define __Forward_Oracle_HPP__
 
 #include "Inferences/InferenceEngine.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
@@ -65,4 +65,4 @@ private:
 
 }; // namespace Inferences
 
-#endif /* __ForwardOracle__ */
+#endif /* __Forward_Oracle_HPP__ */

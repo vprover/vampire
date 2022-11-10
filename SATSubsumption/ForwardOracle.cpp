@@ -203,7 +203,8 @@ bool ForwardOracle::perform(Clause *cl, Clause *&replacement, ClauseIterator &pr
           goto end_forward;
         }
       }
-      else if (checkSR) {
+      if (checkSR)
+      {
         // In this case, the literals come from the non complementary list, and there is therefore
         // a low chance of it being resolved. However, in the case where there is no negative match,
         // checkSubsumption resolution is very fast after subsumption, since filling the match set

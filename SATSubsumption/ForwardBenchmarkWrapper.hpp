@@ -8,16 +8,16 @@
  * and in the source directory
  */
 /**
- * @file ForwardSubsumptionAndResolution.hpp
- * Defines class ForwardSubsumptionAndResolution.
+ * @file ForwardBenchmark.hpp
+ * Defines class ForwardBenchmark.
  */
 
-#ifndef __ForwardSubsumptionAndResolutionWrapper__
-#define __ForwardSubsumptionAndResolutionWrapper__
+#ifndef __Forward_Benchmark_Wrapper_PP__
+#define __Forward_Benchmark_Wrapper_PP__
 
 #include "Inferences/InferenceEngine.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "SATSubsumption/ForwardBenchmark.hpp"
 #include "SATSubsumption/ForwardOracle.hpp"
 
 #include <iostream>
@@ -35,14 +35,14 @@ using namespace Saturation;
  * compute some time statistics and ensure consistent branching by using
  * the same oracle for each variant of the algorithm.
  */
-class ForwardSubsumptionAndResolutionWrapper
+class ForwardBenchmarkWrapper
     : public ForwardSimplificationEngine {
 public:
-  CLASS_NAME(ForwardSubsumptionAndResolutionWrapper);
-  USE_ALLOCATOR(ForwardSubsumptionAndResolutionWrapper);
+  CLASS_NAME(ForwardBenchmarkWrapper);
+  USE_ALLOCATOR(ForwardBenchmarkWrapper);
 
-  ForwardSubsumptionAndResolutionWrapper(bool subsumptionResolution = true);
-  ~ForwardSubsumptionAndResolutionWrapper();
+  ForwardBenchmarkWrapper(bool subsumptionResolution = true);
+  ~ForwardBenchmarkWrapper();
 
   void attach(Saturation::SaturationAlgorithm *salg) override;
   void detach() override;
@@ -55,7 +55,7 @@ private:
   Indexing::UnitClauseLiteralIndex *_unitIndex;
   Indexing::FwSubsSimplifyingLiteralIndex *_fwIndex;
 
-  Inferences::ForwardSubsumptionAndResolution _forwardSubsumptionAndResolution;
+  Inferences::ForwardBenchmark _forwardBenchmark;
   Inferences::ForwardOracle _forwardOracle;
 
   bool _subsumptionResolution;
@@ -64,4 +64,4 @@ private:
 
 }; // namespace Inferences
 
-#endif /* __ForwardSubsumptionAndResolutionWrapper__ */
+#endif /* __Forward_Benchmark_Wrapper_PP__ */

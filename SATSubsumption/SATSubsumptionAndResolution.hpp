@@ -59,7 +59,7 @@ private:
    */
   struct Match {
     CLASS_NAME(SATSubsumptionAndResolution::Match);
-    USE_ALLOCATOR(SATSubsumptionAndResolution::Match);
+
     // The index of the literal in L (base clause for subsumption resolution)
     unsigned _i;
     // The index of the literal in M (instance clause for subsumption resolution)
@@ -74,14 +74,21 @@ private:
               _polarity(true),
               _var(subsat::Var(0)) {}
 
-    Match(unsigned baseLitIndex, unsigned instanceLitIndex, bool isPositive, subsat::Var satVar) : _i(baseLitIndex),
-                                                                                                   _j(instanceLitIndex),
-                                                                                                   _polarity(isPositive),
-                                                                                                   _var(satVar) {}
+    Match(unsigned baseLitIndex, unsigned instanceLitIndex, bool isPositive, subsat::Var satVar) : _i(baseLitIndex), _j(instanceLitIndex), _polarity(isPositive), _var(satVar) {}
 
     std::string toString() const
     {
       return "Match(" + to_string(_i) + ", " + to_string(_j) + ", " + to_string(_polarity) + ", " + to_string(_var.index()) + ")";
+    }
+
+    bool operator==(const Match &other) const
+    {
+      return _i == other._i && _j == other._j && _polarity == other._polarity && _var == other._var;
+    }
+
+    bool operator!=(const Match &other) const
+    {
+      return !(*this == other);
     }
   };
 
@@ -113,11 +120,11 @@ private:
     /// @brief Holds the matches grouped by _i
     /// _iMatches[i] holds the list of matches for the i'th literal in L
     /// the list is stored in the order in which they are added to the set
-    Lib::vvector<Lib::vvector<Match *>> _iMatches;
+    Lib::vvector<Lib::vvector<Match>> _iMatches;
     /// @brief Holds the matches grouped by _j
     /// _jMatches[j] holds the list of matches for the j'th literal in M
     /// the list is stored in the order in which they are added to the set
-    Lib::vvector<Lib::vvector<Match *>> _jMatches;
+    Lib::vvector<Lib::vvector<Match>> _jMatches;
 
 #if SAT_SR_IMPL == 1
     /// @brief Metadata remembering whether some positive match or negative match was found for each literal in L
@@ -139,11 +146,11 @@ private:
     unsigned _n;
 
     /// @brief vector of matches used to associate a sat variable index to a match
-    Lib::vvector<Match *> _varToMatch;
+    Lib::vvector<Match> _varToMatch;
     /// @brief number of matches currently at use
     unsigned _nUsedMatches;
     /// @brief contains the list of all the the allocated matches
-    Lib::vvector<Match *> _allocatedMatches;
+    Lib::vvector<Match> _referencedMatches;
 
     /**
      * Creates a new match set for clauses L of size m and M of size n
@@ -178,9 +185,9 @@ private:
      * @param j the index of the literal in M
      * @param polarity the polarity of the match
      * @param var the sat variable associated with the match
-     * @return a reference to the new match
+     * @return the newly added match
      */
-    Match *addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var);
+    SATSubsumptionAndResolution::Match addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var);
 
     /**
      * Returns the vector of matches for the given literal in L.
@@ -188,7 +195,7 @@ private:
      * @param i the index of the literal in L
      * @return the vector of matches for the i-th literal in L
      */
-    Lib::vvector<Match *> &getIMatches(unsigned i);
+    Lib::vvector<Match> &getIMatches(unsigned i);
 
     /**
      * Returns the vector of matches for the given literal in M.
@@ -196,7 +203,7 @@ private:
      * @param j the index of the literal in M
      * @return the vector of matches for the j-th literal in M
      */
-    Lib::vvector<Match *> &getJMatches(unsigned j);
+    Lib::vvector<Match> &getJMatches(unsigned j);
 
 #if SAT_SR_IMPL == 1
     /**
@@ -218,28 +225,27 @@ private:
      * Returns all the matches in the set
      * @return all the matches in the set
      */
-    Lib::vvector<Match *> getAllMatches();
+    Lib::vvector<Match> getAllMatches();
+
+    /**
+     * Returns the match for a given sat variable
+     * @param v the variable
+     * @return true if the variable is a match variable
+     */
+    bool isMatchVar(subsat::Var v);
 
     /**
      * Returns the match for a given sat variable
      * @param v the variable
      * @return the match for the variable, or nullptr if no match exists
      */
-    Match *getMatchForVar(subsat::Var v);
+    Match getMatchForVar(subsat::Var v);
 
     /**
      * Clears the match set
      * @warning the allocated matches will remain accessible but will be no longer be reserved. I would therefore be preferable to not keep the matches after calling this function.
      */
     void clear();
-
-  private:
-    /**
-     * Returns one Match from the pool of allocated matches
-     * or allocates more memory and returns one of the newly allocated matches
-     * @return a reserved match
-     */
-    Match *allocateMatch();
   };
 
   /* Variables */
@@ -268,10 +274,10 @@ private:
   /// @brief For some L_i, remembers the M_j that are negatively matched to L_i
   Lib::vvector<unsigned> _negativeMatches;
 
-  #if WRITE_LITERAL_MATCHES_FILE
+#if WRITE_LITERAL_MATCHES_FILE
   // output file for cache profiling
   std::ofstream _fileOut;
-  #endif
+#endif
 
   // remembers if the fillMatchesSR concluded that subsumption is impossible
   bool _subsumptionImpossible;

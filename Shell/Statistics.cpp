@@ -32,7 +32,7 @@
 #include "Inferences/BackwardSubsumptionAndResolution.hpp"
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "SATSubsumption/ForwardSubsumptionAndResolutionWrapper.hpp"
+#include "SATSubsumption/ForwardBenchmarkWrapper.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -497,13 +497,13 @@ void Statistics::print(ostream& out)
   // addCommentSignForSZS(out);
   // out << "------------------------------\n";
 
-  ForwardSubsumptionAndResolutionWrapper::printStats(out);
+  ForwardBenchmarkWrapper::printStats(out);
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
-  SATSubsumption::SATSubsumptionAndResolution::printStats(out);
-  addCommentSignForSZS(out);
-  out << "------------------------------\n";
+  // SATSubsumption::SATSubsumptionAndResolution::printStats(out);
+  // addCommentSignForSZS(out);
+  // out << "------------------------------\n";
   //statFile.close();
 
 #undef SEPARATOR
