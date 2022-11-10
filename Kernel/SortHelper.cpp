@@ -469,6 +469,24 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           case Term::SF_LET_TUPLE: {
             TermList binding = sd->getBinding();
             Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
+            Substitution subst;
+            VList::Iterator vit(sd->getTupleSymbols());
+            auto type = symbol->fnType();
+            for (unsigned i = 0; i < type->arity(); i++) {
+              ASS(vit.hasNext());
+              auto var = vit.next();
+              TermList sort = AtomicSort::superSort();
+              if (i < type->numTypeArguments()) {
+                subst.bind(type->quantifiedVar(i).var(), TermList(var, false));
+              } else {
+                sort = SubstHelper::apply(type->arg(i),subst);
+              }
+              if (!ignoreBound || !bound.get(var)) {
+                if (!map.insert(var, sort)) {
+                  ASS_EQ(sort, map.get(var));
+                }
+              }
+            }
 
             CollectTask newTask;
             newTask.fncTag = COLLECT_TERMLIST;
@@ -476,7 +494,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
 
-            newTask.contextSort = symbol->fnType()->result();
+            newTask.contextSort = SubstHelper::apply(type->result(),subst);
             newTask.ts = binding;
             todo.push(newTask);
 
