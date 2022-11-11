@@ -410,7 +410,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             CollectTask newTask;
 
             newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            newTask.contextSort = sd->getSort();
 
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
@@ -452,7 +452,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             CollectTask newTask;
 
             newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            newTask.contextSort = sd->getSort();
 
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
@@ -490,7 +490,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
 
             CollectTask newTask;
             newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            newTask.contextSort = sd->getSort();
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
 
@@ -540,7 +540,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
               todo.push(newTask);
 
               newTask.ts = *term->nthArgument(i + 1);
-              newTask.contextSort = task.contextSort;
+              newTask.contextSort = sd->getSort();
               todo.push(newTask);
             }
             break;

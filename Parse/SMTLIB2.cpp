@@ -239,8 +239,6 @@ void SMTLIB2::readBenchmark(LExprList* bench)
           readTypeParameters(oSortRdr, lookup);
           oSort = oSortRdr.readNext();
           ibRdr = oSortRdr;
-        } else {
-          USER_ERROR_EXPR("declare-const expects either a `par` block or one output sort");
         }
       }
 
@@ -2309,8 +2307,8 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       TermLookup::Iterator varIt(*_scopes.top());
       while(varIt.hasNext()) {
         SortedTerm vTerm = varIt.next();
-        unsigned varIdx = get<0>(vTerm).var();
-        TermList sort = get<1>(vTerm);
+        unsigned varIdx = vTerm.first.var();
+        TermList sort = vTerm.second;
         VList::push(varIdx, qvars);
         SList::push(sort,qsorts);
       }
