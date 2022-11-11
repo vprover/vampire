@@ -341,9 +341,11 @@ private:
   enum ParseOperation {
     // general top level parsing request
     PO_PARSE,              // takes LExpr*
+    PO_PARSE_SORT,         // same as PO_PARSE, for sorts
     // when parsing "(something args...)" the following operation will be scheduled for "something"
     PO_PARSE_APPLICATION,  // takes LExpr* (the whole term again, for better error reporting)
     // after "(something args...)" is parsed the following makes sure that there is exactly one proper result on the result stack above a previously inserted separator
+    PO_PARSE_SORT_APPLICATION, // same as PO_PARSE_APPLICATION, for sorts
     PO_CHECK_ARITY,        // takes LExpr* (again the whole, just for error reporting)
     // this is a special operation for handling :named labels
     PO_LABEL,              // takes a LExpr* of the label to be applied to the top _result
@@ -391,12 +393,12 @@ private:
   void parseAnnotatedTerm(LExpr* exp);
 
   /** Scope's are filled by forall, exists, and let */
-  bool parseAsScopeLookup(const vstring& id, LExpr* exp);
+  bool parseAsScopeLookup(const vstring& id);
   bool parseAsSortDefinition(const vstring& id, LExpr* exp);
   /** Currently either numeral or decimal */
   bool parseAsSpecConstant(const vstring& id);
   /** Declared or defined functions (and predicates) - which includes 0-arity ones */
-  bool parseAsUserDefinedSymbol(const vstring& id, LExpr* exp);
+  bool parseAsUserDefinedSymbol(const vstring& id, LExpr* exp, bool isSort);
   /** Whatever is built-in and looks like a formula from vampire perspective (see FormulaSymbol)
    * - includes the second half of parsing quantifiers */
   bool parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp);
@@ -431,7 +433,7 @@ private:
    * - requires variables under a single quantifier to be distinct
    * - the rule that "variables cannot have the same name as a theory function symbol in the same scope" is currently ignored
    */
-  ParseResult parseTermOrFormula(LExpr* body);
+  ParseResult parseTermOrFormula(LExpr* body, bool isSort);
 
   /**
    * Handle "assert" entry.
