@@ -16,12 +16,14 @@
 
 namespace Inferences {
 
-class SubtermGIE : public GeneratingInferenceEngine
+class SubtermISE : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(SubtermGIE);
-  USE_ALLOCATOR(SubtermGIE);
-  ClauseIterator generateClauses(Clause* premise) override;
+  CLASS_NAME(SubtermISE);
+  USE_ALLOCATOR(SubtermISE);
+
+  Clause *simplify(Clause* premise) override { return premise; }
+  ClauseIterator simplifyMany(Clause* premise) override;
 
   static Literal *createSubterm(
     bool polarity,

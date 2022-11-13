@@ -1575,7 +1575,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  gie->addFront(new SubtermGIE());
   gie->addFront(new RewriteGIE());
 
   CompositeSGI* sgi = new CompositeSGI();
@@ -1607,7 +1606,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new TheoryInstAndSimp());
   }
 #endif
-
   res->setGeneratingInferenceEngine(sgi);
 
   res->setImmediateSimplificationEngine(createISE(prb, opt, res->getOrdering()));
@@ -1813,6 +1811,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new TautologyDeletionISE2());
   }
   res->addFront(new DuplicateLiteralRemovalISE());
+
+  res->addFrontMany(new SubtermISE());
 
   return res;
 }

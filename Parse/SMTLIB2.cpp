@@ -417,7 +417,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
           USER_ERROR("undeclared function: " + name);
 
         unsigned functor = function.first;
-        Inferences::SubtermGIE::registerCommutes(relation, functor);
+        Inferences::SubtermISE::registerCommutes(relation, functor);
       }
       ibRdr.acceptEOL();
       continue;
@@ -2369,7 +2369,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
       }
       TermList superterm_sort = _results.pop().asTerm(superterm);
 
-      _results.push(new AtomicFormula(Inferences::SubtermGIE::createSubterm(
+      _results.push(new AtomicFormula(Inferences::SubtermISE::createSubterm(
         true,
         relation,
         subterm,

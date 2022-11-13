@@ -257,6 +257,9 @@ enum class InferenceRule : unsigned char {
   /* negative extnsionality */
   CASES_SIMP,
 
+  /** inferences for subterm relations (of a term algebra) */
+  POSITIVE_SUBTERM,
+  NEGATIVE_SUBTERM,
   BOOL_SIMP,
 
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
@@ -287,9 +290,6 @@ enum class InferenceRule : unsigned char {
   TERM_ALGEBRA_INJECTIVITY_GENERATING,
   /** inference rule for term algebras (no cyclic terms)*/
   TERM_ALGEBRA_ACYCLICITY,
-  /** inferences for subterm relations (of a term algebra) */
-  POSITIVE_SUBTERM,
-  NEGATIVE_SUBTERM,
   /** inference for manually-specified rewrites */
   REWRITE,
   /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */

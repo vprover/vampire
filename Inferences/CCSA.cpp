@@ -41,8 +41,8 @@ namespace Inferences {
 
 static DHSet<std::pair<unsigned, unsigned>> commutes;
 
-void SubtermGIE::registerCommutes(unsigned relation, unsigned functor) {
-  CALL("SubtermGIE::registerCommutes");
+void SubtermISE::registerCommutes(unsigned relation, unsigned functor) {
+  CALL("SubtermISE::registerCommutes");
   commutes.insert(std::make_pair(relation, functor));
 }
 
@@ -75,31 +75,31 @@ static Clause *replaceLiteral(Clause *premise, Literal *remove, Literal *add, co
   return generated;
 }
 
-static ClauseIterator perform(Clause *premise, Literal *selected) {
-  CALL("SubtermGIE::perform")
+static ClauseIterator perform(Clause *premise, Literal *literal) {
+  CALL("SubtermISE::perform")
 
-  TermList relation = (*selected)[0];
-  TermList subterm = (*selected)[1];
-  TermList subterm_sort = SortHelper::getArgSort(selected, 1);
-  TermList superterm = (*selected)[2];
+  TermList relation = (*literal)[0];
+  TermList subterm = (*literal)[1];
+  TermList subterm_sort = SortHelper::getArgSort(literal, 1);
+  TermList superterm = (*literal)[2];
   Term *super = superterm.term();
-  TermList superterm_sort = SortHelper::getArgSort(selected, 2);
+  TermList superterm_sort = SortHelper::getArgSort(literal, 2);
   unsigned super_args = super->numTermArguments();
 
   bool equality_would_be_wellsorted = subterm_sort == superterm_sort;
 
-  if (selected->isPositive()) {
-    Inference inference(GeneratingInference1(InferenceRule::POSITIVE_SUBTERM, premise));
+  if (literal->isPositive()) {
+    Inference inference(SimplifyingInference1(InferenceRule::POSITIVE_SUBTERM, premise));
     unsigned length = premise->length() - 1 + super_args + equality_would_be_wellsorted;
     Clause *generated = new (length) Clause(length, inference);
 
     unsigned j = 0;
     for (unsigned i = 0; i < premise->length(); i++)
-      if ((*premise)[i] != selected)
+      if ((*premise)[i] != literal)
         (*generated)[j++] = (*premise)[i];
 
     for (unsigned i = 0; i < super_args; i++)
-      (*generated)[j++] = SubtermGIE::createSubterm(
+      (*generated)[j++] = SubtermISE::createSubterm(
         true,
         relation,
         subterm,
@@ -115,11 +115,11 @@ static ClauseIterator perform(Clause *premise, Literal *selected) {
     return pvi(getSingletonIterator(generated));
   }
   else {
-    Inference inference(GeneratingInference1(InferenceRule::NEGATIVE_SUBTERM, premise));
+    Inference inference(SimplifyingInference1(InferenceRule::NEGATIVE_SUBTERM, premise));
     auto subterm_clauses = getMappingIterator(
       getRangeIterator(0u, super_args),
-      [premise, selected, inference, relation, subterm, subterm_sort, super](unsigned i) {
-        Literal *new_subterm = SubtermGIE::createSubterm(
+      [premise, literal, inference, relation, subterm, subterm_sort, super](unsigned i) {
+        Literal *new_subterm = SubtermISE::createSubterm(
           false,
           relation,
           subterm,
@@ -127,14 +127,14 @@ static ClauseIterator perform(Clause *premise, Literal *selected) {
           super->termArg(i),
           SortHelper::getArgSort(super, super->numTypeArguments() + i)
         );
-        return replaceLiteral(premise, selected, new_subterm, inference);
+        return replaceLiteral(premise, literal, new_subterm, inference);
       }
     );
 
     if(equality_would_be_wellsorted) {
       auto equality_clause = getSingletonIterator(replaceLiteral(
         premise,
-        selected,
+        literal,
         Literal::createEquality(false, subterm, superterm, subterm_sort),
         inference
       ));
@@ -145,18 +145,17 @@ static ClauseIterator perform(Clause *premise, Literal *selected) {
   }
 }
 
-ClauseIterator SubtermGIE::generateClauses(Clause *premise) {
-  CALL("SubtermGIE::generateClauses")
+ClauseIterator SubtermISE::simplifyMany(Clause* premise) {
+  CALL("SubtermISE::simplifyMany")
 
-  auto selected = premise->getSelectedLiteralIterator();
-  auto filtered = getFilteredIterator(selected, isInterestingSubterm);
-  auto mapped = getMapAndFlattenIterator(filtered, [premise](Literal *l) {
-    return perform(premise, l);
-  });
-  return pvi(mapped);
+  for(unsigned i = 0; i < premise->length(); i++)
+    if(isInterestingSubterm((*premise)[i]))
+      return perform(premise, (*premise)[i]);
+
+  return ClauseIterator::getEmpty();
 }
 
-Literal *SubtermGIE::createSubterm(
+Literal *SubtermISE::createSubterm(
   bool polarity,
   TermList relation,
   TermList subterm,
@@ -164,7 +163,7 @@ Literal *SubtermGIE::createSubterm(
   TermList superterm,
   TermList superterm_sort
 ) {
-  CALL("SubtermGIE::createSubterm")
+  CALL("SubtermISE::createSubterm")
   unsigned predicate = env.signature->getInterpretingSymbol(
     Theory::SUBTERM,
     OperatorType::getPredicateType({AtomicSort::defaultSort(), subterm_sort, superterm_sort})
