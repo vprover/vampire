@@ -15,6 +15,20 @@
 #include "InferenceEngine.hpp"
 
 namespace Inferences {
+namespace CCSA {
+
+Literal *createSubterm(
+  bool polarity,
+  TermList relation,
+  TermList subterm,
+  TermList subterm_sort,
+  TermList superterm,
+  TermList superterm_sort
+);
+
+void registerCommutes(unsigned relation, unsigned functor);
+void registerTermRewrite(TermList left, TermList right);
+void registerLiteralRewrite(Literal *left, Literal *right);
 
 class SubtermISE : public ImmediateSimplificationEngine
 {
@@ -24,17 +38,6 @@ public:
 
   Clause *simplify(Clause* premise) override { return premise; }
   ClauseIterator simplifyMany(Clause* premise) override;
-
-  static Literal *createSubterm(
-    bool polarity,
-    TermList relation,
-    TermList subterm,
-    TermList subterm_sort,
-    TermList superterm,
-    TermList superterm_sort
-  );
-
-  static void registerCommutes(unsigned relation, unsigned functor);
 };
 
 class RewriteGIE : public GeneratingInferenceEngine
@@ -44,8 +47,7 @@ public:
   USE_ALLOCATOR(RewriteGIE);
   ClauseIterator generateClauses(Clause* cl) override;
 
-  static void registerTermRewrite(TermList left, TermList right);
-  static void registerLiteralRewrite(Literal *left, Literal *right);
 };
 
+}
 }

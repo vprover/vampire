@@ -38,11 +38,12 @@ using LiteralQueryResult = Indexing::SLQueryResult;
 using LeafData = Indexing::SubstitutionTree::LeafData;
 
 namespace Inferences {
+namespace CCSA {
 
 static DHSet<std::pair<unsigned, unsigned>> commutes;
 
-void SubtermISE::registerCommutes(unsigned relation, unsigned functor) {
-  CALL("SubtermISE::registerCommutes");
+void registerCommutes(unsigned relation, unsigned functor) {
+  CALL("CCSA::registerCommutes");
   commutes.insert(std::make_pair(relation, functor));
 }
 
@@ -99,7 +100,7 @@ static ClauseIterator perform(Clause *premise, Literal *literal) {
         (*generated)[j++] = (*premise)[i];
 
     for (unsigned i = 0; i < super_args; i++)
-      (*generated)[j++] = SubtermISE::createSubterm(
+      (*generated)[j++] = createSubterm(
         true,
         relation,
         subterm,
@@ -119,7 +120,7 @@ static ClauseIterator perform(Clause *premise, Literal *literal) {
     auto subterm_clauses = getMappingIterator(
       getRangeIterator(0u, super_args),
       [premise, literal, inference, relation, subterm, subterm_sort, super](unsigned i) {
-        Literal *new_subterm = SubtermISE::createSubterm(
+        Literal *new_subterm = createSubterm(
           false,
           relation,
           subterm,
@@ -155,7 +156,7 @@ ClauseIterator SubtermISE::simplifyMany(Clause* premise) {
   return ClauseIterator::getEmpty();
 }
 
-Literal *SubtermISE::createSubterm(
+Literal *createSubterm(
   bool polarity,
   TermList relation,
   TermList subterm,
@@ -163,7 +164,7 @@ Literal *SubtermISE::createSubterm(
   TermList superterm,
   TermList superterm_sort
 ) {
-  CALL("SubtermISE::createSubterm")
+  CALL("CCSA::createSubterm")
   unsigned predicate = env.signature->getInterpretingSymbol(
     Theory::SUBTERM,
     OperatorType::getPredicateType({AtomicSort::defaultSort(), subterm_sort, superterm_sort})
@@ -174,8 +175,8 @@ Literal *SubtermISE::createSubterm(
 static TermSubstitutionTree term_index;
 static DHMap<TermList, TermList> term_map;
 
-void RewriteGIE::registerTermRewrite(TermList left, TermList right) {
-  CALL("RewriteGIE::registerRewrite")
+void registerTermRewrite(TermList left, TermList right) {
+  CALL("CCSA::registerTermRewrite")
   term_index.insert(left, nullptr, nullptr);
   term_map.insert(left, right);
 }
@@ -183,8 +184,8 @@ void RewriteGIE::registerTermRewrite(TermList left, TermList right) {
 static LiteralSubstitutionTree literal_index;
 static DHMap<Literal *, Literal *> literal_map;
 
-void RewriteGIE::registerLiteralRewrite(Literal *left, Literal *right) {
-  CALL("RewriteGIE::registerRewrite")
+void registerLiteralRewrite(Literal *left, Literal *right) {
+  CALL("CCSA::registerLiteralRewrite")
   literal_index.insert(left, nullptr);
   literal_map.insert(left, right);
 }
@@ -227,4 +228,5 @@ ClauseIterator RewriteGIE::generateClauses(Clause *cl) {
   return pvi(it);
 }
 
+} // namespace CCSA
 } // namespace Inferences
