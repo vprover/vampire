@@ -28,6 +28,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
@@ -251,6 +252,7 @@ void Induction::attach(SaturationAlgorithm* salg) {
   CALL("Induction::attach");
 
   GeneratingInferenceEngine::attach(salg);
+  _postponement.attach(salg);
   if (InductionHelper::isIntInductionOneOn()) {
     _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
@@ -274,6 +276,7 @@ void Induction::detach() {
     _inductionTermIndex = nullptr;
     _salg->getIndexManager()->release(INDUCTION_TERM_INDEX);
   }
+  _postponement.detach();
   GeneratingInferenceEngine::detach();
 }
 
@@ -282,7 +285,7 @@ ClauseIterator Induction::generateClauses(Clause* premise)
   CALL("Induction::generateClauses");
 
   return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex), getOptions(),
-    _structInductionTermIndex, _formulaIndex));
+    _structInductionTermIndex, _formulaIndex, _salg->getSplitter(), _postponement));
 }
 
 void InductionClauseIterator::processClause(Clause* premise)
@@ -293,7 +296,9 @@ void InductionClauseIterator::processClause(Clause* premise)
   // or it should be an integer constant comparison we use as a bound.
   if (InductionHelper::isInductionClause(premise)) {
     for (unsigned i=0;i<premise->length();i++) {
-      processLiteral(premise,(*premise)[i]);
+      auto lit = (*premise)[i];
+      processLiteral(premise,lit);
+      _postponement.checkForPostponedInductions(lit, premise, *this);
     }
   }
   if (InductionHelper::isIntInductionOneOn() && InductionHelper::isIntegerComparison(premise)) {
@@ -394,6 +399,26 @@ private:
   Clause* _premise;
   Literal* _lit;
 };
+
+void InductionClauseIterator::generateStructuralFormulas(const InductionContext& context, InductionFormulaIndex::Entry* e)
+{
+  CALL("InductionClauseIterator::generateStructuralFormulas");
+  static bool one = _opt.structInduction() == Options::StructuralInductionKind::ONE ||
+                    _opt.structInduction() == Options::StructuralInductionKind::ALL;
+  static bool two = _opt.structInduction() == Options::StructuralInductionKind::TWO ||
+                    _opt.structInduction() == Options::StructuralInductionKind::ALL;
+  static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
+                    _opt.structInduction() == Options::StructuralInductionKind::ALL;
+  if(one){
+    performStructInductionOne(context,e);
+  }
+  if(two){
+    performStructInductionTwo(context,e);
+  }
+  if(three){
+    performStructInductionThree(context,e);
+  }
+}
 
 void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
@@ -525,24 +550,16 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       });
     while (indCtxIt.hasNext()) {
       auto ctx = indCtxIt.next();
-      static bool one = _opt.structInduction() == Options::StructuralInductionKind::ONE ||
-                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
-      static bool two = _opt.structInduction() == Options::StructuralInductionKind::TWO ||
-                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
-      static bool three = _opt.structInduction() == Options::StructuralInductionKind::THREE ||
-                        _opt.structInduction() == Options::StructuralInductionKind::ALL;
+
       InductionFormulaIndex::Entry* e;
       // generate formulas and add them to index if not done already
-      if (_formulaIndex.findOrInsert(ctx, e)) {
-        if(one){
-          performStructInductionOne(ctx,e);
-        }
-        if(two){
-          performStructInductionTwo(ctx,e);
-        }
-        if(three){
-          performStructInductionThree(ctx,e);
-        }
+      if (_formulaIndex.findOrInsert(ctx, e) && !_postponement.maybePostpone(ctx, e)) {
+        generateStructuralFormulas(ctx, e);
+      }
+      if (e->_postponed) {
+        env.statistics->postponedInductionApplications++;
+        e->_postponedApplications.push(ctx);
+        continue;
       }
       // resolve the formulas with the premises
       for (auto& kv : e->get()) {
@@ -614,15 +631,11 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
 ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context)
 {
   CALL("InductionClauseIterator::produceClauses");
+  TIME_TRACE("induction clause production");
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
-  unsigned maxInductionDepth = 0;
-  for (const auto& kv : context._cls) {
-    maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());
-  }
-  inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   if(_opt.showInduction()){
     env.beginOutput();
@@ -880,15 +893,22 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   CALL("InductionClauseIterator::resolveClauses");
   ASS(cls.isNonEmpty());
   bool generalized = false;
+  unsigned maxInductionDepth = 0;
   for (const auto& kv : context._cls) {
-    for (const auto& lit : kv.second) {
-      if (lit->containsSubterm(TermList(context._indTerm))) {
-        generalized = true;
-        break;
-      }
+    // we have to check this due to postponed inductions
+    if (_splitter && !_splitter->allSplitLevelsActive(kv.first->splits())) {
+      // Either this clause will be never activated again and we don't
+      // need the corresponding induction or else we can redo it the normal way
+      return;
     }
-    if (generalized) {
-      break;
+    maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());
+    if (!generalized) {
+      for (const auto& lit : kv.second) {
+        if (lit->containsSubterm(TermList(context._indTerm))) {
+          generalized = true;
+          break;
+        }
+      }
     }
   }
   if (generalized) {
@@ -902,6 +922,7 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
     _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst));
+    _clauses.top()->inference().setInductionDepth(maxInductionDepth+1);
     if(_opt.showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;

@@ -120,6 +120,26 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void GeneralLHSIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("GeneralLHSIndex::handleClause");
+
+  for (unsigned i=0; i<c->length(); i++) {
+    Literal* lit=(*c)[i];
+    if (!lit->isEquality() || lit->isNegative()) {
+      continue;
+    }
+    for (unsigned j=0; j<2; j++) {
+      auto lhs = *lit->nthArgument(j);
+      if (adding) {
+        _is->insert(lhs, lit, c);
+      } else {
+        _is->remove(lhs, lit, c);
+      }
+    }
+  }
+}
+
 template <bool combinatorySupSupport>
 void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
 {

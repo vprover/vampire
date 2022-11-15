@@ -33,12 +33,14 @@
 
 #include "InductionHelper.hpp"
 #include "InferenceEngine.hpp"
+#include "InductiveReasoning/InductionPostponement.hpp"
 
 namespace Inferences
 {
 
 using namespace Kernel;
 using namespace Saturation;
+using namespace InductiveReasoning;
 
 Term* getPlaceholderForTerm(Term* t);
 
@@ -155,6 +157,10 @@ public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
+  Induction()
+    : _formulaIndex(),
+      _postponement(_formulaIndex) {}
+
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
@@ -174,6 +180,7 @@ private:
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
   InductionFormulaIndex _formulaIndex;
+  InductionPostponement _postponement;
 };
 
 class InductionClauseIterator
@@ -181,9 +188,10 @@ class InductionClauseIterator
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
-    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
+    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex,
+    Splitter* splitter, InductionPostponement& postponement)
       : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
-      _formulaIndex(formulaIndex)
+      _formulaIndex(formulaIndex), _splitter(splitter), _postponement(postponement)
   {
     processClause(premise);
   }
@@ -196,6 +204,8 @@ public:
   inline OWN_ELEMENT_TYPE next() { 
     return _clauses.pop();
   }
+  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
+  void generateStructuralFormulas(const InductionContext& context, InductionFormulaIndex::Entry* e);
 
 private:
   void processClause(Clause* premise);
@@ -204,7 +214,6 @@ private:
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
-  void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
   void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound);
@@ -221,6 +230,8 @@ private:
   const Options& _opt;
   TermIndex* _structInductionTermIndex;
   InductionFormulaIndex& _formulaIndex;
+  Splitter* _splitter;
+  InductionPostponement& _postponement;
 };
 
 };

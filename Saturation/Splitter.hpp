@@ -215,6 +215,8 @@ public:
 
   UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
+
+  bool allSplitLevelsActive(SplitSet* s);
 private:
   friend class SplittingBranchSelector;
   
@@ -241,8 +243,6 @@ private:
 
   SplitSet* getNewClauseSplitSet(Clause* cl);
   void assignClauseSplitSet(Clause* cl, SplitSet* splits);
-
-  bool allSplitLevelsActive(SplitSet* s);
 
   //settings
   bool _showSplitting;

@@ -80,6 +80,19 @@ private:
   const Options& _opt;
 };
 
+class GeneralLHSIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(GeneralLHSIndex);
+  USE_ALLOCATOR(GeneralLHSIndex);
+
+  GeneralLHSIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 /**
  * Term index for backward demodulation
  */

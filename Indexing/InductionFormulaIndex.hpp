@@ -34,7 +34,7 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 using namespace std;
-using Key = pair<Stack<LiteralStack>,pair<Literal*,Literal*>>;
+using InductionFormulaKey = pair<Stack<LiteralStack>,pair<Literal*,Literal*>>;
 
 class InductionFormulaIndex
 {
@@ -60,15 +60,22 @@ public:
     const Stack<pair<ClauseStack,Substitution>>& get() const {
       return _st;
     }
+    Stack<Inferences::InductionContext> _postponedApplications;
+    bool _postponed = false;
+    ClauseStack _activatingClauses;
   private:
     Stack<pair<ClauseStack,Substitution>> _st;
   };
 
-  static Key represent(const Inferences::InductionContext& context);
+  static InductionFormulaKey represent(const Inferences::InductionContext& context);
 
   bool findOrInsert(const Inferences::InductionContext& context, Entry*& e, Literal* bound1 = nullptr, Literal* bound2 = nullptr);
+  Entry* findByKey(const InductionFormulaKey& key) {
+    return _map.findPtr(key);
+  }
+
 private:
-  DHMap<Key,Entry> _map;
+  DHMap<InductionFormulaKey,Entry> _map;
 };
 
 }
