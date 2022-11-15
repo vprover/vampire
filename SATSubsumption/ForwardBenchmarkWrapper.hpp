@@ -18,17 +18,13 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "SATSubsumption/ForwardBenchmark.hpp"
-#include "SATSubsumption/ForwardOracle.hpp"
+#include "Inferences/ForwardSubsumptionAndResolution.hpp"
 
 #include <iostream>
 #include <fstream>
 #include <chrono>
 
 namespace Inferences {
-
-using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
 
 /**
  * Class used to wrap around forward subsumption and resolution inference,
@@ -56,7 +52,7 @@ private:
   Indexing::FwSubsSimplifyingLiteralIndex *_fwIndex;
 
   Inferences::ForwardBenchmark _forwardBenchmark;
-  Inferences::ForwardOracle _forwardOracle;
+  Inferences::ForwardSubsumptionAndResolution _forwardOracle;
 
   bool _subsumptionResolution;
 };

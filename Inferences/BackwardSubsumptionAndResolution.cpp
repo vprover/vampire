@@ -261,7 +261,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
           continue;
         }
         bwStats.startResolution();
-        Clause *conclusion = ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(icl, (*icl)[0], cl);
+        Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, (*icl)[0], cl);
         bwStats.stopResolution(true);
         ASS(conclusion);
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);

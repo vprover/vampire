@@ -24,6 +24,8 @@ ForwardBenchmarkWrapper::~ForwardBenchmarkWrapper()
 {
 }
 
+std::ofstream problemFile;
+
 void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
 {
   CALL("ForwardBenchmarkWrapper::attach");
@@ -38,7 +40,16 @@ void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
 
   BYPASSING_ALLOCATOR
   {
-    vstring fileName = "timeForPerform_" + env.options->problemName();
+    // replace the '.' with '_' in the file name
+    vstring problemName = env.options->problemName();
+    for (unsigned i = 0; i < problemName.length(); i++)
+    {
+      if (problemName[i] == '.')
+      {
+        problemName[i] = '_';
+      }
+    }
+    vstring fileName = "BenchmarkResult/" + env.options->problemName();
 #if USE_SAT_SUBSUMPTION_FORWARD || USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
 #if USE_SAT_SUBSUMPTION_FORWARD
     fileName += "_s";
@@ -95,53 +106,73 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
 
 
   if(result != resultAux) {
-    cout << endl;
-    cout << "ForwardBenchmarkWrapper::perform: result != resultAux" << endl;
-    cout << "result: " << result << endl;
-    cout << "resultAux: " << resultAux << endl;
-    cout << "cl:             " << *cl << endl;
+    if(!problemFile.is_open()) {
+      BYPASSING_ALLOCATOR
+      {
+        vstring fileName = "BenchmarkResult/aaa_mistakes_" + env.options->problemName() + ".txt";
+        problemFile.open(fileName.c_str());
+      }
+    }
+    problemFile << "------------------------------------------------------------" << endl;
+    problemFile << "Configuration " << CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION << endl;
+    problemFile << endl;
+    problemFile << "ForwardBenchmarkWrapper::perform: result != resultAux" << endl;
+    problemFile << "result: " << result << endl;
+    problemFile << "resultAux: " << resultAux << endl;
+    problemFile << "cl:             " << *cl << endl;
     if (result) {
-      cout << "premises:       ";
+      problemFile << "premises:       ";
       while (premises.hasNext()) {
         Clause* mcl = premises.next();
-        cout << *mcl << endl;
+        problemFile << *mcl << endl;
       }
     } else {
-      cout << "premises Aux:   " << endl;
+      problemFile << "premises Aux:   " << endl;
       while (premiseAux.hasNext()) {
-        cout << *premiseAux.next() << endl;
+        problemFile << *premiseAux.next() << endl;
       }
     }
     if(replacement) {
-      cout << "replacement:    " << *replacement << endl;
+      problemFile << "replacement:    " << *replacement << endl;
     }
     if (replacementAux) {
-      cout << "replacementAux: " << *replacementAux << endl;
+      problemFile << "replacementAux: " << *replacementAux << endl;
     }
     exit(1);
   } else if ((replacement == nullptr) != (replacementAux == nullptr)) {
-    cout << "ForwardBenchmarkWrapper::perform: replacement == nullptr != (replacementAux == nullptr)" << endl;
-    cout << "result: " << result << endl;
-    cout << "resultAux: " << resultAux << endl;
-    cout << "cl: " << *cl << endl;
+    if(problemFile.is_open()) {
+      problemFile << "------------------------------------------------------------" << endl;
+    }
+    else {
+      BYPASSING_ALLOCATOR
+      {
+        vstring fileName = "BenchmarkResult/mistake_" + env.options->problemName() + ".txt";
+        problemFile.open(fileName.c_str());
+        problemFile << "------------------------------------------------------------" << endl;
+      }
+    }
+    problemFile << "ForwardBenchmarkWrapper::perform: replacement == nullptr != (replacementAux == nullptr)" << endl;
+    problemFile << "result: " << result << endl;
+    problemFile << "resultAux: " << resultAux << endl;
+    problemFile << "cl: " << *cl << endl;
 
     if (result) {
-      cout << "premises: " << endl;
+      problemFile << "premises: " << endl;
       while (premises.hasNext()) {
-        cout << *premises.next() << endl;
+        problemFile << *premises.next() << endl;
       }
     } else {
-      cout << "premises Aux: " << endl;
+      problemFile << "premises Aux: " << endl;
       while (premises.hasNext()) {
-        cout << *premises.next() << endl;
+        problemFile << *premises.next() << endl;
       }
     }
 
     if(replacement) {
-      cout << "replacement: " << *replacement << endl;
+      problemFile << "replacement: " << *replacement << endl;
     }
     if (replacementAux) {
-      cout << "replacementAux: " << *replacementAux << endl;
+      problemFile << "replacementAux: " << *replacementAux << endl;
     }
   }
   return result;

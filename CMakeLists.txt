@@ -65,6 +65,36 @@ else()
   endif()
 endif()
 
+option(SUBSUMPTION_TEST "Choose the version of testing of subusmption resultion." 0)
+if(SUBSUMPTION_TEST STREQUAL 0)
+  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=0)
+  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=0)
+elseif(SUBSUMPTION_TEST STREQUAL 1)
+  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
+  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
+elseif(SUBSUMPTION_TEST STREQUAL 2)
+  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
+  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=2)
+elseif(SUBSUMPTION_TEST STREQUAL 3)
+  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
+  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=3)
+elseif(SUBSUMPTION_TEST STREQUAL 4)
+  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
+  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=4)
+else()
+  message(FATAL_ERROR "Wrong option (should be between 0 and 4)")
+endif()
+
+option(SAT_ENCODING "Choose the encoding." 2)
+if(SAT_ENCODING STREQUAL 1)
+  add_compile_definitions(SAT_SR_IMPL=1)
+elseif(SAT_ENCODING STREQUAL 2)
+  add_compile_definitions(SAT_SR_IMPL=2)
+else()
+  message(FATAL_ERROR "Wrong sat encoding (should be 1 or 2")
+endif()
+
+
 ################################################################
 # define all vampire sources,
 # generate the main target and
@@ -712,8 +742,6 @@ source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
     SATSubsumption/SATSubsumptionAndResolution.cpp
     SATSubsumption/SATSubsumptionAndResolution.hpp
-    SATSubsumption/ForwardOracle.cpp
-    SATSubsumption/ForwardOracle.hpp
     SATSubsumption/ForwardBenchmarkWrapper.cpp
     SATSubsumption/ForwardBenchmarkWrapper.hpp
     SATSubsumption/ForwardBenchmark.cpp

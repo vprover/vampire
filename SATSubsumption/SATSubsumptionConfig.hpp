@@ -21,7 +21,10 @@
 /// 2 - SAT Subsumption
 /// 3 - SAT Subsumption + SAT Subsumption Resolution
 /// 4 - SAT Subsumption + SAT Subsumption Resolution + Optimized Forward (fastest)
+/// This options should be defined in the cMakeList.txt file
+#ifndef CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION
 #define CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION 4
+#endif
 
 /*****************************************************************************/
 /*                          SATURATION ALGORITHM                             */
@@ -32,17 +35,20 @@
 
 /// If 1, then use the wrapped forward subsumption and resolution to measure
 /// the time spent in the forward subsumption and resolution
+#ifndef USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
 #define USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION 1
+#endif
 
 /*****************************************************************************/
 /*                          SUBSUMPTION RESOLUTION                           */
 /*****************************************************************************/
-/// @todo TODO : remove that when the real VTEST flag is added
-#define VTEST
 /// Encoding of the problem
 /// 1 : Using c_j <=> (b_0j- V ... V b_nj-)
 /// 2 : Without c_j
+/// This options should be defined in the cMakeList.txt file
+#ifndef SAT_SR_IMPL
 #define SAT_SR_IMPL 2
+#endif
 /// If 1, writes all the matches to a file
 #define WRITE_LITERAL_MATCHES_FILE 0
 /// If 1, prints the clauses added to the solver on the standard output

@@ -21,11 +21,6 @@
 #include "Lib/STL.hpp"
 
 namespace Inferences {
-
-using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
-
 class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
 public:
@@ -61,16 +56,6 @@ public:
   bool perform(Kernel::Clause *cl,
                Kernel::Clause *&replacement,
                Kernel::ClauseIterator &premises) override;
-
-  /**
-   * @brief Generates a clause that is the result of subsumption resolution of @b cl and @b baseClause over the literal @b lit ( @b lit in @b cl )
-   * @param cl the clause to be resolved (the clause that will be subsumed by the conclusion)
-   * @param lit the literal to be resolved
-   * @param baseClause the clause resolving @b cl
-   */
-  static Kernel::Clause *generateSubsumptionResolutionClause(Kernel::Clause *cl,
-                                                             Kernel::Literal *lit,
-                                                             Kernel::Clause *baseClause);
 
 private:
   /// @brief Unit index of the saturation algorithm

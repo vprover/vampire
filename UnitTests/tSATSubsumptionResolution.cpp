@@ -43,6 +43,7 @@ using namespace Test;
   DECL_CONST(e, s)                              \
   DECL_FUNC(f, {s}, s)                          \
   DECL_FUNC(f2, {s, s}, s)                      \
+  DECL_FUNC(f3, {s, s, s}, s)                   \
   DECL_FUNC(g, {s}, s)                          \
   DECL_FUNC(g2, {s, s}, s)                      \
   DECL_FUNC(h, {s}, s)                          \
@@ -291,6 +292,23 @@ TEST_FUN(PositiveSubsumptionResolution)
   Kernel::Clause* L11 = clause({~p3(d, y7, d), ~p3(y7, c, e)});
   Kernel::Clause* M11 = clause({p3(d, y1, d), ~p3(y1, c, e)});
   conclusion = subsumption.checkSubsumptionResolution(L11, M11);
+  ASS(conclusion);
+
+  Kernel::Clause* L13 = clause({p2(x5, x7),
+                                f2(x5, x7)==f2(f3(y4, y5, x2), x2),
+                                p2(y5, x2)});
+  Kernel::Clause* M13 = clause({~p2(y1, x3),
+                                f2(y1, x3)==f2(f3(y6, y1, x3), x3)});
+  conclusion = subsumption.checkSubsumptionResolution(L13, M13);
+  ASS(conclusion);
+
+  Kernel::Clause* L12 = clause({p2(x5, x7),
+                                f2(x5, x7)==f2(f3(y4, y5, x2), x2),
+                                p2(y5, x2)});
+  Kernel::Clause* M12 = clause({~p2(g2(h2(x1, y1), y1), x3),
+                                f2(g2(h2(x1, y1), y1), x3)==f2(f3(y6, g2(h2(x1, y1), y1), x3), x3)});
+  conclusion = subsumption.checkSubsumptionResolution(L12, M12);
+
   ASS(conclusion);
 }
 

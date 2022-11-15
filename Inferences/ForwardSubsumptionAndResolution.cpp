@@ -58,41 +58,6 @@ void ForwardSubsumptionAndResolution::detach()
 }
 
 /**
- * @brief Creates a clause that is the subsumption resolution of @b cl and @b baseClause on @b lit.
- * L V L' /\ M V m'
- * @param cl The clause to be subsumed.
- * @param lit The literal on which the subsumption resolution is performed.
- * @param baseClause The.
- */
-Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause)
-{
-  CALL("ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause");
-  int clen = cl->length();
-  int nlen = clen - 1;
-
-  Clause *res = new (nlen) Clause(nlen,
-                                  SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
-
-  int next = 0;
-  bool found = false;
-  for (int i = 0; i < clen; i++) {
-    Literal *curr = (*cl)[i];
-    // As we will apply subsumption resolution after duplicate literal
-    // deletion, the same literal should never occur twice.
-    ASS(curr != lit || !found);
-    if (curr != lit || found) {
-      (*res)[next++] = curr;
-    }
-    else {
-      found = true;
-    }
-  }
-  ASS_EQ(next, nlen)
-
-  return res;
-}
-
-/**
  * Creates a clause whose literals are the literals of @b cl except for the literal in @b litToExclude
  * @param cl the clause whose literals are to be copied
  * @param litToExclude the literal to exclude
@@ -100,7 +65,9 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
  *
  * @pre Assumes that the literals in @b litToExclude are in the same order as in cl
  */
-static Clause *generateNSimplificationClause(Clause *cl, vvector<Literal *> litToExclude, Stack<Unit *> premises)
+static Clause *generateNSimplificationClause(Clause *cl,
+                                             vvector<Literal *> litToExclude,
+                                             Stack<Unit *> premises)
 {
   CALL("generateNSimplificationClause");
   unsigned nlen = cl->length() - litToExclude.size();
@@ -118,21 +85,13 @@ static Clause *generateNSimplificationClause(Clause *cl, vvector<Literal *> litT
     }
     (*res)[i - j] = lit;
   }
+  ASS(j == litToExclude.size());
   return res;
 }
 
-/**
- * Checks whether the clause @b cl can be subsumed or resolved and subsumed by any clause is @b premises .
- * If the clause is subsumed, returns true
- * If the clause is resolved and subsumed, returns true and sets @b replacement to the conclusion clause
- * If the clause is not subsumed or resolved and subsumed, returns false
- *
- * @param cl the clause to check
- * @param replacement the replacement clause if the clause is resolved and subsumed
- * @param premises the premise that successfully subsumed or resolved and subsumed @b cl
- * @return true if the clause is subsumed or resolved and subsumed, false otherwise
- */
-bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
+bool ForwardSubsumptionAndResolution::perform(Clause *cl,
+                                              Clause *&replacement,
+                                              ClauseIterator &premises)
 {
   CALL("ForwardSubsumptionAndResolution::perform");
   TIME_TRACE("forward subsumption");
@@ -254,7 +213,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   if (premiseStack.size() == 1) {
     // Single simplification, nothing fancy about it
     premise = (Clause *)premiseStack.pop();
-    conclusion = generateSubsumptionResolutionClause(cl, litToExclude[0], premise);
+    conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, litToExclude[0], premise);
     goto end_forward;
   }
   else if (premiseStack.size() > 1) {
@@ -292,12 +251,15 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 /*******************************************************/
 end_forward:
   if (subsumes) {
+    // Simple subsumption
     premises = pvi(getSingletonIterator(premise));
     return true;
   }
   if (conclusion) {
+    // Subsumption resolution
     replacement = conclusion;
     if (!premise) {
+      // If premise is null, then the conclusion has several premises (chained resolution)
       ASS(premiseStack.size() > 1);
       ClauseList *premiseList = ClauseList::empty();
       for (unsigned i = 0; i < premiseStack.size(); i++) {

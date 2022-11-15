@@ -35,7 +35,7 @@ class SATSubsumptionAndResolution;
  * @author Robin Coutelier (contribution Micheal Rawson & Jakob Rath)
  */
 class SATSubsumptionAndResolution {
-#ifdef VTEST
+#if VDEBUG
   // Make it public to allow unit testing
 public:
 #else
@@ -54,7 +54,7 @@ private:
   };
 
   /**
-   * A Match represents a binding between two literals L_i and M_j of different clauses L and M.
+   * A Match represents a binding between two literals l_i and m_j of different clauses L and M.
    * The binding can be either positive or negative
    */
   struct Match {
@@ -207,14 +207,14 @@ private:
     /**
      * Returns true if the j-th literal in M has a positive match in the set
      * @param j the index of the literal in M
-     * @return whether M_j has a positive match in the set
+     * @return whether m_j has a positive match in the set
      */
     bool hasPositiveMatchJ(unsigned j);
 
     /**
      * Returns true if the j-th literal in M has a negative match in the set
      * @param j the index of the literal in M
-     * @return whether M_j has a negative match in the set
+     * @return whether m_j has a negative match in the set
      */
     bool hasNegativeMatchJ(unsigned j);
 #endif
@@ -274,15 +274,6 @@ private:
   MatchSet _matchSet;
   /// @brief model of the SAT solver
   Lib::vvector<subsat::Lit> _model;
-  /// @brief The current intersection of the M_j's that are only negatively matched to L_i's
-  Lib::vvector<unsigned> _intersection;
-  /// @brief For some L_i, remembers the M_j that are negatively matched to L_i
-  Lib::vvector<unsigned> _negativeMatches;
-
-#if WRITE_LITERAL_MATCHES_FILE
-  // output file for cache profiling
-  std::ofstream _fileOut;
-#endif
 
   // remembers if the fillMatchesSR concluded that subsumption is impossible
   bool _subsumptionImpossible;
@@ -307,28 +298,47 @@ private:
   bool cnfForSubsumptionResolution();
 
   /**
-   * @brief Adds one binding to the SAT solver and the match set
+   * Adds one binding to the SAT solver and the match set
    * @param binder the binder between the literals
    * @param varNumber the variable number of the binder
    * @param i the index of the literal in the base clause
    * @param j the index of the literal in the instance clause
    * @param polarity the polarity of the match
    */
-  void addBinding(BindingsManager::Binder *binder, unsigned i, unsigned j, bool polarity);
+  void addBinding(BindingsManager::Binder *binder,
+                  unsigned i,
+                  unsigned j,
+                  bool polarity);
 
   /**
    * Sets up the problem and cleans the match set
+   * @param L the base clause
+   * @param M the instance clause
    */
-  void setupProblem(Kernel::Clause *L, Kernel::Clause *M);
+  void setupProblem(Kernel::Clause *L,
+                    Kernel::Clause *M);
 
   /**
-   * Checks whether the literals L_i and M_j are can be unified according to the polarity (false meaning negative and true meaning positive)
-   * @return true if the literals can be unified
+   * Checks whether there exists a substitution from the literals @b l_i and @b m_j.
+   * If there exists a substitution, it is added to the match set.
+   *
+   * @pre Assumes that the polarity and functors of the match was already checked.
+   *
+   * @param l_i one literal of the base clause
+   * @param m_j one literal of the instance clause
+   * @param i the index of the literal in the base clause
+   * @param j the index of the literal in the instance clause
+   * @param polarity the polarity of the match
+   * @return true if the literals are matched
    */
-  bool checkAndAddMatch(Kernel::Literal *L_i, Kernel::Literal *M_j, unsigned i, unsigned j, bool polarity);
+  bool checkAndAddMatch(Kernel::Literal *l_i,
+                        Kernel::Literal *m_j,
+                        unsigned i,
+                        unsigned j,
+                        bool polarity);
 
   /**
-   * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of L and M.
+   * Fills the match set and the bindings manager with all the possible positive bindings between the literals of L and M.
    * @return false if no subsumption solution is possible, the number of sat variables allocated otherwise.
    */
   bool fillMatchesS();
@@ -366,7 +376,9 @@ public:
    * A clause L subsumes a clause M if there exists a substitution \f$\sigma\f$ such that \f$\sigma(M)\subseteq L\f$.
    * Where L and M are considered as multisets of literals.
    */
-  bool checkSubsumption(Kernel::Clause *L, Kernel::Clause *M, bool setNegative = false);
+  bool checkSubsumption(Kernel::Clause *L,
+                        Kernel::Clause *M,
+                        bool setNegative = false);
 
   /**
    * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
@@ -378,11 +390,11 @@ public:
    *
    * @warning if the @b usePreviousMatchSet flag is true, the last call must have been a call to checkSubsumption with the flag setNegative set to true.
    *
-   * L /\ M => L /\ C where C is the conclusion of the subsumption resolution
+   * L /\ M => L /\ M* where M* is the conclusion of the subsumption resolution
    *
-   * Subsumption resolution is possible for two clauses (~A V C) and (B V D) if there exists a substitution "s" such that
-   * s(A V C) \\subseteq (B V D)
-   * Where A and B are single literals and D becomes the conclusion of the subsumption resolution
+   * Subsumption resolution is possible for two clauses (L' V L*) and (m' V M*) if there exists a substitution "s" such that
+   * s(L') = {~m'} /\ s(L*) \\subseteq M*
+   * Where m' is a single literal. The conclusion of the subsumption resolution becomes M*.
    * @example
    * [p(x1, x2) V p(f(x2), x3)] /\ [~p2(f(y1), d) V p2(g(y1), c) V ~p2(f(c), e)]
    * ---------------------------------------------------------------------------
@@ -393,14 +405,25 @@ public:
    * [p(x) V q(x) V r(x)] /\ [P(c) \/ Q(c) \/ ~R(c) \/ P(d) \/ ~Q(d) \/ R(d)]
    * may have several conclusion.
    */
-  Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *L, Kernel::Clause *M, bool usePreviousMatchSet = false);
+  Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *L,
+                                             Kernel::Clause *M,
+                                             bool usePreviousMatchSet = false);
 
   /**
    * Clears all the caches.
    */
   void clear();
 
-  static void printStats(std::ostream &out);
+  /**
+   * @brief Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.
+   * L V L' /\ M_bar V @b m_j => L V L' /\ M_bar
+   * @param M The clause to be subsumed after resolution.
+   * @param m_j The literal on which the subsumption resolution is performed.
+   * @param L The clause resolving with @b M.
+   */
+  static Kernel::Clause *getSubsumptionResolutionConclusion(Kernel::Clause *M,
+                                                            Kernel::Literal *m_j,
+                                                            Kernel::Clause *L);
 };
 
 } // namespace SATSubsumption

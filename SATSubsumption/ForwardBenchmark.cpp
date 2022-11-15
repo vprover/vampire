@@ -3,6 +3,7 @@
 #include "Indexing/LiteralIndex.hpp"
 
 #include "ForwardBenchmark.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 
 #if !USE_SAT_SUBSUMPTION_FORWARD
 #include "Indexing/LiteralMiniIndex.hpp"
@@ -23,6 +24,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using namespace SATSubsumption;
 using namespace std::chrono;
 
 ForwardBenchmark::ForwardBenchmark(bool subsumptionResolution)
@@ -53,34 +55,6 @@ void ForwardBenchmark::detach()
   _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   _salg->getIndexManager()->release(FW_SUBSUMPTION_SUBST_TREE);
   ForwardSimplificationEngine::detach();
-}
-
-Clause *ForwardBenchmark::generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause)
-{
-  CALL("ForwardBenchmark::generateSubsumptionResolutionClause");
-  int clen = cl->length();
-  int nlen = clen - 1;
-
-  Clause *res = new (nlen) Clause(nlen,
-                                  SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
-
-  int next = 0;
-  bool found = false;
-  for (int i = 0; i < clen; i++) {
-    Literal *curr = (*cl)[i];
-    // As we will apply subsumption resolution after duplicate literal
-    // deletion, the same literal should never occur twice.
-    ASS(curr != lit || !found);
-    if (curr != lit || found) {
-      (*res)[next++] = curr;
-    }
-    else {
-      found = true;
-    }
-  }
-  ASS_EQ(next, nlen)
-
-  return res;
 }
 
 #if !USE_SAT_SUBSUMPTION_FORWARD || !USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
@@ -406,7 +380,7 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl, ClauseIterator 
       Clause *mcl = rit.next().clause;
       ASS(!resolutionClause);
       if (ColorHelper::compatible(cl->color(), mcl->color())) {
-        resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
+        resolutionClause = SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, resLit, mcl);
         ASS(resolutionClause);
         env.statistics->forwardSubsumptionResolution++;
         premises = pvi(getSingletonIterator(mcl));
@@ -430,7 +404,7 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl, ClauseIterator 
       // only log the first occurrence with resLit *, because for these we always check all.
       // (actually not completely true if we encounter success... then we skip the remaining ones. and we can't replicate this behaviour during replay because of clause reordering)
       if (checkForSubsumptionResolution(cl, cms, resLit, li) && ColorHelper::compatible(cl->color(), mcl->color())) {
-        resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
+        resolutionClause = SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, resLit, mcl);
         ASS(resolutionClause);
         env.statistics->forwardSubsumptionResolution++;
         premises = pvi(getSingletonIterator(mcl));
@@ -474,7 +448,7 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl, ClauseIterator 
 
       ASS(!resolutionClause);
       if (checkForSubsumptionResolution(cl, cms, resLit, li) && ColorHelper::compatible(cl->color(), mcl->color())) {
-        resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
+        resolutionClause = SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, resLit, mcl);
         ASS(resolutionClause);
         env.statistics->forwardSubsumptionResolution++;
         premises = pvi(getSingletonIterator(mcl));
@@ -551,7 +525,7 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl)
   }
   if (premiseStack.size() == 1) {
     _premise = (Clause *)premiseStack.pop();
-    _conclusion = generateSubsumptionResolutionClause(cl, litToExclude[0], _premise);
+    _conclusion = SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, litToExclude[0], _premise);
     return _conclusion;
   }
   else if (premiseStack.size() > 1) {
@@ -804,7 +778,7 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
   }
   if (premiseStack.size() == 1) {
     _premise = (Clause *)premiseStack.pop();
-    _conclusion = generateSubsumptionResolutionClause(cl, litToExclude[0], _premise);
+    _conclusion = SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, litToExclude[0], _premise);
     goto end_forward;
   }
   else if (premiseStack.size() > 1) {
@@ -840,12 +814,15 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
 /*******************************************************/
 end_forward:
   if (_subsumes) {
+    // Simple subsumption, set the premise
     premises = pvi(getSingletonIterator(_premise));
     return true;
   }
   if (_conclusion) {
+    // Subsumption resolution, set the conclusion
     replacement = _conclusion;
     if (!_premise) {
+      // If premise is null, it means that the chained resolution was used
       ASS(premiseStack.size() > 1);
       ClauseList *premiseList = ClauseList::empty();
       for (unsigned i = 0; i < premiseStack.size(); i++) {

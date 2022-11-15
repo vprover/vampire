@@ -22,11 +22,6 @@
 #include "Lib/STL.hpp"
 
 namespace Inferences {
-
-using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
-
 class ForwardBenchmark
     : public ForwardSimplificationEngine {
 public:
@@ -36,7 +31,7 @@ public:
   ForwardBenchmark(bool subsumptionResolution = true);
   ~ForwardBenchmark();
 
-  void attach(SaturationAlgorithm *salg) override;
+  void attach(Saturation::SaturationAlgorithm *salg) override;
   void detach() override;
 
   /**
@@ -50,11 +45,7 @@ public:
    * @param premises the premise that successfully subsumed or resolved and subsumed @b cl
    * @return true if the clause is subsumed or resolved and subsumed, false otherwise
    */
-  bool perform(Clause *cl, Clause *&replacement, ClauseIterator &premises) override;
-
-  static Clause *generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause);
-
-  static void printStats(std::ostream &out);
+  bool perform(Kernel::Clause *cl, Kernel::Clause *&replacement, Kernel::ClauseIterator &premises) override;
 
 private:
   /** Simplification unit index */
