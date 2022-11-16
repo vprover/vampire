@@ -12,7 +12,7 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace Inferences;
 
-static chrono::_V2::system_clock::duration totalDuration = chrono::duration<int64_t, std::nano>::zero();
+static std::chrono::high_resolution_clock::duration totalDuration = chrono::duration<int64_t, std::nano>::zero();
 static ofstream outputFile;
 
 ForwardBenchmarkWrapper::ForwardBenchmarkWrapper(bool subsumptionResolution) : _forwardBenchmark(subsumptionResolution), _forwardOracle(subsumptionResolution), _subsumptionResolution(subsumptionResolution)

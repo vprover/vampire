@@ -66,9 +66,9 @@ public:
   duration<int64_t, std::nano> m_time_on_perform = duration<int64_t, std::nano>::zero();
   duration<int64_t, std::nano> m_time_on_subsumption = duration<int64_t, std::nano>::zero();
   duration<int64_t, std::nano> m_time_on_resolution = duration<int64_t, std::nano>::zero();
-  std::chrono::_V2::system_clock::time_point start_time_perform = high_resolution_clock::now();
-  std::chrono::_V2::system_clock::time_point start_time_subsumption = high_resolution_clock::now();
-  std::chrono::_V2::system_clock::time_point start_time_resolution = high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point start_time_perform = high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point start_time_subsumption = high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point start_time_resolution = high_resolution_clock::now();
 
   bool started_perform = false;
   bool started_subsumption = false;

@@ -47,7 +47,7 @@ public:
 
   void attach(Saturation::SaturationAlgorithm *salg) override;
   void detach() override;
-  void perform(Kernel::Clause *premise, Inferences::BwSimplificationRecordIterator &simplifications);
+  void perform(Kernel::Clause *premise, Inferences::BwSimplificationRecordIterator &simplifications) override;
 
   static Kernel::Clause *generateSubsumptionResolutionClause(Kernel::Clause *cl, Kernel::Literal *lit, Kernel::Clause *baseClause);
 
