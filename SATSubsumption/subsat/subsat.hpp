@@ -512,7 +512,7 @@ public:
     m_values.clear();
 
 #if SUBSAT_VDOM
-    m_vdom.clear();
+    m_vdom.clear_domain_sizes();
 #endif
 #if SUBSAT_VMTF
     m_queue.clear();

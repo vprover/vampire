@@ -63,6 +63,13 @@ public:
     assert(empty());
   }
 
+  /// Like clear but keeps the variable groups.
+  void clear_domain_sizes() noexcept
+  {
+    m_domain_sizes.clear();
+    m_domain_sizes.push_back(0);  // for the invalid group
+  }
+
   void reserve(uint32_t var_count, uint32_t group_count)
   {
     m_var_groups.reserve(var_count);
