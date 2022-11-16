@@ -12,6 +12,16 @@ namespace subsat {
 template <template <typename> class Allocator = std::allocator>
 class DecisionQueue
 {
+public:
+  template <typename T>
+  using allocator_type = Allocator<T>;
+
+private:
+  template< typename Key
+          , typename Compare = std::less<Key>
+          >
+  using set = std::set<Key, Compare, allocator_type<Key>>;
+
   using Timestamp = uint32_t;
 
   struct Link
@@ -26,9 +36,6 @@ class DecisionQueue
   };
 
 public:
-  template <typename T>
-  using allocator_type = Allocator<T>;
-
   bool empty() const noexcept
   {
     bool const is_empty = m_links.empty();
@@ -121,7 +128,7 @@ public:
       assert(!m_search.is_valid());
     }
 
-    std::set<Var> seen;
+    set<Var> seen;
 
     // Forward traversal
     Timestamp stamp = 0;
