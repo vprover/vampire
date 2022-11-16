@@ -429,13 +429,13 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
 
 #define __CAT(x,y) x ## y
 
-#define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing __CAT(_tmpBypass_, SEED);
+#define BYPASSING_ALLOCATOR_(SEED) ::Lib::Allocator::AllowBypassing __CAT(_tmpBypass_, SEED);
 #define BYPASSING_ALLOCATOR BYPASSING_ALLOCATOR_(__LINE__)
 
-#define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking __CAT(_tmpBypass_, SEED);
+#define START_CHECKING_FOR_BYPASSES(SEED) ::Lib::Allocator::EnableBypassChecking __CAT(_tmpBypass_, SEED);
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES START_CHECKING_FOR_BYPASSES(__LINE__)
 
-#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking __CAT(_tmpBypass_, SEED);
+#define STOP_CHECKING_FOR_BYPASSES(SEED) ::Lib::Allocator::DisableBypassChecking __CAT(_tmpBypass_, SEED);
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES STOP_CHECKING_FOR_BYPASSES(__LINE__)
 
 #else
