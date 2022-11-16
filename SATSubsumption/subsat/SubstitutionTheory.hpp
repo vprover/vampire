@@ -296,11 +296,12 @@ public:
   void setBindings(BindingsManager* bm)
   {
     m_bm = bm;
+    m_prepared = false;
   }
 
   void prepare_for_solving()
   {
-    if (!m_bm) {
+    if (!m_bm || m_prepared) {
       return;
     }
     for (uint32_t b_idx = 0; b_idx < m_bm->m_bindings.size(); ++b_idx) {
@@ -321,12 +322,14 @@ public:
         m_bindings_by_pos[pos].push_back({b, term});
       }
     }
+    m_prepared = true;
   }
 
 public:
   void clear() noexcept
   {
     m_bm = nullptr;
+    m_prepared = false;
     for (VampireVarPos pos = 0; pos < m_var_pos.size(); ++pos) {
       m_bindings_by_pos[pos].clear();
     }
@@ -397,6 +400,9 @@ public:
 
 private:
   BindingsManager const* m_bm = nullptr;
+
+  /// @brief Set to true to keep the same bindings after a call to clear().
+  bool m_prepared = false;
 
   // Unfortunately vampire variables don't need to be contiguous,
   // so we map them to contiguous integers ("position") first.

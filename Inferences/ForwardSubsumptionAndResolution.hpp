@@ -67,6 +67,8 @@ private:
   /// @note If the parameter is set to false, then the inference engine will only perform forward subsumption
   bool _subsumptionResolution;
 
+  bool _checkLongerClauses = true;
+
   /// @brief Engine performing subsumption and subsumption resolution using a sat solver
   SATSubsumption::SATSubsumptionAndResolution satSubs;
 };

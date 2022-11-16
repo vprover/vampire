@@ -158,7 +158,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         continue;
       }
 
-      bool checkSR = _subsumptionResolution && !conclusion;
+      bool checkSR = _subsumptionResolution && !conclusion &&
+          (_checkLongerClauses || mcl->length() <= clen);
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
       bool checkS = mcl->length() <= clen;
       if (checkS) {

@@ -105,11 +105,11 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
   bool result = _forwardOracle.perform(cl, replacement, premises);
 
 
-  if(result != resultAux) {
+  if(result != resultAux || (replacement == nullptr) != (replacementAux == nullptr)) {
     if(!problemFile.is_open()) {
       BYPASSING_ALLOCATOR
       {
-        vstring fileName = "BenchmarkResult/aaa_mistakes_" + env.options->problemName() + ".txt";
+        vstring fileName = "BenchmarkResult/_mistakes_" + env.options->problemName() + ".txt";
         problemFile.open(fileName.c_str());
       }
     }
@@ -138,42 +138,6 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
     if (replacementAux) {
       problemFile << "replacementAux: " << *replacementAux << endl;
     }
-    exit(1);
-  } else if ((replacement == nullptr) != (replacementAux == nullptr)) {
-    if(problemFile.is_open()) {
-      problemFile << "------------------------------------------------------------" << endl;
-    }
-    else {
-      BYPASSING_ALLOCATOR
-      {
-        vstring fileName = "BenchmarkResult/mistake_" + env.options->problemName() + ".txt";
-        problemFile.open(fileName.c_str());
-        problemFile << "------------------------------------------------------------" << endl;
-      }
-    }
-    problemFile << "ForwardBenchmarkWrapper::perform: replacement == nullptr != (replacementAux == nullptr)" << endl;
-    problemFile << "result: " << result << endl;
-    problemFile << "resultAux: " << resultAux << endl;
-    problemFile << "cl: " << *cl << endl;
-
-    if (result) {
-      problemFile << "premises: " << endl;
-      while (premises.hasNext()) {
-        problemFile << *premises.next() << endl;
-      }
-    } else {
-      problemFile << "premises Aux: " << endl;
-      while (premises.hasNext()) {
-        problemFile << *premises.next() << endl;
-      }
-    }
-
-    if(replacement) {
-      problemFile << "replacement: " << *replacement << endl;
-    }
-    if (replacementAux) {
-      problemFile << "replacementAux: " << *replacementAux << endl;
-    }
   }
   return result;
 }
@@ -185,5 +149,8 @@ void ForwardBenchmarkWrapper::printStats(std::ostream &out)
   BYPASSING_ALLOCATOR
   {
     outputFile.close();
+    if(problemFile.is_open()) {
+      problemFile.close();
+    }
   }
 }

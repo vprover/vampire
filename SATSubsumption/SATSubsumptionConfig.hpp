@@ -19,7 +19,7 @@
 /// 0 - No configuration (manual)
 /// 1 - No SAT (old implementation)
 /// 2 - SAT Subsumption
-/// 3 - SAT Subsumption + SAT Subsumption Resolution
+/// 3 - SAT Subsumption + SAT Subsumption Resolution + Optimized Forward (fastest) first encoding
 /// 4 - SAT Subsumption + SAT Subsumption Resolution + Optimized Forward (fastest)
 /// This options should be defined in the cMakeList.txt file
 #ifndef CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION
@@ -49,8 +49,6 @@
 #ifndef SAT_SR_IMPL
 #define SAT_SR_IMPL 2
 #endif
-/// If 1, writes all the matches to a file
-#define WRITE_LITERAL_MATCHES_FILE 0
 /// If 1, prints the clauses added to the solver on the standard output
 #define PRINT_CLAUSES_SUBS 0
 /// If 1, prints some comments about the subsumption resolution process
@@ -60,13 +58,6 @@
 /*****************************************************************************/
 /*                 FORWARD SUBSUMPTION AND RESOLUTION                        */
 /*****************************************************************************/
-/// If 1, then the unit clauses in the forward subsumption resolution are combined
-/// leading to further simplifications
-#define CHAIN_RESOLUTION 1
-/// If 1, then the forward subsumption will store the instances of subsumption and
-/// resolution in the a file
-#define LOG_S_AND_R_INSTANCES 0
-
 #if VDEBUG
 /// If 1, check the correctness of the forward subsumption by comparing the result
 /// with the old implementation
@@ -125,7 +116,20 @@
 /*                           FULL CONFIGURATION                              */
 /*****************************************************************************/
 // the full configuration overrides the above configurations (use 0 to do nothing)
-#if CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 1
+#if CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 0
+// Old configuration
+#undef USE_SAT_SUBSUMPTION_FORWARD
+#define USE_SAT_SUBSUMPTION_FORWARD 1
+#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
+#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
+#undef USE_OPTIMIZED_FORWARD
+#define USE_OPTIMIZED_FORWARD 1
+#undef USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
+#define USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION 0
+#undef SAT_SR_IMPL
+#define SAT_SR_IMPL 2
+
+#elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 1
 // Old configuration
 #undef USE_SAT_SUBSUMPTION_FORWARD
 #define USE_SAT_SUBSUMPTION_FORWARD 0
@@ -139,7 +143,7 @@
 #undef USE_SAT_SUBSUMPTION_FORWARD
 #define USE_SAT_SUBSUMPTION_FORWARD 1
 #undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 0
+#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
 #undef USE_OPTIMIZED_FORWARD
 #define USE_OPTIMIZED_FORWARD 0
 
@@ -150,7 +154,9 @@
 #undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
 #define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
 #undef USE_OPTIMIZED_FORWARD
-#define USE_OPTIMIZED_FORWARD 0
+#define USE_OPTIMIZED_FORWARD 1
+#undef SAT_SR_IMPL
+#define SAT_SR_IMPL 1
 
 #elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 4
 // SAT subsumption and SAT subsumption resolution and optimized forward

@@ -85,16 +85,6 @@ else()
   message(FATAL_ERROR "Wrong option (should be between 0 and 4)")
 endif()
 
-option(SAT_ENCODING "Choose the encoding." 2)
-if(SAT_ENCODING STREQUAL 1)
-  add_compile_definitions(SAT_SR_IMPL=1)
-elseif(SAT_ENCODING STREQUAL 2)
-  add_compile_definitions(SAT_SR_IMPL=2)
-else()
-  message(FATAL_ERROR "Wrong sat encoding (should be 1 or 2")
-endif()
-
-
 ################################################################
 # define all vampire sources,
 # generate the main target and

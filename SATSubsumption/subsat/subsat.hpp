@@ -499,6 +499,52 @@ public:
     assert(checkEmpty());
   }
 
+  /// Reset solver to empty state, but keep allocated memory buffers.
+  void clear_constraints()
+  {
+    uint32_t const old_used_vars = m_used_vars;
+
+    m_state = State::Unknown;
+    m_inconsistent = false;
+    m_unassigned_vars = m_used_vars;
+    m_level = 0;
+
+    m_values.clear();
+
+#if SUBSAT_VDOM
+    m_vdom.clear();
+#endif
+#if SUBSAT_VMTF
+    m_queue.clear();
+#endif
+
+    m_constraints.clear();
+    tmp_propagate_binary_conflict_ref = ConstraintRef::invalid();
+#ifndef NDEBUG
+    m_clause_refs.clear();
+    m_atmostone_constraint_refs.clear();
+#endif
+    m_original_constraints.clear();
+
+    // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocations.
+    assert(m_watches.size() == m_watches_amo.size());
+    uint32_t const used_watches = std::min(2 * old_used_vars, static_cast<uint32_t>(m_watches.size()));
+    for (uint32_t i = 0; i < used_watches; ++i) {
+      m_watches[Lit::from_index(i)].clear();
+      m_watches_amo[Lit::from_index(i)].clear();
+    }
+
+    m_trail.clear();
+    m_propagate_head = 0;
+    m_theory_propagate_head = 0;
+
+    m_frames.clear();
+
+#if SUBSAT_STATISTICS
+    m_stats = Statistics();
+#endif
+  }
+
 
   /********************************************************************
    * Creating new constraints
