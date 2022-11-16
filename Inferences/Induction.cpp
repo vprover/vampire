@@ -552,14 +552,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       auto ctx = indCtxIt.next();
 
       InductionFormulaIndex::Entry* e;
-      // generate formulas and add them to index if not done already
-      if (_formulaIndex.findOrInsert(ctx, e) && !_postponement.maybePostpone(ctx, e)) {
-        generateStructuralFormulas(ctx, e);
-      }
-      if (e->_postponed) {
-        env.statistics->postponedInductionApplications++;
-        e->_postponedApplications.push(ctx);
+      auto shouldGenerate = _formulaIndex.findOrInsert(ctx, e);
+      if (_postponement.maybePostpone(ctx, e)) {
         continue;
+      }
+      // generate formulas and add them to index if not done already
+      if (shouldGenerate) {
+        generateStructuralFormulas(ctx, e);
       }
       // resolve the formulas with the premises
       for (auto& kv : e->get()) {
@@ -893,7 +892,6 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   CALL("InductionClauseIterator::resolveClauses");
   ASS(cls.isNonEmpty());
   bool generalized = false;
-  unsigned maxInductionDepth = 0;
   for (const auto& kv : context._cls) {
     // we have to check this due to postponed inductions
     if (_splitter && !_splitter->allSplitLevelsActive(kv.first->splits())) {
@@ -901,7 +899,6 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
       // need the corresponding induction or else we can redo it the normal way
       return;
     }
-    maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());
     if (!generalized) {
       for (const auto& lit : kv.second) {
         if (lit->containsSubterm(TermList(context._indTerm))) {
@@ -922,7 +919,6 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
     _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst));
-    _clauses.top()->inference().setInductionDepth(maxInductionDepth+1);
     if(_opt.showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;

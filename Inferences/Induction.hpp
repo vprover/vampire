@@ -81,6 +81,13 @@ struct InductionContext {
   Formula* getFormula(TermList r, bool opposite, Substitution* subst = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
+  LiteralIterator iterLits() const {
+    auto res = LiteralIterator::getEmpty();
+    for (const auto& kv : _cls) {
+      res = pvi(getConcatenatedIterator(res, kv.second.iter()));
+    }
+    return res;
+  }
 
   vstring toString() const {
     vstringstream str;

@@ -257,9 +257,9 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case GENERAL_LHS_INDEX:
+  case INDUCTION_POSTPONEMENT_LHS_INDEX:
     tis = new TermSubstitutionTree();
-    res = new GeneralLHSIndex(tis);
+    res = new InductionPostponementLHSIndex(tis);
     isGenerating = false;
     break;
 

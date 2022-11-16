@@ -368,7 +368,7 @@ void Statistics::print(ostream& out)
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
       +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
-      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication);
+      theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution);
   COND_OUT("Binary resolution", resolution);
   COND_OUT("Unit resulting resolution", urResolution);
   COND_OUT("Binary resolution with abstraction",cResolution);
@@ -388,6 +388,20 @@ void Statistics::print(ostream& out)
   COND_OUT("TheoryInstSimpTautologies",theoryInstSimpTautologies);
   COND_OUT("TheoryInstSimpLostSolution",theoryInstSimpLostSolution);
   COND_OUT("TheoryInstSimpEmptySubstitutions",theoryInstSimpEmptySubstitution);
+  COND_OUT("Argument congruence", argumentCongruence);
+  COND_OUT("Negative extensionality", negativeExtensionality);
+  COND_OUT("Primitive substitutions", primitiveInstantiations);
+  COND_OUT("Elimination of Leibniz equalities", leibnizElims);
+  COND_OUT("Choice axiom instances creatded", choiceInstances);
+  COND_OUT("Narrow", narrow);
+  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);
+  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);
+  COND_OUT("Self sub-variable superposition", selfSubVarSup);
+  SEPARATOR;
+
+  // these 3 values should be non-zero if any of the below ones are
+  HEADING("Induction",inductionApplication+generalizedInductionApplication
+      +postponedInductionApplications);
   COND_OUT("MaxInductionDepth",maxInductionDepth);
   COND_OUT("StructuralInduction",structInduction);
   COND_OUT("StructuralInductionInProof",structInductionInProof);
@@ -415,15 +429,6 @@ void Statistics::print(ostream& out)
   COND_OUT("GeneralizedInductionApplicationsInProof",generalizedInductionApplicationInProof);
   COND_OUT("PostponedInductions",postponedInductions);
   COND_OUT("PostponedInductionApplications",postponedInductionApplications);
-  COND_OUT("Argument congruence", argumentCongruence);
-  COND_OUT("Negative extensionality", negativeExtensionality);
-  COND_OUT("Primitive substitutions", primitiveInstantiations);
-  COND_OUT("Elimination of Leibniz equalities", leibnizElims);
-  COND_OUT("Choice axiom instances creatded", choiceInstances);
-  COND_OUT("Narrow", narrow);
-  COND_OUT("Forward sub-variable superposition", forwardSubVarSup);
-  COND_OUT("Backward sub-variable superposition", backwardSubVarSup);
-  COND_OUT("Self sub-variable superposition", selfSubVarSup);
   SEPARATOR;
 
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+

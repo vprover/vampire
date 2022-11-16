@@ -80,14 +80,14 @@ private:
   const Options& _opt;
 };
 
-class GeneralLHSIndex
+class InductionPostponementLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(GeneralLHSIndex);
-  USE_ALLOCATOR(GeneralLHSIndex);
+  CLASS_NAME(InductionPostponementLHSIndex);
+  USE_ALLOCATOR(InductionPostponementLHSIndex);
 
-  GeneralLHSIndex(TermIndexingStructure* is)
+  InductionPostponementLHSIndex(TermIndexingStructure* is)
   : TermIndex(is) {}
 protected:
   void handleClause(Clause* c, bool adding);

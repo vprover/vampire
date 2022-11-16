@@ -1458,6 +1458,13 @@ void Options::init()
     _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_nonUnitInduction);
 
+    _inductionPostponement = BoolOptionValue("induction_postponement","indpp",true);
+    _inductionPostponement.description = "Postpone structural inductions that cannot be refuted by the current"
+                                         "set of clauses until suitable clauses pop up in the search space.";
+    _inductionPostponement.tag(OptionTag::INFERENCES);
+    _inductionPostponement.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionPostponement);
+
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
     _instantiation.tag(OptionTag::INFERENCES);

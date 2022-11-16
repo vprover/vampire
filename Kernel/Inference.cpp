@@ -256,6 +256,12 @@ void Inference::updateStatistics()
       }
       break;
   }
+  // This is better updated here as the original increments are lost
+  // in the recalculation when postprocessing the proof
+  if (_rule == InferenceRule::INDUCTION_HYPERRESOLUTION ||
+      _rule == InferenceRule::GEN_INDUCTION_HYPERRESOLUTION) {
+    _inductionDepth++;
+  }
 }
 
 vstring Inference::toString() const
