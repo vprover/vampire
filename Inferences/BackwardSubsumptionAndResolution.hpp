@@ -51,8 +51,6 @@ public:
 
   static Kernel::Clause *generateSubsumptionResolutionClause(Kernel::Clause *cl, Kernel::Literal *lit, Kernel::Clause *baseClause);
 
-  static void printStats(std::ostream &out);
-
 private:
   bool _subsumption;
   bool _subsumptionResolution;

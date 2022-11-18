@@ -29,10 +29,8 @@ namespace SATSubsumption {
 class SATSubsumptionAndResolution;
 
 /**
- * Class implementing the simplifying rules of subsumption and subsumption resolution using SAT.
- *
- * @since 24/10/2022
- * @author Robin Coutelier (contribution Micheal Rawson & Jakob Rath)
+ * Class implementing the simplifying rules of subsumption and subsumption resolution using
+ * a SAT solver.
  */
 class SATSubsumptionAndResolution {
 #if VDEBUG
@@ -126,7 +124,7 @@ private:
     /// the list is stored in the order in which they are added to the set
     Lib::vvector<Lib::vvector<Match>> _jMatches;
 
-#if SAT_SR_IMPL == 1
+#if SAT_SR_IMPL == 2
     /// @brief Metadata remembering whether some positive match or negative match was found for each literal in L
     /// @remark
     /// This information only needs 2 bits
@@ -176,9 +174,6 @@ private:
 
     /**
      * Adds a new match to the set
-     * @pre Assumes that the matches fields i and j are set and will not change
-     * @pre Assumes that the match was allocated by allocateMatch()
-     *
      * @param i the index of the literal in L
      * @param j the index of the literal in M
      * @param polarity the polarity of the match
@@ -203,7 +198,7 @@ private:
      */
     Lib::vvector<Match> &getJMatches(unsigned j);
 
-#if SAT_SR_IMPL == 1
+#if SAT_SR_IMPL == 2
     /**
      * Returns true if the j-th literal in M has a positive match in the set
      * @param j the index of the literal in M
@@ -226,8 +221,14 @@ private:
     Lib::vvector<Match> getAllMatches();
 
     /**
+     * Returns the number of matches in the set
+     * @return the number of matches in the set
+     */
+    unsigned getMatchCount();
+
+    /**
      * Checks whether the sat variable @b v is linked to a match
-     * * @pre Assumes that the matches are linked to variables in an increasing order
+     * @pre Assumes that the matches are linked to variables in an increasing order
      * (the first match being associated with variable 0, then 1, and so on)
      * No leaps are authorized
      * @param v the variable
@@ -267,9 +268,6 @@ private:
   SolverWrapper *_solver;
   /// @brief the bindings manager
   BindingsManager *_bindingsManager;
-  /// @brief a vector used to store the sat variables that are subjected to the at most one constraint (will hold the c_j)
-  /// The unsigned value is the index of the literal in the instance clause
-  Lib::vvector<std::pair<unsigned, subsat::Var>> _atMostOneVars;
   /// @brief the match set used to store the matches between the base and instance clauses
   MatchSet _matchSet;
   /// @brief model of the SAT solver
@@ -282,20 +280,26 @@ private:
 
   /* Methods */
   /**
-   * Set up the subsumption problem.
-   * @pre _L and _M must be set in the checker
-   * @pre the Match set is already filled
-   * @return false if no solution is possible and true if there may exist a solution.
+   * Sets up the problem and cleans the match set
+   * @param L the base clause
+   * @param M the instance clause
    */
-  bool cnfForSubsumption();
+  void setupProblem(Kernel::Clause *L,
+                    Kernel::Clause *M);
 
   /**
-   * Set up the subsumption resolution problem.
-   * @pre _L and _M must be set in the checker
-   * @pre the Match set is already filled
-   * @return false if no solution is possible and true if there may exist a solution.
+   * Heuristically predicts whether subsumption or subsumption resolution will fail.
+   * This method should be fast.
+   * @return true if subsumption is impossible
    */
-  bool cnfForSubsumptionResolution();
+  bool pruneSubsumption();
+
+  /**
+   * Heuristically predicts whether subsumption resolution will fail.
+   * This method should be fast
+   * @return true if subsumption resolution is impossible
+   */
+  bool pruneSubsumptionResolution();
 
   /**
    * Adds one binding to the SAT solver and the match set
@@ -311,12 +315,21 @@ private:
                   bool polarity);
 
   /**
-   * Sets up the problem and cleans the match set
-   * @param L the base clause
-   * @param M the instance clause
+   * Set up the subsumption problem.
+   * @pre _L and _M must be set in the checker
+   * @pre the Match set is already filled
+   * @return false if no solution is possible and true if there may exist a solution.
    */
-  void setupProblem(Kernel::Clause *L,
-                    Kernel::Clause *M);
+  bool cnfForSubsumption();
+
+  /**
+   * Set up the subsumption resolution problem in the SAT solver.
+   * @remark The BindingsManager is not required to be set up in this method.
+   * @pre _L and _M must be set in the checker
+   * @pre the Match set is already filled
+   * @return false if no solution is possible and true if there may exist a solution.
+   */
+  bool cnfForSubsumptionResolution();
 
   /**
    * Checks whether there exists a substitution from the literals @b l_i and @b m_j.
@@ -373,7 +386,7 @@ public:
    *
    * @remark The @b setNegative parameter is used to save time on the setup of subsumption resolution. If it is intended to check for subsumption resolution right after, it is better to set it to true and call checkSubsumptionResolution with the flag usePreviousMatchSet set to true.
    *
-   * A clause L subsumes a clause M if there exists a substitution \f$\sigma\f$ such that \f$\sigma(M)\subseteq L\f$.
+   * A clause L subsumes a clause M if there exists a substitution \f$\sigma\f$ such that \f$\sigma(L)\subseteq M\f$.
    * Where L and M are considered as multisets of literals.
    */
   bool checkSubsumption(Kernel::Clause *L,
@@ -392,7 +405,7 @@ public:
    *
    * L /\ M => L /\ M* where M* is the conclusion of the subsumption resolution
    *
-   * Subsumption resolution is possible for two clauses (L' V L*) and (m' V M*) if there exists a substitution "s" such that
+   * Subsumption resolution is possible for two clauses (L* V L') and (m' V M*) if there exists a substitution "s" such that
    * s(L') = {~m'} /\ s(L*) \\subseteq M*
    * Where m' is a single literal. The conclusion of the subsumption resolution becomes M*.
    * @example
@@ -409,10 +422,7 @@ public:
                                              Kernel::Clause *M,
                                              bool usePreviousMatchSet = false);
 
-  /**
-   * Clears all the caches.
-   */
-  void clear();
+  static void printStats(std::ostream& out);
 
   /**
    * @brief Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.

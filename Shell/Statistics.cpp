@@ -489,22 +489,9 @@ void Statistics::print(ostream& out)
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
-  // ForwardSubsumptionAndResolution::printStats(out);
-  // addCommentSignForSZS(out);
-  // out << "------------------------------\n";
-
-  // BackwardSubsumptionAndResolution::printStats(out);
-  // addCommentSignForSZS(out);
-  // out << "------------------------------\n";
-
   ForwardBenchmarkWrapper::printStats(out);
   addCommentSignForSZS(out);
   out << "------------------------------\n";
-
-  // SATSubsumption::SATSubsumptionAndResolution::printStats(out);
-  // addCommentSignForSZS(out);
-  // out << "------------------------------\n";
-  //statFile.close();
 
 #undef SEPARATOR
 #undef COND_OUT

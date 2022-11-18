@@ -54,90 +54,6 @@ using namespace Saturation;
 using namespace std::chrono;
 
 /***************************************************************/
-/*                     STATS COMPUTATION                       */
-/***************************************************************/
-class BwSRStats {
-public:
-  int64_t m_logged_count_s = 0;
-  int64_t m_logged_success_s = 0;
-  int64_t m_logged_count_sr = 0;
-  int64_t m_logged_success_sr = 0;
-  int64_t m_logged_useless_sat_checks_sr = 0;
-  duration<int64_t, std::nano> m_time_on_perform = duration<int64_t, std::nano>::zero();
-  duration<int64_t, std::nano> m_time_on_subsumption = duration<int64_t, std::nano>::zero();
-  duration<int64_t, std::nano> m_time_on_resolution = duration<int64_t, std::nano>::zero();
-  std::chrono::high_resolution_clock::time_point start_time_perform = high_resolution_clock::now();
-  std::chrono::high_resolution_clock::time_point start_time_subsumption = high_resolution_clock::now();
-  std::chrono::high_resolution_clock::time_point start_time_resolution = high_resolution_clock::now();
-
-  bool started_perform = false;
-  bool started_subsumption = false;
-  bool started_resolution = false;
-
-  void startPerform()
-  {
-    start_time_perform = high_resolution_clock::now();
-    started_perform = true;
-  }
-  void startSubsumption()
-  {
-    start_time_subsumption = high_resolution_clock::now();
-    started_subsumption = true;
-  }
-  void startResolution()
-  {
-    start_time_resolution = high_resolution_clock::now();
-    started_resolution = true;
-  }
-  void stopPerform()
-  {
-    m_time_on_perform += high_resolution_clock::now() - start_time_perform;
-    started_perform = false;
-  }
-  void stopSubsumption(bool success)
-  {
-    m_time_on_subsumption += high_resolution_clock::now() - start_time_subsumption;
-    m_logged_count_s++;
-    m_logged_success_s += success;
-    started_subsumption = false;
-  }
-  void stopResolution(bool success)
-  {
-    m_time_on_resolution += high_resolution_clock::now() - start_time_resolution;
-    m_logged_count_sr++;
-    m_logged_success_sr += success;
-    started_resolution = false;
-  }
-};
-
-static BwSRStats bwStats;
-
-void BackwardSubsumptionAndResolution::printStats(std::ostream &out)
-{
-  out << "**** Backward subsumption and resolution ****" << endl;
-  out << "\% Total time on perform: " << ((double)bwStats.m_time_on_perform.count() / 1000000000) << " s\n";
-
-  out << "\% Total time on subsumption: " << ((double)bwStats.m_time_on_subsumption.count() / 1000000000) << " s\n";
-  out << "\% Subsumptions to be logged: " << bwStats.m_logged_count_s << "\n";
-  out << "\% Subsumption Successes    : " << bwStats.m_logged_success_s << "\n\n";
-
-  out << "\% Total time on subsumption resolution: " << ((double)bwStats.m_time_on_resolution.count() / 1000000000) << " s\n";
-  out << "\% Subsumption Resolutions to be logged: " << bwStats.m_logged_count_sr << "\n";
-  out << "\% Subsumption Resolution Successes    : " << bwStats.m_logged_success_sr << "\n";
-  out << "\% Useless Subsumptions Resolution sat checks : " << bwStats.m_logged_useless_sat_checks_sr << "\n\n";
-
-  if (bwStats.started_perform) {
-    out << "Did not end perform" << endl;
-  }
-  if (bwStats.started_subsumption) {
-    out << "Did not end subsumption" << endl;
-  }
-  if (bwStats.started_resolution) {
-    out << "Did not end resolution" << endl;
-  }
-}
-
-/***************************************************************/
 /*                        CORE METHODS                         */
 /***************************************************************/
 void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
@@ -169,7 +85,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
   CALL("BackwardSubsumptionAndResolution::perform");
-  bwStats.startPerform();
   ASSERT_VALID(*cl);
   ASS(_bwIndex);
   simplifications = BwSimplificationRecordIterator::getEmpty();
@@ -181,9 +96,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
 
   if (_subsumption) {
     BwSimplificationRecordIterator subsumptions;
-    bwStats.startSubsumption();
     _slqbs.perform(cl, subsumptions);
-    bwStats.stopSubsumption(subsumptions.hasNext());
     while (subsumptions.hasNext()) {
       BwSimplificationRecord rec = subsumptions.next();
       subsumed.insert(rec.toRemove);
@@ -193,9 +106,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
 
   if (_subsumptionResolution) {
     BwSimplificationRecordIterator resolutions;
-    bwStats.startResolution();
     _bsr.perform(cl, resolutions);
-    bwStats.stopResolution(resolutions.hasNext());
     while (resolutions.hasNext()) {
       BwSimplificationRecord rec = resolutions.next();
       if (!subsumed.contains(rec.toRemove)) {
@@ -203,18 +114,17 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       }
     }
   }
+}
 #else
 void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
   CALL("BackwardSubsumptionAndResolution::perform");
-  bwStats.startPerform();
-  ASSERT_VALID(*cl);
-  ASS(_bwIndex);
+  ASSERT_VALID(*cl)
+  ASS(_bwIndex)
   simplifications = BwSimplificationRecordIterator::getEmpty();
 
   if (!_subsumption && !_subsumptionResolution) {
-    bwStats.stopPerform();
     return;
   }
 
@@ -244,9 +154,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         if (!_checked.insert(icl)) {
           continue;
         }
-        bwStats.startSubsumption();
         subsumedSet.insert(icl);
-        bwStats.stopSubsumption(true);
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
       }
     }
@@ -260,10 +168,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         if (subsumedSet.contains(icl) || !_checked.insert(icl)) {
           continue;
         }
-        bwStats.startResolution();
         Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, (*icl)[0], cl);
-        bwStats.stopResolution(true);
-        ASS(conclusion);
+        ASS(conclusion)
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
     }
@@ -271,7 +177,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
   }
 
   if (_subsumptionByUnitsOnly && _srByUnitsOnly) {
-    ASS(!simplificationBuffer);
+    ASS(!simplificationBuffer)
     goto check_correctness;
   }
 
@@ -290,14 +196,9 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
           continue;
         }
         // check subsumption and setup subsumption resolution at the same time
-        bwStats.startSubsumption();
         if (satSubs.checkSubsumption(cl, icl, _subsumptionResolution)) {
-          bwStats.stopSubsumption(true);
           List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
           subsumedSet.insert(icl);
-        }
-        else {
-          bwStats.stopSubsumption(false);
         }
       }
     }
@@ -319,9 +220,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         }
 
         // check subsumption resolution
-        bwStats.startResolution();
         Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, false);
-        bwStats.stopResolution(conclusion != nullptr);
         if (conclusion) {
           List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
         }
@@ -335,9 +234,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         }
 
         // check subsumption resolution
-        bwStats.startResolution();
         Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, false);
-        bwStats.stopResolution(conclusion != nullptr);
         if (conclusion) {
           List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
         }
@@ -362,20 +259,15 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         bool checkS = _subsumption && !_subsumptionByUnitsOnly;
         bool checkSR = _subsumptionResolution && !_srByUnitsOnly;
         if (checkS) {
-          bwStats.startSubsumption();
           if (satSubs.checkSubsumption(cl, icl, checkSR)) {
-            bwStats.stopSubsumption(true);
             List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
             subsumedSet.insert(icl);
             continue;
           }
-          bwStats.stopSubsumption(false);
         }
         if (checkSR) {
           // check subsumption resolution
-          bwStats.startResolution();
           Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, checkS); // use the previous setup only if subsumption was checked
-          bwStats.stopResolution(conclusion != nullptr);
           if (conclusion) {
             List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
           }
@@ -398,9 +290,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
           continue;
         }
         // check subsumption resolution
-        bwStats.startResolution();
         Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, false);
-        bwStats.stopResolution(conclusion != nullptr);
         if (conclusion) {
           List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
         }
@@ -413,7 +303,6 @@ check_correctness:
   if (simplificationBuffer) {
     simplifications = pvi(List<BwSimplificationRecord>::Iterator(simplificationBuffer));
   }
-  bwStats.stopPerform();
 
 #if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION
   // The efficiency of this code is very terrible, but it is only used for debugging

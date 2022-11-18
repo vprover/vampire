@@ -157,6 +157,19 @@ TEST_FUN(NegativeSubsumption)
   Kernel::Clause *L4 = clause({p2(y5, f(f2(x1, c))), ~p(c), ~p(y5)});
   Kernel::Clause *M4 = clause({~q(d), p2(c, f(f2(x4, c))), r(d), ~p(c), d == g(c)});
   ASS(!subsumption.checkSubsumption(L4, M4));
+
+  // check that multisets are not subsumed
+  Kernel::Clause *L5 = clause({p(x1), x1 == f(x2), p(x2)});
+  Kernel::Clause *M5 = clause({p(y1), y1 == f(y1)});
+  ASS(!subsumption.checkSubsumption(L5, M5));
+
+  Kernel::Clause *L6 = clause({p(x1), x1 == f(x2), p(x2), q(x1)});
+  Kernel::Clause *M6 = clause({p(y1), y1 == f(y1), q(y2), r(y3)});
+  ASS(!subsumption.checkSubsumption(L6, M6));
+
+  Kernel::Clause *L7 = clause({p(f(x1)), p(f(x2))});
+  Kernel::Clause *M7 = clause({p(f(y1)), p(g(y2))});
+  ASS(!subsumption.checkSubsumption(L7, M7));
 }
 
 /**

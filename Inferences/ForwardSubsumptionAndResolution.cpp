@@ -234,7 +234,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _fwIndex->getGeneralizations(lit, true, false);
     while (it.hasNext()) {
       mcl = it.next().clause;
-      if (!checkedClauses.insert(mcl)) {
+      if (!checkedClauses.insert(mcl)
+      || (!_checkLongerClauses && mcl->length() > clen)) {
         continue;
       }
 
