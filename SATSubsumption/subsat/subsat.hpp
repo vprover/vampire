@@ -499,7 +499,8 @@ public:
     assert(checkEmpty());
   }
 
-  /// Reset solver to empty state, but keep allocated memory buffers.
+  /// Reset the constraint database, but keep the variables and theories.
+  /// Also keeps the allocated memory buffers.
   void clear_constraints()
   {
     uint32_t const old_used_vars = m_used_vars;

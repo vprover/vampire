@@ -34,7 +34,7 @@ class SATSubsumptionAndResolution;
  */
 class SATSubsumptionAndResolution {
 #if VDEBUG
-  // Make it public to allow unit testing
+// Make it public to allow unit testing
 public:
 #else
 private:
@@ -72,7 +72,13 @@ private:
               _polarity(true),
               _var(subsat::Var(0)) {}
 
-    Match(unsigned baseLitIndex, unsigned instanceLitIndex, bool isPositive, subsat::Var satVar) : _i(baseLitIndex), _j(instanceLitIndex), _polarity(isPositive), _var(satVar) {}
+    Match(unsigned baseLitIndex,
+          unsigned instanceLitIndex,
+          bool isPositive,
+          subsat::Var satVar) : _i(baseLitIndex),
+                                _j(instanceLitIndex),
+                                _polarity(isPositive),
+                                _var(satVar) {}
 
     std::string toString() const
     {
@@ -125,7 +131,7 @@ private:
     Lib::vvector<Lib::vvector<Match>> _jMatches;
 
 #if SAT_SR_IMPL == 2
-    /// @brief Metadata remembering whether some positive match or negative match was found for each literal in L
+    /// @brief Metadata remembering whether some positive match or negative match was found for each literal in M
     /// @remark
     /// This information only needs 2 bits
     /// - 00 -> no match
@@ -134,7 +140,16 @@ private:
     /// - 11 -> both positive and negative match
     /// Since we only need 2 bits, 4 values fit in one byte
     /// The interest value for i is therefore
-    /// state[i / 4] & (0b11 << (2 * (i % 4)))) >> (2 * (i % 4)
+    /// state[j / 4] & (0b11 << (2 * (j % 4))) >> (2 * (j % 4))
+    /// @example For example, if we have 5 literals in M, the state will be
+    /// 0b 00 10 01 11 | 0b 00
+    /// and the interest value for j=2 will be state[0]
+    /// 0b 00 10 01 11
+    /// After passing the mask 0b 00 11 0 00 (= (0b11 << (2 * (2 % 4)))) )
+    /// 0b 00 10 00 00
+    /// After shifting 4 bits to the right (>> (2 * (j % 4)))
+    /// 0b 00 00 00 10
+    /// We know that m_2 does not have a positive match, but has a negative match
     Lib::vvector<uint8_t> _jStates;
 #endif
 
@@ -143,10 +158,9 @@ private:
     /// @brief the number literals in M
     unsigned _n;
 
-    /// @brief vector of matches used to associate a sat variable index to a match
-    Lib::vvector<Match> _varToMatch;
     /// @brief contains the list of all the the matches indexed in the match set
-    Lib::vvector<Match> _referencedMatches;
+    /// If the properties of AddMatch are respected, then _matches[i] is the match with the sat variable i
+    Lib::vvector<Match> _matches;
 
     /**
      * Creates a new match set for clauses L of size m and M of size n
@@ -154,7 +168,8 @@ private:
      * @param m the length of clause L
      * @param n the length of clause M
      */
-    MatchSet(unsigned m, unsigned n);
+    MatchSet(unsigned m,
+             unsigned n);
 
     /**
      * Frees all the matches allocated by the set
@@ -170,21 +185,30 @@ private:
      *
      * @warning the allocated matches will remain accessible but will be no longer be reserved. It would therefore be preferable to not keep the matches after calling this function.
      */
-    void resize(unsigned m, unsigned n);
+    void resize(unsigned m,
+                unsigned n);
 
     /**
      * Adds a new match to the set
+     *
+     * @pre the match must be valid (i.e. @b i < _m and @b j < _n)
+     * @pre the sar variable @b var must follow the one that was added before, or be 0 if no match was added before
+     *
      * @param i the index of the literal in L
      * @param j the index of the literal in M
      * @param polarity the polarity of the match
      * @param var the sat variable associated with the match
      * @return the newly added match
      */
-    SATSubsumptionAndResolution::Match addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var);
+    SATSubsumptionAndResolution::Match addMatch(unsigned i,
+                                                unsigned j,
+                                                bool polarity,
+                                                subsat::Var var);
 
     /**
      * Returns the vector of matches for the given literal in L.
      * The vectors should not be modified
+     *
      * @param i the index of the literal in L
      * @return the vector of matches for the i-th literal in L
      */
@@ -193,6 +217,7 @@ private:
     /**
      * Returns the vector of matches for the given literal in M.
      * The vectors should not be modified
+     *
      * @param j the index of the literal in M
      * @return the vector of matches for the j-th literal in M
      */
@@ -201,6 +226,7 @@ private:
 #if SAT_SR_IMPL == 2
     /**
      * Returns true if the j-th literal in M has a positive match in the set
+     *
      * @param j the index of the literal in M
      * @return whether m_j has a positive match in the set
      */
@@ -208,6 +234,7 @@ private:
 
     /**
      * Returns true if the j-th literal in M has a negative match in the set
+     *
      * @param j the index of the literal in M
      * @return whether m_j has a negative match in the set
      */
@@ -216,18 +243,21 @@ private:
 
     /**
      * Returns all the matches in the set
+     *
      * @return all the matches in the set
      */
     Lib::vvector<Match> getAllMatches();
 
     /**
      * Returns the number of matches in the set
+     *
      * @return the number of matches in the set
      */
     unsigned getMatchCount();
 
     /**
      * Checks whether the sat variable @b v is linked to a match
+     *
      * @pre Assumes that the matches are linked to variables in an increasing order
      * (the first match being associated with variable 0, then 1, and so on)
      * No leaps are authorized
@@ -249,6 +279,7 @@ private:
 
     /**
      * Clears the match set
+     *
      * @warning the allocated matches will remain accessible but will be no longer be reserved. I would therefore be preferable to not keep the matches after calling this function.
      */
     void clear();
@@ -280,7 +311,8 @@ private:
 
   /* Methods */
   /**
-   * Sets up the problem and cleans the match set
+   * Sets up the problem and cleans the match set and bindings
+   *
    * @param L the base clause
    * @param M the instance clause
    */
@@ -290,6 +322,7 @@ private:
   /**
    * Heuristically predicts whether subsumption or subsumption resolution will fail.
    * This method should be fast.
+   *
    * @return true if subsumption is impossible
    */
   bool pruneSubsumption();
@@ -297,12 +330,14 @@ private:
   /**
    * Heuristically predicts whether subsumption resolution will fail.
    * This method should be fast
+   *
    * @return true if subsumption resolution is impossible
    */
   bool pruneSubsumptionResolution();
 
   /**
    * Adds one binding to the SAT solver and the match set
+   *
    * @param binder the binder between the literals
    * @param varNumber the variable number of the binder
    * @param i the index of the literal in the base clause
@@ -315,7 +350,8 @@ private:
                   bool polarity);
 
   /**
-   * Set up the subsumption problem.
+   * Adds the clauses for the subsumption problem to the sat solver
+   *
    * @pre _L and _M must be set in the checker
    * @pre the Match set is already filled
    * @return false if no solution is possible and true if there may exist a solution.
@@ -323,7 +359,8 @@ private:
   bool cnfForSubsumption();
 
   /**
-   * Set up the subsumption resolution problem in the SAT solver.
+  * Adds the clauses for the subsumption resolution problem to the sat solver
+   *
    * @remark The BindingsManager is not required to be set up in this method.
    * @pre _L and _M must be set in the checker
    * @pre the Match set is already filled
@@ -352,18 +389,21 @@ private:
 
   /**
    * Fills the match set and the bindings manager with all the possible positive bindings between the literals of L and M.
+   *
    * @return false if no subsumption solution is possible, the number of sat variables allocated otherwise.
    */
   bool fillMatchesS();
 
   /**
    * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of L and M.
+   *
    * @return false if no subsumption resolution solution is possible, the number of sat variables allocated otherwise.
    */
   void fillMatchesSR();
 
   /**
    * Generates the conclusion clause based on the model provided by the sat solver
+   *
    * @pre the match set must fill filled
    * @pre the model must be set by the sat solver
    * @return the conclusion clause
@@ -379,6 +419,7 @@ public:
 
   /**
    * Checks whether the instance clause is subsumed by the base clause
+   *
    * @param L the base clause
    * @param M the instance clause
    * @param setNegative if true, the Match set will be filled with negative matches as well.
@@ -422,11 +463,10 @@ public:
                                              Kernel::Clause *M,
                                              bool usePreviousMatchSet = false);
 
-  static void printStats(std::ostream& out);
-
   /**
-   * @brief Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.
-   * L V L' /\ M_bar V @b m_j => L V L' /\ M_bar
+   * Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.
+   * L V L' /\ M* V @b m_j => L V L' /\ M*
+   *
    * @param M The clause to be subsumed after resolution.
    * @param m_j The literal on which the subsumption resolution is performed.
    * @param L The clause resolving with @b M.
