@@ -59,6 +59,16 @@ Stack<Literal*> constraintLits(Stack<UnificationConstraint>& cnst, RobSubstituti
 }
 
 
+Stack<Literal*> constraintLits(UnificationConstraintStackSP& cnst, RobSubstitution& subs) {
+
+  if (cnst) {
+    return constraintLits(*cnst, subs);
+  } else {
+    return Stack<Literal*>();
+  }
+}
+
+
 TermIndexingStructure* getTermIndexHOL()
 { 
   // env.options->setUWA(Shell::Options::UnificationWithAbstraction::)
@@ -116,7 +126,7 @@ void checkLiteralMatches(LiteralIndexingStructure* index, Literal* lit, Stack<Li
     is.push(LiteralUnificationResultSpec {
         .querySigma = qr.substitution->apply(lit, /* result */ false),
         .resultSigma = qr.substitution->apply(qr.literal, /* result */ true),
-        .constraints = constraintLits(*qr.constraints, *qr.substitution->tryGetRobSubstitution()),
+        .constraints = constraintLits(qr.constraints, *qr.substitution->tryGetRobSubstitution()),
     });
   }
   if (Test::TestUtils::permEq(is, expected, [](auto& l, auto& r) { return l == r; })) {
@@ -136,23 +146,25 @@ void checkLiteralMatches(LiteralIndexingStructure* index, Literal* lit, Stack<Li
   }
   // cout << endl;
 }
-void checkTermMatches(TermIndexingStructure* index, TermList term, TermList sort, Stack<TermUnificationResultSpec> expected)
+
+template<class F>
+void checkTermMatchesWithUnifFun(TermIndexingStructure* index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
 {
   Stack<TermUnificationResultSpec> is;
-  for (auto qr : iterTraits(index->getUnificationsUsingSorts(term,sort,true)) ) {
+  for (auto qr : iterTraits(unifFun(index, term))) {
 
     is.push(TermUnificationResultSpec {
         .querySigma = qr.substitution->apply(term, /* result */ false),
         .resultSigma = qr.substitution->apply(qr.term, /* result */ true),
-        .constraints = constraintLits(*qr.constraints, *qr.substitution->tryGetRobSubstitution()),
+        .constraints = constraintLits(qr.constraints, *qr.substitution->tryGetRobSubstitution()),
     });
   }
   if (Test::TestUtils::permEq(is, expected, [](auto& l, auto& r) { return l == r; })) {
     cout << "[  OK  ] " << term << endl;
   } else {
     cout << "[ FAIL ] " << term << endl;
-    cout << "tree: " << *index;
-    cout << "query: " << term << ": " << sort;
+    cout << "tree: " << *index << endl;
+    cout << "query: " << term << endl;
 
     cout << "is:" << endl;
     for (auto& x : is)
@@ -165,6 +177,18 @@ void checkTermMatches(TermIndexingStructure* index, TermList term, TermList sort
     exit(-1);
   }
   // cout << endl;
+
+}
+void checkTermMatches(TermIndexingStructure* index, TermList term, Stack<TermUnificationResultSpec> expected)
+{
+  return checkTermMatchesWithUnifFun(index, term, expected, 
+      [&](auto idx, auto t) { return idx->getUnifications(term, true); });
+}
+
+void checkTermMatches(TermIndexingStructure* index, TermList term, TermList sort, Stack<TermUnificationResultSpec> expected)
+{
+  return checkTermMatchesWithUnifFun(index, term, expected, 
+      [&](auto idx, auto t) { return idx->getUnificationsUsingSorts(term, sort, true); });
 }
 
 TEST_FUN(term_indexing_one_side_interp)
@@ -178,10 +202,29 @@ TEST_FUN(term_indexing_one_side_interp)
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
 
+  cout << *index << endl;
   index->insert(num(1) + num(1), p(num(1) + num(1)), unit(p(num(1) + num(1))));
+  cout << *index << endl;
   index->insert(1 + a, p(1 + a), unit(p(a + a)));
+  cout << *index << endl;
   
-  checkTermMatches(index, b + 2, Int,
+  checkTermMatches(index, x,
+      { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = 1 + a,
+          .resultSigma = 1 + a,
+          .constraints = Stack<Literal*>() }, 
+
+        TermUnificationResultSpec 
+        { .querySigma  = 1 + num(1),
+          .resultSigma = 1 + num(1),
+          .constraints = Stack<Literal*>() }, 
+
+      });
+
+  
+  checkTermMatches(index, b + 2,
       { 
 
         TermUnificationResultSpec 
@@ -198,7 +241,7 @@ TEST_FUN(term_indexing_one_side_interp)
 
   index->insert(a,p(a),unit(p(a)));
 
-  checkTermMatches(index,b + 2, Int, {
+  checkTermMatches(index, b + 2, {
 
         TermUnificationResultSpec 
         { .querySigma  = 2 + b,
@@ -218,7 +261,7 @@ TEST_FUN(term_indexing_one_side_interp)
       });
 
 
-  checkTermMatches(index, x, Int, {
+  checkTermMatches(index, x, {
 
         TermUnificationResultSpec 
         { .querySigma  = 1 + a,
@@ -240,7 +283,7 @@ TEST_FUN(term_indexing_one_side_interp)
 
   index->insert(f(x),p(f(x)),unit(p(f(x))));
 
-  checkTermMatches(index, f(a), Int, {
+  checkTermMatches(index, f(a), {
 
         TermUnificationResultSpec 
         { .querySigma  = f(a),
@@ -260,7 +303,7 @@ TEST_FUN(term_indexing_one_side_interp)
 
       });
 
-  checkTermMatches(index, a + 3, Int, {
+  checkTermMatches(index, a + 3, {
 
         TermUnificationResultSpec 
         { .querySigma  = 3 + a,

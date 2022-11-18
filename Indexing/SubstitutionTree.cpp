@@ -154,6 +154,7 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
     if(svBindings.isEmpty()) {
       *pnode=createLeaf();
     } else {
+      cout << "blaaa" << endl;
       *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
     }
   }
@@ -992,5 +993,36 @@ SubstitutionTree::NodeIterator
   }
 }
 
+void Indexing::SubstitutionTree::IntermediateNode::output(std::ostream& out) const {
+  out << term << " ; ";
+  out << "$" << childVar << " -> ";
+  out << " [ ";
+  // TODO create const version of allChildren
+  auto iter = iterTraits(((IntermediateNode*)this)->allChildren());
+  if (iter.hasNext()) {
+    (*iter.next())->output(out);
+    for (auto x : iter) {
+      out << " | ";
+      (*x)->output(out);
+    }
+  }
+  out << " ]";
+}
 
+void Indexing::SubstitutionTree::Leaf::output(std::ostream& out) const {
+  out << term;
+}
+
+std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& self)
+{
+  out << "nextVar: $" << self._nextVar << " nodes: [ ";
+  for (auto n : self._nodes) {
+    if (n) {
+      n->output(out);
+      out << ", ";
+    }
+  }
+  out << "]";
+  return out;
+}
 

@@ -82,6 +82,7 @@ public:
 
 #if VDEBUG
   virtual void markTagged(){ SubstitutionTree::markTagged();}
+  virtual void output(std::ostream& out) const;
 #endif
 
 private:

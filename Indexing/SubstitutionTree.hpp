@@ -183,6 +183,7 @@ public:
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
     virtual bool withSorts(){ return false; }
+    virtual void output(std::ostream& out) const = 0;
     /**
      * Return number of elements held in the node.
      *
@@ -351,6 +352,7 @@ public:
      * This node has to still exist in time of the call to remove method.
      */
     virtual void remove(TermList t) = 0;
+    virtual void output(std::ostream& out) const;
 
     /**
      * Remove all children of the node without destroying them.
@@ -431,6 +433,7 @@ public:
     virtual void insert(LeafData ld) = 0;
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
+    virtual void output(std::ostream& out) const;
 
     virtual void print(unsigned depth=0){
        auto children = allChildren();
@@ -921,6 +924,7 @@ public:
 
   int _iteratorCnt;
 #endif
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
 }; // class SubstiutionTree
 

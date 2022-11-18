@@ -74,6 +74,7 @@ void TermSubstitutionTree::insert(TermList t, LeafData ld)
 
   unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
+      cout << "blaaa" << endl;
   SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);  
 }
 
@@ -165,7 +166,7 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
 
-  ASS(_extByAbs);
+  // ASS(_extByAbs);
 
   bool sortVar = sort.isVar();
   bool sortArrow = sort.isArrowSort();
@@ -218,6 +219,12 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsWithConstraints(Ter
   }
 }
 
+#if VDEBUG
+void TermSubstitutionTree::output(std::ostream& out) const
+{
+  out << *((SubstitutionTree*)this);
+}
+#endif // VDEBUG
 
 bool TermSubstitutionTree::generalizationExists(TermList t)
 {
