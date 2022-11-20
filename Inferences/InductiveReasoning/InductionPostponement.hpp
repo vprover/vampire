@@ -46,6 +46,7 @@ public:
 
 private:
   void performInductionsIfNeeded(TermList t, Literal* lit, Clause* cl, InductionClauseIterator& clIt);
+  Clause* findActivatingClauseForIndex(const InductionContext& ctx, unsigned index);
 
   SaturationAlgorithm* _salg;
   InductionFormulaIndex& _formulaIndex;
@@ -54,7 +55,7 @@ private:
   TermIndex* _lhsIndex;
   LiteralIndex* _literalIndex;
   DHMap<Literal*,Stack<InductionFormulaKey>> _literalMap;
-  DHMap<InductionFormulaKey,Term*> _toBeRemoved;
+  DHSet<Literal*> _toBeRemoved;
   bool _enabled = false;
 };
 

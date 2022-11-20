@@ -893,8 +893,10 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   ASS(cls.isNonEmpty());
   bool generalized = false;
   for (const auto& kv : context._cls) {
-    // we have to check this due to postponed inductions
-    if (_splitter && !_splitter->allSplitLevelsActive(kv.first->splits())) {
+    // we have to check these due to postponed inductions
+    if (kv.first->store() == Clause::NONE ||
+        (_splitter && !_splitter->allSplitLevelsActive(kv.first->splits())))
+    {
       // Either this clause will be never activated again and we don't
       // need the corresponding induction or else we can redo it the normal way
       return;
