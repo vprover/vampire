@@ -133,6 +133,11 @@ bool InductionPostponement::maybePostpone(const InductionContext& ctx, Induction
     e->_activatingClauses.push(activating);
     if (!activating) {
       postpone = true;
+      // rest of the activated clauses will be lazily updated later
+      for (unsigned j = i+1; j < ta->nConstructors(); j++) {
+        e->_activatingClauses.push(nullptr);
+      }
+      break;
     }
   }
   if (postpone) {
@@ -163,7 +168,9 @@ bool InductionPostponement::maybePostpone(const InductionContext& ctx, Induction
           }
           _postponedTermIndex.insert(t, tlit, nullptr);
         }
-        _postponedLitIndex.insert(tlit, nullptr);
+        if (!tlit->isEquality()) {
+          _postponedLitIndex.insert(tlit, nullptr);
+        }
       }
       ASS(ks);
       ks->push(InductionFormulaIndex::represent(ctx));
@@ -221,7 +228,9 @@ void InductionPostponement::checkForPostponedInductions(Literal* lit, Clause* cl
     Literal* lit = rit.next();
     _literalMap.remove(lit);
     DHSet<Term*> removed;
-    _postponedLitIndex.remove(lit, nullptr);
+    if (!lit->isEquality()) {
+      _postponedLitIndex.remove(lit, nullptr);
+    }
     NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
       auto t = it.next();
@@ -257,21 +266,41 @@ void InductionPostponement::performInductionsIfNeeded(TermList t, Literal* lit, 
   for (unsigned i = 0; i < ks->size();) {
     auto e = _formulaIndex.findByKey((*ks)[i]);
     ASS(e);
-    ASS(e->_postponed);
+    if (!e->_postponed) {
+      swap((*ks)[i],ks->top());
+      ks->pop();
+      continue;
+    }
     ASS(e->_postponedApplications.isNonEmpty());
 
     ASS_EQ(e->_activatingClauses.size(), ta->nConstructors());
-    bool activate = true;
+    // first round, we check whether the cl is activating
+    bool activate = false;
     for (unsigned j = 0; j < ta->nConstructors(); j++) {
-      auto& acl = e->_activatingClauses[j];
-      if (acl && acl->store() == Clause::NONE) {
-        acl = findActivatingClauseForIndex(e->_postponedApplications[0], j);
+      auto& curr = e->_activatingClauses[j];
+      if ((!curr || curr->store()==Clause::NONE) &&
+          ta->constructor(j)->functor() == t.term()->functor())
+      {
+        if (!curr) {
+          activate = true;
+        }
+        curr = cl;
+        // the functor matches at most one ctor, we can break
+        break;
       }
-      if (!acl) {
-        if (ta->constructor(j)->functor() == t.term()->functor()) {
-          acl = cl;
-        } else {
+    }
+    if (!activate) {
+      i++;
+      continue;
+    }
+    // second round, if cl is activating, we update the rest
+    for (unsigned j = 0; j < ta->nConstructors(); j++) {
+      auto& curr = e->_activatingClauses[j];
+      if (!curr || curr->store() == Clause::NONE) {
+        curr = findActivatingClauseForIndex(e->_postponedApplications[0], j);
+        if (!curr) {
           activate = false;
+          break;
         }
       }
     }
