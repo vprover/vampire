@@ -127,8 +127,9 @@ struct EqualityFactoring::ResultFn
         fLHSreplaced = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(fLHS.term(), &funcSubtermMap);
       }
       subst.setMap(&funcSubtermMap);
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0, &hndlr)) {
+      MismatchHandler::StackConstraintSet c(constraints);
+      HOMismatchHandler h;
+      if(!subst.unify(sLHSreplaced,0,fLHSreplaced,0, &h,&c)) {
         return 0;
       }
     } else {

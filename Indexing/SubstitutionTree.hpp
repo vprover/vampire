@@ -815,28 +815,28 @@ public:
 #endif
   };
 
-  class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
-  {
-  public:
-    SubstitutionTreeMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
-      UWAMismatchHandler(c), _constraints(c), _bd(bd) {}
-    //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
-  private:
-    virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2);
-    Stack<UnificationConstraint>& _constraints;
-    BacktrackData& _bd;
-  };
-
-  class STHOMismatchHandler : public HOMismatchHandler 
-  {
-  public:
-    STHOMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
-      HOMismatchHandler(c), _constraints(c), _bd(bd) {}
-    virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
-  private:
-    Stack<UnificationConstraint>& _constraints;
-    BacktrackData& _bd;
-  };  
+  // class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
+  // {
+  // public:
+  //   SubstitutionTreeMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
+  //     UWAMismatchHandler(c), _constraints(c), _bd(bd) {}
+  //   //virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
+  // private:
+  //   virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2);
+  //   Stack<UnificationConstraint>& _constraints;
+  //   BacktrackData& _bd;
+  // };
+  //
+  // class STHOMismatchHandler : public HOMismatchHandler 
+  // {
+  // public:
+  //   STHOMismatchHandler(Stack<UnificationConstraint>& c, BacktrackData& bd) : 
+  //     HOMismatchHandler(c), _constraints(c), _bd(bd) {}
+  //   virtual bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2);
+  // private:
+  //   Stack<UnificationConstraint>& _constraints;
+  //   BacktrackData& _bd;
+  // };  
 
   class UnificationsIterator
   : public IteratorCore<QueryResult>

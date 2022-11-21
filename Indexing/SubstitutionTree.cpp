@@ -925,24 +925,24 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   return success;
 }
 
-bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
-{
-  CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
-  
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
-  _constraints.backtrackablePush(constraint,_bd);
-  return true;
-}
-
-bool SubstitutionTree::STHOMismatchHandler::handle
-     (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
-{
-  CALL("SubstitutionTree::STHOMismatchHandler::handle");
-
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
-  _constraints.backtrackablePush(constraint,_bd);
-  return true;
-}
+// bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
+// {
+//   CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
+//   
+//   auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
+//   _constraints.backtrackablePush(constraint,_bd);
+//   return true;
+// }
+//
+// bool SubstitutionTree::STHOMismatchHandler::handle
+//      (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
+// {
+//   CALL("SubstitutionTree::STHOMismatchHandler::handle");
+//
+//   auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
+//   _constraints.backtrackablePush(constraint,_bd);
+//   return true;
+// }
 
 /**
  * TODO: explain properly what associate does
@@ -956,13 +956,14 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   //should never require theory resoning (at the moment, theories cannot be parsed in HOL)
   //However, a user can still set UWA option on. We don't wan't that to result in 
   //the wrong handler being used.
+  MismatchHandler::BacktrackableStackConstraintSet c(constraints, bd);
   if(useHOConstraints){
-    STHOMismatchHandler hndlr(constraints,bd);
-    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
+    HOMismatchHandler h;
+    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&h, &c);
   }
   if(useUWAConstraints){ 
-    SubstitutionTreeMismatchHandler hndlr(constraints,bd);
-    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+    UWAMismatchHandler h;
+    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&h, &c);
   } 
   return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
 }

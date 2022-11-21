@@ -25,41 +25,75 @@ namespace Kernel
 class MismatchHandler
 {
 public:
-  // returns true if the mismatch was handled.
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2) = 0;
+  struct ConstraintSet 
+  { virtual void addConstraint(
+      TermList t1, unsigned i1, 
+      TermList t2, unsigned i2) = 0; };
+
+  struct StackConstraintSet final : public ConstraintSet
+  { 
+    Stack<UnificationConstraint>& constr;
+
+    StackConstraintSet(Stack<UnificationConstraint>& constr) 
+      : constr(constr) {}
+
+    virtual void addConstraint(
+      TermList t1, unsigned i1, 
+      TermList t2, unsigned i2) final override 
+    { constr.push(make_pair(make_pair(t1, i1), make_pair(t2, i2))); } 
+  };
+
+  struct BacktrackableStackConstraintSet final : public ConstraintSet
+  { 
+    Stack<UnificationConstraint> &constr;
+    BacktrackData& bd;
+
+    BacktrackableStackConstraintSet(Stack<UnificationConstraint>& constr, BacktrackData& bd) 
+      : constr(constr)
+      , bd(bd) {}
+
+    virtual void addConstraint(
+      TermList t1, unsigned i1, 
+      TermList t2, unsigned i2) final override 
+    { constr.backtrackablePush(make_pair(make_pair(t1, i1), make_pair(t2, i2)), bd); } 
+  };
+
+  /** TODO document */
+  virtual bool tryAbstract(
+      TermList t1, unsigned i1, 
+      TermList t2, unsigned i2,
+      RobSubstitution& subs,
+      ConstraintSet& constr) const = 0;
 };
 
-class UWAMismatchHandler : public MismatchHandler
+class UWAMismatchHandler final : public MismatchHandler
 {
 public:
-  UWAMismatchHandler(Stack<UnificationConstraint>& c) : constraints(c) /*, specialVar(0)*/ {}
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
-
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
 
-private:
-  bool checkUWA(TermList t1, TermList t2); 
-  virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2);
+  virtual bool tryAbstract(
+      TermList t1, unsigned i1, 
+      TermList t2, unsigned i2,
+      RobSubstitution& subs,
+      ConstraintSet& constr) const final override;
 
-  Stack<UnificationConstraint>& constraints;
-  // unsigned specialVar;
+  bool canAbstract(
+      TermList t1, 
+      TermList t2) const;
 };
 
 class HOMismatchHandler : public MismatchHandler
 {
 public:
-  HOMismatchHandler(UnificationConstraintStack& c) : constraints(c) {}
-  
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
-
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);
 
-private:
-
-  Stack<UnificationConstraint>& constraints;
-  // unsigned specialVar;
+  virtual bool tryAbstract(
+      TermList t1, unsigned i1, 
+      TermList t2, unsigned i2,
+      RobSubstitution& subs,
+      ConstraintSet& constr) const final override;
 };
 
 

@@ -695,10 +695,13 @@ static const int NORM_QUERY_BANK=2;
 static const int NORM_RESULT_BANK=3;
 
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
+  // TODO parameter instead of opts
+  env.options->setUWA(opt);
   Stack<UnificationConstraint> cnst;
-  UWAMismatchHandler h(cnst);
+  MismatchHandler::StackConstraintSet c(cnst);
+  UWAMismatchHandler h;
   RobSubstitution subs;
-  bool result = subs.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK);
+  bool result = subs.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK, &h, &c);
   if (result) {
 
     return some(TermUnificationResultSpec { 
@@ -765,8 +768,6 @@ void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstracti
     DEFAULT_SUGAR                                                                                   \
     checkRobUnifyFail(lhs, rhs, opt);                                                               \
   }                                                                                                 \
-
-
 
 ROB_UNIFY_TEST(rob_unif_test_01,
     Options::UnificationWithAbstraction::ONE_INTERP,

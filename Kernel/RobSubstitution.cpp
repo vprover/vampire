@@ -35,11 +35,11 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr, MismatchHandler::ConstraintSet* constr)
 {
   CALL("RobSubstitution::unify/4");
 
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr);
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr, constr);
 }
 
 /**
@@ -47,7 +47,7 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, Mis
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr)
+bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr, MismatchHandler::ConstraintSet* constr)
 {
   CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
@@ -55,7 +55,7 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, Misma
   TermList t1TL(t1);
   TermList t2TL(t2);
 
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr);
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr, constr);
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -203,27 +203,27 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   _bank.set(v,b);
 }
 
-void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, MismatchHandler* hndlr)
-{
-  CALL("RobSubstitution::addToConstraints");
-
-  Term* t1 = _funcSubtermMap->get(v1.var);
-  Term* t2 = _funcSubtermMap->get(v2.var);
-
-  if(t1 == t2 && t1->shared() && t1->ground()){ return; }
- 
-  TermList tt1 = TermList(t1);
-  TermList tt2 = TermList(t2);
-
-  TermSpec t1spec = TermSpec(tt1, v1.index);
-  TermSpec t2spec = TermSpec(tt2, v2.index);
-
-  if(t1spec.sameTermContent(t2spec)){ return; }
-
-  //cout << "adding to constraints <" + tt1.toString() + ", " + tt2.toString() + ">" << endl; 
-
-  hndlr->handle(this, tt1, v1.index, tt2, v2.index);
-}
+// void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, MismatchHandler* hndlr)
+// {
+//   CALL("RobSubstitution::addToConstraints");
+//
+//   Term* t1 = _funcSubtermMap->get(v1.var);
+//   Term* t2 = _funcSubtermMap->get(v2.var);
+//
+//   if(t1 == t2 && t1->shared() && t1->ground()){ return; }
+//  
+//   TermList tt1 = TermList(t1);
+//   TermList tt2 = TermList(t2);
+//
+//   TermSpec t1spec = TermSpec(tt1, v1.index);
+//   TermSpec t2spec = TermSpec(tt2, v2.index);
+//
+//   if(t1spec.sameTermContent(t2spec)){ return; }
+//
+//   //cout << "adding to constraints <" + tt1.toString() + ", " + tt2.toString() + ">" << endl; 
+//
+//   hndlr->handle(this, tt1, v1.index, tt2, v2.index);
+// }
 
 
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
@@ -302,21 +302,21 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
+bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, MismatchHandler::ConstraintSet* constr)
 {
   CALL("RobSubstitution::unify/2");
+  ASS((hndlr == nullptr) == (constr == nullptr))
 
-  if(t1.sameTermContent(t2)) {
+  if(s.sameTermContent(t)) {
     return true;
   }
 
-  bool mismatch=false;
   BacktrackData localBD;
   bdRecord(localBD);
 
   static Stack<TTPair> toDo(64);
-  static Stack<TermList*> subterms(64);
-  ASS(toDo.isEmpty() && subterms.isEmpty());
+  ASS(toDo.isEmpty());
+  toDo.push(make_pair(s, t));
 
   // Save encountered unification pairs to avoid
   // recomputing their unification
@@ -325,122 +325,75 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   EncStore encountered;
   encountered.reset();
 
+  auto tryAbstract = [&](auto l, auto r) 
+  { return hndlr && hndlr->tryAbstract(l.term, l.index, r.term, r.index, *this, *constr); };
+
+  bool mismatch=false;
   // Iteratively resolve unification pairs in toDo
   // the current pair is always in t1 and t2 with their dereferenced
   // version in dt1 and dt2
-  for(;;) {
-    TermSpec dt1=derefBound(t1);
-    TermSpec dt2=derefBound(t2);
+  while (toDo.isNonEmpty()) {
+    auto x = toDo.pop();
+    TermSpec dt1=derefBound(x.first);
+    TermSpec dt2=derefBound(x.second);
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
     if(dt1.sameTermContent(dt2)) {
-    } else if(dt1.isVSpecialVar() && dt2.isVSpecialVar()){
-      ASS(hndlr);
-      addToConstraints(getVarSpec(dt1), getVarSpec(dt2), hndlr);
-    } 
     // Deal with the case where eithe rare variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
-    else if(dt1.isVar() && !dt1.isVSpecialVar()) {
-      VarSpec v1=getVarSpec(dt1);
-      if(occurs(v1, dt2)) {
-        mismatch=true;
-        break;
-      }
-      bind(v1,dt2);
-    } else if(dt2.isVar() && !dt2.isVSpecialVar()) {
-      VarSpec v2=getVarSpec(dt2);
-      if(occurs(v2, dt1)) {
-        mismatch=true;
-        break;
-      }
-      bind(v2,dt1);
-    } else if(dt1.isVSpecialVar()){
-      Term* t = _funcSubtermMap->get(dt1.term.var());
-      t1 = TermSpec(TermList(t), dt1.index);
-      toDo.push(TTPair(t1, dt2));
-    } else if(dt2.isVSpecialVar()){
-      Term* t = _funcSubtermMap->get(dt2.term.var());
-      t2 = TermSpec(TermList(t), dt2.index);
-      toDo.push(TTPair(dt1, t2));
-    } else {
-    // Case where both are terms
-      TermList* ss=&dt1.term;
-      TermList* tt=&dt2.term;
+    } else if(dt1.isVar() && !occurs(getVarSpec(dt1), dt2)) {
+      bind(getVarSpec(dt1),dt2);
+    } else if(dt2.isVar() && !occurs(getVarSpec(dt2), dt1)) {
+      bind(getVarSpec(dt2),dt1);
 
-      ASS(subterms.isEmpty());
+    } else if(tryAbstract(dt1, dt2)) {
+      /* we introduced constraints in tryAbstract */
 
-      // Generate todo unification pairs by traversing subterms
-      // until those subterms either definitely don't unify (report mismatch)
-      // or until we need to unify them to check 
-      for (;;) {
-        TermSpec tsss(*ss,dt1.index);
-        TermSpec tstt(*tt,dt2.index);
+    } else if(dt1.term.isTerm() && dt2.term.isTerm()) {
+      // Case where both are terms
+      ASS(dt1.term.isTerm())
+      ASS(dt2.term.isTerm())
+      ASS(dt1.term != dt2.term)
 
-        // If they don't have the same content but have the same top functor
-        // then we need to get their subterm arguments and check those
-        if (!tsss.sameTermContent(tstt) && TermList::sameTopFunctor(*ss,*tt)) {
-          ASS(ss->isTerm() && tt->isTerm());
+      auto f1 = dt1.term.term()->functor();
+      auto f2 = dt2.term.term()->functor();
 
-          Term* s = ss->term();
-          Term* t = tt->term();
-          ASS(s->arity() > 0);
-          ASS(s->functor() == t->functor());
 
-          ss = s->args();
-          tt = t->args();
-          if (! ss->next()->isEmpty()) {
-            subterms.push(ss->next());
-            subterms.push(tt->next());
+      if (f1 == f2) {
+        
+        auto s = dt1.term.term()->args();
+        auto t = dt2.term.term()->args();
+        while (!s->isEmpty()) {
+          auto pair = make_pair(TermSpec(*s, dt1.index), TermSpec(*t, dt2.index));
+
+
+          // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
+          // in order to safe memory we do ot do this for variables.
+          // (Note by joe:  didn't make this decision, but just keeping the implemenntation 
+          // working as before. i.e. as described in the paper "Comparing Unification 
+          // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
+          if (pair.first.isVar() && isUnbound(getVarSpec(pair.first)) &&
+              pair.second.isVar() && isUnbound(getVarSpec(pair.second))) {
+            toDo.push(pair);
+          } else if (!encountered.find(pair)) {
+            encountered.insert(pair);
+            toDo.push(pair);
           }
-        } else {
-          // If they do have the same top functor then their content is the same and
-          // we can ignore. Otherwise, if one is a variable we create a unification 
-          // pair and if neither are variables we consult the mismatch handler
-          if (! TermList::sameTopFunctor(*ss,*tt)) {
-            if(ss->isVar()||tt->isVar()) {
-              TTPair itm(tsss,tstt);
-              if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
-                 (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
-                toDo.push(itm);
-              } else if(!encountered.find(itm)) {
-                toDo.push(itm);
-                encountered.insert(itm);
-              }
-            } else {
-              // Eventually, we want to make theories using the hashing/very special variable
-              // mechanism used by higher-order logic to pruduce constraints.
-              // until then the first condition ensures that the handler is never called
-              // incorrectly. HOL also uses a handler, but it shouldn't be called here.
-              if(env.property->higherOrder() || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
-                mismatch=true;
-                break;
-              }
-            }
-          }
-
-          if (subterms.isEmpty()) {
-            break;
-          }
-          tt = subterms.pop();
-          ss = subterms.pop();
-          if (! ss->next()->isEmpty()) {
-            subterms.push(ss->next());
-            subterms.push(tt->next());
-          }
+          s = s->next();
+          t = t->next();
         }
+      } else {
+        mismatch = true;
+        break;
       }
+
     }
 
-    if(toDo.isEmpty() || mismatch) {
-      break;
-    }
-    t1=toDo.top().first;
-    t2=toDo.pop().second;
+    ASS(!mismatch)
   }
 
   if(mismatch) {
-    subterms.reset();
     toDo.reset();
   }
 

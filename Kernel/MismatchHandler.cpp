@@ -13,6 +13,7 @@
  *
  */
 
+#define DEBUG(...) DBG(__VA_ARGS__)
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 
@@ -28,69 +29,90 @@
 namespace Kernel
 {
 
-bool UWAMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
+bool UWAMismatchHandler::canAbstract(TermList t1, TermList t2) const 
 {
-  CALL("UWAMismatchHandler::handle");
 
-    TermList tt1 = sub->apply(t1,index1);
-    TermList tt2 = sub->apply(t2,index2);
+  if(!(t1.isTerm() && t2.isTerm())) return false;
 
-  if(checkUWA(tt1,tt2)){
-    return introduceConstraint(t1,index1,t2,index2);
+
+  bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
+  bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
+  bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
+
+  bool okay = true;
+ 
+  // TODO add parameter instead of reading from options
+  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
+  if(opt == Shell::Options::UnificationWithAbstraction::OFF){ return false; }
+
+  switch(opt){
+    case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
+      okay &= (t1Interp && t2Interp && !bothNumbers);
+      break;
+    case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
+      okay &= !bothNumbers && (t1Interp || t2Interp);
+      break;
+    case Shell::Options::UnificationWithAbstraction::CONSTANT:
+      okay &= !bothNumbers && (t1Interp || t2Interp);
+      okay &= (t1Interp || env.signature->functionArity(t1.term()->functor()));
+      okay &= (t2Interp || env.signature->functionArity(t2.term()->functor()));
+      break; 
+    case Shell::Options::UnificationWithAbstraction::ALL:
+    case Shell::Options::UnificationWithAbstraction::GROUND:
+      break;
+    default:
+      ASSERTION_VIOLATION;
   }
-  return false;
-}
+  return okay;
 
-bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
+}
+bool UWAMismatchHandler::tryAbstract(
+      TermList o1, unsigned i1, 
+      TermList o2, unsigned i2,
+      RobSubstitution& subs,
+      ConstraintSet& constr) const
 {
   CALL("UWAMismatchHandler::checkUWA");
 
-    if(!(t1.isTerm() && t2.isTerm())) return false;
-
-    bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
-    bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
-    bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
-
-    bool okay = true;
-   
-    static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-    if(opt == Shell::Options::UnificationWithAbstraction::OFF){ return false; }
-
-      switch(opt){
-        case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
-          okay &= (t1Interp && t2Interp && !bothNumbers);
-          break;
-        case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
-          okay &= !bothNumbers && (t1Interp || t2Interp);
-          break;
-        case Shell::Options::UnificationWithAbstraction::CONSTANT:
-          okay &= !bothNumbers && (t1Interp || t2Interp);
-          okay &= (t1Interp || env.signature->functionArity(t1.term()->functor()));
-          okay &= (t2Interp || env.signature->functionArity(t2.term()->functor()));
-          break; 
-        case Shell::Options::UnificationWithAbstraction::ALL:
-        case Shell::Options::UnificationWithAbstraction::GROUND:
-          break;
-        default:
-          ASSERTION_VIOLATION;
-      }
-   return okay;
+  auto t1 = subs.apply(o1, i1);
+  auto t2 = subs.apply(o2, i2);
+  auto abs = canAbstract(t1, t2);
+  DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
+  if (abs) {
+    constr.addConstraint(o1, i1, o2, i2);
+  }
+  return abs;
 }
 
-bool UWAMismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2)
-{
-  auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
-  constraints.push(constraint);
-  return true;
-}
+// bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
+// {
+// }
 
-bool HOMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
-{
-  CALL("HOMismatchHandler::handle");
+// bool UWAMismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2)
+// {
+//   auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
+//   constraints.push(constraint);
+//   return true;
+// }
+//
+// bool HOMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
+// {
+//   CALL("HOMismatchHandler::handle");
+//
+//   auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
+//   constraints.push(constraint);
+//   return true; 
+// }
 
-  auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
-  constraints.push(constraint);
-  return true; 
+bool HOMismatchHandler::tryAbstract(
+    TermList o1, unsigned i1, 
+    TermList o2, unsigned i2,
+    RobSubstitution& subs,
+    ConstraintSet& constr) const
+{
+  // TODO
+  DBG("TODO")
+  return false;
 }
 
 }

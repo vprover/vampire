@@ -105,16 +105,17 @@ struct EqualityResolution::ResultFn
     constraints.reset();
     subst.setMap(&funcSubtermMap);
 
+    MismatchHandler::StackConstraintSet c(constraints);
     if(use_uwa_handler){
-      UWAMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
+      UWAMismatchHandler h;
+      if(!subst.unify(arg0,0,arg1,0,&h,&c)){ 
         return 0; 
       }
     }
 
     if(use_ho_handler){
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
+      HOMismatchHandler h;
+      if(!subst.unify(arg0,0,arg1,0,&h,&c)){ 
         return 0; 
       }    
     }
