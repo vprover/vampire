@@ -350,44 +350,36 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Misma
     } else if(tryAbstract(dt1, dt2)) {
       /* we introduced constraints in tryAbstract */
 
-    } else if(dt1.term.isTerm() && dt2.term.isTerm()) {
+    } else if(dt1.term.isTerm() && dt2.term.isTerm() 
+        && TermList::sameTopFunctor(dt1.term, dt2.term)) {
       // Case where both are terms
-      ASS(dt1.term.isTerm())
-      ASS(dt2.term.isTerm())
       ASS(dt1.term != dt2.term)
 
-      auto f1 = dt1.term.term()->functor();
-      auto f2 = dt2.term.term()->functor();
+      auto s = dt1.term.term()->args();
+      auto t = dt2.term.term()->args();
+      while (!s->isEmpty()) {
+        auto pair = make_pair(TermSpec(*s, dt1.index), TermSpec(*t, dt2.index));
 
 
-      if (f1 == f2) {
-        
-        auto s = dt1.term.term()->args();
-        auto t = dt2.term.term()->args();
-        while (!s->isEmpty()) {
-          auto pair = make_pair(TermSpec(*s, dt1.index), TermSpec(*t, dt2.index));
-
-
-          // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
-          // in order to safe memory we do ot do this for variables.
-          // (Note by joe:  didn't make this decision, but just keeping the implemenntation 
-          // working as before. i.e. as described in the paper "Comparing Unification 
-          // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
-          if (pair.first.isVar() && isUnbound(getVarSpec(pair.first)) &&
-              pair.second.isVar() && isUnbound(getVarSpec(pair.second))) {
-            toDo.push(pair);
-          } else if (!encountered.find(pair)) {
-            encountered.insert(pair);
-            toDo.push(pair);
-          }
-          s = s->next();
-          t = t->next();
+        // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
+        // in order to safe memory we do ot do this for variables.
+        // (Note by joe:  didn't make this decision, but just keeping the implemenntation 
+        // working as before. i.e. as described in the paper "Comparing Unification 
+        // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
+        if (pair.first.isVar() && isUnbound(getVarSpec(pair.first)) &&
+            pair.second.isVar() && isUnbound(getVarSpec(pair.second))) {
+          toDo.push(pair);
+        } else if (!encountered.find(pair)) {
+          encountered.insert(pair);
+          toDo.push(pair);
         }
-      } else {
-        mismatch = true;
-        break;
+        s = s->next();
+        t = t->next();
       }
 
+    } else {
+      mismatch = true;
+      break;
     }
 
     ASS(!mismatch)

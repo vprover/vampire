@@ -217,6 +217,8 @@ struct IndexTest {
       DECL_PRED(p, {Int})                                                                           \
       DECL_FUNC(f, {Int}, Int)                                                                      \
       DECL_FUNC(g, {Int}, Int)                                                                      \
+      DECL_FUNC(f2, {Int, Int}, Int)                                                                \
+      DECL_FUNC(g2, {Int, Int}, Int)                                                                \
       DECL_CONST(a, Int)                                                                            \
       DECL_CONST(b, Int)                                                                            \
     )                                                                                               \
@@ -473,15 +475,15 @@ TEST_FUN(term_indexing_poly_01)
 }
 
 
-#define POLY_INT_SUGAR \
-  DECL_DEFAULT_VARS \
-  DECL_DEFAULT_SORT_VARS   \
-  NUMBER_SUGAR(Int) \
-  DECL_POLY_CONST(b, 1, alpha) \
-  DECL_POLY_CONST(a, 1, alpha) \
-  DECL_POLY_FUNC(f, 1, {alpha}, alpha) \
-  DECL_SORT(A) \
-  DECL_CONST(someA, A) \
+#define POLY_INT_SUGAR                                                                              \
+  DECL_DEFAULT_VARS                                                                                 \
+  DECL_DEFAULT_SORT_VARS                                                                            \
+  NUMBER_SUGAR(Int)                                                                                 \
+  DECL_POLY_CONST(b, 1, alpha)                                                                      \
+  DECL_POLY_CONST(a, 1, alpha)                                                                      \
+  DECL_POLY_FUNC(f, 1, {alpha}, alpha)                                                              \
+  DECL_SORT(A)                                                                                      \
+  DECL_CONST(someA, A)                                                                              \
 
 
 
@@ -745,27 +747,17 @@ void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstracti
   }
 }
 
-#define DEFAULT_SUGAR                                                                               \
-    __ALLOW_UNUSED(                                                                                 \
-      DECL_DEFAULT_VARS                                                                             \
-      NUMBER_SUGAR(Int)                                                                             \
-      DECL_FUNC(f, {Int}, Int)                                                                      \
-      DECL_FUNC(g, {Int}, Int)                                                                      \
-      DECL_CONST(a, Int)                                                                            \
-      DECL_CONST(b, Int)                                                                            \
-    ) 
-
 #define ROB_UNIFY_TEST(name, opt, lhs, rhs, ...)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
-    DEFAULT_SUGAR                                                                                   \
+    INT_SUGAR                                                                                   \
     checkRobUnify(lhs, rhs, opt, __VA_ARGS__ );                                                     \
   }                                                                                                 \
 
 #define ROB_UNIFY_TEST_FAIL(name, opt, lhs, rhs)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
-    DEFAULT_SUGAR                                                                                   \
+    INT_SUGAR                                                                                   \
     checkRobUnifyFail(lhs, rhs, opt);                                                               \
   }                                                                                                 \
 
@@ -812,4 +804,14 @@ ROB_UNIFY_TEST(rob_unif_test_05,
       .querySigma = f(a + b),
       .resultSigma = f(x + y),
       .constraints = { x + y != a + b },
+    })
+
+ROB_UNIFY_TEST(rob_unif_test_06,
+    Options::UnificationWithAbstraction::ONE_INTERP,
+    f2(x, x + 1), 
+    f2(a, a),
+    TermUnificationResultSpec { 
+      .querySigma = f2(a, a + 1),
+      .resultSigma = f2(a, a),
+      .constraints = { a != a + 1 },
     })
