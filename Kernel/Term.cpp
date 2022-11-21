@@ -43,7 +43,7 @@
 #define ALWAYS_OUTPUT_TERM_ITE 0
 
 // changes whether theory terms are nicely formatted ($plus($uminus(s),t) vs (-(s) + t) )
-#define NICE_THEORY_OUTPUT 0
+#define NICE_THEORY_OUTPUT 1
 
 using namespace std;
 using namespace Lib;
@@ -764,7 +764,8 @@ vstring Term::toString(bool topLevel) const
   auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
     auto unary = [&](auto sym)  {
       vstringstream out;
-      out << sym << "(" << termArg(0) << ")";
+      // out << sym << "(" << termArg(0) << ")";
+      out << sym << termArg(0);
       return Option<vstring>(out.str());
     };
     auto binary = [&](auto sym)  {
@@ -784,7 +785,7 @@ vstring Term::toString(bool topLevel) const
       /* nothing */
     } else if (isSort()) {
       /* nothing */
-    } else if (isApplication()) {
+    } else {
       if (_functor == NumTraits::addF()) {
         return binary("+");
       } else if (_functor == NumTraits::mulF()) {
@@ -802,6 +803,7 @@ vstring Term::toString(bool topLevel) const
 #endif // NICE_THEORY_OUTPUT
 
   vstring s = headToString();
+  
 
   if (_arity && printArgs) {
     s += args()->asArgsToString(); // will also print the ')'

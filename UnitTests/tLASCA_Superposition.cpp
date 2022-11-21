@@ -567,5 +567,17 @@ TEST_GENERATION(bug04,
       ))
     )
 
+TEST_GENERATION(bug05,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .selfApplications(true)
+      .inputs  ({ 
+          clause({ x == true, x == false   })
+        })
+      .expected(exactly(
+          /* nothing */
+      ))
+    )
+
 // iG8(sK29)[ sK29 ] ( inLitPlus: 1 )
 // X0 = X1 \/ real__refqtmk(X0) != real__refqtmk(X1)
