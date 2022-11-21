@@ -3598,6 +3598,7 @@ void TPTP::endType()
     break;
   case TT_QUANTIFIED:
     VList* vl = _varLists.pop();
+    _sortLists.pop();
     t = new QuantifiedType(t, vl);
     tt = _typeTags.pop();
     break;    

@@ -54,7 +54,7 @@ public:
   static bool isInductionLiteral(Literal* l);
   static bool isInductionTermFunctor(unsigned f);
   static bool isIntInductionTermListInLiteral(TermList& tl, Literal* l);
-  static bool isStructInductionFunctor(unsigned f);
+  static bool isStructInductionTerm(Term* t);
 
 private:
   TermQueryResultIterator getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
