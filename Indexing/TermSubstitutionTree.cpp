@@ -74,7 +74,6 @@ void TermSubstitutionTree::insert(TermList t, LeafData ld)
 
   unsigned rootNodeIndex=getRootNodeIndex(normTerm);
 
-      cout << "blaaa" << endl;
   SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);  
 }
 

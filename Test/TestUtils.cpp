@@ -68,25 +68,31 @@ std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
   } else {
     auto term = t.term();
     auto func = term->functor();
-    if (theory->isInterpretedFunction(func)) {
-      switch(theory->interpretFunction(func)) {
+    Signature::Symbol* sym;
+    if (term->isSort()) {
+      sym = env.signature->getTypeCon(func);
+    } else {
+      if (theory->isInterpretedFunction(func)) {
+        switch(theory->interpretFunction(func)) {
 #define NUM_CASE(oper) \
-        case Kernel::Theory::INT_  ## oper: \
-        case Kernel::Theory::REAL_ ## oper: \
-        case Kernel::Theory::RAT_  ## oper
+          case Kernel::Theory::INT_  ## oper: \
+          case Kernel::Theory::REAL_ ## oper: \
+          case Kernel::Theory::RAT_  ## oper
 
-        NUM_CASE(PLUS):     
-          return printOp(out, term, "+");
-        NUM_CASE(MULTIPLY):
-          return printOp(out, term, "*");
-        // case Kernel::Theory::EQUAL:
-        //   return printOp("=")
-        default: {}
+          NUM_CASE(PLUS):     
+            return printOp(out, term, "+");
+          NUM_CASE(MULTIPLY):
+            return printOp(out, term, "*");
+          // case Kernel::Theory::EQUAL:
+          //   return printOp("=")
+          default: {}
 #undef NUM_CASE
+        }
       }
+      sym = env.signature->getFunction(func);
     }
 
-    Signature::Symbol* sym = env.signature->getFunction(func);
+
     out << sym->name();
     if (sym->arity() > 0) {
       out << "(" << pretty(*term->nthArgument(0));

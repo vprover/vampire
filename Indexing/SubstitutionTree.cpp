@@ -154,7 +154,6 @@ void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
     if(svBindings.isEmpty()) {
       *pnode=createLeaf();
     } else {
-      cout << "blaaa" << endl;
       *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
     }
   }

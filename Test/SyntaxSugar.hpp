@@ -643,7 +643,7 @@ public:
     _functor = env.signature->addPredicate(name, as.size() + taArity);
     env.signature
       ->getPredicate(_functor)
-      ->setType(OperatorType::getPredicateType(as.size(), &as[0], taArity));    
+      ->setType(OperatorType::getPredicateType(as.size(), as.begin(), taArity));    
   }
 
   template<class... As>
