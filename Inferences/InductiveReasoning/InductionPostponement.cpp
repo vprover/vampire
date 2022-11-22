@@ -37,35 +37,58 @@ namespace InductiveReasoning
 using namespace Kernel;
 using namespace Lib; 
 
-inline bool isPureCtorTerm(TermList tt) {
+inline bool isPureCtorTerm(TermList tt)
+{
+  CALL("isPureCtorTerm");
+
   if (tt.isVar()) {
     return false;
   }
-  Set<unsigned> vars;
-  SubtermIterator sti(tt.term());
-  while (sti.hasNext()) {
-    auto st = sti.next();
-    if (st.isVar()) {
-      if (vars.contains(st.var())) {
-        // variable has multiple occurrences
-        return false;
-      }
-      vars.insert(st.var());
-    } else if (!env.signature->getFunction(st.term()->functor())->termAlgebraCons()) {
+  DHSet<unsigned> vars;
+  Stack<Term*> terms;
+  terms.push(tt.term());
+  while (terms.isNonEmpty()) {
+    auto t = terms.pop();
+    auto sym = env.signature->getFunction(t->functor());
+    if (!sym->termAlgebraCons()) {
       // not term algebra constructor
       return false;
+    }
+    for (unsigned i = sym->numTypeArguments(); i < sym->arity(); i++) {
+      auto ts = t->nthArgument(i);
+      if (ts->isVar()) {
+        if (!vars.insert(ts->var())) {
+          // variable has multiple occurrences
+          return false;
+        }
+      } else {
+        terms.push(ts->term());
+      }
     }
   }
   return true;
 }
 
-inline TermList createCtorWithVars(TermAlgebra* ta, unsigned index) {
+inline TermList createCtorWithVars(Term* t, unsigned index)
+{
+  CALL("createCtorWithVars");
+
+  TermList sort = SortHelper::getResultSort(t);
+  ASS(env.signature->isTermAlgebraSort(sort));
+  auto ta = env.signature->getTermAlgebraOfSort(sort);
   auto ctor = ta->constructor(index);
-  TermStack args(ctor->arity());
-  for (unsigned i = 0; i < ctor->arity(); i++) {
+  auto taArity = ctor->numTypeArguments();
+  auto arity = ctor->arity();
+
+  TermStack args(arity);
+  for (unsigned i = 0; i < taArity; i++) {
+    args.push(*sort.term()->nthArgument(i));
+  }
+  for (unsigned i = 0; i < arity-taArity; i++) {
     args.push(TermList(i,false));
   }
-  return TermList(Term::create(ctor->functor(), args.size(), args.begin()));
+  auto res = TermList(Term::create(ctor->functor(), args.size(), args.begin()));
+  return res;
 }
 
 void InductionPostponement::attach(SaturationAlgorithm* salg)
@@ -334,9 +357,6 @@ void InductionPostponement::performInductionsIfNeeded(TermList t, Literal* lit, 
 Clause* InductionPostponement::findActivatingClauseForIndex(const InductionContext& ctx, unsigned index)
 {
   CALL("InductionPostponement::findActivatingClauseForIndex");
-  TermList sort = SortHelper::getResultSort(ctx._indTerm);
-  ASS(env.signature->isTermAlgebraSort(sort));
-  auto ta = env.signature->getTermAlgebraOfSort(sort);
   auto ph = getPlaceholderForTerm(ctx._indTerm);
   TermReplacement trMaster(ph, VAR);
   RobSubstitution subst;
@@ -344,7 +364,7 @@ Clause* InductionPostponement::findActivatingClauseForIndex(const InductionConte
 
   // create ctor replacement
   Substitution ctorSubst;
-  ctorSubst.bind(VAR.var(), createCtorWithVars(ta, index));
+  ctorSubst.bind(VAR.var(), createCtorWithVars(ctx._indTerm, index));
 
   // check if there is a literal which unifies with an equality or
   // an opposite sign literal, if not store subterms in an index
