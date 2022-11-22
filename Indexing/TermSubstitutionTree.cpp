@@ -221,7 +221,26 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsWithConstraints(Ter
 #if VDEBUG
 void TermSubstitutionTree::output(std::ostream& out) const
 {
-  out << *((SubstitutionTree*)this);
+  auto& self = *this;
+  out << "nextVar: $" << self._nextVar << " [ ";
+  unsigned f = 0;
+  auto fst = true;
+  for (auto n : self._nodes) {
+    if (n) {
+      if (fst) {
+        fst = false;
+      } else {
+        out << " | ";
+      }
+      auto sym = env.signature->getFunction(f);
+      out << sym->name();
+      out << "(";
+      n->output(out);
+      out << ")";
+    }
+    f++;
+  }
+  out << "]";
 }
 #endif // VDEBUG
 

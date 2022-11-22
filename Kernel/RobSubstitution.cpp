@@ -344,6 +344,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Misma
     // cannot be currently bound as we already dereferenced
     } else if(dt1.isVar() && !occurs(getVarSpec(dt1), dt2)) {
       bind(getVarSpec(dt1),dt2);
+
     } else if(dt2.isVar() && !occurs(getVarSpec(dt2), dt1)) {
       bind(getVarSpec(dt2),dt1);
 

@@ -182,7 +182,7 @@ void checkTermMatchesWithUnifFun(TermIndexingStructure& index, TermList term, St
 void checkTermMatches(TermIndexingStructure& index, TermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUnifications(term, true); });
+      [&](auto& idx, auto t) { return idx.getUnificationsWithConstraints(term, true); });
 }
 
 void checkTermMatches(TermIndexingStructure& index, TermList term, TermList sort, Stack<TermUnificationResultSpec> expected)
@@ -311,6 +311,76 @@ RUN_TEST(term_indexing_one_side_interp_04,
         TermUnificationResultSpec 
         { .querySigma  = 2 + b,
           .resultSigma = 1 + num(1),
+          .constraints = { 2 + b != 1 + num(1), } }, 
+
+      }
+    })
+
+
+
+RUN_TEST(term_indexing_one_side_interp_04_b, 
+    INT_SUGAR,
+    IndexTest {
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
+      .insert = {
+        1 + a,
+      },
+      .query = 2 + a,
+      .expected = { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = 2 + a,
+          .resultSigma = 1 + a,
+          .constraints = { 1 + a != 2 + a, } },
+
+
+      }
+    })
+
+
+RUN_TEST(term_indexing_one_side_interp_04_c, 
+    INT_SUGAR,
+    IndexTest {
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
+      .insert = {
+        f(1 + num(1)),
+        f(1 + a),
+      },
+      .query = f( b + 2 ),
+      .expected = { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = f( 2 + b ),
+          .resultSigma = f( 1 + a ),
+          .constraints = { 1 + a != 2 + b, } },
+
+        TermUnificationResultSpec 
+        { .querySigma  = f( 2 + b ),
+          .resultSigma = f( 1 + num(1) ),
+          .constraints = { 2 + b != 1 + num(1), } }, 
+
+      }
+    })
+
+RUN_TEST(term_indexing_one_side_interp_04_d, 
+    INT_SUGAR,
+    IndexTest {
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
+      .insert = {
+        g(f(1 + num(1))),
+        g(f(1 + a)),
+      },
+      .query = g(f( b + 2 )),
+      .expected = { 
+
+        TermUnificationResultSpec 
+        { .querySigma  = g(f( 2 + b )),
+          .resultSigma = g(f( 1 + a )),
+          .constraints = { 1 + a != 2 + b, } },
+
+        TermUnificationResultSpec 
+        { .querySigma  = g(f( 2 + b )),
+          .resultSigma = g(f( 1 + num(1) )),
           .constraints = { 2 + b != 1 + num(1), } }, 
 
       }
