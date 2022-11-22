@@ -101,10 +101,12 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {
-    unsigned fn = _introducedSkolemSyms.pop();
-    InferenceStore::instance()->recordIntroducedSymbol(res,true,fn);
+    auto p = _introducedSkolemSyms.pop();
+    InferenceStore::instance()->recordIntroducedSymbol(res, p.second ? SymbolType::TYPE : SymbolType::FUN, p.first);
     if(unit->derivedFromGoal()){
-      env.signature->getFunction(fn)->markInGoal();
+      (p.second
+        ? env.signature->getTypeCon(p.first)
+        : env.signature->getFunction(p.first))->markInGoal();
     }
   }
 
@@ -528,7 +530,7 @@ Formula* Skolem::skolemise (Formula* f)
           skolemTerm = ApplicativeHelper::createAppTerm(
             SortHelper::getResultSort(head.term()), head, termVars).term();      
         }
-        _introducedSkolemSyms.push(sym);
+        _introducedSkolemSyms.push(make_pair(sym, skolemisingTypeVar));
 
         if(!successfully_reused) {
           env.statistics->skolemFunctions++;

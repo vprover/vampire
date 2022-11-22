@@ -502,7 +502,7 @@ namespace Inferences {
     
     OWN_ELEMENT_TYPE next()
     {
-      CALL("InjectivityGIE::SubtermIterator::next()");
+      CALL("AcyclicityGIE1::SubtermIterator::next()");
 
       Literal *newlit = Literal::createEquality(false,
                                                 *_lit->nthArgument(_leftSide ? 0 : 1),

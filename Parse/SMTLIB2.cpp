@@ -1707,12 +1707,12 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   if (varUsed) {
     Stack<TermList> argTerms;
     // the number of type arguments for all ctors is the arity of the type
-    unsigned numTypeArgs = env.signature->getTypeCon(sort.term()->functor())->typeConType()->arity();
+    unsigned numTypeArgs = env.signature->getTypeCon(matchedTermSort.term()->functor())->typeConType()->arity();
     for (const auto &kv : ctorFunctors) {
       argTerms.reset();
       for (unsigned j = 0; j < kv.second->arity(); j++) {
         if (j < numTypeArgs) {
-          argTerms.push(*sort.term()->nthArgument(j));
+          argTerms.push(*matchedTermSort.term()->nthArgument(j));
         } else {
           argTerms.push(TermList(_nextVar++, false));
         }

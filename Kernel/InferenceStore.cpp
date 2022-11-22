@@ -95,13 +95,13 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, bool func, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType type, unsigned number)
 {
   CALL("InferenceStore::recordIntroducedSymbol");
 
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  pStack->push(SymbolId(func,number));
+  pStack->push(SymbolId(type,number));
 }
 
 /**
@@ -688,11 +688,14 @@ protected:
     vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first) {
+      if (sym.first == SymbolType::FUN) {
 	symsStr << env.signature->functionName(sym.second);
       }
-      else {
+      else if (sym.first == SymbolType::PRED) {
 	symsStr << env.signature->predicateName(sym.second);
+      }
+      else {
+	symsStr << env.signature->typeConName(sym.second);
       }
       if (symIt.hasNext()) {
 	symsStr << ',';
@@ -876,7 +879,7 @@ protected:
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(false,nameLit->functor());
+    SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))

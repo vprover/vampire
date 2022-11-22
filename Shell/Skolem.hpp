@@ -107,7 +107,8 @@ private:
   DHMap<unsigned,TermList> _varSorts;
 
   // for some heuristic evaluations after we are done
-  Stack<unsigned> _introducedSkolemSyms;
+  // second true value indicates type symbol
+  Stack<pair<unsigned,bool>> _introducedSkolemSyms;
 
   FormulaUnit* _beingSkolemised;
 
