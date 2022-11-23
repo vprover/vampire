@@ -811,6 +811,10 @@ public:
       bindSpecialVar(1,*lit->nthArgument(0));
       bindSpecialVar(0,*lit->nthArgument(1));
 
+    } else if (lit->arity() == 0) {
+      // insert a dummy term
+      bindSpecialVar(0, TermList::var(0));
+
     } else {
 
       TermList* args=lit->args();
