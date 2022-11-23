@@ -683,12 +683,12 @@ public:
   /** Number of the next variable */
   int _nextVar;
   /** Array of nodes */
-  Node* _root;
   /** enable searching with constraints for this tree */
   bool _useC;
   /** functional subterms of a term are replaced by extra sepcial
       variables before being inserted into the tree */
   bool _rfSubs;
+  Node* _root;
 
   class LeafIterator
   : public IteratorCore<Leaf*>

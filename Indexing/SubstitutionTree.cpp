@@ -678,7 +678,7 @@ void SubstitutionTree::LeafIterator::skipToNextLeaf()
       _curr = nullptr;
     }
     if (_nodeIterators.isEmpty()) {
-      ASS_EQ(_curr,nullptr)
+      ASS_EQ(_curr,0)
       return;
     } else {
       _curr = *_nodeIterators.top().next();
@@ -696,34 +696,6 @@ bool SubstitutionTree::LeafIterator::hasNext()
 {
   CALL("SubstitutionTree::Leaf::hasNext");
   return _curr != nullptr;
-  // if (_curr->isLeaf()) {
-  //   return true;
-  // } else {
-  //   for (;;) {
-  //
-  //   }
-  // }
-  // //if(tag){cout << "leafIterator::hasNext" << endl;}
-  // for(;;) {
-  //   while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
-  //     _nodeIterators.pop();
-  //   }
-  //   if(_nodeIterators.isEmpty()) {
-  //     do {
-	// if(_nextRootPtr==_afterLastRootPtr) {
-	//   return false;
-	// }
-	// _curr=*(_nextRootPtr++);
-  //     } while(_curr==0);
-  //   } else {
-  //     _curr=*_nodeIterators.top().next();
-  //   }
-  //   if(_curr->isLeaf()) {
-  //     return true;
-  //   } else {
-  //     _nodeIterators.push(static_cast<IntermediateNode*>(_curr)->allChildren());
-  //   }
-  // }
 }
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
@@ -1048,7 +1020,7 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out) const
 
 
 #define VERBOSE 1
-std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& self)
+std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
 {
 #if VERBOSE
   out << "nextVar: S" << self._nextVar << " ";
