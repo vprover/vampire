@@ -59,35 +59,35 @@ private:
     CLASS_NAME(SATSubsumptionAndResolution::Match);
 
     // The index of the literal in L (base clause for subsumption resolution)
-    unsigned _i;
+    unsigned i;
     // The index of the literal in M (instance clause for subsumption resolution)
-    unsigned _j;
-    // The polarity of the match (true for positive, false for negative)
-    bool _polarity;
+    unsigned j;
     // The variable associated in the sat solver
-    subsat::Var _var;
+    subsat::Var var;
+    // The polarity of the match (true for positive, false for negative)
+    bool polarity;
 
-    Match() : _i(0),
-              _j(0),
-              _polarity(true),
-              _var(subsat::Var(0)) {}
+    Match() : i(0),
+              j(0),
+              var(subsat::Var(0)),
+              polarity(true) {}
 
     Match(unsigned baseLitIndex,
           unsigned instanceLitIndex,
           bool isPositive,
-          subsat::Var satVar) : _i(baseLitIndex),
-                                _j(instanceLitIndex),
-                                _polarity(isPositive),
-                                _var(satVar) {}
+          subsat::Var satVar) : i(baseLitIndex),
+                                j(instanceLitIndex),
+                                var(satVar),
+                                polarity(isPositive) {}
 
     std::string toString() const
     {
-      return "Match(" + to_string(_i) + ", " + to_string(_j) + ", " + to_string(_polarity) + ", " + to_string(_var.index()) + ")";
+      return "Match(" + to_string(i) + ", " + to_string(j) + ", " + to_string(polarity) + ", " + to_string(var.index()) + ")";
     }
 
     bool operator==(const Match &other) const
     {
-      return _i == other._i && _j == other._j && _polarity == other._polarity && _var == other._var;
+      return i == other.i && j == other.j && polarity == other.polarity && var == other.var;
     }
 
     bool operator!=(const Match &other) const
@@ -121,15 +121,6 @@ private:
     USE_ALLOCATOR(SATSubsumptionAndResolution::MatchSet);
     friend struct Match;
 
-    /// @brief Holds the matches grouped by _i
-    /// _iMatches[i] holds the list of matches for the i'th literal in L
-    /// the list is stored in the order in which they are added to the set
-    Lib::vvector<Lib::vvector<Match>> _iMatches;
-    /// @brief Holds the matches grouped by _j
-    /// _jMatches[j] holds the list of matches for the j'th literal in M
-    /// the list is stored in the order in which they are added to the set
-    Lib::vvector<Lib::vvector<Match>> _jMatches;
-
 #if SAT_SR_IMPL == 2
     /// @brief Metadata remembering whether some positive match or negative match was found for each literal in M
     /// @remark
@@ -153,14 +144,19 @@ private:
     Lib::vvector<uint8_t> _jStates;
 #endif
 
-    /// @brief the number literals in L
+    /// @brief number of literals in L
     unsigned _m;
-    /// @brief the number literals in M
+    /// @brief number of literals in M
     unsigned _n;
 
     /// @brief contains the list of all the the matches indexed in the match set
-    /// If the properties of AddMatch are respected, then _matches[i] is the match with the sat variable i
-    Lib::vvector<Match> _matches;
+    /// Ordered by the index 'i', then by 'j'
+    /// If the properties of AddMatch are respected, then matchesByRow[i] is the match with the sat variable i
+    Lib::vvector<Match> matchesByRow;
+
+    /// @brief same as matchesByRow, but ordered by the index 'j', then by 'i'
+    /// filled by fillMatchesByColumn based on matchesByRow
+    Lib::vvector<Match> matchesByColumn;
 
     /**
      * Creates a new match set for clauses L of size m and M of size n
@@ -168,13 +164,16 @@ private:
      * @param m the length of clause L
      * @param n the length of clause M
      */
-    MatchSet(unsigned m,
-             unsigned n);
-
-    /**
-     * Frees all the matches allocated by the set
-     */
-    ~MatchSet();
+    MatchSet(unsigned m, unsigned n) :
+#if SAT_SR_IMPL == 2
+      _jStates(n / 4 + 1, 0),
+#endif
+      _m(m),
+      _n(n)
+    {
+      ASS_G(m, 0);
+      ASS_G(n, 0);
+    }
 
     /**
      * Resizes the match matrix to the given size and clears the matrix
@@ -185,8 +184,13 @@ private:
      *
      * @warning the allocated matches will remain accessible but will be no longer be reserved. It would therefore be preferable to not keep the matches after calling this function.
      */
-    void resize(unsigned m,
-                unsigned n);
+    void resize(unsigned m, unsigned n) {
+      CALL("SATSubsumptionAndResolution::MatchSet::resize");
+      ASS_G(m, 0)
+      ASS_G(n, 0)
+      _m = m;
+      _n = n;
+    }
 
     /**
      * Adds a new match to the set
@@ -200,28 +204,30 @@ private:
      * @param var the sat variable associated with the match
      * @return the newly added match
      */
-    SATSubsumptionAndResolution::Match addMatch(unsigned i,
-                                                unsigned j,
-                                                bool polarity,
-                                                subsat::Var var);
+    void addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var)
+    {
+      CALL("SATSubsumptionAndResolution::MatchSet::addMatch")
+      ASS(i < _m)
+      ASS(j < _n)
+      // Make sure that the variables are pushed in order.
+      // Otherwise would break the property that _matches[i] is the match associated
+      //    to the sat variable i
+      ASS_EQ(var.index(), matchesByRow.size())
+
+      Match match(i, j, polarity, var);
+      matchesByRow.push_back(match);
+
+#if SAT_SR_IMPL == 2
+      // update the match state
+      // the wizardry is explained in the header file
+      _jStates[j / 4] |= 1 << (2 * (j % 4) + !polarity);
+#endif
+    }
 
     /**
-     * Returns the vector of matches for the given literal in L.
-     * The vectors should not be modified
-     *
-     * @param i the index of the literal in L
-     * @return the vector of matches for the i-th literal in L
+     * Fills out matchesByColumn based on the entries inserted into matchesByRow
      */
-    Lib::vvector<Match> &getIMatches(unsigned i);
-
-    /**
-     * Returns the vector of matches for the given literal in M.
-     * The vectors should not be modified
-     *
-     * @param j the index of the literal in M
-     * @return the vector of matches for the j-th literal in M
-     */
-    Lib::vvector<Match> &getJMatches(unsigned j);
+    void fillMatchesByColumn();
 
 #if SAT_SR_IMPL == 2
     /**
@@ -242,20 +248,6 @@ private:
 #endif
 
     /**
-     * Returns all the matches in the set
-     *
-     * @return all the matches in the set
-     */
-    Lib::vvector<Match> getAllMatches();
-
-    /**
-     * Returns the number of matches in the set
-     *
-     * @return the number of matches in the set
-     */
-    unsigned getMatchCount();
-
-    /**
      * Checks whether the sat variable @b v is linked to a match
      *
      * @pre Assumes that the matches are linked to variables in an increasing order
@@ -264,7 +256,10 @@ private:
      * @param v the variable
      * @return true if the variable is a match variable
      */
-    bool isMatchVar(subsat::Var v);
+    bool isMatchVar(subsat::Var v) {
+      CALL("SATSubsumptionAndResolution::MatchSet::isMatchVar")
+      return v.index() < matchesByRow.size();
+    }
 
     /**
      * Returns the match for a given sat variable
@@ -275,14 +270,24 @@ private:
      * @param v the variable
      * @return the match for the variable, or nullptr if no match exists
      */
-    Match getMatchForVar(subsat::Var v);
+    Match getMatchForVar(subsat::Var v)
+    {
+      CALL("SATSubsumptionAndResolution::MatchSet::getMatchForVar")
+      ASS(isMatchVar(v))
+      return matchesByRow[v.index()];
+    }
 
     /**
      * Clears the match set
      *
      * @warning the allocated matches will remain accessible but will be no longer be reserved. I would therefore be preferable to not keep the matches after calling this function.
      */
-    void clear();
+    void clear()
+    {
+      CALL("SATSubsumptionAndResolution::MatchSet::clear");
+      matchesByRow.clear();
+      matchesByColumn.clear();
+    }
   };
 
   /* Variables */
@@ -296,9 +301,9 @@ private:
   /// @brief the number of literals in the instance clause
   unsigned _n;
   /// @brief the SAT solver
-  SolverWrapper *_solver;
+  SolverWrapper _solver;
   /// @brief the bindings manager
-  BindingsManager *_bindingsManager;
+  BindingsManager _bindingsManager;
   /// @brief the match set used to store the matches between the base and instance clauses
   MatchSet _matchSet;
   /// @brief model of the SAT solver
@@ -414,8 +419,12 @@ public:
   CLASS_NAME(SATSubsumptionAndResolution);
   USE_ALLOCATOR(SATSubsumptionAndResolution);
 
-  SATSubsumptionAndResolution();
-  ~SATSubsumptionAndResolution();
+  SATSubsumptionAndResolution() :
+    _L(nullptr),
+    _M(nullptr),
+    _m(0),
+    _n(0),
+    _matchSet(1, 1) {}
 
   /**
    * Checks whether the instance clause is subsumed by the base clause

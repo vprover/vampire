@@ -89,6 +89,13 @@ static Clause *generateNSimplificationClause(Clause *cl,
   return res;
 }
 
+/// @brief Set of clauses that were already checked
+static DHSet<Clause *> checkedClauses;
+/// @brief List of premises involved in a chained subsumption resolution
+static Stack<Unit *> premiseStack;
+/// @brief List of literals that will be removed after a chained subsumption resolution
+static vvector<Literal *> litToExclude;
+
 bool ForwardSubsumptionAndResolution::perform(Clause *cl,
                                               Clause *&replacement,
                                               ClauseIterator &premises)
@@ -108,16 +115,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   /// @brief Premise of either subsumption or subsumption resolution
   Clause *premise = nullptr;
 
-  /// @brief Set of clauses that were already checked
-  static DHSet<Clause *> checkedClauses;
   checkedClauses.reset();
 
   Clause *mcl;
-
-  /// @brief List of premises involved in a chained subsumption resolution
-  static Stack<Unit *> premiseStack;
-  /// @brief List of literals that will be removed after a chained subsumption resolution
-  static vvector<Literal *> litToExclude;
 
   /*******************************************************/
   /*              SUBSUMPTION UNIT CLAUSE                */

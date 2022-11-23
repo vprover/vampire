@@ -57,92 +57,25 @@ using namespace Indexing;
 using namespace Kernel;
 using namespace SATSubsumption;
 
+const unsigned INVALID = std::numeric_limits<unsigned>::max();
+
 /****************************************************************************/
 /*               SATSubsumptionAndResolution::MatchSet                      */
 /****************************************************************************/
-SATSubsumptionAndResolution::MatchSet::MatchSet(unsigned m, unsigned n)
-    : _iMatches(m),
-      _jMatches(n),
-#if SAT_SR_IMPL == 2
-      _jStates(n / 4 + 1, 0),
-#endif
-      _m(m),
-      _n(n),
-      _matches(0)
+void SATSubsumptionAndResolution::MatchSet::fillMatchesByColumn()
 {
-  ASS(m > 0);
-  ASS(n > 0);
-}
+  CALL("SATSubsumptionAndResolution::MatchSet::fillMatchesByColumn")
 
-SATSubsumptionAndResolution::MatchSet::~MatchSet()
-{
-  CALL("SATSubsumptionAndResolution::MatchSet::~MatchSet");
-}
+  for(Match match : matchesByRow)
+    matchesByColumn.push_back(match);
 
-SATSubsumptionAndResolution::Match SATSubsumptionAndResolution::MatchSet::addMatch(unsigned i,
-                                                                                   unsigned j,
-                                                                                   bool polarity,
-                                                                                   subsat::Var var)
-{
-  CALL("SATSubsumptionAndResolution::MatchSet::addMatch")
-  ASS(i < _m)
-  ASS(j < _n)
-  // Make sure that the variables are pushed in order.
-  // Otherwise would break the property that _matches[i] is the match associated
-  //    to the sat variable i
-  ASS_EQ(var.index(), _matches.size())
-
-  Match match(i, j, polarity, var);
-  _iMatches[i].push_back(match);
-  _jMatches[j].push_back(match);
-
-  _matches.push_back(match);
-#if SAT_SR_IMPL == 2
-  // update the match state
-  // the wizardry is explained in the header file
-  if (match._polarity) {
-    _jStates[j / 4] |= 1 << (2 * (j % 4));
-  }
-  else {
-    _jStates[j / 4] |= 1 << (2 * (j % 4) + 1);
-  }
-#endif
-  return match;
-} // SATSubsumptionAndResolution::MatchSet::addMatch
-
-vvector<SATSubsumptionAndResolution::Match> &SATSubsumptionAndResolution::MatchSet::getIMatches(unsigned i)
-{
-  ASS(i < _m);
-  return _iMatches[i];
-}
-
-vvector<SATSubsumptionAndResolution::Match> &SATSubsumptionAndResolution::MatchSet::getJMatches(unsigned j)
-{
-  ASS(j < _n);
-  return _jMatches[j];
-}
-
-vvector<SATSubsumptionAndResolution::Match> SATSubsumptionAndResolution::MatchSet::getAllMatches()
-{
-  return _matches;
-}
-
-unsigned SATSubsumptionAndResolution::MatchSet::getMatchCount()
-{
-  return _matches.size();
-}
-
-SATSubsumptionAndResolution::Match SATSubsumptionAndResolution::MatchSet::getMatchForVar(subsat::Var satVar)
-{
-  CALL("SATSubsumptionAndResolution::MatchSet::getMatchForVar")
-  ASS(isMatchVar(satVar))
-  return _matches[satVar.index()];
-}
-
-bool SATSubsumptionAndResolution::MatchSet::isMatchVar(subsat::Var satVar)
-{
-  CALL("SATSubsumptionAndResolution::MatchSet::isMatchVar")
-  return satVar.index() < _matches.size();
+  std::sort(
+    matchesByColumn.begin(),
+    matchesByColumn.end(),
+    [](Match left, Match right) {
+      return left.j < right.j || (left.j == right.j && left.i < right.i);
+    }
+  );
 }
 
 #if SAT_SR_IMPL == 2
@@ -161,51 +94,9 @@ bool SATSubsumptionAndResolution::MatchSet::hasNegativeMatchJ(unsigned j)
 }
 #endif
 
-void SATSubsumptionAndResolution::MatchSet::resize(unsigned newM,
-                                                   unsigned newN)
-{
-  CALL("SATSubsumptionAndResolution::MatchSet::resize");
-  ASS(newM > 0)
-  ASS(newN > 0)
-  _iMatches.resize(newM);
-  _jMatches.resize(newN);
-  _m = newM;
-  _n = newN;
-}
-
-void SATSubsumptionAndResolution::MatchSet::clear()
-{
-  CALL("SATSubsumptionAndResolution::MatchSet::clear");
-  for (unsigned i = 0; i < _m; i++) {
-    _iMatches[i].clear();
-  }
-  for (unsigned j = 0; j < _n; j++) {
-    _jMatches[j].clear();
-  }
-  _matches.clear();
-}
-
 /****************************************************************************/
 /*       SATSubsumptionAndResolution::SATSubsumptionAndResolution           */
 /****************************************************************************/
-SATSubsumptionAndResolution::SATSubsumptionAndResolution() : _L(nullptr),
-                                                             _M(nullptr),
-                                                             _m(0),
-                                                             _n(0),
-                                                             _solver(new SolverWrapper()),
-                                                             _bindingsManager(new BindingsManager()),
-                                                             _matchSet(1, 1),
-                                                             _model(){
-                                                                 ASS(_solver)
-                                                                     ASS(_bindingsManager)}
-
-                                                             SATSubsumptionAndResolution::~SATSubsumptionAndResolution()
-{
-  CALL("SATSubsumptionAndResolution::~SATSubsumptionAndResolution");
-  delete _solver;
-  delete _bindingsManager;
-}
-
 void SATSubsumptionAndResolution::setupProblem(Clause *L,
                                                Clause *M)
 {
@@ -244,10 +135,11 @@ void SATSubsumptionAndResolution::setupProblem(Clause *L,
   _subsumptionImpossible = false;
   _srImpossible = false;
 
-  _solver->s.clear();
-  _bindingsManager->clear();
+  _solver.s.clear();
+  _bindingsManager.clear();
 } // SATSubsumptionAndResolution::setupProblem
 
+static vvector<unsigned> headerMultiset;
 /**
  * @brief Heuristically determine whether it is impossible to find a subsumption
  * between _L and _M.
@@ -270,34 +162,21 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
     return true;
   }
 
-  // multiset of predicates in M
-  static DHMap<pair<unsigned, bool>, unsigned> functors;
-  functors.reset();
+  // multiset of signed predicates in M
+  headerMultiset.clear();
+  headerMultiset.resize(2 * env.signature->predicates());
+
   // fill in the multiset of functors in M
-  for (unsigned i = 0; i < _M->length(); i++) {
-    Literal *lit = (*_M)[i];
-    auto pair = make_pair(lit->functor(), lit->polarity());
-    unsigned *count = functors.findPtr(pair);
-    if (count) {
-      (*count)++;
-    }
-    else {
-      functors.insert(pair, 1);
-    }
-  }
+  for (unsigned i = 0; i < _M->length(); i++)
+    headerMultiset[(*_M)[i]->header()]++;
+
   // check if the multiset of functors in L is a subset of the multiset of functors in M
-  for (unsigned j = 0; j < _L->length(); j++) {
-    Literal *lit = (*_L)[j];
-    auto pair = make_pair(lit->functor(), lit->polarity());
-    unsigned *count = functors.findPtr(pair);
-    if (!count || *count == 0) {
+  for (unsigned j = 0; j < _L->length(); j++)
+    if(!headerMultiset[(*_L)[j]->header()]--) {
       _subsumptionImpossible = true;
       return true;
     }
-    else {
-      (*count)--;
-    }
-  }
+
   // WARNING !!!
   // In the implementation, it is assumed that the pruning for subsumption resolution
   // is stronger than the pruning for subsumption. Therefore, if the pruning for subsumption
@@ -310,6 +189,7 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
   return false;
 } // SATSubsumptionAndResolution::pruneSubsumption
 
+static vvector<bool> functorSet;
 /**
  * @brief Heuristically determine whether it is impossible to apply subsumption
  * resolution between _L and _M.
@@ -325,18 +205,17 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   CALL("SATSubsumptionAndResolution::pruneSubsumptionResolution")
   ASS(_L)
   ASS(_M)
-  static DHSet<unsigned> functors;
-  functors.reset();
-  for (unsigned i = 0; i < _M->length(); i++) {
-    Literal *lit = (*_M)[i];
-    functors.insert(lit->functor());
-  }
-  for (unsigned j = 0; j < _L->length(); j++) {
-    Literal *lit = (*_L)[j];
-    if (!functors.find(lit->functor())) {
+
+  functorSet.clear();
+  functorSet.resize(env.signature->predicates());
+
+  for (unsigned i = 0; i < _M->length(); i++)
+    functorSet[(*_M)[i]->functor()] = true;
+
+  for (unsigned j = 0; j < _L->length(); j++)
+    if(!functorSet[(*_L)[j]->functor()])
       return true;
-    }
-  }
+
   return false;
 } // SATSubsumptionAndResolution::pruneSubsumptionResolution
 
@@ -349,12 +228,12 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder,
   ASS(binder)
   ASS(i < _m)
   ASS(j < _n)
-  subsat::Var satVar = _solver->s.new_variable();
+  subsat::Var satVar = _solver.s.new_variable();
 #if PRINT_CLAUSES_SUBS
   cout << satVar << " -> (" << (*_L)[i]->toString() << " " << (*_M)[j]->toString() << " " << (polarity ? "+" : "-") << ")" << endl;
 #endif
   _matchSet.addMatch(i, j, polarity, satVar);
-  _bindingsManager->commit_bindings(*binder, satVar, i, j);
+  _bindingsManager.commit_bindings(*binder, satVar, i, j);
 } // SATSubsumptionAndResolution::addBinding
 
 bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *l_i,
@@ -373,14 +252,15 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *l_i,
 
   bool match = false;
   {
-    auto binder = _bindingsManager->start_binder();
+    auto binder = _bindingsManager.start_binder();
     if (MatchingUtils::matchArgs(l_i, m_j, binder)) {
       addBinding(&binder, i, j, polarity);
       match = true;
     }
   }
+  // TODO seems dubious
   if (l_i->commutative()) {
-    auto binder = _bindingsManager->start_binder();
+    auto binder = _bindingsManager.start_binder();
     if (MatchingUtils::matchReversedArgs(l_i, m_j, binder)) {
       addBinding(&binder, i, j, polarity);
       match = true;
@@ -398,7 +278,6 @@ bool SATSubsumptionAndResolution::fillMatchesS()
   ASS(_n > 0);
   ASS(_matchSet._m == _m);
   ASS(_matchSet._n == _n);
-  ASS(_bindingsManager);
 
   Literal *l_i, *m_j;
 
@@ -433,35 +312,36 @@ void SATSubsumptionAndResolution::fillMatchesSR()
   ASS(_n > 0);
   ASS(_matchSet._m == _m);
   ASS(_matchSet._n == _n);
-  ASS(_bindingsManager);
-
-  Literal *l_i, *m_j;
-  // for one literal in L, store whether it has a positive match in M
-  bool foundPositiveMatch = false;
-  // for one literal in L, store whether it has a negative match in M
-  bool foundNegativeMatch = false;
 
   // stores whether on all the literals in L there is a negative match in M
   bool hasNegativeMatch = false;
 
-  unsigned lastHeader = numeric_limits<unsigned>::max();
+  // the first negative match in L, if it exists
+  Literal *firstNegativeMatch = nullptr;
+
   for (unsigned i = 0; i < _m; ++i) {
-    l_i = _L->literals()[i];
-    foundPositiveMatch = false;
-    foundNegativeMatch = false;
+    Literal *l_i = _L->literals()[i];
+
+    // does l_i have a positive match in M?
+    bool foundPositiveMatch = false;
+    // does l_i have a negative match in M?
+    bool foundNegativeMatch = false;
+
     for (unsigned j = 0; j < _n; ++j) {
-      m_j = _M->literals()[j];
+      Literal *m_j = _M->literals()[j];
       if (l_i->functor() != m_j->functor()) {
         continue;
       }
 
       if (l_i->polarity() == m_j->polarity()) {
-        foundPositiveMatch = checkAndAddMatch(l_i, m_j, i, j, true) || foundPositiveMatch;
+        foundPositiveMatch |= checkAndAddMatch(l_i, m_j, i, j, true);
       } // end of positive literal match
       // dont check for negative literals if it was established that _sr_impossible
       else if (checkAndAddMatch(l_i, m_j, i, j, false)) {
         hasNegativeMatch = true;
         foundNegativeMatch = true;
+        if(!firstNegativeMatch)
+          firstNegativeMatch = l_i;
       } // end of negative literal matches
     }   // for (unsigned j = 0; j < _nInstanceLits; ++j)
 
@@ -473,22 +353,18 @@ void SATSubsumptionAndResolution::fillMatchesSR()
         _srImpossible = true;
         return;
       }
-      if (lastHeader == numeric_limits<unsigned>::max()) {
-        lastHeader = l_i->header();
-        continue;
-      }
-      else if (lastHeader != l_i->header()) {
+      // TODO try matching?
+      if(firstNegativeMatch != l_i && firstNegativeMatch->header() != l_i->header()) {
         _srImpossible = true;
         return;
       }
     } // if (!foundPositiveMatch)
   }   // for (unsigned i = 0; i < _nBaseLits; ++i)
 
-  if (!hasNegativeMatch) {
-    // If there are no negative matches, then the SR is not possible
+  // If there are no negative matches, then the SR is not possible
+  if (!hasNegativeMatch)
     _srImpossible = true;
-    return;
-  }
+
 } // SATSubsumptionAndResolution::fillMatchesSR()
 
 bool SATSubsumptionAndResolution::cnfForSubsumption()
@@ -496,19 +372,20 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
   CALL("SATSubsumptionAndResolution::cnfForSubsumption");
   ASS(_L);
   ASS(_M);
-  ASS_GE(_matchSet.getMatchCount(), _L->length())
+  ASS_GE(_matchSet.matchesByRow.size(), _L->length())
+  ASS_G(_L->length(), 0)
   ASS(!_subsumptionImpossible);
 
-  Solver &solver = _solver->s;
+  Solver &solver = _solver.s;
 
   /**** Completeness ****/
   // Build clauses stating that l_i must be matched to at least one corresponding m_j.
-  for (unsigned i = 0; i < _m; ++i) {
+  for (unsigned i = 0, idx = 0; i < _m; ++i) {
     solver.constraint_start();
-    for (Match match : _matchSet.getIMatches(i)) {
-      if (match._polarity) {
-        solver.constraint_push_literal(match._var);
-      }
+    while(idx < _matchSet.matchesByRow.size() && _matchSet.matchesByRow[idx].i == i) {
+      Match match = _matchSet.matchesByRow[idx++];
+      if (match.polarity)
+        solver.constraint_push_literal(match.var);
     }
     auto handle = solver.constraint_end();
     solver.add_clause_unsafe(handle);
@@ -519,12 +396,12 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
   // Each instance literal can be matched by at most 2 boolean vars per base literal (two orientations of equalities).
   // NOTE: instance constraints cannot be packed densely because we only know their shape at the end.
   // uint32_t const instance_constraint_maxsize = 2 * base_len;
-  for (unsigned j = 0; j < _n; ++j) {
+  for (unsigned j = 0, idx = 0; j < _n; ++j) {
     solver.constraint_start();
-    for (Match match : _matchSet.getJMatches(j)) {
-      if (match._polarity) {
-        solver.constraint_push_literal(match._var);
-      }
+    while(idx < _matchSet.matchesByColumn.size() && _matchSet.matchesByColumn[idx].j == j) {
+      Match match = _matchSet.matchesByColumn[idx++];
+      if (match.polarity)
+        solver.constraint_push_literal(match.var);
     }
     auto handle = solver.constraint_end();
     solver.add_atmostone_constraint_unsafe(handle);
@@ -578,7 +455,7 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   CALL("SATSubsumptionResolution::cnfForSubsumptionResolution");
   ASS(_L)
   ASS(_M)
-  ASS_GE(_matchSet.getMatchCount(), _L->length())
+  ASS_GE(_matchSet.matchesByRow.size(), _L->length())
 
   Solver &solver = _solver->s;
 
@@ -589,13 +466,13 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 #if PRINT_CLAUSES_SUBS
   string s = "";
 #endif
-  vvector<Match> allMatches = _matchSet.getAllMatches();
+  const vvector<Match> &allMatches = _matchSet.matchesByRow;
   solver.constraint_start();
   for (Match match : allMatches) {
-    if (!match._polarity) {
-      solver.constraint_push_literal(match._var);
+    if (!match.polarity) {
+      solver.constraint_push_literal(match.var);
 #if PRINT_CLAUSES_SUBS
-      s += to_string(match._var.index()) + " V ";
+      s += to_string(match.var.index()) + " V ";
 #endif
     }
   }
@@ -611,21 +488,21 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 #endif
   for (unsigned it1 = 0; it1 < allMatches.size(); it1++) {
     Match match1 = allMatches[it1];
-    if (match1._polarity) {
+    if (match1.polarity) {
       continue;
     }
     for (unsigned it2 = it1 + 1; it2 < allMatches.size(); it2++) {
       Match match2 = allMatches[it2];
-      if (match2._polarity || match1._j == match2._j) {
+      if (match2.polarity || match1.j == match2.j) {
         continue;
       }
       solver.constraint_start();
-      solver.constraint_push_literal(~match1._var);
-      solver.constraint_push_literal(~match2._var);
+      solver.constraint_push_literal(~match1.var);
+      solver.constraint_push_literal(~match2.var);
       auto build = solver.constraint_end();
       solver.add_clause_unsafe(build);
 #if PRINT_CLAUSES_SUBS
-      cout << ~match1._var << " V " << ~match2._var << endl;
+      cout << ~match1.var << " V " << ~match2.var << endl;
 #endif
     }
   }
@@ -634,15 +511,15 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 #if PRINT_CLAUSE_COMMENTS_SUBS
   cout << "Completeness" << endl;
 #endif
-  for (unsigned i = 0; i < _m; i++) {
+  for (unsigned i = 0, idx = 0; i < _m; i++) {
     solver.constraint_start();
 #if PRINT_CLAUSES_SUBS
     s = "";
 #endif
-    for (Match match : _matchSet.getIMatches(i)) {
-      solver.constraint_push_literal(match._var);
+    while(idx < _matchSet.matchesByRow.size() && _matchSet.matchesByRow[idx].i == i) {
+      Match match = _matchSet.matchesByRow[idx++];
 #if PRINT_CLAUSES_SUBS
-      s += to_string(match._var.index()) + " V ";
+      s += to_string(match.var.index()) + " V ";
 #endif
     }
 #if PRINT_CLAUSES_SUBS
@@ -662,16 +539,16 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
       Match match1 = matches[i1];
       for (unsigned i2 = i1 + 1; i2 < matches.size(); i2++) {
         Match match2 = matches[i2];
-        if (match2._polarity == match1._polarity) {
+        if (match2.polarity == match1.polarity) {
           continue;
         }
         solver.constraint_start();
-        solver.constraint_push_literal(~match1._var);
-        solver.constraint_push_literal(~match2._var);
+        solver.constraint_push_literal(~match1.var);
+        solver.constraint_push_literal(~match2.var);
         auto build = solver.constraint_end();
         solver.add_clause_unsafe(build);
 #if PRINT_CLAUSES_SUBS
-        cout << ~match1._var << " V " << ~match2._var << endl;
+        cout << ~match1.var << " V " << ~match2.var << endl;
 #endif
       }
     }
@@ -681,6 +558,9 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 
 #endif
 #if SAT_SR_IMPL == 2
+/// @brief a vector used to store the sat variables that are subjected to the at most one constraint (will hold the c_j)
+/// The unsigned value is the index of the literal in the instance clause
+static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
 /**
  * Indirect encoding of the sat subsumption resolution
  *
@@ -724,14 +604,10 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   CALL("SATSubsumptionResolution::cnfForSubsumptionResolution");
   ASS(_L);
   ASS(_M);
-  ASS_GE(_matchSet.getMatchCount(), _L->length())
+  ASS_GE(_matchSet.matchesByRow.size(), _L->length())
 
-  Solver &solver = _solver->s;
-
-  /// @brief a vector used to store the sat variables that are subjected to the at most one constraint (will hold the c_j)
-  /// The unsigned value is the index of the literal in the instance clause
-  static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
   atMostOneVars.clear();
+  Solver &solver = _solver.s;
 
   /**** Existence ****/
 #if PRINT_CLAUSES_SUBS
@@ -743,7 +619,7 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
     // It would compromise correctness since a c_j without binding could be true and satisfy c_1 V ... V c_n without making any other clause false.
     if (_matchSet.hasNegativeMatchJ(j)) {
       subsat::Var c_j = solver.new_variable();
-      atMostOneVars.push_back(pair<unsigned, subsat::Var>(j, c_j));
+      atMostOneVars.push_back(make_pair(j, c_j));
       solver.constraint_push_literal(c_j);
 #if PRINT_CLAUSES_SUBS
       s += to_string(c_j.index()) + " V ";
@@ -766,17 +642,18 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   solver.add_atmostone_constraint(build);
 
   /**** Completeness ****/
-  for (unsigned i = 0; i < _m; ++i) {
+  for (unsigned i = 0, idx = 0; i < _m; ++i) {
     solver.constraint_start();
-    vvector<Match> &matches = _matchSet.getIMatches(i);
-    for (Match match : matches) {
+
+    while(idx < _matchSet.matchesByRow.size() && _matchSet.matchesByRow[idx].i == i) {
+      Match match = _matchSet.matchesByRow[idx++];
 #if PRINT_CLAUSES_SUBS
-      cout << match._var;
-      if (match != matches.back()) {
+      cout << match.var;
+      if (_matchSet.matchesByRow[idx].i != i) {
         cout << " V ";
       }
 #endif
-      solver.constraint_push_literal(match._var);
+      solver.constraint_push_literal(match.var);
     }
     auto build = solver.constraint_end();
     solver.add_clause_unsafe(build);
@@ -786,13 +663,15 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   }
 
   /**** Coherence ****/
+  unsigned idx = 0;
   for (auto var : atMostOneVars) {
     unsigned j = var.first;
     subsat::Var c_j = var.second;
     if (_matchSet.hasPositiveMatchJ(j)) {
-      for (Match match : _matchSet.getJMatches(j)) {
-        if (match._polarity) {
-          subsat::Var b_ij = match._var;
+      while(idx < _matchSet.matchesByColumn.size() && _matchSet.matchesByColumn[idx].j == j) {
+        Match match = _matchSet.matchesByColumn[idx++];
+        if (match.polarity) {
+          subsat::Var b_ij = match.var;
           solver.constraint_start();
           solver.constraint_push_literal(~c_j);
           solver.constraint_push_literal(~b_ij);
@@ -811,9 +690,9 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   //    for each j : c_j <=> b_ij- for some i
   //    for each j :(~c_j V b_1j- V ... V b_nj-)
   //            /\ (c_j V ~b_1j-) /\ ... /\ (c_j V ~b_nj-)
-  for (auto &pair : atMostOneVars) {
+  idx = 0;
+  for (auto pair : atMostOneVars) {
     unsigned j = pair.first;
-    vvector<Match> &matches = _matchSet.getJMatches(j);
     subsat::Var c_j = pair.second;
     solver.constraint_start();
     //   (~c_j V b_1j- V ... V b_nj-)
@@ -821,11 +700,13 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 #if PRINT_CLAUSES_SUBS
     cout << c_j;
 #endif
-    for (Match match : matches) {
-      if (!match._polarity) {
-        solver.constraint_push_literal(match._var);
+    unsigned idx2 = idx;
+    while(idx2 < _matchSet.matchesByColumn.size() && _matchSet.matchesByColumn[idx2].j == j) {
+      Match match = _matchSet.matchesByColumn[idx2++];
+      if (!match.polarity) {
+        solver.constraint_push_literal(match.var);
 #if PRINT_CLAUSES_SUBS
-        cout << " V " << match._var;
+        cout << " V " << match.var;
 #endif
       }
     } // for (Match match : matches)
@@ -835,15 +716,16 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
     auto build = solver.constraint_end();
     solver.add_clause_unsafe(build);
     //   (c_j V ~b_1j-) /\ ... /\ (c_j V ~b_nj-)
-    for (Match match : matches) {
-      if (!match._polarity) {
+    while(idx < _matchSet.matchesByColumn.size() && _matchSet.matchesByColumn[idx].j == j) {
+      Match match = _matchSet.matchesByColumn[idx++];
+      if (!match.polarity) {
         solver.constraint_start();
         solver.constraint_push_literal(c_j);
-        solver.constraint_push_literal(~match._var);
+        solver.constraint_push_literal(~match.var);
         auto build = solver.constraint_end();
         solver.add_clause_unsafe(build);
 #if PRINT_CLAUSES_SUBS
-        cout << c_j << " V " << ~match._var << endl;
+        cout << c_j << " V " << ~match.var << endl;
 #endif
       }
     } // for (Match match : matches)
@@ -891,13 +773,12 @@ Clause *SATSubsumptionAndResolution::generateConclusion()
   ASS(_n > 0)
   ASS_EQ(_matchSet._m, _m)
   ASS_EQ(_matchSet._n, _n)
-  ASS(_bindingsManager)
   ASS(_model.size() > 0)
-  ASS_GE(_matchSet.getMatchCount(), _L->length())
+  ASS_GE(_matchSet.matchesByRow.size(), _L->length())
 
 // Provided the solution of the sat solver, we can create the conclusion clause
 #if VDEBUG
-  unsigned j = numeric_limits<unsigned>::max();
+  unsigned j = INVALID;
   ;
   // Check that there is only one negative polarity match to j inside the model
   for (subsat::Lit lit : _model) {
@@ -905,19 +786,19 @@ Clause *SATSubsumptionAndResolution::generateConclusion()
       // matches can be null if the variable is a c_j
       if (_matchSet.isMatchVar(lit.var())) {
         Match match = _matchSet.getMatchForVar(lit.var());
-        if (!match._polarity) {
-          if (j == numeric_limits<unsigned>::max()) {
-            j = match._j;
+        if (!match.polarity) {
+          if (j == INVALID) {
+            j = match.j;
           }
           else {
-            ASS(j == match._j);
+            ASS(j == match.j);
           }
         }
       }
     }
   }
 #endif
-  unsigned toRemove = numeric_limits<unsigned>::max();
+  unsigned toRemove = INVALID;
 // find the negative polarity match to j inside the model
 #if PRINT_CLAUSES_SUBS
   cout << "Model: ";
@@ -931,15 +812,15 @@ Clause *SATSubsumptionAndResolution::generateConclusion()
       // matches can be null if the variable is a c_j
       if (_matchSet.isMatchVar(lit.var())) {
         Match match = _matchSet.getMatchForVar(lit.var());
-        if (!match._polarity) {
-          toRemove = match._j;
+        if (!match.polarity) {
+          toRemove = match.j;
           break;
         }
       }
     }
   }
   ASS_EQ(_n, _M->size())
-  ASS(toRemove != numeric_limits<unsigned>::max());
+  ASS(toRemove != INVALID);
   return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_M, (*_M)[toRemove], _L);
 } // SATSubsumptionResolution::generateConclusion
 
@@ -979,8 +860,9 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause *L,
   else if (pruneSubsumption() || !fillMatchesS()) {
     return false;
   }
+  _matchSet.fillMatchesByColumn();
 
-  ASS_GE(_matchSet.getMatchCount(), _L->length())
+  ASS_GE(_matchSet.matchesByRow.size(), _L->length())
 
   // Create the constraints for the sat solver
   if (!cnfForSubsumption()) {
@@ -988,8 +870,8 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause *L,
   }
 
   // Solve the SAT problem
-  Solver &solver = _solver->s;
-  solver.theory().setBindings(_bindingsManager);
+  Solver &solver = _solver.s;
+  solver.theory().setBindings(&_bindingsManager);
   return solver.solve() == subsat::Result::Sat;
 } // SATSubsumptionAndResolution::checkSubsumption
 
@@ -1010,9 +892,9 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
 #endif
       return nullptr;
     }
-    ASS_GE(_matchSet.getMatchCount(), _L->length())
+    ASS_GE(_matchSet.match.size(), _L->length())
     // do not clear the variables and bindings
-    _solver->s.clear_constraints();
+    _solver.s.clear_constraints();
   }
   else {
     setupProblem(L, M);
@@ -1040,12 +922,12 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
   }
 
   // Solve the SAT problem
-  Solver &solver = _solver->s;
+  Solver &solver = _solver.s;
   if (solver.theory().empty()) {
     // -> b_ij implies a certain substitution is valid
     //    for each i, j : b_ij => (S(l_i) = m_j V S(l_i) = ~m_j)
     // These constraints are created in the fillMatches() function by filling the _bindingsManager
-    solver.theory().setBindings(_bindingsManager);
+    solver.theory().setBindings(&_bindingsManager);
   }
   if (solver.solve() != subsat::Result::Sat) {
 #if PRINT_CLAUSES_SUBS
