@@ -958,25 +958,6 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out) const
 
 
 
-#define VERBOSE_OUTPUT_OPERATORS 0
-
-std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& self)
-{
-#if VERBOSE_OUTPUT_OPERATORS
-  out << "{ nextVar: S" << self._nextVar << ", root: (";
-#endif // VERBOSE_OUTPUT_OPERATORS
-  if (self._root) {
-    out << *self._root;
-  } else {
-    out << "<empty tree>";
-  }
-#if VERBOSE_OUTPUT_OPERATORS
-  out << ") }";
-#endif // VERBOSE_OUTPUT_OPERATORS
-  return out;
-}
-
-
 template<class Iterator, class TermOrLit> 
 TermQueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms)
 {
@@ -1017,4 +998,24 @@ template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::Fa
 template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator, Literal*>(Literal* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
 template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::UnificationsIterator, Literal*>(Literal* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
 template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastGeneralizationsIterator, Literal*>(Literal* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+
+
+#define VERBOSE_OUTPUT_OPERATORS 0
+
+std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
+{
+#if VERBOSE_OUTPUT_OPERATORS
+  out << "{ nextVar: S" << self._nextVar << ", root: (";
+#endif // VERBOSE_OUTPUT_OPERATORS
+  if (self._root) {
+    out << *self._root;
+  } else {
+    out << "<empty tree>";
+  }
+#if VERBOSE_OUTPUT_OPERATORS
+  out << ") }";
+#endif // VERBOSE_OUTPUT_OPERATORS
+  return out;
+}
+
 

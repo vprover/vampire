@@ -110,14 +110,7 @@ public:
     { return !(*this==o); }
 
 #if VDEBUG
-    friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
-    {
-      if(self.index == SPECIAL_INDEX) {
-        return out << "S" << self.var;
-      } else {
-        return out << "X" << self.var << "/" << self.index;
-      }
-    }
+    friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
 #endif
 
     /** number of variable */
@@ -204,7 +197,18 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
+#if VDEBUG
+    friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
+    {
+      if(self.index == SPECIAL_INDEX) {
+        return out << "S" << self.var;
+      } else {
+        return out << "X" << self.var << "/" << self.index;
+      }
+    }
+#endif
 
+ 
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
   {
