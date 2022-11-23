@@ -861,15 +861,24 @@ public:
   unsigned size() const { return _lit->arity(); }
 };
 
+
+/** iterator over all term arguments of @code term */
 static const auto termArgIter = [](Term* term) 
   { return iterTraits(getRangeIterator<unsigned>(0, term->numTermArguments()))
       .map([=](auto i)
            { return term->termArg(i); }); };
 
+/** iterator over all type arguments of @code term */
 static const auto typeArgIter = [](Term* term) 
   { return iterTraits(getRangeIterator<unsigned>(0, term->numTypeArguments()))
       .map([=](auto i)
            { return term->typeArg(i); }); };
+
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIter = [](Term* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
+      .map([=](auto i)
+           { return *term->nthArgument(i); }); };
 
 
 }

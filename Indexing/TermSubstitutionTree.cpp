@@ -35,7 +35,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
-: SubstitutionTree(env.signature->functions(),useC, rfSubs), _extByAbs(rfSubs)
+: SubstitutionTree(useC, rfSubs), _extByAbs(rfSubs)
 {
   _extra = extra;
   if(rfSubs){
@@ -63,6 +63,7 @@ void TermSubstitutionTree::insert(TermList t, TermList trm, Literal* lit, Clause
 void TermSubstitutionTree::insert(TermList t, LeafData ld)
 {
   CALL("TermSubstitutionTree::insert");
+  // TODO make this and handleTerm one function!!
 
   ASS(t.isTerm());
   Term* term=t.term();
@@ -70,11 +71,10 @@ void TermSubstitutionTree::insert(TermList t, LeafData ld)
   Term* normTerm=Renaming::normalize(term);
 
   BindingMap svBindings;
-  getBindings(normTerm, svBindings);
+  svBindings.insert(0, TermList(normTerm));
+  _nextVar = max(_nextVar, 1);
 
-  unsigned rootNodeIndex=getRootNodeIndex(normTerm);
-
-  SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);  
+  SubstitutionTree::insert(svBindings, ld);  
 }
 
 
@@ -126,14 +126,13 @@ void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, boo
     }
 
     BindingMap svBindings;
-    getBindings(normTerm, svBindings);
-
-    unsigned rootNodeIndex=getRootNodeIndex(normTerm);
+    svBindings.insert(0, TermList(normTerm));
+    _nextVar = max(_nextVar, 1);
 
     if(insert) {
-      SubstitutionTree::insert(&_nodes[rootNodeIndex], svBindings, ld);
+      SubstitutionTree::insert(svBindings, ld);
     } else {
-      SubstitutionTree::remove(&_nodes[rootNodeIndex], svBindings, ld);
+      SubstitutionTree::remove(svBindings, ld);
     }
   }
 }
@@ -143,7 +142,8 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t,
 {
   CALL("TermSubstitutionTree::getUnifications");
   if(t.isOrdinaryVar()) {
-    return getAllUnifyingIterator(t,retrieveSubstitutions,false);
+    ASSERTION_VIOLATION_REP("TODO")
+    // return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
@@ -172,11 +172,13 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
   bool sortAtomic = !sortVar && !sortArrow;
 
   if(t.isOrdinaryVar()) {
-    auto it1 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, t, retrieveSubstitutions):
-               TermQueryResultIterator::getEmpty();
-    auto it2 = sortVar || sortAtomic ? getAllUnifyingIterator(t,retrieveSubstitutions,false):
-               TermQueryResultIterator::getEmpty();
-    return pvi(getConcatenatedIterator(it1, it2));
+
+    ASSERTION_VIOLATION_REP("TODO")
+    // auto it1 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, t, retrieveSubstitutions):
+    //            TermQueryResultIterator::getEmpty();
+    // auto it2 = sortVar || sortAtomic ? getAllUnifyingIterator(t,retrieveSubstitutions,false):
+    //            TermQueryResultIterator::getEmpty();
+    // return pvi(getConcatenatedIterator(it1, it2));
     //TODO vars?
   } else {
     ASS(t.isTerm());
@@ -202,7 +204,8 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsWithConstraints(Ter
 
   // don't need to do anything different in the case of t being a variable
   if(t.isOrdinaryVar()) {
-    return getAllUnifyingIterator(t,retrieveSubstitutions,false);
+    ASSERTION_VIOLATION_REP("TODO")
+    // return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {
     ASS(t.isTerm());
     if(_vars.isEmpty()) {
@@ -228,18 +231,16 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
     return false;
   }
   Term* trm=t.term();
-  unsigned rootIndex=getRootNodeIndex(trm);
-  Node* root=_nodes[rootIndex];
-  if(!root) {
+  if(!_root) {
     return false;
   }
-  if(root->isLeaf()) {
+  if(_root->isLeaf()) {
     return true;
   }
   // Currently we do not need to generate constraints with generalisations
   // FastGeneralizationsIterator does not support constraints anyway
   bool useC = false; 
-  return FastGeneralizationsIterator(this, root, trm, false,false,false,useC).hasNext();
+  return FastGeneralizationsIterator(this, _root, trm, false,false,false,useC).hasNext();
 }
 
 /**
@@ -269,194 +270,46 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
 {
   CALL("TermSubstitutionTree::getInstances");
   if(t.isOrdinaryVar()) {
-    return getAllUnifyingIterator(t,retrieveSubstitutions,false);
+    ASSERTION_VIOLATION_REP("TODO")
+    // return getAllUnifyingIterator(t,retrieveSubstitutions,false);
   } else {
     ASS(t.isTerm());
     return getResultIterator<FastInstancesIterator>(t.term(), retrieveSubstitutions,false);
   }
 }
 
-/**
- * Functor, that transforms &b QueryResult struct into
- * @b TermQueryResult.
- */
-struct TermSubstitutionTree::TermQueryResultFn
-{
-  TermQueryResultFn(bool extra = false){
-    _extra = extra;
-  }
-
-  TermQueryResult operator() (const QueryResult& qr) {
-    TermList trm = _extra ? qr.first.first->extraTerm : qr.first.first->term;
-    return TermQueryResult(trm, qr.first.first->literal,
-	    qr.first.first->clause, qr.first.second,qr.second);
-  }
-
-private:
-  bool _extra;
-};
-
+// TODO get rid of this method
 template<class Iterator>
-TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm,
-	  bool retrieveSubstitutions,bool withConstraints)
+TermQueryResultIterator TermSubstitutionTree::getResultIterator(Term* trm, bool retrieveSubstitutions,bool withConstraints)
 {
-  CALL("TermSubstitutionTree::getResultIterator");
-
-  //cout << "getResultIterator " << trm->toString() << endl;
-
-  TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
-  
-  Node* root = _nodes[getRootNodeIndex(trm)];
-
-  if(root){
-    if(root->isLeaf()) {
-      LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
-      result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions,false);
-    }
-    else{
-      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, root, trm, retrieveSubstitutions,false,false, 
-                                                         withConstraints, 
-                                                         (_extByAbs ? &_functionalSubtermMap : 0) ));
-      result = pvi( getMappingIterator(qrit, TermQueryResultFn(_extra)) );
-    }
-  }
-
-  // DO NOT ALLOW UNIFICATIONS AT THE TOP LEVEL
-  if(false){
-    ASS(retrieveSubstitutions);
-    // this true means that I am allowed to pass a non-variable term to getAllUnifyingIterator
-    TermQueryResultIterator other = getAllUnifyingIterator(TermList(trm),retrieveSubstitutions,true); 
-    result = pvi(getConcatenatedIterator(result,other));
-  }
-  return result;
+  return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, withConstraints, _extra, 
+      (_extByAbs ? &_functionalSubtermMap : nullptr));
 }
 
-struct TermSubstitutionTree::LDToTermQueryResultFn
-{
-  TermQueryResult operator() (const LeafData& ld) {
-    return TermQueryResult(ld.term, ld.literal, ld.clause);
-  }
-};
-
-#define QRS_QUERY_BANK 0
-#define QRS_RESULT_BANK 1
-
-struct TermSubstitutionTree::LDToTermQueryResultWithSubstFn
-{
-  LDToTermQueryResultWithSubstFn(bool wc) : _withConstraints(wc)
-  {
-    _subst=RobSubstitutionSP(new RobSubstitution());
-    _constraints=UnificationConstraintStackSP(new Stack<UnificationConstraint>());
-  }
-  TermQueryResult operator() (const LeafData& ld) {
-    if(_withConstraints){
-      return TermQueryResult(ld.term, ld.literal, ld.clause,
-            ResultSubstitution::fromSubstitution(_subst.ptr(),
-                    QRS_QUERY_BANK,QRS_RESULT_BANK),
-            _constraints);
-    }
-    else{
-      return TermQueryResult(ld.term, ld.literal, ld.clause,
-	    ResultSubstitution::fromSubstitution(_subst.ptr(),
-		    QRS_QUERY_BANK,QRS_RESULT_BANK));
-    }
-  }
-private:
-  bool _withConstraints;
-  RobSubstitutionSP _subst;
-  UnificationConstraintStackSP _constraints;
-};
-
-struct TermSubstitutionTree::LeafToLDIteratorFn
-{
-  LDIterator operator() (Leaf* l) {
-    CALL("TermSubstitutionTree::LeafToLDIteratorFn()");
-    return l->allChildren();
-  }
-};
-
-struct TermSubstitutionTree::UnifyingContext
-{
-  UnifyingContext(TermList queryTerm,bool withConstraints)
-  : _queryTerm(queryTerm)
-#if VDEBUG
-    , _withConstraints(withConstraints)
-#endif
-  {}
-  bool enter(TermQueryResult qr)
-  {
-    //if(_withConstraints){ cout << "enter " << qr.term << endl; }
-
-    ASS(qr.substitution);
-    RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
-    ASS(subst);
-    bool unified = subst->unify(_queryTerm, QRS_QUERY_BANK, qr.term, QRS_RESULT_BANK);
-    //unsigned srt;
-    ASS(unified || _withConstraints);
-    return unified;
-  }
-  void leave(TermQueryResult qr)
-  {
-    RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
-    ASS(subst);
-    subst->reset();
-    if(!qr.constraints.isEmpty()){
-      //cout << "reset constraints" << endl;
-      qr.constraints->reset();
-    }
-  }
-private:
-  TermList _queryTerm;
-#if VDEBUG
-  bool _withConstraints;
-#endif
-};
-
-template<class LDIt>
-TermQueryResultIterator TermSubstitutionTree::ldIteratorToTQRIterator(LDIt ldIt,
-	TermList queryTerm, bool retrieveSubstitutions,bool withConstraints)
-{
-  CALL("TermSubstitutionTree::ldIteratorToTQRIterator");
-  // only call withConstraints if we are also getting substitions, the other branch doesn't handle constraints
-  ASS(retrieveSubstitutions | !withConstraints); 
-
-  if(retrieveSubstitutions) {
-    return pvi( getContextualIterator(
-	    getMappingIterator(
-		    ldIt,
-		    LDToTermQueryResultWithSubstFn(withConstraints)),
-	    UnifyingContext(queryTerm,withConstraints)) );
-  } else {
-    return pvi( getMappingIterator(
-	    ldIt,
-	    LDToTermQueryResultFn()) );
-  }
-}
-
-TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions,bool withConstraints)
-{
-  CALL("TermSubstitutionTree::getAllUnifyingIterator");
-
-  //if(withConstraints){ cout << "getAllUnifyingIterator for " << trm.toString() << endl; }
-
-  ASS(trm.isVar() || withConstraints);
-
-  auto it1 = getFlattenedIterator(getMappingIterator(vi( new LeafIterator(this) ), LeafToLDIteratorFn()));
-
-  // If we are searching withConstraints it means that we have already added in
-  // the results related to _vars, we are only interested in non-unifying leaves
-
-  // STOP DOING THIS AT THE TOP LEVEL
-  if(false){
-    return ldIteratorToTQRIterator(it1,trm, retrieveSubstitutions,withConstraints);
-  }
-  else{
-    return ldIteratorToTQRIterator(
-	    getConcatenatedIterator(it1,LDSkipList::RefIterator(_vars)),
-	    trm, retrieveSubstitutions,withConstraints);
-  }
-}
+// TermQueryResultIterator TermSubstitutionTree::getAllUnifyingIterator(TermList trm,
+// 	  bool retrieveSubstitutions,bool withConstraints)
+// {
+//   CALL("TermSubstitutionTree::getAllUnifyingIterator");
+//
+//   //if(withConstraints){ cout << "getAllUnifyingIterator for " << trm.toString() << endl; }
+//
+//   ASS(trm.isVar() || withConstraints);
+//
+//   auto it1 = getFlattenedIterator(getMappingIterator(vi( new LeafIterator(this) ), [](auto & l){ return l->allChildren(); }));
+//
+//   // If we are searching withConstraints it means that we have already added in
+//   // the results related to _vars, we are only interested in non-unifying leaves
+//
+//   // STOP DOING THIS AT THE TOP LEVEL
+//   if(false){
+//     return ldIteratorToTQRIterator(it1,trm, retrieveSubstitutions,withConstraints);
+//   }
+//   else{
+//     return ldIteratorToTQRIterator(
+// 	    getConcatenatedIterator(it1,LDSkipList::RefIterator(_vars)),
+// 	    trm, retrieveSubstitutions,withConstraints);
+//   }
+// }
 
 
 }

@@ -22,8 +22,18 @@
 namespace Indexing {
 
 class LiteralSubstitutionTree
-: public LiteralIndexingStructure, SubstitutionTree
+: public LiteralIndexingStructure
 {
+  using UnificationsIterator = SubstitutionTree::UnificationsIterator;
+  using FastInstancesIterator = SubstitutionTree::FastInstancesIterator;
+  using BindingMap = SubstitutionTree::BindingMap;
+  using LDIterator = SubstitutionTree::LDIterator;
+  using FastGeneralizationsIterator = SubstitutionTree::FastGeneralizationsIterator;
+  using QueryResult = SubstitutionTree::QueryResult;
+  using LeafData = SubstitutionTree::LeafData;
+  using LeafIterator = SubstitutionTree::LeafIterator;
+  using Leaf = SubstitutionTree::Leaf;
+
 public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
@@ -52,8 +62,8 @@ public:
 	  bool complementary, bool retrieveSubstitutions);
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
-  vstring toString() {return SubstitutionTree::toString();}
+  virtual void markTagged(){ }
+  vstring toString() {ASSERTION_VIOLATION_REP("TODO")}
 #endif
 
 private:
@@ -62,7 +72,8 @@ private:
   struct LDToSLQueryResultWithSubstFn;
   struct UnifyingContext;
   struct PropositionalLDToSLQueryResultWithSubstFn;
-  struct LeafToLDIteratorFn;
+
+  SubstitutionTree& getTree(Literal* lit, bool complementary = false);
 
   template <bool instantiation>
   struct MatchingFilter
@@ -75,7 +86,7 @@ private:
     bool enter(const SLQueryResult& res)
     {
       CALL("LiteralSubstitutionTree::MatchingFilter::enter()");
-      ASS(res.literal->isEquality());
+      ASS_REP(res.literal->isEquality(), *res.literal);
     
       if(instantiation){
         //if the query lit isn't a two variable equality, sort unification
@@ -162,8 +173,9 @@ private:
   SLQueryResultIterator getResultIterator(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
-  unsigned getRootNodeIndex(Literal* t, bool complementary=false);
   bool _polymorphic;
+  Stack<SubstitutionTree> _trees;
+  bool _useC;
 };
 
 };

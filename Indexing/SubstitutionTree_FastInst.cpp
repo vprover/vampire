@@ -567,9 +567,14 @@ finish:
 SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
 	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
   FuncSubtermMap* fstm) //final two for compatibility purposes
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
-  _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
+  : _literalRetrieval(query->isLiteral())
+  , _retrieveSubstitution(retrieveSubstitution)
+  , _inLeaf(false)
+  , _ldIterator(LDIterator::getEmpty())
+  , _root(root)
+  , _alternatives(64)
+  , _specVarNumbers(64)
+  , _nodeTypes(64)
 #if VDEBUG
   , _tree(parent)
 #endif 
@@ -586,15 +591,9 @@ SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree*
   _subst->reset();
 //  _subst=new InstMatcher;
 
-  if(withoutTop){
-    _subst->bindSpecialVar(0,TermList(query));
-  }else{
-    if(reversed) {
-      createReversedInitialBindings(query);
-    } else {
-      createInitialBindings(query);
-    }
-  }
+  SubstitutionTree::createIteratorBindings(query, reversed, withoutTop,
+      [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
+
 }
 
 SubstitutionTree::FastInstancesIterator::~FastInstancesIterator()
@@ -606,34 +605,6 @@ SubstitutionTree::FastInstancesIterator::~FastInstancesIterator()
 //  delete _subst;
 }
 
-
-void SubstitutionTree::FastInstancesIterator::createInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::FastInstancesIterator::createInitialBindings");
-
-  TermList* args=t->args();
-  int nextVar = 0;
-  while (! args->isEmpty()) {
-    unsigned var = nextVar++;
-    _subst->bindSpecialVar(var,*args);
-    args = args->next();
-  }
-}
-
-/**
- * For a binary comutative query literal, create the initial binding
- * where the order of special variables is reversed.
- */
-void SubstitutionTree::FastInstancesIterator::createReversedInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::FastInstancesIterator::createReversedInitialBindings");
-  ASS(t->isLiteral());
-  ASS(t->commutative());
-  ASS_EQ(t->arity(),2);
-
-  _subst->bindSpecialVar(1,*t->nthArgument(0));
-  _subst->bindSpecialVar(0,*t->nthArgument(1));
-}
 
 bool SubstitutionTree::FastInstancesIterator::hasNext()
 {

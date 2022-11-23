@@ -52,8 +52,9 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(int nodes,bool useC, bool rfSubs)
-  : tag(false), _nextVar(0), _nodes(nodes), _useC(useC), _rfSubs(rfSubs)
+SubstitutionTree::SubstitutionTree(bool useC, bool rfSubs)
+  : tag(false), _nextVar(0), _useC(useC), _rfSubs(rfSubs)
+  , _root(nullptr)
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -72,10 +73,8 @@ SubstitutionTree::~SubstitutionTree()
   CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iteratorCnt,0);
 
-  for (unsigned i = 0; i<_nodes.size(); i++) {
-    if(_nodes[i]!=0) {
-      delete _nodes[i];
-    }
+  if (_root) {
+    delete _root;
   }
 } // SubstitutionTree::~SubstitutionTree
 
@@ -84,7 +83,7 @@ SubstitutionTree::~SubstitutionTree()
  *
  * This method is used for insertions and deletions.
  */
-void SubstitutionTree::getBindings(Term* t, BindingMap& svBindings)
+void SubstitutionTree::getBindingsArgBindings(Term* t, BindingMap& svBindings)
 {
   TermList* args=t->args();
 
@@ -141,26 +140,23 @@ struct BindingComparator
  * top symbol of the term/literal being inserted, and
  * @b bh contains its arguments.
  */
-void SubstitutionTree::insert(Node** pnode,BindingMap& svBindings,LeafData ld)
+void SubstitutionTree::insert(BindingMap& svBindings,LeafData ld)
 {
+#define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
   CALL("SubstitutionTree::insert/3");
   ASS_EQ(_iteratorCnt,0);
-
-#if VDEBUG
-  if(tag){cout << "Insert " << ld.toString() << endl;}
-#endif
+  auto pnode = &_root;
+  DEBUG_INSERT("insert: ", svBindings, " into ", *this)
 
   if(*pnode == 0) {
-    if(svBindings.isEmpty()) {
-      *pnode=createLeaf();
-    } else {
-      *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
-    }
+    ASS(!svBindings.isEmpty())
+    *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
   }
   if(svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
     ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     static_cast<Leaf*>(*pnode)->insert(ld);
+    DEBUG_INSERT("out: ", *this);
     return;
   }
 
@@ -269,6 +265,7 @@ start:
     lnode->insert(ld);
 
     ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent));
+    DEBUG_INSERT("out: ", *this);
     return;
   }
 
@@ -342,6 +339,7 @@ start:
     ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     Leaf* leaf = static_cast<Leaf*>(*pnode);
     leaf->insert(ld);
+    DEBUG_INSERT("out: ", *this);
     return;
   }
 
@@ -358,10 +356,11 @@ start:
  * If the removal results in a chain of nodes containing
  * no terms/literals, all those nodes are removed as well.
  */
-void SubstitutionTree::remove(Node** pnode,BindingMap& svBindings,LeafData ld)
+void SubstitutionTree::remove(BindingMap& svBindings,LeafData ld)
 {
   CALL("SubstitutionTree::remove-2");
   ASS_EQ(_iteratorCnt,0);
+  auto pnode = &_root;
 
   ASS(*pnode);
 
@@ -585,16 +584,17 @@ vstring SubstitutionTree::toString() const
   CALL("SubstitutionTree::toString");
 
   vstring res;
+  ASSERTION_VIOLATION_REP("TODO")
 
-  for(unsigned tli=0;tli<_nodes.size();tli++) {
-    res+=Int::toString(tli);
-    res+=":\n";
-
-    Stack<int> indentStack(10);
-    Stack<Node*> stack(10);
-
-    res+=nodeToString(_nodes[tli]);
-  }
+  // for(unsigned tli=0;tli<_nodes.size();tli++) {
+  //   res+=Int::toString(tli);
+  //   res+=":\n";
+  //
+  //   Stack<int> indentStack(10);
+  //   Stack<Node*> stack(10);
+  //
+  //   res+=nodeToString(_nodes[tli]);
+  // }
   return res;
 }
 
@@ -649,40 +649,96 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
   }
 }
 
+SubstitutionTree::LeafIterator::LeafIterator(SubstitutionTree* st)
+  : _curr()
+  , _nodeIterators()
+{
+  if (st->_root->isLeaf()) {
+    _curr = st->_root;
+  } else {
+    _curr = nullptr;
+    _nodeIterators.push(static_cast<IntermediateNode*>(st->_root)->allChildren());
+  }
+}
+
+SubstitutionTree::Leaf* SubstitutionTree::LeafIterator::next()
+{
+  ASS(_curr->isLeaf());
+  auto out = _curr;
+  skipToNextLeaf();
+  return static_cast<Leaf*>(out);
+}
+
+
+void SubstitutionTree::LeafIterator::skipToNextLeaf()
+{
+  for (;;) {
+    while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
+      _nodeIterators.pop();
+      _curr = nullptr;
+    }
+    if (_nodeIterators.isEmpty()) {
+      ASS_EQ(_curr,nullptr)
+      return;
+    } else {
+      _curr = *_nodeIterators.top().next();
+      if (_curr->isLeaf()) {
+        return;
+      } else {
+        _nodeIterators.push(static_cast<IntermediateNode*>(_curr)->allChildren());
+        _curr = nullptr;
+      }
+    }
+  }
+}
+
 bool SubstitutionTree::LeafIterator::hasNext()
 {
   CALL("SubstitutionTree::Leaf::hasNext");
-  //if(tag){cout << "leafIterator::hasNext" << endl;}
-  for(;;) {
-    while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
-      _nodeIterators.pop();
-    }
-    if(_nodeIterators.isEmpty()) {
-      do {
-	if(_nextRootPtr==_afterLastRootPtr) {
-	  return false;
-	}
-	_curr=*(_nextRootPtr++);
-      } while(_curr==0);
-    } else {
-      _curr=*_nodeIterators.top().next();
-    }
-    if(_curr->isLeaf()) {
-      return true;
-    } else {
-      _nodeIterators.push(static_cast<IntermediateNode*>(_curr)->allChildren());
-    }
-  }
+  return _curr != nullptr;
+  // if (_curr->isLeaf()) {
+  //   return true;
+  // } else {
+  //   for (;;) {
+  //
+  //   }
+  // }
+  // //if(tag){cout << "leafIterator::hasNext" << endl;}
+  // for(;;) {
+  //   while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
+  //     _nodeIterators.pop();
+  //   }
+  //   if(_nodeIterators.isEmpty()) {
+  //     do {
+	// if(_nextRootPtr==_afterLastRootPtr) {
+	//   return false;
+	// }
+	// _curr=*(_nextRootPtr++);
+  //     } while(_curr==0);
+  //   } else {
+  //     _curr=*_nodeIterators.top().next();
+  //   }
+  //   if(_curr->isLeaf()) {
+  //     return true;
+  //   } else {
+  //     _nodeIterators.push(static_cast<IntermediateNode*>(_curr)->allChildren());
+  //   }
+  // }
 }
 
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
 	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
   bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
-: tag(parent->tag), 
-svStack(32), literalRetrieval(query->isLiteral()),
-  retrieveSubstitution(retrieveSubstitution), inLeaf(false),
-ldIterator(LDIterator::getEmpty()), nodeIterators(8), bdStack(8),
-clientBDRecording(false), useUWAConstraints(useC)
+  : tag(parent->tag)
+  , svStack(32)
+  , literalRetrieval(query->isLiteral())
+  , retrieveSubstitution(retrieveSubstitution)
+  , inLeaf(false)
+  , ldIterator(LDIterator::getEmpty())
+  , nodeIterators(8)
+  , bdStack(8)
+  , clientBDRecording(false)
+  , useUWAConstraints(useC)
 #if VDEBUG
   , tree(parent)
 #endif
@@ -715,15 +771,12 @@ clientBDRecording(false), useUWAConstraints(useC)
     queryNorm = t.term();
   }
 
-  if(withoutTop){
-    subst.bindSpecialVar(0,TermList(queryNorm),NORM_QUERY_BANK);
-  }else{
-    if(reversed) {
-      createReversedInitialBindings(queryNorm);
-    } else {
-      createInitialBindings(queryNorm);
-    }
-  }
+  ASS_REP(!withoutTop, "TODO")
+
+
+  SubstitutionTree::createIteratorBindings(queryNorm, reversed, withoutTop,
+      [&](unsigned var, TermList t) { subst.bindSpecialVar(var, t, NORM_QUERY_BANK); });
+
 #if VDEBUG
   if(tag){
     cout << "Starting iterator with "  << endl; cout << subst.toString() << endl;
@@ -749,30 +802,6 @@ SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 #if VDEBUG
   tree->_iteratorCnt--;
 #endif
-}
-
-void SubstitutionTree::UnificationsIterator::createInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::UnificationsIterator::createInitialBindings");
-
-  TermList* args=t->args();
-  int nextVar = 0;
-  while (! args->isEmpty()) {
-    unsigned var = nextVar++;
-    subst.bindSpecialVar(var,*args,NORM_QUERY_BANK);
-    args = args->next();
-  }
-}
-
-void SubstitutionTree::UnificationsIterator::createReversedInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::UnificationsIterator::createReversedInitialBindings");
-  ASS(t->isLiteral());
-  ASS(t->commutative());
-  ASS_EQ(t->arity(),2);
-
-  subst.bindSpecialVar(1,*t->nthArgument(0),NORM_QUERY_BANK);
-  subst.bindSpecialVar(0,*t->nthArgument(1),NORM_QUERY_BANK);
 }
 
 bool SubstitutionTree::UnificationsIterator::hasNext()
@@ -883,7 +912,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 #if VDEBUG
   if(tag){
     cout << "=========================================" << endl;
-    cout << "entering..." << endl; n->print(0); cout << endl;
+    cout << "entering..." << *n << endl;
     cout << "subst is " << endl; cout << subst.toString() << endl;
     cout << "svstack is " << svStack.toString() << endl;
     cout << "=========================================" << endl;
@@ -992,5 +1021,80 @@ SubstitutionTree::NodeIterator
   }
 }
 
+void SubstitutionTree::Leaf::output(std::ostream& out) const 
+{
+  out << this->term;
+}
+void SubstitutionTree::IntermediateNode::output(std::ostream& out) const 
+{
+  // TODO const version of allChildren
+  auto childIter = iterTraits(((IntermediateNode*)this)->allChildren());
+  out << this->term
+      << " ; S" << this->childVar << " -> ";
+
+  auto first = childIter.next();
+  auto brackets = childIter.hasNext();
+  if (brackets) out << "[ ";
+  out << **first;
+  while (childIter.hasNext()) {
+    out <<  " | " << **childIter.next();
+  } 
+  if (brackets) out << " ]";
 
 
+}
+
+
+
+
+#define VERBOSE 1
+std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& self)
+{
+#if VERBOSE
+  out << "nextVar: S" << self._nextVar << " ";
+#endif
+  if (self._root) {
+    out << *self._root;
+  } else {
+    out << "<empty tree>";
+  }
+  return out;
+}
+
+
+template<class Iterator> 
+TermQueryResultIterator SubstitutionTree::iterator(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms)
+{
+
+  CALL("TermSubstitutionTree::getResultIterator");
+  // ASSERTION_VIOLATION_REP("TODO")
+
+  TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
+
+  if(_root){
+    if(_root->isLeaf()) {
+      LDIterator ldit=static_cast<Leaf*>(_root)->allChildren();
+      result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions,false);
+    }
+    else{
+      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, _root, trm, retrieveSubstitutions,false,false, 
+                                                         withConstraints, 
+                                                         funcSubterms ));
+      result = pvi( getMappingIterator(qrit, 
+            [extra](QueryResult const& qr)
+            { 
+              TermList trm = extra ? qr.first.first->extraTerm 
+                                   : qr.first.first->term;
+              return TermQueryResult(trm, qr.first.first->literal,
+                qr.first.first->clause, qr.first.second,qr.second);
+            }) );
+    }
+  }
+
+  return result;
+
+}
+
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator>(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::UnificationsIterator>(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastGeneralizationsIterator>(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);

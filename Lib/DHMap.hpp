@@ -890,6 +890,20 @@ public:
     Entry* _curr;
   }; // class DHMap::Iterator
 
+  friend std::ostream& operator<<(std::ostream& out, DHMap const& self) 
+  {
+    auto iter = self.items();
+    auto write = [&](auto itm) { out << itm.first << " -> " << itm.second; };
+    out << "{ ";
+    if (iter.hasNext()) {
+      write(iter.next());
+      while (iter.hasNext()) {
+        out << ", ";
+        write(iter.next());
+      }
+    }
+    return out << " }";
+  }
 
 
 }; // class DHMap

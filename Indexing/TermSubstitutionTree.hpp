@@ -89,21 +89,12 @@ private:
   void insert(TermList t, LeafData ld);
   void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
 
-  struct TermQueryResultFn;
-
   template<class Iterator>
   TermQueryResultIterator getResultIterator(Term* term,
 	  bool retrieveSubstitutions,bool withConstraints);
 
   struct LDToTermQueryResultFn;
   struct LDToTermQueryResultWithSubstFn;
-  struct LeafToLDIteratorFn;
-  struct UnifyingContext;
-
-  template<class LDIt>
-  TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
-	  TermList queryTerm, bool retrieveSubstitutions,
-          bool withConstraints);
 
   TermQueryResultIterator getAllUnifyingIterator(TermList trm,
 	  bool retrieveSubstitutions,bool withConstraints);

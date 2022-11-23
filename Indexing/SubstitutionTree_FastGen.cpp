@@ -371,9 +371,15 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  */
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
   bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* fstm)
-: _literalRetrieval(query->isLiteral()), _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _ldIterator(LDIterator::getEmpty()), _root(root), _tree(parent),
-  _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
+  : _literalRetrieval(query->isLiteral())
+  , _retrieveSubstitution(retrieveSubstitution)
+  , _inLeaf(false)
+  , _ldIterator(LDIterator::getEmpty())
+  , _root(root)
+  , _tree(parent)
+  , _alternatives(64)
+  , _specVarNumbers(64)
+  , _nodeTypes(64)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
   ASS(root);
@@ -385,15 +391,10 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
 
   _subst=new GenMatcher(query,parent->_nextVar);
 
-  if(withoutTop){
-    _subst->bindSpecialVar(0,TermList(query));
-  }else{
-   if(reversed) {
-     createReversedInitialBindings(query);
-   } else {
-     createInitialBindings(query);
-   }
-  }
+  ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
+
+  SubstitutionTree::createIteratorBindings(query, reversed, withoutTop,
+      [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
 }
 
 
@@ -408,34 +409,6 @@ SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
   delete _subst;
 }
 
-
-void SubstitutionTree::FastGeneralizationsIterator::createInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::FastGeneralizationsIterator::createInitialBindings");
-
-  TermList* args=t->args();
-  int nextVar = 0;
-  while (! args->isEmpty()) {
-    unsigned var = nextVar++;
-    _subst->bindSpecialVar(var,*args);
-    args = args->next();
-  }
-}
-
-/**
- * For a binary comutative query literal, create initial bindings,
- * where the order of special variables is reversed.
- */
-void SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::FastGeneralizationsIterator::createReversedInitialBindings");
-  ASS(t->isLiteral());
-  ASS(t->commutative());
-  ASS_EQ(t->arity(),2);
-
-  _subst->bindSpecialVar(1,*t->nthArgument(0));
-  _subst->bindSpecialVar(0,*t->nthArgument(1));
-}
 
 bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
 {
