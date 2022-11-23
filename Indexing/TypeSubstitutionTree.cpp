@@ -51,38 +51,38 @@ void TypeSubstitutionTree::remove(TermList sort, LeafData ld)
   handleTerm(sort,ld,false);
 }
 
-struct TypeSubstitutionTree::VarUnifFn
-{
-  VarUnifFn(TermList queryTerm, TermList sort)
-  : _queryTerm(queryTerm), _sort(sort) {
-    _subst=RobSubstitutionSP(new RobSubstitution());
-  }
-
-  TermQueryResult operator() (TermQueryResult tqr) {
-    //TODO unnecessary work here. We had the sort and then lost it
-    TermList tqrSort = SortHelper::getTermSort(tqr.term, tqr.literal);
-    _subst->reset();
-
-    ASS(_sort.isVar() || tqrSort.isVar());
-    ALWAYS(_subst->unify(_sort, SubstitutionTree::QRS_QUERY_BANK, tqrSort, SubstitutionTree::QRS_RESULT_BANK));
-    
-    bool isTypeSub = false;
-    if(_queryTerm.isVar() || tqr.term.isVar()){
-      ALWAYS(_subst->unify(_queryTerm, SubstitutionTree::QRS_QUERY_BANK, tqr.term, SubstitutionTree::QRS_RESULT_BANK));
-    } else {
-      isTypeSub = true;
-    }
-
-    return TermQueryResult(tqr.term, tqr.literal, tqr.clause,
-    ResultSubstitution::fromSubstitution(_subst.ptr(),
-      SubstitutionTree::QRS_QUERY_BANK,SubstitutionTree::QRS_RESULT_BANK), isTypeSub);
-  }
-
-private:
-  RobSubstitutionSP _subst;
-  TermList _queryTerm;
-  TermList _sort;
-};
+// struct TypeSubstitutionTree::VarUnifFn
+// {
+//   VarUnifFn(TermList queryTerm, TermList sort)
+//   : _queryTerm(queryTerm), _sort(sort) {
+//     _subst=RobSubstitutionSP(new RobSubstitution());
+//   }
+//
+//   TermQueryResult operator() (TermQueryResult tqr) {
+//     //TODO unnecessary work here. We had the sort and then lost it
+//     TermList tqrSort = SortHelper::getTermSort(tqr.term, tqr.literal);
+//     _subst->reset();
+//
+//     ASS(_sort.isVar() || tqrSort.isVar());
+//     ALWAYS(_subst->unify(_sort, SubstitutionTree::QRS_QUERY_BANK, tqrSort, SubstitutionTree::QRS_RESULT_BANK));
+//     
+//     bool isTypeSub = false;
+//     if(_queryTerm.isVar() || tqr.term.isVar()){
+//       ALWAYS(_subst->unify(_queryTerm, SubstitutionTree::QRS_QUERY_BANK, tqr.term, SubstitutionTree::QRS_RESULT_BANK));
+//     } else {
+//       isTypeSub = true;
+//     }
+//
+//     return TermQueryResult(tqr.term, tqr.literal, tqr.clause,
+//     ResultSubstitution::fromSubstitution(_subst.ptr(),
+//       SubstitutionTree::QRS_QUERY_BANK,SubstitutionTree::QRS_RESULT_BANK), isTypeSub);
+//   }
+//
+// private:
+//   RobSubstitutionSP _subst;
+//   TermList _queryTerm;
+//   TermList _sort;
+// };
 
 struct TypeSubstitutionTree::ToTypeSubFn
 {
@@ -111,31 +111,19 @@ void TypeSubstitutionTree::handleTerm(TermList sort, LeafData ld, bool insert)
 {
   CALL("TypeSubstitutionTree::handleTerm");
 
-  if(sort.isOrdinaryVar()) {
-    if(insert) {
-      _vars.insert(ld);
-    } else {
-      // why is this case needed?
-      _vars.remove(ld);
-    }
-  }  else {
-    ASS(sort.isTerm());
-    Term* term=sort.term();
+  Renaming normalizer;
+  normalizer.normalizeVariables(ld.term);
 
-    Renaming normalizer;
-    normalizer.normalizeVariables(ld.term);
+  auto normSort = normalizer.apply(sort);
 
-    Term* normSort=normalizer.apply(term);
+  BindingMap svBindings;
+  svBindings.insert(0, normSort);
+  _nextVar = max(_nextVar, 1);
 
-    BindingMap svBindings;
-    svBindings.insert(0, TermList(normSort));
-    _nextVar = max(_nextVar, 1);
-
-    if(insert) {
-      SubstitutionTree::insert(svBindings, ld);
-    } else {
-      SubstitutionTree::remove(svBindings, ld);
-    }
+  if(insert) {
+    SubstitutionTree::insert(svBindings, ld);
+  } else {
+    SubstitutionTree::remove(svBindings, ld);
   }
 }
 
@@ -145,23 +133,11 @@ TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, Ter
 {
   CALL("TypeSubstitutionTree::getUnifications");
  
-  auto it1 = !_vars.isEmpty() ? pvi(getMappingIterator(ldIteratorToTQRIterator(LDSkipList::RefIterator(_vars), sort, false, /* withConstraints */ false), VarUnifFn(trm, sort))) :
-             TermQueryResultIterator::getEmpty();
-
-  if(sort.isOrdinaryVar()) { //TODO return vars as well?
-    ASSERTION_VIOLATION_REP("TODO")
-    // auto it2 = getMappingIterator(getAllUnifyingIterator(sort,false), VarUnifFn(trm, sort));
-    // return pvi(getConcatenatedIterator(it1, it2)); 
-  } else {
-    ASS(sort.isTerm());
-    auto it2 =  getMappingIterator(
-	  getResultIterator<UnificationsIterator>(sort.term(), retrieveSubstitutions), ToTypeSubFn(trm));
-    return pvi(getConcatenatedIterator(it1, it2));     
-  }
+  return pvi(getMappingIterator(getResultIterator<UnificationsIterator>(sort, retrieveSubstitutions), ToTypeSubFn(trm)));
 }
 
 template<class Iterator>
-TermQueryResultIterator TypeSubstitutionTree::getResultIterator(Term* trm,
+TermQueryResultIterator TypeSubstitutionTree::getResultIterator(TermList trm,
 	  bool retrieveSubstitutions)
 {
   return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, 

@@ -73,6 +73,16 @@ public:
   static bool isExactApplied(TermList head, unsigned argNum);
   static bool isOverApplied(TermList head, unsigned argNum);
   static bool isSafe(TermStack& args);
+  // TODO is this right?
+  static TermList replaceFunctionalAndBooleanSubterms(TermList t, FuncSubtermMap* fsm)
+  { return t.isVar() ? t : replaceFunctionalAndBooleanSubterms(t.term(), fsm); }
+  static Literal* replaceFunctionalAndBooleanSubterms(Literal* l, FuncSubtermMap* fsm)
+  {
+    auto res = replaceFunctionalAndBooleanSubterms((Term*)l, fsm);
+    ASS(res.isTerm()) 
+    ASS(res.term()->isLiteral())
+    return (Literal*) res.term();
+  }
   static TermList replaceFunctionalAndBooleanSubterms(Term* term, FuncSubtermMap* fsm);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);

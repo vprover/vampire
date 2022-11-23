@@ -141,6 +141,16 @@ Term* Renaming::normalize(Term* trm)
   return n.apply(trm);
 }
 
+TermList Renaming::normalize(TermList trm)
+{
+  CALL("Renaming::normalize(TermList)");
+
+  static Renaming n;
+  n.reset();
+  n.normalizeVariables(trm);
+  return n.apply(trm);
+}
+
 
 #if VDEBUG
 

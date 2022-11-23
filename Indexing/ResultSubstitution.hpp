@@ -142,7 +142,9 @@ public:
   static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
 	  int queryBank, int resultBank);
 #if VDEBUG
-  virtual vstring toString(){ NOT_IMPLEMENTED; }
+  virtual void output(std::ostream& ) const = 0;
+  friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
+  { self.output(out); return out; }
 #endif
 };
 
@@ -156,15 +158,15 @@ public:
   
   static ResultSubstitutionSP instance();
 
-  TermList applyToQuery(TermList t) { return t; }
-  Literal* applyToQuery(Literal* l) { return l; }
-  TermList applyToResult(TermList t) { return t; }
-  Literal* applyToResult(Literal* l) { return l; }
-  TermList applyTo(TermList t, unsigned index) { return t; }
-  Literal* applyTo(Literal* l,unsigned index) { return l; }
-  bool isIdentityOnQueryWhenResultBound() {return true;}
+  TermList applyToQuery(TermList t) override { return t; }
+  Literal* applyToQuery(Literal* l) override { return l; }
+  TermList applyToResult(TermList t) override { return t; }
+  Literal* applyToResult(Literal* l) override { return l; }
+  TermList applyTo(TermList t, unsigned index) override { return t; }
+  Literal* applyTo(Literal* l,unsigned index) override { return l; }
+  bool isIdentityOnQueryWhenResultBound() override {return true;}
 #if VDEBUG
-  virtual vstring toString(){ return "identity"; }
+  virtual void output(std::ostream& out) const final override { out << "IdentitySubstitution"; }
 #endif
 };
 
@@ -175,19 +177,19 @@ public:
   CLASS_NAME(DisjunctQueryAndResultVariablesSubstitution);
   USE_ALLOCATOR(DisjunctQueryAndResultVariablesSubstitution);
   
-  TermList applyToQuery(TermList t);
-  Literal* applyToQuery(Literal* l);
-  TermList applyToResult(TermList t);
-  Literal* applyToResult(Literal* l);
-  TermList applyTo(TermList t, unsigned index) { NOT_IMPLEMENTED; }
-  Literal* applyTo(Literal* l,unsigned index) { NOT_IMPLEMENTED; }
+  TermList applyToQuery(TermList t) override;
+  Literal* applyToQuery(Literal* l) override;
+  TermList applyToResult(TermList t) override;
+  Literal* applyToResult(Literal* l) override;
+  TermList applyTo(TermList t, unsigned index) override { NOT_IMPLEMENTED; }
+  Literal* applyTo(Literal* l,unsigned index) override { NOT_IMPLEMENTED; }
 
   /**
    * we can return true because nothing is bound to the result
    */
-  bool isIdentityOnQueryWhenResultBound() {return true;}
+  bool isIdentityOnQueryWhenResultBound() override {return true;}
 #if VDEBUG
-  virtual vstring toString(){ return "DisjunctQueryAndResultVariablesSubstitution"; }
+  virtual void output(std::ostream& out) const final override { out << "DisjunctQueryAndResultVariablesSubstitution"; }
 #endif
 private:
   struct Applicator;

@@ -260,6 +260,13 @@ public:
   
   bool isIdentityOnResultWhenQueryBound() override
   { return true; }
+
+  
+
+#if VDEBUG
+  virtual void output(std::ostream& out) const final override 
+  { out << "InstMatcher::Substitution(<output unimplemented>)"; }
+#endif
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;
@@ -564,10 +571,11 @@ finish:
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
+template<class TermOrLit>
 SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
+	TermOrLit query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
   FuncSubtermMap* fstm) //final two for compatibility purposes
-  : _literalRetrieval(query->isLiteral())
+  : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
   , _retrieveSubstitution(retrieveSubstitution)
   , _inLeaf(false)
   , _ldIterator(LDIterator::getEmpty())
@@ -593,8 +601,11 @@ SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree*
 
   SubstitutionTree::createIteratorBindings(query, reversed, withoutTop,
       [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
-
 }
+
+
+template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, Literal* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, TermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
 
 SubstitutionTree::FastInstancesIterator::~FastInstancesIterator()
 {

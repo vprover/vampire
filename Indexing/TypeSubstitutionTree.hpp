@@ -57,23 +57,10 @@ private:
   using TermIndexingStructure::insert; // state explicitly that "insert(TermList sort, LeafData ld);" is not meant to be an overload of any of the parent's inserts
 
   template<class Iterator>
-  TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions);
+  TermQueryResultIterator getResultIterator(TermList term, bool retrieveSubstitutions);
 
-  struct VarUnifFn;
   struct ToTypeSubFn;
 
-  TermQueryResultIterator getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitution);
-
-  inline
-  unsigned getRootNodeIndex(Term* t)
-  {
-    return t->functor();
-  }
-
-  typedef SkipList<LeafData,LDComparator> LDSkipList;
-  LDSkipList _vars;
 };
 
 };

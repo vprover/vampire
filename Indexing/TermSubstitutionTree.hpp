@@ -89,24 +89,8 @@ private:
   void insert(TermList t, LeafData ld);
   void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
 
-  template<class Iterator>
-  TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions,bool withConstraints);
-
-  struct LDToTermQueryResultFn;
-  struct LDToTermQueryResultWithSubstFn;
-
-  TermQueryResultIterator getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions,bool withConstraints);
-
-  inline
-  unsigned getRootNodeIndex(Term* t)
-  {
-    return t->functor();
-  }
-
-  typedef SkipList<LeafData,LDComparator> LDSkipList;
-  LDSkipList _vars;
+  template<class Iterator> TermQueryResultIterator getResultIterator(TermList query, bool retrieveSubstitutions, bool withConstraints);
+  template<class Iterator> TermQueryResultIterator getResultIterator(Literal* query, bool retrieveSubstitutions, bool withConstraints);
 
   //higher-order concerns
   bool _extra;

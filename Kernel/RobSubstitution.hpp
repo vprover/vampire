@@ -87,7 +87,6 @@ public:
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
 #if VDEBUG
-  vstring toString(bool deref=false) const;
   /**
    * Return number of bindings stored in the substitution.
    *
@@ -111,7 +110,14 @@ public:
     { return !(*this==o); }
 
 #if VDEBUG
-    vstring toString() const;
+    friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
+    {
+      if(self.index == SPECIAL_INDEX) {
+        return out << "S" << self.var;
+      } else {
+        return out << "X" << self.var << "/" << self.index;
+      }
+    }
 #endif
 
     /** number of variable */
@@ -188,7 +194,8 @@ public:
     bool operator==(const TermSpec& o) const
     { return term==o.term && index==o.index; }
 #if VDEBUG
-    vstring toString() const;
+    friend std::ostream& operator<<(std::ostream& out, TermSpec const& self)
+    { return out << self.term << "/" << self.index; }
 #endif
 
     /** term reference */
@@ -250,6 +257,9 @@ private:
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
 
+  friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
+  { return out << self._bank; }
+
   class BindingBacktrackObject
   : public BacktrackObject
   {
@@ -270,10 +280,8 @@ private:
       }
     }
 #if VDEBUG
-    vstring toString() const
-    {
-      return "(ROB backtrack object for "+ _var.toString() +")";
-    }
+    friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
+    { return out << "(ROB backtrack object for " << self._var << ")"; }
 #endif
     CLASS_NAME(RobSubstitution::BindingBacktrackObject);
     USE_ALLOCATOR(BindingBacktrackObject);
@@ -296,14 +304,6 @@ private:
   struct UnificationFn;
 
 };
-
-#if VDEBUG
-
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs );
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec vs );
-
-#endif
-
 
 };
 

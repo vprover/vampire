@@ -116,7 +116,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getInstances");
-  DBGE(*lit)
 
 //  return getResultIterator<InstancesIterator>(lit, complementary, true);
 
@@ -214,9 +213,9 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
   auto getPos = lit->isPositive() != complementary;
   auto idx = lit->functor() * 2 + (getPos ? 1 : 0);
   while (idx >= _trees.size()) {
-    _trees.push(SubstitutionTree(_useC));
+    _trees.push(make_unique<SubstitutionTree>(_useC));
   }
-  return _trees[idx];
+  return *_trees[idx];
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
@@ -245,8 +244,11 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
   Literal* normLit=Renaming::normalize(lit);
 
   BindingMap svBindings;
-  svBindings.insert(0, TermList(normLit));
-  tree._nextVar = max(tree._nextVar, 1);
+  SubstitutionTree::createIteratorBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
+      [&](auto v, auto t) { {
+        tree._nextVar = max<int>(tree._nextVar, v + 1);
+        svBindings.insert(v, t);
+      } });
   Leaf* leaf=tree.findLeaf(root,svBindings);
   if(leaf==0) {
     return SLQueryResultIterator::getEmpty();
@@ -271,7 +273,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
   return pvi( getMappingIterator(
       getMapAndFlattenIterator(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-         .flatMap([&](auto i) { return vi(new LeafIterator(&_trees[i])); })
+         .flatMap([this](auto i) { return vi(new LeafIterator(&*_trees[i])); })
         ,
         [](Leaf* l) { return l->allChildren(); }),
       LDToSLQueryResultFn()) ) ;

@@ -74,6 +74,19 @@ public:
   USE_ALLOCATOR(SubstitutionTree);
 
   SubstitutionTree(bool useC=false, bool rfSubs=false);
+  SubstitutionTree(SubstitutionTree const&) = delete;
+  SubstitutionTree(SubstitutionTree&& other)
+    : _useC(other._useC)
+    , _rfSubs(other._rfSubs)
+    , _root(other._root)
+#if DEBUG
+    , _iteratorCnt(0)
+#endif
+  { 
+    other._root = nullptr; 
+    ASS_EQ(other._iteratorCnt,0)
+  }
+
   virtual ~SubstitutionTree();
 
   // Tags are used as a debug tool to turn debugging on for a particular instance
@@ -83,8 +96,8 @@ public:
 
 
   // TODO make const function
-  template<class Iter> 
-  TermQueryResultIterator iterator(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+  template<class Iter, class TermOrLit> 
+  TermQueryResultIterator iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
 
 //protected:
 
@@ -780,31 +793,33 @@ public:
 
   // TODO document
   template<class BindingFunction>
-  static void createIteratorBindings(Term* term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  static void createIteratorBindings(TermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  {
+    ASS_REP(!withoutTop, "TODO")
+    bindSpecialVar(0,term);
+  }
+
+  template<class BindingFunction>
+  static void createIteratorBindings(Literal* lit, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
   {
     ASS_REP(!withoutTop, "TODO")
 
-    if (term->isLiteral()) {
-      if(reversed) {
-        ASS(term->commutative());
-        ASS_EQ(term->arity(),2);
+    if(reversed) {
+      ASS(lit->commutative());
+      ASS_EQ(lit->arity(),2);
 
-        bindSpecialVar(1,*term->nthArgument(0));
-        bindSpecialVar(0,*term->nthArgument(1));
+      bindSpecialVar(1,*lit->nthArgument(0));
+      bindSpecialVar(0,*lit->nthArgument(1));
 
-      } else {
-
-        TermList* args=term->args();
-        int nextVar = 0;
-        while (! args->isEmpty()) {
-          unsigned var = nextVar++;
-          bindSpecialVar(var,*args);
-          args = args->next();
-        }
-      }
     } else {
-      ASS(!reversed)
-      bindSpecialVar(0,TermList(term));
+
+      TermList* args=lit->args();
+      int nextVar = 0;
+      while (! args->isEmpty()) {
+        unsigned var = nextVar++;
+        bindSpecialVar(var,*args);
+        args = args->next();
+      }
     }
   }
 
@@ -815,7 +830,8 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
+    template<class TermOrLit>
+    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query,
             bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC, 
             FuncSubtermMap* fstm = 0);
 
@@ -860,7 +876,8 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
+    template<class TermOrLit>
+    FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query,
 	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
       FuncSubtermMap* fstm = 0);
     ~FastInstancesIterator();
@@ -918,7 +935,8 @@ public:
   : public IteratorCore<QueryResult>
   {
   public:
-    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
+    template<class TermOrLit>
+    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, 
       bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
       FuncSubtermMap* funcSubtermMap = 0);
     ~UnificationsIterator();

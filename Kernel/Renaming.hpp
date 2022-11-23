@@ -80,6 +80,7 @@ public:
 
   static Literal* normalize(Literal* l);
   static Term* normalize(Term* t);
+  static TermList normalize(TermList t);
 
 #if VDEBUG
   void assertValid() const;

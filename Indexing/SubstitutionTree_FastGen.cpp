@@ -31,7 +31,8 @@ namespace Indexing
 class SubstitutionTree::GenMatcher
 {
 public:
-  GenMatcher(Term* query, unsigned nextSpecVar);
+  template<class TermOrLit>
+  GenMatcher(TermOrLit query, unsigned nextSpecVar);
   ~GenMatcher();
 
   CLASS_NAME(SubstitutionTree::GenMatcher);
@@ -204,10 +205,9 @@ public:
   { return true; }
 
 #if VDEBUG
-  virtual vstring toString() override
-  { return _resultNormalizer->toString(); }
+  virtual void output(std::ostream& out) const final override 
+  { out << "GenMatcher::Substitution(<output unimplemented>)"; }
 #endif
-
 private:
   Applicator* getApplicator()
   {
@@ -222,12 +222,15 @@ private:
   Applicator* _applicator;
 };
 
+unsigned weight(Literal* l) { return l->weight(); }
+unsigned weight(TermList t) { return  t.weight(); }
 /**
  * @b nextSpecVar Number higher than any special variable present in the tree.
  * 	It's used to determine size of the array that stores bindings of
  * 	special variables.
  */
-SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
+template<class TermOrLit>
+SubstitutionTree::GenMatcher::GenMatcher(TermOrLit query, unsigned nextSpecVar)
 : _boundVars(256)
 {
   Recycler::get(_specVars);
@@ -237,10 +240,10 @@ SubstitutionTree::GenMatcher::GenMatcher(Term* query, unsigned nextSpecVar)
     _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
   }
   Recycler::get(_bindings);
-  _bindings->ensure(query->weight());
+  _bindings->ensure(weight(query));
   _bindings->reset();
 
-  _maxVar=query->weight()-1;
+  _maxVar = weight(query) - 1;
 }
 SubstitutionTree::GenMatcher::~GenMatcher()
 {
@@ -369,9 +372,10 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  * If @b reversed If true, parameters of supplied binary literal are
  * 	reversed. (useful for retrieval commutative terms)
  */
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
+template<class TermOrLit>
+SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, 
   bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* fstm)
-  : _literalRetrieval(query->isLiteral())
+  : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
   , _retrieveSubstitution(retrieveSubstitution)
   , _inLeaf(false)
   , _ldIterator(LDIterator::getEmpty())
@@ -398,6 +402,9 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
 }
 
 
+
+template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Literal* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
 
 SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
 {

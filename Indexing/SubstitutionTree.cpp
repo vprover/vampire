@@ -55,12 +55,13 @@ using namespace Indexing;
 SubstitutionTree::SubstitutionTree(bool useC, bool rfSubs)
   : tag(false), _nextVar(0), _useC(useC), _rfSubs(rfSubs)
   , _root(nullptr)
+#if VDEBUG
+  , _iteratorCnt(0)
+#endif
+
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
-#if VDEBUG
-  _iteratorCnt=0;
-#endif
 } // SubstitutionTree::SubstitutionTree
 
 /**
@@ -532,72 +533,6 @@ vstring getIndentStr(int n)
   return res;
 }
 
-vstring SubstitutionTree::nodeToString(Node* topNode)
-{
-  CALL("SubstitutionTree::nodeToString");
-
-  vstring res;
-  Stack<int> indentStack(10);
-  Stack<Node*> stack(10);
-
-  stack.push(topNode);
-  indentStack.push(1);
-
-  while(stack.isNonEmpty()) {
-    Node* node=stack.pop();
-    int indent=indentStack.pop();
-
-    if(!node) {
-      continue;
-    }
-    if(!node->term.isEmpty()) {
-      res+=getIndentStr(indent)+node->term.toString()+"  "+
-	  Int::toHexString(reinterpret_cast<size_t>(node))+"\n";
-    }
-
-    if(node->isLeaf()) {
-      Leaf* lnode = static_cast<Leaf*>(node);
-      LDIterator ldi(lnode->allChildren());
-
-      while(ldi.hasNext()) {
-        LeafData ld=ldi.next();
-        res+=getIndentStr(indent) + "Lit: " + ld.literal->toString() + "\n";
-        if(ld.clause){
-          res+=ld.clause->toString()+"\n";
-        }
-      }
-    } else {
-      IntermediateNode* inode = static_cast<IntermediateNode*>(node);
-      res+=getIndentStr(indent) + " S" + Int::toString(inode->childVar)+":\n";
-      NodeIterator noi(inode->allChildren());
-      while(noi.hasNext()) {
-        stack.push(*noi.next());
-        indentStack.push(indent+1);
-      }
-    }
-  }
-  return res;
-}
-
-vstring SubstitutionTree::toString() const
-{
-  CALL("SubstitutionTree::toString");
-
-  vstring res;
-  ASSERTION_VIOLATION_REP("TODO")
-
-  // for(unsigned tli=0;tli<_nodes.size();tli++) {
-  //   res+=Int::toString(tli);
-  //   res+=":\n";
-  //
-  //   Stack<int> indentStack(10);
-  //   Stack<Node*> stack(10);
-  //
-  //   res+=nodeToString(_nodes[tli]);
-  // }
-  return res;
-}
-
 #endif
 
 SubstitutionTree::Node::~Node()
@@ -698,12 +633,11 @@ bool SubstitutionTree::LeafIterator::hasNext()
   return _curr != nullptr;
 }
 
-SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent,
-	Node* root, Term* query, bool retrieveSubstitution, bool reversed, 
-  bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
+template<class TermOrLit>
+SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
   : tag(parent->tag)
   , svStack(32)
-  , literalRetrieval(query->isLiteral())
+  , literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
   , retrieveSubstitution(retrieveSubstitution)
   , inLeaf(false)
   , ldIterator(LDIterator::getEmpty())
@@ -735,12 +669,10 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
   }
 
   queryNormalizer.normalizeVariables(query);
-  Term* queryNorm=queryNormalizer.apply(query);
+  TermOrLit queryNorm=queryNormalizer.apply(query);
 
   if(funcSubtermMap){
-    TermList t = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(queryNorm, funcSubtermMap);
-    ASS(!t.isVar());
-    queryNorm = t.term();
+    queryNorm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(queryNorm, funcSubtermMap);
   }
 
   ASS_REP(!withoutTop, "TODO")
@@ -751,7 +683,7 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 
 #if VDEBUG
   if(tag){
-    cout << "Starting iterator with "  << endl; cout << subst.toString() << endl;
+    cout << "Starting iterator with " << subst << endl;
   }
 #endif
 
@@ -759,6 +691,9 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
   enter(root, bd);
   bd.drop();
 }
+
+template SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent, Node* root, Literal* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+template SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent, Node* root, TermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
 
 SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 {
@@ -885,8 +820,8 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   if(tag){
     cout << "=========================================" << endl;
     cout << "entering..." << *n << endl;
-    cout << "subst is " << endl; cout << subst.toString() << endl;
-    cout << "svstack is " << svStack.toString() << endl;
+    cout << "subst is " << subst << endl;
+    cout << "svstack is " << svStack << endl;
     cout << "=========================================" << endl;
   } 
 #endif
@@ -997,12 +932,16 @@ void SubstitutionTree::Leaf::output(std::ostream& out) const
 {
   out << this->term;
 }
+
 void SubstitutionTree::IntermediateNode::output(std::ostream& out) const 
 {
   // TODO const version of allChildren
   auto childIter = iterTraits(((IntermediateNode*)this)->allChildren());
-  out << this->term
-      << " ; S" << this->childVar << " -> ";
+  if (!this->term.isEmpty()) {
+    out << this->term
+        << " ; ";
+  }
+  out << "S" << this->childVar << " -> ";
 
   auto first = childIter.next();
   auto brackets = childIter.hasNext();
@@ -1019,26 +958,30 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out) const
 
 
 
-#define VERBOSE 1
-std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
+#define VERBOSE_OUTPUT_OPERATORS 0
+
+std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& self)
 {
-#if VERBOSE
-  out << "nextVar: S" << self._nextVar << " ";
-#endif
+#if VERBOSE_OUTPUT_OPERATORS
+  out << "{ nextVar: S" << self._nextVar << ", root: (";
+#endif // VERBOSE_OUTPUT_OPERATORS
   if (self._root) {
     out << *self._root;
   } else {
     out << "<empty tree>";
   }
+#if VERBOSE_OUTPUT_OPERATORS
+  out << ") }";
+#endif // VERBOSE_OUTPUT_OPERATORS
   return out;
 }
 
 
-template<class Iterator> 
-TermQueryResultIterator SubstitutionTree::iterator(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms)
+template<class Iterator, class TermOrLit> 
+TermQueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms)
 {
 
-  CALL("TermSubstitutionTree::getResultIterator");
+  CALL("TermSubstitutionTree::iterator");
   // ASSERTION_VIOLATION_REP("TODO")
 
   TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
@@ -1046,10 +989,10 @@ TermQueryResultIterator SubstitutionTree::iterator(Term* trm, bool retrieveSubst
   if(_root){
     if(_root->isLeaf()) {
       LDIterator ldit=static_cast<Leaf*>(_root)->allChildren();
-      result = ldIteratorToTQRIterator(ldit,TermList(trm),retrieveSubstitutions,false);
+      result = ldIteratorToTQRIterator(ldit,TermList(query),retrieveSubstitutions,false);
     }
     else{
-      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, _root, trm, retrieveSubstitutions,false,false, 
+      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, _root, query, retrieveSubstitutions,false,false, 
                                                          withConstraints, 
                                                          funcSubterms ));
       result = pvi( getMappingIterator(qrit, 
@@ -1067,6 +1010,11 @@ TermQueryResultIterator SubstitutionTree::iterator(Term* trm, bool retrieveSubst
 
 }
 
-template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator>(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
-template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::UnificationsIterator>(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
-template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastGeneralizationsIterator>(Term* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator, TermList>(TermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::UnificationsIterator, TermList>(TermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastGeneralizationsIterator, TermList>(TermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator, Literal*>(Literal* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::UnificationsIterator, Literal*>(Literal* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastGeneralizationsIterator, Literal*>(Literal* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+
