@@ -357,8 +357,6 @@ void SATSubsumptionAndResolution::fillMatchesSR()
       else if (checkAndAddMatch(l_i, m_j, i, j, false)) {
         hasNegativeMatch = true;
         foundNegativeMatch = true;
-        if(!firstNegativeMatch)
-          firstNegativeMatch = l_i;
       } // end of negative literal matches
     }   // for (unsigned j = 0; j < _nInstanceLits; ++j)
 
@@ -371,7 +369,9 @@ void SATSubsumptionAndResolution::fillMatchesSR()
         return;
       }
       // TODO try matching?
-      if(firstNegativeMatch != l_i && firstNegativeMatch->header() != l_i->header()) {
+      if(!firstNegativeMatch)
+        firstNegativeMatch = l_i;
+      else if(firstNegativeMatch->header() != l_i->header()) {
         _srImpossible = true;
         return;
       }
