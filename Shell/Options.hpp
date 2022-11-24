@@ -285,6 +285,12 @@ public:
     CHEAP 
   };
 
+  enum class ChainAxiom : unsigned int {
+    OFF,
+    CYCLIC,
+    ACYCLIC
+  };
+
   enum class ProofExtra : unsigned int {
     OFF,
     FREE,
@@ -419,6 +425,7 @@ public:
     SMTCOMP,
     SMTCOMP_2018, 
     RAPID,
+    RAPID_MAIN_TASK,
     RAPID_INDUCTION,
     SNAKE_TPTP_UNS,
     SNAKE_TPTP_SAT,
@@ -2335,6 +2342,7 @@ public:
   void setIgnoreMissing(IgnoreMissing newVal) { _ignoreMissing.actualValue = newVal; }
   bool increasedNumeralWeight() const { return _increasedNumeralWeight.actualValue; }
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
+  ChainAxiom addChainAxioms() const { return _addChainAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   Condensation condensation() const { return _condensation.actualValue; }
   bool generalSplitting() const { return _generalSplitting.actualValue; }
@@ -2381,6 +2389,7 @@ public:
   bool rapidArrayInduction() const { return _rapidArrayInduction.actualValue; }
   bool multiLiteralClauses() const { return _multiLiteralClauses.actualValue; }
   bool goalSkolemsHighWeight() const { return _goalSkolemsHighWeight.actualValue;}
+  bool timePointsIncreaseInWeight() const { return _timePointsIncreaseInWeight.actualValue; }
   unsigned maxDistanceFromGoal() const { return _maxDistanceFromGoal.actualValue; }
 
   bool forceValueChainOrientation() const { return _forceValueChainOrientation.actualValue; }
@@ -2726,6 +2735,7 @@ private:
   BoolOptionValue _rapidArrayInduction;
   BoolOptionValue _multiLiteralClauses;
   BoolOptionValue _goalSkolemsHighWeight;
+  BoolOptionValue _timePointsIncreaseInWeight;
   UnsignedOptionValue _maxDistanceFromGoal;  
 
   BoolOptionValue _forceValueChainOrientation;
@@ -2869,6 +2879,7 @@ private:
   BoolOptionValue _ignoreMissingInputsInUnsatCore;
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
+  ChoiceOptionValue<ChainAxiom> _addChainAxioms;
   BoolOptionValue _theoryFlattening;
 
   /** Time limit in deciseconds */

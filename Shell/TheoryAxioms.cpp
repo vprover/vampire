@@ -27,6 +27,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -1133,6 +1134,23 @@ void TheoryAxioms::apply()
     modified = true;
   }
 
+  // TODO, would be nice to completely do away with chaining axioms
+  // should be possible by using a chaining calculus, but leaving for future 
+  // work for now
+  if(env.options->addChainAxioms() != Options::ChainAxiom::OFF){
+    VirtualIterator<ProgramStruct*> structs = env.signature->structsIterator();
+    while(structs.hasNext()){
+      ProgramStruct* strct = structs.next();
+      for(unsigned i = 0; i < strct->numberOfFields(); i++){
+        StructField* field = strct->ithField(i);
+        if(field->isSelfPointer()){
+          addChainAxioms(field, strct->sort(), strct->nullFunctor());
+          modified = true;
+        }
+      }
+    }
+  }
+
   auto nat = env.signature->getNat();
   if (nat != nullptr) {
     addZeroSmallestElementAxiom(nat);
@@ -1171,6 +1189,76 @@ void TheoryAxioms::applyFOOL() {
 
   addTheoryClauseFromLits({boolVar1,boolVar2},InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,CHEAP);
 } // TheoryAxioms::addBooleanDomainAxiom
+
+void TheoryAxioms::addChainAxioms(StructField* f, TermList structSort, unsigned nullFunc) {
+  CALL("TheoryAxioms::addChainAxioms");
+
+  using number = NumTraits<IntegerConstantType>;
+
+  ASS(f->isSelfPointer());
+  unsigned chainFun = f->chain();
+  TermList loc(0,false);
+  TermList tp(1,false);
+
+  // base case, could probably turn this into an inference rule
+ 
+  TermStack argTerms;
+  argTerms.push(loc);
+  argTerms.push(tp);
+  argTerms.push(number::zero());
+  TermList lhs = TermList(Term::create(chainFun, 3, argTerms.begin()));
+  Literal* l1 = Literal::createEquality(true,lhs,loc,structSort);
+  addTheoryClauseFromLits({l1},InferenceRule::CHAIN_AXIOM,CHEAP);
+  
+  // inductive case
+  TermList len(2,false);
+  
+  Literal* l2 = number::less(true,len,number::zero());
+  argTerms.pop();
+  argTerms.push(number::add(len, number::one()));
+  lhs = TermList(Term::create(chainFun, 3, argTerms.begin()));
+
+  argTerms.reset();
+  argTerms.push(tp);
+  argTerms.push(loc);
+  TermList nextLoc = TermList(Term::create(f->functor(), 2, argTerms.begin()));
+
+  argTerms.reset();
+  argTerms.push(nextLoc);
+  argTerms.push(tp);
+  argTerms.push(len);
+
+  TermList rhs = TermList(Term::create(chainFun, 3, argTerms.begin()));
+  Literal* l3 = Literal::createEquality(true,lhs,rhs,structSort);
+  addTheoryClauseFromLits({l2,l3},InferenceRule::CHAIN_AXIOM,CHEAP);
+
+  if(env.options->addChainAxioms() == Options::ChainAxiom::ACYCLIC){
+    argTerms.reset();
+    argTerms.push(loc);
+    argTerms.push(tp);
+    argTerms.push(len);
+    lhs = TermList(Term::create(chainFun, 3, argTerms.begin()));
+
+    TermList nullLoc = TermList(Term::createConstant(nullFunc));
+    Literal* l4 = Literal::createEquality(false, lhs, nullLoc, structSort);
+
+    TermList len2(3,false);
+    TermList len3(4,false);
+
+    Literal* l5 = Literal::createEquality(true, len2, len3, AtomicSort::intSort());
+      
+    argTerms.pop();
+    argTerms.push(len2);
+    lhs = TermList(Term::create(chainFun, 3, argTerms.begin()));
+
+    argTerms.pop();
+    argTerms.push(len3);
+    rhs = TermList(Term::create(chainFun, 3, argTerms.begin()));
+    Literal* l6 = Literal::createEquality(false, lhs, rhs, structSort);
+
+    addTheoryClauseFromLits({l4,l5,l6},InferenceRule::CHAIN_AXIOM,CHEAP);
+  }
+}
 
 /*
  * Note: In contrast to all other internally added theory axioms, the exhaustiveness axiom is

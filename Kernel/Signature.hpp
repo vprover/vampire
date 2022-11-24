@@ -1004,6 +1004,7 @@ class Signature
   bool isStructSort(TermList sort) { return _structs.find(sort); }
   Shell::ProgramStruct* getStructOfSort(TermList sort) { return _structs.get(sort); }
   void addStruct(Shell::ProgramStruct* strct) { _structs.insert(strct->sort(), strct); }
+  VirtualIterator<Shell::ProgramStruct*> structsIterator() const { return _structs.range(); }
 
   /** Returns nullptr if nat is not used */
   Shell::NatTermAlgebra* getNat() { return _natTermAlgebra; }

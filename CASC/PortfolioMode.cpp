@@ -97,7 +97,9 @@ bool PortfolioMode::perform(float slowness, Problem* prob, int* fd)
 
   if(fd){
     auto termReason = env.statistics->terminationReason;
+    auto time = Timer::msToSecondsString(env.timer->elapsedMilliseconds());
     write(fd[WRITE],&termReason,sizeof(termReason));    //write to pipe
+    write(fd[WRITE],time.c_str(),time.length() + 1);    //write to pipe    
     close(fd[WRITE]);
     // child of the API
     // we don't want control to return, but to terminate
@@ -419,6 +421,9 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   case Options::Schedule::RAPID_INDUCTION:
     Schedules::getRapidInductionSchedule(prop,quick);
     break;    
+  case Options::Schedule::RAPID_MAIN_TASK:
+    Schedules::getRapidMainTaskSchedule(prop,quick);
+    break;
   case Options::Schedule::INDUCTION:
     Schedules::getInductionSchedule(prop,quick,fallback);
     break;

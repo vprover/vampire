@@ -88,6 +88,20 @@ ClauseIterator EqualityToInequality::generateClauses(Clause* premise)
 
       return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
     }
+
+    /*auto res = RapidHelper::number::isLess(lit);
+    if(res.isSome() && lit->polarity()){
+      auto lhs = res.unwrap().first;
+      auto rhs = res.unwrap().second;
+
+      Literal* notEqual = Literal::createEquality(false, lhs, rhs, AtomicSort::intSort());
+      Clause* res1 = new(1) Clause(1, GeneratingInference1(InferenceRule::EQ_TO_INEQ, premise));
+      (*res1)[0] = notEqual;    
+      results.push(res1);    
+
+      return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));        
+    }*/
+
   }
   return ClauseIterator::getEmpty();
 }

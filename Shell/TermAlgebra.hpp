@@ -256,17 +256,15 @@ namespace Shell {
                   unsigned n,
                   StructField** fields,
                   unsigned nullFun);
-      ProgramStruct(TermList sort,
-                  Lib::Array<StructField*> constrs,
-                  unsigned nullFun);
-      ProgramStruct(TermList sort,
-                  std::initializer_list<StructField*> constrs,
-                  unsigned nullFun);
+
       ~ProgramStruct() {}
 
       StructField* getFieldByFunctor(unsigned functor);
       StructField* getFieldByChain(unsigned chain);
       StructField* getFieldBySupp(unsigned suppPred);
+
+      unsigned numberOfFields(){ return _numOfFields; }
+      StructField* ithField(unsigned i){ return _fields[i]; }
 
       unsigned nullFunctor() const { return _nullFunctor; }
 
@@ -276,6 +274,7 @@ namespace Shell {
       TermList _sort;
       unsigned _nullFunctor;
       FieldArray _fields;
+      unsigned _numOfFields;
   };
 
 }

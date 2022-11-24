@@ -67,6 +67,10 @@ public:
     return (_termReason == RESOURCED_OUT);
   }
 
+  std::string time() {
+    return _time;
+  }
+
 private:
 
   friend class Solver;
@@ -78,9 +82,12 @@ private:
     UNKNOWN
   };
 
-  Result(TerminationReason tr): _termReason(tr) {}
+  Result(TerminationReason tr, std::string time): 
+    _termReason(tr),
+    _time(time) {}
 
   TerminationReason _termReason;
+  std::string _time;
 };
 
 
@@ -132,7 +139,8 @@ public:
     NONE = 0,
     CASC = 1,
     RAPID = 2,
-    RAPID_INDUCT = 3
+    RAPID_MAIN_TASK = 3,
+    RAPID_INDUCT = 4
   };
 
 private:

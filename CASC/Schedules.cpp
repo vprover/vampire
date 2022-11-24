@@ -2890,6 +2890,108 @@ void Schedules::getRapidInductionSchedule(const Shell::Property& property, Sched
   sched.push("lrs+10_8:1_aac=none:add=off:afr=on:afp=40000:afq=1.1:amm=off:mcni=on:mlc=on:mdfg=2:ialc=on:anc=none:bd=off:cond=on:fsr=off:fde=none:gs=on:gsem=off:nm=0:nwc=1.2:sas=z3:stl=30:sos=all:sp=reverse_arity:tha=off:updr=off_68");
 }
 
+void Schedules::getRapidMainTaskSchedule(const Shell::Property& property, Schedule& sched) {
+  // NEWLY crafted strategies
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:acha=acyclic:tpiiw=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:mcni=on:plsqc=1,2:plsqr=1,1,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:acha=acyclic:canc=cautious:ir=on:bsr=unit_only:gs=off:fvco=on:ir=on:uic=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=off_20");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=unit_only:sp=rev_occ:eti=on:fvco=on:gs=off:av=off:uwa=one_side_nl:urr=on:lls=on:fsd=on:bsd=on:canc=cautious:gve=force:ir=on:tha=off:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_180");
+
+  // SAME as rapid schedule
+  /*sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=10,10,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=20,20,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=1,1,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=off_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=10,10,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=20,20,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=off_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=10,10,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=20,20,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=1,1,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=off_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=10,10,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=20,20,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=1,1,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=off_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=10,10,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=20,20,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=off_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=10,10,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=20,20,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=1,1,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=off_10");
+
+
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=10,10,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=20,20,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=1,1,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=off_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=5,5,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=10,10,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=20,20,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=off_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=5,5,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=10,10,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=20,20,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=1,1,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=off_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=10,10,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=20,20,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=1,1,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=off_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=5,5,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=10,10,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=20,20,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=off_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=5,5,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=10,10,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=20,20,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=1,1,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=off_150");
+
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=10,10,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=20,20,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=1,1,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=off_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=5,5,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=10,10,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=20,20,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=off_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=5,5,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=10,10,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=20,20,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=1,1,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=off_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=10,10,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=20,20,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=1,1,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=off_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=5,5,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=10,10,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=20,20,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=off_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=5,5,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=10,10,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=20,20,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=on:plsqc=1,2:plsqr=1,1,1_450");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=off_450");*/
+}
+
 void Schedules::getRapidSchedule(const Shell::Property& property, Schedule& sched) {
   property.getSMTLIBLogic();
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
@@ -2897,7 +2999,7 @@ void Schedules::getRapidSchedule(const Shell::Property& property, Schedule& sche
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=20,20,1_10");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=1,1,1_10");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=off_10");
-  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:acha=acyclic:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=5,5,1_10");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=10,10,1_10");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=20,20,1_10");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_10");

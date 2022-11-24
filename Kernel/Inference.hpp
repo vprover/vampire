@@ -313,6 +313,8 @@ enum class InferenceRule : unsigned char {
   INTERMEDIATE_VALUE,
 
   CHAIN_REASONING,
+
+  CHAIN_AXIOM,
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
   /* narrow with combinator axiom */

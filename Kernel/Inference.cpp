@@ -913,6 +913,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "intermediate value induction";
   case InferenceRule::CHAIN_REASONING:
     return "chain reasoning";
+  case InferenceRule::CHAIN_AXIOM:
+    return "chain axiom";
   case InferenceRule::FORWARD_INEQUALITY_RESOLUTION:
     return "forward inequality resolution";
   case InferenceRule::BACKWARD_INEQUALITY_RESOLUTION:

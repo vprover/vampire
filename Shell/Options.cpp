@@ -163,6 +163,7 @@ void Options::init()
          "smtcomp",
          "smtcomp_2018",
          "rapid",
+         "rapid_main_task",
          "rapid_induction",
          "snake_tptp_uns",
          "snake_tptp_sat",
@@ -525,6 +526,12 @@ void Options::init()
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
 
+    _addChainAxioms = ChoiceOptionValue<ChainAxiom>("add_chain_axioms","acha",ChainAxiom::OFF,{"off","cyclic","acyclic"});
+    _addChainAxioms.description = "Axiomatise the theory of pointer chains. Relevant to RAPID problems.";
+    _lookup.insert(&_addChainAxioms);
+    _addChainAxioms.onlyUsefulWith(_theoryAxioms.is(notEqual(TheoryAxiomLevel::OFF)));
+    _addChainAxioms.tag(OptionTag::PREPROCESSING);
+
     _theoryFlattening = BoolOptionValue("theory_flattening","thf",false);
     _theoryFlattening.description = "Flatten clauses to separate theory and non-theory parts in the input. This is often quickly undone in proof search.";
     _lookup.insert(&_theoryFlattening);
@@ -577,7 +584,7 @@ void Options::init()
     _naming.addHardConstraint(notEqual(1));
 
     _newCNF = BoolOptionValue("newcnf","newcnf",false);
-    _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
+    _newCNF.description="e NewCNUsF algorithm to do naming, preprecess3 and clausificiation.";
     _lookup.insert(&_newCNF);
     _newCNF.addProblemConstraint(hasFormulas());
     _newCNF.addProblemConstraint(onlyFirstOrder());
@@ -1453,6 +1460,13 @@ void Options::init()
     _goalSkolemsHighWeight.tag(OptionTag::OTHER);
     _goalSkolemsHighWeight.reliesOn(_multiClauseNatInduction.is(equal(true)));
     _lookup.insert(&_goalSkolemsHighWeight);
+
+    _timePointsIncreaseInWeight = BoolOptionValue("time_points_increase_in_weight","tpiiw",false);
+    _timePointsIncreaseInWeight.description = "Time points that represent later points in a program translation have\n"
+                                              "greater weight than earlier timepoints. Result is that semantics are rewritten\n"
+                                              "towards start generally";
+    _timePointsIncreaseInWeight.tag(OptionTag::OTHER);
+    _lookup.insert(&_timePointsIncreaseInWeight);
 
     _maxDistanceFromGoal = UnsignedOptionValue("max_distance_from_goal","mdfg",1);
     _maxDistanceFromGoal.description = "The maximum distance a clause can be from the goal"

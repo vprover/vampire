@@ -863,6 +863,9 @@ namespace Vampire
       case Schedule::RAPID_INDUCT:
         env.options->setSchedule(Options::Schedule::RAPID_INDUCTION);
         break; 
+      case Schedule::RAPID_MAIN_TASK:
+        env.options->setSchedule(Options::Schedule::RAPID_MAIN_TASK);
+        break;
       case Schedule::NONE:
         // TODO look into how to output warnings
         std::cout << "WARNING: Trying to run in portfolio mode without setting a schedule. Defaulting to CASC" << std::endl;  
@@ -920,7 +923,15 @@ namespace Vampire
       Shell::Statistics::TerminationReason r = 
           Shell::Statistics::TerminationReason::UNKNOWN;
 
+      char ch;
+      std::string time;
+
       read(fd[READ],&r,sizeof(r));
+      while (read(fd[READ], &ch, 1) > 0)
+      {
+        if (ch != 0)
+          time.push_back(ch);
+      }      
       close(fd[READ]);
 
       Result::TerminationReason tr;
@@ -934,7 +945,7 @@ namespace Vampire
         tr = Result::RESOURCED_OUT;
       }
 
-      return Result(tr);   
+      return Result(tr, time);   
 
     } else {
       // child

@@ -253,27 +253,12 @@ StructField::StructField(unsigned functor, unsigned chainFun, unsigned supPred)
 ProgramStruct::ProgramStruct(TermList sort,
                             unsigned n,
                             StructField** fields,
-                            unsigned nullFun) : _sort(sort), _nullFunctor(nullFun)
+                            unsigned nullFun) : _sort(sort), _nullFunctor(nullFun), _numOfFields(n)
 {
   for (unsigned i = 0; i < n; i++) {
     _fields[i] = fields[i];
   } 
 }
-
-ProgramStruct::ProgramStruct(TermList sort,
-                             std::initializer_list<StructField*> fields,
-                             unsigned nullFun) :
-  ProgramStruct(sort, Lib::Array<StructField*>(fields), nullFun)
-{ }
-
-ProgramStruct::ProgramStruct(TermList sort,
-                             Lib::Array<StructField*> fields,
-                             unsigned nullFun) :
-  _sort(sort),
-  _nullFunctor(nullFun),
-  _fields(fields)
-{}
-
 
 StructField* ProgramStruct::getFieldByFunctor(unsigned functor)
 {

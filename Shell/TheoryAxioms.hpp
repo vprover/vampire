@@ -106,6 +106,9 @@ private:
   void addDiscriminationAxiom(TermAlgebra* ta);
   void addAcyclicityAxiom(TermAlgebra* ta);
 
+  // chaining axioms
+  void addChainAxioms(StructField* f, TermList structSort, unsigned nullFunc);
+
   /* Subterm definitions used by the acyclicity axiom. True iff some
      definition was actually added (i.e. if the constructor is
      recursive) */
