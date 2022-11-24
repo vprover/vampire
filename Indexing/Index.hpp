@@ -61,6 +61,16 @@ struct SLQueryResult
   };
 };
 
+// TODO move somewhere else 
+template<class T>
+struct OutputPtr {
+  T* self;
+  friend std::ostream& operator<<(std::ostream& out, OutputPtr const& self)
+  { return self.self ? out << *self.self : out << "NULL"; }
+};
+template<class T>
+OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
+
 /**
  * Class of objects which contain results of term queries.
  */
@@ -84,6 +94,18 @@ struct TermQueryResult
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
   bool isTypeSub = false; //true if the substitution only unifies the types of the terms
+  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
+  { 
+    return out 
+      << "{ term: " << self.term 
+      << ", literal: " << outputPtr(self.literal)
+      << ", clause: " << outputPtr(self.literal)
+      << ", substitution: " << self.substitution
+      << ", constraints: " << self.constraints
+      << ", isTypeSub: " << self.isTypeSub
+      << "}";
+  }
+
 };
 
 struct ClauseSResQueryResult

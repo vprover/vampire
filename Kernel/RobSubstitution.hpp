@@ -186,10 +186,6 @@ public:
     }
     bool operator==(const TermSpec& o) const
     { return term==o.term && index==o.index; }
-#if VDEBUG
-    friend std::ostream& operator<<(std::ostream& out, TermSpec const& self)
-    { return out << self.term << "/" << self.index; }
-#endif
 
     /** term reference */
     TermList term;
@@ -197,17 +193,6 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
-#if VDEBUG
-    friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
-    {
-      if(self.index == SPECIAL_INDEX) {
-        return out << "S" << self.var;
-      } else {
-        return out << "X" << self.var << "/" << self.index;
-      }
-    }
-#endif
-
  
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
@@ -218,6 +203,21 @@ public:
        ((IdentityHash::hash(o.second.term.content())^o.second.index)<<1);
    }
   };
+
+#if VDEBUG
+  friend std::ostream& operator<<(std::ostream& out, TermSpec const& self)
+  { return out << self.term << "/" << self.index; }
+
+  friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
+  {
+    if(self.index == SPECIAL_INDEX) {
+      return out << "S" << self.var;
+    } else {
+      return out << "X" << self.var << "/" << self.index;
+    }
+  }
+#endif
+
 
 private:
   /** Copy constructor is private and without a body, because we don't want any. */

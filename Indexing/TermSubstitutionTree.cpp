@@ -190,6 +190,7 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
 	  bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getInstances");
+  DBGE(t)
   return getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions,false);
 }
 
