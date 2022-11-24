@@ -52,6 +52,29 @@ private:
   };
 
   /**
+   * Slice type representing some contiguous range of memory.
+   */
+  template<typename T>
+  class Slice {
+  public:
+    Slice(T *begin, T *end) : _begin(begin), _end(end) {}
+    unsigned size() const { return _end - _begin; };
+    T operator[](unsigned i) const {
+      ASS_L(i, size())
+      return _begin[i];
+    }
+    const T &back() const {
+      ASS_G(size(), 0)
+      return *(_end - 1);
+    }
+    T *begin() const { return _begin; }
+    T *end() const { return _end; }
+  private:
+    T *_begin;
+    T *_end;
+  };
+
+  /**
    * A Match represents a binding between two literals l_i and m_j of different clauses L and M.
    * The binding can be either positive or negative
    */
@@ -151,12 +174,43 @@ private:
 
     /// @brief contains the list of all the the matches indexed in the match set
     /// Ordered by the index 'i', then by 'j'
-    /// If the properties of AddMatch are respected, then matchesByRow[i] is the match with the sat variable i
-    Lib::vvector<Match> matchesByRow;
+    /// If the properties of AddMatch are respected, then _matchesByI[i] is the match with the sat variable i
+    Lib::vvector<Match> _matchesByI;
 
-    /// @brief same as matchesByRow, but ordered by the index 'j', then by 'i'
-    /// filled by fillMatchesByColumn based on matchesByRow
-    Lib::vvector<Match> matchesByColumn;
+    /// @brief same as _matchesByI, but ordered by the index 'j', then by 'i'
+    /// filled by fillMatchesByColumn based on _matchesByI
+    Lib::vvector<Match> _matchesByJ;
+
+    /// @brief indices allowing access into _matchesByI
+    /// if you wish to access row i, [_indexI[i], _indexJ[i + 1]) is the range required
+    Lib::vvector<unsigned> _indexI;
+
+    /// @brief indices allowing access into _matchesByJ
+    /// if you wish to access column j, [_indexJ[j], _indexJ[j + 1]) is the range required
+    Lib::vvector<unsigned> _indexJ;
+
+    /// @brief all matches, ordered by row
+    vvector<Match> &allMatches() {
+      return _matchesByI;
+    }
+
+    /// @brief get the matches at row i
+    Slice<Match> getIMatches(unsigned i) {
+      ASS_L(i, _indexI.size())
+      return Slice<Match>(
+        &_matchesByI[_indexI[i]],
+        &_matchesByI[_indexI[i + 1]]
+      );
+    }
+
+    /// @brief get the matches at column j
+    Slice<Match> getJMatches(unsigned j) {
+      ASS_L(j, _indexJ.size())
+      return Slice<Match>(
+        &_matchesByJ[_indexJ[j]],
+        &_matchesByJ[_indexJ[j + 1]]
+      );
+    }
 
     /**
      * Creates a new match set for clauses L of size m and M of size n
@@ -204,7 +258,7 @@ private:
      * @param var the sat variable associated with the match
      * @return the newly added match
      */
-    void addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var)
+    Match addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var)
     {
       CALL("SATSubsumptionAndResolution::MatchSet::addMatch")
       ASS(i < _m)
@@ -212,22 +266,24 @@ private:
       // Make sure that the variables are pushed in order.
       // Otherwise would break the property that _matches[i] is the match associated
       //    to the sat variable i
-      ASS_EQ(var.index(), matchesByRow.size())
+      ASS_EQ(var.index(), _matchesByI.size())
 
       Match match(i, j, polarity, var);
-      matchesByRow.push_back(match);
+      _matchesByI.push_back(match);
 
 #if SAT_SR_IMPL == 2
       // update the match state
       // the wizardry is explained in the header file
       _jStates[j / 4] |= 1 << (2 * (j % 4) + !polarity);
 #endif
+      return match;
     }
 
     /**
-     * Fills out matchesByColumn based on the entries inserted into matchesByRow
+     * Populate _matchesByJ and indices based on _matchesByI
+     * Entries of _matchesByI are inserted in row-order by addMatch
      */
-    void fillMatchesByColumn();
+    void indexMatrix();
 
 #if SAT_SR_IMPL == 2
     /**
@@ -239,7 +295,7 @@ private:
     bool hasPositiveMatchJ(unsigned j);
 
     /**
-     * Returns true if the j-th literal in M has a negative match in the set
+     * Returns true if the j-th literal in M has a positive match in the set
      *
      * @param j the index of the literal in M
      * @return whether m_j has a negative match in the set
@@ -258,7 +314,7 @@ private:
      */
     bool isMatchVar(subsat::Var v) {
       CALL("SATSubsumptionAndResolution::MatchSet::isMatchVar")
-      return v.index() < matchesByRow.size();
+      return v.index() < _matchesByI.size();
     }
 
     /**
@@ -274,7 +330,7 @@ private:
     {
       CALL("SATSubsumptionAndResolution::MatchSet::getMatchForVar")
       ASS(isMatchVar(v))
-      return matchesByRow[v.index()];
+      return _matchesByI[v.index()];
     }
 
     /**
@@ -285,8 +341,10 @@ private:
     void clear()
     {
       CALL("SATSubsumptionAndResolution::MatchSet::clear");
-      matchesByRow.clear();
-      matchesByColumn.clear();
+      _matchesByI.clear();
+      _matchesByJ.clear();
+      _indexI.clear();
+      _indexJ.clear();
     }
   };
 

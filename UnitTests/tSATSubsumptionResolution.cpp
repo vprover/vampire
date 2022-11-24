@@ -58,36 +58,34 @@ using namespace Test;
   DECL_PRED(r, {s})                             \
   DECL_PRED(r2, {s, s}))
 
-static bool vectorContains(vvector<SATSubsumptionAndResolution::Match> vec, SATSubsumptionAndResolution::Match match)
+template<typename HayStack, typename Needle>
+static bool contains(const HayStack &haystack, const Needle &needle)
 {
-  for (auto m : vec) {
-    if (m == match) {
+  for (auto candidate : haystack)
+    if (candidate == needle)
       return true;
-    }
-  }
   return false;
 }
 
-static void checkConsistency(SATSubsumptionAndResolution::MatchSet *matchSet, vvector<SATSubsumptionAndResolution::Match> matches)
+static void checkConsistency(SATSubsumptionAndResolution::MatchSet &matchSet, vvector<SATSubsumptionAndResolution::Match> &matches)
 {
-  ASS_EQ(matchSet->matchesByRow.size(), matches.size());
+  ASS_EQ(matchSet.allMatches().size(), matches.size());
   for (auto match : matches) {
-    /*
-    ASS(vectorContains(matchSet->getIMatches(match._i), match));
-    ASS(vectorContains(matchSet->getJMatches(match._j), match));
-    ASS(matchSet->getMatchForVar(match._var) == match);
-    ASS(vectorContains(matchSet->getAllMatches(), match));
-    */
+    ASS(contains(matchSet.getIMatches(match.i), match));
+    ASS(contains(matchSet.getJMatches(match.j), match));
+    ASS(matchSet.getMatchForVar(match.var) == match);
+    ASS(contains(matchSet.allMatches(), match));
   }
 }
 
 TEST_FUN(MatchSetIndexing)
 {
-  SATSubsumptionAndResolution::MatchSet *matchSet = new SATSubsumptionAndResolution::MatchSet(3, 3);
+  SATSubsumptionAndResolution::MatchSet matchSet(3, 3);
   vvector<SATSubsumptionAndResolution::Match> matches;
-  SATSubsumptionAndResolution::Match match1 = matchSet->addMatch(0, 0, true, subsat::Var(0));
-  SATSubsumptionAndResolution::Match match2 = matchSet->addMatch(2, 1, true, subsat::Var(1));
-  SATSubsumptionAndResolution::Match match3 = matchSet->addMatch(2, 2, true, subsat::Var(2));
+  SATSubsumptionAndResolution::Match match1 = matchSet.addMatch(0, 0, true, subsat::Var(0));
+  SATSubsumptionAndResolution::Match match2 = matchSet.addMatch(2, 1, true, subsat::Var(1));
+  SATSubsumptionAndResolution::Match match3 = matchSet.addMatch(2, 2, true, subsat::Var(2));
+  matchSet.indexMatrix();
 
   ASS(match1 != match2);
   ASS(match2 != match3);
@@ -99,8 +97,6 @@ TEST_FUN(MatchSetIndexing)
 
   // Check that the matches are in the correct indices
   checkConsistency(matchSet, matches);
-  matches.clear();
-  delete matchSet;
 }
 
 TEST_FUN(Allocation)
