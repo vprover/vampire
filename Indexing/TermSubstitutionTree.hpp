@@ -74,11 +74,8 @@ public:
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
     bool retrieveSubstitutions);
 
-  TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions);
-
-  TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions);
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions);
+  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions);
 
 #if VDEBUG
   virtual void markTagged(){ SubstitutionTree::markTagged();}

@@ -130,12 +130,13 @@ struct BackwardDemodulation::ResultFn
          return BwSimplificationRecord(0);
       }"
       from the monomorphic setting */
-    if(!qr.substitution->matchSorts(qr.term, lhs)) {
-       return BwSimplificationRecord(0);
+    if(lhs.isVar()){
+      if(!qr.substitution->matchSorts(_eqSort, qrSort)) {
+        return BwSimplificationRecord(0);        
+      }
     }
-    // if(qrSort!=qr.substitution->applyToQuery(_eqSort)) {
-    //    return BwSimplificationRecord(0);
-    // }
+
+    // TODO remove this old impl
     // if(lhs.isVar()){
     //   RobSubstitution sub;
     //
