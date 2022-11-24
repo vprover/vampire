@@ -60,7 +60,6 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
 
   BindingMap svBindings;
   auto& tree = getTree(lit);
-  DBGE(*lit);
   SubstitutionTree::createIteratorBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
       [&](auto var, auto term) { 
         svBindings.insert(var, term);
