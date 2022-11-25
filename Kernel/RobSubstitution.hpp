@@ -109,9 +109,7 @@ public:
     bool operator!=(const VarSpec& o) const
     { return !(*this==o); }
 
-#if VDEBUG
     friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
-#endif
 
     /** number of variable */
     unsigned var;
@@ -204,7 +202,6 @@ public:
    }
   };
 
-#if VDEBUG
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self)
   { return out << self.term << "/" << self.index; }
 
@@ -216,7 +213,6 @@ public:
       return out << "X" << self.var << "/" << self.index;
     }
   }
-#endif
 
 
 private:
@@ -283,10 +279,8 @@ private:
 	_subst->_bank.set(_var,_term);
       }
     }
-#if VDEBUG
     friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
     { return out << "(ROB backtrack object for " << self._var << ")"; }
-#endif
     CLASS_NAME(RobSubstitution::BindingBacktrackObject);
     USE_ALLOCATOR(BindingBacktrackObject);
   private:
