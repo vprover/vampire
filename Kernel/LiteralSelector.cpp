@@ -67,6 +67,8 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
   if(psym->label() || psym->answerPredicate()) {
     return -2;
   }
+  if(psym->interpreted() && static_cast<Signature::InterpretedSymbol *>(psym)->getInterpretation() == Theory::SUBTERM)
+    return -1;
   return 0;
 }
 
