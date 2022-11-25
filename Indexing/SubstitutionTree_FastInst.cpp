@@ -263,10 +263,8 @@ public:
 
   
 
-#if VDEBUG
   virtual void output(std::ostream& out) const final override 
   { out << "InstMatcher::Substitution(<output unimplemented>)"; }
-#endif
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;

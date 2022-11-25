@@ -204,10 +204,8 @@ public:
   bool isIdentityOnQueryWhenResultBound() override
   { return true; }
 
-#if VDEBUG
   virtual void output(std::ostream& out) const final override 
   { out << "GenMatcher::Substitution(<output unimplemented>)"; }
-#endif
 private:
   Applicator* getApplicator()
   {

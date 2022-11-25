@@ -54,9 +54,7 @@ public:
 
   RobSubstitution* tryGetRobSubstitution() override { return _subst; }
 
-#if VDEBUG
   virtual void output(std::ostream& out) const final override { out << *_subst; }
-#endif
 
 private:
   RobSubstitution* _subst;

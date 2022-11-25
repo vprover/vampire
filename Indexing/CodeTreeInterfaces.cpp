@@ -96,10 +96,8 @@ private:
     return _applicator;
   }
 
-#if VDEBUG
   virtual void output(std::ostream& out) const final override 
   { out << "CodeTreeSubstitution(<output unimplemented>)"; }
-#endif
 
   CodeTree::BindingArray* _bindings;
   Renaming* _resultNormalizer;
