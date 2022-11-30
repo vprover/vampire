@@ -190,6 +190,19 @@ bool InductionPostponement::maybePostpone(const InductionContext& ctx, Induction
             continue;
           }
           _postponedTermIndex.insert(t, tlit, nullptr);
+
+          // new and cursed stuff follows
+          InductionFormulaKey represented(InductionFormulaIndex::represent(ctx));
+          InductionFormulaKey *key;
+          {
+            // can't use std::pair with allocator
+            BYPASSING_ALLOCATOR
+            key = new InductionFormulaKey(std::move(represented));
+          }
+
+          static_assert(sizeof(Clause *) == sizeof(InductionFormulaKey *), "must have same pointer size for evil hack");
+          _postponedTermIndex.insert(t, tlit, reinterpret_cast<Clause *>(key));
+          std::cout << "put a rabbit in the hat at address " << key << std::endl;
         }
         if (!tlit->isEquality()) {
           _postponedLitIndex.insert(tlit, nullptr);
@@ -216,6 +229,9 @@ void InductionPostponement::checkForPostponedInductions(Literal* lit, Clause* cl
   }
   ASS(_toBeRemoved.isEmpty());
 
+  using RabbitTriple = std::tuple<TermList, Literal *, InductionFormulaKey *>;
+  static Stack<RabbitTriple> rabbits;
+
   if (lit->isEquality()) {
     if (lit->isPositive()) {
       for (unsigned j=0; j<2; j++) {
@@ -223,6 +239,12 @@ void InductionPostponement::checkForPostponedInductions(Literal* lit, Clause* cl
         auto qrit = _postponedTermIndex.getUnifications(lhs,true);
         while (qrit.hasNext()) {
           auto qr = qrit.next();
+          if(qr.clause) {
+            InductionFormulaKey *key = reinterpret_cast<InductionFormulaKey *>(qr.clause);
+            std::cout << "found a rabbit at address: " << key << std::endl;
+            rabbits.push(RabbitTriple(qr.term, qr.literal, key));
+            continue;
+          }
           auto tt = qr.substitution->applyToResult(VAR);
           // prefilter: if term is not ctor term, skip
           if (!isPureCtorTerm(tt)) {
@@ -244,6 +266,25 @@ void InductionPostponement::checkForPostponedInductions(Literal* lit, Clause* cl
       performInductionsIfNeeded(tt, qr.literal, cl, clIt);
     }
   }
+
+  static DHSet<InductionFormulaKey *> removed;
+  while(rabbits.isNonEmpty()) {
+    RabbitTriple triple = rabbits.pop();
+    TermList t = std::get<0>(triple);
+    Literal *l = std::get<1>(triple);
+    InductionFormulaKey *key = std::get<2>(triple);
+    if(!removed.insert(key))
+      continue;
+
+    _postponedTermIndex.remove(t, l, reinterpret_cast<Clause *>(key));
+    {
+      BYPASSING_ALLOCATOR
+      delete key;
+    }
+    std::cout << "removed from index: " << key << std::endl;
+  }
+  removed.reset();
+
   // The removal of inductions that were done above must be performed
   // afterwards, since we were traversing the indices until this point
   decltype(_toBeRemoved)::Iterator rit(_toBeRemoved);
