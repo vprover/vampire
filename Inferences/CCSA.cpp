@@ -116,10 +116,9 @@ static ClauseIterator perform(Clause *premise, Literal *literal) {
     return pvi(getSingletonIterator(generated));
   }
   else {
-    Inference inference(SimplifyingInference1(InferenceRule::NEGATIVE_SUBTERM, premise));
     auto subterm_clauses = getMappingIterator(
       getRangeIterator(0u, super_args),
-      [premise, literal, inference, relation, subterm, subterm_sort, super](unsigned i) {
+      [premise, literal, relation, subterm, subterm_sort, super](unsigned i) {
         Literal *new_subterm = createSubterm(
           false,
           relation,
@@ -128,6 +127,7 @@ static ClauseIterator perform(Clause *premise, Literal *literal) {
           super->termArg(i),
           SortHelper::getArgSort(super, super->numTypeArguments() + i)
         );
+        Inference inference(SimplifyingInference1(InferenceRule::NEGATIVE_SUBTERM, premise));
         return replaceLiteral(premise, literal, new_subterm, inference);
       }
     );
@@ -137,7 +137,7 @@ static ClauseIterator perform(Clause *premise, Literal *literal) {
         premise,
         literal,
         Literal::createEquality(false, subterm, superterm, subterm_sort),
-        inference
+        SimplifyingInference1(InferenceRule::NEGATIVE_SUBTERM, premise)
       ));
       return pvi(getConcatenatedIterator(equality_clause, subterm_clauses));
     }

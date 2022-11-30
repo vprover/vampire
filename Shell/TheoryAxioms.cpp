@@ -1069,7 +1069,8 @@ void TheoryAxioms::apply()
   while (tas.hasNext()) {
     TermAlgebra* ta = tas.next();
 
-    addExhaustivenessAxiom(ta);
+    // CCSA doesn't need exhaustiveness
+    // addExhaustivenessAxiom(ta);
     addDistinctnessAxiom(ta);
     addInjectivityAxiom(ta);
     addDiscriminationAxiom(ta);
