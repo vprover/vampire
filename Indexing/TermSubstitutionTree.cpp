@@ -130,9 +130,14 @@ TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool r
   return getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, /* useConstraints */ false);
 }
 
+TermQueryResultIterator TermSubstitutionTree::getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions)
+{
+  CALL("TermSubstitutionTree::getUnificationsWithConstraints");
+  return getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, /* useConstraints */ true);
+}
+
 //higher-order concern
-TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions)
+TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
 
@@ -151,14 +156,6 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList
   return pvi(getConcatenatedIterator(it2, it3));
 }
 
-//TODO code sharing with getUnifications
-TermQueryResultIterator TermSubstitutionTree::getUnificationsWithConstraints(TermList t,
-          bool retrieveSubstitutions)
-{
-  CALL("TermSubstitutionTree::getUnificationsWithConstraints");
-  return getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, /* useConstraints */ true);
-}
-
 
 bool TermSubstitutionTree::generalizationExists(TermList t)
 {
@@ -171,10 +168,7 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   if(_root->isLeaf()) {
     return true;
   }
-  // Currently we do not need to generate constraints with generalisations
-  // FastGeneralizationsIterator does not support constraints anyway
-  bool useC = false; 
-  return FastGeneralizationsIterator(this, _root, t, false,false,false,useC).hasNext();
+  return FastGeneralizationsIterator(this, _root, t, false,false,false, /* useC */ false).hasNext();
 }
 
 /**
@@ -194,18 +188,8 @@ TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
 }
 
 // TODO get rid of this method
-template<class Iterator>
-TermQueryResultIterator TermSubstitutionTree::getResultIterator(TermList trm, bool retrieveSubstitutions,bool withConstraints)
-{
-  return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, withConstraints, _extra, 
-      (_extByAbs ? &_functionalSubtermMap : nullptr));
-}
-
-template<class Iterator>
-TermQueryResultIterator TermSubstitutionTree::getResultIterator(Literal* trm, bool retrieveSubstitutions,bool withConstraints)
-{
-  return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, withConstraints, _extra, 
-      (_extByAbs ? &_functionalSubtermMap : nullptr));
-}
+template<class Iterator, class TermOrLit>
+TermQueryResultIterator TermSubstitutionTree::getResultIterator(TermOrLit trm, bool retrieveSubstitutions,bool withConstraints)
+{ return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, withConstraints, _extra, (_extByAbs ? &_functionalSubtermMap : nullptr)); }
 
 }

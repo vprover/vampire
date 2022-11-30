@@ -62,11 +62,9 @@ public:
   bool generalizationExists(TermList t);
 
 
-  TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions);
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions);
 
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions);
+  TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions);
 
   /*
    * A higher order concern (though it may be useful in other situations)
@@ -86,8 +84,7 @@ private:
   void insert(TermList t, LeafData ld);
   void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
 
-  template<class Iterator> TermQueryResultIterator getResultIterator(TermList query, bool retrieveSubstitutions, bool withConstraints);
-  template<class Iterator> TermQueryResultIterator getResultIterator(Literal* query, bool retrieveSubstitutions, bool withConstraints);
+  template<class Iterator, class LitOrTerm> TermQueryResultIterator getResultIterator(LitOrTerm query, bool retrieveSubstitutions, bool withConstraints);
 
   //higher-order concerns
   bool _extra;

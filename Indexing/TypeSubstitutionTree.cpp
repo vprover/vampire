@@ -51,39 +51,6 @@ void TypeSubstitutionTree::remove(TermList sort, LeafData ld)
   handleTerm(sort,ld,false);
 }
 
-// struct TypeSubstitutionTree::VarUnifFn
-// {
-//   VarUnifFn(TermList queryTerm, TermList sort)
-//   : _queryTerm(queryTerm), _sort(sort) {
-//     _subst=RobSubstitutionSP(new RobSubstitution());
-//   }
-//
-//   TermQueryResult operator() (TermQueryResult tqr) {
-//     //TODO unnecessary work here. We had the sort and then lost it
-//     TermList tqrSort = SortHelper::getTermSort(tqr.term, tqr.literal);
-//     _subst->reset();
-//
-//     ASS(_sort.isVar() || tqrSort.isVar());
-//     ALWAYS(_subst->unify(_sort, SubstitutionTree::QRS_QUERY_BANK, tqrSort, SubstitutionTree::QRS_RESULT_BANK));
-//     
-//     bool isTypeSub = false;
-//     if(_queryTerm.isVar() || tqr.term.isVar()){
-//       ALWAYS(_subst->unify(_queryTerm, SubstitutionTree::QRS_QUERY_BANK, tqr.term, SubstitutionTree::QRS_RESULT_BANK));
-//     } else {
-//       isTypeSub = true;
-//     }
-//
-//     return TermQueryResult(tqr.term, tqr.literal, tqr.clause,
-//     ResultSubstitution::fromSubstitution(_subst.ptr(),
-//       SubstitutionTree::QRS_QUERY_BANK,SubstitutionTree::QRS_RESULT_BANK), isTypeSub);
-//   }
-//
-// private:
-//   RobSubstitutionSP _subst;
-//   TermList _queryTerm;
-//   TermList _sort;
-// };
-
 struct TypeSubstitutionTree::ToTypeSubFn
 {
 
@@ -133,17 +100,9 @@ TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, Ter
 {
   CALL("TypeSubstitutionTree::getUnifications");
  
-  return pvi(getMappingIterator(getResultIterator<UnificationsIterator>(sort, retrieveSubstitutions), ToTypeSubFn(trm)));
-}
-
-template<class Iterator>
-TermQueryResultIterator TypeSubstitutionTree::getResultIterator(TermList trm,
-	  bool retrieveSubstitutions)
-{
-  return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, 
-       /* withConstraints */ false, 
-       /* extra */ false, 
-       /* functionalSubtermMap */ nullptr);
+  return pvi(iterTraits(SubstitutionTree::iterator<UnificationsIterator>(trm, retrieveSubstitutions, 
+          /* withConstraints */ false, /* extra */ false, /* functionalSubtermMap */ nullptr))
+           .map(ToTypeSubFn(trm)));
 }
 
 }

@@ -43,8 +43,7 @@ public:
   void remove(TermList t, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
 
-  TermQueryResultIterator getUnifications(TermList sort,
-	  bool retrieveSubstitutions){ NOT_IMPLEMENTED; }
+  TermQueryResultIterator getUnifications(TermList sort, bool retrieveSubstitutions) override { NOT_IMPLEMENTED; }
 
   TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
     bool retrieveSubstitutions);
@@ -55,9 +54,6 @@ public:
   
 private:
   using TermIndexingStructure::insert; // state explicitly that "insert(TermList sort, LeafData ld);" is not meant to be an overload of any of the parent's inserts
-
-  template<class Iterator>
-  TermQueryResultIterator getResultIterator(TermList term, bool retrieveSubstitutions);
 
   struct ToTypeSubFn;
 
