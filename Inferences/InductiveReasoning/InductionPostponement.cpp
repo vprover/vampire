@@ -170,6 +170,14 @@ bool InductionPostponement::maybePostpone(const InductionContext& ctx, Induction
     env.statistics->postponedInductions++;
     env.statistics->postponedInductionApplications++;
 
+    InductionFormulaKey *key;
+    {
+      // can't use std::pair with allocator
+      BYPASSING_ALLOCATOR
+      key = new InductionFormulaKey(InductionFormulaIndex::represent(ctx));
+    }
+    static_assert(sizeof(Clause *) == sizeof(InductionFormulaKey *), "must have same pointer size for evil hack");
+
     // update index
     DHSet<Term*> added;
     auto ph = getPlaceholderForTerm(ctx._indTerm);
@@ -177,26 +185,20 @@ bool InductionPostponement::maybePostpone(const InductionContext& ctx, Induction
     auto lIt = ctx.iterLits();
     while (lIt.hasNext()) {
       auto lit = lIt.next();
-      Stack<InductionFormulaKey>* ks = nullptr;
-      // TODO: This multi-layered indexing is obviously not ideal, update
-      // it to a single-layered one once custom LeafData is available
-      if (_literalMap.getValuePtr(lit, ks)) {
-        auto tlit = trMaster.transform(lit);
-        NonVariableNonTypeIterator it(tlit);
-        while (it.hasNext()) {
-          auto t = it.next();
-          if (!t.containsSubterm(VAR) || !added.insert(t.term())) {
-            it.right();
-            continue;
-          }
-          _postponedTermIndex.insert(t, tlit, nullptr);
+      auto tlit = trMaster.transform(lit);
+      NonVariableNonTypeIterator it(tlit);
+      while (it.hasNext()) {
+        auto t = it.next();
+        if (!t.containsSubterm(VAR) || !added.insert(t.term())) {
+          it.right();
+          continue;
         }
-        if (!tlit->isEquality()) {
-          _postponedLitIndex.insert(tlit, nullptr);
-        }
+
+        _postponedTermIndex.insert(t, tlit, reinterpret_cast<Clause *>(key));
       }
-      ASS(ks);
-      ks->push(InductionFormulaIndex::represent(ctx));
+      if (!tlit->isEquality()) {
+        _postponedLitIndex.insert(tlit, reinterpret_cast<Clause *>(key));
+      }
     }
     return true;
   }
@@ -223,12 +225,8 @@ void InductionPostponement::checkForPostponedInductions(Literal* lit, Clause* cl
         auto qrit = _postponedTermIndex.getUnifications(lhs,true);
         while (qrit.hasNext()) {
           auto qr = qrit.next();
-          auto tt = qr.substitution->applyToResult(VAR);
-          // prefilter: if term is not ctor term, skip
-          if (!isPureCtorTerm(tt)) {
-            continue;
-          }
-          performInductionsIfNeeded(tt, qr.literal, cl, clIt);
+          ASS(qr.clause);
+          performInductionsIfNeeded(qr.substitution, reinterpret_cast<InductionFormulaKey *>(qr.clause), cl, clIt);
         }
       }
     }
@@ -236,44 +234,55 @@ void InductionPostponement::checkForPostponedInductions(Literal* lit, Clause* cl
     auto qrit = _postponedLitIndex.getUnifications(lit, true/*complementary*/, true);
     while (qrit.hasNext()) {
       auto qr = qrit.next();
-      auto tt = qr.substitution->applyToResult(VAR);
-      // prefilter: if term is not ctor term, skip
-      if (!isPureCtorTerm(tt)) {
-        continue;
-      }
-      performInductionsIfNeeded(tt, qr.literal, cl, clIt);
+      ASS(qr.clause);
+      performInductionsIfNeeded(qr.substitution, reinterpret_cast<InductionFormulaKey *>(qr.clause), cl, clIt);
     }
   }
+
   // The removal of inductions that were done above must be performed
   // afterwards, since we were traversing the indices until this point
   decltype(_toBeRemoved)::Iterator rit(_toBeRemoved);
   while (rit.hasNext()) {
-    Literal* lit = rit.next();
-    _literalMap.remove(lit);
-    DHSet<Term*> removed;
-    if (!lit->isEquality()) {
-      _postponedLitIndex.remove(lit, nullptr);
-    }
-    NonVariableNonTypeIterator it(lit);
-    while (it.hasNext()) {
-      auto t = it.next();
-      if (!t.containsSubterm(VAR) || !removed.insert(t.term())) {
-        it.right();
-        continue;
+    InductionFormulaKey* key = rit.next();
+    auto ph = getPlaceholderForTerm(Term::createConstant(key->first));
+    TermReplacement trMaster(ph, VAR);
+    ASS(!key->second.second.first);
+    ASS(!key->second.second.second);
+
+    for (const auto& lits : key->second.first) {
+      for (const auto& lit : lits) {
+        auto tlit = trMaster.transform(lit);
+        DHSet<Term*> removed;
+        if (!tlit->isEquality()) {
+          _postponedLitIndex.remove(tlit, reinterpret_cast<Clause *>(key));
+        }
+        NonVariableNonTypeIterator it(tlit);
+        while (it.hasNext()) {
+          auto t = it.next();
+          if (!t.containsSubterm(VAR) || !removed.insert(t.term())) {
+            it.right();
+            continue;
+          }
+          _postponedTermIndex.remove(t, tlit, reinterpret_cast<Clause *>(key));
+        }
       }
-      _postponedTermIndex.remove(t, lit, nullptr);
+    }
+    {
+      BYPASSING_ALLOCATOR
+      delete key;
     }
   }
   _toBeRemoved.reset();
 }
 
-void InductionPostponement::performInductionsIfNeeded(TermList t, Literal* lit, Clause* cl, InductionClauseIterator& clIt)
+void InductionPostponement::performInductionsIfNeeded(ResultSubstitutionSP subst, InductionFormulaKey* key, Clause* cl, InductionClauseIterator& clIt)
 {
   CALL("InductionPostponement::performInductionsIfNeeded");
-  if (!t.isTerm()) {
+  auto t = subst->applyToResult(VAR);
+  if (!isPureCtorTerm(t)) {
     return;
   }
-  if (_toBeRemoved.contains(lit)) {
+  if (_toBeRemoved.contains(key)) {
     return;
   }
   TermList sort = SortHelper::getResultSort(t.term());
@@ -281,77 +290,61 @@ void InductionPostponement::performInductionsIfNeeded(TermList t, Literal* lit, 
     return;
   }
   auto ta = env.signature->getTermAlgebraOfSort(sort);
-  Substitution subst;
-  subst.bind(VAR.var(), getPlaceholderForTerm(t.term()));
-  auto ks = _literalMap.findPtr(lit->apply(subst));
+  auto e = _formulaIndex.findByKey(*key);
+  ASS(e);
+  if (!e->_postponed) {
+    return;
+  }
+  ASS(e->_postponedApplications.isNonEmpty());
 
-  // intentionally not incrementing i here
-  for (unsigned i = 0; i < ks->size();) {
-    auto e = _formulaIndex.findByKey((*ks)[i]);
-    ASS(e);
-    if (!e->_postponed) {
-      swap((*ks)[i],ks->top());
-      ks->pop();
-      continue;
+  ASS_EQ(e->_activatingClauses.size(), ta->nConstructors());
+  // first round, we check whether the cl is activating
+  bool activate = false;
+  for (unsigned j = 0; j < ta->nConstructors(); j++) {
+    auto& curr = e->_activatingClauses[j];
+    if ((!curr || curr->store()==Clause::NONE) &&
+        ta->constructor(j)->functor() == t.term()->functor())
+    {
+      if (!curr) {
+        activate = true;
+      }
+      curr = cl;
+      // the functor matches at most one ctor, we can break
+      break;
     }
-    ASS(e->_postponedApplications.isNonEmpty());
-
-    ASS_EQ(e->_activatingClauses.size(), ta->nConstructors());
-    // first round, we check whether the cl is activating
-    bool activate = false;
-    for (unsigned j = 0; j < ta->nConstructors(); j++) {
-      auto& curr = e->_activatingClauses[j];
-      if ((!curr || curr->store()==Clause::NONE) &&
-          ta->constructor(j)->functor() == t.term()->functor())
-      {
-        if (!curr) {
-          activate = true;
-        }
-        curr = cl;
-        // the functor matches at most one ctor, we can break
+  }
+  if (!activate) {
+    return;
+  }
+  // second round, if cl is activating, we update the rest
+  for (unsigned j = 0; j < ta->nConstructors(); j++) {
+    auto& curr = e->_activatingClauses[j];
+    if (!curr || curr->store() == Clause::NONE) {
+      curr = findActivatingClauseForIndex(e->_postponedApplications[0], j);
+      if (!curr) {
+        activate = false;
         break;
       }
     }
-    if (!activate) {
-      i++;
-      continue;
-    }
-    // second round, if cl is activating, we update the rest
-    for (unsigned j = 0; j < ta->nConstructors(); j++) {
-      auto& curr = e->_activatingClauses[j];
-      if (!curr || curr->store() == Clause::NONE) {
-        curr = findActivatingClauseForIndex(e->_postponedApplications[0], j);
-        if (!curr) {
-          activate = false;
-          break;
-        }
-      }
-    }
-    if (!activate) {
-      i++;
-      continue;
-    }
-    // any of the postponed contexts suffices to generate the formulas
-    clIt.generateStructuralFormulas(e->_postponedApplications[0], e);
-    ASS_NEQ(0,env.statistics->postponedInductions);
-    env.statistics->postponedInductions--;
-    while (e->_postponedApplications.isNonEmpty()) {
-      auto ctx = e->_postponedApplications.pop();
-      ASS_NEQ(0,env.statistics->postponedInductionApplications);
-      env.statistics->postponedInductionApplications--;
+  }
+  if (!activate) {
+    return;
+  }
+  // any of the postponed contexts suffices to generate the formulas
+  clIt.generateStructuralFormulas(e->_postponedApplications[0], e);
+  ASS_NEQ(0,env.statistics->postponedInductions);
+  env.statistics->postponedInductions--;
+  while (e->_postponedApplications.isNonEmpty()) {
+    auto ctx = e->_postponedApplications.pop();
+    ASS_NEQ(0,env.statistics->postponedInductionApplications);
+    env.statistics->postponedInductionApplications--;
 
-      for (auto& kv : e->get()) {
-        clIt.resolveClauses(kv.first, ctx, kv.second);
-      }
+    for (auto& kv : e->get()) {
+      clIt.resolveClauses(kv.first, ctx, kv.second);
     }
-    e->_postponed = false;
-    // remove the entry from the literal
-    swap((*ks)[i],ks->top());
-    ks->pop();
   }
-  if (ks->isEmpty()) {
-    _toBeRemoved.insert(lit);
-  }
+  e->_postponed = false;
+  _toBeRemoved.insert(key);
 }
 
 Clause* InductionPostponement::findActivatingClauseForIndex(const InductionContext& ctx, unsigned index)

@@ -45,7 +45,7 @@ public:
   bool maybePostpone(const InductionContext& ctx, InductionFormulaIndex::Entry* e);
 
 private:
-  void performInductionsIfNeeded(TermList t, Literal* lit, Clause* cl, InductionClauseIterator& clIt);
+  void performInductionsIfNeeded(ResultSubstitutionSP subst, InductionFormulaKey* key, Clause* cl, InductionClauseIterator& clIt);
   Clause* findActivatingClauseForIndex(const InductionContext& ctx, unsigned index);
 
   SaturationAlgorithm* _salg;
@@ -54,8 +54,7 @@ private:
   LiteralSubstitutionTree _postponedLitIndex;
   TermIndex* _lhsIndex;
   LiteralIndex* _literalIndex;
-  DHMap<Literal*,Stack<InductionFormulaKey>> _literalMap;
-  DHSet<Literal*> _toBeRemoved;
+  DHSet<InductionFormulaKey*> _toBeRemoved;
   bool _enabled = false;
 };
 

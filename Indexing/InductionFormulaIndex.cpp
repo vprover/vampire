@@ -32,9 +32,9 @@ InductionFormulaKey InductionFormulaIndex::represent(const InductionContext& con
   for (const auto& kv : context._cls) {
     LiteralStack lits = kv.second;
     sort(lits.begin(), lits.end());
-    k.first.push(lits);
+    k.second.first.push(lits);
   }
-  sort(k.first.begin(), k.first.end(), [](const LiteralStack& lhs, const LiteralStack& rhs) {
+  sort(k.second.first.begin(), k.second.first.end(), [](const LiteralStack& lhs, const LiteralStack& rhs) {
     if (lhs.size() != rhs.size()) {
       return lhs.size() < rhs.size();
     }
@@ -56,8 +56,8 @@ bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*
   CALL("InductionFormulaIndex::findOrInsert");
   ASS(!context._cls.empty());
   auto k = represent(context);
-  k.second.first = bound1;
-  k.second.second = bound2;
+  k.second.second.first = bound1;
+  k.second.second.second = bound2;
   return _map.getValuePtr(std::move(k), e);
 }
 
