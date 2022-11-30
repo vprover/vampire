@@ -227,6 +227,7 @@ void Property::add(UnitList* units)
 void Property::scan(Unit* unit)
 {
   CALL("Property::scan(const Unit*)");
+  env->checkTimeSometime<1>();
 
   _symbolsInFormula.reset();
 

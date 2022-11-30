@@ -111,6 +111,8 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
       if(!busy[i]) {
         if(threads[i].joinable())
           threads[i].join();
+        // get fresh thread ID, helps debugging
+        threads[i].std::thread::~thread();
         if(it.hasNext())
           launch_task(i);
         break;

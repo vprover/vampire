@@ -79,6 +79,7 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
 void CNF::clausify (Formula* f)
 {
   CALL("CNF::clausify/1");
+  env->checkTimeSometime<1>();
 
   switch (f->connective()) {
   case LITERAL:

@@ -1402,6 +1402,7 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 void NewCNF::process(Formula* g, Occurrences &occurrences)
 {
   CALL("NewCNF::process");
+  env->checkTimeSometime<1>();
 
   switch (g->connective()) {
     case AND:
