@@ -58,7 +58,7 @@ class SplittingBranchSelector {
 public:
   SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent), _solverIsSMT(false)  {}
   ~SplittingBranchSelector(){
-#if VTHREADED
+#if VTHREADED_AVATAR
 _solver.release();
 #endif
   }
@@ -111,7 +111,7 @@ private:
    */
   ArraySet _trueInCCModel;
 
-#if VDEBUG && !VTHREADED
+#if VDEBUG && !VTHREADED_AVATAR
   unsigned lastCheckedVar;
 #endif
 };
@@ -241,7 +241,7 @@ private:
 
   bool allSplitLevelsActive(SplitSet* s);
 
-#if VTHREADED
+#if VTHREADED_AVATAR
   void extend_db(unsigned max_var);
 #endif
 
@@ -304,7 +304,11 @@ private:
   SaturationAlgorithm* _sa;
 
 public:
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static vstring splPrefix;
+#else
+  static vstring splPrefix;
+#endif
 
   // for observing the current model
   SplitLevel splitLevelBound() { return _db.size(); }

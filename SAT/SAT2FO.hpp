@@ -21,7 +21,7 @@
 
 #include "Kernel/Inference.hpp"
 
-#if VTHREADED
+#if VTHREADED_AVATAR
 #include <mutex>
 #include "Lib/Array.hpp"
 #endif
@@ -50,7 +50,7 @@ public:
   SATClause* createConflictClause(LiteralStack& unsatCore, InferenceRule rule=InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT);
 
   unsigned maxSATVar() const {
-#if VTHREADED
+#if VTHREADED_AVATAR
     std::lock_guard<std::mutex> lock(_mutex);
 #endif
     return _posMap.getNumberUpperBound();
@@ -61,7 +61,7 @@ public:
 private:
   typedef Numbering<Literal *, 1 /* variables start from 1 */ > TwoWayMap;
   TwoWayMap _posMap;
-#if VTHREADED
+#if VTHREADED_AVATAR
   mutable std::mutex _mutex;
   VTHREAD_LOCAL static Lib::ZIArray<bool> _our_literals;
 #endif

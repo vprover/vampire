@@ -70,6 +70,10 @@ void SplittingBranchSelector::init()
   _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
+#if VTHREADED_AVATAR
+  static LockedSolver *shared = new LockedSolver(_solver.release());
+  _solver = shared;
+#else
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
@@ -90,6 +94,7 @@ void SplittingBranchSelector::init()
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
+#endif
 
   if (_parent.getOptions().splittingBufferedSolver()) {
     _solver = new BufferedSolver(_solver.release());
@@ -107,10 +112,6 @@ void SplittingBranchSelector::init()
       ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
   }
 
-#if VTHREADED
-  static LockedSolver *shared = new LockedSolver(_solver.release());
-  _solver = shared;
-#endif
   _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
@@ -338,7 +339,7 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
 
     if (lit && lit->isEquality() && lit->ground()) {
       if (_trueInCCModel.find(var)) {
-#if !VTHREADED
+#if !VTHREADED_AVATAR
         ASS(_solver->getAssignment(var) != SATSolver::FALSE || var > lastCheckedVar);
 #endif
         // only a newly introduced variable can be false in the SATSolver for no good reason
@@ -403,8 +404,13 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   }
   
   SAT2FO& s2f = _parent.satNaming();
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static LiteralStack gndAssignment;
   VTHREAD_LOCAL static LiteralStack unsatCore;
+#else
+  static LiteralStack gndAssignment;
+  static LiteralStack unsatCore;
+#endif
 
   while (true) { // breaks inside
     {
@@ -453,14 +459,18 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   if (_ccModel) {
     TimeCounter tc(TC_CCMODEL);
 
-#if VDEBUG && !VTHREADED
+#if VDEBUG && !VTHREADED_AVATAR
     // to keep track of SAT variables introduce just for the sake of the latest call to _ccModel
     lastCheckedVar = _parent.maxSatVar();
 #endif
 
     RSTAT_CTR_INC("ssat_dp_model");
 
+#if VTHREADED_AVATAR
     VTHREAD_LOCAL static LiteralStack model;
+#else
+    static LiteralStack model;    
+#if 
     model.reset();
 
     _dpModel->reset();
@@ -594,7 +604,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   ASS(removedComps.isEmpty());
 
   unsigned maxSatVar = _parent.maxSatVar();
-#if VTHREADED
+#if VTHREADED_AVATAR
   _parent.extend_db(maxSatVar);
   updateVarCnt();
 #endif
@@ -654,7 +664,11 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 // Splitter
 //////////////
 
+#if VTHREADED_AVATAR
 VTHREAD_LOCAL vstring Splitter::splPrefix = "";
+#else
+vstring Splitter::splPrefix = "";
+#endif
 
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
@@ -826,8 +840,13 @@ void Splitter::onAllProcessed()
   }
   _clausesAdded = false;
 
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static SplitLevelStack toAdd;
   VTHREAD_LOCAL static SplitLevelStack toRemove;
+#else
+  static SplitLevelStack toAdd;
+  static SplitLevelStack toRemove;
+#endif
   
   toAdd.reset();
   toRemove.reset();  
@@ -836,7 +855,7 @@ void Splitter::onAllProcessed()
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     env->beginOutput();
-#if VTHREADED
+#if VTHREADED_AVATAR
     env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
     env->out() << "[AVATAR] recomputeModel: + ";
@@ -969,7 +988,11 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     RSTAT_CTR_INC("ssat_self_dependent_component");
   } else {
+#if VTHREADED_AVATAR
     VTHREAD_LOCAL static SATLiteralStack satLits;
+#else
+    static SATLiteralStack satLits;
+#endif
     satLits.reset();
     collectDependenceLits(cl->splits(), satLits);
     satLits.push(getLiteralFromName(compName));
@@ -996,7 +1019,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
 
-#if VTHREADED
+#if VTHREADED_AVATAR
     if(env->options->persistentGrounding())
       PersistentGrounding::instance()->enqueueSATClause(nsClause);
 #endif
@@ -1005,7 +1028,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     if (_showSplitting) {
       env->beginOutput();
-#if VTHREADED
+#if VTHREADED_AVATAR
     env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
       env->out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
@@ -1065,7 +1088,11 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+#else
+  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
+#endif
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1115,7 +1142,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 bool Splitter::doSplitting(Clause* cl)
 {
   CALL("Splitter::doSplitting");
-#if VTHREADED
+#if VTHREADED_AVATAR
   static std::mutex splitter_state_mutex;
   std::lock_guard<std::mutex> splitter_state_lock(splitter_state_mutex);
 #endif
@@ -1127,7 +1154,7 @@ bool Splitter::doSplitting(Clause* cl)
   if (_stopSplittingAt && (unsigned)env->timer->elapsedMilliseconds() >= _stopSplittingAt) {
     if (_showSplitting) {
       env->beginOutput();
-#if VTHREADED
+#if VTHREADED_AVATAR
     env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
       env->out() << "[AVATAR] Stopping the splitting process."<< std::endl;
@@ -1146,15 +1173,22 @@ bool Splitter::doSplitting(Clause* cl)
     _fastClauses.push(cl);
     return true; // the clause is ours now
   }
-
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static Stack<LiteralStack> comps;
+#else
+  static Stack<LiteralStack> comps;
+#endif
   comps.reset();
   // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps)) {
     return handleNonSplittable(cl);
   }
 
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static SATLiteralStack satClauseLits;
+#else
+  static SATLiteralStack satClauseLits;
+#endif
   satClauseLits.reset();
 
   // Add literals for existing constraints 
@@ -1176,14 +1210,14 @@ bool Splitter::doSplitting(Clause* cl)
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
-#if VTHREADED
+#if VTHREADED_AVATAR
     if(env->options->persistentGrounding())
       PersistentGrounding::instance()->enqueueSATClause(splitClause);
 #endif
 
   if (_showSplitting) {
     env->beginOutput();
-#if VTHREADED
+#if VTHREADED_AVATAR
     env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
     env->out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
@@ -1350,7 +1384,7 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
   SplitLevel compName = getNameFromLiteralUnsafe(sat);
-#if VTHREADED
+#if VTHREADED_AVATAR
   extend_db(compName);
 #else
   ASS_EQ(compName&1,0); //positive levels are even
@@ -1377,7 +1411,7 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
   SATLiteral satLit = _sat2fo.toSAT(lit);
   SplitLevel compName = getNameFromLiteralUnsafe(satLit);
 
-#if VTHREADED
+#if VTHREADED_AVATAR
   extend_db(compName);
 #else
   if(compName>=_db.size()) {
@@ -1436,7 +1470,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
 
   SplitLevel res;
 
-#if VTHREADED
+#if VTHREADED_AVATAR
   static ClauseVariantIndex *globalNontrivialComponents =
     new HashingClauseVariantIndex();
 #endif
@@ -1451,7 +1485,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
       res = addGroundComponent(lits[0], orig, compCl);
     }
     else {
-#if VTHREADED
+#if VTHREADED_AVATAR
       ClauseIterator globalComponent;
       {
         TimeCounter tc(TC_SPLITTING_COMPONENT_INDEX_USAGE);
@@ -1472,7 +1506,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const *
       SATLiteral sat = SATLiteral(_sat2fo.createSpareSatVar(), true);
 #endif
       res = addNonGroundComponent(size, lits, orig, compCl, sat);
-#if VTHREADED
+#if VTHREADED_AVATAR
       Clause *copy = Clause::fromClause(compCl, InferenceRule::COPY_FOR_THREAD);
       if(!import)
         globalNontrivialComponents->insert(copy);
@@ -1728,7 +1762,11 @@ bool Splitter::handleEmptyClause(Clause* cl)
     return false;
   }
 
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static SATLiteralStack conflictLits;
+#else
+  static SATLiteralStack conflictLits;
+#endif
   conflictLits.reset();
 
   collectDependenceLits(cl->splits(), conflictLits);
@@ -1753,7 +1791,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
     if (_showSplitting) {
       env->beginOutput();
-#if VTHREADED
+#if VTHREADED_AVATAR
       env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
       env->out() << "[AVATAR] proved ";
@@ -1934,7 +1972,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
   return res;
 }
 
-#if VTHREADED
+#if VTHREADED_AVATAR
 void Splitter::extend_db(unsigned max_var) {
   while(2 * max_var >= _db.size()) {
     _db.push(nullptr);

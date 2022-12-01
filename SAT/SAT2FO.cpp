@@ -24,7 +24,7 @@
 namespace SAT
 {
 
-#if VTHREADED
+#if VTHREADED_AVATAR
 VTHREAD_LOCAL ZIArray<bool> SAT2FO::_our_literals;
 #endif
 
@@ -34,7 +34,7 @@ VTHREAD_LOCAL ZIArray<bool> SAT2FO::_our_literals;
 unsigned SAT2FO::createSpareSatVar()
 {
   CALL("SAT2FO::createSpareSatVar");
-#if VTHREADED
+#if VTHREADED_AVATAR
     std::lock_guard<std::mutex> lock(_mutex);
 #endif
   return _posMap.getSpareNum();
@@ -47,11 +47,11 @@ SATLiteral SAT2FO::toSAT(Literal* l)
   bool pol = l->isPositive();
   Literal* posLit = Literal::positiveLiteral(l);
 
-#if VTHREADED
+#if VTHREADED_AVATAR
   std::lock_guard<std::mutex> lock(_mutex);
 #endif
   unsigned var = _posMap.get(posLit);
-#if VTHREADED
+#if VTHREADED_AVATAR
   _our_literals[var] = true;
 #endif
   return SATLiteral(var, pol);
@@ -64,7 +64,7 @@ Literal* SAT2FO::toFO(SATLiteral sl) const
 {
   CALL("SAT2FO::toFO");
 
-#if VTHREADED
+#if VTHREADED_AVATAR
   if(!_our_literals[sl.var()]) {
     return nullptr;
   }
@@ -90,7 +90,11 @@ SATClause* SAT2FO::toSAT(Clause* cl)
 
   Clause::Iterator cit(*cl);
 
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static SATLiteralStack satLits;
+#else
+  static SATLiteralStack satLits;
+#endif
   satLits.reset();
 
   while (cit.hasNext()) {
@@ -114,7 +118,7 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
   ASS(res.isEmpty());
 
   unsigned maxVar = maxSATVar();
-#if VTHREADED
+#if VTHREADED_AVATAR
   solver.ensureVarCount(maxVar);
 #endif
   for (unsigned i = 1; i <= maxVar; i++) {
@@ -125,7 +129,7 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
     }
     ASS(asgn==SATSolver::TRUE || asgn==SATSolver::FALSE);
     SATLiteral sl(i, asgn==SATSolver::TRUE);
-#if !VTHREADED
+#if !VTHREADED_AVATAR
     ASS(solver.trueInAssignment(sl));
 #endif
     Literal* lit = toFO(sl);
@@ -141,7 +145,11 @@ SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule r
 {
   CALL("SAT2FO::createConflictClause");
 
+#if VTHREADED_AVATAR
   VTHREAD_LOCAL static LiteralStack negStack;
+#else
+  static LiteralStack negStack;
+#endif
   negStack.reset();
   LiteralStack::ConstIterator ucit(unsatCore);
   while(ucit.hasNext()) {

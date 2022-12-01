@@ -69,6 +69,18 @@ else()
   add_compile_definitions(VTHREADED=0)
 endif()
 
+option(AVATAR_THREADING "Build Vampire with experimental threaded mode and shared AVATAR." OFF)
+if(AVATAR_THREADING)
+  message(STATUS "building with threading enabled + shared AVATAR: EXPERIMENTAL")
+  add_compile_definitions(VTHREADED=1)
+  add_compile_definitions(VTHREADED_AVATAR=1)
+  find_package(Threads REQUIRED)
+  link_libraries(Threads::Threads)
+else()
+  add_compile_definitions(VTHREADED=0)
+  add_compile_definitions(VTHREADED_AVATAR=0)
+endif()
+
 # ThreadSanitizer tool
 option(TSAN "Build Vampire with ThreadSanitizer." OFF)
 if (TSAN)
