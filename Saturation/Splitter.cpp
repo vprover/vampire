@@ -470,7 +470,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     VTHREAD_LOCAL static LiteralStack model;
 #else
     static LiteralStack model;    
-#if 
+#endif 
     model.reset();
 
     _dpModel->reset();
