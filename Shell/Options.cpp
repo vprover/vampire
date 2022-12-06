@@ -465,6 +465,20 @@ void Options::init()
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
     _functionDefinitionElimination.setRandomChoices({"all","none"});
 
+    _functionDefinitionIntroduction = UnsignedOptionValue(
+      "function_definition_introduction",
+      "fdi",
+      0
+    );
+    _functionDefinitionIntroduction.description =
+      "If non-zero, introduces function definitions with generalisation for repeated compound terms in the active set. "
+      "For example, if f(a, g(a)) and f(b, g(b)) occur frequently, we might define d(X) = f(X, g(X)). "
+      "The parameter value 'n' is a threshold: terms that occur more than n times have a definition created.";
+    _lookup.insert(&_functionDefinitionIntroduction);
+    _functionDefinitionIntroduction.tag(OptionTag::INFERENCES);
+    _functionDefinitionIntroduction.addProblemConstraint(hasEquality());
+    _functionDefinitionIntroduction.setRandomChoices({"0", "1", "2", "4", "8", "16", "32", "64"});
+
     _skolemReuse = BoolOptionValue("skolem_reuse", "skr", false);
     _skolemReuse.description =
       "Attempt to reuse Skolem symbols.\n"
