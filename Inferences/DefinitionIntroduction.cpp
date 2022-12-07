@@ -19,51 +19,68 @@
 namespace Inferences
 {
 
+struct IncompleteFunction {
+  unsigned functor, arity, remaining;
+};
+
+static Stack<IncompleteFunction> functions;
+static Stack<TermList> args;
+static DHMap<std::pair<TermList, TermList>, unsigned> substitution;
+
 Term *DefinitionIntroduction::lgg(Term *left, Term *right) {
   CALL("DefinitionIntroduction::lgg")
+  ASS_EQ(left->functor(), right->functor())
+  ASS_EQ(functions.length(), 0)
+  ASS_EQ(args.length(), 0)
 
   unsigned fresh = 0;
-  _substitution.reset();
-
-  _function_scratch.push({left->functor(), left->arity(), left->arity()});
   SubtermIterator left_it(left);
   SubtermIterator right_it(right);
+
   while(left_it.hasNext()) {
     ALWAYS(right_it.hasNext());
-
     TermList left_top = left_it.next();
     TermList right_top = right_it.next();
+
     if(left_top.isTerm() && right_top.isTerm() && left_top.term()->functor() == right_top.term()->functor()) {
       unsigned functor = left_top.term()->functor();
       unsigned arity = left_top.term()->arity();
-      _function_scratch.push({functor, arity, arity});
+      unsigned remaining = arity;
+      functions.push({functor, arity, remaining});
     }
     else {
       unsigned mapped;
-      if(!_substitution.find({left_top, right_top}, mapped))
-        _substitution.insert({left_top, right_top}, mapped = fresh++);
+      if(!substitution.find({left_top, right_top}, mapped))
+        substitution.insert({left_top, right_top}, mapped = fresh++);
 
-      _arg_scratch.push(TermList(mapped, false));
+      args.push(TermList(mapped, false));
       left_it.right();
       right_it.right();
-      _function_scratch.top().remaining--;
+
+      if(functions.isNonEmpty())
+        functions.top().remaining--;
     }
 
-    while(!_function_scratch.top().remaining) {
-      IncompleteFunction record = _function_scratch.pop();
-      Term *term = Term::create(record.functor, record.arity, _arg_scratch.end() - record.arity);
-      _arg_scratch.truncate(_arg_scratch.length() - record.arity);
-      _arg_scratch.push(TermList(term));
+    while(functions.isNonEmpty() && !functions.top().remaining) {
+      IncompleteFunction record = functions.pop();
+      Term *term = Term::create(record.functor, record.arity, args.end() - record.arity);
+      args.truncate(args.length() - record.arity);
+      args.push(TermList(term));
 
-      if(_function_scratch.isNonEmpty())
-        _function_scratch.top().remaining--;
+      if(functions.isNonEmpty())
+        functions.top().remaining--;
       else
         break;
     }
   }
 
-  ASS_EQ(_arg_scratch.length(), 1);
-  return _arg_scratch.pop().term();
+  ASS(functions.isEmpty());
+  ASS_EQ(args.length(), left->arity());
+  Term *term = Term::create(left->functor(), left->arity(), args.begin());
+
+  args.reset();
+  substitution.reset();
+  return term;
 }
 
 void DefinitionIntroduction::introduceDefinitionFor(Term *t) {

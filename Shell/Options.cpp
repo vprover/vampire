@@ -476,7 +476,6 @@ void Options::init()
       "The parameter value 'n' is a threshold: terms that occur more than n times have a definition created.";
     _lookup.insert(&_functionDefinitionIntroduction);
     _functionDefinitionIntroduction.tag(OptionTag::INFERENCES);
-    _functionDefinitionIntroduction.addProblemConstraint(hasEquality());
     _functionDefinitionIntroduction.setRandomChoices({"0", "1", "2", "4", "8", "16", "32", "64"});
 
     _skolemReuse = BoolOptionValue("skolem_reuse", "skr", false);

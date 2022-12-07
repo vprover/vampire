@@ -39,13 +39,6 @@ private:
   DHSet<Term *> _defined;
   Stack<Stack<Entry>> _entries;
   Stack<Clause *> _definitions;
-
-  struct IncompleteFunction {
-    unsigned functor, arity, remaining;
-  };
-  Stack<IncompleteFunction> _function_scratch;
-  Stack<TermList> _arg_scratch;
-  DHMap<std::pair<TermList, TermList>, unsigned> _substitution;
 };
 
 }
