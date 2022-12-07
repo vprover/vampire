@@ -958,7 +958,6 @@ public:
 
     static const int QUERY_BANK=0;
     static const int RESULT_BANK=1;
-    static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 
     RobSubstitution subst;
@@ -973,7 +972,7 @@ public:
     Stack<BacktrackData> bdStack;
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
-    Renaming queryNormalizer;
+    // Renaming queryNormalizer;
     bool useUWAConstraints;
     bool useHOConstraints;
     UnificationConstraintStack constraints;

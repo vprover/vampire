@@ -46,20 +46,15 @@ public:
 
   SLQueryResultIterator getAll();
 
-  SLQueryResultIterator getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions);
 
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions);
 
-  SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions);
 
-  SLQueryResultIterator getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions);
 
-  SLQueryResultIterator getVariants(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions);
 
 #if VDEBUG
   virtual void markTagged(){ }

@@ -668,18 +668,15 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
     subst.setMap(funcSubtermMap);
   }
 
-  queryNormalizer.normalizeVariables(query);
-  TermOrLit queryNorm=queryNormalizer.apply(query);
-
   if(funcSubtermMap){
-    queryNorm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(queryNorm, funcSubtermMap);
+    query = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(query, funcSubtermMap);
   }
 
   ASS_REP(!withoutTop, "TODO")
 
 
-  SubstitutionTree::createIteratorBindings(queryNorm, reversed, withoutTop,
-      [&](unsigned var, TermList t) { subst.bindSpecialVar(var, t, NORM_QUERY_BANK); });
+  SubstitutionTree::createIteratorBindings(query, reversed, withoutTop,
+      [&](unsigned var, TermList t) { subst.bindSpecialVar(var, t, QUERY_BANK); });
 
 #if VDEBUG
   if(tag){
@@ -751,7 +748,6 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     clientBDRecording=true;
 
     subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
-    subst.denormalize(queryNormalizer,NORM_QUERY_BANK,QUERY_BANK);
 
     return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
 	    &subst, QUERY_BANK, RESULT_BANK)),
@@ -894,13 +890,13 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   //the wrong handler being used.
   if(useHOConstraints){
     STHOMismatchHandler hndlr(constraints,bd);
-    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
+    return subst.unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
   }
   if(useUWAConstraints){ 
     SubstitutionTreeMismatchHandler hndlr(constraints,bd);
-    return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+    return subst.unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
   } 
-  return subst.unify(query,NORM_QUERY_BANK,node,NORM_RESULT_BANK);
+  return subst.unify(query,QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
 //TODO I think this works for VSpcialVars as well. Since .isVar() will return true 
