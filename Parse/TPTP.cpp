@@ -5264,8 +5264,7 @@ const char* TPTP::toString(State s)
     return "END_TUPLE";
   default:
     cout << (int)s << "\n";
-    ASS(false);
-    break;
+    ASSERTION_VIOLATION
   }
 }
 #endif

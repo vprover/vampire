@@ -25,9 +25,12 @@
  * notably because it provides its own global new/delete operators
  * it's very useful, however...
  */
-#if (defined(__has_feature) && __has_feature(thread_sanitizer))
+#ifdef __has_feature
+#if __has_feature(thread_sanitizer)
 #define TSAN 1
-#else
+#endif
+#endif
+#ifndef TSAN
 #define TSAN 0
 #endif
 

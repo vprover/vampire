@@ -18,9 +18,12 @@
 #ifndef __LockedSolver__
 #define __LockedSolver__
 
-#include "Lib/Threading.hpp"
-
 #if VTHREADED
+#include "SATSolver.hpp"
+
+#include "Lib/Threading.hpp"
+#include <mutex>
+
 
 namespace SAT {
 

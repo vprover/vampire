@@ -109,7 +109,7 @@ bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
   }
 #if VTHREADED
   unsigned l1h =
-    2 * env->signature->predicateId(l1->functor()) + complementary ^ l1->polarity();
+    2 * env->signature->predicateId(l1->functor()) + (complementary ^ l1->polarity());
   unsigned l2h =
     2 * env->signature->predicateId(l2->functor()) + l2->polarity();
   if(l1h != l2h)

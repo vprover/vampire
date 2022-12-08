@@ -40,10 +40,10 @@ PersistentGrounding::PersistentGrounding()
   _sortConstants.ensure(env->signature->typeCons());
   _sortConstantsCommon.ensure(env->signature->typeCons());
 
-  for(int i=0 ; i< env->signature->typeCons(); i++){  _sortConstants[i] =  0; }
+  for(unsigned i=0 ; i< env->signature->typeCons(); i++){  _sortConstants[i] =  0; }
 
   ZIArray<unsigned> constants;
-  for(int i = 0; i < env->signature->functions(); i++) {
+  for(unsigned i = 0; i < env->signature->functions(); i++) {
     Signature::Symbol *fun = env->signature->getFunction(i);
     if(fun->arity() != 0) {
       continue;
@@ -59,7 +59,7 @@ PersistentGrounding::PersistentGrounding()
     Term* c = Term::createConstant(i); 
     List<TermList>::push(TermList(c),_sortConstants[sort]);
   }
-  for(int i = 0; i < env->signature->typeCons(); i++) {
+  for(unsigned i = 0; i < env->signature->typeCons(); i++) {
     if(constants[i]) {
       _sortConstantsCommon[i].setTerm(Term::create(constants[i], 0, nullptr));
     }
@@ -166,7 +166,7 @@ void PersistentGrounding::enqueueClause(Clause *cl)
     SATLiteralStack satLiterals;
     {
       // for regular literals, map them to ground literals
-      for (int i = 0; i < cl->length(); i++) {
+      for (unsigned i = 0; i < cl->length(); i++) {
         Literal *lit = cl->literals()[i];
         MapTo map(g);
         Literal *grounded = SubstHelper::apply(lit, map);
@@ -219,7 +219,7 @@ void PersistentGrounding::enqueueSATClause(SATClause *cl)
   //std::cout << "SAT clause: " << cl->toString() << std::endl;
 
   SATLiteralStack clause;
-  for (int i = 0; i < cl->length(); i++) {
+  for (unsigned i = 0; i < cl->length(); i++) {
     SATLiteral literal = cl->literals()[i];
     unsigned *var;
     if (_splitMap.getValuePtr(literal.var(), var)) {

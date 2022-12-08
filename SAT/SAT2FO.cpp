@@ -90,11 +90,7 @@ SATClause* SAT2FO::toSAT(Clause* cl)
 
   Clause::Iterator cit(*cl);
 
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static SATLiteralStack satLits;
-#else
-  static SATLiteralStack satLits;
-#endif
   satLits.reset();
 
   while (cit.hasNext()) {
@@ -145,11 +141,7 @@ SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule r
 {
   CALL("SAT2FO::createConflictClause");
 
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static LiteralStack negStack;
-#else
-  static LiteralStack negStack;
-#endif
   negStack.reset();
   LiteralStack::ConstIterator ucit(unsatCore);
   while(ucit.hasNext()) {

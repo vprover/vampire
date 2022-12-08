@@ -266,6 +266,9 @@ private:
    * of associated ground literals for those variables
    * which have one.
    */  
+#if !VTHREADED_AVATAR
+  VTHREAD_LOCAL
+#endif
   static SAT2FO _sat2fo;
   /**
    * Information about a split level. Can be null if a split level does
@@ -281,6 +284,10 @@ private:
    * Definitions of ground components C and ~C are shared and placed at the slot of C.
    * (So the key here is never odd!)
    **/
+
+#if !VTHREADED_AVATAR
+  VTHREAD_LOCAL
+#endif
   static DHMap<SplitLevel,Unit*> _defs;
   
   //state variable used for flushing:  
@@ -304,11 +311,7 @@ private:
   SaturationAlgorithm* _sa;
 
 public:
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static vstring splPrefix;
-#else
-  static vstring splPrefix;
-#endif
 
   // for observing the current model
   SplitLevel splitLevelBound() { return _db.size(); }

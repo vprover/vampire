@@ -94,7 +94,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   };
 
   // start some threads so we can wait on them
-  for(int i = 0; i < _numWorkers && it.hasNext(); i++) {
+  for(unsigned i = 0; i < _numWorkers && it.hasNext(); i++) {
     launch_task(i);
   }
 
@@ -107,7 +107,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
     std::unique_lock<std::mutex> task_lock(task_mutex);
     task_done.wait(task_lock, [&]() { return tasks_idle > 0; });
     tasks_idle--;
-    for(int i = 0; i < _numWorkers; i++) {
+    for(unsigned i = 0; i < _numWorkers; i++) {
       if(!busy[i]) {
         if(threads[i].joinable())
           threads[i].join();
@@ -121,7 +121,7 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   }
 
   // cleanup after time runs out
-  for(int i = 0; i < _numWorkers; i++) {
+  for(unsigned i = 0; i < _numWorkers; i++) {
     if(threads[i].joinable())
       threads[i].join();
   }

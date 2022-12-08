@@ -56,7 +56,14 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
+#if !VTHREADED_AVATAR
+VTHREAD_LOCAL
+#endif
 SAT2FO Splitter::_sat2fo;
+
+#if !VTHREADED_AVATAR
+VTHREAD_LOCAL
+#endif
 DHMap<SplitLevel,Unit*> Splitter::_defs;
 
 /////////////////////////////
@@ -71,7 +78,7 @@ void SplittingBranchSelector::init()
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
 #if VTHREADED_AVATAR
-  static LockedSolver *shared = new LockedSolver(_solver.release());
+  static LockedSolver *shared = new LockedSolver(new MinisatInterfacing(_parent.getOptions(), true));
   _solver = shared;
 #else
   switch(_parent.getOptions().satSolver()){
@@ -404,13 +411,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   }
   
   SAT2FO& s2f = _parent.satNaming();
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static LiteralStack gndAssignment;
   VTHREAD_LOCAL static LiteralStack unsatCore;
-#else
-  static LiteralStack gndAssignment;
-  static LiteralStack unsatCore;
-#endif
 
   while (true) { // breaks inside
     {
@@ -466,11 +468,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     RSTAT_CTR_INC("ssat_dp_model");
 
-#if VTHREADED_AVATAR
     VTHREAD_LOCAL static LiteralStack model;
-#else
-    static LiteralStack model;    
-#endif 
     model.reset();
 
     _dpModel->reset();
@@ -664,11 +662,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 // Splitter
 //////////////
 
-#if VTHREADED_AVATAR
 VTHREAD_LOCAL vstring Splitter::splPrefix = "";
-#else
-vstring Splitter::splPrefix = "";
-#endif
 
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
@@ -840,14 +834,9 @@ void Splitter::onAllProcessed()
   }
   _clausesAdded = false;
 
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static SplitLevelStack toAdd;
   VTHREAD_LOCAL static SplitLevelStack toRemove;
-#else
-  static SplitLevelStack toAdd;
-  static SplitLevelStack toRemove;
-#endif
-  
+
   toAdd.reset();
   toRemove.reset();  
 
@@ -855,7 +844,7 @@ void Splitter::onAllProcessed()
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
     env->beginOutput();
-#if VTHREADED_AVATAR
+#if VTHREADED
     env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
     env->out() << "[AVATAR] recomputeModel: + ";
@@ -988,11 +977,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     RSTAT_CTR_INC("ssat_self_dependent_component");
   } else {
-#if VTHREADED_AVATAR
     VTHREAD_LOCAL static SATLiteralStack satLits;
-#else
-    static SATLiteralStack satLits;
-#endif
     satLits.reset();
     collectDependenceLits(cl->splits(), satLits);
     satLits.push(getLiteralFromName(compName));
@@ -1019,7 +1004,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
 
-#if VTHREADED_AVATAR
+#if VTHREADED
     if(env->options->persistentGrounding())
       PersistentGrounding::instance()->enqueueSATClause(nsClause);
 #endif
@@ -1028,7 +1013,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     if (_showSplitting) {
       env->beginOutput();
-#if VTHREADED_AVATAR
+#if VTHREADED
     env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
       env->out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
@@ -1088,11 +1073,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static DHMap<unsigned, unsigned, IdentityHash> varMasters;
-#else
-  static DHMap<unsigned, unsigned, IdentityHash> varMasters;
-#endif
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1154,7 +1135,7 @@ bool Splitter::doSplitting(Clause* cl)
   if (_stopSplittingAt && (unsigned)env->timer->elapsedMilliseconds() >= _stopSplittingAt) {
     if (_showSplitting) {
       env->beginOutput();
-#if VTHREADED_AVATAR
+#if VTHREADED
     env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
       env->out() << "[AVATAR] Stopping the splitting process."<< std::endl;
@@ -1173,22 +1154,14 @@ bool Splitter::doSplitting(Clause* cl)
     _fastClauses.push(cl);
     return true; // the clause is ours now
   }
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static Stack<LiteralStack> comps;
-#else
-  static Stack<LiteralStack> comps;
-#endif
   comps.reset();
   // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps)) {
     return handleNonSplittable(cl);
   }
 
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static SATLiteralStack satClauseLits;
-#else
-  static SATLiteralStack satClauseLits;
-#endif
   satClauseLits.reset();
 
   // Add literals for existing constraints 
@@ -1210,14 +1183,14 @@ bool Splitter::doSplitting(Clause* cl)
   }
 
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
-#if VTHREADED_AVATAR
+#if VTHREADED
     if(env->options->persistentGrounding())
       PersistentGrounding::instance()->enqueueSATClause(splitClause);
 #endif
 
   if (_showSplitting) {
     env->beginOutput();
-#if VTHREADED_AVATAR
+#if VTHREADED
     env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
     env->out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
@@ -1762,11 +1735,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
     return false;
   }
 
-#if VTHREADED_AVATAR
   VTHREAD_LOCAL static SATLiteralStack conflictLits;
-#else
-  static SATLiteralStack conflictLits;
-#endif
   conflictLits.reset();
 
   collectDependenceLits(cl->splits(), conflictLits);
@@ -1791,7 +1760,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
     if (_showSplitting) {
       env->beginOutput();
-#if VTHREADED_AVATAR
+#if VTHREADED
       env->out() << "(" << std::this_thread::get_id() << ")";
 #endif
       env->out() << "[AVATAR] proved ";
