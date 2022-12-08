@@ -36,9 +36,9 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-ZIArray<unsigned> EqualityProxyMono::s_proxyPredicates;
-DHMap<unsigned,TermList> EqualityProxyMono::s_proxyPredicateSorts;
-ZIArray<Unit*> EqualityProxyMono::s_proxyPremises;
+VTHREAD_LOCAL ZIArray<unsigned> EqualityProxyMono::s_proxyPredicates;
+VTHREAD_LOCAL DHMap<unsigned,TermList> EqualityProxyMono::s_proxyPredicateSorts;
+VTHREAD_LOCAL ZIArray<Unit*> EqualityProxyMono::s_proxyPremises;
 
 /**
  * Constructor, simply memorizes the value of the equality proxy option.

@@ -972,7 +972,12 @@ unsigned Literal::oppositeHash() const
 {
   CALL("Literal::oppositeHash");
 
-  unsigned hash = Hash::hash( (!isPositive()) ? (2*_functor) : (2*_functor+1));
+#if VTHREADED
+  unsigned functor = functorId;
+#else
+  unsigned functor = _functor;
+#endif
+  unsigned hash = Hash::hash( (!isPositive()) ? (2*functor) : (2*functor+1));
   if (_arity == 0) {
     return hash;
   }

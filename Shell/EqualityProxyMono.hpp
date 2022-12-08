@@ -86,11 +86,11 @@ private:
    * of a predicate is zero, it means the proxy predicate for that sort was not
    * added yet.
    */
-  static ZIArray<unsigned> s_proxyPredicates;
+  VTHREAD_LOCAL static ZIArray<unsigned> s_proxyPredicates;
   /** equality proxy predicate sorts */
-  static DHMap<unsigned,TermList> s_proxyPredicateSorts;
+  VTHREAD_LOCAL static DHMap<unsigned,TermList> s_proxyPredicateSorts;
   /** array of proxy definitions E(x,y) <=> x = y  */
-  static ZIArray<Unit*> s_proxyPremises;
+  VTHREAD_LOCAL static ZIArray<Unit*> s_proxyPremises;
 };
 
 };
