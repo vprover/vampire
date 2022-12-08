@@ -814,7 +814,19 @@ public:
   {
     ASS_REP(!withoutTop, "TODO")
 
-    if(reversed) {
+    if (lit->isEquality()) {
+
+      if (reversed) {
+        bindSpecialVar(1,*lit->nthArgument(0));
+        bindSpecialVar(0,*lit->nthArgument(1));
+      } else {
+        bindSpecialVar(0,*lit->nthArgument(0));
+        bindSpecialVar(1,*lit->nthArgument(1));
+      }
+
+      bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
+
+    } else if(reversed) {
       ASS(lit->commutative());
       ASS_EQ(lit->arity(),2);
 

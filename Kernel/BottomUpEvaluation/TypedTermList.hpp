@@ -28,6 +28,8 @@ public:
   TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) { ASS_NEQ(sort, AtomicSort::superSort()) }
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
   SortId sort() const { return _sort; }
+  friend std::ostream& operator<<(std::ostream& out, TypedTermList const& self) 
+  { return out << (TermList const&) self << ": " << self._sort; }
 };
 
 } // namespace Kernel 

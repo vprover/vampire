@@ -38,9 +38,6 @@ TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
 : SubstitutionTree(useC, rfSubs), _extByAbs(rfSubs)
 {
   _extra = extra;
-  // if(rfSubs){
-  //   _funcSubtermsByType = new TypeSubstitutionTree();
-  // }
 }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm)
@@ -62,23 +59,24 @@ TypedTermList toTyped(TermList t)
 
 }
 
+TypedTermList normalizeRenaming(TypedTermList t) 
+{
+  Renaming n;
+  n.normalizeVariables(t);
+  n.normalizeVariables(t.sort());
+  auto out = TypedTermList(n.apply(t), n.apply(t.sort()));
+  DBG(t, " -> ", out)
+  return out;
+}
+
 /**
  * According to value of @b insert, insert or remove term.
  */
 void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-
-  // if(_extByAbs && t.isTerm()){ 
-  //   TermList sort = SortHelper::getResultSort(t.term());
-  //   if(sort.isVar() || sort.isArrowSort()){
-  //     _funcSubtermsByType->handleTerm(sort, ld, insert);
-  //     if(sort.isArrowSort()){ return; }
-  //   } 
-  // }
-
-
-  auto normTerm = Renaming::normalize(t);
+  auto normTerm = normalizeRenaming(toTyped(t));
+  // auto normTerm = Renaming::normalize(t);
 
   if(_extByAbs){
     normTerm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(normTerm, &_functionalSubtermMap);   
@@ -87,7 +85,7 @@ void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
   BindingMap svBindings;
 
 
-  SubstitutionTree::createInitialBindings(toTyped(normTerm), /* reversed */ false, /* withoutTop */ false, 
+  SubstitutionTree::createInitialBindings(normTerm, /* reversed */ false, /* withoutTop */ false, 
       [&](auto var, auto term) { 
         svBindings.insert(var, term);
         _nextVar = max(_nextVar, (int)var + 1);
