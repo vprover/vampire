@@ -33,6 +33,7 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
+#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Renaming.hpp"
@@ -793,14 +794,23 @@ public:
 
   // TODO document
   template<class BindingFunction>
-  static void createInitialBindings(TermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  static void createInitialBindings(TypedTermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
   {
     ASS_REP(!withoutTop, "TODO")
-    bindSpecialVar(0,term);
+    bindSpecialVar(0, term);
+    bindSpecialVar(1, term.sort());
   }
 
+  // template<class BindingFunction>
+  // static void createInitialBindings(TermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  // {
+  //   ASS_REP(!withoutTop, "TODO")
+  //   bindSpecialVar(0,term);
+  //   bindSpecialVar(1,);
+  // }
+
   template<class BindingFunction>
-  static void createIteratorBindings(Literal* lit, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  static void createInitialBindings(Literal* lit, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
   {
     ASS_REP(!withoutTop, "TODO")
 

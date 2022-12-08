@@ -60,7 +60,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
 
   BindingMap svBindings;
   auto& tree = getTree(lit);
-  SubstitutionTree::createIteratorBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
+  SubstitutionTree::createInitialBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
       [&](auto var, auto term) { 
         svBindings.insert(var, term);
         tree._nextVar = max(tree._nextVar, (int)var + 1);
@@ -244,7 +244,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit,
   Literal* normLit=Renaming::normalize(lit);
 
   BindingMap svBindings;
-  SubstitutionTree::createIteratorBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
+  SubstitutionTree::createInitialBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
       [&](auto v, auto t) { {
         tree._nextVar = max<int>(tree._nextVar, v + 1);
         svBindings.insert(v, t);

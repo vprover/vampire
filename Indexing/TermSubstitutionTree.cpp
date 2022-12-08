@@ -38,9 +38,9 @@ TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
 : SubstitutionTree(useC, rfSubs), _extByAbs(rfSubs)
 {
   _extra = extra;
-  if(rfSubs){
-    _funcSubtermsByType = new TypeSubstitutionTree();
-  }
+  // if(rfSubs){
+  //   _funcSubtermsByType = new TypeSubstitutionTree();
+  // }
 }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm)
@@ -55,6 +55,13 @@ void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
 void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
 { handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
+TypedTermList toTyped(TermList t) 
+{
+  return t.isTerm() ? TypedTermList(t.term())
+                    : TypedTermList(t, TermList::var(t.var() + 1));
+
+}
+
 /**
  * According to value of @b insert, insert or remove term.
  */
@@ -62,13 +69,13 @@ void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
 
-  if(_extByAbs && t.isTerm()){ 
-    TermList sort = SortHelper::getResultSort(t.term());
-    if(sort.isVar() || sort.isArrowSort()){
-      _funcSubtermsByType->handleTerm(sort, ld, insert);
-      if(sort.isArrowSort()){ return; }
-    } 
-  }
+  // if(_extByAbs && t.isTerm()){ 
+  //   TermList sort = SortHelper::getResultSort(t.term());
+  //   if(sort.isVar() || sort.isArrowSort()){
+  //     _funcSubtermsByType->handleTerm(sort, ld, insert);
+  //     if(sort.isArrowSort()){ return; }
+  //   } 
+  // }
 
 
   auto normTerm = Renaming::normalize(t);
@@ -80,7 +87,7 @@ void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
   BindingMap svBindings;
 
 
-  SubstitutionTree::createInitialBindings(normTerm, /* reversed */ false, /* withoutTop */ false, 
+  SubstitutionTree::createInitialBindings(toTyped(normTerm), /* reversed */ false, /* withoutTop */ false, 
       [&](auto var, auto term) { 
         svBindings.insert(var, term);
         _nextVar = max(_nextVar, (int)var + 1);
@@ -96,33 +103,20 @@ void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
 TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnifications");
-  return getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, /* useConstraints */ false);
+  return getResultIterator<UnificationsIterator>(toTyped(t), retrieveSubstitutions, /* useConstraints */ false);
 }
 
 TermQueryResultIterator TermSubstitutionTree::getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnificationsWithConstraints");
-  return getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, /* useConstraints */ true);
+  return getResultIterator<UnificationsIterator>(toTyped(t), retrieveSubstitutions, /* useConstraints */ true);
 }
 
 //higher-order concern
 TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
-
-  ASS(_extByAbs);
-
-  bool sortVar = sort.isVar();
-  bool sortArrow = sort.isArrowSort();
-  bool sortAtomic = !sortVar && !sortArrow;
-
-  //TODO Is it OK to use t below?
-
-  auto it2 = sortVar || sortArrow ? _funcSubtermsByType->getUnifications(sort, t, retrieveSubstitutions) :
-             TermQueryResultIterator::getEmpty();
-  auto it3 = sortVar || sortAtomic ? getResultIterator<UnificationsIterator>(t, retrieveSubstitutions,false):
-             TermQueryResultIterator::getEmpty();
-  return pvi(getConcatenatedIterator(it2, it3));
+  return getResultIterator<UnificationsIterator>(TypedTermList(t, sort), retrieveSubstitutions, /* useConstraints */ false);
 }
 
 
@@ -137,7 +131,7 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   if(_root->isLeaf()) {
     return true;
   }
-  return FastGeneralizationsIterator(this, _root, t, false,false,false, /* useC */ false).hasNext();
+  return FastGeneralizationsIterator(this, _root, toTyped(t), false,false,false, /* useC */ false).hasNext();
 }
 
 /**
@@ -146,19 +140,18 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
 TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getGeneralizations");
-  return getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions,false);
+  return getResultIterator<FastGeneralizationsIterator>(toTyped(t), retrieveSubstitutions,false);
 }
 
-TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t,
-	  bool retrieveSubstitutions)
+TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getInstances");
-  return getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions,false);
+  return getResultIterator<FastInstancesIterator>(toTyped(t), retrieveSubstitutions,false);
 }
 
 // TODO get rid of this method
-template<class Iterator, class TermOrLit>
-TermQueryResultIterator TermSubstitutionTree::getResultIterator(TermOrLit trm, bool retrieveSubstitutions,bool withConstraints)
+template<class Iterator>
+TermQueryResultIterator TermSubstitutionTree::getResultIterator(TypedTermList trm, bool retrieveSubstitutions,bool withConstraints)
 { return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, withConstraints, _extra, (_extByAbs ? &_functionalSubtermMap : nullptr)); }
 
 }

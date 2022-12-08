@@ -597,13 +597,13 @@ SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree*
   _subst->reset();
 //  _subst=new InstMatcher;
 
-  SubstitutionTree::createIteratorBindings(query, reversed, withoutTop,
+  SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
       [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
 }
 
 
 template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, Literal* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
-template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, TermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, TypedTermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
 
 SubstitutionTree::FastInstancesIterator::~FastInstancesIterator()
 {

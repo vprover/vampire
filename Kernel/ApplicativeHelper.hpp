@@ -19,6 +19,7 @@
 #include "Signature.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/BiMap.hpp"
+#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -83,6 +84,8 @@ public:
     ASS(res.term()->isLiteral())
     return (Literal*) res.term();
   }
+  static TypedTermList replaceFunctionalAndBooleanSubterms(TypedTermList t, FuncSubtermMap* fsm)
+  { return TypedTermList(replaceFunctionalAndBooleanSubterms((TermList&)t, fsm), t.sort()); }
   static TermList replaceFunctionalAndBooleanSubterms(Term* term, FuncSubtermMap* fsm);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);

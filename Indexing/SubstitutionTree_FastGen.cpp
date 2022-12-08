@@ -395,14 +395,14 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
 
   ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
 
-  SubstitutionTree::createIteratorBindings(query, reversed, withoutTop,
+  SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
       [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
 }
 
 
 
 template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Literal* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
-template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TypedTermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
 
 SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
 {

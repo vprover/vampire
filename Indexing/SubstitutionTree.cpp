@@ -675,7 +675,7 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
   ASS_REP(!withoutTop, "TODO")
 
 
-  SubstitutionTree::createIteratorBindings(query, reversed, withoutTop,
+  SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
       [&](unsigned var, TermList t) { subst.bindSpecialVar(var, t, QUERY_BANK); });
 
 #if VDEBUG
@@ -690,7 +690,7 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 }
 
 template SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent, Node* root, Literal* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
-template SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent, Node* root, TermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+template SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent, Node* root, TypedTermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
 
 SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 {
@@ -981,9 +981,9 @@ TermQueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retriev
   }
 }
 
-template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator, TermList>(TermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
-template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::UnificationsIterator, TermList>(TermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
-template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastGeneralizationsIterator, TermList>(TermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator, TypedTermList>(TypedTermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::UnificationsIterator, TypedTermList>(TypedTermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
+template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastGeneralizationsIterator, TypedTermList>(TypedTermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
 
 template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator, Literal*>(Literal* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
 template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::UnificationsIterator, Literal*>(Literal* trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);

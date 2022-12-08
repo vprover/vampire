@@ -165,8 +165,7 @@ private:
   };
 
   template<class Iterator, class Filter>
-  SLQueryResultIterator getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions, bool useConstraints);
+  SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
   bool _polymorphic;
   Stack<std::unique_ptr<SubstitutionTree>> _trees;

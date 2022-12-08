@@ -14,8 +14,9 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Term.hpp"
+#include "Forwards.hpp"
 
-using SortId = TermList;
+using SortId = Kernel::TermList;
 
 namespace Kernel {
 // TODO move to other class

@@ -23,7 +23,6 @@
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
-#include "TypeSubstitutionTree.hpp"
 #include "SubstitutionTree.hpp"
 
 namespace Indexing {
@@ -81,19 +80,17 @@ public:
 
 private:
 
+
   // void insert(TermList t, LeafData ld);
   void handleTerm(TermList t, LeafData ld, bool insert);
 
-  template<class Iterator, class LitOrTerm> TermQueryResultIterator getResultIterator(LitOrTerm query, bool retrieveSubstitutions, bool withConstraints);
+  template<class Iterator> TermQueryResultIterator getResultIterator(TypedTermList query, bool retrieveSubstitutions, bool withConstraints);
 
   //higher-order concerns
   bool _extra;
   bool _extByAbs;
 
   FuncSubtermMap _functionalSubtermMap;
-
-  TypeSubstitutionTree* _funcSubtermsByType;
-
 };
 
 };
