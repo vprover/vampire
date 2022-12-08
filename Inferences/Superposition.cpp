@@ -333,21 +333,6 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  /* cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-    cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
-    cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
-    cout << "eqIsResult " << eqIsResult << endl;*/
-
-
-  // the first checks the reference and the second checks the stack
-/*
-  if(!constraints.isEmpty() && !constraints->isEmpty()){ 
-    cout << "has constraints" << endl; 
-    Stack<UnificationConstraint>::Iterator uit(*constraints);
-    while(uit.hasNext()){ auto c = uit.next(); cout << c.first.toString() << "," << c.second.toString() << endl; }
-  }
-*/
-
   // the first checks the reference and the second checks the stack
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   ASS(!hasConstraints || !isTypeSub);
