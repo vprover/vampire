@@ -793,7 +793,7 @@ public:
 
   // TODO document
   template<class BindingFunction>
-  static void createIteratorBindings(TermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  static void createInitialBindings(TermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
   {
     ASS_REP(!withoutTop, "TODO")
     bindSpecialVar(0,term);

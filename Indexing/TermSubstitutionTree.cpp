@@ -70,6 +70,7 @@ void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
     } 
   }
 
+
   auto normTerm = Renaming::normalize(t);
 
   if(_extByAbs){
@@ -77,8 +78,13 @@ void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
   }
 
   BindingMap svBindings;
-  svBindings.insert(0, normTerm);
-  _nextVar = max(_nextVar, 1);
+
+
+  SubstitutionTree::createInitialBindings(normTerm, /* reversed */ false, /* withoutTop */ false, 
+      [&](auto var, auto term) { 
+        svBindings.insert(var, term);
+        _nextVar = max(_nextVar, (int)var + 1);
+      });
 
   if(insert) {
     SubstitutionTree::insert(svBindings, ld);
