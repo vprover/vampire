@@ -39,18 +39,6 @@ TypeSubstitutionTree::TypeSubstitutionTree()
 {
 }
 
-void TypeSubstitutionTree::insert(TermList sort, LeafData ld)
-{
-  CALL("TypeSubstitutionTree::insert");
-  handleTerm(sort,ld,true);
-}
-
-void TypeSubstitutionTree::remove(TermList sort, LeafData ld)
-{
-  CALL("TypeSubstitutionTree::remove");
-  handleTerm(sort,ld,false);
-}
-
 struct TypeSubstitutionTree::ToTypeSubFn
 {
 
@@ -62,6 +50,11 @@ struct TypeSubstitutionTree::ToTypeSubFn
       tqr.isTypeSub = true;
     } else {
       RobSubstitution* subst = tqr.substitution->tryGetRobSubstitution();
+      auto b1 = SubstitutionTree::QRS_QUERY_BANK;
+      auto b2 = SubstitutionTree::QRS_RESULT_BANK;
+      DBG(_queryTerm, " / ", b1)
+      DBG(tqr.term  , " / ", b2)
+      DBG(tqr.substitution)
       ALWAYS(subst->unify(_queryTerm, SubstitutionTree::QRS_QUERY_BANK, tqr.term, SubstitutionTree::QRS_RESULT_BANK));      
     }
     return tqr;
@@ -95,11 +88,12 @@ void TypeSubstitutionTree::handleTerm(TermList sort, LeafData ld, bool insert)
 }
 
 //TODO use sorts and delete non-shared
-TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, TermList trm,
-	  bool retrieveSubstitutions)
+TermQueryResultIterator TypeSubstitutionTree::getUnifications(TermList sort, TermList trm, bool retrieveSubstitutions)
 {
   CALL("TypeSubstitutionTree::getUnifications");
- 
+  DBG("lala 01: ", trm, ": ", sort)
+  DBG("tree: ", *this)
+    ASS_NEQ(trm, TermList::var(9));
   return pvi(iterTraits(SubstitutionTree::iterator<UnificationsIterator>(trm, retrieveSubstitutions, 
           /* withConstraints */ false, /* extra */ false, /* functionalSubtermMap */ nullptr))
            .map(ToTypeSubFn(trm)));

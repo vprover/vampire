@@ -28,7 +28,7 @@
 namespace Indexing {
 
 class TypeSubstitutionTree
-: public TermIndexingStructure, SubstitutionTree
+: SubstitutionTree
 {
 public:
   CLASS_NAME(TypeSubstitutionTree);
@@ -36,24 +36,16 @@ public:
 
   TypeSubstitutionTree();
 
-  void insert(TermList sort, LeafData ld);
-  void remove(TermList sort, LeafData ld);
   void handleTerm(TermList t, LeafData ld, bool insert);
-  void insert(TermList t, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
-  void remove(TermList t, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
-
-
-  TermQueryResultIterator getUnifications(TermList sort, bool retrieveSubstitutions) override { NOT_IMPLEMENTED; }
-
-  TermQueryResultIterator getUnifications(TermList sort, TermList trm, 
-    bool retrieveSubstitutions);
+  TermQueryResultIterator getUnifications(TermList sort, TermList trm, bool retrieveSubstitutions);
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
+  virtual void markTagged() override { SubstitutionTree::markTagged();}
 #endif
+  friend std::ostream& operator<<(std::ostream& out, TypeSubstitutionTree const& self)
+  { return out << "TypeSubstitutionTree(" << (SubstitutionTree const&) self << ")"; }
   
 private:
-  using TermIndexingStructure::insert; // state explicitly that "insert(TermList sort, LeafData ld);" is not meant to be an overload of any of the parent's inserts
 
   struct ToTypeSubFn;
 

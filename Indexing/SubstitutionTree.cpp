@@ -959,32 +959,26 @@ TermQueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retriev
 {
 
   CALL("TermSubstitutionTree::iterator");
-  // ASSERTION_VIOLATION_REP("TODO")
 
-  TermQueryResultIterator result = TermQueryResultIterator::getEmpty();
-
-  if(_root){
+  if(!_root) {
+    return TermQueryResultIterator::getEmpty();
+  } else  {
     if(_root->isLeaf()) {
-      LDIterator ldit=static_cast<Leaf*>(_root)->allChildren();
-      result = ldIteratorToTQRIterator(ldit,TermList(query),retrieveSubstitutions,false);
-    }
-    else{
-      VirtualIterator<QueryResult> qrit=vi( new Iterator(this, _root, query, retrieveSubstitutions,false,false, 
+      return ldIteratorToTQRIterator(static_cast<Leaf*>(_root)->allChildren(),TermList(query),retrieveSubstitutions,false);
+    } else {
+      return pvi(iterTraits(vi( new Iterator(this, _root, query, retrieveSubstitutions,false,false, 
                                                          withConstraints, 
-                                                         funcSubterms ));
-      result = pvi( getMappingIterator(qrit, 
+                                                         funcSubterms )))
+          .map(
             [extra](QueryResult const& qr)
             { 
               TermList trm = extra ? qr.first.first->extraTerm 
                                    : qr.first.first->term;
               return TermQueryResult(trm, qr.first.first->literal,
                 qr.first.first->clause, qr.first.second,qr.second);
-            }) );
+            }));
     }
   }
-
-  return result;
-
 }
 
 template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::FastInstancesIterator, TermList>(TermList trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
@@ -998,7 +992,7 @@ template TermQueryResultIterator SubstitutionTree::iterator<SubstitutionTree::Fa
 
 #define VERBOSE_OUTPUT_OPERATORS 0
 
-std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
+std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& self)
 {
 #if VERBOSE_OUTPUT_OPERATORS
   out << "{ nextVar: S" << self._nextVar << ", root: (";
