@@ -87,7 +87,7 @@ struct Superposition::ForwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints, qr.isTypeSub);
+	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints);
   }
 private:
   Clause* _cl;
@@ -109,7 +109,7 @@ struct Superposition::BackwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints, qr.isTypeSub);
+	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints);
   }
 private:
   Clause* _cl;
@@ -325,7 +325,7 @@ Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-    UnificationConstraintStackSP constraints, bool isTypeSub)
+    UnificationConstraintStackSP constraints)
 {
   CALL("Superposition::performSuperposition");
   TIME_TRACE("perform superposition");
@@ -335,7 +335,6 @@ Clause* Superposition::performSuperposition(
 
   // the first checks the reference and the second checks the stack
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
-  ASS(!hasConstraints || !isTypeSub);
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
 
@@ -381,7 +380,7 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(!hasConstraints && !isTypeSub){
+  if(!hasConstraints){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
@@ -418,7 +417,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub;
+  unsigned newLength = rwLength+eqLength-1+conLength;
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -564,12 +563,6 @@ Clause* Superposition::performSuperposition(
       (*res)[next] = constraint;
       next++;   
     }
-  }
-
-  if(isTypeSub){
-    TermList eqLHSsortS = subst->apply(eqLHSsort, eqIsResult);
-    Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,eqLHSsortS);
-    (*res)[next] = constraint;
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
