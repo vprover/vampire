@@ -40,43 +40,40 @@ TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
   _extra = extra;
 }
 
+TypedTermList toTyped(TermList t) 
+{ return t.isTerm() ? TypedTermList(t.term())
+                    : TypedTermList(t, TermList::var(t.var() + 1)); }
+
 void TermSubstitutionTree::insert(TermList t, TermList trm)
-{ handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
+{ handleTerm(toTyped(t), LeafData(0, 0, t, trm), /* insert */ true); }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
-{ handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
+{ handleTerm(toTyped(t), LeafData(cls, lit, t, trm), /* insert */ true); }
 
 void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
-{ handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
+{ handleTerm(toTyped(t), LeafData(cls,lit,t), /* insert */ true); }
+
+void TermSubstitutionTree::handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
+{ handleTerm(tt, LeafData(cls,lit,tt), insert); }
 
 void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
-{ handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
-
-TypedTermList toTyped(TermList t) 
-{
-  return t.isTerm() ? TypedTermList(t.term())
-                    : TypedTermList(t, TermList::var(t.var() + 1));
-
-}
+{ handleTerm(toTyped(t), LeafData(cls,lit,t), /* insert */ false); }
 
 TypedTermList normalizeRenaming(TypedTermList t) 
 {
   Renaming n;
   n.normalizeVariables(t);
   n.normalizeVariables(t.sort());
-  auto out = TypedTermList(n.apply(t), n.apply(t.sort()));
-  DBG(t, " -> ", out)
-  return out;
+  return TypedTermList(n.apply(t), n.apply(t.sort()));
 }
 
 /**
  * According to value of @b insert, insert or remove term.
  */
-void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
+void TermSubstitutionTree::handleTerm(TypedTermList tt, LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-  auto normTerm = normalizeRenaming(toTyped(t));
-  // auto normTerm = Renaming::normalize(t);
+  auto normTerm = normalizeRenaming(tt);
 
   if(_extByAbs){
     normTerm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(normTerm, &_functionalSubtermMap);   
@@ -98,23 +95,17 @@ void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
   }
 }
 
-TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions)
+TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)
 {
   CALL("TermSubstitutionTree::getUnifications");
-  return getResultIterator<UnificationsIterator>(toTyped(t), retrieveSubstitutions, /* useConstraints */ false);
-}
-
-TermQueryResultIterator TermSubstitutionTree::getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions)
-{
-  CALL("TermSubstitutionTree::getUnificationsWithConstraints");
-  return getResultIterator<UnificationsIterator>(toTyped(t), retrieveSubstitutions, /* useConstraints */ true);
+  return getResultIterator<UnificationsIterator>(toTyped(t), retrieveSubstitutions, withConstraints);
 }
 
 //higher-order concern
-TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions)
+TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstr)
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
-  return getResultIterator<UnificationsIterator>(TypedTermList(t, sort), retrieveSubstitutions, /* useConstraints */ false);
+  return getResultIterator<UnificationsIterator>(tt, retrieveSubstitutions, withConstr);
 }
 
 

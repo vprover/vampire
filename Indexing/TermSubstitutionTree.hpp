@@ -53,36 +53,34 @@ public:
    */
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
-  void insert(TermList t, TermList trm);
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls);
+  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert);
+  void insert(TermList t, Literal* lit, Clause* cls) override;
+  void remove(TermList t, Literal* lit, Clause* cls) override;
+  void insert(TermList t, TermList trm) override;
+  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override;
 
-  bool generalizationExists(TermList t);
+  bool generalizationExists(TermList t) override;
 
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions);
-
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions);
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) override;
 
   /*
    * A higher order concern (though it may be useful in other situations)
    */
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions);
+  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList sort, bool retrieveSubstitutions, bool withConstr) override;
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions);
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions);
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) override;
+  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
+  virtual void markTagged() override { SubstitutionTree::markTagged();}
 #endif
 
 private:
 
 
   // void insert(TermList t, LeafData ld);
-  void handleTerm(TermList t, LeafData ld, bool insert);
+  void handleTerm(TypedTermList tt, LeafData ld, bool insert);
 
   template<class Iterator> TermQueryResultIterator getResultIterator(TypedTermList query, bool retrieveSubstitutions, bool withConstraints);
 

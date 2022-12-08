@@ -411,14 +411,14 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 
       NonVariableNonTypeIterator it(lit);
       while(it.hasNext()){
-        TermList ts = it.next();
-        unsigned f = ts.term()->functor(); 
+        Term* ts = it.next();
+        unsigned f = ts->functor(); 
         if(InductionHelper::isInductionTermFunctor(f)){
           if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionFunctor(f)){
-            ta_terms.insert(ts.term());
+            ta_terms.insert(ts);
           }
           if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(ts, lit)){
-            int_terms.insert(ts.term());
+            int_terms.insert(ts);
           }
         }
       }

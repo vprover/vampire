@@ -142,8 +142,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new SuperpositionLHSIndex(new TermSubstitutionTree(useConstraints, extByAbs), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     

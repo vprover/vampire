@@ -441,7 +441,7 @@ private:
 };
 
 class FirstOrderSubtermIt
-: public IteratorCore<TermList>
+: public IteratorCore<Term*>
 {
 public:
   FirstOrderSubtermIt(Term* term, bool includeSelf=false) 
@@ -462,7 +462,7 @@ public:
   }
 
   bool hasNext(){ return !_stack.isEmpty(); }
-  TermList next();
+  Term* next();
   void right();
 
 private:
@@ -665,7 +665,7 @@ private:
  *     another
  */
 class NonVariableNonTypeIterator
-  : public IteratorCore<TermList>
+  : public IteratorCore<Term*>
 {
 public:
   NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
@@ -686,7 +686,7 @@ public:
 
   /** true if there exists at least one subterm */
   bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
+  Term* next();
   void right();
 private:
   /** available non-variable subterms */

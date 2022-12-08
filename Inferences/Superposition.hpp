@@ -55,8 +55,6 @@ private:
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
   struct ForwardResultFn;
-  struct RewriteableSubtermsFn;
-  struct ApplicableRewritesFn;
 
   struct LHSsFn;
   struct RewritableResultsFn;
