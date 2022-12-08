@@ -44,60 +44,23 @@ TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
 }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm)
-{
-  CALL("TermSubstitutionTree::insert(TermList)");
-
-  ASS(t.isTerm());
-  LeafData ld(0, 0, t, trm);
-  insert(t, ld);
-}
+{ handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
-{
-  CALL("TermSubstitutionTree::insert(TermList)");
-
-  LeafData ld(cls, lit, t, trm);
-  insert(t, ld);
-}
-
-void TermSubstitutionTree::insert(TermList t, LeafData ld)
-{
-  CALL("TermSubstitutionTree::insert");
-  // TODO make this and handleTerm one function!!
-
-  ASS(t.isTerm());
-  Term* term=t.term();
-
-  Term* normTerm=Renaming::normalize(term);
-
-  BindingMap svBindings;
-  svBindings.insert(0, TermList(normTerm));
-  _nextVar = max(_nextVar, 1);
-
-  SubstitutionTree::insert(svBindings, ld);  
-}
-
+{ handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
 void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
-{
-  CALL("TermSubstitutionTree::insert");
-  handleTerm(t,lit,cls, true);
-}
+{ handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
 
 void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
-{
-  CALL("TermSubstitutionTree::remove");
-  handleTerm(t,lit,cls, false);
-}
+{ handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
 /**
  * According to value of @b insert, insert or remove term.
  */
-void TermSubstitutionTree::handleTerm(TermList t, Literal* lit, Clause* cls, bool insert)
+void TermSubstitutionTree::handleTerm(TermList t, LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-
-  LeafData ld(cls, lit, t);
 
   if(_extByAbs && t.isTerm()){ 
     TermList sort = SortHelper::getResultSort(t.term());

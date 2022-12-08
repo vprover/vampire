@@ -81,8 +81,8 @@ public:
 
 private:
 
-  void insert(TermList t, LeafData ld);
-  void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
+  // void insert(TermList t, LeafData ld);
+  void handleTerm(TermList t, LeafData ld, bool insert);
 
   template<class Iterator, class LitOrTerm> TermQueryResultIterator getResultIterator(LitOrTerm query, bool retrieveSubstitutions, bool withConstraints);
 
