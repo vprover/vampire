@@ -263,6 +263,8 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
 
   ItemList::DelIterator iit(itms);
   while(iit.hasNext()) {
+    env->checkTimeSometime<1>();
+
     Item* itm = iit.next();
     itm->getBestLiteralReady(idx);
     Literal* lit = itm->_lits[idx];
