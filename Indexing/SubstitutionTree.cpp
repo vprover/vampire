@@ -741,6 +741,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
       normalizer.normalizeVariables(ld.literal);
     } else {
       normalizer.normalizeVariables(ld.term);
+      normalizer.normalizeVariables(ld.sort);
     }
 
     ASS(clientBacktrackData.isEmpty());

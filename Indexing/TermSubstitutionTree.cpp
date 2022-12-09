@@ -45,19 +45,19 @@ TypedTermList toTyped(TermList t)
                     : TypedTermList(t, TermList::var(t.var() + 1)); }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm)
-{ handleTerm(toTyped(t), LeafData(0, 0, t, trm), /* insert */ true); }
+{ handleTerm(toTyped(t), LeafData(0, 0, toTyped(t), trm), /* insert */ true); }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
-{ handleTerm(toTyped(t), LeafData(cls, lit, t, trm), /* insert */ true); }
+{ handleTerm(toTyped(t), LeafData(cls, lit, toTyped(t), trm), /* insert */ true); }
 
 void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
-{ handleTerm(toTyped(t), LeafData(cls,lit,t), /* insert */ true); }
+{ handleTerm(toTyped(t), LeafData(cls,lit,toTyped(t)), /* insert */ true); }
 
 void TermSubstitutionTree::handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
 { handleTerm(tt, LeafData(cls,lit,tt), insert); }
 
 void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
-{ handleTerm(toTyped(t), LeafData(cls,lit,t), /* insert */ false); }
+{ handleTerm(toTyped(t), LeafData(cls,lit,toTyped(t)), /* insert */ false); }
 
 TypedTermList normalizeRenaming(TypedTermList t) 
 {

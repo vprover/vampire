@@ -586,6 +586,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
     TermList sort = apply(lit->twoVarEqSort(),index);
     return Literal::createEquality(lit->polarity(), ts[0], ts[1], sort);
   }
+
   return Literal::create(lit,ts.array());
 }
 

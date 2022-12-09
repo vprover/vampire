@@ -73,7 +73,8 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
     auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord)
                                               : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
-      ((TermSubstitutionTree*)_is)->handle(rsti.next(), lit, c, adding);
+      auto tt = TypedTermList(rsti.next());
+      ((TermSubstitutionTree*)_is)->handle(tt, lit, c, adding);
     }
   }
 }
@@ -89,9 +90,8 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
       // TODO get rid of cast here
-	    ((TermSubstitutionTree*)_is)->handle(lhs.isTerm() ? TypedTermList(lhs.term()) : TypedTermList(lhs, SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
+	    ((TermSubstitutionTree*)_is)->handle(TypedTermList(lhsi.next(), SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
     }
   }
 }

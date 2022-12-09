@@ -104,12 +104,12 @@ public:
 
   struct LeafData {
     LeafData() {}
-    LeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
-    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
-    LeafData(Clause* cls, Literal* literal, TermList term)
-    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
+    LeafData(Clause* cls, Literal* literal, TypedTermList term, TermList extraTerm)
+    : clause(cls), literal(literal), term(term), sort(term.sort()), extraTerm(extraTerm) {}
+    LeafData(Clause* cls, Literal* literal, TypedTermList term)
+    : clause(cls), literal(literal), term(term), sort(term.sort()) { extraTerm.makeEmpty();}
     LeafData(Clause* cls, Literal* literal)
-    : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
+    : clause(cls), literal(literal) { term.makeEmpty(); sort.makeEmpty(), extraTerm.makeEmpty(); }
     inline
     bool operator==(const LeafData& o)
     { return clause==o.clause && literal==o.literal && term==o.term; }
@@ -117,6 +117,7 @@ public:
     Clause* clause;
     Literal* literal;
     TermList term;
+    TermList sort;
     // In some higher-order use cases, we want to store a different term 
     // in the leaf to the indexed term. extraTerm is used for this purpose.
     // In all other situations it is empty
