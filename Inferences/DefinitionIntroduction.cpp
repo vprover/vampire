@@ -130,7 +130,8 @@ void DefinitionIntroduction::process(Term *t) {
       continue;
 
     entry.term = gen;
-    if(++entry.count > env.options->functionDefinitionIntroduction()) {
+    entry.weight += t->weight();
+    if(entry.weight > env.options->functionDefinitionIntroduction()) {
       introduceDefinitionFor(entry.term);
       std::swap(entries[i], entries.top());
       entries.pop();
@@ -139,7 +140,7 @@ void DefinitionIntroduction::process(Term *t) {
   }
 
   if(i == entries.length())
-    entries.push({t, 1});
+    entries.push({t, t->weight()});
 }
 
 void DefinitionIntroduction::process(Clause *cl) {
