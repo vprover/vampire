@@ -34,7 +34,7 @@ private:
 
   struct Entry {
     Term *term;
-    unsigned count;
+    unsigned weight;
   };
   DHSet<Term *> _defined;
   Stack<Stack<Entry>> _entries;
