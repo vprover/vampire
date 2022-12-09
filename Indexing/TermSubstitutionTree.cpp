@@ -40,24 +40,24 @@ TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
   _extra = extra;
 }
 
-TypedTermList toTyped(TermList t) 
-{ return t.isTerm() ? TypedTermList(t.term())
-                    : TypedTermList(t, TermList::var(t.var() + 1)); }
+// TypedTermList toTyped(TermList t) 
+// { return t.isTerm() ? TypedTermList(t.term())
+//                     : TypedTermList(t, TermList::var(t.var() + 1)); }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm)
-{ handleTerm(toTyped(t), LeafData(0, 0, toTyped(t), trm), /* insert */ true); }
+{ handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
-{ handleTerm(toTyped(t), LeafData(cls, lit, toTyped(t), trm), /* insert */ true); }
+{ handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
 void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
-{ handleTerm(toTyped(t), LeafData(cls,lit,toTyped(t)), /* insert */ true); }
+{ handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
 
 void TermSubstitutionTree::handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
 { handleTerm(tt, LeafData(cls,lit,tt), insert); }
 
 void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
-{ handleTerm(toTyped(t), LeafData(cls,lit,toTyped(t)), /* insert */ false); }
+{ handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
 TypedTermList normalizeRenaming(TypedTermList t) 
 {
@@ -67,10 +67,14 @@ TypedTermList normalizeRenaming(TypedTermList t)
   return TypedTermList(n.apply(t), n.apply(t.sort()));
 }
 
+TermList normalizeRenaming(TermList t) 
+{ return Renaming::normalize(t); }
+
 /**
  * According to value of @b insert, insert or remove term.
  */
-void TermSubstitutionTree::handleTerm(TypedTermList tt, LeafData ld, bool insert)
+template<class TypedOrUntypedTermList>
+void TermSubstitutionTree::handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
   auto normTerm = normalizeRenaming(tt);
@@ -98,7 +102,7 @@ void TermSubstitutionTree::handleTerm(TypedTermList tt, LeafData ld, bool insert
 TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)
 {
   CALL("TermSubstitutionTree::getUnifications");
-  return getResultIterator<UnificationsIterator>(toTyped(t), retrieveSubstitutions, withConstraints);
+  return getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints);
 }
 
 //higher-order concern
@@ -120,7 +124,7 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   if(_root->isLeaf()) {
     return true;
   }
-  return FastGeneralizationsIterator(this, _root, toTyped(t), false,false,false, /* useC */ false).hasNext();
+  return FastGeneralizationsIterator(this, _root, t, false,false,false, /* useC */ false).hasNext();
 }
 
 /**
@@ -129,18 +133,18 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
 TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getGeneralizations");
-  return getResultIterator<FastGeneralizationsIterator>(toTyped(t), retrieveSubstitutions,false);
+  return getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions,false);
 }
 
 TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getInstances");
-  return getResultIterator<FastInstancesIterator>(toTyped(t), retrieveSubstitutions,false);
+  return getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions,false);
 }
 
 // TODO get rid of this method
-template<class Iterator>
-TermQueryResultIterator TermSubstitutionTree::getResultIterator(TypedTermList trm, bool retrieveSubstitutions,bool withConstraints)
+template<class Iterator, class TypedOrUntypedTermList>
+TermQueryResultIterator TermSubstitutionTree::getResultIterator(TypedOrUntypedTermList trm, bool retrieveSubstitutions,bool withConstraints)
 { return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, withConstraints, _extra, (_extByAbs ? &_functionalSubtermMap : nullptr)); }
 
 }

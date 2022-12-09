@@ -899,6 +899,8 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
       Term* ta = arg.term();
       TermList argSort = getResultSort(ta);
       if (eqSrt != argSort) {
+        DBGE(eqSrt)
+        DBGE(argSort)
         return false;
       }
     }
@@ -916,6 +918,12 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     TermList argSort = getResultSort(ta);
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
     if (instantiatedTypeSort != argSort) {
+      DBGE(type->toString())
+        DBGE(*t)
+        DBGE(i)
+      DBG("arg = ", *ta, ": ", argSort)
+      DBGE(instantiatedTypeSort)
+      DBGE(type->arg(i))
       return false;
     }
   }

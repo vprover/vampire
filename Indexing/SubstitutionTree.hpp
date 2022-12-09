@@ -104,10 +104,17 @@ public:
 
   struct LeafData {
     LeafData() {}
+
     LeafData(Clause* cls, Literal* literal, TypedTermList term, TermList extraTerm)
     : clause(cls), literal(literal), term(term), sort(term.sort()), extraTerm(extraTerm) {}
     LeafData(Clause* cls, Literal* literal, TypedTermList term)
     : clause(cls), literal(literal), term(term), sort(term.sort()) { extraTerm.makeEmpty();}
+
+    LeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
+    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
+    LeafData(Clause* cls, Literal* literal, TermList term)
+    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
+
     LeafData(Clause* cls, Literal* literal)
     : clause(cls), literal(literal) { term.makeEmpty(); sort.makeEmpty(), extraTerm.makeEmpty(); }
     inline
@@ -802,13 +809,13 @@ public:
     bindSpecialVar(1, term.sort());
   }
 
-  // template<class BindingFunction>
-  // static void createInitialBindings(TermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
-  // {
-  //   ASS_REP(!withoutTop, "TODO")
-  //   bindSpecialVar(0,term);
-  //   bindSpecialVar(1,);
-  // }
+  // TODO document
+  template<class BindingFunction>
+  static void createInitialBindings(TermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  {
+    ASS_REP(!withoutTop, "TODO")
+    bindSpecialVar(0, term);
+  }
 
   template<class BindingFunction>
   static void createInitialBindings(Literal* lit, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)

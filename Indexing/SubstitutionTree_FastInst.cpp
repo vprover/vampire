@@ -602,8 +602,13 @@ SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree*
 }
 
 
-template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, Literal* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
-template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, TypedTermList query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+#define INSTANTIATE_ITERS(QUERY_TYPE) \
+  template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, QUERY_TYPE query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+
+INSTANTIATE_ITERS(TypedTermList)
+INSTANTIATE_ITERS(TermList)
+INSTANTIATE_ITERS(Literal*)
+
 
 SubstitutionTree::FastInstancesIterator::~FastInstancesIterator()
 {

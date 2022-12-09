@@ -54,6 +54,7 @@ public:
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
   void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert);
+
   void insert(TermList t, Literal* lit, Clause* cls) override;
   void remove(TermList t, Literal* lit, Clause* cls) override;
   void insert(TermList t, TermList trm) override;
@@ -80,9 +81,10 @@ private:
 
 
   // void insert(TermList t, LeafData ld);
-  void handleTerm(TypedTermList tt, LeafData ld, bool insert);
+  template<class TypedOrUntypedTermList> 
+  void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert);
 
-  template<class Iterator> TermQueryResultIterator getResultIterator(TypedTermList query, bool retrieveSubstitutions, bool withConstraints);
+  template<class Iterator, class TypedOrUntypedTermList> TermQueryResultIterator getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints);
 
   //higher-order concerns
   bool _extra;
