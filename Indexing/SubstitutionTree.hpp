@@ -701,6 +701,11 @@ public:
 
   void insert(BindingMap& binding,LeafData ld);
   void remove(BindingMap& binding,LeafData ld);
+  void handle(BindingMap& binding,LeafData ld, bool doInsert) 
+  { 
+    if (doInsert) insert(binding, ld); 
+    else          remove(binding, ld); 
+  }
 
   /** Number of the next variable */
   int _nextVar;

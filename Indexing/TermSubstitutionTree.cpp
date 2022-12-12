@@ -92,11 +92,7 @@ void TermSubstitutionTree::handleTerm(TypedOrUntypedTermList tt, LeafData ld, bo
         _nextVar = max(_nextVar, (int)var + 1);
       });
 
-  if(insert) {
-    SubstitutionTree::insert(svBindings, ld);
-  } else {
-    SubstitutionTree::remove(svBindings, ld);
-  }
+  SubstitutionTree::handle(svBindings, ld, insert);
 }
 
 TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)

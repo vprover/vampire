@@ -66,11 +66,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
         tree._nextVar = max(tree._nextVar, (int)var + 1);
       });
 
-  if(insert) {
-    tree.insert(svBindings, SubstitutionTree::LeafData(cls, lit));
-  } else {
-    tree.remove(svBindings, SubstitutionTree::LeafData(cls, lit));
-  }
+  tree.handle(svBindings, SubstitutionTree::LeafData(cls, lit), insert);
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit,
