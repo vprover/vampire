@@ -60,6 +60,8 @@ using namespace Kernel;
 
 namespace Indexing {
 
+class SubstitutionTree;
+std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
 /**
  * Class of substitution trees. In fact, contains an array of substitution
