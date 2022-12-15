@@ -1104,6 +1104,10 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
+ // If this clause contains an answer literal then don't split it
+  if (cl->getAnswerLiteral() != nullptr) {
+    return false;
+  }
   if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
 #ifdef __linux__
     || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
