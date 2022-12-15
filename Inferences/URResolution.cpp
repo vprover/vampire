@@ -194,7 +194,7 @@ struct URResolution::Item
 
     LiteralIterator it = _ansLit ? pvi(getSingletonIterator(_ansLit)) : LiteralIterator::getEmpty();
     if(single) {
-      single = Renaming::normalize(single);
+      if (!_ansLit || _ansLit->ground()) single = Renaming::normalize(single);
       res = Clause::fromIterator(pvi(getConcatenatedIterator(getSingletonIterator(single), it)), inf);
     }
     else {
