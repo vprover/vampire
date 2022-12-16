@@ -461,6 +461,13 @@ private:
   /**
    * Unofficial command
    *
+   * Register a term or literal CCSA rewrite
+   */
+  void readDeclareRewrite(LExpr *body);
+
+  /**
+   * Unofficial command
+   *
    * Behaves like conjecture declaration in TPTP
    */
   void colorSymbol(const vstring& name, Color color);

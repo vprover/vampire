@@ -340,59 +340,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         USER_ERROR("declare-rewrite expects a body");
 
       LExpr* body = ibRdr.readNext();
-      ParseResult result = parseTermOrFormula(body);
-      Formula* formula;
-      if (!result.asFormula(formula))
-        USER_ERROR("declare-rewrite body is not a formula: "+body->toString());
+      readDeclareRewrite(body);
 
-      while(formula->connective() == FORALL)
-        formula = formula->qarg();
-
-      Connective conn = formula->connective();
-      if(conn != LITERAL && conn != IMP)
-        USER_ERROR("declare-rewrite expects a universally-quantified rewrite: "+formula->toString());
-
-      if(conn == LITERAL) {
-        Literal *literal = formula->literal();
-        if(!literal->polarity() || literal->arity() != 2)
-          USER_ERROR("declare-rewrite expects a positive binary literal: "+literal->toString());
-
-        TermList left_sort = SortHelper::getArgSort(literal, 0);
-        TermList right_sort = SortHelper::getArgSort(literal, 1);
-        if(left_sort != right_sort)
-          USER_ERROR("rewrite not well-sorted: "+literal->toString());
-
-        Literal *renamed = Renaming::normalize(literal);
-        Inferences::CCSA::registerTermRewrite((*renamed)[0], (*renamed)[1]);
-      }
-      else {
-        Formula *left = formula->left();
-        bool left_flip = false;
-        if(left->connective() == NOT)
-          left = left->uarg(), left_flip = true;
-        if(left->connective() != LITERAL)
-          USER_ERROR("declare-rewrite expects a literal: "+left->toString());
-
-        Formula *right = formula->right();
-        bool right_flip = false;
-        if(right->connective() == NOT)
-          right = right->uarg(), right_flip = false;
-        if(right->connective() != LITERAL)
-          USER_ERROR("declare-rewrite expects a literal: "+right->toString());
-
-        Literal *left_literal = left->literal();
-        if(left_flip)
-          left_literal = Literal::complementaryLiteral(left_literal);
-
-        Literal *right_literal = right->literal();
-        if(right_flip)
-          right_literal = Literal::complementaryLiteral(right_literal);
-
-        Renaming renaming;
-        left_literal = renaming.apply(left_literal);
-        right_literal = renaming.apply(right_literal);
-        Inferences::CCSA::registerLiteralRewrite(left_literal, right_literal);
-      }
       ibRdr.acceptEOL();
       continue;
     }
@@ -2988,6 +2937,87 @@ void SMTLIB2::readAssertTheory(LExpr* body)
 
   FormulaUnit* fu = new FormulaUnit(theoryAxiom, Inference(TheoryAxiom(InferenceRule::EXTERNAL_THEORY_AXIOM)));
   UnitList::push(fu, _formulas);
+}
+
+static Literal *readLiteral(Formula *f)
+{
+  bool flip = false;
+  if(f->connective() == NOT)
+    f = f->uarg(), flip = true;
+
+  if(f->connective() != LITERAL)
+    USER_ERROR("declare-rewrite expects a literal: " + f->toString());
+
+  Literal *l = f->literal();
+  if(flip)
+    l = Literal::complementaryLiteral(l);
+
+  return l;
+}
+
+static Stack<Literal *> readDisjunction(Formula *f)
+{
+  Stack<Literal *> disjunction;
+  if(f->connective() != OR) {
+    disjunction.push(readLiteral(f));
+    return disjunction;
+  }
+
+  FormulaList::Iterator args(f->args());
+  while(args.hasNext())
+    disjunction.push(readLiteral(args.next()));
+
+  return disjunction;
+}
+
+static Stack<Stack<Literal *>> readConjunction(Formula *f)
+{
+  Stack<Stack<Literal *>> conjunction;
+  if(f->connective() != AND) {
+    conjunction.push(readDisjunction(f));
+    return conjunction;
+  }
+
+  FormulaList::Iterator args(f->args());
+  while(args.hasNext())
+    conjunction.push(readDisjunction(args.next()));
+
+  return conjunction;
+}
+
+void SMTLIB2::readDeclareRewrite(LExpr *body)
+{
+  CALL("SMTLIB2::readDeclareRewrite");
+
+  ParseResult result = parseTermOrFormula(body);
+  Formula* formula;
+  if (!result.asFormula(formula))
+    USER_ERROR("declare-rewrite body is not a formula: "+body->toString());
+
+  while(formula->connective() == Connective::FORALL)
+    formula = formula->qarg();
+
+  Connective conn = formula->connective();
+  if(conn != LITERAL && conn != IMP)
+    USER_ERROR("declare-rewrite expects a universally-quantified rewrite: "+formula->toString());
+
+  if(conn == LITERAL) {
+    Literal *literal = formula->literal();
+    if(!literal->polarity() || literal->arity() != 2)
+      USER_ERROR("declare-rewrite expects a positive binary literal: "+literal->toString());
+
+    TermList left_sort = SortHelper::getArgSort(literal, 0);
+    TermList right_sort = SortHelper::getArgSort(literal, 1);
+    if(left_sort != right_sort)
+      USER_ERROR("rewrite not well-sorted: "+literal->toString());
+
+    Inferences::CCSA::registerTermRewrite((*literal)[0], (*literal)[1]);
+  }
+  else {
+    Literal *left = readLiteral(formula->left());
+    Stack<Stack<Literal *>> right = readConjunction(formula->right());
+    Inferences::CCSA::registerLiteralRewrite(left, right);
+  }
 }
 
 void SMTLIB2::colorSymbol(const vstring& name, Color color)

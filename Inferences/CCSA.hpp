@@ -28,7 +28,7 @@ Literal *createSubterm(
 
 void registerCommutes(unsigned relation, unsigned functor);
 void registerTermRewrite(TermList left, TermList right);
-void registerLiteralRewrite(Literal *left, Literal *right);
+void registerLiteralRewrite(Literal *left, Stack<Stack<Literal *>> right);
 
 class SubtermISE : public ImmediateSimplificationEngine
 {

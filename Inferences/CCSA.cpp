@@ -76,6 +76,20 @@ static Clause *replaceLiteral(Clause *premise, Literal *remove, Literal *add, co
   return generated;
 }
 
+static Clause *replaceLiteral(Clause *premise, Literal *remove, Stack<Literal *> add, const Inference &inference) {
+  unsigned length = premise->length() + add.length() - 1;
+  Clause *generated = new (length) Clause(length, inference);
+
+  unsigned index = 0;
+  for (unsigned i = 0; i < premise->length(); i++)
+    if((*premise)[i] != remove)
+      (*generated)[index++] = (*premise)[i];
+  while(add.isNonEmpty())
+    (*generated)[index++] = add.pop();
+
+  return generated;
+}
+
 static ClauseIterator perform(Clause *premise, Literal *literal) {
   CALL("SubtermISE::perform")
 
@@ -182,9 +196,9 @@ void registerTermRewrite(TermList left, TermList right) {
 }
 
 static LiteralSubstitutionTree literal_index;
-static DHMap<Literal *, Literal *> literal_map;
+static DHMap<Literal *, Stack<Stack<Literal *>>> literal_map;
 
-void registerLiteralRewrite(Literal *left, Literal *right) {
+void registerLiteralRewrite(Literal *left, Stack<Stack<Literal *>> right) {
   CALL("CCSA::registerLiteralRewrite")
   literal_index.insert(left, nullptr);
   literal_map.insert(left, right);
@@ -202,10 +216,19 @@ ClauseIterator RewriteGIE::generateClauses(Clause *cl) {
     LiteralQueryResultIterator literal_results = literal_index.getGeneralizations(literal, false, true);
     if(literal_results.hasNext()) {
       LiteralQueryResult result = literal_results.next();
-      Literal *rewritten = result.substitution->applyToBoundResult(literal_map.get(result.literal));
+      const Stack<Stack<Literal *>> &conjunction = literal_map.get(result.literal);
+      Stack<Stack<Literal *>>::ConstIterator disjunctions(conjunction);
 
-      Inference inference(GeneratingInference1(InferenceRule::REWRITE, cl));
-      results.push(replaceLiteral(cl, literal, rewritten, inference));
+      while(disjunctions.hasNext()) {
+        const Stack<Literal *> &disjunction = disjunctions.next();
+        Stack<Literal *>::ConstIterator literals(disjunction);
+        Stack<Literal *> rewritten;
+        while(literals.hasNext())
+          rewritten.push(result.substitution->applyToBoundResult(literals.next()));
+
+        Inference inference(GeneratingInference1(InferenceRule::REWRITE, cl));
+        results.push(replaceLiteral(cl, literal, rewritten, inference));
+      }
     }
 
     NonVariableNonTypeIterator subterms(literal);
