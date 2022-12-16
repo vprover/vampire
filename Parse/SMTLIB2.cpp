@@ -1829,6 +1829,9 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
     }
   }
 
+  if(!lRdr.hasNext())
+    USER_ERROR("Missing body in quantification " + exp->toString());
+
   _scopes.push(lookup);
 
   _todo.push(make_pair(PO_PARSE_APPLICATION,exp)); // will create the actual quantified formula and clear the lookup...
