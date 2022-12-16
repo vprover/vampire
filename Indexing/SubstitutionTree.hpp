@@ -732,9 +732,11 @@ public:
   Node* _root;
 
   class LeafIterator
-  : public IteratorCore<Leaf*>
   {
   public:
+    LeafIterator(LeafIterator&&) = default;
+    LeafIterator& operator=(LeafIterator&&) = default;
+    DECL_ELEMENT_TYPE(Leaf*);
     LeafIterator(SubstitutionTree* st);
     bool hasNext();
     Leaf* next();
@@ -1086,23 +1088,23 @@ public:
     static const int RESULT_BANK=1;
     static const int NORM_RESULT_BANK=3;
 
-    RecycledPointer<RobSubstitution> subst;
-    RecycledPointer<VarStack> svStack;
+    RecycledPointer<RobSubstitution> _subst;
+    RecycledPointer<VarStack> _svStack;
 
   private:
-    bool literalRetrieval;
-    bool retrieveSubstitution;
-    bool inLeaf;
-    LDIterator ldIterator;
-    RecycledPointer<Stack<NodeIterator>> nodeIterators;
-    RecycledPointer<Stack<BacktrackData>> bdStack;
-    bool clientBDRecording;
-    BacktrackData clientBacktrackData;
-    bool useUWAConstraints;
-    bool useHOConstraints;
-    RecycledPointer<UnificationConstraintStack> constraints;
+    bool _literalRetrieval;
+    bool _retrieveSubstitution;
+    bool _inLeaf;
+    LDIterator _ldIterator;
+    RecycledPointer<Stack<NodeIterator>> _nodeIterators;
+    RecycledPointer<Stack<BacktrackData>> _bdStack;
+    bool _clientBDRecording;
+    BacktrackData _clientBacktrackData;
+    bool _useUWAConstraints;
+    bool _useHOConstraints;
+    RecycledPointer<UnificationConstraintStack> _constraints;
 #if VDEBUG
-    SubstitutionTree* tree;
+    SubstitutionTree* _tree;
 #endif
   };
 

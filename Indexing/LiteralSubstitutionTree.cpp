@@ -54,7 +54,6 @@ void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
 void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool insert)
 {
   CALL("LiteralSubstitutionTree::handleLiteral");
-  TIME_TRACE("literal subs tree handleLiteral")
   // TODO make this and insnert one fuction
 
   Literal* normLit=Renaming::normalize(lit);
@@ -240,13 +239,12 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
 {
   CALL("LiteralSubstitutionTree::getAll");
 
-  return pvi( getMappingIterator(
-      getMapAndFlattenIterator(
+  return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-         .flatMap([this](auto i) { return vi(new LeafIterator(&*_trees[i])); })
-        ,
-        [](Leaf* l) { return l->allChildren(); }),
-      LDToSLQueryResultFn()) ) ;
+         .flatMap([this](auto i) { return LeafIterator(&*_trees[i]); })
+         .flatMap([](Leaf* l) { return l->allChildren(); })
+         .map(LDToSLQueryResultFn())
+      );
 }
 
 template<class Iterator>
@@ -271,7 +269,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, b
     }
   }
 
-  auto mapResults = [](auto iter) { return pvi(timeTraceIter("literal subs tree result iterator", std::move(iter).map(SLQueryResultFunctor()))); };
+  auto mapResults = [](auto iter) { return pvi(std::move(iter).map(SLQueryResultFunctor())); };
   return !lit->commutative() 
     ?  mapResults(iterTraits(Iterator(&tree, root, lit, retrieveSubstitutions, /* reversed */ false, /* withoutTop */ false, useConstraints)))
     :  mapResults(concatIters(
