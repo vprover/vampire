@@ -33,6 +33,7 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
+#include "Lib/Recycler.hpp"
 #include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
@@ -55,6 +56,13 @@ using namespace Lib;
 using namespace Kernel;
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
+template<class T>
+struct OutputMultiline
+{ T const& self; };
+
+template<class T>
+OutputMultiline<T> multiline(T const& self)
+{ return { self }; }
 
 #define REORDERING 1
 
@@ -62,6 +70,7 @@ namespace Indexing {
 
 class SubstitutionTree;
 std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
+std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
 
 /**
  * Class of substitution trees. In fact, contains an array of substitution
@@ -96,6 +105,7 @@ public:
   bool tag;
   virtual void markTagged(){ tag=true;}
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
 
 
   // TODO make const function
@@ -206,8 +216,10 @@ public:
 
   class Node {
   public:
+    friend std::ostream& operator<<(ostream& out, OutputMultiline<Node> const& self) 
+    { self.self.output(out, /* multiline = */ true, /* indent */ 0); return out; }
     friend std::ostream& operator<<(ostream& out, Node const& self) 
-    { self.output(out); return out; }
+    { self.output(out, /* multiline = */ false, /* indent */ 0); return out; }
     inline
     Node() { term.makeEmpty(); }
     inline
@@ -242,7 +254,7 @@ public:
     /** term at this node */
     TermList term;
 
-    virtual void output(std::ostream& out) const = 0;
+    virtual void output(std::ostream& out, bool multiline, int indent) const = 0;
   };
 
 
@@ -410,7 +422,7 @@ public:
     const unsigned childVar;
     ChildBySortHelper* _childBySortHelper;
 
-    virtual void output(std::ostream& out) const override;
+    virtual void output(std::ostream& out, bool multiline, int indent) const override;
   }; // class SubstitutionTree::IntermediateNode
 
     struct ByTopFn
@@ -452,7 +464,7 @@ public:
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
 
-    virtual void output(std::ostream& out) const override;
+    virtual void output(std::ostream& out, bool multiline, int indent) const override;
   };
 
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
@@ -805,7 +817,77 @@ public:
     }
   }
 
-  class GenMatcher;
+   /**
+   * Class that supports matching operations required by
+   * retrieval of generalizations in substitution trees.
+   */
+  class GenMatcher
+  {
+  public:
+    GenMatcher(GenMatcher&&) = default;
+    GenMatcher& operator=(GenMatcher&&) = default;
+    template<class TermOrLit>
+    GenMatcher(TermOrLit query, unsigned nextSpecVar);
+
+    CLASS_NAME(SubstitutionTree::GenMatcher);
+    USE_ALLOCATOR(GenMatcher);
+
+    /**
+     * Bind special variable @b var to @b term. This method
+     * should be called only before any calls to @b matchNext()
+     * and @b backtrack().
+     */
+    void bindSpecialVar(unsigned var, TermList term)
+    {
+      (*_specVars)[var]=term;
+    }
+    /**
+     * Return term bound to special variable @b specVar
+     */
+    TermList getSpecVarBinding(unsigned specVar)
+    { return (*_specVars)[specVar]; }
+
+    bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
+    bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
+    void backtrack();
+    bool tryBacktrack();
+
+    ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
+
+    int getBSCnt()
+    {
+      int res=0;
+      VarStack::Iterator vsit(*_boundVars);
+      while(vsit.hasNext()) {
+    if(vsit.next()==BACKTRACK_SEPARATOR) {
+      res++;
+    }
+      }
+      return res;
+    }
+
+  protected:
+    static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
+
+    struct Binder;
+    struct Applicator;
+    class Substitution;
+
+    RecycledPointer<VarStack> _boundVars;
+    RecycledPointer<DArray<TermList>, NoReset> _specVars;
+
+    /**
+     * Inheritors must assign the maximal possible number of an ordinary
+     * variable that can be bound during the retrievall process.
+     */
+    unsigned _maxVar;
+
+    /**
+     * Inheritors must ensure that the size of this map will
+     * be at least @b _maxVar+1
+     */
+    RecycledPointer<ArrayMap<TermList>> _bindings;
+  };
 
   // TODO document
   template<class BindingFunction>
@@ -868,9 +950,11 @@ public:
    * Iterator, that yields generalizations of given term/literal.
    */
   class FastGeneralizationsIterator
-  : public IteratorCore<QueryResult>
   {
   public:
+    FastGeneralizationsIterator(FastGeneralizationsIterator&&);
+    FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&);
+    DECL_ELEMENT_TYPE(QueryResult);
     template<class TermOrLit>
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query,
             bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC, 
@@ -894,18 +978,18 @@ public:
      * This is false in the beginning when it is in the root */
     bool _inLeaf;
 
-    GenMatcher* _subst;
+    GenMatcher _subst;
 
     LDIterator _ldIterator;
 
-    Renaming _resultNormalizer;
+    RecycledPointer<Renaming> _resultNormalizer;
 
     Node* _root;
     SubstitutionTree* _tree;
 
-    Stack<void*> _alternatives;
-    Stack<unsigned> _specVarNumbers;
-    Stack<NodeAlgorithm> _nodeTypes;
+    RecycledPointer<Stack<void*>> _alternatives;
+    RecycledPointer<Stack<unsigned>> _specVarNumbers;
+    RecycledPointer<Stack<NodeAlgorithm>> _nodeTypes;
   };
 
   class InstMatcher;
@@ -914,9 +998,11 @@ public:
    * Iterator, that yields generalizations of given term/literal.
    */
   class FastInstancesIterator
-  : public IteratorCore<QueryResult>
   {
   public:
+    FastInstancesIterator(FastInstancesIterator&&);
+    FastInstancesIterator& operator=(FastInstancesIterator&&);
+    DECL_ELEMENT_TYPE(QueryResult);
     template<class TermOrLit>
     FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query,
 	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
@@ -931,6 +1017,7 @@ public:
     bool enterNode(Node*& node);
 
   private:
+
     bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;
@@ -973,9 +1060,11 @@ public:
   };  
 
   class UnificationsIterator
-  : public IteratorCore<QueryResult>
   {
   public:
+    UnificationsIterator(UnificationsIterator&&);
+    UnificationsIterator& operator=(UnificationsIterator&&);
+    DECL_ELEMENT_TYPE(QueryResult);
     template<class TermOrLit>
     UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, 
       bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
@@ -997,22 +1086,21 @@ public:
     static const int RESULT_BANK=1;
     static const int NORM_RESULT_BANK=3;
 
-    RobSubstitution subst;
-    VarStack svStack;
+    RecycledPointer<RobSubstitution> subst;
+    RecycledPointer<VarStack> svStack;
 
   private:
     bool literalRetrieval;
     bool retrieveSubstitution;
     bool inLeaf;
     LDIterator ldIterator;
-    Stack<NodeIterator> nodeIterators;
-    Stack<BacktrackData> bdStack;
+    RecycledPointer<Stack<NodeIterator>> nodeIterators;
+    RecycledPointer<Stack<BacktrackData>> bdStack;
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
-    // Renaming queryNormalizer;
     bool useUWAConstraints;
     bool useHOConstraints;
-    UnificationConstraintStack constraints;
+    RecycledPointer<UnificationConstraintStack> constraints;
 #if VDEBUG
     SubstitutionTree* tree;
 #endif

@@ -121,6 +121,9 @@ private:
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   CALL("Superposition::generateClauses");
+  if (premise->number() == 131 || premise->number() == 16) {
+    DBGE(*premise)
+  }
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   //cout << "SUPERPOSITION with " << premise->toString() << endl;

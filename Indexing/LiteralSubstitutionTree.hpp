@@ -83,25 +83,26 @@ private:
       CALL("LiteralSubstitutionTree::MatchingFilter::enter()");
       ASS_REP(res.literal->isEquality(), *res.literal);
     
-      if(instantiation){
-        //if the query lit isn't a two variable equality, sort unification
-        //is guranteed via term unification
-        if(!_isTwoVarEq){ return true; }
-      } else {
-        //generaisation
-        if(!res.literal->isTwoVarEquality()){ return true; }
-      }
-
-      TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
-      if(_retrieveSubstitutions) {
-        return instantiation ? res.substitution->matchSorts(_queryEqSort, resSort) 
-                             : res.substitution->matchSorts(resSort, _queryEqSort); 
-      } else {
-        static RobSubstitution subst;
-        subst.reset();
-        return instantiation ? subst.match(_queryEqSort, 0, resSort, 1):
-                               subst.match(resSort, 0, _queryEqSort, 1);           
-      }
+      return true;
+      // if(instantiation){
+      //   //if the query lit isn't a two variable equality, sort unification
+      //   //is guranteed via term unification
+      //   if(!_isTwoVarEq){ return true; }
+      // } else {
+      //   //generaisation
+      //   if(!res.literal->isTwoVarEquality()){ return true; }
+      // }
+      //
+      // TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
+      // if(_retrieveSubstitutions) {
+      //   return instantiation ? res.substitution->matchSorts(_queryEqSort, resSort) 
+      //                        : res.substitution->matchSorts(resSort, _queryEqSort); 
+      // } else {
+      //   static RobSubstitution subst;
+      //   subst.reset();
+      //   return instantiation ? subst.match(_queryEqSort, 0, resSort, 1):
+      //                          subst.match(resSort, 0, _queryEqSort, 1);           
+      // }
     }
 
     //dummy. UnificationFilter needs a leave function to undo the sort unification.
@@ -126,37 +127,38 @@ private:
     {
       CALL("LiteralSubstitutionTree::UnificationFilter::enter()");
       ASS(res.literal->isEquality());
-      
+
       //the polymorphism check isn't strictly necessary. However, if it wasn't
       //included, on monomorphic problems we would be using unification to check
       //whether two constant are identical
 
-      TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
-      if(!polymorphic){
-        return _queryEqSort == resSort;
-      } else if(_retrieveSubs){
-        RobSubstitution* subst = res.substitution->tryGetRobSubstitution();
-        ASS(subst);
-        subst->bdRecord(_bdataEq);
-        bool success = subst->unify(_queryEqSort, 0, resSort, 1);
-        subst->bdDone();
-        if(!success){
-          _bdataEq.backtrack();
-        }
-        return success;
-      } else {
-        static RobSubstitution subst;
-        subst.reset();
-        return subst.unify(_queryEqSort, 0, resSort, 1);
-      }
+      return true;
+      // TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
+      // if(!polymorphic){
+      //   return _queryEqSort == resSort;
+      // } else if(_retrieveSubs){
+      //   RobSubstitution* subst = res.substitution->tryGetRobSubstitution();
+      //   ASS(subst);
+      //   subst->bdRecord(_bdataEq);
+      //   bool success = subst->unify(_queryEqSort, 0, resSort, 1);
+      //   subst->bdDone();
+      //   if(!success){
+      //     _bdataEq.backtrack();
+      //   }
+      //   return success;
+      // } else {
+      //   static RobSubstitution subst;
+      //   subst.reset();
+      //   return subst.unify(_queryEqSort, 0, resSort, 1);
+      // }
     }
 
     void leave(const SLQueryResult& res){
       CALL("LiteralSubstitutionTree::UnificationFilter::leave()");
-      if(_retrieveSubs && polymorphic){
-        _bdataEq.backtrack();
-        ASS(_bdataEq.isEmpty());
-      }
+      // if(_retrieveSubs && polymorphic){
+      //   _bdataEq.backtrack();
+      //   ASS(_bdataEq.isEmpty());
+      // }
     }
   private:
     TermList _queryEqSort;
@@ -164,7 +166,7 @@ private:
     BacktrackData _bdataEq;
   };
 
-  template<class Iterator, class Filter>
+  template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
   bool _polymorphic;

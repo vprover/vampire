@@ -611,7 +611,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(It1));
 
   CatIterator(It1 it1, It2 it2)
-  	:_first(true), _it1(it1), _it2(it2) {}
+  	:_first(true), _it1(std::move(it1)), _it2(std::move(it2)) {}
   bool hasNext()
   {
     if(_first) {
@@ -668,7 +668,7 @@ template<class It1,class It2>
 inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
 {
-  return CatIterator<It1,It2>(it1, it2);
+  return CatIterator<It1,It2>(std::move(it1), std::move(it2));
 }
 
 
@@ -1640,14 +1640,6 @@ struct GetSecondOfPair {
   }
 };
 
-template<class I1>
-static auto concatIters(I1 i1) 
-{ return iterTraits(std::move(i1)); }
-
-template<class I1, class I2, class... Is>
-static auto concatIters(I1 i1, I2 i2, Is... is) 
-{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
-
 template<class Iter>
 class IterTraits
 {
@@ -1862,6 +1854,15 @@ public:
 template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) 
 { return IterTraits<Iter>(std::move(i)); }
+
+template<class I1>
+static auto concatIters(I1 i1) 
+{ return iterTraits(std::move(i1)); }
+
+template<class I1, class I2, class... Is>
+static auto concatIters(I1 i1, I2 i2, Is... is) 
+{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+
 
 ///@}
 

@@ -129,13 +129,13 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
 TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getGeneralizations");
-  return getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions,false);
+  return getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false);
 }
 
 TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getInstances");
-  return getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions,false);
+  return getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false);
 }
 
 // TODO get rid of this method

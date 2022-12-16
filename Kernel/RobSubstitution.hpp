@@ -215,11 +215,11 @@ public:
   }
 
 
+  RobSubstitution(RobSubstitution&& obj) = default;
+  RobSubstitution& operator=(RobSubstitution&& obj) = default;
 private:
-  /** Copy constructor is private and without a body, because we don't want any. */
-  RobSubstitution(const RobSubstitution& obj);
-  /** operator= is private and without a body, because we don't want any. */
-  RobSubstitution& operator=(const RobSubstitution& obj);
+  RobSubstitution(const RobSubstitution& obj) = delete;
+  RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
 
   static const int SPECIAL_INDEX;

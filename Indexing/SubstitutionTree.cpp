@@ -636,15 +636,18 @@ bool SubstitutionTree::LeafIterator::hasNext()
 template<class TermOrLit>
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
   : tag(parent->tag)
-  , svStack(32)
+  , subst()
+  , svStack()
   , literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
   , retrieveSubstitution(retrieveSubstitution)
   , inLeaf(false)
   , ldIterator(LDIterator::getEmpty())
-  , nodeIterators(8)
-  , bdStack(8)
+  , nodeIterators()
+  , bdStack()
   , clientBDRecording(false)
   , useUWAConstraints(useC)
+  , useHOConstraints(funcSubtermMap)
+  , constraints()
 #if VDEBUG
   , tree(parent)
 #endif
@@ -663,10 +666,8 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
     return;
   }
 
-  useHOConstraints = false;
   if(funcSubtermMap){
-    useHOConstraints = true;
-    subst.setMap(funcSubtermMap);
+    subst->setMap(funcSubtermMap);
   }
 
   if(funcSubtermMap){
@@ -677,7 +678,7 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 
 
   SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
-      [&](unsigned var, TermList t) { subst.bindSpecialVar(var, t, QUERY_BANK); });
+      [&](unsigned var, TermList t) { subst->bindSpecialVar(var, t, QUERY_BANK); });
   DEBUG_QUERY("query: ", subst)
 
 
@@ -686,16 +687,62 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
   bd.drop();
 }
 
+
+SubstitutionTree::UnificationsIterator::UnificationsIterator(UnificationsIterator&& other)
+  : subst(std::move(other.subst))
+  , svStack(std::move(other.svStack))
+  , literalRetrieval(std::move(other.literalRetrieval))
+  , retrieveSubstitution(std::move(other.retrieveSubstitution))
+  , inLeaf(std::move(other.inLeaf))
+  , ldIterator(std::move(other.ldIterator))
+  , nodeIterators(std::move(other.nodeIterators))
+  , bdStack(std::move(other.bdStack))
+  , clientBDRecording(std::move(other.clientBDRecording))
+  , clientBacktrackData(std::move(other.clientBacktrackData))
+  , useUWAConstraints(std::move(other.useUWAConstraints))
+  , useHOConstraints(std::move(other.useHOConstraints))
+  , constraints(std::move(other.constraints))
+#if VDEBUG
+  , tree(std::move(other.tree))
+#endif
+{
+#if VDEBUG
+  tree->_iteratorCnt++;
+#endif
+}
+
+SubstitutionTree::UnificationsIterator& SubstitutionTree::UnificationsIterator::operator=(UnificationsIterator&& other)
+{
+  swap(subst, other.subst);
+  swap(svStack, other.svStack);
+  swap(literalRetrieval, other.literalRetrieval);
+  swap(retrieveSubstitution, other.retrieveSubstitution);
+  swap(inLeaf, other.inLeaf);
+  swap(ldIterator, other.ldIterator);
+  swap(nodeIterators, other.nodeIterators);
+  swap(bdStack, other.bdStack);
+  swap(clientBDRecording, other.clientBDRecording);
+  swap(clientBacktrackData, other.clientBacktrackData);
+  swap(useUWAConstraints, other.useUWAConstraints);
+  swap(useHOConstraints, other.useHOConstraints);
+  swap(constraints, other.constraints);
+#if VDEBUG
+  swap(tree, other.tree);
+#endif
+  return *this;
+}
+
 SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 {
   if(clientBDRecording) {
-    subst.bdDone();
+    subst->bdDone();
     clientBDRecording=false;
     clientBacktrackData.backtrack();
   }
-  while(bdStack.isNonEmpty()) {
-    bdStack.pop().backtrack();
-  }
+  if (bdStack) 
+    while(bdStack->isNonEmpty()) {
+      bdStack->pop().backtrack();
+    }
 
 #if VDEBUG
   tree->_iteratorCnt--;
@@ -709,7 +756,7 @@ bool SubstitutionTree::UnificationsIterator::hasNext()
   //if(tag){cout << "UnificationsIterator::hasNext" << endl;}
 
   if(clientBDRecording) {
-    subst.bdDone();
+    subst->bdDone();
     clientBDRecording=false;
     clientBacktrackData.backtrack();
   }
@@ -741,14 +788,15 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     }
 
     ASS(clientBacktrackData.isEmpty());
-    subst.bdRecord(clientBacktrackData);
+    subst->bdRecord(clientBacktrackData);
     clientBDRecording=true;
 
-    subst.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
+    subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
 
     return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
-	    &subst, QUERY_BANK, RESULT_BANK)),
-            UnificationConstraintStackSP(new UnificationConstraintStack(constraints))); 
+	    &*subst, QUERY_BANK, RESULT_BANK)),
+        // TODO do we really wanna copy the whole constraints stack here?
+            UnificationConstraintStackSP(new UnificationConstraintStack(*constraints))); 
   } else {
     return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
   }
@@ -761,37 +809,37 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
 
   //if(tag){cout << "findNextLeaf" << endl;}
 
-  if(nodeIterators.isEmpty()) {
+  if(nodeIterators->isEmpty()) {
     //There are no node iterators in the stack, so there's nowhere
     //to look for the next leaf.
     //This shouldn't hapen during the regular retrieval process, but it
     //can happen when there are no literals inserted for a predicate,
     //or when predicates with zero arity are encountered.
-    ASS(bdStack.isEmpty());
+    ASS(bdStack->isEmpty());
     return false;
   }
 
   if(inLeaf) {
     ASS(!clientBDRecording);
     //Leave the current leaf
-    bdStack.pop().backtrack();
+    bdStack->pop().backtrack();
     inLeaf=false;
   }
 
   ASS(!clientBDRecording);
-  ASS(bdStack.length()+1==nodeIterators.length());
+  ASS(bdStack->length()+1==nodeIterators->length());
 
   do {
-    while(!nodeIterators.top().hasNext() && !bdStack.isEmpty()) {
+    while(!nodeIterators->top().hasNext() && !bdStack->isEmpty()) {
       //backtrack undos everything that enter(...) method has done,
       //so it also pops one item out of the nodeIterators stack
-      bdStack.pop().backtrack();
-      svStack.pop();
+      bdStack->pop().backtrack();
+      svStack->pop();
     }
-    if(!nodeIterators.top().hasNext()) {
+    if(!nodeIterators->top().hasNext()) {
       return false;
     }
-    Node* n=*nodeIterators.top().next();
+    Node* n=*nodeIterators->top().next();
 
     BacktrackData bd;
     bool success=enter(n,bd);
@@ -799,7 +847,7 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
       bd.backtrack();
       continue;
     } else {
-      bdStack.push(bd);
+      bdStack->push(bd);
     }
   } while(!inLeaf);
   return true;
@@ -824,10 +872,10 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
 
-    TermList qt(svStack.top(), true);
+    TermList qt(svStack->top(), true);
 
     recording=true;
-    subst.bdRecord(bd);
+    subst->bdRecord(bd);
     success=associate(qt,n->term,bd);
   }
   if(success) {
@@ -836,20 +884,20 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
       inLeaf=true;
     } else {
       IntermediateNode* inode=static_cast<IntermediateNode*>(n);
-      svStack.push(inode->childVar);
+      svStack->push(inode->childVar);
       NodeIterator nit=getNodeIterator(inode);
       if(useUWAConstraints){
-        TermList qt = subst.getSpecialVarTop(inode->childVar);
+        TermList qt = subst->getSpecialVarTop(inode->childVar);
         NodeIterator enit = pvi(getConcatenatedIterator(inode->childBySort(qt),nit));
-        nodeIterators.backtrackablePush(enit,bd);
+        nodeIterators->backtrackablePush(enit,bd);
       }
       else{
-        nodeIterators.backtrackablePush(nit, bd);
+        nodeIterators->backtrackablePush(nit, bd);
       }
     }
   }
   if(recording) {
-    subst.bdDone();
+    subst->bdDone();
   }
   return success;
 }
@@ -886,25 +934,24 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
   //However, a user can still set UWA option on. We don't wan't that to result in 
   //the wrong handler being used.
   if(useHOConstraints){
-    STHOMismatchHandler hndlr(constraints,bd);
-    return subst.unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
+    STHOMismatchHandler hndlr(*constraints,bd);
+    return subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
   }
   if(useUWAConstraints){ 
-    SubstitutionTreeMismatchHandler hndlr(constraints,bd);
-    return subst.unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+    SubstitutionTreeMismatchHandler hndlr(*constraints,bd);
+    return subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
   } 
-  return subst.unify(query,QUERY_BANK,node,NORM_RESULT_BANK);
+  return subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK);
 }
 
 //TODO I think this works for VSpcialVars as well. Since .isVar() will return true 
 //for them
-SubstitutionTree::NodeIterator
-  SubstitutionTree::UnificationsIterator::getNodeIterator(IntermediateNode* n)
+SubstitutionTree::NodeIterator SubstitutionTree::UnificationsIterator::getNodeIterator(IntermediateNode* n)
 {
   CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
 
   unsigned specVar=n->childVar;
-  TermList qt=subst.getSpecialVarTop(specVar);
+  TermList qt=subst->getSpecialVarTop(specVar);
   if(qt.isVar()) {
     return n->allChildren();
   } else {
@@ -921,12 +968,16 @@ SubstitutionTree::NodeIterator
   }
 }
 
-void SubstitutionTree::Leaf::output(std::ostream& out) const 
-{
-  out << this->term;
-}
+template<class T>
+void repeat(std::ostream& out, T const& c, int times) 
+{ for (int i = 0; i < times; i++) out << c; };
 
-void SubstitutionTree::IntermediateNode::output(std::ostream& out) const 
+static constexpr char const* INDENT = "    ";
+
+void SubstitutionTree::Leaf::output(std::ostream& out, bool multiline, int indent) const 
+{ out << this->term; }
+
+void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multiline, int indent) const 
 {
   // TODO const version of allChildren
   auto childIter = iterTraits(((IntermediateNode*)this)->allChildren());
@@ -938,24 +989,62 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out) const
 
   auto first = childIter.next();
   auto brackets = childIter.hasNext();
-  if (brackets) out << "[ ";
-  out << **first;
-  while (childIter.hasNext()) {
-    out <<  " | " << **childIter.next();
-  } 
-  if (brackets) out << " ]";
+  if (brackets) {
 
+
+    if (multiline) {
+      auto outp = [&](Node** x) { 
+        out << endl; 
+        repeat(out, INDENT, indent + 1);
+        out << "| ";
+        (*x)->output(out, multiline, indent + 1);
+      };
+      out << "[";
+      outp(first);
+      while (childIter.hasNext()) {
+        outp(childIter.next());
+      }
+      out << endl; 
+      repeat(out, INDENT, indent);
+      out << "]";
+
+    } else {
+      out << "[ ";
+      out << **first;
+      while (childIter.hasNext()) {
+        out <<  " | " << **childIter.next();
+      } 
+      out << " ]";
+    }
+
+
+  } else {
+    (*first)->output(out, multiline, indent);
+  }
 
 }
 
 
-
+// template<class I>
+// class DerefIter 
+// {
+//   I _self;
+//   public:
+//     DECL_ELEMENT_TYPE(decltype(_self->next()));
+//     DerefIter(I self) : _self(std::move(self)) {}
+//     bool hasNext() const { return _self->hasNext(); }
+//     bool hasNext()       { return _self->hasNext(); }
+//     OWN_ELEMENT_TYPE next() { return _self->next(); }
+// };
+// template<class I>
+// DerefIter<I> derefIter(I i) { return DerefIter<I>(std::move(i)); }
 
 template<class Iterator, class TermOrLit> 
 TermQueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms)
 {
 
   CALL("TermSubstitutionTree::iterator");
+  TIME_TRACE("TermSubstitutionTree::iterator");
 
   if(!_root) {
     return TermQueryResultIterator::getEmpty();
@@ -963,9 +1052,9 @@ TermQueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retriev
     if(_root->isLeaf()) {
       return ldIteratorToTQRIterator(static_cast<Leaf*>(_root)->allChildren(),TermList(query),retrieveSubstitutions,false);
     } else {
-      return pvi(iterTraits(vi( new Iterator(this, _root, query, retrieveSubstitutions,false,false, 
-                                                         withConstraints, 
-                                                         funcSubterms )))
+      return pvi(timeTraceIter("#### subs tree iterator", iterTraits(Iterator(this, _root, query, retrieveSubstitutions,false,false, 
+                withConstraints, 
+                funcSubterms ))
           .map(
             [extra](QueryResult const& qr)
             { 
@@ -973,7 +1062,7 @@ TermQueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retriev
                                    : qr.first.first->term;
               return TermQueryResult(trm, qr.first.first->literal,
                 qr.first.first->clause, qr.first.second,qr.second);
-            }));
+            })));
     }
   }
 }
@@ -1007,6 +1096,18 @@ std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& se
 #if VERBOSE_OUTPUT_OPERATORS
   out << ") }";
 #endif // VERBOSE_OUTPUT_OPERATORS
+  return out;
+}
+
+
+
+std::ostream& Indexing::operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self)
+{
+  if (self.self._root) {
+    self.self._root->output(out, true, /* indent */ 0);
+  } else {
+    out << "<empty tree>";
+  }
   return out;
 }
 

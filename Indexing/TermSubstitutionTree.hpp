@@ -91,6 +91,10 @@ private:
   bool _extByAbs;
 
   FuncSubtermMap _functionalSubtermMap;
+  friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
+  { return out << (SubstitutionTree const&) self; }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
+  { return out << multiline((SubstitutionTree const&) self.self); }
 };
 
 };

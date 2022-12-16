@@ -601,6 +601,45 @@ SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree*
       [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
 }
 
+SubstitutionTree::FastInstancesIterator::FastInstancesIterator(FastInstancesIterator&& other)
+    : _literalRetrieval(std::move(other._literalRetrieval))
+    , _retrieveSubstitution(std::move(other._retrieveSubstitution))
+    , _inLeaf(std::move(other._inLeaf))
+    , _ldIterator(std::move(other._ldIterator))
+    , _subst(std::move(other._subst))
+    , _resultDenormalizer(std::move(other._resultDenormalizer))
+    , _root(std::move(other._root))
+    , _alternatives(std::move(other._alternatives))
+    , _specVarNumbers(std::move(other._specVarNumbers))
+    , _nodeTypes(std::move(other._nodeTypes))
+#if VDEBUG
+    , _tree(std::move(other._tree))
+#endif
+{
+#if VDEBUG
+  _tree->_iteratorCnt++;
+#endif
+  Recycler::get(other._subst);
+}
+
+
+SubstitutionTree::FastInstancesIterator& SubstitutionTree::FastInstancesIterator::operator=(FastInstancesIterator&& other)
+{
+  swap(_literalRetrieval, other._literalRetrieval);
+  swap(_retrieveSubstitution, other._retrieveSubstitution);
+  swap(_inLeaf, other._inLeaf);
+  swap(_ldIterator, other._ldIterator);
+  swap(_subst, other._subst);
+  swap(_resultDenormalizer, other._resultDenormalizer);
+  swap(_root, other._root);
+  swap(_alternatives, other._alternatives);
+  swap(_specVarNumbers, other._specVarNumbers);
+  swap(_nodeTypes, other._nodeTypes);
+#if VDEBUG
+  swap(_tree, other._tree);
+#endif
+  return *this;
+}
 
 #define INSTANTIATE_ITERS(QUERY_TYPE) \
   template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, QUERY_TYPE query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);

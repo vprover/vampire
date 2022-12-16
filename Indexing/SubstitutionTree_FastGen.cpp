@@ -24,78 +24,7 @@
 namespace Indexing
 {
 
-/**
- * Class that supports matching operations required by
- * retrieval of generalizations in substitution trees.
- */
-class SubstitutionTree::GenMatcher
-{
-public:
-  template<class TermOrLit>
-  GenMatcher(TermOrLit query, unsigned nextSpecVar);
-  ~GenMatcher();
 
-  CLASS_NAME(SubstitutionTree::GenMatcher);
-  USE_ALLOCATOR(GenMatcher);
-
-  /**
-   * Bind special variable @b var to @b term. This method
-   * should be called only before any calls to @b matchNext()
-   * and @b backtrack().
-   */
-  void bindSpecialVar(unsigned var, TermList term)
-  {
-    (*_specVars)[var]=term;
-  }
-  /**
-   * Return term bound to special variable @b specVar
-   */
-  TermList getSpecVarBinding(unsigned specVar)
-  { return (*_specVars)[specVar]; }
-
-  bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
-  bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
-  void backtrack();
-  bool tryBacktrack();
-
-  ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
-
-  int getBSCnt()
-  {
-    int res=0;
-    VarStack::Iterator vsit(_boundVars);
-    while(vsit.hasNext()) {
-	if(vsit.next()==BACKTRACK_SEPARATOR) {
-	  res++;
-	}
-    }
-    return res;
-  }
-
-protected:
-  static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
-
-  struct Binder;
-  struct Applicator;
-  class Substitution;
-
-  VarStack _boundVars;
-
-  DArray<TermList>* _specVars;
-
-
-  /**
-   * Inheritors must assign the maximal possible number of an ordinary
-   * variable that can be bound during the retrievall process.
-   */
-  unsigned _maxVar;
-
-  /**
-   * Inheritors must ensure that the size of this map will
-   * be at least @b _maxVar+1
-   */
-  ArrayMap<TermList>* _bindings;
-};
 
 const unsigned SubstitutionTree::GenMatcher::BACKTRACK_SEPARATOR;
 
@@ -125,7 +54,7 @@ struct SubstitutionTree::GenMatcher::Binder
     }
     TermList* aux;
     if(_parent->_bindings->getValuePtr(var,aux,term)) {
-      _parent->_boundVars.push(var);
+      _parent->_boundVars->push(var);
       return true;
     } else {
       return *aux==term;
@@ -229,24 +158,17 @@ unsigned weight(TermList t) { return  t.weight(); }
  */
 template<class TermOrLit>
 SubstitutionTree::GenMatcher::GenMatcher(TermOrLit query, unsigned nextSpecVar)
-: _boundVars(256)
+  : _boundVars()
+  , _specVars()
+  , _maxVar(weight(query) - 1)
+  , _bindings()
 {
-  Recycler::get(_specVars);
   if(_specVars->size()<nextSpecVar) {
     //_specVars can get really big, but it was introduced instead of hash table
     //during optimizations, as it raised performance by abour 5%.
     _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
   }
-  Recycler::get(_bindings);
   _bindings->ensure(weight(query));
-  _bindings->reset();
-
-  _maxVar = weight(query) - 1;
-}
-SubstitutionTree::GenMatcher::~GenMatcher()
-{
-  Recycler::release(_bindings);
-  Recycler::release(_specVars);
 }
 
 bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
@@ -254,7 +176,7 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
   CALL("SubstitutionTree::GenMatcher::matchNext");
 
   if(separate) {
-    _boundVars.push(BACKTRACK_SEPARATOR);
+    _boundVars->push(BACKTRACK_SEPARATOR);
   }
 
   TermList queryTerm=(*_specVars)[specVar];
@@ -302,7 +224,7 @@ bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nod
     if(separate) {
       //we have to unbind ordinary variables, that were bound.
       for(;;) {
-	unsigned boundVar=_boundVars.pop();
+	unsigned boundVar = _boundVars->pop();
 	if(boundVar==BACKTRACK_SEPARATOR) {
 	  break;
 	}
@@ -323,7 +245,7 @@ void SubstitutionTree::GenMatcher::backtrack()
   CALL("SubstitutionTree::GenMatcher::backtrack");
 
   for(;;) {
-    unsigned boundVar=_boundVars.pop();
+    unsigned boundVar = _boundVars->pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
       break;
     }
@@ -342,8 +264,8 @@ bool SubstitutionTree::GenMatcher::tryBacktrack()
 {
   CALL("SubstitutionTree::GenMatcher::tryBacktrack");
 
-  while(_boundVars.isNonEmpty()) {
-    unsigned boundVar=_boundVars.pop();
+  while(_boundVars->isNonEmpty()) {
+    unsigned boundVar = _boundVars->pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
       return true;
     }
@@ -376,12 +298,14 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
   : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
   , _retrieveSubstitution(retrieveSubstitution)
   , _inLeaf(false)
+  , _subst(query,parent->_nextVar)
   , _ldIterator(LDIterator::getEmpty())
+  , _resultNormalizer()
   , _root(root)
   , _tree(parent)
-  , _alternatives(64)
-  , _specVarNumbers(64)
-  , _nodeTypes(64)
+  , _alternatives()
+  , _specVarNumbers()
+  , _nodeTypes()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
   ASS(root);
@@ -391,15 +315,44 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
   _tree->_iteratorCnt++;
 #endif
 
-  _subst=new GenMatcher(query,parent->_nextVar);
-
   ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
 
   SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
-      [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
+      [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
+}
+
+SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(FastGeneralizationsIterator&& other)
+  : _literalRetrieval(std::move(other._literalRetrieval))
+  , _retrieveSubstitution(std::move(other._retrieveSubstitution))
+  , _inLeaf(std::move(other._inLeaf))
+  , _subst(std::move(other._subst))
+  , _ldIterator(std::move(other._ldIterator))
+  , _root(std::move(other._root))
+  , _tree(std::move(other._tree))
+  , _alternatives(std::move(other._alternatives))
+  , _specVarNumbers(std::move(other._specVarNumbers))
+  , _nodeTypes(std::move(other._nodeTypes))
+{
+#if VDEBUG
+  _tree->_iteratorCnt++;
+#endif
 }
 
 
+SubstitutionTree::FastGeneralizationsIterator& SubstitutionTree::FastGeneralizationsIterator::operator=(FastGeneralizationsIterator&& other)
+{
+  swap(_literalRetrieval, other._literalRetrieval);
+  swap(_retrieveSubstitution, other._retrieveSubstitution);
+  swap(_inLeaf, other._inLeaf);
+  swap(_subst, other._subst);
+  swap(_ldIterator, other._ldIterator);
+  swap(_root, other._root);
+  swap(_tree, other._tree);
+  swap(_alternatives, other._alternatives);
+  swap(_specVarNumbers, other._specVarNumbers);
+  swap(_nodeTypes, other._nodeTypes);
+  return *this;
+}
 
 #define INSTANTIATE_ITERS(QUERY_TYPE) \
   template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, QUERY_TYPE query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
@@ -415,7 +368,6 @@ SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
 #if VDEBUG
   _tree->_iteratorCnt--;
 #endif
-  delete _subst;
 }
 
 
@@ -436,15 +388,15 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
   LeafData& ld=_ldIterator.next();
 
   if(_retrieveSubstitution) {
-    _resultNormalizer.reset();
+    _resultNormalizer->reset();
     if(_literalRetrieval) {
-      _resultNormalizer.normalizeVariables(ld.literal);
+      _resultNormalizer->normalizeVariables(ld.literal);
     } else {
-      _resultNormalizer.normalizeVariables(ld.term);
+      _resultNormalizer->normalizeVariables(ld.term);
     }
 
     return QueryResult(
-          make_pair(&ld,_subst->getSubstitution(&_resultNormalizer)),UnificationConstraintStackSP());
+          make_pair(&ld,_subst.getSubstitution(&*_resultNormalizer)),UnificationConstraintStackSP());
   } else {
     return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
   }
@@ -461,10 +413,10 @@ bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
   Node* curr;
   bool sibilingsRemain = false;
   if(_inLeaf) {
-    if(_alternatives.isEmpty()) {
+    if(_alternatives->isEmpty()) {
       return false;
     }
-    _subst->backtrack();
+    _subst.backtrack();
     _inLeaf=false;
     curr=0;
   } else {
@@ -483,26 +435,26 @@ main_loop_start:
 
     if(curr) {
       if(sibilingsRemain) {
-	ASS(_nodeTypes.top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives.top()));
-	currSpecVar=_specVarNumbers.top();
+	ASS(_nodeTypes->top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives->top()));
+	currSpecVar=_specVarNumbers->top();
       } else {
-	currSpecVar=_specVarNumbers.pop();
+	currSpecVar=_specVarNumbers->pop();
       }
     }
     //let's find a node we haven't been to...
-    while(curr==0 && _alternatives.isNonEmpty()) {
-      void* currAlt=_alternatives.pop();
+    while(curr==0 && _alternatives->isNonEmpty()) {
+      void* currAlt=_alternatives->pop();
       if(!currAlt) {
 	//there's no alternative at this level, we have to backtrack
-	_nodeTypes.pop();
-	_specVarNumbers.pop();
-	if(_alternatives.isNonEmpty()) {
-	  _subst->backtrack();
+	_nodeTypes->pop();
+	_specVarNumbers->pop();
+	if(_alternatives->isNonEmpty()) {
+	  _subst.backtrack();
 	}
 	continue;
       }
 
-      NodeAlgorithm parentType=_nodeTypes.top();
+      NodeAlgorithm parentType=_nodeTypes->top();
 
       //proper term nodes that we want to enter don't appear
       //on _alternatives stack (as we always enter them first)
@@ -516,7 +468,7 @@ main_loop_start:
 	  alts++;
 	}
 	if(*alts) {
-	  _alternatives.push(alts);
+	  _alternatives->push(alts);
 	  sibilingsRemain=true;
 	} else {
 	  sibilingsRemain=false;
@@ -527,7 +479,7 @@ main_loop_start:
 	if(alts->head()->term.isVar()) {
 	  curr=alts->head();
 	  if(alts->tail() && alts->tail()->head()->term.isVar()) {
-	    _alternatives.push(alts->tail());
+	    _alternatives->push(alts->tail());
 	    sibilingsRemain=true;
 	  } else {
 	    sibilingsRemain=false;
@@ -536,10 +488,10 @@ main_loop_start:
       }
 
       if(sibilingsRemain) {
-	currSpecVar=_specVarNumbers.top();
+	currSpecVar=_specVarNumbers->top();
       } else {
-	_nodeTypes.pop();
-	currSpecVar=_specVarNumbers.pop();
+	_nodeTypes->pop();
+	currSpecVar=_specVarNumbers->pop();
       }
       if(curr) {
 	break;
@@ -549,11 +501,11 @@ main_loop_start:
       //there are no other alternatives
       return false;
     }
-    if(!_subst->matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
+    if(!_subst.matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
-      if(!sibilingsRemain && _alternatives.isNonEmpty()) {
-	_subst->backtrack();
+      if(!sibilingsRemain && _alternatives->isNonEmpty()) {
+        _subst.backtrack();
       }
       continue;
     }
@@ -563,14 +515,14 @@ main_loop_start:
       curr=static_cast<UArrIntermediateNode*>(curr)->_nodes[0];
       ASS(curr);
       ASSERT_VALID(*curr);
-      if(!_subst->matchNext(specVar, curr->term, false)) {
+      if(!_subst.matchNext(specVar, curr->term, false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst->backtrack();
-	if(sibilingsRemain || _alternatives.isNonEmpty()) {
+	if(sibilingsRemain || _alternatives->isNonEmpty()) {
 	  //this backtrack can happen for two different reasons and have two different meanings:
 	  //either matching at [1] was separated from the previous one and we're backtracking it,
 	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
-	  _subst->backtrack();
+	  _subst.backtrack();
 	}
         curr=0;
         goto main_loop_start;
@@ -585,8 +537,8 @@ main_loop_start:
 
     //let's go to the first child
     sibilingsRemain=enterNode(curr);
-    if(curr==0 && _alternatives.isNonEmpty()) {
-      _subst->backtrack();
+    if(curr==0 && _alternatives->isNonEmpty()) {
+      _subst.backtrack();
     }
   }
 }
@@ -609,7 +561,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
   IntermediateNode* inode=static_cast<IntermediateNode*>(curr);
   NodeAlgorithm currType=inode->algorithm();
 
-  TermList binding=_subst->getSpecVarBinding(inode->childVar);
+  TermList binding = _subst.getSpecVarBinding(inode->childVar);
   curr=0;
 
   if(currType==UNSORTED_LIST) {
@@ -649,11 +601,11 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
       }
     }
     if(curr) {
-      _specVarNumbers.push(inode->childVar);
+      _specVarNumbers->push(inode->childVar);
     }
     if(*nl) {
-      _alternatives.push(nl);
-      _nodeTypes.push(currType);
+      _alternatives->push(nl);
+      _nodeTypes->push(currType);
       return true;
     }
   } else {
@@ -675,11 +627,11 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
       nl=0;
     }
     if(curr) {
-      _specVarNumbers.push(inode->childVar);
+      _specVarNumbers->push(inode->childVar);
     }
     if(nl) {
-      _alternatives.push(nl);
-      _nodeTypes.push(currType);
+      _alternatives->push(nl);
+      _nodeTypes->push(currType);
       return true;
     }
   }

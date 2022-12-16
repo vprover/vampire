@@ -64,16 +64,12 @@ public:
   DHMap()
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
   _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
-  {
-    ensureExpanded();
-  }
+  { }
 
   DHMap(const DHMap& obj)
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
   _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
   {
-    ensureExpanded();
-
     typename DHMap::Iterator iit(obj);
     while(iit.hasNext()) {
       Key k;
@@ -82,6 +78,25 @@ public:
       ALWAYS(insert(k,v));
     }
   }
+
+  friend void swap(DHMap& l, DHMap& r) 
+  {
+    std::swap(l._timestamp, r._timestamp);
+    std::swap(l._size, r._size);
+    std::swap(l._deleted, r._deleted);
+    std::swap(l._capacityIndex, r._capacityIndex);
+    std::swap(l._capacity, r._capacity);
+    std::swap(l._nextExpansionOccupancy, r._nextExpansionOccupancy);
+    std::swap(l._entries, r._entries);
+    std::swap(l._afterLast, r._afterLast);
+  }
+
+  DHMap& operator=(DHMap&& obj)
+  { swap(*this, obj); return *this; }
+
+
+  DHMap(DHMap&& obj) : DHMap()
+  { swap(*this, obj); }
 
   /** Deallocate the DHMap */
   ~DHMap()
@@ -469,9 +484,6 @@ public:
     return it.nextKey();
   }
 
-  /** move assignment operator */
-  DHMap& operator=(DHMap&& obj) = default;
-
   /** applies the function f to every value */
   template<class F> 
   void mapValues(F f) 
@@ -575,6 +587,7 @@ private:
   const Entry* findEntry(Key key) const
   {
     CALL("DHMap::findEntry");
+    if (_capacity == 0) return nullptr;
     ASS(_capacity>_size+_deleted);
 
     unsigned h1=Hash1::hash(key);
@@ -617,6 +630,7 @@ private:
   Entry* findEntryToInsert(Key key)
   {
     CALL("DHMap::findEntryToInsert");
+    ensureExpanded();
     ASS(_capacity>_size+_deleted);
 
     unsigned h1=Hash1::hash(key);
