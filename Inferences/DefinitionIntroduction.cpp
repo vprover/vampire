@@ -114,6 +114,15 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
 }
 
 void DefinitionIntroduction::process(Term *t) {
+  CALL("DefinitionIntroduction::process(Term *)");
+
+  // CCSA: we only care about Skolems
+  if(!env.signature->getFunction(t->functor())->skolem())
+    return;
+
+  if(t->allArgumentsAreVariables() && t->getDistinctVars() == t->arity())
+    return;
+
   unsigned functor = t->functor();
   Stack<Entry> &entries = _entries[functor];
 
