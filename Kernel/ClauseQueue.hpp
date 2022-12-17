@@ -62,7 +62,7 @@ public:
   bool isEmpty() const override
   { return _left->nodes[0] == 0; }
 #if VDEBUG
-  void output(ostream&) const;
+  void output(ostream&) const override;
 #endif
 
   friend class Iterator;

@@ -48,7 +48,7 @@ class SoftmaxClauseQueue :
 protected:
   class Node;
 public:
-  SoftmaxClauseQueue(DHMap<Clause*,std::pair<double,unsigned>>& scores);
+  SoftmaxClauseQueue(DHMap<Clause*,std::pair<double,unsigned>>& scores, bool talkative);
   virtual ~SoftmaxClauseQueue() override;
   void insert(Clause*) override;
   bool remove(Clause*) override;
@@ -84,6 +84,8 @@ protected:
     */
     LinkInfo nodes[1];
   };
+  /** Report the probability of having selected that particular clause just now (during pop)*/
+  bool _talkative;
   /** Height of the leftmost node minus 1 */
   unsigned _height;
   /** the leftmost node with the dummy key and value */

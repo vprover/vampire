@@ -27,8 +27,8 @@
 using namespace Lib;
 using namespace Kernel;
 
-SoftmaxClauseQueue::SoftmaxClauseQueue(DHMap<Clause*,std::pair<double,unsigned>>& scores)
-    : _height(0), _total(0.0), _scores(scores)
+SoftmaxClauseQueue::SoftmaxClauseQueue(DHMap<Clause*,std::pair<double,unsigned>>& scores, bool talkative)
+    : _talkative(talkative), _height(0), _total(0.0), _scores(scores)
 {
   void* mem = ALLOC_KNOWN(sizeof(Node)+MAX_HEIGHT*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
   _left = reinterpret_cast<Node*>(mem);
@@ -317,10 +317,16 @@ Clause* SoftmaxClauseQueue::pop()
   ASS(_left->nodes[0].first != nullptr);
 
   double sample = Random::getDouble(0.0,_total);
-  // cout << "Sample " << sample <<" out of total " << _total << endl;
-
   unsigned h = _height;
   Node* node = _left;
+
+  if (_total == std::numeric_limits<double>::infinity()) {
+    node = _left->nodes[0].first;
+    if (_talkative) {
+      cout << "p: nan" << endl; // we say "nan", because maybe we are storing more than one infinity clause, but we are picking the first
+    }
+    goto clause_found;
+  }
 
   for (;;) {
     LinkInfo li = node->nodes[h];
@@ -335,6 +341,9 @@ Clause* SoftmaxClauseQueue::pop()
       ASS(next != nullptr || sample - mass < 0.0); // wanting to overshoot a nullptr for h == 0 is evil. It means we jumped out of our collection
       // found our node!
       // cout << "popping an element of mass " << mass << endl;
+      if (_talkative) {
+        cout << "p: " << mass/_total << endl;
+      }
       break;
     } else {
       sample = sample - mass;
@@ -344,10 +353,11 @@ Clause* SoftmaxClauseQueue::pop()
   ASS_EQ(h,0);
   ASS(node != nullptr);
 
+  clause_found:
   Clause* cl = node->clause;
   // could we do better here by having kept some update info during the decent?
-  // (However, note that unlike with remove, we don't know the score of the to be removed
-  //  element for shorting the tall links at the moment of the descent)
+  // (However, note that unlike with remove, we don't know the score of
+  //  the to-be-removed element for shorting the tall links at the moment of the descent)
   remove(cl);
 
   ASS(consistent());
