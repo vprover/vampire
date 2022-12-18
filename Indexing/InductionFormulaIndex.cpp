@@ -29,6 +29,7 @@ InductionFormulaKey InductionFormulaIndex::represent(const InductionContext& con
   // and index the set of sets of literals
   // TODO: It might be good to specialize for unit literals/clauses/etc.
   InductionFormulaKey k;
+  k.first = getPlaceholderForTerm(context._indTerm)->functor();
   for (const auto& kv : context._cls) {
     LiteralStack lits = kv.second;
     sort(lits.begin(), lits.end());
