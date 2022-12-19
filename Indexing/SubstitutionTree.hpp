@@ -92,6 +92,7 @@ public:
     , _rfSubs(other._rfSubs)
     , _root(other._root)
 #if DEBUG
+    , _tag(other._tag)
     , _iteratorCnt(0)
 #endif
   { 
@@ -101,16 +102,9 @@ public:
 
   virtual ~SubstitutionTree();
 
-  // Tags are used as a debug tool to turn debugging on for a particular instance
-  bool tag;
-  virtual void markTagged(){ tag=true;}
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
 
-
-  // TODO make const function
-  template<class Iter, class TermOrLit> 
-  TermQueryResultIterator iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms);
 
 //protected:
 
@@ -150,6 +144,19 @@ public:
 
   };
   typedef VirtualIterator<LeafData&> LDIterator;
+
+  struct QueryResult {
+    LeafData const* data; 
+    ResultSubstitutionSP subst;
+    UnificationConstraintStackSP constr;
+
+    QueryResult(LeafData const& ld) : data(&ld), subst(), constr() {};
+    QueryResult(LeafData const& ld, ResultSubstitutionSP subst, UnificationConstraintStackSP constr) : data(&ld), subst(subst), constr(constr) {}
+  };
+  using QueryResultIterator = VirtualIterator<QueryResult>;
+  // TODO make const function
+  template<class Iter, class TermOrLit> 
+  VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, FuncSubtermMap* funcSubterms, bool reversed = false);
 
   class LDComparator
   {
@@ -711,6 +718,10 @@ public:
 
   void getBindingsArgBindings(Term* t, BindingMap& binding);
 
+  Leaf* findLeaf(BindingMap& svBindings)
+  { ASS(!_root || !_root->isLeaf() )
+    return _root ? findLeaf(_root, svBindings) : nullptr; }
+
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
   void insert(BindingMap& binding,LeafData ld);
@@ -730,6 +741,11 @@ public:
       variables before being inserted into the tree */
   bool _rfSubs;
   Node* _root;
+#if VDEBUG
+  bool _tag;
+  // Tags are used as a debug tool to turn debugging on for a particular instance
+  virtual void markTagged(){ _tag=true;}
+#endif
 
   class LeafIterator
   {
@@ -746,78 +762,7 @@ public:
     Stack<NodeIterator> _nodeIterators;
   };
 
-  typedef pair<pair<LeafData*, ResultSubstitutionSP>,UnificationConstraintStackSP> QueryResult;
 
-
-  struct UnifyingContext
-  {
-    UnifyingContext(TermList queryTerm,bool withConstraints)
-    : _queryTerm(queryTerm)
-#if VDEBUG
-      , _withConstraints(withConstraints)
-#endif
-    {}
-    bool enter(TermQueryResult qr)
-    {
-
-      ASS(qr.substitution);
-      RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
-      ASS(subst);
-      bool unified = subst->unify(_queryTerm, SubstitutionTree::QRS_QUERY_BANK, qr.term, SubstitutionTree::QRS_RESULT_BANK);
-      //unsigned srt;
-      ASS(unified || _withConstraints);
-      return unified;
-    }
-    void leave(TermQueryResult qr)
-    {
-      RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
-      ASS(subst);
-      subst->reset();
-      if(!qr.constraints.isEmpty()){
-        qr.constraints->reset();
-      }
-    }
-  private:
-    TermList _queryTerm;
-#if VDEBUG
-    bool _withConstraints;
-#endif
-  };
-  template<class LDIt>
-  TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
-	  TermList queryTerm, bool retrieveSubstitutions,
-          bool withConstraints)
-  {
-    CALL("SubstitutionTree::ldIteratorToTQRIterator");
-    // only call withConstraints if we are also getting substitions, the other branch doesn't handle constraints
-    ASS(retrieveSubstitutions | !withConstraints); 
-
-    auto subst = RobSubstitutionSP(new RobSubstitution());
-    auto constraints = UnificationConstraintStackSP(new Stack<UnificationConstraint>());
-    if(retrieveSubstitutions) {
-      return pvi( getContextualIterator(
-          iterTraits(ldIt)
-          .map([=, subst = std::move(subst), constraints = std::move(constraints)]
-            (const LeafData& ld) 
-            {
-                if(withConstraints){
-                  return TermQueryResult(ld.term, ld.literal, ld.clause,
-                        ResultSubstitution::fromSubstitution(subst.ptr(),
-                                SubstitutionTree::QRS_QUERY_BANK,SubstitutionTree::QRS_RESULT_BANK),
-                        constraints);
-                } else {
-                  return TermQueryResult(ld.term, ld.literal, ld.clause,
-                  ResultSubstitution::fromSubstitution(subst.ptr(),
-                    SubstitutionTree::QRS_QUERY_BANK,SubstitutionTree::QRS_RESULT_BANK));
-                }
-              }),
-        UnifyingContext(queryTerm,withConstraints)) );
-    } else {
-      return pvi(iterTraits(ldIt)
-                    .map([](const LeafData& ld) 
-                         { return TermQueryResult(ld.term, ld.literal, ld.clause); }));
-    }
-  }
 
    /**
    * Class that supports matching operations required by
@@ -1075,7 +1020,6 @@ public:
 
     bool hasNext();
     QueryResult next();
-    bool tag;
   protected:
     virtual bool associate(TermList query, TermList node, BacktrackData& bd);
     virtual NodeIterator getNodeIterator(IntermediateNode* n);
@@ -1105,6 +1049,7 @@ public:
     RecycledPointer<UnificationConstraintStack> _constraints;
 #if VDEBUG
     SubstitutionTree* _tree;
+    bool _tag;
 #endif
   };
 

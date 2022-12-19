@@ -55,10 +55,10 @@ public:
   SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions);
 
   SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions);
+  SubstitutionTree& getTree(Literal* lit, bool complementary);
 
 #if VDEBUG
   virtual void markTagged(){ }
-  vstring toString() {ASSERTION_VIOLATION_REP("TODO")}
 #endif
 
 private:
@@ -68,14 +68,13 @@ private:
   struct UnifyingContext;
   struct PropositionalLDToSLQueryResultWithSubstFn;
 
-  SubstitutionTree& getTree(Literal* lit, bool complementary = false);
-
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
   bool _polymorphic;
-  Stack<std::unique_ptr<SubstitutionTree>> _trees;
   bool _useC;
+  // SubstitutionTree _root;
+  Stack<unique_ptr<SubstitutionTree>> _trees;
 };
 
 };

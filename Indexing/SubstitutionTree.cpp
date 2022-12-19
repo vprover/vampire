@@ -53,12 +53,12 @@ using namespace Indexing;
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 SubstitutionTree::SubstitutionTree(bool useC, bool rfSubs)
-  : tag(false), _nextVar(0), _useC(useC), _rfSubs(rfSubs)
+  : _nextVar(0), _useC(useC), _rfSubs(rfSubs)
   , _root(nullptr)
 #if VDEBUG
   , _iteratorCnt(0)
+  , _tag(false)
 #endif
-
 {
   CALL("SubstitutionTree::SubstitutionTree");
 
@@ -635,8 +635,7 @@ bool SubstitutionTree::LeafIterator::hasNext()
 
 template<class TermOrLit>
 SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
-  : tag(parent->tag)
-  , _subst()
+  : _subst()
   , _svStack()
   , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
   , _retrieveSubstitution(retrieveSubstitution)
@@ -650,6 +649,7 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
   , _constraints()
 #if VDEBUG
   , _tree(parent)
+  , _tag(parent->_tag)
 #endif
 {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
@@ -704,6 +704,7 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(UnificationsIterato
   , _constraints(std::move(other._constraints))
 #if VDEBUG
   , _tree(std::move(other._tree))
+  , _tag(std::move(other._tag))
 #endif
 {
 #if VDEBUG
@@ -728,6 +729,7 @@ SubstitutionTree::UnificationsIterator& SubstitutionTree::UnificationsIterator::
   swap(_constraints, other._constraints);
 #if VDEBUG
   swap(_tree, other._tree);
+  swap(_tag, other._tag);
 #endif
   return *this;
 }
@@ -752,8 +754,6 @@ SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 bool SubstitutionTree::UnificationsIterator::hasNext()
 {
   CALL("SubstitutionTree::UnificationsIterator::hasNext");
-
-  //if(tag){cout << "UnificationsIterator::hasNext" << endl;}
 
   if(_clientBDRecording) {
     _subst->bdDone();
@@ -793,12 +793,11 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
     _subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
 
-    return QueryResult(make_pair(&ld, ResultSubstitution::fromSubstitution(
-	    &*_subst, QUERY_BANK, RESULT_BANK)),
+    return QueryResult(ld, ResultSubstitution::fromSubstitution( &*_subst, QUERY_BANK, RESULT_BANK),
         // TODO do we really wanna copy the whole constraints stack here?
             UnificationConstraintStackSP(new UnificationConstraintStack(*_constraints))); 
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
+    return QueryResult(ld);
   }
 }
 
@@ -806,8 +805,6 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 bool SubstitutionTree::UnificationsIterator::findNextLeaf()
 {
   CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
-
-  //if(tag){cout << "findNextLeaf" << endl;}
 
   if(_nodeIterators->isEmpty()) {
     //There are no node iterators in the stack, so there's nowhere
@@ -858,7 +855,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   CALL("SubstitutionTree::UnificationsIterator::enter");
 
 #if VDEBUG
-  if(tag){
+  if(_tag){
     cout << "=========================================" << endl;
     cout << "entering..." << *n << endl;
     cout << "subst is " << _subst << endl;
@@ -1040,34 +1037,40 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multilin
 // DerefIter<I> derefIter(I i) { return DerefIter<I>(std::move(i)); }
 
 template<class Iterator, class TermOrLit> 
-TermQueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms)
+SubstitutionTree::QueryResultIterator SubstitutionTree::iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, FuncSubtermMap* funcSubterms, bool reversed)
 {
 
   CALL("TermSubstitutionTree::iterator");
 
   if(!_root) {
-    return TermQueryResultIterator::getEmpty();
+    return QueryResultIterator::getEmpty();
   } else  {
-    if(_root->isLeaf()) {
-      return ldIteratorToTQRIterator(static_cast<Leaf*>(_root)->allChildren(),TermList(query),retrieveSubstitutions,false);
-    } else {
-      return pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions,false,false, 
-                withConstraints, 
-                funcSubterms ))
-          .map(
-            [extra](QueryResult const& qr)
-            { 
-              TermList trm = extra ? qr.first.first->extraTerm 
-                                   : qr.first.first->term;
-              return TermQueryResult(trm, qr.first.first->literal,
-                qr.first.first->clause, qr.first.second,qr.second);
-            }));
-    }
+    // if(_root->isLeaf()) {
+    //   // return ldIteratorToTQRIterator(static_cast<Leaf*>(_root)->allChildren(),TermList(query),retrieveSubstitutions,false);
+    //   return ldIteratorToTQRIterator(static_cast<Leaf*>(_root)->allChildren(),TermList(query),retrieveSubstitutions,false);
+    //   // return static_cast<Leaf*>(_root)->allChildren();
+    // } else {
+
+      return pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, /* withoutTop */ false, withConstraints, funcSubterms ));
+
+      // return pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, /* withoutTop */ false, 
+      //           withConstraints, 
+      //           funcSubterms ))
+      //     .map(
+      //       [extra](QueryResult const& qr)
+      //       { 
+      //         TermList trm = extra ? qr.first.first->extraTerm 
+      //                              : qr.first.first->term;
+      //         return TermQueryResult(trm, qr.first.first->literal,
+      //           qr.first.first->clause, qr.first.second,qr.second);
+      //       })));
+
+    // }
   }
 }
 
 #define INSTANTIATE_ITER(ITER_TYPE, QUERY_TYPE) \
-  template TermQueryResultIterator SubstitutionTree::iterator<ITER_TYPE, QUERY_TYPE>(QUERY_TYPE trm, bool retrieveSubstitutions, bool withConstraints, bool extra, FuncSubtermMap* funcSubterms); \
+  template SubstitutionTree::QueryResultIterator SubstitutionTree::iterator<ITER_TYPE, QUERY_TYPE>(QUERY_TYPE trm, bool retrieveSubstitutions, bool withConstraints, FuncSubtermMap* funcSubterms, bool reversed); \
 
 #define INSTANTIATE_ITERS(QUERY_TYPE) \
   INSTANTIATE_ITER(SubstitutionTree::FastInstancesIterator, QUERY_TYPE) \

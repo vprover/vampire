@@ -693,10 +693,9 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryResult(make_pair(&ld,
-	    _subst->getSubstitution(&_resultDenormalizer)),UnificationConstraintStackSP());
+    return QueryResult(ld, _subst->getSubstitution(&_resultDenormalizer),UnificationConstraintStackSP());
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
+    return QueryResult(ld, ResultSubstitutionSP(),UnificationConstraintStackSP());
   }
 }
 #undef LOGGING

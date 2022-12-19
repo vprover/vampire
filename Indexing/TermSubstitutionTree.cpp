@@ -98,14 +98,14 @@ void TermSubstitutionTree::handleTerm(TypedOrUntypedTermList tt, LeafData ld, bo
 TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)
 {
   CALL("TermSubstitutionTree::getUnifications");
-  return getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints);
+  return pvi(getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints));
 }
 
 //higher-order concern
 TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstr)
 {
   CALL("TermSubstitutionTree::getUnificationsUsingSorts");
-  return getResultIterator<UnificationsIterator>(tt, retrieveSubstitutions, withConstr);
+  return pvi(getResultIterator<UnificationsIterator>(tt, retrieveSubstitutions, withConstr));
 }
 
 
@@ -129,18 +129,13 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
 TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getGeneralizations");
-  return getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false);
+  return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false));
 }
 
 TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t, bool retrieveSubstitutions)
 {
   CALL("TermSubstitutionTree::getInstances");
-  return getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false);
+  return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false));
 }
 
-// TODO get rid of this method
-template<class Iterator, class TypedOrUntypedTermList>
-TermQueryResultIterator TermSubstitutionTree::getResultIterator(TypedOrUntypedTermList trm, bool retrieveSubstitutions,bool withConstraints)
-{ return SubstitutionTree::iterator<Iterator>(trm, retrieveSubstitutions, withConstraints, _extra, (_extByAbs ? &_functionalSubtermMap : nullptr)); }
-
-}
+} // namespace  Indexing

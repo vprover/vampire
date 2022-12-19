@@ -84,7 +84,15 @@ private:
   template<class TypedOrUntypedTermList> 
   void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert);
 
-  template<class Iterator, class TypedOrUntypedTermList> TermQueryResultIterator getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints);
+  template<class Iterator, class TypedOrUntypedTermList> 
+  auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
+  { 
+    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints, (_extByAbs ? &_functionalSubtermMap : nullptr)))
+      .map([this](QueryResult qr) 
+        { return TermQueryResult(
+            _extra ? qr.data->extraTerm : qr.data->term,
+            qr.data->literal, qr.data->clause, qr.subst, qr.constr); }) ; 
+  }
 
   //higher-order concerns
   bool _extra;
