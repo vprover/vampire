@@ -149,28 +149,6 @@ private:
   Applicator* _applicator;
 };
 
-unsigned weight(Literal* l) { return l->weight(); }
-unsigned weight(TermList t) { return  t.weight(); }
-/**
- * @b nextSpecVar Number higher than any special variable present in the tree.
- * 	It's used to determine size of the array that stores bindings of
- * 	special variables.
- */
-template<class TermOrLit>
-SubstitutionTree::GenMatcher::GenMatcher(TermOrLit query, unsigned nextSpecVar)
-  : _boundVars()
-  , _specVars()
-  , _maxVar(weight(query) - 1)
-  , _bindings()
-{
-  if(_specVars->size()<nextSpecVar) {
-    //_specVars can get really big, but it was introduced instead of hash table
-    //during optimizations, as it raised performance by abour 5%.
-    _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
-  }
-  _bindings->ensure(weight(query));
-}
-
 bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   CALL("SubstitutionTree::GenMatcher::matchNext");
@@ -283,46 +261,6 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
 }
 
 
-
-/**
- * @b nextSpecVar is the first unassigned special variable. Is being used
- * 	to determine size of array, that stores special variable bindings.
- * 	(To maximize performance, a DArray object is being used instead
- * 	of hash map.)
- * If @b reversed If true, parameters of supplied binary literal are
- * 	reversed. (useful for retrieval commutative terms)
- */
-template<class TermOrLit>
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, 
-  bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* fstm)
-  : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
-  , _retrieveSubstitution(retrieveSubstitution)
-  , _inLeaf(false)
-  , _subst(query,parent->_nextVar)
-  , _ldIterator(LDIterator::getEmpty())
-  , _resultNormalizer()
-  , _root(root)
-  , _alternatives()
-  , _specVarNumbers()
-  , _nodeTypes()
-  , _iterCounter(parent)
-{
-  CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
-  ASS(root);
-  ASS(!root->isLeaf());
-
-  ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
-
-  SubstitutionTree::createInitialBindings(query, reversed,
-      [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
-}
-
-#define INSTANTIATE_ITERS(QUERY_TYPE) \
-  template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, QUERY_TYPE query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* funcSubtermMap);
-
-INSTANTIATE_ITERS(TypedTermList)
-INSTANTIATE_ITERS(TermList)
-INSTANTIATE_ITERS(Literal*)
 
 bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
 {

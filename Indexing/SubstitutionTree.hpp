@@ -800,11 +800,33 @@ public:
    */
   class GenMatcher
   {
+    static unsigned weight(Literal* l) { return l->weight(); }
+    static unsigned weight(TermList t) { return  t.weight(); }
   public:
     GenMatcher(GenMatcher&&) = default;
     GenMatcher& operator=(GenMatcher&&) = default;
+
+    /**
+     * @b nextSpecVar Number higher than any special variable present in the tree.
+     * 	It's used to determine size of the array that stores bindings of
+     * 	special variables.
+     */
     template<class TermOrLit>
-    GenMatcher(TermOrLit query, unsigned nextSpecVar);
+    GenMatcher(TermOrLit query, unsigned nextSpecVar)
+      : _boundVars()
+      , _specVars()
+      , _maxVar(weight(query) - 1)
+      , _bindings()
+    {
+      if(_specVars->size()<nextSpecVar) {
+        //_specVars can get really big, but it was introduced instead of hash table
+        //during optimizations, as it raised performance by abour 5%.
+        _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
+      }
+      _bindings->ensure(weight(query));
+    }
+
+
 
     CLASS_NAME(SubstitutionTree::GenMatcher);
     USE_ALLOCATOR(GenMatcher);
@@ -926,9 +948,37 @@ public:
     FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
     FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
     DECL_ELEMENT_TYPE(QueryResult);
+    /**
+     * @b nextSpecVar is the first unassigned special variable. Is being used
+     * 	to determine size of array, that stores special variable bindings.
+     * 	(To maximize performance, a DArray object is being used instead
+     * 	of hash map.)
+     * If @b reversed If true, parameters of supplied binary literal are
+     * 	reversed. (useful for retrieval commutative terms)
+     */
     template<class TermOrLit>
-    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query,
-            bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* fstm = 0);
+    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* fstm = nullptr)
+      : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
+      , _retrieveSubstitution(retrieveSubstitution)
+      , _inLeaf(false)
+      , _subst(query,parent->_nextVar)
+      , _ldIterator(LDIterator::getEmpty())
+      , _resultNormalizer()
+      , _root(root)
+      , _alternatives()
+      , _specVarNumbers()
+      , _nodeTypes()
+      , _iterCounter(parent)
+    {
+      CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
+      ASS(root);
+      ASS(!root->isLeaf());
+
+      ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
+
+      SubstitutionTree::createInitialBindings(query, reversed,
+          [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
+    }
 
     QueryResult next();
     bool hasNext();
@@ -1157,9 +1207,36 @@ public:
     FastInstancesIterator(FastInstancesIterator&&) = default;
     FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
     DECL_ELEMENT_TYPE(QueryResult);
+
+    /**
+     * @b nextSpecVar is the first unassigned special variable. Is being used
+     * 	to determine size of array, that stores special variable bindings.
+     * 	(To maximize performance, a DArray object is being used instead
+     * 	of hash map.)
+     * If @b reversed If true, parameters of supplied binary literal are
+     * 	reversed. (useful for retrieval commutative terms)
+     */
     template<class TermOrLit>
-    FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query,
-	    bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* fstm = 0);
+    FastInstancesIterator(SubstitutionTree* parent, Node* root,
+      TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, 
+      FuncSubtermMap* fstm) //final two for compatibility purposes
+      : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
+      , _retrieveSubstitution(retrieveSubstitution)
+      , _inLeaf(false)
+      , _ldIterator(LDIterator::getEmpty())
+      , _root(root)
+      , _alternatives()
+      , _specVarNumbers()
+      , _nodeTypes()
+      , _iterCounter(parent)
+    {
+      CALL("SubstitutionTree::FastInstancesIterator::FastInstancesIterator");
+      ASS(root);
+      ASS(!root->isLeaf());
+
+      SubstitutionTree::createInitialBindings(query, reversed,
+          [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
+    }
 
     bool hasNext();
     QueryResult next();
@@ -1250,7 +1327,7 @@ public:
         query = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(query, funcSubtermMap);
       }
 
-      SubstitutionTree::createInitialBindings(query, reversed,
+      SubstitutionTree::createInitialBindings(query, reversed, 
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
       DEBUG_QUERY("query: ", subst)
 

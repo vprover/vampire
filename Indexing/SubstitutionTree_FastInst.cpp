@@ -373,45 +373,6 @@ finish:
   return success;
 }
 
-
-/**
- * @b nextSpecVar is the first unassigned special variable. Is being used
- * 	to determine size of array, that stores special variable bindings.
- * 	(To maximize performance, a DArray object is being used instead
- * 	of hash map.)
- * If @b reversed If true, parameters of supplied binary literal are
- * 	reversed. (useful for retrieval commutative terms)
- */
-template<class TermOrLit>
-SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
-	TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, 
-  FuncSubtermMap* fstm) //final two for compatibility purposes
-  : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
-  , _retrieveSubstitution(retrieveSubstitution)
-  , _inLeaf(false)
-  , _ldIterator(LDIterator::getEmpty())
-  , _root(root)
-  , _alternatives()
-  , _specVarNumbers()
-  , _nodeTypes()
-  , _iterCounter(parent)
-{
-  CALL("SubstitutionTree::FastInstancesIterator::FastGeneralizationsIterator");
-  ASS(root);
-  ASS(!root->isLeaf());
-
-  SubstitutionTree::createInitialBindings(query, reversed,
-      [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
-}
-
-#define INSTANTIATE_ITERS(QUERY_TYPE) \
-  template SubstitutionTree::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root, QUERY_TYPE query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* funcSubtermMap);
-
-INSTANTIATE_ITERS(TypedTermList)
-INSTANTIATE_ITERS(TermList)
-INSTANTIATE_ITERS(Literal*)
-
-
 bool SubstitutionTree::FastInstancesIterator::hasNext()
 {
   CALL("SubstitutionTree::FastInstancesIterator::hasNext");
