@@ -1309,32 +1309,6 @@ public:
 #endif
   };
 
-/*
-  class GeneralizationsIterator
-  : public UnificationsIterator
-  {
-  public:
-    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop, useC) {}; 
-
-  protected:
-    virtual bool associate(TermList query, TermList node);
-    virtual NodeIterator getNodeIterator(IntermediateNode* n);
-  };
-*/
-/*
-  class InstancesIterator
-  : public UnificationsIterator
-  {
-  public:
-    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop,useC) {}; 
-  protected:
-    virtual bool associate(TermList query, TermList node);
-    virtual NodeIterator getNodeIterator(IntermediateNode* n);
-  };
-*/
-
 #if VDEBUG
 public:
   static vstring nodeToString(Node* topNode);
