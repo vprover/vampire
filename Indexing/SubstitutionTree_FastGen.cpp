@@ -302,56 +302,19 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
   , _ldIterator(LDIterator::getEmpty())
   , _resultNormalizer()
   , _root(root)
-  , _tree(parent)
   , _alternatives()
   , _specVarNumbers()
   , _nodeTypes()
+  , _iterCounter(parent)
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
   ASS(root);
   ASS(!root->isLeaf());
 
-#if VDEBUG
-  _tree->_iteratorCnt++;
-#endif
-
   ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
 
   SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
       [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
-}
-
-SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(FastGeneralizationsIterator&& other)
-  : _literalRetrieval(std::move(other._literalRetrieval))
-  , _retrieveSubstitution(std::move(other._retrieveSubstitution))
-  , _inLeaf(std::move(other._inLeaf))
-  , _subst(std::move(other._subst))
-  , _ldIterator(std::move(other._ldIterator))
-  , _root(std::move(other._root))
-  , _tree(std::move(other._tree))
-  , _alternatives(std::move(other._alternatives))
-  , _specVarNumbers(std::move(other._specVarNumbers))
-  , _nodeTypes(std::move(other._nodeTypes))
-{
-#if VDEBUG
-  _tree->_iteratorCnt++;
-#endif
-}
-
-
-SubstitutionTree::FastGeneralizationsIterator& SubstitutionTree::FastGeneralizationsIterator::operator=(FastGeneralizationsIterator&& other)
-{
-  swap(_literalRetrieval, other._literalRetrieval);
-  swap(_retrieveSubstitution, other._retrieveSubstitution);
-  swap(_inLeaf, other._inLeaf);
-  swap(_subst, other._subst);
-  swap(_ldIterator, other._ldIterator);
-  swap(_root, other._root);
-  swap(_tree, other._tree);
-  swap(_alternatives, other._alternatives);
-  swap(_specVarNumbers, other._specVarNumbers);
-  swap(_nodeTypes, other._nodeTypes);
-  return *this;
 }
 
 #define INSTANTIATE_ITERS(QUERY_TYPE) \
@@ -360,16 +323,6 @@ SubstitutionTree::FastGeneralizationsIterator& SubstitutionTree::FastGeneralizat
 INSTANTIATE_ITERS(TypedTermList)
 INSTANTIATE_ITERS(TermList)
 INSTANTIATE_ITERS(Literal*)
-
-SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationsIterator()
-{
-  CALL("SubstitutionTree::FastGeneralizationsIterator::~FastGeneralizationIterator");
-
-#if VDEBUG
-  _tree->_iteratorCnt--;
-#endif
-}
-
 
 bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
 {
@@ -397,7 +350,7 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
 
     return QueryResult(ld,_subst.getSubstitution(&*_resultNormalizer),UnificationConstraintStackSP());
   } else {
-    return QueryResult(ld, ResultSubstitutionSP(),UnificationConstraintStackSP());
+    return QueryResult(ld);
   }
 }
 

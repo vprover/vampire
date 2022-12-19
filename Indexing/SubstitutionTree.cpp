@@ -56,8 +56,8 @@ SubstitutionTree::SubstitutionTree(bool useC, bool rfSubs)
   : _nextVar(0), _useC(useC), _rfSubs(rfSubs)
   , _root(nullptr)
 #if VDEBUG
-  , _iteratorCnt(0)
   , _tag(false)
+  , _iteratorCnt(0)
 #endif
 {
   CALL("SubstitutionTree::SubstitutionTree");
@@ -647,8 +647,8 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
   , _useUWAConstraints(useC)
   , _useHOConstraints(funcSubtermMap)
   , _constraints()
+  , _parentIterCntr(parent)
 #if VDEBUG
-  , _tree(parent)
   , _tag(parent->_tag)
 #endif
 {
@@ -657,10 +657,6 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 
   ASS(!_useUWAConstraints || retrieveSubstitution);
   ASS(!_useUWAConstraints || parent->_useC);
-
-#if VDEBUG
-  _tree->_iteratorCnt++;
-#endif
 
   if(!root) {
     return;
@@ -688,52 +684,6 @@ SubstitutionTree::UnificationsIterator::UnificationsIterator(SubstitutionTree* p
 }
 
 
-SubstitutionTree::UnificationsIterator::UnificationsIterator(UnificationsIterator&& other)
-  : _subst(std::move(other._subst))
-  , _svStack(std::move(other._svStack))
-  , _literalRetrieval(std::move(other._literalRetrieval))
-  , _retrieveSubstitution(std::move(other._retrieveSubstitution))
-  , _inLeaf(std::move(other._inLeaf))
-  , _ldIterator(std::move(other._ldIterator))
-  , _nodeIterators(std::move(other._nodeIterators))
-  , _bdStack(std::move(other._bdStack))
-  , _clientBDRecording(std::move(other._clientBDRecording))
-  , _clientBacktrackData(std::move(other._clientBacktrackData))
-  , _useUWAConstraints(std::move(other._useUWAConstraints))
-  , _useHOConstraints(std::move(other._useHOConstraints))
-  , _constraints(std::move(other._constraints))
-#if VDEBUG
-  , _tree(std::move(other._tree))
-  , _tag(std::move(other._tag))
-#endif
-{
-#if VDEBUG
-  _tree->_iteratorCnt++;
-#endif
-}
-
-SubstitutionTree::UnificationsIterator& SubstitutionTree::UnificationsIterator::operator=(UnificationsIterator&& other)
-{
-  swap(_subst, other._subst);
-  swap(_svStack, other._svStack);
-  swap(_literalRetrieval, other._literalRetrieval);
-  swap(_retrieveSubstitution, other._retrieveSubstitution);
-  swap(_inLeaf, other._inLeaf);
-  swap(_ldIterator, other._ldIterator);
-  swap(_nodeIterators, other._nodeIterators);
-  swap(_bdStack, other._bdStack);
-  swap(_clientBDRecording, other._clientBDRecording);
-  swap(_clientBacktrackData, other._clientBacktrackData);
-  swap(_useUWAConstraints, other._useUWAConstraints);
-  swap(_useHOConstraints, other._useHOConstraints);
-  swap(_constraints, other._constraints);
-#if VDEBUG
-  swap(_tree, other._tree);
-  swap(_tag, other._tag);
-#endif
-  return *this;
-}
-
 SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 {
   if(_clientBDRecording) {
@@ -745,10 +695,6 @@ SubstitutionTree::UnificationsIterator::~UnificationsIterator()
     while(_bdStack->isNonEmpty()) {
       _bdStack->pop().backtrack();
     }
-
-#if VDEBUG
-  _tree->_iteratorCnt--;
-#endif
 }
 
 bool SubstitutionTree::UnificationsIterator::hasNext()
@@ -1045,27 +991,7 @@ SubstitutionTree::QueryResultIterator SubstitutionTree::iterator(TermOrLit query
   if(!_root) {
     return QueryResultIterator::getEmpty();
   } else  {
-    // if(_root->isLeaf()) {
-    //   // return ldIteratorToTQRIterator(static_cast<Leaf*>(_root)->allChildren(),TermList(query),retrieveSubstitutions,false);
-    //   return ldIteratorToTQRIterator(static_cast<Leaf*>(_root)->allChildren(),TermList(query),retrieveSubstitutions,false);
-    //   // return static_cast<Leaf*>(_root)->allChildren();
-    // } else {
-
-      return pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, /* withoutTop */ false, withConstraints, funcSubterms ));
-
-      // return pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, /* withoutTop */ false, 
-      //           withConstraints, 
-      //           funcSubterms ))
-      //     .map(
-      //       [extra](QueryResult const& qr)
-      //       { 
-      //         TermList trm = extra ? qr.first.first->extraTerm 
-      //                              : qr.first.first->term;
-      //         return TermQueryResult(trm, qr.first.first->literal,
-      //           qr.first.first->clause, qr.first.second,qr.second);
-      //       })));
-
-    // }
+    return pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, /* withoutTop */ false, withConstraints, funcSubterms ));
   }
 }
 
