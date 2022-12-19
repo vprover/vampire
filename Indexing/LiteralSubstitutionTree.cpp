@@ -99,95 +99,51 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
   return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ false);
 }
 
-struct LiteralSubstitutionTree::LDToSLQueryResultFn
+
+class RenamingSubstitution 
+: public ResultSubstitution 
 {
-  SLQueryResult operator() (const LeafData& ld) {
-    return SLQueryResult(ld.literal, ld.clause);
-  }
-};
+public:
+  Renaming _query;
+  Renaming _result;
+  RenamingSubstitution(): _query(), _result() {}
+  virtual ~RenamingSubstitution() override {}
+  virtual TermList applyToQuery(TermList t) final override { return _query.apply(t); }
+  virtual Literal* applyToQuery(Literal* l) final override { return _query.apply(l); }
+  virtual TermList applyToResult(TermList t) final override { return _result.apply(t); }
+  virtual Literal* applyToResult(Literal* l) final override { return _result.apply(l); }
 
-struct LiteralSubstitutionTree::LDToSLQueryResultWithSubstFn
-{
-  LDToSLQueryResultWithSubstFn()
-  {
-    _subst=RobSubstitutionSP(new RobSubstitution());
-  }
-  SLQueryResult operator() (const LeafData& ld) {
-    return SLQueryResult(ld.literal, ld.clause,
-	    ResultSubstitution::fromSubstitution(_subst.ptr(),
-		    SubstitutionTree::QRS_QUERY_BANK,SubstitutionTree::QRS_RESULT_BANK));
-  }
-private:
-  RobSubstitutionSP _subst;
-};
+  virtual TermList applyTo(TermList t, unsigned index) final override { ASSERTION_VIOLATION; }
+  virtual Literal* applyTo(Literal* l, unsigned index) final override { NOT_IMPLEMENTED; }
 
-struct LiteralSubstitutionTree::UnifyingContext
-{
-  UnifyingContext(Literal* queryLit)
-  : _queryLit(queryLit) {}
-  bool enter(SLQueryResult qr)
-  {
-    ASS(qr.substitution);
-    RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
-    ASS(subst);
+  virtual size_t getQueryApplicationWeight(TermList t) final override { return t.weight(); }
+  virtual size_t getQueryApplicationWeight(Literal* l) final override  { return l->weight(); }
+  virtual size_t getResultApplicationWeight(TermList t) final override { return t.weight(); }
+  virtual size_t getResultApplicationWeight(Literal* l) final override { return l->weight(); }
 
-    //This code is used only during variant retrieval, so
-    //literal commutativity doesn't need to concern us, as
-    //we normalize the query literal, so the argument order
-    //of commutative literals is always the right one.
-    ALWAYS(subst->unifyArgs(_queryLit, SubstitutionTree::QRS_QUERY_BANK, qr.literal, SubstitutionTree::QRS_RESULT_BANK));
+  void output(std::ostream& out) const final override
+  { out << "{ _query: " << _query << ", _result: " << _result << " }"; }
 
-    return true;
-  }
-  void leave(SLQueryResult qr)
-  {
-    RobSubstitution* subst=qr.substitution->tryGetRobSubstitution();
-    ASS(subst);
-    subst->reset();
-  }
-private:
-  Literal* _queryLit;
 };
 
 
-struct LiteralSubstitutionTree::PropositionalLDToSLQueryResultWithSubstFn
-{
-  PropositionalLDToSLQueryResultWithSubstFn()
-  {
-    _subst=ResultSubstitutionSP (new DisjunctQueryAndResultVariablesSubstitution()); 
-  }
-  SLQueryResult operator() (const LeafData& ld) {
-    ASS_EQ(ld.literal->arity(),0);
-    return SLQueryResult(ld.literal, ld.clause, _subst);
-  }
-private:
-  ResultSubstitutionSP _subst;
-};
-
-
-SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions)
+SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getVariants");
 
 
-  auto& tree = getTree(lit, complementary);
-  // // TODO get rid of the explicit access of private member _root
-  // auto root = tree._root;
-  //
-  // if(root==0) {
-  //   return SLQueryResultIterator::getEmpty();
-  // }
-  // if(root->isLeaf()) {
-  //   LDIterator ldit=static_cast<Leaf*>(root)->allChildren();
-  //   if(retrieveSubstitutions) {
-  //     // a single substitution will be used for all in ldit, but that's OK
-  //     return pvi( getMappingIterator(ldit,PropositionalLDToSLQueryResultWithSubstFn()) );
-  //   } else {
-  //     return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
-  //   }
-  // }
+  auto& tree = getTree(query, complementary);
 
-  Literal* normLit=Renaming::normalize(lit);
+  RenamingSubstitution* renaming = retrieveSubstitutions ? new RenamingSubstitution() : nullptr;
+  ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(renaming) : ResultSubstitutionSP();
+
+  Literal* normLit;
+  if (retrieveSubstitutions) {
+    renaming->_query.normalizeVariables(query);
+    normLit = renaming->_query.apply(query);
+  } else {
+    normLit = Renaming::normalize(query);
+  }
 
   BindingMap svBindings;
   SubstitutionTree::createInitialBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
@@ -200,16 +156,17 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* lit, bool co
     return SLQueryResultIterator::getEmpty();
   }
 
-  LDIterator ldit=leaf->allChildren();
-  if(retrieveSubstitutions) {
-    return pvi( getContextualIterator(
-	    getMappingIterator(
-		    ldit,
-		    LDToSLQueryResultWithSubstFn()),
-	    UnifyingContext(lit)) );
-  } else {
-    return pvi( getMappingIterator(ldit,LDToSLQueryResultFn()) );
-  }
+  return pvi(iterTraits(leaf->allChildren())
+    .map([](LeafData ld) { return SLQueryResult(ld.literal, ld.clause);  })
+    .map([retrieveSubstitutions, renaming, resultSubst](auto r) 
+      {
+        if (retrieveSubstitutions) {
+          renaming->_result.normalizeVariables(r.literal);
+          r.substitution = resultSubst;
+        }
+        return r;
+      })
+    );
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getAll()
@@ -221,7 +178,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
          .flatMap([this](auto i) { return LeafIterator(&*_trees[i]); })
         // iterTraits(LeafIterator(&tree))
          .flatMap([](Leaf* l) { return l->allChildren(); })
-         .map(LDToSLQueryResultFn())
+         .map([](const LeafData& ld) { return SLQueryResult(ld.literal, ld.clause); })
       );
 }
 

@@ -62,12 +62,6 @@ public:
 #endif
 
 private:
-  struct SLQueryResultFunctor;
-  struct LDToSLQueryResultFn;
-  struct LDToSLQueryResultWithSubstFn;
-  struct UnifyingContext;
-  struct PropositionalLDToSLQueryResultWithSubstFn;
-
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 

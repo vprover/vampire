@@ -81,6 +81,8 @@ public:
   static Literal* normalize(Literal* l);
   static Term* normalize(Term* t);
   static TermList normalize(TermList t);
+  friend std::ostream& operator<<(std::ostream& out, Renaming const& self)
+  { return out << self._data; }
 
 #if VDEBUG
   void assertValid() const;
