@@ -139,57 +139,12 @@ public:
     NOT_IMPLEMENTED; 
   }
 
-  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
-	  int queryBank, int resultBank);
+  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
   virtual void output(std::ostream& ) const = 0;
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { self.output(out); return out; }
 };
 
-
-class IdentitySubstitution
-: public ResultSubstitution
-{
-public:
-  CLASS_NAME(IdentitySubstitution);
-  USE_ALLOCATOR(IdentitySubstitution);
-  
-  static ResultSubstitutionSP instance();
-
-  TermList applyToQuery(TermList t) override { return t; }
-  Literal* applyToQuery(Literal* l) override { return l; }
-  TermList applyToResult(TermList t) override { return t; }
-  Literal* applyToResult(Literal* l) override { return l; }
-  TermList applyTo(TermList t, unsigned index) override { return t; }
-  Literal* applyTo(Literal* l,unsigned index) override { return l; }
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
-  virtual void output(std::ostream& out) const final override { out << "IdentitySubstitution"; }
-};
-
-class DisjunctQueryAndResultVariablesSubstitution
-: public ResultSubstitution
-{
-public:
-  CLASS_NAME(DisjunctQueryAndResultVariablesSubstitution);
-  USE_ALLOCATOR(DisjunctQueryAndResultVariablesSubstitution);
-  
-  TermList applyToQuery(TermList t) override;
-  Literal* applyToQuery(Literal* l) override;
-  TermList applyToResult(TermList t) override;
-  Literal* applyToResult(Literal* l) override;
-  TermList applyTo(TermList t, unsigned index) override { NOT_IMPLEMENTED; }
-  Literal* applyTo(Literal* l,unsigned index) override { NOT_IMPLEMENTED; }
-
-  /**
-   * we can return true because nothing is bound to the result
-   */
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
-  virtual void output(std::ostream& out) const final override { out << "DisjunctQueryAndResultVariablesSubstitution"; }
-private:
-  struct Applicator;
-  Renaming _renaming;
-};
-
-};
+}; // namepace Indexing
 
 #endif /* __ResultSubstitution__ */
