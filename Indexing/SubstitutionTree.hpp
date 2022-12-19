@@ -42,6 +42,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -180,8 +181,12 @@ public:
   };
   using QueryResultIterator = VirtualIterator<QueryResult>;
   // TODO make const function
-  template<class Iter, class TermOrLit> 
-  VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, FuncSubtermMap* funcSubterms, bool reversed = false);
+  template<class Iterator, class TermOrLit> 
+  VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, FuncSubtermMap* funcSubterms, bool reversed = false)
+  {
+    CALL("TermSubstitutionTree::iterator");
+    return _root ? pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, /* withoutTop */ false, withConstraints, funcSubterms ))
+                 : QueryResultIterator::getEmpty(); }
 
   class LDComparator
   {
@@ -1218,10 +1223,55 @@ public:
     UnificationsIterator(UnificationsIterator&&) = default;
     UnificationsIterator& operator=(UnificationsIterator&&) = default;
     DECL_ELEMENT_TYPE(QueryResult);
+
     template<class TermOrLit>
-    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, 
-      bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
-      FuncSubtermMap* funcSubtermMap = 0);
+    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
+      : _subst()
+      , _svStack()
+      , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
+      , _retrieveSubstitution(retrieveSubstitution)
+      , _inLeaf(false)
+      , _ldIterator(LDIterator::getEmpty())
+      , _nodeIterators()
+      , _bdStack()
+      , _clientBDRecording(false)
+      , _useUWAConstraints(useC)
+      , _useHOConstraints(funcSubtermMap)
+      , _constraints()
+      , _parentIterCntr(parent)
+#if VDEBUG
+      , _tag(parent->_tag)
+#endif
+    {
+#define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
+      CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
+
+      ASS(!_useUWAConstraints || retrieveSubstitution);
+      ASS(!_useUWAConstraints || parent->_useC);
+
+      if(!root) {
+        return;
+      }
+
+      if(funcSubtermMap){
+        _subst->setMap(funcSubtermMap);
+        query = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(query, funcSubtermMap);
+      }
+
+      ASS_REP(!withoutTop, "TODO")
+
+
+      SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
+          [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
+      DEBUG_QUERY("query: ", subst)
+
+
+      BacktrackData bd;
+      enter(root, bd);
+      bd.drop();
+    }
+
+
     ~UnificationsIterator();
 
     bool hasNext();
