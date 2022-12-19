@@ -86,7 +86,7 @@ void TermSubstitutionTree::handleTerm(TypedOrUntypedTermList tt, LeafData ld, bo
   BindingMap svBindings;
 
 
-  SubstitutionTree::createInitialBindings(normTerm, /* reversed */ false, /* withoutTop */ false, 
+  SubstitutionTree::createInitialBindings(normTerm, /* reversed */ false,
       [&](auto var, auto term) { 
         svBindings.insert(var, term);
         _nextVar = max(_nextVar, (int)var + 1);
@@ -120,7 +120,7 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
   if(_root->isLeaf()) {
     return true;
   }
-  return FastGeneralizationsIterator(this, _root, t, false,false,false, /* useC */ false).hasNext();
+  return FastGeneralizationsIterator(this, _root, t, /* retrieveSubstitutions */ false, /* reversed */ false, /* useC */ false).hasNext();
 }
 
 /**

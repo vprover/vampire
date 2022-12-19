@@ -294,7 +294,7 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
  */
 template<class TermOrLit>
 SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, 
-  bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* fstm)
+  bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* fstm)
   : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
   , _retrieveSubstitution(retrieveSubstitution)
   , _inLeaf(false)
@@ -313,12 +313,12 @@ SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(Subst
 
   ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
 
-  SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
+  SubstitutionTree::createInitialBindings(query, reversed,
       [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
 }
 
 #define INSTANTIATE_ITERS(QUERY_TYPE) \
-  template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, QUERY_TYPE query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap);
+  template SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, QUERY_TYPE query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* funcSubtermMap);
 
 INSTANTIATE_ITERS(TypedTermList)
 INSTANTIATE_ITERS(TermList)

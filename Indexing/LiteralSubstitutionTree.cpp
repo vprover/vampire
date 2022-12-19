@@ -60,7 +60,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   auto& tree = getTree(lit, /* complementary */ false);
 
   BindingMap svBindings;
-  SubstitutionTree::createInitialBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
+  SubstitutionTree::createInitialBindings(normLit, /* reversed */ false,
       [&](auto var, auto term) { 
         svBindings.insert(var, term);
         tree._nextVar = max(tree._nextVar, (int)var + 1);
@@ -123,7 +123,6 @@ public:
 
   void output(std::ostream& out) const final override
   { out << "{ _query: " << _query << ", _result: " << _result << " }"; }
-
 };
 
 
@@ -146,7 +145,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool 
   }
 
   BindingMap svBindings;
-  SubstitutionTree::createInitialBindings(normLit, /* reversed */ false, /* withoutTop */ false, 
+  SubstitutionTree::createInitialBindings(normLit, /* reversed */ false,
       [&](auto v, auto t) { {
         tree._nextVar = max<int>(tree._nextVar, v + 1);
         svBindings.insert(v, t);

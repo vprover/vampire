@@ -185,7 +185,7 @@ public:
   VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, FuncSubtermMap* funcSubterms, bool reversed = false)
   {
     CALL("TermSubstitutionTree::iterator");
-    return _root ? pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, /* withoutTop */ false, withConstraints, funcSubterms ))
+    return _root ? pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, funcSubterms ))
                  : QueryResultIterator::getEmpty(); }
 
   class LDComparator
@@ -868,26 +868,20 @@ public:
 
   // TODO document
   template<class BindingFunction>
-  static void createInitialBindings(TypedTermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  static void createInitialBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
   {
-    ASS_REP(!withoutTop, "TODO")
     bindSpecialVar(0, term);
     bindSpecialVar(1, term.sort());
   }
 
   // TODO document
   template<class BindingFunction>
-  static void createInitialBindings(TermList term, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
-  {
-    ASS_REP(!withoutTop, "TODO")
-    bindSpecialVar(0, term);
-  }
+  static void createInitialBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
+  { bindSpecialVar(0, term); }
 
   template<class BindingFunction>
-  static void createInitialBindings(Literal* lit, bool reversed, bool withoutTop, BindingFunction bindSpecialVar)
+  static void createInitialBindings(Literal* lit, bool reversed, BindingFunction bindSpecialVar)
   {
-    ASS_REP(!withoutTop, "TODO")
-
     if (lit->isEquality()) {
 
       if (reversed) {
@@ -934,8 +928,7 @@ public:
     DECL_ELEMENT_TYPE(QueryResult);
     template<class TermOrLit>
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query,
-            bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC, 
-            FuncSubtermMap* fstm = 0);
+            bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* fstm = 0);
 
     QueryResult next();
     bool hasNext();
@@ -1166,8 +1159,7 @@ public:
     DECL_ELEMENT_TYPE(QueryResult);
     template<class TermOrLit>
     FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query,
-	    bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
-      FuncSubtermMap* fstm = 0);
+	    bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* fstm = 0);
 
     bool hasNext();
     QueryResult next();
@@ -1225,7 +1217,7 @@ public:
     DECL_ELEMENT_TYPE(QueryResult);
 
     template<class TermOrLit>
-    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, FuncSubtermMap* funcSubtermMap)
+    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* funcSubtermMap)
       : _subst()
       , _svStack()
       , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
@@ -1258,10 +1250,7 @@ public:
         query = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(query, funcSubtermMap);
       }
 
-      ASS_REP(!withoutTop, "TODO")
-
-
-      SubstitutionTree::createInitialBindings(query, reversed, withoutTop,
+      SubstitutionTree::createInitialBindings(query, reversed,
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
       DEBUG_QUERY("query: ", subst)
 
