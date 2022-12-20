@@ -74,6 +74,8 @@ class SubstitutionTree;
 std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
 
+template<class Key> struct SubtitutionTreeConfig;
+
 /**
  * Class of substitution trees. In fact, contains an array of substitution
  * trees.
@@ -824,23 +826,6 @@ public:
     { out << "{ _query: " << _query << ", _result: " << _result << " }"; }
   };
 
-  template<class Key> struct Config;
-
-  template<> 
-  struct Config<Literal*> 
-  {
-    static Literal* const& getKey(LeafData const& ld)
-    { return ld.literal;  }
-  };
-
-
-  template<> 
-  struct Config<TermList> 
-  {
-    static TermList const& getKey(LeafData const& ld)
-    { return ld.term;  }
-  };
-
   template<class Query>
   bool generalizationExists(Query query)
   {
@@ -882,7 +867,7 @@ public:
             ResultSubstitutionSP subs;
             if (retrieveSubstitutions) {
               renaming->_result->reset();
-              renaming->_result->normalizeVariables(Config<Query>::getKey(ld));
+              renaming->_result->normalizeVariables(SubtitutionTreeConfig<Query>::getKey(ld));
               subs = resultSubst;
             }
             return QueryResult(ld, subs, UnificationConstraintStackSP());
@@ -1500,6 +1485,23 @@ public:
 #endif
 
 }; // class SubstiutionTree
+
+template<> 
+struct SubtitutionTreeConfig<Literal*> 
+{
+  static Literal* const& getKey(SubstitutionTree::LeafData const& ld)
+  { return ld.literal;  }
+};
+
+
+template<> 
+struct SubtitutionTreeConfig<TermList> 
+{
+  static TermList const& getKey(SubstitutionTree::LeafData const& ld)
+  { return ld.term;  }
+};
+
+
 
 
 
