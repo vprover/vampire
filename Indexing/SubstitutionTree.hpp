@@ -212,15 +212,29 @@ public:
       ? QueryResultIterator::getEmpty()
       : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, handler, _functionalSubtermMap.asPtr() ))
                     .filter([this, query](auto& r) { return _polymorphic || monomorphicSortCheck(r, query);  })
-                    // .filterMap([withConstraints](auto r) { 
-                    //   if (withConstraints) {
-                    //     k
-                    //     ASS(r.constraints)
-                    //     return 
-                    //   } else {
-                    //     return some(std::move(r));
-                    //   }
-                    // })
+                    .filterMap([handler](auto r) { 
+                      if (handler) {
+                        ASS(r.constr)
+                        // TODO avoid cloning the whole stack here with a backtracable delete from stack
+                        auto newC = UnificationConstraintStackSP(new UnificationConstraintStack(r.constr->size()));
+                        for (auto& c : *r.constr) {
+                          // TODO avoid application of substitution if not neessary (e.g. in the HOL setting)
+                          auto s = r.subst->tryGetRobSubstitution()->apply(c.first.first, c.first.second);
+                          auto t = r.subst->tryGetRobSubstitution()->apply(c.second.first, c.second.second);
+                          if (s == t) {
+                            /* redundant constraint */
+                          } else if (handler->recheckConstraint(s, t)) {
+                            newC->push(std::move(c));
+                          } else {
+                            return none<QueryResult>();
+                          }
+                        }
+                        r.constr = newC;
+                        return some(std::move(r));
+                      } else {
+                        return some(std::move(r));
+                      }
+                    })
                     );
   }
 

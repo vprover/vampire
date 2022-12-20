@@ -65,6 +65,12 @@ public:
       TermList t2, unsigned i2,
       RobSubstitution& subs,
       ConstraintSet& constr) const = 0;
+
+  /** TODO document */
+  virtual bool recheckConstraint(
+      TermList t1,
+      TermList t2) const = 0;
+
 };
 
 class UWAMismatchHandler final : public MismatchHandler
@@ -82,6 +88,11 @@ public:
   bool canAbstract(
       TermList t1, 
       TermList t2) const;
+
+  virtual bool recheckConstraint(
+      TermList t1,
+      TermList t2) const final override
+  { return canAbstract(t1, t2); }
 };
 
 class HOMismatchHandler : public MismatchHandler
@@ -95,6 +106,11 @@ public:
       TermList t2, unsigned i2,
       RobSubstitution& subs,
       ConstraintSet& constr) const final override;
+
+  virtual bool recheckConstraint(
+      TermList t1,
+      TermList t2) const final override
+  { return true;  }
 };
 
 
