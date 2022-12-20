@@ -209,16 +209,7 @@ public:
     {
       CALL("SubstitutionTree::LDComparator::compare");
 
-      /*
-      cout << "ld1: " << ld1.toString() << endl;
-      cout << "ld2: " << ld2.toString() << endl;
-      */
-
       if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
-        //if(ld1.clause->number()==ld2.clause->number()){
-          //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
-          //cout << ld2.clause->toString() << endl;
-        //}
         ASS_NEQ(ld1.clause->number(), ld2.clause->number());
         return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
       }
