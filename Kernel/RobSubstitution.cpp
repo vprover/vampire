@@ -147,7 +147,7 @@ TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
 RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
 {
   CALL("RobSubstitution::derefBound");
-  if(t.term.isTerm() || t.term.isVSpecialVar()) {
+  if(t.term.isTerm()) {
     return t;
   }
   VarSpec v=getVarSpec(t);
@@ -156,7 +156,7 @@ RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
     bool found=_bank.find(v,binding);
     if(!found || binding.index==UNBOUND_INDEX) {
       return TermSpec(v);
-    } else if(binding.term.isTerm() || binding.term.isVSpecialVar()) {
+    } else if(binding.term.isTerm()) {
       return binding;
     }
     v=getVarSpec(binding);
@@ -180,8 +180,7 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
       binding.term.makeVar(_nextUnboundAvailable++);
       const_cast<RobSubstitution&>(*this).bind(v,binding);
       return binding;
-    } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()
-              || binding.term.isVSpecialVar()) {
+    } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
       return binding;
     }
     v=getVarSpec(binding);
@@ -217,8 +216,7 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
-    if(!found || binding.index==UNBOUND_INDEX || binding.isVSpecialVar() || 
-        binding.term.isTerm()) {
+    if(!found || binding.index==UNBOUND_INDEX || binding.term.isTerm()) {
       return v;
     }
     v=getVarSpec(binding);
@@ -229,10 +227,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
   vs=root(vs);
   Stack<TermSpec> toDo(8);
-  if(ts.isVSpecialVar()){
-    Term* t = _funcSubtermMap->get(ts.term.var());
-    ts = TermSpec(TermList(t), ts.index);
-  }else if(ts.isVar()) {
+  if(ts.isVar()) {
     ts=derefBound(ts);
     if(ts.isVar()) {
       return false;
@@ -246,26 +241,14 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
     ASS(ts.term.isTerm());
     VariableIterator vit(ts.term.term());
     while(vit.hasNext()) {
-      bool isVSpecialVar = false;
       TermList var = vit.next();
-      if(var.isVSpecialVar()){ isVSpecialVar = true; }
       VarSpec tvar=root(getVarSpec(var, ts.index));
       if(tvar==vs) {
         return true;
       }
       if(!encountered.find(tvar)) {
-        TermSpec dtvar;
-        if(!isVSpecialVar){
-          dtvar=derefBound(TermSpec(tvar));
-        } else {
-          Term* t = _funcSubtermMap->get(var.var());
-          dtvar = TermSpec(TermList(t), ts.index);
-        }
-        if(!dtvar.isVar() || dtvar.isVSpecialVar()) {
-          if(dtvar.isVSpecialVar()){
-            Term* t = _funcSubtermMap->get(dtvar.term.var());
-            dtvar = TermSpec(TermList(t), dtvar.index);            
-          }
+        TermSpec dtvar = derefBound(TermSpec(tvar));
+        if(!dtvar.isVar()) {
           encountered.insert(tvar);
           toDo.push(dtvar);
         }
@@ -282,7 +265,6 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, MismatchHandler::ConstraintSet* constr)
 {
   CALL("RobSubstitution::unify/2");
-  ASS((hndlr == nullptr) == (constr == nullptr))
 
   if(s.sameTermContent(t)) {
     return true;
@@ -578,7 +560,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     TermSpec ts(*tt,index);
 
     VarSpec vs;
-    if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+    if(ts.term.isVar()) {
       vs=root(getVarSpec(ts) );
 
       TermList found;
@@ -588,7 +570,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       }
 
       ts=deref(vs);
-      if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+      if(ts.term.isVar()) {
         ASS(ts.index==UNBOUND_INDEX);
         args.push(ts.term);
         continue;
@@ -596,12 +578,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     } else {
       vs=nilVS;
     }
-    Term* t;
-    if(ts.term.isVSpecialVar()){
-      t = _funcSubtermMap->get(ts.term.var());
-    } else {
-      t = ts.term.term();
-    }
+    Term* t = ts.term.term();
     if(t->shared() && t->ground()) {
       args.push(TermList(t));
       continue;
@@ -673,7 +650,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
     TermSpec ts(*tt,index);
 
     VarSpec vs;
-    if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+    if(ts.term.isVar()) {
       vs=root(getVarSpec(ts));
 
       size_t found;
@@ -683,7 +660,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
       }
 
       ts=deref(vs);
-      if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
+      if(ts.term.isVar()) {
         ASS(ts.index==UNBOUND_INDEX);
         argSizes.push(1);
         continue;
@@ -691,12 +668,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
     } else {
       vs=nilVS;
     }
-    Term* t;
-    if(ts.term.isVSpecialVar()){
-      t = _funcSubtermMap->get(ts.term.var());
-    }else{
-      t=ts.term.term();
-    }
+    Term* t = ts.term.term();;
     if(t->shared() && t->ground()) {
       argSizes.push(t->weight());
       continue;

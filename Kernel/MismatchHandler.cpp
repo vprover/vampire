@@ -13,7 +13,6 @@
  *
  */
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 
@@ -26,6 +25,8 @@
 #include "MismatchHandler.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TermIterators.hpp"
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Kernel
 {
@@ -130,9 +131,38 @@ bool HOMismatchHandler::tryAbstract(
     RobSubstitution& subs,
     ConstraintSet& constr) const
 {
-  // TODO
-  DBG("TODO")
-  return false;
+
+  auto arrowArgIter = [](auto arrowSort) {
+    return [iter = TermList(arrowSort)]() mutable {
+      ASS(iter.isTerm() && iter.isArrowSort());
+      auto arg = *iter.term()->nthArgument(0);
+      iter = *iter.term()->nthArgument(1);
+      return arg;
+    };
+  };
+  ApplicativeArgsIt iter1(o1, false);
+  auto sortIter1 = arrowArgIter(iter1.headSort());
+  ApplicativeArgsIt iter2(o2, false);
+  auto sortIter2 = arrowArgIter(iter2.headSort());
+  
+  RecycledPointer<Stack<UnificationConstraint>> cs;
+  while (iter1.hasNext() && iter2.hasNext()) {
+    auto t1 = iter1.next();
+    auto t2 = iter2.next();
+    auto s1 = sortIter1();
+    auto s2 = sortIter2();
+    if (s1.isArrowSort() || s2.isArrowSort()
+        || s1 == AtomicSort::boolSort() || s2 == AtomicSort::boolSort()) {
+      cs->push(UnificationConstraint(t1,i1,t2,i2));
+    }
+  }
+  if (iter1.hasNext() || iter2.hasNext()) {
+    return false;
+  }
+  for (auto& c : iterTraits(cs->iter())) {
+    constr.addConstraint(std::move(c));
+  }
+  return true;
 }
 
 Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s) const

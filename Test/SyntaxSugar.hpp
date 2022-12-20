@@ -513,6 +513,12 @@ __IMPL_NUMBER_BIN_FUN(operator> , Lit)
 __IMPL_NUMBER_BIN_FUN(operator>=, Lit)
 
 
+inline SortSugar arrow(TermList args, TermList res) 
+{ return AtomicSort::arrowSort({ args }, res);      }
+
+inline SortSugar arrow(Stack<TermList> args, TermList res) 
+{ return AtomicSort::arrowSort(args, res);      }
+  
 class FuncSugar {
   unsigned _functor;
   unsigned _arity;
@@ -679,6 +685,7 @@ inline Clause* clause(std::initializer_list<Lit> ls_) {
   out.setSelected(nSelected);
   return &out; 
 }
+
 
 inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
   auto out = Stack<Clause*>();

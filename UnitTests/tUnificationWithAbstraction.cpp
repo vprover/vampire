@@ -672,21 +672,18 @@ TEST_FUN(literal_indexing)
 
 TEST_FUN(higher_order)
 {
-  auto index = getTermIndexHOL();
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
   NUMBER_SUGAR(Int)
   DECL_SORT(srt) 
-  DECL_ARROW_SORT(xSrt, {srt, srt}) 
-  DECL_ARROW_SORT(fSrt, {xSrt, srt}) 
-  DECL_ARROW_SORT(gSrt, {srt, xSrt})   
-  DECL_CONST(a, xSrt)
-  DECL_CONST(b, xSrt)
+  DECL_CONST(a, arrow(srt, srt))
+  DECL_CONST(b, arrow(srt, srt))
   DECL_CONST(c, srt)  
-  DECL_CONST(f, fSrt)
-  DECL_CONST(g, gSrt)
+  DECL_CONST(f, arrow(arrow(srt, srt), srt))
+  DECL_CONST(g, arrow(srt, arrow(srt, srt)))
   DECL_POLY_CONST(h, 1, alpha)
+  auto index = getTermIndexHOL();
 
   index->insert(ap(f,a), 0, 0);
 
@@ -702,10 +699,27 @@ TEST_FUN(higher_order)
   index->insert(ap(g,c), 0, 0);
   index->insert(g, 0, 0);
 
-  // TODO
-  // reportTermMatches(index,x0,xSrt);
+  checkTermMatches(*index,x,arrow(srt, srt), Stack<TermUnificationResultSpec>{
 
-  index->insert(h(alpha), 0, 0);
+        TermUnificationResultSpec 
+        { .querySigma  = ap(f,a),
+          .resultSigma = ap(f,a),
+          .constraints = Stack<Literal*>{} }, 
+
+      });
+
+
+  // index->insert(h(alpha), 0, 0);
+  //
+  // checkTermMatches(*index,x,arrow(srt, srt), Stack<TermUnificationResultSpec>{
+  //
+  //       TermUnificationResultSpec 
+  //       { .querySigma  = ap(f,a),
+  //         .resultSigma = ap(f,a),
+  //         .constraints = Stack<Literal*>{} }, 
+  //
+  //     });
+
 
   // TODO
   // reportTermMatches(index,h(beta),beta);
@@ -720,11 +734,9 @@ TEST_FUN(higher_order2)
   DECL_DEFAULT_SORT_VARS  
   NUMBER_SUGAR(Int)
   DECL_SORT(srt) 
-  DECL_ARROW_SORT(xSrt, {srt, srt}) 
-  DECL_ARROW_SORT(fSrt, {xSrt, xSrt, srt}) 
-  DECL_CONST(a, xSrt)
-  DECL_CONST(b, xSrt)
-  DECL_CONST(f, fSrt)
+  DECL_CONST(a, arrow(srt, srt))
+  DECL_CONST(b, arrow(srt, srt))
+  DECL_CONST(f, arrow({arrow(srt, srt), arrow(srt, srt)}, srt))
 
   index->insert(ap(ap(f,a),b), 0, 0);
 

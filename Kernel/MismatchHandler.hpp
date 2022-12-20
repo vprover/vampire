@@ -171,6 +171,7 @@ public:
       RobSubstitution& subs,
       ConstraintSet& constr) const final override;
 
+
   virtual bool recheck(UnificationConstraint const& c, RobSubstitution& s) const final override
   { return true;  }
 };

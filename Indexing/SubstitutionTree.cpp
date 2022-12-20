@@ -55,7 +55,6 @@ using namespace Indexing;
 SubstitutionTree::SubstitutionTree(bool polymorphic, bool rfSubs)
   : _nextVar(0)
   , _polymorphic(polymorphic)
-  , _functionalSubtermMap(rfSubs ? Option<FuncSubtermMap>(FuncSubtermMap()) : Option<FuncSubtermMap>())
   , _root(nullptr)
 #if VDEBUG
   , _tag(false)
@@ -680,7 +679,6 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     } else {
       normalizer.normalizeVariables(ld.term);
       if (ld.sort.isNonEmpty()) {
-        DBGE(ld.sort)
         normalizer.normalizeVariables(ld.sort);
       }
     }

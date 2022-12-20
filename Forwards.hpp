@@ -59,8 +59,6 @@ using namespace Lib;
 class Signature;
 
 class Term;
-typedef BiMap<unsigned, Term*> FuncSubtermMap;
-
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;

@@ -40,7 +40,7 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
+  RobSubstitution() : _nextUnboundAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
@@ -59,14 +59,10 @@ public:
   }
   void reset()
   {
-    _funcSubtermMap = 0;
     _bank.reset();
     _nextUnboundAvailable=0;
   }
 
-  void setMap(FuncSubtermMap* fmap){
-    _funcSubtermMap = fmap;
-  }
   /**
    * Bind special variable to a specified term
    *
@@ -173,11 +169,6 @@ public:
 	   term.term()->arity()==0 ));
     }
 
-    bool isVSpecialVar()
-    {
-      return term.isVSpecialVar();
-    }
-
     bool isVar()
     {
       return term.isVar();
@@ -253,7 +244,6 @@ private:
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
-  FuncSubtermMap* _funcSubtermMap;
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
 

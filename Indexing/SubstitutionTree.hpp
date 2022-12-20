@@ -211,7 +211,7 @@ public:
     ASS(handler == nullptr || retrieveSubstitutions)
     return _root == nullptr 
       ? QueryResultIterator::getEmpty()
-      : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, handler, _functionalSubtermMap.asPtr() ))
+      : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, handler))
                     .filter([this, query](auto& r) { return _polymorphic || monomorphicSortCheck(r, query);  })
                     .filter([handler](auto r) { 
                       return handler == nullptr || r.constr->iter().all([&](auto& c) { return handler->recheck(c, *r.subst->tryGetRobSubstitution()); });
@@ -635,10 +635,6 @@ public:
   void handle(Key const& key, LeafData ld, bool doInsert)
   {
     auto norm = Renaming::normalize(key);
-    if (_functionalSubtermMap.isSome()) {
-      norm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(norm, &_functionalSubtermMap.unwrap());
-    }
-
     RecycledPointer<BindingMap> bindings;
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
@@ -656,9 +652,6 @@ private:
   /** Number of the next variable */
   int _nextVar;
   bool _polymorphic;
-  /** functional subterms of a term are replaced by extra sepcial
-      variables before being inserted into the tree */
-  Option<FuncSubtermMap> _functionalSubtermMap;
   Node* _root;
 #if VDEBUG
   bool _tag;
@@ -866,7 +859,11 @@ public:
   // TODO document
   template<class BindingFunction>
   void createBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
-  { bindSpecialVar(0, term); }
+  { 
+    bindSpecialVar(0, term); 
+    if (term.isTerm() && _polymorphic)
+      bindSpecialVar(1, SortHelper::getResultSort(term.term()));
+  }
 
   template<class BindingFunction>
   void createBindings(Literal* lit, bool reversed, BindingFunction bindSpecialVar)
@@ -925,7 +922,7 @@ public:
      * 	reversed. (useful for retrieval commutative terms)
      */
     template<class TermOrLit>
-    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* handler, FuncSubtermMap* fstm = nullptr)
+    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* handler)
       : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
       , _inLeaf(false)
@@ -1185,7 +1182,7 @@ public:
      * 	reversed. (useful for retrieval commutative terms)
      */
     template<class TermOrLit>
-    FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* handler, FuncSubtermMap* fstm) //final two for compatibility purposes
+    FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* handler)
       : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
       , _inLeaf(false)
@@ -1237,7 +1234,7 @@ public:
     DECL_ELEMENT_TYPE(QueryResult);
 
     template<class TermOrLit>
-    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* mismatchHandler, FuncSubtermMap* funcSubtermMap)
+    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* mismatchHandler)
       : _subst()
       , _svStack()
       , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
@@ -1261,14 +1258,10 @@ public:
         return;
       }
 
-      if(funcSubtermMap){
-        _subst->setMap(funcSubtermMap);
-        query = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(query, funcSubtermMap);
-      }
-
       parent->createBindings(query, reversed, 
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
       DEBUG_QUERY("query: ", subst)
+      DBGE(_subst)
 
 
       BacktrackData bd;
