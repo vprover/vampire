@@ -164,36 +164,7 @@ bool TestUnit::runTestsWithNameSubstring(vstring const& pref, ostream& out)
 }
 
 bool TestUnit::run(ostream& out)
-{
-  return runTestsWithNameSubstring("", out);
-  // Stack<Test>::BottomFirstIterator uit(_tests);
-  //
-  // if(!uit.hasNext()) {
-  //   out<<"No tests to run."<<endl;
-  // }
-  // unsigned cnt_fail = 0;
-  // unsigned cnt_ok  = 0;
-  // while(uit.hasNext()) {
-  //   TestUnit::Test t=uit.next();
-  //   out << "Running " << t.name << "... ";
-  //   out.flush();
-  //   bool ok;
-  //   {
-  //     CALL(t.name);
-  //     ok = spawnTest(t.proc);
-  //   }
-  //   out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
-  //   if (ok) cnt_ok++;
-  //   else cnt_fail++;
-  // }
-  // out << endl;
-  // auto cnt = cnt_fail + cnt_ok;
-  // out << fixed << setprecision(1);
-  // out << "Tests run: " << cnt << endl;
-  // out << "  - ok   " << cnt_ok   << "\t(" << (cnt_ok   * 100.0 / cnt) << ") %" << endl;
-  // out << "  - fail " << cnt_fail << "\t(" << (cnt_fail * 100.0 / cnt) << ") %" << endl;
-  // return cnt_fail == 0;
-}
+{ return runTestsWithNameSubstring("", out); }
 
 void TestUnit::add(Test t)
 { _tests.push(t); }
