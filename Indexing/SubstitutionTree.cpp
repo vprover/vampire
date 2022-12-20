@@ -154,7 +154,7 @@ void SubstitutionTree::insert(BindingMap& svBindings, LeafData ld)
 
   if(*pnode == 0) {
     ASS(!svBindings.isEmpty())
-    *pnode=createIntermediateNode(svBindings.getOneKey(), _mismatchHandler != nullptr);
+    *pnode=createIntermediateNode(svBindings.getOneKey());
   }
   if(svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
@@ -221,7 +221,7 @@ start:
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
-      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var, _mismatchHandler != nullptr);
+      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
       node->term=urr.original;
 
       *pnode=newNode;
@@ -258,7 +258,7 @@ start:
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-      IntermediateNode* inode = createIntermediateNode(term, b.var, _mismatchHandler != nullptr);
+      IntermediateNode* inode = createIntermediateNode(term, b.var);
       term=b.term;
 
       *pnode = inode;
@@ -554,7 +554,7 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts());
+  IntermediateNode* newNode = createIntermediateNode(node->term, var);
   node->term=*where;
   *pnode=newNode;
 
