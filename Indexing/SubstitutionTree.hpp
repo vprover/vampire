@@ -167,14 +167,39 @@ public:
     QueryResult(LeafData const& ld) : data(&ld), subst(), constr() {};
     QueryResult(LeafData const& ld, ResultSubstitutionSP subst, UnificationConstraintStackSP constr) : data(&ld), subst(subst), constr(constr) {}
   };
+
+  /* if _polymorphic is set to true, polymorphic sort checks are handeled by introducing a special variable for the sort that
+   * is being unified traversing the tree. For monomorphic problems we can ommit this unificaiton by a simple equality check 
+   * of sorts instead. This is what this function does.
+   */
+  bool monomorphicSortCheck(QueryResult const& qr, Literal* l) const
+  { 
+    if (l->isEquality()) {
+      ASS(qr.data->literal->isEquality())
+      return SortHelper::getEqualityArgumentSort(l) == SortHelper::getEqualityArgumentSort(qr.data->literal);
+    } else {
+      return true;
+    }
+  }
+
+  bool monomorphicSortCheck(QueryResult const& qr, TermList t) const
+  { return t.isVar() || qr.data->sort.isEmpty() || qr.data->sort == SortHelper::getResultSort(t.term()); }
+
+  bool monomorphicSortCheck(QueryResult const& qr, TypedTermList t) const
+  { return qr.data->sort.isEmpty() || qr.data->sort == t.sort(); }
+
+
   using QueryResultIterator = VirtualIterator<QueryResult>;
   // TODO make const function
   template<class Iterator, class TermOrLit> 
   VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool reversed = false)
   {
     CALL("TermSubstitutionTree::iterator");
-    return _root ? pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, _functionalSubtermMap.asPtr() ))
-                 : QueryResultIterator::getEmpty(); }
+    return _root == nullptr 
+      ? QueryResultIterator::getEmpty()
+      : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, _functionalSubtermMap.asPtr() ))
+                    .filter([this, query](auto& r) { return _polymorphic || monomorphicSortCheck(r, query);  }));
+  }
 
   class LDComparator
   {
@@ -990,7 +1015,8 @@ public:
   void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
   {
     bindSpecialVar(0, term);
-    bindSpecialVar(1, term.sort());
+    if (_polymorphic)
+      bindSpecialVar(1, term.sort());
   }
 
   // TODO document
@@ -1011,7 +1037,8 @@ public:
         bindSpecialVar(1,*lit->nthArgument(1));
       }
 
-      bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
+      if (_polymorphic)
+        bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
 
     } else if(reversed) {
       ASS(lit->commutative());
