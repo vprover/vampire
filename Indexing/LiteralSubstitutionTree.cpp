@@ -40,33 +40,17 @@ LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
 }
 
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
-{
-  CALL("LiteralSubstitutionTree::insert");
-  handleLiteral(lit,cls,true);
-}
+{ handleLiteral(lit, cls, /* insert */ true); }
 
 void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
-{
-  CALL("LiteralSubstitutionTree::remove");
-  handleLiteral(lit,cls,false);
-}
+{ handleLiteral(lit, cls, /* insert */ false); }
 
 void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool insert)
 {
   CALL("LiteralSubstitutionTree::handleLiteral");
   // TODO make this and insnert one fuction
-
-  Literal* normLit=Renaming::normalize(lit);
   auto& tree = getTree(lit, /* complementary */ false);
-
-  BindingMap svBindings;
-  SubstitutionTree::createInitialBindings(normLit, /* reversed */ false,
-      [&](auto var, auto term) { 
-        svBindings.insert(var, term);
-        tree._nextVar = max(tree._nextVar, (int)var + 1);
-      });
-
-  tree.handle(svBindings, SubstitutionTree::LeafData(cls, lit), insert);
+  tree.handle(lit, SubstitutionTree::LeafData(cls, lit), insert, /* extByAbs */ nullptr);
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
@@ -100,73 +84,13 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit,
 }
 
 
-class RenamingSubstitution 
-: public ResultSubstitution 
-{
-public:
-  RecycledPointer<Renaming> _query;
-  RecycledPointer<Renaming> _result;
-  RenamingSubstitution(): _query(), _result() {}
-  virtual ~RenamingSubstitution() override {}
-  virtual TermList applyToQuery(TermList t) final override { return _query->apply(t); }
-  virtual Literal* applyToQuery(Literal* l) final override { return _query->apply(l); }
-  virtual TermList applyToResult(TermList t) final override { return _result->apply(t); }
-  virtual Literal* applyToResult(Literal* l) final override { return _result->apply(l); }
-
-  virtual TermList applyTo(TermList t, unsigned index) final override { ASSERTION_VIOLATION; }
-  virtual Literal* applyTo(Literal* l, unsigned index) final override { NOT_IMPLEMENTED; }
-
-  virtual size_t getQueryApplicationWeight(TermList t) final override { return t.weight(); }
-  virtual size_t getQueryApplicationWeight(Literal* l) final override  { return l->weight(); }
-  virtual size_t getResultApplicationWeight(TermList t) final override { return t.weight(); }
-  virtual size_t getResultApplicationWeight(Literal* l) final override { return l->weight(); }
-
-  void output(std::ostream& out) const final override
-  { out << "{ _query: " << _query << ", _result: " << _result << " }"; }
-};
-
-
 SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getVariants");
 
-
   auto& tree = getTree(query, complementary);
-
-  RenamingSubstitution* renaming = retrieveSubstitutions ? new RenamingSubstitution() : nullptr;
-  ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(renaming) : ResultSubstitutionSP();
-
-  Literal* normLit;
-  if (retrieveSubstitutions) {
-    renaming->_query->normalizeVariables(query);
-    normLit = renaming->_query->apply(query);
-  } else {
-    normLit = Renaming::normalize(query);
-  }
-
-  BindingMap svBindings;
-  SubstitutionTree::createInitialBindings(normLit, /* reversed */ false,
-      [&](auto v, auto t) { {
-        tree._nextVar = max<int>(tree._nextVar, v + 1);
-        svBindings.insert(v, t);
-      } });
-  Leaf* leaf = tree.findLeaf(svBindings);
-  if(leaf==0) {
-    return SLQueryResultIterator::getEmpty();
-  }
-
-  return pvi(iterTraits(leaf->allChildren())
-    .map([](LeafData ld) { return SLQueryResult(ld.literal, ld.clause);  })
-    .map([retrieveSubstitutions, renaming, resultSubst](auto r) 
-      {
-        if (retrieveSubstitutions) {
-          renaming->_result->reset();
-          renaming->_result->normalizeVariables(r.literal);
-          r.substitution = resultSubst;
-        }
-        return r;
-      })
-    );
+  return pvi(iterTraits(tree.getVariants(query, retrieveSubstitutions))
+        .map([](QueryResult qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.subst, qr.constr); }));
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getAll()
@@ -176,7 +100,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
   return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
          .flatMap([this](auto i) { return LeafIterator(&*_trees[i]); })
-        // iterTraits(LeafIterator(&tree))
          .flatMap([](Leaf* l) { return l->allChildren(); })
          .map([](const LeafData& ld) { return SLQueryResult(ld.literal, ld.clause); })
       );
@@ -203,9 +126,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, b
   auto filterResults = [=](auto it) { 
     return pvi(
         std::move(it)
-        // .filter([=](auto& qr) { return complementary ? qr.data->literal->polarity() != lit->polarity() 
-        //                                              : qr.data->literal->polarity() == lit->polarity(); })
-        .map([](QueryResult qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.subst,qr.constr); })
+        .map([](QueryResult qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.subst, qr.constr); })
         ); 
   };
   return !lit->commutative() 

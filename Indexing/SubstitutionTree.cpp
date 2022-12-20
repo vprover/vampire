@@ -141,10 +141,10 @@ struct BindingComparator
  * top symbol of the term/literal being inserted, and
  * @b bh contains its arguments.
  */
-void SubstitutionTree::insert(BindingMap& svBindings,LeafData ld)
+void SubstitutionTree::insert(BindingMap& svBindings, LeafData ld)
 {
 #define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
-  CALL("SubstitutionTree::insert/3");
+  CALL("SubstitutionTree::insert");
   ASS_EQ(_iteratorCnt,0);
   auto pnode = &_root;
   DEBUG_INSERT("insert: ", svBindings, " into ", *this)
@@ -357,9 +357,9 @@ start:
  * If the removal results in a chain of nodes containing
  * no terms/literals, all those nodes are removed as well.
  */
-void SubstitutionTree::remove(BindingMap& svBindings,LeafData ld)
+void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
 {
-  CALL("SubstitutionTree::remove-2");
+  CALL("SubstitutionTree::remove");
   ASS_EQ(_iteratorCnt,0);
   auto pnode = &_root;
 

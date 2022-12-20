@@ -754,13 +754,27 @@ public:
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
+  template<class Key>
+  void handle(Key const& key, LeafData ld, bool doInsert, FuncSubtermMap* extByAbs)
+  {
+    auto norm = Renaming::normalize(key);
+    if (extByAbs) {
+      norm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(norm, extByAbs);
+    }
+
+    RecycledPointer<BindingMap> bindings;
+    SubstitutionTree::createInitialBindings(norm, /* reversed */ false,
+        [&](auto var, auto term) { 
+          bindings->insert(var, term);
+          _nextVar = max(_nextVar, (int)var + 1);
+        });
+    if (doInsert) insert(*bindings, ld);
+    else          remove(*bindings, ld);
+  }
+
+// private:
   void insert(BindingMap& binding,LeafData ld);
   void remove(BindingMap& binding,LeafData ld);
-  void handle(BindingMap& binding,LeafData ld, bool doInsert) 
-  { 
-    if (doInsert) insert(binding, ld); 
-    else          remove(binding, ld); 
-  }
 
   /** Number of the next variable */
   int _nextVar;
@@ -773,9 +787,103 @@ public:
   Node* _root;
 #if VDEBUG
   bool _tag;
+// #endif
+// public:
+// #if VDEBUG
   // Tags are used as a debug tool to turn debugging on for a particular instance
   virtual void markTagged(){ _tag=true;}
 #endif
+
+  class RenamingSubstitution 
+  : public ResultSubstitution 
+  {
+  public:
+    RecycledPointer<Renaming> _query;
+    RecycledPointer<Renaming> _result;
+    RenamingSubstitution(): _query(), _result() {}
+    virtual ~RenamingSubstitution() override {}
+    virtual TermList applyToQuery(TermList t) final override { return _query->apply(t); }
+    virtual Literal* applyToQuery(Literal* l) final override { return _query->apply(l); }
+    virtual TermList applyToResult(TermList t) final override { return _result->apply(t); }
+    virtual Literal* applyToResult(Literal* l) final override { return _result->apply(l); }
+
+    virtual TermList applyTo(TermList t, unsigned index) final override { ASSERTION_VIOLATION; }
+    virtual Literal* applyTo(Literal* l, unsigned index) final override { NOT_IMPLEMENTED; }
+
+    virtual size_t getQueryApplicationWeight(TermList t) final override { return t.weight(); }
+    virtual size_t getQueryApplicationWeight(Literal* l) final override  { return l->weight(); }
+    virtual size_t getResultApplicationWeight(TermList t) final override { return t.weight(); }
+    virtual size_t getResultApplicationWeight(Literal* l) final override { return l->weight(); }
+
+    void output(std::ostream& out) const final override
+    { out << "{ _query: " << _query << ", _result: " << _result << " }"; }
+  };
+
+  template<class Key> struct Config;
+
+  template<> 
+  struct Config<Literal*> 
+  {
+    static Literal* const& getKey(LeafData const& ld)
+    { return ld.literal;  }
+  };
+
+
+  template<> 
+  struct Config<TermList> 
+  {
+    static TermList const& getKey(LeafData const& ld)
+    { return ld.term;  }
+  };
+
+  template<class Query>
+  bool generalizationExists(Query query)
+  {
+    return _root == nullptr 
+      ? false
+      : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false, /* useC */ false).hasNext();
+  }
+
+  template<class Query>
+  QueryResultIterator getVariants(Query query, bool retrieveSubstitutions)
+  {
+    CALL("LiteralSubstitutionTree::getVariants");
+
+
+    RenamingSubstitution* renaming = retrieveSubstitutions ? new RenamingSubstitution() : nullptr;
+    ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(renaming) : ResultSubstitutionSP();
+
+    Query normLit;
+    if (retrieveSubstitutions) {
+      renaming->_query->normalizeVariables(query);
+      normLit = renaming->_query->apply(query);
+    } else {
+      normLit = Renaming::normalize(query);
+    }
+
+    BindingMap svBindings;
+    SubstitutionTree::createInitialBindings(normLit, /* reversed */ false,
+        [&](auto v, auto t) { {
+          _nextVar = max<int>(_nextVar, v + 1); // TODO do we need this line?
+          svBindings.insert(v, t);
+        } });
+    Leaf* leaf = findLeaf(svBindings);
+    if(leaf==0) {
+      return QueryResultIterator::getEmpty();
+    } else {
+      return pvi(iterTraits(leaf->allChildren())
+        .map([retrieveSubstitutions, renaming, resultSubst](LeafData ld) 
+          {
+            ResultSubstitutionSP subs;
+            if (retrieveSubstitutions) {
+              renaming->_result->reset();
+              renaming->_result->normalizeVariables(Config<Query>::getKey(ld));
+              subs = resultSubst;
+            }
+            return QueryResult(ld, subs, UnificationConstraintStackSP());
+          }));
+    }
+  }
 
   class LeafIterator
   {

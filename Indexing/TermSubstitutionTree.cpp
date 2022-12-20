@@ -35,14 +35,10 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
-: SubstitutionTree(useC, rfSubs), _extByAbs(rfSubs)
-{
-  _extra = extra;
-}
-
-// TypedTermList toTyped(TermList t) 
-// { return t.isTerm() ? TypedTermList(t.term())
-//                     : TypedTermList(t, TermList::var(t.var() + 1)); }
+: SubstitutionTree(useC, rfSubs)
+, _extra(extra)
+, _extByAbs(rfSubs)
+{ }
 
 void TermSubstitutionTree::insert(TermList t, TermList trm)
 { handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
@@ -59,17 +55,6 @@ void TermSubstitutionTree::handle(TypedTermList tt, Literal* lit, Clause* cls, b
 void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
 { handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
-TypedTermList normalizeRenaming(TypedTermList t) 
-{
-  Renaming n;
-  n.normalizeVariables(t);
-  n.normalizeVariables(t.sort());
-  return TypedTermList(n.apply(t), n.apply(t.sort()));
-}
-
-TermList normalizeRenaming(TermList t) 
-{ return Renaming::normalize(t); }
-
 /**
  * According to value of @b insert, insert or remove term.
  */
@@ -77,22 +62,7 @@ template<class TypedOrUntypedTermList>
 void TermSubstitutionTree::handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
 {
   CALL("TermSubstitutionTree::handleTerm");
-  auto normTerm = normalizeRenaming(tt);
-
-  if(_extByAbs){
-    normTerm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(normTerm, &_functionalSubtermMap);   
-  }
-
-  BindingMap svBindings;
-
-
-  SubstitutionTree::createInitialBindings(normTerm, /* reversed */ false,
-      [&](auto var, auto term) { 
-        svBindings.insert(var, term);
-        _nextVar = max(_nextVar, (int)var + 1);
-      });
-
-  SubstitutionTree::handle(svBindings, ld, insert);
+  SubstitutionTree::handle(tt, ld, insert, _extByAbs ? &_functionalSubtermMap : nullptr);
 }
 
 TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)
@@ -111,16 +81,8 @@ TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TypedTer
 
 bool TermSubstitutionTree::generalizationExists(TermList t)
 {
-  if(!t.isTerm()) {
-    return false;
-  }
-  if(!_root) {
-    return false;
-  }
-  if(_root->isLeaf()) {
-    return true;
-  }
-  return FastGeneralizationsIterator(this, _root, t, /* retrieveSubstitutions */ false, /* reversed */ false, /* useC */ false).hasNext();
+  return t.isVar() ? false
+                   : SubstitutionTree::generalizationExists(t);
 }
 
 /**

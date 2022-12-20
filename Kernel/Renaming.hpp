@@ -23,6 +23,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #include "Term.hpp"
 
@@ -79,6 +80,7 @@ public:
   void makeInverse(const Renaming& orig);
 
   static Literal* normalize(Literal* l);
+  static TypedTermList normalize(TypedTermList l);
   static Term* normalize(Term* t);
   static TermList normalize(TermList t);
   friend std::ostream& operator<<(std::ostream& out, Renaming const& self)
