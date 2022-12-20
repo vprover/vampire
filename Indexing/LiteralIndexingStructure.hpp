@@ -29,16 +29,10 @@ public:
   virtual void remove(Literal* lit, Clause* cls) = 0;
 
   virtual SLQueryResultIterator getAll() { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getVariants(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true, bool withConstraints = false) { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual size_t getUnificationCount(Literal* lit, bool complementary)
   {
@@ -47,7 +41,6 @@ public:
   }
 
 #if VDEBUG
-  virtual vstring toString() { return "<not supported>"; }
   virtual void markTagged() = 0;
 #endif
 

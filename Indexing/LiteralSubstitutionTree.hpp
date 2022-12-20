@@ -22,147 +22,74 @@
 namespace Indexing {
 
 class LiteralSubstitutionTree
-: public LiteralIndexingStructure, SubstitutionTree
+: public LiteralIndexingStructure
 {
+  using UnificationsIterator = SubstitutionTree::UnificationsIterator;
+  using FastInstancesIterator = SubstitutionTree::FastInstancesIterator;
+  using BindingMap = SubstitutionTree::BindingMap;
+  using LDIterator = SubstitutionTree::LDIterator;
+  using FastGeneralizationsIterator = SubstitutionTree::FastGeneralizationsIterator;
+  using QueryResult = SubstitutionTree::QueryResult;
+  using LeafData = SubstitutionTree::LeafData;
+  using LeafIterator = SubstitutionTree::LeafIterator;
+  using Leaf = SubstitutionTree::Leaf;
+
 public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(bool useC=false);
+  LiteralSubstitutionTree(MismatchHandler* mismtachHandler = nullptr);
 
-  void insert(Literal* lit, Clause* cls);
-  void remove(Literal* lit, Clause* cls);
+  void insert(Literal* lit, Clause* cls) final override;
+  void remove(Literal* lit, Clause* cls) final override;
   void handleLiteral(Literal* lit, Clause* cls, bool insert);
 
-  SLQueryResultIterator getAll();
+  SLQueryResultIterator getAll() final override;
 
-  SLQueryResultIterator getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
-
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions);
-
-  SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
-
-  SLQueryResultIterator getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
-
-  SLQueryResultIterator getVariants(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions, bool constraints = false) final override;
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
-  vstring toString() {return SubstitutionTree::toString();}
+  virtual void markTagged() final override { }
 #endif
 
+  friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
+  { 
+    int i = 0;
+    out << "{ ";
+    for (auto& t : self._trees) {
+      auto f = env.signature->getPredicate(i / 2);
+      bool p = i % 2;
+      if (p) out << "~";
+      out << *f << "(" << t << "), "; 
+      i++;
+    }
+    return out << "} ";
+  }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree> const& self)
+  { 
+    int i = 0;
+    out << "{ " << endl;
+    for (auto& t : self.self._trees) {
+      auto f = env.signature->getPredicate(i / 2);
+      bool p = i % 2;
+      OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
+      out << (p ? "~" : " ") << *f << "(" << multiline(*t, self.indent + 1) << ")" << endl; 
+      i++;
+    }
+    return out << "} ";
+  }
+
+
 private:
-  struct SLQueryResultFunctor;
-  struct LDToSLQueryResultFn;
-  struct LDToSLQueryResultWithSubstFn;
-  struct UnifyingContext;
-  struct PropositionalLDToSLQueryResultWithSubstFn;
-  struct LeafToLDIteratorFn;
+  SubstitutionTree& getTree(Literal* lit, bool complementary);
+  template<class Iterator>
+  SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
-  template <bool instantiation>
-  struct MatchingFilter
-  {
-    MatchingFilter(Literal* queryLit, bool retrieveSubstitutions)
-    : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)),
-      _isTwoVarEq(queryLit->isTwoVarEquality()),
-      _retrieveSubstitutions(retrieveSubstitutions) {}
-
-    bool enter(const SLQueryResult& res)
-    {
-      CALL("LiteralSubstitutionTree::MatchingFilter::enter()");
-      ASS(res.literal->isEquality());
-    
-      if(instantiation){
-        //if the query lit isn't a two variable equality, sort unification
-        //is guranteed via term unification
-        if(!_isTwoVarEq){ return true; }
-      } else {
-        //generaisation
-        if(!res.literal->isTwoVarEquality()){ return true; }
-      }
-
-      TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
-      if(_retrieveSubstitutions) {
-        return instantiation ? res.substitution->matchSorts(_queryEqSort, resSort) 
-                             : res.substitution->matchSorts(resSort, _queryEqSort); 
-      } else {
-        static RobSubstitution subst;
-        subst.reset();
-        return instantiation ? subst.match(_queryEqSort, 0, resSort, 1):
-                               subst.match(resSort, 0, _queryEqSort, 1);           
-      }
-    }
-
-    //dummy. UnificationFilter needs a leave function to undo the sort unification.
-    //MatchingFilter doesn't require this, since the sort unifier is added onto
-    //the final term unifier and undone by the next call to backTrack() in FastGen 
-    //or FastInst iterator.
-    void leave(const SLQueryResult& res){  }
-  private:
-    TermList _queryEqSort;
-    bool _isTwoVarEq;
-    bool _retrieveSubstitutions;
-  };
-
-  template <bool polymorphic>
-  struct UnificationFilter
-  {
-    UnificationFilter(Literal* queryLit, bool retrieveSubstitutions)
-    : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)), 
-      _retrieveSubs(retrieveSubstitutions) {}
-
-    bool enter(const SLQueryResult& res)
-    {
-      CALL("LiteralSubstitutionTree::UnificationFilter::enter()");
-      ASS(res.literal->isEquality());
-      
-      //the polymorphism check isn't strictly necessary. However, if it wasn't
-      //included, on monomorphic problems we would be using unification to check
-      //whether two constant are identical
-
-      TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
-      if(!polymorphic){
-        return _queryEqSort == resSort;
-      } else if(_retrieveSubs){
-        RobSubstitution* subst = res.substitution->tryGetRobSubstitution();
-        ASS(subst);
-        subst->bdRecord(_bdataEq);
-        bool success = subst->unify(_queryEqSort, 0, resSort, 1);
-        subst->bdDone();
-        if(!success){
-          _bdataEq.backtrack();
-        }
-        return success;
-      } else {
-        static RobSubstitution subst;
-        subst.reset();
-        return subst.unify(_queryEqSort, 0, resSort, 1);
-      }
-    }
-
-    void leave(const SLQueryResult& res){
-      CALL("LiteralSubstitutionTree::UnificationFilter::leave()");
-      if(_retrieveSubs && polymorphic){
-        _bdataEq.backtrack();
-        ASS(_bdataEq.isEmpty());
-      }
-    }
-  private:
-    TermList _queryEqSort;
-    bool _retrieveSubs;
-    BacktrackData _bdataEq;
-  };
-
-  template<class Iterator, class Filter>
-  SLQueryResultIterator getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions, bool useConstraints);
-
-  unsigned getRootNodeIndex(Literal* t, bool complementary=false);
+  Stack<unique_ptr<SubstitutionTree>> _trees;
+  MismatchHandler* _mismatchHandler;
   bool _polymorphic;
 };
 

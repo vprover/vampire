@@ -899,6 +899,8 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
       Term* ta = arg.term();
       TermList argSort = getResultSort(ta);
       if (eqSrt != argSort) {
+        DBGE(eqSrt)
+        DBGE(argSort)
         return false;
       }
     }
@@ -916,16 +918,12 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     TermList argSort = getResultSort(ta);
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
     if (instantiatedTypeSort != argSort) {
-/*
-#if VDEBUG
-      cout << "the term is " + t->toString() << endl;
-      cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
-      //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
-      //cout << "function name 2 :" + t->functionName() << endl;
-      cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
-      ASSERTION_VIOLATION;
-#endif
-*/
+      DBGE(type->toString())
+        DBGE(*t)
+        DBGE(i)
+      DBG("arg = ", *ta, ": ", argSort)
+      DBGE(instantiatedTypeSort)
+      DBGE(type->arg(i))
       return false;
     }
   }

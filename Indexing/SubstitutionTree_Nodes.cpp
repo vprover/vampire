@@ -131,6 +131,7 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
 SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar,bool useC)
 {
   CALL("SubstitutionTree::createIntermediateNode/2");
+  // TODO we don't need the WithSorts thing, right?
   if(useC){ return new UArrIntermediateNodeWithSorts(childVar); }
   return new UArrIntermediateNode(childVar);
 }
@@ -163,8 +164,7 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
   }
 }
 
-SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
-	childByTop(TermList t, bool canCreate)
+SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::childByTop(TermList t, bool canCreate)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
 

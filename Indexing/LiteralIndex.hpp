@@ -34,11 +34,7 @@ public:
 
   SLQueryResultIterator getAll();
 
-  SLQueryResultIterator getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true);
-
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions = true);
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true, bool withConstraints = false);
 
   SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);

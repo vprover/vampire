@@ -17,6 +17,7 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
+#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 namespace Indexing {
 
@@ -29,16 +30,10 @@ public:
   virtual void insert(TermList t, TermList trm){ NOT_IMPLEMENTED; }
   virtual void insert(TermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
-  virtual TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }  
-  virtual TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true, bool withConstraints = false) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions = true, bool withConstraints = false) { NOT_IMPLEMENTED; }  
+  virtual TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
 

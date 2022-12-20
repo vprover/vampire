@@ -51,19 +51,19 @@ public:
   CLASS_NAME(CodeTreeSubstitution);
   USE_ALLOCATOR(CodeTreeSubstitution);
 
-  TermList applyToBoundResult(TermList t)
+  TermList applyToBoundResult(TermList t) override
   {
     CALL("CodeTreeSubstitution::applyToBoundResult(TermList)");
     return SubstHelper::apply(t, *getApplicator());
   }
 
-  Literal* applyToBoundResult(Literal* lit)
+  Literal* applyToBoundResult(Literal* lit) override
   {
     CALL("CodeTreeSubstitution::applyToBoundResult(Literal*)");
     return SubstHelper::apply(lit, *getApplicator());
   }
 
-  bool isIdentityOnQueryWhenResultBound() {return true;}
+  bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
   struct Applicator
   {
@@ -95,6 +95,9 @@ private:
     }
     return _applicator;
   }
+
+  virtual void output(std::ostream& out) const final override 
+  { out << "CodeTreeSubstitution(<output unimplemented>)"; }
 
   CodeTree::BindingArray* _bindings;
   Renaming* _resultNormalizer;

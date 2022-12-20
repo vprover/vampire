@@ -27,6 +27,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Shell/LambdaElimination.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 #include "TermIndex.hpp"
 
@@ -41,23 +42,11 @@ TermIndex::~TermIndex()
   delete _is;
 }
 
-TermQueryResultIterator TermIndex::getUnifications(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getUnifications(t, retrieveSubstitutions);
-}
+TermQueryResultIterator TermIndex::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)
+{ return _is->getUnifications(t, retrieveSubstitutions, withConstraints); }
 
-TermQueryResultIterator TermIndex::getUnificationsWithConstraints(TermList t,
-          bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(t, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getUnificationsUsingSorts(TermList t, TermList sort,
-          bool retrieveSubstitutions)
-{
-  return _is->getUnificationsUsingSorts(t, sort, retrieveSubstitutions);
-}
+TermQueryResultIterator TermIndex::getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstraints)
+{ return _is->getUnificationsUsingSorts(tt, retrieveSubstitutions, withConstraints); }
 
 TermQueryResultIterator TermIndex::getGeneralizations(TermList t,
 	  bool retrieveSubstitutions)
@@ -81,21 +70,14 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti;
-    if(!env.options->combinatorySup()){
-      rsti = EqHelper::getSubtermIterator(lit,_ord);
-    } else {
-      rsti = EqHelper::getFoSubtermIterator(lit,_ord);
-    }
+    auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord)
+                                              : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
-      if (adding) {
-        _is->insert(rsti.next(), lit, c);
-      }
-      else {
-        _is->remove(rsti.next(), lit, c);
-      }
+      auto tt = TypedTermList(rsti.next());
+      ((TermSubstitutionTree*)_is)->handle(tt, lit, c, adding);
     }
   }
+  // DBGE(multiline(*((TermSubstitutionTree*)_is)))
 }
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
@@ -109,13 +91,8 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
-      if (adding) {
-	_is->insert(lhs, lit, c);
-      }
-      else {
-	_is->remove(lhs, lit, c);
-      }
+      // TODO get rid of cast here
+	    ((TermSubstitutionTree*)_is)->handle(TypedTermList(lhsi.next(), SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
     }
   }
 }
@@ -141,7 +118,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);
     while (it.hasNext()) {
-      TermList t=it.next();
+      TermList t=TermList(it.next());
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
         //It is enough to insert a term only once per clause.
         //Also, once we know term was inserted, we know that all its
@@ -204,7 +181,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
           // TODO: each term (and its subterms) should be processed
           // only once per literal, see DemodulationSubtermIndex
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-              InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
+              InductionHelper::isIntInductionTermListInLiteral(tl.term(), lit)) {
             if (adding) {
               _is->insert(tl, lit, c);
             } else {
@@ -542,7 +519,7 @@ void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
-      TermList trm = it.next();
+      TermList trm = TermList(it.next());
       Term* t = trm.term();
       if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && 
          AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){

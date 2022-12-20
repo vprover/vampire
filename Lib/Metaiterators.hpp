@@ -405,7 +405,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
   FilteredIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _next() {}
+  : _func(std::move(func)), _inn(std::move(inn)), _next() {}
 
   bool hasNext()
   {
@@ -450,7 +450,7 @@ public:
   DECL_ELEMENT_TYPE(typename std::result_of<Functor(ELEMENT_TYPE(Inner))>::type::Content);
 
   FilterMapIter(Inner inn, Functor func)
-  : _func(func), _inn(std::move(inn)), _next() {}
+  : _func(std::move(func)), _inn(std::move(inn)), _next() {}
 
   bool hasNext()
   {
@@ -490,7 +490,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
   FilteredDelIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _nextStored(false) {}
+  : _func(std::move(func)), _inn(std::move(inn)), _nextStored(false) {}
   bool hasNext()
   {
     if(_nextStored) {
@@ -532,16 +532,12 @@ private:
 template<class Inner, class Functor>
 inline
 FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
-{
-  return FilteredIterator<Inner,Functor>(inn, func);
-}
+{ return FilteredIterator<Inner,Functor>(std::move(inn), std::move(func)); }
 
 template<class Inner, class Functor>
 inline
 FilteredDelIterator<Inner,Functor> getFilteredDelIterator(Inner inn, Functor func)
-{
-  return FilteredDelIterator<Inner,Functor>(inn, func);
-}
+{ return FilteredDelIterator<Inner,Functor>(std::move(inn), std::move(func)); }
 
 
 /**
@@ -611,7 +607,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(It1));
 
   CatIterator(It1 it1, It2 it2)
-  	:_first(true), _it1(it1), _it2(it2) {}
+  	:_first(true), _it1(std::move(it1)), _it2(std::move(it2)) {}
   bool hasNext()
   {
     if(_first) {
@@ -668,7 +664,7 @@ template<class It1,class It2>
 inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
 {
-  return CatIterator<It1,It2>(it1, it2);
+  return CatIterator<It1,It2>(std::move(it1), std::move(it2));
 }
 
 
@@ -686,7 +682,7 @@ class MappingIterator
 public:
   DECL_ELEMENT_TYPE(ResultType);
   explicit MappingIterator(Inner inner, Functor func)
-  : _func(func), _inner(std::move(inner)) {}
+  : _func(std::move(func)), _inner(std::move(inner)) {}
   inline bool hasNext() { CALL("MappingIterator::hasNext"); return _inner.hasNext(); };
   inline ResultType next() { return _func(_inner.next()); };
 
@@ -755,9 +751,7 @@ private:
  */
 template<typename Inner, typename Functor>
 MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>> getMappingIterator(Inner it, Functor f)
-{
-  return MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>(std::move(it), f);
-}
+{ return MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>(std::move(it), std::move(f)); }
 
 // /**
 //  * Return iterator that returns elements of @b it transformed by
@@ -1640,14 +1634,6 @@ struct GetSecondOfPair {
   }
 };
 
-template<class I1>
-static auto concatIters(I1 i1) 
-{ return iterTraits(std::move(i1)); }
-
-template<class I1, class I2, class... Is>
-static auto concatIters(I1 i1, I2 i2, Is... is) 
-{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
-
 template<class Iter>
 class IterTraits
 {
@@ -1741,19 +1727,19 @@ public:
 
   template<class F>
   IterTraits<MappingIterator<Iter, F>> map(F f)
-  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FilteredIterator<Iter, F>> filter(F f)
-  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FilterMapIter<Iter, F>> filterMap(F f)
-  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
-  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), f))); }
+  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), std::move(f)))); }
 
 
   /** 
@@ -1862,6 +1848,15 @@ public:
 template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) 
 { return IterTraits<Iter>(std::move(i)); }
+
+template<class I1>
+static auto concatIters(I1 i1) 
+{ return iterTraits(std::move(i1)); }
+
+template<class I1, class I2, class... Is>
+static auto concatIters(I1 i1, I2 i2, Is... is) 
+{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+
 
 ///@}
 

@@ -23,7 +23,6 @@
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
-#include "TypeSubstitutionTree.hpp"
 #include "SubstitutionTree.hpp"
 
 namespace Indexing {
@@ -52,80 +51,57 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
+  TermSubstitutionTree(MismatchHandler* handler = nullptr, bool replaceFunctionalSubterms = false, bool extra = false);
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
-  void insert(TermList t, TermList trm);
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls);
+  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert);
 
-  bool generalizationExists(TermList t);
+  void insert(TermList t, Literal* lit, Clause* cls) override;
+  void remove(TermList t, Literal* lit, Clause* cls) override;
+  void insert(TermList t, TermList trm) override;
+  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override;
+
+  bool generalizationExists(TermList t) override;
 
 
-  TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions);
-
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions);
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) override;
 
   /*
    * A higher order concern (though it may be useful in other situations)
    */
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions);
+  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList sort, bool retrieveSubstitutions, bool withConstr) override;
 
-  TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions);
-
-  TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions);
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) override;
+  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
-  virtual void output(std::ostream& out) const;
+  virtual void markTagged() override { SubstitutionTree::markTagged();}
+  virtual void output(std::ostream& out) const final override;
 #endif
 
 private:
 
-  void insert(TermList t, LeafData ld);
-  void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
 
-  struct TermQueryResultFn;
+  // void insert(TermList t, LeafData ld);
+  template<class TypedOrUntypedTermList> 
+  void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert);
 
-  template<class Iterator>
-  TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions,bool withConstraints);
-
-  struct LDToTermQueryResultFn;
-  struct LDToTermQueryResultWithSubstFn;
-  struct LeafToLDIteratorFn;
-  struct UnifyingContext;
-
-  template<class LDIt>
-  TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
-	  TermList queryTerm, bool retrieveSubstitutions,
-          bool withConstraints);
-
-  TermQueryResultIterator getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions,bool withConstraints);
-
-  inline
-  unsigned getRootNodeIndex(Term* t)
-  {
-    return t->functor();
+  template<class Iterator, class TypedOrUntypedTermList> 
+  auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
+  { 
+    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints))
+      .map([this](QueryResult qr) 
+        { return TermQueryResult(
+            _extra ? qr.data->extraTerm : qr.data->term,
+            qr.data->literal, qr.data->clause, qr.subst, qr.constr); }) ; 
   }
-
-  typedef SkipList<LeafData,LDComparator> LDSkipList;
-  LDSkipList _vars;
 
   //higher-order concerns
   bool _extra;
-  bool _extByAbs;
 
-  FuncSubtermMap _functionalSubtermMap;
-
-  TypeSubstitutionTree* _funcSubtermsByType;
-
+  friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
+  { return out << (SubstitutionTree const&) self; }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
+  { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
 };
 
 };

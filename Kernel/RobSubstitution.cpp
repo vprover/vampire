@@ -203,29 +203,6 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   _bank.set(v,b);
 }
 
-// void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, MismatchHandler* hndlr)
-// {
-//   CALL("RobSubstitution::addToConstraints");
-//
-//   Term* t1 = _funcSubtermMap->get(v1.var);
-//   Term* t2 = _funcSubtermMap->get(v2.var);
-//
-//   if(t1 == t2 && t1->shared() && t1->ground()){ return; }
-//  
-//   TermList tt1 = TermList(t1);
-//   TermList tt2 = TermList(t2);
-//
-//   TermSpec t1spec = TermSpec(tt1, v1.index);
-//   TermSpec t2spec = TermSpec(tt2, v2.index);
-//
-//   if(t1spec.sameTermContent(t2spec)){ return; }
-//
-//   //cout << "adding to constraints <" + tt1.toString() + ", " + tt2.toString() + ">" << endl; 
-//
-//   hndlr->handle(this, tt1, v1.index, tt2, v2.index);
-// }
-
-
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
   CALL("RobSubstitution::bindVar");
@@ -338,7 +315,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Misma
     TermSpec dt2=derefBound(x.second);
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
-    if(dt1.sameTermContent(dt2)) {
+    if (dt1.sameTermContent(dt2)) {
     // Deal with the case where eithe rare variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
@@ -349,18 +326,30 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Misma
       bind(getVarSpec(dt2),dt1);
 
     } else if(tryAbstract(dt1, dt2)) {
-      /* we introduced constraints in tryAbstract */
+      /* we introduced constraints in tryAbstract
+       * in a polymorphic setting dt1 and dt2 might have different sorts therefore we need to unify them
+       *
+       * if either of the two terms is a variable, we do not need to unify them because the context of the 
+       * variable (i.e. the argument position the varaible is in) must have been unified autmatically before 
+       * already.
+       */
+      if (dt1.term.isTerm() && dt2.term.isTerm()){
+        toDo.push(make_pair(
+            TermSpec(SortHelper::getResultSort(dt1.term.term()), dt1.index), 
+            TermSpec(SortHelper::getResultSort(dt2.term.term()), dt2.index)
+        ));
+      }
+      DBG("introduced constraint: ", dt1, " != ", dt2)
 
     } else if(dt1.term.isTerm() && dt2.term.isTerm() 
         && TermList::sameTopFunctor(dt1.term, dt2.term)) {
       // Case where both are terms
-      ASS(dt1.term != dt2.term)
+      ASS(dt1.index != dt2.index || dt1.term != dt2.term)
 
       auto s = dt1.term.term()->args();
       auto t = dt2.term.term()->args();
       while (!s->isEmpty()) {
         auto pair = make_pair(TermSpec(*s, dt1.index), TermSpec(*t, dt2.index));
-
 
         // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
         // in order to safe memory we do ot do this for variables.
@@ -532,6 +521,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
     TermList sort = apply(lit->twoVarEqSort(),index);
     return Literal::createEquality(lit->polarity(), ts[0], ts[1], sort);
   }
+
   return Literal::create(lit,ts.array());
 }
 
@@ -1006,59 +996,4 @@ struct RobSubstitution::UnificationFn {
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 
-
-#if VDEBUG
-vstring RobSubstitution::toString(bool deref) const
-{
-  CALL("RobSubstitution::toString");
-  vstring res;
-  BankType::Iterator bit(_bank);
-  while(bit.hasNext()) {
-    VarSpec v;
-    TermSpec binding;
-    bit.next(v,binding);
-    TermList tl;
-    if(v.index==SPECIAL_INDEX) {
-      res+="S"+Int::toString(v.var)+" -> ";
-      tl.makeSpecialVar(v.var);
-    } else {
-      res+="X"+Int::toString(v.var)+"/"+Int::toString(v.index)+ " -> ";
-      tl.makeVar(v.var);
-    }
-    if(deref) {
-      tl=apply(tl, v.index);
-      res+=tl.toString()+"\n";
-    } else {
-      res+=binding.term.toString()+"/"+Int::toString(binding.index)+"\n";
-    }
-
-  }
-  return res;
-}
-
-vstring RobSubstitution::VarSpec::toString() const
-{
-  if(index==SPECIAL_INDEX) {
-    return "S"+Int::toString(var);
-  } else {
-    return "X"+Int::toString(var)+"/"+Int::toString(index);
-  }
-}
-
-vstring RobSubstitution::TermSpec::toString() const
-{
-  return term.toString()+"/"+Int::toString(index);
-}
-
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs )
-{
-  return out<<vs.toString();
-}
-
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec ts )
-{
-  return out<<ts.toString();
-}
-
-#endif
 }

@@ -69,23 +69,22 @@ Stack<Literal*> constraintLits(UnificationConstraintStackSP& cnst, RobSubstituti
 }
 
 
-unique_ptr<TermIndexingStructure> getTermIndexHOL()
+unique_ptr<TermSubstitutionTree> getTermIndexHOL()
 { 
-  // return new TermSubstitutionTree(, )
   env.options->set("func_ext", "abstraction");
-  return std::make_unique<TermSubstitutionTree>(/* useConstraints */ false, /* _extByAbs */ true);
+  return std::make_unique<TermSubstitutionTree>(new HOMismatchHandler(), /* _extByAbs */ true);
 }
 
-unique_ptr<TermIndexingStructure> getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
+unique_ptr<TermSubstitutionTree> getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
 { 
   env.options->setUWA(uwa);
-  return std::make_unique<TermSubstitutionTree>( /* useConstraints */ true);
+  return std::make_unique<TermSubstitutionTree>(new UWAMismatchHandler());
 }
 
 auto getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa)
 {
   env.options->setUWA(uwa);
-  return std::make_unique<LiteralSubstitutionTree>( /* useConstraints */ true);
+  return std::make_unique<LiteralSubstitutionTree>(new UWAMismatchHandler());
 }
 
 template<class TermOrLit>
@@ -115,12 +114,10 @@ struct UnificationResultSpec {
 using TermUnificationResultSpec    = UnificationResultSpec<TermList>;
 using LiteralUnificationResultSpec = UnificationResultSpec<Literal*>;
 
-
-
-void checkLiteralMatches(LiteralIndexingStructure& index, Literal* lit, Stack<LiteralUnificationResultSpec> expected)
+void checkLiteralMatches(LiteralSubstitutionTree& index, Literal* lit, Stack<LiteralUnificationResultSpec> expected)
 {
   Stack<LiteralUnificationResultSpec> is;
-  for (auto qr : iterTraits(index.getUnifications(lit,false,true)) ) {
+  for (auto qr : iterTraits(index.getUnifications(lit, /* complementary */ false, /* retrieveSubstitutions */ true, /* withConstraints */ true)) ) {
     // qr.substitution->numberOfConstraints();
 
     is.push(LiteralUnificationResultSpec {
@@ -133,6 +130,8 @@ void checkLiteralMatches(LiteralIndexingStructure& index, Literal* lit, Stack<Li
     cout << "[  OK  ] " << *lit << endl;
   } else {
     cout << "[ FAIL ] " << *lit << endl;
+    cout << "tree: " << multiline(index, 1) << endl;
+    cout << "query: " << *lit << endl;
 
     cout << "is:" << endl;
     for (auto& x : is)
@@ -148,7 +147,7 @@ void checkLiteralMatches(LiteralIndexingStructure& index, Literal* lit, Stack<Li
 }
 
 template<class F>
-void checkTermMatchesWithUnifFun(TermIndexingStructure& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
+void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
 {
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
@@ -163,7 +162,7 @@ void checkTermMatchesWithUnifFun(TermIndexingStructure& index, TermList term, St
     cout << "[  OK  ] " << term << endl;
   } else {
     cout << "[ FAIL ] " << term << endl;
-    cout << "tree: " << index << endl;
+    cout << "tree: " << multiline(index, 1) << endl;
     cout << "query: " << term << endl;
 
     cout << "is:" << endl;
@@ -179,20 +178,20 @@ void checkTermMatchesWithUnifFun(TermIndexingStructure& index, TermList term, St
   // cout << endl;
 
 }
-void checkTermMatches(TermIndexingStructure& index, TermList term, Stack<TermUnificationResultSpec> expected)
+void checkTermMatches(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUnificationsWithConstraints(term, true); });
+      [&](auto& idx, auto t) { return idx.getUnifications(term, /* retrieveSubstitutions */ true, /* withConstraints */ true); });
 }
 
-void checkTermMatches(TermIndexingStructure& index, TermList term, TermList sort, Stack<TermUnificationResultSpec> expected)
+void checkTermMatches(TermSubstitutionTree& index, TermList term, TermList sort, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUnificationsUsingSorts(term, sort, true); });
+      [&](auto& idx, auto t) { return idx.getUnificationsUsingSorts(TypedTermList(term, sort), /* retrieveSubstitutions */ true, /* withConstraints */ true); });
 }
 
 struct IndexTest {
-  unique_ptr<TermIndexingStructure> index;
+  unique_ptr<TermSubstitutionTree> index;
   Stack<TermList> insert;
   TermList query;
   Stack<TermUnificationResultSpec> expected;
@@ -487,7 +486,7 @@ RUN_TEST(term_indexing_one_side_interp_08,
         a,
         f(x),
       },
-      .query = a + 3,
+      .query = 3 + a,
       .expected =  {
         TermUnificationResultSpec 
         { .querySigma  = 3 + a,
@@ -506,8 +505,8 @@ RUN_TEST(term_indexing_one_side_interp_08,
 
         TermUnificationResultSpec 
         { .querySigma  = 3 + a,
-          .resultSigma = f(x),
-          .constraints = { 3 + a != f(x) } }, 
+          .resultSigma = f(y),
+          .constraints = { 3 + a != f(y) } }, 
 
       }
 })
@@ -566,35 +565,24 @@ RUN_TEST(term_indexing_poly_uwa_01,
         f(alpha, a(alpha)),
         f(alpha, b(alpha)),
         f(A, someA),
+        f(A, a(A)),
       },
-      .query = f(Int, a(Int) + y),
+      .query = f(Int, a(Int) + x),
       .expected =  {
+
         TermUnificationResultSpec 
-        { .querySigma  = f(Int, a(Int) + y),
+        { .querySigma  = f(Int, a(Int) + x),
           .resultSigma = f(Int, a(Int)),
-          .constraints = { f(Int, a(Int)) != f(Int, a(Int) + y) } }, 
+          .constraints = { a(Int) != a(Int) + x } }, 
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(Int, a(Int) + x),
+          .resultSigma = f(Int, b(Int)),
+          .constraints = { b(Int) != a(Int) + x } }, 
+
       }
     })
 
-
-RUN_TEST(term_indexing_poly_uwa_02,
-    POLY_INT_SUGAR,
-    IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
-      .insert = {
-        f(alpha, a(alpha)),
-        f(alpha, b(alpha)),
-        f(A, someA),
-      },
-      .query = f(Int, a(Int) + y),
-      .expected =  {
-        TermUnificationResultSpec 
-        { .querySigma  = f(Int, a(Int) + y),
-          .resultSigma = f(Int, a(Int)),
-          .constraints = { f(Int, a(Int)) != f(Int, a(Int) + y) } }, 
-
-      }
-    })
 
 TEST_FUN(term_indexing_interp_only)
 {
@@ -655,7 +643,6 @@ TEST_FUN(literal_indexing)
 
   index->insert(p(num(1) + num(1)), unit(p(num(1) + num(1))));
   index->insert(p(1 + a), unit(p(1 + a)));  
-
 
   checkLiteralMatches(*index,p(b + 2),{
 
@@ -809,7 +796,6 @@ void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstracti
   if(is.isNone()) {
       cout << "[  OK  ] " << a << " unify " << b << endl;
   } else {
-
     cout << "[ FAIL ] " << a << " unify " << b << endl;
     cout << "is:       " << is << endl;
     cout << "expected: nothing" << endl;

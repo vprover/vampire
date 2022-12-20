@@ -33,6 +33,18 @@
 using namespace Lib;
 using namespace Indexing;
 
+IndexManager::IndexManager(SaturationAlgorithm* alg) 
+  : _alg(alg) 
+  , _mismatchHandler()
+{ 
+  if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
+    _mismatchHandler = make_unique<UWAMismatchHandler>();
+  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+    // TODO  ask ahmed: are this the corret options for higher order abstraction
+    _mismatchHandler = make_unique<HOMismatchHandler>();
+  }
+}
+
 Index* IndexManager::request(IndexType t)
 {
   CALL("IndexManager::request");
@@ -105,13 +117,12 @@ Index* IndexManager::create(IndexType t)
   TermIndexingStructure* tis;
 
   bool isGenerating;
-  static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
                     env.property->higherOrder();
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree(useConstraints);
+    is=new LiteralSubstitutionTree(_mismatchHandler.get());
     res=new BinaryResolutionIndex(is);
     isGenerating = true;
     break;
@@ -137,13 +148,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+    tis=new TermSubstitutionTree(_mismatchHandler.get(), extByAbs);
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new SuperpositionLHSIndex(new TermSubstitutionTree(_mismatchHandler.get(), extByAbs), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     
@@ -161,7 +171,7 @@ Index* IndexManager::create(IndexType t)
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(false, false, true);
+    tis=new TermSubstitutionTree(/* mismatchHandler */ nullptr, false, true);
     res=new SkolemisingFormulaIndex(tis);
     isGenerating = false;
     break;

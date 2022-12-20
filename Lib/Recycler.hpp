@@ -88,6 +88,56 @@ private:
   }
 };
 
+struct DefaultReset 
+{ template<class T> void operator()(T& t) { t.reset(); } };
+
+struct NoReset 
+{ template<class T> void operator()(T& t) {  } };
+
+
+
+template<class T, class Reset = DefaultReset>
+class RecycledPointer 
+{
+  T* _ptr;
+  Reset _reset;
+public: 
+
+  RecycledPointer()
+    : _ptr(nullptr) 
+    , _reset()
+  { Recycler::get(_ptr); }
+
+  RecycledPointer(RecycledPointer&& other)
+    : _ptr(other._ptr)
+  { other._ptr = nullptr; }
+
+  operator bool() 
+  { return _ptr; }
+
+  RecycledPointer& operator=(RecycledPointer&& other)
+  { 
+    swap(_ptr, other._ptr);
+    return *this;
+  }
+
+  ~RecycledPointer()
+  { 
+    if (_ptr) {
+      _reset(*_ptr);
+      Recycler::release(_ptr);  
+    }
+  }
+
+  T const& operator* () const { ASS(*this); return *_ptr; }
+  T const* operator->() const { ASS(*this); return  _ptr; }
+  T& operator* () {  ASS(*this); return *_ptr; }
+  T* operator->() {  ASS(*this); return  _ptr; }
+
+  friend std::ostream& operator<<(std::ostream& out, RecycledPointer const& self)
+  { return self._ptr ? out << *self._ptr : out << "RecycledPointer(nullptr)"; }
+};
+
 };
 
 #endif /*__Recycler__*/

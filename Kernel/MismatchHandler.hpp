@@ -25,6 +25,7 @@ namespace Kernel
 class MismatchHandler
 {
 public:
+  virtual ~MismatchHandler() {}
   struct ConstraintSet 
   { virtual void addConstraint(
       TermList t1, unsigned i1, 

@@ -70,6 +70,9 @@ typedef List<TermList> SList; // a list of sorts (which are now, with polymorphi
 typedef const SharedSet<unsigned> VarSet;
 
 typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
+template<class A, class B>
+std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
+{ return out << "(" << self.first << ", " << self.second << ")"; }
 typedef Stack<UnificationConstraint> UnificationConstraintStack;
 typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 

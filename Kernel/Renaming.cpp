@@ -121,24 +121,49 @@ void Renaming::makeInverse(const Renaming& orig)
   _identity = orig.identity();
 }
 
+TypedTermList Renaming::normalize(TypedTermList l)
+{
+  CALL("Renaming::normalize(Literal*)");
+  if (l.isTerm()) {
+    return TypedTermList(normalize(l.term()));
+  } else {
+    RecycledPointer<Renaming> n;
+    n->reset();
+    n->normalizeVariables(TermList(l));
+    n->normalizeVariables(l.sort());
+    return TypedTermList(n->apply(TermList(l)), n->apply(l.sort()));
+  }
+}
+
+
 Literal* Renaming::normalize(Literal* l)
 {
   CALL("Renaming::normalize(Literal*)");
 
-  static Renaming n;
-  n.reset();
-  n.normalizeVariables(l);
-  return n.apply(l);
+  RecycledPointer<Renaming> n;
+  n->reset();
+  n->normalizeVariables(l);
+  return n->apply(l);
 }
 
 Term* Renaming::normalize(Term* trm)
 {
   CALL("Renaming::normalize(Term*)");
 
-  static Renaming n;
-  n.reset();
-  n.normalizeVariables(trm);
-  return n.apply(trm);
+  RecycledPointer<Renaming> n;
+  n->reset();
+  n->normalizeVariables(trm);
+  return n->apply(trm);
+}
+
+TermList Renaming::normalize(TermList trm)
+{
+  CALL("Renaming::normalize(TermList)");
+
+  RecycledPointer<Renaming> n;
+  n->reset();
+  n->normalizeVariables(trm);
+  return n->apply(trm);
 }
 
 

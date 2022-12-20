@@ -13,7 +13,7 @@
  *
  */
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 
@@ -33,6 +33,7 @@ bool UWAMismatchHandler::canAbstract(TermList t1, TermList t2) const
 {
 
   if(!(t1.isTerm() && t2.isTerm())) return false;
+  if(t1.term()->isSort() || t2.term()->isSort()) return false;
 
 
   bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
