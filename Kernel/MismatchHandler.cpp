@@ -25,9 +25,32 @@
 
 #include "MismatchHandler.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
+#include "Kernel/SortHelper.hpp"
 
 namespace Kernel
 {
+
+unique_ptr<MismatchHandler> MismatchHandler::create()
+{
+  if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
+    return make_unique<UWAMismatchHandler>();
+  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+    // TODO  ask ahmed: are this the corret options for higher order abstraction
+    return make_unique<HOMismatchHandler>();
+  } else {
+    return unique_ptr<MismatchHandler>();
+  }
+}
+
+unique_ptr<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
+{
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+    // TODO  ask ahmed: are this the corret options for higher order abstraction
+    return make_unique<HOMismatchHandler>();
+  } else {
+    return unique_ptr<MismatchHandler>();
+  }
+}
 
 bool UWAMismatchHandler::canAbstract(TermList t1, TermList t2) const 
 {
@@ -67,6 +90,22 @@ bool UWAMismatchHandler::canAbstract(TermList t1, TermList t2) const
   return okay;
 
 }
+
+bool UWAMismatchHandler::recheck(UnificationConstraint const& c, RobSubstitution& s) const
+{ 
+  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
+  if (opt == Shell::Options::UnificationWithAbstraction::GROUND) {
+    auto l = s.apply(c.term1, c.index1);
+    auto r = s.apply(c.term2, c.index2);
+    return (l.ground() && r.ground()) 
+      && (UnificationWithAbstractionConfig::isInterpreted(l) || UnificationWithAbstractionConfig::isInterpreted(r));
+
+  } else {
+    return canAbstract(s.apply(c.term1, c.index1), s.apply(c.term2, c.index2)); 
+
+  }
+}
+
 bool UWAMismatchHandler::tryAbstract(
       TermList o1, unsigned i1, 
       TermList o2, unsigned i2,
@@ -80,7 +119,7 @@ bool UWAMismatchHandler::tryAbstract(
   auto abs = canAbstract(t1, t2);
   DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
   if (abs) {
-    constr.addConstraint(o1, i1, o2, i2);
+    constr.addConstraint(UnificationConstraint(o1, i1, o2, i2));
   }
   return abs;
 }
@@ -95,5 +134,15 @@ bool HOMismatchHandler::tryAbstract(
   DBG("TODO")
   return false;
 }
+
+Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s) const
+{ 
+  auto t1 = s.apply(term1, index1);
+  auto t2 = s.apply(term2, index2);
+  return t1 == t2 
+    ? Option<Literal*>()
+    : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));
+}
+
 
 }

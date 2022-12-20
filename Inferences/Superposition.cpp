@@ -325,7 +325,7 @@ Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-    UnificationConstraintStackSP constraints)
+    UnificationConstraintStackSP rawConstraints)
 {
   CALL("Superposition::performSuperposition");
   TIME_TRACE("perform superposition");
@@ -334,7 +334,8 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
+  auto constraints = rawConstraints->isEmpty() ? Stack<Literal*>() : rawConstraints->toLiteralStack(*subst->tryGetRobSubstitution());
+  bool hasConstraints = !constraints.isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
 
@@ -350,7 +351,6 @@ Clause* Superposition::performSuperposition(
 
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
-  unsigned conLength = hasConstraints ? constraints->size() : 0;
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
@@ -417,7 +417,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1+conLength;
+  unsigned newLength = rwLength+eqLength-1+constraints.size();
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -539,30 +539,9 @@ Clause* Superposition::performSuperposition(
       }
     }
   }
-  if(hasConstraints){
-    for(unsigned i=0;i<constraints->size();i++){
-      UnificationConstraint con = (*constraints)[i];
 
-      TermList qT = subst->applyTo(con.first.first,con.first.second);
-      TermList rT = subst->applyTo(con.second.first,con.second.second);
-
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
-
-      static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
-      if(uwa==Options::UnificationWithAbstraction::GROUND && 
-         !constraint->ground() &&
-         (!UnificationWithAbstractionConfig::isInterpreted(qT) 
-          && !UnificationWithAbstractionConfig::isInterpreted(rT) )) {
-
-        // the unification was between two uninterpreted things that were not ground 
-        res->destroy();
-        return 0;
-      }
-
-      (*res)[next] = constraint;
-      next++;   
-    }
+  for(auto c : constraints){
+    (*res)[next++] = c;
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
@@ -592,12 +571,5 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-/*
-  if(hasConstraints){ 
-    cout << "RETURNING " << res->toString() << endl;
-    //NOT_IMPLEMENTED;
-  }
-*/
-//  cout << "result " + res->toString() << endl;
   return res;
 }

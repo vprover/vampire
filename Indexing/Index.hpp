@@ -22,12 +22,12 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Lib/Allocator.hpp"
 
 namespace Indexing
 {
-
 using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;

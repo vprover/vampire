@@ -136,8 +136,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     return 0;
   }
 
-  auto constraints = qr.constraints;
-  bool withConstraints = !constraints.isEmpty() && !constraints->isEmpty();
+  auto constraints = qr.constraints ? qr.constraints->toLiteralStack(*qr.substitution->tryGetRobSubstitution())
+                                    : Stack<Literal*>();
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
 
@@ -150,7 +150,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Int::max(queryLit->isPositive() ? queryCl->numPositiveLiterals()-1 : queryCl->numPositiveLiterals(),
               qr.literal->isPositive() ? qr.clause->numPositiveLiterals()-1 : qr.clause->numPositiveLiterals());
 
-  Inference inf(GeneratingInference2(withConstraints?
+  Inference inf(GeneratingInference2(constraints.isNonEmpty() ?
       InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, qr.clause));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
@@ -176,8 +176,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  unsigned conlength = withConstraints ? constraints->size() : 0;
-  unsigned newLength = clength+dlength-2+conlength;
+  unsigned newLength = clength+dlength-2+constraints.size();
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -187,50 +186,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
-#if VDEBUG
-/*
-  if(withConstraints && constraints->size() > 0){
-    cout << "Other: " << qr.clause->toString() << endl;
-    cout << "queryLit: " << queryLit->toString() << endl;
-    cout << "resLit: " << qr.literal->toString() << endl;
-    cout << "SUB:" << endl << qr.substitution->toString() << endl;
-*/
-/*
-    cout << "SUB(deref):" << endl << qr.substitution->toString(true) << endl;
-*/
-  //}
-#endif
 
   unsigned next = 0;
-  if(withConstraints){
-  for(unsigned i=0;i<constraints->size();i++){
-      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (*constraints)[i]; 
-
-#if VDEBUG
-      //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
-#endif
-  
-      TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
-      TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
-
-      TermList sort = SortHelper::getResultSort(rT.term()); 
-
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
-
-      static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
-      if(uwa==Options::UnificationWithAbstraction::GROUND &&
-         !constraint->ground() &&
-         (!UnificationWithAbstractionConfig::isInterpreted(qT) && 
-          !UnificationWithAbstractionConfig::isInterpreted(rT))) {
-
-        // the unification was between two uninterpreted things that were not ground 
-        res->destroy();
-        return 0;
-      }
-
-      (*res)[next] = constraint; 
-      next++;    
-  }
+  for(Literal* c : constraints){
+      (*res)[next++] = c; 
   }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
@@ -302,14 +261,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  if(withConstraints){
+  if(constraints.isNonEmpty()){
     env.statistics->cResolution++;
   }
   else{ 
     env.statistics->resolution++;
   }
-
-  //cout << "RESULT " << res->toString() << endl;
 
   return res;
 }

@@ -43,30 +43,12 @@ Clause* unit(Literal* lit)
   return clause({ lit });
 }
 
-Stack<Literal*> constraintLits(Stack<UnificationConstraint>& cnst, RobSubstitution& subs) {
 
-  auto constraintLit = [&](UnificationConstraint c) {
-    auto createTerm = [&](auto x) 
-      { return subs.apply(x.first, x.second); };
-    auto s = createTerm(c.first);
-    auto t = createTerm(c.second);
-    TermList srt = SortHelper::getResultSort(s.isTerm() ? s.term() : t.term());
-    return Literal::createEquality(false, s,t,srt);
-  };
-  return iterTraits(cnst.iterFifo())
-       .map([&](auto c) { return constraintLit(c); })
-       .collect<Stack>();
-}
+Stack<Literal*> constraintLits(UnificationConstraintStack& cnst, RobSubstitution& subs) 
+{ return cnst.literalIter(subs).template collect<Stack>(); }
 
-
-Stack<Literal*> constraintLits(UnificationConstraintStackSP& cnst, RobSubstitution& subs) {
-
-  if (cnst) {
-    return constraintLits(*cnst, subs);
-  } else {
-    return Stack<Literal*>();
-  }
-}
+Stack<Literal*> constraintLits(UnificationConstraintStackSP& cnst, RobSubstitution& subs) 
+{ return cnst ? constraintLits(*cnst, subs) : Stack<Literal*>(); }
 
 
 unique_ptr<TermSubstitutionTree> getTermIndexHOL()
@@ -756,7 +738,7 @@ static const int NORM_RESULT_BANK=3;
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
   // TODO parameter instead of opts
   env.options->setUWA(opt);
-  Stack<UnificationConstraint> cnst;
+  UnificationConstraintStack cnst;
   MismatchHandler::StackConstraintSet c(cnst);
   UWAMismatchHandler h;
   RobSubstitution subs;

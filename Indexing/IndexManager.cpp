@@ -35,15 +35,8 @@ using namespace Indexing;
 
 IndexManager::IndexManager(SaturationAlgorithm* alg) 
   : _alg(alg) 
-  , _mismatchHandler()
-{ 
-  if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-    _mismatchHandler = make_unique<UWAMismatchHandler>();
-  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
-    // TODO  ask ahmed: are this the corret options for higher order abstraction
-    _mismatchHandler = make_unique<HOMismatchHandler>();
-  }
-}
+  , _mismatchHandler(MismatchHandler::create())
+{ }
 
 Index* IndexManager::request(IndexType t)
 {
