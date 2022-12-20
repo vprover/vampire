@@ -88,13 +88,14 @@ private:
   template<class Iterator, class TypedOrUntypedTermList> 
   auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
   { 
-    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints))
+    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints ? _mismatchHandler : nullptr))
       .map([this](QueryResult qr) 
         { return TermQueryResult(
             _extra ? qr.data->extraTerm : qr.data->term,
             qr.data->literal, qr.data->clause, qr.subst, qr.constr); }) ; 
   }
 
+  MismatchHandler* _mismatchHandler;
   //higher-order concerns
   bool _extra;
 

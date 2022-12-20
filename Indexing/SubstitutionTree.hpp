@@ -124,7 +124,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(MismatchHandler* mismatchHandler, bool polymorphic, bool rfSubs);
+  SubstitutionTree(bool polymorphic, bool rfSubs);
   SubstitutionTree(SubstitutionTree const&) = delete;
 
   virtual ~SubstitutionTree();
@@ -205,12 +205,12 @@ public:
   using QueryResultIterator = VirtualIterator<QueryResult>;
   // TODO make const function
   template<class Iterator, class TermOrLit> 
-  VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool reversed = false)
+  VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, MismatchHandler* handler, bool reversed = false)
   {
     CALL("TermSubstitutionTree::iterator");
     return _root == nullptr 
       ? QueryResultIterator::getEmpty()
-      : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, _functionalSubtermMap.asPtr() ))
+      : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, handler, _functionalSubtermMap.asPtr() ))
                     .filter([this, query](auto& r) { return _polymorphic || monomorphicSortCheck(r, query);  })
                     // .filterMap([withConstraints](auto r) { 
                     //   if (withConstraints) {
@@ -661,7 +661,6 @@ private:
 
   /** Number of the next variable */
   int _nextVar;
-  MismatchHandler* _mismatchHandler;
   bool _polymorphic;
   /** functional subterms of a term are replaced by extra sepcial
       variables before being inserted into the tree */
@@ -706,7 +705,7 @@ public:
   {
     return _root == nullptr 
       ? false
-      : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false, /* useC */ false).hasNext();
+      : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false, /* mismatchHandler */ nullptr).hasNext();
   }
 
   template<class Query>
@@ -932,7 +931,7 @@ public:
      * 	reversed. (useful for retrieval commutative terms)
      */
     template<class TermOrLit>
-    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* fstm = nullptr)
+    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* handler, FuncSubtermMap* fstm = nullptr)
       : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
       , _inLeaf(false)
@@ -949,7 +948,7 @@ public:
       ASS(root);
       ASS(!root->isLeaf());
 
-      ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
+      ASS_REP(handler == nullptr, "instantion with abstraction is not a thing (yet (?))")
 
       parent->createBindings(query, reversed,
           [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
@@ -1192,9 +1191,7 @@ public:
      * 	reversed. (useful for retrieval commutative terms)
      */
     template<class TermOrLit>
-    FastInstancesIterator(SubstitutionTree* parent, Node* root,
-      TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, 
-      FuncSubtermMap* fstm) //final two for compatibility purposes
+    FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* handler, FuncSubtermMap* fstm) //final two for compatibility purposes
       : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
       , _inLeaf(false)
@@ -1246,7 +1243,7 @@ public:
     DECL_ELEMENT_TYPE(QueryResult);
 
     template<class TermOrLit>
-    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* funcSubtermMap)
+    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* mismatchHandler, FuncSubtermMap* funcSubtermMap)
       : _subst()
       , _svStack()
       , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
@@ -1256,7 +1253,7 @@ public:
       , _nodeIterators()
       , _bdStack()
       , _clientBDRecording(false)
-      , _mismatchHandler(useC ? parent->_mismatchHandler : nullptr)
+      , _mismatchHandler(mismatchHandler)
       , _constraints()
       , _parentIterCntr(parent)
 #if VDEBUG
@@ -1265,7 +1262,6 @@ public:
     {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
       CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
-      ASS(!useC || parent->_mismatchHandler)
 
       if(!root) {
         return;

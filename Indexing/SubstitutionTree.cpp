@@ -52,9 +52,8 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(MismatchHandler* mismatchHandler, bool polymorphic, bool rfSubs)
+SubstitutionTree::SubstitutionTree(bool polymorphic, bool rfSubs)
   : _nextVar(0)
-  , _mismatchHandler(mismatchHandler)
   , _polymorphic(polymorphic)
   , _functionalSubtermMap(rfSubs ? Option<FuncSubtermMap>(FuncSubtermMap()) : Option<FuncSubtermMap>())
   , _root(nullptr)

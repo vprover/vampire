@@ -24,7 +24,8 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(MismatchHandler* handler, bool rfSubs, bool extra)
-: SubstitutionTree(handler, /* polymorphic */ env.property->hasPolymorphicSym() || env.property->higherOrder(), rfSubs)
+: SubstitutionTree(/* polymorphic */ env.property->hasPolymorphicSym() || env.property->higherOrder(), rfSubs)
+, _mismatchHandler(handler)
 , _extra(extra)
 { }
 

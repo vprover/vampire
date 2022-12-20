@@ -82,7 +82,7 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
 {
   auto idx = complementary ? lit->header() : lit->complementaryHeader();
   while (idx >= _trees.size()) {
-    _trees.push(make_unique<SubstitutionTree>(_mismatchHandler, _polymorphic, /* rfSubs */ false));
+    _trees.push(make_unique<SubstitutionTree>(_polymorphic, /* rfSubs */ false));
   }
   return *_trees[idx];
 }
@@ -93,7 +93,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, b
   CALL("LiteralSubstitutionTree::getResultIterator");
 
   auto iter = [&](bool reversed) 
-    { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, useConstraints, reversed)) ; };
+    { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, useConstraints ? _mismatchHandler : nullptr, reversed)) ; };
 
   auto filterResults = [=](auto it) { 
     return pvi(
