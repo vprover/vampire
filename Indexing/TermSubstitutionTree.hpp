@@ -87,7 +87,7 @@ private:
   template<class Iterator, class TypedOrUntypedTermList> 
   auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
   { 
-    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints, (_extByAbs ? &_functionalSubtermMap : nullptr)))
+    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints))
       .map([this](QueryResult qr) 
         { return TermQueryResult(
             _extra ? qr.data->extraTerm : qr.data->term,
@@ -96,9 +96,7 @@ private:
 
   //higher-order concerns
   bool _extra;
-  bool _extByAbs;
 
-  FuncSubtermMap _functionalSubtermMap;
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
   { return out << (SubstitutionTree const&) self; }
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)

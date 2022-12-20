@@ -65,10 +65,9 @@ private:
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
-  bool _polymorphic;
-  bool _useC;
-  // SubstitutionTree _root;
   Stack<unique_ptr<SubstitutionTree>> _trees;
+  bool _useC;
+  bool _polymorphic;
 };
 
 };

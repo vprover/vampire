@@ -41,6 +41,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/OperatorType.hpp"
+#include "Lib/Option.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
@@ -72,7 +73,6 @@ namespace Indexing {
 class SubstitutionTree;
 std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
-
 
 /**
  * Class of substitution trees. In fact, contains an array of substitution
@@ -111,20 +111,8 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(bool useC=false, bool rfSubs=false);
+  SubstitutionTree(bool useC, bool polymorphic, bool rfSubs);
   SubstitutionTree(SubstitutionTree const&) = delete;
-  SubstitutionTree(SubstitutionTree&& other)
-    : _useC(other._useC)
-    , _rfSubs(other._rfSubs)
-    , _root(other._root)
-#if DEBUG
-    , _tag(other._tag)
-    , _iteratorCnt(0)
-#endif
-  { 
-    other._root = nullptr; 
-    ASS_EQ(other._iteratorCnt,0)
-  }
 
   virtual ~SubstitutionTree();
 
@@ -182,10 +170,10 @@ public:
   using QueryResultIterator = VirtualIterator<QueryResult>;
   // TODO make const function
   template<class Iterator, class TermOrLit> 
-  VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, FuncSubtermMap* funcSubterms, bool reversed = false)
+  VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool reversed = false)
   {
     CALL("TermSubstitutionTree::iterator");
-    return _root ? pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, funcSubterms ))
+    return _root ? pvi(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, _functionalSubtermMap.asPtr() ))
                  : QueryResultIterator::getEmpty(); }
 
   class LDComparator
@@ -755,15 +743,15 @@ public:
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
   template<class Key>
-  void handle(Key const& key, LeafData ld, bool doInsert, FuncSubtermMap* extByAbs)
+  void handle(Key const& key, LeafData ld, bool doInsert)
   {
     auto norm = Renaming::normalize(key);
-    if (extByAbs) {
-      norm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(norm, extByAbs);
+    if (_functionalSubtermMap.isSome()) {
+      norm = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(norm, &_functionalSubtermMap.unwrap());
     }
 
     RecycledPointer<BindingMap> bindings;
-    SubstitutionTree::createInitialBindings(norm, /* reversed */ false,
+    createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
           _nextVar = max(_nextVar, (int)var + 1);
@@ -772,7 +760,7 @@ public:
     else          remove(*bindings, ld);
   }
 
-// private:
+private:
   void insert(BindingMap& binding,LeafData ld);
   void remove(BindingMap& binding,LeafData ld);
 
@@ -781,15 +769,16 @@ public:
   /** Array of nodes */
   /** enable searching with constraints for this tree */
   bool _useC;
+  bool _polymorphic;
   /** functional subterms of a term are replaced by extra sepcial
       variables before being inserted into the tree */
-  bool _rfSubs;
+  Option<FuncSubtermMap> _functionalSubtermMap;
   Node* _root;
 #if VDEBUG
   bool _tag;
-// #endif
-// public:
-// #if VDEBUG
+#endif
+public:
+#if VDEBUG
   // Tags are used as a debug tool to turn debugging on for a particular instance
   virtual void markTagged(){ _tag=true;}
 #endif
@@ -853,21 +842,21 @@ public:
     RenamingSubstitution* renaming = retrieveSubstitutions ? new RenamingSubstitution() : nullptr;
     ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(renaming) : ResultSubstitutionSP();
 
-    Query normLit;
+    Query normQuery;
     if (retrieveSubstitutions) {
       renaming->_query->normalizeVariables(query);
-      normLit = renaming->_query->apply(query);
+      normQuery = renaming->_query->apply(query);
     } else {
-      normLit = Renaming::normalize(query);
+      normQuery = Renaming::normalize(query);
     }
 
-    BindingMap svBindings;
-    SubstitutionTree::createInitialBindings(normLit, /* reversed */ false,
+    RecycledPointer<BindingMap> svBindings;
+    createBindings(normQuery, /* reversed */ false,
         [&](auto v, auto t) { {
           _nextVar = max<int>(_nextVar, v + 1); // TODO do we need this line?
-          svBindings.insert(v, t);
+          svBindings->insert(v, t);
         } });
-    Leaf* leaf = findLeaf(svBindings);
+    Leaf* leaf = findLeaf(*svBindings);
     if(leaf==0) {
       return QueryResultIterator::getEmpty();
     } else {
@@ -998,7 +987,7 @@ public:
 
   // TODO document
   template<class BindingFunction>
-  static void createInitialBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
+  void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
   {
     bindSpecialVar(0, term);
     bindSpecialVar(1, term.sort());
@@ -1006,11 +995,11 @@ public:
 
   // TODO document
   template<class BindingFunction>
-  static void createInitialBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
+  void createBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
   { bindSpecialVar(0, term); }
 
   template<class BindingFunction>
-  static void createInitialBindings(Literal* lit, bool reversed, BindingFunction bindSpecialVar)
+  void createBindings(Literal* lit, bool reversed, BindingFunction bindSpecialVar)
   {
     if (lit->isEquality()) {
 
@@ -1084,7 +1073,7 @@ public:
 
       ASS_REP(!useC, "instantion with abstraction is not a thing (yet (?))")
 
-      SubstitutionTree::createInitialBindings(query, reversed,
+      parent->createBindings(query, reversed,
           [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
     }
 
@@ -1342,7 +1331,7 @@ public:
       ASS(root);
       ASS(!root->isLeaf());
 
-      SubstitutionTree::createInitialBindings(query, reversed,
+      parent->createBindings(query, reversed,
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
     }
 
@@ -1435,7 +1424,7 @@ public:
         query = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(query, funcSubtermMap);
       }
 
-      SubstitutionTree::createInitialBindings(query, reversed, 
+      parent->createBindings(query, reversed, 
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
       DEBUG_QUERY("query: ", subst)
 

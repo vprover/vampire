@@ -29,15 +29,14 @@ namespace Indexing
 {
 
 LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
-: _useC(useC)
-, _trees(env.signature->predicates() * 2)
-{
+: _trees(env.signature->predicates() * 2)
+, _useC(useC)
   //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
   //However, there is no need to guard aginst it, as equalityProxy removes all
   //equality literals. The flag below is only used during the unification of 
   //equality literals.
-  _polymorphic = env.property->hasPolymorphicSym() || env.property->higherOrder();
-}
+, _polymorphic(env.property->hasPolymorphicSym() || env.property->higherOrder())
+{ }
 
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
 { handleLiteral(lit, cls, /* insert */ true); }
@@ -50,7 +49,7 @@ void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool inse
   CALL("LiteralSubstitutionTree::handleLiteral");
   // TODO make this and insnert one fuction
   auto& tree = getTree(lit, /* complementary */ false);
-  tree.handle(lit, SubstitutionTree::LeafData(cls, lit), insert, /* extByAbs */ nullptr);
+  tree.handle(lit, SubstitutionTree::LeafData(cls, lit), insert);
 }
 
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
@@ -109,7 +108,7 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
 {
   auto idx = complementary ? lit->header() : lit->complementaryHeader();
   while (idx >= _trees.size()) {
-    _trees.push(make_unique<SubstitutionTree>(_useC));
+    _trees.push(make_unique<SubstitutionTree>(_useC, _polymorphic, /* rfSubs */ false));
   }
   return *_trees[idx];
 }
@@ -121,7 +120,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, b
 
   // auto& tree = getTree(lit, complementary);
   auto iter = [&](bool reversed) 
-    { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, useConstraints, /* funcSubtermMap */ nullptr, reversed)) ; };
+    { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, useConstraints, reversed)) ; };
 
   auto filterResults = [=](auto it) { 
     return pvi(
