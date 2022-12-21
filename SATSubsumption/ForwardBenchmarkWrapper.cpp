@@ -14,6 +14,7 @@ using namespace Inferences;
 
 static std::chrono::high_resolution_clock::duration totalDuration = chrono::duration<int64_t, std::nano>::zero();
 static ofstream outputFile;
+static ofstream problemFile;
 
 ForwardBenchmarkWrapper::ForwardBenchmarkWrapper(bool subsumptionResolution) : _forwardBenchmark(subsumptionResolution), _forwardOracle(subsumptionResolution), _subsumptionResolution(subsumptionResolution)
 {
@@ -24,7 +25,6 @@ ForwardBenchmarkWrapper::~ForwardBenchmarkWrapper()
 {
 }
 
-std::ofstream problemFile;
 
 void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
 {
@@ -37,7 +37,6 @@ void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
 
   _forwardBenchmark.attach(salg);
   _forwardOracle.attach(salg);
-
   BYPASSING_ALLOCATOR
   {
     // replace the '.' with '_' in the file name
@@ -68,7 +67,9 @@ void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
 #if USE_OPTIMIZED_FORWARD
     fileName += "_opt";
 #endif
+#if !CORRELATE_LENGTH_TIME
     outputFile.open(fileName.c_str());
+#endif
   }
 }
 
@@ -92,14 +93,17 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
   /* First measure the time for the method */
   ClauseIterator premiseAux;
   Clause* replacementAux = nullptr;
-
+#if !CORRELATE_LENGTH_TIME
   auto start = chrono::high_resolution_clock::now();
+#endif
   bool resultAux = _forwardBenchmark.perform(cl, replacementAux, premiseAux);
+#if !CORRELATE_LENGTH_TIME
   auto stop = chrono::high_resolution_clock::now();
 
   auto duration = chrono::duration_cast<chrono::nanoseconds>(stop - start);
   totalDuration += duration;
   outputFile << duration.count() << endl;
+#endif
 
   /* Then compute the output using the oracle */
   bool result = _forwardOracle.perform(cl, replacement, premises);
@@ -148,7 +152,9 @@ void ForwardBenchmarkWrapper::printStats(std::ostream &out)
   out << "Total time for perform: " << ((double)totalDuration.count() / 1000000000) << " seconds" << endl;
   BYPASSING_ALLOCATOR
   {
+    #if CORRELATE_LENGTH_TIME
     outputFile.close();
+    #endif
     if(problemFile.is_open()) {
       problemFile.close();
     }

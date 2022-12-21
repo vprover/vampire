@@ -24,6 +24,9 @@
 #include <iostream> //include the header files like input-output streams
 #include <fstream>  //include the filestreamobject as the header files
 #endif
+#if CORRELATE_LENGTH_TIME
+#include <chrono>
+#endif
 
 namespace SATSubsumption {
 class SATSubsumptionAndResolution;
@@ -476,6 +479,11 @@ private:
 public:
   CLASS_NAME(SATSubsumptionAndResolution);
   USE_ALLOCATOR(SATSubsumptionAndResolution);
+
+#if CORRELATE_LENGTH_TIME
+  std::chrono::_V2::system_clock::time_point start = chrono::high_resolution_clock::now();
+  std::chrono::_V2::system_clock::time_point stop = start;
+#endif
 
   SATSubsumptionAndResolution() :
     _L(nullptr),

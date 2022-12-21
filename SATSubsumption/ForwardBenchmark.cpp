@@ -18,6 +18,11 @@
 #include "Kernel/ColorHelper.hpp"
 #endif
 
+#if CORRELATE_LENGTH_TIME
+#include <chrono>
+#include <fstream>
+#endif
+
 namespace Inferences {
 using namespace std;
 using namespace Lib;
@@ -37,6 +42,10 @@ ForwardBenchmark::~ForwardBenchmark()
 {
 }
 
+#if CORRELATE_LENGTH_TIME
+static ofstream correlationFile;
+#endif
+
 void ForwardBenchmark::attach(SaturationAlgorithm *salg)
 {
   CALL("ForwardBenchmark::attach");
@@ -45,6 +54,20 @@ void ForwardBenchmark::attach(SaturationAlgorithm *salg)
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
+#if CORRELATE_LENGTH_TIME
+  BYPASSING_ALLOCATOR
+  {
+    vstring fileName = "BenchmarkResult/correlation_";
+#if SAT_SR_IMPL == 1
+    fileName += "sat_1_";
+#elif SAT_SR_IMPL == 2
+    fileName += "sat_2_";
+#endif
+    fileName += env.options->problemName() + ".csv";
+    correlationFile.open(fileName.c_str());
+    correlationFile << "len_mcl,len_cl,time" << endl;
+  }
+#endif
 }
 
 void ForwardBenchmark::detach()
@@ -341,7 +364,7 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl, ClauseIterator 
     return nullptr;
   }
 
-  #if USE_SAT_SUBSUMPTION_FORWARD
+#if USE_SAT_SUBSUMPTION_FORWARD
   // Need to fill the cms as the subsumption procedure does do it
   ASS(cmStore.isEmpty());
   // check long clauses
@@ -366,7 +389,7 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl, ClauseIterator 
       }
     }
   }
-  #endif
+#endif
 
   Clause *resolutionClause = nullptr;
   TIME_TRACE("forward subsumption resolution");
@@ -539,20 +562,32 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl)
   /*******************************************************/
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
-    auto it = _fwIndex->getGeneralizations(lit, true, false);
+    auto it = _fwIndex->getGeneralizations(lit, false, false);
     while (it.hasNext()) {
       mcl = it.next().clause;
       _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+#if CORRELATE_LENGTH_TIME
+      auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
+      if (duration.count() > 0) {
+        correlationFile << mcl->length() << "," << cl->length() << "," << duration.count() << endl;
+      }
+#endif
       if (_conclusion) {
         ASS(_premise == nullptr);
         _premise = mcl;
         return _conclusion;
       }
     }
-    it = _fwIndex->getGeneralizations(lit, false, false);
+    it = _fwIndex->getGeneralizations(lit, true, false);
     while (it.hasNext()) {
       mcl = it.next().clause;
       _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+#if CORRELATE_LENGTH_TIME
+      auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
+      if (duration.count() > 0) {
+        correlationFile << mcl->length() << "," << cl->length() << "," << duration.count() << endl;
+      }
+#endif
       if (_conclusion) {
         ASS(_premise == nullptr);
         _premise = mcl;
@@ -742,6 +777,12 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
         // checkSubsumption resolution is very fast after subsumption, since filling the match set
         // for subsumption will have already detected that subsumption resolution is impossible
         _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);
+#if CORRELATE_LENGTH_TIME
+        auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
+        if (duration.count() > 0) {
+          correlationFile << mcl->length() << "," << cl->length() << "," << duration.count() << endl;
+        }
+#endif
         if (_conclusion) {
           ASS(_premise == nullptr);
           // cannot override the premise since the loop would have ended otherwise
@@ -801,6 +842,12 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
       }
 
       _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+#if CORRELATE_LENGTH_TIME
+      auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
+      if (duration.count() > 0) {
+        correlationFile << mcl->length() << "," << cl->length() << "," << duration.count() << endl;
+      }
+#endif
       if (_conclusion) {
         ASS(_premise == nullptr);
         _premise = mcl;
