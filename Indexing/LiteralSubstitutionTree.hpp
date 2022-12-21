@@ -38,7 +38,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(MismatchHandler* mismtachHandler = nullptr);
+  LiteralSubstitutionTree(MismatchHandler* mismtachHandler, bool polymorphic);
 
   void insert(Literal* lit, Clause* cls) final override;
   void remove(Literal* lit, Clause* cls) final override;

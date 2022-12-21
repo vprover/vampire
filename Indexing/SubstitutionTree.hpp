@@ -124,7 +124,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(bool polymorphic, bool rfSubs);
+  SubstitutionTree(bool polymorphic);
   SubstitutionTree(SubstitutionTree const&) = delete;
 
   virtual ~SubstitutionTree();

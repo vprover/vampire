@@ -51,7 +51,7 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(MismatchHandler* handler = nullptr, bool replaceFunctionalSubterms = false, bool extra = false);
+  TermSubstitutionTree(MismatchHandler* handler, bool polymorphic, bool extra);
 
   void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert);
 
