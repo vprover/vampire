@@ -43,14 +43,14 @@ struct SLQueryResult
   : literal(l), clause(c), substitution(s) {}
   SLQueryResult(Literal* l, Clause* c)
   : literal(l), clause(c) {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
+  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con)
   : literal(l), clause(c), substitution(s), constraints(con) {}
 
 
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
+  UnificationConstraintStack* constraints;
 
   struct ClauseExtractFn
   {
@@ -76,23 +76,23 @@ OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
  */
 struct TermQueryResult
 {
-  TermQueryResult() : literal(nullptr), clause(nullptr) {}
+  TermQueryResult() : literal(nullptr), clause(nullptr), constraints(nullptr) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  : term(t), literal(l), clause(c), substitution(s) {}
+  : term(t), literal(l), clause(c), substitution(s), constraints(nullptr) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-  : term(t), literal(l), clause(c), substitution(s) {}
+  : term(t), literal(l), clause(c), substitution(s), constraints(nullptr) {}
   TermQueryResult(TermList t, Literal* l, Clause* c)
-  : term(t), literal(l), clause(c) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
+  : term(t), literal(l), clause(c), constraints(nullptr) {}
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con)
   : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
+  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con, bool b)
   : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
+  UnificationConstraintStack* constraints;
   friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
   { 
     return out 

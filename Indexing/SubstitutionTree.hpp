@@ -175,10 +175,10 @@ public:
   struct QueryResult {
     LeafData const* data; 
     ResultSubstitutionSP subst;
-    UnificationConstraintStackSP constr;
+    UnificationConstraintStack* constr;
 
     QueryResult(LeafData const& ld) : data(&ld), subst(), constr() {};
-    QueryResult(LeafData const& ld, ResultSubstitutionSP subst, UnificationConstraintStackSP constr) : data(&ld), subst(subst), constr(constr) {}
+    QueryResult(LeafData const& ld, ResultSubstitutionSP subst, UnificationConstraintStack* constr) : data(&ld), subst(subst), constr(constr) {}
   };
 
   /* if _polymorphic is set to true, polymorphic sort checks are handeled by introducing a special variable for the sort that
@@ -731,7 +731,7 @@ public:
               renaming->_result->normalizeVariables(SubtitutionTreeConfig<Query>::getKey(ld));
               subs = resultSubst;
             }
-            return QueryResult(ld, subs, UnificationConstraintStackSP());
+            return QueryResult(ld, subs, /* constr */ nullptr);
           }));
     }
   }
@@ -1261,7 +1261,6 @@ public:
       parent->createBindings(query, reversed, 
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
       DEBUG_QUERY("query: ", subst)
-      DBGE(_subst)
 
 
       BacktrackData bd;

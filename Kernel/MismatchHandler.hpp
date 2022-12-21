@@ -41,11 +41,7 @@ struct UnificationConstraint
   {}
 
   Option<Literal*> toLiteral(RobSubstitution& s) const;
-  // { 
-  //   auto t1 = s.apply(term1, index1);
-  //   auto t2 = s.apply(term2, index2);
-  //   return Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::get); 
-  // }
+
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
   { return out << self.term1 << "/" << self.index1 << " != " << self.term2 << "/" << self.index2; }
 
@@ -54,32 +50,41 @@ struct UnificationConstraint
 class UnificationConstraintStack
 {
   Stack<UnificationConstraint> _cont;
+  Option<RecycledPointer<Stack<Literal*>>> _lits;
 public:
   CLASS_NAME(UnificationConstraintStack)
   USE_ALLOCATOR(UnificationConstraintStack)
+  UnificationConstraintStack() : _cont(), _lits() {}
+  UnificationConstraintStack(UnificationConstraintStack&&) = default;
+  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
 
   void addConstraint(UnificationConstraint c);
 
   auto iter() const
   { return iterTraits(_cont.iter()); }
 
-  auto literalIter(RobSubstitution& s) const
-  { return iterTraits(_cont.iter())
-        .filterMap([&s](auto const& c) { return c.toLiteral(s); }); }
-
-  auto toLiteralStack(RobSubstitution& s) const
+  Stack<Literal*> const& literals(RobSubstitution& s)
   { 
-    // TODO keep your out inside of this object and only hand out references
-    Stack<Literal*> out(_cont.size());
-    out.loadFromIterator(literalIter(s));
-    return out;
+    return *_lits.unwrapOrInit([&]() -> RecycledPointer<Stack<Literal*>> {  
+        RecycledPointer<Stack<Literal*>> out;
+        out->reserve(_cont.size());
+        out->loadFromIterator(iterTraits(_cont.iter())
+                .filterMap([&s](auto const& c) { return c.toLiteral(s); }));
+        return out; 
+    });
   }
+
+  auto literalIter(RobSubstitution& s)
+  { return literals(s).iter(); }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
   { return out << self._cont; }
 
   void reset()
-  { _cont.reset(); }
+  { 
+    _cont.reset(); 
+    _lits = decltype(_lits)();
+  }
 
   bool isEmpty() const
   { return _cont.isEmpty(); }
@@ -89,10 +94,9 @@ public:
 
   void add(UnificationConstraint c, BacktrackData& bd)
   { _cont.backtrackablePush(std::move(c), bd); }
+
+  static UnificationConstraintStack empty;
 };
-
-
-using UnificationConstraintStackSP = Lib::SmartPtr<UnificationConstraintStack> ;
 
 
 class MismatchHandler

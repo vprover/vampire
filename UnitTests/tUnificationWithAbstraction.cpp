@@ -45,9 +45,9 @@ Clause* unit(Literal* lit)
 
 
 Stack<Literal*> constraintLits(UnificationConstraintStack& cnst, RobSubstitution& subs) 
-{ return cnst.literalIter(subs).template collect<Stack>(); }
+{ return cnst.literals(subs); }
 
-Stack<Literal*> constraintLits(UnificationConstraintStackSP& cnst, RobSubstitution& subs) 
+Stack<Literal*> constraintLits(UnificationConstraintStack*& cnst, RobSubstitution& subs) 
 { return cnst ? constraintLits(*cnst, subs) : Stack<Literal*>(); }
 
 

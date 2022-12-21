@@ -286,7 +286,7 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
       _resultNormalizer->normalizeVariables(ld.term);
     }
 
-    return QueryResult(ld,_subst.getSubstitution(&*_resultNormalizer),UnificationConstraintStackSP());
+    return QueryResult(ld,_subst.getSubstitution(&*_resultNormalizer),nullptr);
   } else {
     return QueryResult(ld);
   }

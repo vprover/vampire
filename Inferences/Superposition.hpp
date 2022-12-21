@@ -45,7 +45,7 @@ private:
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-          UnificationConstraintStackSP constraints);
+          UnificationConstraintStack* constraints);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,

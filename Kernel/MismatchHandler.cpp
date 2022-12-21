@@ -146,6 +146,7 @@ bool HOMismatchHandler::tryAbstract(
   auto sortIter2 = arrowArgIter(iter2.headSort());
   
   RecycledPointer<Stack<UnificationConstraint>> cs;
+  RecycledPointer<Stack<pair<TermList, TermList>>> unifs;
   while (iter1.hasNext() && iter2.hasNext()) {
     auto t1 = iter1.next();
     auto t2 = iter2.next();
@@ -154,11 +155,15 @@ bool HOMismatchHandler::tryAbstract(
     if (s1.isArrowSort() || s2.isArrowSort()
         || s1 == AtomicSort::boolSort() || s2 == AtomicSort::boolSort()) {
       cs->push(UnificationConstraint(t1,i1,t2,i2));
+    } else {
+      unifs->push(make_pair(t1,t2));
     }
   }
   if (iter1.hasNext() || iter2.hasNext()) {
     return false;
   }
+  if (unifs->isNonEmpty())
+    {ASSERTION_VIOLATION_REP("TODO unifs need to be added to unifications")}
   for (auto& c : iterTraits(cs->iter())) {
     constr.addConstraint(std::move(c));
   }

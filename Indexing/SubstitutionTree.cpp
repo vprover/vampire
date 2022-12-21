@@ -689,9 +689,7 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
     _subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
 
-    return QueryResult(ld, ResultSubstitution::fromSubstitution( &*_subst, QUERY_BANK, RESULT_BANK),
-        // TODO do we really wanna copy the whole constraints stack here?
-            UnificationConstraintStackSP(new UnificationConstraintStack(*_constraints))); 
+    return QueryResult(ld, ResultSubstitution::fromSubstitution( &*_subst, QUERY_BANK, RESULT_BANK), &*_constraints); 
   } else {
     return QueryResult(ld);
   }

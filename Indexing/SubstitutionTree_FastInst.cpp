@@ -407,9 +407,9 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryResult(ld, _subst->getSubstitution(&_resultDenormalizer),UnificationConstraintStackSP());
+    return QueryResult(ld, _subst->getSubstitution(&_resultDenormalizer),nullptr);
   } else {
-    return QueryResult(ld, ResultSubstitutionSP(),UnificationConstraintStackSP());
+    return QueryResult(ld, ResultSubstitutionSP(),nullptr);
   }
 }
 #undef LOGGING

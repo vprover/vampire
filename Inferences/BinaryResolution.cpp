@@ -136,8 +136,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     return 0;
   }
 
-  auto constraints = qr.constraints ? qr.constraints->toLiteralStack(*qr.substitution->tryGetRobSubstitution())
-                                    : Stack<Literal*>();
+  Stack<Literal*> empty;
+  auto& constraints = qr.constraints ? qr.constraints->literals(*qr.substitution->tryGetRobSubstitution()) : empty;
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
 

@@ -95,7 +95,7 @@ struct EqualityResolution::ResultFn
       if (!handler->recheck(c, *subst))
         return nullptr;
     }
-    auto constraints = rawConstraints->toLiteralStack(*subst);
+    auto& constraints = rawConstraints->literals(*subst);
     unsigned newLen=_cLen-1+ constraints.length();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));

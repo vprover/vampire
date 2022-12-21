@@ -44,9 +44,6 @@ struct MaybeUninit {
   operator T REF() REF                                                                                        \
   { return MV(_elem.init); }                                                                                  \
                                                                                                               \
-  void init(T REF content)                                                                                    \
-  { ::new(&_elem.init)T(MV(content)); }                                                                       \
-                                                                                                              \
   MaybeUninit& operator=(T REF content)                                                                       \
   {                                                                                                           \
     _elem.init = MV(content);                                                                                 \
@@ -56,6 +53,9 @@ struct MaybeUninit {
   FOR_REF_QUALIFIER(for_ref_qualifier)
 
 #undef for_ref_qualifier 
+
+  void init(T content)
+  { ::new(&_elem.init)T(std::move(content)); }
 };
 
 template<class A>

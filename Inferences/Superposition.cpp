@@ -325,7 +325,7 @@ Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-    UnificationConstraintStackSP rawConstraints)
+    UnificationConstraintStack* rawConstraints)
 {
   CALL("Superposition::performSuperposition");
   TIME_TRACE("perform superposition");
@@ -334,7 +334,8 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  auto constraints = rawConstraints->isEmpty() ? Stack<Literal*>() : rawConstraints->toLiteralStack(*subst->tryGetRobSubstitution());
+  Stack<Literal*> empty;
+  auto& constraints = rawConstraints ? rawConstraints->literals(*subst->tryGetRobSubstitution()) : empty;
   bool hasConstraints = !constraints.isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
