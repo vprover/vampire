@@ -178,7 +178,7 @@ public:
   { 
     if (l->isEquality()) {
       ASS(qr.data->literal->isEquality())
-      return SortHelper::getEqualityArgumentSort(l) == SortHelper::getEqualityArgumentSort(qr.data->literal);
+      return SortHelper::getEqualityArgumentSort(l) == qr.data->sort; //SortHelper::getEqualityArgumentSort(qr.data->literal);
     } else {
       return true;
     }
@@ -760,6 +760,34 @@ public:
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
+  // TODO document
+  void setKey(TypedTermList const& term, LeafData& ld)
+  {
+    ASS_EQ(ld.term, term)
+    ld.sort = term.sort();
+    // _polymorphic optimizations only work if all *sorts* are atomic
+    ASS(_polymorphic || (ld.sort.isTerm() && ld.sort.term()->arity() == 0))
+  }
+
+  void setKey(TermList const& term, LeafData& ld)
+  {
+    ASS_EQ(ld.term, term)
+    if (term.isTerm()) {
+      ld.sort = SortHelper::getResultSort(term.term());
+      // _polymorphic optimizations only work if all *sorts* are atomic
+      ASS(_polymorphic || (ld.sort.isTerm() && ld.sort.term()->arity() == 0))
+    }
+  }
+
+
+  void setKey(Literal* literal, LeafData &ld)
+  { 
+    ASS_EQ(ld.literal, literal); 
+    if (literal->isEquality()) 
+      ld.sort = SortHelper::getEqualityArgumentSort(literal);
+  }
+
+
   template<class Key>
   void handle(Key const& key, LeafData ld, bool doInsert)
   {
@@ -769,6 +797,7 @@ public:
     }
 
     RecycledPointer<BindingMap> bindings;
+    setKey(key, ld);
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
@@ -787,6 +816,7 @@ private:
   /** Array of nodes */
   /** enable searching with constraints for this tree */
   bool _useC;
+  /** if _polymorphic is false optimizations are enabled for more efficiently handling equality, and the sorts of variable terms */
   bool _polymorphic;
   /** functional subterms of a term are replaced by extra sepcial
       variables before being inserted into the tree */
