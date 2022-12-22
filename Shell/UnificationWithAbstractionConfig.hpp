@@ -16,15 +16,15 @@
 namespace Shell {
 
 
-class UnificationWithAbstractionConfig 
-{
-public:
-  UnificationWithAbstractionConfig()  {}
-
-  static bool isInterpreted(Kernel::Term* t   );
-  static bool isInterpreted(Kernel::TermList t);
-};
-
+// class UnificationWithAbstractionConfig 
+// {
+// public:
+//   UnificationWithAbstractionConfig()  {}
+//
+//   static bool isInterpreted(Kernel::Term* t   );
+//   static bool isInterpreted(Kernel::TermList t);
+// };
+//
 } // namespace Shell
 
 #endif // __SHELL__UNIFICATION_WITH_ABSTRACTION_CONFIG__

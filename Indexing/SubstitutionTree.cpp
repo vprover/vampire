@@ -144,7 +144,7 @@ struct BindingComparator
  */
 void SubstitutionTree::insert(BindingMap& svBindings, LeafData ld)
 {
-#define DEBUG_INSERT(...) DBG(__VA_ARGS__)
+#define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
   CALL("SubstitutionTree::insert");
   ASS_EQ(_iteratorCnt,0);
   auto pnode = &_root;

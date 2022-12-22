@@ -285,7 +285,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Misma
   encountered.reset();
 
   auto tryAbstract = [&](auto l, auto r) 
-  { return hndlr && hndlr->tryAbstract(l.term, l.index, r.term, r.index, *this, *constr); };
+  { return hndlr && hndlr->tryAbstract(MismatchHandlerTerm(*this, l.term, l.index), MismatchHandlerTerm(*this, r.term, r.index), *constr); };
 
   bool mismatch=false;
   // Iteratively resolve unification pairs in toDo

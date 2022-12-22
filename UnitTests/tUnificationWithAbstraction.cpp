@@ -45,7 +45,7 @@ Clause* unit(Literal* lit)
 
 
 Stack<Literal*> constraintLits(UnificationConstraintStack& cnst, RobSubstitution& subs) 
-{ return cnst.literals(subs); }
+{ return *cnst.literals(subs); }
 
 Stack<Literal*> constraintLits(UnificationConstraintStack*& cnst, RobSubstitution& subs) 
 { return cnst ? constraintLits(*cnst, subs) : Stack<Literal*>(); }
@@ -487,8 +487,8 @@ RUN_TEST(term_indexing_one_side_interp_08,
 
         TermUnificationResultSpec 
         { .querySigma  = 3 + a,
-          .resultSigma = f(y),
-          .constraints = { 3 + a != f(y) } }, 
+          .resultSigma = f(x),
+          .constraints = { 3 + a != f(x) } }, 
 
       }
 })
@@ -558,9 +558,9 @@ RUN_TEST(term_indexing_poly_uwa_01,
           .constraints = { a(Int) != a(Int) + x } }, 
 
         TermUnificationResultSpec 
-        { .querySigma  = f(Int, a(Int) + x),
+        { .querySigma  = f(Int, a(Int) + y),
           .resultSigma = f(Int, b(Int)),
-          .constraints = { b(Int) != a(Int) + x } }, 
+          .constraints = { b(Int) != a(Int) + y } }, 
 
       }
     })

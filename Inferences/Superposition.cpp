@@ -334,9 +334,8 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  Stack<Literal*> empty;
-  auto& constraints = rawConstraints ? rawConstraints->literals(*subst->tryGetRobSubstitution()) : empty;
-  bool hasConstraints = !constraints.isEmpty();
+  auto constraints = rawConstraints ? rawConstraints->literals(*subst->tryGetRobSubstitution()) : RecycledPointer<Stack<Literal*>>();
+  bool hasConstraints = !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
 
@@ -418,7 +417,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1+constraints.size();
+  unsigned newLength = rwLength+eqLength-1+constraints->size();
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -541,7 +540,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  for(auto c : constraints){
+  for(auto c : *constraints){
     (*res)[next++] = c;
   }
 

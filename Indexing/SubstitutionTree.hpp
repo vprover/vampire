@@ -214,7 +214,9 @@ public:
       : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, handler))
                     .filter([this, query](auto& r) { return _polymorphic || monomorphicSortCheck(r, query);  })
                     .filter([handler](auto r) { 
-                      return handler == nullptr || r.constr->iter().all([&](auto& c) { return handler->recheck(c, *r.subst->tryGetRobSubstitution()); });
+                      if (handler == nullptr) return true;
+                      auto& s = *r.subst->tryGetRobSubstitution();
+                      return r.constr->iter().all([&](auto& c) { return handler->recheck(c.lhs(s), c.rhs(s)); });
                     }));
   }
 
@@ -1251,7 +1253,7 @@ public:
       , _tag(parent->_tag)
 #endif
     {
-#define DEBUG_QUERY(...) DBG(__VA_ARGS__)
+#define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
       CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
       if(!root) {

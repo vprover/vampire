@@ -26,10 +26,63 @@
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-#define DEBUG(...) //DBG(__VA_ARGS__)
+#define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Kernel
 {
+
+  
+
+bool MismatchHandlerTerm::isNormalVar()
+{ return derefTerm().isVar() && !derefTerm().isSpecialVar(); }
+
+unsigned MismatchHandlerTerm::normalVarNumber()
+{ return derefTerm().var(); }
+
+bool MismatchHandlerTerm::isSpecialVar()
+{ return derefTerm().isSpecialVar(); }
+
+bool MismatchHandlerTerm::isTerm()
+{ return derefTerm().isTerm(); }
+
+bool MismatchHandlerTerm::isSort()
+{ return derefTerm().term()->isSort(); }
+
+unsigned MismatchHandlerTerm::functor()
+{ return derefTerm().term()->functor(); }
+
+unsigned MismatchHandlerTerm::nTypeArgs()
+{ return derefTerm().term()->numTypeArguments(); }
+
+unsigned MismatchHandlerTerm::nTermArgs()
+{ return derefTerm().term()->numTermArguments(); }
+
+bool MismatchHandlerTerm::isNumeral()
+{ return derefTerm().isTerm() && env.signature->getFunction(functor())->numericConstant(); }
+
+bool MismatchHandlerTerm::isGround()
+{ return _subs.apply(_term, _index).ground(); }
+
+pair<TermList, int>& MismatchHandlerTerm::deref()
+{ return _deref.unwrapOrInit([&]() { 
+    auto t = _subs.derefBound(RobSubstitution::TermSpec(_term, _index));
+    return make_pair(t.term, t.index);
+  }); }
+
+MismatchHandlerTerm MismatchHandlerTerm::termArg(unsigned i)
+{ return MismatchHandlerTerm(_subs, derefTerm().term()->termArg(i), _index); }
+
+MismatchHandlerTerm::MismatchHandlerTerm(RobSubstitution& subs, TermList term, int index)
+  : _subs(subs)
+  , _term(term)
+  , _index(index)
+  , _deref() 
+{
+}
+
+
+MismatchHandlerTerm MismatchHandlerTerm::typeArg(unsigned i)
+{ return MismatchHandlerTerm(_subs, derefTerm().term()->typeArg(i), _index); }
 
 unique_ptr<MismatchHandler> MismatchHandler::create()
 {
@@ -53,19 +106,24 @@ unique_ptr<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
   }
 }
 
-bool UWAMismatchHandler::canAbstract(TermList t1, TermList t2) const 
+bool UWAMismatchHandler::isInterpreted(unsigned functor) const 
+{
+  auto f = env.signature->getFunction(functor);
+  return f->interpreted() || f->termAlgebraCons();
+}
+
+bool UWAMismatchHandler::canAbstract(MismatchHandlerTerm t1, MismatchHandlerTerm t2) const 
 {
 
   if(!(t1.isTerm() && t2.isTerm())) return false;
-  if(t1.term()->isSort() || t2.term()->isSort()) return false;
+  if(t1.isSort() || t2.isSort()) return false;
 
-
-  bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
-  bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
-  bool bothNumbers = (theory->isInterpretedConstant(t1) && theory->isInterpretedConstant(t2));
+  bool t1Interp = isInterpreted(t1.functor());
+  bool t2Interp = isInterpreted(t2.functor());
+  bool bothNumbers = t1.isNumeral() && t2.isNumeral();
 
   bool okay = true;
- 
+
   // TODO add parameter instead of reading from options
   static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
   if(opt == Shell::Options::UnificationWithAbstraction::OFF){ return false; }
@@ -79,8 +137,8 @@ bool UWAMismatchHandler::canAbstract(TermList t1, TermList t2) const
       break;
     case Shell::Options::UnificationWithAbstraction::CONSTANT:
       okay &= !bothNumbers && (t1Interp || t2Interp);
-      okay &= (t1Interp || env.signature->functionArity(t1.term()->functor()));
-      okay &= (t2Interp || env.signature->functionArity(t2.term()->functor()));
+      okay &= (t1Interp || t1.nTermArgs());
+      okay &= (t2Interp || t2.nTermArgs());
       break; 
     case Shell::Options::UnificationWithAbstraction::ALL:
     case Shell::Options::UnificationWithAbstraction::GROUND:
@@ -92,55 +150,46 @@ bool UWAMismatchHandler::canAbstract(TermList t1, TermList t2) const
 
 }
 
-bool UWAMismatchHandler::recheck(UnificationConstraint const& c, RobSubstitution& s) const
+bool UWAMismatchHandler::recheck(MismatchHandlerTerm t1, MismatchHandlerTerm t2) const
 { 
   static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
   if (opt == Shell::Options::UnificationWithAbstraction::GROUND) {
-    auto l = s.apply(c.term1, c.index1);
-    auto r = s.apply(c.term2, c.index2);
-    return (l.ground() && r.ground()) 
-      && (UnificationWithAbstractionConfig::isInterpreted(l) || UnificationWithAbstractionConfig::isInterpreted(r));
-
+    return (t1.isGround() && t2.isGround()) && (isInterpreted(t1.functor()) || isInterpreted(t2.functor()));
   } else {
-    return canAbstract(s.apply(c.term1, c.index1), s.apply(c.term2, c.index2)); 
-
+    return canAbstract(t1, t2); 
   }
 }
 
+std::ostream& operator<<(std::ostream& out, MismatchHandlerTerm const& self)
+{ return out << self._term << "/" << self._index << self._subs; }
+
 bool UWAMismatchHandler::tryAbstract(
-      TermList o1, unsigned i1, 
-      TermList o2, unsigned i2,
-      RobSubstitution& subs,
+      MismatchHandlerTerm t1, MismatchHandlerTerm t2,
       ConstraintSet& constr) const
 {
   CALL("UWAMismatchHandler::checkUWA");
 
-  auto t1 = subs.apply(o1, i1);
-  auto t2 = subs.apply(o2, i2);
   auto abs = canAbstract(t1, t2);
   DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
   if (abs) {
-    constr.addConstraint(UnificationConstraint(o1, i1, o2, i2));
+    constr.addConstraint(UnificationConstraint(t1, t2));
   }
   return abs;
 }
 
 bool HOMismatchHandler::tryAbstract(
-    TermList o1, unsigned i1, 
-    TermList o2, unsigned i2,
-    RobSubstitution& subs,
+    MismatchHandlerTerm t1, MismatchHandlerTerm t2,
     ConstraintSet& constr) const
 {
   ASSERTION_VIOLATION_REP("TODO");
-  // auto t1 = subs.derefBound(RobSubstitution::TermSpec(o1, i1));
-  // auto t2 = subs.derefBound(RobSubstitution::TermSpec(o2, i2));
   // if (t1.term.isVar() || t2.term.isVar()) return false;
   // if (t1.term.isApplication() && t2.term.isApplication()) {
   //   SortHelper::getResultSort(t1.term.term())
   // }
   // auto t1 = subs.apply(o1, i1);
   // auto t2 = subs.apply(o2, i2);
-  // if (t1.isVar() || t1.isVar()) return false;
+  // ASS(!t1.isSpecialVar() && !t2.isSpecialVar())
+  // if (t1.isNormalVar() || t1.isNormalVar()) return false;
   // if (!t1.isApplication() || !t2.isApplication()) {
   //   return false;
   // }
@@ -188,10 +237,47 @@ bool HOMismatchHandler::tryAbstract(
   // return true;
 }
 
+void UnificationConstraintStack::add(UnificationConstraint c)
+{ 
+  DEBUG("introduced constraing: ", c, " (backtrackable)")
+  _cont.push(std::move(c)); }
+
+template<class F>
+class BacktrackClosure: public BacktrackObject
+{
+  F _fun;
+public:
+  CLASS_NAME(BacktrackClosure);
+  USE_ALLOCATOR(BacktrackClosure);
+  
+  BacktrackClosure(F fun) : _fun(std::move(fun)) {}
+  void backtrack() { _fun(); }
+};
+template<class F>
+BacktrackClosure<F>* backtrackClosure(F fun) { return new BacktrackClosure<F>(std::move(fun)); }
+
+
+RecycledPointer<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& s)
+{ 
+  RecycledPointer<Stack<Literal*>> out;
+  out->reserve(_cont.size());
+  out->loadFromIterator(literalIter(s));
+  return out;
+}
+
+
+
+void UnificationConstraintStack::add(UnificationConstraint c, BacktrackData& bd)
+{ 
+  DEBUG("introduced constraing: ", c, " (backtrackable)")
+  _cont.backtrackablePush(std::move(c), bd); 
+}
+
+
 Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s) const
 { 
-  auto t1 = s.apply(term1, index1);
-  auto t2 = s.apply(term2, index2);
+  auto t1 = s.apply(_term1, _index1);
+  auto t2 = s.apply(_term2, _index2);
   return t1 == t2 
     ? Option<Literal*>()
     : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));

@@ -92,11 +92,11 @@ struct EqualityResolution::ResultFn
     }
 
     for (auto &c : rawConstraints->iter()) {
-      if (!handler->recheck(c, *subst))
+      if (!handler->recheck(c.lhs(*subst), c.rhs(*subst)))
         return nullptr;
     }
-    auto& constraints = rawConstraints->literals(*subst);
-    unsigned newLen=_cLen-1+ constraints.length();
+    auto constraints = rawConstraints->literals(*subst);
+    unsigned newLen=_cLen-1+ constraints->length();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
@@ -125,6 +125,9 @@ struct EqualityResolution::ResultFn
 
         (*res)[next++] = currAfter;
       }
+    }
+    for (auto l : *constraints) {
+      (*res)[next++] = l;
     }
     ASS_EQ(next,newLen);
 

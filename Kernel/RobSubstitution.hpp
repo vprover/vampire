@@ -209,8 +209,7 @@ public:
   RobSubstitution(RobSubstitution&& obj) = default;
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
 private:
-  friend class HOMismatchHandler;
-  friend class UWAMismatchHandler;
+  friend class MismatchHandlerTerm;
   RobSubstitution(const RobSubstitution& obj) = delete;
   RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 

@@ -1858,6 +1858,15 @@ static auto concatIters(I1 i1, I2 i2, Is... is)
 { return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
 
 
+template<class B, class A>
+static auto range(A from, B to) 
+{ return iterTraits(getRangeIterator<B>(from, to)); }
+
+template<class B, class A>
+static auto rangeIncl(A from, B to) 
+{ return iterTraits(getRangeIterator<B>(from, to + 1)); }
+
+
 ///@}
 
 }

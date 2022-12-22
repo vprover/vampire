@@ -132,9 +132,9 @@ struct EqualityFactoring::ResultFn
     if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
-    auto& constraints = rawConstraints->literals(*subst);
+    auto constraints = rawConstraints->literals(*subst);
 
-    unsigned newLen=_cLen+constraints.length();
+    unsigned newLen=_cLen+constraints->length();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
@@ -163,7 +163,7 @@ struct EqualityFactoring::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    for(Literal* c : constraints){
+    for(Literal* c : *constraints){
       (*res)[next++] = c;
     }
     ASS_EQ(next,newLen);

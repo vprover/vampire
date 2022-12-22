@@ -136,8 +136,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     return 0;
   }
 
-  Stack<Literal*> empty;
-  auto& constraints = qr.constraints ? qr.constraints->literals(*qr.substitution->tryGetRobSubstitution()) : empty;
+  auto constraints = qr.constraints ? qr.constraints->literals(*qr.substitution->tryGetRobSubstitution()) : RecycledPointer<Stack<Literal*>>();
   unsigned clength = queryCl->length();
   unsigned dlength = qr.clause->length();
 
@@ -150,7 +149,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       Int::max(queryLit->isPositive() ? queryCl->numPositiveLiterals()-1 : queryCl->numPositiveLiterals(),
               qr.literal->isPositive() ? qr.clause->numPositiveLiterals()-1 : qr.clause->numPositiveLiterals());
 
-  Inference inf(GeneratingInference2(constraints.isNonEmpty() ?
+  Inference inf(GeneratingInference2(constraints->isNonEmpty() ?
       InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, qr.clause));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
@@ -176,7 +175,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  unsigned newLength = clength+dlength-2+constraints.size();
+  unsigned newLength = clength+dlength-2+constraints->size();
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -188,7 +187,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   unsigned next = 0;
-  for(Literal* c : constraints){
+  for(Literal* c : *constraints){
       (*res)[next++] = c; 
   }
   for(unsigned i=0;i<clength;i++) {
@@ -261,7 +260,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  if(constraints.isNonEmpty()){
+  if(constraints->isNonEmpty()){
     env.statistics->cResolution++;
   }
   else{ 

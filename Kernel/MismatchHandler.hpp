@@ -23,38 +23,73 @@
 
 namespace Kernel
 {
-class MismatchHandler;
 
-struct UnificationConstraint
+class MismatchHandler;
+class RobSubstitution;
+
+class MismatchHandlerTerm
 {
+  RobSubstitution& _subs;
+  TermList _term; int _index;
+  Option<pair<TermList, int>> _deref;
+  friend class UnificationConstraint;
+  friend class RobSubstitution;
+
+  pair<TermList, int>& deref();
+  TermList derefTerm() { return deref().first; }
+  int derefIndex() { return deref().second; }
+public:
+  friend std::ostream& operator<<(std::ostream& out, MismatchHandlerTerm const& self);
+  MismatchHandlerTerm(RobSubstitution& subs, TermList self, int index);
+
+  bool isNormalVar();
+  unsigned normalVarNumber();
+
+  bool isSpecialVar();
+  bool isTerm();
+  bool isSort();
+
+  unsigned functor();
+  unsigned nTypeArgs();
+  unsigned nTermArgs();
+  bool isNumeral();
+  bool isGround();
+  MismatchHandlerTerm termArg(unsigned i);
+  MismatchHandlerTerm typeArg(unsigned i);
+  auto typeArgs() { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
+  auto termArgs() { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
+};
+
+class UnificationConstraint
+{
+  TermList _term1; int _index1;
+  TermList _term2; int _index2;
+public:
   CLASS_NAME(UnificationConstraint)
   USE_ALLOCATOR(UnificationConstraint)
 
-  TermList term1;
-  int index1;
-  TermList term2;
-  int index2;
-
-  UnificationConstraint(TermList term1, unsigned index1, TermList term2, unsigned index2)
-  : term1(term1), index1(index1)
-  , term2(term2), index2(index2)
-  {}
+  UnificationConstraint(MismatchHandlerTerm& t1, MismatchHandlerTerm& t2)
+  : _term1(t1._term), _index1(t1._index)
+  , _term2(t2._term), _index2(t2._index)
+  { ASS(&t1._subs == &t2._subs) }
 
   Option<Literal*> toLiteral(RobSubstitution& s) const;
 
+  MismatchHandlerTerm lhs(RobSubstitution& s) const { return MismatchHandlerTerm(s, _term1, _index1); }
+  MismatchHandlerTerm rhs(RobSubstitution& s) const { return MismatchHandlerTerm(s, _term2, _index2); }
+
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
-  { return out << self.term1 << "/" << self.index1 << " != " << self.term2 << "/" << self.index2; }
+  { return out << self._term1 << "/" << self._index1 << " != " << self._term2 << "/" << self._index2; }
 
 };
 
 class UnificationConstraintStack
 {
   Stack<UnificationConstraint> _cont;
-  Option<RecycledPointer<Stack<Literal*>>> _lits;
 public:
   CLASS_NAME(UnificationConstraintStack)
   USE_ALLOCATOR(UnificationConstraintStack)
-  UnificationConstraintStack() : _cont(), _lits() {}
+  UnificationConstraintStack() : _cont() {}
   UnificationConstraintStack(UnificationConstraintStack&&) = default;
   UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
 
@@ -63,43 +98,23 @@ public:
   auto iter() const
   { return iterTraits(_cont.iter()); }
 
-  Stack<Literal*> const& literals(RobSubstitution& s)
-  { 
-    return *_lits.unwrapOrInit([&]() -> RecycledPointer<Stack<Literal*>> {  
-        RecycledPointer<Stack<Literal*>> out;
-        out->reserve(_cont.size());
-        out->loadFromIterator(iterTraits(_cont.iter())
-                .filterMap([&s](auto const& c) { return c.toLiteral(s); }));
-        return out; 
-    });
-  }
+  RecycledPointer<Stack<Literal*>> literals(RobSubstitution& s);
 
   auto literalIter(RobSubstitution& s)
-  { return literals(s).iter(); }
+  { return iterTraits(_cont.iter())
+              .filterMap([&s](auto const& c) { return c.toLiteral(s); }); }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
   { return out << self._cont; }
 
   void reset()
-  { 
-    _cont.reset(); 
-    _lits = decltype(_lits)();
-  }
+  { _cont.reset(); }
 
   bool isEmpty() const
   { return _cont.isEmpty(); }
 
-  void add(UnificationConstraint c)
-  { 
-    DBG("introduced constraing: ", c)
-    _cont.push(std::move(c)); }
-
-  void add(UnificationConstraint c, BacktrackData& bd)
-  { 
-    DBG("introduced constraing: ", c, " (backtrackable)")
-    _cont.backtrackablePush(std::move(c), bd); }
-
-  static UnificationConstraintStack empty;
+  void add(UnificationConstraint c);
+  void add(UnificationConstraint c, BacktrackData& bd);
 };
 
 
@@ -136,13 +151,12 @@ public:
 
   /** TODO document */
   virtual bool tryAbstract(
-      TermList t1, unsigned i1, 
-      TermList t2, unsigned i2,
-      RobSubstitution& subs,
+      MismatchHandlerTerm t1,
+      MismatchHandlerTerm t2,
       ConstraintSet& constr) const = 0;
 
   /** TODO document */
-  virtual bool recheck(UnificationConstraint const&, RobSubstitution& s) const = 0;
+  virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const = 0;
 
   static unique_ptr<MismatchHandler> create();
   static unique_ptr<MismatchHandler> createOnlyHigherOrder();
@@ -153,18 +167,18 @@ class UWAMismatchHandler final : public MismatchHandler
 public:
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
+  bool isInterpreted(unsigned f) const;
 
   virtual bool tryAbstract(
-      TermList t1, unsigned i1, 
-      TermList t2, unsigned i2,
-      RobSubstitution& subs,
+      MismatchHandlerTerm t1,
+      MismatchHandlerTerm t2,
       ConstraintSet& constr) const final override;
 
   bool canAbstract(
-      TermList t1, 
-      TermList t2) const;
+      MismatchHandlerTerm t1,
+      MismatchHandlerTerm t2) const;
 
-  virtual bool recheck(UnificationConstraint const& c, RobSubstitution& s) const final override;
+  virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const final override;
 };
 
 class HOMismatchHandler : public MismatchHandler
@@ -174,13 +188,12 @@ public:
   USE_ALLOCATOR(HOMismatchHandler);
 
   virtual bool tryAbstract(
-      TermList t1, unsigned i1, 
-      TermList t2, unsigned i2,
-      RobSubstitution& subs,
+      MismatchHandlerTerm t1,
+      MismatchHandlerTerm t2,
       ConstraintSet& constr) const final override;
 
 
-  virtual bool recheck(UnificationConstraint const& c, RobSubstitution& s) const final override
+  virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const final override
   { return true;  }
 };
 
