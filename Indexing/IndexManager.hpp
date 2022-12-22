@@ -89,6 +89,7 @@ public:
   Index* get(IndexType t);
 
   void provideIndex(IndexType t, Index* index);
+  static bool polymorphicIndices(); 
 private:
 
   struct Entry {

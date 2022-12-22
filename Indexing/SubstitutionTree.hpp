@@ -1251,7 +1251,7 @@ public:
       , _tag(parent->_tag)
 #endif
     {
-#define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
+#define DEBUG_QUERY(...) DBG(__VA_ARGS__)
       CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
       if(!root) {
@@ -1260,7 +1260,7 @@ public:
 
       parent->createBindings(query, reversed, 
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
-      DEBUG_QUERY("query: ", subst)
+      DEBUG_QUERY("query: ", _subst)
 
 
       BacktrackData bd;

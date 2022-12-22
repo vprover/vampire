@@ -31,9 +31,9 @@ struct UnificationConstraint
   USE_ALLOCATOR(UnificationConstraint)
 
   TermList term1;
-  unsigned index1;
+  int index1;
   TermList term2;
-  unsigned index2;
+  int index2;
 
   UnificationConstraint(TermList term1, unsigned index1, TermList term2, unsigned index2)
   : term1(term1), index1(index1)
@@ -90,10 +90,14 @@ public:
   { return _cont.isEmpty(); }
 
   void add(UnificationConstraint c)
-  { _cont.push(std::move(c)); }
+  { 
+    DBG("introduced constraing: ", c)
+    _cont.push(std::move(c)); }
 
   void add(UnificationConstraint c, BacktrackData& bd)
-  { _cont.backtrackablePush(std::move(c), bd); }
+  { 
+    DBG("introduced constraing: ", c, " (backtrackable)")
+    _cont.backtrackablePush(std::move(c), bd); }
 
   static UnificationConstraintStack empty;
 };

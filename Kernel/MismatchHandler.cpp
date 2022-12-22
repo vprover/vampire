@@ -131,43 +131,61 @@ bool HOMismatchHandler::tryAbstract(
     RobSubstitution& subs,
     ConstraintSet& constr) const
 {
-
-  auto arrowArgIter = [](auto arrowSort) {
-    return [iter = TermList(arrowSort)]() mutable {
-      ASS(iter.isTerm() && iter.isArrowSort());
-      auto arg = *iter.term()->nthArgument(0);
-      iter = *iter.term()->nthArgument(1);
-      return arg;
-    };
-  };
-  ApplicativeArgsIt iter1(o1, false);
-  auto sortIter1 = arrowArgIter(iter1.headSort());
-  ApplicativeArgsIt iter2(o2, false);
-  auto sortIter2 = arrowArgIter(iter2.headSort());
-  
-  RecycledPointer<Stack<UnificationConstraint>> cs;
-  RecycledPointer<Stack<pair<TermList, TermList>>> unifs;
-  while (iter1.hasNext() && iter2.hasNext()) {
-    auto t1 = iter1.next();
-    auto t2 = iter2.next();
-    auto s1 = sortIter1();
-    auto s2 = sortIter2();
-    if (s1.isArrowSort() || s2.isArrowSort()
-        || s1 == AtomicSort::boolSort() || s2 == AtomicSort::boolSort()) {
-      cs->push(UnificationConstraint(t1,i1,t2,i2));
-    } else {
-      unifs->push(make_pair(t1,t2));
-    }
-  }
-  if (iter1.hasNext() || iter2.hasNext()) {
-    return false;
-  }
-  if (unifs->isNonEmpty())
-    {ASSERTION_VIOLATION_REP("TODO unifs need to be added to unifications")}
-  for (auto& c : iterTraits(cs->iter())) {
-    constr.addConstraint(std::move(c));
-  }
-  return true;
+  ASSERTION_VIOLATION_REP("TODO");
+  // auto t1 = subs.derefBound(RobSubstitution::TermSpec(o1, i1));
+  // auto t2 = subs.derefBound(RobSubstitution::TermSpec(o2, i2));
+  // if (t1.term.isVar() || t2.term.isVar()) return false;
+  // if (t1.term.isApplication() && t2.term.isApplication()) {
+  //   SortHelper::getResultSort(t1.term.term())
+  // }
+  // auto t1 = subs.apply(o1, i1);
+  // auto t2 = subs.apply(o2, i2);
+  // if (t1.isVar() || t1.isVar()) return false;
+  // if (!t1.isApplication() || !t2.isApplication()) {
+  //   return false;
+  // }
+  //
+  //
+  // auto arrowArgIter = [](auto arrowSort) {
+  //   return [iter = TermList(arrowSort)]() mutable {
+  //     ASS(iter.isTerm() && iter.isArrowSort());
+  //     auto arg = *iter.term()->nthArgument(0);
+  //     iter = *iter.term()->nthArgument(1);
+  //     return arg;
+  //   };
+  // };
+  // DBGE(t1)
+  // DBGE(t2)
+  // ApplicativeArgsIt iter1(t1, false);
+  // auto sortIter1 = arrowArgIter(iter1.headSort());
+  // ApplicativeArgsIt iter2(t2, false);
+  // auto sortIter2 = arrowArgIter(iter2.headSort());
+  //
+  // RecycledPointer<Stack<pair<TermList, TermList>>> cs;
+  // RecycledPointer<Stack<pair<TermList, TermList>>> unifs;
+  // while (iter1.hasNext() && iter2.hasNext()) {
+  //   auto t1 = iter1.next();
+  //   auto t2 = iter2.next();
+  //   auto s1 = sortIter1();
+  //   auto s2 = sortIter2();
+  //   if (s1.isArrowSort() || s2.isArrowSort()
+  //       || s1 == AtomicSort::boolSort() || s2 == AtomicSort::boolSort()) {
+  //     cs->push(make_pair(t1,t2));
+  //   } else {
+  //     unifs->push(make_pair(t1,t2));
+  //   }
+  // }
+  // if (iter1.hasNext() || iter2.hasNext()) {
+  //   return false;
+  // }
+  // if (unifs->isNonEmpty())
+  //   {ASSERTION_VIOLATION_REP("TODO unifs need to be added to unifications")}
+  // DBGE(cs)
+  // DBGE(unifs)
+  // for (auto& c : iterTraits(cs->iter())) {
+  //   constr.addConstraint(UnificationConstraint(c.first, RobSubstitution::UNBOUND_INDEX, c.second,  RobSubstitution::UNBOUND_INDEX));
+  // }
+  // return true;
 }
 
 Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s) const

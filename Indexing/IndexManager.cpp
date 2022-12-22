@@ -101,6 +101,13 @@ void IndexManager::provideIndex(IndexType t, Index* index)
   _store.set(t,e);
 }
 
+bool IndexManager::polymorphicIndices() 
+{
+  static bool out = env.property->hasPolymorphicSym() || env.property->higherOrder() 
+    || (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy() );
+  return out;
+}
+
 Index* IndexManager::create(IndexType t)
 {
   CALL("IndexManager::create");
@@ -108,13 +115,8 @@ Index* IndexManager::create(IndexType t)
   Index* res;
 
   bool isGenerating;
-
-  //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
-  //However, there is no need to guard aginst it, as equalityProxy removes all
-  //equality literals. The flag below is only used during the unification of 
-  //equality literals.
-  auto polymorphic = env.property->hasPolymorphicSym() || env.property->higherOrder();
-                    
+  bool polymorphic = polymorphicIndices();
+                   
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
     res = new BinaryResolutionIndex(new LiteralSubstitutionTree(_uwa.get(), polymorphic));

@@ -209,12 +209,14 @@ public:
   RobSubstitution(RobSubstitution&& obj) = default;
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
 private:
+  friend class HOMismatchHandler;
+  friend class UWAMismatchHandler;
   RobSubstitution(const RobSubstitution& obj) = delete;
   RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
 
-  static const int SPECIAL_INDEX;
   static const int UNBOUND_INDEX;
+  static const int SPECIAL_INDEX;
 
   bool isUnbound(VarSpec v) const;
   TermSpec deref(VarSpec v) const;

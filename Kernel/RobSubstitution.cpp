@@ -321,7 +321,6 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Misma
             TermSpec(SortHelper::getResultSort(dt2.term.term()), dt2.index)
         ));
       }
-      DBG("introduced constraint: ", dt1, " != ", dt2)
 
     } else if(dt1.term.isTerm() && dt2.term.isTerm() 
         && TermList::sameTopFunctor(dt1.term, dt2.term)) {
