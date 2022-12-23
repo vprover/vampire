@@ -481,8 +481,8 @@ public:
   USE_ALLOCATOR(SATSubsumptionAndResolution);
 
 #if CORRELATE_LENGTH_TIME
-  std::chrono::_V2::system_clock::time_point start = chrono::high_resolution_clock::now();
-  std::chrono::_V2::system_clock::time_point stop = start;
+  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
+  std::chrono::high_resolution_clock::time_point stop = start;
   bool builtSatProblem = false;
 #endif
 
