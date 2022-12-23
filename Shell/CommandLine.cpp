@@ -29,6 +29,8 @@
 #include "Options.hpp"
 #include "Statistics.hpp"
 
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+
 namespace Shell {
 
 CommandLine::CommandLine (int argc, char* argv [])
@@ -60,6 +62,9 @@ void CommandLine::interpret (Options& options)
 #if VZ3
       cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
 #endif
+      cout << "\% CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=" << CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION << endl;
+      cout << "\% USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=" << USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION << endl;
+      cout << "\% CORRELATE_LENGTH_TIME=" << CORRELATE_LENGTH_TIME << endl;
       exit(0);
     }
     // If --help or -h are used without arguments we still print help
