@@ -565,10 +565,13 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl)
     auto it = _fwIndex->getGeneralizations(lit, false, false);
     while (it.hasNext()) {
       mcl = it.next().clause;
+#if CORRELATE_LENGTH_TIME
+      satSubs.builtSatProblem = false;
+#endif
       _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
 #if CORRELATE_LENGTH_TIME
-      auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
-      if (duration.count() > 0) {
+      if (satSubs.builtSatProblem) {
+        auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
         correlationFile << mcl->length() << "," << cl->length() << "," << duration.count() << endl;
       }
 #endif
@@ -581,10 +584,13 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl)
     it = _fwIndex->getGeneralizations(lit, true, false);
     while (it.hasNext()) {
       mcl = it.next().clause;
+#if CORRELATE_LENGTH_TIME
+      satSubs.builtSatProblem = false;
+#endif
       _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
 #if CORRELATE_LENGTH_TIME
-      auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
-      if (duration.count() > 0) {
+      if (satSubs.builtSatProblem) {
+        auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
         correlationFile << mcl->length() << "," << cl->length() << "," << duration.count() << endl;
       }
 #endif
@@ -776,10 +782,13 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
         // a low chance of it being resolved. However, in the case where there is no negative match,
         // checkSubsumption resolution is very fast after subsumption, since filling the match set
         // for subsumption will have already detected that subsumption resolution is impossible
-        _conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);
 #if CORRELATE_LENGTH_TIME
-        auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
-        if (duration.count() > 0) {
+        satSubs.builtSatProblem = false;
+#endif
+        _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+#if CORRELATE_LENGTH_TIME
+        if (satSubs.builtSatProblem) {
+          auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
           correlationFile << mcl->length() << "," << cl->length() << "," << duration.count() << endl;
         }
 #endif
@@ -840,11 +849,13 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
       if (!_checked.insert(mcl)) {
         continue;
       }
-
+#if CORRELATE_LENGTH_TIME
+      satSubs.builtSatProblem = false;
+#endif
       _conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
 #if CORRELATE_LENGTH_TIME
-      auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
-      if (duration.count() > 0) {
+      if (satSubs.builtSatProblem) {
+        auto duration = chrono::duration_cast<chrono::microseconds>(satSubs.stop - satSubs.start);
         correlationFile << mcl->length() << "," << cl->length() << "," << duration.count() << endl;
       }
 #endif

@@ -897,12 +897,6 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
   CALL("SATSubsumptionAndResolution::checkSubsumptionResolution");
   ASS(L)
   ASS(M)
-#if CORRELATE_LENGTH_TIME
-  // To return 0 when the subsumption resolution was pruned
-  start = chrono::high_resolution_clock::now();
-  stop = start;
-#endif
-
   if (usePreviousSetUp) {
     ASS(_L == L);
     ASS(_M == M);
@@ -934,6 +928,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
   }
 
 #if CORRELATE_LENGTH_TIME
+  builtSatProblem = true;
   start = chrono::high_resolution_clock::now();
 #endif
   // First set up the clauses
