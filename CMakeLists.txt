@@ -871,17 +871,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
 endif()
 
 
-#################################################################
-# google benchmark library
-#################################################################
-
-add_subdirectory(benchmark)
-# target_link_libraries(vampire PRIVATE benchmark::benchmark)
-link_libraries(benchmark::benchmark)
-# target_compile_definitions(vampire PRIVATE ENABLE_BENCHMARK=1)
-add_compile_definitions(ENABLE_BENCHMARK=1)
-
-
 ################################################################
 # z3 stuff
 ################################################################
