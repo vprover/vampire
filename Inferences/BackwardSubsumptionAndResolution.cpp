@@ -164,11 +164,12 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       /***************************************************/
       auto it = _bwIndex->getInstances(lit, true, false);
       while (it.hasNext()) {
-        Clause *icl = it.next().clause;
+        auto res = it.next();
+        Clause *icl = res.clause;
         if (subsumedSet.contains(icl) || !_checked.insert(icl)) {
           continue;
         }
-        Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, (*icl)[0], cl);
+        Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.literal, cl);
         ASS(conclusion)
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
@@ -181,67 +182,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
     goto check_correctness;
   }
 
-#if SEPARATE_LOOPS_BACKWARD
-  /*******************************************************/
-  /*               SUBSUMPTION MULTI-LITERAL             */
-  /*******************************************************/
-  if (_subsumption && !_subsumptionByUnitsOnly) {
-    for (unsigned i = 0; i < cl->length(); i++) {
-      Literal *lit = (*cl)[i];
-      // find the positively matched literals
-      auto it = _bwIndex->getInstances(lit, false, false);
-      while (it.hasNext()) {
-        Clause *icl = it.next().clause;
-        if (!_checked.insert(icl)) {
-          continue;
-        }
-        // check subsumption and setup subsumption resolution at the same time
-        if (satSubs.checkSubsumption(cl, icl, _subsumptionResolution)) {
-          List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
-          subsumedSet.insert(icl);
-        }
-      }
-    }
-  }
-
-  /*******************************************************/
-  /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
-  /*******************************************************/
-  _checked.reset();
-  if (_subsumptionResolution && !_srByUnitsOnly) {
-    for (unsigned i = 0; i < cl->length(); i++) {
-      Literal *lit = (*cl)[i];
-      // find the negatively matched literals
-      auto it = _bwIndex->getInstances(lit, true, false);
-      while (it.hasNext()) {
-        Clause *icl = it.next().clause;
-        if (subsumedSet.contains(icl) || !_checked.insert(icl)) {
-          continue;
-        }
-
-        // check subsumption resolution
-        Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, false);
-        if (conclusion) {
-          List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
-        }
-      }
-
-      it = _bwIndex->getInstances(lit, false, false);
-      while (it.hasNext()) {
-        Clause *icl = it.next().clause;
-        if (subsumedSet.contains(icl) || !_checked.insert(icl)) {
-          continue;
-        }
-
-        // check subsumption resolution
-        Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, false);
-        if (conclusion) {
-          List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
-        }
-      }
-    }
-  }
-#else
   /*******************************************************/
   /*       SUBSUMPTION & RESOLUTION MULTI-LITERAL        */
   /*******************************************************/
@@ -297,7 +237,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       }
     }
   }
-#endif
 
 check_correctness:
   if (simplificationBuffer) {

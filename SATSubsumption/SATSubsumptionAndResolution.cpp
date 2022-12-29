@@ -99,14 +99,14 @@ void SATSubsumptionAndResolution::MatchSet::indexMatrix()
 bool SATSubsumptionAndResolution::MatchSet::hasPositiveMatchJ(unsigned j)
 {
   // the wizardry is explained in the header file
-  ASS(j < _n);
+  ASS(j < _n)
   return (_jStates[j / 4] & (1 << (2 * (j % 4)))) != 0;
 }
 
 bool SATSubsumptionAndResolution::MatchSet::hasNegativeMatchJ(unsigned j)
 {
   // the wizardry is explained in the header file
-  ASS(j < _n);
+  ASS(j < _n)
   return (_jStates[j / 4] & (2 << (2 * (j % 4)))) != 0;
 }
 #endif
@@ -287,13 +287,13 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *l_i,
 
 bool SATSubsumptionAndResolution::fillMatchesS()
 {
-  CALL("SATSubsumptionAndResolution::fillMatchesS");
-  ASS(_L);
-  ASS(_M);
-  ASS(_m > 0);
-  ASS(_n > 0);
-  ASS(_matchSet._m == _m);
-  ASS(_matchSet._n == _n);
+  CALL("SATSubsumptionAndResolution::fillMatchesS")
+  ASS(_L)
+  ASS(_M)
+  ASS(_m > 0)
+  ASS(_n > 0)
+  ASS(_matchSet._m == _m)
+  ASS(_matchSet._n == _n)
 
   Literal *l_i, *m_j;
 
@@ -322,12 +322,12 @@ bool SATSubsumptionAndResolution::fillMatchesS()
 void SATSubsumptionAndResolution::fillMatchesSR()
 {
   CALL("SATSubsumptionAndResolution::fillMatchesSR");
-  ASS(_L);
-  ASS(_M);
-  ASS(_m > 0);
-  ASS(_n > 0);
-  ASS(_matchSet._m == _m);
-  ASS(_matchSet._n == _n);
+  ASS(_L)
+  ASS(_M)
+  ASS(_m > 0)
+  ASS(_n > 0)
+  ASS(_matchSet._m == _m)
+  ASS(_matchSet._n == _n)
 
   // stores whether on all the literals in L there is a negative match in M
   bool hasNegativeMatch = false;
@@ -386,11 +386,11 @@ void SATSubsumptionAndResolution::fillMatchesSR()
 bool SATSubsumptionAndResolution::cnfForSubsumption()
 {
   CALL("SATSubsumptionAndResolution::cnfForSubsumption");
-  ASS(_L);
-  ASS(_M);
+  ASS(_L)
+  ASS(_M)
   ASS_GE(_matchSet.allMatches().size(), _L->length())
   ASS_G(_L->length(), 0)
-  ASS(!_subsumptionImpossible);
+  ASS(!_subsumptionImpossible)
 
   _matchSet.indexMatrix();
 
@@ -622,8 +622,8 @@ static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
 bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 {
   CALL("SATSubsumptionResolution::cnfForSubsumptionResolution");
-  ASS(_L);
-  ASS(_M);
+  ASS(_L)
+  ASS(_M)
   ASS_GE(_matchSet.allMatches().size(), _L->length())
 
   atMostOneVars.clear();
@@ -647,7 +647,7 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 #endif
     }
   }
-  ASS(!atMostOneVars.empty());
+  ASS(!atMostOneVars.empty())
   auto build = solver.constraint_end();
   solver.add_clause_unsafe(build);
 #if PRINT_CLAUSES_SUBS
@@ -767,7 +767,7 @@ Clause *SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause *
     Literal *curr = (*M)[i];
     // As we will apply subsumption resolution after duplicate literal
     // deletion, the same literal should never occur twice.
-    ASS(curr != m_j || !found);
+    ASS(curr != m_j || !found)
     if (curr != m_j || found) {
       (*res)[next++] = curr;
     }
@@ -807,7 +807,7 @@ Clause *SATSubsumptionAndResolution::generateConclusion()
             j = match.j;
           }
           else {
-            ASS(j == match.j);
+            ASS(j == match.j)
           }
         }
       }
@@ -836,7 +836,7 @@ Clause *SATSubsumptionAndResolution::generateConclusion()
     }
   }
   ASS_EQ(_n, _M->size())
-  ASS(toRemove != INVALID);
+  ASS(toRemove != INVALID)
   return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_M, (*_M)[toRemove], _L);
 } // SATSubsumptionResolution::generateConclusion
 
@@ -898,8 +898,8 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
   ASS(L)
   ASS(M)
   if (usePreviousSetUp) {
-    ASS(_L == L);
-    ASS(_M == M);
+    ASS(_L == L)
+    ASS(_M == M)
     if (_srImpossible) {
 #if PRINT_CLAUSES_SUBS
       cout << "SR impossible" << endl;

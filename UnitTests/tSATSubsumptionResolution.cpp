@@ -257,6 +257,16 @@ TEST_FUN(PositiveSubsumptionResolution)
   Kernel::Clause* M12 = clause({p2(f2(y2, y5), y2), ~p2(y5, y3), ~r2(y2, y3), ~p2(y5, c), ~q2(y2, c), ~q2(y3, c)});
   conclusion = subsumption.checkSubsumptionResolution(L12, M12);
   ASS(conclusion);
+
+  Kernel::Clause* L13 = clause({p(e)});
+  Kernel::Clause* M13 = clause({q(e), ~p(e)});
+  conclusion = subsumption.checkSubsumptionResolution(L13, M13);
+  Kernel::Clause* expected13 = clause({q(e)});
+  ASS(conclusion);
+  ASS(checkClauseEquality(conclusion, expected13));
+  cout << conclusion->toString() << endl;
+  cout << "Subsumption and resolution tests passed" << endl;
+
   }
 
   TEST_FUN(NegativeSubsumptionResolution)

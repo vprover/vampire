@@ -16,6 +16,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Indexing/LiteralIndex.hpp"
+#include "Kernel/ColorHelper.hpp"
 
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 
@@ -26,6 +27,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 using namespace Inferences;
+
+static bool interpretAnswer(bool subsumes, Clause *conclusion, Clause *premise, Stack<Unit *> &premiseStack, Clause *cl, Clause *&replacement, ClauseIterator &premises);
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
     : _subsumptionResolution(subsumptionResolution)
@@ -41,7 +44,7 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   CALL("ForwardSubsumptionAndResolution::attach");
   ForwardSimplificationEngine::attach(salg);
-  _unitIndex = static_cast<UnitClauseLiteralIndex *>(
+  _unitIndex = dynamic_cast<UnitClauseLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
@@ -69,7 +72,7 @@ static Clause *generateNSimplificationClause(Clause *cl,
                                              vvector<Literal *> litToExclude,
                                              Stack<Unit *> premises)
 {
-  CALL("generateNSimplificationClause");
+  CALL("ForwardSubsumptionAndResolution::generateNSimplificationClause")
   unsigned nlen = cl->length() - litToExclude.size();
   // convert premises into a list of units
   UnitList *premList = UnitList::singleton(cl);
@@ -85,7 +88,7 @@ static Clause *generateNSimplificationClause(Clause *cl,
     }
     (*res)[i - j] = lit;
   }
-  ASS(j == litToExclude.size());
+  ASS(j == litToExclude.size())
   return res;
 }
 
@@ -102,6 +105,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
 {
   CALL("ForwardSubsumptionAndResolution::perform");
   TIME_TRACE("forward subsumption");
+
+  ASS(replacement == nullptr)
 
   unsigned clen = cl->length();
   if (clen == 0) {
@@ -126,6 +131,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // L = a where a is a single literal
   // M = b v C where sigma(a) = b is a given from the index
   // Therefore L subsumes M
+  CALL("perform1")
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, false, false);
@@ -133,7 +139,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       mcl = it.next().clause;
       subsumes = true;
       premise = mcl;
-      goto end_forward;
+      ASS(ColorHelper::compatible(cl->color(), premise->color()))
+      return interpretAnswer(subsumes, conclusion, premise, premiseStack, cl, replacement, premises);
     }
   }
 
@@ -149,6 +156,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // keep it until the end of the loop to make sure no subsumption is possible.
   // Only when it has been checked that subsumption is not possible does the conclusion of
   // subsumption resolution become relevant
+  CALL("perform2");
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _fwIndex->getGeneralizations(lit, false, false);
@@ -166,7 +174,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         if (satSubs.checkSubsumption(mcl, cl, checkSR)) {
           subsumes = true;
           premise = mcl;
-          goto end_forward;
+          return interpretAnswer(subsumes, conclusion, premise, premiseStack, cl, replacement, premises);
         }
       }
       if (checkSR) {
@@ -176,7 +184,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         // for subsumption will have already detected that subsumption resolution is impossible
         conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);
         if (conclusion) {
-          ASS(premise == nullptr);
+          ASS(premise == nullptr)
           // cannot override the premise since the loop would have ended otherwise
           // the premise will be overriden if a subsumption is found
           premise = mcl;
@@ -186,7 +194,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   }
 
   if (conclusion || !_subsumptionResolution) {
-    goto end_forward;
+    return interpretAnswer(subsumes, conclusion, premise, premiseStack, cl, replacement, premises);
   }
 
   /*******************************************************/
@@ -201,6 +209,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // The negatively matching literals are stacked and removed at the same time
   premiseStack.reset();
   litToExclude.clear();
+  CALL("perform3");
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, true, false);
@@ -215,20 +224,21 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     // Single simplification, nothing fancy about it
     premise = (Clause *)premiseStack.pop();
     conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, litToExclude[0], premise);
-    goto end_forward;
+    return interpretAnswer(subsumes, conclusion, premise, premiseStack, cl, replacement, premises);
   }
   else if (premiseStack.size() > 1) {
     // Simplify several literals at the same time
     conclusion = generateNSimplificationClause(cl, litToExclude, premiseStack);
     // Setting premise to null is used to check whether the conclusion has several premises
     premise = nullptr;
-    goto end_forward;
+    return interpretAnswer(subsumes, conclusion, premise, premiseStack, cl, replacement, premises);
   }
 
   /*******************************************************/
   /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
   /*******************************************************/
   // Check for the last clauses that are negatively matched in th index.
+  CALL("perform4");
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _fwIndex->getGeneralizations(lit, true, false);
@@ -241,17 +251,20 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
 
       conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
       if (conclusion) {
-        ASS(premise == nullptr);
+        ASS(premise == nullptr)
         premise = mcl;
-        goto end_forward;
+        return interpretAnswer(subsumes, conclusion, premise, premiseStack, cl, replacement, premises);
       }
     }
   }
+  return interpretAnswer(subsumes, conclusion, premise, premiseStack, cl, replacement, premises);
+}
 
 /*******************************************************/
 /*                   ANALYZE RESULT                    */
 /*******************************************************/
-end_forward:
+static bool interpretAnswer(bool subsumes, Clause *conclusion, Clause *premise, Stack<Unit *> &premiseStack, Clause *cl, Clause *&replacement, ClauseIterator &premises) {
+  CALL("interpretAnswer");
   if (subsumes) {
     // Simple subsumption
     premises = pvi(getSingletonIterator(premise));
@@ -262,7 +275,7 @@ end_forward:
     replacement = conclusion;
     if (!premise) {
       // If premise is null, then the conclusion has several premises (chained resolution)
-      ASS(premiseStack.size() > 1);
+      ASS(premiseStack.size() > 1)
       ClauseList *premiseList = ClauseList::empty();
       for (unsigned i = 0; i < premiseStack.size(); i++) {
         ClauseList::push((Clause *)premiseStack[i], premiseList);
