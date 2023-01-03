@@ -55,7 +55,7 @@ using namespace Indexing;
 SubstitutionTree::SubstitutionTree(bool useC, bool polymorphic, bool rfSubs)
   : _nextVar(0)
   , _useC(useC)
-  , _polymorphic(polymorphic)
+  , _polymorphic(true)
   , _functionalSubtermMap(rfSubs ? Option<FuncSubtermMap>(FuncSubtermMap()) : Option<FuncSubtermMap>())
   , _root(nullptr)
 #if VDEBUG
