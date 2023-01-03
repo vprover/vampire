@@ -216,23 +216,6 @@ private:
     }
 
     /**
-     * Creates a new match set for clauses L of size m and M of size n
-     *
-     * @param m the length of clause L
-     * @param n the length of clause M
-     */
-    MatchSet(unsigned m, unsigned n) :
-#if SAT_SR_IMPL == 2
-      _jStates(n / 4 + 1, 0),
-#endif
-      _m(m),
-      _n(n)
-    {
-      ASS_G(m, 0);
-      ASS_G(n, 0);
-    }
-
-    /**
      * Resizes the match matrix to the given size and clears the matrix
      * Guarantees that the a match can be added at index ( @b m - 1, @b n - 1 )
      *
@@ -245,6 +228,9 @@ private:
       CALL("SATSubsumptionAndResolution::MatchSet::resize");
       ASS_G(m, 0)
       ASS_G(n, 0)
+#if SAT_SR_IMPL == 2
+      _jStates.resize(n / 4 + 1, 0);
+#endif
       _m = m;
       _n = n;
     }
@@ -346,6 +332,9 @@ private:
       CALL("SATSubsumptionAndResolution::MatchSet::clear");
       _matchesByI.clear();
       _matchesByJ.clear();
+#if SAT_SR_IMPL == 2
+      _jStates.clear();
+#endif
       _indexI.clear();
       _indexJ.clear();
     }
@@ -490,8 +479,8 @@ public:
     _L(nullptr),
     _M(nullptr),
     _m(0),
-    _n(0),
-    _matchSet(1, 1) {}
+    _n(0)
+    {}
 
   /**
    * Checks whether the instance clause is subsumed by the base clause

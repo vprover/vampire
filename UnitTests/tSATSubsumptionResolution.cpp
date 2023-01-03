@@ -80,7 +80,9 @@ static void checkConsistency(SATSubsumptionAndResolution::MatchSet &matchSet, vv
 
 TEST_FUN(MatchSetIndexing)
 {
-  SATSubsumptionAndResolution::MatchSet matchSet(3, 3);
+  SATSubsumptionAndResolution::MatchSet matchSet;
+  matchSet.resize(3, 3);
+
   vvector<SATSubsumptionAndResolution::Match> matches;
   SATSubsumptionAndResolution::Match match1 = matchSet.addMatch(0, 0, true, subsat::Var(0));
   SATSubsumptionAndResolution::Match match2 = matchSet.addMatch(2, 1, true, subsat::Var(1));
