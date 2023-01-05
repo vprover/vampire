@@ -153,6 +153,8 @@ class Signature
     unsigned _skolem : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
+    /** if allowed in answer literals */
+    unsigned _computable : 1;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -189,6 +191,8 @@ class Signature
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
     void markTermAlgebraDest() { _termAlgebraDest=1; }
+    /** mark the symbol as uncomputable and hence not allowed in answer literals */
+    void markUncomputable() { _computable = 0; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -237,6 +241,8 @@ class Signature
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
+    /** Return true iff symbol is considered computable */
+    inline bool computable() const { return _computable; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
