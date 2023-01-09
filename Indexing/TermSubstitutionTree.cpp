@@ -24,7 +24,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
-: SubstitutionTree(useC, /* polymorphic */ env.property->hasPolymorphicSym() || env.property->higherOrder(), rfSubs)
+: SubstitutionTree(useC, rfSubs)
 , _extra(extra)
 { }
 

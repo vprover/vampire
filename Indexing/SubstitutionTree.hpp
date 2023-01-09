@@ -113,7 +113,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(bool useC, bool polymorphic, bool rfSubs);
+  SubstitutionTree(bool useC, bool rfSubs);
   SubstitutionTree(SubstitutionTree const&) = delete;
 
   virtual ~SubstitutionTree();
@@ -170,27 +170,6 @@ public:
     QueryResult(LeafData const& ld, ResultSubstitutionSP subst, UnificationConstraintStackSP constr) : data(&ld), subst(subst), constr(constr) {}
   };
 
-  /* if _polymorphic is set to true, polymorphic sort checks are handeled by introducing a special variable for the sort that
-   * is being unified traversing the tree. For monomorphic problems we can ommit this unificaiton by a simple equality check 
-   * of sorts instead. This is what this function does.
-   */
-  bool monomorphicSortCheck(QueryResult const& qr, Literal* l) const
-  { 
-    if (l->isEquality()) {
-      ASS(qr.data->literal->isEquality())
-      return SortHelper::getEqualityArgumentSort(l) == qr.data->sort; //SortHelper::getEqualityArgumentSort(qr.data->literal);
-    } else {
-      return true;
-    }
-  }
-
-  bool monomorphicSortCheck(QueryResult const& qr, TermList t) const
-  { return t.isVar() || qr.data->sort.isEmpty() || qr.data->sort == SortHelper::getResultSort(t.term()); }
-
-  bool monomorphicSortCheck(QueryResult const& qr, TypedTermList t) const
-  { return qr.data->sort.isEmpty() || qr.data->sort == t.sort(); }
-
-
   using QueryResultIterator = VirtualIterator<QueryResult>;
   // TODO make const function
   template<class Iterator, class TermOrLit> 
@@ -199,8 +178,7 @@ public:
     CALL("TermSubstitutionTree::iterator");
     return _root == nullptr 
       ? QueryResultIterator::getEmpty()
-      : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, _functionalSubtermMap.asPtr() ))
-                    .filter([this, query](auto& r) { return _polymorphic || monomorphicSortCheck(r, query);  }));
+      : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, _functionalSubtermMap.asPtr() )));
   }
 
   class LDComparator
@@ -765,8 +743,6 @@ public:
   {
     ASS_EQ(ld.term, term)
     ld.sort = term.sort();
-    // _polymorphic optimizations only work if all *sorts* are atomic
-    ASS(_polymorphic || (ld.sort.isTerm() && ld.sort.term()->arity() == 0))
   }
 
   void setKey(TermList const& term, LeafData& ld)
@@ -774,8 +750,6 @@ public:
     ASS_EQ(ld.term, term)
     if (term.isTerm()) {
       ld.sort = SortHelper::getResultSort(term.term());
-      // _polymorphic optimizations only work if all *sorts* are atomic
-      ASS(_polymorphic || (ld.sort.isTerm() && ld.sort.term()->arity() == 0))
     }
   }
 
@@ -816,8 +790,6 @@ private:
   /** Array of nodes */
   /** enable searching with constraints for this tree */
   bool _useC;
-  /** if _polymorphic is false optimizations are enabled for more efficiently handling equality, and the sorts of variable terms */
-  bool _polymorphic;
   /** functional subterms of a term are replaced by extra sepcial
       variables before being inserted into the tree */
   Option<FuncSubtermMap> _functionalSubtermMap;
@@ -1021,8 +993,7 @@ public:
   void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
   {
     bindSpecialVar(0, term);
-    if (_polymorphic)
-      bindSpecialVar(1, term.sort());
+    bindSpecialVar(1, term.sort());
   }
 
   // TODO document
@@ -1043,8 +1014,7 @@ public:
         bindSpecialVar(1,*lit->nthArgument(1));
       }
 
-      if (_polymorphic)
-        bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
+      bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
 
     } else if(reversed) {
       ASS(lit->commutative());

@@ -67,7 +67,6 @@ private:
 
   Stack<unique_ptr<SubstitutionTree>> _trees;
   bool _useC;
-  bool _polymorphic;
 };
 
 };

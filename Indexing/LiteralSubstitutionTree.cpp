@@ -31,11 +31,6 @@ namespace Indexing
 LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
 : _trees(env.signature->predicates() * 2)
 , _useC(useC)
-  //EqualityProxy transformation can introduce polymorphism in a monomorphic problem
-  //However, there is no need to guard aginst it, as equalityProxy removes all
-  //equality literals. The flag below is only used during the unification of 
-  //equality literals.
-, _polymorphic(env.property->hasPolymorphicSym() || env.property->higherOrder())
 { }
 
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
@@ -85,7 +80,7 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
 {
   auto idx = complementary ? lit->header() : lit->complementaryHeader();
   while (idx >= _trees.size()) {
-    _trees.push(make_unique<SubstitutionTree>(_useC, _polymorphic, /* rfSubs */ false));
+    _trees.push(make_unique<SubstitutionTree>(_useC, /* rfSubs */ false));
   }
   return *_trees[idx];
 }
