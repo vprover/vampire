@@ -21,6 +21,7 @@
 
 namespace Indexing {
 
+/** A wrapper class around SubstitutionTree that makes it usable  as a LiteralIndexingStructure */
 class LiteralSubstitutionTree
 : public LiteralIndexingStructure
 {

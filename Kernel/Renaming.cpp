@@ -127,7 +127,7 @@ TypedTermList Renaming::normalize(TypedTermList l)
   if (l.isTerm()) {
     return TypedTermList(normalize(l.term()));
   } else {
-    RecycledPointer<Renaming> n;
+    Recycled<Renaming> n;
     n->reset();
     n->normalizeVariables(TermList(l));
     n->normalizeVariables(l.sort());
@@ -140,7 +140,7 @@ Literal* Renaming::normalize(Literal* l)
 {
   CALL("Renaming::normalize(Literal*)");
 
-  RecycledPointer<Renaming> n;
+  Recycled<Renaming> n;
   n->reset();
   n->normalizeVariables(l);
   return n->apply(l);
@@ -150,7 +150,7 @@ Term* Renaming::normalize(Term* trm)
 {
   CALL("Renaming::normalize(Term*)");
 
-  RecycledPointer<Renaming> n;
+  Recycled<Renaming> n;
   n->reset();
   n->normalizeVariables(trm);
   return n->apply(trm);
@@ -160,7 +160,7 @@ TermList Renaming::normalize(TermList trm)
 {
   CALL("Renaming::normalize(TermList)");
 
-  RecycledPointer<Renaming> n;
+  Recycled<Renaming> n;
   n->reset();
   n->normalizeVariables(trm);
   return n->apply(trm);
