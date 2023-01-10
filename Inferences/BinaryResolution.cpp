@@ -38,7 +38,6 @@
 #include "Shell/Statistics.hpp"
 
 #include "BinaryResolution.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Inferences
 {

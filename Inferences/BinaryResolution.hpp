@@ -20,7 +20,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Inferences
 {

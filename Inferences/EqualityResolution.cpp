@@ -37,7 +37,6 @@
 
 
 #include "EqualityResolution.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
 #include <iostream>

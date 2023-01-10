@@ -43,7 +43,6 @@
 #include "Shell/Statistics.hpp"
 
 #include "Superposition.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
 #include <iostream>

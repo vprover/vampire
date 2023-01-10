@@ -23,7 +23,6 @@
 #include "RobSubstitution.hpp"
 
 #include "MismatchHandler.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
