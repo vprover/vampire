@@ -357,6 +357,10 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
+  pair<Position,Position>* getRwPos(Literal* lit) const;
+  void setRwPos(Literal* lit, Position p1, Position p2, bool reorient);
+  bool hasRwPos() const { return !_rwPos.isEmpty(); }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -389,6 +393,8 @@ protected:
   InverseLookup<Literal>* _literalPositions;
 
   int _numActiveSplits;
+
+  DHMap<Literal*, pair<Position,Position>> _rwPos;
 
   size_t _auxTimestamp;
   void* _auxData;

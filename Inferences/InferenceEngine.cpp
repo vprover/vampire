@@ -406,6 +406,10 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
       origIdx--;
       ASS_GE(origIdx,0);
     }
+    auto p = c->getRwPos((*c)[origIdx]);
+    if (p) {
+      d->setRwPos((*c)[origIdx],p->first,p->second, false);
+    }
     (*d)[newIdx] = (*c)[origIdx];
   }
   ASS(skipped.isEmpty());

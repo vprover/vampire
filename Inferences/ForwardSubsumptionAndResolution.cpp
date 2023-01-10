@@ -165,6 +165,7 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
 
   int next = 0;
   bool found = false;
+  // bool test = false;
   for (int i = 0; i < clen; i++) {
     Literal *curr = (*cl)[i];
     //As we will apply subsumption resolution after duplicate literal
@@ -172,11 +173,19 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
     ASS(curr != lit || !found);
     if (curr != lit || found) {
       (*res)[next++] = curr;
+      auto p = cl->getRwPos(curr);
+      if (p) {
+        // test = true;
+        res->setRwPos(curr, p->first, p->second, false);
+      }
     }
     else {
       found = true;
     }
   }
+  // if (test) {
+  //   cout << *cl << endl << *res << endl;
+  // }
 
   return res;
 }

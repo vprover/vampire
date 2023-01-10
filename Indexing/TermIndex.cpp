@@ -79,20 +79,26 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("backward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
+  auto bl = EqHelper::getBlackList(c);
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti;
-    if(!env.options->combinatorySup()){
-      rsti = EqHelper::getSubtermIterator(lit,_ord);
-    } else {
-      rsti = EqHelper::getFoSubtermIterator(lit,_ord);
-    }
+    // TermIterator rsti;
+    // if(!env.options->combinatorySup()){
+    //   rsti = EqHelper::getSubtermIterator(lit,_ord);
+    // } else {
+    //   rsti = EqHelper::getFoSubtermIterator(lit,_ord);
+    // }
+    TermIterator rsti = EqHelper::getSubtermIterator2(lit,c,_ord);
     while (rsti.hasNext()) {
+      auto st = rsti.next();
+      if (bl.contains(st)) {
+        continue;
+      }
       if (adding) {
-        _is->insert(rsti.next(), lit, c);
+        _is->insert(st, lit, c);
       }
       else {
-        _is->remove(rsti.next(), lit, c);
+        _is->remove(st, lit, c);
       }
     }
   }

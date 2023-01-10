@@ -737,6 +737,22 @@ public:
     ASS(isSpecial());
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
+
+  void reverseOrientation()
+  {
+    _orientation ^= 1;
+  }
+
+  void resetOrientation()
+  {
+    _orientation = 0;
+  }
+
+  bool isOrientedReversed()
+  {
+    return _orientation;
+  }
+
 protected:
   vstring headToString() const;
 
@@ -783,6 +799,8 @@ protected:
   unsigned _hasInterpretedConstants : 1;
   /** If true, the object is an equality literal between two variables */
   unsigned _isTwoVarEquality : 1;
+  /** If true, the literal has changed its orientation when inserted into term sharing */
+  unsigned _orientation : 1;
   /** Weight of the symbol */
   unsigned _weight;
   /** length of maximum reduction length */
@@ -1037,10 +1055,14 @@ private:
 
 }; // class Literal
 
+using Position = Stack<unsigned>;
+
 // TODO used in some proofExtra output
 //      find a better place for this?
-bool positionIn(TermList& subterm,TermList* term, vstring& position);
-bool positionIn(TermList& subterm,Term* term, vstring& position);
+bool positionIn(TermList& subterm,TermList* term, Position& position);
+bool positionIn(TermList& subterm,Term* term, Position& position);
+vstring positionToString(const Position& position);
+bool positionAftercheck(TermList t, const Position& position);
 
 std::ostream& operator<< (ostream& out, TermList tl );
 std::ostream& operator<< (ostream& out, const Term& tl );

@@ -74,6 +74,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _numActiveSplits(0),
+    _rwPos(),
     _auxTimestamp(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
@@ -338,9 +339,29 @@ vstring Clause::literalsOnlyToString() const
   } else {
     vstring result;
     result += _literals[0]->toString();
+    if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+      auto p = getRwPos(_literals[0]);
+      if (p) {
+        result += " ["+positionToString(p->first);
+        if (_literals[0]->isEquality()) {
+          result += ","+positionToString(p->second);
+        }
+        result += "]";
+      }
+    }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
+      if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+        auto p = getRwPos(_literals[i]);
+        if (p) {
+          result += "["+positionToString(p->first);
+          if (_literals[i]->isEquality()) {
+            result += ","+positionToString(p->second)+"]";
+          }
+          result += "]";
+        }
+      }
     }
     return result;
   }
@@ -707,6 +728,30 @@ unsigned Clause::numPositiveLiterals()
     }
   }
   return count;
+}
+
+void Clause::setRwPos(Literal* lit, Position p0, Position p1, bool reorient)
+{
+  CALL("Clause::setRwPos");
+  if (p0.isEmpty() && p1.isEmpty()) {
+    return;
+  }
+  if (reorient && lit->isOrientedReversed()) {
+    ASS(lit->isEquality());
+    swap(p0,p1);
+  }
+  if (lit->isEquality()) {
+    ASS_REP(positionAftercheck(*lit->nthArgument(0), p0), lit->toString()+" "+lit->nthArgument(0)->toString()+" "+positionToString(p0));
+    ASS_REP(positionAftercheck(*lit->nthArgument(1), p1), lit->toString()+" "+lit->nthArgument(1)->toString()+" "+positionToString(p1));
+  }
+
+  // TODO merge values most efficiently when there are duplicate literals (e.g. from BR)
+  _rwPos.insert(lit, make_pair(p0,p1));
+}
+
+pair<Position, Position>* Clause::getRwPos(Literal* lit) const
+{
+  return const_cast<DHMap<Literal*, pair<Position,Position>>&>(_rwPos).findPtr(lit);
 }
 
 /**

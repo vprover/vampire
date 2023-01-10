@@ -263,6 +263,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       }
       ASS(next < newLength);
       (*res)[next] = newLit;
+      auto p = queryCl->getRwPos(curr);
+      if (p) {
+        res->setRwPos(newLit, p->first, p->second, true);
+      }
       next++;
     }
   }
@@ -301,6 +305,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       }
 
       (*res)[next] = newLit;
+      auto p = qr.clause->getRwPos(curr);
+      if (p) {
+        res->setRwPos(newLit, p->first, p->second, true);
+      }
       next++;
     }
   }

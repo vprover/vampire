@@ -45,6 +45,8 @@ public:
   static TermIterator getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
   static TermIterator getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
+  static TermIterator getSubtermIterator2(Literal* lit, Clause* cl, const Ordering& ord);
+  static DHSet<TermList> getBlackList(Clause* cl);
 
   //WARNING, this function cannot be used when @param t is a sort.
   static Term* replace(Term* t, TermList what, TermList by);

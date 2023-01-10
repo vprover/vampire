@@ -106,18 +106,20 @@ private:
 
 struct Superposition::RewriteableSubtermsFn
 {
-  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
+  RewriteableSubtermsFn(Ordering& ord, Clause* cl) : _ord(ord), _cl(cl) {}
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
-    TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
-                                                      EqHelper::getSubtermIterator(lit, _ord);
+    // TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
+    //                                                   EqHelper::getSubtermIterator(lit, _ord);
+    TermIterator it = EqHelper::getSubtermIterator2(lit, _cl, _ord);
     return pvi( pushPairIntoRightIterator(lit, it) );
   }
 
 private:
   Ordering& _ord;
+  Clause* _cl;
 };
 
 struct Superposition::ApplicableRewritesFn
@@ -198,11 +200,16 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
                                && env.property->higherOrder();
 
   auto itf1 = premise->getSelectedLiteralIterator();
+  auto bl = EqHelper::getBlackList(premise);
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
   // a maximal side of an equality or of a non-equational literal
-  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering()));
+  auto itf2 = iterTraits(itf1)
+    .flatMap(RewriteableSubtermsFn(_salg->getOrdering(), premise))
+    .filter([bl](const pair<Literal*, TermList>& arg) {
+      return !bl.contains(arg.second);
+    });
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
@@ -391,10 +398,10 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  /* cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-    cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
-    cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
-    cout << "eqIsResult " << eqIsResult << endl;*/
+  // cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
+  //   cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
+  //   // cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
+  //   cout << "eqIsResult " << eqIsResult << endl;
 
 
   // the first checks the reference and the second checks the stack
@@ -528,8 +535,12 @@ Clause* Superposition::performSuperposition(
     vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
     vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
-    vstring rwPos="_";
-    ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
+    Position pos;
+    ALWAYS(Kernel::positionIn(rwTerm,rwLit,pos));
+    vstring rwPos;
+    while (pos.isNonEmpty()) {
+      rwPos += Int::toString(pos.pop()+1)+".";
+    }
     vstring eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
@@ -549,16 +560,56 @@ Clause* Superposition::performSuperposition(
     env.proofExtra->insert(res,extra);
   }
 
+  // calculate positions
+  Position rhsPos;
+  auto eqP = eqClause->getRwPos(eqLit);
+  if (eqP) {
+    if (eqLHS == *eqLit->nthArgument(0)) {
+      rhsPos = eqP->second;
+    } else {
+      rhsPos = eqP->first;
+    }
+  }
+  Position pos0;
+  Position pos1;
+  if (rwLitS->isEquality()) {
+    TermList arg0=*rwLitS->nthArgument(0);
+    TermList arg1=*rwLitS->nthArgument(1);
+    auto comp = ordering.getEqualityArgumentOrder(rwLitS);
+
+    // cout << "start" << endl;
+    if (arg0.containsSubterm(rwTermS) && (Ordering::isGorGEorE(comp) || comp == Ordering::Result::INCOMPARABLE)) {
+      pos0 = rhsPos;
+      ALWAYS(Kernel::positionIn(rwTermS,&arg0,pos0));
+      // cout << "1 " << rwTermS << " is in " << positionToString(pos0) << " position in " << arg0 << " " << positionToString(rhsPos) << endl;
+    }
+    if (arg1.containsSubterm(rwTermS) && (Ordering::isGorGEorE(Ordering::reverse(comp)) || comp == Ordering::Result::INCOMPARABLE)) {
+      pos1 = rhsPos;
+      ALWAYS(Kernel::positionIn(rwTermS,&arg1,pos1));
+      // cout << "2 " << rwTermS << " is in " << positionToString(pos1) << " position in " << arg1 << " " << positionToString(rhsPos) << endl;
+    }
+  } else {
+    ALWAYS(Kernel::positionIn(rwTermS,rwLitS,pos0));
+  }
+
   (*res)[0] = tgtLitS;
+  // if (rwLitS->isOrientedReversed() || tgtLitS->isOrientedReversed()) {
+    // cout << *rwLitS << " " << *tgtLitS << " " << positionToString(pos0) << " " << positionToString(pos1) << endl;
+  // }
+  res->setRwPos(tgtLitS, std::move(pos0), std::move(pos1), true);
   int next = 1;
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
+      bool reversed = currAfter->isOrientedReversed();
 
       if (doSimS) {
         currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+        if (reversed) {
+          currAfter->reverseOrientation();
+        }
       }
 
       if(EqHelper::isEqTautology(currAfter)) {
@@ -583,6 +634,10 @@ Clause* Superposition::performSuperposition(
       }
 
       (*res)[next++] = currAfter;
+      auto p = rwClause->getRwPos(curr);
+      if (p) {
+        res->setRwPos(currAfter, p->first, p->second, true);
+      }
     }
   }
 
@@ -622,6 +677,10 @@ Clause* Superposition::performSuperposition(
         }
 
         (*res)[next++] = currAfter;
+        auto p = eqClause->getRwPos(curr);
+        if (p) {
+          res->setRwPos(currAfter, p->first, p->second, true);
+        }
       }
     }
   }
