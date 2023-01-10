@@ -1491,10 +1491,16 @@ void Options::init()
     _inequalityChaining.tag(OptionTag::INFERENCES);
     _lookup.insert(&_inequalityChaining);
 
-    _pointerChaining = BoolOptionValue("pointer_chaining","pc",true);
+    _pointerChaining = ChoiceOptionValue<PointerChaining>("pointer_chaining","pc",PointerChaining::UNIT, {"off","unit","all"});
     _pointerChaining.description = "chains unit pointer clauses to form longer chains. For example a -> b && b ->* c  ===> a ->* c";
     _pointerChaining.tag(OptionTag::INFERENCES);
     _lookup.insert(&_pointerChaining);
+
+
+    _chainLengthReasoning = ChoiceOptionValue<ChainLengthReasoning>("chain_len_reasoning","clr",ChainLengthReasoning::UNIT, {"off","unit","all"});
+    _chainLengthReasoning.description = "reasons about the lengths of null termianted (acyclic) chains";
+    _chainLengthReasoning.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_chainLengthReasoning);
 
     OptionChoiceValues integerInductionLiteralStrictnessValues {
       "none",

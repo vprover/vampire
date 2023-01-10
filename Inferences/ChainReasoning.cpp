@@ -199,7 +199,7 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
   //   2) don't insist on unit clauses
   // Implementation could be improved by indexing loc and tp terms in some 
   // way. However, I doubt that this will be a big time gain
-  if(RapidHelper::isChainEqualsNullClause(premise, chainTerm)){
+  /*if(RapidHelper::isChainEqualsNullClause(premise, chainTerm)){
     if(!_chainTerms.find(chainTerm)){
       DHSet<Term*>::Iterator it(_chainTerms);
       TermList loc = *chainTerm->nthArgument(0);
@@ -223,7 +223,7 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
       ALWAYS(_chainClauses.insert(chainTerm,premise));     
     }
 
-  }
+  }*/
 
   if(!resultStack.size())
     return ClauseIterator::getEmpty();

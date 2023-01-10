@@ -444,7 +444,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InequalityISE.cpp  
     Inferences/EqualityToInequality.cpp    
     Inferences/UnitInequalityChaining.cpp
-    Inferences/PointerChaining.cpp           
+    Inferences/PointerChaining.cpp   
+    Inferences/ChainLengthReasoning.cpp
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
@@ -496,6 +497,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/EqualityToInequality.hpp 
     Inferences/UnitInequalityChaining.hpp
     Inferences/PointerChaining.hpp       
+    Inferences/ChainLengthReasoning.hpp
     Inferences/RapidArrayInduction.hpp       
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})

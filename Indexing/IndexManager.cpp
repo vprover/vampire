@@ -342,6 +342,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break; 
 
+  case NULL_TERMINATED_CHAIN_INDEX:
+    tis = new TermSubstitutionTree();
+    res = new NullTerminatedChainIndex(tis);
+    isGenerating = true;
+    break;
+
   default:
     INVALID_OPERATION("Unsupported IndexType.");
   }

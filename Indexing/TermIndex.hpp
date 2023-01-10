@@ -325,6 +325,21 @@ protected:
   void handleClause(Clause* c, bool adding);
 };
 
+class NullTerminatedChainIndex
+: public TermIndex
+{
+public:  
+  CLASS_NAME(NullTerminatedChainIndex);
+  USE_ALLOCATOR(NullTerminatedChainIndex);
+
+  NullTerminatedChainIndex(TermIndexingStructure* is)
+  : TermIndex(is) {};
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
+
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////

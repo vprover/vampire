@@ -13,8 +13,8 @@
  */
 
 
-#ifndef __PointerChaining__
-#define __PointerChaining__
+#ifndef __ChainLengthReasoning__
+#define __ChainLengthReasoning__
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -27,30 +27,30 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class PointerChaining
+class ChainLengthReasoning
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(PointerChaining);
-  USE_ALLOCATOR(PointerChaining);
+  CLASS_NAME(ChainLengthReasoning);
+  USE_ALLOCATOR(ChainLengthReasoning);
   
-  // a basic form transitivity for pointer chains
-  // a ->*n b && b -> c  ===> a ->*(n+1) c
-  // a -> b   && b -> c  ===> a ->*2     c
- 
+  // reason about chain lengths
+  // if we have a chains a ->n tp null 
+  // and                 a ->m tp null
+  // then n = m
+
   ClauseIterator generateClauses(Clause* premise);
 
   void attach(SaturationAlgorithm* salg);
   void detach();
 
 private:
-  Clause* createResult(Clause* queuryC, Literal* queryLit, TermList queryChainOrPointer, TermList queryEnd, TermList len, TermList tp, bool right, TermQueryResult& tqr);
+  Clause* createResult(Clause* queuryC, Literal* queryLit, TermList queryChain, TermList loc, TermList tp, TermList len, TermQueryResult& tqr);
 
-  PointerChainRhsIndex* _rhsIndex;
-  PointerChainLhsIndex* _lhsIndex;  
+  NullTerminatedChainIndex* _index;  
 };
 
 
 };
 
-#endif /* __PointerChaining__ */
+#endif /* __ChainLengthReasoning__ */

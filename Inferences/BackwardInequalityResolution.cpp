@@ -92,10 +92,10 @@ struct BackwardInequalityResolution::ResultFn
   BwSimplificationRecord operator() (TermQueryResult qr)
   {
     CALL("BackwardInequalityResolution::ResultFn::operator()");
-
+    
     if(_cl==qr.clause || _removed->find(qr.clause)) {
       //the retreived clause was already replaced during this
-      //backward demodulation
+      //backward inference
       return BwSimplificationRecord(0);
     }
  

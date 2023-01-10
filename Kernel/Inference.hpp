@@ -314,6 +314,8 @@ enum class InferenceRule : unsigned char {
 
   CHAIN_REASONING,
 
+  POINTER_CHAINING,
+
   CHAIN_AXIOM,
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,

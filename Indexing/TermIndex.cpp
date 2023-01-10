@@ -456,27 +456,31 @@ void PointerChainRhsIndex::handleClause(Clause* c, bool adding)
     return RH::isChain(t) || RH::isPointer(t);
   };
 
-  if(c->length() == 1){
-    Literal* lit = (*c)[0];
-    if(lit->isEquality() && lit->isPositive()){
-      TermList lhs = *lit->nthArgument(0);
-      TermList rhs = *lit->nthArgument(1);
-      bool handle = false;
-      TermList handling;
-      if(isChainOrPointer(lhs) && !RH::isNull(rhs) && !isChainOrPointer(rhs)){
-        handle = true;
-        handling = rhs;
-      }
-      if(isChainOrPointer(rhs) && !RH::isNull(lhs) && !isChainOrPointer(lhs)){
-        handle = true;
-        handling = lhs;
-      }
-      if(handle){
-        if (adding) {
-          _is->insert(handling, lit, c);
-        } else {
-          _is->remove(handling, lit, c);
-        }          
+  static bool unit = env.options->pointerChaining() == Options::PointerChaining::UNIT;
+
+  if(c->length() == 1 || !unit){
+    for(unsigned i = 0; i < c->length(); i++){
+      Literal* lit = (*c)[i];
+      if(lit->isEquality() && lit->isPositive()){
+        TermList lhs = *lit->nthArgument(0);
+        TermList rhs = *lit->nthArgument(1);
+        bool handle = false;
+        TermList handling;
+        if(isChainOrPointer(lhs) && !RH::isNull(rhs) && !isChainOrPointer(rhs)){
+          handle = true;
+          handling = rhs;
+        }
+        if(isChainOrPointer(rhs) && !RH::isNull(lhs) && !isChainOrPointer(lhs)){
+          handle = true;
+          handling = lhs;
+        }
+        if(handle){
+          if (adding) {
+            _is->insert(handling, lit, c);
+          } else {
+            _is->remove(handling, lit, c);
+          }          
+        }
       }
     }
   }   
@@ -492,31 +496,72 @@ void PointerChainLhsIndex::handleClause(Clause* c, bool adding)
     return RH::isChain(t) || RH::isPointer(t);
   }; 
 
-  if(c->length() == 1){
-    Literal* lit = (*c)[0];
-    if(lit->isEquality() && lit->isPositive()){
-      TermList lhs = *lit->nthArgument(0);
-      TermList rhs = *lit->nthArgument(1);
-      bool handle = false;
-      TermList handling;
-      if(isChainOrPointer(lhs) && !isChainOrPointer(rhs)){
-        handle = true;
-        handling = RH::getLoc(lhs);
+  static bool unit = env.options->pointerChaining() == Options::PointerChaining::UNIT;
+
+  if(c->length() == 1 || !unit){
+    for(unsigned i = 0; i < c->length(); i++){
+      Literal* lit = (*c)[i];
+      if(lit->isEquality() && lit->isPositive()){
+        TermList lhs = *lit->nthArgument(0);
+        TermList rhs = *lit->nthArgument(1);
+        bool handle = false;
+        TermList handling;
+        if(isChainOrPointer(lhs) && !isChainOrPointer(rhs)){
+          handle = true;
+          handling = RH::getLoc(lhs);
+        }
+        if(isChainOrPointer(rhs) && !isChainOrPointer(lhs)){
+          handle = true;
+          handling = RH::getLoc(rhs);
+        }
+        if(handle){
+          if (adding) {
+            _is->insert(handling, lit, c);
+          } else {
+            _is->remove(handling, lit, c);
+          }          
+        }
       }
-      if(isChainOrPointer(rhs) && !isChainOrPointer(lhs)){
-        handle = true;
-        handling = RH::getLoc(rhs);
-      }
-      if(handle){
-        if (adding) {
-          _is->insert(handling, lit, c);
-        } else {
-          _is->remove(handling, lit, c);
-        }          
-      }
-    }
-  }  
+    }  
+  }
 }
+
+void NullTerminatedChainIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("NullTerminatedChainIndex::handleClause");
+
+  typedef RapidHelper RH;
+
+  static bool unit = env.options->chainLengthReasoning() == Options::ChainLengthReasoning::UNIT;
+
+  if(c->length() == 1 || !unit){
+    for(unsigned i = 0; i < c->length(); i++){
+      Literal* lit = (*c)[i];
+      if(lit->isEquality() && lit->isPositive()){
+        TermList lhs = *lit->nthArgument(0);
+        TermList rhs = *lit->nthArgument(1);
+        bool handle = false;
+        TermList handling;
+        if(RH::isChain(lhs) && RH::isNull(rhs)){
+          handle = true;
+          handling = RH::getLoc(lhs);
+        }
+        if(RH::isChain(rhs) && RH::isNull(lhs)){
+          handle = true;
+          handling = RH::getLoc(rhs);
+        }
+        if(handle){
+          if (adding) {
+            _is->insert(handling, lit, c);
+          } else {
+            _is->remove(handling, lit, c);
+          }          
+        }
+      }
+    }  
+  }
+}
+
 
 /////////////////////////////////////////////////////
 // Indices for higher-order inferences from here on//

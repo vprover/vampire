@@ -67,8 +67,8 @@ void PointerChaining::detach()
 }
 
 
-Clause* PointerChaining::createResult(TermList queryEnd, TermList queryLen, TermList queryTP,
-  bool right, TermQueryResult& tqr, Clause* premise)
+Clause* PointerChaining::createResult(Clause* queryClause, Literal* queryLit, TermList queryChainOrPointer, TermList queryEnd, TermList queryLen, TermList queryTP,
+  bool right, TermQueryResult& tqr)
 {
   CALL("PointerChaining::createClause");
 
@@ -83,9 +83,30 @@ Clause* PointerChaining::createResult(TermList queryEnd, TermList queryLen, Term
 
   TermList lhs = *resLit->nthArgument(0);
   TermList rhs = *resLit->nthArgument(1);
-  TermList chainOrPointer = isChainOrPointer(lhs) ? lhs : rhs;
+  TermList resChainOrPointer = isChainOrPointer(lhs) ? lhs : rhs;
 
-  TermList resultTP = RH::getTP(chainOrPointer);
+  auto queryStructSort = SortHelper::getResultSort(queryChainOrPointer.term());
+  auto resStructSort = SortHelper::getResultSort(resChainOrPointer.term());
+
+  if(queryStructSort != resStructSort){
+    // different structs. Cannot extend chains
+    return 0;
+  }
+  auto strct = env.signature->getStructOfSort(resStructSort);
+
+  unsigned queryFun = queryChainOrPointer.term()->functor();
+  unsigned resFun   = resChainOrPointer.term()->functor();
+
+
+  auto field = RH::isPointer(resChainOrPointer) ? strct->getFieldByFunctor(resFun) :
+                                                  strct->getFieldByChain(resFun);
+  if(queryFun != field->chain()  && queryFun != field->functor()){
+    // pointers / chains belong to different fields
+    // cannot chain together      
+    return 0;
+  } 
+
+  TermList resultTP = RH::getTP(resChainOrPointer);
   // have to be able to extend the unifier to unify
   // the timepoints as well
   if(!subst->tryGetRobSubstitution()->unify(queryTP, 0, resultTP, 1)){
@@ -97,23 +118,17 @@ Clause* PointerChaining::createResult(TermList queryEnd, TermList queryLen, Term
     resultEnd = RH::getLoc(rhs);
   } else if(resTerm == rhs){
     resultEnd = RH::getLoc(lhs);    
-  } else if(chainOrPointer == lhs){
+  } else if(resChainOrPointer == lhs){
     resultEnd = rhs;
   } else {
     resultEnd = lhs;
   }
 
-  TermList resultLen = RH::isChain(chainOrPointer) ? 
-    *chainOrPointer.term()->nthArgument(2) :
+  TermList resultLen = RH::isChain(resChainOrPointer) ? 
+    *resChainOrPointer.term()->nthArgument(2) :
     RH::number::one();
 
-  unsigned chainFunc = chainOrPointer.term()->functor();
-  if(RH::isPointer(chainOrPointer)){
-    TermList structSort = SortHelper::getResultSort(chainOrPointer.term());
-    auto strct = env.signature->getStructOfSort(structSort);
-    auto field = strct->getFieldByFunctor(chainOrPointer.term()->functor());
-    chainFunc = field->chain();
-  }
+  unsigned chainFunc = field->chain();
 
   TermList queryLenS = subst->apply(queryLen,0);
   TermList resultLenS = subst->apply(resultLen,1);
@@ -129,10 +144,30 @@ Clause* PointerChaining::createResult(TermList queryEnd, TermList queryLen, Term
 
   TermList chain = TermList(Term::create(chainFunc, {start, tpS, newLen}));
 
-  Literal* newLit = Literal::createEquality(true, chain, end, SortHelper::getResultSort(chainOrPointer.term()));
+  Literal* newLit = Literal::createEquality(true, chain, end, SortHelper::getResultSort(resChainOrPointer.term()));
 
-  Clause* res = new(1) Clause(1, GeneratingInference2(InferenceRule::CHAIN_REASONING, premise, resClause));
-  (*res)[0] = newLit;   
+  unsigned newCLen = queryClause->length() + resClause->length() - 1;
+
+  Clause* res = new(newCLen) Clause(newCLen, GeneratingInference2(InferenceRule::POINTER_CHAINING, queryClause, resClause));
+  (*res)[0] = newLit;
+  unsigned next = 1;
+
+  for(unsigned i = 0; i < queryClause->length(); i++){
+    Literal* lit = (*queryClause)[i];
+    if(lit != queryLit){
+      Literal* litAfter = subst->apply(lit, 0);
+      (*res)[next++] = litAfter;
+    }
+  }
+
+  for(unsigned i = 0; i < resClause->length(); i++){
+    Literal* lit = (*resClause)[i];
+    if(lit != resLit){
+      Literal* litAfter = subst->apply(lit, 1);
+      (*res)[next++] = litAfter;
+    }
+  }
+
   return res;
 }
 
@@ -145,47 +180,51 @@ ClauseIterator PointerChaining::generateClauses(Clause* premise)
     return RH::isChain(t) || RH::isPointer(t);
   };
 
+  static bool unit = env.options->pointerChaining() == Options::PointerChaining::UNIT;
+
   static ClauseStack results;
 
-  if(premise->length() == 1){
-    Literal* lit = (*premise)[0];
-    if(lit->isEquality() && lit->isPositive()){
-      TermList lhs = *lit->nthArgument(0);
-      TermList rhs = *lit->nthArgument(1);
-      if((isChainOrPointer(lhs) && !isChainOrPointer(rhs) ) ||
-         (isChainOrPointer(rhs) && !isChainOrPointer(lhs) )){
+  if(premise->length() == 1 || !unit){
+    for(unsigned i = 0; i < premise->length(); i++){
+      Literal* lit = (*premise)[i];
+      if(lit->isEquality() && lit->isPositive()){
+        TermList lhs = *lit->nthArgument(0);
+        TermList rhs = *lit->nthArgument(1);
+        if((isChainOrPointer(lhs) && !isChainOrPointer(rhs) ) ||
+           (isChainOrPointer(rhs) && !isChainOrPointer(lhs) )){
 
-        results.reset();
+          results.reset();
 
-        TermList chainOrPointer = isChainOrPointer(lhs) ? lhs : rhs;
-        TermList l = RH::getLoc(chainOrPointer);
-        TermList r = isChainOrPointer(lhs) ? rhs : lhs;
-        TermList tp = RH::getTP(chainOrPointer);
-        // a -> b is a chain of length 1
-        TermList len = RH::isChain(chainOrPointer) ? 
-          *chainOrPointer.term()->nthArgument(2) :
-          RH::number::one();
+          TermList chainOrPointer = isChainOrPointer(lhs) ? lhs : rhs;
+          TermList l = RH::getLoc(chainOrPointer);
+          TermList r = isChainOrPointer(lhs) ? rhs : lhs;
+          TermList tp = RH::getTP(chainOrPointer);
+          // a -> b is a chain of length 1
+          TermList len = RH::isChain(chainOrPointer) ? 
+            *chainOrPointer.term()->nthArgument(2) :
+            RH::number::one();
 
-        auto it1 = _lhsIndex->getUnifications(r);
-        while(it1.hasNext()){
-          TermQueryResult tqr = it1.next();
-          Clause* result = createResult(l, len, tp, false, tqr, premise);
-          if(result){
-            results.push(result);
+          auto it1 = _lhsIndex->getUnifications(r);
+          while(it1.hasNext()){
+            TermQueryResult tqr = it1.next();
+            Clause* result = createResult(premise, lit, chainOrPointer, l, len, tp, false, tqr);
+            if(result){
+              results.push(result);
+            }
           }
-        }
 
-        auto it2 = _rhsIndex->getUnifications(l);
-        while(it2.hasNext()){
-          TermQueryResult tqr = it2.next();
-          Clause* result = createResult(r, len, tp, true, tqr, premise);       
-          if(result){
-            results.push(result);
+          auto it2 = _rhsIndex->getUnifications(l);
+          while(it2.hasNext()){
+            TermQueryResult tqr = it2.next();
+            Clause* result = createResult(premise, lit, chainOrPointer, r, len, tp, true, tqr);       
+            if(result){
+              results.push(result);
+            }
           }
+
+          return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
+
         }
-
-        return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
-
       }
     }
   }

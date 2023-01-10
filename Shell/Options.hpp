@@ -509,6 +509,18 @@ public:
     OFF,
   };
 
+  enum class PointerChaining : unsigned int {
+    OFF,
+    UNIT,
+    ALL
+  };
+
+  enum class ChainLengthReasoning : unsigned int {
+    OFF,
+    UNIT,
+    ALL
+  };
+
   enum class LiteralComparisonMode : unsigned int {
     PREDICATE = 0,
     REVERSE = 1,
@@ -2395,7 +2407,8 @@ public:
   bool forceValueChainOrientation() const { return _forceValueChainOrientation.actualValue; }
   bool eqToIneq() const { return _eqToIneq.actualValue; }
   bool inequalityChaining() const { return _inequalityChaining.actualValue; }
-  bool pointerChaining() const { return _pointerChaining.actualValue; }
+  PointerChaining pointerChaining() const { return _pointerChaining.actualValue; }
+  ChainLengthReasoning chainLengthReasoning() const { return _chainLengthReasoning.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2741,7 +2754,8 @@ private:
   BoolOptionValue _forceValueChainOrientation;
   BoolOptionValue _eqToIneq;
   BoolOptionValue _inequalityChaining;
-  BoolOptionValue _pointerChaining;
+  ChoiceOptionValue<PointerChaining> _pointerChaining;
+  ChoiceOptionValue<ChainLengthReasoning> _chainLengthReasoning;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
