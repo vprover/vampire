@@ -674,6 +674,7 @@ public:
 
 
   static TermIterator getVariableIterator(TermList tl);
+  static TermIterator getUncomputableIterator(TermList tl);
 
   // the number of _distinct_ variables within the term
   unsigned getDistinctVars() const

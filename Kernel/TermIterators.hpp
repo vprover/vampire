@@ -243,6 +243,38 @@ protected:
   bool _used;
 };
 
+
+class UncomputableSubtermIterator
+    : public IteratorCore<TermList>
+{
+public:
+  UncomputableSubtermIterator(const Term* term) : _iter(new SubtermIterator(term))
+  {
+    _used = false;
+    Recycler::get(_iter);
+  }
+  ~UncomputableSubtermIterator()
+  {
+    Recycler::release(_iter);
+  }
+
+  bool hasNext();
+  /** Return next subterm
+   * @warning hasNext() must have been called before */
+  TermList next()
+  {
+    _used = true;
+    return _next;
+  }
+protected:
+
+  SubtermIterator* _iter;
+  TermList _next;
+  bool _used;
+};
+
+
+
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///
 ///            ITERATORS REQUIRED FOR HIGHER-ORDER REASONING           ///

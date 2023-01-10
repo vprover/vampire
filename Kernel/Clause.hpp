@@ -363,6 +363,8 @@ public:
     return getAnswerLiteral() != nullptr;
   }
 
+  Clause* abstractUncomputables();
+
 protected:
   /** number of literals */
   unsigned _length : 20;

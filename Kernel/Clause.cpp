@@ -37,6 +37,7 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 #include <cmath>
 
@@ -815,6 +816,50 @@ Literal* Clause::getAnswerLiteral() {
   }
   _answerLiteralChecked = true;
   return _answerLiteral;
+}
+
+Clause* Clause::abstractUncomputables() {
+  if (!hasAnswerLiteral()) {
+    return this;
+  }
+  Literal* ans = getAnswerLiteral();
+  RobSubstitution subst;
+  subst.reset();
+
+  unsigned int specialID = 0; // TODO ensure these IDs are distinct.
+
+  // TODO consider obtaining uncomputables from the prior substitution.
+  for (unsigned i = 0; i < ans->arity(); ++i) {
+    TermList* tl = ans->nthArgument(i);
+    if (tl->isVar()) {
+      continue;
+    }
+    TermIterator iter = Term::getUncomputableIterator(*tl);
+    while (iter.hasNext()) {
+      TermList unc = iter.next();
+      subst.bindSpecialVar(specialID, unc, 0);
+      specialID++;
+    }
+  }
+  // TODO consider collisions in special vars created.
+
+  unsigned newLen=length()+specialID;
+  Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+
+  unsigned next = 0;
+  for(unsigned i=0;i<length();i++) {
+    Literal* curr=(*this)[i];
+    Literal* currAfter = subst.apply(curr, 0);
+    (*res)[next++] = currAfter;
+  }
+  for(unsigned i=0;i<specialID;i++){
+    TermList substituted = subst.getSpecialVarTop(specialID);
+    TermList sort = SortHelper::getResultSort(substituted.term());
+    Literal* constraint = Literal::createEquality(false, TermList(specialID, true), substituted, sort);
+
+    (*res)[next++] = constraint;
+  }
+  return res;
 }
 
 }
