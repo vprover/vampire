@@ -52,9 +52,8 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree(bool polymorphic)
+SubstitutionTree::SubstitutionTree()
   : _nextVar(0)
-  , _polymorphic(polymorphic)
   , _root(nullptr)
 #if VDEBUG
   , _tag(false)

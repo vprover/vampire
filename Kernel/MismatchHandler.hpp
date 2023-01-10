@@ -98,7 +98,7 @@ public:
   auto iter() const
   { return iterTraits(_cont.iter()); }
 
-  RecycledPointer<Stack<Literal*>> literals(RobSubstitution& s);
+  Recycled<Stack<Literal*>> literals(RobSubstitution& s);
 
   auto literalIter(RobSubstitution& s)
   { return iterTraits(_cont.iter())

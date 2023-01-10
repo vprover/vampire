@@ -88,9 +88,17 @@ std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> co
 template<class Key> struct SubtitutionTreeConfig;
 
 /**
- * Class of substitution trees. In fact, contains an array of substitution
- * trees.
- * @since 16/08/2008 flight Sydney-San Francisco
+ * Class of substitution trees. 
+ *
+ * We can either typed terms, or literals into a subtitution tree.
+ * Classically we'd think of inserting/removing only one term t into a substitution tree. 
+ * This can be understood as inserting the substitution { S0 -> t } into the tree.
+ *
+ * In general we can insertt a substitution with more than just this one binding. 
+ * This is what we do in order to store the sort of variables, and in order to insert all the arguments of a literal:
+ * - For a term t of sort s we insert { S0 -> t; S1 -> s }
+ * - For literals (~)P(t0..tn) we insert { S0 -> t0 .. Sn -> tn }.
+ * (Note that we do not check the predicate of the polarity of literals here. This happens in LiteralSubstitutionTree)
  */
 class SubstitutionTree
 {
@@ -124,7 +132,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(bool polymorphic);
+  SubstitutionTree();
   SubstitutionTree(SubstitutionTree const&) = delete;
 
   virtual ~SubstitutionTree();
@@ -181,27 +189,6 @@ public:
     QueryResult(LeafData const& ld, ResultSubstitutionSP subst, UnificationConstraintStack* constr) : data(&ld), subst(subst), constr(constr) {}
   };
 
-  /* if _polymorphic is set to true, polymorphic sort checks are handeled by introducing a special variable for the sort that
-   * is being unified traversing the tree. For monomorphic problems we can ommit this unificaiton by a simple equality check 
-   * of sorts instead. This is what this function does.
-   */
-  bool monomorphicSortCheck(QueryResult const& qr, Literal* l) const
-  { 
-    if (l->isEquality()) {
-      ASS(qr.data->literal->isEquality())
-      return SortHelper::getEqualityArgumentSort(l) == SortHelper::getEqualityArgumentSort(qr.data->literal);
-    } else {
-      return true;
-    }
-  }
-
-  bool monomorphicSortCheck(QueryResult const& qr, TermList t) const
-  { return t.isVar() || qr.data->sort.isEmpty() || qr.data->sort == SortHelper::getResultSort(t.term()); }
-
-  bool monomorphicSortCheck(QueryResult const& qr, TypedTermList t) const
-  { return qr.data->sort.isEmpty() || qr.data->sort == t.sort(); }
-
-
   using QueryResultIterator = VirtualIterator<QueryResult>;
   // TODO make const function
   template<class Iterator, class TermOrLit> 
@@ -212,7 +199,6 @@ public:
     return _root == nullptr 
       ? QueryResultIterator::getEmpty()
       : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, handler))
-                    .filter([this, query](auto& r) { return _polymorphic || monomorphicSortCheck(r, query);  })
                     .filter([handler](auto r) { 
                       if (handler == nullptr) return true;
                       auto& s = *r.subst->tryGetRobSubstitution();
@@ -620,8 +606,6 @@ public:
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
-  //typedef SkipList<Binding,Binding::Comparator> BindingQueue;
-//  typedef SkipList<unsigned,SpecVarComparator> SpecVarQueue;
   typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
   typedef Stack<unsigned> VarStack;
 
@@ -633,11 +617,36 @@ public:
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
+  // TODO document
+  void setKey(TypedTermList const& term, LeafData& ld)
+  {
+    ASS_EQ(ld.term, term)
+    ld.sort = term.sort();
+  }
+
+  void setKey(TermList const& term, LeafData& ld)
+  {
+    ASS_EQ(ld.term, term)
+    if (term.isTerm()) {
+      ld.sort = SortHelper::getResultSort(term.term());
+    }
+  }
+
+
+  void setKey(Literal* literal, LeafData &ld)
+  { 
+    ASS_EQ(ld.literal, literal); 
+    if (literal->isEquality()) 
+      ld.sort = SortHelper::getEqualityArgumentSort(literal);
+  }
+
+
   template<class Key>
   void handle(Key const& key, LeafData ld, bool doInsert)
   {
     auto norm = Renaming::normalize(key);
-    RecycledPointer<BindingMap> bindings;
+    Recycled<BindingMap> bindings;
+    setKey(key, ld);
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
@@ -653,7 +662,6 @@ private:
 
   /** Number of the next variable */
   int _nextVar;
-  bool _polymorphic;
   Node* _root;
 #if VDEBUG
   bool _tag;
@@ -668,8 +676,8 @@ public:
   : public ResultSubstitution 
   {
   public:
-    RecycledPointer<Renaming> _query;
-    RecycledPointer<Renaming> _result;
+    Recycled<Renaming> _query;
+    Recycled<Renaming> _result;
     RenamingSubstitution(): _query(), _result() {}
     virtual ~RenamingSubstitution() override {}
     virtual TermList applyToQuery(TermList t) final override { return _query->apply(t); }
@@ -714,7 +722,7 @@ public:
       normQuery = Renaming::normalize(query);
     }
 
-    RecycledPointer<BindingMap> svBindings;
+    Recycled<BindingMap> svBindings;
     createBindings(normQuery, /* reversed */ false,
         [&](auto v, auto t) { {
           _nextVar = max<int>(_nextVar, v + 1); // TODO do we need this line?
@@ -833,8 +841,8 @@ public:
     struct Applicator;
     class Substitution;
 
-    RecycledPointer<VarStack> _boundVars;
-    RecycledPointer<DArray<TermList>, NoReset> _specVars;
+    Recycled<VarStack> _boundVars;
+    Recycled<DArray<TermList>, NoReset> _specVars;
 
     /**
      * Inheritors must assign the maximal possible number of an ordinary
@@ -846,7 +854,7 @@ public:
      * Inheritors must ensure that the size of this map will
      * be at least @b _maxVar+1
      */
-    RecycledPointer<ArrayMap<TermList>> _bindings;
+    Recycled<ArrayMap<TermList>> _bindings;
   };
 
   // TODO document
@@ -854,8 +862,7 @@ public:
   void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
   {
     bindSpecialVar(0, term);
-    if (_polymorphic)
-      bindSpecialVar(1, term.sort());
+    bindSpecialVar(1, term.sort());
   }
 
   // TODO document
@@ -863,7 +870,7 @@ public:
   void createBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
   { 
     bindSpecialVar(0, term); 
-    if (term.isTerm() && _polymorphic)
+    if (term.isTerm())
       bindSpecialVar(1, SortHelper::getResultSort(term.term()));
   }
 
@@ -880,8 +887,7 @@ public:
         bindSpecialVar(1,*lit->nthArgument(1));
       }
 
-      if (_polymorphic)
-        bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
+      bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
 
     } else if(reversed) {
       ASS(lit->commutative());
@@ -967,13 +973,13 @@ public:
 
     LDIterator _ldIterator;
 
-    RecycledPointer<Renaming> _resultNormalizer;
+    Recycled<Renaming> _resultNormalizer;
 
     Node* _root;
 
-    RecycledPointer<Stack<void*>> _alternatives;
-    RecycledPointer<Stack<unsigned>> _specVarNumbers;
-    RecycledPointer<Stack<NodeAlgorithm>> _nodeTypes;
+    Recycled<Stack<void*>> _alternatives;
+    Recycled<Stack<unsigned>> _specVarNumbers;
+    Recycled<Stack<NodeAlgorithm>> _nodeTypes;
     IterCounter _iterCounter;
   };
 
@@ -1217,14 +1223,14 @@ public:
     bool _inLeaf;
     LDIterator _ldIterator;
 
-    RecycledPointer<InstMatcher> _subst;
+    Recycled<InstMatcher> _subst;
 
     Renaming _resultDenormalizer;
     Node* _root;
 
-    RecycledPointer<Stack<void*>> _alternatives;
-    RecycledPointer<Stack<unsigned>> _specVarNumbers;
-    RecycledPointer<Stack<NodeAlgorithm>> _nodeTypes;
+    Recycled<Stack<void*>> _alternatives;
+    Recycled<Stack<unsigned>> _specVarNumbers;
+    Recycled<Stack<NodeAlgorithm>> _nodeTypes;
     IterCounter _iterCounter;
   };
 
@@ -1287,20 +1293,20 @@ public:
     static const int RESULT_BANK=1;
     static const int NORM_RESULT_BANK=3;
 
-    RecycledPointer<RobSubstitution> _subst;
-    RecycledPointer<VarStack> _svStack;
+    Recycled<RobSubstitution> _subst;
+    Recycled<VarStack> _svStack;
 
   private:
     bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;
     LDIterator _ldIterator;
-    RecycledPointer<Stack<NodeIterator>> _nodeIterators;
-    RecycledPointer<Stack<BacktrackData>> _bdStack;
+    Recycled<Stack<NodeIterator>> _nodeIterators;
+    Recycled<Stack<BacktrackData>> _bdStack;
     bool _clientBDRecording;
     BacktrackData _clientBacktrackData;
     MismatchHandler* _mismatchHandler;
-    RecycledPointer<UnificationConstraintStack> _constraints;
+    Recycled<UnificationConstraintStack> _constraints;
     IterCounter _parentIterCntr;
 #if VDEBUG
     bool _tag;

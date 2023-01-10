@@ -111,7 +111,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree(/* uwa */ nullptr, IndexManager::polymorphicIndices());
+  _selected = new LiteralSubstitutionTree(/* uwa */ nullptr);
 
   _doingSatisfiabilityCheck = false;
 }
@@ -758,7 +758,7 @@ void IGAlgorithm::wipeIndexes()
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree(/* uwa */ nullptr, IndexManager::polymorphicIndices());
+  _selected = new LiteralSubstitutionTree(/* uwa */ nullptr);
 }
 
 

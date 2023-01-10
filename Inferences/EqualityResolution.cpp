@@ -83,8 +83,8 @@ struct EqualityResolution::ResultFn
       handler = nullptr;
     }
 
-    RecycledPointer<RobSubstitution> subst;
-    RecycledPointer<UnificationConstraintStack> rawConstraints;
+    Recycled<RobSubstitution> subst;
+    Recycled<UnificationConstraintStack> rawConstraints;
 
     MismatchHandler::StackConstraintSet c(*rawConstraints);
     if(!subst->unify(arg0,0,arg1,0,handler,&c)){ 

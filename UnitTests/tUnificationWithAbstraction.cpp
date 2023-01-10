@@ -54,19 +54,19 @@ Stack<Literal*> constraintLits(UnificationConstraintStack*& cnst, RobSubstitutio
 unique_ptr<TermSubstitutionTree> getTermIndexHOL()
 { 
   env.options->set("func_ext", "abstraction");
-  return std::make_unique<TermSubstitutionTree>(new HOMismatchHandler(), /* polymorphic */ true, /* extra */ false);
+  return std::make_unique<TermSubstitutionTree>(new HOMismatchHandler(), /* extra */ false);
 }
 
-unique_ptr<TermSubstitutionTree> getTermIndex(Shell::Options::UnificationWithAbstraction uwa, bool polymorphic)
+unique_ptr<TermSubstitutionTree> getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
 { 
   env.options->setUWA(uwa);
-  return std::make_unique<TermSubstitutionTree>(new UWAMismatchHandler(), polymorphic, /* extra */ false);
+  return std::make_unique<TermSubstitutionTree>(new UWAMismatchHandler(), /* extra */ false);
 }
 
-auto getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa, bool polymorphic)
+auto getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa)
 {
   env.options->setUWA(uwa);
-  return std::make_unique<LiteralSubstitutionTree>(new UWAMismatchHandler(), polymorphic);
+  return std::make_unique<LiteralSubstitutionTree>(new UWAMismatchHandler());
 }
 
 template<class TermOrLit>
@@ -214,7 +214,7 @@ struct IndexTest {
 RUN_TEST(term_indexing_one_side_interp_01,
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         f(1 + num(1)),
         f(1 + a),
@@ -239,7 +239,7 @@ RUN_TEST(term_indexing_one_side_interp_01,
 RUN_TEST(term_indexing_one_side_interp_02, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         f(1 + num(1)),
         f(1 + a),
@@ -251,7 +251,7 @@ RUN_TEST(term_indexing_one_side_interp_02,
 RUN_TEST(term_indexing_one_side_interp_03, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         1 + num(1),
         1 + a,
@@ -276,7 +276,7 @@ RUN_TEST(term_indexing_one_side_interp_03,
 RUN_TEST(term_indexing_one_side_interp_04, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         1 + num(1),
         1 + a,
@@ -302,7 +302,7 @@ RUN_TEST(term_indexing_one_side_interp_04,
 RUN_TEST(term_indexing_one_side_interp_04_b, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         1 + a,
       },
@@ -322,7 +322,7 @@ RUN_TEST(term_indexing_one_side_interp_04_b,
 RUN_TEST(term_indexing_one_side_interp_04_c, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         f(1 + num(1)),
         f(1 + a),
@@ -346,7 +346,7 @@ RUN_TEST(term_indexing_one_side_interp_04_c,
 RUN_TEST(term_indexing_one_side_interp_04_d, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         g(f(1 + num(1))),
         g(f(1 + a)),
@@ -370,7 +370,7 @@ RUN_TEST(term_indexing_one_side_interp_04_d,
 RUN_TEST(term_indexing_one_side_interp_05, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         1 + num(1),
         1 + a,
@@ -400,7 +400,7 @@ RUN_TEST(term_indexing_one_side_interp_05,
 RUN_TEST(term_indexing_one_side_interp_06, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         1 + num(1),
         1 + a,
@@ -430,7 +430,7 @@ RUN_TEST(term_indexing_one_side_interp_06,
 RUN_TEST(term_indexing_one_side_interp_07, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         1 + num(1),
         1 + a,
@@ -461,7 +461,7 @@ RUN_TEST(term_indexing_one_side_interp_07,
 RUN_TEST(term_indexing_one_side_interp_08, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         1 + num(1),
         1 + a,
@@ -495,7 +495,7 @@ RUN_TEST(term_indexing_one_side_interp_08,
 
 TEST_FUN(term_indexing_poly_01)
 {
-  auto index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ true);
+  auto index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP);
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -542,7 +542,7 @@ TEST_FUN(term_indexing_poly_01)
 RUN_TEST(term_indexing_poly_uwa_01,
     POLY_INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ true),
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         f(alpha, a(alpha)),
         f(alpha, b(alpha)),
@@ -568,7 +568,7 @@ RUN_TEST(term_indexing_poly_uwa_01,
 
 TEST_FUN(term_indexing_interp_only)
 {
-  auto index = getTermIndex(Options::UnificationWithAbstraction::INTERP_ONLY, /* polymorphic */ true);
+  auto index = getTermIndex(Options::UnificationWithAbstraction::INTERP_ONLY);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -614,7 +614,7 @@ TEST_FUN(term_indexing_interp_only)
 
 TEST_FUN(literal_indexing)
 {
-  auto index = getLiteralIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* polymorphic */ false);
+  auto index = getLiteralIndex(Options::UnificationWithAbstraction::ONE_INTERP);
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)

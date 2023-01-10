@@ -23,8 +23,8 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(MismatchHandler* handler, bool polymorphic, bool extra)
-: SubstitutionTree(polymorphic)
+TermSubstitutionTree::TermSubstitutionTree(MismatchHandler* handler, bool extra)
+: SubstitutionTree()
 , _mismatchHandler(handler)
 , _extra(extra)
 { }

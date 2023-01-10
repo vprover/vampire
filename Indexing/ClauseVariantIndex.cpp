@@ -188,7 +188,7 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
   }
 
   if(!_strees[clen]) {
-    _strees[clen]=new LiteralSubstitutionTree(/* misatchHandler */ nullptr, IndexManager::polymorphicIndices());
+    _strees[clen]=new LiteralSubstitutionTree(/* misatchHandler */ nullptr);
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
   _strees[clen]->insert(mainLit, cl);

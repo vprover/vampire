@@ -9,7 +9,6 @@
  */
 /**
  * @file Recycler.hpp
- * Defines class SmartPtr for smart pointers
  *
  * @since 08/05/2007 Manchester
  */
@@ -25,6 +24,14 @@
 namespace Lib
 {
 
+/** * A class that keeps objects of type T allocated. 
+ * This is for example useful for hot functions that will allocate a todo stack whenever they are called. 
+ * In order to use less allocation time we can get a pre-allocated stack from the Recycler, and return 
+ * it when we don't need it anymore.
+ *
+ * Best practice is to not use this class directly, but to use the related smart pointer Recycled<T>
+ * instead.
+ */
 class Recycler {
 public:
   template<typename T>
@@ -96,32 +103,38 @@ struct NoReset
 
 
 
+/** A smart that lets you keep memory allocated, and reuse it.
+ * Constructs an object of type T on the heap. When the Recycled<T> is destroyed,
+ * the object is not returned, but the object is reset using Reset::operator(), 
+ * and returned to a pool of pre-allocated objects. When the next Recycled<T> is
+ * constructed an object from the pool is returned instead of allocating heap memory.
+ */
 template<class T, class Reset = DefaultReset>
-class RecycledPointer 
+class Recycled
 {
   T* _ptr;
   Reset _reset;
 public: 
 
-  RecycledPointer()
+  Recycled()
     : _ptr(nullptr) 
     , _reset()
   { Recycler::get(_ptr); }
 
-  RecycledPointer(RecycledPointer&& other)
+  Recycled(Recycled&& other)
     : _ptr(other._ptr)
   { other._ptr = nullptr; }
 
   operator bool() 
   { return _ptr; }
 
-  RecycledPointer& operator=(RecycledPointer&& other)
+  Recycled& operator=(Recycled&& other)
   { 
     swap(_ptr, other._ptr);
     return *this;
   }
 
-  ~RecycledPointer()
+  ~Recycled()
   { 
     if (_ptr) {
       _reset(*_ptr);
@@ -134,8 +147,8 @@ public:
   T& operator* () {  ASS(*this); return *_ptr; }
   T* operator->() {  ASS(*this); return  _ptr; }
 
-  friend std::ostream& operator<<(std::ostream& out, RecycledPointer const& self)
-  { return self._ptr ? out << *self._ptr : out << "RecycledPointer(nullptr)"; }
+  friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
+  { return self._ptr ? out << *self._ptr : out << "Recycled(nullptr)"; }
 };
 
 };

@@ -101,13 +101,6 @@ void IndexManager::provideIndex(IndexType t, Index* index)
   _store.set(t,e);
 }
 
-bool IndexManager::polymorphicIndices() 
-{
-  static bool out = env.property->hasPolymorphicSym() || env.property->higherOrder() 
-    || (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy() );
-  return out;
-}
-
 Index* IndexManager::create(IndexType t)
 {
   CALL("IndexManager::create");
@@ -115,71 +108,70 @@ Index* IndexManager::create(IndexType t)
   Index* res;
 
   bool isGenerating;
-  bool polymorphic = polymorphicIndices();
                    
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    res = new BinaryResolutionIndex(new LiteralSubstitutionTree(_uwa.get(), polymorphic));
+    res = new BinaryResolutionIndex(new LiteralSubstitutionTree(_uwa.get()));
     isGenerating = true;
     break;
   case BACKWARD_SUBSUMPTION_SUBST_TREE:
-    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree(/* uwa */ nullptr, polymorphic));
+    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = false;
     break;
   case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr, polymorphic));
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = false;
     break;
   case URR_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr, polymorphic));
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = true;
     break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
-    res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr, polymorphic));
+    res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = true;
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa.get(), polymorphic, /* extra */ false), _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa.get(), /* extra */ false), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa.get(), polymorphic, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa.get(), /* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
-    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false), _alg->getOrdering());
+    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUB_VAR_SUP_LHS_SUBST_TREE:
-    res = new SubVarSupLHSIndex(new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new SubVarSupLHSIndex(new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(/* uwa */ nullptr, polymorphic, /* extra */ true));
+    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(/* uwa */ nullptr, /* extra */ true));
     isGenerating = false;
     break;
 
   case NARROWING_INDEX:
-    res = new NarrowingIndex(new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false)); 
+    res = new NarrowingIndex(new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false)); 
     isGenerating = true;
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false)); 
+    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false)); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
-    res = new AcyclicityIndex(new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false));
+    res = new AcyclicityIndex(new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false));
     isGenerating = true;
     break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE: {
-    auto tis = new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false);
+    auto tis = new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false);
     if (env.options->combinatorySup()) {
       res = new DemodulationSubtermIndexImpl<true>(tis);
     } else {
@@ -194,7 +186,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
-    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
@@ -204,17 +196,17 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr, polymorphic));
+    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = false;
     break;
 
   case FSD_SUBST_TREE:
-    res = new FSDLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr, polymorphic));
+    res = new FSDLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    res = new RewriteRuleIndex(new LiteralSubstitutionTree(/* uwa */ nullptr, polymorphic), _alg->getOrdering());
+    res = new RewriteRuleIndex(new LiteralSubstitutionTree(/* uwa */ nullptr), _alg->getOrdering());
     isGenerating = false;
     break;
 
@@ -224,17 +216,17 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case UNIT_INT_COMPARISON_INDEX:
-    res = new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr, polymorphic));
+    res = new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = true;
     break;
 
   case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false));
+    res = new InductionTermIndex(new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false));
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree(/* uwa*/ nullptr, polymorphic, /* extra */ false));
+    res = new StructInductionTermIndex(new TermSubstitutionTree(/* uwa*/ nullptr, /* extra */ false));
     isGenerating = true;
     break;
 

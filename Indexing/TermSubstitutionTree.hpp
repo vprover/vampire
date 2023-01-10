@@ -31,9 +31,12 @@ namespace Indexing {
  * Note that unlike LiteralSubstitutionTree, TermSubstitutionTree does
  * not (yet) carry out sort checking when attempting to find unifiers, generalisations
  * or instances. In particular, if the query or result is a variable, it is the callers'
- * responsibility to ensure that the sorts are unifiable/matchable
+ * responsibility to ensure that the sorts are unifiable/matchable 
+ * (edit: if the caller inserts a TypedTermList instead of a TermList, this will be handled automatically.)
  */
 
+
+/** A wrapper class around SubstitutionTree that makes it usable  as a TermIndexingStructure */
 class TermSubstitutionTree
 : public TermIndexingStructure, SubstitutionTree
 {
@@ -51,7 +54,7 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(MismatchHandler* handler, bool polymorphic, bool extra);
+  TermSubstitutionTree(MismatchHandler* handler, bool extra);
 
   void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert);
 

@@ -210,8 +210,8 @@ bool HOMismatchHandler::tryAbstract(
   // ApplicativeArgsIt iter2(t2, false);
   // auto sortIter2 = arrowArgIter(iter2.headSort());
   //
-  // RecycledPointer<Stack<pair<TermList, TermList>>> cs;
-  // RecycledPointer<Stack<pair<TermList, TermList>>> unifs;
+  // Recycled<Stack<pair<TermList, TermList>>> cs;
+  // Recycled<Stack<pair<TermList, TermList>>> unifs;
   // while (iter1.hasNext() && iter2.hasNext()) {
   //   auto t1 = iter1.next();
   //   auto t2 = iter2.next();
@@ -257,9 +257,9 @@ template<class F>
 BacktrackClosure<F>* backtrackClosure(F fun) { return new BacktrackClosure<F>(std::move(fun)); }
 
 
-RecycledPointer<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& s)
+Recycled<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& s)
 { 
-  RecycledPointer<Stack<Literal*>> out;
+  Recycled<Stack<Literal*>> out;
   out->reserve(_cont.size());
   out->loadFromIterator(literalIter(s));
   return out;

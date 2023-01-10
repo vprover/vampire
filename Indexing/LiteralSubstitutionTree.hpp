@@ -21,6 +21,7 @@
 
 namespace Indexing {
 
+/** A wrapper class around SubstitutionTree that makes it usable  as a LiteralIndexingStructure */
 class LiteralSubstitutionTree
 : public LiteralIndexingStructure
 {
@@ -38,7 +39,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(MismatchHandler* mismtachHandler, bool polymorphic);
+  LiteralSubstitutionTree(MismatchHandler* mismtachHandler);
 
   void insert(Literal* lit, Clause* cls) final override;
   void remove(Literal* lit, Clause* cls) final override;
@@ -90,7 +91,6 @@ private:
 
   Stack<unique_ptr<SubstitutionTree>> _trees;
   MismatchHandler* _mismatchHandler;
-  bool _polymorphic;
 };
 
 };

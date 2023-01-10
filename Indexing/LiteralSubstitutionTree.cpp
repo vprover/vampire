@@ -28,10 +28,9 @@
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree(MismatchHandler* mismatchHandler, bool polymorphic)
+LiteralSubstitutionTree::LiteralSubstitutionTree(MismatchHandler* mismatchHandler)
 : _trees(env.signature->predicates() * 2)
 , _mismatchHandler(mismatchHandler)
-, _polymorphic(polymorphic)
 { }
 
 void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
@@ -78,7 +77,7 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
 {
   auto idx = complementary ? lit->header() : lit->complementaryHeader();
   while (idx >= _trees.size()) {
-    _trees.push(make_unique<SubstitutionTree>(_polymorphic));
+    _trees.push(make_unique<SubstitutionTree>());
   }
   return *_trees[idx];
 }

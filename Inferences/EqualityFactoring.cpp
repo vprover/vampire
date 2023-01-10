@@ -103,8 +103,8 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    RecycledPointer<RobSubstitution> subst;
-    RecycledPointer<UnificationConstraintStack> rawConstraints;
+    Recycled<RobSubstitution> subst;
+    Recycled<UnificationConstraintStack> rawConstraints;
 
     if (!subst->unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
