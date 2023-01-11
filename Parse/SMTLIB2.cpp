@@ -321,6 +321,18 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("set-option")) {
+      if (ibRdr.tryAcceptAtom(":uncomputable")) {
+        LExprList* lel = ibRdr.readList();
+        LExprList::Iterator lIt(lel);
+        while (lIt.hasNext()) {
+          LExpr* exp = lIt.next();
+          ASS(exp->isAtom());
+          vstring& name = exp->str;
+          markSymbolUncomputable(name);
+        }
+        ibRdr.acceptEOL();
+        continue;
+      }
       LOG2("ignoring set-option", ibRdr.readAtom());
       continue;
     }
@@ -2781,6 +2793,22 @@ void SMTLIB2::colorSymbol(const vstring& name, Color color)
     : env.signature->getPredicate(f.first);
 
   sym->addColor(color);
+}
+
+void SMTLIB2::markSymbolUncomputable(const vstring& name)
+{
+  CALL("SMTLIB2::markSymbolUncomputable");
+
+  if (!_declaredFunctions.find(name)) {
+    USER_ERROR("'"+name+"' is not a user symbol");
+  }
+  DeclaredFunction& f = _declaredFunctions.get(name);
+
+  Signature::Symbol* sym = f.second
+    ? env.signature->getFunction(f.first)
+    : env.signature->getPredicate(f.first);
+
+  sym->markUncomputable();
 }
 
 }

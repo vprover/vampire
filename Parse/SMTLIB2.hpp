@@ -473,6 +473,13 @@ private:
   void colorSymbol(const vstring& name, Color color);
 
   /**
+   * Unofficial option
+   *
+   * Disallows a symbol in synthesized program
+   */
+  void markSymbolUncomputable(const vstring& name);
+
+  /**
    * Units collected during parsing.
    */
   UnitList* _formulas;
