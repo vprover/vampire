@@ -636,7 +636,7 @@ bool SubstitutionTree::LeafIterator::hasNext()
 SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 {
   if(_clientBDRecording) {
-    _subst->bdDone();
+    _abstractingUnifier.bdDone();
     _clientBDRecording=false;
     _clientBacktrackData.backtrack();
   }
@@ -651,7 +651,7 @@ bool SubstitutionTree::UnificationsIterator::hasNext()
   CALL("SubstitutionTree::UnificationsIterator::hasNext");
 
   if(_clientBDRecording) {
-    _subst->bdDone();
+    _abstractingUnifier.bdDone();
     _clientBDRecording=false;
     _clientBacktrackData.backtrack();
   }
@@ -683,12 +683,12 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     }
 
     ASS(_clientBacktrackData.isEmpty());
-    _subst->bdRecord(_clientBacktrackData);
+    _abstractingUnifier.bdRecord(_clientBacktrackData);
     _clientBDRecording=true;
 
-    _subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
+    _abstractingUnifier.subs().denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
 
-    return QueryResult(ld, ResultSubstitution::fromSubstitution( &*_subst, QUERY_BANK, RESULT_BANK), &*_constraints); 
+    return QueryResult(ld, ResultSubstitution::fromSubstitution( &_abstractingUnifier.subs(), QUERY_BANK, RESULT_BANK), &_abstractingUnifier.constr()); 
   } else {
     return QueryResult(ld);
   }
@@ -751,7 +751,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   if(_tag){
     cout << "=========================================" << endl;
     cout << "entering..." << *n << endl;
-    cout << "subst is " << _subst << endl;
+    cout << "subst is " << _abstractingUnifier.subs() << endl;
     cout << "svstack is " << _svStack << endl;
     cout << "=========================================" << endl;
   } 
@@ -762,11 +762,9 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
   if(!n->term.isEmpty()) {
     //n is proper node, not a root
 
-    TermList qt(_svStack->top(), true);
-
     recording=true;
-    _subst->bdRecord(bd);
-    success=associate(qt,n->term,bd);
+    _abstractingUnifier.bdRecord(bd);
+    success=associate(_svStack->top(),n->term,bd);
   }
   if(success) {
     if(n->isLeaf()) {
@@ -779,7 +777,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
     }
   }
   if(recording) {
-    _subst->bdDone();
+    _abstractingUnifier.bdDone();
   }
   return success;
 }
@@ -788,12 +786,11 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
  * TODO: explain properly what associate does
  * called from enter(...)
  */
-bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
+bool SubstitutionTree::UnificationsIterator::associate(unsigned specialVar, TermList node, BacktrackData& bd)
 {
   CALL("SubstitutionTree::UnificationsIterator::associate");
-
-  MismatchHandler::BacktrackableStackConstraintSet c(*_constraints, bd);
-  return _subst->unify(query, QUERY_BANK, node, NORM_RESULT_BANK, _mismatchHandler, &c);
+  TermList query(specialVar, /* special */ true);
+  return _abstractingUnifier.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
 }
 
 //TODO I think this works for VSpcialVars as well. Since .isVar() will return true 
@@ -802,12 +799,12 @@ SubstitutionTree::NodeIterator SubstitutionTree::UnificationsIterator::getNodeIt
 {
   CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
 
-  if (_mismatchHandler) {
+  if (_abstractingUnifier.usesUwa()) {
     return n->allChildren();
   }
 
   unsigned specVar=n->childVar;
-  TermList qt=_subst->getSpecialVarTop(specVar);
+  TermList qt = _abstractingUnifier.subs().getSpecialVarTop(specVar);
   if(qt.isVar()) {
     return n->allChildren();
   } else {

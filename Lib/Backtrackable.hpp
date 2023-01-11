@@ -49,6 +49,8 @@ public:
 #if VDEBUG
   virtual vstring toString() const { return "(backtrack object)"; }
 #endif
+  template<class F> 
+  static BacktrackObject* fromClosure(F f);
 private:
   /**
    * Pointer to the @b BacktrackObject that is previous (i.e. next older) in the
@@ -57,7 +59,24 @@ private:
   BacktrackObject* _next;
 
   friend class BacktrackData;
+  template<class F> friend class BacktrackClosure;
 };
+
+template<class F>
+class BacktrackClosure : public BacktrackObject
+{
+  F _fun;
+public:
+  CLASS_NAME(BacktrackClosure);
+  USE_ALLOCATOR(BacktrackClosure);
+  
+  BacktrackClosure(F fun) : _fun(std::move(fun)) {}
+  void backtrack() { _fun(); }
+};
+
+template<class F> 
+BacktrackObject* BacktrackObject::fromClosure(F f) { return new BacktrackClosure<F>(std::move(f)); }
+
 
 /**
  * Class of objects used to store the change history of
@@ -129,6 +148,10 @@ public:
     bo->_next=_boList;
     _boList=bo;
   }
+
+  template<class F>
+  void addClosure(F function)
+  { addBacktrackObject(BacktrackObject::fromClosure(std::move(function))); }
 
   /**
    * Move all BacktrackObjects from @b this to @b bd. After the
@@ -219,6 +242,7 @@ private:
     T previousVal;
   };
 };
+
 
 /**
  * A parent class for objects that allow for being restored

@@ -1234,7 +1234,7 @@ public:
     IterCounter _iterCounter;
   };
 
-  class UnificationsIterator
+  class UnificationsIterator final
   {
   public:
     UnificationsIterator(UnificationsIterator&&) = default;
@@ -1243,7 +1243,7 @@ public:
 
     template<class TermOrLit>
     UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, MismatchHandler* mismatchHandler)
-      : _subst()
+      : _abstractingUnifier(mismatchHandler)
       , _svStack()
       , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
@@ -1252,8 +1252,6 @@ public:
       , _nodeIterators()
       , _bdStack()
       , _clientBDRecording(false)
-      , _mismatchHandler(mismatchHandler)
-      , _constraints()
       , _parentIterCntr(parent)
 #if VDEBUG
       , _tag(parent->_tag)
@@ -1267,8 +1265,8 @@ public:
       }
 
       parent->createBindings(query, reversed, 
-          [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
-      DEBUG_QUERY("query: ", _subst)
+          [&](unsigned var, TermList t) { _abstractingUnifier.subs().bindSpecialVar(var, t, QUERY_BANK); });
+      DEBUG_QUERY("query: ", _abstractingUnifier.subs())
 
 
       BacktrackData bd;
@@ -1281,9 +1279,9 @@ public:
 
     bool hasNext();
     QueryResult next();
-  protected:
-    virtual bool associate(TermList query, TermList node, BacktrackData& bd);
-    virtual NodeIterator getNodeIterator(IntermediateNode* n);
+  private:
+    bool associate(unsigned query, TermList node, BacktrackData& bd);
+    NodeIterator getNodeIterator(IntermediateNode* n);
 
     bool findNextLeaf();
     bool enter(Node* n, BacktrackData& bd);
@@ -1293,10 +1291,8 @@ public:
     static const int RESULT_BANK=1;
     static const int NORM_RESULT_BANK=3;
 
-    Recycled<RobSubstitution> _subst;
+    AbstractingUnifier _abstractingUnifier;
     Recycled<VarStack> _svStack;
-
-  private:
     bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;
@@ -1305,8 +1301,6 @@ public:
     Recycled<Stack<BacktrackData>> _bdStack;
     bool _clientBDRecording;
     BacktrackData _clientBacktrackData;
-    MismatchHandler* _mismatchHandler;
-    Recycled<UnificationConstraintStack> _constraints;
     IterCounter _parentIterCntr;
 #if VDEBUG
     bool _tag;

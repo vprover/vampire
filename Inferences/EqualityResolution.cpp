@@ -82,20 +82,19 @@ struct EqualityResolution::ResultFn
       handler = nullptr;
     }
 
-    Recycled<RobSubstitution> subst;
-    Recycled<UnificationConstraintStack> rawConstraints;
+    AbstractingUnifier absUnif(handler);
 
-    MismatchHandler::StackConstraintSet c(*rawConstraints);
-    if(!subst->unify(arg0,0,arg1,0,handler,&c)){ 
+    if(!absUnif.unify(arg0,0,arg1,0)){ 
       return 0; 
     }
 
-    for (auto &c : rawConstraints->iter()) {
-      if (!handler->recheck(c.lhs(*subst), c.rhs(*subst)))
+    for (auto &c : absUnif.constr().iter()) {
+      if (!handler->recheck(c.lhs(absUnif.subs()), c.rhs(absUnif.subs())))
         return nullptr;
     }
-    auto constraints = rawConstraints->literals(*subst);
-    unsigned newLen=_cLen-1+ constraints->length();
+    // TODO create absUnif.constrLiterals or so
+    auto constraints = absUnif.constr().literals(absUnif.subs());
+    unsigned newLen=_cLen - 1 + constraints->length();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
@@ -103,14 +102,14 @@ struct EqualityResolution::ResultFn
 
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      litAfter = subst->apply(lit, 0);
+      litAfter = absUnif.subs().apply(lit, 0);
     }
 
     unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
-        Literal* currAfter = subst->apply(curr, 0);
+        Literal* currAfter = absUnif.subs().apply(curr, 0);
 
         if (litAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);

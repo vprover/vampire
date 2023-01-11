@@ -95,6 +95,7 @@ struct EqualityFactoring::ResultFn
   {
     CALL("EqualityFactoring::ResultFn::operator()");
     MismatchHandler* handler = _self._mismatchHandler.get();
+    AbstractingUnifier absUnif(handler);
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
@@ -103,14 +104,11 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    Recycled<RobSubstitution> subst;
-    Recycled<UnificationConstraintStack> rawConstraints;
-
-    if (!subst->unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
+    if (!absUnif.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
     }
 
-    TermList srtS = subst->apply(srt,0);
+    TermList srtS = absUnif.subs().apply(srt,0);
 
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
@@ -118,21 +116,20 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    MismatchHandler::StackConstraintSet cset(*rawConstraints);
-    if(!subst->unify(sLHS,0,fLHS,0, handler, &cset)) {
+    if(!absUnif.unify(sLHS,0,fLHS,0)) {
       return 0;
     }
 
-    TermList sLHSS=subst->apply(sLHS,0);
-    TermList sRHSS=subst->apply(sRHS,0);
+    TermList sLHSS = absUnif.subs().apply(sLHS,0);
+    TermList sRHSS = absUnif.subs().apply(sRHS,0);
     if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
     }
-    TermList fRHSS=subst->apply(fRHS,0);
+    TermList fRHSS = absUnif.subs().apply(fRHS,0);
     if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
-    auto constraints = rawConstraints->literals(*subst);
+    auto constraints = absUnif.constr().literals(absUnif.subs());
 
     unsigned newLen=_cLen+constraints->length();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
@@ -142,14 +139,14 @@ struct EqualityFactoring::ResultFn
     Literal* sLitAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      sLitAfter = subst->apply(sLit, 0);
+      sLitAfter = absUnif.subs().apply(sLit, 0);
     }
 
     unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=sLit) {
-        Literal* currAfter = subst->apply(curr, 0);
+        Literal* currAfter = absUnif.subs().apply(curr, 0);
 
         if (sLitAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);

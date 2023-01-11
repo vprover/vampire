@@ -20,12 +20,11 @@
 #include "Term.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Option.hpp"
+#include "RobSubstitution.hpp"
 
 namespace Kernel
 {
 
-class MismatchHandler;
-class RobSubstitution;
 
 class MismatchHandlerTerm
 {
@@ -68,7 +67,7 @@ public:
   CLASS_NAME(UnificationConstraint)
   USE_ALLOCATOR(UnificationConstraint)
 
-  UnificationConstraint(MismatchHandlerTerm& t1, MismatchHandlerTerm& t2)
+  UnificationConstraint(MismatchHandlerTerm const& t1, MismatchHandlerTerm const& t2)
   : _term1(t1._term), _index1(t1._index)
   , _term2(t2._term), _index2(t2._index)
   { ASS(&t1._subs == &t2._subs) }
@@ -93,8 +92,6 @@ public:
   UnificationConstraintStack(UnificationConstraintStack&&) = default;
   UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
 
-  void addConstraint(UnificationConstraint c);
-
   auto iter() const
   { return iterTraits(_cont.iter()); }
 
@@ -113,47 +110,43 @@ public:
   bool isEmpty() const
   { return _cont.isEmpty(); }
 
-  void add(UnificationConstraint c);
-  void add(UnificationConstraint c, BacktrackData& bd);
+  void add(UnificationConstraint c, Option<BacktrackData&> bd);
 };
 
+class AbstractingUnifier {
+  Recycled<RobSubstitution> _subs;
+  Recycled<UnificationConstraintStack> _constr;
+  Option<BacktrackData&> _bd;
+  MismatchHandler* _uwa;
+  friend class RobSubstitution;
+public:
+  AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) {}
+  // bool unify()
+
+  void add(UnificationConstraint c) 
+  { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
+                                                      : Option<BacktrackData&>()              ); }
+  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+  UnificationConstraintStack& constr() { return *_constr; }
+  RobSubstitution& subs() { return *_subs; }
+  void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+  void bdDone() { _subs->bdDone(); }
+  bool usesUwa() { return _uwa != nullptr; }
+};
+
+using Action = std::function<bool(unsigned, MismatchHandlerTerm)>;
+using SpecialVar = unsigned;
+using WaitingMap = DHMap<SpecialVar, Action>;
 
 class MismatchHandler
 {
 public:
   virtual ~MismatchHandler() {}
-  struct ConstraintSet 
-  { virtual void addConstraint(UnificationConstraint) = 0; };
-
-  struct StackConstraintSet final : public ConstraintSet
-  { 
-    UnificationConstraintStack& constr;
-
-    StackConstraintSet(UnificationConstraintStack& constr) 
-      : constr(constr) {}
-
-    virtual void addConstraint(UnificationConstraint c) final override 
-    { constr.add(std::move(c)); } 
-  };
-
-  struct BacktrackableStackConstraintSet final : public ConstraintSet
-  { 
-    UnificationConstraintStack &constr;
-    BacktrackData& bd;
-
-    BacktrackableStackConstraintSet(UnificationConstraintStack& constr, BacktrackData& bd) 
-      : constr(constr)
-      , bd(bd) {}
-
-    virtual void addConstraint(UnificationConstraint c) final override 
-    { constr.add(std::move(c), bd); } 
-  };
-
   /** TODO document */
   virtual bool tryAbstract(
       MismatchHandlerTerm t1,
       MismatchHandlerTerm t2,
-      ConstraintSet& constr) const = 0;
+      AbstractingUnifier& constr) const = 0;
 
   /** TODO document */
   virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const = 0;
@@ -172,7 +165,7 @@ public:
   virtual bool tryAbstract(
       MismatchHandlerTerm t1,
       MismatchHandlerTerm t2,
-      ConstraintSet& constr) const final override;
+      AbstractingUnifier& constr) const final override;
 
   bool canAbstract(
       MismatchHandlerTerm t1,
@@ -190,7 +183,7 @@ public:
   virtual bool tryAbstract(
       MismatchHandlerTerm t1,
       MismatchHandlerTerm t2,
-      ConstraintSet& constr) const final override;
+      AbstractingUnifier& constr) const final override;
 
 
   virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const final override

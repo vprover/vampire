@@ -23,6 +23,7 @@
 #include "Renaming.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
+#include "MismatchHandler.hpp"
 
 namespace Kernel
 {
@@ -35,7 +36,7 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr, MismatchHandler::ConstraintSet* constr)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr, AbstractingUnifier* constr)
 {
   CALL("RobSubstitution::unify/4");
 
@@ -47,7 +48,7 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, Mis
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr, MismatchHandler::ConstraintSet* constr)
+bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr, AbstractingUnifier* constr)
 {
   CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
@@ -234,8 +235,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
     }
   }
   typedef DHSet<VarSpec, VarSpec::Hash1, VarSpec::Hash2> EncounterStore;
-  static EncounterStore encountered;
-  encountered.reset();
+  Recycled<EncounterStore> encountered;
 
   for(;;){
     ASS(ts.term.isTerm());
@@ -246,10 +246,10 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
       if(tvar==vs) {
         return true;
       }
-      if(!encountered.find(tvar)) {
+      if(!encountered->find(tvar)) {
         TermSpec dtvar = derefBound(TermSpec(tvar));
         if(!dtvar.isVar()) {
-          encountered.insert(tvar);
+          encountered->insert(tvar);
           toDo.push(dtvar);
         }
       }
@@ -262,7 +262,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, MismatchHandler::ConstraintSet* constr)
+bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, AbstractingUnifier* au)
 {
   CALL("RobSubstitution::unify/2");
 
@@ -281,11 +281,10 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Misma
   // recomputing their unification
   typedef DHSet<TTPair,TTPairHash, TTPairHash> EncStore;
 
-  EncStore encountered;
-  encountered.reset();
+  Recycled<EncStore> encountered;
 
   auto tryAbstract = [&](auto l, auto r) 
-  { return hndlr && hndlr->tryAbstract(MismatchHandlerTerm(*this, l.term, l.index), MismatchHandlerTerm(*this, r.term, r.index), *constr); };
+  { return hndlr && hndlr->tryAbstract(MismatchHandlerTerm(*this, l.term, l.index), MismatchHandlerTerm(*this, r.term, r.index), *au); };
 
   bool mismatch=false;
   // Iteratively resolve unification pairs in toDo
@@ -340,8 +339,8 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Misma
         if (pair.first.isVar() && isUnbound(getVarSpec(pair.first)) &&
             pair.second.isVar() && isUnbound(getVarSpec(pair.second))) {
           toDo.push(pair);
-        } else if (!encountered.find(pair)) {
-          encountered.insert(pair);
+        } else if (!encountered->find(pair)) {
+          encountered->insert(pair);
           toDo.push(pair);
         }
         s = s->next();

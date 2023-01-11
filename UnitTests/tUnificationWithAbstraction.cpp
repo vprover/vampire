@@ -22,6 +22,7 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
@@ -131,9 +132,9 @@ void checkLiteralMatches(LiteralSubstitutionTree& index, Literal* lit, Stack<Lit
 template<class F>
 void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
 {
+  CALL("checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)")
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
-
     is.push(TermUnificationResultSpec {
         .querySigma = qr.substitution->apply(term, /* result */ false),
         .resultSigma = qr.substitution->apply(qr.term, /* result */ true),
@@ -179,6 +180,7 @@ struct IndexTest {
   Stack<TermUnificationResultSpec> expected;
 
   void run() {
+    CALL("IndexTest::run")
 
     DECL_PRED(dummy, Stack<SortSugar>())
     for (auto x : this->insert) {
@@ -537,7 +539,189 @@ TEST_FUN(term_indexing_poly_01)
   DECL_CONST(someA, A)                                                                              \
 
 
+#define HOL_SUGAR(...)                                                                              \
+  DECL_DEFAULT_VARS                                                                                 \
+  DECL_DEFAULT_SORT_VARS                                                                            \
+  NUMBER_SUGAR(Int)                                                                                 \
+  DECL_SORT(srt)                                                                                    \
+  __VA_ARGS__
 
+ 
+
+
+RUN_TEST(hol_0101,
+    HOL_SUGAR(
+      DECL_FUNC(f3, {srt, srt, srt}, srt)
+      DECL_CONST(f1, arrow(srt, srt))
+      DECL_CONST(f2, arrow(srt, srt))
+      DECL_CONST(h, arrow(arrow(srt, srt), srt))
+    ),
+    IndexTest {
+      .index = getTermIndexHOL(),
+      .insert = {
+               f3(x          , x, ap(h, f1)),
+      },
+      .query = f3(ap(h, f2), y, y          ),
+      .expected =  {
+
+        TermUnificationResultSpec 
+        { .querySigma  = f3(ap(h, f2), ap(h, f1), ap(h, f1)),
+          .resultSigma = f3(ap(h, f1), ap(h, f1), ap(h, f1)),
+          .constraints = { f1 != f2 } }, 
+
+      }
+    })
+
+
+RUN_TEST(hol_0102,
+    HOL_SUGAR(
+      DECL_FUNC(f3, {srt, srt, srt}, srt)
+      DECL_CONST(f1, arrow(srt, srt))
+      DECL_CONST(f2, arrow(srt, srt))
+      DECL_CONST(h, arrow(arrow(srt, srt), srt))
+    ),
+    IndexTest {
+      .index = getTermIndexHOL(),
+      .insert = {
+               f3(ap(h, f2), y, y          ),
+      },
+      .query = f3(x          , x, ap(h, f1)),
+      .expected =  {
+
+        TermUnificationResultSpec 
+        { .querySigma  = f3(ap(h, f1), ap(h, f1), ap(h, f1)),
+          .resultSigma = f3(ap(h, f2), ap(h, f1), ap(h, f1)),
+          .constraints = { f1 != f2 } }, 
+
+      }
+    })
+
+
+RUN_TEST(hol_02,
+    HOL_SUGAR(
+      DECL_FUNC(f3, {srt, srt, srt}, srt)
+      DECL_CONST(f1, arrow(srt, srt))
+      DECL_CONST(f2, arrow(srt, srt))
+      DECL_CONST(a, srt)
+      DECL_CONST(h, arrow(arrow(srt, srt), srt))
+      ),
+    IndexTest {
+      .index = getTermIndexHOL(),
+      .insert = {
+               f3(a          , x, ap(h, f1)),
+               f3(x          , x, ap(h, f1)),
+      },
+      .query = f3(ap(h, f2), y, y          ),
+      .expected =  {
+
+        TermUnificationResultSpec 
+        { .querySigma  = f3(ap(h, f2), ap(h, f1), ap(h, f1)),
+          .resultSigma = f3(ap(h, f1), ap(h, f1), ap(h, f1)),
+          .constraints = { f1 != f2 } }, 
+
+      }
+    })
+
+
+RUN_TEST(hol_03,
+    HOL_SUGAR(
+      DECL_FUNC(f3, {srt, srt, srt}, srt)
+      DECL_CONST(f1, arrow(srt, srt))
+      DECL_CONST(f2, arrow(srt, srt))
+      DECL_CONST(h1, arrow(arrow(srt, srt), srt))
+      DECL_CONST(h2, arrow(arrow(srt, srt), srt))
+    ),
+    IndexTest {
+      .index = getTermIndexHOL(),
+      .insert = {
+               ap(h1, f1),
+               ap(h2, f1),
+      },
+      .query = ap(h1, f2),
+      .expected =  {
+        TermUnificationResultSpec 
+        { .querySigma  = ap(h1, f2),
+          .resultSigma = ap(h1, f1),
+          .constraints = { f1 != f2 } }, 
+      }
+    })
+
+#define RUN_TEST_hol_04(idx, ...)                                                                   \
+  RUN_TEST(hol_04_ ## idx,                                                                          \
+    HOL_SUGAR(                                                                                      \
+      DECL_FUNC(f3, {srt, srt, srt}, srt)                                                           \
+      DECL_POLY_CONST(c1, 1, alpha)                                                                 \
+      DECL_POLY_CONST(c2, 1, alpha)                                                                 \
+      DECL_POLY_CONST(h, 2, arrow(alpha, beta))                                                     \
+    ),                                                                                              \
+    IndexTest {                                                                                     \
+      .index = getTermIndexHOL(),                                                                   \
+      .insert = {                                                                                   \
+               ap(h(arrow(srt, srt), srt), c1(arrow(srt, srt))),                                    \
+               ap(h(srt            , srt), c1(srt)),                                                \
+      },                                                                                            \
+      __VA_ARGS__                                                                                   \
+    })
+
+
+RUN_TEST_hol_04(01,
+      .query = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
+      .expected =  {
+        TermUnificationResultSpec 
+        { .querySigma  = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
+          .resultSigma = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
+          .constraints = Stack<Literal*>{} }, 
+      }
+    )
+
+RUN_TEST_hol_04(02,
+      .query = ap(h(arrow(srt,srt), srt), c2(arrow(srt, srt))),
+      .expected =  {
+        TermUnificationResultSpec 
+        { .querySigma  = ap(h(arrow(srt,srt), srt), c2(arrow(srt, srt))),
+          .resultSigma = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
+          .constraints = Stack<Literal*>{ c1(arrow(srt,srt)) != c2(arrow(srt,srt)) } }, 
+      }
+    )
+
+
+#define RUN_TEST_hol_05(idx, ...)                                                                   \
+  RUN_TEST(hol_05_ ## idx,                                                                          \
+    HOL_SUGAR(                                                                                      \
+      DECL_FUNC(f3, {srt, srt, srt}, srt)                                                           \
+      DECL_POLY_CONST(c1, 1, alpha)                                                                 \
+      DECL_POLY_CONST(c2, 1, alpha)                                                                 \
+      DECL_POLY_CONST(h, 2, arrow(alpha, beta))                                                     \
+    ),                                                                                              \
+    IndexTest {                                                                                     \
+      .index = getTermIndexHOL(),                                                                   \
+      .insert = {                                                                                   \
+               ap(h(arrow(srt, srt), srt), c1(arrow(srt, srt))),                                    \
+               ap(h(srt            , srt), c2(srt)),                                                \
+      },                                                                                            \
+      __VA_ARGS__                                                                                   \
+    })
+
+
+RUN_TEST_hol_05(01,
+      .query = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
+      .expected =  {
+        TermUnificationResultSpec 
+        { .querySigma  = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
+          .resultSigma = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
+          .constraints = Stack<Literal*>{} }, 
+      }
+    )
+
+RUN_TEST_hol_05(02,
+      .query = ap(h(arrow(srt,srt), srt), c2(arrow(srt, srt))),
+      .expected =  {
+        TermUnificationResultSpec 
+        { .querySigma  = ap(h(arrow(srt,srt), srt), c2(arrow(srt, srt))),
+          .resultSigma = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
+          .constraints = Stack<Literal*>{ c1(arrow(srt,srt)) != c2(arrow(srt,srt)) } }, 
+      }
+    )
 
 RUN_TEST(term_indexing_poly_uwa_01,
     POLY_INT_SUGAR,
@@ -682,7 +866,6 @@ TEST_FUN(higher_order)
   DECL_CONST(c, srt)  
   DECL_CONST(f, arrow(arrow(srt, srt), srt))
   DECL_CONST(g, arrow(srt, arrow(srt, srt)))
-  DECL_POLY_CONST(h, 1, alpha)
   auto index = getTermIndexHOL();
 
   index->insert(ap(f,a), 0, 0);
@@ -760,17 +943,15 @@ static const int NORM_RESULT_BANK=3;
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
   // TODO parameter instead of opts
   env.options->setUWA(opt);
-  UnificationConstraintStack cnst;
-  MismatchHandler::StackConstraintSet c(cnst);
   UWAMismatchHandler h;
-  RobSubstitution subs;
-  bool result = subs.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK, &h, &c);
+  AbstractingUnifier au(&h);
+  bool result = au.unify(a, NORM_QUERY_BANK, b, NORM_RESULT_BANK);
   if (result) {
 
     return some(TermUnificationResultSpec { 
-     .querySigma  = subs.apply(a, NORM_QUERY_BANK), 
-     .resultSigma = subs.apply(b, NORM_RESULT_BANK), 
-     .constraints = constraintLits(cnst, subs),
+     .querySigma  = au.subs().apply(a, NORM_QUERY_BANK), 
+     .resultSigma = au.subs().apply(b, NORM_RESULT_BANK), 
+     .constraints = *au.constr().literals(au.subs()),
     });
 
   } else {
@@ -810,14 +991,14 @@ void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstracti
 #define ROB_UNIFY_TEST(name, opt, lhs, rhs, ...)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
-    INT_SUGAR                                                                                   \
+    INT_SUGAR                                                                                       \
     checkRobUnify(lhs, rhs, opt, __VA_ARGS__ );                                                     \
   }                                                                                                 \
 
 #define ROB_UNIFY_TEST_FAIL(name, opt, lhs, rhs)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
-    INT_SUGAR                                                                                   \
+    INT_SUGAR                                                                                       \
     checkRobUnifyFail(lhs, rhs, opt);                                                               \
   }                                                                                                 \
 

@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Term.hpp"
-#include "MismatchHandler.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/DHMap.hpp"
 
@@ -32,10 +31,14 @@ namespace Kernel
 {
 
 using namespace Lib;
+class MismatchHandler;
+class AbstractingUnifier;
+class MismatchHandlerTerm;
 
 class RobSubstitution
 :public Backtrackable
 {
+  friend class AbstractingUnifier;
 public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
@@ -46,10 +49,10 @@ public:
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0, MismatchHandler::ConstraintSet* constraints=0);
+  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0, AbstractingUnifier* constraints=0);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0, MismatchHandler::ConstraintSet* constr = 0);
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0, AbstractingUnifier* constr = 0);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -226,7 +229,7 @@ private:
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr, MismatchHandler::ConstraintSet*);
+  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr, AbstractingUnifier*);
   bool occurs(VarSpec vs, TermSpec ts);
 
   inline

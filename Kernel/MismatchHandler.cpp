@@ -13,6 +13,7 @@
  *
  */
 
+#include "Lib/Backtrackable.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 
@@ -164,22 +165,53 @@ std::ostream& operator<<(std::ostream& out, MismatchHandlerTerm const& self)
 
 bool UWAMismatchHandler::tryAbstract(
       MismatchHandlerTerm t1, MismatchHandlerTerm t2,
-      ConstraintSet& constr) const
+      AbstractingUnifier& constr) const
 {
   CALL("UWAMismatchHandler::checkUWA");
 
   auto abs = canAbstract(t1, t2);
   DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
   if (abs) {
-    constr.addConstraint(UnificationConstraint(t1, t2));
+    constr.add(UnificationConstraint(t1, t2));
   }
   return abs;
 }
 
 bool HOMismatchHandler::tryAbstract(
     MismatchHandlerTerm t1, MismatchHandlerTerm t2,
-    ConstraintSet& constr) const
+    AbstractingUnifier& au) const
 {
+  CALL("HOMismatchHandler::tryAbstract")
+  ASS(t1.isTerm() || t2.isTerm())
+
+  // auto isRightApp = [](auto& t) { return  }
+  auto isApp = [](auto& t) { return env.signature->isAppFun(t.functor()); };
+  // if (t1.isSpecialVar()) { 
+  //   au.waitFor(t1.specialVarNumber(), Action(isRightApp)); 
+  // };
+  ASS_REP(!t1.isSpecialVar(), "TODO")
+  ASS_REP(!t2.isSpecialVar(), "TODO")
+  if ( (t1.isTerm() && t1.isSort()) 
+    || (t2.isTerm() && t2.isSort()) ) return false;
+  if (t1.isTerm() && t2.isTerm()) {
+    if (isApp(t1) && isApp(t2)) {
+      auto argSort1 = t1.typeArg(0);
+      auto argSort2 = t2.typeArg(0);
+      ASS_REP(!argSort1.isSpecialVar(), "TODO")
+      ASS_REP(!argSort2.isSpecialVar(), "TODO")
+      if (t1.isNormalVar() || t2.isNormalVar()
+       || env.signature->isArrowCon(argSort1.functor())
+       || env.signature->isArrowCon(argSort2.functor())
+       ) {
+        au.add(UnificationConstraint(t1.termArg(1), t2.termArg(1)));
+        return true;
+      }
+    }
+  }
+  return false;
+  // ASS(t1.isTerm() || t2.isTerm())
+
+  // if (t1.isNormalVar() || t2.term.isVar()) return false;
   ASSERTION_VIOLATION_REP("TODO");
   // if (t1.term.isVar() || t2.term.isVar()) return false;
   // if (t1.term.isApplication() && t2.term.isApplication()) {
@@ -231,30 +263,20 @@ bool HOMismatchHandler::tryAbstract(
   // DBGE(cs)
   // DBGE(unifs)
   // for (auto& c : iterTraits(cs->iter())) {
-  //   constr.addConstraint(UnificationConstraint(c.first, RobSubstitution::UNBOUND_INDEX, c.second,  RobSubstitution::UNBOUND_INDEX));
+  //   au.addConstraint(UnificationConstraint(c.first, RobSubstitution::UNBOUND_INDEX, c.second,  RobSubstitution::UNBOUND_INDEX));
   // }
   // return true;
 }
 
-void UnificationConstraintStack::add(UnificationConstraint c)
+void UnificationConstraintStack::add(UnificationConstraint c, Option<BacktrackData&> bd)
 { 
-  DEBUG("introduced constraing: ", c, " (backtrackable)")
-  _cont.push(std::move(c)); }
-
-template<class F>
-class BacktrackClosure: public BacktrackObject
-{
-  F _fun;
-public:
-  CLASS_NAME(BacktrackClosure);
-  USE_ALLOCATOR(BacktrackClosure);
-  
-  BacktrackClosure(F fun) : _fun(std::move(fun)) {}
-  void backtrack() { _fun(); }
-};
-template<class F>
-BacktrackClosure<F>* backtrackClosure(F fun) { return new BacktrackClosure<F>(std::move(fun)); }
-
+  DEBUG("introduced constraing: ", c)
+  if (bd) {
+    _cont.backtrackablePush(std::move(c), *bd); 
+  } else {
+    _cont.push(std::move(c));
+  }
+}
 
 Recycled<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& s)
 { 
@@ -262,14 +284,6 @@ Recycled<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& 
   out->reserve(_cont.size());
   out->loadFromIterator(literalIter(s));
   return out;
-}
-
-
-
-void UnificationConstraintStack::add(UnificationConstraint c, BacktrackData& bd)
-{ 
-  DEBUG("introduced constraing: ", c, " (backtrackable)")
-  _cont.backtrackablePush(std::move(c), bd); 
 }
 
 
