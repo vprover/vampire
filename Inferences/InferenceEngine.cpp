@@ -534,6 +534,10 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
+    auto p = c->getRwPos((*d)[i]);
+    if (p) {
+      d->setRwPos((*d)[i], p->first, p->second, false);
+    }
   }
   env.statistics->trivialInequalities += found;
 

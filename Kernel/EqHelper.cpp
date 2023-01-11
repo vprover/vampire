@@ -74,6 +74,7 @@ Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 {
   CALL("EqHelper::replace(Literal*,...)");
 
+  lit->resetOrientation();
   return static_cast<Literal*>(replace(static_cast<Term*>(lit), what, by));
 }
 
@@ -473,7 +474,7 @@ TermIterator getBlackListHelper(TermList t, Position p)
   while (p.isNonEmpty()) {
     ASS(curr.isTerm());
     auto tt = curr.term();
-    ASS_REP(p.top()<tt->numTermArguments(),t.toString()+" "+Int::toString(p.top())+" "+Int::toString(tt->numTermArguments()));
+    ASS_REP(p.top()<tt->numTermArguments(),curr.toString()+" "+Int::toString(p.top())+" "+Int::toString(tt->numTermArguments()));
 
     for (unsigned i = 0; i < p.top(); i++) {
       auto arg = tt->termArg(i);
@@ -496,6 +497,7 @@ TermIterator getBlackListHelper(TermList t, Position p)
 DHSet<TermList> EqHelper::getBlackList(Clause* cl)
 {
   CALL("EqHelper::getBlackList");
+  // cout << *cl << endl;
 
   // static unsigned withref = 0;
   // static unsigned woref = 0;
@@ -552,7 +554,7 @@ TermIterator getSubtermHelper(TermList t, Position p, bool includeSelf)
   while (p.isNonEmpty()) {
     ASS(curr.isTerm());
     auto tt = curr.term();
-    ASS_REP(p.top()<tt->numTermArguments(),t.toString()+" "+Int::toString(p.top())+" "+Int::toString(tt->numTermArguments()));
+    ASS_REP(p.top()<tt->numTermArguments(),curr.toString()+" "+Int::toString(p.top())+" "+Int::toString(tt->numTermArguments()));
 
     for (unsigned i = p.top()+1; i < tt->numTermArguments(); i++) {
       auto arg = tt->termArg(i);

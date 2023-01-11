@@ -327,6 +327,47 @@ bool Clause::noSplits() const
   return !_inference.splits() || _inference.splits()->isEmpty();
 }
 
+vstring orderingToString(Literal* lit) {
+  if (!lit->isEquality()) {
+    return "";
+  }
+  auto ord = Ordering::tryGetGlobalOrdering();
+  auto comp = ord->getEqualityArgumentOrder(lit);
+  switch (comp) {
+    case Ordering::EQUAL: {
+      return "[=]";
+    }
+    case Ordering::INCOMPARABLE: {
+      return "[?]";
+    }
+    case Ordering::LESS: {
+      return "[<]";
+    }
+    case Ordering::LESS_EQ: {
+      return "[<=]";
+    }
+    case Ordering::GREATER: {
+      return "[>]";
+    }
+    case Ordering::GREATER_EQ: {
+      return "[>=]";
+    }
+  }
+}
+
+vstring positionToString(Literal* lit, pair<Position, Position>* p) {
+  if (!p) {
+    return "";
+  }
+  vstring res;
+  res += "<"+positionToString(p->first);
+  if (lit->isEquality()) {
+    res += ","+positionToString(p->second);
+  }
+  res += ">";
+  return res;
+}
+
 /**
  * Convert non-propositional part of the clause to vstring.
  */
@@ -340,27 +381,15 @@ vstring Clause::literalsOnlyToString() const
     vstring result;
     result += _literals[0]->toString();
     if(env.options->proofExtra()!=Options::ProofExtra::OFF){
-      auto p = getRwPos(_literals[0]);
-      if (p) {
-        result += " ["+positionToString(p->first);
-        if (_literals[0]->isEquality()) {
-          result += ","+positionToString(p->second);
-        }
-        result += "]";
-      }
+      // result += " " + orderingToString(_literals[0]) + " ";
+      result += " " + positionToString(_literals[0], getRwPos(_literals[0])) + " ";
     }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
       if(env.options->proofExtra()!=Options::ProofExtra::OFF){
-        auto p = getRwPos(_literals[i]);
-        if (p) {
-          result += "["+positionToString(p->first);
-          if (_literals[i]->isEquality()) {
-            result += ","+positionToString(p->second)+"]";
-          }
-          result += "]";
-        }
+        // result += " " + orderingToString(_literals[i]) + " ";
+        result += " " + positionToString(_literals[i], getRwPos(_literals[i])) + " ";
       }
     }
     return result;

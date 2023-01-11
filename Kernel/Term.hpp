@@ -1063,6 +1063,7 @@ bool positionIn(TermList& subterm,TermList* term, Position& position);
 bool positionIn(TermList& subterm,Term* term, Position& position);
 vstring positionToString(const Position& position);
 bool positionAftercheck(TermList t, const Position& position);
+Position adjustPosition(TermList t, TermList rwTerm, const Position& position);
 
 std::ostream& operator<< (ostream& out, TermList tl );
 std::ostream& operator<< (ostream& out, const Term& tl );

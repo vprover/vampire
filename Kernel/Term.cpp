@@ -1948,6 +1948,33 @@ bool Kernel::positionAftercheck(TermList t, const Position& position)
   return true;
 }
 
+Position Kernel::adjustPosition(TermList t, TermList rwTerm, const Position& position)
+{
+  CALL("Kernel::adjustPosition");
+  // cout << "ADJUST " << t << " " << rwTerm << " " << positionToString(position) << endl;
+  if (t == rwTerm) {
+    return Position();
+  }
+  TermList curr = t;
+  for (int i = position.size()-1; i >= 0; i--) {
+    // cout << i << " " << position[i] << " " << curr << endl;
+    ASS_REP(curr.isTerm(),t.toString()+" "+rwTerm.toString()+" "+positionToString(position)+" "+curr.toString()+" "+Int::toString(i)+" "+Int::toString(position[i]));
+    auto tt = curr.term();
+    ASS_L(position[i],tt->numTermArguments());
+    curr = tt->termArg(position[i]);
+    // cout << "CURR " << curr << endl;
+    if (curr == rwTerm) {
+      // cout << "EQUAL " << i << endl;
+      Position res;
+      for (unsigned j = i; j < position.size(); j++) {
+        res.push(position[j]);
+      }
+      return res;
+    }
+  }
+  return position;
+}
+
 TermList Term::termArg(unsigned n) const
 {
   ASS_LE(0, n)

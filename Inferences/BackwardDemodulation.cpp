@@ -220,12 +220,28 @@ struct BackwardDemodulation::ResultFn
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
+    auto p = qr.clause->getRwPos(qr.literal);
+    if (p) {
+      auto pos0 = p->first;
+      auto pos1 = p->second;
+      if (qr.literal->isEquality()) {
+        pos0 = adjustPosition(*qr.literal->nthArgument(0),lhsS,pos0);
+        pos1 = adjustPosition(*qr.literal->nthArgument(1),lhsS,pos1);
+      } else {
+        pos0 = adjustPosition(TermList(qr.literal),lhsS,pos0);
+      }
+      res->setRwPos(resLit, pos0, pos1, true);
+    }
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
         (*res)[next++] = curr;
+        auto p = qr.clause->getRwPos(curr);
+        if (p) {
+          res->setRwPos(curr, p->first, p->second, false);
+        }
       }
     }
     ASS_EQ(next,cLen);

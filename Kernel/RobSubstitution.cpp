@@ -572,6 +572,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
   CALL("RobSubstitution::apply(Literal*...)");
   static DArray<TermList> ts(32);
 
+  lit->resetOrientation();
   if (lit->ground()) {
     return lit;
   }
