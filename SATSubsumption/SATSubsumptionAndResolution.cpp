@@ -897,6 +897,9 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
   CALL("SATSubsumptionAndResolution::checkSubsumptionResolution");
   ASS(L)
   ASS(M)
+#if CORRELATE_LENGTH_TIME
+  builtSatProblem = false;
+#endif
   if (usePreviousSetUp) {
     ASS(_L == L)
     ASS(_M == M)
