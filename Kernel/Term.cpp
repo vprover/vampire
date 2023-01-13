@@ -1948,12 +1948,12 @@ bool Kernel::positionAftercheck(TermList t, const Position& position)
   return true;
 }
 
-Position Kernel::adjustPosition(TermList t, TermList rwTerm, const Position& position)
+Position Kernel::adjustPosition(TermList t, TermList rwTerm, const Position& position, const Position& rhsPosition)
 {
   CALL("Kernel::adjustPosition");
   // cout << "ADJUST " << t << " " << rwTerm << " " << positionToString(position) << endl;
   if (t == rwTerm) {
-    return Position();
+    return rhsPosition;
   }
   TermList curr = t;
   for (int i = position.size()-1; i >= 0; i--) {
@@ -1965,7 +1965,7 @@ Position Kernel::adjustPosition(TermList t, TermList rwTerm, const Position& pos
     // cout << "CURR " << curr << endl;
     if (curr == rwTerm) {
       // cout << "EQUAL " << i << endl;
-      Position res;
+      Position res = rhsPosition;
       for (unsigned j = i; j < position.size(); j++) {
         res.push(position[j]);
       }

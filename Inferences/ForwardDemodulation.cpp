@@ -230,18 +230,25 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Clause* res = new(cLen) Clause(cLen,
           SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
         (*res)[0]=resLit;
-        auto p = cl->getRwPos(lit);
-        if (p) {
-          auto pos0 = p->first;
-          auto pos1 = p->second;
-          if (lit->isEquality()) {
-            pos0 = adjustPosition(*lit->nthArgument(0),trm,pos0);
-            pos1 = adjustPosition(*lit->nthArgument(1),trm,pos1);
+        Position rhsPos;
+        auto q = qr.clause->getRwPos(qr.literal);
+        if (q) {
+          if (qr.term == *qr.literal->nthArgument(0)) {
+            rhsPos = q->second;
           } else {
-            pos0 = adjustPosition(TermList(lit),trm,pos0);
+            rhsPos = q->first;
           }
-          res->setRwPos(resLit, pos0, pos1, true);
         }
+        auto p = cl->getRwPos(lit);
+        auto pos0 = p ? p->first : Position();
+        auto pos1 = p ? p->second : Position();
+        if (lit->isEquality()) {
+          pos0 = adjustPosition(*lit->nthArgument(0),trm,pos0,rhsPos);
+          pos1 = adjustPosition(*lit->nthArgument(1),trm,pos1,rhsPos);
+        } else {
+          pos0 = adjustPosition(TermList(lit),trm,pos0,rhsPos);
+        }
+        res->setRwPos(resLit, pos0, pos1, true);
 
         unsigned next=1;
         for(unsigned i=0;i<cLen;i++) {

@@ -1721,6 +1721,13 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(InferencingSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
+    _parallelSymmetryBreakingSuperposition = BoolOptionValue("parallel_symmetry_breaking_superposition","psbs",false);
+    _parallelSymmetryBreakingSuperposition.description="Skip superpositions that are performed on a parallel branch of superpositions.";
+    _lookup.insert(&_parallelSymmetryBreakingSuperposition);
+    _parallelSymmetryBreakingSuperposition.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _parallelSymmetryBreakingSuperposition.reliesOn(_simultaneousSuperposition.is(equal(false)));
+    _parallelSymmetryBreakingSuperposition.tag(OptionTag::INFERENCES);
+
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";

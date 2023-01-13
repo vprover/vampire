@@ -81,9 +81,9 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("backward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
-#ifdef NEW
-  auto bl = EqHelper::getBlackList(c);
-#endif
+// #ifdef NEW
+//   auto bl = EqHelper::getBlackList(c);
+// #endif
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
 #ifdef NEW
@@ -98,11 +98,11 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 #endif
     while (rsti.hasNext()) {
       auto st = rsti.next();
-#ifdef NEW
-      if (bl.contains(st)) {
-        continue;
-      }
-#endif
+// #ifdef NEW
+//       if (bl.contains(st)) {
+//         continue;
+//       }
+// #endif
       if (adding) {
         _is->insert(st, lit, c);
       }

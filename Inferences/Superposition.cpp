@@ -205,20 +205,20 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
                                && env.property->higherOrder();
 
   auto itf1 = premise->getSelectedLiteralIterator();
-#ifdef NEW
-  auto bl = EqHelper::getBlackList(premise);
-#endif
+// #ifdef NEW
+//   auto bl = EqHelper::getBlackList(premise);
+// #endif
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
   // a maximal side of an equality or of a non-equational literal
   auto itf2 = iterTraits(itf1)
     .flatMap(RewriteableSubtermsFn(_salg->getOrdering(), premise))
-#ifdef NEW
-    .filter([bl](const pair<Literal*, TermList>& arg) {
-      return !bl.contains(arg.second);
-    })
-#endif
+// #ifdef NEW
+//     .filter([bl](const pair<Literal*, TermList>& arg) {
+//       return !bl.contains(arg.second);
+//     })
+// #endif
   ;
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
@@ -463,13 +463,22 @@ Clause* Superposition::performSuperposition(
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
 
   unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
-  //TODO update inference rule name AYB
 #ifdef NEW
   auto rule = InferenceRule::SUPERPOSITION;
 #else
-  auto bl = EqHelper::getBlackList(rwClause);
+  DHSet<TermList> bl;
+  auto p = rwClause->getRwPos(rwLit);
+  if (p) {
+    if (rwLit->isEquality()) {
+      EqHelper::getBlackList(*rwLit->nthArgument(0), p->first, bl);
+      EqHelper::getBlackList(*rwLit->nthArgument(1), p->second, bl);
+    } else {
+      EqHelper::getBlackList(TermList(rwLit), p->first, bl);
+    }
+  }
   auto rule = bl.contains(rwTerm) ? InferenceRule::FORBIDDEN_SUPERPOSITION : InferenceRule::SUPERPOSITION;
 #endif
+  //TODO update inference rule name AYB
   Inference inf(GeneratingInference2(hasConstraints ? InferenceRule::CONSTRAINED_SUPERPOSITION : rule, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
@@ -521,6 +530,7 @@ Clause* Superposition::performSuperposition(
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
   static bool doSimS = getOptions().simulatenousSuperposition();
+  static bool psb = getOptions().parallelSymmetryBreakingSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
@@ -578,61 +588,63 @@ Clause* Superposition::performSuperposition(
   }
 
   // calculate positions
-  Position rhsPos;
-  auto eqP = eqClause->getRwPos(eqLit);
-  if (eqP) {
-    if (eqLHS == *eqLit->nthArgument(0)) {
-      rhsPos = eqP->second;
-    } else {
-      rhsPos = eqP->first;
-    }
-  }
-  Position pos0;
-  Position pos1;
-  if (rwLitS->isEquality()) {
-    auto oP = rwClause->getRwPos(rwLit);
-    auto oR2 = tgtLitS->isOrientedReversed();
-    TermList arg0=*rwLitS->nthArgument(0);
-    TermList arg1=*rwLitS->nthArgument(1);
-    auto comp = ordering.getEqualityArgumentOrder(rwLitS);
-    auto comp2 = ordering.getEqualityArgumentOrder(tgtLitS);
-    // if (oR2) {
-    //   comp2 = Ordering::reverse(comp2);
-    // }
-
-    // cout << "start" << endl;
-    if (arg0.containsSubterm(rwTermS) && (Ordering::isGorGEorE(comp) || comp == Ordering::Result::INCOMPARABLE)) {
-      pos0 = rhsPos;
-      ALWAYS(Kernel::positionIn(rwTermS,&arg0,pos0));
-      // cout << "1 " << rwTermS << " is in " << positionToString(pos0) << " position in " << arg0 << " " << positionToString(rhsPos) << endl;
-    } else if (oP) {
-      pos0 = adjustPosition(arg0, rwTermS, rwLitSR ? oP->second : oP->first);
-    }
-    if (arg1.containsSubterm(rwTermS) && (Ordering::isGorGEorE(Ordering::reverse(comp)) || comp == Ordering::Result::INCOMPARABLE)) {
-      pos1 = rhsPos;
-      ALWAYS(Kernel::positionIn(rwTermS,&arg1,pos1));
-      // cout << "2 " << rwTermS << " is in " << positionToString(pos1) << " position in " << arg1 << " " << positionToString(rhsPos) << endl;
-    } else if (oP) {
-      pos1 = adjustPosition(arg1, rwTermS, rwLitSR ? oP->first : oP->second);
-    }
-
-    if (pos0.isNonEmpty() && pos1.isNonEmpty() && comp == Ordering::INCOMPARABLE && comp != comp2) {
-      if (Ordering::isGorGEorE(comp2) == oR2) {
-        pos1.reset();
+  if (psb) {
+    Position rhsPos;
+    auto eqP = eqClause->getRwPos(eqLit);
+    if (eqP) {
+      if (eqLHS == *eqLit->nthArgument(0)) {
+        rhsPos = eqP->second;
       } else {
-        pos0.reset();
+        rhsPos = eqP->first;
       }
     }
-  } else {
-    ALWAYS(Kernel::positionIn(rwTermS,rwLitS,pos0));
+    Position pos0;
+    Position pos1;
+    if (rwLitS->isEquality()) {
+      auto oP = rwClause->getRwPos(rwLit);
+      auto oR2 = tgtLitS->isOrientedReversed();
+      TermList arg0=*rwLitS->nthArgument(0);
+      TermList arg1=*rwLitS->nthArgument(1);
+      auto comp = ordering.getEqualityArgumentOrder(rwLitS);
+      auto comp2 = ordering.getEqualityArgumentOrder(tgtLitS);
+      // if (oR2) {
+      //   comp2 = Ordering::reverse(comp2);
+      // }
+
+      // cout << "start" << endl;
+      if (arg0.containsSubterm(rwTermS) && (Ordering::isGorGEorE(comp) || comp == Ordering::Result::INCOMPARABLE)) {
+        pos0 = rhsPos;
+        ALWAYS(Kernel::positionIn(rwTermS,&arg0,pos0));
+        // cout << "1 " << rwTermS << " is in " << positionToString(pos0) << " position in " << arg0 << " " << positionToString(rhsPos) << endl;
+      } else if (oP) {
+        pos0 = adjustPosition(arg0, rwTermS, rwLitSR ? oP->second : oP->first, rhsPos);
+      }
+      if (arg1.containsSubterm(rwTermS) && (Ordering::isGorGEorE(Ordering::reverse(comp)) || comp == Ordering::Result::INCOMPARABLE)) {
+        pos1 = rhsPos;
+        ALWAYS(Kernel::positionIn(rwTermS,&arg1,pos1));
+        // cout << "2 " << rwTermS << " is in " << positionToString(pos1) << " position in " << arg1 << " " << positionToString(rhsPos) << endl;
+      } else if (oP) {
+        pos1 = adjustPosition(arg1, rwTermS, rwLitSR ? oP->first : oP->second, rhsPos);
+      }
+
+      if (pos0.isNonEmpty() && pos1.isNonEmpty() && comp == Ordering::INCOMPARABLE && comp != comp2) {
+        if (Ordering::isGorGEorE(comp2) == oR2) {
+          pos1.reset();
+        } else {
+          pos0.reset();
+        }
+      }
+    } else {
+      ALWAYS(Kernel::positionIn(rwTermS,rwLitS,pos0));
+    }
+    res->setRwPos(tgtLitS, std::move(pos0), std::move(pos1), true);
+    // if (rwLitSR || tgtLitS->isOrientedReversed()) {
+      // cout << *rwLitS << " " << *tgtLitS << " " << positionToString(pos0) << " " << positionToString(pos1) << endl;
+      // cout << rwLitSR << " " << tgtLitS->isOrientedReversed() << endl;
+    // }
   }
 
   (*res)[0] = tgtLitS;
-  // if (rwLitSR || tgtLitS->isOrientedReversed()) {
-    // cout << *rwLitS << " " << *tgtLitS << " " << positionToString(pos0) << " " << positionToString(pos1) << endl;
-    // cout << rwLitSR << " " << tgtLitS->isOrientedReversed() << endl;
-  // }
-  res->setRwPos(tgtLitS, std::move(pos0), std::move(pos1), true);
   int next = 1;
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
@@ -644,9 +656,6 @@ Clause* Superposition::performSuperposition(
 
       if (doSimS) {
         currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
-        // if (caR) {
-        //   currAfter->reverseOrientation();
-        // }
       }
 
       if(EqHelper::isEqTautology(currAfter)) {
@@ -671,19 +680,21 @@ Clause* Superposition::performSuperposition(
       }
 
       (*res)[next++] = currAfter;
-      auto p = rwClause->getRwPos(curr);
-      // cout << "curr " << *curr << " ca " << *ca << " currAfter " << *currAfter << endl;
-      // cout << curr->isOrientedReversed() << " " << ca->isOrientedReversed() << " " << currAfter->isOrientedReversed() << endl;
-      if (p) {
-        auto pos0 = caR ? p->second : p->first;
-        auto pos1 = caR ? p->first : p->second;
-        if (curr->isEquality()) {
-          pos0 = adjustPosition(*ca->nthArgument(0),rwTermS,pos0);
-          pos1 = adjustPosition(*ca->nthArgument(1),rwTermS,pos1);
-        } else {
-          pos0 = adjustPosition(TermList(ca),rwTermS,pos0);
+      if (psb) {
+        auto p = rwClause->getRwPos(curr);
+        // cout << "curr " << *curr << " ca " << *ca << " currAfter " << *currAfter << endl;
+        // cout << curr->isOrientedReversed() << " " << ca->isOrientedReversed() << " " << currAfter->isOrientedReversed() << endl;
+        if (p) {
+          // auto pos0 = (doSimS && caR) ? p->second : p->first;
+          // auto pos1 = (doSimS && caR) ? p->first : p->second;
+          // if (curr->isEquality()) {
+          //   pos0 = adjustPosition(*ca->nthArgument(0),rwTermS,pos0);
+          //   pos1 = adjustPosition(*ca->nthArgument(1),rwTermS,pos1);
+          // } else {
+          //   pos0 = adjustPosition(TermList(ca),rwTermS,pos0);
+          // }
+          res->setRwPos(currAfter, p->first, p->second, true);
         }
-        res->setRwPos(currAfter, pos0, pos1, true);
       }
     }
   }

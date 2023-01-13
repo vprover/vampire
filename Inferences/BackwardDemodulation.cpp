@@ -221,17 +221,24 @@ struct BackwardDemodulation::ResultFn
 
     (*res)[0]=resLit;
     auto p = qr.clause->getRwPos(qr.literal);
-    if (p) {
-      auto pos0 = p->first;
-      auto pos1 = p->second;
-      if (qr.literal->isEquality()) {
-        pos0 = adjustPosition(*qr.literal->nthArgument(0),lhsS,pos0);
-        pos1 = adjustPosition(*qr.literal->nthArgument(1),lhsS,pos1);
+    auto pos0 = p ? p->first : Position();
+    auto pos1 = p ? p->second : Position();
+    Position rhsPos;
+    auto q = _cl->getRwPos(_eqLit);
+    if (q) {
+      if (lhs == *_eqLit->nthArgument(0)) {
+        rhsPos = q->second;
       } else {
-        pos0 = adjustPosition(TermList(qr.literal),lhsS,pos0);
+        rhsPos = q->first;
       }
-      res->setRwPos(resLit, pos0, pos1, true);
     }
+    if (qr.literal->isEquality()) {
+      pos0 = adjustPosition(*qr.literal->nthArgument(0),lhsS,pos0,rhsPos);
+      pos1 = adjustPosition(*qr.literal->nthArgument(1),lhsS,pos1,rhsPos);
+    } else {
+      pos0 = adjustPosition(TermList(qr.literal),lhsS,pos0,rhsPos);
+    }
+    res->setRwPos(resLit, pos0, pos1, true);
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {

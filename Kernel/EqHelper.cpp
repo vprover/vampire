@@ -465,10 +465,9 @@ TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 	  getSingletonIterator(*lit->nthArgument(1))) );
 }
 
-TermIterator getBlackListHelper(TermList t, Position p)
+void EqHelper::getBlackList(TermList t, Position p, DHSet<TermList>& bl)
 {
-  CALL("getBlackListHelper");
-  auto res = TermIterator::getEmpty();
+  CALL("EqHelper::getBlackList");
   auto curr = t;
 
   while (p.isNonEmpty()) {
@@ -481,65 +480,41 @@ TermIterator getBlackListHelper(TermList t, Position p)
       if (arg.isVar()) {
         continue;
       }
-      res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(arg.term(), true))));
+      bl.loadFromIterator(NonVariableNonTypeIterator(arg.term(), true));
     }
     auto next = tt->termArg(p.top());
     if (next.isVar()) {
       break;
     }
-    // res = pvi(getConcatenatedIterator(res, getSingletonIterator(next)));
     curr = next;
     p.pop();
   }
-  return res;
 }
 
-DHSet<TermList> EqHelper::getBlackList(Clause* cl)
-{
-  CALL("EqHelper::getBlackList");
-  // cout << *cl << endl;
+// DHSet<TermList> EqHelper::getBlackList(Clause* cl)
+// {
+//   CALL("EqHelper::getBlackList");
 
-  // static unsigned withref = 0;
-  // static unsigned woref = 0;
-  // static unsigned worefc = 0;
-  // if (!cl->hasRwPos()) {
-  //   if (cl->isComponent()) {
-  //     worefc++;
-  //     if (worefc % 1000 == 0) {
-  //       cout << "without ref comp " << worefc << endl;
-  //     }
-  //   } else {
-  //     woref++;
-  //     if (woref % 1000 == 0) {
-  //       cout << "without ref " << woref << endl;
-  //     }
-  //   }
-  // } else {
-  //   withref++;
-  //   if (withref % 1000 == 0) {
-  //     cout << "with ref " << withref << endl;
-  //   }
-  // }
-  DHSet<TermList> bl;
-  for (unsigned i = 0; i < cl->length(); i++) {
-    auto lit = (*cl)[i];
-    auto p = cl->getRwPos(lit);
-    if (!p) {
-      continue;
-    }
-    if (lit->isEquality()) {
-      bl.loadFromIterator(getBlackListHelper(*lit->nthArgument(0), p->first));
-      bl.loadFromIterator(getBlackListHelper(*lit->nthArgument(1), p->second));
-    } else {
-      bl.loadFromIterator(getBlackListHelper(TermList(lit), p->first));
-    }
-  }
+//   DHSet<TermList> bl;
+//   for (unsigned i = 0; i < cl->length(); i++) {
+//     auto lit = (*cl)[i];
+//     auto p = cl->getRwPos(lit);
+//     if (!p) {
+//       continue;
+//     }
+//     if (lit->isEquality()) {
+//       getBlackList(*lit->nthArgument(0), p->first, bl);
+//       getBlackList(*lit->nthArgument(1), p->second, bl);
+//     } else {
+//       getBlackList(TermList(lit), p->first, bl);
+//     }
+//   }
 
-  return bl;
-}
+//   return bl;
+// }
 
 
-TermIterator getSubtermHelper(TermList t, Position p, bool includeSelf)
+TermIterator getSubtermHelper(TermList t, Position p, DHSet<TermList>& bl, bool includeSelf)
 {
   CALL("getSubtermHelper");
   auto res = TermIterator::getEmpty();
@@ -556,6 +531,16 @@ TermIterator getSubtermHelper(TermList t, Position p, bool includeSelf)
     auto tt = curr.term();
     ASS_REP(p.top()<tt->numTermArguments(),curr.toString()+" "+Int::toString(p.top())+" "+Int::toString(tt->numTermArguments()));
 
+    // update blacklist
+    for (unsigned i = 0; i < p.top(); i++) {
+      auto arg = tt->termArg(i);
+      if (arg.isVar()) {
+        continue;
+      }
+      bl.loadFromIterator(NonVariableNonTypeIterator(arg.term(), true));
+    }
+
+    // add possible rewritable terms
     for (unsigned i = p.top()+1; i < tt->numTermArguments(); i++) {
       auto arg = tt->termArg(i);
       if (arg.isVar()) {
@@ -585,32 +570,41 @@ TermIterator EqHelper::getSubtermIterator2(Literal* lit, Clause* cl, const Order
     return getSubtermIterator(lit, ord);
   }
 
+  auto res = TermIterator::getEmpty();
+  DHSet<TermList> bl;
   if (lit->isEquality()) {
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE: {
-      return getUniquePersistentIterator(getConcatenatedIterator(
-        getSubtermHelper(*lit->nthArgument(0), p->first, true),
-        getSubtermHelper(*lit->nthArgument(1), p->second, true)));
+      res = getUniquePersistentIterator(getConcatenatedIterator(
+        getSubtermHelper(*lit->nthArgument(0), p->first, bl, true),
+        getSubtermHelper(*lit->nthArgument(1), p->second, bl, true)));
+      break;
     }
-    case Ordering::EQUAL: {
-      cout << "nope" << endl;
-      // let it fall through
-    }
+    // case Ordering::EQUAL: {
+    //   // let it fall through
+    // }
     case Ordering::GREATER:
     case Ordering::GREATER_EQ: {
-      return getUniquePersistentIterator(getSubtermHelper(*lit->nthArgument(0), p->first, true));
+      res = getUniquePersistentIterator(getSubtermHelper(*lit->nthArgument(0), p->first, bl, true));
+      break;
     }
     case Ordering::LESS:
     case Ordering::LESS_EQ: {
-      return getUniquePersistentIterator(getSubtermHelper(*lit->nthArgument(1), p->second, true));
+      res = getUniquePersistentIterator(getSubtermHelper(*lit->nthArgument(1), p->second, bl, true));
+      break;
     }
 #if VDEBUG
     default:
       ASSERTION_VIOLATION;
 #endif
     }
+  } else {
+    res = getSubtermHelper(TermList(lit), p->first, bl, false);
   }
-  return getSubtermHelper(TermList(lit), p->first, false);
+  return pvi(iterTraits(res)
+    .filter([bl = std::move(bl)](TermList t) {
+      return !bl.contains(t);
+    }));
 }
 
 
