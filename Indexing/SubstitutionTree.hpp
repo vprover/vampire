@@ -58,13 +58,6 @@ using namespace Lib;
 using namespace Kernel;
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
-template<class T>
-struct OutputMultiline
-{ T const& self; };
-
-template<class T>
-OutputMultiline<T> multiline(T const& self)
-{ return { self }; }
 
 #define REORDERING 1
 

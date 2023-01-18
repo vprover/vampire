@@ -36,6 +36,20 @@ struct OutputPtr {
 template<class T>
 OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
 
+/** Newtype for outputting a datatype that implements it in multiline format.
+ * Usage: `out << multiline(substitutioTree) << std::endl;` 
+ *
+ * You can implement this for a `MyType` by implementing 
+ * std::ostream& operator<<(std::ostream&, OutputMultiline<MyType>)
+ */
+template<class T>
+struct OutputMultiline { T const& self; };
+
+template<class T>
+OutputMultiline<T> multiline(T const& self)
+{ return { self }; }
+
+
 
 } // namespace Kernel
 #endif // __Debug_Output__
