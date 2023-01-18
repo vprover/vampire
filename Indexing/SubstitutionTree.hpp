@@ -72,7 +72,7 @@ template<class Key> struct SubtitutionTreeConfig;
 /**
  * Class of substitution trees. 
  *
- * We can either typed terms, or literals into a subtitution tree.
+ * We can either store typed terms, or literals in a subtitution tree.
  * Classically we'd think of inserting/removing only one term t into a substitution tree. 
  * This can be understood as inserting the substitution { S0 -> t } into the tree.
  *
