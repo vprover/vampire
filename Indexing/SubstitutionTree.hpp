@@ -80,7 +80,7 @@ template<class Key> struct SubtitutionTreeConfig;
  * This is what we do in order to store the sort of variables, and in order to insert all the arguments of a literal:
  * - For a term t of sort s we insert { S0 -> t; S1 -> s }
  * - For literals (~)P(t0..tn) we insert { S0 -> t0 .. Sn -> tn }.
- * (Note that we do not check the predicate of the polarity of literals here. This happens in LiteralSubstitutionTree)
+ * (Note that we do not check the predicate or the polarity of literals here. This happens in LiteralSubstitutionTree)
  */
 class SubstitutionTree
 {
@@ -973,6 +973,7 @@ public:
 
     Recycled<VarStack> _boundVars;
     Recycled<DArray<TermList>, NoReset> _specVars;
+    //                         ^^^^^^^ all values that will be read, will be overridden anyways so we can safe time by not resetting.
 
     /**
      * Inheritors must assign the maximal possible number of an ordinary
