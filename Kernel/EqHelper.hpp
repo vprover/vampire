@@ -24,7 +24,6 @@
 #include "Lib/DHSet.hpp"
 
 #include "Term.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 namespace Kernel {
 
