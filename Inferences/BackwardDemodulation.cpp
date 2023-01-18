@@ -136,21 +136,7 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    // TODO remove this old impl
-    // if(lhs.isVar()){
-    //   RobSubstitution sub;
-    //
-    //   // DBGE(qr)
-    //   // ASS(sub)
-    //   //rather than 0 and 1, we should use the constants delared in
-    //   //substitution tree
-    //   if(!sub.match(_eqSort, 0, qrSort, 1)){
-    //     return BwSimplificationRecord(0);        
-    //   }
-    // }
-
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-
     TermList lhsS=qr.term;
     TermList rhsS;
 
