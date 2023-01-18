@@ -16,6 +16,7 @@
 #define __Indexing_Index__
 
 #include "Forwards.hpp"
+#include "Debug/Output.hpp"
 
 #include "Lib/Event.hpp"
 #include "Lib/Exception.hpp"
@@ -60,16 +61,6 @@ struct SLQueryResult
     }
   };
 };
-
-// TODO move somewhere else 
-template<class T>
-struct OutputPtr {
-  T* self;
-  friend std::ostream& operator<<(std::ostream& out, OutputPtr const& self)
-  { return self.self ? out << *self.self : out << "NULL"; }
-};
-template<class T>
-OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
 
 /**
  * Class of objects which contain results of term queries.
