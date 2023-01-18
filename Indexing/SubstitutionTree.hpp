@@ -69,6 +69,39 @@ std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> co
 
 template<class Key> struct SubtitutionTreeConfig;
 
+/** a counter that is compiled away in release mode */
+struct Cntr {
+#if VDEBUG
+  Cntr() : self(0) {}
+  int self;
+  operator int() const { return self; }
+#endif 
+};
+
+/** a reference to a Cntr that increments the counter when it is created and decrements it when it goes out of scope
+ * This can be used to count the number of instances when an object of this type is added as a member field to the class 
+ * that should be counted */
+class InstanceCntr {
+public:
+#if VDEBUG
+  Cntr& _cntr;
+
+  InstanceCntr& operator=(InstanceCntr&& other) 
+  { swap(other._cntr, _cntr); return *this; }
+
+  InstanceCntr(InstanceCntr&& other) 
+    : _cntr(other._cntr)
+  { other._cntr.self++; }
+
+  InstanceCntr(Cntr& cntr) : _cntr(cntr) 
+  { _cntr.self++; }
+  ~InstanceCntr() 
+  { _cntr.self--; }
+#else // VDEBUG
+  InstanceCntr(Cntr& parent) {}
+#endif 
+};
+
 /**
  * Class of substitution trees. 
  *
@@ -84,30 +117,7 @@ template<class Key> struct SubtitutionTreeConfig;
  */
 class SubstitutionTree
 {
-  class IterCounter {
-    public:
-#if VDEBUG
-    SubstitutionTree* _parent;
 
-    IterCounter& operator=(IterCounter&& other) 
-    { swap(other._parent, _parent); return *this; }
-
-    IterCounter(IterCounter&& other) 
-      : _parent(other._parent)
-    { other._parent->_iteratorCnt++; }
-
-    IterCounter(SubstitutionTree* parent) : _parent(parent) 
-    { 
-      _parent->_iteratorCnt++; 
-    }
-    ~IterCounter() {
-      _parent->_iteratorCnt--;
-    }
-#else // VDEBUG
-    IterCounter(SubstitutionTree* parent) {}
-#endif 
-  };
-  friend class IterCounter;
 public:
   static constexpr int QRS_QUERY_BANK = 0;
   static constexpr int QRS_RESULT_BANK = 1;
@@ -1058,7 +1068,7 @@ public:
       , _alternatives()
       , _specVarNumbers()
       , _nodeTypes()
-      , _iterCounter(parent)
+      , _iterCntr(parent->_iterCnt)
     {
       CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
       ASS(root);
@@ -1097,7 +1107,7 @@ public:
     Recycled<Stack<void*>> _alternatives;
     Recycled<Stack<unsigned>> _specVarNumbers;
     Recycled<Stack<NodeAlgorithm>> _nodeTypes;
-    IterCounter _iterCounter;
+    InstanceCntr _iterCntr;
   };
 
 
@@ -1314,7 +1324,7 @@ public:
       , _alternatives()
       , _specVarNumbers()
       , _nodeTypes()
-      , _iterCounter(parent)
+      , _iterCntr(parent->_iterCnt)
     {
       CALL("SubstitutionTree::FastInstancesIterator::FastInstancesIterator");
       ASS(root);
@@ -1346,7 +1356,7 @@ public:
     Recycled<Stack<void*>> _alternatives;
     Recycled<Stack<unsigned>> _specVarNumbers;
     Recycled<Stack<NodeAlgorithm>> _nodeTypes;
-    IterCounter _iterCounter;
+    InstanceCntr _iterCntr;
   };
 
   class SubstitutionTreeMismatchHandler : public UWAMismatchHandler 
@@ -1393,7 +1403,7 @@ public:
       , _useUWAConstraints(useC)
       , _useHOConstraints(funcSubtermMap)
       , _constraints()
-      , _parentIterCntr(parent)
+      , _iterCntr(parent->_iterCnt)
 #if VDEBUG
       , _tag(parent->_tag)
 #endif
@@ -1455,7 +1465,7 @@ public:
     bool _useUWAConstraints;
     bool _useHOConstraints;
     Recycled<UnificationConstraintStack> _constraints;
-    IterCounter _parentIterCntr;
+    InstanceCntr _iterCntr;
 #if VDEBUG
     bool _tag;
 #endif
@@ -1463,13 +1473,10 @@ public:
 
 #if VDEBUG
 public:
-  static vstring nodeToString(Node* topNode);
-  vstring toString() const;
   bool isEmpty() const;
-
-  int _iteratorCnt;
 #endif
 
+  Cntr _iterCnt;
 }; // class SubstiutionTree
 
 template<> 
