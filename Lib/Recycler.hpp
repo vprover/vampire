@@ -112,40 +112,39 @@ struct NoReset
 template<class T, class Reset = DefaultReset>
 class Recycled
 {
-  T* _ptr;
+  unique_ptr<T> _ptr;
   Reset _reset;
+
+  static Stack<unique_ptr<T>>& mem() {
+    static Stack<unique_ptr<T>> mem;
+    return mem;
+  }
 public: 
 
   Recycled()
-    : _ptr(nullptr) 
+    : _ptr(mem().isNonEmpty() ? mem().pop() : make_unique<T>()) 
     , _reset()
-  { Recycler::get(_ptr); }
+  { }
 
-  Recycled(Recycled&& other)
-    : _ptr(other._ptr)
-  { other._ptr = nullptr; }
+  Recycled(Recycled&& other) = default;
+  Recycled& operator=(Recycled&& other) = default;
 
   operator bool() 
-  { return _ptr; }
+  { return bool(_ptr); }
 
-  Recycled& operator=(Recycled&& other)
-  { 
-    swap(_ptr, other._ptr);
-    return *this;
-  }
 
   ~Recycled()
   { 
     if (_ptr) {
       _reset(*_ptr);
-      Recycler::release(_ptr);  
+      mem().push(std::move(_ptr));
     }
   }
 
-  T const& operator* () const { ASS(*this); return *_ptr; }
-  T const* operator->() const { ASS(*this); return  _ptr; }
-  T& operator* () {  ASS(*this); return *_ptr; }
-  T* operator->() {  ASS(*this); return  _ptr; }
+  T const& operator* () const { ASS(*this); return  *_ptr; }
+  T const* operator->() const { ASS(*this); return &*_ptr; }
+  T& operator* () {  ASS(*this); return  *_ptr; }
+  T* operator->() {  ASS(*this); return &*_ptr; }
 
   friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
   { return self._ptr ? out << *self._ptr : out << "Recycled(nullptr)"; }
