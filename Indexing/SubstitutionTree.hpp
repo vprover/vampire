@@ -153,12 +153,6 @@ public:
     // In all other situations it is empty
     TermList extraTerm;
 
-    vstring toString(){
-      vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
-      if(!term.isEmpty()){ ret += " with " +term.toString(); }
-      return ret;
-    }
-
   };
   typedef VirtualIterator<LeafData&> LDIterator;
 
@@ -174,7 +168,7 @@ public:
   using QueryResultIterator = VirtualIterator<QueryResult>;
   // TODO make const function
   template<class Iterator, class TermOrLit> 
-  VirtualIterator<QueryResult> iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool reversed = false)
+  QueryResultIterator iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool reversed = false)
   {
     CALL("TermSubstitutionTree::iterator");
     return _root == nullptr 
