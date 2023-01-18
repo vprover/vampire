@@ -1049,10 +1049,6 @@ public:
     FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
     DECL_ELEMENT_TYPE(QueryResult);
     /**
-     * @b nextSpecVar is the first unassigned special variable. Is being used
-     * 	to determine size of array, that stores special variable bindings.
-     * 	(To maximize performance, a DArray object is being used instead
-     * 	of hash map.)
      * If @b reversed If true, parameters of supplied binary literal are
      * 	reversed. (useful for retrieval commutative terms)
      */
@@ -1309,10 +1305,6 @@ public:
     DECL_ELEMENT_TYPE(QueryResult);
 
     /**
-     * @b nextSpecVar is the first unassigned special variable. Is being used
-     * 	to determine size of array, that stores special variable bindings.
-     * 	(To maximize performance, a DArray object is being used instead
-     * 	of hash map.)
      * If @b reversed If true, parameters of supplied binary literal are
      * 	reversed. (useful for retrieval commutative terms)
      */
