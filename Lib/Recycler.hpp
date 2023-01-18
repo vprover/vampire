@@ -129,7 +129,7 @@ public:
   Recycled(Recycled&& other) = default;
   Recycled& operator=(Recycled&& other) = default;
 
-  operator bool() 
+  operator bool() const
   { return bool(_ptr); }
 
 
