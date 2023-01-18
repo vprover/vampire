@@ -1006,9 +1006,7 @@ private:
     CALL("UniquePersistentIterator::getUniqueItemList");
 
     ItemList* res=0;
-    ItemSet* iset;
-    Recycler::get(iset);
-    iset->reset();
+    Recycled<ItemSet> iset;
 
     sizeRef=0;
     while(inn.hasNext()) {
@@ -1018,8 +1016,6 @@ private:
 	sizeRef++;
       }
     }
-
-    Recycler::release(iset);
     return res;
   }
 

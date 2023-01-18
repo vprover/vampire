@@ -60,7 +60,7 @@ private:
   public:
     Renaming()
       : Array<VarUsageTrackingList*>(15),
-	_nextVar(0), _used(0)
+	_nextVar(0)
     {
       fillInterval(0,15);
     }
@@ -77,7 +77,7 @@ private:
      *
      * This field is used only when VarManager::varNamePreserving()
      * is true. */
-    DHSet<unsigned>* _used;
+    Recycled<DHSet<unsigned>> _used;
   };
 
   void reset();

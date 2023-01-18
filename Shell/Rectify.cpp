@@ -127,10 +127,6 @@ Rectify::Renaming::~Renaming ()
     VarUsageTrackingList::destroy(_array[i]);
     _array[i] = 0;
   }
-
-  if(_used) {
-    Recycler::release(_used);
-  }
 } // Renaming::~Renaming
 
 
@@ -550,10 +546,6 @@ unsigned Rectify::Renaming::bind (unsigned var)
   unsigned result;
 
   if(VarManager::varNamePreserving()) {
-    if(!_used) {
-      Recycler::get(_used);
-      _used->reset();
-    }
     if(_used->insert(var)) {
       result=var;
     }
