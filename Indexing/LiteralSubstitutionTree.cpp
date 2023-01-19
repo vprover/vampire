@@ -5,7 +5,8 @@
  *
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
- * and in the source directory */
+ * and in the source directory
+ */
 /**
  * @file LiteralSubstitutionTree.cpp
  * Implements class LiteralSubstitutionTree.
