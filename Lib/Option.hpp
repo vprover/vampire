@@ -4,7 +4,7 @@
  * copyright laws.
  *
  * This source code is distributed under the licence found here
- * https://vprover.github.io/license.html
+ * https://vprover.github.io/license.html 
  * and in the source directory
  */
 
@@ -328,6 +328,12 @@ public:
   friend std::ostream& operator<<(std::ostream& out, Option const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
 };
+
+template<class F> 
+auto someIf(bool condition, F create) -> Option<decltype(create())> 
+{ return condition ? Option<decltype(create())>(create()) 
+                   : Option<decltype(create())>(); }
+
 
 template<class T> Option<T> some(T const& t) { return Option<T>(          t ); }
 template<class T> Option<T> some(T      & t) { return Option<T>(          t ); }

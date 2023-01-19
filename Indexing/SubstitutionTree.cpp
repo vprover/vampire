@@ -53,7 +53,7 @@ using namespace Indexing;
 SubstitutionTree::SubstitutionTree(bool useC, bool rfSubs)
   : _nextVar(0)
   , _useC(useC)
-  , _functionalSubtermMap(rfSubs ? Option<FuncSubtermMap>(FuncSubtermMap()) : Option<FuncSubtermMap>())
+  , _functionalSubtermMap(someIf(rfSubs, [](){ return FuncSubtermMap(); }))
   , _root(nullptr)
 #if VDEBUG
   , _tag(false)
@@ -73,9 +73,7 @@ SubstitutionTree::~SubstitutionTree()
   CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iterCnt,0);
 
-  if (_root) {
-    delete _root;
-  }
+  delete _root;
 } // SubstitutionTree::~SubstitutionTree
 
 /**

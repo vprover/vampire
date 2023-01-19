@@ -41,28 +41,32 @@ public:
 
   LiteralSubstitutionTree(bool useC=false);
 
-  void insert(Literal* lit, Clause* cls);
-  void remove(Literal* lit, Clause* cls);
-  void handleLiteral(Literal* lit, Clause* cls, bool insert);
+  void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
+  void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
 
-  SLQueryResultIterator getAll();
+  void handleLiteral(Literal* lit, Clause* cls, bool insert)
+  { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getAll() override;
 
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
 
-  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
 
-  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
 
-  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions);
-  SubstitutionTree& getTree(Literal* lit, bool complementary);
+  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
+
+  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
+
 
 #if VDEBUG
   virtual void markTagged(){ }
 #endif
 
 private:
+  SubstitutionTree& getTree(Literal* lit, bool complementary);
+
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 

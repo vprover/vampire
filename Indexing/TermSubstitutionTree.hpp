@@ -56,25 +56,24 @@ public:
    */
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
-  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert);
+  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
+  { handleTerm(tt, LeafData(cls,lit,tt), insert); }
 
-  void insert(TermList t, Literal* lit, Clause* cls) override;
-  void remove(TermList t, Literal* lit, Clause* cls) override;
-  void insert(TermList t, TermList trm) override;
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override;
+  void insert(TermList t, Literal* lit, Clause* cls) override 
+  { handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
 
-  bool generalizationExists(TermList t) override;
+  void remove(TermList t, Literal* lit, Clause* cls) override
+  { handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
+  void insert(TermList t, TermList trm) override 
+  { handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) override;
+  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override 
+  { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
-  /*
-   * A higher order concern (though it may be useful in other situations)
-   */
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList sort, bool retrieveSubstitutions, bool withConstr) override;
+  bool generalizationExists(TermList t) override
+  { return t.isVar() ? false : SubstitutionTree::generalizationExists(t); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) override;
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override;
 
 #if VDEBUG
   virtual void markTagged() override { SubstitutionTree::markTagged();}
@@ -83,9 +82,9 @@ public:
 private:
 
 
-  // void insert(TermList t, LeafData ld);
   template<class TypedOrUntypedTermList> 
-  void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert);
+  void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
+  { SubstitutionTree::handle(tt, ld, insert); }
 
   template<class Iterator, class TypedOrUntypedTermList> 
   auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
@@ -104,6 +103,20 @@ private:
   { return out << (SubstitutionTree const&) self; }
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline((SubstitutionTree const&) self.self); }
+public:
+  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) override
+  { return pvi(getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints)); }
+
+  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstr) override
+  { return pvi(getResultIterator<UnificationsIterator>(tt, retrieveSubstitutions, withConstr)); }
+
+
 };
 
 };

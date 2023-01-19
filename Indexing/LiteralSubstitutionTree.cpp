@@ -5,8 +5,7 @@
  *
  * This source code is distributed under the licence found here
  * https://vprover.github.io/license.html
- * and in the source directory
- */
+ * and in the source directory */
 /**
  * @file LiteralSubstitutionTree.cpp
  * Implements class LiteralSubstitutionTree.
@@ -33,15 +32,6 @@ LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
 , _useC(useC)
 { }
 
-void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
-{ handleLiteral(lit, cls, /* insert */ true); }
-
-void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
-{ handleLiteral(lit, cls, /* insert */ false); }
-
-void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool insert)
-{ getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
-
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<UnificationsIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
 
@@ -57,10 +47,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit, bool c
 
 SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
 {
-  CALL("LiteralSubstitutionTree::getVariants");
-
-  auto& tree = getTree(query, complementary);
-  return pvi(iterTraits(tree.getVariants(query, retrieveSubstitutions))
+  return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
         .map([](QueryResult qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.subst, qr.constr); }));
 }
 
