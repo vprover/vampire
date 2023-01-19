@@ -857,12 +857,6 @@ SubstitutionTree::NodeIterator SubstitutionTree::UnificationsIterator::getNodeIt
   }
 }
 
-template<class T>
-void repeat(std::ostream& out, T const& c, int times) 
-{ for (int i = 0; i < times; i++) out << c; };
-
-static constexpr char const* INDENT = "    ";
-
 void SubstitutionTree::Leaf::output(std::ostream& out, bool multiline, int indent) const 
 { out << this->term; }
 

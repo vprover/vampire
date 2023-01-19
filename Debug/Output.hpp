@@ -50,6 +50,11 @@ OutputMultiline<T> multiline(T const& self)
 { return { self }; }
 
 
+template<class T>
+void repeat(std::ostream& out, T const& c, int times) 
+{ for (int i = 0; i < times; i++) out << c; };
+
+static constexpr char const* INDENT = "    ";
 
 } // namespace Kernel
 #endif // __Debug_Output__

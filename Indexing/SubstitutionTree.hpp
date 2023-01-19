@@ -125,15 +125,25 @@ public:
   USE_ALLOCATOR(SubstitutionTree);
 
   SubstitutionTree(bool useC, bool rfSubs);
-  SubstitutionTree(SubstitutionTree const&) = delete;
+
+  SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
+  SubstitutionTree(SubstitutionTree&& other)
+  : SubstitutionTree(other._useC, /* rfSubst */ false)
+  {
+    std::swap(_nextVar, other._nextVar);
+    std::swap(_useC, other._useC);
+    std::swap(_functionalSubtermMap, other._functionalSubtermMap);
+    std::swap(_root, other._root);
+#if VDEBUG
+    std::swap(_tag, other._tag);
+#endif
+  }
+
 
   virtual ~SubstitutionTree();
 
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
-
-
-//protected:
 
   struct LeafData {
     LeafData() {}

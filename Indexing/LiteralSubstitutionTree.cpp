@@ -57,7 +57,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
 
   return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-         .flatMap([this](auto i) { return LeafIterator(&*_trees[i]); })
+         .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
          .flatMap([](Leaf* l) { return l->allChildren(); })
          .map([](const LeafData& ld) { return SLQueryResult(ld.literal, ld.clause); })
       );
@@ -67,9 +67,9 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
 {
   auto idx = complementary ? lit->header() : lit->complementaryHeader();
   while (idx >= _trees.size()) {
-    _trees.push(make_unique<SubstitutionTree>(_useC, /* rfSubs */ false));
+    _trees.push(SubstitutionTree(_useC, /* rfSubs */ false));
   }
-  return *_trees[idx];
+  return _trees[idx];
 }
 
 template<class Iterator>

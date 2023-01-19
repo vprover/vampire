@@ -61,7 +61,7 @@ public:
 
 
 #if VDEBUG
-  virtual void markTagged(){ }
+  virtual void markTagged() override { }
 #endif
 
 private:
@@ -70,7 +70,7 @@ private:
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
-  Stack<unique_ptr<SubstitutionTree>> _trees;
+  Stack<SubstitutionTree> _trees;
   bool _useC;
 };
 
