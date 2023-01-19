@@ -21,10 +21,10 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
-#include "Recycler.hpp"
+#include "Recycled.hpp"
 #include "VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Option.hpp"

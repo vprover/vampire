@@ -33,7 +33,7 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #include "Kernel/RobSubstitution.hpp"

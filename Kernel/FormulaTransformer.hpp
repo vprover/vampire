@@ -19,7 +19,7 @@
 
 #include "Inference.hpp"
 #include "TermTransformer.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 
 namespace Kernel {
 

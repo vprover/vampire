@@ -27,7 +27,7 @@
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/DHMultiset.hpp"
 
 #include "TermSharing.hpp"

@@ -169,7 +169,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Portability.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
-    Lib/Recycler.hpp
+    Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
     Lib/ScopedLet.hpp

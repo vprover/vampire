@@ -16,7 +16,7 @@
 #define __SubstHelper__
 
 #include "Lib/DArray.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 
 #include "Formula.hpp"
 #include "SortHelper.hpp"

@@ -8,13 +8,11 @@
  * and in the source directory
  */
 /**
- * @file Recycler.hpp
- *
- * @since 08/05/2007 Manchester
+ * @file Recycled.hpp
  */
 
-#ifndef __Recycler__
-#define __Recycler__
+#ifndef __Recycled__
+#define __Recycled__
 
 #include "Forwards.hpp"
 
@@ -24,84 +22,11 @@
 namespace Lib
 {
 
-/** * A class that keeps objects of type T allocated. 
- * This is for example useful for hot functions that will allocate a todo stack whenever they are called. 
- * In order to use less allocation time we can get a pre-allocated stack from the Recycler, and return 
- * it when we don't need it anymore.
- *
- * Best practice is to not use this class directly, but to use the related smart pointer Recycled<T>
- * instead.
- */
-class Recycler {
-public:
-  template<typename T>
-  static void get(T*& result)
-  {
-    Stack<T*>& store=getStore<T>();
-    if(store.isNonEmpty()) {
-      result=store.pop();
-    } else {
-      result=new T();
-    }
-  }
-
-  template<typename T>
-  static void get(DArray<T>*& result)
-  {
-    Stack<DArray<T>*>& store=getStore<DArray<T> >();
-    if(store.isNonEmpty()) {
-      result=store.pop();
-    } else {
-      result=new DArray<T>(64);
-      result->ensure(0);
-    }
-  }
-
-
-  template<typename T>
-  static void release(T* obj)
-  {
-    ASS(obj);
-
-    Stack<T*>& store=getStore<T>();
-
-    store.push(obj);
-  }
-
-
-private:
-
-  /*
-  * A Stack which deletes its elements at the end.
-  */
-  template<typename T> 
-  struct OwnedPtrStack : public Stack<T*>
-  {  
-    inline
-    explicit OwnedPtrStack (size_t initialCapacity=0)
-      : Stack<T*> (initialCapacity) { }
-  
-    inline ~OwnedPtrStack() { 
-      while (this->isNonEmpty())
-        delete (this->pop());
-     }
-  };
-
-  template<typename T>
-  static Stack<T*>& getStore() throw()
-  {
-    static OwnedPtrStack<T> store(4);
-    return store;
-  }
-};
-
 struct DefaultReset 
 { template<class T> void operator()(T& t) { t.reset(); } };
 
 struct NoReset 
 { template<class T> void operator()(T& t) {  } };
-
-
 
 /** A smart that lets you keep memory allocated, and reuse it.
  * Constructs an object of type T on the heap. When the Recycled<T> is destroyed,
@@ -152,4 +77,4 @@ public:
 
 };
 
-#endif /*__Recycler__*/
+#endif /*__Recycled__*/

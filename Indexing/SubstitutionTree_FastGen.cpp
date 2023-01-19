@@ -14,7 +14,7 @@
  */
 
 #include "Lib/Allocator.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SubstHelper.hpp"
