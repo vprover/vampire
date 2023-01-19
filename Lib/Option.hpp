@@ -4,10 +4,9 @@
  * copyright laws.
  *
  * This source code is distributed under the licence found here
- * https://vprover.github.io/license.html 
+ * https://vprover.github.io/license.html
  * and in the source directory
  */
-
 /** 
  * This file mainly defined the class Option, which can be thought of as a NULLable pointer, that is 
  * stack-allocated, with RAII semantics. 
