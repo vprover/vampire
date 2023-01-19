@@ -751,14 +751,13 @@ public:
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
-  // TODO document
-  void setKey(TypedTermList const& term, LeafData& ld)
+  void setSort(TypedTermList const& term, LeafData& ld)
   {
     ASS_EQ(ld.term, term)
     ld.sort = term.sort();
   }
 
-  void setKey(TermList const& term, LeafData& ld)
+  void setSort(TermList const& term, LeafData& ld)
   {
     ASS_EQ(ld.term, term)
     if (term.isTerm()) {
@@ -767,7 +766,7 @@ public:
   }
 
 
-  void setKey(Literal* literal, LeafData &ld)
+  void setSort(Literal* literal, LeafData &ld)
   { 
     ASS_EQ(ld.literal, literal); 
     if (literal->isEquality()) 
@@ -784,7 +783,7 @@ public:
     }
 
     Recycled<BindingMap> bindings;
-    setKey(key, ld);
+    setSort(key, ld);
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
