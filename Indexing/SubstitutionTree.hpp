@@ -916,10 +916,7 @@ public:
      */
     template<class TermOrLit>
     GenMatcher(TermOrLit query, unsigned nextSpecVar)
-      : _boundVars()
-      , _specVars()
-      , _maxVar(weight(query) - 1)
-      , _bindings()
+      : _maxVar(weight(query) - 1)
     {
       if(_specVars->size()<nextSpecVar) {
         //_specVars can get really big, but it was introduced instead of hash table
