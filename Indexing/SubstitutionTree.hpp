@@ -154,9 +154,9 @@ public:
     : clause(cls), literal(literal), term(term), sort(term.sort()) { extraTerm.makeEmpty();}
 
     LeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
-    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
+    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) { sort.makeEmpty(); }
     LeafData(Clause* cls, Literal* literal, TermList term)
-    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
+    : clause(cls), literal(literal), term(term) {  sort.makeEmpty(); extraTerm.makeEmpty();}
 
     LeafData(Clause* cls, Literal* literal)
     : clause(cls), literal(literal) { term.makeEmpty(); sort.makeEmpty(), extraTerm.makeEmpty(); }
@@ -769,8 +769,9 @@ public:
   void setSort(Literal* literal, LeafData &ld)
   { 
     ASS_EQ(ld.literal, literal); 
-    if (literal->isEquality()) 
+    if (literal->isEquality()) {
       ld.sort = SortHelper::getEqualityArgumentSort(literal);
+    }
   }
 
 
