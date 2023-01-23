@@ -60,8 +60,7 @@ public:
                         /* literal*/ SelectionCriterion::NOT_LEQ, 
                         /* term */ SelectionCriterion::NOT_LEQ,
                         /* include number vars */ false)
-              .filter([&](auto const& selected) { return selected.isInequality(); })
-              .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
+              .filter([&](auto const& selected) { return selected.symbol() == LascaPredicate::IS_INT_POS; })
               .map([&]   (auto selected)        { return Lhs(std::move(selected));     }); }
   };
 
@@ -81,8 +80,7 @@ public:
                         /* literal*/ SelectionCriterion::NOT_LESS,
                         /* term */ SelectionCriterion::NOT_LEQ,
                         /* include number vars */ false)
-              .filter([&](auto const& selected) { return selected.isInequality(); })
-              .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
+              .filter([&](auto const& selected) { return selected.isIsInt(); })
               .map([&]   (auto selected)        { return Rhs(std::move(selected));     }); }
   };
 
@@ -96,7 +94,23 @@ public:
 #endif
     
 private:
+
   Option<Clause*> applyRule(
+      Lhs const& lhs, unsigned lhsVarBank,
+      Rhs const& rhs, unsigned rhsVarBank,
+      UwaResult& uwa
+      ) const;
+
+
+  Option<Clause*> applyRule(IntTraits,
+      Lhs const& lhs, unsigned lhsVarBank,
+      Rhs const& rhs, unsigned rhsVarBank,
+      UwaResult& uwa
+      ) const { ASSERTION_VIOLATION }
+
+
+  template<class NumTraits>
+  Option<Clause*> applyRule(NumTraits,
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       UwaResult& uwa

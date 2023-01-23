@@ -311,8 +311,9 @@ enum class InferenceRule : unsigned char {
   INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
-  /* inequality factoring rule of the Inequality Resolution Calculs */
-  LASCA_INEQUALITY_RESOLUTION,
+  /* inequality factoring rule of the ALASCA Calculs */
+  LASCA_FOURIER_MOTZKIN,
+  LASCA_IS_INT_RESOLUTION,
   /* factoring rules of the Inequality Resolution Calculs */
   LASCA_TERM_FACTORING,
   LASCA_EQ_FACTORING,

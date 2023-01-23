@@ -913,8 +913,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "lasca equality factoring";
   case InferenceRule::LASCA_TERM_FACTORING:
     return "lasca term factoring";
-  case InferenceRule::LASCA_INEQUALITY_RESOLUTION:
+  case InferenceRule::LASCA_FOURIER_MOTZKIN:
     return "lasca fourier motzkin";
+  case InferenceRule::LASCA_IS_INT_RESOLUTION:
+    return "isInt resolution";
   case InferenceRule::LASCA_NORMALIZATION:
     return "lasca normalization";
   case InferenceRule::LASCA_FWD_DEMODULATION:

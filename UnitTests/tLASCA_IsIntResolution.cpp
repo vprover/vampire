@@ -115,6 +115,7 @@ class LascaGenerationTester : public Test::Generation::GenerationTester<Rule>
 {
  public:
   LascaGenerationTester(Rule r) : Test::Generation::GenerationTester<Rule>(std::move(r)) { }
+
 };
 
 
@@ -150,7 +151,7 @@ TEST_GENERATION(basic03,
       .inputs  ({ clause({ selected(  isInt(f(a) + frac(1,2)) ) }) 
                ,  clause({ selected(  isInt(f(x)) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( isInt(frac(1,2)) )  })
+                  clause({ selected( isInt(-frac(1,2)) )  })
       ))
     )
 
@@ -160,7 +161,7 @@ TEST_GENERATION(basic04,
       .inputs  ({ clause({ selected(  isInt(f(a) + frac(1,2)) ) }) 
                ,  clause({ selected(  ~isInt(f(x)) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(frac(1,2)) )  })
+                  clause({ selected( ~isInt(-frac(1,2)) )  })
       ))
     )
 
@@ -170,7 +171,7 @@ TEST_GENERATION(basic05,
       .inputs  ({ clause({ selected(  isInt(f(a) + a + frac(1,2)) ) }) 
                ,  clause({ selected( ~isInt(f(x) + 2)             ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(a - frac(3,2)) )  })
+                  clause({ selected( ~isInt(2 - (a + frac(1,2))) )  })
       ))
     )
 
@@ -190,7 +191,7 @@ TEST_GENERATION(factors02,
       .inputs  ({ clause({ selected(  isInt(frac(1,2) * f(a) + a) ) }) 
                ,  clause({ selected( ~isInt(f(x) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(1 - 2 * a) )  })
+                  clause({ selected( ~isInt(1 + (-2 * a)) )  })
       ))
     )
 

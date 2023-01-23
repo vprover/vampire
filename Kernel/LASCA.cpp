@@ -21,6 +21,8 @@ using Inferences::PolynomialEvaluation;
 bool isInequality(LascaPredicate const& self) 
 {
   switch(self) {
+    case LascaPredicate::IS_INT_POS: 
+    case LascaPredicate::IS_INT_NEG: 
     case LascaPredicate::EQ: 
     case LascaPredicate::NEQ: return false;
     case LascaPredicate::GREATER: 
@@ -29,9 +31,24 @@ bool isInequality(LascaPredicate const& self)
   ASSERTION_VIOLATION
 }
 
+bool isIsInt(LascaPredicate const& self) 
+{
+  switch(self) {
+    case LascaPredicate::IS_INT_POS: 
+    case LascaPredicate::IS_INT_NEG: return true;
+    case LascaPredicate::EQ: 
+    case LascaPredicate::NEQ: 
+    case LascaPredicate::GREATER: 
+    case LascaPredicate::GREATER_EQ: return false;
+  }
+  ASSERTION_VIOLATION
+}
+
 std::ostream& operator<<(std::ostream& out, LascaPredicate const& self)
 { 
   switch(self) {
+    case LascaPredicate::IS_INT_POS: return out << "isInt";
+    case LascaPredicate::IS_INT_NEG: return out << "~isInt";
     case LascaPredicate::EQ: return out << "==";
     case LascaPredicate::NEQ: return out << "!=";
     case LascaPredicate::GREATER: return out << ">";
@@ -39,15 +56,6 @@ std::ostream& operator<<(std::ostream& out, LascaPredicate const& self)
   } 
   ASSERTION_VIOLATION
 }
-
-
-// Literal* InequalityNormalizer::renormalizeLiteral(Literal* lit) const 
-// {
-//   return           renormalizeLasca< IntTraits>(lit).map([](auto l) { return l.value.denormalize(); })
-//   || [&](){ return renormalizeLasca< RatTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
-//   || [&](){ return renormalizeLasca<RealTraits>(lit).map([](auto l) { return l.value.denormalize(); }); }
-//   || lit;
-// }
 
 
 bool LascaState::hasSubstitutionProperty(SignedAtoms const& l)

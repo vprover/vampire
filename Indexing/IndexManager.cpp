@@ -12,6 +12,7 @@
  * Implements class IndexManager.
  */
 
+#include "Inferences/LASCA/IsIntResolution.hpp"
 #include "Lib/Exception.hpp"
 
 #include "Kernel/Grounder.hpp"
@@ -194,12 +195,22 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case LASCA_INEQUALITY_RESOLUTION_LHS_SUBST_TREE:
+  case LASCA_IS_INT_RESOLUTION_LHS_SUBST_TREE:
+    res=new LascaIndex<Inferences::LASCA::IsIntResolution::Lhs>(uwaMode);
+    isGenerating = true;
+    break;
+
+  case LASCA_IS_INT_RESOLUTION_RHS_SUBST_TREE:
+    res=new LascaIndex<Inferences::LASCA::IsIntResolution::Rhs>(uwaMode);
+    isGenerating = true;
+    break;
+
+  case LASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE:
     res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Lhs>(uwaMode);
     isGenerating = true;
     break;
 
-  case LASCA_INEQUALITY_RESOLUTION_RHS_SUBST_TREE:
+  case LASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE:
     res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Rhs>(uwaMode);
     isGenerating = true;
     break;

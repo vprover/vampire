@@ -122,15 +122,6 @@ Option<Clause*> TermFactoring::applyRule(
     }                                                                                               \
 
   auto nothing = [&]() { return Option<Clause*>(); };
-  auto createLiteral = [&](auto term, auto sym) -> Literal* {
-      switch(sym) {
-        case LascaPredicate::EQ:         return NumTraits::eq(true,  term, NumTraits::zero());
-        case LascaPredicate::NEQ:        return NumTraits::eq(false, term, NumTraits::zero());
-        case LascaPredicate::GREATER:    return NumTraits::greater(true, term, NumTraits::zero());
-        case LascaPredicate::GREATER_EQ: return NumTraits::geq    (true, term, NumTraits::zero());
-      }
-      ASSERTION_VIOLATION
-    };
 
   // ASS(!(sel1.literal()->isEquality() && sel1.literal()->isNegative()))
 
@@ -214,7 +205,7 @@ Option<Clause*> TermFactoring::applyRule(
   auto resSum = NumTraits::sum(concatIters(getSingletonIterator(resTerm), t_sigma));
   //   ^^^^^^---> ((k₁ + s₁)s₂ + t)σ
     
-  auto resLit = createLiteral(resSum, sel1.symbol());
+  auto resLit = LascaPredicateCreateLiteral<NumTraits>(sel1.symbol(), resSum);
   //   ^^^^^^---> ((k₁ + s₁)s₂ + t <> 0)σ
 
 

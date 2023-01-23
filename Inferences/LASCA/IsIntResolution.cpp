@@ -13,11 +13,12 @@
  */
 
 #include "IsIntResolution.hpp"
+#include "Kernel/LASCA.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace LASCA {
@@ -34,8 +35,8 @@ void IsIntResolution::attach(SaturationAlgorithm* salg)
   ASS(!_lhsIndex);
   ASS(!_rhsIndex);
 
-  _lhsIndex = static_cast<decltype(_lhsIndex)>(_salg->getIndexManager()->request(LASCA_INEQUALITY_RESOLUTION_LHS_SUBST_TREE));
-  _rhsIndex = static_cast<decltype(_rhsIndex)>(_salg->getIndexManager()->request(LASCA_INEQUALITY_RESOLUTION_RHS_SUBST_TREE));
+  _lhsIndex = static_cast<decltype(_lhsIndex)>(_salg->getIndexManager()->request(LASCA_IS_INT_RESOLUTION_LHS_SUBST_TREE));
+  _rhsIndex = static_cast<decltype(_rhsIndex)>(_salg->getIndexManager()->request(LASCA_IS_INT_RESOLUTION_RHS_SUBST_TREE));
   _rhsIndex->setShared(_shared);
   _lhsIndex->setShared(_shared);
 }
@@ -47,7 +48,7 @@ void IsIntResolution::detach()
   GeneratingInferenceEngine::detach();
 
   // _index=0;
-  // _salg->getIndexManager()->release(LASCA_INEQUALITY_RESOLUTION_SUBST_TREE);
+  // _salg->getIndexManager()->release(LASCA_IS_INT_RESOLUTION_SUBST_TREE);
 }
 
 #if VDEBUG
@@ -103,50 +104,30 @@ ClauseIterator IsIntResolution::generateClauses(Clause* premise)
   return pvi(ownedArrayishIterator(std::move(out)));
 }
 
-// Fourier Motzkin normal:
-//
-// C₁ \/ +j s₁ + t₁ >₁ 0         C₂ \/ -k s₂ + t₂ >₂ 0 
-// --------------------------------------------------
-//           (C₁ \/ C₂ \/ k t₁ + j t₂ > 0)σ \/ Cnst
-//
-// where 
-// • (σ, Cnst) = uwa(s₁, s₂)
-// • (+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ
-// • (-k s₂ + t₂ >₂ 0)σ /≺ C₂σ
-// • s₁σ /⪯ t₁σ 
-// • s₂σ /⪯ t₂σ 
-// • s₁, s₂ are not variables
-// • {>} ⊆ {>₁,>₂} ⊆ {>,≥}
-//
-// Fourier Motzkin tight:
-//
-// C₁ \/ +j s₁ + t₁ ≥ 0                 C₂ \/ -k s₂ + t₂ ≥ 0 
-// --------------------------------------------------------
-// (C₁ \/ C₂ \/ k t₁ + j t₂ > 0 \/ -k s₂ + t₂ ≈ 0)σ \/ Cnst
-//
-// where 
-// • (σ, Cnst) = uwa(s₁, s₂)
-// • (+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ
-// • (-k s₂ + t₂ >₂ 0)σ /≺ C₂σ
-// • s₁σ /⪯ t₁σ 
-// • s₂σ /⪯ t₂σ 
-// • s₁, s₂ are not variables
-//
 Option<Clause*> IsIntResolution::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
     UwaResult& uwa
     ) const 
 {
+  return lhs.numTraits().apply([&](auto numTraits) {
+    return applyRule(numTraits, lhs, lhsVarBank, rhs, rhsVarBank, uwa);
+  });
+}
 
-#define __LASCA_FM_DERIVE_EQUALITIES 1
+
+template<class NumTraits>
+Option<Clause*> IsIntResolution::applyRule(NumTraits,
+    Lhs const& lhs, unsigned lhsVarBank,
+    Rhs const& rhs, unsigned rhsVarBank,
+    UwaResult& uwa
+    ) const 
+{
+
 
   CALL("IsIntResolution::applyRule")
-  TIME_TRACE("fourier motzkin")
-
-
-  return lhs.numTraits().apply([&](auto numTraits) {
-    using NumTraits = decltype(numTraits);
+  TIME_TRACE("isInt-resolution")
+  if (lhs == rhs) return Option<Clause*>();
 
 
 
@@ -160,23 +141,14 @@ Option<Clause*> IsIntResolution::applyRule(
     check_side_condition("literals are of the same sort",
         lhs.numTraits() == rhs.numTraits()) // <- we must make this check because variables are unsorted
    
-    ASS(lhs.sign() == Sign::Pos)
-    ASS(rhs.sign() == Sign::Neg)
+    ASS(lhs.isIsInt())
+    ASS(rhs.isIsInt())
+    ASS_EQ(lhs.symbol(), LascaPredicate::IS_INT_POS)
     ASS_EQ(lhs.sort(), rhs.sort())
-    ASS(lhs.literal()->functor() == NumTraits::geqF()
-     || lhs.literal()->functor() == NumTraits::greaterF())
-    ASS(rhs.literal()->functor() == NumTraits::geqF()
-     || rhs.literal()->functor() == NumTraits::greaterF())
-
-    bool tight = lhs.literal()->functor() == NumTraits::geqF()
-              && rhs.literal()->functor() == NumTraits::geqF();
 
     Stack<Literal*> out( lhs.clause()->size() - 1 // <- C1
                        + rhs.clause()->size() - 1 // <- C2
                        + 1                        // <- k t₁ + j t₂ > 0
-#if __LASCA_FM_DERIVE_EQUALITIES
-                       + (tight ? 1 : 0)          // <- -k s₂ + t₂ ≈ 0
-#endif // __LASCA_FM_DERIVE_EQUALITIES
                        + uwa.cnst().size());      // Cnst
 
 
@@ -186,9 +158,17 @@ Option<Clause*> IsIntResolution::applyRule(
     //     "s₁, s₂ are not variables",
     //     !lhs.monom().isVar() && !rhs.monom().isVar())
 
+    auto j = lhs.numeral().unwrap<typename NumTraits::ConstantType>();
+    auto k = rhs.numeral().unwrap<typename NumTraits::ConstantType>();
+
+    check_side_condition(
+        "k / j ∈ Z",
+        (k / j).isInt())
+
+
     auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
     check_side_condition( 
-        "(+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ",
+        "isInt(j s₁ + t₁)σ /⪯ C₁σ",
         lhs.contextLiterals()
            .all([&](auto L) {
              auto Lσ = uwa.sigma(L, lhsVarBank);
@@ -199,7 +179,7 @@ Option<Clause*> IsIntResolution::applyRule(
 
     auto L2σ = uwa.sigma(rhs.literal(), rhsVarBank);
     check_side_condition(
-        "(-k s₂ + t₂ >₂ 0)σ /≺ C₂σ",
+        "(~)isInt(k s₂ + t₂)σ /≺ C₂σ",
         rhs.contextLiterals()
            .all([&](auto L) {
              auto Lσ = uwa.sigma(L, rhsVarBank);
@@ -232,52 +212,24 @@ Option<Clause*> IsIntResolution::applyRule(
              return _shared->notLeq(s2σ, tiσ);
            }))
 
-    // DEBUG("(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)
-    // DEBUG("(-k s₂ + t₂ >₂ 0)σ = ", *L2σ)
-    // check_side_condition(
-    //     "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
-    //     _shared->notLeq(L2σ, L1σ));
-
-    auto j = lhs.numeral().unwrap<typename NumTraits::ConstantType>();
-    auto k = rhs.numeral().unwrap<typename NumTraits::ConstantType>().abs();
-
     auto add = [](auto l, auto r) {
       return l == NumTraits::zero() ? r 
            : r == NumTraits::zero() ? l
            : NumTraits::add(l, r); };
 
-    auto resolventTerm // -> (k t₁ + j t₂)σ
-        = add( NumTraits::mulSimpl(k, NumTraits::sum(t1σ.iterFifo())),
-               NumTraits::mulSimpl(j, NumTraits::sum(t2σ.iterFifo())));
+    auto resolventTerm // -> (t₂ - (k / j) t₁)σ
+        = add( NumTraits::sum(t2σ.iterFifo()),
+               NumTraits::mulSimpl(-(k / j), NumTraits::sum(t1σ.iterFifo())));
 
-    if (std::is_same<IntTraits, NumTraits>::value) {
-      resolventTerm = add(resolventTerm, NumTraits::constantTl(-1));
-    }
-
-#if __LASCA_FM_DERIVE_EQUALITIES
     // (k t₁ + j t₂ > 0)σ
-    out.push(NumTraits::greater(true, resolventTerm, NumTraits::zero()));
-
-    if (tight) {
-      auto rhsSum = // -> (-k s₂ + t₂)σ
-        uwa.sigma(rhs.literal(), rhsVarBank)->termArg(0);
-      out.push(NumTraits::eq(true, rhsSum, NumTraits::zero()));
-    }
-#else 
-                   // (k t₁ + j t₂ >= 0)σ
-    out.push(tight ? NumTraits::geq    (true, resolventTerm, NumTraits::zero())
-                   // (k t₁ + j t₂ > 0)σ
-                   : NumTraits::greater(true, resolventTerm, NumTraits::zero()));
-
-#endif
+    out.push(LascaPredicateCreateLiteral<NumTraits>(rhs.symbol(), resolventTerm));
 
     out.loadFromIterator(uwa.cnstLiterals());
 
-    Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_INEQUALITY_RESOLUTION, lhs.clause(), rhs.clause()));
+    Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_IS_INT_RESOLUTION, lhs.clause(), rhs.clause()));
     auto cl = Clause::fromStack(out, inf);
     DEBUG("out: ", *cl);
     return Option<Clause*>(cl);
-  });
 }
 
 } // namespace LASCA 

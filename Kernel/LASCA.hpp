@@ -76,6 +76,8 @@ namespace Kernel {
     NEQ,
     GREATER,
     GREATER_EQ,
+    IS_INT_POS,
+    IS_INT_NEG,
   };
 
   template<class NumTraits>
@@ -86,12 +88,15 @@ namespace Kernel {
       case LascaPredicate::NEQ: return Literal::createEquality(false, t, NumTraits::zero(), NumTraits::sort());
       case LascaPredicate::GREATER_EQ: return NumTraits::geq(true, t, NumTraits::zero());
       case LascaPredicate::GREATER: return NumTraits::greater(true, t, NumTraits::zero());
+      case LascaPredicate::IS_INT_POS: return NumTraits::isInt(true, t);
+      case LascaPredicate::IS_INT_NEG: return NumTraits::isInt(false, t);
     }
     ASSERTION_VIOLATION
   }
 
   /** returns true iff the predicate is > or >= */
   bool isInequality(LascaPredicate const& self);
+  bool isIsInt(LascaPredicate const& self);
 
   std::ostream& operator<<(std::ostream& out, LascaPredicate const& self);
 
@@ -131,33 +136,50 @@ namespace Kernel {
 
     LascaLiteral negation() const
     {
-      // TODO  handle that actually -t == 0 and t == 0 are equivalent
-      return LascaLiteral(perfect(-(*_term)), [&](){
-            switch(_symbol) {
+      auto newSym = [&](){
+          switch(_symbol) {
+            case LascaPredicate::IS_INT_NEG: return LascaPredicate::IS_INT_POS;
+            case LascaPredicate::IS_INT_POS: return LascaPredicate::IS_INT_NEG;
             case LascaPredicate::EQ:  return LascaPredicate::NEQ;
             case LascaPredicate::NEQ: return LascaPredicate::EQ;
             case LascaPredicate::GREATER: return LascaPredicate::GREATER_EQ;
             case LascaPredicate::GREATER_EQ: return LascaPredicate::GREATER;
-            }
-            ASSERTION_VIOLATION
-          }());
+          }
+          ASSERTION_VIOLATION
+      }();
+      auto newTerm = [&](){
+          switch(_symbol) {
+            case LascaPredicate::IS_INT_NEG: 
+            case LascaPredicate::IS_INT_POS: 
+            case LascaPredicate::EQ:  
+            case LascaPredicate::NEQ: return _term;
+            case LascaPredicate::GREATER: 
+            case LascaPredicate::GREATER_EQ: return -_term; // perfect(-(*_term))
+          }
+          ASSERTION_VIOLATION
+      }();
+      return LascaLiteral(newTerm, newSym);
     }
 
     Literal* denormalize() const
     {
       auto l = term().denormalize();
-      auto r = NumTraits::zero();
       switch(symbol()) {
-        case LascaPredicate::EQ:  return NumTraits::eq(true, l, r);
-        case LascaPredicate::NEQ: return NumTraits::eq(false, l, r);
-        case LascaPredicate::GREATER: return NumTraits::greater(true, l, r);
-        case LascaPredicate::GREATER_EQ: return NumTraits::geq(true, l, r);
+        case LascaPredicate::EQ:  return NumTraits::eq(true, l, NumTraits::zero());
+        case LascaPredicate::NEQ: return NumTraits::eq(false, l, NumTraits::zero());
+        case LascaPredicate::GREATER: return NumTraits::greater(true, l, NumTraits::zero());
+        case LascaPredicate::GREATER_EQ: return NumTraits::geq(true, l, NumTraits::zero());
+        case LascaPredicate::IS_INT_POS: return NumTraits::isInt(true, l);
+        case LascaPredicate::IS_INT_NEG: return NumTraits::isInt(false, l);
       }
       ASSERTION_VIOLATION
     }
 
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
+
+    bool isIsInt() const
+    { return Kernel::isIsInt(symbol()); }
 
     friend bool operator==(LascaLiteral const& lhs, LascaLiteral const& rhs)
     { return std::tie(lhs._symbol, lhs._term) ==  std::tie(rhs._symbol, rhs._term); }
@@ -443,6 +465,10 @@ namespace Kernel {
     bool isInequality() const
     { return ircLiteral().apply([](auto& lit)
                                { return lit.isInequality(); }); }
+
+    bool isIsInt() const
+    { return ircLiteral().apply([](auto& lit)
+                               { return lit.isIsInt(); }); }
 
     auto monom() const 
     { return ircLiteral()
@@ -1162,10 +1188,19 @@ Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>> InequalityNormalizer::norm
 
     auto itp = theory->interpretPredicate(f);
 
-
     LascaPredicate pred;
     TermList l, r; // <- we rewrite to l < r or l <= r
     switch(itp) {
+      case NumTraits::isIntI:{
+
+        auto norm = Kernel::normalizeTerm(TypedTermList(*lit->nthArgument(0), NumTraits::sort()));
+        auto simpl = _eval.evaluate(norm);
+        auto simplValue = (simpl.value || norm).wrapPoly<NumTraits>();
+        auto llit = LascaLiteral<NumTraits>(simplValue, lit->isPositive() ? LascaPredicate::IS_INT_POS
+                                                                          : LascaPredicate::IS_INT_NEG);
+        return Opt(maybeOverflow(Stack<LascaLiteral<NumTraits>>{llit}, simpl.overflowOccurred));
+      }
+
       case Interpretation::EQUAL:/* l == r or l != r */
         if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
           return Opt();
@@ -1225,6 +1260,7 @@ Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>> InequalityNormalizer::norm
            : NumTraits::add(r, NumTraits::minus(l));
 
     ASS(!isInt || pred != LascaPredicate::GREATER_EQ)
+
     auto tt = TypedTermList(t, NumTraits::sort());
     auto norm = Kernel::normalizeTerm(tt);
     auto simpl = _eval.evaluate(norm);

@@ -34,8 +34,8 @@ void FourierMotzkin::attach(SaturationAlgorithm* salg)
   ASS(!_lhsIndex);
   ASS(!_rhsIndex);
 
-  _lhsIndex = static_cast<decltype(_lhsIndex)>(_salg->getIndexManager()->request(LASCA_INEQUALITY_RESOLUTION_LHS_SUBST_TREE));
-  _rhsIndex = static_cast<decltype(_rhsIndex)>(_salg->getIndexManager()->request(LASCA_INEQUALITY_RESOLUTION_RHS_SUBST_TREE));
+  _lhsIndex = static_cast<decltype(_lhsIndex)>(_salg->getIndexManager()->request(LASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE));
+  _rhsIndex = static_cast<decltype(_rhsIndex)>(_salg->getIndexManager()->request(LASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE));
   _rhsIndex->setShared(_shared);
   _lhsIndex->setShared(_shared);
 }
@@ -273,7 +273,7 @@ Option<Clause*> FourierMotzkin::applyRule(
 
     out.loadFromIterator(uwa.cnstLiterals());
 
-    Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_INEQUALITY_RESOLUTION, lhs.clause(), rhs.clause()));
+    Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_FOURIER_MOTZKIN, lhs.clause(), rhs.clause()));
     auto cl = Clause::fromStack(out, inf);
     DEBUG("out: ", *cl);
     return Option<Clause*>(cl);

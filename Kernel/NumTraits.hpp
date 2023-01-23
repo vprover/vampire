@@ -151,7 +151,7 @@ struct NumTraits;
                                                                                                     \
     static TermList mulSimpl(ConstantType c, TermList t)                                            \
     { return c == ConstantType(1) ? t                                                               \
-           : c == ConstantType(-1) ? minus(t)                                                       \
+           : c == ConstantType(-1) ? (t == zero() ? t : minus(t))                                   \
            : t == zero() ? zero()                                                                   \
            : t == one() ? constantTl(c)                                                             \
            : NumTraits::mul(constantTl(c), t); }                                                    \

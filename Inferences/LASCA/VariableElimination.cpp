@@ -72,6 +72,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
                                          })
                                        .template unwrap<FoundVariable<NumTraits>>();
               auto entry = FoundVarInLiteral<NumTraits>(i, k, lit);
+              ASS_REP(!lit.isIsInt(), "TODO: develop theory and come up with rule");
               switch(lit.symbol()) {
               case LascaPredicate:: EQ: found. eq.push(std::move(entry)); break;
               case LascaPredicate::NEQ: found.neq.push(std::move(entry)); break;
