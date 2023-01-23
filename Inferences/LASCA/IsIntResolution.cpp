@@ -127,7 +127,6 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
 
   CALL("IsIntResolution::applyRule")
   TIME_TRACE("isInt-resolution")
-  if (lhs == rhs) return Option<Clause*>();
 
 
 
@@ -165,6 +164,9 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
         "k / j ∈ Z",
         (k / j).isInt())
 
+    check_side_condition(
+        "symmetry breaking",
+        (rhs.symbol() != LascaPredicate::IS_INT_POS || !(j / k).isInt() || lhs < rhs))
 
     auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
     check_side_condition( 

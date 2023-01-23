@@ -181,7 +181,7 @@ TEST_GENERATION(factors01,
       .inputs  ({ clause({ selected(  isInt(frac(1,2) * f(a) + a) ) }) 
                ,  clause({ selected(  isInt(frac(1,2) * f(x) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected(  isInt(1 - a) )  })
+                  clause({ selected(  isInt(a - 1) )  })
       ))
     )
 
@@ -210,7 +210,7 @@ TEST_GENERATION(factors04,
     Generation::SymmetricTest()
       .indices(idxIsIntResolution())
       .inputs  ({ clause({ selected(  isInt(frac(2,3) * f(x) + x) ) }) 
-               ,  clause({ selected( ~isInt(6 * f(a) + 1) ) }) })
+               ,  clause({ selected( ~isInt(3 * f(a) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
 
       ))
@@ -223,7 +223,7 @@ TEST_GENERATION(factors05,
       .inputs  ({ clause({ selected(  isInt(f(x) + x) ) }) 
                ,  clause({ selected( ~isInt(2 * f(a) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(1 - 2 * a) ) }) 
+                  clause({ selected( ~isInt(1 + -2 * a) ) }) 
       ))
     )
 
@@ -234,7 +234,7 @@ TEST_GENERATION(factors06,
       .inputs  ({ clause({ selected(  isInt(f(x) + x) ) }) 
                ,  clause({ selected(  isInt(2 * f(a) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected(  isInt(1 - 2 * a) ) }) 
+                  clause({ selected(  isInt(1 + -2 * a) ) }) 
       ))
     )
 
@@ -255,7 +255,7 @@ TEST_GENERATION(factors08,
       .inputs  ({ clause({ selected(  isInt(frac(2,3) * f(x) + x) ) }) 
                ,  clause({ selected( ~isInt(6 * f(a) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-          clause({ ~isInt(1 - 9 * a) })
+          clause({ ~isInt(1 + -9 * a) })
       ))
     )
 
@@ -299,17 +299,17 @@ TEST_GENERATION(max_after_unif_04,
       .inputs  ({ clause({ selected(  isInt(f(a)) ) }) 
                ,  clause({ selected( ~isInt(f(x) + f(a) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-          clause({ ~isInt(1 - f(x)) })
+          clause({ ~isInt(1 + f(x)) })
       ))
     )
 
 TEST_GENERATION(negative_factors_01,
     Generation::SymmetricTest()
       .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(-f(x) + f(b)) ) }) 
-               ,  clause({ selected( ~isInt(f(a) + 1) ) }) })
+      .inputs  ({ clause({ selected(  isInt(-f(x) + f(a)) ) }) 
+               ,  clause({ selected( ~isInt( f(b) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(1 + f(b)) ) })
+                  clause({ selected( ~isInt(1 + f(a)) ) })
       ))
     )
 
@@ -317,10 +317,10 @@ TEST_GENERATION(negative_factors_01,
 TEST_GENERATION(negative_factors_02,
     Generation::SymmetricTest()
       .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt( f(x) - f(b)) ) }) 
-               ,  clause({ selected( ~isInt(f(a) + 1) ) }) })
+      .inputs  ({ clause({ selected(  isInt( f(x) - f(a)) ) }) 
+               ,  clause({ selected( ~isInt( f(b) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(1 + f(b)) ) })
+                  clause({ selected( ~isInt(1 + -(-f(a))) ) })
       ))
     )
 
