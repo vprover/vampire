@@ -436,6 +436,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Superposition.cpp
     Inferences/LASCA/Normalization.cpp
     Inferences/LASCA/Normalization.hpp
+    Inferences/LASCA/IsIntFactoring.cpp
+    Inferences/LASCA/IsIntFactoring.hpp
     Inferences/LASCA/InequalityFactoring.cpp
     Inferences/LASCA/InequalityFactoring.hpp
     Inferences/LASCA/EqFactoring.cpp
@@ -756,6 +758,7 @@ set(UNIT_TESTS
     UnitTests/tLASCA_FourierMotzkin.cpp
     UnitTests/tLASCA_IsIntResolution.cpp
     UnitTests/tLASCA_InequalityFactoring.cpp
+    UnitTests/tLASCA_IsIntFactoring.cpp
     UnitTests/tLASCA_Normalization.cpp
     UnitTests/tLASCA_Superposition.cpp
     UnitTests/tLASCA_EqFactoring.cpp

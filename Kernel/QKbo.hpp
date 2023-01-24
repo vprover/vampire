@@ -89,6 +89,8 @@ public:
   static constexpr uint8_t POS_EQ_LEVEL = 0;
   static constexpr uint8_t NEG_EQ_LEVEL = 1;
   static constexpr uint8_t INEQ_LEVEL = 1;
+  static constexpr uint8_t POS_IS_INT_LEVEL = 2;
+  static constexpr uint8_t NEG_IS_INT_LEVEL = 3;
 
   using AtomsWithLvl = std::tuple<SignedAtoms, uint8_t>;
 
@@ -97,14 +99,24 @@ public:
   // the signs are not used here, but only there since we reuse code from signedAtoms and don't want to copy the datastructure.
   Option<AtomsWithLvl> atomsWithLvl(Literal* literal) const
   {
-    auto mainIdx = literal->isEquality() && literal->termArg(0) == NumTraits::zero() ? 1 : 0;
+    ASS(_shared->interpretedPred(literal))
+    TermList term;
+    uint8_t level;
+    auto f = literal->functor();
+    if (literal->isEquality() || f == NumTraits::geqF() || f == NumTraits::greaterF()) {
+      auto mainIdx = literal->isEquality() && literal->termArg(0) == NumTraits::zero() ? 1 : 0;
 
-    auto term = NumTraits::zero() == literal->termArg(1 - mainIdx) ? literal->termArg(mainIdx)
-                                                                   : NumTraits::add(literal->termArg(0), NumTraits::minus(literal->termArg(1)));
+      term = NumTraits::zero() == literal->termArg(1 - mainIdx) ? literal->termArg(mainIdx)
+                                                                : NumTraits::add(literal->termArg(0), NumTraits::minus(literal->termArg(1)));
 
-    auto level = literal->isEquality() 
-      ? (literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL)
-      :  INEQ_LEVEL;
+      level = literal->isEquality() 
+        ? (literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL)
+        :  INEQ_LEVEL;
+    } else {
+      ASS(f == NumTraits::isIntF());
+      term = literal->termArg(0);
+      level = literal->isPositive() ? POS_IS_INT_LEVEL : NEG_IS_INT_LEVEL;
+    }
 
     return _shared->signedAtoms<NumTraits>(term)
       .map([level](auto atoms) {

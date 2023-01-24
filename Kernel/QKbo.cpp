@@ -151,6 +151,10 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
             } else if (!l1->isEquality() &&  l2->isEquality()) {
               ASS(l2->isNegative())
               return Option<Ordering::Result>(Result::GREATER);
+            } else if (l1->functor() == NumTraits::isIntF()) {
+              ASS_EQ(l2->functor(), NumTraits::isIntF())
+              ASS_EQ(l2->isPositive(), l1->isPositive())
+              return some(this->compare(l1->termArg(0), l2->termArg(0)));
             } else {
               TIME_TRACE("compare inequqlities")
               ASS(l1->functor() == numTraits.greaterF() || l1->functor() == numTraits.geqF())
