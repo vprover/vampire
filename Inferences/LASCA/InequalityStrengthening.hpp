@@ -8,21 +8,24 @@
  * and in the source directory
  */
 /**
- * @file IsIntResolution.hpp
- * Defines class IsIntResolution
+ * @file InequalityStrengthening.hpp
+ * Defines class InequalityStrengthening
  *
  */
 
-#ifndef __LASCA_IsIntResolution__
-#define __LASCA_IsIntResolution__
+#ifndef __LASCA_InequalityStrengthening__
+#define __LASCA_InequalityStrengthening__
 
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/LASCA.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "Shell/Options.hpp"
+#include "FourierMotzkin.hpp"
+#include "IsIntResolution.hpp"
 
 namespace Inferences {
 namespace LASCA {
@@ -31,42 +34,24 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class IsIntResolution
+class InequalityStrengthening
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(IsIntResolution);
-  USE_ALLOCATOR(IsIntResolution);
+  CLASS_NAME(InequalityStrengthening);
+  USE_ALLOCATOR(InequalityStrengthening);
 
-  IsIntResolution(IsIntResolution&&) = default;
-  IsIntResolution(shared_ptr<LascaState> shared) 
+  InequalityStrengthening(InequalityStrengthening&&) = default;
+  InequalityStrengthening(shared_ptr<LascaState> shared) 
     : _shared(std::move(shared))
     , _lhsIndex()
     , _rhsIndex()
   {  }
 
-  class Lhs : public SelectedSummand { 
-  public: 
-    static const char* name() { return "lasca isInt resolution lhs"; }
-    explicit Lhs(Lhs const&) = default;
-    Lhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
-    Lhs(Lhs&&) = default;
-    Lhs& operator=(Lhs&&) = default;
-
-    static auto iter(LascaState& shared, Clause* cl)
-    { 
-      CALL("Lasca::IsIntResolution::Lhs::iter")
-      return shared.selectedSummands(cl, 
-                        /* literal*/ SelectionCriterion::NOT_LEQ, 
-                        /* term */ SelectionCriterion::NOT_LEQ,
-                        /* include number vars */ false)
-              .filter([&](auto const& selected) { return selected.symbol() == LascaPredicate::IS_INT_POS; })
-              .map([&]   (auto selected)        { return Lhs(std::move(selected));     }); }
-  };
-
+  using Lhs = IsIntResolution::Lhs;
   class Rhs : public SelectedSummand { 
   public: 
-    static const char* name() { return "lasca isInt resolution rhs"; }
+    static const char* name() { return "lasca inequality strengthening rhs"; }
 
     explicit Rhs(Rhs const&) = default;
     Rhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
@@ -74,15 +59,15 @@ public:
     Rhs& operator=(Rhs&&) = default;
 
     static auto iter(LascaState& shared, Clause* cl) 
-    { 
-      CALL("Lasca::IsIntResolution::Rhs::iter")
-      return shared.selectedSummands(cl, 
+    { return shared.selectedSummands(cl, 
                         /* literal*/ SelectionCriterion::NOT_LESS,
                         /* term */ SelectionCriterion::NOT_LEQ,
                         /* include number vars */ false)
-              .filter([&](auto const& selected) { return selected.isIsInt(); })
+              .filter([&](auto const& selected) { return selected.symbol() == LascaPredicate::GREATER; })
+              .filter([&](auto const& selected) { return selected.sign() != Sign::Zero; })
               .map([&]   (auto selected)        { return Rhs(std::move(selected));     }); }
   };
+
 
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
@@ -127,4 +112,4 @@ private:
 } // namespace Inferences 
 
 
-#endif /*__LASCA_IsIntResolution__*/
+#endif /*__LASCA_InequalityStrengthening__*/

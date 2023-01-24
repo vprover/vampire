@@ -261,7 +261,7 @@ namespace Kernel {
      * t != 0 ==> t > 0 \/ -t > 0
      */
     InequalityNormalizer(bool strong) 
-      : _eval(/* removeZero */ false)
+      : _eval(/* removeZero */ true)
       , _strong(strong) {  }
 
     template<class NumTraits> Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>> normalizeLasca(Literal* lit) const;

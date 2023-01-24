@@ -8,10 +8,11 @@
  * and in the source directory
  */
 
+#include "Kernel/LASCA.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Inferences/LASCA/IsIntResolution.hpp"
+#include "Inferences/LASCA/InequalityStrengthening.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -65,31 +66,39 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::LASCA1
 
-auto idxIsIntResolution(
+auto idxInequalityStrengthening(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<IsIntResolution::Lhs>(uwa); },
-    [=]() { return new LascaIndex<IsIntResolution::Rhs>(uwa); },
+    [=]() { return new LascaIndex<InequalityStrengthening::Lhs>(uwa); },
+    [=]() { return new LascaIndex<InequalityStrengthening::Rhs>(uwa); },
   }; 
 }
 
-IsIntResolution testIsIntResolution(
+InequalityStrengthening testInequalityStrengthening(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
     ) 
-{ return IsIntResolution(testLascaState(uwa)); }
+{ return InequalityStrengthening(testLascaState(uwa)); }
 
 
 template<class Rule> 
-class LascaGenerationTester : public Test::Generation::GenerationTester<Rule>
+class LascaGenTester : public Test::Generation::GenerationTester<Rule>
 {
  public:
-  LascaGenerationTester(Rule r) : Test::Generation::GenerationTester<Rule>(std::move(r)) { }
+  LascaGenTester(Rule r) : Test::Generation::GenerationTester<Rule>(std::move(r)) { }
 
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
+  { 
+    auto toStack = [](Kernel::Clause* cl) {
+      return iterTraits(cl->iterLits())
+        .flatMap([](auto l) { return ownedArrayishIterator(LascaState::globalState->normalizer.normalizeLiteral(l)); })
+        .template collect<Stack<Literal*>>();
+    };
+    return TestUtils::eqModACRect(toStack(lhs), toStack(rhs)); }
 };
 
 
-REGISTER_GEN_TESTER(LascaGenerationTester<IsIntResolution>(testIsIntResolution()))
+REGISTER_GEN_TESTER(LascaGenTester<InequalityStrengthening>(testInequalityStrengthening()))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -97,146 +106,183 @@ REGISTER_GEN_TESTER(LascaGenerationTester<IsIntResolution>(testIsIntResolution()
 
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(a)) ) }) 
-               ,  clause({ selected( ~isInt(f(x)) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(f(a))    }) 
+               ,  clause({                  f(x) > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ ~isInt(0)  })
+                  clause({ f(a) - 1 >= 0 , ~isInt(0)  })
       ))
     )
 
+
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(a)) ) }) 
-               ,  clause({ selected(  isInt(f(x)) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(f(a))    }) 
+               ,  clause({                  2 * f(x) > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( isInt(0) )  })
+                  clause({ 2 * f(a) - 2 >= 0 , ~isInt(0)  })
       ))
     )
 
 TEST_GENERATION(basic03,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(a) + frac(1,2)) ) }) 
-               ,  clause({ selected(  isInt(f(x)) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(frac(1,2) * f(a))    }) 
+               ,  clause({                  f(x) > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( isInt(-frac(1,2)) )  })
+                  clause({ f(a) - 2 >= 0 , ~isInt(0)  })
       ))
     )
 
 TEST_GENERATION(basic04,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(a) + frac(1,2)) ) }) 
-               ,  clause({ selected(  ~isInt(f(x)) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(2 * f(a))    }) 
+               ,  clause({                  f(x) > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(-frac(1,2)) )  })
+                  clause({ 2 * f(a) - 1 >= 0 , ~isInt(0)  })
+          
+      ))
+    )
+
+TEST_GENERATION(basic04b,
+    Generation::SymmetricTest()
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(f(a))    }) 
+               ,  clause({                  frac(1,2) * f(x) > 0 }) })
+      .expected(exactly( ///////////////////////////////////////////////////////
+                  clause({ frac(1,2) * f(a) - frac(1,2) >= 0 , ~isInt(0)  })
+          
       ))
     )
 
 TEST_GENERATION(basic05,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(a) + a + frac(1,2)) ) }) 
-               ,  clause({ selected( ~isInt(f(x) + 2)             ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(frac(1,2) * f(a))    }) 
+               ,  clause({                  f(x) > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(2 - (a + frac(1,2))) )  })
+                  clause({ f(a) - 2 >= 0 , ~isInt(0)  })
       ))
     )
 
-TEST_GENERATION(factors01,
+
+TEST_GENERATION(basic0101,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(frac(1,2) * f(a) + a) ) }) 
-               ,  clause({ selected(  isInt(frac(1,2) * f(x) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(f(a) + a)    }) 
+               ,  clause({                  f(x) + b > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected(  isInt(a - 1) )  })
+                  clause({ f(a) + b - 1 >= 0 , ~isInt(b - a)  })
       ))
     )
 
-TEST_GENERATION(factors02,
+TEST_GENERATION(basic0102,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(frac(1,2) * f(a) + a) ) }) 
-               ,  clause({ selected( ~isInt(f(x) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(f(a) + a)    }) 
+               ,  clause({                  2 * f(x) + b > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(1 + (-2 * a)) )  })
+                  clause({ 2 * f(a) + b - 2 >= 0 , ~isInt(frac(1,2) * b - a)  })
       ))
     )
 
-TEST_GENERATION(factors03,
+
+TEST_GENERATION(basic0201,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(2 * f(x) + x) ) }) 
-               ,  clause({ selected( ~isInt(f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(f(a) + a)    }) 
+               ,  clause({                  -f(x) + b > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-
+                  clause({ -f(a) + b + 1 >= 0 , ~isInt(-b - a)  })
       ))
     )
 
-
-TEST_GENERATION(factors04,
+TEST_GENERATION(basic0202,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(frac(2,3) * f(x) + x) ) }) 
-               ,  clause({ selected( ~isInt(3 * f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(f(a) + a)    }) 
+               ,  clause({                  -2 * f(x) + b > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-
+                  clause({ -2 * f(a) + b + 2 >= 0 , ~isInt(frac(-1,2) * b - a)  })
       ))
     )
 
 
-TEST_GENERATION(factors05,
+TEST_GENERATION(basic0203,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(x) + x) ) }) 
-               ,  clause({ selected( ~isInt(2 * f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(-f(a) + a)    }) 
+               ,  clause({                  -f(x) + b > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(1 + -2 * a) ) }) 
+                  clause({ -f(a) + b + 1 >= 0 , ~isInt(-b + a)  })
       ))
     )
 
-
-TEST_GENERATION(factors06,
+TEST_GENERATION(basic0204,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(x) + x) ) }) 
-               ,  clause({ selected(  isInt(2 * f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(-f(a) + a)    }) 
+               ,  clause({                  -2 * f(x) + b > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected(  isInt(1 + -2 * a) ) }) 
+                  clause({ -2 * f(a) + b + 2 >= 0 , ~isInt(frac(-1,2) * b + a)  })
       ))
     )
 
-
-TEST_GENERATION(factors07,
+TEST_GENERATION(basic0301,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected( ~isInt(f(x) + x) ) }) 
-               ,  clause({ selected(  isInt(2 * f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(-f(a))    }) 
+               ,  clause({                  -f(x) > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                         //nothing
+                  clause({ -f(a) + 1 >= 0 , ~isInt(0)  })
       ))
     )
 
-TEST_GENERATION(factors08,
+
+TEST_GENERATION(basic0302,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(frac(2,3) * f(x) + x) ) }) 
-               ,  clause({ selected( ~isInt(6 * f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt( f(a))    }) 
+               ,  clause({                  -f(x) > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-          clause({ ~isInt(1 + -9 * a) })
+                  clause({ -f(a) + 1 >= 0 , ~isInt(0)  })
       ))
     )
+
+
+TEST_GENERATION(basic0303,
+    Generation::SymmetricTest()
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt( f(a))    }) 
+               ,  clause({                   f(x) > 0 }) })
+      .expected(exactly( ///////////////////////////////////////////////////////
+                  clause({  f(a) - 1 >= 0 , ~isInt(0)  })
+      ))
+    )
+
+
+TEST_GENERATION(basic0304,
+    Generation::SymmetricTest()
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({            isInt(-f(a))    }) 
+               ,  clause({                   f(x) > 0 }) })
+      .expected(exactly( ///////////////////////////////////////////////////////
+                  clause({  f(a) - 1 >= 0 , ~isInt(0)  })
+      ))
+    )
+
+
 
 
   //;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 TEST_GENERATION(max_after_unif_01,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(x) + f(f(a))) ) }) 
-               ,  clause({ selected( ~isInt(f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({  isInt(f(x) + f(f(a))) }) 
+               ,  clause({        f(a) + 1 > 0    }) })
       .expected(exactly( ///////////////////////////////////////////////////////
                          // nothing
       ))
@@ -244,20 +290,20 @@ TEST_GENERATION(max_after_unif_01,
 
 TEST_GENERATION(max_after_unif_02,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(x) + f(a)) ) }) 
-               ,  clause({ selected( ~isInt(f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({   isInt(f(x) + f(a))   }) 
+               ,  clause({         f(a) + 1   > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-          clause({ ~isInt(1 - f(x)) })
+          clause({ f(a) >= 0, ~isInt(1 - f(x)) })
       ))
     )
 
 
 TEST_GENERATION(max_after_unif_03,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(a)) ) }) 
-               ,  clause({ selected( ~isInt(f(x) + f(f(a)) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({   isInt(f(a))                   }) 
+               ,  clause({         f(x) + f(f(a)) + 1  > 0 }) })
       .expected(exactly( ///////////////////////////////////////////////////////
                          // nothing
       ))
@@ -265,32 +311,11 @@ TEST_GENERATION(max_after_unif_03,
 
 TEST_GENERATION(max_after_unif_04,
     Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(f(a)) ) }) 
-               ,  clause({ selected( ~isInt(f(x) + f(a) + 1) ) }) })
+      .indices(idxInequalityStrengthening())
+      .inputs  ({ clause({ isInt(f(a))                }) 
+               ,  clause({       f(x) + f(a) + 1 > 0  }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-          clause({ ~isInt(1 + f(x)) })
-      ))
-    )
-
-TEST_GENERATION(negative_factors_01,
-    Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt(-f(x) + f(a)) ) }) 
-               ,  clause({ selected( ~isInt( f(b) + 1) ) }) })
-      .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(1 + f(a)) ) })
-      ))
-    )
-
-
-TEST_GENERATION(negative_factors_02,
-    Generation::SymmetricTest()
-      .indices(idxIsIntResolution())
-      .inputs  ({ clause({ selected(  isInt( f(x) - f(a)) ) }) 
-               ,  clause({ selected( ~isInt( f(b) + 1) ) }) })
-      .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( ~isInt(1 + -(-f(a))) ) })
+          clause({ f(x) + f(a) >= 0,  ~isInt((f(x) + 1) - 0) })
       ))
     )
 
