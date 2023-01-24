@@ -961,7 +961,8 @@ namespace Kernel {
       return t->isEquality()
         || forAnyNumTraits([&](auto numTraits) -> bool {
             return f == numTraits.geqF()
-              ||  f == numTraits.greaterF();
+               ||  f == numTraits.greaterF()
+               ||  f == numTraits.isIntF();
       });
     }
 
