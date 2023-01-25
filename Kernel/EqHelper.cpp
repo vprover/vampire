@@ -465,6 +465,8 @@ TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 	  getSingletonIterator(*lit->nthArgument(1))) );
 }
 
+// #define RIGHTTOLEFT
+
 void EqHelper::getBlackList(TermList t, Position p, DHSet<TermList>& bl)
 {
   CALL("EqHelper::getBlackList");
@@ -475,7 +477,11 @@ void EqHelper::getBlackList(TermList t, Position p, DHSet<TermList>& bl)
     auto tt = curr.term();
     ASS_REP(p.top()<tt->numTermArguments(),curr.toString()+" "+Int::toString(p.top())+" "+Int::toString(tt->numTermArguments()));
 
+#ifdef RIGHTTOLEFT
+    for (unsigned i = p.top()+1; i < tt->numTermArguments(); i++) {
+#else
     for (unsigned i = 0; i < p.top(); i++) {
+#endif
       auto arg = tt->termArg(i);
       if (arg.isVar()) {
         continue;
@@ -531,8 +537,13 @@ TermIterator getSubtermHelper(TermList t, Position p, DHSet<TermList>& bl, bool 
     auto tt = curr.term();
     ASS_REP(p.top()<tt->numTermArguments(),curr.toString()+" "+Int::toString(p.top())+" "+Int::toString(tt->numTermArguments()));
 
+
     // update blacklist
+#ifdef RIGHTTOLEFT
+    for (unsigned i = p.top()+1; i < tt->numTermArguments(); i++) {
+#else
     for (unsigned i = 0; i < p.top(); i++) {
+#endif
       auto arg = tt->termArg(i);
       if (arg.isVar()) {
         continue;
@@ -541,7 +552,11 @@ TermIterator getSubtermHelper(TermList t, Position p, DHSet<TermList>& bl, bool 
     }
 
     // add possible rewritable terms
+#ifdef RIGHTTOLEFT
+    for (unsigned i = 0; i < p.top(); i++) {
+#else
     for (unsigned i = p.top()+1; i < tt->numTermArguments(); i++) {
+#endif
       auto arg = tt->termArg(i);
       if (arg.isVar()) {
         continue;

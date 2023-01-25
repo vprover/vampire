@@ -1871,20 +1871,20 @@ bool operator<(const TermList& lhs, const TermList& rhs)
   }
 }
 
-bool Kernel::positionIn(TermList& subterm,TermList* term,Position& position)
+bool Kernel::positionIn(TermList& subterm,TermList term,Position& position)
 {
   CALL("positionIn(TermList)");
    //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
 
-  if(!term->isTerm()){
+  if(!term.isTerm()){
     if(subterm.isTerm()) return false;
-    if (term->var()==subterm.var()){
+    if (term.var()==subterm.var()){
       // position.push(0);
       return true;
     }
     return false;
   }
-  return positionIn(subterm,term->term(),position);
+  return positionIn(subterm,term.term(),position);
 }
 
 bool Kernel::positionIn(TermList& subterm,Term* term,Position& position)
@@ -1898,20 +1898,22 @@ bool Kernel::positionIn(TermList& subterm,Term* term,Position& position)
   }
   if(term->numTermArguments()==0) return false;
 
-  unsigned pos=0;
-  TermList* ts = term->termArgs();
-  while(true){
-    if(*ts==subterm){
-      position.push(pos);
+// #define RIGHTTOLEFT
+
+#ifdef RIGHTTOLEFT
+  for (int i = term->numTermArguments()-1; i >= 0; i--) {
+#else
+  for (unsigned i = 0; i < term->numTermArguments(); i++) {
+#endif
+    TermList t = term->termArg(i);
+    if(t==subterm){
+      position.push(i);
       return true;
     }
-    if(positionIn(subterm,ts,position)){
-      position.push(pos);
+    if(positionIn(subterm,t,position)){
+      position.push(i);
       return true;
     }
-    pos++;
-    ts = ts->next();
-    if(ts->isEmpty()) break;
   }
 
   return false;

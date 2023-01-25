@@ -614,14 +614,14 @@ Clause* Superposition::performSuperposition(
       // cout << "start" << endl;
       if (arg0.containsSubterm(rwTermS) && (Ordering::isGorGEorE(comp) || comp == Ordering::Result::INCOMPARABLE)) {
         pos0 = rhsPos;
-        ALWAYS(Kernel::positionIn(rwTermS,&arg0,pos0));
+        ALWAYS(Kernel::positionIn(rwTermS,arg0,pos0));
         // cout << "1 " << rwTermS << " is in " << positionToString(pos0) << " position in " << arg0 << " " << positionToString(rhsPos) << endl;
       } else if (oP) {
         pos0 = adjustPosition(arg0, rwTermS, rwLitSR ? oP->second : oP->first, rhsPos);
       }
       if (arg1.containsSubterm(rwTermS) && (Ordering::isGorGEorE(Ordering::reverse(comp)) || comp == Ordering::Result::INCOMPARABLE)) {
         pos1 = rhsPos;
-        ALWAYS(Kernel::positionIn(rwTermS,&arg1,pos1));
+        ALWAYS(Kernel::positionIn(rwTermS,arg1,pos1));
         // cout << "2 " << rwTermS << " is in " << positionToString(pos1) << " position in " << arg1 << " " << positionToString(rhsPos) << endl;
       } else if (oP) {
         pos1 = adjustPosition(arg1, rwTermS, rwLitSR ? oP->first : oP->second, rhsPos);
@@ -651,8 +651,8 @@ Clause* Superposition::performSuperposition(
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
-      auto ca = currAfter;
-      auto caR = ca->isOrientedReversed();
+      // auto ca = currAfter;
+      // auto caR = ca->isOrientedReversed();
 
       if (doSimS) {
         currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
