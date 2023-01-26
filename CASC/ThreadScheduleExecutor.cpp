@@ -121,10 +121,9 @@ bool ThreadScheduleExecutor::run(const Schedule &schedule)
   }
 
   // cleanup after time runs out
-  for(unsigned i = 0; i < _numWorkers; i++) {
+  for(unsigned i = 0; i < _numWorkers; i++)
     if(threads[i].joinable())
       threads[i].join();
-  }
 
   return false;
 }

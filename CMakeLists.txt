@@ -165,6 +165,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Random.cpp
     Lib/StringUtils.cpp
     Lib/System.cpp
+    Lib/Threading.cpp
     Lib/TimeCounter.cpp
     Lib/Timer.cpp
 

@@ -94,12 +94,16 @@ void Lib::Timer::makeChildrenIncluded() {}
 int Lib::Timer::miliseconds() {
   CALL("Timer::miliseconds");
 
-  auto now = std::chrono::steady_clock::now();
-  auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
-  auto epoch = std::chrono::duration_cast<std::chrono::milliseconds>(
-    ms.time_since_epoch()
-  );
-  return epoch.count();
+  if(weAreTheMainThread()) {
+    auto now = std::chrono::steady_clock::now().time_since_epoch();
+    int ms = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
+    return ms;
+  }
+
+  // we are a child thread and should count CPU, not wallclock time
+  std::clock_t clock = std::clock();
+  int ms = (1000 * clock) / CLOCKS_PER_SEC;
+  return ms;
 }
 #else
 

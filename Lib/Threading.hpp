@@ -34,4 +34,10 @@
 #define TSAN 0
 #endif
 
+#if VTHREADED
+bool weAreTheMainThread();
+#else
+bool weAreTheMainThread() { return true; }
+#endif
+
 #endif
