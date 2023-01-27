@@ -165,12 +165,4 @@ void DefinitionIntroduction::process(Clause *cl) {
   }
 }
 
-ClauseIterator DefinitionIntroduction::generateClauses(Clause *cl) {
-  CALL("DefinitionIntroduction::generateClauses");
-
-  _definitions.reset();
-  process(cl);
-  return pvi(decltype(_definitions)::Iterator(_definitions));
-}
-
 }
