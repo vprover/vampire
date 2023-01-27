@@ -25,12 +25,10 @@ namespace Indexing {
 class LiteralSubstitutionTree
 : public LiteralIndexingStructure
 {
-  using UnificationsIterator = SubstitutionTree::UnificationsIterator;
   using FastInstancesIterator = SubstitutionTree::FastInstancesIterator;
   using BindingMap = SubstitutionTree::BindingMap;
   using LDIterator = SubstitutionTree::LDIterator;
   using FastGeneralizationsIterator = SubstitutionTree::FastGeneralizationsIterator;
-  using QueryResult = SubstitutionTree::QueryResult;
   using LeafData = SubstitutionTree::LeafData;
   using LeafIterator = SubstitutionTree::LeafIterator;
   using Leaf = SubstitutionTree::Leaf;
@@ -86,8 +84,8 @@ public:
 
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary);
-  template<class Iterator>
-  SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
+  template<class Iterator, class... Args>
+  SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args);
 
   Stack<unique_ptr<SubstitutionTree>> _trees;
   MismatchHandler* _mismatchHandler;

@@ -384,7 +384,7 @@ bool SubstitutionTree::FastInstancesIterator::hasNext()
 #undef LOGGING
 #define LOGGING 0
 
-SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
+SubstitutionTree::RSQueryResult SubstitutionTree::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
 
@@ -407,9 +407,9 @@ SubstitutionTree::QueryResult SubstitutionTree::FastInstancesIterator::next()
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryResult(ld, _subst->getSubstitution(&_resultDenormalizer),nullptr);
+    return queryResult(ld, _subst->getSubstitution(&_resultDenormalizer));
   } else {
-    return QueryResult(ld, ResultSubstitutionSP(),nullptr);
+    return queryResult(ld, ResultSubstitutionSP());
   }
 }
 #undef LOGGING

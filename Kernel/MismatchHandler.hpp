@@ -126,7 +126,9 @@ public:
   void add(UnificationConstraint c) 
   { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
                                                       : Option<BacktrackData&>()              ); }
-  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2)
+  { return _subs->unify(t1, bank1, t2, bank2, _uwa, this); }
+
   UnificationConstraintStack& constr() { return *_constr; }
   RobSubstitution& subs() { return *_subs; }
   void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }

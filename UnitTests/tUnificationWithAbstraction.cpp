@@ -938,7 +938,7 @@ TEST_FUN(higher_order2)
 }
 
 static const int NORM_QUERY_BANK=2;
-static const int NORM_RESULT_BANK=3;
+// static const int NORM_RESULT_BANK=3;
 
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
   // TODO parameter instead of opts

@@ -17,6 +17,7 @@
 #define __TermSubstitutionTree__
 
 
+#include "Forwards.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/BiMap.hpp"
@@ -83,19 +84,26 @@ public:
 
 private:
 
+  template<class Unifier> static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* cl, Unifier unif);
+
+  static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP unif) { return TermQueryResult(t,l,c, unif, nullptr); }
+  static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, Option<RobSubstitutionSP> unif) 
+  { return TermQueryResult(t,l,c, ResultSubstitutionSP((ResultSubstitution*)&*unif.unwrapOrElse([](){ return RobSubstitutionSP(); })), nullptr); }
+  static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, Option<ResultSubstitutionSP> unif) 
+  { return TermQueryResult(t,l,c, unif.unwrapOrElse([](){ return ResultSubstitutionSP(); }), nullptr); }
 
   // void insert(TermList t, LeafData ld);
   template<class TypedOrUntypedTermList> 
   void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert);
 
-  template<class Iterator, class TypedOrUntypedTermList> 
-  auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
+  template<class Iterator, class TypedOrUntypedTermList, class... Args> 
+  auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, Args... args)
   { 
-    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints ? _mismatchHandler : nullptr))
-      .map([this](QueryResult qr) 
-        { return TermQueryResult(
+    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
+      .map([this](auto qr) 
+        { return createTermQueryResult(
             _extra ? qr.data->extraTerm : qr.data->term,
-            qr.data->literal, qr.data->clause, qr.subst, qr.constr); }) ; 
+            qr.data->literal, qr.data->clause, std::move(qr.unif)); }) ; 
   }
 
   MismatchHandler* _mismatchHandler;

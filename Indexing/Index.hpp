@@ -76,16 +76,18 @@ OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
  */
 struct TermQueryResult
 {
-  TermQueryResult() : literal(nullptr), clause(nullptr), constraints(nullptr) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  : term(t), literal(l), clause(c), substitution(s), constraints(nullptr) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-  : term(t), literal(l), clause(c), substitution(s), constraints(nullptr) {}
+  // TermQueryResult() : literal(nullptr), clause(nullptr), constraints(nullptr) {}
+  // TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
+  // : term(t), literal(l), clause(c), substitution(s), constraints(nullptr) {}
+  // TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
+  // : term(t), literal(l), clause(c), substitution(s), constraints(nullptr) {}
+  // TermQueryResult(TermList t, Literal* l, Clause* c)
+  // : term(t), literal(l), clause(c), constraints(nullptr) {}
+  // TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con)
+  // : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
   TermQueryResult(TermList t, Literal* l, Clause* c)
-  : term(t), literal(l), clause(c), constraints(nullptr) {}
+  : term(t), literal(l), clause(c), substitution(), constraints(nullptr) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con, bool b)
   : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
 
   TermList term;

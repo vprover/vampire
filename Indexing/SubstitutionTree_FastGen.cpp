@@ -270,7 +270,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
   return _ldIterator.hasNext();
 }
 
-SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::next()
+SubstitutionTree::RSQueryResult SubstitutionTree::FastGeneralizationsIterator::next()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::next");
 
@@ -286,9 +286,9 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
       _resultNormalizer->normalizeVariables(ld.term);
     }
 
-    return QueryResult(ld,_subst.getSubstitution(&*_resultNormalizer),nullptr);
+    return queryResult(ld,_subst.getSubstitution(&*_resultNormalizer));
   } else {
-    return QueryResult(ld);
+    return queryResult(ld, ResultSubstitutionSP());
   }
 }
 

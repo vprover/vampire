@@ -51,8 +51,12 @@ template<class TypedOrUntypedTermList>
 void TermSubstitutionTree::handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
 { SubstitutionTree::handle(tt, ld, insert); }
 
+using UwaAlgo = UnificationAlgorithms::UnificationWithAbstraction;
+using RobAlgo = UnificationAlgorithms::RobUnification;
+
 TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)
-{ return pvi(getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints)); }
+{ return withConstraints ? pvi(getResultIterator<UnificationsIterator<RobAlgo>>(t, retrieveSubstitutions))
+                         : pvi(getResultIterator<UnificationsIterator<UwaAlgo>>(t, retrieveSubstitutions)); }
 
 #if VDEBUG
 void TermSubstitutionTree::output(std::ostream& out) const
@@ -60,7 +64,9 @@ void TermSubstitutionTree::output(std::ostream& out) const
 #endif // VDEBUG
 
 TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstr)
-{ return pvi(getResultIterator<UnificationsIterator>(tt, retrieveSubstitutions, withConstr)); }
+{ 
+  ASS_REP(!withConstr, "TODO");
+  return pvi(getResultIterator<RobUnificationsIterator>(tt, retrieveSubstitutions)); }
 
 bool TermSubstitutionTree::generalizationExists(TermList t)
 { return t.isVar() ? false : SubstitutionTree::generalizationExists(t); }
@@ -69,9 +75,10 @@ bool TermSubstitutionTree::generalizationExists(TermList t)
  * Return iterator, that yields generalizations of the given term.
  */
 TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t, bool retrieveSubstitutions)
-{ return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+{ 
+  return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
 TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t, bool retrieveSubstitutions)
-{ return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+{ return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
 } // namespace  Indexing
