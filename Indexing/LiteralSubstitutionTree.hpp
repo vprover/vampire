@@ -39,11 +39,12 @@ public:
 
   LiteralSubstitutionTree(MismatchHandler* mismtachHandler);
 
-  void insert(Literal* lit, Clause* cls) final override;
-  void remove(Literal* lit, Clause* cls) final override;
-  void handleLiteral(Literal* lit, Clause* cls, bool insert);
+  void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
+  void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
 
   SLQueryResultIterator getAll() final override;
+  void handleLiteral(Literal* lit, Clause* cls, bool insert)
+  { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
   SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions, bool constraints = false) final override;
   SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
@@ -75,7 +76,7 @@ public:
       auto f = env.signature->getPredicate(i / 2);
       bool p = i % 2;
       OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
-      out << (p ? "~" : " ") << *f << "(" << multiline(*t, self.indent + 1) << ")" << endl; 
+      out << (p ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
       i++;
     }
     return out << "} ";
@@ -87,7 +88,8 @@ private:
   template<class Iterator, class... Args>
   SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args);
 
-  Stack<unique_ptr<SubstitutionTree>> _trees;
+
+  Stack<SubstitutionTree> _trees;
   MismatchHandler* _mismatchHandler;
 };
 

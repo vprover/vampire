@@ -16,6 +16,7 @@
 #define __Indexing_Index__
 
 #include "Forwards.hpp"
+#include "Debug/Output.hpp"
 
 #include "Lib/Event.hpp"
 #include "Lib/Exception.hpp"
@@ -36,77 +37,56 @@ using namespace Saturation;
 /**
  * Class of objects which contain results of single literal queries.
  */
-struct SLQueryResult
+template<class Unifier>
+struct LQueryRes
 {
-  SLQueryResult() {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s)
-  : literal(l), clause(c), substitution(s) {}
-  SLQueryResult(Literal* l, Clause* c)
-  : literal(l), clause(c) {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con)
-  : literal(l), clause(c), substitution(s), constraints(con) {}
+  LQueryRes() {}
+  LQueryRes(Literal* l, Clause* c, Unifier unifer)
+  : literal(l), clause(c), unifier(std::move(unifier)) {}
 
 
   Literal* literal;
   Clause* clause;
-  ResultSubstitutionSP substitution;
-  UnificationConstraintStack* constraints;
+  Unifier unifier;
 
   struct ClauseExtractFn
   {
-    Clause* operator()(const SLQueryResult& res)
+    Clause* operator()(const LQueryRes& res)
     {
       return res.clause;
     }
   };
 };
 
-// TODO move somewhere else 
-template<class T>
-struct OutputPtr {
-  T* self;
-  friend std::ostream& operator<<(std::ostream& out, OutputPtr const& self)
-  { return self.self ? out << *self.self : out << "NULL"; }
-};
-template<class T>
-OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
-
 /**
  * Class of objects which contain results of term queries.
  */
-struct TermQueryResult
+template<class Unifier>
+struct TQueryRes
 {
-  // TermQueryResult() : literal(nullptr), clause(nullptr), constraints(nullptr) {}
-  // TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  // : term(t), literal(l), clause(c), substitution(s), constraints(nullptr) {}
-  // TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-  // : term(t), literal(l), clause(c), substitution(s), constraints(nullptr) {}
-  // TermQueryResult(TermList t, Literal* l, Clause* c)
-  // : term(t), literal(l), clause(c), constraints(nullptr) {}
-  // TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con)
-  // : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c)
-  : term(t), literal(l), clause(c), substitution(), constraints(nullptr) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStack* con)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
+  TQueryRes() {}
+  TQueryRes(TermList t, Literal* l, Clause* c, Unifier unifier)
+  : term(t), literal(l), clause(c), unifier(std::move(unifier)) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
-  ResultSubstitutionSP substitution;
-  UnificationConstraintStack* constraints;
-  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
+  Unifier unifier;
+
+  friend std::ostream& operator<<(std::ostream& out, TQueryRes const& self)
   { 
     return out 
       << "{ term: " << self.term 
       << ", literal: " << outputPtr(self.literal)
       << ", clause: " << outputPtr(self.literal)
-      << ", substitution: " << self.substitution
-      << ", constraints: " << self.constraints
+      << ", unifier: " << self.unifier
       << "}";
   }
-
 };
+
+template<class Unifier>
+TQueryRes<Unifier> tQueryRes(TermList t, Literal* l, Clause* c, Unifier unifier) 
+{ return TQueryRes<Unifier>(t,l,c,std::move(unifier)); }
 
 struct ClauseSResQueryResult
 {
@@ -132,8 +112,10 @@ struct FormulaQueryResult
   ResultSubstitutionSP substitution;
 };
 
-typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
-typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
+using TermQueryResult = TQueryRes<ResultSubstitutionSP>;
+using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
+using SLQueryResult = VirtualIterator<LQueryRes<ResultSubstitutionSP>>;
+using SLQueryResultIterator = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 

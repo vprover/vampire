@@ -111,6 +111,7 @@ set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
+    Debug/Output.hpp
     )
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
@@ -168,7 +169,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Portability.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
-    Lib/Recycler.hpp
+    Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
     Lib/ScopedLet.hpp

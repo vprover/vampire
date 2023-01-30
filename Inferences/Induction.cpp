@@ -570,10 +570,10 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
 
     auto bound2 = iterTraits(i ? _helper.getGreater(indt) : _helper.getLess(indt)).collect<Stack>();
     auto it = iterTraits(_helper.getTQRsForInductionTerm(indtl))
-      .filter([&premise](const TermQueryResult& tqr) {
+      .filter([&premise](const auto& tqr) {
         return tqr.clause != premise;
       })
-      .map([&indt](const TermQueryResult& tqr) {
+      .map([&indt](const auto& tqr) {
         return InductionContext(indt, tqr.literal, tqr.clause);
       })
       .flatMap([this](const InductionContext& arg) {

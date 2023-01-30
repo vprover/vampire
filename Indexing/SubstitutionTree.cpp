@@ -27,7 +27,7 @@
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/DHMultiset.hpp"
 
 #include "TermSharing.hpp"
@@ -37,8 +37,6 @@
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-
-vstring SingleTermListToString(const TermList* ts);
 
 #endif
 
@@ -57,7 +55,6 @@ SubstitutionTree::SubstitutionTree()
   , _root(nullptr)
 #if VDEBUG
   , _tag(false)
-  , _iteratorCnt(0)
 #endif
 {
   CALL("SubstitutionTree::SubstitutionTree");
@@ -72,11 +69,9 @@ SubstitutionTree::SubstitutionTree()
 SubstitutionTree::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
-  ASS_EQ(_iteratorCnt,0);
+  ASS_EQ(_iterCnt,0);
 
-  if (_root) {
-    delete _root;
-  }
+  delete _root;
 } // SubstitutionTree::~SubstitutionTree
 
 /**
@@ -91,7 +86,7 @@ void SubstitutionTree::getBindingsArgBindings(Term* t, BindingMap& svBindings)
   int nextVar = 0;
   while (! args->isEmpty()) {
     if (_nextVar <= nextVar) {
-      ASS_EQ(_iteratorCnt,0);
+      ASS_EQ(_iterCnt,0);
       _nextVar = nextVar+1;
     }
     svBindings.insert(nextVar++, *args);
@@ -145,7 +140,7 @@ void SubstitutionTree::insert(BindingMap& svBindings, LeafData ld)
 {
 #define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
   CALL("SubstitutionTree::insert");
-  ASS_EQ(_iteratorCnt,0);
+  ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
   DEBUG_INSERT("insert: ", svBindings, " into ", *this)
 
@@ -360,7 +355,7 @@ start:
 void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
 {
   CALL("SubstitutionTree::remove");
-  ASS_EQ(_iteratorCnt,0);
+  ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
 
   ASS(*pnode);

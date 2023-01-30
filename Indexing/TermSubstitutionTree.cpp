@@ -29,56 +29,5 @@ TermSubstitutionTree::TermSubstitutionTree(MismatchHandler* handler, bool extra)
 , _extra(extra)
 { }
 
-void TermSubstitutionTree::insert(TermList t, TermList trm)
-{ handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
-
-void TermSubstitutionTree::insert(TermList t, TermList trm, Literal* lit, Clause* cls)
-{ handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
-
-void TermSubstitutionTree::insert(TermList t, Literal* lit, Clause* cls)
-{ handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
-
-void TermSubstitutionTree::handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
-{ handleTerm(tt, LeafData(cls,lit,tt), insert); }
-
-void TermSubstitutionTree::remove(TermList t, Literal* lit, Clause* cls)
-{ handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
-
-/**
- * According to value of @b insert, insert or remove term.
- */
-template<class TypedOrUntypedTermList>
-void TermSubstitutionTree::handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
-{ SubstitutionTree::handle(tt, ld, insert); }
-
-using UwaAlgo = UnificationAlgorithms::UnificationWithAbstraction;
-using RobAlgo = UnificationAlgorithms::RobUnification;
-
-TermQueryResultIterator TermSubstitutionTree::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)
-{ return withConstraints ? pvi(getResultIterator<UnificationsIterator<RobAlgo>>(t, retrieveSubstitutions))
-                         : pvi(getResultIterator<UnificationsIterator<UwaAlgo>>(t, retrieveSubstitutions)); }
-
-#if VDEBUG
-void TermSubstitutionTree::output(std::ostream& out) const
-{ out << (SubstitutionTree const&) *this; }
-#endif // VDEBUG
-
-TermQueryResultIterator TermSubstitutionTree::getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstr)
-{ 
-  ASS_REP(!withConstr, "TODO");
-  return pvi(getResultIterator<RobUnificationsIterator>(tt, retrieveSubstitutions)); }
-
-bool TermSubstitutionTree::generalizationExists(TermList t)
-{ return t.isVar() ? false : SubstitutionTree::generalizationExists(t); }
-
-/**
- * Return iterator, that yields generalizations of the given term.
- */
-TermQueryResultIterator TermSubstitutionTree::getGeneralizations(TermList t, bool retrieveSubstitutions)
-{ 
-  return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
-
-TermQueryResultIterator TermSubstitutionTree::getInstances(TermList t, bool retrieveSubstitutions)
-{ return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
 } // namespace  Indexing

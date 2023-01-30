@@ -17,7 +17,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -199,14 +199,7 @@ class SubtermIterator
 public:
   SubtermIterator(const Term* term) : _used(false)
   {
-    Recycler::get(_stack);
-    _stack->reset();
-
     pushNext(term->args());
-  }
-  ~SubtermIterator()
-  {
-    Recycler::release(_stack);
   }
 
   bool hasNext();
@@ -226,10 +219,7 @@ public:
   void right();
 protected:
   SubtermIterator() : _used(false)
-  {
-    Recycler::get(_stack);
-    _stack->reset();
-  }
+  { }
 
   inline
   void pushNext(const TermList* t)
@@ -239,7 +229,7 @@ protected:
     }
   }
 
-  Stack<const TermList*>* _stack;
+  Recycled<Stack<const TermList*>> _stack;
   bool _used;
 };
 

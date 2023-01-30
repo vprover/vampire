@@ -57,25 +57,24 @@ public:
    */
   TermSubstitutionTree(MismatchHandler* handler, bool extra);
 
-  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert);
+  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
+  { handleTerm(tt, LeafData(cls,lit,tt), insert); }
 
-  void insert(TermList t, Literal* lit, Clause* cls) override;
-  void remove(TermList t, Literal* lit, Clause* cls) override;
-  void insert(TermList t, TermList trm) override;
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override;
+  void insert(TermList t, Literal* lit, Clause* cls) override 
+  { handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
 
-  bool generalizationExists(TermList t) override;
+  void remove(TermList t, Literal* lit, Clause* cls) override
+  { handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
+  void insert(TermList t, TermList trm) override 
+  { handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) override;
+  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override 
+  { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
-  /*
-   * A higher order concern (though it may be useful in other situations)
-   */
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList sort, bool retrieveSubstitutions, bool withConstr) override;
+  bool generalizationExists(TermList t) override
+  { return t.isVar() ? false : SubstitutionTree::generalizationExists(t); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) override;
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override;
 
 #if VDEBUG
   virtual void markTagged() override { SubstitutionTree::markTagged();}
@@ -84,24 +83,24 @@ public:
 
 private:
 
-  template<class Unifier> static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* cl, Unifier unif);
+  // template<class Unifier> static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* cl, Unifier unif);
+  //
+  // static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP unif) { return TermQueryResult(t,l,c, unif, nullptr); }
+  // static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, Option<RobSubstitutionSP> unif) 
+  // { return TermQueryResult(t,l,c, ResultSubstitutionSP((ResultSubstitution*)&*unif.unwrapOrElse([](){ return RobSubstitutionSP(); })), nullptr); }
+  // static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, Option<ResultSubstitutionSP> unif) 
+  // { return TermQueryResult(t,l,c, unif.unwrapOrElse([](){ return ResultSubstitutionSP(); }), nullptr); }
 
-  static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP unif) { return TermQueryResult(t,l,c, unif, nullptr); }
-  static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, Option<RobSubstitutionSP> unif) 
-  { return TermQueryResult(t,l,c, ResultSubstitutionSP((ResultSubstitution*)&*unif.unwrapOrElse([](){ return RobSubstitutionSP(); })), nullptr); }
-  static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, Option<ResultSubstitutionSP> unif) 
-  { return TermQueryResult(t,l,c, unif.unwrapOrElse([](){ return ResultSubstitutionSP(); }), nullptr); }
-
-  // void insert(TermList t, LeafData ld);
   template<class TypedOrUntypedTermList> 
-  void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert);
+  void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
+  { SubstitutionTree::handle(tt, ld, insert); }
 
   template<class Iterator, class TypedOrUntypedTermList, class... Args> 
   auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, Args... args)
   { 
     return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
       .map([this](auto qr) 
-        { return createTermQueryResult(
+        { return tQueryRes(
             _extra ? qr.data->extraTerm : qr.data->term,
             qr.data->literal, qr.data->clause, std::move(qr.unif)); }) ; 
   }
@@ -114,6 +113,23 @@ private:
   { return out << (SubstitutionTree const&) self; }
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
+public:
+  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
+
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
+
+
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) override
+  { return withConstraints ? pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, retrieveSubstitutions))
+                           : pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification            >>(t, retrieveSubstitutions)); }
+
+  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstraints) override
+  { return withConstraints ? pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(tt, retrieveSubstitutions))
+                           : pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification            >>(tt, retrieveSubstitutions)); }
+
+
 };
 
 };

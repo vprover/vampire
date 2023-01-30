@@ -45,11 +45,11 @@ Clause* unit(Literal* lit)
 }
 
 
-Stack<Literal*> constraintLits(UnificationConstraintStack& cnst, RobSubstitution& subs) 
-{ return *cnst.literals(subs); }
+Stack<Literal*> constraintLits(UnificationConstraintStack& cnst, ResultSubstitutionSP subs);
+// { return *cnst.literals(subs); }
 
-Stack<Literal*> constraintLits(UnificationConstraintStack*& cnst, RobSubstitution& subs) 
-{ return cnst ? constraintLits(*cnst, subs) : Stack<Literal*>(); }
+Stack<Literal*> constraintLits(UnificationConstraintStack*& cnst, ResultSubstitutionSP subs);
+// { return cnst ? constraintLits(*cnst, subs) : Stack<Literal*>(); }
 
 
 unique_ptr<TermSubstitutionTree> getTermIndexHOL()
@@ -106,7 +106,7 @@ void checkLiteralMatches(LiteralSubstitutionTree& index, Literal* lit, Stack<Lit
     is.push(LiteralUnificationResultSpec {
         .querySigma = qr.substitution->apply(lit, /* result */ false),
         .resultSigma = qr.substitution->apply(qr.literal, /* result */ true),
-        .constraints = constraintLits(qr.constraints, *qr.substitution->tryGetRobSubstitution()),
+        .constraints = constraintLits(qr.constraints, qr.substitution),
     });
   }
   if (Test::TestUtils::permEq(is, expected, [](auto& l, auto& r) { return l == r; })) {
@@ -138,7 +138,7 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Sta
     is.push(TermUnificationResultSpec {
         .querySigma = qr.substitution->apply(term, /* result */ false),
         .resultSigma = qr.substitution->apply(qr.term, /* result */ true),
-        .constraints = constraintLits(qr.constraints, *qr.substitution->tryGetRobSubstitution()),
+        .constraints = constraintLits(qr.constraints, qr.substitution),
     });
   }
   if (Test::TestUtils::permEq(is, expected, [](auto& l, auto& r) { return l == r; })) {

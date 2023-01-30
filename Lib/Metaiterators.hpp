@@ -21,10 +21,10 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
-#include "Recycler.hpp"
+#include "Recycled.hpp"
 #include "VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Option.hpp"
@@ -1006,9 +1006,7 @@ private:
     CALL("UniquePersistentIterator::getUniqueItemList");
 
     ItemList* res=0;
-    ItemSet* iset;
-    Recycler::get(iset);
-    iset->reset();
+    Recycled<ItemSet> iset;
 
     sizeRef=0;
     while(inn.hasNext()) {
@@ -1018,8 +1016,6 @@ private:
 	sizeRef++;
       }
     }
-
-    Recycler::release(iset);
     return res;
   }
 

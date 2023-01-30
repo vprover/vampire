@@ -34,15 +34,6 @@ LiteralSubstitutionTree::LiteralSubstitutionTree(MismatchHandler* mismatchHandle
 , _mismatchHandler(mismatchHandler)
 { }
 
-void LiteralSubstitutionTree::insert(Literal* lit, Clause* cls)
-{ handleLiteral(lit, cls, /* insert */ true); }
-
-void LiteralSubstitutionTree::remove(Literal* lit, Clause* cls)
-{ handleLiteral(lit, cls, /* insert */ false); }
-
-void LiteralSubstitutionTree::handleLiteral(Literal* lit, Clause* cls, bool insert)
-{ getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
-
 // TODO move
 using UwaAlgo = UnificationAlgorithms::UnificationWithAbstraction;
 using RobAlgo = UnificationAlgorithms::RobUnification;
@@ -64,8 +55,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool 
 {
   CALL("LiteralSubstitutionTree::getVariants");
 
-  auto& tree = getTree(query, complementary);
-  return pvi(iterTraits(tree.getVariants(query, retrieveSubstitutions))
+  return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
         .map([](auto qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.unif); }));
 }
 
@@ -75,7 +65,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
 
   return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-         .flatMap([this](auto i) { return LeafIterator(&*_trees[i]); })
+         .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
          .flatMap([](Leaf* l) { return l->allChildren(); })
          .map([](const LeafData& ld) { return SLQueryResult(ld.literal, ld.clause); })
       );
@@ -85,9 +75,9 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
 {
   auto idx = complementary ? lit->header() : lit->complementaryHeader();
   while (idx >= _trees.size()) {
-    _trees.push(make_unique<SubstitutionTree>());
+    _trees.push(SubstitutionTree());
   }
-  return *_trees[idx];
+  return _trees[idx];
 }
 template<class Unifier>
 SLQueryResult createSLQueryResult(SubstitutionTree::QueryResult<Unifier> r);

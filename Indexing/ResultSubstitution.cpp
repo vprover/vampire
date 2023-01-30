@@ -52,8 +52,6 @@ public:
   virtual size_t getResultApplicationWeight(TermList t) override { return _subst->getApplicationResultWeight(t, _resultBank); }
   virtual size_t getResultApplicationWeight(Literal* l) override { return _subst->getApplicationResultWeight(l, _resultBank); }
 
-  RobSubstitution* tryGetRobSubstitution() override { return _subst; }
-
   virtual void output(std::ostream& out) const final override { out << *_subst; }
 
 private:

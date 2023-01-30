@@ -33,7 +33,7 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
@@ -63,24 +63,6 @@ using namespace Lib;
 using namespace Kernel;
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
-
-template<class T>
-struct OutputMultiline
-{ 
-  T const& self; 
-  int indent; 
-
-  template<class A>
-  static void repeat(std::ostream& out, A const& c, int times) 
-  { for (int i = 0; i < times; i++) out << c; };
-
-  static void outputIndent(std::ostream& out, int cnt) { repeat(out, "    ", cnt); }
-  void outputIndent(std::ostream& out) { outputIndent(out, indent); }
-};
-
-template<class T>
-OutputMultiline<T> multiline(T const& self, int indent)
-{ return { self, indent, }; }
 
 #define REORDERING 1
 
@@ -128,10 +110,43 @@ std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> co
 
 template<class Key> struct SubtitutionTreeConfig;
 
+/** a counter that is compiled away in release mode */
+struct Cntr {
+#if VDEBUG
+  Cntr() : self(0) {}
+  int self;
+  operator int() const { return self; }
+#endif 
+};
+
+/** a reference to a Cntr that increments the counter when it is created and decrements it when it goes out of scope
+ * This can be used to count the number of instances when an object of this type is added as a member field to the class 
+ * that should be counted */
+class InstanceCntr {
+public:
+#if VDEBUG
+  Cntr& _cntr;
+
+  InstanceCntr& operator=(InstanceCntr&& other) 
+  { swap(other._cntr, _cntr); return *this; }
+
+  InstanceCntr(InstanceCntr&& other) 
+    : _cntr(other._cntr)
+  { other._cntr.self++; }
+
+  InstanceCntr(Cntr& cntr) : _cntr(cntr) 
+  { _cntr.self++; }
+  ~InstanceCntr() 
+  { _cntr.self--; }
+#else // VDEBUG
+  InstanceCntr(Cntr& parent) {}
+#endif 
+};
+
 /**
  * Class of substitution trees. 
  *
- * We can either typed terms, or literals into a subtitution tree.
+ * We can either store typed terms, or literals in a subtitution tree.
  * Classically we'd think of inserting/removing only one term t into a substitution tree. 
  * This can be understood as inserting the substitution { S0 -> t } into the tree.
  *
@@ -139,34 +154,11 @@ template<class Key> struct SubtitutionTreeConfig;
  * This is what we do in order to store the sort of variables, and in order to insert all the arguments of a literal:
  * - For a term t of sort s we insert { S0 -> t; S1 -> s }
  * - For literals (~)P(t0..tn) we insert { S0 -> t0 .. Sn -> tn }.
- * (Note that we do not check the predicate of the polarity of literals here. This happens in LiteralSubstitutionTree)
+ * (Note that we do not check the predicate or the polarity of literals here. This happens in LiteralSubstitutionTree)
  */
 class SubstitutionTree
 {
-  class IterCounter {
-    public:
-#if VDEBUG
-    SubstitutionTree* _parent;
 
-    IterCounter& operator=(IterCounter&& other) 
-    { swap(other._parent, _parent); return *this; }
-
-    IterCounter(IterCounter&& other) 
-      : _parent(other._parent)
-    { other._parent->_iteratorCnt++; }
-
-    IterCounter(SubstitutionTree* parent) : _parent(parent) 
-    { 
-      _parent->_iteratorCnt++; 
-    }
-    ~IterCounter() {
-      _parent->_iteratorCnt--;
-    }
-#else // VDEBUG
-    IterCounter(SubstitutionTree* parent) {}
-#endif 
-  };
-  friend class IterCounter;
 public:
   static constexpr int QRS_QUERY_BANK = 0;
   static constexpr int QRS_RESULT_BANK = 1;
@@ -175,14 +167,21 @@ public:
 
   SubstitutionTree();
   SubstitutionTree(SubstitutionTree const&) = delete;
+  SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
+  SubstitutionTree(SubstitutionTree&& other)
+  : SubstitutionTree()
+  {
+    std::swap(_nextVar, other._nextVar);
+    std::swap(_root, other._root);
+#if VDEBUG
+    std::swap(_tag, other._tag);
+#endif
+  }
 
   virtual ~SubstitutionTree();
 
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
-
-
-//protected:
 
   struct LeafData {
     LeafData() {}
@@ -211,12 +210,6 @@ public:
     // in the leaf to the indexed term. extraTerm is used for this purpose.
     // In all other situations it is empty
     TermList extraTerm;
-
-    vstring toString(){
-      vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
-      if(!term.isEmpty()){ ret += " with " +term.toString(); }
-      return ret;
-    }
 
   };
   typedef VirtualIterator<LeafData&> LDIterator;
@@ -664,14 +657,13 @@ public:
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
-  // TODO document
-  void setKey(TypedTermList const& term, LeafData& ld)
+  void setSort(TypedTermList const& term, LeafData& ld)
   {
     ASS_EQ(ld.term, term)
     ld.sort = term.sort();
   }
 
-  void setKey(TermList const& term, LeafData& ld)
+  void setSort(TermList const& term, LeafData& ld)
   {
     ASS_EQ(ld.term, term)
     if (term.isTerm()) {
@@ -680,11 +672,12 @@ public:
   }
 
 
-  void setKey(Literal* literal, LeafData &ld)
+  void setSort(Literal* literal, LeafData &ld)
   { 
     ASS_EQ(ld.literal, literal); 
-    if (literal->isEquality()) 
+    if (literal->isEquality()) {
       ld.sort = SortHelper::getEqualityArgumentSort(literal);
+    }
   }
 
 
@@ -693,7 +686,7 @@ public:
   {
     auto norm = Renaming::normalize(key);
     Recycled<BindingMap> bindings;
-    setKey(key, ld);
+    setSort(key, ld);
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
@@ -829,10 +822,7 @@ public:
      */
     template<class TermOrLit>
     GenMatcher(TermOrLit query, unsigned nextSpecVar)
-      : _boundVars()
-      , _specVars()
-      , _maxVar(weight(query) - 1)
-      , _bindings()
+      : _maxVar(weight(query) - 1)
     {
       if(_specVars->size()<nextSpecVar) {
         //_specVars can get really big, but it was introduced instead of hash table
@@ -890,6 +880,7 @@ public:
 
     Recycled<VarStack> _boundVars;
     Recycled<DArray<TermList>, NoReset> _specVars;
+    //                         ^^^^^^^ all values that will be read, will be overridden anyways so we can safe time by not resetting.
 
     /**
      * Inheritors must assign the maximal possible number of an ordinary
@@ -970,10 +961,6 @@ public:
     DECL_ELEMENT_TYPE(RSQueryResult);
     using Unifier = ResultSubstitutionSP;
     /**
-     * @b nextSpecVar is the first unassigned special variable. Is being used
-     * 	to determine size of array, that stores special variable bindings.
-     * 	(To maximize performance, a DArray object is being used instead
-     * 	of hash map.)
      * If @b reversed If true, parameters of supplied binary literal are
      * 	reversed. (useful for retrieval commutative terms)
      */
@@ -989,7 +976,7 @@ public:
       , _alternatives()
       , _specVarNumbers()
       , _nodeTypes()
-      , _iterCounter(parent)
+      , _iterCntr(parent->_iterCnt)
     {
       CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
       ASS(root);
@@ -1026,7 +1013,7 @@ public:
     Recycled<Stack<void*>> _alternatives;
     Recycled<Stack<unsigned>> _specVarNumbers;
     Recycled<Stack<NodeAlgorithm>> _nodeTypes;
-    IterCounter _iterCounter;
+    InstanceCntr _iterCntr;
   };
 
 
@@ -1229,10 +1216,6 @@ public:
     using Unifier = ResultSubstitutionSP;
 
     /**
-     * @b nextSpecVar is the first unassigned special variable. Is being used
-     * 	to determine size of array, that stores special variable bindings.
-     * 	(To maximize performance, a DArray object is being used instead
-     * 	of hash map.)
      * If @b reversed If true, parameters of supplied binary literal are
      * 	reversed. (useful for retrieval commutative terms)
      */
@@ -1246,7 +1229,7 @@ public:
       , _alternatives()
       , _specVarNumbers()
       , _nodeTypes()
-      , _iterCounter(parent)
+      , _iterCntr(parent->_iterCnt)
     {
       CALL("SubstitutionTree::FastInstancesIterator::FastInstancesIterator");
       ASS(root);
@@ -1278,7 +1261,7 @@ public:
     Recycled<Stack<void*>> _alternatives;
     Recycled<Stack<unsigned>> _specVarNumbers;
     Recycled<Stack<NodeAlgorithm>> _nodeTypes;
-    IterCounter _iterCounter;
+    InstanceCntr _iterCntr;
   };
 
   template<class UnificationAlgorithm>
@@ -1301,7 +1284,7 @@ public:
       , _nodeIterators()
       , _bdStack()
       , _clientBDRecording(false)
-      , _parentIterCntr(parent)
+      , _iterCntr(parent->_iterCnt)
 #if VDEBUG
       , _tag(parent->_tag)
 #endif
@@ -1509,7 +1492,7 @@ public:
     Recycled<Stack<BacktrackData>> _bdStack;
     bool _clientBDRecording;
     BacktrackData _clientBacktrackData;
-    IterCounter _parentIterCntr;
+    InstanceCntr _iterCntr;
 #if VDEBUG
     bool _tag;
 #endif
@@ -1518,14 +1501,11 @@ public:
 
 #if VDEBUG
 public:
-  static vstring nodeToString(Node* topNode);
-  vstring toString() const;
   bool isEmpty() const;
-
-  int _iteratorCnt;
 #endif
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
+  Cntr _iterCnt;
 }; // class SubstiutionTree
 
 template<> 

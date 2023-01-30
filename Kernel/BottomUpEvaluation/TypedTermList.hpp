@@ -12,29 +12,11 @@
 #define __BOTTOM_UP_EVALUATION__TYPED_TERM_LIST_HPP__
 
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Term.hpp"
 #include "Forwards.hpp"
 
-using SortId = Kernel::TermList;
-
-namespace Kernel {
-// TODO move to other class
-class TypedTermList : public TermList
-{
-  SortId _sort;
-public:
-  CLASS_NAME(TypedTermList)
-  // TODO get rid of default constructor
-  TypedTermList() : TermList(), _sort() {}
-  TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) { ASS_NEQ(sort, AtomicSort::superSort()) }
-  TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
-  SortId sort() const { return _sort; }
-  friend std::ostream& operator<<(std::ostream& out, TypedTermList const& self) 
-  { return out << (TermList const&) self << ": " << self._sort; }
-};
-
-} // namespace Kernel 
 
 namespace Lib {
 

@@ -67,9 +67,6 @@ typedef List<unsigned> VList; // a list of variables (which are unsigned)
 typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
 typedef const SharedSet<unsigned> VarSet;
 
-template<class A, class B>
-std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
-{ return out << "(" << self.first << ", " << self.second << ")"; }
 
 class Literal;
 typedef List<Literal*> LiteralList;
@@ -149,8 +146,6 @@ class TermSharing;
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
-struct SLQueryResult;
-struct TermQueryResult;
 };
 
 namespace Saturation
