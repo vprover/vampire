@@ -21,6 +21,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Option.hpp"
 #include "RobSubstitution.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 
 namespace Kernel
 {
@@ -129,11 +130,14 @@ public:
   bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2)
   { return _subs->unify(t1, bank1, t2, bank2, _uwa, this); }
 
+
   UnificationConstraintStack& constr() { return *_constr; }
+  Recycled<Stack<Literal*>> constraintLiterals() { return _constr->literals(*_subs); }
+
   RobSubstitution& subs() { return *_subs; }
   void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
   void bdDone() { _subs->bdDone(); }
-  bool usesUwa() { return _uwa != nullptr; }
+  bool usesUwa() const { return _uwa != nullptr; }
 };
 
 using Action = std::function<bool(unsigned, MismatchHandlerTerm)>;

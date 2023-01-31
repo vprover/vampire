@@ -144,7 +144,7 @@ struct URResolution::Item
       if(!lit) {
         continue;
       }
-      lit = unif.substitution->apply(lit, !useQuerySubstitution);
+      lit = unif.unifier->apply(lit, !useQuerySubstitution);
       if(!lit->ground()) {
         nonGroundCnt++;
       }

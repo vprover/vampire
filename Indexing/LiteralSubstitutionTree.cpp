@@ -12,7 +12,9 @@
  * Implements class LiteralSubstitutionTree.
  */
 
+#include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
+#include "Kernel/MismatchHandler.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -38,11 +40,12 @@ LiteralSubstitutionTree::LiteralSubstitutionTree(MismatchHandler* mismatchHandle
 using UwaAlgo = UnificationAlgorithms::UnificationWithAbstraction;
 using RobAlgo = UnificationAlgorithms::RobUnification;
 
-SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions, bool constraints)
-{ 
-  return constraints ? getResultIterator<SubstitutionTree::UnificationsIterator<UwaAlgo>>(lit, complementary, retrieveSubstitutions)
-                     : getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(lit, complementary, retrieveSubstitutions); 
-}
+SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
+{ return getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(lit, complementary, retrieveSubstitutions); }
+
+
+VirtualIterator<LQueryRes<AbstractingUnifier*>> LiteralSubstitutionTree::getUwa(Literal* lit, bool complementary)
+{ return getResultIterator<SubstitutionTree::UnificationsIterator<UwaAlgo>>(lit, complementary, /* retrieveSubstitutions */ true, _mismatchHandler); }
 
 SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
@@ -59,6 +62,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool 
         .map([](auto qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.unif); }));
 }
 
+// TODO no substitution in this resultIterator
 SLQueryResultIterator LiteralSubstitutionTree::getAll()
 {
   CALL("LiteralSubstitutionTree::getAll");
@@ -67,7 +71,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
          .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
          .flatMap([](Leaf* l) { return l->allChildren(); })
-         .map([](const LeafData& ld) { return SLQueryResult(ld.literal, ld.clause); })
+         .map([](const LeafData& ld) { return SLQueryResult(ld.literal, ld.clause, ResultSubstitutionSP()); })
       );
 }
 
@@ -79,38 +83,9 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
   }
   return _trees[idx];
 }
-template<class Unifier>
-SLQueryResult createSLQueryResult(SubstitutionTree::QueryResult<Unifier> r);
 
-SLQueryResult createSLQueryResult(SubstitutionTree::QueryResult<ResultSubstitutionSP> r)
-{ return SLQueryResult(r.data->literal, r.data->clause, r.unif, nullptr); }
+// template<class Iterator, class... Args>
+// SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
 
-SLQueryResult createSLQueryResult(SubstitutionTree::QueryResult<Option<ResultSubstitutionSP>> r)
-{ return SLQueryResult(r.data->literal, r.data->clause, r.unif.unwrapOrElse([](){return ResultSubstitutionSP();}), nullptr); }
-
-SLQueryResult createSLQueryResult(SubstitutionTree::QueryResult<Option<RobSubstitutionSP>> r)
-{ return SLQueryResult(r.data->literal, r.data->clause, ResultSubstitutionSP((ResultSubstitution*)&*r.unif.unwrapOrElse([](){return RobSubstitutionSP();})), nullptr); }
-
-template<class Iterator, class... Args>
-SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
-{
-  CALL("LiteralSubstitutionTree::getResultIterator");
-
-  auto iter = [&](bool reversed) 
-    { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
-
-  auto filterResults = [=](auto it) { 
-    return pvi(
-        std::move(it)
-        .map([](auto qr) { return createSLQueryResult(std::move(qr)); })
-        ); 
-  };
-  return !lit->commutative() 
-    ?  filterResults(iter( /* reversed */ false))
-    :  filterResults(concatIters(
-        iter( /* reversed */ false),
-        iter( /* reversed */ true)
-      ));
-}
 
 } // namespace Indexing

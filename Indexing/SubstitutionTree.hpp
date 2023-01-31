@@ -21,6 +21,8 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/MismatchHandler.hpp"
+#include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Comparison.hpp"
@@ -44,6 +46,7 @@
 #include "Lib/Option.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -73,7 +76,7 @@ namespace Indexing {
       Recycled<RobSubstitution> _subs;
     public:
       RobUnification() : _subs() {}
-      using Unifier = RobSubstitutionSP; 
+      using Unifier = ResultSubstitutionSP; 
 
       bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
       {
@@ -83,7 +86,7 @@ namespace Indexing {
       }
 
 
-      Unifier unifier() { return RobSubstitutionSP(&*_subs); }
+      Unifier unifier() { return ResultSubstitutionSP((ResultSubstitution*)&*_subs, /* nondisposable */ true); }
 
       void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
       { _subs->bindSpecialVar(var, term, varBank); }
@@ -99,8 +102,41 @@ namespace Indexing {
 
       bool usesUwa() const { return false; }
     };
-    // TODO change this
-    using UnificationWithAbstraction = RobUnification;
+
+    class UnificationWithAbstraction { 
+      AbstractingUnifier _unif;
+    public:
+      UnificationWithAbstraction(MismatchHandler* handler) : _unif(handler) {}
+      using Unifier = AbstractingUnifier*;
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      {
+        // CALL("SubstitutionTree::UnificationsIterator::associate");
+        TermList query(specialVar, /* special */ true);
+        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
+      }
+
+      Unifier unifier()
+      { return &_unif; }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _unif.subs().bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd)
+      { _unif.subs().bdRecord(bd); }
+
+      void bdDone()
+      { _unif.subs().bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+      TermList getSpecialVarTop(unsigned svar)
+      { return _unif.subs().getSpecialVarTop(svar); }
+
+      bool usesUwa() const
+      { return _unif.usesUwa(); }
+    };
   };
 
 
@@ -751,8 +787,8 @@ public:
     CALL("LiteralSubstitutionTree::getVariants");
 
 
-    RenamingSubstitution* renaming = retrieveSubstitutions ? new RenamingSubstitution() : nullptr;
-    ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(renaming) : ResultSubstitutionSP();
+    auto renaming = retrieveSubstitutions ? make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
+    ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(&*renaming) : ResultSubstitutionSP();
 
     Query normQuery;
     if (retrieveSubstitutions) {
@@ -773,7 +809,7 @@ public:
       return RSQueryResultIter::getEmpty();
     } else {
       return pvi(iterTraits(leaf->allChildren())
-        .map([retrieveSubstitutions, renaming, resultSubst](LeafData ld) 
+        .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData ld) 
           {
             ResultSubstitutionSP subs;
             if (retrieveSubstitutions) {
@@ -1270,7 +1306,7 @@ public:
   public:
     UnificationsIterator(UnificationsIterator&&) = default;
     UnificationsIterator& operator=(UnificationsIterator&&) = default;
-    using Unifier = Option<typename UnificationAlgorithm::Unifier>;
+    using Unifier = typename UnificationAlgorithm::Unifier;
     DECL_ELEMENT_TYPE(QueryResult<Unifier>);
 
     template<class TermOrLit, class...AlgoArgs>
@@ -1344,9 +1380,8 @@ public:
       ASS(!_clientBDRecording);
 
       LeafData& ld=_ldIterator.next();
-
-      return queryResult(ld,
-        someIf(_retrieveSubstitution, [&](){
+      // TODO resolve this kinda messy bit
+      if (_retrieveSubstitution) {
           Renaming normalizer;
           if(_literalRetrieval) {
             normalizer.normalizeVariables(ld.literal);
@@ -1363,8 +1398,10 @@ public:
 
           _algo.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
 
-          return _algo.unifier();
-       }));
+          _algo.unifier();
+      }
+
+      return queryResult(ld, _algo.unifier());
     }
 
   private:

@@ -14,6 +14,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Forwards.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -80,13 +81,13 @@ void Superposition::detach()
 struct Superposition::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TypedTermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TypedTermList>, TQueryRes<AbstractingUnifier*>> arg)
   {
     CALL("Superposition::ForwardResultFn::operator()");
 
-    TermQueryResult& qr = arg.second;
+    auto& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints);
+	    qr.clause, qr.literal, qr.term, qr.unifier, true, _passiveClauseContainer);
   }
 private:
   Clause* _cl;
@@ -98,7 +99,7 @@ private:
 struct Superposition::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<AbstractingUnifier*>> arg)
   {
     CALL("Superposition::BackwardResultFn::operator()");
 
@@ -106,9 +107,9 @@ struct Superposition::BackwardResultFn
       return 0;
     }
 
-    TermQueryResult& qr = arg.second;
+    auto& qr = arg.second;
     return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints);
+	    _cl, arg.first.first, arg.first.second, qr.unifier, false, _passiveClauseContainer);
   }
 private:
   Clause* _cl;
@@ -142,7 +143,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // returns a pair with the original pair and the unification result (includes substitution)
   auto itf3 = getMapAndFlattenIterator(itf2,
       [this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUnificationsUsingSorts(arg.second, /*retrieveSubstitutions*/ true, withConstraints)); });
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second)); });
 
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
@@ -153,8 +154,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       [this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(
               arg, 
-              _subtermIndex->getUnificationsUsingSorts(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), 
-                /* retrieveSubstitutions */ true, withConstraints)); });
+              _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)))); });
 
   //Perform backward superposition
   auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
@@ -323,8 +323,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-    UnificationConstraintStack* rawConstraints)
+    AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
 {
   CALL("Superposition::performSuperposition");
   TIME_TRACE("perform superposition");
@@ -333,7 +332,9 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  auto constraints = rawConstraints ? rawConstraints->literals(*subst->tryGetRobSubstitution()) : Recycled<Stack<Literal*>>();
+  auto constraints = unifier->constraintLiterals();
+  auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
+  // auto constraints = rawConstraints ? rawConstraints->literals(*subst->tryGetRobSubstitution()) : Recycled<Stack<Literal*>>();
   bool hasConstraints = !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 

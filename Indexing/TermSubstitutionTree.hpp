@@ -18,7 +18,9 @@
 
 
 #include "Forwards.hpp"
+#include "Kernel/MismatchHandler.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/BiMap.hpp"
 
@@ -78,18 +80,10 @@ public:
 
 #if VDEBUG
   virtual void markTagged() override { SubstitutionTree::markTagged();}
-  virtual void output(std::ostream& out) const final override;
+  virtual void output(std::ostream& out) const final override { out << *this; }
 #endif
 
 private:
-
-  // template<class Unifier> static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* cl, Unifier unif);
-  //
-  // static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP unif) { return TermQueryResult(t,l,c, unif, nullptr); }
-  // static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, Option<RobSubstitutionSP> unif) 
-  // { return TermQueryResult(t,l,c, ResultSubstitutionSP((ResultSubstitution*)&*unif.unwrapOrElse([](){ return RobSubstitutionSP(); })), nullptr); }
-  // static TermQueryResult createTermQueryResult(TermList t, Literal* l, Clause* c, Option<ResultSubstitutionSP> unif) 
-  // { return TermQueryResult(t,l,c, unif.unwrapOrElse([](){ return ResultSubstitutionSP(); }), nullptr); }
 
   template<class TypedOrUntypedTermList> 
   void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
@@ -121,13 +115,14 @@ public:
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) override
-  { return withConstraints ? pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, retrieveSubstitutions))
-                           : pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification            >>(t, retrieveSubstitutions)); }
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t) override
+  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, _mismatchHandler)); }
 
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstraints) override
-  { return withConstraints ? pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(tt, retrieveSubstitutions))
-                           : pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification            >>(tt, retrieveSubstitutions)); }
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
+
+  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(tt, retrieveSubstitutions)); }
 
 
 };

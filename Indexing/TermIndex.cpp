@@ -37,30 +37,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 
-TermIndex::~TermIndex()
-{
-  delete _is;
-}
-
-TermQueryResultIterator TermIndex::getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints)
-{ return _is->getUnifications(t, retrieveSubstitutions, withConstraints); }
-
-TermQueryResultIterator TermIndex::getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstraints)
-{ return _is->getUnificationsUsingSorts(tt, retrieveSubstitutions, withConstraints); }
-
-TermQueryResultIterator TermIndex::getGeneralizations(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getGeneralizations(t, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getInstances(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getInstances(t, retrieveSubstitutions);
-}
-
-
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SuperpositionSubtermIndex::handleClause");
@@ -74,7 +50,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
                                               : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
-      ((TermSubstitutionTree*)_is)->handle(tt, lit, c, adding);
+      ((TermSubstitutionTree*)&*_is)->handle(tt, lit, c, adding);
     }
   }
   // DBGE(multiline(*((TermSubstitutionTree*)_is)))

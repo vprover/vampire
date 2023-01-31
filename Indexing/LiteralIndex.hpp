@@ -19,6 +19,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
+#include "LiteralIndexingStructure.hpp"
 
 
 namespace Indexing {
@@ -34,7 +35,11 @@ public:
 
   SLQueryResultIterator getAll();
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true, bool withConstraints = false);
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
+
+  VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary)
+  { return _is->getUwa(lit, complementary); }
 
   SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);

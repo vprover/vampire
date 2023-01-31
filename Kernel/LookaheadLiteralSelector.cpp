@@ -14,6 +14,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Indexing/IndexManager.hpp"
@@ -45,7 +46,7 @@ using namespace Saturation;
  */
 struct LookaheadLiteralSelector::GenIteratorIterator
 {
-  DECL_ELEMENT_TYPE(VirtualIterator<void>);
+  DECL_ELEMENT_TYPE(VirtualIterator<tuple<>>);
 
   GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}
 
@@ -81,7 +82,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       BinaryResolutionIndex* gli=static_cast<BinaryResolutionIndex*>(imgr->get(BINARY_RESOLUTION_SUBST_TREE));
       ASS(gli);
 
-      nextIt=pvi( getStaticCastIterator<void>(gli->getUnifications(lit,true,false)) );
+      nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );
       break;
     }
     case 1:  //backward superposition
@@ -114,7 +115,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 	RobSubstitution rs;
 	if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0)) {
 	  haveEqRes=true;
-	  nextIt=pvi( getStaticCastIterator<void>(getSingletonIterator(0)) );
+	  nextIt=pvi( dropElementType(getSingletonIterator(0)) );
 	}
       }
       if(!haveEqRes) {
@@ -135,7 +136,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     return true;
   }
 
-  VirtualIterator<void> next()
+  VirtualIterator<tuple<>> next()
   {
     CALL("LookaheadLiteralSelector::GenIteratorIterator::next");
     if(!prepared) {
@@ -151,9 +152,9 @@ private:
   struct TermUnificationRetriever
   {
     TermUnificationRetriever(TermIndex* index) : _index(index) {}
-    VirtualIterator<void> operator()(TermList trm)
+    VirtualIterator<tuple<>> operator()(TermList trm)
     {
-      return pvi( getStaticCastIterator<void>(_index->getUnifications(trm,false)) );
+      return pvi( dropElementType(_index->getUnifications(trm,false)) );
     }
   private:
     TermIndex* _index;
@@ -162,7 +163,7 @@ private:
   int stage;
   Literal* lit;
   bool prepared;
-  VirtualIterator<void> nextIt;
+  VirtualIterator<tuple<>> nextIt;
 
   LookaheadLiteralSelector& _parent;
 };
@@ -171,7 +172,7 @@ private:
  * Return iterator with the same number of elements as there are inferences
  * that can be performed with @b lit literal selected
  */
-VirtualIterator<void> LookaheadLiteralSelector::getGeneraingInferenceIterator(Literal* lit)
+VirtualIterator<tuple<>> LookaheadLiteralSelector::getGeneraingInferenceIterator(Literal* lit)
 {
   CALL("LookaheadLiteralSelector::getGeneraingInferenceIterator");
 
@@ -188,7 +189,7 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   CALL("LookaheadLiteralSelector::pickTheBest");
   ASS_G(cnt,1); //special cases are handled elsewhere
 
-  static DArray<VirtualIterator<void> > runifs; //resolution unification iterators
+  static DArray<VirtualIterator<tuple<>> > runifs; //resolution unification iterators
   runifs.ensure(cnt);
 
   for(unsigned i=0;i<cnt;i++) {

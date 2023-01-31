@@ -41,7 +41,7 @@ template<class Unifier>
 struct LQueryRes
 {
   LQueryRes() {}
-  LQueryRes(Literal* l, Clause* c, Unifier unifer)
+  LQueryRes(Literal* l, Clause* c, Unifier unifier)
   : literal(l), clause(c), unifier(std::move(unifier)) {}
 
 
@@ -57,6 +57,9 @@ struct LQueryRes
     }
   };
 };
+template<class Unifier>
+LQueryRes<Unifier> lQueryRes(Literal* l, Clause* c, Unifier unifier)
+{ return LQueryRes<Unifier>(l,c,std::move(unifier)); }
 
 /**
  * Class of objects which contain results of term queries.
@@ -113,8 +116,9 @@ struct FormulaQueryResult
 };
 
 using TermQueryResult = TQueryRes<ResultSubstitutionSP>;
+using SLQueryResult   = LQueryRes<ResultSubstitutionSP>;
+
 using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
-using SLQueryResult = VirtualIterator<LQueryRes<ResultSubstitutionSP>>;
 using SLQueryResultIterator = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;

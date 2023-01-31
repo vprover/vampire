@@ -31,17 +31,28 @@ public:
   CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
-  virtual ~TermIndex();
+  virtual ~TermIndex() {}
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true, bool withConstraints = false);
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true, bool withConstraints = false);
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true);
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnifications(t, retrieveSubstitutions); }
+
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t)
+  { return _is->getUwa(t); }
+
+  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }
+
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
+  { return _is->getGeneralizations(t, retrieveSubstitutions); }
+
+  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true)
+  { return _is->getInstances(t, retrieveSubstitutions); }
+
 
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
-  TermIndexingStructure* _is;
+  unique_ptr<TermIndexingStructure> _is;
 };
 
 class SuperpositionSubtermIndex

@@ -42,10 +42,6 @@ SLQueryResultIterator LiteralIndex::getAll()
   return _is->getAll();
 }
 
-SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions, bool constr)
-{
-  return _is->getUnifications(lit, complementary, retrieveSubstitutions, constr);
-}
 
 SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)

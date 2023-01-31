@@ -13,6 +13,7 @@
  *
  */
 
+#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -156,14 +157,13 @@ public:
     ASS(_found);
 
     _found=0;
-    if(_retrieveSubstitutions) {
+    ResultSubstitutionSP subs;
+    if (_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->t);
-      return TermQueryResult(_found->t, _found->lit, _found->cls, ResultSubstitutionSP(_subst,true), nullptr);
+      subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
-    else {
-      return TermQueryResult(_found->t, _found->lit, _found->cls, ResultSubstitutionSP(), nullptr);
-    }
+    return TermQueryResult(_found->t, _found->lit, _found->cls, subs);
   }
 private:
 

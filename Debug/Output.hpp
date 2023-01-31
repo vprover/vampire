@@ -52,11 +52,10 @@ struct OutputMultiline {
   T const& self; 
   unsigned indent; 
 
-  static constexpr char const* INDENT = "    ";
-
   static void outputIndent(std::ostream& out, unsigned indent)
-  { repeat(out, INDENT, indent); };
+  { repeat(out, "    ", indent); };
 };
+
 
 template<class T>
 OutputMultiline<T> multiline(T const& self, unsigned indent)

@@ -89,7 +89,7 @@ struct PrimitiveInstantiation::ResultFn
   Clause* operator() (TermQueryResult tqr){
     const int QUERY = 0;
 
-    ResultSubstitutionSP subst = tqr.substitution;
+    ResultSubstitutionSP subst = tqr.unifier;
 
     unsigned cLen = _cl->length(); 
    

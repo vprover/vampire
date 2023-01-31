@@ -16,6 +16,9 @@
 #ifndef __LiteralSubstitutionTree__
 #define __LiteralSubstitutionTree__
 
+#include "Indexing/Index.hpp"
+#include "Kernel/MismatchHandler.hpp"
+#include "Lib/VirtualIterator.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
 
@@ -46,7 +49,8 @@ public:
   void handleLiteral(Literal* lit, Clause* cls, bool insert)
   { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions, bool constraints = false) final override;
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary) final override;
   SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
@@ -85,8 +89,35 @@ public:
 
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary);
+
+  // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<AbstractingUnifier*>> r)
+  // { return lQueryRes(r.data->literal, r.data->clause, *r.unif); }
+  //
+  // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<RobSubstitutionSP>> r)
+  // { return SLQueryResult(r.data->literal, r.data->clause, ResultSubstitutionSP((ResultSubstitution*)&*r.unif.unwrapOrElse([](){return RobSubstitutionSP();}))); }
+
+
   template<class Iterator, class... Args>
-  SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args);
+  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
+  {
+    CALL("LiteralSubstitutionTree::getResultIterator");
+
+    auto iter = [&](bool reversed) 
+      { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
+
+    auto filterResults = [=](auto it) { 
+      return pvi(
+          std::move(it)
+          .map([](auto r) { return lQueryRes(r.data->literal, r.data->clause, std::move(r.unif)); })
+          ); 
+    };
+    return !lit->commutative() 
+      ?  filterResults(iter( /* reversed */ false))
+      :  filterResults(concatIters(
+          iter( /* reversed */ false),
+          iter( /* reversed */ true)
+        ));
+  }
 
 
   Stack<SubstitutionTree> _trees;
