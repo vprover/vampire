@@ -200,6 +200,7 @@ struct IndexTest {
       DECL_FUNC(g2, {Int, Int}, Int)                                                                \
       DECL_CONST(a, Int)                                                                            \
       DECL_CONST(b, Int)                                                                            \
+      DECL_CONST(c, Int)                                                                            \
     )                                                                                               \
  
 
@@ -1052,3 +1053,55 @@ ROB_UNIFY_TEST(rob_unif_test_06,
       .resultSigma = f2(a, a),
       .constraints = { a != a + 1 },
     })
+
+ROB_UNIFY_TEST(over_approx_test_1_bad,
+    Options::UnificationWithAbstraction::AC1,
+    f2(x + b, x),
+    f2(a    , a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(a + b, a),
+      .resultSigma = f2(a    , a),
+      .constraints = { a != a + b },
+    })
+
+ROB_UNIFY_TEST_FAIL(over_approx_test_1_good,
+    Options::UnificationWithAbstraction::AC1,
+    f2(x, x + b),
+    f2(a, a    ))
+
+ROB_UNIFY_TEST(over_approx_test_2_bad,
+    Options::UnificationWithAbstraction::AC1,
+    f2(a + x, x),
+    f2(b + a, c),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(a + c, c),
+      .resultSigma = f2(b + a, c),
+      .constraints = { a + c != b + a },
+    })
+
+ROB_UNIFY_TEST_FAIL(over_approx_test_2_good,
+    Options::UnificationWithAbstraction::AC1,
+    f2(x, a + x),
+    f2(c, b + a))
+
+ROB_UNIFY_TEST(bottom_constraint_test_1_bad,
+
+    Options::UnificationWithAbstraction::AC1,
+    f2(a + x, x),
+    f2(b + a, b),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(a + b, b),
+      .resultSigma = f2(b + a, b),
+      .constraints = { a + b != b + a },
+    })
+
+ROB_UNIFY_TEST(bottom_constraint_test_1_good,
+    Options::UnificationWithAbstraction::AC1,
+    f2(x, a + x),
+    f2(b, b + a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(b, a + b),
+      .resultSigma = f2(b, b + a),
+      .constraints = Stack<Literal*>{},
+    })
+
