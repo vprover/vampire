@@ -89,8 +89,9 @@ struct EqualityResolution::ResultFn
     }
 
     for (auto &c : absUnif.constr().iter()) {
-      if (!handler->recheck(c.lhs(absUnif.subs()), c.rhs(absUnif.subs())))
-        return nullptr;
+      ASSERTION_VIOLATION_REP("TODO reckeck")
+      // if (!handler->recheck(c.lhs(absUnif.subs()), c.rhs(absUnif.subs())))
+      //   return nullptr;
     }
     // TODO create absUnif.constrLiterals or so
     auto constraints = absUnif.constr().literals(absUnif.subs());

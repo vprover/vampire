@@ -283,8 +283,28 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Abstr
 
   Recycled<EncStore> encountered;
 
-  auto tryAbstract = [&](auto l, auto r) 
-  { return hndlr && hndlr->tryAbstract(MismatchHandlerTerm(*this, l.term, l.index), MismatchHandlerTerm(*this, r.term, r.index), *au); };
+  Option<MismatchHandler::AbstractionResult> absRes;
+  auto doAbstract = [&](auto l, auto r) -> bool
+  { 
+    if (!hndlr) return false;
+    absRes = hndlr->tryAbstract(MismatchHandlerTerm(*this, l.term, l.index), MismatchHandlerTerm(*this, r.term, r.index));
+    return absRes.isSome();
+  };
+
+  auto pushTodo = [&](auto pair) {
+      // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
+      // in order to safe memory we do ot do this for variables.
+      // (Note by joe:  didn't make this decision, but just keeping the implemenntation 
+      // working as before. i.e. as described in the paper "Comparing Unification 
+      // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
+      if (pair.first.isVar() && isUnbound(getVarSpec(pair.first)) &&
+          pair.second.isVar() && isUnbound(getVarSpec(pair.second))) {
+        toDo.push(pair);
+      } else if (!encountered->find(pair)) {
+        encountered->insert(pair);
+        toDo.push(pair);
+      }
+  };
 
   bool mismatch=false;
   // Iteratively resolve unification pairs in toDo
@@ -306,20 +326,34 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Abstr
     } else if(dt2.isVar() && !occurs(getVarSpec(dt2), dt1)) {
       bind(getVarSpec(dt2),dt1);
 
-    } else if(tryAbstract(dt1, dt2)) {
-      /* we introduced constraints in tryAbstract
-       * in a polymorphic setting dt1 and dt2 might have different sorts therefore we need to unify them
-       *
-       * if either of the two terms is a variable, we do not need to unify them because the context of the 
-       * variable (i.e. the argument position the varaible is in) must have been unified autmatically before 
-       * already.
-       */
-      if (dt1.term.isTerm() && dt2.term.isTerm()){
-        toDo.push(make_pair(
-            TermSpec(SortHelper::getResultSort(dt1.term.term()), dt1.index), 
-            TermSpec(SortHelper::getResultSort(dt2.term.term()), dt2.index)
-        ));
+    } else if(doAbstract(dt1, dt2)) {
+
+      ASS(absRes);
+      if (absRes->is<MismatchHandler::NeverEqual>()) {
+        return false;
+      } else {
+        ASS(absRes->is<MismatchHandler::EqualIf>())
+        auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
+        for (auto& x : *conditions.unify) {
+          pushTodo(make_pair(TermSpec(x._term1, x._index1), TermSpec(x._term2, x._index2)));
+        }
+        for (auto& x: *conditions.constraints) {
+          au->add(std::move(x));
+        }
       }
+      // /* we introduced constraints in tryAbstract
+      //  * in a polymorphic setting dt1 and dt2 might have different sorts therefore we need to unify them
+      //  *
+      //  * if either of the two terms is a variable, we do not need to unify them because the context of the 
+      //  * variable (i.e. the argument position the varaible is in) must have been unified autmatically before 
+      //  * already.
+      //  */
+      // if (dt1.term.isTerm() && dt2.term.isTerm()){
+      //   toDo.push(make_pair(
+      //       TermSpec(SortHelper::getResultSort(dt1.term.term()), dt1.index), 
+      //       TermSpec(SortHelper::getResultSort(dt2.term.term()), dt2.index)
+      //   ));
+      // }
 
     } else if(dt1.term.isTerm() && dt2.term.isTerm() 
         && TermList::sameTopFunctor(dt1.term, dt2.term)) {
@@ -329,20 +363,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Abstr
       auto s = dt1.term.term()->args();
       auto t = dt2.term.term()->args();
       while (!s->isEmpty()) {
-        auto pair = make_pair(TermSpec(*s, dt1.index), TermSpec(*t, dt2.index));
-
-        // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
-        // in order to safe memory we do ot do this for variables.
-        // (Note by joe:  didn't make this decision, but just keeping the implemenntation 
-        // working as before. i.e. as described in the paper "Comparing Unification 
-        // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
-        if (pair.first.isVar() && isUnbound(getVarSpec(pair.first)) &&
-            pair.second.isVar() && isUnbound(getVarSpec(pair.second))) {
-          toDo.push(pair);
-        } else if (!encountered->find(pair)) {
-          encountered->insert(pair);
-          toDo.push(pair);
-        }
+        pushTodo(make_pair(TermSpec(*s, dt1.index), TermSpec(*t, dt2.index)));
         s = s->next();
         t = t->next();
       }

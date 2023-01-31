@@ -427,6 +427,14 @@ public:
     _cursor = _stack;
   }
 
+  void init(std::initializer_list<C> elems)
+  {
+    reserve(elems.size());
+    for (auto& x : elems) {
+      push(std::move(x));
+    }
+  }
+
   /** Sets the length of the stack to @b len
    *  @since 27/12/2007 Manchester */
   inline

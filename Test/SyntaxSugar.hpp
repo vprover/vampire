@@ -362,18 +362,20 @@ class TermSugar : public ExpressionSugar
 
 public:
   TermSugar(bool foolConst) 
-    : ExpressionSugar(TermList(foolConst ? Term::foolTrue() : Term::foolFalse()))
-  { _srt.makeEmpty(); }
+    : TermSugar(TermList(foolConst ? Term::foolTrue() : Term::foolFalse()))
+  {}
 
   TermSugar(int trm) 
-    : ExpressionSugar(TermList(syntaxSugarGlobals().createNumeral(trm)))
-  { _srt.makeEmpty(); }
+    : TermSugar(TermList(syntaxSugarGlobals().createNumeral(trm)))
+  {}
 
   TermSugar(TermList trm) 
     : ExpressionSugar(trm)
   { 
     ASS_REP(!_sugaredExpr.isEmpty(), _sugaredExpr);
-    if(!_sugaredExpr.isVar()){
+    if (_sugaredExpr.isVar()) {
+      _srt.makeEmpty();
+    } else {
       _srt = SortHelper::getResultSort(_sugaredExpr.term());
     }
   }
@@ -387,6 +389,8 @@ public:
 
   /** explicit conversion */ 
   SortId sort() const { return _srt; }
+
+  TermSugar sort(SortId s) { _srt = s; return *this; }
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     unsigned f = env.signature->addFunction(name,0);                                                                

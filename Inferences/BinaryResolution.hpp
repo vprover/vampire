@@ -37,8 +37,7 @@ public:
   USE_ALLOCATOR(BinaryResolution);
 
   BinaryResolution() 
-    : _index(0),
-    _unificationWithAbstraction(false)
+    : _index(0)
   {  }
 
   void attach(SaturationAlgorithm* salg);
@@ -54,7 +53,6 @@ private:
   struct ResultFn;
 
   BinaryResolutionIndex* _index;
-  bool _unificationWithAbstraction;
 };
 
 };

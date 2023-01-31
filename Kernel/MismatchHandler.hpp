@@ -22,6 +22,7 @@
 #include "Lib/Option.hpp"
 #include "RobSubstitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Kernel
 {
@@ -42,18 +43,19 @@ public:
   friend std::ostream& operator<<(std::ostream& out, MismatchHandlerTerm const& self);
   MismatchHandlerTerm(RobSubstitution& subs, TermList self, int index);
 
-  bool isNormalVar();
-  unsigned normalVarNumber();
+  unsigned normalVarNumber() { return derefTerm().var(); }
 
-  bool isSpecialVar();
-  bool isTerm();
-  bool isSort();
+  bool isNormalVar()   { return derefTerm().isVar() && !derefTerm().isSpecialVar(); }
+  bool isSpecialVar()  { return derefTerm().isSpecialVar(); }
+  bool isAnyVar()      { return derefTerm().isVar(); }
+  bool isTerm()        { return derefTerm().isTerm(); }
+  bool isSort()        { return derefTerm().term()->isSort(); }
 
-  unsigned functor();
-  unsigned nTypeArgs();
-  unsigned nTermArgs();
-  bool isNumeral();
-  bool isGround();
+  unsigned functor()   { return derefTerm().term()->functor(); }
+  unsigned nTypeArgs() { return derefTerm().term()->numTypeArguments(); }
+  unsigned nTermArgs() { return derefTerm().term()->numTermArguments(); }
+  bool isNumeral()     { return derefTerm().isTerm() && env.signature->getFunction(functor())->numericConstant(); }
+  bool isGround()      { return _subs.apply(_term, _index).ground(); }
   MismatchHandlerTerm termArg(unsigned i);
   MismatchHandlerTerm typeArg(unsigned i);
   auto typeArgs() { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
@@ -64,6 +66,7 @@ class UnificationConstraint
 {
   TermList _term1; int _index1;
   TermList _term2; int _index2;
+  friend class RobSubstitution;
 public:
   CLASS_NAME(UnificationConstraint)
   USE_ALLOCATOR(UnificationConstraint)
@@ -122,11 +125,11 @@ class AbstractingUnifier {
   friend class RobSubstitution;
 public:
   AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) {}
-  // bool unify()
 
   void add(UnificationConstraint c) 
   { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
                                                       : Option<BacktrackData&>()              ); }
+
   bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2)
   { return _subs->unify(t1, bank1, t2, bank2, _uwa, this); }
 
@@ -148,14 +151,28 @@ class MismatchHandler
 {
 public:
   virtual ~MismatchHandler() {}
-  /** TODO document */
-  virtual bool tryAbstract(
-      MismatchHandlerTerm t1,
-      MismatchHandlerTerm t2,
-      AbstractingUnifier& constr) const = 0;
+
+  struct EqualIf { 
+    Recycled<Stack<UnificationConstraint>> unify; 
+    Recycled<Stack<UnificationConstraint>> constraints; 
+
+    EqualIf( std::initializer_list<UnificationConstraint> unify,
+             std::initializer_list<UnificationConstraint> constraints
+        ) : unify(unify)
+          , constraints(constraints) {  }
+  };
+  struct NeverEqual { };
+
+  using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
+
 
   /** TODO document */
-  virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const = 0;
+  virtual Option<AbstractionResult> tryAbstract(
+      MismatchHandlerTerm t1,
+      MismatchHandlerTerm t2) const = 0;
+
+  // /** TODO document */
+  // virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const = 0;
 
   static unique_ptr<MismatchHandler> create();
   static unique_ptr<MismatchHandler> createOnlyHigherOrder();
@@ -168,16 +185,20 @@ public:
   USE_ALLOCATOR(UWAMismatchHandler);
   bool isInterpreted(unsigned f) const;
 
-  virtual bool tryAbstract(
+  // virtual bool tryAbstract(
+  //     MismatchHandlerTerm t1,
+  //     MismatchHandlerTerm t2,
+  //     AbstractingUnifier& constr) const final override;
+
+  virtual Option<AbstractionResult> tryAbstract(
       MismatchHandlerTerm t1,
-      MismatchHandlerTerm t2,
-      AbstractingUnifier& constr) const final override;
+      MismatchHandlerTerm t2) const final override;
 
   bool canAbstract(
       MismatchHandlerTerm t1,
       MismatchHandlerTerm t2) const;
 
-  virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const final override;
+  // virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const final override;
 };
 
 class HOMismatchHandler : public MismatchHandler
@@ -186,14 +207,13 @@ public:
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);
 
-  virtual bool tryAbstract(
+  virtual Option<AbstractionResult> tryAbstract(
       MismatchHandlerTerm t1,
-      MismatchHandlerTerm t2,
-      AbstractingUnifier& constr) const final override;
+      MismatchHandlerTerm t2) const final override;
 
 
-  virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const final override
-  { return true;  }
+  // virtual bool recheck(MismatchHandlerTerm l, MismatchHandlerTerm r) const final override
+  // { return true;  }
 };
 
 

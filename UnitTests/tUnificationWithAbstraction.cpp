@@ -172,7 +172,7 @@ void checkTermMatches(TermSubstitutionTree& index, TypedTermList term, Stack<Ter
 struct IndexTest {
   unique_ptr<TermSubstitutionTree> index;
   Stack<TermList> insert;
-  TermList query;
+  TermSugar query;
   Stack<TermUnificationResultSpec> expected;
 
   void run() {
@@ -183,7 +183,7 @@ struct IndexTest {
       index->insert(x, dummy(), unit(dummy()));
     }
 
-    checkTermMatches(*this->index, this->query,this->expected);
+    checkTermMatches(*this->index, TypedTermList(this->query, this->query.sort()),this->expected);
 
   }
 };
@@ -254,7 +254,7 @@ RUN_TEST(term_indexing_one_side_interp_03,
         1 + num(1),
         1 + a,
       },
-      .query = x,
+      .query = x.sort(Int),
       .expected = { 
 
         TermUnificationResultSpec 
@@ -404,7 +404,7 @@ RUN_TEST(term_indexing_one_side_interp_06,
         1 + a,
         a,
       },
-      .query = x, 
+      .query = x.sort(Int),
       .expected = {
         TermUnificationResultSpec 
         { .querySigma  = 1 + a,

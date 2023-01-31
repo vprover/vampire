@@ -156,14 +156,15 @@ public:
     CALL("CodeTreeTIS::ResultIterator::next");
     ASS(_found);
 
-    _found=0;
     ResultSubstitutionSP subs;
     if (_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->t);
       subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
-    return TermQueryResult(_found->t, _found->lit, _found->cls, subs);
+    auto out = TermQueryResult(_found->t, _found->lit, _found->cls, subs);
+    _found=0;
+    return out;
   }
 private:
 

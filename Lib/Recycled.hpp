@@ -51,6 +51,15 @@ public:
     , _reset()
   { }
 
+
+  template<class A, class... As>
+  Recycled(A a, As... as)
+    : _ptr(mem().isNonEmpty() ? mem().pop() : make_unique<T>()) 
+    , _reset()
+  {
+    _ptr->init(std::forward<A, As...>(a, as...));
+  }
+
   Recycled(Recycled&& other) = default;
   Recycled& operator=(Recycled&& other) = default;
 
