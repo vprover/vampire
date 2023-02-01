@@ -23,6 +23,7 @@
 #include "RobSubstitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/Signature.hpp"
+#include "Lib/Reflection.hpp"
 
 namespace Kernel
 {
@@ -30,7 +31,7 @@ namespace Kernel
 
 class MismatchHandlerTerm
 {
-  RobSubstitution& _subs;
+  RobSubstitution* _subs;
   TermList _term; int _index;
   Option<pair<TermList, int>> _deref;
   friend class UnificationConstraint;
@@ -40,6 +41,8 @@ class MismatchHandlerTerm
   TermList derefTerm() { return deref().first; }
   int derefIndex() { return deref().second; }
 public:
+  auto asTuple() const -> pair<TermList, int> const& { ASS(_deref.isSome()); return *_deref; }
+  IMPL_COMPARISONS_FROM_TUPLE(MismatchHandlerTerm)
   friend std::ostream& operator<<(std::ostream& out, MismatchHandlerTerm const& self);
   MismatchHandlerTerm(RobSubstitution& subs, TermList self, int index);
 
@@ -55,7 +58,7 @@ public:
   unsigned nTypeArgs() { return derefTerm().term()->numTypeArguments(); }
   unsigned nTermArgs() { return derefTerm().term()->numTermArguments(); }
   bool isNumeral()     { return derefTerm().isTerm() && env.signature->getFunction(functor())->numericConstant(); }
-  bool isGround()      { return _subs.apply(_term, _index).ground(); }
+  bool isGround()      { return _subs->apply(_term, _index).ground(); }
   MismatchHandlerTerm termArg(unsigned i);
   MismatchHandlerTerm typeArg(unsigned i);
   auto typeArgs() { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
@@ -74,7 +77,7 @@ public:
   UnificationConstraint(MismatchHandlerTerm const& t1, MismatchHandlerTerm const& t2)
   : _term1(t1._term), _index1(t1._index)
   , _term2(t2._term), _index2(t2._index)
-  { ASS(&t1._subs == &t2._subs) }
+  { ASS(t1._subs == t2._subs) }
 
   Option<Literal*> toLiteral(RobSubstitution& s) const;
 
@@ -124,14 +127,20 @@ class AbstractingUnifier {
   MismatchHandler* _uwa;
   friend class RobSubstitution;
 public:
-  AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) {}
+  DEFAULT_CONSTRUCTORS(AbstractingUnifier)
+  AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
+  { }
+
+  bool isRecording() { return _subs->bdIsRecording(); }
 
   void add(UnificationConstraint c) 
   { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
                                                       : Option<BacktrackData&>()              ); }
 
   bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2)
-  { return _subs->unify(t1, bank1, t2, bank2, _uwa, this); }
+  { 
+    return _subs->unify(t1, bank1, t2, bank2, _uwa, this); 
+  }
 
 
   UnificationConstraintStack& constr() { return *_constr; }
@@ -195,6 +204,7 @@ public:
       MismatchHandlerTerm t2) const final override;
 
   bool canAbstract(
+      Shell::Options::UnificationWithAbstraction opt,
       MismatchHandlerTerm t1,
       MismatchHandlerTerm t2) const;
 

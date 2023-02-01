@@ -18,6 +18,7 @@
 #define __Stack__
 
 #include <cstdlib>
+#include <algorithm>
 
 #include "Forwards.hpp"
 
@@ -25,7 +26,8 @@
 #include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
-#include "Backtrackable.hpp"
+#include "Lib/Reflection.hpp"
+// #include "Backtrackable.hpp"
 
 namespace std
 {
@@ -34,6 +36,9 @@ void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2);
 }
 
 namespace Lib {
+
+// template<typename C>
+// struct Relocator<Stack<C> >;
 
 /**
  * Class of flexible-size generic stacks.
@@ -58,6 +63,7 @@ public:
   CLASS_NAME(Stack);
   USE_ALLOCATOR(Stack);
 
+
   /**
    * Create a stack having initialCapacity.
    */
@@ -72,7 +78,7 @@ public:
       _stack = static_cast<C*>(mem);
     }
     else {
-      _stack = 0;
+      _stack = nullptr;
     }
     _cursor = _stack;
     _end = _stack+_capacity;
@@ -131,6 +137,45 @@ public:
     _stack = _cursor = _end = nullptr;
 
     std::swap(*this,s);
+  }
+
+/**
+ * @brief Splits this stack into two parts. The first part will contain the first @param sizeOfFirst elements
+ * and the second part will contain the rest. This function does not involve any memory copying, hence it's 
+ * constant time. 
+ * 
+ * @pre this->size() >= sizeOfFirst
+ * @post this stack will be empty
+ * 
+ * @param sizeOfFirst the size of the first of the two parts to be returned
+ * @return std::pair<Stack, Stack>  a pair of stacks, which contain the same elements as this stack
+ * contained before the call of this function.
+ */
+  std::pair<Stack, Stack> split(unsigned sizeOfFirst) 
+  {
+    ASS(sizeOfFirst <= this->size())
+    Stack lhs;
+    Stack rhs;
+
+    if (sizeOfFirst == this->size()) {
+      lhs = std::move(*this);
+    } else if (sizeOfFirst == 0) {
+      rhs = std::move(*this);
+    } else {
+      lhs._stack = _stack;
+      lhs._end = lhs._cursor = lhs._stack + sizeOfFirst;
+      lhs._capacity = sizeOfFirst;
+      
+      rhs._stack = _stack + sizeOfFirst;
+      rhs._end = _end;
+      rhs._cursor = _cursor;
+      rhs._capacity = _capacity - sizeOfFirst;
+
+      _stack = _cursor = _end = nullptr;
+      _capacity = 0;
+    }
+
+    return make_pair(std::move(lhs), std::move(rhs));
   }
 
   /** De-allocate the stack
@@ -210,7 +255,7 @@ public:
   static Stack fromIterator(It it) {
     CALL("Stack::fromIterator");
     Stack out;
-    out.loadFromIterator(it);
+    out.moveFromIterator(std::move(it));
     return out;
   }
   /* a first-in-first-out iterator  */
@@ -375,6 +420,37 @@ public:
   } // Stack::pop()
 
 
+  /** removes consecutive duplicates. instead of the operator== the given predicate is used */
+  template<class Equal = std::equal_to<C>>
+  void dedup(Equal eq = std::equal_to<C>{})
+  { 
+    auto& self = *this;
+    if (self.size() == 0) return;
+    unsigned offs = 0;
+    for (unsigned i = 1;  i < self.size(); i++) {
+      if (eq(self[offs], self[i])) {
+        /* skip */
+      } else {
+        self[offs++ + 1] = std::move(self[i]);
+      }
+    }
+    self.pop(self.size() - (offs + 1));
+  }
+
+  /** like Stack::dedup but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this  */
+  template<class Equal = std::equal_to<C>>
+  Stack deduped(Equal eq = std::equal_to<C>{})
+  { dedup(); return std::move(*this); }
+
+  template<class Less = std::less<C>>
+  void sort(Less less = std::less<C>{})
+  { std::sort(begin(), end(), less); }
+
+  /** like Stack::sort but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this */
+  template<class Equal = std::equal_to<C>>
+  Stack sorted(Equal eq = std::equal_to<C>{})
+  { sort(); return std::move(*this); }
+
   inline
   void pop(unsigned cnt)
   {
@@ -397,6 +473,19 @@ public:
       }
     }
     return false;
+  }
+
+  /**
+   * removes the element at the given index, replacing it by the last element in the stack and shrinking the stack.
+   * constant time operation.
+   * returns the removed element.
+   */
+  C swapRemove(unsigned idx)
+  {
+    ASS(idx < size())
+    ASS(size() > 0)
+    std::swap((*this)[idx], (*this)[size() - 1]);
+    return pop();
   }
 
   /**
@@ -435,6 +524,7 @@ public:
     }
   }
 
+
   /** Sets the length of the stack to @b len
    *  @since 27/12/2007 Manchester */
   inline
@@ -470,21 +560,6 @@ public:
     }
     return false;
   }
-
-#if VDEBUG
-  vstring toString()
-  {
-    vstring ret = "[";
-    Iterator it(const_cast<Stack&>(*this));
-    while(it.hasNext()){
-      C el = it.next();
-      ret += Int::toString(static_cast<unsigned int>(el));
-      if(it.hasNext()){ ret +=",";}
-    }
-    return ret+"]";
-  }
-
-#endif
 
   friend class RefIterator;
 
@@ -622,6 +697,9 @@ public:
     DECL_ELEMENT_TYPE(C);
     C next() { return ConstRefIterator::next(); }
   };
+
+  ConstIterator iterCloned() const&
+  { return ConstIterator(*this); }
 
   RefIterator iter() &
   { return RefIterator(*this); }
@@ -827,23 +905,8 @@ protected:
     _capacity = newCapacity;
   } // Stack::expand
 
-  class PushBacktrackObject: public BacktrackObject
-  {
-    Stack* st;
-  public:
-    CLASS_NAME(Stack::PushBacktrackObject);
-    USE_ALLOCATOR(Stack::PushBacktrackObject);
-    
-    PushBacktrackObject(Stack* st) : st(st) {}
-    void backtrack() { st->pop(); }
-  };
 public:
 
-  void backtrackablePush(C v, BacktrackData& bd)
-  {
-    push(v);
-    bd.addBacktrackObject(new PushBacktrackObject(this));
-  }
 
   friend ostream& operator<<(ostream& out, const Stack<C>& s) {
     out << "[";
@@ -869,6 +932,17 @@ public:
   }
 
 };
+
+// template<typename C>
+// struct Relocator<Stack<C> >
+// {
+//   static void relocate(Stack<C>* oldStack, void* newAddr)
+//   {
+//     ::new(newAddr) Stack<C>(std::move(*oldStack));
+//     oldStack->~Stack<C>();
+//   }
+// };
+
 
 } // namespace Lib
 

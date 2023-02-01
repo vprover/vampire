@@ -210,7 +210,8 @@ public:
   { return ptr == nullptr ? OptionBaseRef() : *ptr; }
 
   friend bool operator==(OptionBaseRef const& lhs, OptionBaseRef const& rhs) 
-  { return *lhs._elem == *rhs._elem; }
+  { return (lhs._elem == nullptr && rhs._elem == nullptr)
+        || (lhs._elem != nullptr && rhs._elem != nullptr && *lhs._elem == *rhs._elem); }
 
 };
 

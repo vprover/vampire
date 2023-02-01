@@ -1350,7 +1350,7 @@ public:
         _clientBDRecording=false;
         _clientBacktrackData.backtrack();
       }
-      if (_bdStack) 
+      // if (_bdStack) 
         while(_bdStack->isNonEmpty()) {
           _bdStack->pop().backtrack();
         }
@@ -1509,7 +1509,7 @@ public:
         } else {
           IntermediateNode* inode=static_cast<IntermediateNode*>(n);
           _svStack->push(inode->childVar);
-          _nodeIterators->backtrackablePush(getNodeIterator(inode), bd);
+          backtrackablePush(*_nodeIterators, getNodeIterator(inode), bd);
         }
       }
       if(recording) {

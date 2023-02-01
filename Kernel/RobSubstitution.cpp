@@ -39,7 +39,6 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr, AbstractingUnifier* constr)
 {
   CALL("RobSubstitution::unify/4");
-
   return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr, constr);
 }
 
@@ -330,7 +329,8 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Abstr
 
       ASS(absRes);
       if (absRes->is<MismatchHandler::NeverEqual>()) {
-        return false;
+        mismatch = true;
+        break;
       } else {
         ASS(absRes->is<MismatchHandler::EqualIf>())
         auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();

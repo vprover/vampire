@@ -22,6 +22,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Recycled.hpp"
+#include "Lib/Reflection.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
 #include "VirtualIterator.hpp"
@@ -466,6 +467,61 @@ private:
   Option<OWN_ELEMENT_TYPE> _next;
 };
 
+
+template<class I1, class I2>
+class SortedIterDiff {
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(I1));
+  DEFAULT_CONSTRUCTORS(SortedIterDiff)
+
+  SortedIterDiff(I1 i1, I2 i2) 
+    : _i1(std::move(i1))
+    , _i2(std::move(i2))
+    , _curr1()
+    , _curr2(someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); })) {}
+
+  void moveToNext() 
+  {
+#   if VDEBUG
+    Option<OWN_ELEMENT_TYPE> old1;
+#   endif
+    while (_curr1.isNone() && _i1.hasNext()) {
+      _curr1 = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(_i1.next()));
+      ASS_REP(!_curr1.isSome() || !old1.isSome() || *old1 <= *_curr1, "iterator I1 must be sorted");
+      while (_curr2.isSome() && *_curr2 < *_curr1) {
+#       if VDEBUG
+        Option<OWN_ELEMENT_TYPE> old2 = _curr2.take();
+#       endif
+        _curr2 = someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE 
+            { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); });
+        ASS_REP(!_curr2.isSome() || !old2.isSome() || *old2 <= *_curr2, "iterator I2 must be sorted");
+      }
+      if (_curr1 == _curr2) {
+#   if VDEBUG
+    old1 = _curr1.take();
+#   endif
+        _curr1 = Option<OWN_ELEMENT_TYPE>();
+      }
+    }
+  }
+
+  bool hasNext()
+  {
+    moveToNext();
+    return _curr1.isSome();
+  }
+
+  OWN_ELEMENT_TYPE next()
+  {
+    moveToNext();
+    return _curr1.take().unwrap();
+  }
+private:
+  I1 _i1;
+  I2 _i2;
+  Option<OWN_ELEMENT_TYPE> _curr1;
+  Option<OWN_ELEMENT_TYPE> _curr2;
+};
 
 /**
  * Iterator that maps the contents of another iterator by a function. Whenever the function retuns a non-empty Option
@@ -1935,7 +1991,7 @@ public:
   Container<Elem> collect()
   { 
     CALL("IterTraits::collect/2")
-    return Container<Elem>::fromIterator(*this); 
+    return Container<Elem>::fromIterator(std::move(*this)); 
   }
 
   IterTraits clone() 
@@ -1981,6 +2037,11 @@ IterTraits<Iter> iterTraits(Iter i)
 
 static const auto range = [](auto from, auto to) 
   { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
+
+
+template<class I1, class I2>
+auto iterSortedDiff(I1 i1, I2 i2) 
+{ return iterTraits(SortedIterDiff<I1,I2>(std::move(i1), std::move(i2))); }
 
 ///@}
 

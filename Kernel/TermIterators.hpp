@@ -871,6 +871,8 @@ static const auto anyArgIter = [](Term* term)
            { return *term->nthArgument(i); }); };
 
 
+IterTraits<VirtualIterator<Term>> acIter(TermList t, unsigned f);
+
 }
 
 #endif // __TermIterators__
