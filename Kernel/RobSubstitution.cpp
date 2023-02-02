@@ -23,7 +23,6 @@
 #include "Renaming.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
-#include "MismatchHandler.hpp"
 
 namespace Kernel
 {
@@ -36,10 +35,10 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr, AbstractingUnifier* constr)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
 {
   CALL("RobSubstitution::unify/4");
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr, constr);
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
 }
 
 /**
@@ -47,7 +46,7 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, Mis
  *
  * @b t1 and @b t2 can be either terms or literals.
  */
-bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr, AbstractingUnifier* constr)
+bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 {
   CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
@@ -55,7 +54,7 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, Misma
   TermList t1TL(t1);
   TermList t2TL(t2);
 
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr, constr);
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -261,7 +260,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
   }
 }
 
-bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, AbstractingUnifier* au)
+bool RobSubstitution::unify(TermSpec s, TermSpec t)
 {
   CALL("RobSubstitution::unify/2");
 
@@ -281,14 +280,6 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Abstr
   typedef DHSet<TTPair,TTPairHash, TTPairHash> EncStore;
 
   Recycled<EncStore> encountered;
-
-  Option<MismatchHandler::AbstractionResult> absRes;
-  auto doAbstract = [&](auto l, auto r) -> bool
-  { 
-    if (!hndlr) return false;
-    absRes = hndlr->tryAbstract(MismatchHandlerTerm(*this, l.term, l.index), MismatchHandlerTerm(*this, r.term, r.index));
-    return absRes.isSome();
-  };
 
   auto pushTodo = [&](auto pair) {
       // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
@@ -324,36 +315,6 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t,MismatchHandler* hndlr, Abstr
 
     } else if(dt2.isVar() && !occurs(getVarSpec(dt2), dt1)) {
       bind(getVarSpec(dt2),dt1);
-
-    } else if(doAbstract(dt1, dt2)) {
-
-      ASS(absRes);
-      if (absRes->is<MismatchHandler::NeverEqual>()) {
-        mismatch = true;
-        break;
-      } else {
-        ASS(absRes->is<MismatchHandler::EqualIf>())
-        auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
-        for (auto& x : *conditions.unify) {
-          pushTodo(make_pair(TermSpec(x._term1, x._index1), TermSpec(x._term2, x._index2)));
-        }
-        for (auto& x: *conditions.constraints) {
-          au->add(std::move(x));
-        }
-      }
-      // /* we introduced constraints in tryAbstract
-      //  * in a polymorphic setting dt1 and dt2 might have different sorts therefore we need to unify them
-      //  *
-      //  * if either of the two terms is a variable, we do not need to unify them because the context of the 
-      //  * variable (i.e. the argument position the varaible is in) must have been unified autmatically before 
-      //  * already.
-      //  */
-      // if (dt1.term.isTerm() && dt2.term.isTerm()){
-      //   toDo.push(make_pair(
-      //       TermSpec(SortHelper::getResultSort(dt1.term.term()), dt1.index), 
-      //       TermSpec(SortHelper::getResultSort(dt2.term.term()), dt2.index)
-      //   ));
-      // }
 
     } else if(dt1.term.isTerm() && dt2.term.isTerm() 
         && TermList::sameTopFunctor(dt1.term, dt2.term)) {

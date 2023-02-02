@@ -1048,4 +1048,10 @@ std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
 
+template<>
+struct std::hash<Kernel::TermList> {
+  size_t operator()(Kernel::TermList const& t) const 
+  { return t.defaultHash(); }
+};
+
 #endif

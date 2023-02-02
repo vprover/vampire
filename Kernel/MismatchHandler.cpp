@@ -14,6 +14,7 @@
  */
 
 #include "Lib/Backtrackable.hpp"
+#include "Lib/Coproduct.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 
@@ -34,48 +35,46 @@ namespace Kernel
 {
 
   
-pair<TermList, int>& MismatchHandlerTerm::deref()
-{ return _deref.unwrapOrInit([&]() { 
-    auto t = _subs->derefBound(RobSubstitution::TermSpec(_term, _index));
-    return make_pair(t.term, t.index);
-  }); }
+// pair<TermList, int>& MismatchHandlerTerm::deref()
+// { return _deref.unwrapOrInit([&]() { 
+//     auto t = _subs->derefBound(RobSubstitution::TermSpec(_term, _index));
+//     return make_pair(t.term, t.index);
+//   }); }
 
-MismatchHandlerTerm MismatchHandlerTerm::termArg(unsigned i)
-{ return MismatchHandlerTerm(*_subs, derefTerm().term()->termArg(i), _index); }
+// MismatchHandlerTerm MismatchHandlerTerm::termArg(unsigned i)
+// { return MismatchHandlerTerm(*_subs, term()->termArg(i), index(i + nTypeArgs())); }
 
-MismatchHandlerTerm::MismatchHandlerTerm(RobSubstitution& subs, TermList term, int index)
-  : _subs(&subs)
-  , _term(term)
-  , _index(index)
-  , _deref() 
-{
-}
+// MismatchHandlerTerm::MismatchHandlerTerm(RobSubstitution& subs, TermList term, int index)
+//   : _subs(&subs)
+//   , _self(make_pair(term, index))
+// {
+// }
 
 
-MismatchHandlerTerm MismatchHandlerTerm::typeArg(unsigned i)
-{ return MismatchHandlerTerm(*_subs, derefTerm().term()->typeArg(i), _index); }
+// MismatchHandlerTerm MismatchHandlerTerm::typeArg(unsigned i)
+// { return MismatchHandlerTerm(*_subs, term()->typeArg(i), index(i)); }
 
-unique_ptr<MismatchHandler> MismatchHandler::create()
-{
-  if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-    return make_unique<UWAMismatchHandler>();
-  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
-    // TODO  ask ahmed: are this the corret options for higher order abstraction
-    return make_unique<HOMismatchHandler>();
-  } else {
-    return unique_ptr<MismatchHandler>();
-  }
-}
-
-unique_ptr<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
-{
-  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
-    // TODO  ask ahmed: are this the corret options for higher order abstraction
-    return make_unique<HOMismatchHandler>();
-  } else {
-    return unique_ptr<MismatchHandler>();
-  }
-}
+// unique_ptr<MismatchHandler> MismatchHandler::create()
+// {
+//   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
+//     return make_unique<UWAMismatchHandler>();
+//   } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+//     // TODO  ask ahmed: are this the corret options for higher order abstraction
+//     return make_unique<HOMismatchHandler>();
+//   } else {
+//     return unique_ptr<MismatchHandler>();
+//   }
+// }
+//
+// unique_ptr<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
+// {
+//   if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+//     // TODO  ask ahmed: are this the corret options for higher order abstraction
+//     return make_unique<HOMismatchHandler>();
+//   } else {
+//     return unique_ptr<MismatchHandler>();
+//   }
+// }
 
 bool UWAMismatchHandler::isInterpreted(unsigned functor) const 
 {
@@ -212,8 +211,8 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Misma
       } else if (concatIters(diff1.iterFifo(), diff2.iterFifo()).any([](auto x) { return x.isAnyVar(); })) {
         return some(AbstractionResult(EqualIf({}, {diffConstr()})));
 
-      } else if (iterSortedDiff(diff1.iterFifo(), diff2.iterFifo()).hasNext()
-              || iterSortedDiff(diff2.iterFifo(), diff1.iterFifo()).hasNext()) {
+      } else if (iterSortedDiff(functors(diff1), functors(diff2)).hasNext()
+              || iterSortedDiff(functors(diff2), functors(diff1)).hasNext()) {
         return some(AbstractionResult(NeverEqual{}));
 
       } else {
@@ -275,19 +274,138 @@ Recycled<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& 
 { 
   Recycled<Stack<Literal*>> out;
   out->reserve(_cont.size());
-  out->loadFromIterator(literalIter(s));
+  out->loadFromIterator(literalIter());
   return out;
 }
 
 
-Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s) const
+Option<Literal*> UnificationConstraint::toLiteral()
 { 
-  auto t1 = s.apply(_term1, _index1);
-  auto t2 = s.apply(_term2, _index2);
+  auto t1 = _t1.toTerm();
+  auto t2 = _t2.toTerm();
   return t1 == t2 
     ? Option<Literal*>()
     : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));
 }
 
 
+}
+
+
+bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, unsigned bank2)
+{
+  CALL("AbstractionResult::unify");
+  MismatchHandlerTerm t1(this->subs(), term1, bank1);
+  MismatchHandlerTerm t2(this->subs(), term2, bank2);
+
+  if(t1 == t2) {
+    return true;
+  }
+
+  auto impl = [&]() -> bool {
+
+    Recycled<Stack<UnificationConstraint>> toDo{ UnificationConstraint(t1, t2),};
+    // Save encountered unification pairs to avoid
+    // recomputing their unification
+    Recycled<DHSet<UnificationConstraint>> encountered;
+
+    Option<MismatchHandler::AbstractionResult> absRes;
+    auto doAbstract = [&](auto l, auto r) -> bool
+    { 
+      if (!_uwa) return false;
+      absRes = _uwa->tryAbstract(l, r);
+      return absRes.isSome();
+    };
+
+    auto pushTodo = [&](auto pair) {
+        // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
+        // in order to safe memory we do ot do this for variables.
+        // (Note by joe:  didn't make this decision, but just keeping the implemenntation 
+        // working as before. i.e. as described in the paper "Comparing Unification 
+        // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
+        // TODO restore this branch?
+        // if (pair.first.isVar() && isUnbound(getVarSpec(pair.first)) &&
+        //     pair.second.isVar() && isUnbound(getVarSpec(pair.second))) {
+        //   toDo.push(pair);
+        // } else 
+        if (!encountered->find(pair)) {
+          encountered->insert(pair);
+          toDo->push(pair);
+        }
+    };
+
+    auto occurs = [](auto var, auto term) {
+      Recycled<Stack<MismatchHandlerTerm>> todo = { term };
+      while (todo->isNonEmpty()) {
+        auto t = todo->pop().deref();
+        if (t.isAnyVar()) {
+          if (t == var) {
+            return true;
+          }
+        } else {
+          todo->loadFromIterator(t.allArgs());
+        }
+      }
+      return false;
+    };
+
+
+    while (toDo->isNonEmpty()) {
+      auto x = toDo->pop();
+      auto dt1 = x.lhs().deref();
+      auto dt2 = x.rhs().deref();
+      if (dt1 == dt2) {
+
+      } else if(dt1.isAnyVar() && !occurs(dt1, dt2)) {
+        bind(dt1.varSpec(), dt2);
+
+      } else if(dt2.isAnyVar() && !occurs(dt2, dt1)) {
+        bind(dt2.varSpec(), dt1);
+
+      } else if(doAbstract(dt1, dt2)) {
+
+        ASS(absRes);
+        if (absRes->is<MismatchHandler::NeverEqual>()) {
+          return false;
+
+        } else {
+          ASS(absRes->is<MismatchHandler::EqualIf>())
+          auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
+          for (auto& x : *conditions.unify) {
+            pushTodo(std::move(x));
+          }
+          for (auto& x: *conditions.constraints) {
+            add(std::move(x));
+          }
+        }
+
+      } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor()) {
+        
+        for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
+          pushTodo(UnificationConstraint(c.first, c.second));
+        }
+
+      } else {
+        return false;
+      }
+
+      return true;
+    }
+  };
+
+  BacktrackData localBD;
+  bdRecord(localBD);
+  bool success = impl();
+  bdDone();
+
+  if(!success) {
+    localBD.backtrack();
+  } else {
+    if(subs().bdIsRecording()) {
+      subs().bdCommit(localBD);
+    }
+    localBD.drop();
+  }
+
+  return success;
 }

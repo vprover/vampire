@@ -31,14 +31,17 @@ namespace Kernel
 {
 
 using namespace Lib;
-class MismatchHandler;
-class AbstractingUnifier;
+
 class MismatchHandlerTerm;
+class AbstractingUnifier;
+class UnificationConstraint;
 
 class RobSubstitution
 :public Backtrackable
 {
   friend class AbstractingUnifier;
+  friend class MismatchHandlerTerm;
+  friend class UnificationConstraint;
 public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
@@ -49,10 +52,10 @@ public:
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0, AbstractingUnifier* constraints=0);
+  bool unify(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0, AbstractingUnifier* constr = 0);
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -224,12 +227,12 @@ private:
   TermSpec deref(VarSpec v) const;
   TermSpec derefBound(TermSpec v) const;
 
-  void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);
+  void addToConstraints(const VarSpec& v1, const VarSpec& v2);
   void bind(const VarSpec& v, const TermSpec& b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr, AbstractingUnifier*);
+  bool unify(TermSpec t1, TermSpec t2);
   bool occurs(VarSpec vs, TermSpec ts);
 
   inline

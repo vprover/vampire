@@ -33,60 +33,69 @@ class MismatchHandlerTerm
 {
   RobSubstitution* _subs;
   TermList _term; int _index;
-  Option<pair<TermList, int>> _deref;
   friend class UnificationConstraint;
   friend class RobSubstitution;
 
-  pair<TermList, int>& deref();
-  TermList derefTerm() { return deref().first; }
-  int derefIndex() { return deref().second; }
+  // TermList derefTerm() { return deref().first; }
+  // int derefIndex() { return deref().second; }
 public:
-  auto asTuple() const -> pair<TermList, int> const& { ASS(_deref.isSome()); return *_deref; }
+  // TODO get rid of default constructor
+  MismatchHandlerTerm() {}
+  auto asTuple() const -> tuple<TermList const&, int const&>; //{ ASS(_deref.isSome()); return *_deref; }
   IMPL_COMPARISONS_FROM_TUPLE(MismatchHandlerTerm)
+  IMPL_HASH_FROM_TUPLE(MismatchHandlerTerm)
   friend std::ostream& operator<<(std::ostream& out, MismatchHandlerTerm const& self);
   MismatchHandlerTerm(RobSubstitution& subs, TermList self, int index);
   MismatchHandlerTerm(unsigned functor, std::initializer_list<MismatchHandlerTerm> args);
 
-  unsigned normalVarNumber() { return derefTerm().var(); }
+  MismatchHandlerTerm deref();
 
-  bool isNormalVar()   { return derefTerm().isVar() && !derefTerm().isSpecialVar(); }
-  bool isSpecialVar()  { return derefTerm().isSpecialVar(); }
-  bool isAnyVar()      { return derefTerm().isVar(); }
-  bool isTerm()        { return derefTerm().isTerm(); }
-  bool isSort()        { return derefTerm().term()->isSort(); }
+  unsigned normalVarNumber();// { return derefTerm().var(); }
 
-  unsigned functor()   { return derefTerm().term()->functor(); }
-  unsigned nTypeArgs() { return derefTerm().term()->numTypeArguments(); }
-  unsigned nTermArgs() { return derefTerm().term()->numTermArguments(); }
-  bool isNumeral()     { return derefTerm().isTerm() && env.signature->getFunction(functor())->numericConstant(); }
-  bool isGround()      { return _subs->apply(_term, _index).ground(); }
+  bool isNormalVar()   ;//{ return derefTerm().isVar() && !derefTerm().isSpecialVar(); }
+  bool isSpecialVar()  ;//{ return derefTerm().isSpecialVar(); }
+  bool isAnyVar()      ;//{ return derefTerm().isVar(); }
+  bool isTerm()        ;//{ return derefTerm().isTerm(); }
+  bool isSort()        ;//{ return derefTerm().term()->isSort(); }
+  RobSubstitution::VarSpec varSpec();
+
+  unsigned functor()   ;//{ return derefTerm().term()->functor(); }
+  unsigned nTypeArgs() ;//{ return derefTerm().term()->numTypeArguments(); }
+  unsigned nTermArgs() ;//{ return derefTerm().term()->numTermArguments(); }
+  bool isNumeral()     ;//{ return derefTerm().isTerm() && env.signature->getFunction(functor())->numericConstant(); }
+  bool isGround()      ;//{ return _subs->apply(_term, _index).ground(); }
   MismatchHandlerTerm termArg(unsigned i);
   MismatchHandlerTerm typeArg(unsigned i);
   auto typeArgs() { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
   auto termArgs() { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
+  auto allArgs() { return concatIters(typeArgs(), termArgs()); }
+  TermList toTerm();
 };
 
 class UnificationConstraint
 {
-  TermList _term1; int _index1;
-  TermList _term2; int _index2;
-  friend class RobSubstitution;
+  MismatchHandlerTerm _t1;
+  MismatchHandlerTerm _t2;
 public:
+  // TODO get rid of default constr
+  UnificationConstraint() {}
   CLASS_NAME(UnificationConstraint)
   USE_ALLOCATOR(UnificationConstraint)
+  auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2); }
+  IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
+  IMPL_HASH_FROM_TUPLE(UnificationConstraint);
 
   UnificationConstraint(MismatchHandlerTerm const& t1, MismatchHandlerTerm const& t2)
-  : _term1(t1._term), _index1(t1._index)
-  , _term2(t2._term), _index2(t2._index)
+  : _t1(t1), _t2(t2)
   { ASS(t1._subs == t2._subs) }
 
-  Option<Literal*> toLiteral(RobSubstitution& s) const;
+  Option<Literal*> toLiteral();
 
-  MismatchHandlerTerm lhs(RobSubstitution& s) const { return MismatchHandlerTerm(s, _term1, _index1); }
-  MismatchHandlerTerm rhs(RobSubstitution& s) const { return MismatchHandlerTerm(s, _term2, _index2); }
+  MismatchHandlerTerm& lhs() { return _t1; }
+  MismatchHandlerTerm& rhs() { return _t2; }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
-  { return out << self._term1 << "/" << self._index1 << " != " << self._term2 << "/" << self._index2; }
+  { return out << self._t1 << " != " << self._t2; }
 
 };
 
@@ -105,9 +114,9 @@ public:
 
   Recycled<Stack<Literal*>> literals(RobSubstitution& s);
 
-  auto literalIter(RobSubstitution& s)
+  auto literalIter()
   { return iterTraits(_cont.iter())
-              .filterMap([&s](auto const& c) { return c.toLiteral(s); }); }
+              .filterMap([](auto& c) { return c.toLiteral(); }); }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
   { return out << self._cont; }
@@ -119,38 +128,6 @@ public:
   { return _cont.isEmpty(); }
 
   void add(UnificationConstraint c, Option<BacktrackData&> bd);
-};
-
-class AbstractingUnifier {
-  Recycled<RobSubstitution> _subs;
-  Recycled<UnificationConstraintStack> _constr;
-  Option<BacktrackData&> _bd;
-  MismatchHandler* _uwa;
-  friend class RobSubstitution;
-public:
-  // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
-  { }
-
-  bool isRecording() { return _subs->bdIsRecording(); }
-
-  void add(UnificationConstraint c) 
-  { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
-                                                      : Option<BacktrackData&>()              ); }
-
-  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2)
-  { 
-    return _subs->unify(t1, bank1, t2, bank2, _uwa, this); 
-  }
-
-
-  UnificationConstraintStack& constr() { return *_constr; }
-  Recycled<Stack<Literal*>> constraintLiterals() { return _constr->literals(*_subs); }
-
-  RobSubstitution& subs() { return *_subs; }
-  void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
-  void bdDone() { _subs->bdDone(); }
-  bool usesUwa() const { return _uwa != nullptr; }
 };
 
 using Action = std::function<bool(unsigned, MismatchHandlerTerm)>;
@@ -186,6 +163,39 @@ public:
 
   static unique_ptr<MismatchHandler> create();
   static unique_ptr<MismatchHandler> createOnlyHigherOrder();
+};
+
+class AbstractingUnifier {
+  Recycled<RobSubstitution> _subs;
+  Recycled<UnificationConstraintStack> _constr;
+  Option<BacktrackData&> _bd;
+  MismatchHandler* _uwa;
+  friend class RobSubstitution;
+public:
+  // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
+  AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
+  { }
+
+  bool isRecording() { return _subs->bdIsRecording(); }
+
+  void add(UnificationConstraint c) 
+  { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
+                                                      : Option<BacktrackData&>()              ); }
+
+  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+  // { 
+  //   return _subs->unify(t1, bank1, t2, bank2, _uwa, this); 
+  // }
+
+
+  UnificationConstraintStack& constr() { return *_constr; }
+  Recycled<Stack<Literal*>> constraintLiterals() { return _constr->literals(*_subs); }
+
+  RobSubstitution& subs() { return *_subs; }
+  void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+  void bdDone() { _subs->bdDone(); }
+  bool usesUwa() const { return _uwa != nullptr; }
+
 };
 
 class UWAMismatchHandler final : public MismatchHandler

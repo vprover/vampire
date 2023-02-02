@@ -18,6 +18,7 @@
 
 #include "Stack.hpp"
 #include "DArray.hpp"
+#include <initializer_list>
 
 namespace Lib
 {
@@ -50,6 +51,15 @@ public:
     : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
     , _reset()
   { }
+
+
+  template<class A>
+  Recycled(std::initializer_list<A> list)
+    : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
+    , _reset()
+  {
+    _ptr.init(list);
+  }
 
 
   template<class A, class... As>
