@@ -115,6 +115,27 @@ struct VectorHash {
   }
 };
 
+template<class InnerHash> 
+struct TupleHash {
+
+  template <std::size_t Index, typename... Ts>
+  static inline typename std::enable_if<Index == sizeof...(Ts), unsigned>::type
+  tuple_hash_impl(const std::tuple<Ts...> &t) { return 0; }
+
+  template <std::size_t Index, typename... Ts>
+  static inline typename std::enable_if<Index < sizeof...(Ts), unsigned>::type
+  tuple_hash_impl(const std::tuple<Ts...> &t) 
+  { return Lib::HashUtils::combine(tuple_hash_impl<Index + 1>(t), InnerHash::hash(std::get<Index>(t))); }
+
+
+  template<typename... T>
+  static unsigned hash(tuple<T...> const& s) {
+    //C++17: repace with std::apply:
+    // return std::apply(s, [](auto... args) { return HashUtils::combine(hash(args)...); });
+    return tuple_hash_impl<0>(s);
+  }
+};
+
 /**
  * The default hash function (FNV-1a), overloaded for various types
  * Caveat: this implements the 32-bit variant of FNV-1a
@@ -200,6 +221,7 @@ public:
     );
   }
 
+
   /**
    * FNV-1a with initial value @b hash.
    * @since 31/03/2006
@@ -229,6 +251,12 @@ public:
     }
     return hash;
   }
+
+
+
+  template<typename... T>
+  static unsigned hash(tuple<T...> const& s) 
+  { return TupleHash<DefaultHash>::hash(s); }
 };
 
 // a default secondary hash for doubly-hashed containers
@@ -297,6 +325,10 @@ public:
       DefaultHash2::hash(pp.second)
     );
   }
+  template<typename... T>
+  static unsigned hash(tuple<T...> const& s) 
+  { return TupleHash<DefaultHash2>::hash(s); }
+
 };
 
 } // namespace Lib
@@ -309,6 +341,12 @@ template<class T> struct hash<Lib::Stack<T>>
   { return Lib::StackHash<Lib::StlHash>::hash(s); }
 };
 
-}
+
+template<class... T> struct hash<tuple<T...>> 
+{
+  size_t operator()(tuple<T...> const& s) const 
+  { return Lib::DefaultHash::hash(s); }
+};
+} // std
 
 #endif

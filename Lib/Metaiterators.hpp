@@ -1966,6 +1966,11 @@ public:
   auto fold(F fun)
   { return fold(next(), std::move(fun)); }
 
+  template<class OtherIter>
+  auto zip(OtherIter other)
+  { return map([other = std::move(other)](Elem x) mutable { return make_pair(std::move(x), other.next()); }); }
+
+
   auto sum()
   { return fold(Elem(0), [](Elem l, Elem r) { return l + r; }); }
 
