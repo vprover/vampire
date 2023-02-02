@@ -1085,7 +1085,6 @@ ROB_UNIFY_TEST_FAIL(over_approx_test_2_good,
     f2(b + a, c))
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_bad,
-
     Options::UnificationWithAbstraction::AC1,
     f2(x, a + x),
     f2(b, b + a),
@@ -1105,3 +1104,13 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_good,
       .constraints = Stack<Literal*>{},
     })
 
+
+ROB_UNIFY_TEST(ac_test_01,
+    Options::UnificationWithAbstraction::AC1,
+    f2(b, a + b + c),
+    f2(b, x + y + c),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(b, a + b + c),
+      .resultSigma = f2(b, a + b + c),
+      .constraints = { a + b != x + y },
+    })

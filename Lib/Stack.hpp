@@ -288,6 +288,33 @@ public:
     return _stack[n];
   }
 
+  friend int cmp(const Stack& l, const Stack& r)
+  {
+    CALL("Stack::operator<");
+
+    int sdiff = int(l.size()) - int(r.size());
+    if(sdiff) return sdiff;
+    
+    auto i1 = l.iterFifo();
+    auto i2 = r.iterFifo();
+    while (i1.hasNext()) {
+      auto e1 = i1.next();
+      auto e2 = i2.next();
+      if (e1 != e2) {
+        if (e1 < e2) return -1;
+        if (e1 > e2) return 1;
+      }
+    }
+    ASS(!i2.hasNext())
+    return 0;
+  }
+
+  friend bool operator< (const Stack& l, const Stack& r) { return cmp(l,r) <  0; }
+  friend bool operator<=(const Stack& l, const Stack& r) { return cmp(l,r) <= 0; }
+  friend bool operator> (const Stack& l, const Stack& r) { return cmp(l,r) >  0; }
+  friend bool operator>=(const Stack& l, const Stack& r) { return cmp(l,r) >= 0; }
+
+
   bool operator==(const Stack& o) const
   {
     CALL("Stack::operator==");

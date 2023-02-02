@@ -182,32 +182,42 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Misma
       a1.sort();
       a2.sort();
 
-      auto collectDiffSyms = [](auto const& lhs, auto const& rhs) {
-        Stack<unsigned> diffSym;
-        for (auto a : iterSortedDiff(lhs.iterFifo(), rhs.iterFifo())) {
-          if (a.isAnyVar()) {
-            return Option<decltype(diffSym)>(); //some(AbstractionResult(EqualIf({}, {UnificationConstraint(t1, t2)})));
-          } else {
-            diffSym.push(a.functor());
-          }
-        }
-        return some(std::move(diffSym));
+      // auto collectDiffSyms = [](auto const& lhs, auto const& rhs) {
+      //   Stack<unsigned> diffSym;
+      //   bool containsVar = false;
+      //   for (auto a : iterSortedDiff(lhs.iterFifo(), rhs.iterFifo())) {
+      //     if (a.isAnyVar()) {
+      //       containsVar = true;
+      //     }
+      //       diffSym.push(a.functor());
+      //   }
+      //   return some(std::move(diffSym));
+      // };
+
+      auto diff1 = iterSortedDiff(a1.iterFifo(), a2.iterFifo()).template collect<Stack>();
+      auto diff2 = iterSortedDiff(a2.iterFifo(), a1.iterFifo()).template collect<Stack>();
+      auto diffConstr = [&]() {
+        auto sum = [](auto& diff) {
+            return iterTraits(diff.iterFifo())
+              .fold([](auto l, auto r) 
+                { return MismatchHandlerTerm(IntTraits::addF(), { l, r, }); }); };
+        return UnificationConstraint(sum(diff1), sum(diff2));
       };
 
-      auto diff1 = collectDiffSyms(a1, a2);
-      if (!diff1) return some(AbstractionResult(EqualIf({}, {UnificationConstraint(t1, t2)})));
-      auto diff2 = collectDiffSyms(a2, a1);
-      if (!diff2) return some(AbstractionResult(EqualIf({}, {UnificationConstraint(t1, t2)})));
+      auto functors = [](auto& diff) 
+      { return iterTraits(diff.iterFifo()).map([](auto f) { return f.functor(); }); };
 
-      if (diff1->size() == 0 && diff2->size() == 0) {
+      if (diff1.size() == 0 && diff2.size() == 0) {
         return some(AbstractionResult(EqualIf({}, {})));
+      } else if (concatIters(diff1.iterFifo(), diff2.iterFifo()).any([](auto x) { return x.isAnyVar(); })) {
+        return some(AbstractionResult(EqualIf({}, {diffConstr()})));
 
-      } else if (iterSortedDiff(diff1->iterFifo(), diff2->iterFifo()).hasNext()
-              || iterSortedDiff(diff2->iterFifo(), diff1->iterFifo()).hasNext()) {
+      } else if (iterSortedDiff(diff1.iterFifo(), diff2.iterFifo()).hasNext()
+              || iterSortedDiff(diff2.iterFifo(), diff1.iterFifo()).hasNext()) {
         return some(AbstractionResult(NeverEqual{}));
 
       } else {
-        return some(AbstractionResult(EqualIf({}, {UnificationConstraint(t1, t2)})));
+        return some(AbstractionResult(EqualIf({}, {diffConstr()})));
       }
 
 

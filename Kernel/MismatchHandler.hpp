@@ -45,6 +45,7 @@ public:
   IMPL_COMPARISONS_FROM_TUPLE(MismatchHandlerTerm)
   friend std::ostream& operator<<(std::ostream& out, MismatchHandlerTerm const& self);
   MismatchHandlerTerm(RobSubstitution& subs, TermList self, int index);
+  MismatchHandlerTerm(unsigned functor, std::initializer_list<MismatchHandlerTerm> args);
 
   unsigned normalVarNumber() { return derefTerm().var(); }
 
@@ -127,7 +128,7 @@ class AbstractingUnifier {
   MismatchHandler* _uwa;
   friend class RobSubstitution;
 public:
-  DEFAULT_CONSTRUCTORS(AbstractingUnifier)
+  // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
   AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
   { }
 
