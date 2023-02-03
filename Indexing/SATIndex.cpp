@@ -33,7 +33,6 @@ SATIndex::~SATIndex() {
 
 void SATIndex::insert(TermList term) {
   CALL("SATIndex::insert")
-  std::cout << "insert: " << term.toString() << std::endl;
 
   // get a new variable for a term
   Minisat::Lit termLiteral = freshTermLiteral(term);
@@ -46,40 +45,93 @@ void SATIndex::insert(TermList term) {
 
 void SATIndex::prepareUnifications(TermList query) {
   CALL("SATIndex::prepareUnifications")
-  std::cout << "unifications: " << query.toString() << std::endl;
 
   _query = query;
   _assumptions.clear();
   _assumptions.push(~_lastLink);
   _next = _terms.size();
+
+  Stack<std::pair<TermList, unsigned>> todo;
+  todo.push({query, 0});
+  while(todo.isNonEmpty()) {
+    auto next = todo.pop();
+    if(next.first.isVar())
+      continue;
+    Term *term = next.first.term();
+    _assumptions.push(symbolOccursAt(term->functor(), next.second));
+
+    for(unsigned i = 0; i < term->arity(); i++)
+      todo.push({(*term)[i], position(next.second, i)});
+  }
 }
 
 TermList SATIndex::next() {
   CALL("SATIndex::next")
 
-  do {
+  TermList empty;
+  empty.makeEmpty();
+  while(true) {
     for(; _next < _terms.size(); _next++) {
       if(_terms[_next].isEmpty() || _solver.modelValue(_next) == Minisat::l_False)
         continue;
 
       TermList candidate = _terms[_next];
-      std::cout << "candidate: " << candidate.toString() << std::endl;
       _assumptions.push(~Minisat::mkLit(_next));
 
       _substitution->reset();
       if(_substitution->unify(_query, 0, candidate, 1)) {
-        std::cout << "success: " << _substitution->toString() << std::endl;
         _next++;
         return candidate;
       }
+      else
+        explain(candidate, _next);
     }
-    _next = 0;
-  } while(_solver.solve(_assumptions));
+    if(!_solver.solve(_assumptions))
+      return empty;
 
-  std::cout << "done" << std::endl;
-  TermList empty;
-  empty.makeEmpty();
-  return empty;
+    _next = 0;
+  }
+}
+
+struct Unify {
+  unsigned position;
+  TermList query;
+  TermList candidate;
+};
+
+void SATIndex::explain(TermList candidate, unsigned candidateVariable) {
+  CALL("SATIndex::explain")
+
+  Minisat::Lit candidateLiteral = Minisat::mkLit(candidateVariable);
+  Stack<Unify> todo;
+  todo.push({0, _query, candidate});
+  while(todo.isNonEmpty()) {
+    Unify next = todo.pop();
+    if(next.query.isVar() || next.candidate.isVar())
+      continue;
+
+    Term *query = next.query.term();
+    Term *candidate = next.candidate.term();
+    if(query->functor() != candidate->functor()) {
+      Minisat::Lit querySymbol = symbolOccursAt(query->functor(), next.position);
+      Minisat::Lit candidateSymbol = symbolOccursAt(candidate->functor(), next.position);
+
+      if(_termSymbols.insert({candidateVariable, var(candidateSymbol)}))
+        _solver.addClause(~candidateLiteral, candidateSymbol);
+
+      if(querySymbol < candidateSymbol)
+        std::swap(querySymbol, candidateSymbol);
+
+      if(_symbolMismatches.insert({var(querySymbol), var(candidateSymbol)}))
+        _solver.addClause(~querySymbol, ~candidateSymbol);
+
+      return;
+    }
+
+    for(unsigned i = 0; i < query->arity(); i++)
+      todo.push({position(next.position, i), (*query)[i], (*candidate)[i]});
+  }
+  //std::cout << "cannot explain: " << _query.toString() << " != " << candidate.toString() << std::endl;
 }
 
 Minisat::Lit SATIndex::freshLiteral() {
@@ -96,6 +148,21 @@ Minisat::Lit SATIndex::freshTermLiteral(TermList term) {
   auto literal = Minisat::mkLit(_solver.newVar());
   _terms.push(term);
   return literal;
+}
+
+Minisat::Lit SATIndex::symbolOccursAt(unsigned functor, unsigned position) {
+  CALL("SATIndex::symbolOccursAt")
+  Minisat::Lit *literal;
+  if(_symbolsOccurAt.getValuePtr({functor, position}, literal))
+    *literal = freshLiteral();
+
+  return *literal;
+}
+
+unsigned SATIndex::position(unsigned parent, unsigned argument) {
+  CALL("SATIndex::termLiteral")
+  unsigned result = _positions.findOrInsert({parent, argument}, _positions.size() + 1);
+  return result;
 }
 
 void SATTermIndex::insert(TermList term, Literal *literal, Clause* clause) {

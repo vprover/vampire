@@ -62,10 +62,18 @@ private:
   // return next query result, empty if no more results
   TermList next();
 
+  // why didn't this work? add constraints to the solver to prevent it happening again
+  void explain(TermList candidate, unsigned candidateVariable);
+
   // create a new positive literal
   Minisat::Lit freshLiteral();
   // create a new positive literal for a term
   Minisat::Lit freshTermLiteral(TermList term);
+  // positive literal for a symbol occurring in a position
+  Minisat::Lit symbolOccursAt(unsigned functor, unsigned position);
+
+  // create a position from a parent position and an argument index
+  unsigned position(unsigned parent, unsigned argument);
 
   // the current query term
   TermList _query;
@@ -87,6 +95,18 @@ private:
 
   // next term to check in the model
   unsigned _next;
+
+  // positions
+  DHMap<std::pair<unsigned, unsigned>, unsigned> _positions;
+
+  // symbols occuring at positions
+  DHMap<std::pair<unsigned, unsigned>, Minisat::Lit> _symbolsOccurAt;
+
+  // term has a symbol occuring at a position
+  DHSet<std::pair<unsigned, unsigned>> _termSymbols;
+
+  // different symbols can't occur at the same position
+  DHSet<std::pair<unsigned, unsigned>> _symbolMismatches;
 };
 
 class SATTermIndex: public TermIndexingStructure {
