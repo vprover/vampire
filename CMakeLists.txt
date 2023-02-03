@@ -386,6 +386,8 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
+    Indexing/SATIndex.hpp
+    Indexing/SATIndex.cpp
     )
 source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
