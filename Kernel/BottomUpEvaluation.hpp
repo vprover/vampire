@@ -133,7 +133,6 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   recState->push(BottomUpChildIter<Arg>(term));
 
   while (!recState->isEmpty()) {
-
     if (recState->top().hasNext()) {
       Arg t = recState->top().next();
 
@@ -158,7 +157,6 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
           });
 
       DEBUG("evaluated: ", orig.self(), " -> ", eval);
-
       recResults->pop(orig.nChildren());
       recResults->push(std::move(eval));
     }
@@ -181,6 +179,19 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   return evaluateBottomUp(term, evaluateStep, memo);
 }
 
+
+template<class R, class A, class F>
+R evalBottomUp(A const& term, F fun)
+{
+  struct Eval {
+    using Result = R;
+    using Arg = A;
+    F& fun;
+    Result operator()(Arg const& a, Result* rs)
+    { return fun(a,rs); }
+  };
+  return evaluateBottomUp(term, Eval{fun});
+}
 
 
 } // namespace Lib

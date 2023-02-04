@@ -179,7 +179,7 @@ start:
       bool removeProblematicNode=false;
       if(svBindings.find(boundVar)) {
 	TermList term=svBindings.get(boundVar);
-	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
+	bool wouldDescendIntoChild = inode->childByTop(term.top(),false)!=0;
 	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
 	if(!wouldDescendIntoChild) {
 	  //if we'd have to perform all postponed splitting due to
@@ -218,7 +218,7 @@ start:
 
       *pnode=newNode;
 
-      Node** nodePosition=newNode->childByTop(node->term, true);
+      Node** nodePosition=newNode->childByTop(node->term.top(), true);
       ASS(!*nodePosition);
       *nodePosition=node;
     }
@@ -237,7 +237,7 @@ start:
   //So in the case we do insert, we might check whether this node
   //needs expansion.
   Node** pparent=pnode;
-  pnode=inode->childByTop(term,true);
+  pnode=inode->childByTop(term.top(),true);
 
   if (*pnode == 0) {
     BindingMap::Iterator svit(svBindings);
@@ -254,7 +254,7 @@ start:
       term=b.term;
 
       *pnode = inode;
-      pnode = inode->childByTop(term,true);
+      pnode = inode->childByTop(term.top(),true);
     }
     Leaf* lnode=createLeaf(term);
     *pnode=lnode;
@@ -371,7 +371,7 @@ void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
 
-    pnode=inode->childByTop(t,false);
+    pnode=inode->childByTop(t.top(),false);
     ASS(pnode);
 
 
@@ -436,7 +436,7 @@ void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
     } else {
       Node* node=*pnode;
       IntermediateNode* parent=static_cast<IntermediateNode*>(*history.top());
-      parent->remove(term);
+      parent->remove(term.top());
       delete node;
       pnode=history.pop();
       ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode));
@@ -461,7 +461,7 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
 
-    Node** child=inode->childByTop(t,false);
+    Node** child=inode->childByTop(t.top(),false);
     if(!child) {
       return 0;
     }
@@ -552,7 +552,7 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
   where->makeSpecialVar(var);
 
-  Node** nodePosition=newNode->childByTop(node->term, true);
+  Node** nodePosition=newNode->childByTop(node->term.top(), true);
   ASS(!*nodePosition);
   *nodePosition=node;
 }
@@ -563,7 +563,7 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 
   while(children.hasNext()) {
     Node* ext=*children.next();
-    Node** own=childByTop(ext->term, true);
+    Node** own=childByTop(ext->term.top(), true);
     ASS(! *own);
     *own=ext;
   }

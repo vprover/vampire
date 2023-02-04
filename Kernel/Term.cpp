@@ -237,6 +237,10 @@ bool TermList::equals(TermList t1, TermList t2)
   return true;
 }
 
+TermList::Top TermList::top() const
+{ return isTerm() ? TermList::Top::functor(term()->functor()) 
+                  : TermList::Top::var(var());            }
+
 /**
  * Return true if all proper terms in the @ args list are shared
  */
@@ -1495,7 +1499,7 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
  *  structure if all arguments are shared.
  * @since 07/01/2008 Torrevieja
  */
-AtomicSort* AtomicSort::create(AtomicSort* sort,TermList* args)
+AtomicSort* AtomicSort::create(AtomicSort const* sort,TermList* args)
 {
   CALL("AtomicSort::create/2");
 

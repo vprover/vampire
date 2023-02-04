@@ -624,7 +624,7 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
     ASS(nl); //inode is not empty
     if(query.isTerm()) {
       //only term with the same top functor will be matched by a term
-      Node** byTop=inode->childByTop(query, false);
+      Node** byTop=inode->childByTop(query.top(), false);
       if(byTop) {
 	curr=*byTop;
       }

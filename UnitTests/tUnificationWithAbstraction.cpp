@@ -1069,48 +1069,70 @@ ROB_UNIFY_TEST(rob_unif_test_06,
 //     f2(x, x + b),
 //     f2(a, a    ))
 
-ROB_UNIFY_TEST(over_approx_test_2_bad,
+ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
     Options::UnificationWithAbstraction::AC1,
     f2(x, a + x),
     f2(c, b + a),
     TermUnificationResultSpec { 
       .querySigma  = f2(c, a + c),
       .resultSigma = f2(c, b + a),
-      .constraints = { a + c != b + a },
+      .constraints = { c != b },
     })
 
-ROB_UNIFY_TEST_FAIL(over_approx_test_2_good,
+ROB_UNIFY_TEST_FAIL(over_approx_test_2_good_AC1,
     Options::UnificationWithAbstraction::AC1,
     f2(a + x, x),
     f2(b + a, c))
 
-ROB_UNIFY_TEST(bottom_constraint_test_1_bad,
+ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
     Options::UnificationWithAbstraction::AC1,
-    f2(x, a + x),
-    f2(b, b + a),
+    f2(f2(y, x), a + y + x),
+    f2(f2(b, c), c + b + a),
     TermUnificationResultSpec { 
-      .querySigma  = f2(b, a + b),
-      .resultSigma = f2(b, b + a),
-      .constraints = { a + b != b + a },
+      .querySigma  = f2(f2(b,c), a + b + c),
+      .resultSigma = f2(f2(b,c), c + b + a),
+      .constraints = Stack<Literal*>{ b + c != c + b },
     })
 
-ROB_UNIFY_TEST(bottom_constraint_test_1_good,
+ROB_UNIFY_TEST(bottom_constraint_test_1_good_AC1,
     Options::UnificationWithAbstraction::AC1,
-    f2(a + x, x),
-    f2(b + a, b),
+    f2(a + x + y, f2(x, y)),
+    f2(c + b + a, f2(b, c)),
+    // f2(a + x, x),
+    // f2(b + a, b),
     TermUnificationResultSpec { 
-      .querySigma  = f2(a + b, b),
-      .resultSigma = f2(b + a, b),
+      .querySigma  = f2(a + b + c, f2(b,c)),
+      .resultSigma = f2(c + b + a, f2(b,c)),
       .constraints = Stack<Literal*>{},
     })
 
 
-ROB_UNIFY_TEST(ac_test_01,
+ROB_UNIFY_TEST(ac_test_01_AC1,
     Options::UnificationWithAbstraction::AC1,
     f2(b, a + b + c),
     f2(b, x + y + c),
     TermUnificationResultSpec { 
       .querySigma  = f2(b, a + b + c),
-      .resultSigma = f2(b, a + b + c),
+      .resultSigma = f2(b, x + y + c),
       .constraints = { a + b != x + y },
+    })
+
+ROB_UNIFY_TEST(ac_test_02_AC1_bad,
+    Options::UnificationWithAbstraction::AC1,
+    f2(a + b + c, c),
+    f2(x + y + z, z),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(a + b + c, c),
+      .resultSigma = f2(x + y + c, c),
+      .constraints = { a + b != x + y },
+    })
+
+ROB_UNIFY_TEST(ac_test_02_AC1_good,
+    Options::UnificationWithAbstraction::AC1,
+    f2(c, a + b + c),
+    f2(z, x + y + z),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(c, a + b + c),
+      .resultSigma = f2(c, x + y + c),
+      .constraints = { a + b + c != x + y + c },
     })

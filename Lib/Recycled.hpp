@@ -53,13 +53,13 @@ public:
   { }
 
 
-  template<class A>
-  Recycled(std::initializer_list<A> list)
-    : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
-    , _reset()
-  {
-    _ptr.init(list);
-  }
+  // template<class A>
+  // Recycled(std::initializer_list<A> list)
+  //   : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
+  //   , _reset()
+  // {
+  //   _ptr.init(list);
+  // }
 
 
   template<class A, class... As>
@@ -67,7 +67,7 @@ public:
     : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
     , _reset()
   {
-    _ptr.init(std::forward<A, As...>(a, as...));
+    _ptr.init(a, as...);
   }
 
   Recycled(Recycled&& other) = default;

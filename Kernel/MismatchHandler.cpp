@@ -35,46 +35,46 @@ namespace Kernel
 {
 
   
-// pair<TermList, int>& MismatchHandlerTerm::deref()
+// pair<TermList, int>& TermSpec::deref()
 // { return _deref.unwrapOrInit([&]() { 
 //     auto t = _subs->derefBound(RobSubstitution::TermSpec(_term, _index));
 //     return make_pair(t.term, t.index);
 //   }); }
 
-// MismatchHandlerTerm MismatchHandlerTerm::termArg(unsigned i)
-// { return MismatchHandlerTerm(*_subs, term()->termArg(i), index(i + nTypeArgs())); }
+// TermSpec TermSpec::termArg(unsigned i)
+// { return TermSpec(*_subs, term()->termArg(i), index(i + nTypeArgs())); }
 
-// MismatchHandlerTerm::MismatchHandlerTerm(RobSubstitution& subs, TermList term, int index)
+// TermSpec::TermSpec(RobSubstitution& subs, TermList term, int index)
 //   : _subs(&subs)
 //   , _self(make_pair(term, index))
 // {
 // }
 
 
-// MismatchHandlerTerm MismatchHandlerTerm::typeArg(unsigned i)
-// { return MismatchHandlerTerm(*_subs, term()->typeArg(i), index(i)); }
+// TermSpec TermSpec::typeArg(unsigned i)
+// { return TermSpec(*_subs, term()->typeArg(i), index(i)); }
 
-// unique_ptr<MismatchHandler> MismatchHandler::create()
-// {
-//   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-//     return make_unique<UWAMismatchHandler>();
-//   } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
-//     // TODO  ask ahmed: are this the corret options for higher order abstraction
-//     return make_unique<HOMismatchHandler>();
-//   } else {
-//     return unique_ptr<MismatchHandler>();
-//   }
-// }
-//
-// unique_ptr<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
-// {
-//   if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
-//     // TODO  ask ahmed: are this the corret options for higher order abstraction
-//     return make_unique<HOMismatchHandler>();
-//   } else {
-//     return unique_ptr<MismatchHandler>();
-//   }
-// }
+unique_ptr<MismatchHandler> MismatchHandler::create()
+{
+  if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
+    return make_unique<UWAMismatchHandler>();
+  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+    // TODO  ask ahmed: are this the corret options for higher order abstraction
+    return make_unique<HOMismatchHandler>();
+  } else {
+    return unique_ptr<MismatchHandler>();
+  }
+}
+
+unique_ptr<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
+{
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+    // TODO  ask ahmed: are this the corret options for higher order abstraction
+    return make_unique<HOMismatchHandler>();
+  } else {
+    return unique_ptr<MismatchHandler>();
+  }
+}
 
 bool UWAMismatchHandler::isInterpreted(unsigned functor) const 
 {
@@ -85,17 +85,18 @@ bool UWAMismatchHandler::isInterpreted(unsigned functor) const
 
 class AcIter {
   unsigned _function;
-  Recycled<Stack<MismatchHandlerTerm>> _todo;
+  Recycled<Stack<TermSpec>> _todo;
+  RobSubstitution const* _subs;
 public:
-  AcIter(unsigned function, MismatchHandlerTerm t) : _function(function), _todo(std::initializer_list<MismatchHandlerTerm>{ t }) {  }
-  DECL_ELEMENT_TYPE(MismatchHandlerTerm);
+  AcIter(unsigned function, TermSpec t, RobSubstitution const* subs) : _function(function), _todo(std::initializer_list<TermSpec>{ t }), _subs(subs) {  }
+  DECL_ELEMENT_TYPE(TermSpec);
 
   bool hasNext() const { return !_todo->isEmpty(); }
 
-  MismatchHandlerTerm next() {
+  TermSpec next() {
     ASS(!_todo->isEmpty());
     while (true){
-      auto t = _todo->pop();
+      auto t = _todo->pop().deref(_subs);
       while (t.isTerm() && t.functor() == _function) {
         ASS_EQ(t.nTermArgs(), 2);
         _todo->push(t.termArg(1));
@@ -106,10 +107,10 @@ public:
   }
 };
 
-auto acIter(unsigned f, MismatchHandlerTerm t)
-{ return iterTraits(AcIter(f, t)); }
+// auto acIter(unsigned f, TermSpec t)
+// { return iterTraits(AcIter(f, t)); }
 
-bool UWAMismatchHandler::canAbstract(Shell::Options::UnificationWithAbstraction opt, MismatchHandlerTerm t1, MismatchHandlerTerm t2) const 
+bool UWAMismatchHandler::canAbstract(Shell::Options::UnificationWithAbstraction opt, TermSpec t1, TermSpec t2) const 
 {
 
   if(!(t1.isTerm() && t2.isTerm())) return false;
@@ -140,7 +141,7 @@ bool UWAMismatchHandler::canAbstract(Shell::Options::UnificationWithAbstraction 
   ASSERTION_VIOLATION;
 }
 
-// bool UWAMismatchHandler::recheck(MismatchHandlerTerm t1, MismatchHandlerTerm t2) const
+// bool UWAMismatchHandler::recheck(TermSpec t1, TermSpec t2) const
 // { 
 //   static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
 //   if (opt == Shell::Options::UnificationWithAbstraction::GROUND) {
@@ -161,10 +162,10 @@ bool UWAMismatchHandler::canAbstract(Shell::Options::UnificationWithAbstraction 
 //
 // }
 
-std::ostream& operator<<(std::ostream& out, MismatchHandlerTerm const& self)
-{ return out << self._term << "/" << self._index << *self._subs; }
+// std::ostream& operator<<(std::ostream& out, TermSpec const& self)
+// { return out << self._term << "/" << self._index << *self._subs; }
 
-Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(MismatchHandlerTerm t1, MismatchHandlerTerm t2) const
+Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(AbstractingUnifier const* au, TermSpec t1, TermSpec t2) const
 {
   CALL("UWAMismatchHandler::checkUWA");
 
@@ -176,22 +177,10 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Misma
        || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
         return Option<AbstractionResult>();
       }
-      auto a1 = acIter(IntTraits::addF(), t1).template collect<Stack>();
-      auto a2 = acIter(IntTraits::addF(), t2).template collect<Stack>();
+      auto a1 = iterTraits(AcIter(IntTraits::addF(), t1, &au->subs())).template collect<Stack>();
+      auto a2 = iterTraits(AcIter(IntTraits::addF(), t2, &au->subs())).template collect<Stack>();
       a1.sort();
       a2.sort();
-
-      // auto collectDiffSyms = [](auto const& lhs, auto const& rhs) {
-      //   Stack<unsigned> diffSym;
-      //   bool containsVar = false;
-      //   for (auto a : iterSortedDiff(lhs.iterFifo(), rhs.iterFifo())) {
-      //     if (a.isAnyVar()) {
-      //       containsVar = true;
-      //     }
-      //       diffSym.push(a.functor());
-      //   }
-      //   return some(std::move(diffSym));
-      // };
 
       auto diff1 = iterSortedDiff(a1.iterFifo(), a2.iterFifo()).template collect<Stack>();
       auto diff2 = iterSortedDiff(a2.iterFifo(), a1.iterFifo()).template collect<Stack>();
@@ -199,7 +188,7 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Misma
         auto sum = [](auto& diff) {
             return iterTraits(diff.iterFifo())
               .fold([](auto l, auto r) 
-                { return MismatchHandlerTerm(IntTraits::addF(), { l, r, }); }); };
+                { return TermSpec(IntTraits::addF(), { l, r, }); }); };
         return UnificationConstraint(sum(diff1), sum(diff2));
       };
 
@@ -208,7 +197,8 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Misma
 
       if (diff1.size() == 0 && diff2.size() == 0) {
         return some(AbstractionResult(EqualIf({}, {})));
-      } else if (concatIters(diff1.iterFifo(), diff2.iterFifo()).any([](auto x) { return x.isAnyVar(); })) {
+
+      } else if (concatIters(diff1.iterFifo(), diff2.iterFifo()).any([](auto x) { return x.isVar(); })) {
         return some(AbstractionResult(EqualIf({}, {diffConstr()})));
 
       } else if (iterSortedDiff(functors(diff1), functors(diff2)).hasNext()
@@ -233,7 +223,8 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Misma
 }
 
 Option<MismatchHandler::AbstractionResult> HOMismatchHandler::tryAbstract(
-    MismatchHandlerTerm t1, MismatchHandlerTerm t2) const
+    AbstractingUnifier const* au, 
+    TermSpec t1, TermSpec t2) const
 {
   CALL("HOMismatchHandler::tryAbstract")
   ASS(t1.isTerm() || t2.isTerm())
@@ -245,9 +236,9 @@ Option<MismatchHandler::AbstractionResult> HOMismatchHandler::tryAbstract(
     || (t2.isTerm() && t2.isSort()) ) return Option<AbstractionResult>();
   if (t1.isTerm() && t2.isTerm()) {
     if (isApp(t1) && isApp(t2)) {
-      auto argSort1 = t1.typeArg(0);
-      auto argSort2 = t2.typeArg(0);
-      if (t1.isAnyVar() || t2.isAnyVar()
+      auto argSort1 = t1.typeArg(0).deref(&au->subs());
+      auto argSort2 = t2.typeArg(0).deref(&au->subs());
+      if (t1.isVar() || t2.isVar()
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
        ) {
@@ -274,15 +265,15 @@ Recycled<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& 
 { 
   Recycled<Stack<Literal*>> out;
   out->reserve(_cont.size());
-  out->loadFromIterator(literalIter());
+  out->loadFromIterator(literalIter(s));
   return out;
 }
 
 
-Option<Literal*> UnificationConstraint::toLiteral()
+Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 { 
-  auto t1 = _t1.toTerm();
-  auto t2 = _t2.toTerm();
+  auto t1 = _t1.toTerm(s);
+  auto t2 = _t2.toTerm(s);
   return t1 == t2 
     ? Option<Literal*>()
     : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));
@@ -294,9 +285,11 @@ Option<Literal*> UnificationConstraint::toLiteral()
 
 bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, unsigned bank2)
 {
+#define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
   CALL("AbstractionResult::unify");
-  MismatchHandlerTerm t1(this->subs(), term1, bank1);
-  MismatchHandlerTerm t2(this->subs(), term2, bank2);
+  TermSpec t1(term1, bank1);
+  TermSpec t2(term2, bank2);
+  DEBUG_UNIFY(1, *this, ".unify(", TermSpec(term1, bank1), ",", TermSpec(term2, bank2), ")")
 
   if(t1 == t2) {
     return true;
@@ -304,7 +297,9 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
 
   auto impl = [&]() -> bool {
 
-    Recycled<Stack<UnificationConstraint>> toDo{ UnificationConstraint(t1, t2),};
+    Recycled<Stack<UnificationConstraint>> toDo;
+    toDo->push(UnificationConstraint(t1, t2));
+    
     // Save encountered unification pairs to avoid
     // recomputing their unification
     Recycled<DHSet<UnificationConstraint>> encountered;
@@ -313,7 +308,7 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
     auto doAbstract = [&](auto l, auto r) -> bool
     { 
       if (!_uwa) return false;
-      absRes = _uwa->tryAbstract(l, r);
+      absRes = _uwa->tryAbstract(this, l, r);
       return absRes.isSome();
     };
 
@@ -334,11 +329,12 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
         }
     };
 
-    auto occurs = [](auto var, auto term) {
-      Recycled<Stack<MismatchHandlerTerm>> todo = { term };
+    auto occurs = [this](auto var, auto term) {
+      Recycled<Stack<TermSpec>> todo;
+      todo->init({ term });
       while (todo->isNonEmpty()) {
-        auto t = todo->pop().deref();
-        if (t.isAnyVar()) {
+        auto t = todo->pop().deref(&subs());
+        if (t.isVar()) {
           if (t == var) {
             return true;
           }
@@ -352,15 +348,15 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
 
     while (toDo->isNonEmpty()) {
       auto x = toDo->pop();
-      auto dt1 = x.lhs().deref();
-      auto dt2 = x.rhs().deref();
+      auto dt1 = x.lhs().deref(&subs());
+      auto dt2 = x.rhs().deref(&subs());
       if (dt1 == dt2) {
 
-      } else if(dt1.isAnyVar() && !occurs(dt1, dt2)) {
-        bind(dt1.varSpec(), dt2);
+      } else if(dt1.isVar() && !occurs(dt1, dt2)) {
+        subs().bind(dt1.varSpec(), dt2);
 
-      } else if(dt2.isAnyVar() && !occurs(dt2, dt1)) {
-        bind(dt2.varSpec(), dt1);
+      } else if(dt2.isVar() && !occurs(dt2, dt1)) {
+        subs().bind(dt2.varSpec(), dt1);
 
       } else if(doAbstract(dt1, dt2)) {
 
@@ -389,8 +385,8 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
         return false;
       }
 
-      return true;
     }
+    return true;
   };
 
   BacktrackData localBD;
@@ -407,5 +403,6 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
     localBD.drop();
   }
 
+  DEBUG_UNIFY(1, *this)
   return success;
 }

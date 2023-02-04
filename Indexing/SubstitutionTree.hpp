@@ -97,7 +97,7 @@ namespace Indexing {
       void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
       { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
-      TermList getSpecialVarTop(unsigned svar) 
+      TermList::Top getSpecialVarTop(unsigned svar) 
       { return _subs->getSpecialVarTop(svar); }
 
       bool usesUwa() const { return false; }
@@ -131,7 +131,7 @@ namespace Indexing {
       void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
       { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
-      TermList getSpecialVarTop(unsigned svar)
+      TermList::Top getSpecialVarTop(unsigned svar)
       { return _unif.subs().getSpecialVarTop(svar); }
 
       bool usesUwa() const
@@ -411,14 +411,14 @@ public:
      * If canCreate is false, null pointer is returned in case
      * suitable child does not exist.
      */
-    virtual Node** childByTop(TermList t, bool canCreate) = 0;
+    virtual Node** childByTop(TermList::Top t, bool canCreate) = 0;
 
 
     /**
      * Remove child which points to node with top symbol of @b t.
      * This node has to still exist in time of the call to remove method.
      */
-    virtual void remove(TermList t) = 0;
+    virtual void remove(TermList::Top t) = 0;
     /**
      * Remove all children of the node without destroying them.
      */
@@ -432,7 +432,7 @@ public:
       removeAllChildren();
     }
 
-    virtual void mightExistAsTop(TermList t) {
+    virtual void mightExistAsTop(TermList::Top t) {
     }
 
     void loadChildren(NodeIterator children);
@@ -533,8 +533,8 @@ public:
       return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
   	    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList t, bool canCreate);
-    void remove(TermList t);
+    virtual Node** childByTop(TermList::Top t, bool canCreate);
+    void remove(TermList::Top t);
 
 #if VDEBUG
     virtual void assertValid() const
@@ -596,7 +596,7 @@ public:
   		    NodeSkipList::PtrIterator(_nodes),
   		    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList t, bool canCreate)
+    virtual Node** childByTop(TermList::Top t, bool canCreate)
     {
       CALL("SubstitutionTree::SListIntermediateNode::childByTop");
 
@@ -612,11 +612,9 @@ public:
       }
       return res;
     }
-    inline
-    void remove(TermList t)
-    {
-      _nodes.remove(t);
-    }
+
+    inline void remove(TermList::Top t)
+    { _nodes.remove(t); }
 
     CLASS_NAME(SubstitutionTree::SListIntermediateNode);
     USE_ALLOCATOR(SListIntermediateNode);
@@ -624,26 +622,25 @@ public:
     class NodePtrComparator
     {
     public:
-      static Comparison compare(TermList t1,TermList t2)
+      static Comparison compare(TermList::Top t1, TermList::Top t2)
       {
-	CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
-
-	if(t1.isVar()) {
-	  if(t2.isVar()) {
-	    return Int::compare(t1.var(), t2.var());
-	  }
-	  return LESS;
-	}
-	if(t2.isVar()) {
-	  return GREATER;
-	}
-	return Int::compare(t1.term()->functor(), t2.term()->functor());
+        CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
+        if(t1.var()) {
+          if(t2.var()) {
+            return Int::compare(*t1.var(), *t2.var());
+          }
+          return LESS;
+        }
+        if(t2.var()) {
+          return GREATER;
+        }
+        return Int::compare(*t1.functor(), *t2.functor());
       }
 
       static Comparison compare(Node* n1, Node* n2)
-      { return compare(n1->term, n2->term); }
-      static Comparison compare(TermList t1, Node* n2)
-      { return compare(t1, n2->term); }
+      { return compare(n1->term.top(), n2->term.top()); }
+      static Comparison compare(TermList::Top t1, Node* n2)
+      { return compare(t1, n2->term.top()); }
     };
     typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
     NodeSkipList _nodes;
@@ -1424,11 +1421,11 @@ public:
       unsigned specVar=n->childVar;
       // TermList qt = _abstractingUnifier.subs().getSpecialVarTop(specVar);
       // TODO should this function really be part of algo?
-      TermList qt = _algo.getSpecialVarTop(specVar);
-      if(qt.isVar()) {
+      auto top = _algo.getSpecialVarTop(specVar);
+      if(top.var()) {
         return n->allChildren();
       } else {
-        Node** match=n->childByTop(qt, false);
+        Node** match=n->childByTop(top, false);
         if(match) {
           return pvi( 
             getConcatenatedIterator(

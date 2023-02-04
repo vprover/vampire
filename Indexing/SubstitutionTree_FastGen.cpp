@@ -502,7 +502,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
     ASS_EQ(currType, SKIP_LIST);
     auto nl=static_cast<SListIntermediateNode*>(inode)->_nodes.listLike();
     if(binding.isTerm()) {
-      Node** byTop=inode->childByTop(binding, false);
+      Node** byTop=inode->childByTop(binding.top(), false);
       if(byTop) {
 	curr=*byTop;
       }

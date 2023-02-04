@@ -61,5 +61,30 @@ template<class T>
 OutputMultiline<T> multiline(T const& self, unsigned indent)
 { return { self, indent, }; }
 
+template<class Sep, class Iter>
+struct OutputInterleaved { 
+  Sep const& sep; 
+  Iter iter; 
+};
+
+template<class Sep, class Iter>
+struct OutputInterleaved<Sep,Iter> outputInterleaved(Sep const& s, Iter i)
+{ return OutputInterleaved<Sep, Iter>{s, std::move(i)}; }
+
+template<class Sep, class Iter>
+std::ostream& operator<<(std::ostream& out, OutputInterleaved<Sep, Iter> self)
+{
+  if (self.iter.hasNext()) {
+    out << self.iter.next();
+    while (self.iter.hasNext()) {
+      out << self.sep << self.iter.next();
+    }
+  }
+  return out;
+}
+
+template<class Iter>
+auto commaSep(Iter i) { return outputInterleaved(", ", std::move(i)); }
+
 } // namespace Kernel
 #endif // __Debug_Output__
