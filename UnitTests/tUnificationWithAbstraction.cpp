@@ -1136,3 +1136,33 @@ ROB_UNIFY_TEST(ac_test_02_AC1_good,
       .resultSigma = f2(c, x + y + c),
       .constraints = { a + b + c != x + y + c },
     })
+
+ROB_UNIFY_TEST(ac2_test_01,
+    Options::UnificationWithAbstraction::AC2,
+    f2(x, a + b + c),
+    f2(x, x + b + a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(c, a + b + c),
+      .resultSigma = f2(c, c + b + a),
+      .constraints = Stack<Literal*>{},
+    })
+
+ROB_UNIFY_TEST(ac2_test_02,
+    Options::UnificationWithAbstraction::AC2,
+    f2(a + b + c, f2(x,b)),
+    f2(x + y + a, f2(x,y)),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(a + b + c, f2(c,b)),
+      .resultSigma = f2(c + b + a, f2(c,b)),
+      .constraints = Stack<Literal*>{},
+    })
+
+ROB_UNIFY_TEST(ac2_test_02_bad,
+    Options::UnificationWithAbstraction::AC2,
+    f2(f2(x,b), a + b + c),
+    f2(f2(x,y), x + y + a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(f2(x,b), a + b + c),
+      .resultSigma = f2(f2(x,b), x + b + a),
+      .constraints = Stack<Literal*>{ b + c != x + b },
+    })

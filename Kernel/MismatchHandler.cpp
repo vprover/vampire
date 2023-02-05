@@ -136,6 +136,7 @@ bool UWAMismatchHandler::canAbstract(Shell::Options::UnificationWithAbstraction 
     case Shell::Options::UnificationWithAbstraction::OFF:
       return false;
     case Shell::Options::UnificationWithAbstraction::AC1: 
+    case Shell::Options::UnificationWithAbstraction::AC2: 
       ASSERTION_VIOLATION
   }
   ASSERTION_VIOLATION;
@@ -168,11 +169,12 @@ bool UWAMismatchHandler::canAbstract(Shell::Options::UnificationWithAbstraction 
 Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(AbstractingUnifier const* au, TermSpec t1, TermSpec t2) const
 {
   CALL("UWAMismatchHandler::checkUWA");
+  using Uwa = Shell::Options::UnificationWithAbstraction;
 
 
   // TODO add parameter instead of reading from options
-  static Shell::Options::UnificationWithAbstraction opt = env.options->unificationWithAbstraction();
-  if (opt == Shell::Options::UnificationWithAbstraction::AC1) {
+  static Uwa opt = env.options->unificationWithAbstraction();
+  if (opt == Uwa::AC1 || opt == Uwa::AC2) {
       if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
        || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
         return Option<AbstractionResult>();
@@ -184,19 +186,28 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
 
       auto diff1 = iterSortedDiff(a1.iterFifo(), a2.iterFifo()).template collect<Stack>();
       auto diff2 = iterSortedDiff(a2.iterFifo(), a1.iterFifo()).template collect<Stack>();
-      auto diffConstr = [&]() {
-        auto sum = [](auto& diff) {
-            return iterTraits(diff.iterFifo())
-              .fold([](auto l, auto r) 
-                { return TermSpec(IntTraits::addF(), { l, r, }); }); };
-        return UnificationConstraint(sum(diff1), sum(diff2));
-      };
+      auto sum = [](auto& diff) {
+          return iterTraits(diff.iterFifo())
+            .fold([](auto l, auto r) 
+              { return TermSpec(IntTraits::addF(), { l, r, }); }); };
+      auto diffConstr = [&]() 
+      { return UnificationConstraint(sum(diff1), sum(diff2)); };
 
       auto functors = [](auto& diff) 
       { return iterTraits(diff.iterFifo()).map([](auto f) { return f.functor(); }); };
 
       if (diff1.size() == 0 && diff2.size() == 0) {
         return some(AbstractionResult(EqualIf({}, {})));
+
+      } else if (( diff1.size() == 0 && diff2.size() != 0 )
+              || ( diff2.size() == 0 && diff1.size() != 0 ) ) {
+        return some(AbstractionResult(NeverEqual{}));
+
+      } else if (opt == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
+        return some(AbstractionResult(EqualIf({ UnificationConstraint(diff1[0], sum(diff2)) }, {})));
+
+      } else if (opt == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
+        return some(AbstractionResult(EqualIf({ UnificationConstraint(diff2[0], sum(diff1)) }, {})));
 
       } else if (concatIters(diff1.iterFifo(), diff2.iterFifo()).any([](auto x) { return x.isVar(); })) {
         return some(AbstractionResult(EqualIf({}, {diffConstr()})));

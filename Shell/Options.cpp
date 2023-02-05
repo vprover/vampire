@@ -1189,7 +1189,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                      UnificationWithAbstraction::OFF,
-                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "ac1"});
+                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "ac1", "ac2"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "

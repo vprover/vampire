@@ -224,6 +224,7 @@ public:
     ALL,
     GROUND,
     AC1,
+    AC2,
   };
 
   enum class Induction : unsigned int {
