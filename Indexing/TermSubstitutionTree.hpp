@@ -59,7 +59,7 @@ public:
   USE_ALLOCATOR(TermSubstitutionTree);
   
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false)
-    : _inner(useC, replaceFunctionalSubterms)
+    : _inner(useC, replaceFunctionalSubterms, /* reservedSpecialVars */ 2 /* S0 -> term, S1 -> sort */ )
     { }
 
 

@@ -384,7 +384,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
 
           Term* s = ss->term();
           Term* t = tt->term();
-          ASS(s->arity() > 0);
+          ASS_REP(s->arity() > 0, s->toString() + " " + t->toString());
           ASS(s->functor() == t->functor());
 
           ss = s->args();

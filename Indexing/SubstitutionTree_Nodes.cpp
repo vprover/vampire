@@ -53,7 +53,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return pvi( typename LDList::RefIterator(_children) );
+    return pvi( iterTraits(typename LDList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   inline
   void insert(LeafData ld)
@@ -100,7 +100,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return pvi( typename LDSkipList::RefIterator(_children) );
+    return pvi( iterTraits(typename LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   void insert(LeafData ld) {
     CALL("SubstitutionTree::SListLeaf::insert");
@@ -225,8 +225,10 @@ typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafDat
   }else{
     res = new SListIntermediateNode(orig->term, orig->childVar);
   }
+  // TODO refactor such that children are not copied here, and deleted at (2), but moved instead
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
+  // TODO (2) see above
   delete orig;
   return res;
 }

@@ -65,12 +65,36 @@ namespace Indexing {
 
 template<class LeafData_>
 class SubstitutionTree;
-template<class LeafData_>
-std::ostream& operator<<(std::ostream& out, SubstitutionTree<LeafData_> const& self);
-template<class LeafData_>
-std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<LeafData_>> const& self);
 
-template<class Key> struct SubtitutionTreeConfig;
+#define VERBOSE_OUTPUT_OPERATORS 0
+
+template<class LeafData_>
+std::ostream& operator<<(std::ostream& out, SubstitutionTree<LeafData_> const& self)
+{
+#if VERBOSE_OUTPUT_OPERATORS
+  out << "{ nextVar: S" << self._nextVar << ", root: (";
+#endif // VERBOSE_OUTPUT_OPERATORS
+  if (self._root) {
+    out << *self._root;
+  } else {
+    out << "<empty tree>";
+  }
+#if VERBOSE_OUTPUT_OPERATORS
+  out << ") }";
+#endif // VERBOSE_OUTPUT_OPERATORS
+  return out;
+}
+
+template<class LeafData_>
+std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<LeafData_>> const& self)
+{
+  if (self.self._root) {
+    self.self._root->output(out, true, /* indent */ 0);
+  } else {
+    out << "<empty tree>";
+  }
+  return out;
+}
 
 /** a counter that is compiled away in release mode */
 struct Cntr {
@@ -131,36 +155,35 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(bool useC, bool rfSubs);
+  SubstitutionTree(bool useC, bool rfSubs, unsigned reservedSpecialVars);
 
   SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
   SubstitutionTree(SubstitutionTree&& other)
-  : SubstitutionTree(other._useC, /* rfSubst */ false)
+  : SubstitutionTree(other._useC, /* rfSubst */ false, 0)
   {
     std::swap(_nextVar, other._nextVar);
     std::swap(_useC, other._useC);
     std::swap(_functionalSubtermMap, other._functionalSubtermMap);
     std::swap(_root, other._root);
-#if VDEBUG
-    std::swap(_tag, other._tag);
-#endif
   }
 
 
   virtual ~SubstitutionTree();
 
-  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
+  friend std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& self);
+  friend std::ostream& Indexing::operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
 
-  typedef VirtualIterator<LeafData&> LDIterator;
+  typedef VirtualIterator<LeafData*> LDIterator;
 
   struct QueryResult {
     LeafData const* data; 
     ResultSubstitutionSP subst;
     UnificationConstraintStackSP constr;
 
-    QueryResult(LeafData const& ld) : data(&ld), subst(), constr() {};
-    QueryResult(LeafData const& ld, ResultSubstitutionSP subst, UnificationConstraintStackSP constr) : data(&ld), subst(subst), constr(constr) {}
+    QueryResult(LeafData const* ld, ResultSubstitutionSP subst, UnificationConstraintStackSP constr) : data(ld), subst(subst), constr(constr) {}
+    QueryResult(LeafData const* ld) : QueryResult(ld, ResultSubstitutionSP(), UnificationConstraintStackSP()) {}
+    friend std::ostream& operator<<(std::ostream& out, QueryResult const& self)
+    { return out << "{ " << *self.data << ", " << self.subst << ", " << self.constr << " }"; }
   };
 
   using QueryResultIterator = VirtualIterator<QueryResult>;
@@ -731,7 +754,6 @@ public:
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
-          _nextVar = max(_nextVar, (int)var + 1);
         });
     if (doInsert) insert(*bindings, ld);
     else          remove(*bindings, ld);
@@ -750,14 +772,7 @@ private:
       variables before being inserted into the tree */
   Option<FuncSubtermMap> _functionalSubtermMap;
   Node* _root;
-#if VDEBUG
-  bool _tag;
-#endif
 public:
-#if VDEBUG
-  // Tags are used as a debug tool to turn debugging on for a particular instance
-  virtual void markTagged(){ _tag=true;}
-#endif
 
   class RenamingSubstitution 
   : public ResultSubstitution 
@@ -812,7 +827,6 @@ public:
     Recycled<BindingMap> svBindings;
     createBindings(normQuery, /* reversed */ false,
         [&](auto v, auto t) { {
-          _nextVar = max<int>(_nextVar, v + 1); // TODO do we need this line?
           svBindings->insert(v, t);
         } });
     Leaf* leaf = findLeaf(*svBindings);
@@ -820,12 +834,12 @@ public:
       return QueryResultIterator::getEmpty();
     } else {
       return pvi(iterTraits(leaf->allChildren())
-        .map([retrieveSubstitutions, renaming, resultSubst](LeafData ld) 
+        .map([retrieveSubstitutions, renaming, resultSubst](LeafData* ld) 
           {
             ResultSubstitutionSP subs;
             if (retrieveSubstitutions) {
               renaming->_result->reset();
-              renaming->_result->normalizeVariables(SubtitutionTreeConfig<Query>::getKey(ld));
+              renaming->_result->normalizeVariables(ld->key());
               subs = resultSubst;
             }
             return QueryResult(ld, subs, UnificationConstraintStackSP());
@@ -1421,24 +1435,6 @@ public:
 
   Cntr _iterCnt;
 }; // class SubstiutionTree
-
-template<> 
-struct SubtitutionTreeConfig<Literal*> 
-{
-  template<class LeafData>
-  static Literal* const& getKey(LeafData const& ld)
-  { return ld.literal;  }
-};
-
-
-template<> 
-struct SubtitutionTreeConfig<TermList> 
-{
-  template<class LeafData>
-  static TermList const& getKey(LeafData const& ld)
-  { return ld.term;  }
-};
-
 
 
 

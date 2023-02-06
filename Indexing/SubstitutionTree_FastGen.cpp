@@ -287,11 +287,11 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
-  LeafData& ld=_ldIterator.next();
+  auto ld = _ldIterator.next();
 
   if(_retrieveSubstitution) {
     _resultNormalizer->reset();
-    _resultNormalizer->normalizeVariables(ld.key());
+    _resultNormalizer->normalizeVariables(ld->key());
 
     return QueryResult(ld,_subst.getSubstitution(&*_resultNormalizer),UnificationConstraintStackSP());
   } else {

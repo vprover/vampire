@@ -401,14 +401,14 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
-  LeafData& ld=_ldIterator.next();
+  auto ld = _ldIterator.next();
 
   if(_retrieveSubstitution) {
     _resultDenormalizer.reset();
-    bool ground = SubstitutionTree::isGround(ld.key());
+    bool ground = SubstitutionTree::isGround(ld->key());
     if(!ground) {
       Renaming normalizer;
-      normalizer.normalizeVariables(ld.key());
+      normalizer.normalizeVariables(ld->key());
       _resultDenormalizer.makeInverse(normalizer);
     }
 

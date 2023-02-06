@@ -23,6 +23,32 @@ template<class A, class B>
 std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
 { return out << "(" << self.first << ", " << self.second << ")"; }
 
+template<unsigned i, unsigned sz, class Tup> 
+struct __OutputTuple
+{
+  static void apply(std::ostream& out, Tup const& self)
+  {
+    out << std::get<i>(self) << ", ";
+    __OutputTuple<i + 1, sz, Tup>::apply(out, self);
+  }
+};
+
+template<unsigned i, class Tup> 
+struct __OutputTuple<i, i, Tup>  {
+  static void apply(std::ostream& out, Tup const& self)
+  {
+    out << std::get<i>(self);
+  }
+};
+
+template<class... As> std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
+{ 
+  out << "(";
+  __OutputTuple<0, std::tuple_size<std::tuple<As...>>::value - 1, std::tuple<As...>>::apply(out, self);
+  out << ")";
+  return out;
+}
+
 /** Newtype in order to nicely output a pointer.
  * Usage: `out << outputPtr(ptr) << std::endl;` 
  */

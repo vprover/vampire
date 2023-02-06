@@ -218,6 +218,12 @@ struct SLQueryResult
       return res.clause;
     }
   };
+  friend std::ostream& operator<<(std::ostream& out, SLQueryResult const& self)
+  { return out << "{ " << outputPtr(self.literal) 
+               << ", " << outputPtr(self.clause)
+               << ", " << self.substitution
+               << ", " << self.constraints
+               << " }"; }
 };
 
 /**

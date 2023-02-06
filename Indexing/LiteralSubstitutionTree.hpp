@@ -19,6 +19,7 @@
 #include "Indexing/Index.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Indexing {
 
@@ -59,7 +60,7 @@ public:
           iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
            .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
            .flatMap([](Leaf* l) { return l->allChildren(); })
-           .map([](const LeafData& ld) { return SLQueryResult(ld.literal, ld.clause); })
+           .map([](LeafData const* ld) { return SLQueryResult(ld->literal, ld->clause); })
         );
   }
 
@@ -85,9 +86,15 @@ public:
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary)
   {
-    auto idx = complementary ? lit->header() : lit->complementaryHeader();
+    auto pos = lit->functor() * 2;
+    auto neg = pos + 1;
+    auto idx = complementary ? (lit->isPositive() ? neg : pos)
+                             : (lit->isPositive() ? pos : neg);
     while (idx >= _trees.size()) {
-      _trees.push(SubstitutionTree(_useC, /* rfSubs */ false));
+      auto p = _trees.size() / 2;
+      auto arity = env.signature->isEqualityPredicate(p) ? 3 // equality is special case because it has an implicit type argument not present in the signature
+                                                         : env.signature->getPredicate(p)->arity();
+      _trees.push(SubstitutionTree(_useC, /* rfSubs */ false, arity));
     }
     return _trees[idx];
   }

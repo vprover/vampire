@@ -21,8 +21,8 @@ namespace Indexing {
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 template<class LeafData_>
-SubstitutionTree<LeafData_>::SubstitutionTree(bool useC, bool rfSubs)
-  : _nextVar(0)
+SubstitutionTree<LeafData_>::SubstitutionTree(bool useC, bool rfSubs, unsigned reservedSpecialVars)
+  : _nextVar(reservedSpecialVars)
   , _useC(useC)
   , _functionalSubtermMap(someIf(rfSubs, [](){ return FuncSubtermMap(); }))
   , _root(nullptr)
@@ -539,7 +539,8 @@ void SubstitutionTree<LeafData_>::Leaf::loadChildren(LDIterator children)
   CALL("SubstitutionTree::Leaf::loadClauses");
 
   while(children.hasNext()) {
-    LeafData ld=children.next();
+    // TODO move instead of copying here
+    auto ld = *children.next();
     insert(ld);
   }
 }
@@ -637,11 +638,11 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::U
 
   ASS(!_clientBDRecording);
 
-  LeafData& ld=_ldIterator.next();
+  auto ld = _ldIterator.next();
 
   if(_retrieveSubstitution) {
     Renaming normalizer;
-    normalizer.normalizeVariables(ld.key());
+    normalizer.normalizeVariables(ld->key());
 
     ASS(_clientBacktrackData.isEmpty());
     _subst->bdRecord(_clientBacktrackData);
@@ -872,37 +873,3 @@ void SubstitutionTree<LeafData_>::IntermediateNode::output(std::ostream& out, bo
 }
 
 } // namespace Indexing
-
-
-#define VERBOSE_OUTPUT_OPERATORS 0
-
-template<class LeafData_>
-std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree<LeafData_> const& self)
-{
-#if VERBOSE_OUTPUT_OPERATORS
-  out << "{ nextVar: S" << self._nextVar << ", root: (";
-#endif // VERBOSE_OUTPUT_OPERATORS
-  if (self._root) {
-    out << *self._root;
-  } else {
-    out << "<empty tree>";
-  }
-#if VERBOSE_OUTPUT_OPERATORS
-  out << ") }";
-#endif // VERBOSE_OUTPUT_OPERATORS
-  return out;
-}
-
-
-
-template<class LeafData_>
-std::ostream& Indexing::operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<LeafData_>> const& self)
-{
-  if (self.self._root) {
-    self.self._root->output(out, true, /* indent */ 0);
-  } else {
-    out << "<empty tree>";
-  }
-  return out;
-}
-
