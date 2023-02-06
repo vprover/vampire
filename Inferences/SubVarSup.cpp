@@ -314,7 +314,7 @@ Clause* SubVarSup::performSubVarSup(
       }
       
       if (afterCheck) {
-        TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;

@@ -160,7 +160,7 @@ public:
       expand();
     }
     ASS(_back < _end);
-    new(_back) C(elem);
+    ::new (_back) C(elem);
 
     _back++;
     if(_back==_end) {
@@ -186,7 +186,7 @@ public:
     }
     _front--;
 
-    new(_front) C(elem);
+    ::new (_front) C(elem);
 
     ASS_NEQ(_front, _back);
   }
@@ -469,7 +469,7 @@ protected:
     C* newData = static_cast<C*>(mem);
     C* oldPtr=_front;
     for(size_t i = 0; i<curSize; i++) {
-      new(newData+i) C(*oldPtr);
+      ::new (newData+i) C(*oldPtr);
       oldPtr->~C();
 
       oldPtr++;

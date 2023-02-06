@@ -412,6 +412,19 @@ private:
 
 public:
 
+  /**
+   * Put all elements of an iterator onto the multiset.
+   */
+  template<class It>
+  void loadFromIterator(It it) {
+    CALL("DHMultiset::loadFromIterator");
+
+    // TODO check iterator.size() or iterator.sizeHint()
+    while(it.hasNext()) {
+      insert(it.next());
+    }
+  }
+
 #if VDEBUG
   void assertValid()
   {

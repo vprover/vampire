@@ -28,6 +28,7 @@
 #include "LookaheadLiteralSelector.hpp"
 #include "SpassLiteralSelector.hpp"
 #include "ELiteralSelector.hpp"
+#include "RndLiteralSelector.hpp"
 
 #include "LiteralComparators.hpp"
 
@@ -36,14 +37,6 @@
 
 namespace Kernel
 {
-
-/**
- * Array that for each predicate contains bol value determining whether
- * the polarity of the predicate should be reversed for the purposes of
- * literal selection
- */
-ZIArray<bool> LiteralSelector::_reversePredicate;
-
 
 /**
  * Return true if literal @b l is positive for the purpose of
@@ -59,16 +52,7 @@ bool LiteralSelector::isPositiveForSelection(Literal* l) const
   if(l->isEquality()) {
     return l->isPositive(); //we don't change polarity for equality
   }
-  unsigned pred = l->functor();
-  return l->isPositive() ^ _reversePolarity ^ _reversePredicate[pred];
-}
-
-void LiteralSelector::reversePredicatePolarity(unsigned pred, bool reverse)
-{
-  CALL("reversePredicatePolarity");
-  ASS(pred!=0 || !reverse); //we never reverse polarity of equality
-
-  _reversePredicate[pred] = reverse;
+  return l->isPositive() ^ _reversePolarity;
 }
 
 /**
@@ -149,12 +133,14 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
     res = new ELiteralSelector(ordering, options,static_cast<ELiteralSelector::Values>(absNum-30));
     break;
 
+  case 666: res = new RndLiteralSelector(ordering, options,true /*complete*/); break;
+
   case 1002: res = new BestLiteralSelector<Comparator2>(ordering, options); break;
   case 1003: res = new BestLiteralSelector<Comparator3>(ordering, options); break;
   case 1004: res = new BestLiteralSelector<Comparator4>(ordering, options); break;
   case 1010: res = new BestLiteralSelector<Comparator10>(ordering, options); break;
-
   case 1011: res = new LookaheadLiteralSelector(false, ordering, options); break;
+  case 1666: res = new RndLiteralSelector(ordering, options,false /*incomplete*/); break;
 
   default:
     INVALID_OPERATION("Undefined selection function");
@@ -224,20 +210,19 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
   int maxPriority=getSelectionPriority((*c)[0]);
   bool modified=false;
 
-  for(unsigned i=1;i<eligibleInp;i++) {
-    int priority=getSelectionPriority((*c)[i]);
-    if(priority==maxPriority) {
-      if(eligible!=i) {
-	swap((*c)[i],(*c)[eligible]);
-	modified=true;
+  for (unsigned i = 1; i < eligibleInp; i++) {
+    int priority = getSelectionPriority((*c)[i]);
+    if (priority == maxPriority) {
+      if (eligible != i) {
+        swap((*c)[i], (*c)[eligible]);
+        modified = true;
       }
       eligible++;
-    }
-    else if(priority>maxPriority) {
-      maxPriority=priority;
-      eligible=1;
-      swap((*c)[i],(*c)[0]);
-      modified=true;
+    } else if (priority > maxPriority) {
+      maxPriority = priority;
+      eligible = 1;
+      swap((*c)[i], (*c)[0]);
+      modified = true;
     }
   }
   ASS_LE(eligible,eligibleInp);

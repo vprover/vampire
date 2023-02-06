@@ -21,11 +21,10 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/RCPtr.hpp"
 #include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Allocator.hpp"
-
+#include "Lib/Option.hpp"
 
 extern const char* VERSION_STRING;
 
@@ -36,7 +35,6 @@ namespace Kernel {
 namespace Shell {
 
 using namespace Kernel;
-using namespace Solving;
 
 /**
  * Class Statistics
@@ -50,8 +48,8 @@ public:
 
   Statistics();
 
-  void print(ostream& out);
-  void explainRefutationNotFound(ostream& out);
+  void print(std::ostream& out);
+  void explainRefutationNotFound(std::ostream& out);
 
   // Input
   /** number of input clauses */
@@ -241,6 +239,7 @@ public:
   unsigned taAcyclicityGeneratedDisequalities;
 
   // Saturation
+  unsigned activations;
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */
@@ -346,6 +345,7 @@ public:
     /** Scanning for properties to be passed to preprocessing */
     PROPERTY_SCANNING,
     NORMALIZATION,
+    SHUFFLING,
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,

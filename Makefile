@@ -23,9 +23,9 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider 
+DBG_FLAGS = -g -DVTIME_PROFILING=1 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVDEBUG=0 # no debugging
+REL_FLAGS = -O6 -DVTIME_PROFILING=1 -DVDEBUG=0 # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -174,7 +174,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Random.o\
         Lib/StringUtils.o\
         Lib/System.o\
-        Lib/TimeCounter.o\
         Lib/Timer.o
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
@@ -204,6 +203,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MaximalLiteralSelector.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
+        Kernel/RndLiteralSelector.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
@@ -362,6 +362,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
+         Shell/Shuffling.o\
          Shell/Options.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\
@@ -372,6 +373,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SineUtils.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Debug/TimeProfiling.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\

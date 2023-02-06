@@ -17,7 +17,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
@@ -49,7 +49,7 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
   CALL("ForwardSubsumptionAndResolution::attach");
   ForwardSimplificationEngine::attach(salg);
   _unitIndex = static_cast<UnitClauseLiteralIndex *>(
-      _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE));
+      _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
 }
@@ -59,7 +59,7 @@ void ForwardSubsumptionAndResolution::detach()
   CALL("ForwardSubsumptionAndResolution::detach");
   _unitIndex = 0;
   _fwIndex = 0;
-  _salg->getIndexManager()->release(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   _salg->getIndexManager()->release(FW_SUBSUMPTION_SUBST_TREE);
   ForwardSimplificationEngine::detach();
 }
@@ -224,7 +224,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     return false;
   }
 
-  TimeCounter tc_fs(TC_FORWARD_SUBSUMPTION);
+  TIME_TRACE("forward subsumption");
 
   bool result = false;
 
@@ -278,14 +278,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       }
     }
 
-    tc_fs.stop();
-
     if (!_subsumptionResolution) {
       goto fin;
     }
 
     {
-      TimeCounter tc_fsr(TC_FORWARD_SUBSUMPTION_RESOLUTION);
+      TIME_TRACE("forward subsumption resolution");
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li];

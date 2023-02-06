@@ -31,10 +31,14 @@ int computeLCM(int a, int b) {
   return (a*b)/Int::gcd(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios, bool layeredArrangement)
-  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _ratios(), _balances(), _layeredArrangement(layeredArrangement), _simulationBalances()
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name,
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues,
+    Lib::vvector<float> cutoffs, Lib::vvector<int> ratios, bool layeredArrangement)
+  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _layeredArrangement(layeredArrangement)
 {
   CALL("PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer");
+
+  _randomize = opt.randomAWR();
 
   // sanity checks
   if (ratios.size() != _queues.size()) {
@@ -44,17 +48,27 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
     USER_ERROR("Queue " + name + ": The number of cutoffs needs to match the number of queues, but " + Int::toString(_cutoffs.size()) + " != " + Int::toString(_queues.size()));
   }
 
+  if (_randomize) {
+    _ratioSum = 0;
+    for (unsigned i = 0; i < ratios.size(); i++) {
+      unsigned ri = ratios[i];
+      _ratioSum += ri;
+      _ratios.push_back(ri);
+    }
+  }
+
+  // even when randomizing true selection, we rely on the old ways for simulation:
+
   // compute lcm, which will be used to compute reverse ratios
   auto lcm = 1;
   for (unsigned i = 0; i < ratios.size(); i++)
   {
     lcm = computeLCM(lcm, ratios[i]);
   }
-
   // initialize
   for (unsigned i = 0; i < ratios.size(); i++)
   {
-    _ratios.push_back(lcm / ratios[i]);
+    _invertedRatios.push_back(lcm / ratios[i]);
     _balances.push_back(0);
   }
 }
@@ -177,17 +191,31 @@ unsigned PredicateSplitPassiveClauseContainer::sizeEstimate() const
 Clause* PredicateSplitPassiveClauseContainer::popSelected()
 {
   CALL("PredicateSplitPassiveClauseContainer::popSelected");
-  // compute queue from which we will pick a clause:
-  // choose queue using weighted round robin
-  auto minElementIt = std::min_element(_balances.begin(), _balances.end());
-  auto minElement = *minElementIt; // need to save the value of the min element before updating it to a new value, since it may not remain the minimal element after the update
 
-  auto queueIndex = std::distance(_balances.begin(), minElementIt);
+  unsigned queueIndex;
 
-  _balances[queueIndex] += _ratios[queueIndex];
-  for (auto& balance : _balances)
-  {
-    balance -= minElement;
+  if (_randomize) {
+    unsigned toss = Random::getInteger(_ratioSum);
+    // cout << "metaqueue " << _name << " toss " << toss << " (below: " << _ratioSum << ")";
+    queueIndex = 0;
+    while (toss > _ratios[queueIndex]) {
+      toss -= _ratios[queueIndex];
+      queueIndex++;
+    }
+    // cout << " means " << queueIndex << " (below: " << _ratios.size() << ")" << endl;
+  } else {
+    // compute queue from which we will pick a clause:
+    // choose queue using weighted round robin
+    auto minElementIt = std::min_element(_balances.begin(), _balances.end());
+    auto minElement = *minElementIt; // need to save the value of the min element before updating it to a new value, since it may not remain the minimal element after the update
+
+    queueIndex = std::distance(_balances.begin(), minElementIt);
+
+    _balances[queueIndex] += _invertedRatios[queueIndex];
+    for (auto& balance : _balances)
+    {
+      balance -= minElement;
+    }
   }
 
   // if chosen queue is empty, use the next queue to the right
@@ -267,7 +295,7 @@ void PredicateSplitPassiveClauseContainer::simulationPopSelected()
   auto minElement = *minElementIt; // need to save the value of the min element before updating it to a new value, since it may not remain the minimal element after the update
 
   auto queueIndex = std::distance(_simulationBalances.begin(), minElementIt);
-  _simulationBalances[queueIndex] += _ratios[queueIndex];
+  _simulationBalances[queueIndex] += _invertedRatios[queueIndex];
   for (auto& balance : _simulationBalances)
   {
     balance -= minElement;

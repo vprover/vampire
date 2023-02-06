@@ -18,7 +18,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -34,6 +34,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/IndexManager.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -99,6 +100,7 @@ struct BackwardDemodulation::ResultFn
     _eqLit=(*_cl)[0];
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
+    _encompassing = parent.getOptions().demodulationEncompassment();
   }
   /**
    * Return pair of clauses. First clause is being replaced,
@@ -171,32 +173,41 @@ struct BackwardDemodulation::ResultFn
     }
 
     if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
-      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
+      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) && 
+      // encompassment has issues only with positive units
+      (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1))) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-        Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-        bool isMax=true;
-        Clause::Iterator cit(*qr.clause);
-        while(cit.hasNext()) {
-          Literal* lit2=cit.next();
-          if(qr.literal==lit2) {
-            continue;
+        if (_encompassing) {
+          if (qr.substitution->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
+            // under _encompassing, we know there are no other literals in qr.clause
+            return BwSimplificationRecord(0);
           }
-          if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-            isMax=false;
-            break;
+        } else {
+          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+          Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
+          bool isMax=true;
+          Clause::Iterator cit(*qr.clause);
+          while(cit.hasNext()) {
+            Literal* lit2=cit.next();
+            if(qr.literal==lit2) {
+              continue;
+            }
+            if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
+              isMax=false;
+              break;
+            }
           }
-        }
-        if(isMax) {
-          //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-          //The demodulation is this case which doesn't preserve completeness:
-          //s = t     s = t1 \/ C
-          //---------------------
-          //     t = t1 \/ C
-          //where t > t1 and s = t > C
-          return BwSimplificationRecord(0);
+          if(isMax) {
+            //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
+            //The demodulation is this case which doesn't preserve completeness:
+            //s = t     s = t1 \/ C
+            //---------------------
+            //     t = t1 \/ C
+            //where t > t1 and s = t > C
+            return BwSimplificationRecord(0);
+          }
         }
       }
     }
@@ -232,6 +243,8 @@ private:
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
 
+  bool _encompassing;
+
   BackwardDemodulation& _parent;
   Ordering& _ordering;
 };
@@ -241,6 +254,7 @@ void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
   CALL("BackwardDemodulation::perform");
+  TIME_TRACE("backward demodulation");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
     simplifications=BwSimplificationRecordIterator::getEmpty();
@@ -261,7 +275,6 @@ void BackwardDemodulation::perform(Clause* cl,
   //replacementIterator right at this point, so we can measure the time just
   //simply (which cannot be generally done when iterators are involved)
 
-  TimeCounter tc(TC_BACKWARD_DEMODULATION);
   simplifications=getPersistentIterator(replacementIterator);
 }
 

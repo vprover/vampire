@@ -18,8 +18,6 @@
 #ifndef __Formula__
 #define __Formula__
 
-#include <utility>
-
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
@@ -59,12 +57,15 @@ public:
   Formula* left();
   const Formula* right() const;
   Formula* right();
+  void leftRightSwap();
   const Formula* qarg() const;
   Formula* qarg();
   const VList* vars() const;
   VList* vars();
+  VList** varsPtr();
   const SList* sorts() const;
   SList* sorts();
+  SList** sortsPtr();
   const Formula* uarg() const;
   Formula* uarg();
   const Literal* literal() const;
@@ -75,15 +76,8 @@ public:
   bool isFreeVariable(unsigned var) const;
   VList* boundVariables () const;
 
-  // miscellaneous
-  bool equals(const Formula*) const;
-  void collectAtoms(Stack<Literal*>& acc);
-  void collectPredicates(Stack<unsigned>& acc);
-  void collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int polarity=1);
-
   // output
   vstring toString() const;
-  vstring toStringInScopeOf(Connective con) const;
   static vstring toString(Connective con);
   bool parenthesesRequired(Connective outer) const;
   // auxiliary functions
@@ -114,7 +108,6 @@ public:
   CLASS_NAME(Formula);
   USE_ALLOCATOR(Formula);
 protected:
-  static vstring toString(const Formula* f);
 
   /** Create a dummy formula will null content */
   explicit Formula(Connective con)
@@ -205,10 +198,12 @@ class QuantifiedFormula
   const VList* varList() const { return _vars; }
   /** Return the list of variables */
   VList* varList() { return _vars; }
+  VList** varListPtr() { return &_vars; }
   /** Return the list of sorts */
   const SList* sortList() const { return _sorts; }
   /** Return the list of sorts */
   SList* sortList() { return _sorts; }
+  SList** sortListPtr() { return &_sorts; }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(QuantifiedFormula);
@@ -275,6 +270,11 @@ public:
   const Formula* rhs() const { return _right; }
   /** Return the rhs subformula of this formula */
   Formula* rhs() { return _right; }
+
+  // careful, this really (destructively) swaps the left and right subformulas
+  void swapLeftRight() {
+    std::swap(_left,_right);
+  }
 
   // use allocator to (de)allocate objects of this class
   CLASS_NAME(BinaryFormula);
@@ -379,7 +379,7 @@ class BoolTermFormula
   TermList _ts;
 }; // class BoolTermFormula
 
-// definitions, had to be put out of class
+// out-of-line to break cyclic dependency on subclasses
 
 /** Return the list of variables of a quantified formula */
 inline
@@ -396,6 +396,13 @@ VList* Formula::vars()
   return static_cast<QuantifiedFormula*>(this)->varList();
 }
 
+inline
+VList** Formula::varsPtr()
+{
+  ASS(_connective == FORALL || _connective == EXISTS);
+  return static_cast<QuantifiedFormula*>(this)->varListPtr();
+}
+
 /** Return the list of sorts of a quantified formula */
 inline
 const SList* Formula::sorts() const
@@ -409,6 +416,13 @@ SList* Formula::sorts()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->sortList();
+}
+
+inline
+SList** Formula::sortsPtr()
+{
+  ASS(_connective == FORALL || _connective == EXISTS);
+  return static_cast<QuantifiedFormula*>(this)->sortListPtr();
 }
 
 /** Return the immediate subformula of a quantified formula */
@@ -497,6 +511,12 @@ Formula* Formula::left()
   return static_cast<BinaryFormula*>(this)->lhs();
 }
 
+inline void Formula::leftRightSwap()
+{
+  ASS(_connective == IFF || _connective == XOR || _connective == IMP);
+  return static_cast<BinaryFormula*>(this)->swapLeftRight();
+}
+
 /** Return the rhs subformula of a binary formula */
 inline
 const Formula* Formula::right() const
@@ -524,8 +544,6 @@ TermList Formula::getBooleanTerm()
   ASS(_connective == BOOL_TERM);
   return static_cast<BoolTermFormula*>(this)->getTerm();
 }
-
-// operators
 
 std::ostream& operator<< (ostream& out, const Formula& f);
 std::ostream& operator<< (ostream& out, const Formula* f);

@@ -199,6 +199,8 @@ namespace Indexing
                         AcyclicityIndex& aindex)
       :
       _queryLit(queryLit),
+      _index(nullptr),
+      _tis(nullptr),
       _nextResult(nullptr),
       _stack(0),
       _subst(new RobSubstitution()),
@@ -386,7 +388,7 @@ namespace Indexing
   private:
     Literal *_queryLit;
     SIndex *_index;
-    TermIndexingStructure *_tis;    
+    TermIndexingStructure *_tis;
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
     RobSubstitution *_subst;

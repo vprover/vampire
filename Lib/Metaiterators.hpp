@@ -26,7 +26,7 @@
 #include "DHSet.hpp"
 #include "Recycler.hpp"
 #include "VirtualIterator.hpp"
-#include "TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Option.hpp"
 
 namespace Lib {
@@ -1329,46 +1329,45 @@ ContextualIterator<Inner,Ctx> getContextualIterator(Inner it, Ctx context)
   return ContextualIterator<Inner,Ctx>(it, context);
 }
 
+#if VTIME_PROFILING
 
-template<class Inner>
-class TimeCountedIterator
-: public IteratorCore<ELEMENT_TYPE(Inner)>
+template<class Iter>
+class TimeTracedIter
 {
+  const char* _name;
+  Iter _iter;
 public:
-  typedef ELEMENT_TYPE(Inner) T;
+  TimeTracedIter(const char* name, Iter iter) 
+    : _name(name)
+    , _iter(std::move(iter)) 
+  {}
 
-  explicit TimeCountedIterator(Inner inn, TimeCounterUnit tcu)
-  : _inn(inn), _tcu(tcu) {}
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
 
-  inline bool hasNext()
-  {
-    TimeCounter tc(_tcu);
-    return _inn.hasNext();
-  };
-  inline
-  T next()
-  {
-    TimeCounter tc(_tcu);
-    return _inn.next();
-  };
-private:
-  Inner _inn;
-  TimeCounterUnit _tcu;
+  OWN_ELEMENT_TYPE next() { TIME_TRACE(_name); return _iter.next(); }
+  bool hasNext() { TIME_TRACE(_name); return _iter.hasNext(); }
+
+  bool knowsSize() const 
+  { return _iter.knowsSize(); }
+
+  size_t size() const
+  { return _iter.size(); }
+
 };
 
-/**
- * Return iterator, that yields the same values in
- * the same order as @b it. Benefit of this iterator
- * is, that @b it object is used only during
- * initialization. (So it's underlying object can be
- * freed and the returned iterator will remain valid.)
- */
-template<class Inner>
-inline
-VirtualIterator<ELEMENT_TYPE(Inner)> getTimeCountedIterator(Inner it, TimeCounterUnit tcu)
-{
-  return vi( new TimeCountedIterator<Inner>(it, tcu) );
-}
+template<class Iter>
+auto timeTraceIter(const char* name, Iter iter) 
+{ return TimeTracedIter<Iter>(name, std::move(iter)); }
+
+#else // !VTIME_PROFILING
+
+
+template<class Iter>
+auto timeTraceIter(const char* name, Iter iter) 
+{ return std::move(iter); }
+
+#endif // VTIME_PROFILING
+
 
 /**
  * Return true iff @c it1 and it2 contain the same values in the same order
@@ -1757,14 +1756,20 @@ public:
   { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), f))); }
 
 
-  Option<Elem> min()
+  /** 
+   * returns the first minimal element wrt the function `less` 
+   * less takes two arguments of this iterators element type and 
+   * returns the wheter the first is smaller than the second.
+   * */
+  template<class IsLess>
+  Option<Elem> minBy(IsLess isLess)
   { 
     CALL("IterTraits::min")
     if (hasNext()) {
-      auto&& min = next();
-      while (hasNext())  {
-        auto&& e = next();
-        if (std::less<Elem>{}(e, min)) {
+      Elem min = next();
+      while (hasNext()) {
+        Elem e = next();
+        if (isLess(e, min)) {
           min = e;
         }
       }
@@ -1774,6 +1779,36 @@ public:
     }
   }
 
+
+  Option<Elem> min()
+  { return minBy(std::less<Elem>{}); }
+
+  template<class IsLess>
+  Option<Elem> maxBy(IsLess isLess)
+  { return minBy([isLess = std::move(isLess)](Elem const& l, Elem const& r) { return isLess(r,l); }); }
+
+  Option<Elem> max()
+  { return maxBy(std::less<Elem>{}); }
+
+  auto timeTraced(const char* name)
+  { return iterTraits(timeTracedIter(name, std::move(_iter))); }
+
+  template<class Init, class F> 
+  auto fold(Init init, F fun)
+  { 
+    Init res = std::move(init);
+    while (hasNext()) {
+      res = fun(std::move(res), next());
+    }
+    return res;
+  }
+
+  template<class F> 
+  auto fold(F fun)
+  { return fold(next(), std::move(fun)); }
+
+  auto sum()
+  { return fold(0, [](auto l, Elem&& r) { return l + r; }); }
 
   template<class Container>
   Container collect()

@@ -13,7 +13,6 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"

@@ -25,6 +25,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "TermSharing.hpp"
 
@@ -97,7 +98,7 @@ Term* TermSharing::insert(Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isSort());
 
-  TimeCounter tc(TC_TERM_SHARING);
+  TIME_TRACE(TimeTrace::TERM_SHARING);
 
   // normalise commutative terms
   if (t->commutative()) {
@@ -117,6 +118,7 @@ Term* TermSharing::insert(Term* t)
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
+    bool hasTermVar = false;
     Color color = COLOR_TRANSPARENT;
 
     if(env.options->combinatorySup()){ 
@@ -159,9 +161,15 @@ Term* TermSharing::insert(Term* t)
       }
       t->setMaxRedLen(maxRedLength);
     }
-    for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
+    
+    unsigned typeArity = t->numTypeArguments();
+    for (unsigned i = 0; i < t->arity(); i++) {
+      TermList* tt = t->nthArgument(i);
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
+        if(i >= typeArity){
+          hasTermVar = true;
+        }
         vars++;
         weight += 1;
       }
@@ -173,11 +181,12 @@ Term* TermSharing::insert(Term* t)
   
         vars += r->numVarOccs();
         weight += r->weight();
+        hasTermVar |= r->hasTermVar();
         if (env.colorUsed) {
-            color = static_cast<Color>(color | r->color());
+          color = static_cast<Color>(color | r->color());
         }
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
-            hasInterpretedConstants=true; 
+          hasInterpretedConstants=true; 
         }
       }
     }
@@ -185,6 +194,7 @@ Term* TermSharing::insert(Term* t)
     t->setId(_totalTerms);
     t->setNumVarOccs(vars);
     t->setWeight(weight);
+    t->setHasTermVar(hasTermVar);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
@@ -216,11 +226,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   ASS(!sort->isSpecial());
   ASS(sort->isSort());
 
-  // cannot use TC_TERM_SHARING
-  // as inserting a term can result in the insertion of
-  // a sort and TimeCounter design forbids starting a timer 
-  // when it is already running 
-  TimeCounter tc(TC_SORT_SHARING);
+  TIME_TRACE("sort sharing");
 
   _sortInsertions++;
   AtomicSort* s = _sorts.insert(sort);
@@ -283,7 +289,7 @@ Literal* TermSharing::insert(Literal* t)
   //equalities between variables must be inserted using insertVariableEquality() function
   ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
 
-  TimeCounter tc(TC_TERM_SHARING);
+  TIME_TRACE(TimeTrace::TERM_SHARING);
 
   if (t->commutative()) {
     ASS(t->arity() == 2);
@@ -367,7 +373,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   ASS(t->nthArgument(1)->isVar());
   ASS(!t->isSpecial());
 
-  TimeCounter tc(TC_TERM_SHARING);
+  TIME_TRACE(TimeTrace::TERM_SHARING);
 
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
@@ -415,7 +421,7 @@ Term* TermSharing::insertRecurrently(Term* t)
 {
   CALL("TermSharing::insert");
 
-  TimeCounter tc(TC_TERM_SHARING);
+  TIME_TRACE(TimeTrace::TERM_SHARING);
 
   TermList tRef;
   tRef.setTerm(t);

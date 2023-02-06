@@ -404,7 +404,7 @@ FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
   while (it.hasNext()) {
     Formula* f = it.next();
     Formula* g = ennf(f,polarity);
-    stack.push(g);
+    stack.pushBack(g);
     if (f != g) {
       changed = true;
     }
@@ -555,7 +555,7 @@ FormulaList* NNF::nnf (FormulaList* fs, bool polarity)
   while (it.hasNext()) {
     Formula* f = it.next();
     Formula* g = nnf(f,polarity);
-    stack.push(g);
+    stack.pushBack(g);
     if (f != g) {
       changed = true;
     }
