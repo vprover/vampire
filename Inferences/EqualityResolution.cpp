@@ -154,10 +154,7 @@ struct EqualityResolution::ResultFn
           }
         }
 
-        auto p = _cl->getRwPos(curr);
-        if (p) {
-          res->setRwPos(currAfter, p->first, p->second, true);
-        }
+        res->initRwStateFrom(_cl, curr, currAfter);
         (*res)[next++] = currAfter;
       }
     }

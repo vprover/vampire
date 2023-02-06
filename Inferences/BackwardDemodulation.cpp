@@ -30,6 +30,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/RewritingPositionTree.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -210,6 +211,7 @@ struct BackwardDemodulation::ResultFn
     }
 
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
+    auto resLitR = resLit->isOrientedReversed();
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
       _removed->insert(qr.clause);
@@ -220,35 +222,23 @@ struct BackwardDemodulation::ResultFn
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
-    auto p = qr.clause->getRwPos(qr.literal);
-    auto pos0 = p ? p->first : Position();
-    auto pos1 = p ? p->second : Position();
-    Position rhsPos;
-    auto q = _cl->getRwPos(_eqLit);
-    if (q) {
-      if (lhs == *_eqLit->nthArgument(0)) {
-        rhsPos = q->second;
-      } else {
-        rhsPos = q->first;
-      }
-    }
+    auto p = qr.clause->getRwState(qr.literal);
+    auto t0 = p ? p->first : nullptr;
+    auto t1 = p ? p->second : nullptr;
     if (qr.literal->isEquality()) {
-      pos0 = adjustPosition(*qr.literal->nthArgument(0),lhsS,pos0,rhsPos);
-      pos1 = adjustPosition(*qr.literal->nthArgument(1),lhsS,pos1,rhsPos);
+      t0 = RewritingPositionTree::createTruncated(t0, *qr.literal->nthArgument(0),lhsS);
+      t1 = RewritingPositionTree::createTruncated(t1, *qr.literal->nthArgument(1),lhsS);
     } else {
-      pos0 = adjustPosition(TermList(qr.literal),lhsS,pos0,rhsPos);
+      t0 = RewritingPositionTree::createTruncated(t0, TermList(qr.literal),lhsS);
     }
-    res->setRwPos(resLit, pos0, pos1, true);
+    res->setRwPos(resLit, t0, t1, resLitR);
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
         (*res)[next++] = curr;
-        auto p = qr.clause->getRwPos(curr);
-        if (p) {
-          res->setRwPos(curr, p->first, p->second, false);
-        }
+        res->initRwStateFrom(qr.clause, curr, curr);
       }
     }
     ASS_EQ(next,cLen);

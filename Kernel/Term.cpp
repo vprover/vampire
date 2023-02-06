@@ -1871,110 +1871,50 @@ bool operator<(const TermList& lhs, const TermList& rhs)
   }
 }
 
-bool Kernel::positionIn(TermList& subterm,TermList term,Position& position)
+bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
 {
   CALL("positionIn(TermList)");
    //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
 
-  if(!term.isTerm()){
+  if(!term->isTerm()){
     if(subterm.isTerm()) return false;
-    if (term.var()==subterm.var()){
-      // position.push(0);
+    if (term->var()==subterm.var()){
+      position = "1";
       return true;
     }
     return false;
   }
-  return positionIn(subterm,term.term(),position);
+  return positionIn(subterm,term->term(),position);
 }
 
-bool Kernel::positionIn(TermList& subterm,Term* term,Position& position)
+bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
 {
   CALL("positionIn(Term)");
   //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
 
   if(subterm.isTerm() && subterm.term()==term){
-    // position.push(0);
+    position = "1";
     return true;
   }
-  if(term->numTermArguments()==0) return false;
+  if(term->arity()==0) return false;
 
-// #define RIGHTTOLEFT
-
-#ifdef RIGHTTOLEFT
-  for (int i = term->numTermArguments()-1; i >= 0; i--) {
-#else
-  for (unsigned i = 0; i < term->numTermArguments(); i++) {
-#endif
-    TermList t = term->termArg(i);
-    if(t==subterm){
-      position.push(i);
+  unsigned pos=1;
+  TermList* ts = term->args();
+  while(true){
+    if(*ts==subterm){
+      position=Lib::Int::toString(pos);
       return true;
     }
-    if(positionIn(subterm,t,position)){
-      position.push(i);
+    if(positionIn(subterm,ts,position)){
+      position = Lib::Int::toString(pos) + "." + position;
       return true;
     }
+    pos++;
+    ts = ts->next();
+    if(ts->isEmpty()) break;
   }
 
   return false;
-}
-
-vstring Kernel::positionToString(const Position& position)
-{
-  if (position.isEmpty()) {
-    return "epsilon";
-  }
-  vstring res;
-  for (int i = position.size()-1; i >= 0; i--) {
-    res += Int::toString(position[i]+1);
-    if (i > 0) {
-      res += ".";
-    }
-  }
-  return res;
-}
-
-bool Kernel::positionAftercheck(TermList t, const Position& position)
-{
-  TermList curr = t;
-  for (int i = position.size()-1; i >= 0; i--) {
-    if (curr.isVar()) {
-      return false;
-    }
-    auto tt = curr.term();
-    if (tt->numTermArguments()<=position[i]) {
-      return false;
-    }
-    curr = tt->termArg(position[i]);
-  }
-  return true;
-}
-
-Position Kernel::adjustPosition(TermList t, TermList rwTerm, const Position& position, const Position& rhsPosition)
-{
-  CALL("Kernel::adjustPosition");
-  // cout << "ADJUST " << t << " " << rwTerm << " " << positionToString(position) << endl;
-  if (t == rwTerm) {
-    return rhsPosition;
-  }
-  TermList curr = t;
-  for (int i = position.size()-1; i >= 0; i--) {
-    // cout << i << " " << position[i] << " " << curr << endl;
-    ASS_REP(curr.isTerm(),t.toString()+" "+rwTerm.toString()+" "+positionToString(position)+" "+curr.toString()+" "+Int::toString(i)+" "+Int::toString(position[i]));
-    auto tt = curr.term();
-    ASS_L(position[i],tt->numTermArguments());
-    curr = tt->termArg(position[i]);
-    // cout << "CURR " << curr << endl;
-    if (curr == rwTerm) {
-      // cout << "EQUAL " << i << endl;
-      Position res = rhsPosition;
-      for (unsigned j = i; j < position.size(); j++) {
-        res.push(position[j]);
-      }
-      return res;
-    }
-  }
-  return position;
 }
 
 TermList Term::termArg(unsigned n) const

@@ -36,8 +36,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 
-#define NEW
-
 TermIndex::~TermIndex()
 {
   delete _is;
@@ -81,28 +79,20 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("backward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
-// #ifdef NEW
-//   auto bl = EqHelper::getBlackList(c);
-// #endif
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-#ifdef NEW
-    TermIterator rsti = EqHelper::getSubtermIterator2(lit,c,_ord);
-#else
+#if DEBUG_PSBS
     TermIterator rsti;
     if(!env.options->combinatorySup()){
       rsti = EqHelper::getSubtermIterator(lit,_ord);
     } else {
       rsti = EqHelper::getFoSubtermIterator(lit,_ord);
     }
+#else
+    TermIterator rsti = EqHelper::getSubtermIterator2(lit,c,_ord);
 #endif
     while (rsti.hasNext()) {
       auto st = rsti.next();
-// #ifdef NEW
-//       if (bl.contains(st)) {
-//         continue;
-//       }
-// #endif
       if (adding) {
         _is->insert(st, lit, c);
       }

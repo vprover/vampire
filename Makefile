@@ -228,6 +228,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Signature.o\
         Kernel/Unit.o\
         Kernel/InterpretedLiteralEvaluator.o\
+				Kernel/RewritingPositionTree.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
         Kernel/NumTraits.o

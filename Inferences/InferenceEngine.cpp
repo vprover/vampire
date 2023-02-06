@@ -406,10 +406,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
       origIdx--;
       ASS_GE(origIdx,0);
     }
-    auto p = c->getRwPos((*c)[origIdx]);
-    if (p) {
-      d->setRwPos((*c)[origIdx],p->first,p->second, false);
-    }
+    d->initRwStateFrom(c, (*c)[origIdx], (*c)[origIdx]);
     (*d)[newIdx] = (*c)[origIdx];
   }
   ASS(skipped.isEmpty());
@@ -534,10 +531,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
-    auto p = c->getRwPos((*d)[i]);
-    if (p) {
-      d->setRwPos((*d)[i], p->first, p->second, false);
-    }
+    d->initRwStateFrom(c, (*d)[i], (*d)[i]);
   }
   env.statistics->trivialInequalities += found;
 

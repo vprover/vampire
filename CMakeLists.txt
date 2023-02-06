@@ -231,6 +231,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Ordering_Equality.cpp
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
+    Kernel/RewritingPositionTree.cpp
     Kernel/RobSubstitution.cpp
     Kernel/MismatchHandler.cpp
     Kernel/Signature.cpp
@@ -267,6 +268,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InferenceStore.hpp
     Kernel/InterpretedLiteralEvaluator.hpp
     Kernel/Rebalancing.cpp
+    Kernel/RewritingPositionTree.hpp
     Kernel/KBO.hpp
     Kernel/KBOForEPR.hpp
     Kernel/LiteralComparators.hpp

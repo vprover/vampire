@@ -1055,15 +1055,10 @@ private:
 
 }; // class Literal
 
-using Position = Stack<unsigned>;
-
 // TODO used in some proofExtra output
 //      find a better place for this?
-bool positionIn(TermList& subterm,TermList term, Position& position);
-bool positionIn(TermList& subterm,Term* term, Position& position);
-vstring positionToString(const Position& position);
-bool positionAftercheck(TermList t, const Position& position);
-Position adjustPosition(TermList t, TermList rwTerm, const Position& position, const Position& rhsPosition);
+bool positionIn(TermList& subterm,TermList* term, vstring& position);
+bool positionIn(TermList& subterm,Term* term, vstring& position);
 
 std::ostream& operator<< (ostream& out, TermList tl );
 std::ostream& operator<< (ostream& out, const Term& tl );

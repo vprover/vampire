@@ -32,6 +32,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/RewritingPositionTree.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -221,6 +222,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
+        auto resLitR = resLit->isOrientedReversed();
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
           premises = pvi( getSingletonIterator(qr.clause));
@@ -230,35 +232,23 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Clause* res = new(cLen) Clause(cLen,
           SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
         (*res)[0]=resLit;
-        Position rhsPos;
-        auto q = qr.clause->getRwPos(qr.literal);
-        if (q) {
-          if (qr.term == *qr.literal->nthArgument(0)) {
-            rhsPos = q->second;
-          } else {
-            rhsPos = q->first;
-          }
-        }
-        auto p = cl->getRwPos(lit);
-        auto pos0 = p ? p->first : Position();
-        auto pos1 = p ? p->second : Position();
+        auto p = cl->getRwState(lit);
+        auto t0 = p ? p->first : nullptr;
+        auto t1 = p ? p->second : nullptr;
         if (lit->isEquality()) {
-          pos0 = adjustPosition(*lit->nthArgument(0),trm,pos0,rhsPos);
-          pos1 = adjustPosition(*lit->nthArgument(1),trm,pos1,rhsPos);
+          t0 = RewritingPositionTree::createTruncated(t0,lit->termArg(0),trm);
+          t1 = RewritingPositionTree::createTruncated(t1,lit->termArg(1),trm);
         } else {
-          pos0 = adjustPosition(TermList(lit),trm,pos0,rhsPos);
+          t0 = RewritingPositionTree::createTruncated(t0,TermList(lit),trm);
         }
-        res->setRwPos(resLit, pos0, pos1, true);
+        res->setRwPos(resLit, t0, t1, resLitR);
 
         unsigned next=1;
         for(unsigned i=0;i<cLen;i++) {
           Literal* curr=(*cl)[i];
           if(curr!=lit) {
             (*res)[next++] = curr;
-            auto p = cl->getRwPos(curr);
-            if (p) {
-              res->setRwPos(curr, p->first, p->second, false);
-            }
+            res->initRwStateFrom(cl, curr, curr);
           }
         }
         ASS_EQ(next,cLen);

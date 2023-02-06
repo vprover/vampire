@@ -85,6 +85,7 @@ typedef List<Unit*> UnitList;
 typedef Stack<Unit*> UnitStack;
 typedef VirtualIterator<Unit*> UnitIterator;
 
+class RewritingPositionTree;
 class FormulaUnit;
 class Formula;
 typedef List<Formula*> FormulaList;

@@ -37,6 +37,7 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "RewritingPositionTree.hpp"
 
 #include <cmath>
 
@@ -74,7 +75,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _numActiveSplits(0),
-    _rwPos(),
+    _rwState(),
     _auxTimestamp(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
@@ -355,14 +356,23 @@ vstring orderingToString(Literal* lit) {
   }
 }
 
-vstring positionToString(Literal* lit, pair<Position, Position>* p) {
+vstring positionToString(Literal* lit, pair<RewritingPositionTree*, RewritingPositionTree*>* p) {
   if (!p) {
     return "";
   }
-  vstring res;
-  res += "<"+positionToString(p->first);
+  vstring res = "<";
+  if (p->first) {
+    res += p->first->toString();
+  } else {
+    res += "epsilon";
+  }
   if (lit->isEquality()) {
-    res += ","+positionToString(p->second);
+    res += ",";
+    if (p->second) {
+      res += p->second->toString();
+    } else {
+      res += "epsilon";
+    }
   }
   res += ">";
   return res;
@@ -380,17 +390,17 @@ vstring Clause::literalsOnlyToString() const
   } else {
     vstring result;
     result += _literals[0]->toString();
-    if(env.options->proofExtra()!=Options::ProofExtra::OFF){
-      // result += " " + orderingToString(_literals[0]) + " ";
-      result += " " + positionToString(_literals[0], getRwPos(_literals[0])) + " ";
-    }
+    // if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+      result += " " + orderingToString(_literals[0]) + " ";
+      result += " " + positionToString(_literals[0], getRwState(_literals[0])) + " ";
+    // }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
-      if(env.options->proofExtra()!=Options::ProofExtra::OFF){
-        // result += " " + orderingToString(_literals[i]) + " ";
-        result += " " + positionToString(_literals[i], getRwPos(_literals[i])) + " ";
-      }
+      // if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+        result += " " + orderingToString(_literals[i]) + " ";
+        result += " " + positionToString(_literals[i], getRwState(_literals[i])) + " ";
+      // }
     }
     return result;
   }
@@ -759,28 +769,46 @@ unsigned Clause::numPositiveLiterals()
   return count;
 }
 
-void Clause::setRwPos(Literal* lit, Position p0, Position p1, bool reorient)
+void Clause::setRwPos(Literal* lit, RewritingPositionTree* t0, RewritingPositionTree* t1, bool reorient)
 {
   CALL("Clause::setRwPos");
-  if (p0.isEmpty() && p1.isEmpty()) {
+  if (!t0 && !t1) {
     return;
   }
-  if (reorient && lit->isOrientedReversed()) {
+  if (reorient) {
     ASS(lit->isEquality());
-    swap(p0,p1);
+    swap(t0,t1);
   }
+#ifdef VDEBUG
   if (lit->isEquality()) {
-    ASS_REP(positionAftercheck(*lit->nthArgument(0), p0), lit->toString()+" "+lit->nthArgument(0)->toString()+" "+positionToString(p0));
-    ASS_REP(positionAftercheck(*lit->nthArgument(1), p1), lit->toString()+" "+lit->nthArgument(1)->toString()+" "+positionToString(p1));
+    ASS_REP(!t0||t0->isValid(lit->termArg(0)),"Record for lit "+lit->toString()+" 0. arg is not valid: " + t0->toString());
+    ASS_REP(!t1||t1->isValid(lit->termArg(1)),"Record for lit "+lit->toString()+" 1. arg is not valid: " + t1->toString());
   }
+#endif
 
   // TODO merge values most efficiently when there are duplicate literals (e.g. from BR)
-  _rwPos.insert(lit, make_pair(p0,p1));
+  ALWAYS(_rwState.insert(lit, make_pair(t0,t1)));
 }
 
-pair<Position, Position>* Clause::getRwPos(Literal* lit) const
+pair<RewritingPositionTree*, RewritingPositionTree*>* Clause::getRwState(Literal* lit) const
 {
-  return const_cast<DHMap<Literal*, pair<Position,Position>>&>(_rwPos).findPtr(lit);
+  return const_cast<DHMap<Literal*, pair<RewritingPositionTree*, RewritingPositionTree*>>&>(_rwState).findPtr(lit);
+}
+
+void Clause::initRwStateFrom(Clause* cl, Literal* lit, Literal* newLit)
+{
+  CALL("Clause::initRwStateFrom");
+  auto kv = cl->getRwState(lit);
+  if (!kv) {
+    return;
+  }
+
+  auto t0 = RewritingPositionTree::create(kv->first);
+  auto t1 = RewritingPositionTree::create(kv->second);
+  if (lit != newLit && newLit->isOrientedReversed()) {
+    swap(t0,t1);
+  }
+  _rwState.insert(newLit, make_pair(t0,t1));
 }
 
 /**

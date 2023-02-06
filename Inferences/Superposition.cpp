@@ -32,6 +32,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/RewritingPositionTree.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -55,8 +56,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-#define NEW
 
 void Superposition::attach(SaturationAlgorithm* salg)
 {
@@ -113,11 +112,11 @@ struct Superposition::RewriteableSubtermsFn
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
-#ifdef NEW
-    TermIterator it = EqHelper::getSubtermIterator2(lit, _cl, _ord);
-#else
+#if DEBUG_PSBS
     TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
                                                       EqHelper::getSubtermIterator(lit, _ord);
+#else
+    TermIterator it = EqHelper::getSubtermIterator2(lit, _cl, _ord);
 #endif
     return pvi( pushPairIntoRightIterator(lit, it) );
   }
@@ -463,20 +462,20 @@ Clause* Superposition::performSuperposition(
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
 
   unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
-#ifdef NEW
-  auto rule = InferenceRule::SUPERPOSITION;
-#else
-  DHSet<TermList> bl;
-  auto p = rwClause->getRwPos(rwLit);
+#if DEBUG_PSBS
+  DHSet<TermList> excluded;
+  auto p = rwClause->getRwState(rwLit);
   if (p) {
     if (rwLit->isEquality()) {
-      EqHelper::getBlackList(*rwLit->nthArgument(0), p->first, bl);
-      EqHelper::getBlackList(*rwLit->nthArgument(1), p->second, bl);
+      RewritingPositionTree::getSubtermIterator(p->first, rwLit->termArg(0), excluded);
+      RewritingPositionTree::getSubtermIterator(p->second, rwLit->termArg(1), excluded);
     } else {
-      EqHelper::getBlackList(TermList(rwLit), p->first, bl);
+      RewritingPositionTree::getSubtermIterator(p->first, TermList(rwLit), excluded);
     }
   }
-  auto rule = bl.contains(rwTerm) ? InferenceRule::FORBIDDEN_SUPERPOSITION : InferenceRule::SUPERPOSITION;
+  auto rule = excluded.contains(rwTerm) ? InferenceRule::FORBIDDEN_SUPERPOSITION : InferenceRule::SUPERPOSITION;
+#else
+  auto rule = InferenceRule::SUPERPOSITION;
 #endif
   //TODO update inference rule name AYB
   Inference inf(GeneratingInference2(hasConstraints ? InferenceRule::CONSTRAINED_SUPERPOSITION : rule, rwClause, eqClause));
@@ -528,6 +527,7 @@ Clause* Superposition::performSuperposition(
   }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
+  auto tgtLitSR = tgtLitS->isOrientedReversed();
 
   static bool doSimS = getOptions().simulatenousSuperposition();
   static bool psb = getOptions().parallelSymmetryBreakingSuperposition();
@@ -562,12 +562,8 @@ Clause* Superposition::performSuperposition(
     vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
     vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
-    Position pos;
-    ALWAYS(Kernel::positionIn(rwTerm,rwLit,pos));
-    vstring rwPos;
-    while (pos.isNonEmpty()) {
-      rwPos += Int::toString(pos.pop()+1)+".";
-    }
+    vstring rwPos="_";
+    ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
     vstring eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
@@ -589,59 +585,50 @@ Clause* Superposition::performSuperposition(
 
   // calculate positions
   if (psb) {
-    Position rhsPos;
-    auto eqP = eqClause->getRwPos(eqLit);
+    RewritingPositionTree* rhsState = nullptr;
+    auto eqP = eqClause->getRwState(eqLit);
     if (eqP) {
-      if (eqLHS == *eqLit->nthArgument(0)) {
-        rhsPos = eqP->second;
+      if (eqLHS == eqLit->termArg(0)) {
+        rhsState = eqP->second;
       } else {
-        rhsPos = eqP->first;
+        rhsState = eqP->first;
       }
     }
-    Position pos0;
-    Position pos1;
+    RewritingPositionTree* t0 = nullptr;
+    RewritingPositionTree* t1 = nullptr;
+    auto origState = rwClause->getRwState(rwLit);
+    RewritingPositionTree* t0orig = origState ? (rwLitSR ? origState->second : origState->first) : nullptr;
+    RewritingPositionTree* t0new = t0orig;
+
+    RewritingPositionTree* t1orig = origState ? (rwLitSR ? origState->first : origState->second) : nullptr;
+    RewritingPositionTree* t1new = t1orig;
     if (rwLitS->isEquality()) {
-      auto oP = rwClause->getRwPos(rwLit);
-      auto oR2 = tgtLitS->isOrientedReversed();
       TermList arg0=*rwLitS->nthArgument(0);
       TermList arg1=*rwLitS->nthArgument(1);
       auto comp = ordering.getEqualityArgumentOrder(rwLitS);
-      auto comp2 = ordering.getEqualityArgumentOrder(tgtLitS);
-      // if (oR2) {
-      //   comp2 = Ordering::reverse(comp2);
-      // }
 
-      // cout << "start" << endl;
       if (arg0.containsSubterm(rwTermS) && (Ordering::isGorGEorE(comp) || comp == Ordering::Result::INCOMPARABLE)) {
-        pos0 = rhsPos;
-        ALWAYS(Kernel::positionIn(rwTermS,arg0,pos0));
-        // cout << "1 " << rwTermS << " is in " << positionToString(pos0) << " position in " << arg0 << " " << positionToString(rhsPos) << endl;
-      } else if (oP) {
-        pos0 = adjustPosition(arg0, rwTermS, rwLitSR ? oP->second : oP->first, rhsPos);
+        t0 = RewritingPositionTree::createFromRewrite(t0new, arg0, rwTermS, rhsState);
+      } else if (origState) {
+        t0 = RewritingPositionTree::createTruncated(t0new, arg0, rwTermS);
       }
       if (arg1.containsSubterm(rwTermS) && (Ordering::isGorGEorE(Ordering::reverse(comp)) || comp == Ordering::Result::INCOMPARABLE)) {
-        pos1 = rhsPos;
-        ALWAYS(Kernel::positionIn(rwTermS,arg1,pos1));
-        // cout << "2 " << rwTermS << " is in " << positionToString(pos1) << " position in " << arg1 << " " << positionToString(rhsPos) << endl;
-      } else if (oP) {
-        pos1 = adjustPosition(arg1, rwTermS, rwLitSR ? oP->first : oP->second, rhsPos);
-      }
-
-      if (pos0.isNonEmpty() && pos1.isNonEmpty() && comp == Ordering::INCOMPARABLE && comp != comp2) {
-        if (Ordering::isGorGEorE(comp2) == oR2) {
-          pos1.reset();
-        } else {
-          pos0.reset();
-        }
+        t1 = RewritingPositionTree::createFromRewrite(t1new, arg1, rwTermS, rhsState);
+      } else if (origState) {
+        t1 = RewritingPositionTree::createTruncated(t1new, arg1, rwTermS);
       }
     } else {
-      ALWAYS(Kernel::positionIn(rwTermS,rwLitS,pos0));
+      t0 = RewritingPositionTree::createFromRewrite(t0new, TermList(rwLitS), rwTermS, rhsState);
     }
-    res->setRwPos(tgtLitS, std::move(pos0), std::move(pos1), true);
-    // if (rwLitSR || tgtLitS->isOrientedReversed()) {
-      // cout << *rwLitS << " " << *tgtLitS << " " << positionToString(pos0) << " " << positionToString(pos1) << endl;
-      // cout << rwLitSR << " " << tgtLitS->isOrientedReversed() << endl;
-    // }
+    if (t0orig != t0new || t1orig != t1new) {
+      if (!origState) {
+        rwClause->setRwPos(rwLit, t0new, t1new, rwLitSR);
+      } else {
+        origState->first  = rwLitSR ? t1new : t0new;
+        origState->second = rwLitSR ? t0new : t1new;
+      }
+    }
+    res->setRwPos(tgtLitS, t0, t1, tgtLitSR);
   }
 
   (*res)[0] = tgtLitS;
@@ -651,8 +638,6 @@ Clause* Superposition::performSuperposition(
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
-      // auto ca = currAfter;
-      // auto caR = ca->isOrientedReversed();
 
       if (doSimS) {
         currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
@@ -681,20 +666,7 @@ Clause* Superposition::performSuperposition(
 
       (*res)[next++] = currAfter;
       if (psb) {
-        auto p = rwClause->getRwPos(curr);
-        // cout << "curr " << *curr << " ca " << *ca << " currAfter " << *currAfter << endl;
-        // cout << curr->isOrientedReversed() << " " << ca->isOrientedReversed() << " " << currAfter->isOrientedReversed() << endl;
-        if (p) {
-          // auto pos0 = (doSimS && caR) ? p->second : p->first;
-          // auto pos1 = (doSimS && caR) ? p->first : p->second;
-          // if (curr->isEquality()) {
-          //   pos0 = adjustPosition(*ca->nthArgument(0),rwTermS,pos0);
-          //   pos1 = adjustPosition(*ca->nthArgument(1),rwTermS,pos1);
-          // } else {
-          //   pos0 = adjustPosition(TermList(ca),rwTermS,pos0);
-          // }
-          res->setRwPos(currAfter, p->first, p->second, true);
-        }
+        res->initRwStateFrom(rwClause, curr, currAfter);
       }
     }
   }
@@ -735,9 +707,8 @@ Clause* Superposition::performSuperposition(
         }
 
         (*res)[next++] = currAfter;
-        auto p = eqClause->getRwPos(curr);
-        if (p) {
-          res->setRwPos(currAfter, p->first, p->second, true);
+        if (psb) {
+          res->initRwStateFrom(eqClause, curr, currAfter);
         }
       }
     }

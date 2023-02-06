@@ -357,9 +357,13 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  pair<Position,Position>* getRwPos(Literal* lit) const;
-  void setRwPos(Literal* lit, Position p1, Position p2, bool reorient);
-  bool hasRwPos() const { return !_rwPos.isEmpty(); }
+  // pair<Position,Position>* getRwPos(Literal* lit) const;
+  // void setRwPos(Literal* lit, Position p0, Position p1, bool reorient);
+  void setRwPos(Literal* lit, RewritingPositionTree* t0, RewritingPositionTree* t1, bool reorient);
+  pair<RewritingPositionTree*,RewritingPositionTree*>* getRwState(Literal* lit) const;
+  // void setRwState(Literal* lit, RewritingPositionTree* pt0, RewritingPositionTree* pt1, bool reorient);
+  bool hasRwPos() const { return !_rwState.isEmpty(); }
+  void initRwStateFrom(Clause* cl, Literal* lit, Literal* newLit);
 
 protected:
   /** number of literals */
@@ -394,7 +398,8 @@ protected:
 
   int _numActiveSplits;
 
-  DHMap<Literal*, pair<Position,Position>> _rwPos;
+  // DHMap<Literal*, pair<Position,Position>> _rwPos;
+  DHMap<Literal*, pair<RewritingPositionTree*,RewritingPositionTree*>> _rwState;
 
   size_t _auxTimestamp;
   void* _auxData;
