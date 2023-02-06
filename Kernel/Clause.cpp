@@ -769,9 +769,9 @@ unsigned Clause::numPositiveLiterals()
   return count;
 }
 
-void Clause::setRwPos(Literal* lit, RewritingPositionTree* t0, RewritingPositionTree* t1, bool reorient)
+void Clause::setRwState(Literal* lit, RewritingPositionTree* t0, RewritingPositionTree* t1, bool reorient)
 {
-  CALL("Clause::setRwPos");
+  CALL("Clause::setRwState");
   if (!t0 && !t1) {
     return;
   }
@@ -781,8 +781,8 @@ void Clause::setRwPos(Literal* lit, RewritingPositionTree* t0, RewritingPosition
   }
 #ifdef VDEBUG
   if (lit->isEquality()) {
-    ASS_REP(!t0||t0->isValid(lit->termArg(0)),"Record for lit "+lit->toString()+" 0. arg is not valid: " + t0->toString());
-    ASS_REP(!t1||t1->isValid(lit->termArg(1)),"Record for lit "+lit->toString()+" 1. arg is not valid: " + t1->toString());
+    ASS_REP(!t0||t0->isValid(lit->termArg(0)),"Lit "+lit->toString()+" 0. arg state is not valid: " + t0->toString());
+    ASS_REP(!t1||t1->isValid(lit->termArg(1)),"Lit "+lit->toString()+" 1. arg state is not valid: " + t1->toString());
   }
 #endif
 

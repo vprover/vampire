@@ -18,14 +18,12 @@
 
 #include "Clause.hpp"
 #include "Ordering.hpp"
+#include "RewritingPositionTree.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
 #include "ApplicativeHelper.hpp"
 
 #include "EqHelper.hpp"
-#include "RewritingPositionTree.hpp"
-
-#include <utility>
 
 namespace Kernel {
 
@@ -167,16 +165,8 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   TermList* argLst=&args.top() - (trm0->arity()-1);
   if (trm0->isLiteral()) {
     Literal* lit = static_cast<Literal*>(trm0);
-    // if (lit->isOrientedReversed()) {
-    //   cout << "r3 " << *lit << endl;
-    // }
     ASS_EQ(args.size(), lit->arity());
-    auto res = Literal::create(lit,argLst);
-    // cout << "here " << *res << endl;
-    // if (res->isOrientedReversed()) {
-    //   cout << "reversed3" << endl;
-    // }
-    return res;
+    return Literal::create(lit,argLst);
   }
   return Term::create(trm0,argLst);
 }
@@ -476,13 +466,12 @@ TermIterator EqHelper::getSubtermIterator2(Literal* lit, Clause* cl, const Order
   }
 
   auto res = TermIterator::getEmpty();
-  DHSet<TermList> excluded;
   if (lit->isEquality()) {
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE: {
       res = getUniquePersistentIterator(getConcatenatedIterator(
-        RewritingPositionTree::getSubtermIterator(kv->first, lit->termArg(0), excluded),
-        RewritingPositionTree::getSubtermIterator(kv->second, lit->termArg(1), excluded)));
+        RewritingPositionTree::getSubtermIterator(kv->first, lit->termArg(0)),
+        RewritingPositionTree::getSubtermIterator(kv->second, lit->termArg(1))));
       break;
     }
     // case Ordering::EQUAL: {
@@ -490,12 +479,12 @@ TermIterator EqHelper::getSubtermIterator2(Literal* lit, Clause* cl, const Order
     // }
     case Ordering::GREATER:
     case Ordering::GREATER_EQ: {
-      res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->first, lit->termArg(0), excluded));
+      res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->first, lit->termArg(0)));
       break;
     }
     case Ordering::LESS:
     case Ordering::LESS_EQ: {
-      res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->second, lit->termArg(1), excluded));
+      res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->second, lit->termArg(1)));
       break;
     }
 #if VDEBUG
@@ -504,12 +493,9 @@ TermIterator EqHelper::getSubtermIterator2(Literal* lit, Clause* cl, const Order
 #endif
     }
   } else {
-    res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->first, TermList(lit), excluded));
+    res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->first, TermList(lit)));
   }
-  return pvi(iterTraits(res)
-    .filter([excluded = std::move(excluded)](TermList t) {
-      return !excluded.contains(t);
-    }));
+  return res;
 }
 
 

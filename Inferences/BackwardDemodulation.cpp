@@ -231,7 +231,7 @@ struct BackwardDemodulation::ResultFn
     } else {
       t0 = RewritingPositionTree::createTruncated(t0, TermList(qr.literal),lhsS);
     }
-    res->setRwPos(resLit, t0, t1, resLitR);
+    res->setRwState(resLit, t0, t1, resLitR);
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {

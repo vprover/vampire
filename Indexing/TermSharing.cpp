@@ -359,10 +359,8 @@ Literal* TermSharing::insert(Literal* t)
     t->destroy();
   }
   // overwrite current orientation with new
-  // reverseOrientation = reverseOrientation ^ t->isOrientedReversed();
   s->resetOrientation();
   if (reverseOrientation) {
-    // cout << "helo" << endl;
     s->reverseOrientation();
   }
   return s;

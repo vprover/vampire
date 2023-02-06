@@ -204,21 +204,11 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
                                && env.property->higherOrder();
 
   auto itf1 = premise->getSelectedLiteralIterator();
-// #ifdef NEW
-//   auto bl = EqHelper::getBlackList(premise);
-// #endif
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
   // a maximal side of an equality or of a non-equational literal
-  auto itf2 = iterTraits(itf1)
-    .flatMap(RewriteableSubtermsFn(_salg->getOrdering(), premise))
-// #ifdef NEW
-//     .filter([bl](const pair<Literal*, TermList>& arg) {
-//       return !bl.contains(arg.second);
-//     })
-// #endif
-  ;
+  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering(),premise));
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
@@ -608,27 +598,36 @@ Clause* Superposition::performSuperposition(
       auto comp = ordering.getEqualityArgumentOrder(rwLitS);
 
       if (arg0.containsSubterm(rwTermS) && (Ordering::isGorGEorE(comp) || comp == Ordering::Result::INCOMPARABLE)) {
+        if (RewritingPositionTree::isExcluded(t0new, arg0, rwTermS)) {
+          return nullptr;
+        }
         t0 = RewritingPositionTree::createFromRewrite(t0new, arg0, rwTermS, rhsState);
       } else if (origState) {
         t0 = RewritingPositionTree::createTruncated(t0new, arg0, rwTermS);
       }
       if (arg1.containsSubterm(rwTermS) && (Ordering::isGorGEorE(Ordering::reverse(comp)) || comp == Ordering::Result::INCOMPARABLE)) {
+        if (RewritingPositionTree::isExcluded(t1new, arg1, rwTermS)) {
+          return nullptr;
+        }
         t1 = RewritingPositionTree::createFromRewrite(t1new, arg1, rwTermS, rhsState);
       } else if (origState) {
         t1 = RewritingPositionTree::createTruncated(t1new, arg1, rwTermS);
       }
     } else {
+      if (RewritingPositionTree::isExcluded(t0new, TermList(rwLitS), rwTermS)) {
+        return nullptr;
+      }
       t0 = RewritingPositionTree::createFromRewrite(t0new, TermList(rwLitS), rwTermS, rhsState);
     }
     if (t0orig != t0new || t1orig != t1new) {
       if (!origState) {
-        rwClause->setRwPos(rwLit, t0new, t1new, rwLitSR);
+        rwClause->setRwState(rwLit, t0new, t1new, rwLitSR);
       } else {
         origState->first  = rwLitSR ? t1new : t0new;
         origState->second = rwLitSR ? t0new : t1new;
       }
     }
-    res->setRwPos(tgtLitS, t0, t1, tgtLitSR);
+    res->setRwState(tgtLitS, t0, t1, tgtLitSR);
   }
 
   (*res)[0] = tgtLitS;

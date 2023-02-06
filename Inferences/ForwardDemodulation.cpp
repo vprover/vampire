@@ -241,7 +241,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         } else {
           t0 = RewritingPositionTree::createTruncated(t0,TermList(lit),trm);
         }
-        res->setRwPos(resLit, t0, t1, resLitR);
+        res->setRwState(resLit, t0, t1, resLitR);
 
         unsigned next=1;
         for(unsigned i=0;i<cLen;i++) {

@@ -27,6 +27,8 @@ namespace Kernel {
 class RewritingPositionTree
 {
 private:
+  using Path = Stack<pair<unsigned,bool>>;
+
   struct Node
   {
     CLASS_NAME(Node);
@@ -48,18 +50,20 @@ public:
   static RewritingPositionTree* create(RewritingPositionTree* other);
   static RewritingPositionTree* createFromRewrite(RewritingPositionTree*& old, TermList term, TermList rwTerm, RewritingPositionTree* rhs);
   static RewritingPositionTree* createTruncated(RewritingPositionTree* old, TermList term, TermList rwTerm);
-  static TermIterator getSubtermIterator(RewritingPositionTree* old, TermList term, DHSet<TermList>& excluded);
+  static TermIterator getSubtermIterator(RewritingPositionTree* tree, TermList term);
+  static bool isExcluded(RewritingPositionTree* tree, TermList term, TermList rwTerm);
 
   bool isValid(TermList t) const;
   vstring toString() const;
 
 private:
   RewritingPositionTree* createTruncated(Term* term, Term* rwTerm);
-  RewritingPositionTree* createFromRewrite(Term* term, Term* rwTerm, const Stack<pair<unsigned,bool>>& rhsPath);
-  TermIterator getSubtermIterator(Term* term, DHSet<TermList>& excluded);
-  static RewritingPositionTree* create(const Stack<pair<unsigned,bool>>& path);
-  static void assignNewPath(Stack<pair<unsigned,bool>>& path, Node* n, Term* term, Term* rwTerm);
-  static Stack<pair<unsigned,bool>> extractPath(RewritingPositionTree* tree);
+  RewritingPositionTree* createFromRewrite(Term* term, Term* rwTerm, const Path& rhsPath);
+  TermIterator getSubtermIterator(Term* term);
+  bool isExcluded(Term* term, Term* rwTerm);
+  static RewritingPositionTree* create(const Path& path);
+  static void assignNewPath(Path& path, Node* n, Term* term, Term* rwTerm);
+  static Path extractPath(RewritingPositionTree* tree);
 
   Node* _root;
 };

@@ -28,7 +28,7 @@ namespace Kernel
 
 using namespace Lib;
 
-RewritingPositionTree* RewritingPositionTree::create(const Stack<pair<unsigned,bool>>& path)
+RewritingPositionTree* RewritingPositionTree::create(const Path& path)
 {
   CALL("static RewritingPositionTree::create");
   if (path.isEmpty()) {
@@ -45,10 +45,10 @@ RewritingPositionTree* RewritingPositionTree::create(const Stack<pair<unsigned,b
   return res;
 }
 
-Stack<pair<unsigned,bool>> RewritingPositionTree::extractPath(RewritingPositionTree* tree)
+RewritingPositionTree::Path RewritingPositionTree::extractPath(RewritingPositionTree* tree)
 {
   CALL("static RewritingPositionTree::extractPath");
-  Stack<pair<unsigned,bool>> path;
+  Path path;
   if (!tree) {
     return path;
   }
@@ -89,23 +89,23 @@ RewritingPositionTree* RewritingPositionTree::createFromRewrite(RewritingPositio
 
   if (!old) {
     auto ext = new Node();
-    Stack<pair<unsigned,bool>> path;
+    Path path;
     assignNewPath(path, ext, term.term(), rwTerm.term());
     old = new RewritingPositionTree(ext);
-    path.loadFromIterator(Stack<pair<unsigned,bool>>::BottomFirstIterator(rhsPath));
+    path.loadFromIterator(Path::BottomFirstIterator(rhsPath));
     return create(path);
   }
   ASS(old->_root);
   return old->createFromRewrite(term.term(), rwTerm.term(), rhsPath);
 }
 
-RewritingPositionTree* RewritingPositionTree::createFromRewrite(Term* term, Term* rwTerm, const Stack<pair<unsigned,bool>>& rhsPath)
+RewritingPositionTree* RewritingPositionTree::createFromRewrite(Term* term, Term* rwTerm, const Path& rhsPath)
 {
   CALL("RewritingPositionTree::createNewFromRewrite");
   // cout << "createNewFromRewrite " << *term << " " << *rwTerm << endl;
   Term* curr = term;
   Node* currN = _root;
-  Stack<pair<unsigned,bool>> path;
+  Path path;
 
   while (curr) {
     // TODO it suffices to start from main
@@ -117,7 +117,7 @@ RewritingPositionTree* RewritingPositionTree::createFromRewrite(Term* term, Term
       }
       path.push(make_pair(j, currN->reversed));
       if (t.term() == rwTerm) {
-        path.loadFromIterator(Stack<pair<unsigned,bool>>::BottomFirstIterator(rhsPath));
+        path.loadFromIterator(Path::BottomFirstIterator(rhsPath));
         return create(path);
       }
       // cout << positionToString(cp) << endl;
@@ -132,7 +132,7 @@ RewritingPositionTree* RewritingPositionTree::createFromRewrite(Term* term, Term
       auto ext = new Node();
       currN->indices.insert(j, ext);
       assignNewPath(path, ext, t.term(), rwTerm);
-      path.loadFromIterator(Stack<pair<unsigned,bool>>::BottomFirstIterator(rhsPath));
+      path.loadFromIterator(Path::BottomFirstIterator(rhsPath));
       return create(path);
     }
   }
@@ -163,7 +163,7 @@ RewritingPositionTree* RewritingPositionTree::createTruncated(Term* term, Term* 
   }
   auto curr = term;
   auto currN = _root;
-  Stack<pair<unsigned,bool>> path;
+  Path path;
 
   while (currN) {
     path.push(make_pair(currN->main, currN->reversed));
@@ -194,7 +194,7 @@ RewritingPositionTree* RewritingPositionTree::createTruncated(Term* term, Term* 
   return create(path);
 }
 
-void RewritingPositionTree::assignNewPath(Stack<pair<unsigned, bool>>& path, Node* n, Term* term, Term* rwTerm)
+void RewritingPositionTree::assignNewPath(Path& path, Node* n, Term* term, Term* rwTerm)
 {
   CALL("RewritingPositionTree::assignNewPath");
   ASS(n);
@@ -229,7 +229,7 @@ void RewritingPositionTree::assignNewPath(Stack<pair<unsigned, bool>>& path, Nod
   }
 }
 
-TermIterator RewritingPositionTree::getSubtermIterator(RewritingPositionTree* old, TermList term, DHSet<TermList>& excluded)
+TermIterator RewritingPositionTree::getSubtermIterator(RewritingPositionTree* old, TermList term)
 {
   CALL("static RewritingPositionTree::getSubtermIterator");
   TIME_TRACE("rewriting position tree maintenance");
@@ -241,10 +241,10 @@ TermIterator RewritingPositionTree::getSubtermIterator(RewritingPositionTree* ol
     ASS(!term.term()->isLiteral());
     return vi(new NonVariableNonTypeIterator(term.term(), true));
   }
-  return old->getSubtermIterator(term.term(), excluded);
+  return old->getSubtermIterator(term.term());
 }
 
-TermIterator RewritingPositionTree::getSubtermIterator(Term* term, DHSet<TermList>& excluded)
+TermIterator RewritingPositionTree::getSubtermIterator(Term* term)
 {
   CALL("RewritingPositionTree::getSubtermIterator");
   // add term itself if not literal
@@ -253,6 +253,7 @@ TermIterator RewritingPositionTree::getSubtermIterator(Term* term, DHSet<TermLis
     : pvi(getSingletonIterator(TermList(term)));
   auto curr = term;
   auto currN = _root;
+  DHSet<TermList> excluded;
 
   while (currN) {
     auto index = currN->main;
@@ -298,7 +299,69 @@ TermIterator RewritingPositionTree::getSubtermIterator(Term* term, DHSet<TermLis
   }
   res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(curr, false))));
 
-  return res;
+  return pvi(iterTraits(res)
+    .filter([excluded = std::move(excluded)](TermList t) {
+      return !excluded.contains(t);
+    }));
+}
+
+bool RewritingPositionTree::isExcluded(RewritingPositionTree* tree, TermList term, TermList rwTerm)
+{
+  CALL("static RewritingPositionTree::isExcluded");
+  TIME_TRACE("rewriting position tree maintenance");
+  ASS(rwTerm.isTerm());
+
+  if (term.isVar() || !tree) {
+    return false;
+  }
+
+  return tree->isExcluded(term.term(), rwTerm.term());
+}
+
+bool RewritingPositionTree::isExcluded(Term* term, Term* rwTerm)
+{
+  CALL("RewritingPositionTree::isExcluded");
+  // add term itself if not literal
+  auto res = term->isLiteral()
+    ? TermIterator::getEmpty()
+    : pvi(getSingletonIterator(TermList(term)));
+  auto curr = term;
+  auto currN = _root;
+  DHSet<TermList> excluded;
+
+  while (currN) {
+    if (curr == rwTerm) {
+      break;
+    }
+    auto index = currN->main;
+    if (index < 0) {
+      break;
+    }
+    bool reversed = currN->reversed;
+    ASS_L(index, curr->numTermArguments());
+
+    unsigned exci = reversed ? index+1 : 0;
+    unsigned excj = reversed ? curr->numTermArguments() : index;
+
+    for (unsigned i = exci; i < excj; i++) {
+      auto arg = curr->termArg(i);
+      if (arg.containsSubterm(TermList(rwTerm))) {
+        return true;
+      }
+    }
+
+    auto next = curr->termArg(index);
+    if (next.isVar()) {
+      break;
+    }
+    curr = next.term();
+    auto nextN = currN->indices.findPtr(index);
+    if (!nextN) {
+      break;
+    }
+    currN = *nextN;
+  }
+  return false;
 }
 
 bool RewritingPositionTree::isValid(TermList term) const
