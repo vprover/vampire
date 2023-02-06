@@ -16,12 +16,13 @@
 #ifndef __LiteralSubstitutionTree__
 #define __LiteralSubstitutionTree__
 
+#include "Indexing/Index.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
 
 namespace Indexing {
 
-template<class LeafData_>
+template<class LeafData_ = DefaultLiteralLeafData>
 class LiteralSubstitutionTree
 : public LiteralIndexingStructure, Indexing::SubstitutionTree<LeafData_>
 {  

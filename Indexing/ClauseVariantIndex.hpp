@@ -21,6 +21,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
+#include "Indexing/LiteralSubstitutionTree.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -28,7 +29,6 @@ namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
-class LiteralSubstitutionTree;
 
 class ClauseVariantIndex
 {

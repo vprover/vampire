@@ -66,7 +66,6 @@ public:
     CALL("SkipList::insert");
     void* pval = insertPositionRaw(val);
     new(pval) Value(std::move(val));
-    // *pval = val;
   } // SkipList::insert
 
   template<class Iterator>
@@ -204,7 +203,6 @@ public:
       }
     }
     Node* newNode = allocate(nodeHeight);
-    ::new (&newNode->value) Value();
 
 
     unsigned h = _top - 1;
