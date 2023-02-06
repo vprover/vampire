@@ -252,8 +252,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
-         Indexing/TermSubstitutionTree.o\
-         Indexing/TypeSubstitutionTree.o
+         Indexing/TermSubstitutionTree.o
 
 VIG_OBJ = InstGen/IGAlgorithm.o\
           InstGen/ModelPrinter.o

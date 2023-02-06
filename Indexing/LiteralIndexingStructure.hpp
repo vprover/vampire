@@ -25,8 +25,9 @@ class LiteralIndexingStructure {
 public:
   virtual ~LiteralIndexingStructure() {}
 
-  virtual void insert(Literal* lit, Clause* cls) = 0;
-  virtual void remove(Literal* lit, Clause* cls) = 0;
+  virtual void handle(Literal* lit, Clause* cls, bool insert) = 0;
+  void insert(Literal* lit, Clause* cls) { handle(lit, cls, /* insert = */ true ); }
+  void remove(Literal* lit, Clause* cls) { handle(lit, cls, /* insert = */ false); }
 
   virtual SLQueryResultIterator getAll() { NOT_IMPLEMENTED; }
   virtual SLQueryResultIterator getUnifications(Literal* lit,

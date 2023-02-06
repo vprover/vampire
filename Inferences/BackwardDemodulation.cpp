@@ -134,19 +134,12 @@ struct BackwardDemodulation::ResultFn
       }"
       from the monomorphic setting */
     if(lhs.isVar()){
-      //when finding instances of a variable, RobSubstitution is used
-      //view Indexing::TermSubstitutionTree::getInstances
-      RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
-      ASS(sub)
-      //rather than 0 and 1, we should use the constants delared in
-      //substitution tree
-      if(!sub->match(_eqSort, 0, qrSort, 1)){
+      if(!qr.substitution->matchSorts(_eqSort, qrSort)) {
         return BwSimplificationRecord(0);        
       }
     }
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-
     TermList lhsS=qr.term;
     TermList rhsS;
 

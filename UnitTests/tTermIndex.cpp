@@ -21,7 +21,7 @@ void perform_test(const A&...)
 template<class Data>
 void check_leafdata(TermSubstitutionTree<Data>& tree, TermList key, Stack<Data> expected)
 {
-  auto is = iterTraits(tree.getUnifications(key, /*subst */ true))
+  auto is = iterTraits(tree.getUnifications(key, /*subst */ true, /* withConstr */ false))
     .map([](auto u) { return u.data(); })
     .template collect<Stack>();
   std::sort(is.begin(), is.end());
@@ -60,18 +60,21 @@ TEST_FUN(basic01) {
 
 struct MyData {
   TermList term;
+  TermList sort;
   vstring str;
 
+  MyData(TermList t, vstring s)
+    : term(t), sort(SortHelper::getResultSort(t.term())), str(s) {}
+
+
   auto asTuple() const 
-  { return std::tie(term, str); }
+  { return std::tie(term, sort, str); }
 
   IMPL_COMPARISONS_FROM_TUPLE(MyData)
 
   friend std::ostream& operator<<(std::ostream& out, MyData const& self)
   { return out << "MyData" << self.asTuple(); }
 
-  TermList sort()
-  { return SortHelper::getResultSort(term.term()); }
   using Key = TermList;
 
   Key const& key() const
@@ -87,14 +90,15 @@ TEST_FUN(custom_data_01) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
+  auto dat = [](auto l, auto r) { return MyData(l,r); };
   TermSubstitutionTree<MyData> tree;
-  tree.insert({f(a), "a"});
-  tree.insert({f(a), "b"});
-  tree.insert({f(a), "c"});
+  tree.insert(dat(f(a), "a"));
+  tree.insert(dat(f(a), "b"));
+  tree.insert(dat(f(a), "c"));
 
-  check_leafdata(tree, f(a), { {f(a), "a"}, {f(a), "b"}, {f(a), "c"} });
+  check_leafdata(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
   check_leafdata(tree, f(b), Stack<MyData>{});
-  check_leafdata(tree, f(x), { {f(a), "a"}, {f(a), "b"}, {f(a), "c"} });
+  check_leafdata(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
 
 TEST_FUN(custom_data_02) {

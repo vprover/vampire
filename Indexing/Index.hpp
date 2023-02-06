@@ -16,6 +16,7 @@
 #define __Indexing_Index__
 
 #include "Forwards.hpp"
+#include "Debug/Output.hpp"
 
 #include "Lib/Event.hpp"
 #include "Kernel/Clause.hpp"
@@ -63,38 +64,31 @@ public:
 
   Clause* clause;
   Literal* literal;
+  TermList sort;
 
   friend std::ostream& operator<<(std::ostream& out, DefaultLiteralLeafData const& self)
-  { 
-    out << "DefaultLiteralLeafData(";
-    if (self.literal) out << *self.literal;
-    else              out << "null";
-    out << ", ";
-    if (self.clause) out << *self.clause;
-    else             out << "null";
-    out << ")";
-    return out;
-  }
+  { return out << "{ " << outputPtr(self.clause)
+               << ", " << outputPtr(self.literal)
+               << ", " << self.sort
+               << " }"; }
 
 };
 
 template<class Value>
 class TermIndexData {
   TermList _key;
-  TermList _sort;
   Value _value;
 public:
+  TermList sort;
   CLASS_NAME(TermIndexData);
 
   TermIndexData() {}
 
   TermIndexData(Term* key, Value v)
     : _key(TermList(key))
-    , _sort(SortHelper::getResultSort(key))
-    , _value(std::move(v)) {}
-
-  TermList const& sort() const
-  { return _sort; }
+    , _value(std::move(v))
+    , sort(SortHelper::getResultSort(key))
+  {}
 
   TermList const& key() const 
   { return _key; }
@@ -104,7 +98,7 @@ public:
 
 private:
   auto asTuple() const
-  { return std::tie(key(), sort(), value()); }
+  { return std::tie(key(), sort, value()); }
 public:
 
   IMPL_COMPARISONS_FROM_TUPLE(TermIndexData)
@@ -156,11 +150,15 @@ struct DefaultTermLeafData
   Clause* clause;
   Literal* literal;
   TermList term;
+  TermList sort;
 
 
   using Key = TermList;
 
   DefaultTermLeafData() {}
+
+  DefaultTermLeafData(TypedTermList t, Literal* l, Clause* c)
+    : clause(c), literal(l), term(t), sort(t.sort()) {}
 
   DefaultTermLeafData(TermList t, Literal* l, Clause* c)
     : clause(c), literal(l), term(t) {}
@@ -168,10 +166,6 @@ struct DefaultTermLeafData
   explicit DefaultTermLeafData(Term* term)
     : clause(nullptr), literal(nullptr),  term(TermList(term))
   {}
-
-  // TODO maybe make sort an argument and not recompute it here
-  TermList sort() const
-  { return SortHelper::getTermSort(term, literal); }
 
   Key const& key() const 
   { return term; }
@@ -189,17 +183,11 @@ public:
   IMPL_COMPARISONS_FROM_TUPLE(DefaultTermLeafData)
 
   friend std::ostream& operator<<(std::ostream& out, DefaultTermLeafData const& self)
-  { 
-    out << "DefaultTermLeafData("
-        << self.term << ", ";
-    if (self.literal) out << *self.literal;
-    else              out << "null";
-    out << ", ";
-    if (self.clause) out << *self.clause;
-    else             out << "null";
-    out << ")";
-    return out;
-  }
+  { return out << "DefaultTermLeafData("
+               << self.term << ", "
+               << outputPtr(self.literal)
+               << outputPtr(self.clause)
+               << ")"; }
 
 };
 
@@ -245,26 +233,25 @@ struct TermQueryResult : public Data
   TermQueryResult(Data d, ResultSubstitutionSP s)
     : Data(std::move(d)), substitution(s) {}
 
-  TermQueryResult(Data d, ResultSubstitutionSP s, bool b)
-    : Data(std::move(d)), substitution(s), isTypeSub(b) {}
-
   TermQueryResult(Data d)
     : Data(std::move(d)) {}
 
   TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con) 
     : Data(std::move(d)), substitution(s), constraints(con) {}
 
-  TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
-    : Data(std::move(d)), substitution(s), constraints(con), isTypeSub(b) {}
-
-
   Data const& data() const
   { return *this; }
 
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
-  bool isTypeSub = false; //true if the substitution only unifies the types of the terms
-                          //
+  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
+  { 
+    return out 
+      << "{ substitution: " << self.substitution 
+      << ", constraints: " << self.constraints
+      << ", data: " << self.data()
+      << "}";
+  }
 };
 
 struct ClauseSResQueryResult

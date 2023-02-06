@@ -46,18 +46,17 @@ public:
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  virtual void insert(DefaultTermLeafData data) final override
-  { _insert(data.term, data.literal, data.clause); }
-  virtual void remove(DefaultTermLeafData data) final override
-  { _remove(data.term, data.literal, data.clause); }
-
-  void _insert(TermList t, Literal* lit, Clause* cls);
-  void _remove(TermList t, Literal* lit, Clause* cls);
+  virtual void handle(DefaultTermLeafData data, bool insert) final override
+  { if (insert) { _insert(data.term, data.literal, data.clause); }
+    else        { _remove(data.term, data.literal, data.clause); } }
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
   bool generalizationExists(TermList t) final override;
 
 private:
+  void _insert(TermList t, Literal* lit, Clause* cls);
+  void _remove(TermList t, Literal* lit, Clause* cls);
+
   class ResultIterator;
 
   TermCodeTree _ct;

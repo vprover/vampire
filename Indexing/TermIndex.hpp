@@ -18,6 +18,7 @@
 
 #include "Index.hpp"
 
+#include "Indexing/TermSubstitutionTree.hpp"
 #include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
 
@@ -39,11 +40,8 @@ public:
   TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsUsingSorts(t, sort, retrieveSubstitutions); }
-
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsWithConstraints(t, retrieveSubstitutions); }
+  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions = true, bool withConstraints = false)
+  { return _is->getUnificationsUsingSorts(tt, retrieveSubstitutions, withConstraints); }
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
@@ -83,13 +81,14 @@ public:
   CLASS_NAME(SuperpositionLHSIndex);
   USE_ALLOCATOR(SuperpositionLHSIndex);
 
-  SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  SuperpositionLHSIndex(TermSubstitutionTree<>* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
+  TermSubstitutionTree<>* _tree;
 };
 
 /**
