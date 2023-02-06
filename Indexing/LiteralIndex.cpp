@@ -25,50 +25,12 @@
 #include "LiteralSubstitutionTree.hpp"
 
 #include "LiteralIndex.hpp"
+#include "IndexManager.hpp"
 
 namespace Indexing
 {
 
 using namespace Kernel;
-
-LiteralIndex::~LiteralIndex()
-{
-  delete _is;
-}
-
-SLQueryResultIterator LiteralIndex::getAll()
-{
-  return _is->getAll();
-}
-
-SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnifications(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getGeneralizations(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getInstances(lit, complementary, retrieveSubstitutions);
-}
-
-size_t LiteralIndex::getUnificationCount(Literal* lit, bool complementary)
-{
-  return _is->getUnificationCount(lit, complementary);
-}
 
 void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
 {
@@ -186,10 +148,10 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering)
+RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure<>* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex=new LiteralSubstitutionTree<>();
+  _partialIndex = new LiteralSubstitutionTree<>(/* uwa */ nullptr);
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()

@@ -56,7 +56,6 @@ class AcyclicityIndex
 : public Index
 {
   using TermIndexingStructure   = Indexing::TermIndexingStructure<DefaultTermLeafData>;
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultTermLeafData>;
 public:
   AcyclicityIndex(TermIndexingStructure* tis) :
     _sIndexes(),

@@ -31,7 +31,6 @@
 
 namespace Indexing
 {
-
 using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
@@ -77,6 +76,7 @@ public:
 template<class Value>
 class TermIndexData {
   TermList _key;
+  // TODO rename to _extra (?)
   Value _value;
 public:
   TermList sort;
@@ -193,72 +193,32 @@ public:
 
 
 /**
- * Class of objects which contain results of single literal queries.
- */
-struct SLQueryResult
-{
-  SLQueryResult() {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s)
-  : literal(l), clause(c), substitution(s) {}
-  SLQueryResult(Literal* l, Clause* c)
-  : literal(l), clause(c) {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
-  : literal(l), clause(c), substitution(s), constraints(con) {}
-
-
-  Literal* literal;
-  Clause* clause;
-  ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
-
-  struct ClauseExtractFn
-  {
-    Clause* operator()(const SLQueryResult& res)
-    {
-      return res.clause;
-    }
-  };
-  friend std::ostream& operator<<(std::ostream& out, SLQueryResult const& self)
-  { return out << "{ " << outputPtr(self.literal) 
-               << ", " << outputPtr(self.clause)
-               << ", " << self.substitution
-               << ", " << self.constraints
-               << " }"; }
-};
-
-/**
  * Class of objects which contain results of term queries.
  */
-template<class Data>
-struct TermQueryResult : public Data
+template<class Unifier, class Data>
+struct QueryRes : public Data
 {
-  CLASS_NAME(TermQueryResult)
+  QueryRes() {}
+  QueryRes(Unifier unifier, Data data) : Data(data), unifier(std::move(unifier)) {}
 
-  TermQueryResult() {}
-
-  TermQueryResult(Data d, ResultSubstitutionSP s)
-    : Data(std::move(d)), substitution(s) {}
-
-  TermQueryResult(Data d)
-    : Data(std::move(d)) {}
-
-  TermQueryResult(Data d, ResultSubstitutionSP s,UnificationConstraintStackSP con) 
-    : Data(std::move(d)), substitution(s), constraints(con) {}
 
   Data const& data() const
   { return *this; }
 
-  ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
-  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
+  Unifier unifier;
+
+  friend std::ostream& operator<<(std::ostream& out, QueryRes const& self)
   { 
     return out 
-      << "{ substitution: " << self.substitution 
-      << ", constraints: " << self.constraints
-      << ", data: " << self.data()
+      << "{ data: " << self.data()
+      << ", unifier: " << self.unifier
       << "}";
   }
 };
+
+template<class Unifier, class Data>
+QueryRes<Unifier, Data> queryRes(Unifier unifier, Data d) 
+{ return QueryRes<Unifier, Data>(std::move(unifier), std::move(d)); }
 
 struct ClauseSResQueryResult
 {
@@ -284,9 +244,11 @@ struct FormulaQueryResult
   ResultSubstitutionSP substitution;
 };
 
-typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
-template<class Data>
-using TermQueryResultIterator = VirtualIterator<TermQueryResult<Data>> ;
+using TermQueryResult = QueryRes<ResultSubstitutionSP ,   DefaultTermLeafData>;
+using SLQueryResult   = QueryRes<ResultSubstitutionSP, DefaultLiteralLeafData>;
+
+using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
+using SLQueryResultIterator   = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 

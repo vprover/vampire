@@ -12,6 +12,7 @@
  * Implements class Induction.
  */
 
+#include "Forwards.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 
@@ -35,11 +36,9 @@ namespace {
 
 struct SLQueryResultToTermQueryResultFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
-
   SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
   TermQueryResult operator() (const SLQueryResult slqr) {
-    return TermQueryResult(DefaultTermLeafData(slqr.substitution->applyToQuery(variable), slqr.literal, slqr.clause));
+    return TermQueryResult(ResultSubstitutionSP(), DefaultTermLeafData(slqr.unifier->applyToQuery(variable), slqr.literal, slqr.clause));
   }
 
   TermList variable;
@@ -67,7 +66,7 @@ bool isIntegerComparisonLiteral(Literal* lit) {
 
 };  // namespace
 
-TermQueryResultIterator<DefaultTermLeafData> InductionHelper::getComparisonMatch(
+TermQueryResultIterator InductionHelper::getComparisonMatch(
     bool polarity, bool termIsLeft, Term* t) {
   CALL("InductionHelper::getComparisonMatch");
 
@@ -78,7 +77,7 @@ TermQueryResultIterator<DefaultTermLeafData> InductionHelper::getComparisonMatch
                                 SLQueryResultToTermQueryResultFn(var)));
 }
 
-TermQueryResultIterator<DefaultTermLeafData> InductionHelper::getLess(Term* t)
+TermQueryResultIterator InductionHelper::getLess(Term* t)
 {
   CALL("InductionHelper::getLess");
   return pvi(getConcatenatedIterator(
@@ -88,7 +87,7 @@ TermQueryResultIterator<DefaultTermLeafData> InductionHelper::getLess(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/false, t)));
 }
 
-TermQueryResultIterator<DefaultTermLeafData> InductionHelper::getGreater(Term* t)
+TermQueryResultIterator InductionHelper::getGreater(Term* t)
 {
   CALL("InductionHelper::getGreater");
   return pvi(getConcatenatedIterator(
@@ -98,7 +97,7 @@ TermQueryResultIterator<DefaultTermLeafData> InductionHelper::getGreater(Term* t
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator<DefaultTermLeafData> InductionHelper::getTQRsForInductionTerm(TermList inductionTerm) {
+TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList inductionTerm) {
   CALL("InductionHelper::getIndTQRsForInductionTerm");
 
   ASS(_inductionTermIndex);

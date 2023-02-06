@@ -71,7 +71,8 @@ void SLQueryBackwardSubsumption::detach()
 
 struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
-  Clause* operator()(const SLQueryResult& res)
+  template<class C>
+  Clause* operator()(C const& res)
   {
     return res.clause;
   }
@@ -101,7 +102,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   unsigned clen=cl->length();
 
   if(clen==0) {
-    SLQueryResultIterator rit=_index->getAll();
+    auto rit = _index->getAll();
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),

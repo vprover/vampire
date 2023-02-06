@@ -51,7 +51,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
                                               : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
-      ((TermSubstitutionTree<DefaultTermLeafData>*)_is)->handle(DefaultTermLeafData(tt, lit, c), adding);
+      ((TermSubstitutionTree<DefaultTermLeafData>*)&*_is)->handle(DefaultTermLeafData(tt, lit, c), adding);
     }
   }
   // DBGE(multiline(*((TermSubstitutionTree*)_is)))

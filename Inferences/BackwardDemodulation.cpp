@@ -76,8 +76,6 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 
 struct BackwardDemodulation::RewritableClausesFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
-
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
   VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
@@ -91,7 +89,6 @@ private:
 struct BackwardDemodulation::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent)
   : _cl(cl), _parent(parent), _ordering(parent._salg->getOrdering())
@@ -134,7 +131,7 @@ struct BackwardDemodulation::ResultFn
       }"
       from the monomorphic setting */
     if(lhs.isVar()){
-      if(!qr.substitution->matchSorts(_eqSort, qrSort)) {
+      if(!qr.unifier->matchSorts(_eqSort, qrSort)) {
         return BwSimplificationRecord(0);        
       }
     }
@@ -143,14 +140,14 @@ struct BackwardDemodulation::ResultFn
     TermList lhsS=qr.term;
     TermList rhsS;
 
-    if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
+    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
       //When we apply substitution to the rhs, we get a term, that is
       //a variant of the term we'd like to get, as new variables are
       //produced in the substitution application.
       //We'd rather rename variables in the rhs, than in the whole clause
       //that we're simplifying.
-      TermList lhsSBadVars=qr.substitution->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.substitution->applyToQuery(rhs);
+      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
+      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
       Renaming rNorm, qNorm, qDenorm;
       rNorm.normalizeVariables(lhsSBadVars);
       qNorm.normalizeVariables(lhsS);
@@ -158,7 +155,7 @@ struct BackwardDemodulation::ResultFn
       ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
       rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
     } else {
-      rhsS=qr.substitution->applyToBoundQuery(rhs);
+      rhsS=qr.unifier->applyToBoundQuery(rhs);
     }
 
     if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
@@ -173,7 +170,7 @@ struct BackwardDemodulation::ResultFn
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
         if (_encompassing) {
-          if (qr.substitution->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
+          if (qr.unifier->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
             // under _encompassing, we know there are no other literals in qr.clause
             return BwSimplificationRecord(0);
           }

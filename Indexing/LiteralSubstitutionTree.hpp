@@ -17,6 +17,8 @@
 #define __LiteralSubstitutionTree__
 
 #include "Indexing/Index.hpp"
+#include "Kernel/MismatchHandler.hpp"
+#include "Lib/VirtualIterator.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
 #include "Kernel/Signature.hpp"
@@ -26,7 +28,7 @@ namespace Indexing {
 /** A wrapper class around SubstitutionTree that makes it usable  as a LiteralIndexingStructure */
 template<class LeafData_ = DefaultLiteralLeafData>
 class LiteralSubstitutionTree
-: public LiteralIndexingStructure
+: public LiteralIndexingStructure<LeafData_>
 {
   using SubstitutionTree = Indexing::SubstitutionTree<LeafData_>;
   using LeafData         = LeafData_;
@@ -34,25 +36,26 @@ class LiteralSubstitutionTree
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
   using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
-  using UnificationsIterator        = typename SubstitutionTree::UnificationsIterator;
-  using QueryResult                 = typename SubstitutionTree::QueryResult;
+  template<class UnificationAlgorithm>
+  using UnificationsIterator        = typename SubstitutionTree::template UnificationsIterator<UnificationAlgorithm>;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using Leaf                        = typename SubstitutionTree::Leaf;
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
+
 
 public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(bool useC=false)
+  LiteralSubstitutionTree(MismatchHandler* mismtachHandler)
     : _trees(env.signature->predicates() * 2)
-    , _useC(useC)
+    , _mismatchHandler(mismtachHandler)
     { }
 
   void handle(Literal* lit, Clause* cls, bool insert) final override
   { getTree(lit, /* complementary */ false).handle(LeafData(cls, lit), insert); }
 
-  SLQueryResultIterator getAll() final override
+  VirtualIterator<LeafData> getAll() final override
   {
     CALL("LiteralSubstitutionTree::getAll");
 
@@ -60,28 +63,56 @@ public:
           iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
            .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
            .flatMap([](Leaf* l) { return l->allChildren(); })
-           .map([](LeafData const* ld) { return SLQueryResult(ld->literal, ld->clause); })
+           // TODO get rid of copying data here
+           .map([](LeafData const* ld) { return *ld; })
         );
   }
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<UnificationsIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
+  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions); }
 
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<UnificationsIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ true); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary) final override
+  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, _mismatchHandler); }
 
-  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
+  { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
 
-  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
+  { return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions); }
 
-  SLQueryResultIterator getVariants(Literal* query, bool complementary, bool retrieveSubstitutions) final override
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* query, bool complementary, bool retrieveSubstitutions) final override
   {
     return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
-          .map([](QueryResult qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.subst, qr.constr); }));
+          .map([](auto qr) { return queryRes(std::move(qr.unif), *qr.data); }));
   }
 
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
+  { 
+    int i = 0;
+    out << "{ ";
+    for (auto& t : self._trees) {
+      auto f = env.signature->getPredicate(i / 2);
+      bool p = i % 2;
+      if (p) out << "~";
+      out << *f << "(" << t << "), "; 
+      i++;
+    }
+    return out << "} ";
+  }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree> const& self)
+  { 
+    int i = 0;
+    out << "{ " << endl;
+    for (auto& t : self.self._trees) {
+      auto f = env.signature->getPredicate(i / 2);
+      bool p = i % 2;
+      OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
+      out << (p ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
+      i++;
+    }
+    return out << "} ";
+  }
 
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary)
@@ -94,23 +125,24 @@ private:
       auto p = _trees.size() / 2;
       auto arity = env.signature->isEqualityPredicate(p) ? 3 // equality is special case because it has an implicit type argument not present in the signature
                                                          : env.signature->getPredicate(p)->arity();
-      _trees.push(SubstitutionTree(_useC, /* rfSubs */ false, arity));
+      _trees.push(SubstitutionTree(arity));
     }
     return _trees[idx];
   }
 
-  template<class Iterator>
-  SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints)
+
+  template<class Iterator, class... Args>
+  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
   {
     CALL("LiteralSubstitutionTree::getResultIterator");
 
     auto iter = [&](bool reversed) 
-      { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, useConstraints, reversed)) ; };
+      { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
 
     auto filterResults = [=](auto it) { 
       return pvi(
           std::move(it)
-          .map([](QueryResult qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.subst, qr.constr); })
+          .map([](auto r) { return queryRes(std::move(r.unif), *r.data); })
           ); 
     };
     return !lit->commutative() 
@@ -122,7 +154,7 @@ private:
   }
 
   Stack<SubstitutionTree> _trees;
-  bool _useC;
+  MismatchHandler* _mismatchHandler;
 };
 
 };

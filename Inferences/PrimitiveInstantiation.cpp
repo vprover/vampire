@@ -85,12 +85,11 @@ struct PrimitiveInstantiation::IsInstantiable
 struct PrimitiveInstantiation::ResultFn
 {
   ResultFn(Clause* cl): _cl(cl){}
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
   
   Clause* operator() (TermQueryResult tqr){
     const int QUERY = 0;
 
-    ResultSubstitutionSP subst = tqr.substitution;
+    ResultSubstitutionSP subst = tqr.unifier;
 
     unsigned cLen = _cl->length(); 
    
@@ -112,8 +111,6 @@ private:
 
 struct PrimitiveInstantiation::ApplicableRewritesFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
-  
   ApplicableRewritesFn(PrimitiveInstantiationIndex* index) : _index(index){}
   VirtualIterator<TermQueryResult> operator()(Literal* l)
   {

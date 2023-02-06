@@ -21,10 +21,8 @@ namespace Indexing {
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 template<class LeafData_>
-SubstitutionTree<LeafData_>::SubstitutionTree(bool useC, bool rfSubs, unsigned reservedSpecialVars)
+SubstitutionTree<LeafData_>::SubstitutionTree(unsigned reservedSpecialVars)
   : _nextVar(reservedSpecialVars)
-  , _useC(useC)
-  , _functionalSubtermMap(someIf(rfSubs, [](){ return FuncSubtermMap(); }))
   , _root(nullptr)
 { }
 
@@ -118,7 +116,7 @@ void SubstitutionTree<LeafData_>::insert(BindingMap& svBindings, LeafData ld)
 
   if(*pnode == 0) {
     ASS(!svBindings.isEmpty())
-    *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
+    *pnode=createIntermediateNode(svBindings.getOneKey());
   }
   if(svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
@@ -151,7 +149,7 @@ start:
       bool removeProblematicNode=false;
       if(svBindings.find(boundVar)) {
 	TermList term=svBindings.get(boundVar);
-	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
+	bool wouldDescendIntoChild = inode->childByTop(term.top(),false)!=0;
 	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
 	if(!wouldDescendIntoChild) {
 	  //if we'd have to perform all postponed splitting due to
@@ -185,12 +183,12 @@ start:
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
-      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var,_useC);
+      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
       node->term=urr.original;
 
       *pnode=newNode;
 
-      Node** nodePosition=newNode->childByTop(node->term, true);
+      Node** nodePosition=newNode->childByTop(node->term.top(), true);
       ASS(!*nodePosition);
       *nodePosition=node;
     }
@@ -209,7 +207,7 @@ start:
   //So in the case we do insert, we might check whether this node
   //needs expansion.
   Node** pparent=pnode;
-  pnode=inode->childByTop(term,true);
+  pnode=inode->childByTop(term.top(),true);
 
   if (*pnode == 0) {
     BindingMap::Iterator svit(svBindings);
@@ -222,11 +220,11 @@ start:
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC);
+      IntermediateNode* inode = createIntermediateNode(term, b.var);
       term=b.term;
 
       *pnode = inode;
-      pnode = inode->childByTop(term,true);
+      pnode = inode->childByTop(term.top(),true);
     }
     Leaf* lnode=createLeaf(term);
     *pnode=lnode;
@@ -344,7 +342,7 @@ void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
 
-    pnode=inode->childByTop(t,false);
+    pnode=inode->childByTop(t.top(),false);
     ASS(pnode);
 
 
@@ -409,7 +407,7 @@ void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
     } else {
       Node* node=*pnode;
       IntermediateNode* parent=static_cast<IntermediateNode*>(*history.top());
-      parent->remove(term);
+      parent->remove(term.top());
       delete node;
       pnode=history.pop();
       ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode));
@@ -435,7 +433,7 @@ typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::findLea
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
 
-    Node** child=inode->childByTop(t,false);
+    Node** child=inode->childByTop(t.top(),false);
     if(!child) {
       return 0;
     }
@@ -509,13 +507,13 @@ void SubstitutionTree<LeafData_>::Node::split(Node** pnode, TermList* where, int
 
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts());
+  IntermediateNode* newNode = createIntermediateNode(node->term, var);
   node->term=*where;
   *pnode=newNode;
 
   where->makeSpecialVar(var);
 
-  Node** nodePosition=newNode->childByTop(node->term, true);
+  Node** nodePosition=newNode->childByTop(node->term.top(), true);
   ASS(!*nodePosition);
   *nodePosition=node;
 }
@@ -527,7 +525,7 @@ void SubstitutionTree<LeafData_>::IntermediateNode::loadChildren(NodeIterator ch
 
   while(children.hasNext()) {
     Node* ext=*children.next();
-    Node** own=childByTop(ext->term, true);
+    Node** own=childByTop(ext->term.top(), true);
     ASS(! *own);
     *own=ext;
   }
@@ -600,227 +598,6 @@ void SubstitutionTree<LeafData_>::LeafIterator::skipToNextLeaf()
 
 
 template<class LeafData_>
-SubstitutionTree<LeafData_>::UnificationsIterator::~UnificationsIterator()
-{
-  if(_clientBDRecording) {
-    _subst->bdDone();
-    _clientBDRecording=false;
-    _clientBacktrackData.backtrack();
-  }
-  if (_bdStack) 
-    while(_bdStack->isNonEmpty()) {
-      _bdStack->pop().backtrack();
-    }
-}
-
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::UnificationsIterator::hasNext()
-{
-  CALL("SubstitutionTree::UnificationsIterator::hasNext");
-
-  if(_clientBDRecording) {
-    _subst->bdDone();
-    _clientBDRecording=false;
-    _clientBacktrackData.backtrack();
-  }
-
-  while(!_ldIterator.hasNext() && findNextLeaf()) {}
-  return _ldIterator.hasNext();
-}
-
-template<class LeafData_>
-typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::UnificationsIterator::next()
-{
-  CALL("SubstitutionTree::UnificationsIterator::next");
-
-  while(!_ldIterator.hasNext() && findNextLeaf()) {}
-  ASS(_ldIterator.hasNext());
-
-  ASS(!_clientBDRecording);
-
-  auto ld = _ldIterator.next();
-
-  if(_retrieveSubstitution) {
-    Renaming normalizer;
-    normalizer.normalizeVariables(ld->key());
-
-    ASS(_clientBacktrackData.isEmpty());
-    _subst->bdRecord(_clientBacktrackData);
-    _clientBDRecording=true;
-
-    _subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
-
-    return QueryResult(ld, ResultSubstitution::fromSubstitution( &*_subst, QUERY_BANK, RESULT_BANK),
-        // TODO do we really wanna copy the whole constraints stack here?
-            UnificationConstraintStackSP(new UnificationConstraintStack(*_constraints))); 
-  } else {
-    return QueryResult(ld);
-  }
-}
-
-
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::UnificationsIterator::findNextLeaf()
-{
-  CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
-
-  if(_nodeIterators->isEmpty()) {
-    //There are no node iterators in the stack, so there's nowhere
-    //to look for the next leaf.
-    //This shouldn't hapen during the regular retrieval process, but it
-    //can happen when there are no literals inserted for a predicate,
-    //or when predicates with zero arity are encountered.
-    ASS(_bdStack->isEmpty());
-    return false;
-  }
-
-  if(_inLeaf) {
-    ASS(!_clientBDRecording);
-    //Leave the current leaf
-    _bdStack->pop().backtrack();
-    _inLeaf=false;
-  }
-
-  ASS(!_clientBDRecording);
-  ASS(_bdStack->length()+1==_nodeIterators->length());
-
-  do {
-    while(!_nodeIterators->top().hasNext() && !_bdStack->isEmpty()) {
-      //backtrack undos everything that enter(...) method has done,
-      //so it also pops one item out of the nodeIterators stack
-      _bdStack->pop().backtrack();
-      _svStack->pop();
-    }
-    if(!_nodeIterators->top().hasNext()) {
-      return false;
-    }
-    Node* n=*_nodeIterators->top().next();
-
-    BacktrackData bd;
-    bool success=enter(n,bd);
-    if(!success) {
-      bd.backtrack();
-      continue;
-    } else {
-      _bdStack->push(bd);
-    }
-  } while(!_inLeaf);
-  return true;
-}
-
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::UnificationsIterator::enter(Node* n, BacktrackData& bd)
-{
-  CALL("SubstitutionTree::UnificationsIterator::enter");
-
-  bool success=true;
-  bool recording=false;
-  if(!n->term.isEmpty()) {
-    //n is proper node, not a root
-
-    TermList qt(_svStack->top(), true);
-
-    recording=true;
-    _subst->bdRecord(bd);
-    success=associate(qt,n->term,bd);
-  }
-  if(success) {
-    if(n->isLeaf()) {
-      _ldIterator=static_cast<Leaf*>(n)->allChildren();
-      _inLeaf=true;
-    } else {
-      IntermediateNode* inode=static_cast<IntermediateNode*>(n);
-      _svStack->push(inode->childVar);
-      NodeIterator nit=getNodeIterator(inode);
-      if(_useUWAConstraints){
-        TermList qt = _subst->getSpecialVarTop(inode->childVar);
-        NodeIterator enit = pvi(getConcatenatedIterator(inode->childBySort(qt),nit));
-        _nodeIterators->backtrackablePush(enit,bd);
-      }
-      else{
-        _nodeIterators->backtrackablePush(nit, bd);
-      }
-    }
-  }
-  if(recording) {
-    _subst->bdDone();
-  }
-  return success;
-}
-
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
-{
-  CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
-  
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
-  _constraints.backtrackablePush(constraint,_bd);
-  return true;
-}
-
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::STHOMismatchHandler::handle
-     (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
-{
-  CALL("SubstitutionTree::STHOMismatchHandler::handle");
-
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
-  _constraints.backtrackablePush(constraint,_bd);
-  return true;
-}
-
-/**
- * TODO: explain properly what associate does
- * called from enter(...)
- */
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
-{
-  CALL("SubstitutionTree::UnificationsIterator::associate");
-
-  //The ordering of the if statements is important here. Higher-order problems
-  //should never require theory resoning (at the moment, theories cannot be parsed in HOL)
-  //However, a user can still set UWA option on. We don't wan't that to result in 
-  //the wrong handler being used.
-  if(_useHOConstraints){
-    STHOMismatchHandler hndlr(*_constraints,bd);
-    return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
-  }
-  if(_useUWAConstraints){ 
-    SubstitutionTreeMismatchHandler hndlr(*_constraints,bd);
-    return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
-  } 
-  return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK);
-}
-
-//TODO I think this works for VSpcialVars as well. Since .isVar() will return true 
-//for them
-template<class LeafData_>
-typename SubstitutionTree<LeafData_>::NodeIterator
-  SubstitutionTree<LeafData_>::UnificationsIterator::getNodeIterator(IntermediateNode* n)
-{
-  CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
-
-  unsigned specVar=n->childVar;
-  TermList qt=_subst->getSpecialVarTop(specVar);
-  if(qt.isVar()) {
-    return n->allChildren();
-  } else {
-    Node** match=n->childByTop(qt, false);
-    if(match) {
-      return pvi( 
-        getConcatenatedIterator(
-	   getSingletonIterator(match),
-	   n->variableChildren() 
-       ));
-    } else {
-      return n->variableChildren();
-    }
-  }
-}
-
-
-template<class LeafData_>
 void SubstitutionTree<LeafData_>::Leaf::output(std::ostream& out, bool multiline, int indent) const 
 { out << this->term; }
 
@@ -843,7 +620,7 @@ void SubstitutionTree<LeafData_>::IntermediateNode::output(std::ostream& out, bo
     if (multiline) {
       auto outp = [&](Node** x) { 
         out << endl; 
-        repeat(out, INDENT, indent + 1);
+        OutputMultiline<int>::outputIndent(out, indent + 1);
         out << "| ";
         (*x)->output(out, multiline, indent + 1);
       };
@@ -853,7 +630,7 @@ void SubstitutionTree<LeafData_>::IntermediateNode::output(std::ostream& out, bo
         outp(childIter.next());
       }
       out << endl; 
-      repeat(out, INDENT, indent);
+      OutputMultiline<int>::outputIndent(out, indent + 1);
       out << "]";
 
     } else {

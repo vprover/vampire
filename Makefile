@@ -389,7 +389,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/VarManager.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
-         Shell/UnificationWithAbstractionConfig.o\
          version.o
 
 PARSE_OBJ = Parse/SMTLIB2.o\
@@ -450,7 +449,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Options.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
-          Shell/UnificationWithAbstractionConfig.o\
 	  version.o
 	  # ClausifierDependencyFix.o\
 	  version.o\

@@ -18,6 +18,7 @@
 
 #include "Stack.hpp"
 #include "DArray.hpp"
+#include <initializer_list>
 
 namespace Lib
 {
@@ -37,42 +38,54 @@ struct NoReset
 template<class T, class Reset = DefaultReset>
 class Recycled
 {
-  unique_ptr<T> _ptr;
+  T _ptr;
   Reset _reset;
 
-  static Stack<unique_ptr<T>>& mem() {
-    static Stack<unique_ptr<T>> mem;
+  static Stack<T>& mem() {
+    static Stack<T> mem;
     return mem;
   }
 public: 
 
   Recycled()
-    : _ptr(mem().isNonEmpty() ? mem().pop() : make_unique<T>()) 
+    : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
     , _reset()
   { }
+
+
+  // template<class A>
+  // Recycled(std::initializer_list<A> list)
+  //   : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
+  //   , _reset()
+  // {
+  //   _ptr.init(list);
+  // }
+
+
+  template<class A, class... As>
+  Recycled(A a, As... as)
+    : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
+    , _reset()
+  {
+    _ptr.init(a, as...);
+  }
 
   Recycled(Recycled&& other) = default;
   Recycled& operator=(Recycled&& other) = default;
 
-  operator bool() const
-  { return bool(_ptr); }
-
-
   ~Recycled()
   { 
-    if (_ptr) {
-      _reset(*_ptr);
-      mem().push(std::move(_ptr));
-    }
+    _reset(_ptr);
+    mem().push(std::move(_ptr));
   }
 
-  T const& operator* () const { ASS(*this); return  *_ptr; }
-  T const* operator->() const { ASS(*this); return &*_ptr; }
-  T& operator* () {  ASS(*this); return  *_ptr; }
-  T* operator->() {  ASS(*this); return &*_ptr; }
+  T const& operator* () const { return  _ptr; }
+  T const* operator->() const { return &_ptr; }
+  T& operator* () { return  _ptr; }
+  T* operator->() { return &_ptr; }
 
   friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
-  { return self._ptr ? out << *self._ptr : out << "Recycled(nullptr)"; }
+  { return out << self._ptr; }
 };
 
 };

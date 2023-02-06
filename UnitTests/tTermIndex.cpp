@@ -21,7 +21,7 @@ void perform_test(const A&...)
 template<class Data>
 void check_leafdata(TermSubstitutionTree<Data>& tree, TermList key, Stack<Data> expected)
 {
-  auto is = iterTraits(tree.getUnifications(key, /*subst */ true, /* withConstr */ false))
+  auto is = iterTraits(tree.getUnifications(key, /*subst */ true))
     .map([](auto u) { return u.data(); })
     .template collect<Stack>();
   std::sort(is.begin(), is.end());
@@ -47,7 +47,7 @@ TEST_FUN(basic01) {
   DECL_FUNC(f, {srt}, srt)
   DECL_PRED(g, {srt})
   
-  TermSubstitutionTree<> tree;
+  TermSubstitutionTree<> tree(/* mismatchHandler */ nullptr);
   auto dat = [](TermList k, Literal* v)  { return DefaultTermLeafData(k, v, nullptr); };
   tree.insert(dat(f(a), g(a)));
   tree.insert(dat(f(a), g(b)));
@@ -91,7 +91,7 @@ TEST_FUN(custom_data_01) {
   DECL_FUNC(f, {srt}, srt)
 
   auto dat = [](auto l, auto r) { return MyData(l,r); };
-  TermSubstitutionTree<MyData> tree;
+  TermSubstitutionTree<MyData> tree(/* mismatchHandler */ nullptr);
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
@@ -109,7 +109,7 @@ TEST_FUN(custom_data_02) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<TermIndexData<vstring>> tree;
+  TermSubstitutionTree<TermIndexData<vstring>> tree(/* mismatchHandler */ nullptr);
   auto dat = [](TermList t,vstring s) { return TermIndexData<vstring>(t.term(), std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -133,7 +133,7 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData3> tree;
+  TermSubstitutionTree<MyData3> tree(/* mismatchHandler */ nullptr);
   auto dat = [](TermList t,vstring s) { return MyData3(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -158,7 +158,7 @@ TEST_FUN(custom_data_04_no_copy_constructor) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData4> tree;
+  TermSubstitutionTree<MyData4> tree(/* mismatchHandler */ nullptr);
   auto dat = [](TermList t,vstring s) { return MyData4(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));

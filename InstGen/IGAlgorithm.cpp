@@ -111,7 +111,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree();
+  _selected = new LiteralSubstitutionTree(/* uwa */ nullptr);
 
   _doingSatisfiabilityCheck = false;
 }
@@ -454,9 +454,10 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
     static LiteralStack genLits2;
     bool properInstance1;
     bool properInstance2;
+    auto subs = unif.unifier;
 
-    if (startGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1,properInstance1) &&
-        startGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2,properInstance2)) {
+    if (startGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1,properInstance1) &&
+        startGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2,properInstance2)) {
 
       // dismatching test passed for both
 
@@ -464,17 +465,17 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
         //we make sure the unit is added first, so that it can be used to shorten the
         //second clause by global subsumption
         if (properInstance2) {
-          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+          finishGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2);
         }
         if (properInstance1) {
-          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+          finishGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1);
         }
       } else {
         if (properInstance1) {
-          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+          finishGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1);
         }
         if (properInstance2) {
-          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+          finishGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2);
         }
       }
     }
@@ -758,7 +759,7 @@ void IGAlgorithm::wipeIndexes()
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree();
+  _selected = new LiteralSubstitutionTree(/* uwa */ nullptr);
 }
 
 

@@ -21,6 +21,7 @@
 #include "Index.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 
 namespace Indexing
@@ -74,7 +75,7 @@ public:
   USE_ALLOCATOR(IndexManager);
 
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg) : _alg(alg) {}
+  explicit IndexManager(SaturationAlgorithm* alg);
   void setSaturationAlgorithm(SaturationAlgorithm* alg) 
   { 
     CALL("IndexManager::setSaturationAlgorithm");
@@ -98,6 +99,7 @@ private:
   DHMap<IndexType,Entry> _store;
 
   Index* create(IndexType t);
+  std::unique_ptr<MismatchHandler> _uwa;
 };
 
 };

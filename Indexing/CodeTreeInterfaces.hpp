@@ -39,8 +39,6 @@ using namespace Lib;
 
 class CodeTreeTIS : public TermIndexingStructure<DefaultTermLeafData>
 {
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultTermLeafData>;
-  using TermQueryResult         = Indexing::TermQueryResult<DefaultTermLeafData>;
 public:
 
   CLASS_NAME(CodeTreeTIS);
@@ -52,6 +50,10 @@ public:
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
   bool generalizationExists(TermList t) final override;
+  // TODO: get rid of NOT_IMPLEMENTED
+  VirtualIterator<QueryRes<AbstractingUnifier*, DefaultTermLeafData>> getUwa(TypedTermList t) final override { NOT_IMPLEMENTED; }
+
+  virtual void output(std::ostream& out) const final override { out << "CodeTree"; }
 
 private:
   void _insert(TermList t, Literal* lit, Clause* cls);

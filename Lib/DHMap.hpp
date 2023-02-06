@@ -70,12 +70,10 @@ public:
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
   _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
   {
-    typename DHMap::Iterator iit(obj);
+    typename DHMap::IteratorBase iit(obj);
     while(iit.hasNext()) {
-      Key k;
-      Val v;
-      iit.next(k, v);
-      ALWAYS(insert(k,v));
+      auto e = iit.next();
+      ALWAYS(insert(e->_key,e->_val));
     }
   }
 

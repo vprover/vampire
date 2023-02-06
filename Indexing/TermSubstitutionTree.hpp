@@ -17,7 +17,10 @@
 #define __TermSubstitutionTree__
 
 
+#include "Forwards.hpp"
+#include "Kernel/MismatchHandler.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/BiMap.hpp"
 
@@ -41,25 +44,28 @@ template<class LeafData_ = DefaultTermLeafData>
 class TermSubstitutionTree
 : public TermIndexingStructure<LeafData_>
 {
-  using SubstitutionTree        = Indexing::SubstitutionTree<LeafData_>;
-  using TermIndexingStructure   = Indexing::TermIndexingStructure<LeafData_>;
-  using TermQueryResultIterator = VirtualIterator<TermQueryResult<LeafData_>>;
+  using SubstitutionTree            = Indexing::SubstitutionTree<LeafData_>;
+  using TermIndexingStructure       = Indexing::TermIndexingStructure<LeafData_>;
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
   using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
-  using UnificationsIterator        = typename SubstitutionTree::UnificationsIterator;
-  using QueryResult                 = typename SubstitutionTree::QueryResult;
+  template<class Algo>
+  using UnificationsIterator        = typename SubstitutionTree::template UnificationsIterator<Algo>;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using Leaf                        = typename SubstitutionTree::Leaf;
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
+
+  Indexing::SubstitutionTree<LeafData_> _inner;
+  MismatchHandler* _mismatchHandler;
 public:
   using LeafData = LeafData_;
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
   
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false)
-    : _inner(useC, replaceFunctionalSubterms, /* reservedSpecialVars */ 2 /* S0 -> term, S1 -> sort */ )
+  TermSubstitutionTree(MismatchHandler* handler)
+    : _inner(/* reservedSpecialVars */ 2 /* S0 -> term, S1 -> sort */ )
+    , _mismatchHandler(handler)
     { }
 
 
@@ -77,27 +83,43 @@ private:
   auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
   { 
     return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, withConstraints))
-      .map([](QueryResult qr) { return TermQueryResult<LeafData>(*qr.data, qr.subst, qr.constr); }) ; 
+      .map([](auto qr) { return queryRes(*qr.data, std::move(qr.unifier)); }) ; 
   }
+
+  virtual void output(std::ostream& out) const final override { out << *this; }
+
+private:
+
+  template<class Iterator, class TypedOrUntypedTermList, class... Args> 
+  auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, Args... args)
+  { 
+    return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
+      .map([](auto qr) { return queryRes(std::move(qr.unif), *qr.data); }) ; 
+  }
+
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
   { return out << (SubstitutionTree const&) self; }
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
-  { return out << multiline((SubstitutionTree const&) self.self); }
+  { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
 public:
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) final override
-  { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) final override
-  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+  VirtualIterator<Indexing::QueryRes<ResultSubstitutionSP, LeafData_>> getInstances(TermList t, bool retrieveSubstitutions) final override
+  { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) final override
-  { return pvi(getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints)); }
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(TermList t, bool retrieveSubstitutions) final override
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstr) final override
-  { return pvi(getResultIterator<UnificationsIterator>(tt, retrieveSubstitutions, withConstr)); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t) final override
+  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, _mismatchHandler)); }
 
-  Indexing::SubstitutionTree<LeafData_> _inner;
+
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(TermList t, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
+
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions) final override
+  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(tt, retrieveSubstitutions)); }
+
 };
 
 } // namespace Indexing

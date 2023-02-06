@@ -83,6 +83,15 @@ public:
     }
   }
 
+  void swap(DArray& other) {
+    std::swap(other._size, _size);
+    std::swap(other._capacity, _capacity);
+    std::swap(other._array, _array);
+  }
+
+  DArray(DArray&& other) : DArray() { swap(other); }
+  DArray& operator=(DArray&& other) { swap(other); return *this; }
+
 
   /** Delete array */
   inline ~DArray()

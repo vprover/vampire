@@ -24,6 +24,12 @@
 ///@{
 
 
+#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
+  Class(Class const&) = default;                                                                    \
+  Class(Class     &&) = default;                                                                    \
+  Class& operator=(Class const&) = default;                                                         \
+  Class& operator=(Class     &&) = default;                                                         \
+
 #define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                          \
   friend bool operator==(Class const& l, Class const& r)                                            \
   { return l.asTuple() == r.asTuple(); }                                                            \
@@ -37,6 +43,10 @@
   friend bool operator> (Class const& l, Class const& r) { return r < l; }                          \
   friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }                \
   friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }                \
+
+#define IMPL_HASH_FROM_TUPLE(Class)                                                                 \
+  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                             \
+  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                           \
 
 //The obvious way to define this macro would be
 //#define DECL_ELEMENT_TYPE(T) typedef T _ElementType
@@ -63,16 +73,17 @@
 #define DECL_ELEMENT_TYPE(...) typedef __VA_ARGS__ _ElementType
 
 /**
- * Type of elements in the iterator/collection @b Cl
+ * Type of elements in the iterator/collection @b __VA_ARGS__
+ * This functions is variadic as the argument might be generic, hence contain commas
  *
- * The class @b Cl must have its element type declared by the
+ * The class @b __VA_ARGS__ must have its element type declared by the
  * @b DECL_ELEMENT_TYPE macro in order for this macro to be applicable
  * (Except for cases that are handled by a partial specialization
  * of the @b Lib::ElementTypeInfo template class.)
  *
  * @see DECL_ELEMENT_TYPE, Lib::ElementTypeInfo
  */
-#define ELEMENT_TYPE(Cl) typename Lib::ElementTypeInfo<Cl>::Type
+#define ELEMENT_TYPE(...) typename Lib::ElementTypeInfo<__VA_ARGS__>::Type
 
 /**
  * Type of elements of the current class
@@ -219,6 +230,6 @@ struct IteratorTypeInfo<T const>
 
 };
 
-///@}Á
+///@}ï¿½
 
 #endif /* __Reflection__ */

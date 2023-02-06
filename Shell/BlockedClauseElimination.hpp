@@ -23,6 +23,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Int.hpp"
 
 namespace Shell {
 

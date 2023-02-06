@@ -13,6 +13,7 @@
  *
  */
 
+#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -155,17 +156,15 @@ public:
     CALL("CodeTreeTIS::ResultIterator::next");
     ASS(_found);
 
-    TermQueryResult res;
-    if(_retrieveSubstitutions) {
+    ResultSubstitutionSP subs;
+    if (_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->t);
-      res = TermQueryResult(DefaultTermLeafData(_found->t, _found->lit, _found->cls),
-	  ResultSubstitutionSP(_subst,true));
-    } else {
-      res = TermQueryResult(DefaultTermLeafData(_found->t, _found->lit, _found->cls));
+      subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
+    auto out = TermQueryResult(subs, DefaultTermLeafData(_found->t, _found->lit, _found->cls));
     _found=0;
-    return res;
+    return out;
   }
 private:
 
@@ -193,7 +192,7 @@ void CodeTreeTIS::_remove(TermList t, Literal* lit, Clause* cls)
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator<DefaultTermLeafData> CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
+TermQueryResultIterator CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
 {
   CALL("CodeTreeTIS::getGeneralizations");
 

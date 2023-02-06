@@ -19,8 +19,6 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SubstHelper.hpp"
 
-#include "SubstitutionTree.hpp"
-
 namespace Indexing
 {
 
@@ -281,7 +279,7 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::hasNext()
 }
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::FastGeneralizationsIterator::next()
+typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>::FastGeneralizationsIterator::next()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::next");
 
@@ -293,9 +291,9 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
     _resultNormalizer->reset();
     _resultNormalizer->normalizeVariables(ld->key());
 
-    return QueryResult(ld,_subst.getSubstitution(&*_resultNormalizer),UnificationConstraintStackSP());
+    return queryResult(ld,_subst.getSubstitution(&*_resultNormalizer));
   } else {
-    return QueryResult(ld);
+    return queryResult(ld, ResultSubstitutionSP());
   }
 }
 
@@ -511,7 +509,7 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::enterNode(Node*& 
     ASS_EQ(currType, SKIP_LIST);
     auto nl=static_cast<SListIntermediateNode*>(inode)->_nodes.listLike();
     if(binding.isTerm()) {
-      Node** byTop=inode->childByTop(binding, false);
+      Node** byTop=inode->childByTop(binding.top(), false);
       if(byTop) {
 	curr=*byTop;
       }

@@ -250,6 +250,7 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
 template<class L1, class L2, class Eq>
 bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
 {
+  CALL("TestUtils::permEq")
   if (lhs.size() != rhs.size()) return false;
   DArray<unsigned> perm(lhs.size());
   for (unsigned i = 0; i < lhs.size(); i++) {

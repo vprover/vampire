@@ -20,8 +20,6 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "SubstitutionTree.hpp"
-
 namespace Indexing
 {
 
@@ -395,7 +393,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
 #define LOGGING 0
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::FastInstancesIterator::next()
+typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
 
@@ -412,9 +410,9 @@ typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::F
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryResult(ld, _subst->getSubstitution(&_resultDenormalizer),UnificationConstraintStackSP());
+    return queryResult(ld, _subst->getSubstitution(&_resultDenormalizer));
   } else {
-    return QueryResult(ld, ResultSubstitutionSP(),UnificationConstraintStackSP());
+    return queryResult(ld, ResultSubstitutionSP());
   }
 }
 #undef LOGGING
@@ -631,7 +629,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
     ASS(nl); //inode is not empty
     if(query.isTerm()) {
       //only term with the same top functor will be matched by a term
-      Node** byTop=inode->childByTop(query, false);
+      Node** byTop=inode->childByTop(query.top(), false);
       if(byTop) {
 	curr=*byTop;
       }

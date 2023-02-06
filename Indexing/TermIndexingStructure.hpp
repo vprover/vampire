@@ -17,13 +17,13 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
+#include "Kernel/TypedTermList.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 namespace Indexing {
 
 template<class Data>
 class TermIndexingStructure {
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<Data>;
 public:
   virtual ~TermIndexingStructure() {}
 
@@ -31,14 +31,19 @@ public:
   void insert(Data data) { handle(std::move(data), /* insert */ true ); }
   void remove(Data data) { handle(std::move(data), /* insert */ false); }
 
-  virtual TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true, bool withConstraints = false) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions = true, bool withConstraints = false) { NOT_IMPLEMENTED; }  
-  virtual TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t) = 0;
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }  
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
 
+  virtual void output(std::ostream& output) const = 0;
+  friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self)
+  { self.output(out); return out; }
 };
+
 
 };
 

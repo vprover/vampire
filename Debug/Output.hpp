@@ -62,6 +62,11 @@ struct OutputPtr {
 template<class T>
 OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
 
+template<class T>
+void repeat(std::ostream& out, T const& c, int times) 
+{ for (int i = 0; i < times; i++) out << c; };
+
+
 /** Newtype for outputting a datatype that implements it in multiline format.
  * Usage: `out << multiline(substitutioTree) << std::endl;` 
  *
@@ -69,18 +74,43 @@ OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
  * std::ostream& operator<<(std::ostream&, OutputMultiline<MyType>)
  */
 template<class T>
-struct OutputMultiline { T const& self; };
+struct OutputMultiline { 
+  T const& self; 
+  unsigned indent; 
+
+  static void outputIndent(std::ostream& out, unsigned indent)
+  { repeat(out, "    ", indent); };
+};
+
 
 template<class T>
-OutputMultiline<T> multiline(T const& self)
-{ return { self }; }
+OutputMultiline<T> multiline(T const& self, unsigned indent)
+{ return { self, indent, }; }
 
+template<class Sep, class Iter>
+struct OutputInterleaved { 
+  Sep const& sep; 
+  Iter iter; 
+};
 
-template<class T>
-void repeat(std::ostream& out, T const& c, int times) 
-{ for (int i = 0; i < times; i++) out << c; };
+template<class Sep, class Iter>
+struct OutputInterleaved<Sep,Iter> outputInterleaved(Sep const& s, Iter i)
+{ return OutputInterleaved<Sep, Iter>{s, std::move(i)}; }
 
-static constexpr char const* INDENT = "    ";
+template<class Sep, class Iter>
+std::ostream& operator<<(std::ostream& out, OutputInterleaved<Sep, Iter> self)
+{
+  if (self.iter.hasNext()) {
+    out << self.iter.next();
+    while (self.iter.hasNext()) {
+      out << self.sep << self.iter.next();
+    }
+  }
+  return out;
+}
+
+template<class Iter>
+auto commaSep(Iter i) { return outputInterleaved(", ", std::move(i)); }
 
 } // namespace Kernel
 #endif // __Debug_Output__

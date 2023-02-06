@@ -29,30 +29,31 @@ class TermIndex
 : public Index
 {
   using TermIndexingStructure   = Indexing::TermIndexingStructure<Data>;
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<Data>;
 public:
   CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
-  virtual ~TermIndex() 
-  { delete _is; }
+  virtual ~TermIndex() {}
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions = true, bool withConstraints = false)
-  { return _is->getUnificationsUsingSorts(tt, retrieveSubstitutions, withConstraints); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t)
+  { return _is->getUwa(t); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }
+
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
 
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
-  TermIndexingStructure* _is;
+  unique_ptr<TermIndexingStructure> _is;
 };
 
 class SuperpositionSubtermIndex

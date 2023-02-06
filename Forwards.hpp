@@ -59,8 +59,6 @@ using namespace Lib;
 class Signature;
 
 class Term;
-typedef BiMap<unsigned, Term*> FuncSubtermMap;
-
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
@@ -69,9 +67,6 @@ typedef List<unsigned> VList; // a list of variables (which are unsigned)
 typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
 typedef const SharedSet<unsigned> VarSet;
 
-typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
-typedef Stack<UnificationConstraint> UnificationConstraintStack;
-typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 
 class Literal;
 typedef List<Literal*> LiteralList;
@@ -142,7 +137,6 @@ namespace Indexing
 class Index;
 class IndexManager;
 class LiteralIndex;
-class LiteralIndexingStructure;
 struct DefaultLiteralLeafData;
 struct DefaultTermLeafData;
 template<class Data = DefaultTermLeafData>
@@ -154,10 +148,6 @@ class TermSharing;
 
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
-
-struct SLQueryResult;
-template<class Data>
-struct TermQueryResult;
 };
 
 namespace Saturation
