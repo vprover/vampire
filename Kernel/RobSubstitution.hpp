@@ -129,7 +129,7 @@ public:
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
   IMPL_HASH_FROM_TUPLE(TermSpec)
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
-  TermSpec(TermList self, int index) : _self(OldTermSpec(self, index)) { ASS(!self.isTerm() || !self.term()->isLiteral()) }
+  TermSpec(TermList self, int index) : _self(OldTermSpec(self, index)) { }
   TermSpec(unsigned functor, std::initializer_list<TermSpec> args) : _self(Appl{functor, args}) {}
 
   TermList::Top top() const;

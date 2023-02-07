@@ -190,7 +190,7 @@ public:
  * (Note that we do not check the predicate or the polarity of literals here. This happens in LiteralSubstitutionTree)
  */
 template<class LeafData_>
-class SubstitutionTree
+class SubstitutionTree final
 {
 
 public:
@@ -205,14 +205,14 @@ public:
   SubstitutionTree(unsigned reservedSpecialVars);
   SubstitutionTree(SubstitutionTree const&) = delete;
   SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
-  SubstitutionTree(SubstitutionTree&& other)
-  : SubstitutionTree(0)
-  {
-    std::swap(_nextVar, other._nextVar);
-    std::swap(_root, other._root);
+  static void swap(SubstitutionTree& self, SubstitutionTree& other) {
+    std::swap(self._nextVar, other._nextVar);
+    std::swap(other._root, other._root);
   }
+  SubstitutionTree& operator=(SubstitutionTree && other) { swap(*this,other); return *this; }
+  SubstitutionTree(SubstitutionTree&& other) : SubstitutionTree(0) { swap(*this, other); }
 
-  virtual ~SubstitutionTree();
+  ~SubstitutionTree();
 
 #define VERBOSE_OUTPUT_OPERATORS 0
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
@@ -656,31 +656,10 @@ public:
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
-  void setSort(TypedTermList const& term, LeafData& ld)
-  {
-    ld.sort = term.sort();
-  }
-
-  void setSort(TermList const& term, LeafData& ld)
-  {
-    if (term.isTerm()) {
-      ld.sort = SortHelper::getResultSort(term.term());
-    }
-  }
-
-  void setSort(Literal* literal, LeafData &ld)
-  { 
-    if (literal->isEquality()) {
-      ld.sort = SortHelper::getEqualityArgumentSort(literal);
-    }
-  }
-
-
   void handle(LeafData ld, bool doInsert)
   {
     auto norm = Renaming::normalize(ld.key());
     Recycled<BindingMap> bindings;
-    setSort(ld.key(), ld);
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
@@ -1329,8 +1308,8 @@ public:
       if (_retrieveSubstitution) {
           Renaming normalizer;
           normalizer.normalizeVariables(ld->key());
-          if (ld->sort.isNonEmpty()) {
-            normalizer.normalizeVariables(ld->sort);
+          if (ld->sort().isNonEmpty()) {
+            normalizer.normalizeVariables(ld->sort());
           }
           // if(_literalRetrieval) {
           //   normalizer.normalizeVariables(ld.literal);

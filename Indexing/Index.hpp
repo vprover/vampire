@@ -63,12 +63,12 @@ public:
 
   Clause* clause;
   Literal* literal;
-  TermList sort;
+  TermList sort() { return key()->isEquality() ? SortHelper::getEqualityArgumentSort(key()) : TermList::empty();  };
+
 
   friend std::ostream& operator<<(std::ostream& out, DefaultLiteralLeafData const& self)
   { return out << "{ " << outputPtr(self.clause)
                << ", " << outputPtr(self.literal)
-               << ", " << self.sort
                << " }"; }
 
 };
@@ -79,7 +79,6 @@ class TermIndexData {
   // TODO rename to _extra (?)
   Value _value;
 public:
-  TermList sort;
   CLASS_NAME(TermIndexData);
 
   TermIndexData() {}
@@ -87,18 +86,20 @@ public:
   TermIndexData(Term* key, Value v)
     : _key(TermList(key))
     , _value(std::move(v))
-    , sort(SortHelper::getResultSort(key))
   {}
 
   TermList const& key() const 
   { return _key; }
+
+  TermList sort() const 
+  { return SortHelper::getResultSort(_key.term()); }
 
   Value const& value() const 
   { return _value; }
 
 private:
   auto asTuple() const
-  { return std::tie(key(), sort, value()); }
+  { return std::tie(key(), value()); }
 public:
 
   IMPL_COMPARISONS_FROM_TUPLE(TermIndexData)
@@ -150,7 +151,7 @@ struct DefaultTermLeafData
   Clause* clause;
   Literal* literal;
   TermList term;
-  TermList sort;
+  TermList _sort;
 
 
   using Key = TermList;
@@ -158,26 +159,25 @@ struct DefaultTermLeafData
   DefaultTermLeafData() {}
 
   DefaultTermLeafData(TypedTermList t, Literal* l, Clause* c)
-    : clause(c), literal(l), term(t), sort(t.sort()) {}
+    : clause(c), literal(l), term(t), _sort(t.sort()) {}
 
   DefaultTermLeafData(TermList t, Literal* l, Clause* c)
-    : clause(c), literal(l), term(t) {}
+    : clause(c), literal(l), term(t), _sort(TermList::empty()) {}
 
-  explicit DefaultTermLeafData(Term* term)
-    : clause(nullptr), literal(nullptr),  term(TermList(term))
+  explicit DefaultTermLeafData(Term* t)
+    : DefaultTermLeafData(TypedTermList(t), nullptr, nullptr)
   {}
 
-  Key const& key() const 
-  { return term; }
+  Key const& key() const { return term; }
+  TermList sort() const { return _sort; }
 
 private:
   auto  asTuple() const
   { return make_tuple(
-      clause == nullptr, 
-      clause == nullptr ? 0 : clause->number(), 
-      literal == nullptr,
-      literal == nullptr ? 0 : literal->getId(), 
-      term); }
+      clause  == nullptr, clause  == nullptr ? 0 : clause->number(), 
+      literal == nullptr, literal == nullptr ? 0 : literal->getId(), 
+      term,
+      _sort); }
 public:
 
   IMPL_COMPARISONS_FROM_TUPLE(DefaultTermLeafData)

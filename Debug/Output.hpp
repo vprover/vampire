@@ -84,7 +84,7 @@ struct OutputMultiline {
 
 
 template<class T>
-OutputMultiline<T> multiline(T const& self, unsigned indent)
+OutputMultiline<T> multiline(T const& self, unsigned indent = 0)
 { return { self, indent, }; }
 
 template<class Sep, class Iter>

@@ -12,6 +12,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 
+
 using namespace Indexing;
 
 template<class... A>
@@ -29,7 +30,10 @@ void check_leafdata(TermSubstitutionTree<Data>& tree, TermList key, Stack<Data> 
   if (is == expected) {
     std::cout << "[  ok  ] " << key << std::endl;
   } else {
-    std::cout << "[ fail ] " << key << std::endl;
+    std::cout << std::endl;
+    std::cout << "[ FAIL ] " << key << std::endl;
+    std::cout << "[  idx ] " << multiline(tree) << std::endl;
+    std::cout << "[  key ] " << key << std::endl;
     std::cout << "[   is ]" << is << std::endl;
     std::cout << "[  exp ]" << expected << std::endl;
     ASSERTION_VIOLATION
@@ -60,15 +64,15 @@ TEST_FUN(basic01) {
 
 struct MyData {
   TermList term;
-  TermList sort;
   vstring str;
 
   MyData(TermList t, vstring s)
-    : term(t), sort(SortHelper::getResultSort(t.term())), str(s) {}
+    : term(t), str(s) {}
 
+  TermList sort() const { return SortHelper::getResultSort(term.term()); }
 
   auto asTuple() const 
-  { return std::tie(term, sort, str); }
+  { return std::tie(term, str); }
 
   IMPL_COMPARISONS_FROM_TUPLE(MyData)
 

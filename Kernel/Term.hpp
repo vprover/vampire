@@ -166,6 +166,8 @@ public:
   /** make the term empty (so that isEmpty() returns true) */
   inline void makeEmpty()
   { _content = FUN; }
+  static inline TermList empty()
+  { TermList out; out.makeEmpty(); return out; }
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; ASS_EQ(tag(), REF); }
