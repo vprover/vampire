@@ -73,7 +73,7 @@ bool TermSpec::sameTermContent(TermSpec const& other) const
     auto t1 =       _self.as<OldTermSpec>();
     auto t2 = other._self.as<OldTermSpec>();
     if (t1.isSome() && t2.isSome()) {
-      return t1->term == t1->term && (
+      return t1->term == t2->term && (
            (t1->index == t2->index)
         || (t1->term.term()->shared() && t1->term.term()->ground())
         || (t1->term.term()->arity() == 0)
