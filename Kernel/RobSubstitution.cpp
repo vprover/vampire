@@ -482,8 +482,8 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   static Stack<TermList*> subterms(64);
   ASS(subterms.isEmpty());
 
-  auto obase = base.old();
-  auto oinstance = base.old();
+  auto obase     = base.old();
+  auto oinstance = instance.old();
   TermList* bt=&obase.term;
   TermList* it=&oinstance.term;
 
