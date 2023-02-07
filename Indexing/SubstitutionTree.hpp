@@ -877,7 +877,7 @@ public:
       return QueryResultIterator::getEmpty();
     } else {
       return pvi(iterTraits(leaf->allChildren())
-        .map([retrieveSubstitutions, renaming, resultSubst](LeafData ld) 
+        .map([retrieveSubstitutions, renaming, resultSubst](LeafData& ld) 
           {
             ResultSubstitutionSP subs;
             if (retrieveSubstitutions) {
