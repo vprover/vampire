@@ -39,28 +39,29 @@ using namespace Lib;
 
 class CodeTreeTIS : public TermIndexingStructure<DefaultTermLeafData>
 {
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultTermLeafData>;
-  using TermQueryResult         = Indexing::TermQueryResult<DefaultTermLeafData>;
 public:
 
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  virtual void insert(DefaultTermLeafData data) final override
-  { _insert(data.term, data.literal, data.clause); }
-  virtual void remove(DefaultTermLeafData data) final override
-  { _remove(data.term, data.literal, data.clause); }
-
-  void _insert(TermList t, Literal* lit, Clause* cls);
-  void _remove(TermList t, Literal* lit, Clause* cls);
+  virtual void handle(DefaultTermLeafData data, bool insert) final override
+  { if (insert) { _insert(data.term, data.literal, data.clause); }
+    else        { _remove(data.term, data.literal, data.clause); } }
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
   bool generalizationExists(TermList t) final override;
+  // TODO: get rid of NOT_IMPLEMENTED
+  VirtualIterator<QueryRes<AbstractingUnifier*, DefaultTermLeafData>> getUwa(TypedTermList t) final override { NOT_IMPLEMENTED; }
+
+  virtual void output(std::ostream& out) const final override { out << "CodeTree"; }
 
   virtual std::ostream& output(std::ostream& out) const final override
   { return out << _ct; }
 
 private:
+  void _insert(TermList t, Literal* lit, Clause* cls);
+  void _remove(TermList t, Literal* lit, Clause* cls);
+
   class ResultIterator;
 
   TermCodeTree _ct;

@@ -31,8 +31,6 @@ using namespace Kernel;
 
 class InductionHelper {
   using TermIndex               = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermQueryResult         = Indexing::TermQueryResult<DefaultTermLeafData>;
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultTermLeafData>;
 public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);
@@ -56,7 +54,7 @@ public:
   static bool isInductionClause(Clause* c);
   static bool isInductionLiteral(Literal* l);
   static bool isInductionTermFunctor(unsigned f);
-  static bool isIntInductionTermListInLiteral(TermList& tl, Literal* l);
+  static bool isIntInductionTermListInLiteral(Term* tl, Literal* l);
   static bool isStructInductionFunctor(unsigned f);
 
 private:

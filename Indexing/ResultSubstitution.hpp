@@ -61,12 +61,15 @@ public:
   template<typename T>
   T apply(T t, bool result)
   {
+    CALL("ResultSubstitution::apply")
     if(result) {
       return applyToResult(t);
     } else {
       return applyToQuery(t);
     }
   }
+
+  bool isRenamingOn(TermList t, bool result);
 
   /** if implementation cannot easily give result for this, zero is returned */
   template<typename T>
@@ -130,66 +133,17 @@ public:
    */
   virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
-  virtual RobSubstitution* tryGetRobSubstitution() { return 0; }
   //extend of literals with a matching of their sorts if possible
   virtual bool matchSorts(TermList base, TermList instance) { 
     NOT_IMPLEMENTED; 
   }
 
-  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
-	  int queryBank, int resultBank);
-
+  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
+  virtual void output(std::ostream& ) const = 0;
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
-  { return self.output(out); }
-
-  virtual std::ostream& output(std::ostream& out) const = 0;
+  { self.output(out); return out; }
 };
 
-
-class IdentitySubstitution
-: public ResultSubstitution
-{
-public:
-  CLASS_NAME(IdentitySubstitution);
-  USE_ALLOCATOR(IdentitySubstitution);
-  
-  static ResultSubstitutionSP instance();
-
-  TermList applyToQuery(TermList t) final override { return t; }
-  Literal* applyToQuery(Literal* l) final override { return l; }
-  TermList applyToResult(TermList t) final override { return t; }
-  Literal* applyToResult(Literal* l) final override { return l; }
-  TermList applyTo(TermList t, unsigned index) final override { return t; }
-  Literal* applyTo(Literal* l,unsigned index) final override { return l; }
-  bool isIdentityOnQueryWhenResultBound() final override {return true;}
-  virtual std::ostream& output(std::ostream& out) const final override { return out << "identity"; }
-};
-
-class DisjunctQueryAndResultVariablesSubstitution
-: public ResultSubstitution
-{
-public:
-  CLASS_NAME(DisjunctQueryAndResultVariablesSubstitution);
-  USE_ALLOCATOR(DisjunctQueryAndResultVariablesSubstitution);
-  
-  TermList applyToQuery(TermList t) final override;
-  Literal* applyToQuery(Literal* l) final override;
-  TermList applyToResult(TermList t) final override;
-  Literal* applyToResult(Literal* l) final override;
-  TermList applyTo(TermList t, unsigned index) final override { NOT_IMPLEMENTED; }
-  Literal* applyTo(Literal* l, unsigned index) final override { NOT_IMPLEMENTED; }
-
-  /**
-   * we can return true because nothing is bound to the result
-   */
-  bool isIdentityOnQueryWhenResultBound() final override {return true;}
-  virtual std::ostream& output(std::ostream& out) const final override 
-  { return out << "DisjunctQueryAndResultVariablesSubstitution"; }
-private:
-  struct Applicator;
-  Renaming _renaming;
-};
-
-};
+}; // namepace Indexing
 
 #endif /* __ResultSubstitution__ */

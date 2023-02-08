@@ -63,7 +63,7 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   _allowIncompleteness = false;
 
   if (_doSubsumption) {
-    _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+    _unitIndex.request(salg->getIndexManager(), FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   }
 }
 
@@ -419,7 +419,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           ASS(!env.options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
-            TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+            TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
 
             if (!attempted.insert(lhsS)) {
               // We have already tried to demodulate the term lhsS and did not

@@ -22,6 +22,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Inference.hpp"
 #include "InferenceStore.hpp"
@@ -158,45 +159,6 @@ Formula* Unit::getFormula()
   }
 }
 
-void Unit::collectAtoms(Stack<Literal*>& acc)
-{
-  CALL("Unit::collectAtoms");
-
-  if(isClause()) {
-    Clause* cl = static_cast<Clause*>(this);
-    Clause::Iterator cit(*cl);
-    while(cit.hasNext()) {
-      Literal* l = cit.next();
-      acc.push(Literal::positiveLiteral(l));
-   }
-  }
-  else {
-    Formula* form = static_cast<FormulaUnit*>(this)->formula();
-    form->collectAtoms(acc);
-  }
-}
-
-/**
- * Add into @c acc numbers of all predicates in the unit.
- * If a predicate occurrs multiple times, it is added once for each occurrence.
- */
-void Unit::collectPredicates(Stack<unsigned>& acc)
-{
-  CALL("Unit::collectPredicates");
-
-  if(isClause()) {
-    Clause* cl = static_cast<Clause*>(this);
-    unsigned clen = cl->length();
-    for(unsigned i=0; i<clen; i++) {
-      acc.push((*cl)[i]->functor());
-    }
-  }
-  else {
-    Formula* form = static_cast<FormulaUnit*>(this)->formula();
-    form->collectPredicates(acc);
-  }
-}
-
 /**
  * Print the inference as a vstring (used in printing units in
  * refutations).
@@ -222,6 +184,12 @@ vstring Unit::inferenceAsString() const
     first = false;
     result += infS.getUnitIdStr(parent);
   }
+  // print Extra
+  vstring extra;
+  if (env.proofExtra && env.proofExtra->find(this,extra) && extra != "") {
+    result += ", " + extra;
+  }
+
   return result + ']';
 #else
   vstring result = (vstring)"[" + _inference->name();

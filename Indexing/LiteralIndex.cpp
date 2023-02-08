@@ -26,50 +26,12 @@
 #include "LiteralSubstitutionTree.hpp"
 
 #include "LiteralIndex.hpp"
+#include "IndexManager.hpp"
 
 namespace Indexing
 {
 
 using namespace Kernel;
-
-LiteralIndex::~LiteralIndex()
-{
-  delete _is;
-}
-
-SLQueryResultIterator LiteralIndex::getAll()
-{
-  return _is->getAll();
-}
-
-SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnifications(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getGeneralizations(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getInstances(lit, complementary, retrieveSubstitutions);
-}
-
-size_t LiteralIndex::getUnificationCount(Literal* lit, bool complementary)
-{
-  return _is->getUnificationCount(lit, complementary);
-}
 
 void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
 {
@@ -82,9 +44,9 @@ void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
   }
 }
 
-void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
+void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("GeneratingLiteralIndex::handleClause");
+  CALL("BinaryResolutionIndex::handleClause");
 
   TIME_TRACE("binary resolution index maintenance");
 
@@ -97,9 +59,9 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
+void BackwardSubsumptionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SimplifyingLiteralIndex::handleClause");
+  CALL("BackwardSubsumptionIndex::handleClause");
 
   TIME_TRACE("backward subsumption index maintenance");
 
@@ -167,7 +129,7 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 
   if(c->length()==1) {
     TIME_TRACE("unit clause index maintenance");
-
+    
     handleLiteral((*c)[0], c, adding);
   }
 }
@@ -187,10 +149,10 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering)
+RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure<>* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex=new LiteralSubstitutionTree<>(env.options->unificationWithAbstraction());
+  _partialIndex = new LiteralSubstitutionTree<>(/* uwa */ nullptr);
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()

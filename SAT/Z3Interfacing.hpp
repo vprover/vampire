@@ -371,8 +371,11 @@ private:
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
-
-  BiMap<SATLiteral, z3::expr, Hash, Z3Hash> _assumptionLookup;
+  Stack<z3::expr> _assumptions;
+  BiMap<SATLiteral, z3::expr, DefaultHash, Z3Hash> _assumptionLookup;
+  const bool _showZ3;
+  const bool _unsatCore;
+  Option<std::ofstream> _out;
   Map<unsigned, z3::expr> _varNames;
   Map<TermList, z3::expr> _termIndexedConstants;
   Map<Signature::Symbol*, z3::expr> _constantNames;

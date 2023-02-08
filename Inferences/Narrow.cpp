@@ -76,7 +76,6 @@ void Narrow::detach()
 
 struct Narrow::ApplicableNarrowsFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
   ApplicableNarrowsFn(NarrowingIndex* index) : _index(index) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
@@ -107,15 +106,13 @@ private:
 
 struct Narrow::ResultFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
   ResultFn(Clause* cl, Narrow& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     CALL("Narrow::ResultFn::operator()");
     
     TermQueryResult& qr = arg.second;
-    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, 
-                                 qr.literal, qr.substitution);
+    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, qr.literal, qr.unifier);
   }
 private:
   Clause* _cl;
@@ -269,7 +266,7 @@ Clause* Narrow::performNarrow(
       }
 
       if (afterCheck) {
-        TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
         if (i < nClause->numSelected() && ordering.compare(currAfter,nLiteralS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;

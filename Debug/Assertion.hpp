@@ -18,7 +18,6 @@
 
 #if VDEBUG
 #include <iostream>
-#include <ostream>
 #include "Tracer.hpp"
 
 namespace Shell {

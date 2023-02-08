@@ -40,40 +40,10 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _genLitIndex(0)
-{
-  CALL("IndexManager::IndexManager");
-
-  if(alg) {
-    attach(alg);
-  }
-}
-
-IndexManager::~IndexManager()
-{
-  CALL("IndexManager::~IndexManager");
-
-  if(_alg) {
-    release(GENERATING_SUBST_TREE);
-  }
-}
-
-void IndexManager::setSaturationAlgorithm(SaturationAlgorithm* alg)
-{
-  CALL("IndexManager::setSaturationAlgorithm");
-  ASS(!_alg);
-  ASS(alg);
-
-  _alg = alg;
-  attach(alg);
-}
-
-void IndexManager::attach(SaturationAlgorithm* salg)
-{
-  CALL("IndexManager::attach");
-
-  request(GENERATING_SUBST_TREE);
-}
+IndexManager::IndexManager(SaturationAlgorithm* alg) 
+  : _alg(alg) 
+  , _uwa(MismatchHandler::create())
+{ }
 
 Index* IndexManager::request(IndexType t)
 {
@@ -98,9 +68,6 @@ void IndexManager::release(IndexType t)
 
   e.refCnt--;
   if(e.refCnt==0) {
-    if(t==GENERATING_SUBST_TREE) {
-      _genLitIndex=0;
-    }
     delete e.index;
     _store.remove(t);
   } else {
@@ -146,43 +113,29 @@ Index* IndexManager::create(IndexType t)
   CALL("IndexManager::create");
 
   Index* res;
-  LiteralIndexingStructure* is;
-  TermIndexingStructure<>* tis;
   using TermSubstitutionTree    = Indexing::TermSubstitutionTree<>;
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
 
   bool isGenerating;
-  static Options::UnificationWithAbstraction const uwaMode = env.options->unificationWithAbstraction();
-  static bool const useConstraints = uwaMode != Options::UnificationWithAbstraction::OFF;
-  static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                    env.property->higherOrder();
-                    
   switch(t) {
-  case GENERATING_SUBST_TREE:
-    is=new LiteralSubstitutionTree(uwaMode, useConstraints);
-    _genLitIndex=is;
-    res=new GeneratingLiteralIndex(is);
+  case BINARY_RESOLUTION_SUBST_TREE:
+    res = new BinaryResolutionIndex(new LiteralSubstitutionTree(_uwa.get()));
     isGenerating = true;
     break;
-  case SIMPLIFYING_SUBST_TREE:
-    is=new LiteralSubstitutionTree(uwaMode);
-    res=new SimplifyingLiteralIndex(is);
+  case BACKWARD_SUBSUMPTION_SUBST_TREE:
+    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = false;
     break;
-
-  case SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree(uwaMode);
-    res=new UnitClauseLiteralIndex(is);
+  case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = false;
     break;
-  case GENERATING_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree(uwaMode);
-    res=new UnitClauseLiteralIndex(is);
+  case URR_UNIT_CLAUSE_SUBST_TREE:
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = true;
     break;
-  case GENERATING_NON_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree(uwaMode);
-    res=new NonUnitClauseLiteralIndex(is);
+  case URR_NON_UNIT_CLAUSE_SUBST_TREE:
+    res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = true;
     break;
 
@@ -198,124 +151,115 @@ Index* IndexManager::create(IndexType t)
 
   
   case LASCA_INEQUALITY_STRENGTHENING_RHS:
-    res=new LascaIndex<Inferences::LASCA::InequalityStrengthening::Rhs>(uwaMode);
+    res=new LascaIndex<Inferences::LASCA::InequalityStrengthening::Rhs>(_uwa.get());
     isGenerating = true;
     break;
 
   case LASCA_IS_INT_RESOLUTION_LHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::IsIntResolution::Lhs>(uwaMode);
+    res=new LascaIndex<Inferences::LASCA::IsIntResolution::Lhs>(_uwa.get());
     isGenerating = true;
     break;
 
   case LASCA_IS_INT_RESOLUTION_RHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::IsIntResolution::Rhs>(uwaMode);
+    res=new LascaIndex<Inferences::LASCA::IsIntResolution::Rhs>(_uwa.get());
     isGenerating = true;
     break;
 
   case LASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Lhs>(uwaMode);
+    res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Lhs>(_uwa.get());
     isGenerating = true;
     break;
 
   case LASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Rhs>(uwaMode);
+    res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Rhs>(_uwa.get());
     isGenerating = true;
     break;
 
   case LASCA_SUPERPOSITION_LHS_SUBST_TREE: 
-    res = new LascaIndex<Inferences::LASCA::Superposition::Lhs>(uwaMode);
+    res = new LascaIndex<Inferences::LASCA::Superposition::Lhs>(_uwa.get());
     isGenerating = true;
     break;
 
   case LASCA_SUPERPOSITION_RHS_SUBST_TREE:
-    res = new LascaIndex<Inferences::LASCA::Superposition::Rhs>(uwaMode);
+    res = new LascaIndex<Inferences::LASCA::Superposition::Rhs>(_uwa.get());
     isGenerating = true;
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(uwaMode, useConstraints, extByAbs);
-    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa.get()), _alg->getOrdering());
     isGenerating = true;
     break;
 
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(uwaMode, useConstraints, extByAbs);
-    res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa.get()), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
-    tis=new TermSubstitutionTree(uwaMode);
-    res=new SubVarSupSubtermIndex(tis, _alg->getOrdering());
+    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(/* uwa*/ nullptr), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUB_VAR_SUP_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(uwaMode);
-    res=new SubVarSupLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new SubVarSupLHSIndex(new TermSubstitutionTree(/* uwa*/ nullptr), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res=new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<TermList>>(Options::UnificationWithAbstraction::OFF, false, false));
+    res=new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<TermList>>(/* uwa */ nullptr));
     isGenerating = false;
     break;
 
   case NARROWING_INDEX:
-    tis=new TermSubstitutionTree(uwaMode);
-    res=new NarrowingIndex(tis); 
+    res = new NarrowingIndex(new TermSubstitutionTree(/* uwa*/ nullptr)); 
     isGenerating = true;
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    tis=new TermSubstitutionTree(uwaMode);
-    res=new PrimitiveInstantiationIndex(tis); 
+    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(/* uwa*/ nullptr)); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
-    tis = new TermSubstitutionTree(uwaMode);
-    res = new AcyclicityIndex(tis);
+    res = new AcyclicityIndex(new TermSubstitutionTree(/* uwa*/ nullptr));
     isGenerating = true;
     break; 
 
-  case DEMODULATION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(uwaMode);
+  case DEMODULATION_SUBTERM_SUBST_TREE: 
     if (env.options->combinatorySup()) {
-      res=new DemodulationSubtermIndexImpl<true>(tis);
+      res = new DemodulationSubtermIndexImpl<true>(new TermSubstitutionTree(/* uwa*/ nullptr));
     } else {
-      res=new DemodulationSubtermIndexImpl<false>(tis);
+      res = new DemodulationSubtermIndexImpl<false>(new TermSubstitutionTree(/* uwa*/ nullptr));
     }
     isGenerating = false;
     break;
+  case DEMODULATION_LHS_CODE_TREE:
+    res = new DemodulationLHSIndex(new CodeTreeTIS(), _alg->getOrdering(), _alg->getOptions());
+    isGenerating = false;
+    break;
+
   case DEMODULATION_LHS_SUBST_TREE:
-//    tis=new TermSubstitutionTree(uwaMode);
-    tis=new CodeTreeTIS();
-    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* uwa*/ nullptr), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
   case FW_SUBSUMPTION_CODE_TREE:
-    res=new CodeTreeSubsumptionIndex();
+    res = new CodeTreeSubsumptionIndex();
     isGenerating = false;
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree(uwaMode);
-//    is=new CodeTreeLIS();
-    res=new FwSubsSimplifyingLiteralIndex(is);
+    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = false;
     break;
 
   case FSD_SUBST_TREE:
-    is = new LiteralSubstitutionTree(uwaMode);
-    res = new FSDLiteralIndex(is);
+    res = new FSDLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    is=new LiteralSubstitutionTree(uwaMode);
-    res=new RewriteRuleIndex(is, _alg->getOrdering());
+    res = new RewriteRuleIndex(new LiteralSubstitutionTree(/* uwa */ nullptr), _alg->getOrdering());
     isGenerating = false;
     break;
 
@@ -325,20 +269,17 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case UNIT_INT_COMPARISON_INDEX:
-    is = new LiteralSubstitutionTree(uwaMode);
-    res = new UnitIntegerComparisonLiteralIndex(is);
+    res = new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree(/* uwa */ nullptr));
     isGenerating = true;
     break;
 
   case INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree(uwaMode);
-    res = new InductionTermIndex(tis);
+    res = new InductionTermIndex(new TermSubstitutionTree(/* uwa*/ nullptr));
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree(uwaMode);
-    res = new StructInductionTermIndex(tis);
+    res = new StructInductionTermIndex(new TermSubstitutionTree(/* uwa*/ nullptr));
     isGenerating = true;
     break;
 

@@ -23,6 +23,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #include "Term.hpp"
 
@@ -79,7 +80,11 @@ public:
   void makeInverse(const Renaming& orig);
 
   static Literal* normalize(Literal* l);
+  static TypedTermList normalize(TypedTermList l);
   static Term* normalize(Term* t);
+  static TermList normalize(TermList t);
+  friend std::ostream& operator<<(std::ostream& out, Renaming const& self)
+  { return out << self._data; }
 
 #if VDEBUG
   void assertValid() const;
@@ -97,7 +102,7 @@ private:
     Renaming* _parent;
   };
 
-  typedef DHMap<unsigned, unsigned, IdentityHash, Hash> VariableMap;
+  typedef DHMap<unsigned, unsigned, IdentityHash, DefaultHash> VariableMap;
   VariableMap _data;
   unsigned _nextVar;
   bool _identity;

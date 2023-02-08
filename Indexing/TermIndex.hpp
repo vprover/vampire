@@ -19,6 +19,7 @@
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
 
+#include "Indexing/TermSubstitutionTree.hpp"
 #include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
 
@@ -29,36 +30,33 @@ class TermIndex
 : public Index
 {
   using TermIndexingStructure   = Indexing::TermIndexingStructure<Data>;
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<Data>;
 public:
   CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
-  virtual ~TermIndex() 
-  { delete _is; }
+  virtual ~TermIndex() {}
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsUsingSorts(t, sort, retrieveSubstitutions); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t)
+  { return _is->getUwa(t); }
 
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsWithConstraints(t, retrieveSubstitutions); }
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
 
-  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self) 
-  { return out << "TermIndex(" << *self._is << ")"; }
-
+  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
+  { return out << *self._is; }
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
-  TermIndexingStructure* _is;
+  unique_ptr<TermIndexingStructure> _is;
 };
 
 class SuperpositionSubtermIndex
@@ -87,13 +85,14 @@ public:
   CLASS_NAME(SuperpositionLHSIndex);
   USE_ALLOCATOR(SuperpositionLHSIndex);
 
-  SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  SuperpositionLHSIndex(TermSubstitutionTree<>* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
+  TermSubstitutionTree<>* _tree;
 };
 
 /**

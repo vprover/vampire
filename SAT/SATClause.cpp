@@ -74,7 +74,7 @@ SATClause::SATClause(unsigned length)
 
   // call a constructor on the literals
   for (size_t i = 1; i < _length; i++)
-    new (&_literals[i]) SATLiteral();
+    ::new (&_literals[i]) SATLiteral();
 }
 
 /**

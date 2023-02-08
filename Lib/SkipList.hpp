@@ -66,7 +66,6 @@ public:
     CALL("SkipList::insert");
     void* pval = insertPositionRaw(val);
     new(pval) Value(std::move(val));
-    // *pval = val;
   } // SkipList::insert
 
   template<class Iterator>
@@ -204,7 +203,6 @@ public:
       }
     }
     Node* newNode = allocate(nodeHeight);
-    // new(&newNode->value) Value();
 
 
     unsigned h = _top - 1;
@@ -697,6 +695,20 @@ public:
     /** the node we're now pointing to */
     Node* _cur;
   };
+
+  friend std::ostream& operator<<(std::ostream& out, SkipList const& self)
+  { 
+    PtrIterator iter(self);
+    out << "[";
+    if (iter.hasNext()) {
+      out << " " << *iter.next();
+      while (iter.hasNext()) {
+        out << ", " << *iter.next();
+      }
+    }
+    out << " ]";
+    return out; 
+  }
 
 
 }; // class SkipList

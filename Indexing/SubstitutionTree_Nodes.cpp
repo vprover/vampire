@@ -53,7 +53,7 @@ public:
   inline
   LDIterator allChildren() const final override
   {
-    return pvi( typename LDList::RefIterator(_children) );
+    return pvi( iterTraits(typename LDList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   inline
   void insert(LeafData ld) final override
@@ -101,7 +101,7 @@ public:
   inline
   LDIterator allChildren() const final override
   {
-    return pvi( typename LDSkipList::RefIterator(_children) );
+    return pvi( iterTraits(typename LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   void insert(LeafData ld) final override
   {
@@ -140,18 +140,16 @@ typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::createL
 }
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::createIntermediateNode(unsigned childVar,bool useC)
+typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::createIntermediateNode(unsigned childVar)
 {
   CALL("SubstitutionTree::createIntermediateNode/2");
-  if(useC){ return new UArrIntermediateNodeWithSorts(childVar); }
   return new UArrIntermediateNode(childVar);
 }
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::createIntermediateNode(TermList ts, unsigned childVar,bool useC)
+typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::createIntermediateNode(TermList ts, unsigned childVar)
 {
   CALL("SubstitutionTree::createIntermediateNode/3");
-  if(useC){ return new UArrIntermediateNodeWithSorts(ts, childVar); }
   return new UArrIntermediateNode(ts, childVar);
 }
 
@@ -179,12 +177,12 @@ void SubstitutionTree<LeafData_>::IntermediateNode::destroyChildren()
 
 template<class LeafData_>
 typename SubstitutionTree<LeafData_>::Node** SubstitutionTree<LeafData_>::UArrIntermediateNode::
-	childByTop(TermList t, bool canCreate)
+	childByTop(TermList::Top t, bool canCreate)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
 
   for(int i=0;i<_size;i++) {
-    if(TermList::sameTop(t, _nodes[i]->term)) {
+    if(t == _nodes[i]->term.top()) {
       return &_nodes[i];
     }
   }
@@ -199,12 +197,12 @@ typename SubstitutionTree<LeafData_>::Node** SubstitutionTree<LeafData_>::UArrIn
 }
 
 template<class LeafData_>
-void SubstitutionTree<LeafData_>::UArrIntermediateNode::remove(TermList t)
+void SubstitutionTree<LeafData_>::UArrIntermediateNode::remove(TermList::Top t)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::remove");
 
   for(int i=0;i<_size;i++) {
-    if(TermList::sameTop(t, _nodes[i]->term)) {
+    if(t == _nodes[i]->term.top()) {
       _size--;
       _nodes[i]=_nodes[_size];
       _nodes[_size]=0;
@@ -225,14 +223,11 @@ typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafDat
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
 
   IntermediateNode* res= 0;
-  if(orig->withSorts()){
-    res = new SListIntermediateNodeWithSorts(orig->term, orig->childVar);
-    res->_childBySortHelper->loadFrom(orig->_childBySortHelper);
-  }else{
-    res = new SListIntermediateNode(orig->term, orig->childVar);
-  }
+  // TODO refactor such that children are not copied here, and deleted at (2), but moved instead
+  res = new SListIntermediateNode(orig->term, orig->childVar);
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
+  // TODO (2) see above
   delete orig;
   return res;
 }

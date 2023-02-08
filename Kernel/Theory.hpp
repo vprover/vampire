@@ -34,6 +34,10 @@
 
 namespace Kernel {
 
+class IntegerConstantType;
+struct RationalConstantType;
+class RealConstantType;
+
 /**
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.

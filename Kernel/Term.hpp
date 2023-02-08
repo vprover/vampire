@@ -37,6 +37,9 @@
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/Coproduct.hpp"
+#include "Lib/Recycled.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
 #define TERM_DIST_VAR_BITS 21
@@ -133,8 +136,6 @@ public:
   inline bool isOrdinaryVar() const { return tag() == ORD_VAR; }
   /** the term contains a special variable as its head */
   inline bool isSpecialVar() const { return tag() == SPEC_VAR && var() < SPEC_UPPER_BOUND; }
-  
-  inline bool isVSpecialVar() const { return tag() == SPEC_VAR && var() > SPEC_UPPER_BOUND; }
   /** return the variable number */
   inline unsigned var() const
   { ASS(isVar()); return _content / 4; }
@@ -153,6 +154,10 @@ public:
   { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
   inline size_t content() const { return _content; }
+  /** default hash is to hash the content */
+  unsigned defaultHash() const { return DefaultHash::hash(content()); }
+  unsigned defaultHash2() const { return content(); }
+
   vstring toString(bool topLevel = true) const;
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
@@ -163,9 +168,20 @@ public:
   /** make the term empty (so that isEmpty() returns true) */
   inline void makeEmpty()
   { _content = FUN; }
+  static inline TermList empty()
+  { TermList out; out.makeEmpty(); return out; }
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; ASS_EQ(tag(), REF); }
+  class Top : public Coproduct<unsigned, unsigned> {
+    Top(Coproduct<unsigned, unsigned> self) : Coproduct<unsigned, unsigned>(self) {}
+  public:
+    static Top functor(unsigned f) { return Top(Coproduct::variant<0>(f)); }
+    static Top var    (unsigned v) { return Top(Coproduct::variant<1>(v)); }
+    Option<unsigned> functor() const { return as<0>().toOwned(); }
+    Option<unsigned> var()     const { return as<1>().toOwned(); }
+  };
+  Top top() const;
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
@@ -182,7 +198,6 @@ public:
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
   bool ground() const;
-
   bool isSafe() const;
 
   VList* freeVariables() const;
@@ -365,6 +380,14 @@ public:
   explicit Term(const Term& t) throw();
   static Term* create(unsigned function, unsigned arity, const TermList* args);
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
+  static Term* create(unsigned fn, Stack<TermList> const& args) { return Term::create(fn, args.length(), args.begin()); }
+  template<class Iter>
+  static Term* createFromIter(unsigned fn, Iter args) 
+  { 
+    Recycled<Stack<TermList>> stack;
+    stack->loadFromIterator(args);
+    return Term::create(fn, *stack); 
+  }
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
   static Term* createNonShared(Term* t,TermList* args);
@@ -485,7 +508,21 @@ public:
    */  
   TermList* args()
   { return _args + _arity; }
-  unsigned hash() const;
+
+  /**
+   * Return the hash function of the top-level of a complex term.
+   * @pre The term must be non-variable
+   * @since 28/12/2007 Manchester
+   */
+  unsigned hash() const {
+    CALL("Term::hash");
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char*>(_args+1),
+      _arity*sizeof(TermList),
+      DefaultHash::hash(_functor)
+    );
+  }
+
   /** return the arity */
   unsigned arity() const
   { return _arity; }
@@ -528,6 +565,17 @@ public:
     return _args[0]._info.commutative;
   } // commutative
 
+  // destructively swap arguments of a (binary) commutative term
+  // the term is assumed to be non-shared
+  void argSwap() {
+    ASS(commutative() && !shared());
+    ASS(arity() == 2);
+
+    TermList* ts1 = args();
+    TermList* ts2 = ts1->next();
+    swap(ts1->_content, ts2->_content);
+  }
+
   /** Return the weight. Applicable only to shared terms */
   unsigned weight() const
   {
@@ -555,10 +603,7 @@ public:
   } // setWeight
 
   /** Set term id */
-  void setId(unsigned id)
-  {
-    _args[0]._info.id = id;
-  } // setWeight
+  void setId(unsigned id);
 
   /** Set (shared) term's id */
   unsigned getId() const
@@ -824,7 +869,7 @@ public:
 
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
-  static AtomicSort* create(AtomicSort* t,TermList* args);
+  static AtomicSort* create(AtomicSort const* t,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   static AtomicSort* createConstant(const vstring& name); 
 
@@ -912,8 +957,28 @@ public:
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
   static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
-  unsigned hash() const;
-  unsigned oppositeHash() const;
+  /**
+   * Return the hash function of the top-level of a literal.
+   * @since 30/03/2008 Flight Murcia-Manchester
+   */
+  unsigned hash(bool flip = false) const
+  {
+    CALL("Literal::hash");
+    bool positive = (flip ^ isPositive());
+    unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
+    if (isTwoVarEquality()) {
+      hash = HashUtils::combine(
+        DefaultHash::hash(twoVarEqSort()),
+        hash
+      );
+    }
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char*>(_args+1),
+      _arity*sizeof(TermList),
+      hash
+    );
+  }
+
   static Literal* complementaryLiteral(Literal* l);
   /** If l is positive, return l; otherwise return its complementary literal. */
   static Literal* positiveLiteral(Literal* l) {
@@ -997,35 +1062,16 @@ private:
 bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
-struct TermListHash {
-  static unsigned hash(TermList t) {
-    return static_cast<unsigned>(t.content());
-  }
-};
-
 std::ostream& operator<< (ostream& out, TermList tl );
 std::ostream& operator<< (ostream& out, const Term& tl );
 std::ostream& operator<< (ostream& out, const Literal& tl );
 
 };
 
-/* template specializations */
-namespace Lib
-{
-
-
-template<>
-struct SecondaryHash<Kernel::TermList> {
-  typedef Kernel::TermListHash Type;
-};
-
-
-}
-
 template<>
 struct std::hash<Kernel::TermList> {
   size_t operator()(Kernel::TermList const& t) const 
-  { return Kernel::TermListHash::hash(t); }
+  { return t.defaultHash(); }
 };
 
 #endif

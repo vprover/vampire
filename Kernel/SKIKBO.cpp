@@ -78,7 +78,7 @@ private:
   }
 
   int _weightDiff;
-  DHMap<unsigned, int, IdentityHash, Hash> _varDiffs;
+  DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
   /** Number of variables, that occur more times in the first literal */
   int _posNum;
   /** Number of variables, that occur more times in the second literal */

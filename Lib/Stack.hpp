@@ -26,7 +26,8 @@
 #include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
-#include "Backtrackable.hpp"
+#include "Lib/Reflection.hpp"
+// #include "Backtrackable.hpp"
 
 namespace std
 {
@@ -36,8 +37,8 @@ void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2);
 
 namespace Lib {
 
-template<typename C>
-struct Relocator<Stack<C> >;
+// template<typename C>
+// struct Relocator<Stack<C> >;
 
 /**
  * Class of flexible-size generic stacks.
@@ -61,7 +62,6 @@ public:
 
   CLASS_NAME(Stack);
   USE_ALLOCATOR(Stack);
-  DECLARE_PLACEMENT_NEW;
 
 
   /**
@@ -255,7 +255,7 @@ public:
   static Stack fromIterator(It it) {
     CALL("Stack::fromIterator");
     Stack out;
-    out.moveFromIterator(it);
+    out.moveFromIterator(std::move(it));
     return out;
   }
   /* a first-in-first-out iterator  */
@@ -287,6 +287,33 @@ public:
 
     return _stack[n];
   }
+
+  friend int cmp(const Stack& l, const Stack& r)
+  {
+    CALL("Stack::operator<");
+
+    int sdiff = int(l.size()) - int(r.size());
+    if(sdiff) return sdiff;
+    
+    auto i1 = l.iterFifo();
+    auto i2 = r.iterFifo();
+    while (i1.hasNext()) {
+      auto e1 = i1.next();
+      auto e2 = i2.next();
+      if (e1 != e2) {
+        if (e1 < e2) return -1;
+        if (e1 > e2) return 1;
+      }
+    }
+    ASS(!i2.hasNext())
+    return 0;
+  }
+
+  friend bool operator< (const Stack& l, const Stack& r) { return cmp(l,r) <  0; }
+  friend bool operator<=(const Stack& l, const Stack& r) { return cmp(l,r) <= 0; }
+  friend bool operator> (const Stack& l, const Stack& r) { return cmp(l,r) >  0; }
+  friend bool operator>=(const Stack& l, const Stack& r) { return cmp(l,r) >= 0; }
+
 
   bool operator==(const Stack& o) const
   {
@@ -446,7 +473,6 @@ public:
   void sort(Less less = std::less<C>{})
   { std::sort(begin(), end(), less); }
 
-
   /** like Stack::sort but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this */
   template<class Equal = std::equal_to<C>>
   Stack sorted(Equal eq = std::equal_to<C>{})
@@ -517,6 +543,15 @@ public:
     _cursor = _stack;
   }
 
+  void init(std::initializer_list<C> elems)
+  {
+    reserve(elems.size());
+    for (auto& x : elems) {
+      push(std::move(x));
+    }
+  }
+
+
   /** Sets the length of the stack to @b len
    *  @since 27/12/2007 Manchester */
   inline
@@ -552,21 +587,6 @@ public:
     }
     return false;
   }
-
-#if VDEBUG
-  vstring toString()
-  {
-    vstring ret = "[";
-    Iterator it(const_cast<Stack&>(*this));
-    while(it.hasNext()){
-      C el = it.next();
-      ret += Int::toString(static_cast<unsigned int>(el));
-      if(it.hasNext()){ ret +=",";}
-    }
-    return ret+"]";
-  }
-
-#endif
 
   friend class RefIterator;
 
@@ -912,23 +932,8 @@ protected:
     _capacity = newCapacity;
   } // Stack::expand
 
-  class PushBacktrackObject: public BacktrackObject
-  {
-    Stack* st;
-  public:
-    CLASS_NAME(Stack::PushBacktrackObject);
-    USE_ALLOCATOR(Stack::PushBacktrackObject);
-    
-    PushBacktrackObject(Stack* st) : st(st) {}
-    void backtrack() { st->pop(); }
-  };
 public:
 
-  void backtrackablePush(C v, BacktrackData& bd)
-  {
-    push(v);
-    bd.addBacktrackObject(new PushBacktrackObject(this));
-  }
 
   friend ostream& operator<<(ostream& out, const Stack<C>& s) {
     out << "[";
@@ -955,15 +960,15 @@ public:
 
 };
 
-template<typename C>
-struct Relocator<Stack<C> >
-{
-  static void relocate(Stack<C>* oldStack, void* newAddr)
-  {
-    ::new(newAddr) Stack<C>(std::move(*oldStack));
-    oldStack->~Stack<C>();
-  }
-};
+// template<typename C>
+// struct Relocator<Stack<C> >
+// {
+//   static void relocate(Stack<C>* oldStack, void* newAddr)
+//   {
+//     ::new(newAddr) Stack<C>(std::move(*oldStack));
+//     oldStack->~Stack<C>();
+//   }
+// };
 
 
 } // namespace Lib

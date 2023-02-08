@@ -67,7 +67,7 @@ void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   CALL("BackwardSubsumptionDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
 
-  _index.request(salg->getIndexManager(), SIMPLIFYING_SUBST_TREE);
+  _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
 }
 
 
@@ -493,7 +493,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     ASS(!env.options->combinatorySup());
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
-      TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+      TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
 
       if (!attempted.insert(lhsS)) {
         // We have already tried to demodulate the term lhsS and did not

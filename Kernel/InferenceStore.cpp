@@ -274,7 +274,6 @@ struct InferenceStore::ProofPrinter
 
     outputAxiomNames=env.options->outputAxiomNames();
     delayPrinting=true;
-    proofExtra=env.options->proofExtra()!=Options::ProofExtra::OFF;
   }
 
   void scheduleForPrinting(Unit* us)
@@ -405,12 +404,6 @@ protected:
         out << _is->getUnitIdStr(prem);
         first=false;
       }
-
-      // print Extra
-      vstring extra;
-      if (env.proofExtra && env.proofExtra->find(cs,extra) && extra != "") {
-        out << ", " << extra;
-      }
       out << "]" << endl;
     }
   }
@@ -458,7 +451,6 @@ protected:
 
   bool outputAxiomNames;
   bool delayPrinting;
-  bool proofExtra;
 };
 
 struct InferenceStore::ProofPropertyPrinter

@@ -69,9 +69,9 @@ void URResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
 
   _unitIndex = static_cast<UnitClauseLiteralIndex*> (
-	  _salg->getIndexManager()->request(GENERATING_UNIT_CLAUSE_SUBST_TREE) );
+	  _salg->getIndexManager()->request(URR_UNIT_CLAUSE_SUBST_TREE) );
   _nonUnitIndex = static_cast<NonUnitClauseLiteralIndex*> (
-	  _salg->getIndexManager()->request(GENERATING_NON_UNIT_CLAUSE_SUBST_TREE) );
+	  _salg->getIndexManager()->request(URR_NON_UNIT_CLAUSE_SUBST_TREE) );
 
   Options::URResolution optSetting = _salg->getOptions().unitResultingResolution();
   ASS_NEQ(optSetting,  Options::URResolution::OFF);
@@ -83,9 +83,9 @@ void URResolution::detach()
   CALL("URResolution::detach");
 
   _unitIndex = 0;
-  _salg->getIndexManager()->release(GENERATING_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(URR_UNIT_CLAUSE_SUBST_TREE);
   _nonUnitIndex = 0;
-  _salg->getIndexManager()->release(GENERATING_NON_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(URR_NON_UNIT_CLAUSE_SUBST_TREE);
   GeneratingInferenceEngine::detach();
 }
 
@@ -144,7 +144,7 @@ struct URResolution::Item
       if(!lit) {
         continue;
       }
-      lit = unif.substitution->apply(lit, !useQuerySubstitution);
+      lit = unif.unifier->apply(lit, !useQuerySubstitution);
       if(!lit->ground()) {
         nonGroundCnt++;
       }

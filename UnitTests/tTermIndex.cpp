@@ -12,6 +12,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 
+
 using namespace Indexing;
 
 template<class... A>
@@ -29,7 +30,10 @@ void check_leafdata(TermSubstitutionTree<Data>& tree, TermList key, Stack<Data> 
   if (is == expected) {
     std::cout << "[  ok  ] " << key << std::endl;
   } else {
-    std::cout << "[ fail ] " << key << std::endl;
+    std::cout << std::endl;
+    std::cout << "[ FAIL ] " << key << std::endl;
+    std::cout << "[  idx ] " << multiline(tree) << std::endl;
+    std::cout << "[  key ] " << key << std::endl;
     std::cout << "[   is ]" << is << std::endl;
     std::cout << "[  exp ]" << expected << std::endl;
     ASSERTION_VIOLATION
@@ -47,7 +51,7 @@ TEST_FUN(basic01) {
   DECL_FUNC(f, {srt}, srt)
   DECL_PRED(g, {srt})
   
-  TermSubstitutionTree<> tree;
+  TermSubstitutionTree<> tree(/* mismatchHandler */ nullptr);
   auto dat = [](TermList k, Literal* v)  { return DefaultTermLeafData(k, v, nullptr); };
   tree.insert(dat(f(a), g(a)));
   tree.insert(dat(f(a), g(b)));
@@ -62,6 +66,11 @@ struct MyData {
   TermList term;
   vstring str;
 
+  MyData(TermList t, vstring s)
+    : term(t), str(s) {}
+
+  TermList sort() const { return SortHelper::getResultSort(term.term()); }
+
   auto asTuple() const 
   { return std::tie(term, str); }
 
@@ -70,8 +79,6 @@ struct MyData {
   friend std::ostream& operator<<(std::ostream& out, MyData const& self)
   { return out << "MyData" << self.asTuple(); }
 
-  TermList sort()
-  { return SortHelper::getResultSort(term.term()); }
   using Key = TermList;
 
   Key const& key() const
@@ -87,14 +94,15 @@ TEST_FUN(custom_data_01) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData> tree;
-  tree.insert({f(a), "a"});
-  tree.insert({f(a), "b"});
-  tree.insert({f(a), "c"});
+  auto dat = [](auto l, auto r) { return MyData(l,r); };
+  TermSubstitutionTree<MyData> tree(/* mismatchHandler */ nullptr);
+  tree.insert(dat(f(a), "a"));
+  tree.insert(dat(f(a), "b"));
+  tree.insert(dat(f(a), "c"));
 
-  check_leafdata(tree, f(a), { {f(a), "a"}, {f(a), "b"}, {f(a), "c"} });
+  check_leafdata(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
   check_leafdata(tree, f(b), Stack<MyData>{});
-  check_leafdata(tree, f(x), { {f(a), "a"}, {f(a), "b"}, {f(a), "c"} });
+  check_leafdata(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
 
 TEST_FUN(custom_data_02) {
@@ -105,7 +113,7 @@ TEST_FUN(custom_data_02) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<TermIndexData<vstring>> tree;
+  TermSubstitutionTree<TermIndexData<vstring>> tree(/* mismatchHandler */ nullptr);
   auto dat = [](TermList t,vstring s) { return TermIndexData<vstring>(t.term(), std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -129,7 +137,7 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData3> tree;
+  TermSubstitutionTree<MyData3> tree(/* mismatchHandler */ nullptr);
   auto dat = [](TermList t,vstring s) { return MyData3(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -154,7 +162,7 @@ TEST_FUN(custom_data_04_no_copy_constructor) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData4> tree;
+  TermSubstitutionTree<MyData4> tree(/* mismatchHandler */ nullptr);
   auto dat = [](TermList t,vstring s) { return MyData4(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));

@@ -14,204 +14,14 @@
  */
 
 #include "Lib/Allocator.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "SubstitutionTree.hpp"
-
 namespace Indexing
 {
-
-/**
- * Class that supports matching operations required by
- * retrieval of generalizations in substitution trees.
- */
-template<class LeafData_>
-class SubstitutionTree<LeafData_>::InstMatcher
-{
-public:
-  void reset()
-  {
-    _boundVars.reset();
-    _bindings.reset();
-    _derefBindings.reset();
-  }
-
-  CLASS_NAME(SubstitutionTree::InstMatcher);
-  USE_ALLOCATOR(InstMatcher);
-
-  struct TermSpec
-  {
-    TermSpec() : q(false) {
-    #if VDEBUG
-      t.makeEmpty();
-    #endif
-    }
-    TermSpec(bool q, TermList t)
-    : q(q), t(t)
-    {
-      CALL("SubstitutionTree::InstMatcher::TermSpec::TermSpec");
-
-      //query does not contain special vars
-      ASS(!q || !t.isTerm() || t.term()->shared());
-      ASS(!q || !t.isSpecialVar());
-    }
-
-    vstring toString()
-    {
-      CALL("SubstitutionTree::InstMatcher::TermSpec::toString");
-      return (q ? "q|" : "n|")+t.toString();
-    }
-
-    /**
-     * Return true if the @b t field can be use as a binding for a query
-     * term variable in the retrieved substitution
-     */
-    bool isFinal()
-    {
-      //the fact that a term is shared means it does not contain any special variables
-      return q
-  	? (t.isTerm() && t.term()->ground())
-  	: (t.isOrdinaryVar() || (t.isTerm() && t.term()->shared()) );
-    }
-
-    bool q;
-    TermList t;
-  };
-
-  /**
-   * Bind special variable @b var to @b term
-   *
-   * This method should be called only before any calls to @b matchNext()
-   * and @b backtrack().
-   */
-  void bindSpecialVar(unsigned var, TermList term)
-  {
-    CALL("SubstitutionTree::InstMatcher::bindSpecialVar");
-    ASS_EQ(getBSCnt(), 0);
-
-    ALWAYS(_bindings.insert(TermList(var,true),TermSpec(true,term)));
-  }
-
-  bool isSpecVarBound(unsigned specVar)
-  {
-    return _bindings.find(TermList(specVar,true));
-  }
-
-  /** Return term bound to special variable @b specVar */
-  TermSpec getSpecVarBinding(unsigned specVar)
-  {
-    TermSpec res=_bindings.get(TermList(specVar,true));
-
-    return res;
-  }
-
-  bool findSpecVarBinding(unsigned specVar, TermSpec& res)
-  {
-    return _bindings.find(TermList(specVar,true), res);
-  }
-
-  bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
-  bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
-
-  void backtrack();
-  bool tryBacktrack();
-  ResultSubstitutionSP getSubstitution(Renaming* resultDenormalizer);
-
-  int getBSCnt()
-  {
-    int res=0;
-    TermStack::Iterator vsit(_boundVars);
-    while(vsit.hasNext()) {
-      if(vsit.next().isEmpty()) {
-	res++;
-      }
-    }
-    return res;
-  }
-
-  void onLeafEntered()
-  {
-    _derefBindings.reset();
-  }
-
-private:
-
-  class Substitution;
-
-  TermList derefQueryBinding(unsigned var);
-
-  bool isBound(TermList var)
-  {
-    CALL("SubstitutionTree::InstMatcher::isBound");
-    ASS(var.isVar());
-
-    return _bindings.find(var);
-  }
-  void bind(TermList var, TermSpec trm)
-  {
-    CALL("SubstitutionTree::InstMatcher::bind");
-    ASS(!var.isOrdinaryVar() || !trm.q); //we do not bind ordinary vars to query terms
-
-    ALWAYS(_bindings.insert(var, trm));
-    _boundVars.push(var);
-  }
-
-  TermSpec deref(TermList var);
-
-  typedef DHMap<TermList, TermSpec> BindingMap;
-  typedef Stack<TermList> TermStack;
-
-  /** Stacks of bindings made on each backtrack level. Backtrack
-   * levels are separated by empty terms. */
-  TermStack _boundVars;
-
-  BindingMap _bindings;
-
-  /**
-   * A cache for bindings of variables to result terms
-   *
-   * The map is reset whenever we enter a new leaf
-   */
-  DHMap<TermList,TermList> _derefBindings;
-
-  struct DerefTask
-  {
-    DerefTask(TermList var) : var(var) { trm.t.makeEmpty(); }
-    DerefTask(TermList var, TermSpec trm) : var(var), trm(trm) {}
-    TermList var;
-    TermSpec trm;
-    bool buildDerefTerm() { return trm.t.isNonEmpty(); };
-  };
-
-  struct DerefApplicator
-  {
-    DerefApplicator(InstMatcher* im, bool query) : query(query), im(im) {}
-    TermList apply(unsigned var)
-    {
-      CALL("SubstitutionTree::InstMatcher::DerefApplicator::apply");
-      if(query) {
-	return im->_derefBindings.get(TermList(var, false));
-      }
-      else {
-	return TermList(var, false);
-      }
-    }
-    TermList applyToSpecVar(unsigned specVar)
-    {
-      CALL("SubstitutionTree::InstMatcher::DerefApplicator::applyToSpecVar");
-      ASS(!query);
-
-      return im->_derefBindings.get(TermList(specVar, true));
-    }
-  private:
-    bool query;
-    InstMatcher* im;
-  };
-};
 
 template<class LeafData_>
 std::ostream& operator<< (ostream& out, typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec ts )
@@ -261,11 +71,11 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() final override { return true; }
+  bool isIdentityOnResultWhenQueryBound() final override
+  { return true; }
 
-  virtual std::ostream& output(std::ostream& out) const final override 
-  { return out << "SubstitutionTree::InstMatcher::Substitution"; }
-
+  virtual void output(std::ostream& out) const final override 
+  { out << "InstMatcher::Substitution(<output unimplemented>)"; }
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;
@@ -568,90 +378,6 @@ finish:
   return success;
 }
 
-
-/**
- * @b nextSpecVar is the first unassigned special variable. Is being used
- * 	to determine size of array, that stores special variable bindings.
- * 	(To maximize performance, a DArray object is being used instead
- * 	of hash map.)
- * If @b reversed If true, parameters of supplied binary literal are
- * 	reversed. (useful for retrieval commutative terms)
- */
-template<class LeafData_>
-SubstitutionTree<LeafData_>::FastInstancesIterator::FastInstancesIterator(SubstitutionTree* parent, Node* root,
-	Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC, 
-  FuncSubtermMap* fstm) //final two for compatibility purposes
-: _retrieveSubstitution(retrieveSubstitution),
-  _inLeaf(false), _ldIterator(LDIterator::getEmpty()),  _root(root),
-  _alternatives(64), _specVarNumbers(64), _nodeTypes(64)
-#if VDEBUG
-  , _tree(parent)
-#endif 
-{
-  CALL("SubstitutionTree::FastInstancesIterator::FastGeneralizationsIterator");
-  ASS(root);
-  ASS(!root->isLeaf());
-
-#if VDEBUG
-  _tree->_iteratorCnt++;
-#endif
-
-  Recycler::get(_subst);
-  _subst->reset();
-//  _subst=new InstMatcher;
-
-  if(withoutTop){
-    _subst->bindSpecialVar(0,TermList(query));
-  }else{
-    if(reversed) {
-      createReversedInitialBindings(query);
-    } else {
-      createInitialBindings(query);
-    }
-  }
-}
-
-template<class LeafData_>
-SubstitutionTree<LeafData_>::FastInstancesIterator::~FastInstancesIterator()
-{
-#if VDEBUG
-  _tree->_iteratorCnt--;
-#endif
-  Recycler::release(_subst);
-//  delete _subst;
-}
-
-
-template<class LeafData_>
-void SubstitutionTree<LeafData_>::FastInstancesIterator::createInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::FastInstancesIterator::createInitialBindings");
-
-  TermList* args=t->args();
-  int nextVar = 0;
-  while (! args->isEmpty()) {
-    unsigned var = nextVar++;
-    _subst->bindSpecialVar(var,*args);
-    args = args->next();
-  }
-}
-
-/**
- * For a binary comutative query literal, create the initial binding
- * where the order of special variables is reversed.
- */
-template<class LeafData_>
-void SubstitutionTree<LeafData_>::FastInstancesIterator::createReversedInitialBindings(Term* t)
-{
-  CALL("SubstitutionTree::FastInstancesIterator::createReversedInitialBindings");
-  ASS(t->isLiteral());
-  ASS(t->commutative());
-  ASS_EQ(t->arity(),2);
-
-  _subst->bindSpecialVar(1,*t->nthArgument(0));
-  _subst->bindSpecialVar(0,*t->nthArgument(1));
-}
-
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
 {
@@ -665,27 +391,29 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
 #define LOGGING 0
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::QueryResult SubstitutionTree<LeafData_>::FastInstancesIterator::next()
+typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
-  LeafData& ld=_ldIterator.next();
+  auto ld = _ldIterator.next();
 
   if(_retrieveSubstitution) {
     _resultDenormalizer.reset();
-    bool ground = SubstitutionTree::isGround(ld.key());
+    bool ground = SubstitutionTree::isGround(ld->key());
     if(!ground) {
       Renaming normalizer;
-      normalizer.normalizeVariables(ld.key());
+      normalizer.normalizeVariables(ld->key());
+      if (ld->sort().isNonEmpty()) {
+        normalizer.normalizeVariables(ld->sort());
+      }
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return QueryResult(make_pair(&ld,
-	    _subst->getSubstitution(&_resultDenormalizer)),UnificationConstraintStackSP());
+    return queryResult(ld, _subst->getSubstitution(&_resultDenormalizer));
   } else {
-    return QueryResult(make_pair(&ld, ResultSubstitutionSP()),UnificationConstraintStackSP());
+    return queryResult(ld, ResultSubstitutionSP());
   }
 }
 #undef LOGGING
@@ -703,7 +431,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::findNextLeaf()
   Node* curr;
   bool sibilingsRemain = false;
   if(_inLeaf) {
-    if(_alternatives.isEmpty()) {
+    if(_alternatives->isEmpty()) {
       return false;
     }
     _subst->backtrack();
@@ -725,26 +453,26 @@ main_loop_start:
 
     if(curr) {
       if(sibilingsRemain) {
-	ASS(_nodeTypes.top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives.top()));
-	currSpecVar=_specVarNumbers.top();
+        ASS(_nodeTypes->top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives->top()));
+        currSpecVar = _specVarNumbers->top();
       } else {
-	currSpecVar=_specVarNumbers.pop();
+	      currSpecVar = _specVarNumbers->pop();
       }
     }
     //let's find a node we haven't been to...
-    while(curr==0 && _alternatives.isNonEmpty()) {
-      void* currAlt=_alternatives.pop();
+    while(curr==0 && _alternatives->isNonEmpty()) {
+      void* currAlt=_alternatives->pop();
       if(!currAlt) {
-	//there's no alternative at this level, we have to backtrack
-	_nodeTypes.pop();
-	_specVarNumbers.pop();
-	if(_alternatives.isNonEmpty()) {
+        //there's no alternative at this level, we have to backtrack
+        _nodeTypes->pop();
+        _specVarNumbers->pop();
+        if(_alternatives->isNonEmpty()) {
 	  _subst->backtrack();
 	}
 	continue;
       }
 
-      NodeAlgorithm parentType=_nodeTypes.top();
+      NodeAlgorithm parentType = _nodeTypes->top();
 
       //the fact that we have alternatives means that here we are
       //matching by a variable (as there is always at most one child
@@ -753,7 +481,7 @@ main_loop_start:
 	Node** alts=static_cast<Node**>(currAlt);
 	curr=*(alts++);
 	if(*alts) {
-	  _alternatives.push(alts);
+	  _alternatives->push(alts);
 	  sibilingsRemain=true;
 	} else {
 	  sibilingsRemain=false;
@@ -765,7 +493,7 @@ main_loop_start:
 
 	curr=alts->head();
 	if(alts->tail()) {
-	  _alternatives.push(alts->tail());
+	  _alternatives->push(alts->tail());
 	  sibilingsRemain=true;
 	} else {
 	  sibilingsRemain=false;
@@ -773,10 +501,10 @@ main_loop_start:
       }
 
       if(sibilingsRemain) {
-	currSpecVar=_specVarNumbers.top();
+        currSpecVar = _specVarNumbers->top();
       } else {
-	_nodeTypes.pop();
-	currSpecVar=_specVarNumbers.pop();
+        _nodeTypes->pop();
+        currSpecVar = _specVarNumbers->pop();
       }
       ASS(curr);
       break;
@@ -788,7 +516,7 @@ main_loop_start:
     if(!_subst->matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
-      if(!sibilingsRemain && _alternatives.isNonEmpty()) {
+      if(!sibilingsRemain && _alternatives->isNonEmpty()) {
 	_subst->backtrack();
       }
       continue;
@@ -802,7 +530,7 @@ main_loop_start:
       if(!_subst->matchNext(specVar, curr->term, false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst->backtrack();
-	if(sibilingsRemain || _alternatives.isNonEmpty()) {
+	if(sibilingsRemain || _alternatives->isNonEmpty()) {
 	  //this backtrack can happen for two different reasons and have two different meanings:
 	  //either matching at [1] was separated from the previous one and we're backtracking it,
 	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
@@ -822,7 +550,7 @@ main_loop_start:
 
     //let's go to the first child
     sibilingsRemain=enterNode(curr);
-    if(curr==0 && _alternatives.isNonEmpty()) {
+    if(curr==0 && _alternatives->isNonEmpty()) {
       _subst->backtrack();
     }
   }
@@ -889,11 +617,11 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
     }
 
     if(curr) {
-      _specVarNumbers.push(inode->childVar);
+      _specVarNumbers->push(inode->childVar);
     }
     if(*nl && !noAlternatives) {
-      _alternatives.push(nl);
-      _nodeTypes.push(currType);
+      _alternatives->push(nl);
+      _nodeTypes->push(currType);
       return true;
     }
   } else {
@@ -902,7 +630,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
     ASS(nl); //inode is not empty
     if(query.isTerm()) {
       //only term with the same top functor will be matched by a term
-      Node** byTop=inode->childByTop(query, false);
+      Node** byTop=inode->childByTop(query.top(), false);
       if(byTop) {
 	curr=*byTop;
       }
@@ -916,11 +644,11 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
     }
 
     if(curr) {
-      _specVarNumbers.push(inode->childVar);
+      _specVarNumbers->push(inode->childVar);
     }
     if(nl) {
-      _alternatives.push(nl);
-      _nodeTypes.push(currType);
+      _alternatives->push(nl);
+      _nodeTypes->push(currType);
       return true;
     }
   }

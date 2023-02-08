@@ -48,10 +48,6 @@
 
 namespace Inferences
 {
-#if VTIME_PROFILING
-static const char* HYPER_SUP = "hyper superposition";
-#endif // VTIME_PROFILING
-
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -65,7 +61,7 @@ void HyperSuperposition::attach(SaturationAlgorithm* salg)
 //  GeneratingInferenceEngine::attach(salg);
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<UnitClauseLiteralIndex*> (
-	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
+	  _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE) );
 }
 
 void HyperSuperposition::detach()
@@ -74,7 +70,7 @@ void HyperSuperposition::detach()
   ASS(_salg);
 
   _index=0;
-  _salg->getIndexManager()->release(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
 //  GeneratingInferenceEngine::detach();
   ForwardSimplificationEngine::detach();
 }
@@ -365,10 +361,11 @@ void HyperSuperposition::resolveFixedLiteral(Clause* cl, unsigned litIndex, Clau
   CALL("HyperSuperposition::resolveFixedLiteral");
 
   Literal* lit = (*cl)[litIndex];
-  SLQueryResultIterator unifs = _index->getUnifications(lit, true, true);
+  SLQueryResultIterator unifs = _index->getUnifications(lit, /* complementary = */ true, /* retrieveSubstitutions */ true);
   while(unifs.hasNext()) {
     SLQueryResult qr = unifs.next();
-    Clause* genCl = BinaryResolution::generateClause(cl, lit, qr, getOptions());
+    Stack<Literal*> constraints;
+    Clause* genCl = BinaryResolution::generateClause(cl, lit, qr.clause, qr.literal, qr.unifier, constraints, getOptions());
     acc.push(ClausePair(cl, genCl));
   }
 }
@@ -406,7 +403,7 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
 {
   CALL("HyperSuperposition::generateClauses");
 
-  TIME_TRACE(HYPER_SUP);
+  TIME_TRACE(TimeTrace::HYPER_SUP);
 
   static ClausePairStack res;
   res.reset();
@@ -559,7 +556,7 @@ bool HyperSuperposition::perform(Clause* cl, Clause*& replacement, ClauseIterato
     return false;
   }
 
-  TIME_TRACE(HYPER_SUP);
+  TIME_TRACE(TimeTrace::HYPER_SUP);
 
   Literal* lit = (*cl)[0];
 

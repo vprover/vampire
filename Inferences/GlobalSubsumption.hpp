@@ -21,6 +21,8 @@
 
 #include "InferenceEngine.hpp"
 
+namespace Saturation { class Splitter; }
+
 namespace Inferences
 {
 

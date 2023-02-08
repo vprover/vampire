@@ -57,21 +57,22 @@ void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
   ASS(!_index);
 
   BackwardSimplificationEngine::attach(salg);
-  _index=static_cast<SimplifyingLiteralIndex*>(
-	  _salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE) );
+  _index=static_cast<BackwardSubsumptionIndex*>(
+	  _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE) );
 }
 
 void SLQueryBackwardSubsumption::detach()
 {
   CALL("SLQueryBackwardSubsumption::detach");
   _index=0;
-  _salg->getIndexManager()->release(SIMPLIFYING_SUBST_TREE);
+  _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
   BackwardSimplificationEngine::detach();
 }
 
 struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
-  Clause* operator()(const SLQueryResult& res)
+  template<class C>
+  Clause* operator()(C const& res)
   {
     return res.clause;
   }
@@ -101,7 +102,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   unsigned clen=cl->length();
 
   if(clen==0) {
-    SLQueryResultIterator rit=_index->getAll();
+    auto rit = _index->getAll();
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),

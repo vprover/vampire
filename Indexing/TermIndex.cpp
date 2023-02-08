@@ -12,6 +12,7 @@
  * Implements class TermIndex.
  */
 
+#include "Forwards.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 
@@ -27,6 +28,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Shell/LambdaElimination.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 #include "TermIndex.hpp"
 
@@ -45,19 +47,11 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti;
-    if(!env.options->combinatorySup()){
-      rsti = EqHelper::getSubtermIterator(lit,_ord);
-    } else {
-      rsti = EqHelper::getFoSubtermIterator(lit,_ord);
-    }
+    auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord)
+                                              : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
-      auto t = rsti.next();
-      if (adding) {
-        _is->insert(DefaultTermLeafData(t, lit, c));
-      } else {
-        _is->remove(DefaultTermLeafData(t, lit, c));
-      }
+      auto tt = TypedTermList(rsti.next());
+      ((TermSubstitutionTree<DefaultTermLeafData>*)&*_is)->handle(DefaultTermLeafData(tt, lit, c), adding);
     }
   }
 }
@@ -73,12 +67,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
-      if (adding) {
-	      _is->insert(DefaultTermLeafData(lhs, lit, c));
-      } else {
-	      _is->remove(DefaultTermLeafData(lhs, lit, c));
-      }
+	    _tree->handle(DefaultTermLeafData(TypedTermList(lhsi.next(), SortHelper::getEqualityArgumentSort(lit)), lit, c), adding);
     }
   }
 }
@@ -104,7 +93,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);
     while (it.hasNext()) {
-      TermList t=it.next();
+      TermList t=TermList(it.next());
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
         //It is enough to insert a term only once per clause.
         //Also, once we know term was inserted, we know that all its
@@ -166,7 +155,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
           // TODO: each term (and its subterms) should be processed
           // only once per literal, see DemodulationSubtermIndex
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-              InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
+              InductionHelper::isIntInductionTermListInLiteral(tl.term(), lit)) {
             if (adding) {
               _is->insert(DefaultTermLeafData(tl, lit, c));
             } else {

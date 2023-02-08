@@ -39,7 +39,6 @@ public:
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;
-
 };
 
 

@@ -18,48 +18,159 @@
 
 #include "Forwards.hpp"
 #include "Term.hpp"
-#include "Shell/Options.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Option.hpp"
+#include "RobSubstitution.hpp"
+#include "Indexing/ResultSubstitution.hpp"
+#include "Kernel/Signature.hpp"
+#include "Lib/Reflection.hpp"
 
 namespace Kernel
 {
 
+
+class UnificationConstraintStack
+{
+  Stack<UnificationConstraint> _cont;
+public:
+  CLASS_NAME(UnificationConstraintStack)
+  USE_ALLOCATOR(UnificationConstraintStack)
+  UnificationConstraintStack() : _cont() {}
+  UnificationConstraintStack(UnificationConstraintStack&&) = default;
+  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
+
+  auto iter() const
+  { return iterTraits(_cont.iter()); }
+
+  Recycled<Stack<Literal*>> literals(RobSubstitution& s);
+
+  auto literalIter(RobSubstitution& s)
+  { return iterTraits(_cont.iter())
+              .filterMap([&](auto& c) { return c.toLiteral(s); }); }
+
+  friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
+  { return out << self._cont; }
+
+  void reset()
+  { _cont.reset(); }
+
+  bool isEmpty() const
+  { return _cont.isEmpty(); }
+
+  void add(UnificationConstraint c, Option<BacktrackData&> bd);
+};
+
+using Action = std::function<bool(unsigned, TermSpec)>;
+using SpecialVar = unsigned;
+using WaitingMap = DHMap<SpecialVar, Action>;
+
 class MismatchHandler
 {
 public:
-  // returns true if the mismatch was handled.
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2) = 0;
+  virtual ~MismatchHandler() {}
+
+  struct EqualIf { 
+    Recycled<Stack<UnificationConstraint>> unify; 
+    Recycled<Stack<UnificationConstraint>> constraints; 
+
+    EqualIf( std::initializer_list<UnificationConstraint> unify,
+             std::initializer_list<UnificationConstraint> constraints
+        ) : unify(unify)
+          , constraints(constraints) {  }
+  };
+  struct NeverEqual { };
+
+  using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
+
+
+  /** TODO document */
+  virtual Option<AbstractionResult> tryAbstract(
+      AbstractingUnifier const* au,
+      TermSpec t1,
+      TermSpec t2) const = 0;
+
+  // /** TODO document */
+  // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
+
+  static unique_ptr<MismatchHandler> create();
+  static unique_ptr<MismatchHandler> createOnlyHigherOrder();
 };
 
-class UWAMismatchHandler : public MismatchHandler
+class AbstractingUnifier {
+  Recycled<RobSubstitution> _subs;
+  Recycled<UnificationConstraintStack> _constr;
+  Option<BacktrackData&> _bd;
+  MismatchHandler* _uwa;
+  friend class RobSubstitution;
+public:
+  // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
+  AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
+  { }
+
+  bool isRecording() { return _subs->bdIsRecording(); }
+
+  void add(UnificationConstraint c) 
+  { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
+                                                      : Option<BacktrackData&>()              ); }
+
+  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+  // { 
+  //   return _subs->unify(t1, bank1, t2, bank2, _uwa, this); 
+  // }
+
+
+  UnificationConstraintStack& constr() { return *_constr; }
+  Recycled<Stack<Literal*>> constraintLiterals() { return _constr->literals(*_subs); }
+
+  RobSubstitution      & subs()       { return *_subs; }
+  RobSubstitution const& subs() const { return *_subs; }
+  void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+  void bdDone() { _subs->bdDone(); }
+  bool usesUwa() const { return _uwa != nullptr; }
+
+  friend std::ostream& operator<<(std::ostream& out, AbstractingUnifier const& self)
+  { return out << "(" << self._subs << ", " << self._constr << ")"; }
+};
+
+class UWAMismatchHandler final : public MismatchHandler
 {
 public:
-  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode, Stack<UnificationConstraint>& c) : _mode(mode), _constraints(c) /*, specialVar(0)*/ {}
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
-
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
+  bool isInterpreted(unsigned f) const;
 
-  bool checkUWA(TermList t1, TermList t2); 
-private:
-  virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2);
+  // virtual bool tryAbstract(
+  //     TermSpec t1,
+  //     TermSpec t2,
+  //     AbstractingUnifier& constr) const final override;
 
-  const Shell::Options::UnificationWithAbstraction _mode;
-  Stack<UnificationConstraint>& _constraints;
+  virtual Option<AbstractionResult> tryAbstract(
+      AbstractingUnifier const* au,
+      TermSpec t1,
+      TermSpec t2) const final override;
+
+  bool canAbstract(
+      Shell::Options::UnificationWithAbstraction opt,
+      TermSpec t1,
+      TermSpec t2) const;
+
+  // virtual bool recheck(TermSpec l, TermSpec r) const final override;
 };
 
 class HOMismatchHandler : public MismatchHandler
 {
 public:
-  HOMismatchHandler(UnificationConstraintStack& c) : _constraints(c) {}
-  
-  virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
-
   CLASS_NAME(HOMismatchHandler);
   USE_ALLOCATOR(HOMismatchHandler);
 
-private:
+  virtual Option<AbstractionResult> tryAbstract(
+      AbstractingUnifier const* au,
+      TermSpec t1,
+      TermSpec t2) const final override;
 
-  Stack<UnificationConstraint>& _constraints;
+
+  // virtual bool recheck(TermSpec l, TermSpec r) const final override
+  // { return true;  }
 };
 
 

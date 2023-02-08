@@ -76,8 +76,6 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 
 struct BackwardDemodulation::RewritableClausesFn
 {
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
-
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
   VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
@@ -91,7 +89,6 @@ private:
 struct BackwardDemodulation::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
-  using TermQueryResult = Indexing::TermQueryResult<DefaultTermLeafData>;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent)
   : _cl(cl), _parent(parent), _ordering(parent._salg->getOrdering())
@@ -100,6 +97,7 @@ struct BackwardDemodulation::ResultFn
     _eqLit=(*_cl)[0];
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
+    _encompassing = parent.getOptions().demodulationEncompassment();
   }
   /**
    * Return pair of clauses. First clause is being replaced,
@@ -133,30 +131,23 @@ struct BackwardDemodulation::ResultFn
       }"
       from the monomorphic setting */
     if(lhs.isVar()){
-      //when finding instances of a variable, RobSubstitution is used
-      //view Indexing::TermSubstitutionTree::getInstances
-      RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
-      ASS(sub)
-      //rather than 0 and 1, we should use the constants delared in
-      //substitution tree
-      if(!sub->match(_eqSort, 0, qrSort, 1)){
+      if(!qr.unifier->matchSorts(_eqSort, qrSort)) {
         return BwSimplificationRecord(0);        
       }
     }
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-
     TermList lhsS=qr.term;
     TermList rhsS;
 
-    if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
+    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
       //When we apply substitution to the rhs, we get a term, that is
       //a variant of the term we'd like to get, as new variables are
       //produced in the substitution application.
       //We'd rather rename variables in the rhs, than in the whole clause
       //that we're simplifying.
-      TermList lhsSBadVars=qr.substitution->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.substitution->applyToQuery(rhs);
+      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
+      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
       Renaming rNorm, qNorm, qDenorm;
       rNorm.normalizeVariables(lhsSBadVars);
       qNorm.normalizeVariables(lhsS);
@@ -164,7 +155,7 @@ struct BackwardDemodulation::ResultFn
       ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
       rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
     } else {
-      rhsS=qr.substitution->applyToBoundQuery(rhs);
+      rhsS=qr.unifier->applyToBoundQuery(rhs);
     }
 
     if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
@@ -172,32 +163,41 @@ struct BackwardDemodulation::ResultFn
     }
 
     if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
-      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) ) {
+      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) && 
+      // encompassment has issues only with positive units
+      (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1))) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-        Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-        bool isMax=true;
-        Clause::Iterator cit(*qr.clause);
-        while(cit.hasNext()) {
-          Literal* lit2=cit.next();
-          if(qr.literal==lit2) {
-            continue;
+        if (_encompassing) {
+          if (qr.unifier->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
+            // under _encompassing, we know there are no other literals in qr.clause
+            return BwSimplificationRecord(0);
           }
-          if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-            isMax=false;
-            break;
+        } else {
+          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+          Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
+          bool isMax=true;
+          Clause::Iterator cit(*qr.clause);
+          while(cit.hasNext()) {
+            Literal* lit2=cit.next();
+            if(qr.literal==lit2) {
+              continue;
+            }
+            if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
+              isMax=false;
+              break;
+            }
           }
-        }
-        if(isMax) {
-          //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-          //The demodulation is this case which doesn't preserve completeness:
-          //s = t     s = t1 \/ C
-          //---------------------
-          //     t = t1 \/ C
-          //where t > t1 and s = t > C
-          return BwSimplificationRecord(0);
+          if(isMax) {
+            //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
+            //The demodulation is this case which doesn't preserve completeness:
+            //s = t     s = t1 \/ C
+            //---------------------
+            //     t = t1 \/ C
+            //where t > t1 and s = t > C
+            return BwSimplificationRecord(0);
+          }
         }
       }
     }
@@ -232,6 +232,8 @@ private:
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
+
+  bool _encompassing;
 
   BackwardDemodulation& _parent;
   Ordering& _ordering;

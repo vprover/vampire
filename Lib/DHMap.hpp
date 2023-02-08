@@ -64,24 +64,37 @@ public:
   DHMap()
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
   _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
-  {
-    ensureExpanded();
-  }
+  { }
 
   DHMap(const DHMap& obj)
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
   _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
   {
-    ensureExpanded();
-
-    typename DHMap::Iterator iit(obj);
+    typename DHMap::IteratorBase iit(obj);
     while(iit.hasNext()) {
-      Key k;
-      Val v;
-      iit.next(k, v);
-      ALWAYS(insert(k,v));
+      auto e = iit.next();
+      ALWAYS(insert(e->_key,e->_val));
     }
   }
+
+  friend void swap(DHMap& l, DHMap& r) 
+  {
+    std::swap(l._timestamp, r._timestamp);
+    std::swap(l._size, r._size);
+    std::swap(l._deleted, r._deleted);
+    std::swap(l._capacityIndex, r._capacityIndex);
+    std::swap(l._capacity, r._capacity);
+    std::swap(l._nextExpansionOccupancy, r._nextExpansionOccupancy);
+    std::swap(l._entries, r._entries);
+    std::swap(l._afterLast, r._afterLast);
+  }
+
+  DHMap& operator=(DHMap&& obj)
+  { swap(*this, obj); return *this; }
+
+
+  DHMap(DHMap&& obj) : DHMap()
+  { swap(*this, obj); }
 
   /** Deallocate the DHMap */
   ~DHMap()
@@ -369,7 +382,7 @@ public:
       e->_info.deleted=0;
       e->_key=key;
       e->_val.~Val();
-      new(&e->_val) Val();
+      ::new (&e->_val) Val();
       _size++;
     }
     pval=&e->_val;
@@ -468,9 +481,6 @@ public:
     ALWAYS(it.hasNext());
     return it.nextKey();
   }
-
-  /** move assignment operator */
-  DHMap& operator=(DHMap&& obj) = default;
 
   /** applies the function f to every value */
   template<class F> 
@@ -575,6 +585,7 @@ private:
   const Entry* findEntry(Key key) const
   {
     CALL("DHMap::findEntry");
+    if (_capacity == 0) return nullptr;
     ASS(_capacity>_size+_deleted);
 
     unsigned h1=Hash1::hash(key);
@@ -617,6 +628,7 @@ private:
   Entry* findEntryToInsert(Key key)
   {
     CALL("DHMap::findEntryToInsert");
+    ensureExpanded();
     ASS(_capacity>_size+_deleted);
 
     unsigned h1=Hash1::hash(key);
@@ -891,16 +903,18 @@ public:
   }; // class DHMap::Iterator
 
   friend std::ostream& operator<<(std::ostream& out, DHMap const& self) 
-  { 
-    out << "{";
+  {
     auto iter = self.items();
+    auto write = [&](auto itm) { out << itm.first << " -> " << itm.second; };
+    out << "{ ";
     if (iter.hasNext()) {
-      out << iter.next();
+      write(iter.next());
       while (iter.hasNext()) {
-        out << ", " << iter.next();
+        out << ", ";
+        write(iter.next());
       }
     }
-    return out << "}";
+    return out << " }";
   }
 
 

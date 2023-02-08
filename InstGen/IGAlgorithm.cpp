@@ -41,6 +41,7 @@
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "IGAlgorithm.hpp"
 #include "ModelPrinter.hpp"
@@ -60,8 +61,7 @@ static const int LOOKAHEAD_SELECTION = 1011;
 
 IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
-    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
-	opt.instGenResolutionRatioResolution(), 50),
+    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
     _tautologyDeletion(false),
     _equalityProxy(0)
@@ -111,7 +111,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
+  _selected = new LiteralSubstitutionTree(/* uwa */ nullptr);
 
   _doingSatisfiabilityCheck = false;
 }
@@ -191,6 +191,11 @@ void IGAlgorithm::init()
     ASS(cl->isClause());
     _inputClauses.push(cl);
   }
+
+  if (env.options->randomTraversals()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    Shuffling::shuffleArray(_inputClauses.naked(),_inputClauses.size());
+  }
 }
 
 bool IGAlgorithm::addClause(Clause* cl)
@@ -244,6 +249,11 @@ redundancy_check:
     }
   }
 
+  if (env.options->randomTraversals()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    Shuffling::shuffle(cl);
+  }
+
   cl->incRefCnt();
   _variantIdx->insert(cl);
 
@@ -272,6 +282,11 @@ void IGAlgorithm::processUnprocessed()
   CALL("IGAlgorithm::processUnprocessed");
 
   TIME_TRACE("inst gen SAT solving");
+
+  if (env.options->randomTraversals()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    Shuffling::shuffleArray(_unprocessed.naked().begin(),_unprocessed.size());
+  }
 
   while(_unprocessed.isNonEmpty()) {
     Clause* cl = _unprocessed.popWithoutDec();
@@ -439,9 +454,10 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
     static LiteralStack genLits2;
     bool properInstance1;
     bool properInstance2;
+    auto subs = unif.unifier;
 
-    if (startGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1,properInstance1) &&
-        startGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2,properInstance2)) {
+    if (startGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1,properInstance1) &&
+        startGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2,properInstance2)) {
 
       // dismatching test passed for both
 
@@ -449,17 +465,17 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
         //we make sure the unit is added first, so that it can be used to shorten the
         //second clause by global subsumption
         if (properInstance2) {
-          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+          finishGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2);
         }
         if (properInstance1) {
-          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+          finishGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1);
         }
       } else {
         if (properInstance1) {
-          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+          finishGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1);
         }
         if (properInstance2) {
-          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+          finishGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2);
         }
       }
     }
@@ -743,7 +759,7 @@ void IGAlgorithm::wipeIndexes()
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
+  _selected = new LiteralSubstitutionTree(/* uwa */ nullptr);
 }
 
 

@@ -55,12 +55,6 @@ template<
 T move_if_value(T && t) 
 { return std::move(t); }
 
-// typename std::enable_if<std::is_same< typename std::result_of<Clsr()>::type
-//                            , Option
-//                            >::value
-//               , bool
-//              >::type = true
-
 #define FOR_REF_QUALIFIER(macro)                                                                    \
   macro(const &, ) macro(&, ) macro(&&, std::move)
 
@@ -74,16 +68,17 @@ struct MaybeUninit {
 
    MaybeUninit() : _elem() {}
   ~MaybeUninit() {}
-#define methods(ref, mv)                                                                            \
-  operator T ref() ref                                                                              \
-  { return mv(_elem.init); }                                                                        \
+// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
+#define methods(REF, MV)                                                                            \
+  operator T REF() REF                                                                              \
+  { return MV(_elem.init); }                                                                        \
                                                                                                     \
-  void init(T ref content)                                                                          \
-  { ::new(&_elem)T(mv(content)); }                                                                  \
+  void init(T REF content)                                                                          \
+  { ::new(&_elem)T(MV(content)); }                                                                  \
                                                                                                     \
-  MaybeUninit& operator=(T ref content)                                                             \
+  MaybeUninit& operator=(T REF content)                                                             \
   {                                                                                                 \
-    _elem.init = mv(content);                                                                       \
+    _elem.init = MV(content);                                                                       \
     return *this;                                                                                   \
   }                                                                                                 \
 
@@ -110,32 +105,32 @@ public:
     }
   }
 
-#define for_ref_qualifier(ref, mv)                                                                  \
-  explicit OptionBase(A ref content)                                                                \
+#define methods(REF, MV)                                                                  \
+  explicit OptionBase(A REF content)                                                                \
     : _isSome(true)                                                                                 \
       , _elem()                                                                                     \
   {                                                                                                 \
-    CALL("Option(A " #ref ")")                                                                      \
+    CALL("Option(A " #REF ")")                                                                      \
     _elem.init(move_if_value<A>(content));                                                          \
   }                                                                                                 \
                                                                                                     \
-  A ref unwrap() ref                                                                                \
+  A REF unwrap() REF                                                                                \
   {                                                                                                 \
     ASS(_isSome);                                                                                   \
-    return mv(_elem);                                                                               \
+    return MV(_elem);                                                                               \
   }                                                                                                 \
                                                                                                     \
-  OptionBase(OptionBase ref a) : _isSome(a._isSome)                                                 \
+  OptionBase(OptionBase REF a) : _isSome(a._isSome)                                                 \
   {                                                                                                 \
-    CALL("OptionBase(OptionBase " #ref ")");                                                        \
+    CALL("OptionBase(OptionBase " #REF ")");                                                        \
     if (isSome()) {                                                                                 \
-      _elem.init(mv(a).unwrap());                                                                   \
+      _elem.init(MV(a).unwrap());                                                                   \
     }                                                                                               \
   }                                                                                                 \
 
-  FOR_REF_QUALIFIER(for_ref_qualifier)
+  FOR_REF_QUALIFIER(methods)
 
-#undef for_ref_qualifier
+#undef methods
 
   OptionBase& operator=(OptionBase&& other)
   {
@@ -214,7 +209,8 @@ public:
   { return ptr == nullptr ? OptionBaseRef() : *ptr; }
 
   friend bool operator==(OptionBaseRef const& lhs, OptionBaseRef const& rhs) 
-  { return *lhs._elem == *rhs._elem; }
+  { return (lhs._elem == nullptr && rhs._elem == nullptr)
+        || (lhs._elem != nullptr && rhs._elem != nullptr && *lhs._elem == *rhs._elem); }
 
 };
 
@@ -282,6 +278,18 @@ public:
 
   /** checks whether the option is empty */
   bool isNone() const { return !this->isSome(); }
+
+  operator bool() const { return isSome(); }
+
+  A const& operator*() const { return unwrap(); }
+  A      & operator*()       { return unwrap(); }
+
+  std::remove_reference_t<A> const* operator->() const { return &unwrap(); }
+  std::remove_reference_t<A>      * operator->()       { return &unwrap(); }
+
+  std::remove_reference_t<A>      * asPtr()       { return isSome() ? &unwrap() : nullptr; }
+  std::remove_reference_t<A> const* asPtr() const { return isSome() ? &unwrap() : nullptr; }
+
 
   /** 
    * returns the value held by this option if there is one, or calls the given function f without arguments, 
@@ -433,17 +441,23 @@ public:
 
 };
 
+
+template<class F> 
+auto someIf(bool condition, F create) -> Option<decltype(create())> 
+{ return condition ? Option<decltype(create())>(create()) 
+                   : Option<decltype(create())>(); }
+
+
+
+
 template<class T> Option<T> some(T const& t) { return Option<T>(t);            }
-template<class T> Option<T> some(T     && t) { return Option<T>(std::move(t)); }
 template<class T> Option<T> some(T      & t) { return Option<T>(t);            }
+template<class T> Option<T> some(T     && t) { return Option<T>(std::move(t)); }
 
-template<class T>
-Option<T> none() 
-{ return Option<T>(); }
+template<class T> Option<T> none() { return Option<T>(); }
 
-template<class T>
-Option<T> optionalFromPtr(T* t) 
-{ return Option<T>::fromPtr(t); }
+template<class T> Option<T> optionalFromPtr(T* t) { return Option<T>::fromPtr(t); }
+template<class T> Option<T> optionFromPtr(T* t) { return Option<T>::fromPtr(t); }
 
 template<class T>
 T operator||(Option<T> t, T c)

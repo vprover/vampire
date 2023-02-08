@@ -26,6 +26,7 @@
 #include "LiteralSubstitutionTree.hpp"
 
 #include "ClauseVariantIndex.hpp"
+#include "Indexing/IndexManager.hpp"
 
 namespace Indexing
 {
@@ -187,7 +188,7 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
   }
 
   if(!_strees[clen]) {
-    _strees[clen]=new LiteralSubstitutionTree(env.options->unificationWithAbstraction());
+    _strees[clen]=new LiteralSubstitutionTree(/* misatchHandler */ nullptr);
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
   _strees[clen]->insert(mainLit, cl);
@@ -446,9 +447,8 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, 
 
   if (t->ground()) {
     // no variables to count
-
     // just hash the pointer
-    return Hash::hash((const unsigned char*)&t,sizeof(t),hash_begin);
+    return DefaultHash::hash(t, hash_begin);
   }
 
   unsigned hash = termFunctorHash(t,hash_begin);
@@ -474,9 +474,8 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
 
   if (l->ground()) {
     // no variables to count
-
     // just hash the pointer
-    return Hash::hash((const unsigned char*)&l,sizeof(l),hash_begin);
+    return DefaultHash::hash(l, hash_begin);
   }
 
   //cout << "will hash header " << header << endl;
@@ -484,7 +483,7 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
   unsigned header = l->header();
 
   // hashes the predicate symbol and the polarity
-  unsigned hash = Hash::hash((const unsigned char*)&header,sizeof(header),hash_begin);
+  unsigned hash = DefaultHash::hash(header, hash_begin);
 
   if(l->isEquality()) {
     TermList* ll = l->nthArgument(0);
@@ -536,7 +535,7 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
     }
 
     std::sort(varCntHistogram.begin(),varCntHistogram.end());
-    hash = Hash::hash((const unsigned char*)varCntHistogram.begin(),varCntHistogram.size(),hash);
+    hash = DefaultHash::hash(varCntHistogram, hash);
   }
 
   return hash;
