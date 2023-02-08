@@ -714,7 +714,10 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 
   return evalBottomUp<size_t>(make_pair(TermSpec(trm, index).deref(this), this), 
       [](auto& orig, size_t* sizes) 
-      { return 1 + range(0, orig.first.nAllArgs()).map([&](auto i) { return sizes[i]; }).sum(); });
+      { return orig.first.isVar() ? 1 
+                                  : (1 + range(0, orig.first.nAllArgs())
+                                           .map([&](auto i) { return sizes[i]; })
+                                           .sum()); });
 
   //
   // static Stack<TermList*> toDo(8);
