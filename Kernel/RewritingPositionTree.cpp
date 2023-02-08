@@ -28,52 +28,6 @@ namespace Kernel
 
 using namespace Lib;
 
-RewritingPositionTree* RewritingPositionTree::create(const Path& path)
-{
-  CALL("static RewritingPositionTree::create");
-  if (path.isEmpty()) {
-    return nullptr;
-  }
-  auto res = new RewritingPositionTree(new Node(path[0].first, path[0].second));
-  Node* curr = res->_root;
-
-  for (unsigned i = 1; i < path.size(); i++) {
-    auto next = new Node(path[i].first, path[i].second);
-    curr->indices.insert(curr->main, next);
-    curr = next;
-  }
-  return res;
-}
-
-RewritingPositionTree::Path RewritingPositionTree::extractPath(RewritingPositionTree* tree)
-{
-  CALL("static RewritingPositionTree::extractPath");
-  Path path;
-  if (!tree) {
-    return path;
-  }
-  Node* curr = tree->_root;
-  while (curr) {
-    path.push(make_pair(curr->main, curr->reversed));
-    if (curr->main < 0) {
-      break;
-    }
-    auto next = curr->indices.findPtr(curr->main);
-    if (!next) {
-      break;
-    }
-    curr = *next;
-  }
-  return path;
-}
-
-RewritingPositionTree* RewritingPositionTree::create(RewritingPositionTree* other)
-{
-  CALL("static RewritingPositionTree::create(RewritingPositionTree*)");
-  TIME_TRACE("rewriting position tree maintenance");
-  return create(extractPath(other));
-}
-
 RewritingPositionTree* RewritingPositionTree::createFromRewrite(RewritingPositionTree*& old, TermList term, TermList rwTerm, RewritingPositionTree* rhs)
 {
   CALL("static RewritingPositionTree::createNewFromRewrite");
@@ -82,61 +36,128 @@ RewritingPositionTree* RewritingPositionTree::createFromRewrite(RewritingPositio
   ASS(rwTerm.isTerm());
   ASS(term.containsSubterm(rwTerm));
 
-  auto rhsPath = extractPath(rhs);
+  Path rhsPath;
+  // auto rhsPath = extractPath(rhs);
   if (term == rwTerm) {
-    return create(rhsPath);
+    return nullptr;
+    // return create(rhsPath);
   }
 
   if (!old) {
-    auto ext = new Node();
-    Path path;
-    assignNewPath(path, ext, term.term(), rwTerm.term());
-    old = new RewritingPositionTree(ext);
-    path.loadFromIterator(Path::BottomFirstIterator(rhsPath));
-    return create(path);
+    auto oldRoot = new Node(nullptr); // owns
+    auto newRoot = new Node(&oldRoot->getOwn()); // owns
+    buildTree(oldRoot, newRoot, term.term(), rwTerm.term());
+    old = new RewritingPositionTree(oldRoot);
+    old->_active = true;
+    return new RewritingPositionTree(newRoot);
   }
+  ASS(old->_active);
   ASS(old->_root);
-  return old->createFromRewrite(term.term(), rwTerm.term(), rhsPath);
+  auto res = old->createFromRewrite(term.term(), rwTerm.term(), rhsPath);
+  return res;
 }
 
 RewritingPositionTree* RewritingPositionTree::createFromRewrite(Term* term, Term* rwTerm, const Path& rhsPath)
 {
   CALL("RewritingPositionTree::createNewFromRewrite");
-  // cout << "createNewFromRewrite " << *term << " " << *rwTerm << endl;
+  if (!_root->hasMain() && !_root->getOwn().active) {
+    auto newRoot = new Node(&_root->getOwn());
+    buildTree(_root, newRoot, term, rwTerm);
+    return new RewritingPositionTree(newRoot);
+  }
   Term* curr = term;
-  Node* currN = _root;
-  Path path;
+  Node* currO = _root;
+  State* currS = currO->hasMain() ? currO->getRef() : &currO->getOwn();
+  Node* currN = new Node(currS);
+  auto res = new RewritingPositionTree(currN);
 
   while (curr) {
+    ASS(currS->active);
+    auto reversed = currS->reversed;
+
     // TODO it suffices to start from main
     for (unsigned i = 0; i < curr->numTermArguments(); i++) {
-      auto j = currN->reversed ? curr->numTermArguments()-i-1 : i;
-      TermList t = curr->termArg(j);
-      if (t.isVar() || !t.containsSubterm(TermList(rwTerm))) {
+      auto j = reversed ? curr->numTermArguments()-i-1 : i;
+      TermList arg = curr->termArg(j);
+      // if current argument does not contain rwTerm, continue
+      if (arg.isVar() || !arg.containsSubterm(TermList(rwTerm))) {
         continue;
       }
-      path.push(make_pair(j, currN->reversed));
-      if (t.term() == rwTerm) {
-        path.loadFromIterator(Path::BottomFirstIterator(rhsPath));
-        return create(path);
+      // check indices are valid
+      ASS(!currO->hasMain() || (reversed ? currO->main() >= j : currO->main() <= j));
+      // add index as main
+      ALWAYS(currN->mains.insert(j).second);
+      // if arg is actually rwTerm, return
+      if (arg.term() == rwTerm) {
+        return res;
       }
-      // cout << positionToString(cp) << endl;
-      auto node = currN->indices.findPtr(j);
+      // otherwise try to find the node for this arg 
+      auto node = currO->indices.findPtr(j);
       if (node) {
-        // find in node
-        curr = t.term();
-        currN = *node;
-        break;
+        // node exists
+        curr = arg.term();
+        currO = *node;
+        currS = currO->hasMain() ? currO->getRef() : &currO->getOwn();
+        auto ext = new Node(currS);
+        ALWAYS(currN->indices.insert(j, ext));
+        currN = ext;
+        // if the node is active, we recurse, otherwise we have to extend
+        if (currS->active) {
+          break;
+        }
+      } else {
+        // this hack is needed because buildTree adds the index again
+        ASS(currN->hasMain());
+        currN->mains.clear();
       }
-      // extend tree
-      auto ext = new Node();
-      currN->indices.insert(j, ext);
-      assignNewPath(path, ext, t.term(), rwTerm);
-      path.loadFromIterator(Path::BottomFirstIterator(rhsPath));
-      return create(path);
+      // extend tree from last available node
+      buildTree(currO, currN, curr, rwTerm);
+      return res;
     }
   }
   ASSERTION_VIOLATION;
+}
+
+RewritingPositionTree* RewritingPositionTree::create(RewritingPositionTree* other)
+{
+  CALL("RewritingPositionTree::create");
+  TIME_TRACE("rewriting position tree maintenance");
+
+  if (!other) {
+    return nullptr;
+  }
+  return other->create();
+}
+
+RewritingPositionTree* RewritingPositionTree::create()
+{
+  CALL("RewritingPositionTree::create");
+  ASS(_root);
+  if (_root->mains.empty()) {
+    return nullptr;
+  }
+  auto res = new RewritingPositionTree(new Node(_root->getRef()));
+  Stack<pair<Node*,Node*>> todo;
+  todo.push(make_pair(_root, res->_root));
+
+  while (todo.isNonEmpty()) {
+    auto tp = todo.pop();
+    auto cO = tp.first;
+    auto cN = tp.second;
+    ASS(!cO->mains.empty());
+    for (const auto& i : cO->mains) {
+      ALWAYS(cN->mains.insert(i).second);
+      auto nextP = cO->indices.findPtr(i);
+      if (!nextP || (*nextP)->mains.empty()) {
+        continue;
+      }
+      auto nextN = new Node((*nextP)->getRef());
+      ALWAYS(cN->indices.insert(i, nextN));
+
+      todo.push(make_pair((*nextP), nextN));
+    }
+  }
+  return res;
 }
 
 RewritingPositionTree* RewritingPositionTree::createTruncated(RewritingPositionTree* old, TermList term, TermList rwTerm)
@@ -156,75 +177,82 @@ RewritingPositionTree* RewritingPositionTree::createTruncated(Term* term, Term* 
   CALL("RewritingPositionTree::createTruncated");
   ASS(_root);
   // cout << "adjust " << *term << " " << *rwTerm << " " << toString() << endl;
-  if (term == rwTerm) {
+  if (term == rwTerm || _root->mains.empty()) {
     // I'm not sure about this, return instead null
     // return rhsPosition;
     return nullptr;
   }
-  auto curr = term;
-  auto currN = _root;
-  Path path;
+  auto res = new RewritingPositionTree(new Node(_root->getRef()));
+  Stack<tuple<Term*,Node*,Node*>> todo;
+  todo.push(make_tuple(term, _root, res->_root));
 
-  while (currN) {
-    path.push(make_pair(currN->main, currN->reversed));
-    auto index = currN->main;
-    // cout << "iter adjust " << *curr << " " << index << endl;
-    // check if some argument is rewritten
-    if (index < 0) {
-      break;
+  while (todo.isNonEmpty()) {
+    auto tp = todo.pop();
+    auto cT = get<0>(tp);
+    auto cO = get<1>(tp);
+    auto cN = get<2>(tp);
+    ASS(!cO->mains.empty());
+    for (const auto& i : cO->mains) {
+      auto arg = cT->termArg(i);
+      ALWAYS(cN->mains.insert(i).second);
+      if (arg.isVar() || arg.term() == rwTerm) {
+        continue;
+      }
+      auto nextP = cO->indices.findPtr(i);
+      if (!nextP || (*nextP)->mains.empty()) {
+        continue;
+      }
+      auto nextN = new Node((*nextP)->getRef());
+      ALWAYS(cN->indices.insert(i, nextN));
+
+      todo.push(make_tuple(arg.term(), (*nextP), nextN));
     }
-    ASS_L(index,curr->numTermArguments());
-    // check if there is a next node
-    auto nextN = currN->indices.findPtr(index);
-    if (!nextN) {
-      break;
-    }
-    // if there is a next node, the argument should be a term
-    auto t = curr->termArg(index);
-    ASS(t.isTerm());
-    curr = t.term();
-    // cout << "CURR " << curr << endl;
-    if (curr == rwTerm) {
-      break;
-    }
-    // if currently rewritten and next term are not the same,
-    // we can extend the new tree further
-    currN = *nextN;
   }
-  return create(path);
+  return res;
 }
 
-void RewritingPositionTree::assignNewPath(Path& path, Node* n, Term* term, Term* rwTerm)
+void RewritingPositionTree::buildTree(Node*& oldRoot, Node*& newRoot, Term* term, Term* rwTerm)
 {
-  CALL("RewritingPositionTree::assignNewPath");
-  ASS(n);
+  CALL("RewritingPositionTree::buildTree");
   ASS_NEQ(term, rwTerm);
-  auto curr = term;
-  auto currN = n;
+  Stack<tuple<Term*,Node*,Node*>> todo;
+  todo.push(make_tuple(term, oldRoot, newRoot));
 
-  while (curr) {
-    // cout << *curr << " " << *rwTerm << endl;
-    auto arity = curr->numTermArguments();
-    ASS(curr->containsSubterm(TermList(rwTerm)));
+  while (todo.isNonEmpty()) {
+    auto tp = todo.pop();
+    auto cT = get<0>(tp);
+    auto cO = get<1>(tp);
+    auto cN = get<2>(tp);
+
+    auto arity = cT->numTermArguments();
+    ASS(cT->containsSubterm(TermList(rwTerm)));
     for (unsigned i = 0; i < arity; i++) {
-      auto arg = curr->termArg(i);
-      // cout << i << " " << arity << " " << arg << endl;
-      if (!arg.containsSubterm(TermList(rwTerm))) {
+      auto arg = cT->termArg(i);
+      if (arg.isVar() || !arg.term()->containsSubterm(TermList(rwTerm))) {
+        continue;
+      }
+      ALWAYS(cN->mains.insert(i).second);
+      if (arg.term() == rwTerm) {
         continue;
       }
 
-      if (i == arity-1) {
-        currN->reversed = true;
+      // no such node in current tree, extend it
+      auto nextP = cO->indices.findPtr(i);
+      Node* nextO;
+      if (nextP) {
+        nextO = *nextP;
+        ASS(!nextO->getOwn().active);
+      } else {
+        nextO = new Node(nullptr); // owns
+        nextO->getOwn().active = false;
+        ALWAYS(cO->indices.insert(i, nextO));
       }
-      curr = arg.term();
-      path.push(make_pair(i,currN->reversed));
-      if (curr == rwTerm) {
-        return;
-      }
-      auto ext = new Node();
-      currN->indices.insert(i,ext);
-      currN = ext;
-      break;
+
+      // add to new tree
+      auto nextN = new Node(&nextO->getOwn());
+      ALWAYS(cN->indices.insert(i, nextN));
+
+      todo.push(make_tuple(arg.term(), nextO, nextN));
     }
   }
 }
@@ -238,9 +266,12 @@ TermIterator RewritingPositionTree::getSubtermIterator(RewritingPositionTree* ol
   }
 
   if (!old) {
-    ASS(!term.term()->isLiteral());
-    return vi(new NonVariableNonTypeIterator(term.term(), true));
+    return vi(new NonVariableNonTypeIterator(term.term(), !term.term()->isLiteral()));
   }
+  if (!old->_active) {
+    old->activate(term.term());
+  }
+  ASS(old->_active);
   return old->getSubtermIterator(term.term());
 }
 
@@ -254,13 +285,15 @@ TermIterator RewritingPositionTree::getSubtermIterator(Term* term)
   auto curr = term;
   auto currN = _root;
   DHSet<TermList> excluded;
+  ASS(_active);
 
   while (currN) {
-    auto index = currN->main;
-    if (index < 0) {
+    if (!currN->hasMain()) {
       break;
     }
-    bool reversed = currN->reversed;
+    auto index = currN->main();
+    ASS(currN->getRef()->active);
+    bool reversed = currN->getRef()->reversed;
     ASS_L(index, curr->numTermArguments());
 
     unsigned exci = reversed ? index+1 : 0;
@@ -315,6 +348,10 @@ bool RewritingPositionTree::isExcluded(RewritingPositionTree* tree, TermList ter
     return false;
   }
 
+  if (!tree->_active) {
+    tree->activate(term.term());
+  }
+  ASS(tree->_active);
   return tree->isExcluded(term.term(), rwTerm.term());
 }
 
@@ -327,17 +364,14 @@ bool RewritingPositionTree::isExcluded(Term* term, Term* rwTerm)
     : pvi(getSingletonIterator(TermList(term)));
   auto curr = term;
   auto currN = _root;
-  DHSet<TermList> excluded;
 
   while (currN) {
-    if (curr == rwTerm) {
+    if (curr == rwTerm || !currN->hasMain()) {
       break;
     }
-    auto index = currN->main;
-    if (index < 0) {
-      break;
-    }
-    bool reversed = currN->reversed;
+    auto index = currN->main();
+    ASS(currN->getRef()->active);
+    bool reversed = currN->getRef()->reversed;
     ASS_L(index, curr->numTermArguments());
 
     unsigned exci = reversed ? index+1 : 0;
@@ -364,9 +398,79 @@ bool RewritingPositionTree::isExcluded(Term* term, Term* rwTerm)
   return false;
 }
 
+void RewritingPositionTree::activate(RewritingPositionTree* tree, TermList term)
+{
+  CALL("static RewritingPositionTree::activate");
+  TIME_TRACE("rewriting position tree maintenance");
+
+  if (term.isVar() || !tree) {
+    ASS(!tree);
+    return;
+  }
+
+  ASS(!tree->_active);
+  tree->activate(term.term());
+}
+
+void RewritingPositionTree::activate(Term* term)
+{
+  CALL("RewritingPositionTree::activate");
+  if (_active) {
+    return;
+  }
+  auto curr = term;
+  auto currN = _root;
+  // cout << "activate " << *term << " " << toString() << endl;
+
+  while (currN) {
+    // update state
+    auto ref = currN->getRef();
+    if (!ref->active) {
+      // this is the main "heuristic"
+      if (currN->mains.count(curr->numTermArguments()-1)) {
+        ref->reversed = true;
+      }
+      ref->active = true;
+      // cout << "activating " << ref << " " << *term << endl;
+    }
+
+    // remove unneeded stuff
+    ASS_GE(currN->mains.size(),1);
+    for (unsigned i = 0; i < curr->numTermArguments(); i++) {
+      auto j = ref->reversed ? curr->numTermArguments()-i-1 : i;
+      if (!currN->mains.count(j)) {
+        continue;
+      }
+      decltype(currN->indices)::DelIterator it(currN->indices);
+      Node* next = nullptr;
+      while (it.hasNext()) {
+        Node* n;
+        unsigned index;
+        it.next(index,n);
+        if (index == j) {
+          next = n;
+        } else {
+          destroy(n);
+          it.del();
+        }
+      }
+      currN->mains = { j };
+      auto arg = curr->termArg(j);
+      currN = next;
+      if (arg.isVar()) {
+        ASS(!next);
+      } else {
+        curr = arg.term();
+      }
+      break;
+    }
+  }
+  _active = true;
+}
+
 bool RewritingPositionTree::isValid(TermList term) const
 {
-  CALL("RewritingPositionTree::checkValid");
+  CALL("RewritingPositionTree::isValid");
   if (term.isVar()) {
     return !_root;
   }
@@ -374,10 +478,10 @@ bool RewritingPositionTree::isValid(TermList term) const
   auto currN = _root;
 
   while (currN) {
-    auto index = currN->main;
-    if (index < 0) {
+    if (!currN->hasMain()) {
       break;
     }
+    auto index = currN->main();
     if (index >= curr->numTermArguments()) {
       return false;
     }
@@ -397,15 +501,25 @@ bool RewritingPositionTree::isValid(TermList term) const
 
 vstring RewritingPositionTree::toString() const
 {
+  CALL("RewritingPositionTree::toString");
   vstring res;
+  res += _active ? "[a]" : "[n]";
   auto currN = _root;
 
   while (currN) {
-    auto index = currN->main;
-    if (index < 0) {
+    if (!currN->hasMain()) {
+      res += "[e" + Int::toString(currN->mains.size()) + "]";
       break;
     }
-    res += currN->reversed ? "[<-]" : "[->]";
+    auto index = currN->main();
+    if (currN->getRef()->active) {
+      vstringstream str;
+      str << currN->getRef();
+      res += str.str();
+      res += currN->getRef()->reversed ? "[<-]" : "[->]";
+    } else {
+      res += "[?]";
+    }
     res += Int::toString(index+1);
     auto nextN = currN->indices.findPtr(index);
     if (!nextN) {
@@ -415,6 +529,21 @@ vstring RewritingPositionTree::toString() const
     currN = *nextN;
   }
   return res;
+}
+
+void RewritingPositionTree::destroy(Node* n)
+{
+  CALL("RewritingPositionTree::destroy");
+
+  Stack<Node*> todo { n };
+  while (todo.isNonEmpty()) {
+    auto curr = todo.pop();
+    DHMap<unsigned, Node*>::Iterator it(curr->indices);
+    while (it.hasNext()) {
+      todo.push(it.next());
+    }
+    delete curr;
+  }
 }
 
 }

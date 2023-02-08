@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/STL.hpp"
 
 #define DEBUG_PSBS 0
 
@@ -27,45 +28,65 @@ namespace Kernel {
 class RewritingPositionTree
 {
 private:
-  using Path = Stack<pair<unsigned,bool>>;
+  struct State {
+    bool active;
+    bool reversed;
+  };
+  using Path = Stack<pair<unsigned,State*>>;
 
   struct Node
   {
     CLASS_NAME(Node);
     USE_ALLOCATOR(Node);
-    Node() = default;
-    Node(unsigned m, bool r) : main(m), reversed(r) {}
+    Node(State* s) : ref(s) {}
+    // Node(unsigned m, State* s) : mains({m}), own(), ref(s) { /* state.ref = s; */ }
+    unsigned main() const { ASS_EQ(mains.size(),1); return *mains.begin(); }
+    bool hasMain() const { return mains.size()==1; }
 
-    int main = -1;
+    vset<unsigned> mains;
     DHMap<unsigned, Node*> indices;
-    bool reversed = false;
+    State& getOwn() { ASS(!ref); return own; }
+    State* getRef() { ASS(ref); return ref; }
+  private:
+    //TODO turn these into a union once errors are eliminated
+    State own;
+    State* ref = nullptr;
+    // union {
+    //   State own;
+    //   State* ref;
+    //   unsigned debug;
+    // } state;
   };
 
 public:
   CLASS_NAME(RewritingPositionTree);
   USE_ALLOCATOR(RewritingPositionTree);
 
-  RewritingPositionTree(Node* root) : _root(root) {}
+  RewritingPositionTree(Node* root) : _root(root), _active(false) {}
 
   static RewritingPositionTree* create(RewritingPositionTree* other);
   static RewritingPositionTree* createFromRewrite(RewritingPositionTree*& old, TermList term, TermList rwTerm, RewritingPositionTree* rhs);
   static RewritingPositionTree* createTruncated(RewritingPositionTree* old, TermList term, TermList rwTerm);
   static TermIterator getSubtermIterator(RewritingPositionTree* tree, TermList term);
   static bool isExcluded(RewritingPositionTree* tree, TermList term, TermList rwTerm);
+  static void activate(RewritingPositionTree* tree, TermList term);
 
   bool isValid(TermList t) const;
   vstring toString() const;
 
 private:
+  RewritingPositionTree* create();
   RewritingPositionTree* createTruncated(Term* term, Term* rwTerm);
   RewritingPositionTree* createFromRewrite(Term* term, Term* rwTerm, const Path& rhsPath);
   TermIterator getSubtermIterator(Term* term);
   bool isExcluded(Term* term, Term* rwTerm);
-  static RewritingPositionTree* create(const Path& path);
-  static void assignNewPath(Path& path, Node* n, Term* term, Term* rwTerm);
+  void activate(Term* term);
+  static void buildTree(Node*& oldRoot, Node*& newRoot, Term* term, Term* rwTerm);
   static Path extractPath(RewritingPositionTree* tree);
+  static void destroy(Node* n);
 
   Node* _root;
+  bool _active;
 };
 
 };

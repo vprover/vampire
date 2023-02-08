@@ -391,14 +391,14 @@ vstring Clause::literalsOnlyToString() const
     vstring result;
     result += _literals[0]->toString();
     // if(env.options->proofExtra()!=Options::ProofExtra::OFF){
-      result += " " + orderingToString(_literals[0]) + " ";
+      // result += " " + orderingToString(_literals[0]) + " ";
       result += " " + positionToString(_literals[0], getRwState(_literals[0])) + " ";
     // }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
       // if(env.options->proofExtra()!=Options::ProofExtra::OFF){
-        result += " " + orderingToString(_literals[i]) + " ";
+        // result += " " + orderingToString(_literals[i]) + " ";
         result += " " + positionToString(_literals[i], getRwState(_literals[i])) + " ";
       // }
     }
