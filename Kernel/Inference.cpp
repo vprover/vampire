@@ -649,6 +649,10 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::ANSWER_LITERAL:
   case InferenceRule::ANSWER_LITERAL_RESOLVER:
     return "answer literal";
+  case InferenceRule::ANSWER_LITERAL_REMOVAL:
+    return "answer literal removal";
+  case InferenceRule::AVATAR_ASSERTION_REINTRODUCTION:
+    return "avatar assertion reintroduction";
   case InferenceRule::RECTIFY:
     return "rectify";
   case InferenceRule::CLOSURE:

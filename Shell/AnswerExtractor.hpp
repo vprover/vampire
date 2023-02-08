@@ -44,7 +44,7 @@ public:
 
   void addInputUnit(Unit* unit) { UnitList::push(unit, _inputs); }
 protected:
-  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures);
+  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
 
   UnitList* _inputs = nullptr;
 };
@@ -70,6 +70,8 @@ public:
 
   void onNewClause(Clause* cl);
 
+  Clause* recordAnswerAndReduce(Clause* cl);
+
   void bindSkolemToVar(Term* skolem, unsigned var);
 
   static unsigned getITEFunctionSymbol(TermList sort) {
@@ -91,6 +93,7 @@ private:
     ConjectureSkolemReplacement() : _skolemToVar() {}
     void bindSkolemToVar(Term* t, unsigned v);
     TermList transformTermList(TermList tl, TermList sort);
+    virtual Literal* transform(Literal* lit) { return TermTransformer::transform(lit); }
    protected:
     virtual TermList transformSubterm(TermList trm);
     virtual TermList transform(TermList ts);
@@ -104,11 +107,17 @@ private:
   Clause* getResolverClause(unsigned pred);
   Clause* getRefutation(Clause* answer);
 
+  Formula* getConditionFromClause(Clause* cl);
+
   RCClauseStack _answers;
 
   DHMap<unsigned, Clause*> _resolverClauses;
 
   ConjectureSkolemReplacement _skolemReplacement;
+
+  List<pair<Clause*, Literal*>>* _answerPairs = nullptr;
+
+  Literal* _lastAnsLit = nullptr;
 };
 
 }

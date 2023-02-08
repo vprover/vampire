@@ -365,6 +365,8 @@ public:
 
   Clause* abstractUncomputables();
 
+  bool computable();
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -385,6 +387,10 @@ protected:
   unsigned _numSelected : 20;
   /** whether _answerLiteral contains a correct (possibly null) pointer */
   unsigned _answerLiteralChecked : 1;
+  /** whether computability of all literals in the clause was checked */
+  unsigned _computableChecked : 1;
+  /** whether all literals are computable */
+  unsigned _computable : 1;
 
   /** weight */
   mutable unsigned _weight;

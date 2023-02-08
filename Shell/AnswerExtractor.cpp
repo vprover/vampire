@@ -20,6 +20,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
@@ -61,8 +62,8 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
     TermList aLit = ait.next();
-    // try evaluating aLit
-    if(aLit.isTerm()){ //TODO(hzzv) special terms ITE: && !aLit.term()->isSpecial()){
+    // try evaluating aLit (only if not special)
+    if(aLit.isTerm() && !aLit.term()->isSpecial()){
       InterpretedLiteralEvaluator eval;
       unsigned p = env.signature->addFreshPredicate(1,"p"); 
       TermList sort = SortHelper::getResultSort(aLit.term());
@@ -97,19 +98,18 @@ void AnswerExtractor::tryOutputInputUnits() {
   }
 }
 
-void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures)
+void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
 {
   CALL("AnswerExtractor::getNeededUnits");
 
   InferenceStore& is = *InferenceStore::instance();
 
-  DHSet<Unit*> seen;
   Stack<Unit*> toDo;
   toDo.push(refutation);
 
   while(toDo.isNonEmpty()) {
     Unit* curr = toDo.pop();
-    if(!seen.insert(curr)) {
+    if(!allProofUnits.insert(curr)) {
       continue;
     }
     InferenceRule infRule;
@@ -231,7 +231,8 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
-  getNeededUnits(refutation, premiseClauses, conjectures);
+  DHSet<Unit*> all;
+  getNeededUnits(refutation, premiseClauses, conjectures, all);
 
   if(conjectures.size()!=1 || conjectures[0]->isClause()) {
     return false;
@@ -324,20 +325,56 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
 {
   CALL("AnswerLiteralManager::tryGetAnswer");
 
-  RCClauseStack::Iterator cit(_answers);
-  while(cit.hasNext()) {
-    Clause* ansCl = cit.next();
-    if(ansCl->length()!=1) {
+  //RCClauseStack::Iterator cit(_answers);
+  //while(cit.hasNext()) {
+  //  Clause* ansCl = cit.next();
+  //  if(ansCl->length()!=1) {
+  //    continue;
+  //  }
+  //  Literal* lit = (*ansCl)[0];
+  //  unsigned arity = lit->arity();
+  //  for(unsigned i=0; i<arity; i++) {
+  //    answer.push(_skolemReplacement.transformTermList(*lit->nthArgument(i), env.signature->getPredicate(lit->functor())->predType()->arg(i)));
+  //  }
+  //  return true;
+  //}
+  //return false;
+
+  // TODO(hzzv): move the following to a separate class and uncomment code above
+  ASS((_lastAnsLit || List<pair<Clause*, Literal*>>::isNonEmpty(_answerPairs)));
+  if (_lastAnsLit) {
+    List<pair<Clause*, Literal*>>::push(make_pair(nullptr, _lastAnsLit), _answerPairs);
+  }
+
+  ClauseStack premiseClauses;
+  Stack<Unit*> conjectures;
+  DHSet<Unit*> proofUnits;
+  getNeededUnits(refutation, premiseClauses, conjectures, proofUnits);
+
+  List<pair<Clause*, Literal*>>::Iterator it(_answerPairs);
+  ALWAYS(it.hasNext());
+  pair<Clause*, Literal*> p = it.next();
+  unsigned arity = p.second->arity();
+  Stack<TermList> sorts(arity);
+  for (unsigned i = 0; i < arity; i++) {
+    sorts.push(env.signature->getPredicate(p.second->functor())->predType()->arg(i));
+    answer.push(_skolemReplacement.transformTermList(*p.second->nthArgument(i), sorts[i]));
+  }
+  while(it.hasNext()) {
+    p = it.next();
+    ASS(p.first != nullptr);
+    if (!proofUnits.contains(p.first)) {
       continue;
     }
-    Literal* lit = (*ansCl)[0];
-    unsigned arity = lit->arity();
-    for(unsigned i=0; i<arity; i++) {
-      answer.push(_skolemReplacement.transformTermList(*lit->nthArgument(i), env.signature->getPredicate(lit->functor())->predType()->arg(i)));
+    // Create the condition for an if-then-else by negating the clause
+    Formula* condition = getConditionFromClause(p.first);
+    for (unsigned i = 0; i < arity; i++) {
+      ASS_EQ(sorts[i], env.signature->getPredicate(p.second->functor())->predType()->arg(i));
+      // Construct the answer by nesting an if-then-else
+      answer[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second->nthArgument(i), sorts[i]), answer[i], sorts[i]));
     }
-    return true;
   }
-  return false;
+  return true;
 }
 
 void AnswerLiteralManager::bindSkolemToVar(Term* skolem, unsigned var) {
@@ -455,7 +492,7 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
 {
   CALL("AnswerLiteralManager::onNewClause");
 
-  if(!cl->noSplits()) {
+  if(!cl->noSplits() || cl->isEmpty()) {
     return;
   }
 
@@ -466,15 +503,60 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
     }
   }
 
-  _answers.push(cl);
-
+  // TODO(hzzv): move the method to a derived class and uncomment the following line in this class
+  //_answers.push(cl);
+  
+  ASS(cl->hasAnswerLiteral())
+  _lastAnsLit = cl->getAnswerLiteral();
   Clause* refutation = getRefutation(cl);
-
   throw MainLoop::RefutationFoundException(refutation);
+}
 
-//  env.beginOutput();
-//  env.out()<<cl->toString()<<endl;
-//  env.endOutput();
+Clause* AnswerLiteralManager::recordAnswerAndReduce(Clause* cl) {
+  CALL("AnswerLiteralManager::recordAnswerAndReduce");
+
+  if (!cl->noSplits() || !cl->hasAnswerLiteral() || !cl->computable()) {
+    return nullptr;
+  }
+  // Check if the answer literal has only distinct variables as arguments.
+  // If yes, we do not need to record the clause, because the answer literal
+  // represents any answer.
+  unsigned clen = cl->length();
+  bool removeDefaultAnsLit = true;
+  Literal* ansLit = cl->getAnswerLiteral();
+  Set<unsigned> vars;
+  for (unsigned i = 0; i < ansLit->numTermArguments(); ++i) {
+    TermList* tl = ansLit->nthArgument(i);
+    if (!tl->isVar()) {
+      removeDefaultAnsLit = false;
+      break;
+    }
+    vars.insert(tl->var());
+  }
+  if (vars.size() != ansLit->numTermArguments()) {
+    removeDefaultAnsLit = false;
+  }
+
+  unsigned nonAnsLits = 0;
+  for(unsigned i=0; i<clen; i++) {
+    if((*cl)[i] != ansLit) {
+      nonAnsLits++;
+    }
+  }
+  ASS_EQ(nonAnsLits, clen-1);
+
+  Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_REMOVAL, cl));
+  Clause* newCl = new(nonAnsLits) Clause(nonAnsLits, inf);
+  unsigned idx = 0;
+  for (unsigned i = 0; i < clen; i++) {
+    if ((*cl)[i] != ansLit) (*newCl)[idx++] = (*cl)[i];
+  }
+  if (!removeDefaultAnsLit) {
+    List<pair<Clause*, Literal*>>::push(make_pair(newCl, ansLit), _answerPairs);
+  } else {
+    _lastAnsLit = ansLit;
+  }
+  return newCl;
 }
 
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
@@ -539,16 +621,21 @@ Literal* AnswerLiteralManager::makeITEAnswerLiteral(Literal* condition, Literal*
     else {
       // TODO(hzzv): using special-term-ITEs:
       //litArgs.push(TermList(Term::createITE(new Kernel::AtomicFormula(cond), *dtl, *ctl, predSym->predType()->arg(i))));
-      //
-      //cout << "Making term from lit " << condLit->toString() << ": ";
-      //for (int i = 0; i < condLit->arity(); ++i) cout << condLit->nthArgument(i)->toString() << " ";
-      //cout << "; ";
-      //for (int i = 0; i < condLit->arity(); ++i) cout << condLit->args()[i].toString() << " ";
-      //cout << endl;
       litArgs.push(TermList(Term::createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
     }
   }
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), /*commutative=*/false, litArgs.begin());
+}
+
+Formula* AnswerLiteralManager::getConditionFromClause(Clause* cl) {
+  CALL("AnswerLiteralManager::getConditionFromClause");
+
+  FormulaList* fl = FormulaList::empty();
+  for (unsigned i = 0; i < cl->length(); ++i) {
+    Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transform((*cl)[i]));
+    FormulaList::push(new AtomicFormula(newLit), fl);
+  }
+  return JunctionFormula::generalJunction(Connective::AND, fl);
 }
 
 void AnswerLiteralManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {

@@ -215,6 +215,7 @@ public:
 
   UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
+  Clause* reintroduceAvatarAssertions(Clause* cl);
 private:
   friend class SplittingBranchSelector;
   

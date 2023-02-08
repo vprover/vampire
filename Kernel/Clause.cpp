@@ -69,6 +69,9 @@ Clause::Clause(unsigned length,const Inference& inf)
     _component(false),
     _store(NONE),
     _numSelected(0),
+    _answerLiteralChecked(false),
+    _computableChecked(false),
+    _computable(true),
     _weight(0),
     _weightForClauseSelection(0),
     _refCnt(0),
@@ -76,8 +79,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _literalPositions(0),
     _numActiveSplits(0),
     _auxTimestamp(0),
-    _answerLiteral(nullptr),
-    _answerLiteralChecked(false)
+    _answerLiteral(nullptr)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
   if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
@@ -860,6 +862,29 @@ Clause* Clause::abstractUncomputables() {
     (*res)[next++] = constraint;
   }
   return res;
+}
+
+bool Clause::computable() {
+  if (!_computableChecked) {
+    _computable = true;
+    for (unsigned i = 0; i < length(); ++i) {
+      if ((*this)[i]->isAnswerLiteral()) continue;
+      if (!env.signature->getPredicate((*this)[i]->functor())->computable()) {
+        _computable = false;
+        break;
+      }
+      SubtermIterator sit((*this)[i]);
+      while (sit.hasNext()) {
+        TermList t = sit.next();
+        if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) {
+          _computable = false;
+          break;
+        }
+      }
+    }
+    _computableChecked = true;
+  }
+  return _computable;
 }
 
 }
