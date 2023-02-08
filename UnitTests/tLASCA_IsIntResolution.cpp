@@ -69,8 +69,8 @@ auto idxIsIntResolution(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<IsIntResolution::Lhs>(uwa); },
-    [=]() { return new LascaIndex<IsIntResolution::Rhs>(uwa); },
+    [=]() { return new LascaIndex<IsIntResolution::Lhs>(new UWAMismatchHandler(uwa)); },
+    [=]() { return new LascaIndex<IsIntResolution::Rhs>(new UWAMismatchHandler(uwa)); },
   }; 
 }
 

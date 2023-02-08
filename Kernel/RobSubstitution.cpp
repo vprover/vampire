@@ -458,7 +458,6 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
 
   // DBG(*this)
   return !mismatch;
-  )
 }
 
 /**

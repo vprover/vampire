@@ -51,7 +51,7 @@ public:
   inline
   int size() const final override { return _size; }
   inline
-  LDIterator allChildren() const final override
+  LDIterator allChildren() final override
   {
     return pvi( iterTraits(typename LDList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
@@ -99,7 +99,7 @@ public:
   inline
   int size() const final override { return _children.size(); }
   inline
-  LDIterator allChildren() const final override
+  LDIterator allChildren() final override
   {
     return pvi( iterTraits(typename LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }

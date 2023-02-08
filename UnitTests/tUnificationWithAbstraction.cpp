@@ -56,16 +56,10 @@ unique_ptr<TermSubstitutionTree<>> getTermIndexHOL()
 }
 
 unique_ptr<TermSubstitutionTree<>> getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
-{ 
-  env.options->setUWA(uwa);
-  return std::make_unique<TermSubstitutionTree<>>(new UWAMismatchHandler());
-}
+{ return std::make_unique<TermSubstitutionTree<>>(new UWAMismatchHandler(uwa)); }
 
 auto getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa)
-{
-  env.options->setUWA(uwa);
-  return std::make_unique<LiteralSubstitutionTree<>>(new UWAMismatchHandler());
-}
+{ return std::make_unique<LiteralSubstitutionTree<>>(new UWAMismatchHandler(uwa)); }
 
 template<class TermOrLit>
 struct UnificationResultSpec {
@@ -181,7 +175,7 @@ struct IndexTest {
   void run() {
     CALL("IndexTest::run")
 
-    DECL_PRED(dummy, Stack<SortSugar>())
+    DECL_PRED(dummy, {})
     for (auto x : this->insert) {
       index->insert(DefaultTermLeafData(x, dummy(), unit(dummy())));
     }
@@ -502,7 +496,6 @@ TEST_FUN(term_indexing_poly_01)
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
   NUMBER_SUGAR(Int)
-  DECL_PRED(p, {Int})
   DECL_CONST(a, Int) 
   DECL_POLY_CONST(h, 1, alpha)
   DECL_SORT(A)
@@ -756,7 +749,6 @@ TEST_FUN(term_indexing_interp_only)
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
-  DECL_PRED(p, {Int})
 
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
@@ -941,9 +933,7 @@ static const int NORM_QUERY_BANK=2;
 // static const int NORM_RESULT_BANK=3;
 
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
-  // TODO parameter instead of opts
-  env.options->setUWA(opt);
-  UWAMismatchHandler h;
+  UWAMismatchHandler h(opt);
   AbstractingUnifier au(&h);
   bool result = au.unify(a, 0, b, 0);
   if (result) {

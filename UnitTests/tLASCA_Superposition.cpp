@@ -68,14 +68,20 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::LASCA1
 
+shared_ptr<LascaState> state() 
+{ 
+  static shared_ptr<LascaState> out = testLascaState(UWA_MODE); 
+  return out;
+}
+
 Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
 { return {
-    [](){ return new LascaIndex<Superposition::Lhs>(UWA_MODE);},
-    [](){ return new LascaIndex<Superposition::Rhs>(UWA_MODE);},
+    [](){ return new LascaIndex<Superposition::Lhs>(state()->uwaMode());},
+    [](){ return new LascaIndex<Superposition::Rhs>(state()->uwaMode());},
   }; }
 
 Superposition testSuperposition()
-{ return Superposition(testLascaState(UWA_MODE)); }
+{ return Superposition(state()); }
 
 
 

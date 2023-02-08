@@ -429,15 +429,12 @@ inline TermSugar fool(bool b)
 ////////////////////////// operators to create terms ////////////////////////// 
 
 inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); }
-inline TermSugar ap(TermSugar lhs, TermSugar rhs)  { 
-  return syntaxSugarGlobals().apply(lhs.sort(), lhs, rhs); 
-}  
+
 inline TermSugar ap(SortSugar sort, TermSugar lhs, TermSugar rhs) 
 { return ApplicativeHelper::createAppTerm(sort, lhs, rhs); }  
 
 inline TermSugar ap(TermSugar lhs, TermSugar rhs) 
 { return ap(lhs.sort(), lhs, rhs); }  
->>>>>>> substitution-tree-custom-leaf-data
 
 inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }  
 inline TermSugar operator-(TermSugar lhs, TermSugar rhs)  { return lhs + -rhs; }  

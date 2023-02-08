@@ -131,9 +131,6 @@ void Term::destroyNonShared()
   }
 }
 
-bool TermList::ground() const
-{ return isTerm() && term()->ground(); }
-
 /**
  * Return true if the term does not contain any unshared proper term.
  *

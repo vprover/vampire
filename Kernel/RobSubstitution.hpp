@@ -154,7 +154,7 @@ public:
   unsigned nTermArgs() const;//{ return derefTerm().term()->numTermArguments(); }
   unsigned nAllArgs() const;//{ return derefTerm().term()->numTermArguments(); }
                             //
-  bool isNumeral()     { return isTerm() && env.signature->getFunction(functor())->numericConstant(); }
+  bool isNumeral()     { return isTerm() && env.signature->getFunction(functor())->interpretedNumber(); }
   // bool isGround()      { return _subs->apply(_term, _index).ground(); }
   TermSpec termArg(unsigned i) const;
   TermSpec typeArg(unsigned i) const;

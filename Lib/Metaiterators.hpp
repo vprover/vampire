@@ -1981,17 +1981,6 @@ public:
     return Container::fromIterator(*this); 
   }
   
-
-
-  template<class F>
-  auto fold(F f) -> Elem
-  { 
-    CALL("IterTraits::fold/2")
-    ASS(hasNext())
-    return fold(next(), f);
-  }
-
-
   template<template<class> class Container>
   Container<Elem> collect()
   { 

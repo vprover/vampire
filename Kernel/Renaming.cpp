@@ -163,9 +163,6 @@ TermList Renaming::normalize(TermList trm)
 }
 
 
-std::ostream& operator<<(std::ostream& out, Renaming const& self)
-{ return out << self._data; }
-
 #if VDEBUG
 
 void Renaming::assertValid() const

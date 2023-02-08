@@ -61,8 +61,8 @@ namespace Kernel
 
 unique_ptr<MismatchHandler> MismatchHandler::create()
 {
-  if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-    return make_unique<UWAMismatchHandler>();
+  if (env.options->unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
+    return make_unique<UWAMismatchHandler>(env.options->unificationWithAbstraction());
   } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
     return make_unique<HOMismatchHandler>();
@@ -115,7 +115,7 @@ public:
 // auto acIter(unsigned f, TermSpec t)
 // { return iterTraits(AcIter(f, t)); }
 
-bool UWAMismatchHandler::canAbstract(Shell::Options::UnificationWithAbstraction opt, TermSpec t1, TermSpec t2) const 
+bool UWAMismatchHandler::canAbstract(TermSpec t1, TermSpec t2) const 
 {
 
   if(!(t1.isTerm() && t2.isTerm())) return false;
@@ -125,7 +125,7 @@ bool UWAMismatchHandler::canAbstract(Shell::Options::UnificationWithAbstraction 
   bool t2Interp = isInterpreted(t2.functor());
   bool bothNumbers = t1.isNumeral() && t2.isNumeral();
 
-  switch(opt) {
+  switch(_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
       return (t1Interp && t2Interp && !bothNumbers);
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
@@ -178,8 +178,7 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
 
 
   // TODO add parameter instead of reading from options
-  static Uwa opt = env.options->unificationWithAbstraction();
-  if (opt == Uwa::AC1 || opt == Uwa::AC2) {
+  if (_mode == Uwa::AC1 || _mode == Uwa::AC2) {
       if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
        || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
         return Option<AbstractionResult>();
@@ -208,10 +207,10 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
               || ( diff2.size() == 0 && diff1.size() != 0 ) ) {
         return some(AbstractionResult(NeverEqual{}));
 
-      } else if (opt == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
+      } else if (_mode == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
         return some(AbstractionResult(EqualIf({ UnificationConstraint(diff1[0], sum(diff2)) }, {})));
 
-      } else if (opt == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
+      } else if (_mode == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
         return some(AbstractionResult(EqualIf({ UnificationConstraint(diff2[0], sum(diff1)) }, {})));
 
       } else if (concatIters(diff1.iterFifo(), diff2.iterFifo()).any([](auto x) { return x.isVar(); })) {
@@ -227,7 +226,7 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
 
 
   } else {
-    auto abs = canAbstract(opt, t1, t2);
+    auto abs = canAbstract(t1, t2);
     DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
         return AbstractionResult(EqualIf(

@@ -53,10 +53,7 @@ public:
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<QueryRes<AbstractingUnifier*, DefaultTermLeafData>> getUwa(TypedTermList t) final override { NOT_IMPLEMENTED; }
 
-  virtual void output(std::ostream& out) const final override { out << "CodeTree"; }
-
-  virtual std::ostream& output(std::ostream& out) const final override
-  { return out << _ct; }
+  virtual void output(std::ostream& out) const final override { out << _ct; }
 
 private:
   void _insert(TermList t, Literal* lit, Clause* cls);

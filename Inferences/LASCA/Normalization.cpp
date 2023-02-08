@@ -36,7 +36,6 @@
 #include "Debug/TimeProfiling.hpp"
 
 #include "Normalization.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Indexing/TermIndexingStructure.hpp"

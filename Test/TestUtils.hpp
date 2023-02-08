@@ -25,6 +25,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"
+#include "Debug/Output.hpp"
 
 namespace Test {
 class TestUtils {
@@ -131,7 +132,10 @@ public:
   Pretty(const T& t) : _self(t) { }
 
   std::ostream& prettyPrint(std::ostream& out) const
-  { return out << _self; }
+  { 
+    using namespace Kernel;
+    return out << _self; 
+  }
 
   template<class U>
   friend Pretty<U> pretty(const U& t);
@@ -157,6 +161,18 @@ public:
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return _self.apply([&](auto const& a) -> std::ostream& { return out << pretty(a); }); }
+};
+
+template<class A, class B>
+class Pretty<std::pair<A,B>> 
+{
+  std::pair<A,B> const& _self;
+
+public:
+  Pretty(std::pair<A,B> const& self) : _self(self) { }
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return out << "(" << _self.first << ", " << _self.second << ")"; }
 };
 
 

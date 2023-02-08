@@ -35,35 +35,33 @@ public:
   CLASS_NAME(LascaIndex);
   USE_ALLOCATOR(LascaIndex);
 
-  LascaIndex(Options::UnificationWithAbstraction uwa)
-    : _index(uwa, /* use constraints */  true)
-    , _uwa(uwa)
+  LascaIndex(MismatchHandler* uwa)
+    : _index(uwa)
     , _shared()
   {}
 
   void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
 
-  auto find(TermList key)
+  auto find(TypedTermList key)
   {
     CALL("LascaIndex::find")
-    return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
-      .map([](TermQueryResult<T> r)
-           { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  })
-      .filter([=](auto& x) {
-          Stack<UnificationConstraint> c;
-          UWAMismatchHandler hndlr(_uwa, c);
-          auto& uwa = get<1>(x);
-          auto result = uwa.cnstLiterals()
-            .all([&](auto lit) {
-                ASS(lit->isEquality() && lit->isNegative())
-                auto l = lit->termArg(0);
-                auto r = lit->termArg(1);
-                return l == r || hndlr.checkUWA(l,r);
-            });
-          if (!result) { DEBUG("skipping wrong constraints: ", uwa) }
-          ASS(c.isEmpty());
-          return result;
-      })
+    return iterTraits(_index.getUwa(key))
+      .map([](auto r) { return std::make_tuple(std::move(r.data()), r.unifier);  })
+      // .filter([=](auto& x) {
+      //     Stack<UnificationConstraint> c;
+      //     UWAMismatchHandler hndlr(_uwa, c);
+      //     auto& uwa = get<1>(x);
+      //     auto result = uwa.cnstLiterals()
+      //       .all([&](auto lit) {
+      //           ASS(lit->isEquality() && lit->isNegative())
+      //           auto l = lit->termArg(0);
+      //           auto r = lit->termArg(1);
+      //           return l == r || hndlr.checkUWA(l,r);
+      //       });
+      //     if (!result) { DEBUG("skipping wrong constraints: ", uwa) }
+      //     ASS(c.isEmpty());
+      //     return result;
+      // })
       .timeTraced(_lookupStr.c_str()); }
 
 
@@ -90,7 +88,6 @@ public:
 
 private:
   TermSubstitutionTree<T> _index;
-  Options::UnificationWithAbstraction _uwa;
   shared_ptr<Kernel::LascaState> _shared;
   static vstring _lookupStr;
   static vstring _maintainanceStr;

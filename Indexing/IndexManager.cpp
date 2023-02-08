@@ -140,12 +140,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case LASCA_FWD_DEMODULATION_SUBST_TREE:
-    res = new LascaIndex<LASCA::Demodulation::Lhs>(Options::UnificationWithAbstraction::OFF);
+    res = new LascaIndex<LASCA::Demodulation::Lhs>(/* uwa */ nullptr);
     isGenerating = false;
     break;
 
   case LASCA_BWD_DEMODULATION_SUBST_TREE:
-    res = new LascaIndex<LASCA::Demodulation::Rhs>(Options::UnificationWithAbstraction::OFF);
+    res = new LascaIndex<LASCA::Demodulation::Rhs>(/* uwa */ nullptr);
     isGenerating = false;
     break;
 

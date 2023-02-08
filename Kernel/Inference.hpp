@@ -30,6 +30,8 @@ using namespace Lib;
 
 namespace Kernel {
 
+class Unit;
+
 /** Kind of input. The integers should not be changed, they are used in
  *  Compare. */
 enum class UnitInputType : unsigned char {

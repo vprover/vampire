@@ -9,6 +9,7 @@
  */
 
 #include "LASCA.hpp"
+#include "Kernel/MismatchHandler.hpp"
 #include "Lib/Stack.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/QKbo.hpp"
@@ -273,16 +274,13 @@ PolyNf LascaState::normalize(TypedTermList term)
   return out.value || norm;
 }
 
-Option<UwaResult> LascaState::unify(TermList lhs, TermList rhs) const 
+Option<AbstractingUnifier> LascaState::unify(TermList lhs, TermList rhs) const 
 {
-  RobSubstitution sigma;
-  Stack<UnificationConstraint> cnst;
-  Kernel::UWAMismatchHandler hndlr(uwa, cnst);
-  if (sigma.unify(lhs, /* var bank: */ 0, 
-                  rhs, /* var bank: */ 0, &hndlr)) {
-    return Option<UwaResult>(UwaResult(std::move(sigma), std::move(cnst)));
+  AbstractingUnifier unif(uwaMode());
+  if (unif.unify(lhs, /* var bank: */ 0, rhs, /* var bank: */ 0)) {
+    return some(std::move(unif));
   } else {
-    return Option<UwaResult>();
+    return Option<AbstractingUnifier>();
   }
 }
 

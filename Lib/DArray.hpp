@@ -89,26 +89,6 @@ public:
   DArray(DArray&& other) : DArray() { swap(other); }
   DArray& operator=(DArray&& other) { swap(other); return *this; }
 
-
-  DArray(DArray&& o)
-    : _size(o._size), _capacity(o._capacity), _array(o._array)
-  {
-    CALL("DArray::DArray(const DArray&)");
-
-    o._size = o._capacity = 0;
-    o._array = nullptr;
-  }
-
-  DArray& operator=(const DArray&) = delete;
-  DArray& operator=(DArray&& o)
-  {
-    CALL("DArray::DArray(const DArray&)");
-    this->~DArray();
-    ::new(this) DArray(std::move(o));
-    return *this;
-  }
-
-
   /** Delete array */
   inline ~DArray()
   {

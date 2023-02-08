@@ -66,6 +66,7 @@ using Rhs = IsIntResolution::Rhs;
 
 ClauseIterator IsIntResolution::generateClauses(Clause* premise) 
 {
+  // TODO refactor so this function is not copied and pasted among all unifying lasca rules
   CALL("IsIntResolution::generateClauses(Clause* premise)")
   ASS(_lhsIndex)
   ASS(_rhsIndex)
@@ -74,11 +75,11 @@ ClauseIterator IsIntResolution::generateClauses(Clause* premise)
 
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG("lhs: ", lhs)
-    for (auto rhs_sigma : _rhsIndex->find(lhs.monom())) {
+    for (auto rhs_sigma : _rhsIndex->find(lhs.key())) {
       auto& rhs   = std::get<0>(rhs_sigma);
       auto& sigma = std::get<1>(rhs_sigma);
       DEBUG("  rhs: ", rhs)
-      auto res = applyRule(lhs, 0, rhs, 1, sigma);
+      auto res = applyRule(lhs, 0, rhs, 1, *sigma);
       if (res.isSome()) {
         out.push(res.unwrap());
       }
@@ -88,12 +89,12 @@ ClauseIterator IsIntResolution::generateClauses(Clause* premise)
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG("rhs: ", rhs)
 
-    for (auto lhs_sigma : _lhsIndex->find(rhs.monom())) {
+    for (auto lhs_sigma : _lhsIndex->find(rhs.key())) {
       auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
         DEBUG("  lhs: ", lhs)
-        auto res = applyRule(lhs, 1, rhs, 0, sigma);
+        auto res = applyRule(lhs, 1, rhs, 0, *sigma);
         if (res.isSome()) {
           out.push(res.unwrap());
         }
@@ -107,7 +108,7 @@ ClauseIterator IsIntResolution::generateClauses(Clause* premise)
 Option<Clause*> IsIntResolution::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
-    UwaResult& uwa
+    AbstractingUnifier& uwa
     ) const 
 {
   return lhs.numTraits().apply([&](auto numTraits) {
@@ -120,13 +121,15 @@ template<class NumTraits>
 Option<Clause*> IsIntResolution::applyRule(NumTraits,
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
-    UwaResult& uwa
+    AbstractingUnifier& uwa
     ) const 
 {
 
 
   CALL("IsIntResolution::applyRule")
   TIME_TRACE("isInt-resolution")
+  auto cnst = uwa.constraintLiterals();
+  auto& sigma = uwa.subs();
 
 
 
@@ -148,7 +151,7 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
     Stack<Literal*> out( lhs.clause()->size() - 1 // <- C1
                        + rhs.clause()->size() - 1 // <- C2
                        + 1                        // <- k t₁ + j t₂ > 0
-                       + uwa.cnst().size());      // Cnst
+                       + cnst->size());      // Cnst
 
 
     ASS(!NumTraits::isFractional() || (!lhs.monom().isVar() && !rhs.monom().isVar()))
@@ -168,30 +171,30 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
         "symmetry breaking",
         (rhs.symbol() != LascaPredicate::IS_INT_POS || !(j / k).isInt() || lhs < rhs))
 
-    auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
+    auto L1σ = sigma.apply(lhs.literal(), lhsVarBank);
     check_side_condition( 
         "isInt(j s₁ + t₁)σ /⪯ C₁σ",
         lhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = uwa.sigma(L, lhsVarBank);
+             auto Lσ = sigma.apply(L, lhsVarBank);
              out.push(Lσ);
              return _shared->notLeq(L1σ, Lσ);
            }));
 
 
-    auto L2σ = uwa.sigma(rhs.literal(), rhsVarBank);
+    auto L2σ = sigma.apply(rhs.literal(), rhsVarBank);
     check_side_condition(
         "(~)isInt(k s₂ + t₂)σ /≺ C₂σ",
         rhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = uwa.sigma(L, rhsVarBank);
+             auto Lσ = sigma.apply(L, rhsVarBank);
              out.push(Lσ);
              return _shared->notLess(L2σ, Lσ);
            }));
 
 
-    auto s1σ = uwa.sigma(lhs.monom(), lhsVarBank);
-    auto s2σ = uwa.sigma(rhs.monom(), rhsVarBank);
+    auto s1σ = sigma.apply(lhs.monom(), lhsVarBank);
+    auto s2σ = sigma.apply(rhs.monom(), rhsVarBank);
     // ASS_REP(_shared->equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
     Stack<TermList> t1σ(rhs.nContextTerms());
     Stack<TermList> t2σ(lhs.nContextTerms());
@@ -200,7 +203,7 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
         "s₁σ /⪯ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = uwa.sigma(ti.factors->denormalize(), lhsVarBank);
+             auto tiσ = sigma.apply(ti.factors->denormalize(), lhsVarBank);
              t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
              return _shared->notLeq(s1σ, tiσ);
            }))
@@ -209,7 +212,7 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
         "s₂σ /⪯ t₂σ ",
         rhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = uwa.sigma(ti.factors->denormalize(), rhsVarBank);
+             auto tiσ = sigma.apply(ti.factors->denormalize(), rhsVarBank);
              t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
              return _shared->notLeq(s2σ, tiσ);
            }))
@@ -226,7 +229,7 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
     // (k t₁ + j t₂ > 0)σ
     out.push(LascaPredicateCreateLiteral<NumTraits>(rhs.symbol(), resolventTerm));
 
-    out.loadFromIterator(uwa.cnstLiterals());
+    out.loadFromIterator(cnst->iterFifo());
 
     Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_IS_INT_RESOLUTION, lhs.clause(), rhs.clause()));
     auto cl = Clause::fromStack(out, inf);

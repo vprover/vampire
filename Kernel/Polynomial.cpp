@@ -39,9 +39,6 @@ bool operator!=(Variable lhs, Variable rhs)
 bool operator<(Variable const& lhs, Variable const& rhs)
 { return lhs._num < rhs._num; }
 
-std::ostream& operator<<(std::ostream& out, const Variable& self) 
-{ return out << "X" << self._num; }
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // impl FuncId
 /////////////////////////////////////////////////////////
@@ -66,9 +63,6 @@ bool operator==(FuncId const& lhs, FuncId const& rhs)
 bool operator!=(FuncId const& lhs, FuncId const& rhs) 
 { return !(lhs == rhs); }
 
-std::ostream& operator<<(std::ostream& out, const FuncId& self) 
-{ return out << self.symbol()->name(); }
-
 Signature::Symbol* FuncId::symbol() const 
 { return env.signature->getFunction(_num); }
 
@@ -86,6 +80,39 @@ Option<Theory::Interpretation> FuncId::tryInterpret() const
   return isInterpreted() ? some<Theory::Interpretation>(interpretation())
                          : none<Theory::Interpretation>();
 }
+
+///////////////////// output operators
+std::ostream& operator<<(std::ostream& out, const Kernel::Variable& self) 
+{ return out << "X" << self._num; }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::FuncId& self) 
+{ return out << self.symbol()->name(); }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::PolyNf& self)
+{ return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::FuncTerm& self) 
+{ 
+  out << self._fun;
+  auto& stack = self._args;
+  auto iter = stack.iterFifo();
+
+  if (iter.hasNext()) {
+    out << "(" << iter.next();
+    while (iter.hasNext()) {
+      out << ", " << iter.next();
+    }
+    out << ")";
+  }
+
+  return out;
+}
+
+
+std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
+{ return self.apply([&](auto& t) -> decltype(auto) { return out << *t; }); }
+
+
 } // namespace Kernel
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -122,23 +149,6 @@ PolyNf const& FuncTerm::arg(unsigned i) const
 void FuncTerm::integrity() const 
 { for ( auto const& x : _args) x.integrity(); }
 
-std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
-{ 
-  out << self._fun;
-  auto& stack = self._args;
-  auto iter = stack.iterFifo();
-
-  if (iter.hasNext()) {
-    out << "(" << iter.next();
-    while (iter.hasNext()) {
-      out << ", " << iter.next();
-    }
-    out << ")";
-  }
-
-  return out;
-}
-
 /////////////////////////////////////////////////////////
 // impl AnyPoly 
 ////////////////////////////
@@ -159,9 +169,6 @@ unsigned AnyPoly::nSummands() const
 unsigned AnyPoly::nFactors(unsigned i) const 
 { return apply([&](auto& t) -> decltype(auto) { return t->nFactors(i); }); }
 
-std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
-{ return self.apply([&](auto& t) -> decltype(auto) { return out << *t; }); }
-
 void AnyPoly::integrity() const 
 { apply([](auto const& x) { x->integrity(); }); }
 
@@ -179,9 +186,6 @@ bool operator==(PolyNf const& lhs, PolyNf const& rhs)
 
 bool operator!=(PolyNf const& lhs, PolyNf const& rhs) 
 { return !(lhs == rhs); }
-
-std::ostream& operator<<(std::ostream& out, const PolyNf& self)
-{ return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
 
 Option<Variable> PolyNf::tryVar() const 
 { return as<Variable>().toOwned(); }

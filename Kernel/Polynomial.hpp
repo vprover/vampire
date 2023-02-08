@@ -690,24 +690,21 @@ TermList Monom<Number>::denormalize()  const
   return PolyNf(AnyPoly(perfect(Polynom<Number>(*this)))).denormalize(); 
 }
 
-// } // namespace Kernel
-
-
 
 template<class Number>
-bool operator<(Monom<Number> const& l, Monom<Number> const& r)
+bool operator<(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
 { return std::tie(l.factors, l.numeral) < std::tie(r.factors, r.numeral); }
 
 template<class Number>
-bool operator==(Monom<Number> const& l, Monom<Number> const& r)
+bool operator==(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
 { return std::tie(l.factors, l.numeral) == std::tie(r.factors, r.numeral); }
 
 template<class Number>
-bool operator!=(Monom<Number> const& l, Monom<Number> const& r)
+bool operator!=(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
 { return !(l == r); }
 
 template<class Number>
-std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
+std::ostream& operator<<(std::ostream& out, const Kernel::Monom<Number>& self)
 { 
 #if !OUTPUT_NICE 
   out << "mon(";
@@ -725,10 +722,10 @@ std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
   return out;
 }
 
-
-
-
 } // namespace Kernel
+
+
+
 
 
 /////////////////////////////////////////////////////////

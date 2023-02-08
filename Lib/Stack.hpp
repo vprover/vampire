@@ -28,6 +28,12 @@
 #include "Allocator.hpp"
 #include "Lib/Reflection.hpp"
 // #include "Backtrackable.hpp"
+//
+namespace Lib
+{
+template<class T>
+class Stack;
+}
 
 namespace std
 {

@@ -16,7 +16,6 @@
 #define __Forwards__
 
 #include "Lib/VString.hpp"
-
 namespace Lib
 {
 struct EmptyStruct {};
@@ -175,6 +174,7 @@ namespace SAT
 using namespace Lib;
 
 class SATClause;
+class Z3Interfacing;
 class SATLiteral;
 class SATInference;
 class SATSolver;

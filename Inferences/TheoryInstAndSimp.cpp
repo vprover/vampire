@@ -997,9 +997,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
   }
 }
 
-std::ostream& operator<<(std::ostream& out, Solution const& self) 
-{ return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
-
 TheoryInstAndSimp::~TheoryInstAndSimp()
 {
   CALL("~TheoryInstAndSimp")
@@ -1007,6 +1004,9 @@ TheoryInstAndSimp::~TheoryInstAndSimp()
   delete _solver;
 }
 
-}
+} // namespace Inferences
 
-#endif
+std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self) 
+{ return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
+
+#endif // VZ3

@@ -507,8 +507,8 @@ public:
       return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
   	    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList::Top t, bool canCreate);
-    void remove(TermList::Top t);
+    virtual Node** childByTop(TermList::Top t, bool canCreate) final override;
+    void remove(TermList::Top t) final override;
 
 #if VDEBUG
     virtual void assertValid() const final override
@@ -572,7 +572,7 @@ public:
   		    typename NodeSkipList::PtrIterator(_nodes),
   		    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList::Top t, bool canCreate)
+    virtual Node** childByTop(TermList::Top t, bool canCreate) final override
     {
       CALL("SubstitutionTree::SListIntermediateNode::childByTop");
 
@@ -588,7 +588,7 @@ public:
       }
       return res;
     }
-    inline void remove(TermList::Top t)
+    inline void remove(TermList::Top t) final override
     { _nodes.remove(t); }
 
     CLASS_NAME(SubstitutionTree::SListIntermediateNode);
@@ -1469,6 +1469,7 @@ public:
     BacktrackData _clientBacktrackData;
     InstanceCntr _iterCntr;
   };
+  template<class Algo>
   friend class UnificationsIterator;
 
 

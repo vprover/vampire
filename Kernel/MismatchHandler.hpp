@@ -24,6 +24,7 @@
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/Signature.hpp"
 #include "Lib/Reflection.hpp"
+#include "Shell/Options.hpp"
 
 namespace Kernel
 {
@@ -137,6 +138,7 @@ class UWAMismatchHandler final : public MismatchHandler
 public:
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
+  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
   bool isInterpreted(unsigned f) const;
 
   // virtual bool tryAbstract(
@@ -150,10 +152,10 @@ public:
       TermSpec t2) const final override;
 
   bool canAbstract(
-      Shell::Options::UnificationWithAbstraction opt,
       TermSpec t1,
       TermSpec t2) const;
 
+  Shell::Options::UnificationWithAbstraction const _mode;
   // virtual bool recheck(TermSpec l, TermSpec r) const final override;
 };
 

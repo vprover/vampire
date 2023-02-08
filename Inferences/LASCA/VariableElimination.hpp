@@ -20,7 +20,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "Shell/Options.hpp"
 

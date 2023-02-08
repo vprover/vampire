@@ -23,9 +23,11 @@ class TypedTermList : public TermList
 {
   SortId _sort;
 public:
+  SortId sort() const { return _sort; }
+  TermList untyped() const { return *this; }
+  auto asTuple() const -> decltype(auto) { return std::make_tuple(untyped(), sort()); }
   IMPL_COMPARISONS_FROM_TUPLE(TypedTermList);
   IMPL_HASH_FROM_TUPLE(TypedTermList);
-  auto asTuple() const -> decltype(auto) { return std::tie(untyped(), sort()); }
 
   CLASS_NAME(TypedTermList)
 
@@ -35,8 +37,6 @@ public:
     ASS(!sort.isEmpty())
   }
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
-  SortId sort() const { return _sort; }
-  TermList untyped() const { return *this; }
 
   friend std::ostream& operator<<(std::ostream& out, TypedTermList const& self) 
   { return out << (TermList const&) self << ": " << self._sort; }
@@ -48,7 +48,7 @@ public:
 template<>
 struct std::hash<Kernel::TypedTermList> {
   size_t operator()(Kernel::TypedTermList const& t) 
-  { return Lib::HashUtils::combine(Lib::stlHash((Kernel::TermList) t), Lib::stlHash(t.sort())); }
+  { return t.defaultHash(); }
 };
 
 #endif // __Kernel_TypedTermList__

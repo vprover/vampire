@@ -104,8 +104,6 @@ private:
   Renaming* _resultNormalizer;
   Applicator* _applicator;
 
-  virtual std::ostream& output(std::ostream& out) const final override 
-  { return out << "CodeTreeSubstitution"; }
 };
 
 ///////////////////////////////////////
