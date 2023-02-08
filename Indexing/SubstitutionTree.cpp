@@ -36,7 +36,6 @@ SubstitutionTree<LeafData_>::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iterCnt,0);
-
   delete _root;
 }
 
@@ -538,8 +537,7 @@ void SubstitutionTree<LeafData_>::Leaf::loadChildren(LDIterator children)
 
   while(children.hasNext()) {
     // TODO move instead of copying here
-    auto ld = *children.next();
-    insert(ld);
+    insert(*children.next());
   }
 }
 

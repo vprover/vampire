@@ -122,27 +122,27 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
                                 ResultSubstitutionSP subs, Stack<Literal*> const& constraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
-  ASS(queryCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
+  ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
-  if(!ColorHelper::compatible(queryCl->color(),queryCl->color()) ) {
+  if(!ColorHelper::compatible(queryCl->color(),resultCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
       env.beginOutput();
-      env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<queryCl->toString()<<endl;
+      env.out() << "Blocked resolution of " << *queryCl << " and " << * resultCl << endl;
       env.endOutput();
     }
     if(opts.colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
       if(salg) {
         ColorHelper::tryUnblock(queryCl, salg);
-        ColorHelper::tryUnblock(queryCl, salg);
+        ColorHelper::tryUnblock(resultCl, salg);
       }
     }
     return 0;
   }
 
   unsigned clength = queryCl->length();
-  unsigned dlength = queryCl->length();
+  unsigned dlength = resultCl->length();
 
   // LRS-specific optimization:
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
@@ -150,11 +150,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
   unsigned wlb=0;//weight lower bound
   unsigned numPositiveLiteralsLowerBound = // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
-      Int::max(queryLit->isPositive() ? queryCl->numPositiveLiterals()-1 : queryCl->numPositiveLiterals(),
-              resultLit->isPositive() ? queryCl->numPositiveLiterals()-1 : queryCl->numPositiveLiterals());
+      Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
+              resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
   Inference inf(GeneratingInference2(constraints.isNonEmpty() ?
-      InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, queryCl));
+      InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, resultCl));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
@@ -167,7 +167,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       }
     }
     for(unsigned i=0;i<dlength;i++) {
-      Literal* curr=(*queryCl)[i];
+      Literal* curr=(*resultCl)[i];
       if(curr!=resultLit) {
         wlb+=curr->weight();
       }
@@ -227,15 +227,14 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   Literal* qrLitAfter = 0;
-  if (ord && queryCl->numSelected() > 1) {
+  if (ord && resultCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     qrLitAfter = subs->applyToResult(resultLit);
   }
 
   for(unsigned i=0;i<dlength;i++) {
-    Literal* curr=(*queryCl)[i];
+    Literal* curr=(*resultCl)[i];
     if(curr!=resultLit) {
-      DBGE(*curr)
       Literal* newLit = subs->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -246,7 +245,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
           return 0;
         }
       }
-      if (qrLitAfter && i < queryCl->numSelected()) {
+      if (qrLitAfter && i < resultCl->numSelected()) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
         Ordering::Result o = ord->compare(newLit,qrLitAfter);
@@ -259,7 +258,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
           return 0;
         }
       }
-
+      ASS_L(next, newLength)
       (*res)[next] = newLit;
       next++;
     }

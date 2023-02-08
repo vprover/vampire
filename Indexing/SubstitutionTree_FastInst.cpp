@@ -407,6 +407,9 @@ typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>:
     if(!ground) {
       Renaming normalizer;
       normalizer.normalizeVariables(ld->key());
+      if (ld->sort().isNonEmpty()) {
+        normalizer.normalizeVariables(ld->sort());
+      }
       _resultDenormalizer.makeInverse(normalizer);
     }
 

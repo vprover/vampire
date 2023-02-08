@@ -335,7 +335,6 @@ VarSpec RobSubstitution::root(VarSpec v) const
 bool RobSubstitution::occurs(VarSpec toFind, TermSpec ts)
 {
   toFind=root(toFind);
-  Recycled<Stack<TermSpec>> todo;
   if(ts.isVar()) {
     ts=derefBound(ts);
     if(ts.isVar()) {
@@ -344,6 +343,8 @@ bool RobSubstitution::occurs(VarSpec toFind, TermSpec ts)
   }
   typedef DHSet<VarSpec, VarSpec::Hash1, VarSpec::Hash2> EncounterStore;
   Recycled<EncounterStore> encountered;
+  Recycled<Stack<TermSpec>> todo;
+  todo->push(ts);
 
   while (todo->isNonEmpty()){
     auto ts = todo->pop();
@@ -455,6 +456,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     localBD.drop();
   }
 
+  // DBG(*this)
   return !mismatch;
 }
 
@@ -601,6 +603,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
 TermList RobSubstitution::apply(TermList trm, int index) const
 {
   CALL("RobSubstitution::apply(TermList...)");
+  // DBG(*this, ".apply(", TermSpec(trm, index), ")")
   
   auto out = evalBottomUp<TermList>(make_pair(TermSpec(trm, index).deref(this), this), 
       [&](auto& orig, TermList* args) -> TermList {
@@ -711,7 +714,10 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 
   return evalBottomUp<size_t>(make_pair(TermSpec(trm, index).deref(this), this), 
       [](auto& orig, size_t* sizes) 
-      { return 1 + range(0, orig.first.nAllArgs()).map([&](auto i) { return sizes[i]; }).sum(); });
+      { return orig.first.isVar() ? 1 
+                                  : (1 + range(0, orig.first.nAllArgs())
+                                           .map([&](auto i) { return sizes[i]; })
+                                           .sum()); });
 
   //
   // static Stack<TermList*> toDo(8);

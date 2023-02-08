@@ -242,6 +242,8 @@ public:
   }
 
 
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
   typedef VirtualIterator<LeafData*> LDIterator;
 
   template<class Unifier>
