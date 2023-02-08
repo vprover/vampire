@@ -235,7 +235,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=resultLit) {
-      DBGE(*curr)
       Literal* newLit = subs->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
