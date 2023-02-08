@@ -556,9 +556,29 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
   //  ansLitRemoved = true;
   //  Literal* al = cl->getAnswerLiteral();
   //  for (unsigned i = 0; i < numOfReplacements; ++i) {
-  //    if (replacements[i] && replacements[i]->contains(al)) {
+  //    if (replacements[i] && (replacements[i]->contains(al) || replacements[i]->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL)) {
   //      ansLitRemoved = false;
   //      break;
+  //    }
+  //  }
+  //  ClauseStack::Iterator pit(premStack);
+  //  while(pit.hasNext()){
+  //    Clause* premise = pit.next();
+  //    if (premise) {
+  //      bool containsAll = false;
+  //      if (premise->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL) {
+  //        containsAll = true;
+  //        for (unsigned i = 0; i < premise->length(); ++i) {
+  //          if (!cl->contains((*premise)[i])) {
+  //            containsAll = false;
+  //            break;
+  //          }
+  //        }
+  //      }
+  //      if (containsAll || premise->hasAnswerLiteral()) {
+  //        ansLitRemoved = false;
+  //        break;
+  //      }
   //    }
   //  }
   //}
@@ -1083,6 +1103,21 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         return false;
       }
     }
+  }
+  Clause* ansLitCl = cl;
+  if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+    ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
+  }
+  if (_answerLiteralManager) {
+    Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
+    if (reduced) {
+      ansLitCl = reduced;
+    }
+  }
+  if (ansLitCl != cl) {
+    addNewClause(ansLitCl);
+    onClauseReduction(cl, &ansLitCl, 1, 0);
+    return false;
   }
 
   //TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)

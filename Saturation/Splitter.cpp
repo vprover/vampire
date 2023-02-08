@@ -799,6 +799,26 @@ Clause* Splitter::getComponentClause(SplitLevel name) const
   return _db[name]->component;
 }
 
+Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
+  CALL("Splitter::reintroduceAvatarAssertions");
+  Inference inf(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl));
+  unsigned newLen = cl->length() + cl->splits()->size();
+  Clause* newCl = new(newLen) Clause(newLen, inf);
+  unsigned i = 0;
+  while (i < cl->length()) {
+    (*newCl)[i] = (*cl)[i];
+    i++;
+  }
+  SplitSet::Iterator sit(*cl->splits());
+  while (sit.hasNext()) {
+    SplitLevel nm = sit.next();
+    Clause* compCl = getComponentClause(nm);
+    ASS(compCl->length() == 1);
+    (*newCl)[i++] = Literal::complementaryLiteral((*compCl)[0]);
+  }
+  return newCl;
+}
+
 void Splitter::onAllProcessed()
 {
   CALL("Splitter::onAllProcessed");
@@ -1104,8 +1124,8 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
- // If this clause contains an answer literal then don't split it
-  if (cl->getAnswerLiteral() != nullptr) {
+ // If this clause contains an answer literal or is not computable, don't split it
+  if ((cl->getAnswerLiteral() != nullptr) || !cl->computable()) {
     return false;
   }
   if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
@@ -1473,7 +1493,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   ASS(cl);
 
   if(!premises.hasNext()) {
-    ASS(!replacement || cl->splits()==replacement->splits());
+    ASS(!replacement || cl->splits()==replacement->splits() || (cl->hasAnswerLiteral() && (replacement->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION || replacement->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL)));
     return;
   }
 
@@ -1573,25 +1593,30 @@ void Splitter::onNewClause(Clause* cl)
   //  RSTAT_CTR_INC("New Clause is a Component");
   //}
 
-  if(!cl->splits()) {
-    SplitSet* splits=getNewClauseSplitSet(cl);
-    assignClauseSplitSet(cl, splits);
-  }
-
-  if (env.colorUsed) {
-    SplitSet* splits = cl->splits();
-
-    Color color = cl->color();
-
-    SplitSet::Iterator it(*splits);
-    while(it.hasNext()) {
-      SplitLevel lv=it.next();
-      SplitRecord* sr=_db[lv];
-
-      color = static_cast<Color>(color | sr->component->color());
+  if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
+    // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)
+    assignClauseSplitSet(cl, SplitSet::getEmpty());
+  } else {
+    if(!cl->splits()) {
+      SplitSet* splits=getNewClauseSplitSet(cl);
+      assignClauseSplitSet(cl, splits);
     }
 
-    cl->updateColor(color);
+    if (env.colorUsed) {
+      SplitSet* splits = cl->splits();
+
+      Color color = cl->color();
+
+      SplitSet::Iterator it(*splits);
+      while(it.hasNext()) {
+        SplitLevel lv=it.next();
+        SplitRecord* sr=_db[lv];
+
+        color = static_cast<Color>(color | sr->component->color());
+      }
+
+      cl->updateColor(color);
+    }
   }
 
   ASS(allSplitLevelsActive(cl->splits()));  

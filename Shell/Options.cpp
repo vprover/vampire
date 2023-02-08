@@ -2272,7 +2272,6 @@ void Options::init()
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"answer_literal","from_proof","synthesis","off"});
     _questionAnswering.description="Determines whether (and how) we attempt to answer questions";
-    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(_splitting.is(notEqual(true))));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 

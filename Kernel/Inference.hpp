@@ -250,6 +250,8 @@ enum class InferenceRule : unsigned char {
   /** simplification eliminating variables by rewriting arithmetic equalities: e.g.: 6 = 3 x \/ L[x] => L[2] */
   GAUSSIAN_VARIABLE_ELIMINIATION,
   ARITHMETIC_SUBTERM_GENERALIZATION,
+  /* clause added after removing answer literal and saving it as a witness */
+  ANSWER_LITERAL_REMOVAL,
   /** the last simplifying inference marker --
     inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
@@ -462,6 +464,8 @@ enum class InferenceRule : unsigned char {
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
+  /* clause with literals added from AVATAR assertions of the parent */
+  AVATAR_ASSERTION_REINTRODUCTION,
 
   /** A (first-order) tautology generated on behalf of a decision procedure,
    * whose propositional counterpart becomes a conflict clause in a sat solver */
