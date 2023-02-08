@@ -390,19 +390,19 @@ SubstitutionTree::RSQueryResult SubstitutionTree::FastInstancesIterator::next()
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
-  LeafData& ld=_ldIterator.next();
+  auto ld = _ldIterator.next();
 
   if(_retrieveSubstitution) {
     _resultDenormalizer.reset();
     bool ground=_literalRetrieval
-	? ld.literal->ground()
-	: (ld.term.isTerm() && ld.term.term()->ground());
+        ? ld->literal->ground()
+        : (ld->term.isTerm() && ld->term.term()->ground());
     if(!ground) {
       Renaming normalizer;
       if(_literalRetrieval) {
-	normalizer.normalizeVariables(ld.literal);
+        normalizer.normalizeVariables(ld->literal);
       } else {
-	normalizer.normalizeVariables(ld.term);
+        normalizer.normalizeVariables(ld->term);
       }
       _resultDenormalizer.makeInverse(normalizer);
     }

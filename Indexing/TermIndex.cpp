@@ -53,7 +53,6 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
       ((TermSubstitutionTree*)&*_is)->handle(tt, lit, c, adding);
     }
   }
-  // DBGE(multiline(*((TermSubstitutionTree*)_is)))
 }
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)

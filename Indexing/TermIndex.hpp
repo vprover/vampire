@@ -31,8 +31,6 @@ public:
   CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
-  virtual ~TermIndex() {}
-
   TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
@@ -49,6 +47,8 @@ public:
   { return _is->getInstances(t, retrieveSubstitutions); }
 
 
+  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
+  { return out << *self._is; }
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 

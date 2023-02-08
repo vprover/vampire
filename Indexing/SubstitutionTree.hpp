@@ -248,17 +248,17 @@ public:
     TermList extraTerm;
 
   };
-  typedef VirtualIterator<LeafData&> LDIterator;
+  typedef VirtualIterator<LeafData*> LDIterator;
 
   template<class Unifier>
   struct QueryResult {
     LeafData const* data; 
     Unifier unif;
 
-    QueryResult(LeafData const& ld, Unifier unif) : data(&ld), unif(std::move(unif)) {}
+    QueryResult(LeafData const* ld, Unifier unif) : data(ld), unif(std::move(unif)) {}
   };
   template<class Unifier>
-  static QueryResult<Unifier>  queryResult(LeafData const& ld, Unifier unif) 
+  static QueryResult<Unifier>  queryResult(LeafData const* ld, Unifier unif) 
   { return QueryResult<Unifier>(ld, std::move(unif)); }
 
   template<class I> using QueryResultIter = VirtualIterator<QueryResult<typename I::Unifier>>;
@@ -806,12 +806,12 @@ public:
       return RSQueryResultIter::getEmpty();
     } else {
       return pvi(iterTraits(leaf->allChildren())
-        .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData ld) 
+        .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData* ld) 
           {
             ResultSubstitutionSP subs;
             if (retrieveSubstitutions) {
               renaming->_result->reset();
-              renaming->_result->normalizeVariables(SubtitutionTreeConfig<Query>::getKey(ld));
+              renaming->_result->normalizeVariables(SubtitutionTreeConfig<Query>::getKey(*ld));
               subs = resultSubst;
             }
             return queryResult(ld, subs);
@@ -1376,16 +1376,16 @@ public:
 
       ASS(!_clientBDRecording);
 
-      LeafData& ld=_ldIterator.next();
+      auto ld = _ldIterator.next();
       // TODO resolve this kinda messy bit
       if (_retrieveSubstitution) {
           Renaming normalizer;
           if(_literalRetrieval) {
-            normalizer.normalizeVariables(ld.literal);
+            normalizer.normalizeVariables(ld->literal);
           } else {
-            normalizer.normalizeVariables(ld.term);
-            if (ld.sort.isNonEmpty()) {
-              normalizer.normalizeVariables(ld.sort);
+            normalizer.normalizeVariables(ld->term);
+            if (ld->sort.isNonEmpty()) {
+              normalizer.normalizeVariables(ld->sort);
             }
           }
 
@@ -1394,8 +1394,6 @@ public:
           _clientBDRecording=true;
 
           _algo.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
-
-          _algo.unifier();
       }
 
       return queryResult(ld, _algo.unifier());

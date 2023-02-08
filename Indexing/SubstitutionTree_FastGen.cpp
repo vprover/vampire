@@ -276,14 +276,14 @@ SubstitutionTree::RSQueryResult SubstitutionTree::FastGeneralizationsIterator::n
 
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
-  LeafData& ld=_ldIterator.next();
+  auto ld = _ldIterator.next();
 
   if(_retrieveSubstitution) {
     _resultNormalizer->reset();
     if(_literalRetrieval) {
-      _resultNormalizer->normalizeVariables(ld.literal);
+      _resultNormalizer->normalizeVariables(ld->literal);
     } else {
-      _resultNormalizer->normalizeVariables(ld.term);
+      _resultNormalizer->normalizeVariables(ld->term);
     }
 
     return queryResult(ld,_subst.getSubstitution(&*_resultNormalizer));

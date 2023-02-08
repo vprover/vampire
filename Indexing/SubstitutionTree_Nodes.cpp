@@ -51,7 +51,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return pvi( LDList::RefIterator(_children) );
+    return pvi( iterTraits(LDList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   inline
   void insert(LeafData ld)
@@ -97,7 +97,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return pvi( LDSkipList::RefIterator(_children) );
+    return pvi( iterTraits(LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   void insert(LeafData ld) {
     CALL("SubstitutionTree::SListLeaf::insert");

@@ -70,7 +70,6 @@ SubstitutionTree::~SubstitutionTree()
 {
   CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iterCnt,0);
-
   delete _root;
 } // SubstitutionTree::~SubstitutionTree
 
@@ -574,8 +573,7 @@ void SubstitutionTree::Leaf::loadChildren(LDIterator children)
   CALL("SubstitutionTree::Leaf::loadClauses");
 
   while(children.hasNext()) {
-    LeafData ld=children.next();
-    insert(ld);
+    insert(*children.next());
   }
 }
 
