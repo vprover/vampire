@@ -30,6 +30,13 @@
 
 namespace Kernel {
 
+
+namespace PredLevels {
+  constexpr static int MIN_USER_DEF = 1; // equality has level 0, inequalities have level 1
+  constexpr static int EQ = 0;
+  constexpr static int INEQ = 0;
+};
+
 using namespace Shell;
 
 /**
