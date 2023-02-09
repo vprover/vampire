@@ -367,7 +367,6 @@ private:
   const bool _unsatCore;
   Stack<z3::expr> _assumptions;
 
-  char buffer[128];
   z3::context _context;
   z3::solver _solver;
   z3::model _model;

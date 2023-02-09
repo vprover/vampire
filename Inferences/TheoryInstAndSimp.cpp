@@ -94,7 +94,7 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTauto
   , _solver([&](){ 
       BYPASSING_ALLOCATOR; 
       return new Z3Interfacing(_naming, showZ3,   /* unsatCoresForAssumptions = */ generalisation, exportSmtlib); 
-    }())
+    }(), DeleteBypassingAllocator{})
   , _generalisation(generalisation)
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")
@@ -998,13 +998,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
 std::ostream& operator<<(std::ostream& out, Solution const& self) 
 { return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
-
-TheoryInstAndSimp::~TheoryInstAndSimp()
-{
-  CALL("~TheoryInstAndSimp")
-  BYPASSING_ALLOCATOR
-  delete _solver;
-}
 
 }
 

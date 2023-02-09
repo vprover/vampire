@@ -16,6 +16,7 @@
 #ifndef __TheoryInstAndSimp__
 #define __TheoryInstAndSimp__
 
+#include "Lib/Allocator.hpp"
 #if VZ3
 
 #include "Forwards.hpp"
@@ -49,8 +50,8 @@ public:
   CLASS_NAME(TheoryInstAndSimp);
   USE_ALLOCATOR(TheoryInstAndSimp);
 
-  ~TheoryInstAndSimp();
   TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
+  TheoryInstAndSimp(TheoryInstAndSimp&&) = default;
 
   TheoryInstAndSimp(Options& opts);
   TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib);
@@ -132,13 +133,19 @@ private:
     Term* freshConstant(SortId sort) ;
   };
 
+  struct DeleteBypassingAllocator {
+    template<class T>
+    void operator()(T* t) {
+      BYPASSING_ALLOCATOR
+      delete t;
+    };
+  };
+
   Splitter* _splitter;
   Options::TheoryInstSimp const _mode;
   bool const _thiTautologyDeletion;
   SAT2FO _naming;
-  volatile char padding00[1024];
-  Z3Interfacing* _solver;
-  volatile char padding01[1024];
+  unique_ptr<Z3Interfacing, DeleteBypassingAllocator> _solver;
   Map<SortId, bool> _supportedSorts;
   bool _generalisation;
   ConstantCache _instantiationConstants;
