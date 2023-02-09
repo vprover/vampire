@@ -15,6 +15,8 @@
 #ifndef __Z3Interfacing__
 #define __Z3Interfacing__
 
+#include "Lib/Allocator.hpp"
+#include <algorithm>
 #if VZ3
 
 /* an (imperfect and under development) version of tracing the Z3 interface
@@ -84,9 +86,9 @@ namespace ProblemExport {
 
   struct Smtlib {
     std::ofstream out;
-    z3::context& _context;
+    z3::context& _ctxt;
 
-    Smtlib(std::ofstream out, z3::context& context) : out(std::move(out)), _context(context) {}
+    Smtlib(std::ofstream out, z3::context& context) : out(std::move(out)), _ctxt(context) {}
     Smtlib(Smtlib &&) = default;
 
     void initialize();
@@ -112,19 +114,19 @@ namespace ProblemExport {
 
   struct ApiCalls {
     std::ofstream out;
-    z3::context& _context;
+    z3::context& _ctxt;
     Map<vstring, vstring> _escapedNames; // <- maps string -> unique string that can be used as c++ variable
     Map<vstring, Map<vstring, unsigned>> _escapePrefixes; // <- maps c++ variable prefix of _escapedNames -> strings that have been escaped to it
 
     Set<vstring> _predeclaredConstants; // <- c++ variable names of been declard using declare_const
     ApiCalls(ApiCalls &&) = default;
-    ApiCalls(std::ofstream out, z3::context& context) : out(std::move(out)), _context(context) {}
+    ApiCalls(std::ofstream out, z3::context& context) : out(std::move(out)), _ctxt(context) {}
 
     template<class Outputable>
-    vstring const& _escapeVarName(Outputable const& sym);
+    vstring _escapeVarName(Outputable const& sym);
 
-    vstring const& escapeVarName(z3::sort const& sym);
-    vstring const& escapeVarName(z3::symbol const& sym);
+    vstring escapeVarName(z3::sort const& sym);
+    vstring escapeVarName(z3::symbol const& sym);
 
 
     void initialize();
@@ -168,7 +170,7 @@ public:
   CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
 
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoreForAssumptions, vstring const& exportSmtlib);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoreForAssumptions, vstring const& exportSmtlib, Shell::Options::ProblemExportSyntax s = Shell::Options::ProblemExportSyntax::SMTLIB );
   Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoreForAssumptions, vstring const& exportSmtlib, Shell::Options::ProblemExportSyntax s = Shell::Options::ProblemExportSyntax::SMTLIB);
   ~Z3Interfacing();
 
@@ -367,7 +369,9 @@ private:
   const bool _unsatCore;
   Stack<z3::expr> _assumptions;
 
-  z3::context _context;
+  volatile char buffer[1024];
+  std::unique_ptr<z3::context, DeleteBypassingAllocator> _context;
+  volatile char buffer2[1024];
   z3::solver _solver;
   z3::model _model;
 

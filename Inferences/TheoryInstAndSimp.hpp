@@ -133,14 +133,6 @@ private:
     Term* freshConstant(SortId sort) ;
   };
 
-  struct DeleteBypassingAllocator {
-    template<class T>
-    void operator()(T* t) {
-      BYPASSING_ALLOCATOR
-      delete t;
-    };
-  };
-
   Splitter* _splitter;
   Options::TheoryInstSimp const _mode;
   bool const _thiTautologyDeletion;
