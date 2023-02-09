@@ -101,11 +101,11 @@ class AbstractingUnifier {
   Recycled<RobSubstitution> _subs;
   Recycled<UnificationConstraintStack> _constr;
   Option<BacktrackData&> _bd;
-  MismatchHandler* _uwa;
+  MismatchHandler const* _uwa;
   friend class RobSubstitution;
 public:
   // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
+  AbstractingUnifier(MismatchHandler const* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
   { }
 
   bool isRecording() { return _subs->bdIsRecording(); }

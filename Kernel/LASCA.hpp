@@ -678,11 +678,11 @@ namespace Kernel {
     LascaState(
           InequalityNormalizer normalizer,
           Ordering* const ordering,
-          Shell::Options::UnificationWithAbstraction const uwa
+          Shell::Options::UnificationWithAbstraction uwa
         )
       : normalizer(std::move(normalizer))
       , ordering(std::move(ordering))
-      , uwa(std::move(uwa)) {}
+      , uwa(uwa) {}
 
     std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
     { return std::make_tuple(IntegerConstantType(1), t); }
@@ -730,8 +730,10 @@ namespace Kernel {
   public:
     InequalityNormalizer normalizer;
     Ordering* const ordering;
-    Shell::Options::UnificationWithAbstraction const uwa;
+    UWAMismatchHandler uwa;
 
+    MismatchHandler      * uwaMode()       { return &uwa; }
+    MismatchHandler const* uwaMode() const { return &uwa; }
         
     // TODO move to LASCA.hpp
     template<class NumTraits>
@@ -1084,7 +1086,6 @@ namespace Kernel {
       }
     }
 
-    MismatchHandler* uwaMode() const;
   };
 
 #if VDEBUG
