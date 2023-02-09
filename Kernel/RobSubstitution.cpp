@@ -97,6 +97,10 @@ bool TermSpec::isTerm() const
 { return _self.match([](Appl const&)             { return true; },
                      [](OldTermSpec const& self) { return self.term.isTerm(); }); }
 
+bool TermSpec::isLiteral() const 
+{ return _self.match([](Appl const&)             { return false; },
+                     [](OldTermSpec const& self) { return self.term.term()->isLiteral(); }); }
+
 bool TermSpec::isSort() const 
 { return _self.match([](Appl const& a)           { return a.isSort(); },
                      [](OldTermSpec const& self) { return self.term.term()->isSort(); }); }

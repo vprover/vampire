@@ -66,7 +66,7 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LASCA1
+#define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
 shared_ptr<LascaState> state() 
 { 

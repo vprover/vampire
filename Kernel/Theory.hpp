@@ -531,6 +531,7 @@ public:
 
   bool isInterpretedEquality(Literal* lit);
   bool isInterpretedPredicate(Literal* lit, Interpretation itp);
+  bool isInterpretedPredicate(unsigned pred, Interpretation itp);
   bool isInterpretedPredicate(Literal* lit);
 
   bool isInterpretedFunction(unsigned func);
@@ -576,6 +577,7 @@ public:
   }
   bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
   bool tryInterpretConstant(unsigned functor, IntegerConstantType& res);
+  Option<IntegerConstantType> tryInterpretConstant(unsigned functor);
   /**
    * Try to interpret the term list as an rational constant. If it is an
    * rational constant, return true and save the constant in @c res, otherwise

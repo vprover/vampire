@@ -64,10 +64,10 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LASCA1
+#define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
 auto idxInequalityStrengthening(
-   Options::UnificationWithAbstraction mode = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction mode = Options::UnificationWithAbstraction::ALASCA1
     ) { 
   auto uwa = new UWAMismatchHandler(mode);
   return Stack<std::function<Indexing::Index*()>>{
@@ -77,7 +77,7 @@ auto idxInequalityStrengthening(
 }
 
 InequalityStrengthening testInequalityStrengthening(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) 
 { return InequalityStrengthening(testLascaState(uwa)); }
 

@@ -61,7 +61,7 @@ using namespace Inferences::LASCA;
 
 
 TermFactoring testTermFactoring(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     )
 { 
   return TermFactoring(testLascaState(uwa));

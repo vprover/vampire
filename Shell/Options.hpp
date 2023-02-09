@@ -225,10 +225,8 @@ public:
     GROUND,
     AC1,
     AC2,
-    LASCA1,
-    LASCA2,
-    LASCA3,
-    LASCA4,
+    ALASCA1,
+    ALASCA2,
   };
 
   enum class Induction : unsigned int {

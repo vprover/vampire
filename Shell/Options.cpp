@@ -1208,7 +1208,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::OFF,
-                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "ac1", "ac2", "irc1", "irc2", "irc3", "irc4"});
+                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "ac1", "ac2", "alasca1", "alasca2"});
     _unificationWithAbstraction.description=
         "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
         "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1219,7 +1219,8 @@ void Options::init()
         "- one_side_constant: only if one of s or t is an interpreted constant (e.g. a number)\n"
         "- all: always apply\n"
         "- ground: only if both s and t are ground\n"
-        "- irc*: versions for the alsca calculus\n"
+        "- alasca1: one side interpreted\n"
+        "- alasca2: one side interpreted\n"
         "- ac*: experimental versions only for testing \n"
         "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::INFERENCES);
@@ -1275,10 +1276,8 @@ void Options::init()
     // _lasca.onlyUsefulWith2(_evaluationMode.is(equal(EvaluationMode::POLYNOMIAL_FORCE)));
     _lasca.onlyUsefulWith2(_highSchool.is(equal(false)));
     _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(
-              equal(UnificationWithAbstraction::LASCA1)
-            , equal(UnificationWithAbstraction::LASCA2)
-            , equal(UnificationWithAbstraction::LASCA3)
-            , equal(UnificationWithAbstraction::LASCA4)
+              equal(UnificationWithAbstraction::ALASCA1)
+            , equal(UnificationWithAbstraction::ALASCA2)
             )));
 
     _lascaDemodulation  = BoolOptionValue("lasca_demodulation","la_demod",false);

@@ -63,10 +63,8 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LASCA1
-
 auto idxIsIntResolution(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
     [=]() { return new LascaIndex<IsIntResolution::Lhs>(new UWAMismatchHandler(uwa)); },
@@ -75,7 +73,7 @@ auto idxIsIntResolution(
 }
 
 IsIntResolution testIsIntResolution(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) 
 { return IsIntResolution(testLascaState(uwa)); }
 

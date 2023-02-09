@@ -100,7 +100,7 @@ QKbo& qkbo(bool rand = false) {
   CALL("qkbo(...)")
     
   auto out = new QKbo(KBO::testKBO(rand, /* qkboPrec */ true));
-  auto shared = testLascaState(Options::UnificationWithAbstraction::LASCA2, 
+  auto shared = testLascaState(Options::UnificationWithAbstraction::ALASCA2, 
     /* strongNormalization */ false, 
     /* ordering */ out);
   out->setState(shared);

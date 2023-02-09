@@ -112,6 +112,7 @@ public:
   }
 };
 
+
 // auto acIter(unsigned f, TermSpec t)
 // { return iterTraits(AcIter(f, t)); }
 
@@ -138,6 +139,20 @@ bool UWAMismatchHandler::canAbstract(TermSpec t1, TermSpec t2) const
     case Shell::Options::UnificationWithAbstraction::ALL:
     case Shell::Options::UnificationWithAbstraction::GROUND:
       return true;
+    case Shell::Options::UnificationWithAbstraction::ALASCA1: {
+      auto isAlascaInterpreted = [](auto t) {
+        if (t.isVar()) return false;
+        ASS(!t.isLiteral()) 
+        auto f = t.functor();
+        return forAnyNumTraits([&](auto numTraits) -> bool {
+            return numTraits.isAdd(f)
+                || numTraits.isNumeral(f)
+                || (numTraits.isMul(f)
+                    && (t.termArg(0).isTerm() && numTraits.isNumeral(t.termArg(0).functor())));
+        });
+      };
+      return isAlascaInterpreted(t1) || isAlascaInterpreted(t2);
+    }
     case Shell::Options::UnificationWithAbstraction::OFF:
       return false;
     case Shell::Options::UnificationWithAbstraction::AC1: 

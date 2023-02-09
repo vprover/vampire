@@ -146,6 +146,7 @@ public:
   bool isNormalVar()   const { return isVar() && !isSpecialVar(); }
 
   bool isTerm() const;
+  bool isLiteral() const;
   bool isSort() const;
   VarSpec varSpec() const;
   unsigned functor()   const;
