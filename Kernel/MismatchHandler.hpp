@@ -86,7 +86,7 @@ public:
 
   /** TODO document */
   virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier const* au,
+      AbstractingUnifier* au,
       TermSpec t1,
       TermSpec t2) const = 0;
 
@@ -147,11 +147,12 @@ public:
   //     AbstractingUnifier& constr) const final override;
 
   virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier const* au,
+      AbstractingUnifier* au,
       TermSpec t1,
       TermSpec t2) const final override;
 
   bool canAbstract(
+      AbstractingUnifier* au,
       TermSpec t1,
       TermSpec t2) const;
 
@@ -166,7 +167,7 @@ public:
   USE_ALLOCATOR(HOMismatchHandler);
 
   virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier const* au,
+      AbstractingUnifier* au,
       TermSpec t1,
       TermSpec t2) const final override;
 

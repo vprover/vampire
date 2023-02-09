@@ -116,42 +116,94 @@ public:
 // auto acIter(unsigned f, TermSpec t)
 // { return iterTraits(AcIter(f, t)); }
 
-bool UWAMismatchHandler::canAbstract(TermSpec t1, TermSpec t2) const 
+bool UWAMismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSpec t2) const 
 {
+  // DBG("canAbstract", make_pair(t1,t2))
+  if( ( t1.isTerm() && t1.isSort() ) 
+   || ( t2.isTerm() && t2.isSort() ) ) return false;
 
-  if(!(t1.isTerm() && t2.isTerm())) return false;
-  if(t1.isSort() || t2.isSort()) return false;
-
-  bool t1Interp = isInterpreted(t1.functor());
-  bool t2Interp = isInterpreted(t2.functor());
   bool bothNumbers = t1.isNumeral() && t2.isNumeral();
+
+  auto isAlascaInterpreted = [](auto t) {
+    if (t.isVar()) return false;
+    ASS(!t.isLiteral()) 
+    auto f = t.functor();
+    return forAnyNumTraits([&](auto numTraits) -> bool {
+        return numTraits.isAdd(f)
+            || numTraits.isNumeral(f)
+            || (numTraits.isMul(f)
+                && (t.termArg(0).isTerm() && numTraits.isNumeral(t.termArg(0).functor())));
+    });
+  };
 
   switch(_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
-      return (t1Interp && t2Interp && !bothNumbers);
+      if(!(t1.isTerm() && t2.isTerm())) return false;
+      return (isInterpreted(t1.functor()) && isInterpreted(t2.functor()) && !bothNumbers);
     case Shell::Options::UnificationWithAbstraction::ONE_INTERP:
-      return !bothNumbers && (t1Interp || t2Interp);
-      break;
+      if(!(t1.isTerm() && t2.isTerm())) return false;
+      return !bothNumbers && (isInterpreted(t1.functor()) || isInterpreted(t2.functor()));
     case Shell::Options::UnificationWithAbstraction::CONSTANT:
-      return !bothNumbers && (t2Interp || t2Interp)
-            && (t1Interp || t1.nTermArgs())
-            && (t2Interp || t2.nTermArgs());
+      if(!(t1.isTerm() && t2.isTerm())) return false;
+      return !bothNumbers && (isInterpreted(t1.functor()) || isInterpreted(t2.functor()))
+            && (isInterpreted(t1.functor()) || t1.nTermArgs())
+            && (isInterpreted(t2.functor()) || t2.nTermArgs());
     case Shell::Options::UnificationWithAbstraction::ALL:
     case Shell::Options::UnificationWithAbstraction::GROUND:
+      if(!(t1.isTerm() && t2.isTerm())) return false;
       return true;
-    case Shell::Options::UnificationWithAbstraction::ALASCA1: {
-      auto isAlascaInterpreted = [](auto t) {
-        if (t.isVar()) return false;
-        ASS(!t.isLiteral()) 
-        auto f = t.functor();
-        return forAnyNumTraits([&](auto numTraits) -> bool {
-            return numTraits.isAdd(f)
-                || numTraits.isNumeral(f)
-                || (numTraits.isMul(f)
-                    && (t.termArg(0).isTerm() && numTraits.isNumeral(t.termArg(0).functor())));
+    case Shell::Options::UnificationWithAbstraction::ALASCA1: 
+      return isAlascaInterpreted(t1) || isAlascaInterpreted(t2);
+    case Shell::Options::UnificationWithAbstraction::ALASCA2: {
+
+        TIME_TRACE("unification with abstraction ALASCA2")
+        // TODO get rid of globalState
+        auto shared = LascaState::globalState;
+
+        if (t1.isVar() && t2.isVar()) return true;
+        TermSpec sort;
+        if (t1.isTerm() && t2.isTerm()) {
+          sort = t1.sort();
+          if (t2.sort().old().term != sort.old().term) {
+            return false;
+          }
+
+        } else {
+          sort = t1.isTerm() ? t1.sort() : t2.sort();
+        }
+        ASS(!t1.isLiteral())
+        ASS(!t2.isLiteral())
+
+        if (!isAlascaInterpreted(t1) && !isAlascaInterpreted(t2))
+          return false;
+
+        auto canAbstract = forAnyNumTraits([&](auto numTraits) {
+            if (numTraits.sort() == sort.old().term) {
+                // TODO get rid of toTerm here
+                auto a1 = shared->signedAtoms<decltype(numTraits)>(t1.toTerm(au->subs()));
+                auto a2 = shared->signedAtoms<decltype(numTraits)>(t2.toTerm(au->subs()));
+
+                if (a1.isNone() || a2.isNone()) 
+                  return Option<bool>(true);
+
+                // we have s or t being a sum `k x + ... `
+                if (concatIters(a1.unwrap().elems.iter(), a2.unwrap().elems.iter())
+                       .any([&](auto& x) { return get<0>(x).term.isVar(); }))
+                  return Option<bool>(true);
+
+                return Option<bool>(Ordering::Result::EQUAL == OrderingUtils2::weightedMulExt(
+                    a1.unwrap(),
+                    a2.unwrap(),
+                    [](auto& l, auto& r) { return (l.sign == r.sign && l.term.term()->functor() == r.term.term()->functor())
+                      ? Ordering::Result::EQUAL
+                      : Ordering::Result::INCOMPARABLE; }));
+            } else {
+                return Option<bool>();
+            }
         });
-      };
-      return isAlascaInterpreted(t1) || isAlascaInterpreted(t2);
+
+        return canAbstract.unwrap();
+
     }
     case Shell::Options::UnificationWithAbstraction::OFF:
       return false;
@@ -186,10 +238,11 @@ bool UWAMismatchHandler::canAbstract(TermSpec t1, TermSpec t2) const
 // std::ostream& operator<<(std::ostream& out, TermSpec const& self)
 // { return out << self._term << "/" << self._index << *self._subs; }
 
-Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(AbstractingUnifier const* au, TermSpec t1, TermSpec t2) const
+Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(AbstractingUnifier* au, TermSpec t1, TermSpec t2) const
 {
   CALL("UWAMismatchHandler::checkUWA");
   using Uwa = Shell::Options::UnificationWithAbstraction;
+#define DEBUG_UWA(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 
 
   // TODO add parameter instead of reading from options
@@ -241,8 +294,8 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
 
 
   } else {
-    auto abs = canAbstract(t1, t2);
-    DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
+    auto abs = canAbstract(au, t1, t2);
+    DEBUG_UWA(1, "canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
         return AbstractionResult(EqualIf(
               {},
@@ -253,7 +306,7 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
 }
 
 Option<MismatchHandler::AbstractionResult> HOMismatchHandler::tryAbstract(
-    AbstractingUnifier const* au, 
+    AbstractingUnifier* au, 
     TermSpec t1, TermSpec t2) const
 {
   CALL("HOMismatchHandler::tryAbstract")

@@ -147,6 +147,7 @@ public:
 
   bool isTerm() const;
   bool isLiteral() const;
+  TermSpec sort() const;
   bool isSort() const;
   VarSpec varSpec() const;
   unsigned functor()   const;

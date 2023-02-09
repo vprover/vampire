@@ -147,6 +147,10 @@ TermList TermSpec::toTerm(RobSubstitution& s) const
 { return _self.match([&](Appl const& a)           { return TermList(Term::createFromIter(a.functor, iterTraits(a.args.iterFifo()).map([&](auto t) { return t.toTerm(s); }))); },
                      [&](OldTermSpec const& self) { return s.apply(self.term, self.index); }); }
 
+TermSpec TermSpec::sort() const
+{ return _self.match([&](Appl const& a)           -> TermSpec { ASSERTION_VIOLATION_REP("TODO: tricky because of polymorphism...") },
+                     [&](OldTermSpec const& self) -> TermSpec { return TermSpec(SortHelper::getResultSort(self.term.term()), self.index); }); }
+
 
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
