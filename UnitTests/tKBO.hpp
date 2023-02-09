@@ -18,7 +18,7 @@
 
 inline DArray<int> predLevels() {
   DArray<int> out(env.signature->predicates());
-  out.init(out.size(), 1);
+  out.init(out.size(), PredLevels::EQ);
   return out;
 }
 
