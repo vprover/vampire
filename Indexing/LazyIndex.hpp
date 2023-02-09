@@ -21,55 +21,178 @@
 
 namespace Indexing {
 
-class LazyIndex {
+/**
+ * A compact representation of positions within terms.
+ *
+ * Each position `p.n` is represented by an index into `_entries`.
+ * The corresponding entry tracks its parent `p`, argument `n` and children.
+ * The empty term is index 0, with parent and argument 0
+ */
+class Positions {
 public:
-  LazyIndex() :
-    _substitution(new RobSubstitution),
-    substitution(ResultSubstitution::fromSubstitution(_substitution, 0, 1))
-  {}
-  ~LazyIndex() { delete _substitution; }
+  Positions() { _entries.push(Entry(0, 0)); }
 
-  void insert(TermList t);
+  // get the integer representing `p.n`
+  unsigned child(unsigned parent, unsigned argument);
+  // if child is `p.n`, return `p`
+  unsigned parent(unsigned child) { return _entries[child].parent; }
+  // if child is `p.n`, return `n`
+  unsigned argument(unsigned child) { return _entries[child].argument; }
+
+  /**
+  * retrieve the sub-term of `term` at `position`
+  *
+  * special cases:
+  * - returns a variable if below said variable
+  * - returns an empty term if position does not exist in the term
+  */
+  TermList term_at(TermList term, unsigned position);
 
 private:
-  struct Node {
-    Stack<TermList> terms;
+  /**
+   * Data representing a position.
+   */
+  struct Entry {
+    Entry(unsigned parent, unsigned argument) : parent(parent), argument(argument) {}
+    // if a position is `p.n`, `p`
+    unsigned parent;
+    // if a position is `p.n`, `n`
+    unsigned argument;
+    // positions of the form `p.n.m`
+    Stack<unsigned> children;
   };
 
-  struct Position {
-    Node &node;
-    unsigned index;
+  // all positions seen so far
+  Stack<Entry> _entries;
+};
+
+/**
+ * A lazy term index.
+ *
+ * Essentially just a set of `TermList`, use e.g. `LazyTermIndex` for a higher-level interface.
+ */
+class LazyIndex {
+public:
+  // An empty index
+  LazyIndex() :
+    _substitution(new RobSubstitution),
+    substitution(ResultSubstitution::fromSubstitution(_substitution, 0, 1)) {}
+
+  // insert `t` into the index, very lazily
+  void insert(TermList t) { _root.immediate.push(t); }
+
+  // reasons that a candidate term might not satisfy a query
+  enum class Reason {
+    // no reason could be determined
+    NO_REASON,
+    // the candidate and the query have different function symbols at a position
+    MISMATCH
   };
 
-  Node _root;
+  // try and explain why `candidate` does not satisfy `query`
+  Reason explain(TermList query, TermList candidate);
+
+  /**
+   * if `explain(query, candidate)` returned `MISMATCH`:
+   * - `mismatch_position` is one position where they differ
+   * - `mismatch_candidate_functor` is the candidate's functor at `mismatch_position`
+   */
+  unsigned mismatch_position, mismatch_candidate_functor;
+
+private:
+  // forward decl for mutually-recursive struct
+  struct FunctorAt;
+
+  // the basic tree type, stores terms and sub-trees constraining terms
+  struct Branch {
+    // move-only structure, should never need copying
+    Branch() = default;
+    Branch(Branch &&) = default;
+    Branch &operator=(Branch &&) = default;
+
+    // the terms stored at this node
+    Stack<TermList> immediate;
+
+    // subtrees where terms have a known functor at a position
+    DHMap<unsigned, FunctorAt> positions;
+  };
+
+  // represents a choice of known functors at a position
+  struct FunctorAt {
+    // move-only structure, should never need copying
+    FunctorAt() = default;
+    FunctorAt(FunctorAt &&) = default;
+    FunctorAt &operator=(FunctorAt &&) = default;
+
+    // functors at this position
+    DHMap<unsigned, Branch> functors;
+  };
+
+  // the root of the indexing tree
+  Branch _root;
+  // all positions seen so far
+  Positions _positions;
+  // an underlying substitution object for `substitution`
   RobSubstitution *_substitution;
 
 public:
+  // if an `Iterator` just returned `candidate`, this is the unifier of `query` and `candidate`
   ResultSubstitutionSP substitution;
 
-  class Iterator {
+  /**
+   * Iterate over terms in an index that match a given query
+   */
+  class QueryIterator {
   public:
     DECL_ELEMENT_TYPE(TermList);
 
-    Iterator(LazyIndex &index, TermList query) : _substitution(*index._substitution), _query(query) {
-      std::cout << "query: " << query.toString() << std::endl;
-      _positions.push({
-        .node = index._root,
-        .index = 0
-      });
+    QueryIterator(LazyIndex &index, TermList query) : _index(index), _query(query) {
+      _todo.push(Iteration(index._root));
+#if VDEBUG
+      _next.makeEmpty();
+#endif
     }
 
     bool hasNext();
     TermList next() { return _next; }
 
-
   private:
-    Stack<Position> _positions;
-    RobSubstitution &_substitution;
-    TermList _next, _query;
+    // dummy to allow empty iterators
+    static DHMap<unsigned, Branch> EMPTY_BRANCH_MAP;
+
+    // keep track of how far we have made it through a certain `branch`
+    struct Iteration {
+      Iteration(Branch &branch) :
+        branch(branch),
+        immediate(branch.immediate),
+        branches(EMPTY_BRANCH_MAP),
+        functors(branch.positions)
+      {
+      }
+      // the branch we're iterating over
+      Branch &branch;
+      // the terms stored in the branch we should consider first
+      Stack<TermList>::Iterator immediate;
+      // child branches we should consider next
+      DHMap<unsigned, Branch>::Iterator branches;
+      // positions we should consider after that
+      DHMap<unsigned, FunctorAt>::Iterator functors;
+    };
+
+    // the index we're querying
+    LazyIndex &_index;
+    // the query term
+    TermList _query;
+    // a stack of partially-iterated branches
+    Stack<Iteration> _todo;
+    // found a suitable term, will be returned by `next()`
+    TermList _next;
   };
 };
 
+/**
+ * Wrapper around `LazyIndex` for term indexing
+ */
 class LazyTermIndex: public TermIndexingStructure {
 public:
   CLASS_NAME(LazyTermIndex);
@@ -93,13 +216,16 @@ public:
 #endif
 
 private:
+  // the underlying index
   LazyIndex _index;
 
+  // what we store in the index, could be custom data in future
   struct Entry {
     Literal *literal;
     Clause *clause;
   };
 
+  // map from indexed terms to one or more `Entry`s
   DHMap<TermList, Stack<Entry>> _entries;
 };
 
