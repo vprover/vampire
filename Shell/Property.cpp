@@ -453,6 +453,7 @@ void Property::scan(Formula* f, int polarity)
 
         TermList s;
         while(vit.hasNext()){
+          env->checkTimeSometime<1>();
           int v = vit.next();
           if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
             if(s.isTerm() && s.term()->isSuper()){
@@ -473,6 +474,7 @@ void Property::scan(Formula* f, int polarity)
 
         TermList s;
         while(vit.hasNext()){
+          env->checkTimeSometime<1>();
           int v = vit.next();
           if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
             if(s.isTerm() && s.term()->isSuper()){

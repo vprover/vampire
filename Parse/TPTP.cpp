@@ -122,6 +122,7 @@ void TPTP::parse()
   _lineNumber = 1;
   _states.push(UNIT_LIST);
   while (!_states.isEmpty()) {
+    env->checkTimeSometime<64>();
     State s = _states.pop();
 #ifdef DEBUG_SHOW_STATE
     cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
