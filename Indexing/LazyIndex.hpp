@@ -16,6 +16,7 @@
 #define __LazyIndex__
 
 #include "TermIndexingStructure.hpp"
+#include "LiteralIndexingStructure.hpp"
 
 #include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
@@ -82,7 +83,7 @@ public:
     substitution(ResultSubstitution::fromSubstitution(_substitution, 0, 1)) {}
 
   // insert `t` into the index, very lazily
-  void insert(TermList t) { _root.immediate.push(t); }
+  void insert(TermList t);
 
   // remove `t` from the index, very lazily
   void remove(TermList t) { _remove.insert(t); }
@@ -257,6 +258,35 @@ private:
   // map from indexed terms to one or more `Entry`s
   DHMap<TermList, DHSet<Entry>> _entries;
 };
+
+class LazyLiteralIndex: public LiteralIndexingStructure {
+public:
+  CLASS_NAME(LazyLiteralIndex);
+  USE_ALLOCATOR(LazyLiteralIndex);
+  void insert(Literal* lit, Clause* cls) override;
+  void remove(Literal* lit, Clause* cls) override;
+
+  SLQueryResultIterator getAll() override { NOT_IMPLEMENTED; }
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override;
+  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+
+#if VDEBUG
+  vstring toString() override { NOT_IMPLEMENTED; }
+  void markTagged() override { NOT_IMPLEMENTED; }
+#endif
+
+private:
+  // the underlying indices, one for each polarity
+  LazyIndex _indices[2];
+
+  // map from indexed literals to one or more clauses
+  DHMap<Literal *, DHSet<Clause *>> _entries;
+};
+
+
 
 } //namespace Indexing
 

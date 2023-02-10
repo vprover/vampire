@@ -112,7 +112,8 @@ Index* IndexManager::create(IndexType t)
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree(useConstraints);
+    //is=new LiteralSubstitutionTree(useConstraints);
+    is=new LazyLiteralIndex;
     res=new BinaryResolutionIndex(is);
     isGenerating = true;
     break;

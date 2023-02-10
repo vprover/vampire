@@ -19,14 +19,13 @@ namespace Indexing {
 
 unsigned Positions::child(unsigned parent, unsigned argument) {
   CALL("Positions::child");
-  Entry &entry = _entries[parent];
-  while(entry.children.size() <= argument) {
+  while(_entries[parent].children.size() <= argument) {
     unsigned child = _entries.size();
-    unsigned argument = entry.children.size();
+    unsigned argument = _entries[parent].children.size();
     _entries.push(Entry(parent, argument));
-    entry.children.push(child);
+    _entries[parent].children.push(child);
   }
-  return entry.children[argument];
+  return _entries[parent].children[argument];
 }
 
 static Stack<unsigned> arguments;
@@ -55,6 +54,12 @@ TermList Positions::term_at(TermList term, unsigned position) {
   }
 
   return term;
+}
+
+void LazyIndex::insert(TermList t) {
+  CALL("LazyIndex::insert")
+  if(!_remove.remove(t))
+    _root.immediate.push(t);
 }
 
 struct Unify {
@@ -216,6 +221,45 @@ TermQueryResultIterator LazyTermIndex::getUnifications(TermList query, bool retr
         }
       ));
   }));
+}
+
+void LazyLiteralIndex::insert(Literal* lit, Clause* cls) {
+  CALL("LazyLiteralIndex::insert(Literal *, Clause *)")
+
+  DHSet<Clause *> *entry;
+  if(_entries.getValuePtr(lit, entry))
+    _indices[lit->polarity()].insert(TermList(lit));
+
+  entry->insert(cls);
+}
+
+void LazyLiteralIndex::remove(Literal *lit, Clause *cls) {
+  CALL("LazyLiteralIndex::remove")
+
+  DHSet<Clause *> &entry = _entries.get(lit);
+  entry.remove(cls);
+  if(entry.isEmpty()) {
+    _entries.remove(lit);
+    _indices[lit->polarity()].remove(TermList(lit));
+  }
+}
+
+SLQueryResultIterator LazyLiteralIndex::getUnifications(Literal* query, bool complementary, bool retrieveSubstitutions) {
+  CALL("LazyLiteralIndex::getUnifications(Literal *, bool, bool)")
+
+  LazyIndex &index = _indices[query->polarity() ^ complementary];
+  return pvi(getMapAndFlattenIterator(
+    LazyIndex::QueryIterator(index, TermList(query)),
+    [this, &index](TermList result_term) {
+      Literal *result = static_cast<Literal *>(result_term.term());
+      return pvi(getMappingIterator(
+        DHSet<Clause *>::Iterator(_entries.get(result)),
+        [&index, result](Clause *clause) {
+          return SLQueryResult(result, clause, index.substitution);
+        }
+      ));
+  }));
+
 }
 
 } //namespace Indexing
