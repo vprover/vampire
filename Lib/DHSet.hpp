@@ -41,6 +41,13 @@ public:
   CLASS_NAME(DHSet);
   USE_ALLOCATOR(DHSet);
 
+  DHSet() = default;
+  DHSet(DHSet &&) = default;
+  DHSet &operator=(DHSet &&) = default;
+
+  // TODO is this really what you want?
+  DHSet(const DHSet &) = default;
+
   /** Empty the DHSet */
   void reset()
   {
@@ -171,6 +178,7 @@ public:
   class Iterator
   {
   public:
+    DECL_ELEMENT_TYPE(Val);
     Iterator(const DHSet& parent) : _mit(parent._map) {}
 
     bool hasNext() { return _mit.hasNext(); }

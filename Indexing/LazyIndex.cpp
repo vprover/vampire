@@ -110,6 +110,11 @@ new_branch:
     while(iteration.immediate.hasNext()) {
       TermList candidate = iteration.immediate.next();
 
+      if(_index._remove.remove(candidate)) {
+        iteration.immediate.del();
+        continue;
+      }
+
       RobSubstitution &substitution = *_index._substitution;
       substitution.reset();
       if(substitution.unify(_query, 0, candidate, 1)) {
@@ -137,16 +142,27 @@ new_branch:
     }
 
 new_branches:
-    if(iteration.branches.hasNext()) {
-      unsigned functor;
-      Branch &branch = iteration.branches.nextRef(functor);
+    while(iteration.branches.hasNext()) {
+      Branch &branch = iteration.branches.nextRef();
+
+      if(branch.isEmpty()) {
+        iteration.branches.del();
+        continue;
+      }
+
       _todo.push(Iteration(branch));
       goto new_branch;
     }
 
-    if(iteration.functors.hasNext()) {
+    while(iteration.functors.hasNext()) {
       unsigned position;
       FunctorAt &functor_at = iteration.functors.nextRef(position);
+
+      if(functor_at.isEmpty()) {
+        iteration.functors.del();
+        continue;
+      }
+
       TermList subterm = _index._positions.term_at(_query, position);
       if(subterm.isVar()) {
         ::new(&iteration.branches) decltype(iteration.branches)(functor_at.functors);
@@ -170,26 +186,21 @@ new_branches:
 
 void LazyTermIndex::insert(TermList t, Literal* lit, Clause* cls) {
   CALL("LazyTermIndex::insert(TermList, Literal *, Clause *)")
-  Stack<Entry> *entry;
+  DHSet<Entry> *entry;
   if(_entries.getValuePtr(t, entry))
     _index.insert(t);
 
-  entry->push({
-    .literal = lit,
-    .clause = cls
-  });
+  entry->insert({ .literal = lit, .clause = cls });
 }
 
 void LazyTermIndex::remove(TermList t, Literal *lit, Clause *cls) {
   CALL("LazyTermIndex::remove")
-  Stack<Entry> &entries = _entries.get(t);
-  for(unsigned i = 0; i < entries.size(); i++)
-    // TODO check if entry is empty and remove from _index
-    if(entries[i].literal == lit && entries[i].clause == cls) {
-      std::swap(entries[i--], entries[entries.size() - 1]);
-      entries.pop();
-      return;
-    }
+  DHSet<Entry> &entries = _entries.get(t);
+  entries.remove({ .literal = lit, .clause = cls });
+  if(entries.isEmpty()) {
+    _entries.remove(t);
+    _index.remove(t);
+  }
 }
 
 TermQueryResultIterator LazyTermIndex::getUnifications(TermList query, bool retrieveSubstitutions) {
@@ -199,7 +210,7 @@ TermQueryResultIterator LazyTermIndex::getUnifications(TermList query, bool retr
     LazyIndex::QueryIterator(_index, query),
     [this](TermList result) {
       return pvi(getMappingIterator(
-        _entries.get(result).iter(),
+        DHSet<Entry>::Iterator(_entries.get(result)),
         [this, result](Entry entry) {
           return TermQueryResult(result, entry.literal, entry.clause, _index.substitution);
         }

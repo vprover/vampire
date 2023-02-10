@@ -16,7 +16,10 @@
 #define __LazyIndex__
 
 #include "TermIndexingStructure.hpp"
+
+#include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 namespace Indexing {
@@ -81,6 +84,9 @@ public:
   // insert `t` into the index, very lazily
   void insert(TermList t) { _root.immediate.push(t); }
 
+  // remove `t` from the index, very lazily
+  void remove(TermList t) { _remove.insert(t); }
+
   // reasons that a candidate term might not satisfy a query
   enum class Reason {
     // no reason could be determined
@@ -115,6 +121,9 @@ private:
 
     // subtrees where terms have a known functor at a position
     DHMap<unsigned, FunctorAt> positions;
+
+    // is this an empty node suitable for deletion?
+    bool isEmpty() { return immediate.isEmpty() && positions.isEmpty(); }
   };
 
   // represents a choice of known functors at a position
@@ -126,6 +135,9 @@ private:
 
     // functors at this position
     DHMap<unsigned, Branch> functors;
+
+    // is this an empty node suitable for deletion?
+    bool isEmpty() { return functors.isEmpty(); }
   };
 
   // the root of the indexing tree
@@ -134,6 +146,9 @@ private:
   Positions _positions;
   // an underlying substitution object for `substitution`
   RobSubstitution *_substitution;
+
+  // terms that we should remove, but haven't actually removed yet
+  DHSet<TermList> _remove;
 
 public:
   // if an `Iterator` just returned `candidate`, this is the unifier of `query` and `candidate`
@@ -166,17 +181,16 @@ public:
         branch(branch),
         immediate(branch.immediate),
         branches(EMPTY_BRANCH_MAP),
-        functors(branch.positions)
-      {
-      }
+        functors(branch.positions) {}
+
       // the branch we're iterating over
       Branch &branch;
       // the terms stored in the branch we should consider first
       Stack<TermList>::Iterator immediate;
       // child branches we should consider next
-      DHMap<unsigned, Branch>::Iterator branches;
+      DHMap<unsigned, Branch>::DelIterator branches;
       // positions we should consider after that
-      DHMap<unsigned, FunctorAt>::Iterator functors;
+      DHMap<unsigned, FunctorAt>::DelIterator functors;
     };
 
     // the index we're querying
@@ -223,10 +237,25 @@ private:
   struct Entry {
     Literal *literal;
     Clause *clause;
+
+    bool operator==(const Entry &other) const {
+      return literal == other.literal && clause == other.clause;
+    }
+    bool operator!=(const Entry &other) const {
+      return !operator==(other);
+    }
+
+    unsigned defaultHash() const {
+      return DefaultHash::hash(literal, DefaultHash::hash(clause));
+    }
+
+    unsigned defaultHash2() const {
+      return HashUtils::combine(DefaultHash2::hash(literal), DefaultHash2::hash(clause));
+    }
   };
 
   // map from indexed terms to one or more `Entry`s
-  DHMap<TermList, Stack<Entry>> _entries;
+  DHMap<TermList, DHSet<Entry>> _entries;
 };
 
 } //namespace Indexing
