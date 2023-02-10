@@ -30,6 +30,7 @@
 #include "Lib/Environment.hpp"
 
 #include "Unit.hpp"
+#include "TermIterators.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 
@@ -120,29 +121,26 @@ public:
     unsigned _numNegEq;
     unsigned _numPosNeq;
     unsigned _numNegNeq;
-    unsigned _numPosTwoVarEq;
-    unsigned _numNegTwoVarEq;
+    unsigned _numVarOcc;
+    unsigned _numDistinctVar;
 
   public:
-    static constexpr const unsigned NUM_FEATURES = 12;
+    static constexpr const unsigned NUM_FEATURES = 14;
 
     FeatureIterator(Clause* cl) :
       _cl(cl), _featureId(0),
       _numPosEq(0), _numNegEq(0), _numPosNeq(0), _numNegNeq(0),
-      _numPosTwoVarEq(0), _numNegTwoVarEq(0)
-    {
-      CALL("FeatureIterator::FeatureIterator");
+      _numVarOcc(0), _numDistinctVar(0) { }
 
-      for (unsigned i = 0; i < cl->length(); i++) {
-        Literal* l = (*cl)[i];
+    void computeGeneralizedLengthAndVarOcc() {
+      for (unsigned i = 0; i < _cl->length(); i++) {
+        Literal* l = (*_cl)[i];
+        _numVarOcc += l->numVarOccs();
         if (l->isPositive()) {
           if (l->isEquality()) {
             _numPosEq++;
           } else {
             _numPosNeq++;
-          }
-          if (l->isTwoVarEquality()) {
-            _numPosTwoVarEq++;
           }
         } else {
           if (l->isEquality()) {
@@ -150,11 +148,19 @@ public:
           } else {
             _numNegNeq++;
           }
-          if (l->isTwoVarEquality()) {
-            _numNegTwoVarEq++;
-          }
         }
       }
+    }
+
+    void computeDistinctVars() {
+      Set<unsigned> vars;
+      for (unsigned i = 0; i < _cl->length(); i++) {
+        VariableIterator vit((*_cl)[i]);
+        while (vit.hasNext()) {
+          vars.insert(vit.next().var());
+        }
+      }
+      _numDistinctVar = vars.size();
     }
 
     bool hasNext() {
@@ -167,29 +173,33 @@ public:
       // TODO: could add, e.g., a one hot encoding of the deriving inference rules
 
       switch (_featureId++) {
-        // generalized length
-        case 0:
-          return _numPosEq;
-        case 1:
-          return _numNegEq;
-        case 2:
-          return _numPosNeq;
-        case 3:
-          return _numNegNeq;
-        case 4:
-          return _numPosTwoVarEq;
-        case 5:
-          return _numNegTwoVarEq;
-
         // good old AW
-        case 6:
+        case 0:
           return _cl->age();
-        case 7:
+        case 1:
           return _cl->weight();
 
         // a bit of AVATAR
-        case 8:
+        case 2:
           return _cl->splitWeight();
+
+        // generalized length
+        case 3:
+          computeGeneralizedLengthAndVarOcc();
+          return _numPosEq;
+        case 4:
+          return _numNegEq;
+        case 5:
+          return _numPosNeq;
+        case 6:
+          return _numNegNeq;
+
+        case 7:
+          return _numVarOcc;
+        case 8:
+          return (double)_numVarOcc/(double)_cl->weight();
+
+        // CAREFUL: check in Preprocess.cpp the lines relavant to initializing the sine levels when changing the feature codes
 
         // SineLevels
         case 9:  // redundant: the same as SineLevel == 0
@@ -205,6 +215,13 @@ public:
             ASS_G(env.maxSineLevel,2);
             return (0.5 * inf.getSineLevel()) / (env.maxSineLevel - 2);
           }
+
+        case 12:
+          computeDistinctVars();
+          return _numDistinctVar;
+        case 13:
+          return (double)_numDistinctVar/(double)_cl->weight();
+
         default:
           ASSERTION_VIOLATION;
 

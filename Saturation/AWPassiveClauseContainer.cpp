@@ -179,18 +179,15 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
     // argument 1 - the clause id
     inputs.push_back((int64_t)cl->number());
 
+    std::vector<double> features(_opt.numNeuralFeatures());
+    unsigned i = 0;
     Clause::FeatureIterator it(cl);
-
-    // argument 2 - a tuple of doubles, the features
-    auto tuple = std::tuple<double,double,double,double,
-                            double,double,double,double,
-                            double,double,double,double>{ // with curly, the order is guaranteed left-to-right (I hope)
-      it.next(),it.next(),it.next(),it.next(),
-      it.next(),it.next(),it.next(),it.next(),
-      it.next(),it.next(),it.next(),it.next()
-    };
-    static_assert(std::tuple_size<decltype(tuple)>::value == Clause::FeatureIterator::NUM_FEATURES,"Did I forget a feature?");
-    inputs.push_back(tuple);
+    while (i < _opt.numNeuralFeatures() && it.hasNext()) {
+      features[i] = it.next();
+      i++;
+    }
+    ASS_EQ(features.size(),_opt.numNeuralFeatures());
+    inputs.push_back(torch::from_blob(features.data(), {_opt.numNeuralFeatures()}, torch::TensorOptions().dtype(at::kDouble)));
 
     double logit = _model.forward(std::move(inputs)).toDouble();
     unsigned salt = Random::getInteger(1073741824); // 2^30, because why not

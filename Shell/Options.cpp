@@ -943,6 +943,12 @@ void Options::init()
     _neuralPassiveClauseContainer.tag(OptionTag::SATURATION);
     _neuralPassiveClauseContainer.onlyUsefulWith(ProperSaturationAlgorithm());
 
+    _numNeuralFeatures = IntOptionValue("num_neural_features","nnf",2);
+    _numNeuralFeatures.description="How many features do we ask a clause to provide? There are at most 14 features currently, the later ones more expensive to compute.";
+    _lookup.insert(&_numNeuralFeatures);
+    _numNeuralFeatures.tag(OptionTag::SATURATION);
+    _numNeuralFeatures.onlyUsefulWith(_neuralPassiveClauseContainer.is(notEqual(vstring(""))));
+
     _npccTemperature = FloatOptionValue("npcc_temperature","npcct",1.0);
     _npccTemperature.description="Temperature for softmaxing in the neural passive clause container. 1.0 is the std softmax; 0.0 will make it argmax. (Negative values flip everything around.)";
     _lookup.insert(&_npccTemperature);

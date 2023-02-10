@@ -420,7 +420,8 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
       cout << "i: " << c->number();
 
       Clause::FeatureIterator it(c);
-      while (it.hasNext()) {
+      unsigned i = 0;
+      while (i++ < _opt.numNeuralFeatures() && it.hasNext()) {
         cout << " " << it.next();
       }
       cout << '\n';
