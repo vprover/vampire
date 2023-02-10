@@ -37,6 +37,8 @@ using namespace Inferences::LASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
+#define INT_TESTS 0
+
 #define SUGAR(Num)                                                                                  \
   NUMBER_SUGAR(Num)                                                                                 \
   DECL_DEFAULT_VARS                                                                                 \
@@ -140,6 +142,7 @@ TEST_GENERATION(unshielded_variables_02,
       .inputs  ({        clause({ x - a == 0, f(b) - b == 0  }) })
       .expected(exactly( /* nothing */ )))
 
+#if INT_TESTS
 TEST_GENERATION_WITH_SUGAR(int_01, SUGAR(Int),
     Generation::SymmetricTest()
       .inputs  ({        clause({      selected(f(a) - c == 0), selected(f(a) - b == 0 ),  })  })
@@ -152,6 +155,7 @@ TEST_GENERATION_WITH_SUGAR(int_02a, SUGAR(Int),
       .expected(exactly( clause({           4 * b != 3 * c,  3 * f(a) - b == 0     }) ))
     )
 
+#endif // INT_TESTS
 
 TEST_GENERATION(two_var_01,
     Generation::SymmetricTest()

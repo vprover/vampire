@@ -224,15 +224,6 @@ public:
       container.add(_input);
     }
 
-    {
-      auto res = rule.generateSimplify(_input);
-
-      // run checks
-      auto sExp = this->_expected.unwrap();
-      auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
-    }
-
-
     auto res = rule.generateSimplify(_input);
 
     // run checks

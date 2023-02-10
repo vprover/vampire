@@ -483,6 +483,17 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
      
 #endif
 
+/* can be used as deleter for std::unique_ptr. 
+ * useful e.g. for z3 things that do not use the vampire alloactor */
+struct DeleteBypassingAllocator {
+  template<class T>
+  void operator()(T* t) {
+    BYPASSING_ALLOCATOR
+    delete t;
+  };
+};
+
+
 } // namespace Lib
 
 #undef ALLOC_SIZE_ATTR

@@ -50,6 +50,7 @@ using namespace Indexing;
   )                                                                                                 \
 
 
+#define SIMPL_MUL_ZERO 1
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -362,7 +363,11 @@ TEST_FRAC(gcd_04,
 TEST_ALL(bug_01, 
     TestCase {
       .in  =     0 * num(-1) + 2 * a * 1073741824 > 0,
+#if SIMPL_MUL_ZERO
+      .out = { {              a > 0 } },
+#else
       .out = { {         0  + a > 0 } },
+#endif // SIMPL_MUL_ZERO
       .strong = true,
     })
 
@@ -424,7 +429,11 @@ TEST_ALL(bug_07,
       //       -600335 * ( a * 251886) + 251886 * ( a * 600335) == 0
       //       -600335 *   a           +            a * 600335  == 0
       //                  -a           +            a           == 0
+#if SIMPL_MUL_ZERO
+      .out = { { num(0)== 0 } },
+#else
       .out = { { 0 * a == 0 } },
+#endif // SIMPL_MUL_ZERO
       .strong = false,
     })
 
@@ -436,7 +445,11 @@ TEST_ALL(bug_07,
       //       -600335 * ( a * 251886) + 251886 * ( a * 600335) == 0
       //       -600335 *   a           +            a * 600335  == 0
       //                  -a           +            a           == 0
+#if SIMPL_MUL_ZERO
+      .out = { { num(0) == 0 } },
+#else
       .out = { { 0 * (600335 * a) == 0 } },
+#endif // SIMPL_MUL_ZERO
       .strong = false,
     })
 
@@ -445,7 +458,11 @@ TEST_ALL(bug_07,
 TEST_INT(bug_08, 
     TestCase {
       .in  =   0 * f(x) > 0,
+#if SIMPL_MUL_ZERO
+      .out = { {   num(0) > 0 } },
+#else
       .out = { { 0 * f(x) > 0 } },
+#endif // SIMPL_MUL_ZERO
       .strong = false,
     })
 
@@ -475,6 +492,10 @@ TEST_INT(misc_02,
 TEST_ALL(misc_03, 
     TestCase {
       .in  =     a + 3 * ( 0 * f(a) +     b + 0 ) > 0  ,
+#if SIMPL_MUL_ZERO
+      .out = { { a +                  3 * b       > 0  } },
+#else
       .out = { { a +       0 * f(a) + 3 * b + 0   > 0  } },
+#endif // SIMPL_MUL_ZERO
       .strong = false,
     })

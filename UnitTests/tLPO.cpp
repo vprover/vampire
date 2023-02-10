@@ -16,7 +16,7 @@
 
 DArray<int> lpoPredLevels() {
   DArray<int> out(env.signature->predicates());
-  out.init(out.size(), 1);
+  out.init(out.size(), Kernel::PredLevels::EQ);
   return out;
 }
 

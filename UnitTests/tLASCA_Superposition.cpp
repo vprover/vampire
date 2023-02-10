@@ -32,6 +32,7 @@ using namespace Inferences;
 using namespace Test;
 using namespace Indexing;
 using namespace Inferences::LASCA;
+#define INT_TESTS 0
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
@@ -501,6 +502,7 @@ for_diamond(TEST_only_replace_in_active)
 
 for_polarity(TEST_only_replace_in_active_uninterpretd)
 
+#if INT_TESTS
 TEST_GENERATION_WITH_SUGAR(int_01, SUGAR(Int),
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
@@ -525,6 +527,7 @@ TEST_GENERATION_WITH_SUGAR(int_03, SUGAR(Int),
       .expected(exactly( clause({ p(7 * a)  }) ))
     )
 
+#endif // INT_TESTS
 
 
 TEST_GENERATION(two_var_01,

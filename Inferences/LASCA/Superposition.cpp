@@ -20,7 +20,7 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG(lvl, ...) if (lvl >= 0) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace LASCA {
@@ -99,7 +99,7 @@ Option<Clause*> Superposition::applyRule(
 
 #define check_side_condition(cond, cond_code)                                                       \
     if (!(cond_code)) {                                                                             \
-      DEBUG("side condition not fulfiled: ", cond)                                                  \
+      DEBUG(1, "side condition not fulfiled: ", cond)                                                  \
       return nothing();                                                                             \
     }                                                                                               \
 
@@ -176,7 +176,7 @@ Option<Clause*> Superposition::applyRule(
 
   auto resolvent = EqHelper::replace(L2σ, s2σ, tσ);
   //   ^^^^^^^^^--> L[t]σ
-  DEBUG("replacing: ", *L2σ, " [ ", s2σ, " -> ", tσ, " ] ==> ", *resolvent);
+  DEBUG(1, "replacing: ", *L2σ, " [ ", s2σ, " -> ", tσ, " ] ==> ", *resolvent);
   concl.push(resolvent);
 
   // adding Cnst
@@ -184,7 +184,7 @@ Option<Clause*> Superposition::applyRule(
 
   Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_SUPERPOSITION, lhs.clause(), rhs.clause()));
   auto out = Clause::fromStack(concl, inf);
-  DEBUG("out: ", *out);
+  DEBUG(1, "out: ", *out);
   return Option<Clause*>(out);
 }
 
@@ -199,13 +199,13 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   Stack<Clause*> out;
 
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
-    DEBUG("lhs: ", lhs)
+    DEBUG(1, "lhs: ", lhs)
     for (auto rhs_sigma : _rhs->find(lhs.key())) {
       auto& rhs   = std::get<0>(rhs_sigma);
       auto& sigma = std::get<1>(rhs_sigma);
-      DEBUG("  rhs: ", rhs)
+      DEBUG(1, "  rhs: ", rhs)
       auto res = applyRule(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma);
-      DEBUG("")
+      DEBUG(1, "")
       if (res.isSome()) {
         out.push(res.unwrap());
       }
@@ -213,14 +213,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   }
 
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
-    DEBUG("rhs: ", rhs)
+    DEBUG(1, "rhs: ", rhs)
     for (auto lhs_sigma : _lhs->find(rhs.key())) {
       auto& lhs   = std::get<0>(lhs_sigma);
       auto& sigma = std::get<1>(lhs_sigma);
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-        DEBUG("  lhs: ", lhs)
+        DEBUG(1, "  lhs: ", lhs)
         auto res = applyRule(lhs, RESULT_BANK, rhs, QUERY_BANK, *sigma);
-        DEBUG("")
+        DEBUG(1, "")
         if (res.isSome()) {
           out.push(res.unwrap());
         }

@@ -23,6 +23,8 @@
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
 //////////////////////////////////////////////////////////////////////////////// 
 
+#define ENABLE_ZERO_REMOVAL 1
+
 using namespace Test;
 const QKbo::Result Greater = QKbo::Result::GREATER;
 const QKbo::Result Less    = QKbo::Result::LESS;
@@ -590,19 +592,21 @@ TEST_FUN(normal_form01) {
   auto ok = [&](int i, std::initializer_list<SignedTerm> ts) 
   { return Option<SignedAtoms>(SignedAtoms(ict(i), ts)); };
 
-  CHECK_EQ(signedAtoms(2 * a + b), 
+  CHECK_EQ(signedAtoms(2 * a() + b), 
       ok(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
       }));
 
+#if !ENABLE_ZERO_REMOVAL
   CHECK_EQ(signedAtoms(2 * a + 0 * b), 
       ok(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::zero(b),
       }));
+#endif // !ENABLE_ZERO_REMOVAL
 
   CHECK_EQ(signedAtoms(2 * a + 0 * a), 
       ok(1, {
@@ -641,6 +645,7 @@ TEST_FUN(normal_form01) {
         SignedTerm::neg(a),
       }));
 
+#if !ENABLE_ZERO_REMOVAL
   CHECK_EQ(signedAtoms(2 * a + a + -3 * a), 
       ok(1, {
         SignedTerm::zero(a),
@@ -650,17 +655,20 @@ TEST_FUN(normal_form01) {
       ok(1, {
         SignedTerm::zero(a),
       }));
+#endif // !ENABLE_ZERO_REMOVAL
 
   CHECK_EQ(signedAtoms(2 * f(a + 3 * b) - f(a - b + 4 * b)), 
       ok(1, {
         SignedTerm::pos(f(a + 3 * b)),
       }));
 
+#if !ENABLE_ZERO_REMOVAL
   CHECK_EQ(signedAtoms(f(3 * b) + f(0 * a - b + 4 * b)), 
       ok(1, {
         SignedTerm::pos(f(3 * b)),
         SignedTerm::pos(f(0 * a + 3 * b)),
       }));
+#endif // !ENABLE_ZERO_REMOVAL
 
 #undef CHECK_EQ
 
@@ -684,15 +692,19 @@ TEST_FUN(bug01) {
   auto& ord = qkbo();
 
   check(ord, f(f(a)) - f(f(a)) > 0, Less   , f(f(a)) > 0);
+#if !ENABLE_ZERO_REMOVAL
   check(ord, f(f(a)) - f(f(a)) > 0, Greater, f(  a ) > 0);
   check(ord, f(f(a)) - f(f(a)) > 0, Incomp , f(  x ) > 0);
+#endif // !ENABLE_ZERO_REMOVAL
 }
 
 TEST_FUN(numerals) {
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
+#if !ENABLE_ZERO_REMOVAL
   DECL_CONST(a, Real)
+#endif //!ENABLE_ZERO_REMOVAL
   auto& ord = qkbo();
 
   check(ord,  num(1), Equal, num(1));
@@ -704,7 +716,9 @@ TEST_FUN(numerals) {
   check(ord,  num(-3), Greater, num(3));
   check(ord,  num(-3) + 2, Greater, num(3));
   check(ord,  num(3) + -2, Less, num(3));
+#if !ENABLE_ZERO_REMOVAL
   check(ord,  num(3) + -2 + 0 * a, Greater, num(3));
+#endif // !ENABLE_ZERO_REMOVAL
 
 }
 

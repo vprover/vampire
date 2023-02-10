@@ -72,6 +72,7 @@ public:
                                            /* terms   */ SelectionCriterion::NOT_LEQ,
                                            /* include number vars */ false)
              .filter([](auto x) { return x.literal()->isPositive(); })
+             .filter([](auto& l) { return !forAnyNumTraits([&](auto n) { return n.isNumeral(l.biggerSide()); }); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
 

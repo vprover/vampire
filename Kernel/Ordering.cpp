@@ -895,12 +895,6 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   return predicatePrecedences;
 }
 
-namespace PredLevels {
-  constexpr static int MIN_USER_DEF = 1; // equality has level 0, inequalities have level 1
-  constexpr static int EQ = 0;
-  constexpr static int INEQ = 0;
-};
-
 
 DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences) {
   unsigned nPredicates = env.signature->predicates();
