@@ -118,7 +118,8 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case BACKWARD_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
+    //is=new LiteralSubstitutionTree();
+    is=new LazyLiteralIndex;
     res=new BackwardSubsumptionIndex(is);
     isGenerating = false;
     break;
@@ -163,7 +164,7 @@ Index* IndexManager::create(IndexType t)
     res=new SubVarSupLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-  
+
   case SKOLEMISING_FORMULA_INDEX:
     tis=new TermSubstitutionTree(false, false, true);
     res=new SkolemisingFormulaIndex(tis);
@@ -194,7 +195,8 @@ Index* IndexManager::create(IndexType t)
     break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+    //tis=new TermSubstitutionTree();
+    tis=new LazyTermIndex;
     if (env.options->combinatorySup()) {
       res=new DemodulationSubtermIndexImpl<true>(tis);
     } else {

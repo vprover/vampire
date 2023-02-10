@@ -34,14 +34,14 @@ namespace Indexing {
  */
 class Positions {
 public:
-  Positions() { _entries.push(Entry(0, 0)); }
+  Positions() { _positions.push(PositionData(0, 0)); }
 
   // get the integer representing `p.n`
   unsigned child(unsigned parent, unsigned argument);
   // if child is `p.n`, return `p`
-  unsigned parent(unsigned child) { return _entries[child].parent; }
+  unsigned parent(unsigned child) { return _positions[child].parent; }
   // if child is `p.n`, return `n`
-  unsigned argument(unsigned child) { return _entries[child].argument; }
+  unsigned argument(unsigned child) { return _positions[child].argument; }
 
   /**
   * retrieve the sub-term of `term` at `position`
@@ -54,10 +54,10 @@ public:
 
 private:
   /**
-   * Data representing a position.
+   * Data held for a position
    */
-  struct Entry {
-    Entry(unsigned parent, unsigned argument) : parent(parent), argument(argument) {}
+  struct PositionData {
+    PositionData(unsigned parent, unsigned argument) : parent(parent), argument(argument) {}
     // if a position is `p.n`, `p`
     unsigned parent;
     // if a position is `p.n`, `n`
@@ -67,13 +67,13 @@ private:
   };
 
   // all positions seen so far
-  Stack<Entry> _entries;
+  Stack<PositionData> _positions;
 };
 
 /**
  * A lazy term index.
  *
- * Essentially just a set of `TermList`, use e.g. `LazyTermIndex` for a higher-level interface.
+ * Essentially just a queryable set of `TermList`, use e.g. `LazyTermIndex` for a higher-level interface.
  */
 class LazyIndex {
 public:
@@ -88,27 +88,40 @@ public:
   // remove `t` from the index, very lazily
   void remove(TermList t) { _remove.insert(t); }
 
+  template<bool instantiate, bool generalise>
+  class Query;
+
+private:
   // reasons that a candidate term might not satisfy a query
   enum class Reason {
     // no reason could be determined
     NO_REASON,
     // the candidate and the query have different function symbols at a position
-    MISMATCH
+    MISMATCH,
+    // the candidate has a variable where the query has a symbol, but we are trying to find instances
+    VARIABLE
   };
 
-  // try and explain why `candidate` does not satisfy `query`
+  /**
+   * try and explain why `candidate` does not satisfy `query`
+   *
+   * if `instantiate`, variables in `query` may be bound
+   * if `generalise`, variables in `candidate` may be bound
+   */
+  template<bool instantiate, bool generalise>
   Reason explain(TermList query, TermList candidate);
 
   /**
    * if `explain(query, candidate)` returned `MISMATCH`:
-   * - `mismatch_position` is one position where they differ
-   * - `mismatch_candidate_functor` is the candidate's functor at `mismatch_position`
+   * - `explanation_position` is one position where they differ
+   * - `explanation_candidate_functor` is the candidate's functor at `mismatch_position`
+   * if `explain(query, candidate)` returned `VARIABLE`:
+   * - `explanation_position` is one position of a variable in the candidate where the query has a symbol
    */
-  unsigned mismatch_position, mismatch_candidate_functor;
+  unsigned explanation_position, explanation_candidate_functor;
 
-private:
   // forward decl for mutually-recursive struct
-  struct FunctorAt;
+  struct FunctorsAt;
 
   // the basic tree type, stores terms and sub-trees constraining terms
   struct Branch {
@@ -120,19 +133,22 @@ private:
     // the terms stored at this node
     Stack<TermList> immediate;
 
+    // subtrees where terms have a variable at a position
+    DHMap<unsigned, Branch> variable_positions;
+
     // subtrees where terms have a known functor at a position
-    DHMap<unsigned, FunctorAt> positions;
+    DHMap<unsigned, FunctorsAt> functor_positions;
 
     // is this an empty node suitable for deletion?
-    bool isEmpty() { return immediate.isEmpty() && positions.isEmpty(); }
+    bool isEmpty() { return immediate.isEmpty() && variable_positions.isEmpty() && functor_positions.isEmpty(); }
   };
 
   // represents a choice of known functors at a position
-  struct FunctorAt {
+  struct FunctorsAt {
     // move-only structure, should never need copying
-    FunctorAt() = default;
-    FunctorAt(FunctorAt &&) = default;
-    FunctorAt &operator=(FunctorAt &&) = default;
+    FunctorsAt() = default;
+    FunctorsAt(FunctorsAt &&) = default;
+    FunctorsAt &operator=(FunctorsAt &&) = default;
 
     // functors at this position
     DHMap<unsigned, Branch> functors;
@@ -152,57 +168,8 @@ private:
   DHSet<TermList> _remove;
 
 public:
-  // if an `Iterator` just returned `candidate`, this is the unifier of `query` and `candidate`
+  // if a `Query` just returned `candidate`, this is the unifier of `query` and `candidate`
   ResultSubstitutionSP substitution;
-
-  /**
-   * Iterate over terms in an index that match a given query
-   */
-  class QueryIterator {
-  public:
-    DECL_ELEMENT_TYPE(TermList);
-
-    QueryIterator(LazyIndex &index, TermList query) : _index(index), _query(query) {
-      _todo.push(Iteration(index._root));
-#if VDEBUG
-      _next.makeEmpty();
-#endif
-    }
-
-    bool hasNext();
-    TermList next() { return _next; }
-
-  private:
-    // dummy to allow empty iterators
-    static DHMap<unsigned, Branch> EMPTY_BRANCH_MAP;
-
-    // keep track of how far we have made it through a certain `branch`
-    struct Iteration {
-      Iteration(Branch &branch) :
-        branch(branch),
-        immediate(branch.immediate),
-        branches(EMPTY_BRANCH_MAP),
-        functors(branch.positions) {}
-
-      // the branch we're iterating over
-      Branch &branch;
-      // the terms stored in the branch we should consider first
-      Stack<TermList>::Iterator immediate;
-      // child branches we should consider next
-      DHMap<unsigned, Branch>::DelIterator branches;
-      // positions we should consider after that
-      DHMap<unsigned, FunctorAt>::DelIterator functors;
-    };
-
-    // the index we're querying
-    LazyIndex &_index;
-    // the query term
-    TermList _query;
-    // a stack of partially-iterated branches
-    Stack<Iteration> _todo;
-    // found a suitable term, will be returned by `next()`
-    TermList _next;
-  };
 };
 
 /**
@@ -218,11 +185,14 @@ public:
   void insert(TermList t, TermList trm) override { NOT_IMPLEMENTED; }
   void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override { NOT_IMPLEMENTED; }
 
+  template<bool instantiate, bool generalise>
+  TermQueryResultIterator get(TermList t);
+
   TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true) override;
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
   TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true) override;
 
   bool generalizationExists(TermList t) override { NOT_IMPLEMENTED; }
 
@@ -234,28 +204,8 @@ private:
   // the underlying index
   LazyIndex _index;
 
-  // what we store in the index, could be custom data in future
-  struct Entry {
-    Literal *literal;
-    Clause *clause;
-
-    bool operator==(const Entry &other) const {
-      return literal == other.literal && clause == other.clause;
-    }
-    bool operator!=(const Entry &other) const {
-      return !operator==(other);
-    }
-
-    unsigned defaultHash() const {
-      return DefaultHash::hash(literal, DefaultHash::hash(clause));
-    }
-
-    unsigned defaultHash2() const {
-      return HashUtils::combine(DefaultHash2::hash(literal), DefaultHash2::hash(clause));
-    }
-  };
-
-  // map from indexed terms to one or more `Entry`s
+  using Entry = std::pair<Literal *, Clause *>;
+  // map from indexed terms to one or more literal/clause pairs
   DHMap<TermList, DHSet<Entry>> _entries;
 };
 
@@ -266,11 +216,14 @@ public:
   void insert(Literal* lit, Clause* cls) override;
   void remove(Literal* lit, Clause* cls) override;
 
+  template<bool instantiate, bool generalise>
+  SLQueryResultIterator get(Literal *lit, bool complementary);
+
   SLQueryResultIterator getAll() override { NOT_IMPLEMENTED; }
   SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override;
   SLQueryResultIterator getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
   SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
-  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override;
   SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
 
 #if VDEBUG
@@ -285,8 +238,6 @@ private:
   // map from indexed literals to one or more clauses
   DHMap<Literal *, DHSet<Clause *>> _entries;
 };
-
-
 
 } //namespace Indexing
 
