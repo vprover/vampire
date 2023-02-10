@@ -439,12 +439,12 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
 
   // TODO add parameter instead of reading from options
   if (_mode == Uwa::AC1 || _mode == Uwa::AC2) {
-      if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
-       || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
+      if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), RatTraits::addI))
+       || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), RatTraits::addI))) {
         return Option<AbstractionResult>();
       }
-      auto a1 = iterTraits(AcIter(IntTraits::addF(), t1, &au->subs())).template collect<Stack>();
-      auto a2 = iterTraits(AcIter(IntTraits::addF(), t2, &au->subs())).template collect<Stack>();
+      auto a1 = iterTraits(AcIter(RatTraits::addF(), t1, &au->subs())).template collect<Stack>();
+      auto a2 = iterTraits(AcIter(RatTraits::addF(), t2, &au->subs())).template collect<Stack>();
       a1.sort();
       a2.sort();
 
@@ -453,7 +453,7 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
       auto sum = [](auto& diff) {
           return iterTraits(diff.iterFifo())
             .fold([](auto l, auto r) 
-              { return TermSpec(IntTraits::addF(), { l, r, }); }); };
+              { return TermSpec(RatTraits::addF(), { l, r, }); }); };
       auto diffConstr = [&]() 
       { return UnificationConstraint(sum(diff1), sum(diff2)); };
 
@@ -485,7 +485,7 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
       }
 
 
-  } if (_mode == Uwa::ALASCA3) {
+  } else if (_mode == Uwa::ALASCA3) {
     return alasca3(*au, t1, t2);
   } else {
     auto abs = canAbstract(au, t1, t2);
