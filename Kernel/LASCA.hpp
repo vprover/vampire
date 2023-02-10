@@ -781,6 +781,10 @@ namespace Kernel {
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
      { return normalize(lhs) == normalize(rhs); }
 
+    bool isAtomic(Term* t) { return !interpretedFunction(t); }
+    // bool isAtomic(TermList t) { return t.isVar() || isAtomic(t.term()); }
+
+
     auto maxLits(Clause* cl, SelectionCriterion sel) {
       CALL("LascaState::maxLits")
       return OrderingUtils2::maxElems(

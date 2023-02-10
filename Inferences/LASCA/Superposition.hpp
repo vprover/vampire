@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "Shell/Options.hpp"
@@ -75,8 +76,6 @@ public:
              .filter([](auto& l) { return !forAnyNumTraits([&](auto n) { return n.isNumeral(l.biggerSide()); }); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
-
-    TermList sort() const { ASSERTION_VIOLATION }
   };
 
   struct Rhs : public SelectedLiteral
@@ -145,7 +144,9 @@ public:
              return VirtualIterator<Out>::getEmpty();
            } else {
              return pvi(iterTraits(vi(new NonVariableNonTypeIterator(term.term(), includeSelf)))
-                 .map([=](auto t) { return Rhs(sel, t, inLitPlus); }));
+                 .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || LascaState::globalState->isAtomic(t); })
+                 .map([=](auto t) { return Rhs(sel, t, inLitPlus); }))
+               ;
            }
         });
     }

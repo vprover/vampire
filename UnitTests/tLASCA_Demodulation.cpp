@@ -112,7 +112,7 @@ TEST_SIMPLIFICATION(basic03,
     FwdBwdSimplification::TestCase()
       .simplifyWith({    clause(   { 0 == f(x) - x      }   ) })
       .toSimplify  ({    clause(   { r(f(a), f(b))      }   ) })
-      .expected(    {    clause(   { r(  a , f(b))      }   ) })
+      .expected(    {    clause(   { r(f(a),   b )      }   ) })
     )
 
 TEST_SIMPLIFICATION(basic04,

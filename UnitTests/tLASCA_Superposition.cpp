@@ -323,6 +323,7 @@ TEST_GENERATION(uninterpreted_sort_1,
 
 TEST_GENERATION(uninterpreted_sort_2,
     Generation::SymmetricTest()
+      .selfApplications(false)
       .indices(ircSuperpositionIndices())
       .inputs  ({        clause({ selected( f(x) - 1 == 0  ) })
                 ,        clause({ selected( fa(3 *   f(x)) == aa ) }) })
