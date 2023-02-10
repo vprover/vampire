@@ -231,7 +231,43 @@ public:
 
 
 template<class P>
-bool __anyPerm(DArray<unsigned> perm, P pred, unsigned idx) {
+bool equalFrom(DArray<unsigned>& perm, unsigned idx, P equalAt) {
+  if (idx == perm.size()) 
+    return true;
+
+  for (unsigned swapAt = idx; swapAt < perm.size(); swapAt++) {
+    swap(perm[swapAt], perm[idx]);
+    if (equalAt(perm, idx) && equalFrom(perm, idx + 1, equalAt)) {
+        return true;
+    }
+
+    swap(perm[swapAt], perm[idx]);
+  }
+
+  return false;
+}
+
+
+template<class L1, class L2, class Eq>
+bool TestUtils::permEq(L1 const& lhs, L2 const& rhs, Eq elemEq) 
+{
+
+  if (lhs.size() != rhs.size()) 
+    return false;
+
+  DArray<unsigned> perm(lhs.size());
+  for (unsigned i = 0; i < lhs.size(); i++) {
+    perm[i] = i;
+  }
+  auto eq = [&](auto& perm, unsigned i){
+    return elemEq(lhs[i], rhs[perm[i]]);
+  };
+  return equalFrom(perm, 0 , eq);
+}
+
+
+template<class P>
+bool __anyPerm(DArray<unsigned>& perm, P pred, unsigned idx) {
   if (pred(perm)) {
     return true;
   }
@@ -257,21 +293,21 @@ bool anyPerm(unsigned size, P pred) {
 }
 
 
-template<class L1, class L2, class Eq>
-bool TestUtils::permEq(L1 const& lhs, L2 const& rhs, Eq elemEq) 
-{
-  if (lhs.size() != rhs.size()) 
-    return false;
-
-  return anyPerm(lhs.size(), [&](auto& perm){
-
-    for (unsigned i = 0; i < perm.size(); i++) 
-      if (!elemEq(lhs[i], rhs[perm[i]])) 
-        return false;
-
-    return true;
-  });
-}
+// template<class L1, class L2, class Eq>
+// bool TestUtils::permEq(L1 const& lhs, L2 const& rhs, Eq elemEq) 
+// {
+//   if (lhs.size() != rhs.size()) 
+//     return false;
+//
+//   return anyPerm(lhs.size(), [&](auto& perm, auto fixed){
+//
+//     for (unsigned i = 0; i < perm.size(); i++) 
+//       if (!elemEq(lhs[i], rhs[perm[i]])) 
+//         return false;
+//
+//     return true;
+//   });
+// }
 
 
 } // namespace Test
