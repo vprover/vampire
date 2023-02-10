@@ -2250,7 +2250,7 @@ public:
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
 
   const vstring& neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
-  const int numNeuralFeatures() const { return _numNeuralFeatures.actualValue; }
+  const unsigned numNeuralFeatures() const { return _numNeuralFeatures.actualValue; }
   float npccTemperature() const { return _npccTemperature.actualValue; }
   const vstring& neuralPassiveClauseContainerTweaks() const { return _neuralPassiveClauseContainerTweaks.actualValue; }
 
@@ -2544,7 +2544,7 @@ private:
   BoolOptionValue _encode;
 
   StringOptionValue _neuralPassiveClauseContainer;
-  IntOptionValue _numNeuralFeatures;
+  UnsignedOptionValue _numNeuralFeatures;
   FloatOptionValue _npccTemperature;
   StringOptionValue _neuralPassiveClauseContainerTweaks;
 

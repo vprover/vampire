@@ -943,7 +943,7 @@ void Options::init()
     _neuralPassiveClauseContainer.tag(OptionTag::SATURATION);
     _neuralPassiveClauseContainer.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _numNeuralFeatures = IntOptionValue("num_neural_features","nnf",2);
+    _numNeuralFeatures = UnsignedOptionValue("num_neural_features","nnf",2);
     _numNeuralFeatures.description="How many features do we ask a clause to provide? There are at most 14 features currently, the later ones more expensive to compute.";
     _lookup.insert(&_numNeuralFeatures);
     _numNeuralFeatures.tag(OptionTag::SATURATION);
