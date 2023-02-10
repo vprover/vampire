@@ -191,7 +191,8 @@ struct IndexTest {
       DECL_DEFAULT_VARS                                                                             \
       NUMBER_SUGAR(Rat)                                                                             \
       DECL_SORT(s)                                                                                  \
-      DECL_FUNC(fs, {s}, Rat)                                                                       \
+      DECL_FUNC(r2s, {Rat}, s)                                                                      \
+      DECL_FUNC(s2r, {s}, Rat)                                                                      \
       DECL_PRED(p, {Rat})                                                                           \
       DECL_FUNC(f, {Rat}, Rat)                                                                      \
       DECL_FUNC(g, {Rat}, Rat)                                                                      \
@@ -1278,12 +1279,12 @@ ROB_UNIFY_TEST_FAIL(alasca3_test_11,
 
 ROB_UNIFY_TEST(tricky_one,
     Options::UnificationWithAbstraction::ALASCA3,
-    f(x),
-    f(fs(fs(x) + y)),
+    s2r(x),
+    s2r(r2s(s2r(x) + y)),
     TermUnificationResultSpec { 
-      .querySigma  = f2(x),
-      .resultSigma = f2(fs(fs(x) + y)),
-      .constraints = Stack<Literal*>{x != fs(fs(x) + y)},
+      .querySigma  = s2r(x),
+      .resultSigma = s2r(r2s(s2r(x) + y)),
+      .constraints = Stack<Literal*>{x != r2s(s2r(x) + y)},
     })
 
 
