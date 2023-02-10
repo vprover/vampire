@@ -226,6 +226,7 @@ struct NumTraits;
     }                                                                                               \
     template<class TermOrFunctor>                                                                   \
     static bool isNumeral(TermOrFunctor t) { return tryNumeral(t).isSome(); }                       \
+    static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }                    \
                                                                                                     \
     static const char* name() {return #CamelCase;}                                                  \
   };                                                                                                \

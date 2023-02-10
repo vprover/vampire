@@ -186,18 +186,21 @@ struct IndexTest {
 };
 
 
-#define INT_SUGAR                                                                                   \
+#define RAT_SUGAR                                                                                   \
    __ALLOW_UNUSED(                                                                                  \
       DECL_DEFAULT_VARS                                                                             \
-      NUMBER_SUGAR(Int)                                                                             \
-      DECL_PRED(p, {Int})                                                                           \
-      DECL_FUNC(f, {Int}, Int)                                                                      \
-      DECL_FUNC(g, {Int}, Int)                                                                      \
-      DECL_FUNC(f2, {Int, Int}, Int)                                                                \
-      DECL_FUNC(g2, {Int, Int}, Int)                                                                \
-      DECL_CONST(a, Int)                                                                            \
-      DECL_CONST(b, Int)                                                                            \
-      DECL_CONST(c, Int)                                                                            \
+      NUMBER_SUGAR(Rat)                                                                             \
+      DECL_SORT(s)                                                                                  \
+      DECL_FUNC(fs, {s}, Rat)                                                                       \
+      DECL_PRED(p, {Rat})                                                                           \
+      DECL_FUNC(f, {Rat}, Rat)                                                                      \
+      DECL_FUNC(g, {Rat}, Rat)                                                                      \
+      DECL_FUNC(f2, {Rat, Rat}, Rat)                                                                \
+      DECL_FUNC(fa, {Rat, Rat}, Rat)                                                                \
+      DECL_FUNC(g2, {Rat, Rat}, Rat)                                                                \
+      DECL_CONST(a, Rat)                                                                            \
+      DECL_CONST(b, Rat)                                                                            \
+      DECL_CONST(c, Rat)                                                                            \
     )                                                                                               \
  
 
@@ -208,7 +211,7 @@ struct IndexTest {
   }                                                                                                 \
 
 RUN_TEST(term_indexing_one_side_interp_01,
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -233,7 +236,7 @@ RUN_TEST(term_indexing_one_side_interp_01,
 
 
 RUN_TEST(term_indexing_one_side_interp_02, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -245,14 +248,14 @@ RUN_TEST(term_indexing_one_side_interp_02,
     })
  
 RUN_TEST(term_indexing_one_side_interp_03, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
         1 + num(1),
         1 + a,
       },
-      .query = x.sort(Int),
+      .query = x.sort(Rat),
       .expected = { 
 
         TermUnificationResultSpec 
@@ -270,7 +273,7 @@ RUN_TEST(term_indexing_one_side_interp_03,
 
 
 RUN_TEST(term_indexing_one_side_interp_04, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -296,7 +299,7 @@ RUN_TEST(term_indexing_one_side_interp_04,
 
 
 RUN_TEST(term_indexing_one_side_interp_04_b, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -316,7 +319,7 @@ RUN_TEST(term_indexing_one_side_interp_04_b,
 
 
 RUN_TEST(term_indexing_one_side_interp_04_c, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -340,7 +343,7 @@ RUN_TEST(term_indexing_one_side_interp_04_c,
     })
 
 RUN_TEST(term_indexing_one_side_interp_04_d, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -364,7 +367,7 @@ RUN_TEST(term_indexing_one_side_interp_04_d,
     })
 
 RUN_TEST(term_indexing_one_side_interp_05, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -394,7 +397,7 @@ RUN_TEST(term_indexing_one_side_interp_05,
 
 
 RUN_TEST(term_indexing_one_side_interp_06, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -402,7 +405,7 @@ RUN_TEST(term_indexing_one_side_interp_06,
         1 + a,
         a,
       },
-      .query = x.sort(Int),
+      .query = x.sort(Rat),
       .expected = {
         TermUnificationResultSpec 
         { .querySigma  = 1 + a,
@@ -424,7 +427,7 @@ RUN_TEST(term_indexing_one_side_interp_06,
 
 
 RUN_TEST(term_indexing_one_side_interp_07, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -455,7 +458,7 @@ RUN_TEST(term_indexing_one_side_interp_07,
 })
 
 RUN_TEST(term_indexing_one_side_interp_08, 
-    INT_SUGAR,
+    RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -495,25 +498,25 @@ TEST_FUN(term_indexing_poly_01)
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
-  NUMBER_SUGAR(Int)
-  DECL_CONST(a, Int) 
+  NUMBER_SUGAR(Rat)
+  DECL_CONST(a, Rat) 
   DECL_POLY_CONST(h, 1, alpha)
   DECL_SORT(A)
 
   index->insert(tld(1 + a ));
-  index->insert(tld(h(Int)));
+  index->insert(tld(h(Rat)));
 
   checkTermMatches(*index, h(alpha), Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
-        { .querySigma  = h(Int),
-          .resultSigma = h(Int),
+        { .querySigma  = h(Rat),
+          .resultSigma = h(Rat),
           .constraints = Stack<Literal*>{  } }, 
 
         TermUnificationResultSpec 
-        { .querySigma  = h(Int),
+        { .querySigma  = h(Rat),
           .resultSigma = 1 + a,
-          .constraints = { 1 + a != h(Int), } }, 
+          .constraints = { 1 + a != h(Rat), } }, 
 
       });
 
@@ -521,10 +524,10 @@ TEST_FUN(term_indexing_poly_01)
 }
 
 
-#define POLY_INT_SUGAR                                                                              \
+#define POLY_RAT_SUGAR                                                                              \
   DECL_DEFAULT_VARS                                                                                 \
   DECL_DEFAULT_SORT_VARS                                                                            \
-  NUMBER_SUGAR(Int)                                                                                 \
+  NUMBER_SUGAR(Rat)                                                                                 \
   DECL_POLY_CONST(b, 1, alpha)                                                                      \
   DECL_POLY_CONST(a, 1, alpha)                                                                      \
   DECL_POLY_FUNC(f, 1, {alpha}, alpha)                                                              \
@@ -535,7 +538,7 @@ TEST_FUN(term_indexing_poly_01)
 #define HOL_SUGAR(...)                                                                              \
   DECL_DEFAULT_VARS                                                                                 \
   DECL_DEFAULT_SORT_VARS                                                                            \
-  NUMBER_SUGAR(Int)                                                                                 \
+  NUMBER_SUGAR(Rat)                                                                                 \
   DECL_SORT(srt)                                                                                    \
   __VA_ARGS__
 
@@ -717,7 +720,7 @@ RUN_TEST_hol_05(02,
     )
 
 RUN_TEST(term_indexing_poly_uwa_01,
-    POLY_INT_SUGAR,
+    POLY_RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
@@ -726,18 +729,18 @@ RUN_TEST(term_indexing_poly_uwa_01,
         f(A, someA),
         f(A, a(A)),
       },
-      .query = f(Int, a(Int) + x),
+      .query = f(Rat, a(Rat) + x),
       .expected =  {
 
         TermUnificationResultSpec 
-        { .querySigma  = f(Int, a(Int) + x),
-          .resultSigma = f(Int, a(Int)),
-          .constraints = { a(Int) != a(Int) + x } }, 
+        { .querySigma  = f(Rat, a(Rat) + x),
+          .resultSigma = f(Rat, a(Rat)),
+          .constraints = { a(Rat) != a(Rat) + x } }, 
 
         TermUnificationResultSpec 
-        { .querySigma  = f(Int, a(Int) + y),
-          .resultSigma = f(Int, b(Int)),
-          .constraints = { b(Int) != a(Int) + y } }, 
+        { .querySigma  = f(Rat, a(Rat) + y),
+          .resultSigma = f(Rat, b(Rat)),
+          .constraints = { b(Rat) != a(Rat) + y } }, 
 
       }
     })
@@ -748,10 +751,10 @@ TEST_FUN(term_indexing_interp_only)
   auto index = getTermIndex(Options::UnificationWithAbstraction::INTERP_ONLY);
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Int)
+  NUMBER_SUGAR(Rat)
 
-  DECL_CONST(a, Int) 
-  DECL_CONST(b, Int) 
+  DECL_CONST(a, Rat) 
+  DECL_CONST(b, Rat) 
 
   index->insert(tld(num(1) + num(1)));
   index->insert(tld(1 + a          ));
@@ -793,11 +796,11 @@ TEST_FUN(literal_indexing)
   auto index = getLiteralIndex(Options::UnificationWithAbstraction::ONE_INTERP);
 
   DECL_DEFAULT_VARS
-  NUMBER_SUGAR(Int)
-  DECL_PRED(p, {Int})
+  NUMBER_SUGAR(Rat)
+  DECL_PRED(p, {Rat})
 
-  DECL_CONST(a, Int) 
-  DECL_CONST(b, Int) 
+  DECL_CONST(a, Rat) 
+  DECL_CONST(b, Rat) 
 
   index->insert(p(num(1) + num(1)), nullptr);
   index->insert(p(1 + a          ), nullptr);
@@ -851,7 +854,7 @@ TEST_FUN(higher_order)
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
-  NUMBER_SUGAR(Int)
+  NUMBER_SUGAR(Rat)
   DECL_SORT(srt) 
   DECL_CONST(a, arrow(srt, srt))
   DECL_CONST(b, arrow(srt, srt))
@@ -917,7 +920,7 @@ TEST_FUN(higher_order2)
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
-  NUMBER_SUGAR(Int)
+  NUMBER_SUGAR(Rat)
   DECL_SORT(srt) 
   DECL_CONST(a, arrow(srt, srt))
   DECL_CONST(b, arrow(srt, srt))
@@ -981,14 +984,14 @@ void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstracti
 #define ROB_UNIFY_TEST(name, opt, lhs, rhs, ...)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
-    INT_SUGAR                                                                                       \
+    RAT_SUGAR                                                                                       \
     checkRobUnify(lhs, rhs, opt, __VA_ARGS__ );                                                     \
   }                                                                                                 \
 
 #define ROB_UNIFY_TEST_FAIL(name, opt, lhs, rhs)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
-    INT_SUGAR                                                                                       \
+    RAT_SUGAR                                                                                       \
     checkRobUnifyFail(lhs, rhs, opt);                                                               \
   }                                                                                                 \
 
@@ -1159,3 +1162,128 @@ ROB_UNIFY_TEST(ac2_test_02_bad,
       .resultSigma = f2(f2(x,b), x + b + a),
       .constraints = Stack<Literal*>{ b + c != x + b },
     })
+
+
+
+ROB_UNIFY_TEST(alasca3_test_01,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, a + b + c),
+    f2(x, x + b + a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(c, a + b + c),
+      .resultSigma = f2(c, c + b + a),
+      .constraints = Stack<Literal*>{},
+    })
+
+ROB_UNIFY_TEST(alasca3_test_02,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(a + b + c, f2(x,b)),
+    f2(x + y + a, f2(x,y)),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(a + b + c, f2(c,b)),
+      .resultSigma = f2(c + b + a, f2(c,b)),
+      .constraints = Stack<Literal*>{},
+    })
+
+ROB_UNIFY_TEST(alasca3_test_02_bad,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(f2(x,b), a + b + c),
+    f2(f2(x,y), x + y + a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(f2(x,b), a + b + c),
+      .resultSigma = f2(f2(x,b), x + b + a),
+      .constraints = Stack<Literal*>{ b + x != c + b },
+    })
+
+
+ROB_UNIFY_TEST(alasca3_test_03,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, a + b + c),
+    f2(x, x + b + a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(c, a + b + c),
+      .resultSigma = f2(c, c + b + a),
+      .constraints = Stack<Literal*>{ },
+    })
+
+
+ROB_UNIFY_TEST(alasca3_test_04,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, 2 * a + b + c),
+    f2(x, x     + b + a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(a + c,  2 * a  + b + c),
+      .resultSigma = f2(a + c, (a + c) + b + a),
+      .constraints = Stack<Literal*>{ },
+    })
+
+ROB_UNIFY_TEST(alasca3_test_05,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, 2 * a + b + c),
+    f2(x, x     + b + y),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x,  2 * a  + b + c),
+      .resultSigma = f2(x,  x      + b + y),
+      .constraints = Stack<Literal*>{ x + y != 2 * a + c },
+    })
+
+
+ROB_UNIFY_TEST(alasca3_test_06,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, 2 * a +             b + c),
+    f2(x, x     + frac(1,2) * b + y),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x, 2 * a +             b + c),
+      .resultSigma = f2(x, x     + frac(1,2) * b + y),
+      .constraints = Stack<Literal*>{ x + y != 2 * a + frac(1,2) * b + c },
+    })
+
+
+ROB_UNIFY_TEST(alasca3_test_07,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, f(x) + y),
+    f2(x, f(y) + y),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x, f(x) + x),
+      .resultSigma = f2(x, f(x) + x),
+      .constraints = Stack<Literal*>{},
+    })
+
+
+ROB_UNIFY_TEST_FAIL(alasca3_test_08,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, a + b),
+    f2(x, c + b))
+
+ROB_UNIFY_TEST_FAIL(alasca3_test_09,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, f(a) + b),
+    f2(x, f(y) + g(y)))
+
+
+ROB_UNIFY_TEST(alasca3_test_10,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, a + b + x),
+    f2(x, c + b),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(-a + c, a + b + (-a + c)),
+      .resultSigma = f2(-a + c, c + b),
+      .constraints = Stack<Literal*>{},
+    })
+
+ROB_UNIFY_TEST_FAIL(alasca3_test_11,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, f(a) +  2 * g(a)),
+    f2(x, frac(1,2) * f(a) + g(x) + g(y)))
+
+ROB_UNIFY_TEST(tricky_one,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f(x),
+    f(fs(fs(x) + y)),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x),
+      .resultSigma = f2(fs(fs(x) + y)),
+      .constraints = Stack<Literal*>{x != fs(fs(x) + y)},
+    })
+
+

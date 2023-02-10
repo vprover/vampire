@@ -467,6 +467,51 @@ private:
   Option<OWN_ELEMENT_TYPE> _next;
 };
 
+template<class Iter, class Pred>
+class TakeWhileIter
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  DEFAULT_CONSTRUCTORS(TakeWhileIter)
+
+  TakeWhileIter(Iter iter, Pred pred)
+  : _pred(std::move(pred)), _iter(std::move(iter)), _next(), _break(false) {}
+
+  bool hasNext()
+  {
+    if (_break) return false;
+    if(_next.isSome()) return true;
+    
+    while(_iter.hasNext()) {
+      OWN_ELEMENT_TYPE next = move_if_value<OWN_ELEMENT_TYPE>(_iter.next());
+      if(_pred(next)) {
+        _next = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(next));
+        return true;
+      } else {
+        _break = true;
+        return false;
+      }
+    }
+    return false;
+  }
+
+  OWN_ELEMENT_TYPE next()
+  {
+    ASS(!_break)
+    ALWAYS(hasNext());
+    ASS(_next.isSome());
+    OWN_ELEMENT_TYPE out = move_if_value<OWN_ELEMENT_TYPE>(_next.unwrap());
+    _next = Option<OWN_ELEMENT_TYPE>();
+    return out;
+  }
+
+private:
+  
+  Pred _pred;
+  Iter _iter;
+  Option<OWN_ELEMENT_TYPE> _next;
+  bool _break;
+};
 
 template<class I1, class I2>
 class SortedIterDiff {
@@ -755,16 +800,12 @@ private:
 template<class It1,class It2>
 inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
-{
-  return CatIterator<It1,It2>(it1, it2);
-}
+{ return CatIterator<It1,It2>(std::move(it1), std::move(it2)); }
 
 template<class I1, class I2, class I3, class... Is>
 inline
 auto getConcatenatedIterator(I1 i1, I2 i2, I3 i3, Is... is)
-{
-  return getConcatenatedIterator(getConcatenatedIterator(i1, i2), i3, is...);
-}
+{ return getConcatenatedIterator(getConcatenatedIterator(std::move(i1), std::move(i2)), std::move(i3), std::move(is)...); }
 
 
 
@@ -1904,6 +1945,10 @@ public:
 
   auto flatten()
   { return iterTraits(getFlattenedIterator(std::move(_iter))); }
+
+  template<class Pred>
+  auto takeWhile(Pred p)
+  { return iterTraits(TakeWhileIter<Iter, Pred>(std::move(_iter), std::move(p))); }
 
   /** 
    * returns the first minimal element wrt the function `less` 

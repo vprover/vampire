@@ -15,12 +15,14 @@
 
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Kernel/QKbo.hpp"
+#include <functional>
 
 
 #include "Forwards.hpp"
@@ -113,6 +115,19 @@ public:
 };
 
 
+bool isAlascaInterpreted(TermSpec t, AbstractingUnifier& au) {
+  if (t.isVar()) return false;
+  ASS(!t.isLiteral()) 
+  auto f = t.functor();
+  return forAnyNumTraits([&](auto numTraits) -> bool {
+      return numTraits.isAdd(f)
+          || numTraits.isNumeral(f)
+          || (numTraits.isMul(f)
+              && (t.termArg(0).deref(&au.subs()).isTerm() 
+              && numTraits.isNumeral(t.termArg(0).deref(&au.subs()).functor())));
+  });
+};
+
 // auto acIter(unsigned f, TermSpec t)
 // { return iterTraits(AcIter(f, t)); }
 
@@ -123,18 +138,6 @@ bool UWAMismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSp
    || ( t2.isTerm() && t2.isSort() ) ) return false;
 
   bool bothNumbers = t1.isNumeral() && t2.isNumeral();
-
-  auto isAlascaInterpreted = [](auto t) {
-    if (t.isVar()) return false;
-    ASS(!t.isLiteral()) 
-    auto f = t.functor();
-    return forAnyNumTraits([&](auto numTraits) -> bool {
-        return numTraits.isAdd(f)
-            || numTraits.isNumeral(f)
-            || (numTraits.isMul(f)
-                && (t.termArg(0).isTerm() && numTraits.isNumeral(t.termArg(0).functor())));
-    });
-  };
 
   switch(_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
@@ -153,7 +156,7 @@ bool UWAMismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSp
       if(!(t1.isTerm() && t2.isTerm())) return false;
       return true;
     case Shell::Options::UnificationWithAbstraction::ALASCA1: 
-      return isAlascaInterpreted(t1) || isAlascaInterpreted(t2);
+      return isAlascaInterpreted(t1, *au) || isAlascaInterpreted(t2, *au);
     case Shell::Options::UnificationWithAbstraction::ALASCA2: {
 
         TIME_TRACE("unification with abstraction ALASCA2")
@@ -174,7 +177,7 @@ bool UWAMismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSp
         ASS(!t1.isLiteral())
         ASS(!t2.isLiteral())
 
-        if (!isAlascaInterpreted(t1) && !isAlascaInterpreted(t2))
+        if (!isAlascaInterpreted(t1, *au) && !isAlascaInterpreted(t2, *au))
           return false;
 
         auto canAbstract = forAnyNumTraits([&](auto numTraits) {
@@ -209,7 +212,8 @@ bool UWAMismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSp
       return false;
     case Shell::Options::UnificationWithAbstraction::AC1: 
     case Shell::Options::UnificationWithAbstraction::AC2: 
-      ASSERTION_VIOLATION
+    case Shell::Options::UnificationWithAbstraction::ALASCA3: 
+      ASSERTION_VIOLATION_REP("should be handled in UWAMismatchHandler::tryAbstract")
   }
   ASSERTION_VIOLATION;
 }
@@ -237,6 +241,194 @@ bool UWAMismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSp
 
 // std::ostream& operator<<(std::ostream& out, TermSpec const& self)
 // { return out << self._term << "/" << self._index << *self._subs; }
+template<class NumTraits>
+typename NumTraits::ConstantType divOrPanic(NumTraits n, typename NumTraits::ConstantType c1, typename NumTraits::ConstantType c2) { return c1 / c2; }
+typename IntTraits::ConstantType divOrPanic(IntTraits n, typename IntTraits::ConstantType c1, typename IntTraits::ConstantType c2) { ASSERTION_VIOLATION }
+
+template<class NumTraits>
+MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, TermSpec t2, NumTraits n) {
+  TIME_TRACE("unification with abstraction ALASCA3")
+  using EqualIf = MismatchHandler::EqualIf;
+  using AbstractionResult = MismatchHandler::AbstractionResult;
+  using NeverEqual = MismatchHandler::NeverEqual;
+  using Numeral = typename NumTraits::ConstantType;
+
+  TermSpec one = TermSpec(TermList(n.one()), 0);
+
+  auto atoms = [&](auto& t) {
+    return iterTraits(AcIter(NumTraits::addF(), t, &au.subs()))
+      .map([&](TermSpec t) -> pair<TermSpec, Numeral> {
+          if (t.isVar()) 
+            return make_pair(t, Numeral(1));
+          auto f = t.functor();
+          auto num = n.tryNumeral(f);
+          if (num.isSome()) {
+            return make_pair(one, *num);
+          } else {
+            if (n.isMul(f)) {
+                auto lhs = t.termArg(0).deref(&au.subs());
+                auto lnum = someIf(lhs.isTerm(), 
+                    [&]() { return n.tryNumeral(lhs.functor()); })
+                    .flatten();
+                if (lnum) {
+                   return make_pair(t.termArg(1).deref(&au.subs()), *lnum);
+                }
+            }
+            return make_pair(t, Numeral(1));
+          }
+          });
+  };
+
+  Recycled<Stack<pair<TermSpec, Numeral>>> _diff;
+  auto& diff = *_diff;
+  diff.loadFromIterator(concatIters(
+    atoms(t1),
+    atoms(t2).map([](auto x) { return make_pair(std::move(x.first), -x.second); })
+  ));
+
+  bool simpl = false;
+
+  auto sumUp = [](auto& diff, auto eq, auto less, bool& simpl) {
+    auto i1 = 0;
+    auto i2 = 1;
+    while (i2 < diff.size()) {
+      ASS(i1 < i2);
+      if (eq(diff[i1].first, diff[i2].first)) {
+        simpl = true;
+        ASS(!less(diff[i1].first, diff[i2].first))
+        diff[i1].second += diff[i2].second;
+        i2++;
+      } else {
+        ASS(less(diff[i1].first, diff[i2].first) || eq(diff[i1].first, diff[i2].first))
+        if (diff[i1].second != Numeral(0)) {
+          // if there is a zero entry we override it
+          i1++;
+        }
+        diff[i1] = diff[i2];
+        i2++;
+      }
+    }
+    if (diff[i1].second == Numeral(0)) 
+        diff.truncate(i1);
+    else
+        diff.truncate(i1 + 1);
+  };
+
+  auto less = [](auto & t1, auto & t2) { 
+    auto top1 = t1.top();
+    auto top2 = t2.top();
+    auto v1 = !t1.isVar();
+    auto v2 = !t2.isVar();
+    return std::tie(v1, top1, t1) < std::tie(v2, top2, t2);
+  };
+  diff.sort([&](auto& l, auto& r) { return less(l.first, r.first); });
+  sumUp(diff, [&](auto& l, auto& r) { return l.sameTermContent(r); }, less, simpl);
+
+  auto vars = 
+    iterTraits(getArrayishObjectIterator(diff))
+      .takeWhile([](auto& x) { return x.first.isVar(); });
+
+  auto numMul = [](Numeral num, TermSpec t) {
+    ASS(num != Numeral(0))
+    if (num == Numeral(1)) {
+      return std::move(t);
+
+    } else if (num == Numeral(-1)) {
+      return TermSpec(NumTraits::minusF(), { std::move(t) });
+
+    } else {
+      return TermSpec(NumTraits::mulF(), { 
+          TermSpec(NumTraits::numeralF(num), {}),
+          std::move(t)
+      });
+    }
+  };
+
+  auto sum = [&](auto iter) -> TermSpec {
+      return iterTraits(std::move(iter))
+        .map([&](auto x) { return numMul(x.second, x.first); })
+        .fold([](auto l, auto r) 
+          { return TermSpec(NumTraits::addF(), { l ,r, }); }); };
+
+  // auto diffConstr = [&]() 
+  // { return UnificationConstraint(sum(diff1), sum(diff2)); };
+
+  auto toConstr = [&](auto& stack) {
+    return UnificationConstraint(
+              sum(iterTraits(getArrayishObjectIterator<mut_ref_t>(stack))
+                 .filter([](auto& x) { return x.second.isPositive(); })),
+              sum(iterTraits(getArrayishObjectIterator<mut_ref_t>(stack))
+                 .filter([](auto& x) { return !x.second.isPositive(); })
+                 .map([](auto& x) { return make_pair(std::move(x.first), -x.second); }))
+              );
+  };
+  // auto constr = [&]() { return UnificationConstraint(zero(), sum(diff.iterFifo())); };
+  auto continueUnif        = [&](auto c) { return AbstractionResult(EqualIf({ std::move(c) }, {})); };
+  auto introduceConstraint = [&]() { return AbstractionResult(EqualIf({}, { toConstr(diff) })); };
+
+  if (diff.size() == 0) {
+    return AbstractionResult(EqualIf({}, {}));
+
+    // TODO we only have to examine all the first elements that are variables, as diff is sorty by top()
+  } else if ( vars.hasNext() ) {
+    auto v = vars.next();
+    if (!vars.hasNext()) {
+      // only one variable
+      auto num = v.second;
+      auto rest = [&]() {
+        return iterTraits(getArrayishObjectIterator(diff))
+            .filter([&](auto& x) { return x != v; }); 
+      };
+      return ifIntTraits(n, 
+          [&](auto n) { return continueUnif(UnificationConstraint(numMul(-v.second, v.first), sum(rest()))); },
+          [&](auto n) { return continueUnif(UnificationConstraint(v.first, 
+                            sum(rest().map([&](auto x) { return make_pair(std::move(x.first), divOrPanic(n, x.second, -num)); })
+                              ))); }
+          );
+      ;
+    } else {
+      // multiplet variables
+      return introduceConstraint();
+    }
+  } 
+  using Bucket = pair<unsigned, Recycled<Stack<pair<TermSpec, Numeral>>>>;
+  Recycled<Stack<Bucket>> buckets;
+
+  for (auto& x : diff) {
+    auto f = x.first.functor();
+    if (buckets->isEmpty() || f != buckets->top().first) {
+      if (!buckets->isEmpty() && buckets->top().second->size() == 1) {
+        // TODO explain this
+        return AbstractionResult(NeverEqual{});
+      }
+      buckets->push(make_pair(f, Recycled<Stack<pair<TermSpec,Numeral>>>()));
+    }
+    buckets->top().second->push(x);
+  }
+  if (simpl) {
+    Recycled<Stack<UnificationConstraint>> stack;
+      stack->loadFromIterator(iterTraits(getArrayishObjectIterator<mut_ref_t>(*buckets))
+        .map([&](auto& b_) { 
+          auto& b = *b_.second;
+          return toConstr(b);
+        }));
+    return AbstractionResult(EqualIf(std::move(stack), {}));
+  }
+  else       return introduceConstraint();
+
+
+}
+
+Option<MismatchHandler::AbstractionResult> alasca3(AbstractingUnifier& au, TermSpec& t1, TermSpec& t2) {
+  auto i1 = isAlascaInterpreted(t1, au);
+  auto i2 = isAlascaInterpreted(t2, au);
+  return someIf(i1 || i2, [&]() {
+    TermList sort = (i1 ? t1.sort() : t2.sort()).old().term;
+    return forAnyNumTraits([&](auto n) {
+        return someIf(sort == n.sort(), [&]() { return alasca3(au, t1, t2, n); });
+    });
+  }).flatten();
+}
 
 Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(AbstractingUnifier* au, TermSpec t1, TermSpec t2) const
 {
@@ -293,6 +485,8 @@ Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(Abstr
       }
 
 
+  } if (_mode == Uwa::ALASCA3) {
+    return alasca3(*au, t1, t2);
   } else {
     auto abs = canAbstract(au, t1, t2);
     DEBUG_UWA(1, "canAbstract(", t1, ",", t2, ") = ", abs);

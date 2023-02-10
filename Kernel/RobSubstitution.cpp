@@ -148,7 +148,11 @@ TermList TermSpec::toTerm(RobSubstitution& s) const
                      [&](OldTermSpec const& self) { return s.apply(self.term, self.index); }); }
 
 TermSpec TermSpec::sort() const
-{ return _self.match([&](Appl const& a)           -> TermSpec { ASSERTION_VIOLATION_REP("TODO: tricky because of polymorphism...") },
+{ return _self.match([&](Appl const& a)           -> TermSpec { 
+                        auto f = env.signature->getFunction(a.functor)->fnType();
+                        ASS_REP(f->numTypeArguments() == 0, "TODO: tricky because of polymorphism...")
+                        return TermSpec(f->result(), {});
+                     },
                      [&](OldTermSpec const& self) -> TermSpec { return TermSpec(SortHelper::getResultSort(self.term.term()), self.index); }); }
 
 

@@ -78,6 +78,12 @@ public:
              std::initializer_list<UnificationConstraint> constraints
         ) : unify(unify)
           , constraints(constraints) {  }
+
+    EqualIf( Recycled<Stack<UnificationConstraint>> unify,
+             std::initializer_list<UnificationConstraint> constraints
+        ) : unify(std::move(unify))
+          , constraints(constraints) {  }
+
   };
   struct NeverEqual { };
 

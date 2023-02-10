@@ -439,6 +439,9 @@ public:
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
 
 
+  auto flatten()      & { return andThen([](auto x) { return  std::move(x); }); }
+  auto flatten()     && { return std::move(*this).andThen([](auto x) { return  std::move(x); }); }
+  auto flatten() const& { return andThen([](auto x) { return  std::move(x); }); }
 };
 
 
