@@ -57,10 +57,10 @@ namespace Kernel
 unique_ptr<MismatchHandler> MismatchHandler::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-    return make_unique<UWAMismatchHandler>(env.options->unificationWithAbstraction());
+    return make_unique<MismatchHandler>(env.options->unificationWithAbstraction());
   } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
-    return make_unique<UWAMismatchHandler>(Options::UnificationWithAbstraction::FUNC_EXT);
+    return make_unique<MismatchHandler>(Options::UnificationWithAbstraction::FUNC_EXT);
   } else {
     return unique_ptr<MismatchHandler>();
   }
@@ -70,13 +70,13 @@ unique_ptr<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
 {
   if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
-    return make_unique<UWAMismatchHandler>(Options::UnificationWithAbstraction::FUNC_EXT);
+    return make_unique<MismatchHandler>(Options::UnificationWithAbstraction::FUNC_EXT);
   } else {
     return unique_ptr<MismatchHandler>();
   }
 }
 
-bool UWAMismatchHandler::isInterpreted(unsigned functor) const 
+bool MismatchHandler::isInterpreted(unsigned functor) const 
 {
   auto f = env.signature->getFunction(functor);
   return f->interpreted() || f->termAlgebraCons();
@@ -110,7 +110,7 @@ public:
 // auto acIter(unsigned f, TermSpec t)
 // { return iterTraits(AcIter(f, t)); }
 
-bool UWAMismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSpec t2) const 
+bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSpec t2) const 
 {
 
   if(!(t1.isTerm() && t2.isTerm())) return false;
@@ -173,9 +173,9 @@ Option<MismatchHandler::AbstractionResult> funcExt(
 }
 
 
-Option<MismatchHandler::AbstractionResult> UWAMismatchHandler::tryAbstract(AbstractingUnifier* au, TermSpec t1, TermSpec t2) const
+Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(AbstractingUnifier* au, TermSpec t1, TermSpec t2) const
 {
-  CALL("UWAMismatchHandler::checkUWA");
+  CALL("MismatchHandler::checkUWA");
   using Uwa = Shell::Options::UnificationWithAbstraction;
 
 

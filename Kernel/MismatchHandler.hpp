@@ -65,10 +65,12 @@ using Action = std::function<bool(unsigned, TermSpec)>;
 using SpecialVar = unsigned;
 using WaitingMap = DHMap<SpecialVar, Action>;
 
-class MismatchHandler
+class MismatchHandler final
 {
+  Shell::Options::UnificationWithAbstraction const _mode;
 public:
-  virtual ~MismatchHandler() {}
+  MismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
+  ~MismatchHandler() {}
 
   struct EqualIf { 
     Recycled<Stack<UnificationConstraint>> unify; 
@@ -97,16 +99,24 @@ public:
 
 
   /** TODO document */
-  virtual Option<AbstractionResult> tryAbstract(
+  Option<AbstractionResult> tryAbstract(
       AbstractingUnifier* au,
       TermSpec t1,
-      TermSpec t2) const = 0;
+      TermSpec t2) const;
 
   // /** TODO document */
   // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
 
   static unique_ptr<MismatchHandler> create();
   static unique_ptr<MismatchHandler> createOnlyHigherOrder();
+
+private:
+  // for old non-alasca uwa modes
+  bool isInterpreted(unsigned f) const;
+  bool canAbstract(
+      AbstractingUnifier* au,
+      TermSpec t1,
+      TermSpec t2) const;
 };
 
 class AbstractingUnifier {
@@ -145,44 +155,5 @@ public:
   { return out << "(" << self._subs << ", " << self._constr << ")"; }
 };
 
-class UWAMismatchHandler final : public MismatchHandler
-{
-public:
-  CLASS_NAME(UWAMismatchHandler);
-  USE_ALLOCATOR(UWAMismatchHandler);
-  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
-  bool isInterpreted(unsigned f) const;
-
-  virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier* au,
-      TermSpec t1,
-      TermSpec t2) const final override;
-
-  bool canAbstract(
-      AbstractingUnifier* au,
-      TermSpec t1,
-      TermSpec t2) const;
-
-  Shell::Options::UnificationWithAbstraction const _mode;
-  // virtual bool recheck(TermSpec l, TermSpec r) const final override;
-};
-
-// class HOMismatchHandler : public MismatchHandler
-// {
-// public:
-//   CLASS_NAME(HOMismatchHandler);
-//   USE_ALLOCATOR(HOMismatchHandler);
-//
-//   virtual Option<AbstractionResult> tryAbstract(
-//       AbstractingUnifier* au,
-//       TermSpec t1,
-//       TermSpec t2) const final override;
-//
-//
-//   // virtual bool recheck(TermSpec l, TermSpec r) const final override
-//   // { return true;  }
-// };
-//
-
-}
+} // namespace Kernel
 #endif /*__MismatchHandler__*/
