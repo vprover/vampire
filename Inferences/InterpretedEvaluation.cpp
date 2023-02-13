@@ -60,7 +60,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 {
   CALL("InterpretedEvaluation::evaluateLiteral");
 
-  if(lit->arity()==0) {
+  if(lit->numTermArguments()==0) {
     //we have no interpreted predicates of zero arity
     return false;
   }
@@ -80,7 +80,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
   try { 
 
 
-    TimeCounter tc(TC_INTERPRETED_EVALUATION);
+    TIME_TRACE("interpreted evaluation");
 
     /* do not evaluate theory axioms (both internal and external theory axioms)
      * Note: We want to skip the evaluation of internal theory axioms, because we already assume that

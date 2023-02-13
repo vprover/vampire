@@ -21,12 +21,11 @@
 #   VDEBUG           - the debug mode
 #   VTEST            - testing procedures will also be compiled
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
-#   UNIX_USE_SIGALRM - the SIGALRM timer will be used even in debug mode
 #   VZ3              - compile with Z3
 
-DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUNIX_USE_SIGALRM=1 # debugging for spider 
+DBG_FLAGS = -g -DVTIME_PROFILING=1 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVDEBUG=0 # no debugging
+REL_FLAGS = -O6 -DVTIME_PROFILING=1 -DVDEBUG=0 # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -61,12 +60,12 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=1 -DCHECK_LEAKS=0 -g # debugging and optimized
 
 #XFLAGS = -O6 -DVDEBUG=0 -g # Cachegrind
-#XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -g # Cachegrind
+#XFLAGS = -O6 -DVDEBUG=0 -g # Cachegrind
 #XFLAGS = -O2 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-inline-small-functions -fno-early-inlining -g # Callgrind
 #XFLAGS = -O6 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
-#XFLAGS = -O0 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
+#XFLAGS = -O0 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
 #XFLAGS = -O2 -DVDEBUG=0 -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-early-inlining -g # Callgrind
-#XFLAGS = -O6 -DVDEBUG=0 -DUNIX_USE_SIGALRM=0 -fno-inline -g # Callgrind
+#XFLAGS = -O6 -DVDEBUG=0 -fno-inline -g # Callgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -fno-inline -fno-default-inline -g # Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -fno-inline -g #Valgrind
 #XFLAGS = -O0 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DVALGRIND=1 -g #Valgrind
@@ -139,7 +138,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -166,7 +165,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Environment.o\
         Lib/Event.o\
         Lib/Exception.o\
-        Lib/Hash.o\
         Lib/Int.o\
         Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
@@ -176,7 +174,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Random.o\
         Lib/StringUtils.o\
         Lib/System.o\
-        Lib/TimeCounter.o\
         Lib/Timer.o
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
@@ -206,6 +203,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MaximalLiteralSelector.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
+        Kernel/RndLiteralSelector.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
@@ -242,6 +240,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/GroundingIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
+         Indexing/InductionFormulaIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/LiteralSubstitutionTree.o\
@@ -314,8 +313,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TheoryInstAndSimp.o
 #         Inferences/RenamingOnTheFly.o\
 
-VSAT_OBJ=SAT/DIMACS.o\
-         SAT/MinimizingSolver.o\
+VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
@@ -354,12 +352,9 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/FunctionDefinition.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
-         Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
-         Shell/InterpolantMinimizerNew.o\
          Shell/Interpolants.o\
-         Shell/InterpolantsNew.o\
          Shell/InterpretedNormalizer.o\
          Shell/LambdaElimination.o\
          Shell/LaTeX.o\
@@ -368,6 +363,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
+         Shell/Shuffling.o\
          Shell/Options.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\
@@ -376,9 +372,9 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Skolem.o\
          Shell/SimplifyFalseTrue.o\
          Shell/SineUtils.o\
-         Shell/SMTFormula.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Debug/TimeProfiling.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
@@ -387,6 +383,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/TheoryAxioms.o\
          Shell/TheoryFinder.o\
          Shell/TheoryFlattening.o\
+         Shell/TweeGoalTransformation.o\
          Shell/BlockedClauseElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
@@ -396,12 +393,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Preprocess.o\
          Shell/UnificationWithAbstractionConfig.o\
          version.o
-
-#         Shell/PARSER_TKV.o\
-#         Shell/SMTLEX.o\
-#         Shell/SMTPAR.o\
-#         Shell/Lexer.o\
-#         Shell/SMTPrinter.o\
 
 PARSE_OBJ = Parse/SMTLIB2.o\
             Parse/TPTP.o\
@@ -413,7 +404,6 @@ DP_OBJ = DP/ShortConflictMetaDP.o\
 
 CASC_OBJ = CASC/PortfolioMode.o\
            CASC/Schedules.o\
-	   CASC/ScheduleExecutor.o\
            CASC/CLTBMode.o\
            CASC/CLTBModeLearning.o
 
@@ -470,7 +460,6 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/Rebalancing.o\
     Kernel/Rebalancing/Inverters.o\
     Kernel/NumTraits.o
-#     ClausifierDependencyFix.o\
 
 OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Indexing/ResultSubstitution.o\
@@ -519,7 +508,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.6.1
+VERSION_NUMBER = 4.7
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

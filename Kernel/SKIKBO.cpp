@@ -78,7 +78,7 @@ private:
   }
 
   int _weightDiff;
-  DHMap<unsigned, int, IdentityHash> _varDiffs;
+  DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
   /** Number of variables, that occur more times in the first literal */
   int _posNum;
   /** Number of variables, that occur more times in the second literal */
@@ -185,9 +185,9 @@ void SKIKBO::State::traverse(ArgsIt_ptr aai,int coef)
   CALL("KBO::State::traverse(TermList...)");
 
   if(!aai->varHead()){
-    _weightDiff+=_kbo.functionSymbolWeight(aai->headNum())*coef;
+    _weightDiff+=_kbo.symbolWeight(aai->head().term())*coef;
   } else {
-    _weightDiff+=_kbo._variableWeight*coef;
+    _weightDiff+=_kbo._weights._specialWeights._variableWeight*coef;
     recordVariable(aai->headNum(), coef);
   }
 
@@ -200,10 +200,10 @@ void SKIKBO::State::traverse(ArgsIt_ptr aai,int coef)
     TermList ts = stack.top()->next();
     ArgsIt_ptr aai1 = ArgsIt_ptr(new ApplicativeArgsIt(ts));
     if(aai1->varHead()){
-      _weightDiff+=_kbo._variableWeight*coef;
+      _weightDiff+=_kbo._weights._specialWeights._variableWeight*coef;
       recordVariable(aai1->headNum(), coef);
     } else {
-      _weightDiff+=_kbo.functionSymbolWeight(aai1->headNum())*coef;
+      _weightDiff+=_kbo.symbolWeight(aai1->head().term())*coef;
     }
     if(aai1->hasNext()) {
       stack.push(aai1);
@@ -293,18 +293,34 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
 }
 
 /**
- * Create a KBO object.
+ * Create a SKIKBO object.
  */
 SKIKBO::SKIKBO(Problem& prb, const Options& opt, bool basic_hol)
- : PrecedenceOrdering(prb, opt)
+ : PrecedenceOrdering(prb, opt),
+   _weights(KboWeightMap<FuncSigTraits>::dflt())
 {
   CALL("SKIKBO::SKIKBO");
 
-  _variableWeight = 1;
-  _defaultSymbolWeight = 1;
   _state=new State(this);
   _basic_hol = basic_hol;
 }
+
+SKIKBO::SKIKBO(
+  KboWeightMap<FuncSigTraits> symbolWeights, 
+
+  // precedence ordering params
+  DArray<int> funcPrec, 
+  DArray<int> typeConPrec,
+  DArray<int> predPrec, 
+  DArray<int> predLevels, 
+
+  // other
+  bool reverseLCM
+  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
+  , _weights(symbolWeights)
+  , _state(new State(this))
+  , _basic_hol(0)
+{ }
 
 SKIKBO::~SKIKBO()
 {
@@ -312,6 +328,91 @@ SKIKBO::~SKIKBO()
   delete _state;
 }
 
+bool SKIKBO::safe(Term* t1, Term* t2) const 
+{
+  CALL("SKIKBO::safe");
+
+  static TermStack toBeChecked;
+  toBeChecked.push(TermList(t1));
+  toBeChecked.push(TermList(t2));
+
+  while(!toBeChecked.isEmpty()){
+    TermList term1 = toBeChecked.pop();
+    TermList term2 = toBeChecked.pop();
+
+    if(term1.isVar() || term2.isVar()){
+      if(term1 != term2){
+        return false;
+      } else {
+        continue;
+      }
+    }
+    
+    if((AH::isComb(term1) && !AH::isComb(term2)) ||
+       (AH::isComb(term2) && !AH::isComb(term1)) ||
+       (AH::isComb(term1) && AH::isComb(term2) && AH::getComb(term1) != AH::getComb(term2))){
+      return false;
+    } else if(AH::isComb(term2) && AH::isComb(term1)){
+      continue;
+    }
+
+    if(!term1.term()->hasTermVar() && !term2.term()->hasTermVar()){
+      TermList head1 = AH::getHead(term1);
+      TermList head2 = AH::getHead(term2);
+      if(!AH::isComb(head1) && !AH::isComb(head2)){
+        if(maximumReductionLength(term2.term()) > maximumReductionLength(term1.term())){
+          return false;
+        } else {
+          continue;
+        }
+      } else {
+        return false;
+      }
+    } else if (!term1.term()->hasTermVar() || !term2.term()->hasTermVar()){
+      // early failure, it is impossible for these terms to be safe
+      // e.g. (f X) and g. 
+      return false;
+    }
+
+    //cout << term1.toString() << endl;
+    //cout << term2.toString() << endl;
+
+    toBeChecked.push(*term1.term()->nthArgument(2));
+    toBeChecked.push(*term2.term()->nthArgument(2));
+    toBeChecked.push(*term1.term()->nthArgument(3));
+    toBeChecked.push(*term2.term()->nthArgument(3));
+  }
+  return true;
+}
+
+/** A linear time approximation of the actual variable condition from the paper */
+bool SKIKBO::varConditionHolds(DHMultiset<Term*>& tlTerms1, DHMultiset<Term*>& tlTerms2) const
+{
+  CALL("SKIKBO::varConditionHolds");
+
+  DHMultiset<Term*> unmatchedTlTerms1;
+  unmatchedTlTerms1.loadFromIterator(DHMultiset<Term*>::Iterator(tlTerms1));
+
+  DHMultiset<Term*>::Iterator it(tlTerms2);
+  while(it.hasNext()){
+    Term* term = it.next();
+    bool matchFound = false;
+    DHMultiset<Term*>::Iterator it2(tlTerms1);
+    while(it2.hasNext()){
+      Term* term2 = it2.next();
+      if(safe(term, term2)){
+        unmatchedTlTerms1.remove(term2);
+        matchFound = true;
+        break;
+      }
+    }
+    if(!matchFound){
+      return false;
+    }
+  }
+  
+  return true;
+}
 
 SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
 {
@@ -319,91 +420,113 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
 
   VarCondRes vcr = BOTH;
 
-  DHMultiset<Term*> tl1UnstableTerms;
-  //VarOccMap tl1RedData;
-  DHMultiset<Term*> tl2UnstableTerms;
-  //VarOccMap tl2RedData;
+  DHMultiset<Term*> tl1TopLevelVarLikeTerms;
+  DHMultiset<Term*> tl2TopLevelVarLikeTerms;
 
   if(!tl1.isVar()){
-    UnstableSubtermIt usti(tl1.term());
+    TopLevelVarLikeTermIterator usti(tl1.term());
     while(usti.hasNext()){
-      tl1UnstableTerms.insert(usti.next());
+      tl1TopLevelVarLikeTerms.insert(usti.next());
     }
   }
 
   if(!tl2.isVar()){
-    UnstableSubtermIt usti(tl2.term());
+    TopLevelVarLikeTermIterator usti(tl2.term());
     while(usti.hasNext()){
-      tl2UnstableTerms.insert(usti.next());
+      tl2TopLevelVarLikeTerms.insert(usti.next());
     }
   }
 
-  if(tl1UnstableTerms.size() > tl2UnstableTerms.size()){
+  if(tl1TopLevelVarLikeTerms.size() > tl2TopLevelVarLikeTerms.size()){
     vcr = LEFT;
-  } else if (tl2UnstableTerms.size() > tl1UnstableTerms.size()){
+  } else if (tl2TopLevelVarLikeTerms.size() > tl1TopLevelVarLikeTerms.size()){
     vcr = RIGHT;
   }
 
-  DHMultiset<Term*>::SetIterator tl1utit(tl1UnstableTerms);
-  while(tl1utit.hasNext()){
-    unsigned tl1Mult = 0;
-    Term* t = tl1utit.next(tl1Mult);
-    unsigned tl2Mult = tl2UnstableTerms.multiplicity(t);
-    if(tl1Mult > tl2Mult && vcr != RIGHT){
-      vcr = LEFT;
-    } else if(tl2Mult > tl1Mult && vcr != LEFT){
-      vcr = RIGHT;
-    } else if (tl1Mult != tl2Mult){
-      return INCOMP;
+  if(env.options->complexVarCondition()){
+    if(vcr == BOTH || vcr == LEFT){
+
+      bool vcHolds = varConditionHolds(tl1TopLevelVarLikeTerms, tl2TopLevelVarLikeTerms);
+      if(!vcHolds){
+        if(vcr == BOTH){
+          vcr = RIGHT;
+        } else {
+          return INCOMP;
+        }
+      }
+    }
+    
+    if(vcr == BOTH || vcr == RIGHT){
+      bool vcHolds = varConditionHolds(tl2TopLevelVarLikeTerms, tl1TopLevelVarLikeTerms);
+      if(!vcHolds){
+        if(vcr == BOTH){
+          vcr = LEFT;
+        } else {
+          return INCOMP;
+        }
+      }
+    }
+
+  } else {
+    DHMultiset<Term*>::SetIterator tl1utit(tl1TopLevelVarLikeTerms);
+    while(tl1utit.hasNext()){
+      unsigned tl1Mult = 0;
+      Term* t = tl1utit.next(tl1Mult);
+      unsigned tl2Mult = tl2TopLevelVarLikeTerms.multiplicity(t);
+      if(tl1Mult > tl2Mult && vcr != RIGHT){
+        vcr = LEFT;
+      } else if(tl2Mult > tl1Mult && vcr != LEFT){
+        vcr = RIGHT;
+      } else if (tl1Mult != tl2Mult){
+        return INCOMP;
+      }
+    }
+
+    DHMultiset<Term*>::SetIterator tl2utit(tl2TopLevelVarLikeTerms);
+    while(tl2utit.hasNext()){
+      unsigned tl2Mult = 0;
+      Term* t = tl2utit.next(tl2Mult);
+      unsigned tl1Mult = tl1TopLevelVarLikeTerms.multiplicity(t);
+      if(tl1Mult > tl2Mult && vcr != RIGHT){
+        vcr = LEFT;
+      } else if(tl2Mult > tl1Mult && vcr != LEFT){
+        vcr = RIGHT;
+      } else if (tl1Mult != tl2Mult){
+        return INCOMP;
+      }
     }
   }
 
-  DHMultiset<Term*>::SetIterator tl2utit(tl2UnstableTerms);
-  while(tl2utit.hasNext()){
-    unsigned tl2Mult = 0;
-    Term* t = tl2utit.next(tl2Mult);
-    unsigned tl1Mult = tl1UnstableTerms.multiplicity(t);
-    if(tl1Mult > tl2Mult && vcr != RIGHT){
-      vcr = LEFT;
-    } else if(tl2Mult > tl1Mult && vcr != LEFT){
-      vcr = RIGHT;
-    } else if (tl1Mult != tl2Mult){
-      return INCOMP;
-    }
-  }
-
-  DHMultiset<unsigned> tl1vars;
-  StableVarIt svi(tl1, &tl1UnstableTerms);
+  DHMultiset<unsigned> tl1TopLevelVars;
+  TopLevelVarIterator svi(tl1);
   while(svi.hasNext()){
     TermList tl = svi.next();
-    TermList head = ApplicativeHelper::getHead(tl);
-    ASS(head.isVar());
-    tl1vars.insert(head.var());
+    ASS(tl.isVar());
+    tl1TopLevelVars.insert(tl.var());
   }
 
-  DHMultiset<unsigned> tl2vars;
-  StableVarIt svi2(tl2, &tl2UnstableTerms);
+  DHMultiset<unsigned> tl2TopLevelVars;
+  TopLevelVarIterator svi2(tl2);
   while(svi2.hasNext()){
     TermList tl = svi2.next();
-    TermList head = ApplicativeHelper::getHead(tl);
-    ASS(head.isVar());
-    tl2vars.insert(head.var());
+    ASS(tl.isVar());
+    tl2TopLevelVars.insert(tl.var());
   }
 
-  if(tl1vars.size() > tl2vars.size() && vcr != RIGHT){
+  if(tl1TopLevelVars.size() > tl2TopLevelVars.size() && vcr != RIGHT){
     vcr = LEFT;
-  } else if (tl2vars.size() > tl1vars.size()  && vcr != LEFT){
+  } else if (tl2TopLevelVars.size() > tl1TopLevelVars.size()  && vcr != LEFT){
     vcr = RIGHT;
-  } else if(tl1vars.size() != tl2vars.size()){
+  } else if(tl1TopLevelVars.size() != tl2TopLevelVars.size()){
     return INCOMP;
   }
 
 
-  DHMultiset<unsigned>::SetIterator tl1vit(tl1vars);
+  DHMultiset<unsigned>::SetIterator tl1vit(tl1TopLevelVars);
   while(tl1vit.hasNext()){
     unsigned tl1Mult = 0;
     unsigned var = tl1vit.next(tl1Mult);
-    unsigned tl2Mult = tl2vars.multiplicity(var);
+    unsigned tl2Mult = tl2TopLevelVars.multiplicity(var);
     if(tl1Mult > tl2Mult && vcr != RIGHT){
       vcr = LEFT;
     } else if(tl2Mult > tl1Mult && vcr != LEFT){
@@ -413,11 +536,11 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
     }
   }
 
-  DHMultiset<unsigned>::SetIterator tl2vit(tl2vars);
+  DHMultiset<unsigned>::SetIterator tl2vit(tl2TopLevelVars);
   while(tl2vit.hasNext()){
     unsigned tl2Mult = 0;
     unsigned var = tl2vit.next(tl2Mult);
-    unsigned tl1Mult = tl1vars.multiplicity(var);
+    unsigned tl1Mult = tl1TopLevelVars.multiplicity(var);
     //cout << "its multip on right is " << tl1Mult << endl;
     if(tl1Mult > tl2Mult && vcr != RIGHT){
       vcr = LEFT;
@@ -428,144 +551,8 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
     }
   }
 
-  /*DHMap<unsigned, unsigned> varCounts;
-  static TermStack args;
-  StableVarIt svi3(tl1, &tl1UnstableTerms);
-  while(svi3.hasNext()){
-    args.reset(); //TODO required?
-    TermList tl = svi3.next();
-    TermList head;
-    ApplicativeHelper::getHeadAndArgs(tl, head, args);
-    ASS(head.isVar());
-    unsigned var = head.var();
-    DArray<DArray<unsigned>*>* vData;
-    unsigned count;
-    if(tl1RedData.find(var)){
-      vData = tl1RedData.get(var);
-      count = varCounts.get(var);
-    } else {
-      vData = new DArray<DArray<unsigned>*>(tl1vars.multiplicity(var));
-      count = 0;
-      tl1RedData.set(var, vData);
-    }
-    varCounts.set(var, count + 1);
-    (*vData)[count] = new DArray<unsigned>(args.size());
-    for(unsigned i = 0; i < args.size(); i++){
-      (*(*vData)[count])[i] = getMaxRedLength(args.pop());
-    }
-  }
-
-  varCounts.reset();
-  StableVarIt svi4(tl2, &tl2UnstableTerms);
-  while(svi4.hasNext()){
-    args.reset(); //TODO required?
-    TermList tl = svi4.next();
-    TermList head;
-    ApplicativeHelper::getHeadAndArgs(tl, head, args);
-    ASS(head.isVar());
-    unsigned var = head.var();
-    DArray<DArray<unsigned>*>* vData;
-    unsigned count;
-    if(tl2RedData.find(var)){
-      vData = tl2RedData.get(var);
-      count = varCounts.get(var);
-    } else {
-      vData = new DArray<DArray<unsigned>*>(tl2vars.multiplicity(var));
-      count = 0;
-      tl2RedData.set(var, vData);
-    }
-    varCounts.set(var, count + 1);
-    (*vData)[count] = new DArray<unsigned>(args.size()); //TODO why does this not trigger allocator bug?
-    for(unsigned i = 0; i < args.size(); i++){
-      (*(*vData)[count])[i] = getMaxRedLength(args.pop());
-    }
-  }
-
-  vcr =  compareVariables(tl1RedData, tl2RedData, vcr);
-  freeMem(tl1RedData, tl2RedData);*/
   return vcr;
 }
-
-/*SKIKBO::VarCondRes SKIKBO::compareVariables(VarOccMap& vomtl1 , VarOccMap& vomtl2, VarCondRes currStat) const
-{
-  CALL("SKIKBO::compareVariables/2");
-
-  if(currStat == LEFT || currStat == BOTH){
-    VarOccMap::Iterator it1(vomtl2);
-    while(it1.hasNext()){
-      unsigned var;
-      DArray<DArray<unsigned>*>* arrtl2 = it1.nextRef(var);
-      ASS_REP(vomtl1.find(var), "X" + Int::toString(var));
-      DArray<DArray<unsigned>*>* arrtl1 = vomtl1.get(var); //returned by ref
-      
-      unsigned m = arrtl2->size();
-      unsigned n = arrtl1->size();
-
-      DArray<DArray<bool>> bpGraph;
-      bpGraph.ensure(m);
-      for(unsigned i = 0; i < m; i++){
-        DArray<unsigned>* redLengths2 = (*arrtl2)[i]; 
-        bpGraph[i].ensure(n);
-        for(unsigned j = 0; j < n; j++){
-          DArray<unsigned>* redLengths1 = (*arrtl1)[j]; 
-          bpGraph[i][j] = canBeMatched(redLengths2, redLengths1);
-        }
-      }
-      if(!totalBMP(m, n, bpGraph)){
-        if(currStat == LEFT){ return INCOMP; }
-        currStat = RIGHT;
-        break;
-      }
-    }
-  }
-  
-  if(currStat == LEFT){ return LEFT; }
-
-  VarOccMap::Iterator it2(vomtl1);
-  while(it2.hasNext()){
-    unsigned var;
-    DArray<DArray<unsigned>*>* arrtl1 = it2.nextRef(var);
-    ASS(vomtl2.find(var));
-    DArray<DArray<unsigned>*>* arrtl2 = vomtl2.get(var); //returned by ref
-    
-    unsigned m = arrtl1->size();
-    unsigned n = arrtl2->size();
-
-    DArray<DArray<bool>> bpGraph;
-    bpGraph.ensure(m);
-    for(unsigned i = 0; i < m; i++){
-      DArray<unsigned>* redLengths2 = (*arrtl1)[i]; 
-      bpGraph[i].ensure(n);
-      for(unsigned j = 0; j < n; j++){
-        DArray<unsigned>* redLengths1 = (*arrtl2)[j]; 
-        bpGraph[i][j] = canBeMatched(redLengths2, redLengths1);
-      }
-    }
-    if(!totalBMP(m, n, bpGraph)){
-      if(currStat == RIGHT){ return INCOMP; }
-      currStat = LEFT;
-      break;
-    }
-  }
-  return currStat; 
-}
-
-void SKIKBO::freeMem(VarOccMap& vomtl1 , VarOccMap& vomtl2) const
-{
-  CALL("SKIKBO::freeMem");
-
-  VarOccMap::Iterator it1(vomtl1);
-  while(it1.hasNext()){
-    DArray<DArray<unsigned>*>* arr = it1.next();
-    delete arr;
-  }
-
-  VarOccMap::Iterator it2(vomtl2);
-  while(it2.hasNext()){
-    DArray<DArray<unsigned>*>* arr = it2.next();
-    delete arr;
-  }
-}*/
 
 unsigned SKIKBO::getMaxRedLength(TermList t) const
 {
@@ -578,6 +565,7 @@ unsigned SKIKBO::getMaxRedLength(TermList t) const
     tRedLen = maximumReductionLength(t.term());
     t.term()->setMaxRedLen(tRedLen);
   }
+  ASS(tRedLen >= 0);
   return (unsigned)tRedLen;
 }
 
@@ -613,6 +601,7 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 
     unsigned tl1RedLen = getMaxRedLength(tl1);
     unsigned tl2RedLen = getMaxRedLength(tl2);
+
     if((varCond == LEFT  || varCond == BOTH) && tl1RedLen > tl2RedLen){
       return GREATER;
     } 
@@ -662,11 +651,13 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-int SKIKBO::functionSymbolWeight(unsigned fun) const
+int SKIKBO::symbolWeight(Term* t) const
 {
-  int weight = _defaultSymbolWeight;
-
-  return weight;
+  if (t->isSort()){
+    //For now just give all type constructors minimal weight
+    return _weights._specialWeights._variableWeight;
+  }
+  return _weights.symbolWeight(t);
 }
 
 

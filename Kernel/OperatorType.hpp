@@ -9,11 +9,11 @@
  */
 /**
  * @file OperatorType.hpp
- * Defines class Sorts.
+ * Defines class OperatorType.
  */
 
-#ifndef __Sorts__
-#define __Sorts__
+#ifndef __OperatorType__
+#define __OperatorType__
 
 #include "Forwards.hpp"
 
@@ -66,8 +66,11 @@ public:
     static unsigned hash(OperatorType* ot)
     { 
       OperatorKey& key = *ot->key();
-      unsigned typeArgsArity = ot->typeArgsArity();
-      return HashUtils::combine(Hash::hash(key), Hash::hash(typeArgsArity)); 
+      unsigned typeArgsArity = ot->numTypeArguments();
+      return HashUtils::combine(
+        DefaultHash::hash(key),
+        DefaultHash::hash(typeArgsArity)
+      );
     }
   };
 
@@ -164,7 +167,7 @@ public:
   }
 
   OperatorKey* key() const { return _key; }
-  unsigned typeArgsArity() const { return _typeArgsArity; }
+  unsigned numTypeArguments() const { return _typeArgsArity; }
   unsigned arity() const { return _typeArgsArity + _key->length()-1; }
 
   /**
@@ -196,15 +199,15 @@ public:
   //TODO functions below do not hold for higher-order
   //In higher-order we have boolean functions
 
-  bool isPredicateType() const { return (*_key)[arity() - typeArgsArity()] == AtomicSort::boolSort(); };
-  bool isFunctionType() const { return (*_key)[arity() - typeArgsArity()] != AtomicSort::boolSort(); };
+  bool isPredicateType() const { return (*_key)[arity() - numTypeArguments()] == AtomicSort::boolSort(); };
+  bool isFunctionType() const { return (*_key)[arity() - numTypeArguments()] != AtomicSort::boolSort(); };
 
   /**
    * The result sort of function types; or AtomicSort::boolSort() for predicates.
    */
   TermList result() const {
     CALL("OperatorType::result");
-    return (*_key)[arity() - typeArgsArity()];
+    return (*_key)[arity() - numTypeArguments()];
   }
   
   vstring toString() const;  
@@ -218,4 +221,4 @@ private:
 
 }
 
-#endif // __Sorts__
+#endif // __OperatorType__

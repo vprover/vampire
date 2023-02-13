@@ -61,9 +61,8 @@ void* SATClause::operator new(size_t sz,unsigned lits)
   return ALLOC_KNOWN(size,"SATClause");
 }
 
-SATClause::SATClause(unsigned length,bool kept)
-  : _activity(0), _length(length), _kept(kept?1:0), _nonDestroyable(0), _inference(0)
-//      , _genCounter(0xFFFFFFFF)
+SATClause::SATClause(unsigned length)
+  : _length(length), _nonDestroyable(0), _inference(0)
 {
   env.statistics->satClauses++;
   if(length==1) {
@@ -75,7 +74,7 @@ SATClause::SATClause(unsigned length,bool kept)
 
   // call a constructor on the literals
   for (size_t i = 1; i < _length; i++)
-    new (&_literals[i]) SATLiteral();
+    ::new (&_literals[i]) SATLiteral();
 }
 
 /**
@@ -130,7 +129,7 @@ void SATClause::setInference(SATInference* val)
 }
 
 
-bool litComparator(SATLiteral l1, SATLiteral l2)
+static bool litComparator(SATLiteral l1, SATLiteral l2)
 {
   return l1.content()>l2.content();
 }
@@ -141,21 +140,6 @@ bool litComparator(SATLiteral l1, SATLiteral l2)
 void SATClause::sort()
 {
   std::sort(&_literals[0], &_literals[length()], litComparator);
-}
-
-bool SATClause::hasUniqueVariables() const
-{
-  CALL("SATClause::hasUniqueVariables");
-
-  static DHSet<int> seen;
-  seen.reset();
-  unsigned clen=length();
-  for(unsigned i=0; i<clen; i++) {
-    if(!seen.insert((*this)[i].var())) {
-      return false;
-    }
-  }
-  return true;
 }
 
 SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
@@ -183,7 +167,7 @@ SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
   }
   if(duplicate) {
     unsigned newLen=clen-duplicate;
-    SATClause* cl2=new(newLen) SATClause(newLen, true);
+    SATClause* cl2=new(newLen) SATClause(newLen);
 
     for(unsigned i=0;i<newLen;i++) {
       (*cl2)[i]=(*cl)[duplicate+i];
@@ -221,89 +205,6 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
   return rcl;
 }
 
-SATClause* SATClause::copy(SATClause* cl)
-{
-  CALL("SATClause::copy");
-
-  unsigned clen = cl->size();
-  SATClause* rcl=new(clen) SATClause(clen);
-
-  for(unsigned i=0; i<clen; i++) {
-    (*rcl)[i] = (*cl)[i];
-  }
-
-  if(cl->inference()) {
-    rcl->setInference(SATInference::copy(cl->inference()));
-  }
-
-  return rcl;
-}
-
-SATClauseList* SATClause::fromFOClauses(ClauseIterator clauses)
-{
-  CALL("SATClause::fromFOClauses/1");
-
-  NamingContext context;
-  return fromFOClauses(context, clauses);
-}
-
-SATClauseList* SATClause::fromFOClauses(NamingContext& context, ClauseIterator clauses)
-{
-  CALL("SATClause::fromFOClauses/2");
-
-  SATClauseList* res=0;
-
-  while(clauses.hasNext()) {
-    Clause* cl=clauses.next();
-    SATClauseList::push(fromFOClause(context,cl), res);
-  }
-
-  return res;
-}
-
-SATClause* SATClause::fromFOClause(NamingContext& context, Clause* cl)
-{
-  CALL("SATClause::fromFOClause");
-
-  unsigned clen=cl->length();
-  SATClause* rcl=new(clen) SATClause(clen);
-
-  for(unsigned i=0;i<clen;i++) {
-    ASS_REP((*cl)[i]->ground(), *(*cl)[i]);
-    (*rcl)[i]=litToSAT(context, (*cl)[i]);
-  }
-  return rcl;
-}
-
-
-SATLiteral SATClause::litToSAT(NamingContext& context, Literal* lit)
-{
-  CALL("SATClause::litToSAT");
-
-  int num;
-  if(context.map.find(lit, num)) {
-    return SATLiteral(abs(num), num>0?1:0);
-  }
-  if(lit->isPositive()) {
-    num=context.nextVar++;
-    context.map.insert(lit, num);
-    return SATLiteral(num, 1);
-  }
-
-  Literal* posLit=Literal::complementaryLiteral(lit);
-  if(context.map.find(posLit, num)) {
-    context.map.insert(lit, -num);
-    return SATLiteral(num, 0);
-  }
-
-  num=context.nextVar++;
-
-  context.map.insert(posLit, num);
-  context.map.insert(lit, -num);
-  return SATLiteral(num, 0);
-}
-
-
 /**
  * Convert the clause to the string representation.
  */
@@ -325,32 +226,6 @@ vstring SATClause::toString() const
   }
   return result;
 } // SATClause::toString
-
-/**
- * Convert the clause to the DIMACS string representation.
- */
-vstring SATClause::toDIMACSString() const
-{
-  CALL("SATClause::toDIMACSString");
-
-  if(_length==0) {
-    return "0";
-  }
-
-  vstring result;
-  for(unsigned i=0;i<_length;i++) {
-    ASS_G(_literals[i].var(),0);
-    if(i!=0) {
-      result+=" ";
-    }
-    if(!_literals[i].polarity()) {
-      result+="-";
-    }
-    result += Int::toString(_literals[i].var());
-  }
-  result+=" 0";
-  return result;
-}
 
 std::ostream& operator<< (std::ostream& out, const SAT::SATClause& cl )
 {

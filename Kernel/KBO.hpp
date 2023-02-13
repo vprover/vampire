@@ -23,7 +23,6 @@
 
 #include "Ordering.hpp"
 
-#define SPECIAL_WEIGHT_FILENAME_RANDOM      "random"
 #define SPECIAL_WEIGHT_IDENT_VAR            "$var"
 #define SPECIAL_WEIGHT_IDENT_INTRODUCED     "$introduced"
 #define SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT "$default"
@@ -112,13 +111,13 @@ struct KboWeightMap {
   KboWeight symbolWeight(Term*    t      ) const;
   KboWeight symbolWeight(unsigned functor) const;
 
-                         static KboWeightMap dflt();
+  static KboWeightMap dflt();
+  template<class Extractor, class Fml>
+  static KboWeightMap fromSomeUnsigned(Extractor ex, Fml fml);
 private:
   static KboWeightMap randomized();
   template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random);
 };
-
-
 
 /**
  * Class for instances of the Knuth-Bendix orderings
@@ -142,6 +141,7 @@ public:
 
       // precedence ordering params
       DArray<int> funcPrec, 
+      DArray<int> typeConPrec,       
       DArray<int> predPrec, 
       DArray<int> predLevels,
 
@@ -154,12 +154,12 @@ public:
   void showConcrete(ostream&) const override;
   template<class HandleError>
   void checkAdmissibility(HandleError handle) const;
+  void zeroWeightForMaximalFunc();
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
-
 
   class State;
 
@@ -174,7 +174,7 @@ private:
 #endif
 
   template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
-  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts) const;
+  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const;
   template<class SigTraits> KboWeightMap<SigTraits> weightsFromFile(const Options& opts) const;
 
   template<class SigTraits> 

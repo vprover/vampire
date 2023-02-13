@@ -76,7 +76,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SuperpositionSubtermIndex::handleClause");
 
-  TimeCounter tc(TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+  TIME_TRACE("backward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
@@ -102,7 +102,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
   CALL("SuperpositionLHSIndex::handleClause");
 
-  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+  TIME_TRACE("forward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
@@ -125,7 +125,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 {
   CALL("DemodulationSubtermIndex::handleClause");
 
-  TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
+  TIME_TRACE("backward demodulation index maintenance");
 
   static DHSet<TermList> inserted;
 
@@ -172,7 +172,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
     return;
   }
 
-  TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
+  TIME_TRACE("forward demodulation index maintenance");
 
   Literal* lit=(*c)[0];
   TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
@@ -190,7 +190,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
 {
   CALL("InductionTermIndex::handleClause");
 
-  TimeCounter tc(TC_INDUCTION_TERM_INDEX_MAINTENANCE);
+  TIME_TRACE("induction term index maintenance");
 
   if (InductionHelper::isInductionClause(c)) {
   // Iterate through literals & check if the literal is suitable for induction
@@ -201,6 +201,8 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
         while (it.hasNext()) {
           TermList tl = it.next();
           if (!tl.term()) continue;
+          // TODO: each term (and its subterms) should be processed
+          // only once per literal, see DemodulationSubtermIndex
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
               InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
             if (adding) {
@@ -209,6 +211,41 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
               _is->remove(tl, lit, c);
             }
           }
+        }
+      }
+    }
+  }
+}
+
+void StructInductionTermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("StructInductionTermIndex::handleClause");
+
+  if (!InductionHelper::isInductionClause(c)) {
+    return;
+  }
+  static DHSet<TermList> inserted;
+  // Iterate through literals & check if the literal is suitable for induction
+  for (unsigned i=0;i<c->length();i++) {
+    inserted.reset();
+    Literal* lit = (*c)[i];
+    if (!lit->ground()) {
+      continue;
+    }
+    SubtermIterator it(lit);
+    while (it.hasNext()) {
+      TermList tl = it.next();
+      if (!inserted.insert(tl)) {
+        it.right();
+        continue;
+      }
+      ASS(tl.isTerm());
+      if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
+          InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
+        if (adding) {
+          _is->insert(tl, lit, c);
+        } else {
+          _is->remove(tl, lit, c);
         }
       }
     }

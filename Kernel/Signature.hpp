@@ -38,11 +38,13 @@
 #include "OperatorType.hpp"
 #include "Theory.hpp"
 
+#include <climits>
 
 namespace Kernel {
 
 using namespace std;
 using namespace Lib;
+typedef Map<vstring, unsigned> SymbolMap;
 
 /**
  * Class implementing signatures
@@ -126,6 +128,8 @@ class Signature
     unsigned _label : 1;
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
+    /** was flipped **/ 
+    unsigned _wasFlipped : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
     /** marks distinct string constants */
@@ -178,6 +182,8 @@ class Signature
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
+    /** mark predicate as (polarity) flipped */
+    void markFlipped() { _wasFlipped=1; }
     /** mark constant as overflown */
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
@@ -192,10 +198,15 @@ class Signature
     bool label() const { return _label; }
     /** return the colour of the symbol */
     Color color() const { return static_cast<Color>(_color); }
-    /** Return the arity of the symbol */
+    /** Return the arity of the symbol
+     * this includes the term as well as the type arguments of the symbol
+     */
     inline unsigned arity() const { return _arity; }
+    /* the number of term arguments for this symbol */
+    inline unsigned numTermArguments() const { return arity() - numTypeArguments(); }
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
-    inline unsigned typeArgsArity() const { 
+    inline unsigned numTypeArguments() const 
+    { 
       if(name() == "="){ 
         //for some reason, equality is never assigned a type (probably because it is poly)
         return 0; 
@@ -219,6 +230,8 @@ class Signature
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
+    /** Return true iff symbol was polarity flipped */
+    inline bool wasFlipped() const { return _wasFlipped; }
     /** Return true iff symbol is an overflown constant */
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
@@ -607,15 +620,15 @@ class Signature
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
-    return (con == _arrayCon && _arrayCon != 0);    
+    return (con == _arrayCon && _arrayCon != UINT_MAX);    
   }
 
   bool isArrowCon(unsigned con) const{
-    return (con == _arrowCon && _arrowCon != 0);    
+    return (con == _arrowCon && _arrowCon != UINT_MAX);    
   }
   
   bool isAppFun(unsigned fun) const{
-    return (fun == _appFun && _appFun != 0);
+    return (fun == _appFun && _appFun != UINT_MAX);
   }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
@@ -713,7 +726,7 @@ class Signature
 
   unsigned getArrowConstructor(){
     bool added = false;
-    unsigned arrow = addTypeCon(">",2, added);
+    unsigned arrow = addTypeCon("sTfun",2, added);
     if(added){
       _arrowCon = arrow;
       TermList ss = AtomicSort::superSort();

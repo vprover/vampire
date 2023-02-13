@@ -97,7 +97,7 @@ private:
 //   void apply (TermList& ls,UnitList& parents);
 //   void apply (Term& l,UnitList& parents);
 
-  typedef DHMap<int, Def*, IdentityHash> Fn2DefMap;
+  typedef DHMap<int, Def*, IdentityHash, DefaultHash> Fn2DefMap;
   Fn2DefMap _defs;
 
   /** stack where definitions are put when they're marked as blocked */

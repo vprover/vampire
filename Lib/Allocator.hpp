@@ -58,6 +58,21 @@
 # define ALLOC_SIZE_ATTR
 #endif
 
+/**
+ * Deletion of incomplete class types causes memory leaks. Using this
+ * causes compile error when deleting incomplete classes.
+ *
+ * (see http://www.boost.org/doc/libs/1_36_0/libs/utility/checked_delete.html )
+ */
+template<class T> void checked_delete(T * x)
+{
+    CALL("checked_delete");
+    // intentionally complex - simplification causes regressions
+    typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
+    (void) sizeof(type_must_be_complete);
+    delete x;
+}
+
 namespace Lib {
 
 class Allocator {
@@ -230,6 +245,7 @@ public:
     /** true if it is a page allocated to store other objects */
     unsigned page : 1;
     Descriptor();
+    ~Descriptor();
 
     friend std::ostream& operator<<(std::ostream& out, const Descriptor& d);
 
@@ -372,11 +388,6 @@ void array_delete(T* array, size_t length)
   }
 }
 
-#define DECLARE_PLACEMENT_NEW                                           \
-  void* operator new (size_t, void* buffer) { return buffer; } 		\
-  void operator delete (void*, void*) {}
-
-
 #if VDEBUG
 
 std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
@@ -425,14 +436,16 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
     (Lib::Allocator::current->reallocateUnknown(obj,newsize,className))
 #define DEALLOC_UNKNOWN(obj,className)		                \
   (Lib::Allocator::current->deallocateUnknown(obj,className))
-         
-#define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing _tmpBypass_##SEED;
+
+#define __CAT(x,y) x ## y
+
+#define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing __CAT(_tmpBypass_, SEED);
 #define BYPASSING_ALLOCATOR BYPASSING_ALLOCATOR_(__LINE__)
 
-#define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking _tmpBypass_##SEED;
+#define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking __CAT(_tmpBypass_, SEED);
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES START_CHECKING_FOR_BYPASSES(__LINE__)
 
-#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking _tmpBypass_##SEED;
+#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking __CAT(_tmpBypass_, SEED);
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES STOP_CHECKING_FOR_BYPASSES(__LINE__)
 
 #else

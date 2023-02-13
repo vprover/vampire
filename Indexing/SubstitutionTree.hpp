@@ -53,9 +53,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-#define SUBST_CLASS RobSubstitution
-//#define SUBST_CLASS EGSubstitution
-
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
 
 #define REORDERING 1
@@ -222,7 +219,6 @@ public:
 
 
   typedef VirtualIterator<Node**> NodeIterator;
-  typedef List<Node*> NodeList;
   class IntermediateNode;
     
     //We can remove this class once we deal with UWA uniformly for
@@ -678,7 +674,7 @@ public:
     { return 0u; }
   };
 
-  typedef DHMap<unsigned,TermList,IdentityHash> BindingMap;
+  typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
@@ -870,7 +866,7 @@ public:
     static const int NORM_QUERY_BANK=2;
     static const int NORM_RESULT_BANK=3;
 
-    SUBST_CLASS subst;
+    RobSubstitution subst;
     VarStack svStack;
 
   private:
@@ -883,10 +879,12 @@ public:
     bool clientBDRecording;
     BacktrackData clientBacktrackData;
     Renaming queryNormalizer;
-    SubstitutionTree* tree;
     bool useUWAConstraints;
     bool useHOConstraints;
     UnificationConstraintStack constraints;
+#if VDEBUG
+    SubstitutionTree* tree;
+#endif
   };
 
 /*

@@ -139,7 +139,7 @@ public:
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
     bool checkGlobalOptionConstraints(bool fail_early=false);
-    bool checkProblemOptionConstraints(Property*, bool fail_early=false); 
+    bool checkProblemOptionConstraints(Property*, bool before_preprocessing, bool fail_early=false);
 
     // Randomize strategy (will only work if randomStrategy=on)
     // should only be called after all other options are set
@@ -239,15 +239,25 @@ public:
   };
   enum class IntInductionKind : unsigned int {
     ONE,
-    TWO,
-    ALL
+    TWO
   };
   enum class IntegerInductionInterval : unsigned int {
     INFINITE,
     FINITE,
     BOTH
   };
-
+  enum class IntegerInductionLiteralStrictness: unsigned int {
+    NONE,
+    TOPLEVEL_NOT_IN_OTHER,
+    ONLY_ONE_OCCURRENCE,
+    NOT_IN_BOTH,
+    ALWAYS
+  };
+  enum class IntegerInductionTermStrictness: unsigned int {
+    NONE,
+    INTERPRETED_CONSTANT,
+    NO_SKOLEMS
+  };
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -372,7 +382,6 @@ public:
     CASC_LTB,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
-    GROUNDING,
     MODEL_CHECK,
     /** this mode only outputs the input problem, without any preprocessing */
     OUTPUT,
@@ -394,6 +403,7 @@ public:
     CASC_SAT,
     CASC_SAT_2019,
     CASC_HOL_2020,
+    FILE,
     INDUCTION,
     INTEGER_INDUCTION,
     LTB_DEFAULT_2017,
@@ -403,6 +413,8 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2018,
+    SNAKE_TPTP_UNS,
+    SNAKE_TPTP_SAT,
     STRUCT_INDUCTION
   };
 
@@ -475,11 +487,11 @@ public:
   };
 
   enum class InterpolantMode : unsigned int {
-    NEW_HEUR = 0,
-    NEW_OPT = 1,
-    OFF = 2,
-    OLD = 3,
-    OLD_OPT = 4
+    NEW_HEUR,
+#if VZ3
+    NEW_OPT,
+#endif
+    OFF,
   };
 
   enum class LiteralComparisonMode : unsigned int {
@@ -521,17 +533,24 @@ public:
     ARITY = 0,
     OCCURRENCE = 1,
     REVERSE_ARITY = 2,
-    SCRAMBLE = 3,
-    FREQUENCY = 4,
-    REVERSE_FREQUENCY = 5,
-    WEIGHTED_FREQUENCY = 6,
-    REVERSE_WEIGHTED_FREQUENCY = 7
+    UNARY_FIRST = 3,
+    CONST_MAX = 4,
+    CONST_MIN = 5,
+    SCRAMBLE = 6,
+    FREQUENCY = 7,
+    UNARY_FREQ = 8,
+    CONST_FREQ = 9,
+    REVERSE_FREQUENCY = 10,
+    WEIGHTED_FREQUENCY = 11,
+    REVERSE_WEIGHTED_FREQUENCY = 12
   };
   enum class SymbolPrecedenceBoost : unsigned int {
-    NONE = 0,
+    NONE = 0,    
     GOAL = 1,
     UNIT = 2,
-    GOAL_UNIT = 3
+    GOAL_UNIT = 3,
+    NON_INTRO = 4,
+    INTRO = 5,
   };
   enum class IntroducedSymbolPrecedence : unsigned int {
     TOP = 0,
@@ -572,7 +591,8 @@ public:
   enum class SplittingLiteralPolarityAdvice : unsigned int {
     FALSE,
     TRUE,
-    NONE
+    NONE,
+    RANDOM
   };
 
   enum class SplittingMinimizeModel : unsigned int {
@@ -603,6 +623,12 @@ public:
     ALL_DEPENDENT = 1,
     KNOWN = 2,
     NONE = 3
+  };
+
+  enum class TweeGoalTransformation : unsigned int {
+    OFF = 0,
+    GROUND = 1,
+    FULL = 2
   };
 
   enum class CCUnsatCores : unsigned int {
@@ -675,6 +701,19 @@ public:
     CONSTANT,
     DECAY,
     CONVERGE
+  };
+
+  enum class KboWeightGenerationScheme : unsigned int {
+    CONST = 0,
+    RANDOM = 1,
+    ARITY = 2,
+    INV_ARITY = 3,
+    ARITY_SQUARED = 4,
+    INV_ARITY_SQUARED = 5,
+    PRECEDENCE = 6,
+    INV_PRECEDENCE = 7,
+    FREQUENCY = 8,
+    INV_FREQUENCY = 9,
   };
 
   enum class KboAdmissibilityCheck : unsigned int {
@@ -973,22 +1012,37 @@ private:
         void addConstraint(OptionValueConstraintUP<T> c){ _constraints.push(std::move(c)); }
         void addHardConstraint(OptionValueConstraintUP<T> c){ c->setHard();addConstraint(std::move(c)); }
 
-        // A reliesOn constraint gives a constraint that must be true if a non-default value is used
-        // For example, split_at_activation relies on splitting being on
+        // A onlyUsefulWith constraint gives a constraint that must be true if this option's value is set
+        // For example, split_at_activation is only useful with splitting being on
         // These are defined for OptionValueConstraints and WrappedConstraints - see below for explanation
-        void reliesOn(AbstractWrappedConstraintUP c){
+        void onlyUsefulWith(AbstractWrappedConstraintUP c){
+            _constraints.push(If(hasBeenSet<T>()).then(unwrap<T>(c)));
+        }
+        void onlyUsefulWith(OptionValueConstraintUP<T> c){
+            _constraints.push(If(hasBeenSet<T>()).then(std::move(c)));
+        }
+
+        // similar to onlyUsefulWith, except the trigger is a non-default value 
+        // (as opposed to the explicitly-set flag)
+        // we use it for selection and awr which cannot be not set via the decode string
+        void onlyUsefulWith2(AbstractWrappedConstraintUP c){
             _constraints.push(If(getNotDefault()).then(unwrap<T>(c)));
         }
-        void reliesOn(OptionValueConstraintUP<T> c){
+        void onlyUsefulWith2(OptionValueConstraintUP<T> c){
             _constraints.push(If(getNotDefault()).then(std::move(c)));
         }
+
         virtual OptionValueConstraintUP<T> getNotDefault(){ return isNotDefault<T>(); }
-        void reliesOnHard(AbstractWrappedConstraintUP c){
+
+        // similar to onlyUsefulWith2, except its a hard constraint,
+        // so that the user is strongly aware of situations when changing the 
+        // respective option has no effect
+        void reliesOn(AbstractWrappedConstraintUP c){
             OptionValueConstraintUP<T> tc = If(getNotDefault()).then(unwrap<T>(c));
             tc->setHard();
             _constraints.push(std::move(tc));
         }
-        void reliesOnHard(OptionValueConstraintUP<T> c){
+        void reliesOn(OptionValueConstraintUP<T> c){
             OptionValueConstraintUP<T> tc = If(getNotDefault()).then(c);
             tc->setHard();
             _constraints.push(std::move(tc));
@@ -997,7 +1051,7 @@ private:
         bool checkConstraints();
         
         // Produces a separate constraint object based on this option
-        /// Useful for IfThen constraints and reliesOn i.e. _splitting.is(equal(true))
+        /// Useful for IfThen constraints and onlyUsefulWith i.e. _splitting.is(equal(true))
         AbstractWrappedConstraintUP is(OptionValueConstraintUP<T> c);
         
         // Problem constraints place a restriction on problem properties and option values
@@ -1349,8 +1403,8 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 * as in λ value. expression_ignoring_value
 *
 * The tricky part (C++-technology-wise) here is that unwrapping needs to get a type for the value
-* and this type is indepedent form the expression_ignoring_value for obvious reasons.
-* So virous overloads of things are needed until we get to the point, where the type is known and can be supplied.
+* and this type is independent form the expression_ignoring_value for obvious reasons.
+* So various overloads of things are needed until we get to the point, where the type is known and can be supplied.
 * (e.g. there needs to be a separate hierarchy of Wrapped expressions along the one for OptionValueConstraint ones).
 */
 
@@ -1689,9 +1743,26 @@ bool _hard;
     }
 
     /**
+     * Option-(explicitly)-set constraint
+     */
+    template<typename T>
+    struct HasBeenSet : public OptionValueConstraint<T> {
+      HasBeenSet() {}
+
+        bool check(const OptionValue<T>& value) override {
+            return value.is_set;
+        }
+        vstring msg(const OptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") has been set";}
+    };
+    
+    template<typename T>
+    static OptionValueConstraintUP<T> hasBeenSet(){
+        return OptionValueConstraintUP<T>(new HasBeenSet<T>());
+    }
+
+    /**
      * Default Value constraints
      */
-    
     template<typename T>
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
@@ -1781,31 +1852,58 @@ bool _hard;
       bool check(Property*p){
         CALL("Options::UsesEquality::check");
         ASS(p)
-        return (p->equalityAtoms() != 0);
+        return (p->equalityAtoms() != 0) ||
+          // theories may introduce equality at various places of the pipeline!
+          HasTheories::actualCheck(p);
       }
       vstring msg(){ return " only useful with equality"; }
     };
 
-    struct HasNonUnits : OptionProblemConstraint{
-      CLASS_NAME(HasNonUnits);
-      USE_ALLOCATOR(HasNonUnits);
+    struct HasHigherOrder : OptionProblemConstraint{
+      CLASS_NAME(HasHigherOrder);
+      USE_ALLOCATOR(HasHigherOrder);
 
       bool check(Property*p){
-        CALL("Options::HasNonUnits::check");
-        return (p->clauses()-p->unitClauses())!=0;
+        CALL("Options::HasHigherOrder::check");
+        ASS(p)
+        return (p->higherOrder());
+      }
+      vstring msg(){ return " only useful with higher-order problems"; }
+    };
+
+    struct OnlyFirstOrder : OptionProblemConstraint{
+      CLASS_NAME(OnlyFirstOrder);
+      USE_ALLOCATOR(OnlyFirstOrder);
+
+      bool check(Property*p){
+        CALL("Options::OnlyFirstOrder::check");
+        ASS(p)
+        return (!p->higherOrder());
+      }
+      vstring msg(){ return " not compatible with higher-order problems"; }
+    };
+
+    struct MayHaveNonUnits : OptionProblemConstraint{
+      CLASS_NAME(MayHaveNonUnits);
+      USE_ALLOCATOR(MayHaveNonUnits);
+
+      bool check(Property*p){
+        CALL("Options::MayHaveNonUnits::check");
+        return (p->formulas() > 0) // let's not try to guess what kind of clauses these will give rise to
+          || (p->clauses() > p->unitClauses());
       }
       vstring msg(){ return " only useful with non-unit clauses"; }
     };
 
-    struct HasPredicates : OptionProblemConstraint{
-      CLASS_NAME(HasPredicates);
-      USE_ALLOCATOR(HasPredicates);
+    struct NotJustEquality : OptionProblemConstraint{
+      CLASS_NAME(NotJustEquality);
+      USE_ALLOCATOR(NotJustEquality);
 
       bool check(Property*p){
-        CALL("Options::HasPredicates::check");
-        return (p->category()==Property::PEQ || p->category()==Property::UEQ);
+        CALL("Options::NotJustEquality::check");
+        return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
       }
-      vstring msg(){ return " only useful with predicates"; }
+      vstring msg(){ return " not useful with just equality"; }
     };
 
     struct AtomConstraint : OptionProblemConstraint{
@@ -1827,6 +1925,38 @@ bool _hard;
       }
     };
 
+    struct HasTheories : OptionProblemConstraint {
+      CLASS_NAME(HasTheories);
+      USE_ALLOCATOR(HasTheories);
+
+      static bool actualCheck(Property*p);
+
+      bool check(Property*p);
+      vstring msg(){ return " only useful with theories"; }
+    };
+
+    struct HasFormulas : OptionProblemConstraint {
+      CLASS_NAME(HasFormulas);
+      USE_ALLOCATOR(HasFormulas);
+
+      bool check(Property*p) {
+        CALL("Options::HasFormulas::check");
+        return p->hasFormulas();
+      }
+      vstring msg(){ return " only useful with (non-cnf) formulas"; }
+    };
+
+    struct HasGoal : OptionProblemConstraint {
+      CLASS_NAME(HasGoal);
+      USE_ALLOCATOR(HasGoal);
+
+      bool check(Property*p){
+        CALL("Options::HasGoal::check");
+        return p->hasGoal();
+      }
+      vstring msg(){ return " only useful with a goal: (conjecture) formulas or (negated_conjecture) clauses"; }
+    };
+
     // Factory methods
     static OptionProblemConstraintUP notWithCat(Property::Category c){
       return OptionProblemConstraintUP(new CategoryCondition(c,false));
@@ -1835,15 +1965,19 @@ bool _hard;
       return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
-    static OptionProblemConstraintUP hasNonUnits(){ return OptionProblemConstraintUP(new HasNonUnits); }
-    static OptionProblemConstraintUP hasPredicates(){ return OptionProblemConstraintUP(new HasPredicates); }
+    static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
+    static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
+    static OptionProblemConstraintUP mayHaveNonUnits(){ return OptionProblemConstraintUP(new MayHaveNonUnits); }
+    static OptionProblemConstraintUP notJustEquality(){ return OptionProblemConstraintUP(new NotJustEquality); }
     static OptionProblemConstraintUP atomsMoreThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,true));
     }
     static OptionProblemConstraintUP atomsLessThan(int a){
       return OptionProblemConstraintUP(new AtomConstraint(a,false));
     }
-
+    static OptionProblemConstraintUP hasFormulas() { return OptionProblemConstraintUP(new HasFormulas); }
+    static OptionProblemConstraintUP hasTheories() { return OptionProblemConstraintUP(new HasTheories); }
+    static OptionProblemConstraintUP hasGoal() { return OptionProblemConstraintUP(new HasGoal); }
 
     //Cheating - we refer to env.options to ask about option values
     // There is an assumption that the option values used have been
@@ -1871,7 +2005,7 @@ bool _hard;
       bool check(Property*p){
         CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
-        Stack<OptionProblemConstraintUP>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         while(it.hasNext()){ 
           bool n=it.next()->check(p);res = is_and ? (res && n) : (res || n);}
         return res;
@@ -1879,7 +2013,7 @@ bool _hard;
 
       vstring msg(){
         vstring res="";
-        Stack<OptionProblemConstraintUP>::Iterator it(cons);
+        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         if(it.hasNext()){ res=it.next()->msg();}
         while(it.hasNext()){ res+=",and\n"+it.next()->msg();}
         return res;
@@ -1955,6 +2089,7 @@ public:
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
+  bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
@@ -1963,6 +2098,7 @@ public:
   Schedule schedule() const { return _schedule.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
+  vstring scheduleFile() const { return _scheduleFile.actualValue; }
   unsigned multicore() const { return _multicore.actualValue; }
   void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
   float slowness() const {return _slowness.actualValue; }
@@ -1979,8 +2115,9 @@ public:
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
-  int randomSeed() const { return _randomSeed.actualValue; }
-  int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
+  unsigned randomSeed() const { return _randomSeed.actualValue; }
+  void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
+  unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2054,6 +2191,7 @@ public:
   unsigned forwardSubsumptionDemodulationMaxMatches() const { return _forwardSubsumptionDemodulationMaxMatches.actualValue; }
   Demodulation forwardDemodulation() const { return _forwardDemodulation.actualValue; }
   bool binaryResolution() const { return _binaryResolution.actualValue; }
+  bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
@@ -2063,6 +2201,7 @@ public:
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  bool demodulationEncompassment() const { return _demodulationEncompassment.actualValue; }
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -2076,20 +2215,27 @@ public:
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
+  float lrsEstimateCorrectionCoef() const { return _lrsEstimateCorrectionCoef.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
   IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
+  KboWeightGenerationScheme kboWeightGenerationScheme() const { return _kboWeightGenerationScheme.actualValue; }
+  bool kboMaxZero() const { return _kboMaxZero.actualValue; }
   const KboAdmissibilityCheck kboAdmissabilityCheck() const { return _kboAdmissabilityCheck.actualValue; }
   const vstring& functionWeights() const { return _functionWeights.actualValue; }
   const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
+  const vstring& typeConPrecedence() const { return _typeConPrecedence.actualValue; }
   const vstring& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
+  void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
-  size_t instructionLimit() const { return _instructionLimit.actualValue; }
+  unsigned instructionLimit() const { return _instructionLimit.actualValue; }
+  void setInstructionLimit(unsigned newVal) { _instructionLimit.actualValue = newVal; }
+  bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
@@ -2119,7 +2265,7 @@ public:
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
   bool useMonoEqualityProxy() const { return _useMonoEqualityProxy.actualValue; }
-  RuleActivity equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
+  bool equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
@@ -2133,11 +2279,19 @@ public:
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
 
+  bool shuffleInput() const { return _shuffleInput.actualValue; }
+  bool randomPolarities() const { return _randomPolarities.actualValue; }
+  bool randomAWR() const { return _randomAWR.actualValue; }
+  bool randomTraversals() const { return _randomTraversals.actualValue; }
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
+
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   bool skolemReuse() const { return _skolemReuse.actualValue; }
   bool definitionReuse() const { return _definitionReuse.actualValue; }
+  TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2158,8 +2312,10 @@ public:
   TheoryAxiomLevel theoryAxioms() const { return _theoryAxioms.actualValue; }
   //void setTheoryAxioms(bool newValue) { _theoryAxioms = newValue; }
   Condensation condensation() const { return _condensation.actualValue; }
-  RuleActivity generalSplitting() const { return _generalSplitting.actualValue; }
+  bool generalSplitting() const { return _generalSplitting.actualValue; }
+#if VTIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
+#endif // VTIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
@@ -2184,10 +2340,15 @@ public:
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
   bool inductionGen() const { return _inductionGen.actualValue; }
+  bool inductionStrengthenHypothesis() const { return _inductionStrengthenHypothesis.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
+  IntegerInductionLiteralStrictness integerInductionStrictnessEq() const {return _integerInductionStrictnessEq.actualValue; }
+  IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
+  IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
+  bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2199,7 +2360,6 @@ public:
   bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
-  void setMemoryLimit(size_t newVal) { _memoryLimit.actualValue = newVal; }
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
   void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
 
@@ -2249,11 +2409,16 @@ public:
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
-  bool superposition() const {return _superposition.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
+  bool complexVarCondition() const { return _complexVarCondition.actualValue; }
+  // For unit testing
+  void useCombSup() { 
+    _combinatorySuperposition.actualValue = true;
+    _complexVarCondition.actualValue = true; 
+  }
 
 private:
     
@@ -2365,6 +2530,7 @@ private:
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
+
   BoolOptionValue _useTheorySplitQueues;
   StringOptionValue _theorySplitQueueRatios;
   StringOptionValue _theorySplitQueueCutoffs;
@@ -2382,9 +2548,12 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
+  BoolOptionValue _randomTraversals;
+
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
@@ -2397,10 +2566,11 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   BoolOptionValue _demodulationRedundancyCheck;
+  BoolOptionValue _demodulationEncompassment;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
-  ChoiceOptionValue<RuleActivity> _equalityResolutionWithDeletion;
+  BoolOptionValue _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
   UnsignedOptionValue _extensionalityMaxLength;
@@ -2421,6 +2591,7 @@ private:
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
+  BoolOptionValue _fmbKeepSbeamGenerators;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
@@ -2435,8 +2606,9 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   BoolOptionValue _skolemReuse;
   BoolOptionValue _definitionReuse;
+  ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
   
-  ChoiceOptionValue<RuleActivity> _generalSplitting;
+  BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
@@ -2482,10 +2654,15 @@ private:
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;
   BoolOptionValue _inductionGen;
+  BoolOptionValue _inductionStrengthenHypothesis;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
   BoolOptionValue _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
+  ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessEq;
+  ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
+  ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
+  BoolOptionValue _nonUnitInduction;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
@@ -2499,17 +2676,22 @@ private:
 
 #ifdef __linux__
   UnsignedOptionValue _instructionLimit; 
+  BoolOptionValue _parsingDoesNotCount;
 #endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
+  StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
+  BoolOptionValue _randomizSeedForPortfolioWorkers;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
+  BoolOptionValue _shuffleInput;
+  BoolOptionValue _randomPolarities;
 
   BoolOptionValue _outputAxiomNames;
 
@@ -2524,8 +2706,8 @@ private:
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
-  IntOptionValue _randomSeed;
-  IntOptionValue _randomStrategySeed;
+  UnsignedOptionValue _randomSeed;
+  UnsignedOptionValue _randomStrategySeed;
 
   IntOptionValue _activationLimit;
 
@@ -2572,6 +2754,7 @@ private:
   BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
+  FloatOptionValue _lrsEstimateCorrectionCoef;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
   UnsignedOptionValue _sineToAgeGeneralityThreshold;
@@ -2603,9 +2786,12 @@ private:
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   ChoiceOptionValue<EvaluationMode> _evaluationMode;
+  ChoiceOptionValue<KboWeightGenerationScheme> _kboWeightGenerationScheme;
+  BoolOptionValue _kboMaxZero;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
+  StringOptionValue _typeConPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
 
@@ -2670,6 +2856,7 @@ private:
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
+  BoolOptionValue _complexVarCondition;
 
 }; // class Options
 

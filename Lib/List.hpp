@@ -36,7 +36,7 @@
  */
 
 #ifndef __list__
-#  define __list__
+#define __list__
 
 
 #include "Forwards.hpp"
@@ -64,7 +64,7 @@ public:
   DECL_ELEMENT_TYPE(C);
 
   /** builds a single-element list */
-  explicit inline List (C head)
+  explicit List (C head)
     :
     _head(head),
     _tail(0)
@@ -72,80 +72,77 @@ public:
   } // List::List
 
   /** cons */
-  inline List (C head, List* tail)
+  List (C head, List* tail)
     :
     _head(head),
     _tail(tail)
   {
   } // List::List
 
-  /** Dummy list constructor */
-  inline List () {}
-
   /** creates an empty list */
-  inline static List* empty ()
+  static List* empty ()
   { return 0; }
 
   /** true if the list is empty */
-  inline static bool isEmpty (const List* l)
+  static bool isEmpty (const List* l)
   {
     return l == 0;
   } // List::isEmpty
 
   /** true if the list is non-empty */
-  inline static bool isNonEmpty (const List* l)
+  static bool isNonEmpty (const List* l)
   {
     return l != 0;
   } // List::isNonEmpty
 
   /** return the tail of the list */
-  inline List* tail() const
+  List* tail() const
   {
     return _tail;
   } // List::tail
 
   /** return a reference to the tail of the list */
-  inline List*& tailReference ()
+  List*& tailReference ()
   {
     return _tail;
   } // List::tailReference
 
   /** return a reference to the tail of the list */
-  inline List** tailPtr ()
+  List** tailPtr ()
   {
     return &_tail;
   } // List::tailReference
 
   /** return the head of the list */
-  inline const C head () const
+  const C head () const
   {
     return _head;
   } // List::head
 
-  inline C head ()
+  C head ()
   {
     return _head;
   } // List::head
 
-  inline C& headRef ()
+  C& headRef ()
   {
     return _head;
   } // List::head
 
-  inline C* headPtr ()
+  C* headPtr ()
   {
     return &(this->_head);
   }
 
 
   /** return the second element of the list */
-  inline C second () const
+  C second () const
   {
     return tail()->head();
   } // List::second
 
   /** Set the head of the list to hd */
-  inline void setHead (C hd)
+  void setHead (C hd)
   {
     _head = hd;
   } // List::setHead
@@ -153,7 +150,7 @@ public:
 
   /** Set the tail of the list to tl
    *  and return the original tail. */
-  inline List* setTail(List* tl)
+  List* setTail(List* tl)
   {
     List* res = _tail;
     _tail = tl;
@@ -202,14 +199,12 @@ public:
   {
     if (isEmpty(l)) return empty();
 
-    List* result = new List;
-    result->_head = l->head();
+    List* result = new List(l->head());
     List* previous = result;
     List* rest = l->tail();
 
     while (! isEmpty(rest)) {
-      List* tmp = new List;
-      tmp->_head = rest->_head;
+      List* tmp = new List(rest->_head);
       previous->_tail = tmp;
       previous = tmp;
       rest = rest->_tail;
@@ -224,14 +219,12 @@ public:
   {
     if (isEmpty(fst)) return snd;
 
-    List* result = new List;
-    result->setHead(fst->head());
+    List* result = new List(fst->head());
     List* previous = result;
     List* rest = fst->tail();
 
     while(isNonEmpty(rest)) {
-      List* tmp = new List;
-      tmp->setHead(rest->head());
+      List* tmp = new List(rest->head());
       previous->setTail(tmp);
       previous = tmp;
       rest = rest->tail();
@@ -243,19 +236,19 @@ public:
 
   /** return the list obtained by adding elem as the first element
    *  of this list */
-  static inline List* cons(C elem, List* l)
+  static List* cons(C elem, List* l)
   {
     return new List(elem, l);
   } // List::cons
 
   /** return list with one element, the given elem */
-  static inline List* singleton(C elem)
+  static List* singleton(C elem)
   {
     return new List(elem);
   }
 
   /** push elem to lst */
-  inline static void push(C elem,List* &lst)
+  static void push(C elem,List* &lst)
   {
     lst = cons(elem, lst);
   } // List::push
@@ -274,7 +267,7 @@ public:
   }
 
   /** pop the first element and return it */
-  inline static C pop(List* &lst)
+  static C pop(List* &lst)
   {
     CALL("List::pop");
     ASS_NEQ(lst,0);
@@ -486,19 +479,10 @@ public:
     
     DECL_ELEMENT_TYPE(C);
 
-    inline Iterator() : _lst (0) {}
-
-    inline explicit
-    Iterator(List* l)
-      : _lst (l)
-    {}
-    inline explicit
-    Iterator(const List* l)
-      : _lst (const_cast<List*>(l))
-    {}
+    explicit Iterator(const List* l) : _lst (l) {}
 
     /** return the next element */
-    inline C next()
+    C next()
     {
       ASS_NEQ(_lst,0);
 
@@ -511,18 +495,18 @@ public:
      * Return the element that will be returned by next (therefore hasNexgt()
      * must have returned true), but do not advance to a further element.
      */
-    inline C peekAtNext()
+    C peekAtNext()
     {
       return _lst->head();
     }
 
     /** True if there is a next element. */
-    inline bool hasNext() const
+    bool hasNext() const
     {
       return isNonEmpty(_lst);
     }
 
-    inline void reset(const List* l) { _lst = l; }
+    void reset(const List* l) { _lst = l; }
 
    private:
     /** the rest of the list */
@@ -537,17 +521,10 @@ public:
      
      DECL_ELEMENT_TYPE(C&);
 
-    inline explicit
-    RefIterator(List* l)
-      : _lst (l)
-    {}
-    inline explicit
-    RefIterator(const List* l)
-      : _lst (const_cast<List*>(l))
-    {}
+    explicit RefIterator(List* l) : _lst (l) {}
 
     /** return the next element */
-    inline C& next()
+    C& next()
     {
       ASS_NEQ(_lst,0);
 
@@ -557,10 +534,10 @@ public:
     }
 
     /** True if there is a next element. */
-    inline bool hasNext() const
+    bool hasNext() const
     { return isNonEmpty(_lst); }
 
-    inline void reset(List* l) { _lst = l; }
+    void reset(List* l) { _lst = l; }
 
    private:
     /** the rest of the list */
@@ -574,12 +551,11 @@ public:
     USE_ALLOCATOR(List::PtrIterator);
     
     DECL_ELEMENT_TYPE(C*);
-    inline
     PtrIterator(List* lst) : _l(lst) {}
-    inline bool hasNext()
+    bool hasNext()
     { return _l->isNonEmpty(); }
 
-    inline C* next()
+    C* next()
     {
       C* res=_l->headPtr();
       _l=_l->tail();
@@ -597,7 +573,7 @@ public:
      USE_ALLOCATOR(List::DelIterator);
      
     DECL_ELEMENT_TYPE(C);
-    inline DelIterator (List*& l)
+    DelIterator (List*& l)
       :
       _lst(l),
       _prev(0),
@@ -605,14 +581,14 @@ public:
     {}
 
     /** Reset the iterator to the beginning of the list */
-    inline void reset()
+    void reset()
     {
       _prev = 0;
       _cur = 0;
     } // reset
 
     /** return the next element */
-    inline C next()
+    C next()
     {
       if (_cur) { // there was an element previously returned by next()
 	_prev = _cur;
@@ -626,7 +602,7 @@ public:
     }
 
     /** True if there is a next element */
-    inline bool hasNext()
+    bool hasNext()
     {
       if (_cur) { // there was an element previously returned by next()
 	return _cur->tail() != 0;
@@ -649,6 +625,7 @@ public:
 	return;
       }
 
+      ASS_NEQ(_prev,0);
       // not the first element
       _prev->setTail(_cur->tail());
       delete _cur;
@@ -658,7 +635,7 @@ public:
     /**
      * Replace the current element by elem.
      */
-    inline void replace(C elem)
+    void replace(C elem)
     {
       ASS_NEQ(_cur,0);
       _cur->setHead(elem);
@@ -735,20 +712,20 @@ public:
     
     DECL_ELEMENT_TYPE(C);
 
-    inline explicit
+    explicit
     DestructiveIterator(List* l)
       : _lst (l)
     {}
 
     /** return the next element */
-    inline C next()
+    C next()
     {
       ASS_NEQ(_lst,0);
       return List::pop(_lst);
     }
 
     /** True if there is a next element. */
-    inline bool hasNext() const
+    bool hasNext() const
     {
       return isNonEmpty(_lst);
     }
@@ -769,14 +746,14 @@ public:
   class FIFO {
   public:
     /** constructor */
-    inline explicit FIFO(List* &lst)
+    explicit FIFO(List* &lst)
       : _last(0), _initial(lst)
     {
       ASS_EQ(_initial,0);
     }
     
     /** add element at the end of the original list */
-    inline void push(C elem)
+    void pushBack(C elem)
     {
       List* newLast = new List(elem);
       if (_last) {
@@ -786,16 +763,9 @@ public:
       }
 
       _last = newLast;
-    } // FIFO::push
-
-    /** push retained for compatibility with existing code.
-        pushBack synonym for push */
-    inline void pushBack(C elem)
-    {
-      push(elem);
     }
 
-    inline void pushFront(C elem)
+    void pushFront(C elem)
     {
       _initial = new List(elem, _initial);
       if (!_last) {

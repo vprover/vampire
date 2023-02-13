@@ -89,6 +89,7 @@ TPTP::TPTP(istream& in)
     _in(&in),
     _includeDirectory(""),
     _isThf(false),
+    _containsPolymorphism(false),
     _currentColor(COLOR_TRANSPARENT),
     _lastPushed(TM),
     _modelDefinition(false),
@@ -137,7 +138,6 @@ void TPTP::parse()
       break;
     case THF:
       _isThf = true;
-      env.statistics->higherOrder = true;
     case TFF:
       _isFof = false;
       tff();
@@ -417,10 +417,8 @@ vstring TPTP::toString(Tag tag)
   case T_DOLLARS:
   case T_STRING:
     return "";
-#if VDEBUG
   default:
-    ASS(false);
-#endif
+    ASSERTION_VIOLATION
   }
 } // toString(Tag)
 
@@ -1760,7 +1758,7 @@ void TPTP::endHolFormula()
 
   Formula* f;
   TermList fun;
-  bool conReverse;
+  bool conReverse = false;
   switch (con) {
   case IMP:
   case AND:
@@ -1898,10 +1896,8 @@ switch (tag) {
 
     case -1:
       return;
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
     }
   }
 
@@ -2318,10 +2314,6 @@ void TPTP::funApp()
       return;
 
     case T_ITE:
-      if(env.statistics->higherOrder){
-        //Does higher-order even use this code? I dont think so.
-        USER_ERROR("Higher-order Vampire is currently not compatible with FOOL reasoning");
-      }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -2332,10 +2324,6 @@ void TPTP::funApp()
       return;
 
     case T_LET: {
-      if(env.statistics->higherOrder){
-        //Does higher-order even use this code? I dont think so.        
-        USER_ERROR("Higher-order  Vampire is currently not compatible with FOOL reasoning");
-      }
       consumeToken(T_LPAR);
       addTagState(T_RPAR);
       _states.push(TERM);
@@ -3266,7 +3254,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ts = _termLists.pop();
     TermList tsSort = sortOf(ts);
-    if((unsigned)i < type->typeArgsArity()){
+    if((unsigned)i < type->numTypeArguments()){
       if(tsSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
                    "is not $ttype as mandated by TF1");
@@ -3320,7 +3308,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
     TermList sort = type->arg(i);
     TermList ss = _termLists.pop();
     TermList ssSort = sortOf(ss);
-    if((unsigned)i < type->typeArgsArity()){
+    if((unsigned)i < type->numTypeArguments()){
       if(ssSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
                    "is not $tType as mandated by TF1");
@@ -3387,7 +3375,7 @@ void TPTP::endFormula()
 
   int con = _connectives.pop();
   Formula* f;
-  bool conReverse;
+  bool conReverse = false;
   switch (con) {
   case IMP:
   case AND:
@@ -3499,10 +3487,8 @@ void TPTP::endFormula()
 
     case -1:
       return;
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
     }
   }
 
@@ -3893,7 +3879,7 @@ void TPTP::endTff()
       symbol->setType(ot);
       //TODO check whether the below is actually required or not.
       if(_isThf){
-        if(!_typeArities.insert(name, ot->typeArgsArity())){
+        if(!_typeArities.insert(name, ot->numTypeArguments())){
           USER_ERROR("Symbol " + name + " used with different type arities");
         }
       }
@@ -3949,11 +3935,8 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
             types.push(pt->lhs());
             break;
           }
-
-#if VDEBUG
           default:
             ASSERTION_VIOLATION;
-#endif
         }
       }
       break;
@@ -3966,16 +3949,14 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
       //TODO check that all free variables in ot are from quantifiedVars
     }
 
-#if VDEBUG
     default:
       ASSERTION_VIOLATION;
-#endif
   }
 
   bool isPredicate = resultSort == AtomicSort::boolSort();
   unsigned arity = (unsigned)argumentSorts.size();
 
-  if(env.statistics->polymorphic){
+  if(_containsPolymorphism){
     SortHelper::normaliseArgSorts(vars, argumentSorts);
     SortHelper::normaliseSort(vars, resultSort);
   }
@@ -4251,7 +4232,7 @@ void TPTP::simpleType()
   Token& tok = getTok(0);
 
   if(tok.tag == T_TYPE_QUANT) {
-    env.statistics->polymorphic = true;
+    _containsPolymorphism = true;
     resetToks();
     _typeTags.push(TT_QUANTIFIED);
     consumeToken(T_LBRA);
@@ -4784,12 +4765,17 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
   CALL("TPTP::addOverloadedFunction");
 
   if (arity != symbolArity) {
-    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
+    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s) when there were "+Int::toString(symbolArity)+" expected");
   }
   TermList srt = sortOf(arg);
   TermList* n = arg.next();
   for(int i=1;i<arity;i++){
-    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    if(sortOf(*n)!=srt){
+      vstring msg = "The interpreted function symbol " + name + " is not used with a single sort.";
+      msg += "\nArgument 0 is "+srt.toString()+" and argument "+Lib::Int::toString(i)+" is "+sortOf(*n).toString();
+      if(_isFof){ msg += "\nCheck that you are using tff if you want numbers to be interpreted"; }
+      USER_ERROR(msg);
+    }
     n = n->next();
   }
   if (srt == AtomicSort::intSort()) {
@@ -4811,12 +4797,17 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
   CALL("TPTP::addOverloadedPredicate");
 
   if (arity != symbolArity) {
-    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s)");
+    USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s) when there were "+Int::toString(symbolArity)+" expected");
   }
   TermList srt = sortOf(arg);
   TermList* n = arg.next();
   for(int i=1;i<arity;i++){
-    if(sortOf(*n)!=srt) USER_ERROR((vstring)"The symbol " + name + " is not used with a single sort");
+    if(sortOf(*n)!=srt){
+      vstring msg = "The interpreted predicate symbol " + name + " is not used with a single sort.";
+      msg += "\nArgument 0 is "+srt.toString()+" and argument "+Lib::Int::toString(i)+" is "+sortOf(*n).toString();
+      if(_isFof){ msg += "Check that you are using tff if you want numbers to be interpreted"; }
+      USER_ERROR(msg);
+    }
     n = n->next(); 
   }
   

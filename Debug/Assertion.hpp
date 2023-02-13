@@ -18,7 +18,6 @@
 
 #if VDEBUG
 #include <iostream>
-#include <ostream>
 #include "Tracer.hpp"
 
 namespace Shell {
@@ -200,11 +199,9 @@ template <typename T>
 
 #define DEBUG_CODE(X) {}
 
-#define __IGNORE_WUNUSED(...) __PUSH_DIAGNOSTICS("GCC diagnostic ignored \"-Wreturn-type\"", __VA_ARGS__)
-
 #define ASS(Cond)  {}
-#define ALWAYS(Cond) (void) ( Cond );
-#define NEVER(Cond) (void) ( Cond );
+#define ALWAYS(Cond) if (!(Cond)) __UNREACHABLE;
+#define NEVER(Cond) if ((Cond)) __UNREACHABLE;
 
 #define ASS_REP(Cond, ReportedVal) {}
 #define ASS_REP2(Cond, ReportedVal, ReportedVal2) {}

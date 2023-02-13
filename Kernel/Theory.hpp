@@ -29,6 +29,10 @@
 
 namespace Kernel {
 
+class IntegerConstantType;
+struct RationalConstantType;
+class RealConstantType;
+
 /**
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
@@ -483,6 +487,7 @@ public:
   bool isInterpretedFunction(unsigned func);
   bool isInterpretedFunction(Term* t);
   bool isInterpretedFunction(TermList t);
+  bool isInterpretedFunction(unsigned func, Interpretation itp);
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 

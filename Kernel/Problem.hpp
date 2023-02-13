@@ -80,15 +80,6 @@ public:
    */
   const TrivialPredicateMap& trivialPredicates() const { return _trivialPredicates; }
 
-  /**
-   * Always exactly one of the pair is non-zero, if the literal is specified,
-   * it must be ground.
-   */
-  typedef pair<Literal*,Clause*> BDDMeaningSpec;
-  typedef DHMap<unsigned, BDDMeaningSpec> BDDVarMeaningMap;
-  void addBDDVarMeaning(unsigned var, BDDMeaningSpec spec);
-  const BDDVarMeaningMap& getBDDVarMeanings() const { return _bddVarSpecs; }
-
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
   void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition); 
@@ -119,6 +110,7 @@ public:
   bool hasAppliedVar() const;
   bool hasPolymorphicSym() const;
   bool quantifiesOverPolymorphicVar() const;
+  bool higherOrder() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -186,12 +178,6 @@ public:
     _mayHaveXEqualsY = false;
   }
 
-
-  //utility functions
-
-  void collectPredicates(Stack<unsigned>& acc) const;
-
-
 #if VDEBUG
   //debugging functions
   void assertValid();
@@ -212,7 +198,6 @@ private:
   bool _hadIncompleteTransformation;
 
   DHMap<unsigned,bool> _trivialPredicates;
-  BDDVarMeaningMap _bddVarSpecs;
 
   mutable bool _mayHaveEquality;
   mutable bool _mayHaveFormulas;
@@ -232,6 +217,7 @@ private:
   mutable MaybeBool _hasPolymorphicSym;
   mutable MaybeBool _quantifiesOverPolymorphicVar;
   mutable MaybeBool _hasBoolVar; 
+  mutable MaybeBool _higherOrder; 
 
   SMTLIBLogic _smtlibLogic;
 

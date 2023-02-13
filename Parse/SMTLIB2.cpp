@@ -1526,8 +1526,7 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
     LOG2("BOUND name  ",cName);
     LOG2("BOUND term  ",boundExpr.toString());
 
-    SortedTerm term;
-    ALWAYS(lookup->find(cName,term));
+    SortedTerm term = lookup->get(cName);
     TermList exprTerm = term.first;
     TermList exprSort = term.second;
 
@@ -1570,7 +1569,7 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
   LispListReader lRdr(exp->list);
 
   // the match atom
-  const vstring &theMatchAtom = lRdr.readAtom();
+  DEBUG_CODE(const vstring &theMatchAtom =) lRdr.readAtom();
   ASS_EQ(theMatchAtom, MATCH);
 
   // next is the matched term
@@ -1702,7 +1701,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
-  const vstring &theMatchAtom = lRdr.readAtom();
+  DEBUG_CODE(const vstring &theMatchAtom =) lRdr.readAtom();
   ASS_EQ(getBuiltInTermSymbol(theMatchAtom), TS_MATCH);
 
   vstring matched = lRdr.readAtom();
@@ -1815,7 +1814,13 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
     LispListReader pRdr(pair);
 
     vstring vName = pRdr.readAtom();
+    if(!pRdr.hasNext()) {
+      USER_ERROR("No associated sort for "+vName+" in quantification "+exp->toString());
+    }
     TermList vSort = declareSort(pRdr.readNext());
+    if(pRdr.hasNext()) {
+      USER_ERROR("More than one sort for "+vName+" in quantification "+exp->toString());
+    }
 
     pRdr.acceptEOL();
 
@@ -1823,6 +1828,9 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
       USER_ERROR("Multiple occurrence of variable "+vName+" in quantification "+exp->toString());
     }
   }
+
+  if(!lRdr.hasNext())
+    USER_ERROR("Missing body in quantification " + exp->toString());
 
   _scopes.push(lookup);
 

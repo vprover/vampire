@@ -16,27 +16,21 @@
 #ifndef __RobSubstitution__
 #define __RobSubstitution__
 
-#include <utility>
-
 #include "Forwards.hpp"
-#include "Lib/DHMap.hpp"
 #include "Lib/Backtrackable.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/BiMap.hpp"
 #include "Term.hpp"
 #include "MismatchHandler.hpp"
+#include "Lib/Hash.hpp"
+#include "Lib/DHMap.hpp"
 
 #if VDEBUG
-
 #include <iostream>
 #include "Lib/VString.hpp"
-
 #endif
 
 namespace Kernel
 {
 
-using namespace std;
 using namespace Lib;
 
 class RobSubstitution
@@ -46,7 +40,7 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _nextUnboundAvailable(0) {} //,_nextAuxAvailable(0) {}
+  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
@@ -63,15 +57,10 @@ public:
   {
     return isUnbound(VarSpec(var,index));
   }
-  bool isSpecialUnbound(unsigned var, int index) const
-  {
-    return isUnbound(VarSpec(var,SPECIAL_INDEX));
-  }
   void reset()
   {
     _funcSubtermMap = 0;
     _bank.reset();
-    //_nextAuxAvailable=0;
     _nextUnboundAvailable=0;
   }
 
@@ -133,12 +122,16 @@ public:
     /** struct containing first hash function for DHMap object storing variable banks */
     struct Hash1
     {
-     static unsigned hash(VarSpec& o, int capacity);
+     static unsigned hash(VarSpec& o) {
+       return HashUtils::combine(o.var, o.index);
+     }
     };
     /** struct containing second hash function for DHMap object storing variable banks */
     struct Hash2
     {
-      static unsigned hash(VarSpec& o);
+      static unsigned hash(VarSpec& o) {
+        return HashUtils::combine(o.index, o.var);
+      }
     };
   };
   /** Specifies an instance of a term (i.e. (term, variable bank) pair */
@@ -222,7 +215,6 @@ private:
   RobSubstitution& operator=(const RobSubstitution& obj);
 
 
-  //static const int AUX_INDEX;
   static const int SPECIAL_INDEX;
   static const int UNBOUND_INDEX;
 
@@ -236,51 +228,27 @@ private:
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
   bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
-  //bool handleDifferentTops(TermSpec t1, TermSpec t2, Stack<TTPair>& toDo, TermList* ct);
-  //void makeEqual(VarSpec v1, VarSpec v2, TermSpec target);
-  //void unifyUnbound(VarSpec v, TermSpec ts);
   bool occurs(VarSpec vs, TermSpec ts);
 
-/* Not currently used
-  VarSpec getAuxVar(VarSpec target)
-  {
-    CALL("RobSubstitution::getAuxVar");
-    if(target.index==AUX_INDEX) {
-      return target;
-    }
-    VarSpec res(_nextAuxAvailable++,AUX_INDEX);
-    bindVar(res, target);
-    return res;
-  }
-*/
   inline
   VarSpec getVarSpec(TermSpec ts) const
   {
     return getVarSpec(ts.term, ts.index);
   }
+
   VarSpec getVarSpec(TermList tl, int index) const
   {
     CALL("RobSubstitution::getVarSpec");
     ASS(tl.isVar());
-    if(tl.isSpecialVar()) {
-      return VarSpec(tl.var(), SPECIAL_INDEX);
-    } else {
-      //ASS(index!=AUX_INDEX || tl.var()<_nextAuxAvailable);
-      return VarSpec(tl.var(), index);
-    }
+    index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
+    return VarSpec(tl.var(), index);
   }
-  static void swap(TermSpec& ts1, TermSpec& ts2);
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
   FuncSubtermMap* _funcSubtermMap;
-  mutable BankType _bank;
-
-  // Unused
-  //DHMap<int, int> _denormIndexes;
-
+  BankType _bank;
   mutable unsigned _nextUnboundAvailable;
-  //unsigned _nextAuxAvailable;
 
   class BindingBacktrackObject
   : public BacktrackObject
@@ -337,19 +305,6 @@ ostream& operator<< (ostream& out, RobSubstitution::TermSpec vs );
 #endif
 
 
-};
-
-
-namespace Lib
-{
-/**
- * Traits structure specialisation. (See DHMap.hpp)
- */
-template<>
-struct HashTraits<Kernel::RobSubstitution::VarSpec::Hash1>
-{
-  enum {SINGLE_PARAM_HASH=0};
-};
 };
 
 #endif /*__RobSubstitution__*/

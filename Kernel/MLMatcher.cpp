@@ -39,7 +39,7 @@ using namespace Lib;
 using namespace Kernel;
 
 
-typedef DHMap<unsigned,unsigned, IdentityHash> UUMap;
+typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
 
 
 /**
@@ -109,10 +109,10 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
 	altBindingPtrs++;
 	altBindingData+=numVars;
 	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
+	  ::new (altBindingData++) TermList((size_t)0);
 	} else {
           // add index of the literal in instance clause at the end of the binding sequence
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+	  ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
 	}
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
@@ -122,10 +122,10 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
 	altBindingPtrs++;
 	altBindingData+=numVars;
 	if(resolvedLit) {
-	  new(altBindingData++) TermList((size_t)0);
+	  ::new (altBindingData++) TermList((size_t)0);
 	} else {
           // add index of the literal in instance clause at the end of the binding sequence
-	  new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+	  ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
 	}
       }
 
@@ -139,10 +139,10 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
       altBindingPtrs++;
       altBindingData+=numVars;
       if(resolvedLit) {
-        new(altBindingData++) TermList((size_t)0);
+        ::new (altBindingData++) TermList((size_t)0);
       } else {
         // add index of the literal in instance clause at the end of the binding sequence
-        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
       }
     }
   }
@@ -155,7 +155,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
       altBindingData+=numVars;
-      new(altBindingData++) TermList((size_t)1);
+      ::new (altBindingData++) TermList((size_t)1);
     }
     if(baseLit->isEquality() && MatchingUtils::matchReversedArgs(baseLit, resolvedLit)) {
       ArrayStoringBinder binder(altBindingData, variablePositions);
@@ -163,7 +163,7 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
       *altBindingPtrs=altBindingData;
       altBindingPtrs++;
       altBindingData+=numVars;
-      new(altBindingData++) TermList((size_t)1);
+      ::new (altBindingData++) TermList((size_t)1);
     }
 
   }

@@ -25,20 +25,16 @@
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/MapToLIFO.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
-
-#include "Lib/RCPtr.hpp"
-
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -52,16 +48,11 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
-//#include "InstGen/IGAlgorithm.hpp"
-
-#include "SAT/DIMACS.hpp"
-
 #include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CommandLine.hpp"
 //#include "Shell/EqualityProxy.hpp"
-#include "Shell/Grounding.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -141,17 +132,32 @@ Problem* getPreprocessedProblem()
 {
   CALL("getPreprocessedProblem");
 
+#ifdef __linux__
+  unsigned saveInstrLimit = env.options->instructionLimit();
+  if (env.options->parsingDoesNotCount()) {  
+    env.options->setInstructionLimit(0);
+  }
+#endif
+
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TimeCounter tc2(TC_PREPROCESSING);
+#ifdef __linux__
+  if (env.options->parsingDoesNotCount()) {
+    env.options->setInstructionLimit(saveInstrLimit+Timer::elapsedMegaInstructions());
+  }
+#endif
+
+  TIME_TRACE(TimeTrace::PREPROCESSING);
+
+  // this will provide warning if options don't make sense for problem
+  if (env.options->mode()!=Options::Mode::SPIDER) {
+    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ true);
+  }
 
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
   
-  // TODO: could this be the right way to freeing the currently leaking classes like Units, Clauses and Inferences?
-  // globUnitList = prb->units();
-
   return prb;
 } // getPreprocessedProblem
 
@@ -178,7 +184,7 @@ void getRandomStrategy()
 
   // It is possible that the random strategy is still incorrect as we don't
   // have access to the Property when setting preprocessing
-  env.options->checkProblemOptionConstraints(prb->getProperty());
+  env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
 }
 
 void doProving()
@@ -193,7 +199,9 @@ void doProving()
   env.options->randomizeStrategy(prb->getProperty()); 
 
   // this will provide warning if options don't make sense for problem
-  //env.options->checkProblemOptionConstraints(prb->getProperty()); 
+  if (env.options->mode()!=Options::Mode::SPIDER) {
+    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
+  }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
 }
@@ -349,7 +357,7 @@ void preprocessMode(bool theory)
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TimeCounter tc2(TC_PREPROCESSING);
+  TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // preprocess without clausification
   Shell::Preprocess prepro(*env.options);
@@ -406,7 +414,7 @@ void modelCheckMode()
   env.options->setOutputAxiomNames(true);
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  if(env.statistics->polymorphic || env.statistics->higherOrder){
+  if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
 
@@ -631,55 +639,6 @@ void axiomSelectionMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
-void groundingMode()
-{
-  CALL("groundingMode()");
-
-  try {
-    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
-
-    Shell::Preprocess prepro(*env.options);
-    prepro.preprocess(*prb);
-
-    ClauseIterator clauses = prb->clauseIterator();
-
-    if (prb->hasEquality()) {
-      ClauseList* eqAxioms = Grounding::getEqualityAxioms(
-	      prb->getProperty()->positiveEqualityAtoms() != 0);
-      clauses = pvi(
-	      getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms),
-		      clauses));
-    }
-
-    MapToLIFO<Clause*, SATClause*> insts;
-    Grounding gnd;
-    SATClause::NamingContext nameCtx;
-
-    while (clauses.hasNext()) {
-      Clause* cl = clauses.next();
-      ClauseList* grounded = gnd.ground(cl);
-      SATClauseList* sGrounded = 0;
-      while (grounded) {
-	Clause* gcl = ClauseList::pop(grounded);
-	SATClauseList::push(SATClause::fromFOClause(nameCtx, gcl), sGrounded);
-      }
-      insts.pushManyToKey(cl, sGrounded);
-    }
-    env.beginOutput();
-    DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
-    env.endOutput();
-
-  } catch (MemoryLimitExceededException&) {
-    env.beginOutput();
-    env.out() << "Memory limit exceeded\n";
-    env.endOutput();
-  } catch (TimeLimitExceededException&) {
-    env.beginOutput();
-    env.out() << "Time limit exceeded\n";
-    env.endOutput();
-  }
-} // groundingMode
-
 /**
  * The main function.
  * @since 03/12/2003 many changes related to logging
@@ -692,8 +651,6 @@ int main(int argc, char* argv[])
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-  // create random seed for the random number generation
-  Lib::Random::setSeed(123456);
 
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
@@ -701,6 +658,9 @@ int main(int argc, char* argv[])
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
+#if VTIME_PROFILING
+    TimeTrace::instance().setEnabled(env.options->timeStatistics());
+#endif
 
     // If any of these options are set then we just need to output and exit
     if (env.options->showHelp() ||
@@ -714,9 +674,6 @@ int main(int argc, char* argv[])
       exit(0);
     }
 
-    //having read option reinitialize the counter
-    TimeCounter::reinitialize();
-
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
@@ -724,9 +681,6 @@ int main(int argc, char* argv[])
     {
     case Options::Mode::AXIOM_SELECTION:
       axiomSelectionMode();
-      break;
-    case Options::Mode::GROUNDING:
-      groundingMode();
       break;
     case Options::Mode::SPIDER:
       spiderMode();
@@ -745,8 +699,9 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
       //env.options->setTimeLimitInSeconds(300);
-      env.options->setMemoryLimit(128000);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -758,14 +713,13 @@ int main(int argc, char* argv[])
       env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
-      env.options->setMulticore(0); // use all available cores
+      //env.options->setMulticore(0); // use all available cores
       env.options->setOutputAxiomNames(true);
-      env.options->setMemoryLimit(128000);
 
-      unsigned int nthreads = std::thread::hardware_concurrency();
-      float slowness = 1.00 + (0.04 * nthreads);
+      //unsigned int nthreads = std::thread::hardware_concurrency();
+      //float slowness = 1.00 + (0.04 * nthreads);
  
-      if (CASC::PortfolioMode::perform(slowness)) {
+      if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       break;
@@ -776,8 +730,9 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
       //env.options->setTimeLimitInSeconds(300);
-      env.options->setMemoryLimit(128000);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -792,9 +747,11 @@ int main(int argc, char* argv[])
       }
       env.options->setSchedule(Options::Schedule::SMTCOMP);
       env.options->setProof(Options::Proof::OFF);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
+
       env.options->setMulticore(0); // use all available cores
       env.options->setTimeLimitInSeconds(1800);
-      env.options->setMemoryLimit(128000);
       env.options->setStatistics(Options::Statistics::NONE);
 
       //TODO needed?

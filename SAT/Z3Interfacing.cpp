@@ -369,6 +369,7 @@ OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 }
 
 
+// TODO does this correctly work with polymorphism?
 Term* createTermOrPred(Z3Interfacing::FuncOrPredId f, unsigned arity, TermList* ts)
 {
   return f.isPredicate
@@ -418,6 +419,12 @@ struct EvaluateInModel
         .map([](int i) { return Copro(IntTraits::constantT(i)); });
 
     } else if(expr.is_real()) {
+      if (!expr.is_numeral()) {
+        // non-numeral reals are, e.g., the algebraic numbers such as (root-obj (+ (^ x 2) (- 2)) 2)),
+        // which we currently cannot handle
+        return Result();
+      }      
+
       auto toFrac = [&](int l, int r)  { return Copro(RatTraits::constant(l,r)); };
 
       auto nonFractional = intVal(expr).map([&](int i) { return toFrac(i,1); });
@@ -436,8 +443,10 @@ struct EvaluateInModel
     } else if (expr.is_app()) {
       auto f = expr.decl();
       auto vfunc = self._fromZ3.get(f);
-      Stack<TermList> args(f.arity());
-      for (unsigned i = 0; i < f.arity(); i++) {
+      unsigned arity = f.arity();
+      ASS(arity == 0 || evaluatedArgs != nullptr)
+      Stack<TermList> args(arity);
+      for (unsigned i = 0; i < arity; i++) {
         if (evaluatedArgs[i].isNone()) {
           // evaluation failed somewhere in a recursive call
           return Result();
@@ -448,9 +457,7 @@ struct EvaluateInModel
         }
       }
       return Result(Copro(createTermOrPred(vfunc, args.size(), args.begin())));
-
     } else {
-
       return Result();
     }
   }
@@ -816,8 +823,7 @@ namespace tptp {
   {
     F quotient;
 
-    z3::expr operator()(z3::expr l, z3::expr r)
-    { return l / r - quotient(l,r); }
+    z3::expr operator()(z3::expr l, z3::expr r) { return l - r*quotient(l,r); }
   };
   template<class F> RemainderOp<F> remainder(F f) { return RemainderOp<F>{ f }; }
 }
@@ -841,18 +847,19 @@ struct ToZ3Expr
 
     Signature::Symbol* symb;
     SortId range_sort;
-    bool is_equality = false;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
       range_sort = AtomicSort::boolSort();
       // check for equality
-      if(trm->functor()==0){
-         is_equality=true;
-         ASS(trm->arity()==2);
-      }
-      if(symb->equalityProxy()) {
-        is_equality=true;
-        ASS_EQ(trm->arity(), symb->fnType()->typeArgsArity() + 2);
+      if( trm->functor()==0 || symb->equalityProxy()){
+        ASS(trm->numTermArguments()==2);
+        // both equality and equality proxy translated as z3 equality
+        if (symb->wasFlipped()) {
+          // equality proxy could have been flipped (by random_polarities)
+          return args[0] != args[1];
+        } else {
+          return args[0] == args[1];
+        }
       }
     } else {
       symb = env.signature->getFunction(trm->functor());
@@ -864,7 +871,7 @@ struct ToZ3Expr
     }
 
     //if constant treat specially
-    if(trm->arity()==0) {
+    if(trm->numTermArguments()==0) {
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
         return self._context.int_val(value.toInner());
@@ -905,13 +912,7 @@ struct ToZ3Expr
       // If not value then create constant symbol
       return self.getConst(symb, self.getz3sort(range_sort));
     }
-    ASS(trm->arity()>0);
-
-   //Check for equality
-    if(is_equality){
-      // both equality and equality proxy translated as z3 equality
-      return args[0] == args[1];
-    }
+    ASS(trm->numTermArguments()>0);
 
     // Currently do not deal with all intepreted operations, should extend
     // - constants dealt with above
@@ -1095,11 +1096,11 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
       SortHelper::getTypeSub(functor.forSorts, typeSubst);
       namebuf += '$';
       for(unsigned i = 0; i < functor.forSorts->numTypeArguments(); i++)
-        namebuf += functor.forSorts->nthArgument(i)->toString();
+        namebuf += functor.forSorts->termArg(i).toString();
     }
 
     z3::sort_vector domain_sorts = z3::sort_vector(self._context);
-    for (unsigned i=type->typeArgsArity(); i<type->arity(); i++) {
+    for (unsigned i=type->numTypeArguments(); i<type->arity(); i++) {
       TermList arg = SubstHelper::apply(type->arg(i), typeSubst);
       domain_sorts.push_back(self.getz3sort(arg));
     }

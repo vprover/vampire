@@ -57,6 +57,9 @@ public:
   inline unsigned oppositePolarity() const { return 1-_polarity; }
   inline unsigned content() const { return _content; }
 
+  unsigned defaultHash() const { return DefaultHash::hash(content()); }
+  unsigned defaultHash2() const { return content(); }
+
   inline SATLiteral opposite() const { return SATLiteral(content()^1); }
   /** return this literal with positive polarity */
   inline SATLiteral positive() const { return SATLiteral(content()|1); }

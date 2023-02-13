@@ -48,7 +48,7 @@ namespace Lib {
  *	  will be used when collision occurs. Otherwise it will not be
  *	  enumerated.
  */
-template <typename Val, class Hash1=Hash, class Hash2=Hash>
+template <typename Val, class Hash1, class Hash2>
 class DHMultiset
 {
 public:
@@ -298,7 +298,7 @@ private:
     CALL("DHMultiset::findEntry");
     ASS(_capacity>_size+_deleted);
 
-    unsigned h1=computeHash<Hash1>(val, _capacity);
+    unsigned h1=Hash1::hash(val);
     int pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if(res->isEmpty()) {
@@ -340,7 +340,7 @@ private:
     CALL("DHMultiset::findEntryToInsert");
     ASS(_capacity>_size+_deleted);
 
-    unsigned h1=computeHash<Hash1>(val, _capacity);
+    unsigned h1=Hash1::hash(val);
     int pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if( (res->_info.multiplicity==0 && res->_info.collision==0) || res->_val==val) {
@@ -411,6 +411,19 @@ private:
   Entry* _afterLast;
 
 public:
+
+  /**
+   * Put all elements of an iterator onto the multiset.
+   */
+  template<class It>
+  void loadFromIterator(It it) {
+    CALL("DHMultiset::loadFromIterator");
+
+    // TODO check iterator.size() or iterator.sizeHint()
+    while(it.hasNext()) {
+      insert(it.next());
+    }
+  }
 
 #if VDEBUG
   void assertValid()

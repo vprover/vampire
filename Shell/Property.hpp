@@ -156,6 +156,8 @@ public:
   CLASS_NAME(Property);
   USE_ALLOCATOR(Property);
 
+  // constructor, operators new and delete
+  explicit Property();
   static Property* scan(UnitList*);
   void add(UnitList*);
   ~Property();
@@ -220,15 +222,19 @@ public:
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
   bool hasNumerals() const { return hasProp(PR_HAS_INTEGERS) || hasProp(PR_HAS_REALS) || hasProp(PR_HAS_RATS); }
+  bool hasGoal() const { return _goalClauses > 0 || _goalFormulas > 0; }
   /** Problem contains non-default sorts */
   bool hasNonDefaultSorts() const { return _hasNonDefaultSorts; }
   bool hasFOOL() const { return _hasFOOL; }
   bool hasCombs() const { return _hasCombs;}
+  bool hasArrowSort() const { return _hasArrowSort; }
   bool hasApp() const { return _hasApp; }
   bool hasAppliedVar() const { return _hasAppliedVar; }
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
+  bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() ||
+                                    hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const { 
     CALL("Property::usesSort");
@@ -251,9 +257,6 @@ public:
   bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
 
  private:
-  // constructor, operators new and delete
-  explicit Property();
-
   static bool hasXEqualsY(const Clause* c);
   static bool hasXEqualsY(const Formula*);
 
@@ -269,17 +272,6 @@ public:
   void scan(TermList ts,bool unit,bool goal);
 
   void scanSort(TermList sort);
-
-  char axiomTypes() const;
-  char goalTypes() const;
-  char equalityContent() const;
-  char nonGroundUnitContent() const;
-  char groundPositiveContent() const;
-  char goalsAreGround() const;
-  char setClauseSize() const;
-  char setLiteralSize() const;
-  char setTermSize() const;
-  char maxPredArity() const;
 
   // structure
   int _goalClauses;
@@ -339,10 +331,12 @@ public:
 
   bool _hasFOOL;
   bool _hasCombs;
+  bool _hasArrowSort;
   bool _hasApp;
   bool _hasAppliedVar;
   bool _hasBoolVar;
   bool _hasLogicalProxy;
+  bool _hasLambda;
   bool _hasPolymorphicSym;
   bool _quantifiesOverPolymorphicVar;
 

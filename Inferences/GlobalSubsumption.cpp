@@ -16,7 +16,7 @@
 
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -85,7 +85,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 {
   CALL("GlobalSubsumption::perform/2");
 
-  TimeCounter tc(TC_GLOBAL_SUBSUMPTION);
+  TIME_TRACE("global subsumption");
 
   if(cl->color()==COLOR_LEFT) {
     return cl;

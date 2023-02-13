@@ -460,14 +460,11 @@ private:
   static unsigned hash(const T* arr, size_t len)
   {
     CALL("SharedSet::hash(T*,size_t)");
-
-    unsigned res=1234567890; //arbitrary number, hopefully won't cause problems:)
-    const T* arre=arr+len;
-    while(arr!=arre) {
-      res=Hash::hash(*arr,res);
-      arr++;
-    }
-    return res;
+    static_assert(std::is_arithmetic<T>::value, "T must be safely hashable");
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char *>(arr),
+      sizeof(T) * len
+    );
   }
 
   static const SharedSet* create(const ItemStack& is)

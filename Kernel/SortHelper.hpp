@@ -31,25 +31,30 @@ private:
     COLLECT_TERM,
     COLLECT_TERMLIST,
     COLLECT_SPECIALTERM,
-    COLLECT_FORMULA
+    COLLECT_FORMULA,
+    BIND,
+    UNBIND,
   };
 
   struct CollectTask {
+    CollectTask() {}
     CollectWhat fncTag;
     union {
+      TermList ts;
       Term* t; // shared by TERM and SPECIALTERM
       Formula* f;
+      VList* vars; // to bind/unbind by BIND/UNBIND
     };
-    TermList ts; // outside of union, because it has a non-trivial constructor
     TermList contextSort; // only used by TERMLIST and SPECIALTERM
   };
 
-  static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map);
+  static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 public:
   static TermList getResultSort(const Term* t);
   static TermList getResultSortMono(const Term* t);
   static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
   static TermList getArgSort(Term* t, unsigned argIndex);
+  static TermList getTermArgSort(Term* t, unsigned argIndex);
 
   static bool tryGetResultSort(const Term* t, TermList& result);
   static bool tryGetResultSort(const TermList t, TermList& result);
@@ -64,9 +69,7 @@ public:
 
   static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
-  static void collectVariableSorts(TermList ts, TermList contextSort, DHMap<unsigned,TermList>& map);
-  // static void collectVariableSortsSpecialTerm(Term* t, TermList contextSort, DHMap<unsigned,TermList>& map);
-  static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map);
+  static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 
   static bool areImmediateSortsValidPoly(Term* t); 
   static bool areImmediateSortsValidMono(Term* t);

@@ -94,7 +94,7 @@ TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGene
 }
 
 using Shell::Int;
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TheoryInstAndSimp>)
+REGISTER_GEN_TESTER(TheoryInstAndSimp)
 
 TEST_GENERATION(test_01,
     Generation::TestCase()

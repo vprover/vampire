@@ -79,7 +79,7 @@ public:
     void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
     _array = static_cast<C*>(mem);
     for(size_t i=0; i<_size; i++) {
-      new(&_array[i]) C(o[i]);
+      ::new (&_array[i]) C(o[i]);
     }
   }
 
@@ -209,10 +209,12 @@ public:
     C* afterLast=_array+_capacity;
 
     while(nptr!=firstEmpty) {
-      Relocator<C>::relocate(optr++, nptr++);
+      C *oldAddr = optr++, *newAddr = nptr++;
+      ::new (newAddr) C(std::move(*oldAddr));
+      oldAddr->~C();
     }
     while(nptr!=afterLast) {
-      new(nptr++) C();
+      ::new (nptr++) C();
     }
     _size = s;
 
@@ -315,6 +317,21 @@ public:
 	(*this)[count-1]=it.next();
       }
     }
+  }
+
+  template<class It>
+  static DArray fromIterator(It it, size_t count=0) {
+    CALL("DArray::fromIterator");
+
+    DArray out;
+    if (count != 0) {
+      out.initFromIterator(it, count);
+    } else if (it.knowsSize()) {
+      out.initFromIterator(it, it.size());
+    } else {
+      out.initFromIterator(it);
+    }
+    return out;
   }
 
 

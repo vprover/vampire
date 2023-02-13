@@ -22,7 +22,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Metaarrays.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/TriangularArray.hpp"
@@ -47,7 +46,7 @@ namespace Kernel
 
 using namespace Lib;
 
-typedef DHMap<unsigned,unsigned, IdentityHash> UUMap;
+typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
 
 namespace MLVariant_AUX
 {
@@ -342,7 +341,7 @@ MatchingData* getMatchingData(Literal* const * baseLits0, unsigned baseLen, Clau
   size_t altBindingsCnt=0;
   for(unsigned i=0;i<baseLen;i++) {
 //    unsigned distVars=(*base)[i]->distinctVars();
-    unsigned distVars=baseLits[i]->vars(); //an upper estimate is enough
+    unsigned distVars=baseLits[i]->numVarOccs(); //an upper estimate is enough
     baseLitVars+=distVars;
     unsigned currAltCnt=0;
     LiteralList::Iterator ait(altsArr[i]);

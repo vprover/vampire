@@ -16,7 +16,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Shell/Property.hpp"
@@ -75,12 +75,10 @@ Problem::Problem(ClauseIterator clauses, bool copy)
 Problem::~Problem()
 {
   CALL("Problem::~Problem");
-
-  if(_property) { delete _property; }
-
   //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
 
   UnitList::destroy(_units);
+  // Don't delete the property as it is owned by Environment
 }
 
 /**
@@ -100,7 +98,7 @@ void Problem::initValues()
   _mayHaveInequalityResolvableWithDeletion = true;
   _mayHaveXEqualsY = true;
   _propertyValid = false;
-  _property = 0;
+  _property = env.property;
 }
 
 /**
@@ -121,7 +119,7 @@ void Problem::addUnits(UnitList* newUnits)
   }
   _units = UnitList::concat(newUnits, _units);
   if(_propertyValid) {
-    TimeCounter tc(TC_PROPERTY_EVALUATION);
+    TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
     _property->add(newUnits);
     readDetailsFromProperty();
   }
@@ -202,7 +200,10 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
     //copied object so we save ourselves scanning for the property
     //in the child
     tgt._propertyValid = true;
-    tgt._property = new Property(*_property);
+    //warning: both objects contain a pointer to the same property.
+    //after copying, the property should be treated as strictly read
+    //only.
+    tgt._property = _property;
     tgt.readDetailsFromProperty();
   }
 
@@ -222,13 +223,6 @@ void Problem::addTrivialPredicate(unsigned pred, bool assignment)
   CALL("Problem::addTrivialPredicate");
 
   ALWAYS(_trivialPredicates.insert(pred, assignment));
-}
-
-void Problem::addBDDVarMeaning(unsigned var, BDDMeaningSpec spec) {
-  CALL("Problem::addBDDVarMeaning");
-  ASS(!spec.first || spec.first->ground());
-
-  ALWAYS(_bddVarSpecs.insert(var, spec));
 }
 
 /**
@@ -275,7 +269,7 @@ void Problem::refreshProperty() const
 {
   CALL("Problem::refreshProperty");
 
-  TimeCounter tc(TC_PROPERTY_EVALUATION);
+  TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
   if(_property) {
@@ -283,6 +277,7 @@ void Problem::refreshProperty() const
   }
   _propertyValid = true;
   _property = Property::scan(_units);
+  env.property = _property;
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
   readDetailsFromProperty();
@@ -307,6 +302,7 @@ void Problem::readDetailsFromProperty() const
   _hasPolymorphicSym = _property->hasPolymorphicSym();
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
   _hasBoolVar = _property->hasBoolVar();
+  _higherOrder = _property->higherOrder();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -478,25 +474,12 @@ bool Problem::quantifiesOverPolymorphicVar() const
   return _quantifiesOverPolymorphicVar.value();
 }
 
-///////////////////////
-// utility functions
-//
-
-/**
- * Put predicate numbers present in the problem into @c acc
- *
- * The numbers added to acc are not unique.
- *
- */
-void Problem::collectPredicates(Stack<unsigned>& acc) const
+bool Problem::higherOrder() const
 {
-  CALL("Problem::collectPredicates");
+  CALL("Problem::hasPolymorphicSym");
 
-  UnitList::Iterator uit(units());
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    u->collectPredicates(acc);
-  }
+  if(!_higherOrder.known()) { refreshProperty(); }
+  return _higherOrder.value();
 }
 
 #if VDEBUG

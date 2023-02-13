@@ -33,58 +33,6 @@ namespace Lib {
 
 #define DHMAP_MAX_CAPACITY_INDEX 29
 
-
-/**
- * Traits class for hash classes, which should be specialized
- * for classes whose hash functions have second parameter for
- * hashtable capacity.
- */
-template<typename Hash>
-struct HashTraits
-{
-  enum {SINGLE_PARAM_HASH=1};
-};
-
-/**
- * Auxiliary class for computing of hash values which depends on
- * specializations of HashTraits class.
- */
-template<int I, class Hash, typename Key>
-class HashCompClass {
-};
-
-/**
- * Auxiliary class for computing of hash values which depends on
- * specializations of HashTraits class.
- */
-template<class Hash, typename Key>
-struct HashCompClass<1,Hash,Key> {
-  static inline unsigned compute(Key& key, int capacity)
-  {
-    return Hash::hash(key);
-  }
-};
-
-/**
- * Auxiliary class for computing of hash values which depends on
- * specializations of HashTraits class.
- */
-template<class Hash, typename Key>
-struct HashCompClass<0,Hash,Key> {
-  static inline unsigned compute(Key& key, int capacity)
-  {
-    return Hash::hash(key, capacity);
-  }
-};
-
-/** Computes hash value of given key for hashtable with specified capacity */
-template<class Hash, typename Key>
-inline
-unsigned computeHash(Key& key, int capacity)
-{
-  return HashCompClass<HashTraits<Hash>::SINGLE_PARAM_HASH,Hash,Key>::compute(key, capacity);
-};
-
 extern const unsigned DHMapTableCapacities[];
 extern const unsigned DHMapTableNextExpansions[];
 
@@ -100,10 +48,7 @@ extern const unsigned DHMapTableNextExpansions[];
  * @param Val values, can be anything
  * @param Hash1 class containig the hash function for keys which
  *	  determines position of entry in hashtable when no collision
- *	  occurs. This function can also take second int parameter,
- * 	  which will contain current capacity of the hashtable. In
- * 	  this case, HashTraits struct has to be specialized for this
- * 	  class, so that enum member SINGLE_PARAM_HASH is equal to 0.
+ *	  occurs.
  * @param Hash2 class containig the hash function for keys which
  *	  will be used when collision occurs. Otherwise it will not be
  *	  enumerated.
@@ -424,7 +369,7 @@ public:
       e->_info.deleted=0;
       e->_key=key;
       e->_val.~Val();
-      new(&e->_val) Val();
+      ::new (&e->_val) Val();
       _size++;
     }
     pval=&e->_val;
@@ -632,7 +577,7 @@ private:
     CALL("DHMap::findEntry");
     ASS(_capacity>_size+_deleted);
 
-    unsigned h1=computeHash<Hash1>(key, _capacity);
+    unsigned h1=Hash1::hash(key);
     int pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if(res->_info.timestamp != _timestamp ) {
@@ -674,7 +619,7 @@ private:
     CALL("DHMap::findEntryToInsert");
     ASS(_capacity>_size+_deleted);
 
-    unsigned h1=computeHash<Hash1>(key, _capacity);
+    unsigned h1=Hash1::hash(key);
     int pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if(res->_info.timestamp != _timestamp || res->_key==key) {
