@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+
+import sys
+
+file = open(sys.argv[1], 'r')
+data = []
+for line in file:
+    prob, t1, szs1, t2, szs2 = line.split()
+    t1 = float(t1)
+    t2 = float(t2)
+    data.append((prob, t1, szs1, t2, szs2))
+
+nontimeout = [
+    (prob, t1, szs1, t2, szs2)
+    for prob, t1, szs1, t2, szs2 in data
+    if szs1 != 'TimeOut' and szs2 != 'TimeOut'
+]
+
+print(f"# samples: {len(data)}")
+print(f"# non-timeout samples: {len(nontimeout)}")
+mean = sum(t1 - t2 for _, t1, _, t2, _ in nontimeout) / len(nontimeout)
+print(f"mean time difference: {mean:+.5f}")
+print()
+
+print("--- disagreements ---")
+for prob, t1, szs1, t2, szs2 in data:
+    if szs1 != szs2:
+        print(prob, t1, szs1, t2, szs2)
+print()
+
+def absolute_difference(prob, t1, szs1, t2, szs2):
+    _ = prob
+    _ = szs1
+    _ = szs2
+    return abs(t1 - t2)
+
+ranked = sorted(nontimeout, key=lambda datum: absolute_difference(*datum), reverse=True)
+print("--- top 10 by biggest time difference ---")
+for prob, t1, szs1, t2, szs2 in ranked[:10]:
+    print(prob, t1, szs1, t2, szs2)
+print()

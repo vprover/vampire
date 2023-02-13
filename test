@@ -1,0 +1,17 @@
+#!/bin/sh
+
+problem=$1
+name=`basename $problem .p`
+vampire1=./vampire
+vampire2=./vampire-lazy
+time=10
+
+printf "$name"
+for vampire in $vampire1 $vampire2; do
+	($vampire -sa otter -t $time -p off $problem || echo "% SZS status TimeOut") |
+		egrep '(SZS status)|(Time elapsed)' |
+		sed 's/^% SZS status \(\w\+\).*$/ \1/' |
+		sed 's/^% Time elapsed: \([0-9.]\+\).*$/ \1/' |
+		sort | tr -d '\n'
+done
+printf "\n"

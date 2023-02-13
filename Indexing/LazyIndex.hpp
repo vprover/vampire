@@ -47,7 +47,7 @@ public:
   * retrieve the sub-term of `term` at `position`
   *
   * special cases:
-  * - returns a variable if below said variable
+  * - returns a variable if at or below said variable
   * - returns an empty term if position does not exist in the term
   */
   TermList term_at(TermList term, unsigned position);
@@ -96,10 +96,12 @@ private:
   enum class Reason {
     // no reason could be determined
     NO_REASON,
-    // the candidate and the query have different function symbols at a position
+    // the candidate and the query have different symbols at a position
     MISMATCH,
-    // the candidate has a variable where the query has a symbol, but we are trying to find instances
-    VARIABLE
+    // the candidate has a variable where the query has a symbol, but we don't want generalisations
+    VARIABLE,
+    // the candidate has a symbol where the query has a variable, but we don't want instances
+    SYMBOL
   };
 
   /**
@@ -112,8 +114,8 @@ private:
   Reason explain(TermList query, TermList candidate);
 
   /**
-   * if `explain(query, candidate)` returned `MISMATCH`:
-   * - `explanation_position` is one position where they differ
+   * if `explain(query, candidate)` returned `MISMATCH` or `SYMBOL`:
+   * - `explanation_position` is one failed position
    * - `explanation_candidate_functor` is the candidate's functor at `mismatch_position`
    * if `explain(query, candidate)` returned `VARIABLE`:
    * - `explanation_position` is one position of a variable in the candidate where the query has a symbol
@@ -191,7 +193,7 @@ public:
   TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true) override;
   TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
   TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) override;
   TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true) override;
 
   bool generalizationExists(TermList t) override { NOT_IMPLEMENTED; }
@@ -222,7 +224,7 @@ public:
   SLQueryResultIterator getAll() override { NOT_IMPLEMENTED; }
   SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override;
   SLQueryResultIterator getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
-  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override;
   SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override;
   SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override { NOT_IMPLEMENTED; }
 

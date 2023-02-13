@@ -86,9 +86,14 @@ LazyIndex::Reason LazyIndex::explain(TermList query, TermList candidate) {
     Unify next = unify.pop();
 
     unsigned position = next.position;
-    if(!generalise && !next.query.isVar() && next.candidate.isVar()) {
+    if(!generalise && next.query.isTerm() && next.candidate.isVar()) {
       explanation_position = position;
       return Reason::VARIABLE;
+    }
+    if(!instantiate && next.query.isVar() && !next.candidate.isVar()) {
+      explanation_position = position;
+      explanation_candidate_functor = next.candidate.term()->functor();
+      return Reason::SYMBOL;
     }
 
     if(next.query.isVar() || next.candidate.isVar())
@@ -197,6 +202,8 @@ new_branch:
         ok = substitution.unify(_query, 0, candidate, 1);
       else if(instantiate && !generalise)
         ok = substitution.match(_query, 0, candidate, 1);
+      else if(!instantiate && generalise)
+        ok = substitution.match(candidate, 1, _query, 0);
       else
         NOT_IMPLEMENTED;
 
@@ -210,11 +217,15 @@ new_branch:
         case Reason::NO_REASON:
           continue;
         case Reason::MISMATCH:
+        case Reason::SYMBOL:
         {
+          ASS(reason != Reason::SYMBOL || !instantiate)
+
           iteration.immediate.del();
           FunctorsAt *functors_at;
           iteration.branch.functor_positions.getValuePtr(_index.explanation_position, functors_at);
           // iterator might be invalidated by new entry
+          iteration.functor_positions.~DelIterator();
           ::new(&iteration.functor_positions) decltype(iteration.functor_positions)(iteration.branch.functor_positions);
 
           Branch *child;
@@ -224,15 +235,17 @@ new_branch:
         }
         case Reason::VARIABLE:
         {
-          ASS(!generalise);
+          ASS(!generalise)
           iteration.immediate.del();
 
           Branch *child;
           iteration.branch.variable_positions.getValuePtr(_index.explanation_position, child);
           // iterator might be invalidated by new entry
+          iteration.variable_positions.~DelIterator();
           ::new(&iteration.variable_positions) decltype(iteration.variable_positions)(iteration.branch.variable_positions);
 
           child->immediate.push(candidate);
+          break;
         }
       }
     }
@@ -259,7 +272,8 @@ new_branches:
         continue;
       }
 
-      if(!generalise && _index._positions.term_at(_query, position).isTerm())
+      TermList subterm = _index._positions.term_at(_query, position);
+      if(subterm.isEmpty() || (!generalise && !_index._positions.term_at(_query, position).isVar()))
         continue;
 
       _todo.push(Iteration(branch));
@@ -276,7 +290,9 @@ new_branches:
       }
 
       TermList subterm = _index._positions.term_at(_query, position);
-      if(subterm.isVar()) {
+      if(instantiate && subterm.isVar()) {
+        ASS(!iteration.branches.hasNext())
+        iteration.branches.~DelIterator();
         ::new(&iteration.branches) decltype(iteration.branches)(functor_at.functors);
         goto new_branches;
       }
@@ -288,6 +304,7 @@ new_branches:
           goto new_branch;
         }
       }
+      // do nothing in the position-not-in-query case
     }
 
     _todo.pop();
@@ -333,6 +350,11 @@ TermQueryResultIterator LazyTermIndex::get(TermList query) {
 TermQueryResultIterator LazyTermIndex::getUnifications(TermList query, bool retrieveSubstitutions) {
   CALL("LazyTermIndex::getUnifications")
   return get<true, true>(query);
+}
+
+TermQueryResultIterator LazyTermIndex::getGeneralizations(TermList query, bool retrieveSubstitutions) {
+  CALL("LazyTermIndex::getGeneralizations")
+  return get<false, true>(query);
 }
 
 TermQueryResultIterator LazyTermIndex::getInstances(TermList query, bool retrieveSubstitutions) {
@@ -381,6 +403,11 @@ SLQueryResultIterator LazyLiteralIndex::get(Literal* query, bool complementary) 
 SLQueryResultIterator LazyLiteralIndex::getUnifications(Literal* query, bool complementary, bool retrieveSubstitutions) {
   CALL("LazyLiteralIndex::getUnifications")
   return get<true, true>(query, complementary);
+}
+
+SLQueryResultIterator LazyLiteralIndex::getGeneralizations(Literal* query, bool complementary, bool retrieveSubstitutions) {
+  CALL("LazyLiteralIndex::getGeneralizations")
+  return get<false, true>(query, complementary);
 }
 
 SLQueryResultIterator LazyLiteralIndex::getInstances(Literal* query, bool complementary, bool retrieveSubstitutions) {

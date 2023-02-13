@@ -31,6 +31,8 @@
 
 #include "IndexManager.hpp"
 
+#define LAZY_INDEX 0
+
 using namespace Lib;
 using namespace Indexing;
 
@@ -112,19 +114,25 @@ Index* IndexManager::create(IndexType t)
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    //is=new LiteralSubstitutionTree(useConstraints);
+#if LAZY_INDEX
     is=new LazyLiteralIndex;
+#else
+    is=new LiteralSubstitutionTree(useConstraints);
+#endif
     res=new BinaryResolutionIndex(is);
     isGenerating = true;
     break;
   case BACKWARD_SUBSUMPTION_SUBST_TREE:
-    //is=new LiteralSubstitutionTree();
-    is=new LazyLiteralIndex;
+    is=new LiteralSubstitutionTree();
     res=new BackwardSubsumptionIndex(is);
     isGenerating = false;
     break;
   case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
+#if LAZY_INDEX
+    is=new LazyLiteralIndex;
+#else
     is=new LiteralSubstitutionTree();
+#endif
     res=new UnitClauseLiteralIndex(is);
     isGenerating = false;
     break;
@@ -140,18 +148,24 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    //tis=new TermSubstitutionTree(useConstraints, extByAbs);
+#if LAZY_INDEX
     tis=new LazyTermIndex;
+#else
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+#endif
     res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    //tis=new TermSubstitutionTree(useConstraints, extByAbs);
+#if LAZY_INDEX
     tis=new LazyTermIndex;
+#else
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+#endif
     res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-    
+
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
@@ -195,8 +209,11 @@ Index* IndexManager::create(IndexType t)
     break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE:
-    //tis=new TermSubstitutionTree();
+#if LAZY_INDEX
     tis=new LazyTermIndex;
+#else
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+#endif
     if (env.options->combinatorySup()) {
       res=new DemodulationSubtermIndexImpl<true>(tis);
     } else {
@@ -205,13 +222,22 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
   case DEMODULATION_LHS_CODE_TREE:
+#if LAZY_INDEX
+    tis=new LazyTermIndex;
+#else
     tis=new CodeTreeTIS();
+#endif
+    tis=new LazyTermIndex;
     res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+#if LAZY_INDEX
+    tis=new LazyTermIndex;
+#else
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+#endif
     res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
@@ -222,8 +248,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
+#if LAZY_INDEX
+    is=new LazyLiteralIndex;
+#else
     is=new LiteralSubstitutionTree();
 //    is=new CodeTreeLIS();
+#endif
     res=new FwSubsSimplifyingLiteralIndex(is);
     isGenerating = false;
     break;
