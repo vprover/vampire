@@ -51,17 +51,32 @@ static const auto tld = [](auto t) { return DefaultTermLeafData(t, nullptr, null
 
 unique_ptr<TermSubstitutionTree<>> getTermIndexHOL()
 { 
-  return std::make_unique<TermSubstitutionTree<>>(Shell::Options::UnificationWithAbstraction::FUNC_EXT);
+<<<<<<< HEAD
+  env.options->set("func_ext", "abstraction");
+  return std::make_unique<TermSubstitutionTree<>>(new HOMismatchHandler());
+=======
+  return std::make_unique<TermSubstitutionTree>(Shell::Options::UnificationWithAbstraction::FUNC_EXT, /* extra */ false);
+>>>>>>> joe-uwa-refactor
 }
 
 unique_ptr<TermSubstitutionTree<>> getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
 { 
-  return std::make_unique<TermSubstitutionTree<>>(uwa);
+<<<<<<< HEAD
+  env.options->setUWA(uwa);
+  return std::make_unique<TermSubstitutionTree<>>(new UWAMismatchHandler());
+=======
+  return std::make_unique<TermSubstitutionTree>(uwa, /* extra */ false);
+>>>>>>> joe-uwa-refactor
 }
 
 auto getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa)
 {
-  return std::make_unique<LiteralSubstitutionTree<>>(uwa);
+<<<<<<< HEAD
+  env.options->setUWA(uwa);
+  return std::make_unique<LiteralSubstitutionTree<>>(new UWAMismatchHandler());
+=======
+  return std::make_unique<LiteralSubstitutionTree>(uwa);
+>>>>>>> joe-uwa-refactor
 }
 
 template<class TermOrLit>

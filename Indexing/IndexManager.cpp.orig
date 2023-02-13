@@ -134,46 +134,82 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa), _alg->getOrdering());
+<<<<<<< HEAD
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa.get()), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa), _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa.get()), _alg->getOrdering(), _alg->getOptions());
+=======
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa, /* extra */ false), _alg->getOrdering());
+    isGenerating = true;
+    break;
+  case SUPERPOSITION_LHS_SUBST_TREE:
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+>>>>>>> joe-uwa-refactor
     isGenerating = true;
     break;
     
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
-    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF), _alg->getOrdering());
+<<<<<<< HEAD
+    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(/* uwa*/ nullptr), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUB_VAR_SUP_LHS_SUBST_TREE:
-    res = new SubVarSupLHSIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF), _alg->getOrdering(), _alg->getOptions());
+    res = new SubVarSupLHSIndex(new TermSubstitutionTree(/* uwa*/ nullptr), _alg->getOrdering(), _alg->getOptions());
+=======
+    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false), _alg->getOrdering());
+    isGenerating = true;
+    break;
+  case SUB_VAR_SUP_LHS_SUBST_TREE:
+    res = new SubVarSupLHSIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+>>>>>>> joe-uwa-refactor
     isGenerating = true;
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<Kernel::TermList>>(Shell::Options::UnificationWithAbstraction::OFF));
+<<<<<<< HEAD
+    res=new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<TermList>>(/* uwa */ nullptr));
+=======
+    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ true));
+>>>>>>> joe-uwa-refactor
     isGenerating = false;
     break;
 
   case NARROWING_INDEX:
-    res = new NarrowingIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF)); 
+<<<<<<< HEAD
+    res = new NarrowingIndex(new TermSubstitutionTree(/* uwa*/ nullptr)); 
+=======
+    res = new NarrowingIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false)); 
+>>>>>>> joe-uwa-refactor
     isGenerating = true;
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF)); 
+<<<<<<< HEAD
+    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(/* uwa*/ nullptr)); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
-    res = new AcyclicityIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF));
+    res = new AcyclicityIndex(new TermSubstitutionTree(/* uwa*/ nullptr));
+=======
+    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false)); 
+    isGenerating = true;
+    break;  
+   case ACYCLICITY_INDEX:
+    res = new AcyclicityIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false));
+>>>>>>> joe-uwa-refactor
     isGenerating = true;
     break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE: {
-    auto tis = new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF);
+<<<<<<< HEAD
+    auto tis = new TermSubstitutionTree(/* uwa*/ nullptr);
+=======
+    auto tis = new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false);
+>>>>>>> joe-uwa-refactor
     if (env.options->combinatorySup()) {
       res = new DemodulationSubtermIndexImpl<true>(tis);
     } else {
@@ -188,7 +224,11 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
-    res = new DemodulationLHSIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF), _alg->getOrdering(), _alg->getOptions());
+<<<<<<< HEAD
+    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* uwa*/ nullptr), _alg->getOrdering(), _alg->getOptions());
+=======
+    res = new DemodulationLHSIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+>>>>>>> joe-uwa-refactor
     isGenerating = false;
     break;
 
@@ -223,12 +263,20 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF));
+<<<<<<< HEAD
+    res = new InductionTermIndex(new TermSubstitutionTree(/* uwa*/ nullptr));
+=======
+    res = new InductionTermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false));
+>>>>>>> joe-uwa-refactor
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF));
+<<<<<<< HEAD
+    res = new StructInductionTermIndex(new TermSubstitutionTree(/* uwa*/ nullptr));
+=======
+    res = new StructInductionTermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* extra */ false));
+>>>>>>> joe-uwa-refactor
     isGenerating = true;
     break;
 

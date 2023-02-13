@@ -57,16 +57,49 @@ class TermSubstitutionTree
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
 
   Indexing::SubstitutionTree<LeafData_> _inner;
-  MismatchHandler _mismatchHandler;
+  MismatchHandler* _mismatchHandler;
 public:
   using LeafData = LeafData_;
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
   
-  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa)
+<<<<<<< HEAD
+  TermSubstitutionTree(MismatchHandler* handler)
     : _inner(/* reservedSpecialVars */ 2 /* S0 -> term, S1 -> sort */ )
-    , _mismatchHandler(uwa)
+    , _mismatchHandler(handler)
     { }
+=======
+  /* 
+   * The extra flag is a higher-order concern. it is set to true when 
+   * we require the term query result to include two terms, the result term
+   * and another. 
+   *
+   * The main use case is to store a different term in the leaf to the one indexed 
+   * in the tree. This is used for example in Skolemisation on the fly where we 
+   * store Terms of type $o (formulas) in the tree, but in the leaf we store
+   * the skolem terms used to witness them (to facilitate the reuse of Skolems)
+   */
+  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool extra);
+
+  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
+  { handleTerm(tt, LeafData(cls,lit,tt), insert); }
+
+  void insert(TermList t, Literal* lit, Clause* cls) override 
+  { handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
+
+  void remove(TermList t, Literal* lit, Clause* cls) override
+  { handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
+
+  void insert(TermList t, TermList trm) override 
+  { handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
+
+  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override 
+  { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
+
+  bool generalizationExists(TermList t) override
+  { return t.isVar() ? false : SubstitutionTree::generalizationExists(t); }
+>>>>>>> joe-uwa-refactor
+
 
   void handle(LeafData d, bool insert) final override
   { _inner.handle(std::move(d), insert); }
@@ -96,6 +129,12 @@ private:
       .map([](auto qr) { return queryRes(std::move(qr.unif), *qr.data); }) ; 
   }
 
+<<<<<<< HEAD
+=======
+  MismatchHandler _mismatchHandler;
+  //higher-order concerns
+  bool _extra;
+>>>>>>> joe-uwa-refactor
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
   { return out << self._inner; }

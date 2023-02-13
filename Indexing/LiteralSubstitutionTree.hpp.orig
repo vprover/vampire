@@ -47,10 +47,14 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa)
+<<<<<<< HEAD
+  LiteralSubstitutionTree(MismatchHandler* mismtachHandler)
     : _trees(env.signature->predicates() * 2)
-    , _mismatchHandler(uwa)
+    , _mismatchHandler(mismtachHandler)
     { }
+=======
+  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa);
+>>>>>>> joe-uwa-refactor
 
   void handle(Literal* lit, Clause* cls, bool insert) final override
   { getTree(lit, /* complementary */ false).handle(LeafData(cls, lit), insert); }
