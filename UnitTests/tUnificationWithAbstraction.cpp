@@ -48,20 +48,17 @@ Clause* unit(Literal* lit)
 
 unique_ptr<TermSubstitutionTree> getTermIndexHOL()
 { 
-  env.options->set("func_ext", "abstraction");
-  return std::make_unique<TermSubstitutionTree>(new HOMismatchHandler(), /* extra */ false);
+  return std::make_unique<TermSubstitutionTree>(new UWAMismatchHandler(Shell::Options::UnificationWithAbstraction::FUNC_EXT), /* extra */ false);
 }
 
 unique_ptr<TermSubstitutionTree> getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
 { 
-  env.options->setUWA(uwa);
-  return std::make_unique<TermSubstitutionTree>(new UWAMismatchHandler(), /* extra */ false);
+  return std::make_unique<TermSubstitutionTree>(new UWAMismatchHandler(uwa), /* extra */ false);
 }
 
 auto getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa)
 {
-  env.options->setUWA(uwa);
-  return std::make_unique<LiteralSubstitutionTree>(new UWAMismatchHandler());
+  return std::make_unique<LiteralSubstitutionTree>(new UWAMismatchHandler(uwa));
 }
 
 template<class TermOrLit>
@@ -939,8 +936,7 @@ static const int NORM_QUERY_BANK=2;
 
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
   // TODO parameter instead of opts
-  env.options->setUWA(opt);
-  UWAMismatchHandler h;
+  UWAMismatchHandler h(opt);
   AbstractingUnifier au(&h);
   bool result = au.unify(a, 0, b, 0);
   if (result) {

@@ -153,11 +153,6 @@ public:
   UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
   bool isInterpreted(unsigned f) const;
 
-  // virtual bool tryAbstract(
-  //     TermSpec t1,
-  //     TermSpec t2,
-  //     AbstractingUnifier& constr) const final override;
-
   virtual Option<AbstractionResult> tryAbstract(
       AbstractingUnifier* au,
       TermSpec t1,
@@ -172,22 +167,22 @@ public:
   // virtual bool recheck(TermSpec l, TermSpec r) const final override;
 };
 
-class HOMismatchHandler : public MismatchHandler
-{
-public:
-  CLASS_NAME(HOMismatchHandler);
-  USE_ALLOCATOR(HOMismatchHandler);
-
-  virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier* au,
-      TermSpec t1,
-      TermSpec t2) const final override;
-
-
-  // virtual bool recheck(TermSpec l, TermSpec r) const final override
-  // { return true;  }
-};
-
+// class HOMismatchHandler : public MismatchHandler
+// {
+// public:
+//   CLASS_NAME(HOMismatchHandler);
+//   USE_ALLOCATOR(HOMismatchHandler);
+//
+//   virtual Option<AbstractionResult> tryAbstract(
+//       AbstractingUnifier* au,
+//       TermSpec t1,
+//       TermSpec t2) const final override;
+//
+//
+//   // virtual bool recheck(TermSpec l, TermSpec r) const final override
+//   // { return true;  }
+// };
+//
 
 }
 #endif /*__MismatchHandler__*/
