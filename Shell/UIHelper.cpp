@@ -267,9 +267,10 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     {
        // First lets pick a place to start based on the input file name
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
-
-       if(smtlib){
-         if (env.options->mode()!=Options::Mode::SPIDER) {
+       Options::Mode mode = env.options->mode();
+       
+       if (smtlib){
+         if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
@@ -292,8 +293,8 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          }
 
        }
-       else{
-         if (env.options->mode()!=Options::Mode::SPIDER) {
+       else {
+         if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
