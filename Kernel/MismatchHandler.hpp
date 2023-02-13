@@ -24,6 +24,7 @@
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/Signature.hpp"
 #include "Lib/Reflection.hpp"
+#include "Shell/Options.hpp"
 
 namespace Kernel
 {
@@ -77,15 +78,27 @@ public:
              std::initializer_list<UnificationConstraint> constraints
         ) : unify(unify)
           , constraints(constraints) {  }
+
+    EqualIf( Recycled<Stack<UnificationConstraint>> unify,
+             Recycled<Stack<UnificationConstraint>> constraints
+        ) : unify(std::move(unify))
+          , constraints(std::move(constraints)) {  }
+
+    friend std::ostream& operator<<(std::ostream& out, EqualIf const& self)
+    { return out << "EqualIf(unify: " << self.unify << ", constr: " << self.constraints <<  ")"; }
   };
-  struct NeverEqual { };
+
+  struct NeverEqual {
+    friend std::ostream& operator<<(std::ostream& out, NeverEqual const&)
+    { return out << "NeverEqual"; } 
+  };
 
   using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
 
 
   /** TODO document */
   virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier const* au,
+      AbstractingUnifier* au,
       TermSpec t1,
       TermSpec t2) const = 0;
 
@@ -100,11 +113,11 @@ class AbstractingUnifier {
   Recycled<RobSubstitution> _subs;
   Recycled<UnificationConstraintStack> _constr;
   Option<BacktrackData&> _bd;
-  MismatchHandler* _uwa;
+  MismatchHandler const* _uwa;
   friend class RobSubstitution;
 public:
   // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  AbstractingUnifier(MismatchHandler* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
+  AbstractingUnifier(MismatchHandler const* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
   { }
 
   bool isRecording() { return _subs->bdIsRecording(); }
@@ -137,6 +150,7 @@ class UWAMismatchHandler final : public MismatchHandler
 public:
   CLASS_NAME(UWAMismatchHandler);
   USE_ALLOCATOR(UWAMismatchHandler);
+  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
   bool isInterpreted(unsigned f) const;
 
   // virtual bool tryAbstract(
@@ -145,15 +159,16 @@ public:
   //     AbstractingUnifier& constr) const final override;
 
   virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier const* au,
+      AbstractingUnifier* au,
       TermSpec t1,
       TermSpec t2) const final override;
 
   bool canAbstract(
-      Shell::Options::UnificationWithAbstraction opt,
+      AbstractingUnifier* au,
       TermSpec t1,
       TermSpec t2) const;
 
+  Shell::Options::UnificationWithAbstraction const _mode;
   // virtual bool recheck(TermSpec l, TermSpec r) const final override;
 };
 
@@ -164,7 +179,7 @@ public:
   USE_ALLOCATOR(HOMismatchHandler);
 
   virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier const* au,
+      AbstractingUnifier* au,
       TermSpec t1,
       TermSpec t2) const final override;
 
