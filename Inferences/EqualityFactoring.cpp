@@ -94,7 +94,7 @@ struct EqualityFactoring::ResultFn
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
-    MismatchHandler* handler = _self._mismatchHandler.get();
+    MismatchHandler* handler = _self._mismatchHandler.asPtr();
     AbstractingUnifier absUnif(handler);
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal

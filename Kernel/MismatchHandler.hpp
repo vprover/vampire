@@ -97,7 +97,6 @@ public:
 
   using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
 
-
   /** TODO document */
   Option<AbstractionResult> tryAbstract(
       AbstractingUnifier* au,
@@ -107,8 +106,8 @@ public:
   // /** TODO document */
   // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
 
-  static unique_ptr<MismatchHandler> create();
-  static unique_ptr<MismatchHandler> createOnlyHigherOrder();
+  static Option<MismatchHandler> create();
+  static Option<MismatchHandler> createOnlyHigherOrder();
 
 private:
   // for old non-alasca uwa modes

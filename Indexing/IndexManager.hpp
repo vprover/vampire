@@ -99,7 +99,7 @@ private:
   DHMap<IndexType,Entry> _store;
 
   Index* create(IndexType t);
-  std::unique_ptr<MismatchHandler> _uwa;
+  Option<MismatchHandler> _uwa;
 };
 
 };

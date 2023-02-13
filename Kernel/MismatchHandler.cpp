@@ -54,25 +54,25 @@ namespace Kernel
 // TermSpec TermSpec::typeArg(unsigned i)
 // { return TermSpec(*_subs, term()->typeArg(i), index(i)); }
 
-unique_ptr<MismatchHandler> MismatchHandler::create()
+Option<MismatchHandler> MismatchHandler::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-    return make_unique<MismatchHandler>(env.options->unificationWithAbstraction());
+    return some(MismatchHandler(env.options->unificationWithAbstraction()));
   } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
-    return make_unique<MismatchHandler>(Options::UnificationWithAbstraction::FUNC_EXT);
+    return some(MismatchHandler(Options::UnificationWithAbstraction::FUNC_EXT));
   } else {
-    return unique_ptr<MismatchHandler>();
+    return Option<MismatchHandler>();
   }
 }
 
-unique_ptr<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
+Option<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
 {
   if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
-    return make_unique<MismatchHandler>(Options::UnificationWithAbstraction::FUNC_EXT);
+    return some(MismatchHandler(Options::UnificationWithAbstraction::FUNC_EXT));
   } else {
-    return unique_ptr<MismatchHandler>();
+    return Option<MismatchHandler>();
   }
 }
 

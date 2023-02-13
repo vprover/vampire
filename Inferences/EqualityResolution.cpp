@@ -69,8 +69,8 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static unique_ptr<MismatchHandler> _mismatchHandler = MismatchHandler::create();
-    auto handler = _mismatchHandler.get();
+    static Option<MismatchHandler> _mismatchHandler = MismatchHandler::create();
+    auto handler = _mismatchHandler.asPtr();
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);

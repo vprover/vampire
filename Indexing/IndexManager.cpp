@@ -111,7 +111,7 @@ Index* IndexManager::create(IndexType t)
                    
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    res = new BinaryResolutionIndex(new LiteralSubstitutionTree(_uwa.get()));
+    res = new BinaryResolutionIndex(new LiteralSubstitutionTree(_uwa.asPtr()));
     isGenerating = true;
     break;
   case BACKWARD_SUBSUMPTION_SUBST_TREE:
@@ -132,11 +132,11 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa.get(), /* extra */ false), _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa.asPtr(), /* extra */ false), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa.get(), /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa.asPtr(), /* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     

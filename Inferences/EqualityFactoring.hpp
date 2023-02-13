@@ -43,7 +43,7 @@ private:
   struct ResultFn;
   friend struct ResultFn;
 
-  unique_ptr<MismatchHandler> _mismatchHandler;
+  Option<MismatchHandler> _mismatchHandler;
 };
 
 
