@@ -80,12 +80,18 @@ public:
           , constraints(constraints) {  }
 
     EqualIf( Recycled<Stack<UnificationConstraint>> unify,
-             std::initializer_list<UnificationConstraint> constraints
+             Recycled<Stack<UnificationConstraint>> constraints
         ) : unify(std::move(unify))
-          , constraints(constraints) {  }
+          , constraints(std::move(constraints)) {  }
 
+    friend std::ostream& operator<<(std::ostream& out, EqualIf const& self)
+    { return out << "EqualIf(unify: " << self.unify << ", constr: " << self.constraints <<  ")"; }
   };
-  struct NeverEqual { };
+
+  struct NeverEqual {
+    friend std::ostream& operator<<(std::ostream& out, NeverEqual const&)
+    { return out << "NeverEqual"; } 
+  };
 
   using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
 

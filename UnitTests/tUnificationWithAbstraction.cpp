@@ -1277,6 +1277,26 @@ ROB_UNIFY_TEST_FAIL(alasca3_test_11,
     f2(x, f(a) +  2 * g(a)),
     f2(x, frac(1,2) * f(a) + g(x) + g(y)))
 
+ROB_UNIFY_TEST_FAIL(alasca3_test_12,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, f(x) + f(b) + f(z)),
+    f2(x, f(a) - f(y)))
+
+ROB_UNIFY_TEST_FAIL(alasca3_test_13,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, f(x)),
+    f2(x, f(a) - f(y)))
+
+ROB_UNIFY_TEST(alasca3_test_14,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, 0),
+    f2(x, f(a) - f(y)),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x, 0),
+      .resultSigma = f2(x, f(a) - f(a)),
+      .constraints = Stack<Literal*>{},
+    })
+
 ROB_UNIFY_TEST(tricky_one,
     Options::UnificationWithAbstraction::ALASCA3,
     s2r(x),
