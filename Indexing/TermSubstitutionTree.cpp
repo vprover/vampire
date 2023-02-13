@@ -23,9 +23,9 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(MismatchHandler* handler, bool extra)
+TermSubstitutionTree::TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool extra)
 : SubstitutionTree()
-, _mismatchHandler(handler)
+, _mismatchHandler(uwa)
 , _extra(extra)
 { }
 

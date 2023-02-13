@@ -57,7 +57,7 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(MismatchHandler* handler, bool extra);
+  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool extra);
 
   void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
   { handleTerm(tt, LeafData(cls,lit,tt), insert); }
@@ -99,7 +99,7 @@ private:
             qr.data->literal, qr.data->clause, std::move(qr.unif)); }) ; 
   }
 
-  MismatchHandler* _mismatchHandler;
+  MismatchHandler _mismatchHandler;
   //higher-order concerns
   bool _extra;
 

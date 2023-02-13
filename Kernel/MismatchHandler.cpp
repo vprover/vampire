@@ -54,25 +54,25 @@ namespace Kernel
 // TermSpec TermSpec::typeArg(unsigned i)
 // { return TermSpec(*_subs, term()->typeArg(i), index(i)); }
 
-Option<MismatchHandler> MismatchHandler::create()
+Shell::Options::UnificationWithAbstraction MismatchHandler::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-    return some(MismatchHandler(env.options->unificationWithAbstraction()));
+    return env.options->unificationWithAbstraction();
   } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
-    return some(MismatchHandler(Options::UnificationWithAbstraction::FUNC_EXT));
+    return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
-    return Option<MismatchHandler>();
+    return Options::UnificationWithAbstraction::OFF;
   }
 }
 
-Option<MismatchHandler> MismatchHandler::createOnlyHigherOrder()
+Shell::Options::UnificationWithAbstraction MismatchHandler::createOnlyHigherOrder()
 {
   if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
-    return some(MismatchHandler(Options::UnificationWithAbstraction::FUNC_EXT));
+    return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
-    return Option<MismatchHandler>();
+    return Options::UnificationWithAbstraction::OFF;
   }
 }
 
@@ -177,6 +177,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
 {
   CALL("MismatchHandler::checkUWA");
   using Uwa = Shell::Options::UnificationWithAbstraction;
+  ASS(_mode != Uwa::OFF)
 
 
   // TODO add parameter instead of reading from options
@@ -298,8 +299,7 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
     Option<MismatchHandler::AbstractionResult> absRes;
     auto doAbstract = [&](auto l, auto r) -> bool
     { 
-      if (!_uwa) return false;
-      absRes = _uwa->tryAbstract(this, l, r);
+      absRes = _uwa.tryAbstract(this, l, r);
       return absRes.isSome();
     };
 

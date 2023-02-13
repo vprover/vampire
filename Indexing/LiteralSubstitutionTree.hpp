@@ -40,7 +40,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(MismatchHandler* mismtachHandler);
+  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa);
 
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
   void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
@@ -121,7 +121,7 @@ private:
 
 
   Stack<SubstitutionTree> _trees;
-  MismatchHandler* _mismatchHandler;
+  MismatchHandler _mismatchHandler;
 };
 
 };

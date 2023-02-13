@@ -67,10 +67,10 @@ using WaitingMap = DHMap<SpecialVar, Action>;
 
 class MismatchHandler final
 {
-  Shell::Options::UnificationWithAbstraction const _mode;
+  Shell::Options::UnificationWithAbstraction _mode;
+  friend class AbstractingUnifier;
 public:
   MismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
-  ~MismatchHandler() {}
 
   struct EqualIf { 
     Recycled<Stack<UnificationConstraint>> unify; 
@@ -106,8 +106,8 @@ public:
   // /** TODO document */
   // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
 
-  static Option<MismatchHandler> create();
-  static Option<MismatchHandler> createOnlyHigherOrder();
+  static Shell::Options::UnificationWithAbstraction create();
+  static Shell::Options::UnificationWithAbstraction createOnlyHigherOrder();
 
 private:
   // for old non-alasca uwa modes
@@ -122,11 +122,11 @@ class AbstractingUnifier {
   Recycled<RobSubstitution> _subs;
   Recycled<UnificationConstraintStack> _constr;
   Option<BacktrackData&> _bd;
-  MismatchHandler const* _uwa;
+  MismatchHandler _uwa;
   friend class RobSubstitution;
 public:
   // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  AbstractingUnifier(MismatchHandler const* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
+  AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
   { }
 
   bool isRecording() { return _subs->bdIsRecording(); }
@@ -148,7 +148,7 @@ public:
   RobSubstitution const& subs() const { return *_subs; }
   void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
   void bdDone() { _subs->bdDone(); }
-  bool usesUwa() const { return _uwa != nullptr; }
+  bool usesUwa() const { return _uwa._mode != Options::UnificationWithAbstraction::OFF; }
 
   friend std::ostream& operator<<(std::ostream& out, AbstractingUnifier const& self)
   { return out << "(" << self._subs << ", " << self._constr << ")"; }

@@ -69,17 +69,17 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static Option<MismatchHandler> _mismatchHandler = MismatchHandler::create();
-    auto handler = _mismatchHandler.asPtr();
+    static MismatchHandler _mismatchHandler = MismatchHandler::create();
+    auto handler = _mismatchHandler;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
     // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
     // and therefore a constraint can be created between arguments
-    if(handler &&  arg0.isTerm() && arg1.isTerm() &&
+    if(arg0.isTerm() && arg1.isTerm() &&
        arg0.term()->functor() != arg1.term()->functor()){
-      handler = nullptr;
+      handler = MismatchHandler(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
     AbstractingUnifier absUnif(handler);

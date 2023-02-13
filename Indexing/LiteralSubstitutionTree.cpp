@@ -31,9 +31,9 @@
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree(MismatchHandler* mismatchHandler)
+LiteralSubstitutionTree::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa)
 : _trees(env.signature->predicates() * 2)
-, _mismatchHandler(mismatchHandler)
+, _mismatchHandler(uwa)
 { }
 
 // TODO move
