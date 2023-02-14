@@ -66,7 +66,7 @@ bool TermSpec::sameTermContent(TermSpec const& other) const
   if (top() != other.top()) return false;
   if (isVar()) {
     ASS(other.isVar())
-    return isSpecialVar() || varSpec().index == other.varSpec().index;
+    return (isSpecialVar() && other.isSpecialVar()) || varSpec().index == other.varSpec().index;
   } else {
     ASS(isTerm())
     ASS(other.isTerm())
