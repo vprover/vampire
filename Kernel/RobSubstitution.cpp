@@ -66,7 +66,7 @@ bool TermSpec::sameTermContent(TermSpec const& other) const
   if (top() != other.top()) return false;
   if (isVar()) {
     ASS(other.isVar())
-    return isSpecialVar() || varSpec().index == other.varSpec().index;
+    return (isSpecialVar() && other.isSpecialVar()) || varSpec().index == other.varSpec().index;
   } else {
     ASS(isTerm())
     ASS(other.isTerm())
@@ -372,7 +372,9 @@ bool RobSubstitution::occurs(VarSpec toFind, TermSpec ts)
 bool RobSubstitution::unify(TermSpec s, TermSpec t)
 {
   CALL("RobSubstitution::unify/2");
-  // DBG(*this, ".unify(", s, ",", t, ")")
+#define DEBUG_UNIFY(lvl, ...) if (lvl < 0) DBG("unify: ", __VA_ARGS__)
+  DEBUG_UNIFY(0, *this, ".unify(", s, ",", t, ")")
+
 
   if(s.sameTermContent(t)) {
     return true;
@@ -414,6 +416,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     auto x = toDo.pop();
     TermSpec dt1=derefBound(x.lhs());
     TermSpec dt2=derefBound(x.rhs());
+    DEBUG_UNIFY(1, "next pair: ", make_pair(dt1, dt2))
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
     if (dt1.sameTermContent(dt2)) {
@@ -456,7 +459,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     localBD.drop();
   }
 
-  // DBG(*this)
+  DEBUG_UNIFY(0, *this)
   return !mismatch;
 }
 
