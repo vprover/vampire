@@ -96,9 +96,8 @@ using namespace Inferences::LASCA;
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
 auto idxFourierMotzkin(
-   Options::UnificationWithAbstraction mode = Options::UnificationWithAbstraction::ALASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) { 
-  auto uwa = new UWAMismatchHandler(mode);
   return Stack<std::function<Indexing::Index*()>>{
     [=]() { return new LascaIndex<FourierMotzkin::Lhs>(uwa); },
     [=]() { return new LascaIndex<FourierMotzkin::Rhs>(uwa); },

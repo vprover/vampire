@@ -730,10 +730,9 @@ namespace Kernel {
   public:
     InequalityNormalizer normalizer;
     Ordering* const ordering;
-    UWAMismatchHandler uwa;
+    Shell::Options::UnificationWithAbstraction uwa;
 
-    MismatchHandler      * uwaMode()       { return &uwa; }
-    MismatchHandler const* uwaMode() const { return &uwa; }
+    Shell::Options::UnificationWithAbstraction uwaMode() const { return uwa; }
         
     // TODO move to LASCA.hpp
     template<class NumTraits>

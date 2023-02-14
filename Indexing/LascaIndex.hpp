@@ -35,7 +35,7 @@ public:
   CLASS_NAME(LascaIndex);
   USE_ALLOCATOR(LascaIndex);
 
-  LascaIndex(MismatchHandler* uwa)
+  LascaIndex(Shell::Options::UnificationWithAbstraction uwa)
     : _index(uwa)
     , _shared()
   {}
@@ -49,7 +49,7 @@ public:
       .map([](auto r) { return std::make_tuple(std::move(r.data()), r.unifier);  })
       // .filter([=](auto& x) {
       //     Stack<UnificationConstraint> c;
-      //     UWAMismatchHandler hndlr(_uwa, c);
+      //     MismatchHandler hndlr(_uwa, c);
       //     auto& uwa = get<1>(x);
       //     auto result = uwa.cnstLiterals()
       //       .all([&](auto lit) {

@@ -67,9 +67,8 @@ using namespace Inferences::LASCA;
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
 auto idxInequalityStrengthening(
-   Options::UnificationWithAbstraction mode = Options::UnificationWithAbstraction::ALASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) { 
-  auto uwa = new UWAMismatchHandler(mode);
   return Stack<std::function<Indexing::Index*()>>{
     [=]() { return new LascaIndex<InequalityStrengthening::Lhs>(uwa); },
     [=]() { return new LascaIndex<InequalityStrengthening::Rhs>(uwa); },

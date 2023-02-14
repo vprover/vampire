@@ -57,17 +57,16 @@ class TermSubstitutionTree
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
 
   Indexing::SubstitutionTree<LeafData_> _inner;
-  MismatchHandler* _mismatchHandler;
+  MismatchHandler _mismatchHandler;
 public:
   using LeafData = LeafData_;
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
   
-  TermSubstitutionTree(MismatchHandler* handler)
+  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa)
     : _inner(/* reservedSpecialVars */ 2 /* S0 -> term, S1 -> sort */ )
-    , _mismatchHandler(handler)
+    , _mismatchHandler(uwa)
     { }
-
 
   void handle(LeafData d, bool insert) final override
   { _inner.handle(std::move(d), insert); }

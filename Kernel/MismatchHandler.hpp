@@ -65,10 +65,12 @@ using Action = std::function<bool(unsigned, TermSpec)>;
 using SpecialVar = unsigned;
 using WaitingMap = DHMap<SpecialVar, Action>;
 
-class MismatchHandler
+class MismatchHandler final
 {
+  Shell::Options::UnificationWithAbstraction _mode;
+  friend class AbstractingUnifier;
 public:
-  virtual ~MismatchHandler() {}
+  MismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
 
   struct EqualIf { 
     Recycled<Stack<UnificationConstraint>> unify; 
@@ -95,29 +97,36 @@ public:
 
   using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
 
-
   /** TODO document */
-  virtual Option<AbstractionResult> tryAbstract(
+  Option<AbstractionResult> tryAbstract(
       AbstractingUnifier* au,
       TermSpec t1,
-      TermSpec t2) const = 0;
+      TermSpec t2) const;
 
   // /** TODO document */
   // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
 
-  static unique_ptr<MismatchHandler> create();
-  static unique_ptr<MismatchHandler> createOnlyHigherOrder();
+  static Shell::Options::UnificationWithAbstraction create();
+  static Shell::Options::UnificationWithAbstraction createOnlyHigherOrder();
+
+private:
+  // for old non-alasca uwa modes
+  bool isInterpreted(unsigned f) const;
+  bool canAbstract(
+      AbstractingUnifier* au,
+      TermSpec t1,
+      TermSpec t2) const;
 };
 
 class AbstractingUnifier {
   Recycled<RobSubstitution> _subs;
   Recycled<UnificationConstraintStack> _constr;
   Option<BacktrackData&> _bd;
-  MismatchHandler const* _uwa;
+  MismatchHandler _uwa;
   friend class RobSubstitution;
 public:
   // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  AbstractingUnifier(MismatchHandler const* uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
+  AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
   { }
 
   bool isRecording() { return _subs->bdIsRecording(); }
@@ -139,55 +148,11 @@ public:
   RobSubstitution const& subs() const { return *_subs; }
   void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
   void bdDone() { _subs->bdDone(); }
-  bool usesUwa() const { return _uwa != nullptr; }
+  bool usesUwa() const { return _uwa._mode != Options::UnificationWithAbstraction::OFF; }
 
   friend std::ostream& operator<<(std::ostream& out, AbstractingUnifier const& self)
   { return out << "(" << self._subs << ", " << self._constr << ")"; }
 };
 
-class UWAMismatchHandler final : public MismatchHandler
-{
-public:
-  CLASS_NAME(UWAMismatchHandler);
-  USE_ALLOCATOR(UWAMismatchHandler);
-  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
-  bool isInterpreted(unsigned f) const;
-
-  // virtual bool tryAbstract(
-  //     TermSpec t1,
-  //     TermSpec t2,
-  //     AbstractingUnifier& constr) const final override;
-
-  virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier* au,
-      TermSpec t1,
-      TermSpec t2) const final override;
-
-  bool canAbstract(
-      AbstractingUnifier* au,
-      TermSpec t1,
-      TermSpec t2) const;
-
-  Shell::Options::UnificationWithAbstraction const _mode;
-  // virtual bool recheck(TermSpec l, TermSpec r) const final override;
-};
-
-class HOMismatchHandler : public MismatchHandler
-{
-public:
-  CLASS_NAME(HOMismatchHandler);
-  USE_ALLOCATOR(HOMismatchHandler);
-
-  virtual Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier* au,
-      TermSpec t1,
-      TermSpec t2) const final override;
-
-
-  // virtual bool recheck(TermSpec l, TermSpec r) const final override
-  // { return true;  }
-};
-
-
-}
+} // namespace Kernel
 #endif /*__MismatchHandler__*/

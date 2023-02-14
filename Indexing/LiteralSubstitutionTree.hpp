@@ -47,9 +47,9 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(MismatchHandler* mismtachHandler)
+  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa)
     : _trees(env.signature->predicates() * 2)
-    , _mismatchHandler(mismtachHandler)
+    , _mismatchHandler(uwa)
     { }
 
   void handle(Literal* lit, Clause* cls, bool insert) final override
@@ -154,7 +154,7 @@ private:
   }
 
   Stack<SubstitutionTree> _trees;
-  MismatchHandler* _mismatchHandler;
+  MismatchHandler _mismatchHandler;
 };
 
 };

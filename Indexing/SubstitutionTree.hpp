@@ -106,7 +106,7 @@ namespace Indexing {
     class UnificationWithAbstraction { 
       AbstractingUnifier _unif;
     public:
-      UnificationWithAbstraction(MismatchHandler* handler) : _unif(handler) {}
+      UnificationWithAbstraction(MismatchHandler handler) : _unif(handler) {}
       using Unifier = AbstractingUnifier*;
 
       bool associate(unsigned specialVar, TermList node, BacktrackData& bd)

@@ -1208,7 +1208,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::OFF,
-                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "ac1", "ac2", "alasca1", "alasca2", "alasca3"});
+                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2", "alasca1", "alasca2", "alasca3"});
     _unificationWithAbstraction.description=
         "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
         "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1867,6 +1867,9 @@ void Options::init()
     _maximumXXNarrows.tag(OptionTag::HIGHER_ORDER);
     noZ3(_maximumXXNarrows);
 
+    // TODO we have two ways of enabling function extensionality abstraction atm:
+    // this option, and `-uwa`. 
+    // We should sort this out before merging into master.
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
     _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";

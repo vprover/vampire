@@ -152,7 +152,7 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure<>* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex = new LiteralSubstitutionTree<>(/* uwa */ nullptr);
+  _partialIndex = new LiteralSubstitutionTree<>(Shell::Options::UnificationWithAbstraction::OFF);
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()

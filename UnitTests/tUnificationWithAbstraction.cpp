@@ -51,15 +51,14 @@ static const auto tld = [](auto t) { return DefaultTermLeafData(t, nullptr, null
 
 unique_ptr<TermSubstitutionTree<>> getTermIndexHOL()
 { 
-  env.options->set("func_ext", "abstraction");
-  return std::make_unique<TermSubstitutionTree<>>(new HOMismatchHandler());
+  return std::make_unique<TermSubstitutionTree<>>(Shell::Options::UnificationWithAbstraction::FUNC_EXT);
 }
 
 unique_ptr<TermSubstitutionTree<>> getTermIndex(Shell::Options::UnificationWithAbstraction uwa)
-{ return std::make_unique<TermSubstitutionTree<>>(new UWAMismatchHandler(uwa)); }
+{ return std::make_unique<TermSubstitutionTree<>>(uwa); }
 
 auto getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa)
-{ return std::make_unique<LiteralSubstitutionTree<>>(new UWAMismatchHandler(uwa)); }
+{ return std::make_unique<LiteralSubstitutionTree<>>(uwa); }
 
 template<class TermOrLit>
 struct UnificationResultSpec {
@@ -937,8 +936,8 @@ static const int NORM_QUERY_BANK=2;
 // static const int NORM_RESULT_BANK=3;
 
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
-  UWAMismatchHandler h(opt);
-  AbstractingUnifier au(&h);
+  MismatchHandler h(opt);
+  AbstractingUnifier au(h);
   bool result = au.unify(a, 0, b, 0);
   if (result) {
 

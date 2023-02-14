@@ -51,7 +51,7 @@ TEST_FUN(basic01) {
   DECL_FUNC(f, {srt}, srt)
   DECL_PRED(g, {srt})
   
-  TermSubstitutionTree<> tree(/* mismatchHandler */ nullptr);
+  TermSubstitutionTree<> tree(Shell::Options::UnificationWithAbstraction::OFF);
   auto dat = [](TermList k, Literal* v)  { return DefaultTermLeafData(k, v, nullptr); };
   tree.insert(dat(f(a), g(a)));
   tree.insert(dat(f(a), g(b)));
@@ -95,7 +95,7 @@ TEST_FUN(custom_data_01) {
   DECL_FUNC(f, {srt}, srt)
 
   auto dat = [](auto l, auto r) { return MyData(l,r); };
-  TermSubstitutionTree<MyData> tree(/* mismatchHandler */ nullptr);
+  TermSubstitutionTree<MyData> tree(Shell::Options::UnificationWithAbstraction::OFF);
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
@@ -113,7 +113,7 @@ TEST_FUN(custom_data_02) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<TermIndexData<vstring>> tree(/* mismatchHandler */ nullptr);
+  TermSubstitutionTree<TermIndexData<vstring>> tree(Shell::Options::UnificationWithAbstraction::OFF);
   auto dat = [](TermList t,vstring s) { return TermIndexData<vstring>(t.term(), std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -137,7 +137,7 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData3> tree(/* mismatchHandler */ nullptr);
+  TermSubstitutionTree<MyData3> tree(Shell::Options::UnificationWithAbstraction::OFF);
   auto dat = [](TermList t,vstring s) { return MyData3(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -162,7 +162,7 @@ TEST_FUN(custom_data_04_no_copy_constructor) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData4> tree(/* mismatchHandler */ nullptr);
+  TermSubstitutionTree<MyData4> tree(Shell::Options::UnificationWithAbstraction::OFF);
   auto dat = [](TermList t,vstring s) { return MyData4(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));

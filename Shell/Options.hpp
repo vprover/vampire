@@ -223,6 +223,7 @@ public:
     CONSTANT,
     ALL,
     GROUND,
+    FUNC_EXT,
     AC1,
     AC2,
     ALASCA1,
