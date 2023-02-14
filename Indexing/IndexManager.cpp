@@ -31,7 +31,7 @@
 
 #include "IndexManager.hpp"
 
-#define LAZY_INDEX 0
+#define LAZY_INDEX 1
 
 using namespace Lib;
 using namespace Indexing;
@@ -227,7 +227,6 @@ Index* IndexManager::create(IndexType t)
 #else
     tis=new CodeTreeTIS();
 #endif
-    tis=new LazyTermIndex;
     res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;

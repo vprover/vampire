@@ -35,6 +35,7 @@ namespace Indexing {
 class Positions {
 public:
   Positions() { _positions.push(PositionData(0, 0)); }
+  void setTerm(TermList term);
 
   // get the integer representing `p.n`
   unsigned child(unsigned parent, unsigned argument);
@@ -44,26 +45,30 @@ public:
   unsigned argument(unsigned child) { return _positions[child].argument; }
 
   /**
-  * retrieve the sub-term of `term` at `position`
+  * retrieve the sub-term at `position`
   *
-  * special cases:
-  * - returns a variable if at or below said variable
-  * - returns an empty term if position does not exist in the term
+  * - if the position is not in the term, `outside_term` is set
+  * - if the position is under a variable, `under_variable` is set and the variable returned
+  * - otherwise the subterm is returned
   */
-  TermList term_at(TermList term, unsigned position);
+  TermList term_at(unsigned position, bool &outside_term, bool &under_variable);
 
 private:
   /**
    * Data held for a position
    */
   struct PositionData {
-    PositionData(unsigned parent, unsigned argument) : parent(parent), argument(argument) {}
+    PositionData(unsigned parent, unsigned argument) : parent(parent), argument(argument) {
+      term.makeEmpty();
+    }
     // if a position is `p.n`, `p`
     unsigned parent;
     // if a position is `p.n`, `n`
     unsigned argument;
     // positions of the form `p.n.m`
     Stack<unsigned> children;
+    // the current term at this position, or empty
+    TermList term;
   };
 
   // all positions seen so far
@@ -88,20 +93,28 @@ public:
   // remove `t` from the index, very lazily
   void remove(TermList t) { _remove.insert(t); }
 
+private:
+  // an iterator returning results of a query
   template<bool instantiate, bool generalise>
   class Query;
 
-private:
+  void setQuery(TermList query) {
+    _query = query;
+    _positions.setTerm(query);
+  }
+
   // reasons that a candidate term might not satisfy a query
-  enum class Reason {
+  enum Reason {
     // no reason could be determined
-    NO_REASON,
+    NO_REASON = 0,
     // the candidate and the query have different symbols at a position
     MISMATCH,
     // the candidate has a variable where the query has a symbol, but we don't want generalisations
     VARIABLE,
     // the candidate has a symbol where the query has a variable, but we don't want instances
-    SYMBOL
+    SYMBOL,
+    // the candidate has a repeated variable in a position incompatible with the query
+    ALIAS
   };
 
   /**
@@ -111,7 +124,7 @@ private:
    * if `generalise`, variables in `candidate` may be bound
    */
   template<bool instantiate, bool generalise>
-  Reason explain(TermList query, TermList candidate);
+  Reason explain(TermList candidate);
 
   /**
    * if `explain(query, candidate)` returned `MISMATCH` or `SYMBOL`:
@@ -119,8 +132,11 @@ private:
    * - `explanation_candidate_functor` is the candidate's functor at `mismatch_position`
    * if `explain(query, candidate)` returned `VARIABLE`:
    * - `explanation_position` is one position of a variable in the candidate where the query has a symbol
+   * if `explain(query, candidate)` returned `ALIAS`:
+   * - `explanation_position` is one position of a repeated variable in the candidate
+   * - `explanation_other_position` is another
    */
-  unsigned explanation_position, explanation_candidate_functor;
+  unsigned explanation_position, explanation_candidate_functor, explanation_other_position;
 
   // forward decl for mutually-recursive struct
   struct FunctorsAt;
@@ -141,8 +157,16 @@ private:
     // subtrees where terms have a known functor at a position
     DHMap<unsigned, FunctorsAt> functor_positions;
 
+    // subtrees where terms have the same variable at two positions
+    DHMap<std::pair<unsigned, unsigned>, Branch> aliases;
+
     // is this an empty node suitable for deletion?
-    bool isEmpty() { return immediate.isEmpty() && variable_positions.isEmpty() && functor_positions.isEmpty(); }
+    bool isEmpty() {
+      return immediate.isEmpty() &&
+        variable_positions.isEmpty() &&
+        functor_positions.isEmpty() &&
+        aliases.isEmpty();
+    }
   };
 
   // represents a choice of known functors at a position
@@ -169,8 +193,14 @@ private:
   // terms that we should remove, but haven't actually removed yet
   DHSet<TermList> _remove;
 
+  // the current query term
+  TermList _query;
+
 public:
-  // if a `Query` just returned `candidate`, this is the unifier of `query` and `candidate`
+  /**
+   * if an iterator just returned `candidate` from `next()`, this is the unifier of `query` and `candidate`
+   * NB: this is invalidated by a subsequent call to `hasNext()`
+   */
   ResultSubstitutionSP substitution;
 };
 

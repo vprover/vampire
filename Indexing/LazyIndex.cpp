@@ -28,33 +28,52 @@ unsigned Positions::child(unsigned parent, unsigned argument) {
   return _positions[parent].children[argument];
 }
 
-TermList Positions::term_at(TermList term, unsigned position) {
+void Positions::setTerm(TermList term) {
+  static Stack<unsigned> clear;
+  clear.push(0);
+  while(clear.isNonEmpty()) {
+    unsigned next = clear.pop();
+    _positions[next].term.makeEmpty();
+    for(unsigned i = 0; i < _positions[next].children.size(); i++)
+      if(_positions[_positions[next].children[i]].term.isNonEmpty())
+        clear.push(_positions[next].children[i]);
+  }
+
+  static Stack<std::pair<unsigned, TermList>> todo;
+  todo.push({ 0, term });
+  while(todo.isNonEmpty()) {
+    std::pair<unsigned, TermList> next = todo.pop();
+    unsigned position = std::get<0>(next);
+    TermList term = std::get<1>(next);
+    _positions[position].term = term;
+    if(term.isTerm()) {
+      Term *compound = term.term();
+      for(unsigned i = 0; i < compound->arity(); i++)
+        todo.push({ child(position, i), (*compound)[i] });
+    }
+  }
+}
+
+TermList Positions::term_at(unsigned position, bool &outside_term, bool &under_variable) {
   CALL("Positions::term_at")
 
-  // TODO used Recycled<T>
-  static Stack<unsigned> arguments;
-  arguments.reset();
+  if(_positions[position].term.isNonEmpty())
+    return _positions[position].term;
 
-  while(position) {
-    arguments.push(_positions[position].argument);
-    position = _positions[position].parent;
-  }
-
-  while(arguments.isNonEmpty()) {
-    if(term.isVar())
-      return term;
-
-    Term *compound = term.term();
-    unsigned argument = arguments.pop();
-    if(compound->arity() <= argument) {
-      term.makeEmpty();
-      return term;
+  while(true) {
+    unsigned parent = _positions[position].parent;
+    if(_positions[parent].term.isEmpty()) {
+      position = parent;
+      continue;
     }
 
-    term = (*compound)[argument];
+    TermList term = _positions[parent].term;
+    if(term.isVar())
+      under_variable = true;
+    else
+      outside_term = true;
+    return term;
   }
-
-  return term;
 }
 
 void LazyIndex::insert(TermList t) {
@@ -69,53 +88,86 @@ struct Unify {
   unsigned position;
 };
 
+struct Binding {
+  TermList bound;
+  unsigned position;
+};
+
 template<bool instantiate, bool generalise>
-LazyIndex::Reason LazyIndex::explain(TermList query, TermList candidate) {
+LazyIndex::Reason LazyIndex::explain(TermList candidate) {
   CALL("LazyIndex::explain")
 
   // TODO used Recycled<T>
   static Stack<Unify> unify;
   unify.reset();
   unify.push({
-    .query = query,
+    .query = _query,
     .candidate = candidate,
     .position = 0
   });
+  static DHMap<unsigned, Binding> candidate_bindings;
+  if(generalise)
+    candidate_bindings.reset();
 
   while(unify.isNonEmpty()) {
     Unify next = unify.pop();
-
     unsigned position = next.position;
-    if(!generalise && next.query.isTerm() && next.candidate.isVar()) {
+    TermList query = next.query;
+    TermList candidate = next.candidate;
+
+    if(!generalise && query.isTerm() && candidate.isVar()) {
       explanation_position = position;
       return Reason::VARIABLE;
     }
-    if(!instantiate && next.query.isVar() && !next.candidate.isVar()) {
+
+    if(!instantiate && query.isVar() && !candidate.isVar()) {
       explanation_position = position;
-      explanation_candidate_functor = next.candidate.term()->functor();
+      explanation_candidate_functor = candidate.term()->functor();
       return Reason::SYMBOL;
     }
 
-    if(next.query.isVar() || next.candidate.isVar())
+    Binding binding;
+    if(
+      generalise &&
+      candidate.isVar() &&
+      !candidate_bindings.findOrInsert(
+        candidate.var(),
+        binding,
+        { .bound = query, .position = position }
+      ) &&
+      (
+        (instantiate && (_substitution->reset(), !_substitution->unify(query, 0, binding.bound, 0))) ||
+        (!instantiate && query != binding.bound)
+      )
+    ) {
+      explanation_position = position;
+      explanation_other_position = binding.position;
+      return Reason::ALIAS;
+    }
+
+    if(query.isVar() || candidate.isVar())
       continue;
 
-    Term *query = next.query.term();
-    Term *candidate = next.candidate.term();
-    if(query->functor() != candidate->functor()) {
+    Term *query_term = query.term();
+    Term *candidate_term = candidate.term();
+    if(query_term->functor() != candidate_term->functor()) {
       explanation_position = position;
-      explanation_candidate_functor = candidate->functor();
+      explanation_candidate_functor = candidate_term->functor();
       return Reason::MISMATCH;
     }
 
-    for(unsigned i = 0; i < query->arity(); i++) {
+    for(unsigned i = 0; i < query_term->arity(); i++) {
       unsigned argument_position = _positions.child(position, i);
       unify.push({
-        .query = (*query)[i],
-        .candidate = (*candidate)[i],
+        .query = (*query_term)[i],
+        .candidate = (*candidate_term)[i],
         .position = argument_position
       });
     }
   }
+
+  const char *syms[2][2] = {{" * ", " <- "}, {" -> ", " = "}};
+  std::cout << _query.toString() << syms[instantiate][generalise] << candidate.toString() << std::endl;
 
   return Reason::NO_REASON;
 }
@@ -131,15 +183,20 @@ class LazyIndex::Query {
 public:
   DECL_ELEMENT_TYPE(TermList);
 
-  Query(LazyIndex &index, TermList query) : _index(index), _query(query) {
+  Query(LazyIndex &index, TermList query) : _index(index) {
+    _index.setQuery(query);
     _todo.push(Iteration(index._root));
-#if VDEBUG
     _next.makeEmpty();
-#endif
   }
 
   bool hasNext();
-  TermList next() { return _next; }
+  TermList next() {
+    CALL("LazyIndex::Query::next")
+    ASS(!_next.isEmpty())
+    TermList next = _next;
+    _next.makeEmpty();
+    return next;
+  }
 
 private:
   // dummy to allow empty iterators
@@ -152,7 +209,8 @@ private:
       immediate(branch.immediate),
       branches(EMPTY_BRANCH_MAP),
       variable_positions(branch.variable_positions),
-      functor_positions(branch.functor_positions) {}
+      functor_positions(branch.functor_positions),
+      aliases(branch.aliases) {}
 
     // the branch we're iterating over
     Branch &branch;
@@ -164,12 +222,12 @@ private:
     DHMap<unsigned, Branch>::DelIterator variable_positions;
     // functor positions we should consider after that
     DHMap<unsigned, FunctorsAt>::DelIterator functor_positions;
+    // aliases we should consider after that
+    DHMap<std::pair<unsigned, unsigned>, Branch>::DelIterator aliases;
   };
 
   // the index we're querying
   LazyIndex &_index;
-  // the query term
-  TermList _query;
   // a stack of partially-iterated branches
   Stack<Iteration> _todo;
   // found a suitable term, will be returned by `next()`
@@ -183,6 +241,10 @@ template<bool instantiate, bool generalise>
 bool LazyIndex::Query<instantiate, generalise>::hasNext() {
   CALL("LazyIndex::Query::hasNext")
 
+  if(!_next.isEmpty())
+    return true;
+
+  RobSubstitution &substitution = *_index._substitution;
   while(_todo.isNonEmpty()) {
 new_branch:
     Iteration &iteration = _todo.top();
@@ -195,15 +257,14 @@ new_branch:
         continue;
       }
 
-      RobSubstitution &substitution = *_index._substitution;
       substitution.reset();
       bool ok;
       if(instantiate && generalise)
-        ok = substitution.unify(_query, 0, candidate, 1);
+        ok = substitution.unify(_index._query, 0, candidate, 1);
       else if(instantiate && !generalise)
-        ok = substitution.match(_query, 0, candidate, 1);
+        ok = substitution.match(_index._query, 0, candidate, 1);
       else if(!instantiate && generalise)
-        ok = substitution.match(candidate, 1, _query, 0);
+        ok = substitution.match(candidate, 1, _index._query, 0);
       else
         NOT_IMPLEMENTED;
 
@@ -212,16 +273,18 @@ new_branch:
         return true;
       }
 
-      Reason reason = _index.explain<instantiate, generalise>(_query, candidate);
+      Reason reason = _index.explain<instantiate, generalise>(candidate);
+      if(reason)
+        iteration.immediate.del();
+
       switch(reason) {
         case Reason::NO_REASON:
           continue;
         case Reason::MISMATCH:
         case Reason::SYMBOL:
         {
-          ASS(reason != Reason::SYMBOL || !instantiate)
+          ASS(!instantiate || reason == Reason::MISMATCH)
 
-          iteration.immediate.del();
           FunctorsAt *functors_at;
           iteration.branch.functor_positions.getValuePtr(_index.explanation_position, functors_at);
           // iterator might be invalidated by new entry
@@ -236,13 +299,25 @@ new_branch:
         case Reason::VARIABLE:
         {
           ASS(!generalise)
-          iteration.immediate.del();
 
           Branch *child;
           iteration.branch.variable_positions.getValuePtr(_index.explanation_position, child);
           // iterator might be invalidated by new entry
           iteration.variable_positions.~DelIterator();
           ::new(&iteration.variable_positions) decltype(iteration.variable_positions)(iteration.branch.variable_positions);
+
+          child->immediate.push(candidate);
+          break;
+        }
+        case Reason::ALIAS:
+        {
+          ASS(generalise)
+
+          Branch *child;
+          iteration.branch.aliases.getValuePtr({ _index.explanation_position, _index.explanation_other_position }, child);
+          // iterator might be invalidated by new entry
+          iteration.aliases.~DelIterator();
+          ::new(&iteration.aliases) decltype(iteration.aliases)(iteration.branch.aliases);
 
           child->immediate.push(candidate);
           break;
@@ -272,8 +347,13 @@ new_branches:
         continue;
       }
 
-      TermList subterm = _index._positions.term_at(_query, position);
-      if(subterm.isEmpty() || (!generalise && !_index._positions.term_at(_query, position).isVar()))
+      bool outside_term = false, under_variable = false;
+      TermList subterm = _index._positions.term_at(position, outside_term, under_variable);
+      if(
+        outside_term ||
+        (!instantiate && under_variable) ||
+        (!generalise && subterm.isTerm())
+      )
         continue;
 
       _todo.push(Iteration(branch));
@@ -289,7 +369,11 @@ new_branches:
         continue;
       }
 
-      TermList subterm = _index._positions.term_at(_query, position);
+      bool outside_term = false, under_variable = false;
+      TermList subterm = _index._positions.term_at(position, outside_term, under_variable);
+      if(outside_term)
+        continue;
+
       if(instantiate && subterm.isVar()) {
         ASS(!iteration.branches.hasNext())
         iteration.branches.~DelIterator();
@@ -304,7 +388,35 @@ new_branches:
           goto new_branch;
         }
       }
-      // do nothing in the position-not-in-query case
+    }
+
+    while(iteration.aliases.hasNext()) {
+      std::pair<unsigned, unsigned> alias;
+      Branch &branch = iteration.aliases.nextRef(alias);
+
+      if(branch.isEmpty()) {
+        iteration.aliases.del();
+        continue;
+      }
+
+      bool outside_term1 = false, under_variable1 = false;
+      TermList subterm1 = _index._positions.term_at(std::get<0>(alias), outside_term1, under_variable1);
+      if(outside_term1 || (!instantiate && under_variable1) || (!generalise && subterm1.isTerm()))
+        continue;
+
+      bool outside_term2 = false, under_variable2 = false;
+      TermList subterm2 = _index._positions.term_at(std::get<1>(alias), outside_term2, under_variable2);
+      if(outside_term2 || (!instantiate && under_variable2) || (!generalise && subterm2.isTerm()))
+        continue;
+
+      if(
+        (!instantiate && subterm1 != subterm2) ||
+        (instantiate && (substitution.reset(), !substitution.unify(subterm1, 0, subterm2, 0)))
+      )
+        continue;
+
+      _todo.push(Iteration(branch));
+      goto new_branch;
     }
 
     _todo.pop();
