@@ -34,6 +34,10 @@
 
 namespace Kernel {
 
+class IntegerConstantType;
+struct RationalConstantType;
+class RealConstantType;
+
 /**
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
@@ -190,6 +194,11 @@ struct RationalConstantType {
   RationalConstantType operator-() const;
   RationalConstantType operator*(const RationalConstantType& num) const;
   RationalConstantType operator/(const RationalConstantType& num) const;
+
+  RationalConstantType& operator*=(RationalConstantType const& r) { _num *= r._num; _den *= r._den;  cannonize(); return *this; }
+  RationalConstantType& operator+=(RationalConstantType const& r) { *this = *this + r; return *this; }
+  RationalConstantType& operator-=(RationalConstantType const& r) { _num -= r._num; _den -= r._den;  cannonize(); return *this; }
+  RationalConstantType& operator/=(RationalConstantType const& r) { _num *= r._den; _den *= r._num;  cannonize(); return *this; }
 
   RationalConstantType floor() const { 
     return RationalConstantType(IntegerConstantType::floor(*this));
@@ -527,6 +536,7 @@ public:
 
   bool isInterpretedEquality(Literal* lit);
   bool isInterpretedPredicate(Literal* lit, Interpretation itp);
+  bool isInterpretedPredicate(unsigned pred, Interpretation itp);
   bool isInterpretedPredicate(Literal* lit);
 
   bool isInterpretedFunction(unsigned func);
@@ -572,6 +582,7 @@ public:
   }
   bool tryInterpretConstant(const Term* t, IntegerConstantType& res);
   bool tryInterpretConstant(unsigned functor, IntegerConstantType& res);
+  Option<IntegerConstantType> tryInterpretConstant(unsigned functor);
   /**
    * Try to interpret the term list as an rational constant. If it is an
    * rational constant, return true and save the constant in @c res, otherwise

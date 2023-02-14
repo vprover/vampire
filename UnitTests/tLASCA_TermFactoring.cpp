@@ -384,3 +384,24 @@ TEST_GENERATION(bug_02,
   //  clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 })
   // uwa = ⟨{X2/0 -> X1, X1/0 -> X0, }, [(-23/1 * X0) != (-23/1 * X1)]⟩
   //  clause({ -23 * x0 > 0, -23 * x0 != -23 * x1 })
+
+
+TEST_GENERATION(tricky_uwa_01,
+    Generation::SymmetricTest()
+      .inputs  ({    clause({     f(x) + f(f(x) + y) > 0  })    })
+      .expected(exactly( clause({ 2 * f(x) > 0, f(x) + y != x }) )))
+
+TEST_GENERATION(tricky_uwa_02,
+    Generation::SymmetricTest()
+      .inputs  ({    clause({     f(x) + f(f(x)) > 0  })    })
+      .expected(exactly( /* nothing */ )))
+
+TEST_GENERATION(tricky_uwa_03,
+    Generation::SymmetricTest()
+      .inputs  ({    clause({     f(x) + f(g(x, x + y)) > 0  })    })
+      .expected(exactly( /* nothing */ )))
+
+TEST_GENERATION(tricky_uwa_04,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({  f(x) + f(g(x + z, x + y)) > 0  }) })
+      .expected(exactly( clause({  2 * f(x) > 0, x != g(x + z, x + y)  }) )))

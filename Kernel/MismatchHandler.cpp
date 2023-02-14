@@ -46,9 +46,39 @@ bool UWAMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned inde
   return false;
 }
 
+
+bool occursUncancellable(unsigned var, Term* t) {
+  ASS(t->containsSubterm(TermList::var(var)))
+  if (t->isSort()) return true; // <- for sorts arguments might never cancel out
+  Stack<TermList>* todo;
+  Recycler::get(todo);
+  todo->reset();
+  todo->push(TermList(t));
+  while (!todo->isEmpty()) {
+    auto t = todo->pop();
+    if (t.isTerm()) {
+      auto f = t.term()->functor();
+      auto argsMightCancel = forAnyNumTraits([&](auto n){
+            // check if its subterms might cancel out
+            return n.isAdd(f) || n.isMul(f);
+         });
+      if (!argsMightCancel) {
+        todo->loadFromIterator(termArgIter(t.term()));
+      }
+    } else if (t.isVar() && var == t.var()) {
+      Recycler::release(todo);
+      return true;
+    }
+  }
+  Recycler::release(todo);
+  return false;
+}
+
 bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 {
   CALL("UWAMismatchHandler::checkUWA");
+  if (t1.isVar()) return !occursUncancellable(t1.var(), t2.term());
+  if (t2.isVar()) return !occursUncancellable(t2.var(), t1.term());
 
     // if(!(t1.isTerm() && t2.isTerm())) return false;
 
