@@ -935,7 +935,7 @@ protected:
 public:
 
 
-  friend ostream& operator<<(ostream& out, const Stack<C>& s) {
+  friend std::ostream& operator<<(std::ostream& out, const Stack<C>& s) {
     out << "[";
     auto iter = s.begin();
     if(iter != s.end()) {
