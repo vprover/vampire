@@ -103,7 +103,7 @@ private:
     CALL("LiteralSubstitutionTree::getResultIterator");
 
     auto iter = [=](bool reversed) 
-      { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
+      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
 
     auto filterResults = [=](auto it) { 
       return pvi(
