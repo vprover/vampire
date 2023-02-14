@@ -103,6 +103,7 @@ struct OldTermSpec {
 
 class TermSpec
 {
+  // TODO get rid of implicit copying of this
   struct Appl {
     unsigned functor;
     Stack<TermSpec> args;

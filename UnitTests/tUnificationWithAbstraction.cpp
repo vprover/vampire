@@ -45,7 +45,6 @@ Clause* unit(Literal* lit)
   return clause({ lit });
 }
 
-static const auto lld = [](auto l) { return DefaultLiteralLeafData(nullptr, l); };
 static const auto tld = [](auto t) { return DefaultTermLeafData(t, nullptr, nullptr); };
 
 
@@ -1296,7 +1295,7 @@ ROB_UNIFY_TEST(alasca3_test_14,
       .constraints = Stack<Literal*>{},
     })
 
-ROB_UNIFY_TEST(tricky_one,
+ROB_UNIFY_TEST(constr_var_01,
     Options::UnificationWithAbstraction::ALASCA3,
     s2r(x),
     s2r(r2s(s2r(x) + y)),
@@ -1306,4 +1305,109 @@ ROB_UNIFY_TEST(tricky_one,
       .constraints = Stack<Literal*>{x != r2s(s2r(x) + y)},
     })
 
+
+
+ROB_UNIFY_TEST(constr_var_02,
+    Options::UnificationWithAbstraction::ALASCA3,
+    x,
+    f(x + f(y)),
+    TermUnificationResultSpec { 
+      .querySigma  = x,
+      .resultSigma = f(x + f(y)),
+      .constraints = { x != f(x + f(y)) },
+    })
+
+
+ROB_UNIFY_TEST(constr_var_03,
+    Options::UnificationWithAbstraction::ALASCA3,
+    x,
+    f(y + f(x)),
+    TermUnificationResultSpec { 
+      .querySigma  = x,
+      .resultSigma = f(y + f(x)),
+      .constraints = { x != f(y + f(x)) },
+    })
+
+ROB_UNIFY_TEST_FAIL(constr_var_04,
+    Options::UnificationWithAbstraction::ALASCA3,
+    x,
+    f(f(x)))
+
+ROB_UNIFY_TEST_FAIL(constr_var_05,
+    Options::UnificationWithAbstraction::ALASCA3,
+    x,
+    f2(x, y + f(x))
+  )
+
+ROB_UNIFY_TEST_FAIL(constr_var_06,
+    Options::UnificationWithAbstraction::ALASCA3,
+    x,
+    f2(y + f(x), x)
+  )
+
+ROB_UNIFY_TEST_FAIL(constr_var_07,
+    Options::UnificationWithAbstraction::ALASCA3,
+    x,
+    f2(f(x), x)
+  )
+
+ROB_UNIFY_TEST(constr_var_08,
+    Options::UnificationWithAbstraction::ALASCA3,
+    x,
+    f2(y + f(x), y + f(x)),
+    TermUnificationResultSpec { 
+      .querySigma  = x,
+      .resultSigma = f2(y + f(x), y + f(x)),
+      .constraints = { x != f2(y + f(x), y + f(x)) },
+    })
+
+ROB_UNIFY_TEST(constr_var_09,
+    Options::UnificationWithAbstraction::ALASCA3,
+    x,
+    f2(f(y) + x, y + f(x)),
+    TermUnificationResultSpec { 
+      .querySigma  = x,
+      .resultSigma = f2(f(y) + x, y + f(x)),
+      .constraints = { x != f2(f(y) + x, y + f(x)) },
+    })
+
+
+ROB_UNIFY_TEST(constr_var_10,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, y),
+    f2(y * x, 0),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x    , 0),
+      .resultSigma = f2(0 * x, 0),
+      .constraints = { x != 0 * x },
+    })
+
+
+
+ROB_UNIFY_TEST(constr_var_11,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x, y),
+    f2(x * y, 0),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x    , 0),
+      .resultSigma = f2(x * 0, 0),
+      .constraints = { x != x * 0 },
+    })
+
+
+// TODO?
+// ROB_UNIFY_TEST_FAIL(constr_var_12,
+//     Options::UnificationWithAbstraction::ALASCA3,
+//     f2(x, y),
+//     f2(y * x, 5))
+//
+// ROB_UNIFY_TEST_FAIL(constr_var_13,
+//     Options::UnificationWithAbstraction::ALASCA3,
+//     f2(x, y),
+//     f2(x * y, 5))
+//
+// ROB_UNIFY_TEST_FAIL(constr_var_14,
+//     Options::UnificationWithAbstraction::ALASCA3,
+//     x,
+//     f(x) + g(x))
 

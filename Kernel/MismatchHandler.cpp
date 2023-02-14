@@ -138,7 +138,6 @@ bool isAlascaInterpreted(TermSpec t, AbstractingUnifier& au) {
 
 bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec t1, TermSpec t2) const 
 {
-  // DBG("canAbstract", make_pair(t1,t2))
   if( ( t1.isTerm() && t1.isSort() ) 
    || ( t2.isTerm() && t2.isSort() ) ) return false;
 
@@ -421,10 +420,46 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
   return out;
 }
 
-Option<MismatchHandler::AbstractionResult> alasca3(AbstractingUnifier& au, TermSpec& t1, TermSpec& t2) {
-  if (t1.isVar() || t2.isVar()) {
-    ASSERTION_VIOLATION_REP("TODO")
+
+bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec v, TermSpec t) {
+
+  if (t.isSort()) return true; // <- for sorts arguments might never cancel out
+  Recycled<Stack<TermSpec>> todo;
+  ASS(t.isTerm())
+  todo->init({ t });
+  while (!todo->isEmpty()) {
+    auto t = todo->pop().deref(&au.subs());
+    if (t.isTerm()) {
+      auto f = t.functor();
+      auto argsMightCancel = forAnyNumTraits([&](auto n){
+            // check if its subterms might cancel out
+            return n.isAdd(f) || n.isMul(f);
+         });
+      if (!argsMightCancel) {
+        todo->loadFromIterator(t.termArgs());
+      }
+    } else if (t.isVar() && v == t.varSpec()) {
+      return true;
+    }
   }
+  return false;
+}
+
+
+Option<MismatchHandler::AbstractionResult> alasca3(AbstractingUnifier& au, TermSpec& t1, TermSpec& t2) {
+  auto occ = [&au](auto& v, auto& t) {
+    ASS(v.isVar())
+    ASS(t.isTerm())
+    // we know due to the uwa algorithm that v occurs in t
+    if (uncanellableOccursCheck(au, v.varSpec(), t)) {
+      return some(MismatchHandler::AbstractionResult(MismatchHandler::NeverEqual{}));
+    } else {
+      // this means all
+      return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf({},{ UnificationConstraint(v, t) })));
+    }
+  };
+  if (t1.isVar()) return occ(t1, t2);
+  if (t2.isVar()) return occ(t2, t1);
   auto i1 = isAlascaInterpreted(t1, au);
   auto i2 = isAlascaInterpreted(t2, au);
   return someIf(i1 || i2, [&]() {
