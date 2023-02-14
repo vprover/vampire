@@ -277,6 +277,9 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 
 bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, unsigned bank2)
 {
+  if (_uwa._mode == Shell::Options::UnificationWithAbstraction::OFF) 
+    return _subs->unify(term1, bank1, term2, bank2);
+
 #define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
   CALL("AbstractionResult::unify");
   TermSpec t1(term1, bank1);
