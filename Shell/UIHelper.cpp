@@ -85,6 +85,11 @@ void reportSpiderStatus(char status)
   int versionPosition = version.find("commit ") + strlen("commit ");
   int afterVersionPosition = version.find(" ",versionPosition + 1);
   vstring commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
+  vstring z3Version = Z3Interfacing::z3_full_version();
+  int spacePosition = z3Version.find(" ");
+  if (spacePosition != string::npos) {
+    z3Version = z3Version.substr(0,spacePosition);
+  }
 
   vstring problemName = Lib::env.options->problemName();
 
@@ -94,11 +99,7 @@ void reportSpiderStatus(char status)
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
     << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
-    << commitNumber
-#if VZ3
-    << ':' << Z3Interfacing::z3_full_version()
-#endif
-    << "\n";
+    << commitNumber << ':' << z3Version << "\n";
   env.endOutput();
 }
 
