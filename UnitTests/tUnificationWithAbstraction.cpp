@@ -1394,7 +1394,6 @@ ROB_UNIFY_TEST(constr_var_11,
       .constraints = { x != x * 0 },
     })
 
-
 // TODO?
 // ROB_UNIFY_TEST_FAIL(constr_var_12,
 //     Options::UnificationWithAbstraction::ALASCA3,
@@ -1410,4 +1409,16 @@ ROB_UNIFY_TEST(constr_var_11,
 //     Options::UnificationWithAbstraction::ALASCA3,
 //     x,
 //     f(x) + g(x))
+
+
+
+ROB_UNIFY_TEST(bug01,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x - y, f2(x, y)),
+    f2(0    , f2(x, y)),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x - x, f2(x,x)),
+      .resultSigma = f2(0    , f2(x,x)),
+      .constraints = Stack<Literal*>{ },
+    })
 

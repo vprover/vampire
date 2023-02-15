@@ -55,8 +55,7 @@ namespace Kernel
 // TermSpec TermSpec::termArg(unsigned i)
 // { return TermSpec(*_subs, term()->termArg(i), index(i + nTypeArgs())); }
 
-// TermSpec::TermSpec(RobSubstitution& subs, TermList term, int index)
-//   : _subs(&subs)
+// TermSpec::TermSpec(RobSubstitution& subs, TermList term, int index) //   : _subs(&subs)
 //   , _self(make_pair(term, index))
 // {
 // }
@@ -269,7 +268,6 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
     atoms(t1),
     atoms(t2).map([](auto x) { return make_pair(std::move(x.first), -x.second); })
   ));
-  DEBUG_UWA(2, "diff: ", diff);
 
   auto sumUp = [](auto& diff, auto eq, auto less) {
     auto i1 = 0;
@@ -277,7 +275,6 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
     while (i2 < diff.size()) {
       ASS(i1 < i2);
       if (eq(diff[i1].first, diff[i2].first)) {
-        ASS(!less(diff[i1].first, diff[i2].first))
         diff[i1].second += diff[i2].second;
         i2++;
       } else {
@@ -304,8 +301,9 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
     return std::tie(v1, top1, t1) < std::tie(v2, top2, t2);
   };
   diff.sort([&](auto& l, auto& r) { return less(l.first, r.first); });
+  DEBUG_UWA(2, "diff: ", diff, " (before summing up )");
   sumUp(diff, [&](auto& l, auto& r) { return l.sameTermContent(r); }, less);
-  DEBUG_UWA(2, "diff: ", diff);
+  DEBUG_UWA(2, "diff: ", diff, " (after summing up )");
 
   auto vars = 
     iterTraits(getArrayishObjectIterator(diff))
@@ -331,7 +329,8 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
       return iterTraits(std::move(iter))
         .map([&](auto x) { return numMul(x.second, x.first); })
         .fold([](auto l, auto r) 
-          { return TermSpec(NumTraits::addF(), { l ,r, }); }); };
+          { return TermSpec(NumTraits::addF(), { l ,r, }); })
+        .unwrapOrElse([&]() { return TermSpec(NumTraits::numeralF(Numeral(0)), {}); }); };
 
   // auto diffConstr = [&]() 
   // { return UnificationConstraint(sum(diff1), sum(diff2)); };
@@ -352,8 +351,9 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
 
   } else if ( vars.hasNext() ) {
     auto v = vars.next();
-    if (!vars.hasNext()) {
-      // only one variable
+    if (!vars.hasNext() || diff.size() == 2) {
+      // ^^^^^^^^^^^^^^\   ^^^^^^^^^^^^^^^^-> two variables and nothing else
+      //                +--> only one variable
       auto num = v.second;
       auto rest = [&]() {
         return iterTraits(getArrayishObjectIterator(diff))
@@ -523,7 +523,8 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       auto sum = [](auto& diff) {
           return iterTraits(diff.iterFifo())
             .fold([](auto l, auto r) 
-              { return TermSpec(RatTraits::addF(), { l, r, }); }); };
+              { return TermSpec(RatTraits::addF(), { l, r, }); })
+            .unwrap(); };
       auto diffConstr = [&]() 
       { return UnificationConstraint(sum(diff1), sum(diff2)); };
 

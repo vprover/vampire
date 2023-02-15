@@ -1279,6 +1279,7 @@ void Options::init()
     _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(
               equal(UnificationWithAbstraction::ALASCA1)
             , equal(UnificationWithAbstraction::ALASCA2)
+            , equal(UnificationWithAbstraction::ALASCA3)
             )));
 
     _lascaDemodulation  = BoolOptionValue("lasca_demodulation","la_demod",false);

@@ -2008,8 +2008,8 @@ public:
   }
 
   template<class F> 
-  auto fold(F fun)
-  { return fold(next(), std::move(fun)); }
+  auto fold(F fun) -> Option<Elem>
+  { return someIf(hasNext(), [&]() { return fold(next(), std::move(fun)); }); }
 
   template<class OtherIter>
   auto zip(OtherIter other)
@@ -2017,7 +2017,7 @@ public:
 
 
   auto sum()
-  { return fold(Elem(0), [](Elem l, Elem r) { return l + r; }); }
+  { return fold([](Elem l, Elem r) { return l + r; }) || []() { return Elem(0); }; }
 
   template<class Container>
   Container collect()
