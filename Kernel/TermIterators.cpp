@@ -128,28 +128,6 @@ bool SubtermIterator::hasNext()
   return !_stack->isEmpty();
 }
 
-
-bool UncomputableSubtermIterator::hasNext()
-{
-  CALL("UncomputableSubtermIterator::hasNext");
-
-  if(!_used) {
-    return true;
-  }
-
-  TermList t;
-  do {
-    if (!_iter->hasNext()) {
-      return false;
-    }
-    t = _iter->next();
-  } while (!t.isTerm() || env.signature->getFunction(t.term()->functor())->computable());
-  _next = t;
-  _iter->right();
-  _used=false;
-  return true;
-}
-
 /**
  * Skip subterms of the term just returned by the @b next function
  *

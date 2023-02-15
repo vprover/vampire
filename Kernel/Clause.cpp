@@ -38,6 +38,7 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/TermTransformer.hpp"
 
 #include <cmath>
 
@@ -824,40 +825,37 @@ Clause* Clause::abstractUncomputables() {
   if (!hasAnswerLiteral()) {
     return this;
   }
-  Literal* ans = getAnswerLiteral();
-  RobSubstitution subst;
-  subst.reset();
 
-  unsigned int specialID = 0; // TODO ensure these IDs are distinct.
-
-  // TODO consider obtaining uncomputables from the prior substitution.
-  for (unsigned i = 0; i < ans->arity(); ++i) {
-    TermList* tl = ans->nthArgument(i);
-    if (tl->isVar()) {
-      continue;
-    }
-    TermIterator iter = Term::getUncomputableIterator(*tl);
-    while (iter.hasNext()) {
-      TermList unc = iter.next();
-      subst.bindSpecialVar(specialID, unc, 0);
-      specialID++;
-    }
+  unsigned specialID = 0;
+  VirtualIterator<unsigned int> v = getVariableIterator();
+  while(v.hasNext()) {
+      unsigned int next = v.next();
+      if (next > specialID) {
+          specialID = next;
+      }
   }
-  // TODO consider collisions in special vars created.
+  AbstractUncomputables au = AbstractUncomputables(specialID+1);
+  au.transform(getAnswerLiteral());
 
-  unsigned newLen=length()+specialID;
-  Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    cout << getAnswerLiteral()->toString() << endl;
+
+  unsigned newLen=length()+(specialID+1 - au._next);
+  Clause* res = new(newLen) Clause(newLen, this->inference());
+
+  cout << "here1" << endl;
 
   unsigned next = 0;
   for(unsigned i=0;i<length();i++) {
-    Literal* curr=(*this)[i];
-    Literal* currAfter = subst.apply(curr, 0);
-    (*res)[next++] = currAfter;
+    (*res)[next++] = (*this)[i];
   }
-  for(unsigned i=0;i<specialID;i++){
-    TermList substituted = subst.getSpecialVarTop(specialID);
-    TermList sort = SortHelper::getResultSort(substituted.term());
-    Literal* constraint = Literal::createEquality(false, TermList(specialID, true), substituted, sort);
+
+  cout << "here2" << endl;
+
+  VirtualIterator<DHMap<Term*, unsigned>::Item> vit = au._map->items();
+  while(vit.hasNext()){
+    DHMap<Term*, unsigned>::Item item = vit.next();
+    TermList sort = SortHelper::getResultSort(item.first);
+    Literal* constraint = Literal::createEquality(false, TermList(item.second, false), TermList(item.first), sort);
 
     (*res)[next++] = constraint;
   }

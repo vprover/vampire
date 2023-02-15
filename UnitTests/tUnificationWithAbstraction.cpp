@@ -262,3 +262,37 @@ TEST_FUN(complex_case)
   reportMatches(index,qlit);
 
 }
+
+TEST_FUN(abstract_uncomputables)
+{
+    cout << endl;
+    unsigned f = function_symbol("f",1,IntegerConstantType::getSort());
+    unsigned g = function_symbol("g",1,IntegerConstantType::getSort());
+    env.signature->getFunction(g)->markUncomputable();
+
+    unsigned ans = env.signature->addPredicate("ans",2);
+    env.signature->getPredicate(ans)->markAnswerPredicate();
+
+    Term* gx = Term::create1(g, var(0));
+    Term* fgx = Term::create1(f, TermList(gx));
+
+    static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT);
+
+    Clause& c = *new(2) Clause(2, testInf);
+
+    c[0] = Literal::createEquality(true, TermList(gx), number("0"), IntegerConstantType::getSort());
+
+    TermList test1 = TermList(gx);
+    TermList test3 = TermList(fgx);
+
+
+    Literal* l = new(2) Literal(ans, 2, false, false);
+    TermList* ss = l->args();
+    //Literal* test2 = Literal::create2(ans, true, test1, test3);
+    *ss-- = test1;
+    *ss-- = test3;
+    c[1] = l;
+
+    cout << c << endl;
+    cout << c.abstractUncomputables()->toNiceString() << endl;
+}

@@ -72,6 +72,27 @@ protected:
 };
 
 
+class AbstractUncomputables : public TermTransformer {
+public:
+    AbstractUncomputables(unsigned next) : _next(next) {
+        _map = new DHMap<Term*, unsigned>();
+    }
+    TermList transformSubterm(TermList trm) override;
+
+    DHMap<Term*, unsigned>* _map;
+    int _next;
+};
+
+class ReplaceMap : public TermTransformer {
+public:
+    ReplaceMap(DHMap<Term*, unsigned>* map) : _map(map) {}
+    TermList transformSubterm(TermList trm) override;
+
+    DHMap<Term*, unsigned>* _map;
+    int _next;
+};
+
+
 }
 
 #endif // __TermTransformer__

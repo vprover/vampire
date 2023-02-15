@@ -904,7 +904,6 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     }
     return true;
   }
-    
   OperatorType* type = getType(t);
   unsigned arity = t->arity();
   Substitution subst;

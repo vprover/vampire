@@ -487,16 +487,6 @@ TermIterator Term::getVariableIterator(TermList tl)
   return vi( new VariableIterator(tl.term()) );
 }
 
-TermIterator Term::getUncomputableIterator(TermList tl)
-{
-  CALL("Term::getUncomputableIterator");
-
-  if (tl.isTerm() && !env.signature->getFunction(tl.term()->functor())->computable()) {
-    return pvi( getSingletonIterator(tl) );
-  }
-  return vi( new UncomputableSubtermIterator(tl.term()) );
-}
-
 
 /**
  * Return the string representation of variable var.

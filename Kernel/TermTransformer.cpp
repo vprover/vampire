@@ -17,6 +17,8 @@
 
 #include "TermTransformer.hpp"
 #include "FormulaTransformer.hpp"
+#include "Signature.hpp"
+#include "Lib/DHMap.hpp"
 
 namespace Kernel
 {
@@ -93,7 +95,6 @@ Term* TermTransformer::transform(Term* term)
       args.push(TermList(td));
       continue;
     }
-
     TermList dest = transformSubterm(tl);
     if (tl != dest) {
       args.push(dest);
@@ -104,7 +105,6 @@ Term* TermTransformer::transform(Term* term)
       args.push(tl);
       continue;
     }
-
     ASS(tl.isTerm());
     Term* t = tl.term();
     ASS(!t->isSpecial());
@@ -345,6 +345,27 @@ Formula* BottomUpTermTransformer::transform(Formula* f)
   CALL("BottomUpTermTransformer::transform(Formula* f)");
   static BottomUpTermTransformerFormulaTransformer ttft(*this);
   return ttft.transform(f);
+}
+
+TermList AbstractUncomputables::transformSubterm(TermList trm)
+{
+    if(trm.isTerm() && !env.signature->getFunction(trm.term()->functor())->computable()){
+        unsigned result;
+        if (!_map->findOrInsert(trm.term(), result, _next)) {
+            _next++;
+        }
+        return TermList(result, false);
+    }
+    return trm;
+}
+
+TermList ReplaceMap::transformSubterm(TermList trm)
+{
+    unsigned result;
+    if(trm.isTerm() && _map->find(trm.term(), result)){
+        return TermList(result, false);
+    }
+    return trm;
 }
 
 }
