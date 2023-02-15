@@ -189,6 +189,10 @@ struct IndexTest {
 #define INT_SUGAR                                                                                   \
    __ALLOW_UNUSED(                                                                                  \
       DECL_DEFAULT_VARS                                                                             \
+      DECL_VAR(x0, 0)                                                                               \
+      DECL_VAR(x1, 1)                                                                               \
+      DECL_VAR(x2, 2)                                                                               \
+      DECL_VAR(x3, 3)                                                                               \
       NUMBER_SUGAR(Int)                                                                             \
       DECL_PRED(p, {Int})                                                                           \
       DECL_FUNC(f, {Int}, Int)                                                                      \
@@ -1164,7 +1168,7 @@ ROB_UNIFY_TEST(ac2_test_02_bad,
     })
 
 
-ROB_UNIFY_TEST(ac2_test_03,
+ROB_UNIFY_TEST(top_level_constraints_1,
     Options::UnificationWithAbstraction::AC2,
     a + y + x,
     a + b + c,
@@ -1173,3 +1177,33 @@ ROB_UNIFY_TEST(ac2_test_03,
       .resultSigma = a + b + c,
       .constraints = Stack<Literal*>{ b + c != x + y },
     })
+
+RUN_TEST(top_level_constraints_2,
+    INT_SUGAR,
+    IndexTest {
+      .index = getTermIndex(Options::UnificationWithAbstraction::AC2),
+      .insert = {
+        a + b + c,
+        b,
+        a + b + a + c,
+        f(x),
+        f(a),
+      },
+      .query = a + y + x,
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = a + x0 + x1,
+            .resultSigma = a + b + c,
+            .constraints = Stack<Literal*>{ a + b + c != a + x1 + x0 } }, 
+
+          TermUnificationResultSpec 
+          { .querySigma  = a + x2 + x3,
+            .resultSigma = a + b + a + c,
+            .constraints = Stack<Literal*>{ a + b + a + c != a + x3 + x2 } }, 
+
+      },
+    })
+
+
+
