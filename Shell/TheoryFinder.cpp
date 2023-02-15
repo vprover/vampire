@@ -304,14 +304,22 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
 #if TRACE_FINDER
-    cout << "M: OLDFUN" << (code[cp] == OLDFUN1 ? "1" : "") << " " << (int)code[cp+1]
-	 << '/' << (int)code[cp+2] << ": " << ts->toString() << "\n";
+    cout << "M: OLDFUN" << (code[cp] == OLDFUN1 ? "1" : "") << " " << (int)code[cp+1] << ": " << ts->toString() << "\n";
 #endif
     if (ts->isVar()) {
       goto backtrack;
     }
     const Term* t = ts->term();
+    if (t->isSort()) {
+#if TRACE_FINDER
+    cout << "Failing to match a sort argument against an OLDFUN" << endl;
+#endif
+      goto backtrack;
+    }
     if (funs[code[cp+1]] != t->functor()) {
+#if TRACE_FINDER
+    cout << "found a different functor, going to backtrack" << endl;
+#endif
       goto backtrack;
     }
     if (code[cp] == OLDFUN && ! ts->next()->isEmpty()) {
