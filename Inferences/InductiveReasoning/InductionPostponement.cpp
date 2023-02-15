@@ -35,7 +35,7 @@ namespace Inferences
 namespace InductiveReasoning
 {
 using namespace Kernel;
-using namespace Lib; 
+using namespace Lib;
 
 inline bool isPureCtorTerm(TermList tt)
 {
@@ -116,6 +116,42 @@ void InductionPostponement::detach()
   _salg = nullptr;
 }
 
+void InductionPostponement::updateIndices(InductionFormulaKey* key, bool adding)
+{
+  CALL("InductionPostponement::updateIndices");
+
+  DHSet<Term*> done;
+  DHSet<Literal*> doneL;
+  TermReplacement trMaster(getPlaceholderForTerm(Term::createConstant(key->first)), VAR);
+
+  for (const auto& lits : key->second.first) {
+    for (const auto& lit : lits) {
+      auto tlit = trMaster.transform(lit);
+      ASS(doneL.insert(tlit)); // a key cannot contain a literal twice
+      NonVariableNonTypeIterator it(tlit);
+      while (it.hasNext()) {
+        auto t = it.next();
+        if (!t.containsSubterm(VAR) || !done.insert(t.term())) {
+          it.right();
+          continue;
+        }
+        if (adding) {
+          _postponedTermIndex.insert(t, tlit, reinterpret_cast<Clause *>(key));
+        } else {
+          _postponedTermIndex.remove(t, tlit, reinterpret_cast<Clause *>(key));
+        }
+      }
+      if (!tlit->isEquality()) {
+        if (adding) {
+          _postponedLitIndex.insert(tlit, reinterpret_cast<Clause *>(key));
+        } else {
+          _postponedLitIndex.remove(tlit, reinterpret_cast<Clause *>(key));
+        }
+      }
+    }
+  }
+}
+
 /**
  * Postpone the induction formula generation for @b e and the induction
  * application corresponding to @b ctx if needed. If the entry @b e is
@@ -179,27 +215,7 @@ bool InductionPostponement::maybePostpone(const InductionContext& ctx, Induction
     static_assert(sizeof(Clause *) == sizeof(InductionFormulaKey *), "must have same pointer size for evil hack");
 
     // update index
-    DHSet<Term*> added;
-    auto ph = getPlaceholderForTerm(ctx._indTerm);
-    TermReplacement trMaster(ph, VAR);
-    auto lIt = ctx.iterLits();
-    while (lIt.hasNext()) {
-      auto lit = lIt.next();
-      auto tlit = trMaster.transform(lit);
-      NonVariableNonTypeIterator it(tlit);
-      while (it.hasNext()) {
-        auto t = it.next();
-        if (!t.containsSubterm(VAR) || !added.insert(t.term())) {
-          it.right();
-          continue;
-        }
-
-        _postponedTermIndex.insert(t, tlit, reinterpret_cast<Clause *>(key));
-      }
-      if (!tlit->isEquality()) {
-        _postponedLitIndex.insert(tlit, reinterpret_cast<Clause *>(key));
-      }
-    }
+    updateIndices(key, true /*adding*/);
     return true;
   }
   return false;
@@ -248,25 +264,7 @@ void InductionPostponement::checkForPostponedInductions(Literal* lit, Clause* cl
     TermReplacement trMaster(ph, VAR);
     ASS(!key->second.second.first);
     ASS(!key->second.second.second);
-
-    for (const auto& lits : key->second.first) {
-      for (const auto& lit : lits) {
-        auto tlit = trMaster.transform(lit);
-        DHSet<Term*> removed;
-        if (!tlit->isEquality()) {
-          _postponedLitIndex.remove(tlit, reinterpret_cast<Clause *>(key));
-        }
-        NonVariableNonTypeIterator it(tlit);
-        while (it.hasNext()) {
-          auto t = it.next();
-          if (!t.containsSubterm(VAR) || !removed.insert(t.term())) {
-            it.right();
-            continue;
-          }
-          _postponedTermIndex.remove(t, tlit, reinterpret_cast<Clause *>(key));
-        }
-      }
-    }
+    updateIndices(key, false /*adding*/);
     {
       BYPASSING_ALLOCATOR
       delete key;

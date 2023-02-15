@@ -47,6 +47,7 @@ public:
 private:
   void performInductionsIfNeeded(ResultSubstitutionSP subst, InductionFormulaKey* key, Clause* cl, InductionClauseIterator& clIt);
   Clause* findActivatingClauseForIndex(const InductionContext& ctx, unsigned index);
+  void updateIndices(InductionFormulaKey* key, bool adding);
 
   SaturationAlgorithm* _salg;
   InductionFormulaIndex& _formulaIndex;
