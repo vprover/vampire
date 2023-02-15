@@ -1162,3 +1162,14 @@ ROB_UNIFY_TEST(ac2_test_02_bad,
       .resultSigma = f2(f2(x,b), x + b + a),
       .constraints = Stack<Literal*>{ b + c != x + b },
     })
+
+
+ROB_UNIFY_TEST(ac2_test_03,
+    Options::UnificationWithAbstraction::AC2,
+    a + y + x,
+    a + b + c,
+    TermUnificationResultSpec { 
+      .querySigma  = a + y + x,
+      .resultSigma = a + b + c,
+      .constraints = Stack<Literal*>{ b + c != x + y },
+    })
