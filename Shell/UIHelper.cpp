@@ -44,6 +44,8 @@
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
 
+#include "SAT/Z3Interfacing.hpp"
+
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -74,16 +76,26 @@ void reportSpiderFail()
 
 void reportSpiderStatus(char status)
 {
-  using namespace Lib;
-
-  if(Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SPIDER) {
-    env.beginOutput();
-    env.out() << status << " "
-      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
-      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
-      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
-    env.endOutput();
+  if (Lib::env.options && Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
+    return;
   }
+
+  // compute Vampire Z3 version and commit
+  string version = VERSION_STRING;
+  int versionPosition = version.find("commit ") + strlen("commit ");
+  int afterVersionPosition = version.find(" ",versionPosition + 1);
+  string commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
+
+  vstring problemName = Lib::env.options->problemName();
+
+  env.beginOutput();
+  env.out()
+    << status << " "
+    << (problemName.length() == 0 ? "unknown" : problemName) << " "
+    << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
+    << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
+    << commitNumber << ':' << Z3Interfacing::z3_full_version() << "\n";
+  env.endOutput();
 }
 
 bool szsOutputMode() {

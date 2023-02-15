@@ -512,7 +512,7 @@ void spiderMode()
     case Statistics::INAPPROPRIATE:
       reportSpiderStatus('u');
     case Statistics::REFUTATION_NOT_FOUND:
-      if(env.statistics->discardedNonRedundantClauses>0){
+      if(env.statistics->discardedNonRedundantClauses > 0){
         reportSpiderStatus('n');
       }
       else{
