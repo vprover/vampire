@@ -82,11 +82,11 @@ void reportSpiderStatus(char status)
 
   // compute Vampire Z3 version and commit
   vstring version = VERSION_STRING;
-  int versionPosition = version.find("commit ") + strlen("commit ");
-  int afterVersionPosition = version.find(" ",versionPosition + 1);
+  size_t versionPosition = version.find("commit ") + strlen("commit ");
+  size_t afterVersionPosition = version.find(" ",versionPosition + 1);
   vstring commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
   vstring z3Version = Z3Interfacing::z3_full_version();
-  int spacePosition = z3Version.find(" ");
+  size_t spacePosition = z3Version.find(" ");
   if (spacePosition != string::npos) {
     z3Version = z3Version.substr(0,spacePosition);
   }
