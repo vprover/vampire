@@ -81,10 +81,10 @@ void reportSpiderStatus(char status)
   }
 
   // compute Vampire Z3 version and commit
-  string version = VERSION_STRING;
+  vstring version = VERSION_STRING;
   int versionPosition = version.find("commit ") + strlen("commit ");
   int afterVersionPosition = version.find(" ",versionPosition + 1);
-  string commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
+  vstring commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
 
   vstring problemName = Lib::env.options->problemName();
 
@@ -94,7 +94,11 @@ void reportSpiderStatus(char status)
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
     << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
-    << commitNumber << ':' << Z3Interfacing::z3_full_version() << "\n";
+    << commitNumber
+#if VZ3
+    << ':' << Z3Interfacing::z3_full_version()
+#endif
+    << "\n";
   env.endOutput();
 }
 
