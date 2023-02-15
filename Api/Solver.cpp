@@ -130,12 +130,22 @@ namespace Vampire
       delete env.options;
     }
 
+    Kernel::Unit::resetFirstNonPreprocessNumber();
+    Kernel::Unit::resetLastNumber();
+
     env.options = new Options;
     env.statistics = new Statistics;  
     env.signature = new Signature;
     env.sharing = new Indexing::TermSharing;
 
+    AtomicSort::defaultSort();
+    AtomicSort::boolSort();
+    AtomicSort::intSort();
+    AtomicSort::realSort();
+    AtomicSort::rationalSort();
+
     timeLimit = 0;
+    env.signature->addEquality();
 
     env.options->setOutputMode(Shell::Options::Output::API);
     env.options->setTimeLimitInSeconds(0);
@@ -146,6 +156,26 @@ namespace Vampire
 
     preprocessed = false;
     prob.removeAllFormulas();
+  }
+
+  void Solver::resetVariables(){
+    CALL("Solver::resetVariables");
+
+    fb.resetVariables();
+  }
+
+  void Solver::declareQuantifiedVars(
+    const std::vector<std::string>& names,
+    const std::vector<Sort>& sorts){
+    CALL("Solver::declareQuantifiedVars");
+
+    fb.declareQuantifiedVars(names,sorts);    
+  }
+
+  void Solver::popQuantVars(){
+    CALL("Solver::popQuantVars");
+
+    fb.popQuantVars();
   }
 
   void Solver::setSaturationAlgorithm(const string& satAlgorithm)
@@ -474,7 +504,12 @@ namespace Vampire
   {
     CALL("Solver::term");
 
-    return fb.term(s, args);
+    try{
+      return fb.term(s, args);
+    } catch (Lib::UserErrorException& e){
+        std::cerr << "Exception: "<<e.msg()<<std::endl;
+        abort();
+    }
   }
 
   Expression Solver::equality(const Expression& lhs,const Expression& rhs, Sort sort, bool positive)
@@ -570,16 +605,31 @@ namespace Vampire
 
   Expression Solver::forall(const Var& v,const Expression& f)
   {
-    CALL("Solver::forall");
+    CALL("Solver::forall/1");
 
     return fb.forall(v,f);
   }
 
+  Expression Solver::forall(const std::vector<Var>& vars,const Expression& f)
+  {
+    CALL("Solver::forall/2");
+
+    return fb.forall(vars,f);
+  }
+
   Expression Solver::exists(const Var& v,const Expression& f)
   {
-    CALL("Solver::exists");
+    CALL("Solver::exists/1");
 
     return fb.exists(v,f);
+  }
+
+  /** build quantified formula (q v_vector)f. @param f must be of Boolean sort */
+  Expression Solver::exists(const std::vector<Var>& vars,const Expression& f)
+  {
+    CALL("Solver::exists/2");
+
+    return fb.exists(vars,f);  
   }
 
   Expression Solver::term(const Symbol& s)
@@ -783,13 +833,26 @@ namespace Vampire
   }
 
 
+  void Solver::assertAxiom(Expression f)
+  {
+    CALL("Solver::assertAxiom");
+
+    if(!preprocessed){
+      logicSet = true;
+      prob.addFormula(fb.annotatedFormula(f, FormulaBuilder::Annotation::AXIOM));
+    } else {
+      throw ApiException("An axiom cannot be added to a preprocessed problem");
+    }    
+  }
+
+
   void Solver::addFormula(Expression f)
   {
     CALL("Solver::addFormula/2");
 
     if(!preprocessed){
       logicSet = true;
-      // always axiom at the moment, to ensure different to theory axioms
+      // always assumption at the moment, to ensure different to theory axioms
       prob.addFormula(fb.annotatedFormula(f, FormulaBuilder::Annotation::ASSUMPTION));
     } else {
       throw ApiException("A formula cannot be added to a preprocessed problem");
@@ -866,6 +929,9 @@ namespace Vampire
       case Schedule::RAPID_MAIN_TASK:
         env.options->setSchedule(Options::Schedule::RAPID_MAIN_TASK);
         break;
+      case Schedule::RAPID_CHAIN_TASK:
+        env.options->setSchedule(Options::Schedule::RAPID_CHAIN_TASK);
+        break;        
       case Schedule::NONE:
         // TODO look into how to output warnings
         std::cout << "WARNING: Trying to run in portfolio mode without setting a schedule. Defaulting to CASC" << std::endl;  
@@ -897,6 +963,8 @@ namespace Vampire
     env.options->setRunningFromApi();
     if(verbose)
       env.options->setOutputMode(Options::Output::SZS);
+    else
+      env.options->setOutputMode(Shell::Options::Output::API);
 
     //env.options->set("show_new", "on");
     //env.options->set("show_preprocessing", "on");    

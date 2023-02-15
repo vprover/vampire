@@ -140,7 +140,8 @@ public:
     CASC = 1,
     RAPID = 2,
     RAPID_MAIN_TASK = 3,
-    RAPID_INDUCT = 4
+    RAPID_CHAIN_TASK = 4,
+    RAPID_INDUCT = 5
   };
 
 private:
@@ -206,7 +207,8 @@ public:
    * and options retain their previous values.
    */
   void reset();
-  
+
+
   /*
    * Set the saturation algorithm. The options are:
    * - "lrs"
@@ -460,8 +462,14 @@ public:
   /** build quantified formula (q v)f. @param f must be of Boolean sort */
   Expression forall(const Var& v,const Expression& f);
 
+  /** build quantified formula (q v_vector)f. @param f must be of Boolean sort */
+  Expression forall(const std::vector<Var>& vars,const Expression& f);
+
   /** build quantified formula (q v)f. @param f must be of Boolean sort */
   Expression exists(const Var& v,const Expression& f);
+
+  /** build quantified formula (q v_vector)f. @param f must be of Boolean sort */
+  Expression exists(const std::vector<Var>& vars,const Expression& f);
 
   // Special cases, convenient to have
 
@@ -619,6 +627,11 @@ public:
    * Add an assumption into the problem
    */
   void assertFormula(Expression f){ addFormula(f); }
+
+  /**
+   * Add an assumption into the problem
+   */
+  void assertAxiom(Expression f);
 
   /** 
     * Add a conjecture to the problem

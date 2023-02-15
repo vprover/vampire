@@ -288,10 +288,20 @@ private:
   /** build quantified formula (q v)f */
   Expression forall(const Var& v,const Expression& f);
 
+  /** build quantified formula (q v_vector)f */
+  Expression forall(const std::vector<Var>& vars,const Expression& f);
+
   /** build quantified formula (q v)f */
   Expression exists(const Var& v,const Expression& f);
 
+  /** build quantified formula (q v_vector)f */
+  Expression exists(const std::vector<Var>& vars,const Expression& f);
+
+  // TODO combine functions below
   Expression quantifiedFormula(Connective con, const Var& v,const Expression& f);
+
+  Expression quantifiedFormula(Connective con, const std::vector<Var>& vars,const Expression& f);
+
   // Special cases, convenient to have
 
   /** build a constant expression c */

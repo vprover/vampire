@@ -265,7 +265,16 @@ vstring FBHelperCore::getVarName(Var v) const
 {
   CALL("FBHelperCore::getVarName");
 
-  if(outputDummyNames()) {
+  vstring res;
+  for(int j = varNames.size() - 1; j >= 0; j--){
+    if(varNames[j]->find(v, res)){
+      return res;
+    }
+  }
+  ASS(false);
+  return res;
+
+/*  if(outputDummyNames()) {
     return "X"+Int::toString(v);
   }
 
@@ -278,7 +287,7 @@ vstring FBHelperCore::getVarName(Var v) const
     if(!seen) {
       seen = true;      
     }
-    return "X"+Int::toString(v);
+    return "X"+Int::toString(v);*/
 
 //    Map<Var,vstring>::Iterator it(varNames);
 //    while(it.hasNext()) {
@@ -288,7 +297,7 @@ vstring FBHelperCore::getVarName(Var v) const
 //      cout<<k<<" "<<v<<endl;
 //    }
 //    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
-  }
+ // }
 }
 
 Sort FBHelperCore::getVarSort(Var v) const
@@ -296,18 +305,27 @@ Sort FBHelperCore::getVarSort(Var v) const
   CALL("FBHelperCore::getVarSort");
 
   Sort res;
+  for(int j = varSorts.size() - 1; j >= 0; j--){
+    if(varSorts[j]->find(v, res)){
+      return res;
+    }
+  }
+
+/*  Sort res;
   if(varSorts.find(v,res)) {
     return res;
   }
   else {   
     return Sort::getInvalid();
 //    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
-  }
+  }*/
+  return Sort::getInvalid();
 }
 
 unsigned FBHelperCore::getVar(vstring varName, Sort varSort)
 {  
-  unsigned res=vars.insert(varName, nextVar);
+  unsigned res= getVar(varName);
+  /* vars.insert(varName, nextVar);
   if(res==nextVar) {
     nextVar++;
     varNames.insert(res, varName);
@@ -327,7 +345,7 @@ unsigned FBHelperCore::getVar(vstring varName, Sort varSort)
       }
     }
   }
-  ASS_L(res, nextVar);
+  ASS_L(res, nextVar);*/
   return res;
 }
 
@@ -347,7 +365,7 @@ void FBHelperCore::addAttribute(AttribStack& stack, vstring name, vstring value)
 /**
  * Return an alias variable for variable number @b var
  */
-unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
+/*unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
 {
   CALL("FBHelperCore::FBVarFactory::getVarAlias");
 
@@ -360,17 +378,17 @@ unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
   } while(_parent.vars.find(name));
 
   return _parent.getVar(name, _parent.getVarSort(var));
-}
+}*/
 
 /**
  * Return name of variable number @b var
  */
-vstring FBHelperCore::FBVarFactory::getVarName(unsigned var)
+/*vstring FBHelperCore::FBVarFactory::getVarName(unsigned var)
 {
   CALL("FBHelperCore::FBVarFactory::getVarName");
 
   return _parent.getVarName(var);
-}
+}*/
 
 
 ///////////////////////

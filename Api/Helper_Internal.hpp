@@ -75,7 +75,7 @@ public:
   CLASS_NAME(FBHelperCore);
   USE_ALLOCATOR(FBHelperCore);
   
-  FBHelperCore() : nextVar(0), refCtr(0), varFact(*this), valid(true), _unaryPredicate(0)
+  FBHelperCore() : nextVar(0), refCtr(0), /*varFact(*this),*/ valid(true), _unaryPredicate(0)
   {
   }
 
@@ -116,8 +116,8 @@ public:
   Sort getVarSort(Var v) const;
   Var getVar(vstring varName, Sort varSort);
 
-  virtual VarManager::VarFactory* getVarFactory()
-  { return &varFact; }
+  /*virtual VarManager::VarFactory* getVarFactory()
+  { return &varFact; }*/
 
   /** indicates whether we shall check names of functions,
    * predicates and variables */
@@ -166,6 +166,44 @@ public:
     return *res;
   }
 
+  void resetVariables(){
+    nextVar = 0;
+  }
+
+  unsigned getVar(vstring name){
+    for(int j = vars.size() - 1; j >= 0; j--){
+      unsigned res;
+      if(vars[j]->find(name, res)){
+        return res;
+      }
+    }
+    ASS(false);
+    return 0;
+  }
+
+  void declareQuantifiedVars(
+    const std::vector<vstring>& names,
+    const std::vector<Sort>& sorts){
+    vars.push(new Map<vstring, Var>());
+    varNames.push(new Map<Var, vstring>());
+    varSorts.push(new Map<Var, Sort>());
+
+    for(int j = 0; j < names.size(); j++){
+      vstring name = names[j];
+ 
+      vars.top()->insert(name, nextVar);
+      varNames.top()->insert(nextVar, name);
+      varSorts.top()->insert(nextVar, sorts[j]);
+      nextVar++;
+    }
+  }
+
+  void popQuantVars(){
+    vars.pop();
+    varNames.pop();
+    varSorts.pop();
+  }
+
   static void addAttribute(AttribStack& stack, vstring name, vstring value);
 private:
 
@@ -173,29 +211,29 @@ private:
   DHMap<unsigned,AttribStack > _predicateAttributes;
   DHMap<unsigned,AttribStack > _functionAttributes;
 
-  struct FBVarFactory : public VarManager::VarFactory
+  /*struct FBVarFactory : public VarManager::VarFactory
   {
     explicit FBVarFactory(FBHelperCore& parent) : _parent(parent) {}
     virtual unsigned getVarAlias(unsigned var);
     virtual vstring getVarName(unsigned var);
 
     FBHelperCore& _parent;
-  };
+  };*/
 
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
   Set<vstring> overflow;
   /** Map from variable names to their numbers */
-  Map<vstring,Var> vars;
+  Stack<Map<vstring,Var>*> vars;
   /** Map from variable names to their numbers */
-  Map<Var,vstring> varNames;
+  Stack<Map<Var,vstring>*> varNames;
   /** Map from variable names to their sorts */
-  Map<Var,Sort> varSorts;
+  Stack<Map<Var,Sort>*> varSorts;
   /** next available variable number */
   Var nextVar;
 
   int refCtr;
 
-  FBVarFactory varFact;
+ // FBVarFactory varFact;
 
   bool valid;
 

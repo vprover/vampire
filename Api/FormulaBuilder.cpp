@@ -310,6 +310,31 @@ void FormulaBuilder::reset(){
   _aux.resetCore();
 }
 
+void FormulaBuilder::resetVariables(){
+  CALL("FormulaBuilder::resetVariables");
+
+  _aux->resetVariables();
+}
+
+void FormulaBuilder::declareQuantifiedVars(
+  const std::vector<std::string>& names,
+  const std::vector<Sort>& sorts){
+  CALL("FormulaBuilder::declareQuantifiedVars");
+
+  std::vector<vstring> vnames;
+  for(auto& name : names){
+    vnames.push_back(StringUtils::copy2vstr(name));
+  }
+
+  _aux->declareQuantifiedVars(vnames,sorts);
+}
+
+void FormulaBuilder::popQuantVars(){
+  CALL("FormulaBuilder::popQuantVars");
+
+  _aux->popQuantVars();
+}
+
 Symbol interpretedSymbol(Kernel::Theory::Interpretation interp, ApiHelper& aux)
 {
   CALL("interpretedPredicate");
@@ -471,21 +496,35 @@ Expression FormulaBuilder::exor(const Expression& f1,const Expression& f2)
 
 Expression FormulaBuilder::exists(const Var& v,const Expression& f)
 {
-  CALL("FormulaBuilder::exists");
+  CALL("FormulaBuilder::exists/1");
 
   return quantifiedFormula(EXISTS, v, f);
 }
 
+Expression FormulaBuilder::exists(const std::vector<Var>& vars,const Expression& f)
+{
+  CALL("FormulaBuilder::exists/2");
+
+  return quantifiedFormula(EXISTS, vars, f);  
+}
+
 Expression FormulaBuilder::forall(const Var& v,const Expression& f)
 {
-  CALL("FormulaBuilder::forall");
+  CALL("FormulaBuilder::forall/1");
 
   return quantifiedFormula(FORALL, v, f);
 }
 
+Expression FormulaBuilder::forall(const std::vector<Var>& vars,const Expression& f)
+{
+  CALL("FormulaBuilder::forall/2");
+
+  return quantifiedFormula(FORALL, vars, f);  
+}
+
 Expression FormulaBuilder::quantifiedFormula(Connective con,const Var& v,const Expression& f)
 {
-  CALL("FormulaBuilder::quantifiedFormula");
+  CALL("FormulaBuilder::quantifiedFormula/1");
 
   checkForValidity({f});
   checkForTermError({f});
@@ -506,6 +545,36 @@ Expression FormulaBuilder::quantifiedFormula(Connective con,const Var& v,const E
 
   return Expression(new QuantifiedFormula(c, varList, 0, f), _aux);
 }
+
+Expression FormulaBuilder::quantifiedFormula(Connective con,const std::vector<Var>& vars,
+  const Expression& f)
+{
+  CALL("FormulaBuilder::quantifiedFormula/2");
+
+  checkForValidity({f});
+  checkForTermError({f});
+
+  for(auto v : vars){
+    if(_aux->_checkBindingBoundVariables) {
+      VList* boundVars=static_cast<Kernel::Formula*>(f)->boundVariables();
+      bool alreadyBound=VList::member(v, boundVars);
+      VList::destroy(boundVars);
+
+      if(alreadyBound) {
+        throw FormulaBuilderException("Attempt to bind a variable that is already bound: "+ StringUtils::copy2str(_aux->getVarName(v)));
+      }
+    }
+  }  
+
+  VList* varList=0;
+  for(int i = vars.size() - 1; i >=0; i--){
+    VList::push(vars[i], varList);
+  }
+  Kernel::Connective c = con == FORALL ? Kernel::FORALL : Kernel::EXISTS;
+
+  return Expression(new QuantifiedFormula(c, varList, 0, f), _aux);
+}
+
 
 AnnotatedFormula FormulaBuilder::annotatedFormula(Expression& f, Annotation a, string name)
 {
@@ -536,12 +605,15 @@ AnnotatedFormula FormulaBuilder::annotatedFormula(Expression& f, Annotation a, s
     break;
   }
 
+  FormulaUnit* fures=new Kernel::FormulaUnit(f, FromInput(inputType));
+
+
   if(negate) {
     Expression inner(Kernel::Formula::quantify(f), _aux);
     f=negation(inner);
+    fures = new Kernel::FormulaUnit(f,
+                       FormulaTransformation(InferenceRule::NEGATED_CONJECTURE, fures));      
   }
-
-  FormulaUnit* fures=new Kernel::FormulaUnit(f, FromInput(inputType));
 
   AnnotatedFormula res(fures);
   res._aux=_aux; //assign the correct helper object
