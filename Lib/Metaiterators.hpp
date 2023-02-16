@@ -2085,6 +2085,21 @@ auto iterSortedDiff(I1 i1, I2 i2)
 template<class Iterator>
 auto dropElementType(Iterator iter) 
 { return iterTraits(std::move(iter)).map([](auto _) { return make_tuple(); }); }
+
+// template<class CreateIer>
+// class IterAsData {
+//   CreateIter _iter;
+// public:
+//   friend bool operator<(IterAsData const&l, IterAsData const&r)
+//   { 
+//     auto i1 = iterTraits(l._iter());
+//     auto i2 = iterTraits(l._iter());
+//     while (i1.hasNext() && i2.hasNext>())
+//   }
+// };
+//
+// template<class Iter>
+// auto iterAsData(Iter iter) { return IterAsData<Iter>(std::move(iter)); }
 }
 
 #endif /* __Metaiterators__ */

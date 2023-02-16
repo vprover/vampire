@@ -132,9 +132,19 @@ public:
   // TODO get rid of default constructor
   TermSpec() : _self(OldTermSpec()) {}
   TermSpec(VarSpec v) : TermSpec(TermList::var(v.var), v.index) {}
-  auto asTuple() const -> decltype(auto) { return std::tie(_self); }
-  IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
-  IMPL_HASH_FROM_TUPLE(TermSpec)
+  // auto asTuple() const -> decltype(auto) { return std::make_tuple(select(
+  //       [&](){ return isVar(); }, [&]() { return varSpec(); }
+  //                               , [&]() { return std::make_tuple(functor(), iterAsData(allArgs())); }
+  //       )); }
+  // IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
+  // IMPL_HASH_FROM_TUPLE(TermSpec)
+
+  friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
+  friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);
+  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(TermSpec);
+  unsigned defaultHash() const;
+  unsigned defaultHash2() const;
+  
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
   TermSpec(TermList self, int index) : _self(OldTermSpec(self, index)) {}
   TermSpec(unsigned functor, std::initializer_list<TermSpec> args) : _self(Appl{functor, someIf(args.size() != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 

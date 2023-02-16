@@ -15,6 +15,7 @@
 
 #include "RobSubstitution.hpp"
 
+#include "Debug/Assertion.hpp"
 #include "Debug/Output.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/DArray.hpp"
@@ -1112,4 +1113,64 @@ struct RobSubstitution::UnificationFn {
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 
+int compare(TermSpec const& lhs, TermSpec const& rhs) {
+  Recycled<Stack<pair<TermSpec, TermSpec>>> todo;
+  todo->push(make_pair(lhs,rhs));
+  while (todo->isNonEmpty()) {
+    auto lhs = todo->top().first;
+    auto rhs = todo->pop().second;
+
+    if (lhs.isTerm() != rhs.isTerm()) {
+      return lhs.isVar() ? -1 : 1;
+
+    } else {
+      if (lhs.isTerm()) {
+        if (lhs.functor() != rhs.functor()) {
+          return lhs.functor() < rhs.functor() ? -1 : 1;
+        } else {
+          todo->loadFromIterator(lhs.allArgs().zip(rhs.allArgs()));
+        }
+      } else {
+        ASS(lhs.isVar() && rhs.isVar())
+        auto v1 = lhs.varSpec();
+        auto v2 = rhs.varSpec();
+        if (v1 != v2) {
+          return std::tie(v1.var, v1.index) < std::tie(v2.var, v2.index) ? -1 : 1;
+        }
+      }
+    }
+  }
+  return 0;
 }
+
+bool operator==(TermSpec const& lhs, TermSpec const& rhs)
+{ return compare(lhs, rhs) == 0; }
+
+bool operator<(TermSpec const& lhs, TermSpec const& rhs)
+{ return compare(lhs, rhs) < 0; }
+
+template<class HashFn>
+unsigned __hash(HashFn hashFn, TermSpec const& t) {
+  Recycled<Stack<TermSpec>> todo;
+  todo->push(t);
+  unsigned hash = 0;
+  while (todo->isNonEmpty()) {
+    auto t = todo->pop();
+    if (t.isTerm()) {
+      hash = HashUtils::combine(hash, hashFn(t.functor()));
+      todo->loadFromIterator(t.allArgs());
+    } else {
+      hash = HashUtils::combine(hash, t.varNumber(), t.varSpec().index);
+    }
+  }
+  return 0;
+}
+
+
+unsigned TermSpec::defaultHash() const
+{ return __hash([](auto const& x) { return DefaultHash::hash(x); }, *this); }
+
+unsigned TermSpec::defaultHash2() const
+{ return __hash([](auto const& x) { return DefaultHash2::hash(x); }, *this); }
+
+} // namespace Kernel

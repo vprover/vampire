@@ -294,6 +294,7 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
   };
 
   auto less = [](auto & t1, auto & t2) { 
+    TIME_TRACE("comparing TermSpecs")
     auto top1 = t1.top();
     auto top2 = t2.top();
     auto v1 = !t1.isVar();
