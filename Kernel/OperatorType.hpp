@@ -94,8 +94,8 @@ private:
 
   static OperatorType* getTypeFromKey(OperatorKey* key, unsigned taArity);
 
-  static TermList getEmpty() { 
-    static TermList empty(0,false);
+  static inline TermList getEmpty() { 
+    TermList empty;
     empty.makeEmpty();
     return empty;
   }
