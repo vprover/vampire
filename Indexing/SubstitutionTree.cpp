@@ -14,6 +14,8 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
+#define DEBUG_INSERT(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_REMOVE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 namespace Indexing {
 
 /**
@@ -107,11 +109,10 @@ struct BindingComparator
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::insert(BindingMap& svBindings, LeafData ld)
 {
-#define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
   CALL("SubstitutionTree::insert");
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
-  DEBUG_INSERT("insert: ", svBindings, " into ", *this)
+  DEBUG_INSERT(0, "insert: ", svBindings, " into ", *this)
 
   if(*pnode == 0) {
     ASS(!svBindings.isEmpty())
@@ -121,7 +122,7 @@ void SubstitutionTree<LeafData_>::insert(BindingMap& svBindings, LeafData ld)
     ASS((*pnode)->isLeaf());
     ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     static_cast<Leaf*>(*pnode)->insert(ld);
-    DEBUG_INSERT("out: ", *this);
+    DEBUG_INSERT(0, "out: ", *this);
     return;
   }
 
@@ -230,7 +231,7 @@ start:
     lnode->insert(ld);
 
     ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent));
-    DEBUG_INSERT("out: ", *this);
+    DEBUG_INSERT(0, "out: ", *this);
     return;
   }
 
@@ -304,7 +305,7 @@ start:
     ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     Leaf* leaf = static_cast<Leaf*>(*pnode);
     leaf->insert(ld);
-    DEBUG_INSERT("out: ", *this);
+    DEBUG_INSERT(0, "out: ", *this);
     return;
   }
 
@@ -327,14 +328,14 @@ void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
   CALL("SubstitutionTree::remove");
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
+  DEBUG_REMOVE(0, "remove: ", svBindings, " from ", *this)
 
   ASS(*pnode);
 
-  static Stack<Node**> history(1000);
-  history.reset();
+  Recycled<Stack<Node**>> history;
 
   while (! (*pnode)->isLeaf()) {
-    history.push(pnode);
+    history->push(pnode);
 
     IntermediateNode* inode=static_cast<IntermediateNode*>(*pnode);
 
@@ -399,19 +400,21 @@ void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
 
   while( (*pnode)->isEmpty() ) {
     TermList term=(*pnode)->term;
-    if(history.isEmpty()) {
+    if(history->isEmpty()) {
       delete *pnode;
       *pnode=0;
+      DEBUG_REMOVE(0, "out: ", *this);
       return;
     } else {
       Node* node=*pnode;
-      IntermediateNode* parent=static_cast<IntermediateNode*>(*history.top());
+      IntermediateNode* parent=static_cast<IntermediateNode*>(*history->top());
       parent->remove(term.top());
       delete node;
-      pnode=history.pop();
+      pnode = history->pop();
       ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode));
     }
   }
+  DEBUG_REMOVE(0, "out: ", *this);
 } // SubstitutionTree<LeafData_>::remove
 
 /**

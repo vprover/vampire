@@ -207,7 +207,7 @@ public:
   SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
   static void swap(SubstitutionTree& self, SubstitutionTree& other) {
     std::swap(self._nextVar, other._nextVar);
-    std::swap(other._root, other._root);
+    std::swap(self._root,    other._root);
   }
   SubstitutionTree& operator=(SubstitutionTree && other) { swap(*this,other); return *this; }
   SubstitutionTree(SubstitutionTree&& other) : SubstitutionTree(0) { swap(*this, other); }
