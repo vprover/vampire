@@ -19,6 +19,8 @@
 #include "Stack.hpp"
 #include "DArray.hpp"
 #include <initializer_list>
+#include "Lib/Reflection.hpp"
+#include "Lib/Hash.hpp"
 
 namespace Lib
 {
@@ -52,15 +54,9 @@ public:
     , _reset()
   { }
 
-
-  // template<class A>
-  // Recycled(std::initializer_list<A> list)
-  //   : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
-  //   , _reset()
-  // {
-  //   _ptr.init(list);
-  // }
-
+  auto asTuple() const -> decltype(auto) { return std::tie(_ptr); }
+  IMPL_COMPARISONS_FROM_TUPLE(Recycled);
+  IMPL_HASH_FROM_TUPLE(Recycled);
 
   template<class A, class... As>
   Recycled(A a, As... as)
@@ -72,6 +68,8 @@ public:
 
   Recycled(Recycled&& other) = default;
   Recycled& operator=(Recycled&& other) = default;
+  Recycled(Recycled const& other) = default;
+  Recycled& operator=(Recycled const& other) = default;
 
   ~Recycled()
   { 

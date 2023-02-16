@@ -394,7 +394,7 @@ public:
    * previously stored under @b key. Otherwise,
    * return false.
    */
-  bool set(Key key, const Val& val)
+  bool set(Key key, Val val)
   {
     CALL("DHMap::set");
     ensureExpanded();
@@ -413,7 +413,7 @@ public:
       e->_key=key;
       _size++;
     }
-    e->_val=val;
+    e->_val = std::move(val);
     return !exists;
   }
 
