@@ -163,9 +163,9 @@ Option<MismatchHandler::AbstractionResult> funcExt(
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
        ) {
-        return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf(
-              { UnificationConstraint(t1.termArg(0), t2.termArg(0)) },
-              { UnificationConstraint(t1.termArg(1), t2.termArg(1)) })));
+        return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf()
+              .unify (UnificationConstraint(t1.termArg(0), t2.termArg(0)))
+              .constr(UnificationConstraint(t1.termArg(1), t2.termArg(1)))));
       }
     }
   }
@@ -204,27 +204,27 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       { return iterTraits(diff.iterFifo()).map([](auto f) { return f.functor(); }); };
 
       if (diff1.size() == 0 && diff2.size() == 0) {
-        return some(AbstractionResult(EqualIf({}, {})));
+        return some(AbstractionResult(EqualIf()));
 
       } else if (( diff1.size() == 0 && diff2.size() != 0 )
               || ( diff2.size() == 0 && diff1.size() != 0 ) ) {
         return some(AbstractionResult(NeverEqual{}));
 
       } else if (_mode == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
-        return some(AbstractionResult(EqualIf({ UnificationConstraint(diff1[0], sum(diff2)) }, {})));
+        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(diff1[0], sum(diff2)))));
 
       } else if (_mode == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
-        return some(AbstractionResult(EqualIf({ UnificationConstraint(diff2[0], sum(diff1)) }, {})));
+        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(diff2[0], sum(diff1)))));
 
       } else if (concatIters(diff1.iterFifo(), diff2.iterFifo()).any([](auto x) { return x.isVar(); })) {
-        return some(AbstractionResult(EqualIf({}, {diffConstr()})));
+        return some(AbstractionResult(EqualIf().constr(diffConstr())));
 
       } else if (iterSortedDiff(functors(diff1), functors(diff2)).hasNext()
               || iterSortedDiff(functors(diff2), functors(diff1)).hasNext()) {
         return some(AbstractionResult(NeverEqual{}));
 
       } else {
-        return some(AbstractionResult(EqualIf({}, {diffConstr()})));
+        return some(AbstractionResult(EqualIf().constr(diffConstr())));
       }
 
 
@@ -235,10 +235,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
     auto abs = canAbstract(au, t1, t2);
     DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
-        return AbstractionResult(EqualIf(
-              {},
-              { UnificationConstraint(t1, t2) }
-              ));
+        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2)));
     });
   }
 }
@@ -361,10 +358,10 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
         } else {
           ASS(absRes->is<MismatchHandler::EqualIf>())
           auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
-          for (auto& x : *conditions.unify) {
+          for (auto& x : conditions.unify()) {
             pushTodo(std::move(x));
           }
-          for (auto& x: *conditions.constraints) {
+          for (auto& x: conditions.constr()) {
             add(std::move(x));
           }
         }

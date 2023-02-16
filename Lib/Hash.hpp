@@ -22,6 +22,7 @@
 #include "Forwards.hpp"
 #include "VString.hpp"
 #include "Kernel/Unit.hpp"
+#include "Lib/Option.hpp"
 
 // the 32-bit FNV prime
 static const unsigned FNV32_PRIME = 16777619;
@@ -257,6 +258,11 @@ public:
   template<typename... T>
   static unsigned hash(tuple<T...> const& s) 
   { return TupleHash<DefaultHash>::hash(s); }
+
+  template<typename T>
+  static unsigned hash(Lib::Option<T> const& o) 
+  { return o.isSome() ? o->defaultHash()
+                      : Lib::DefaultHash::hash(typeid(T).hash_code()); }
 };
 
 // a default secondary hash for doubly-hashed containers
@@ -329,6 +335,10 @@ public:
   static unsigned hash(tuple<T...> const& s) 
   { return TupleHash<DefaultHash2>::hash(s); }
 
+  template<typename T>
+  static unsigned hash(Lib::Option<T> const& o) 
+  { return o.isSome() ? o->defaultHash2()
+                      : Lib::DefaultHash2::hash(typeid(T).hash_code()); }
 };
 
 } // namespace Lib

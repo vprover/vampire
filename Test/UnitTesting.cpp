@@ -142,7 +142,7 @@ bool TestUnit::runTestsWithNameSubstring(vstring const& pref, ostream& out)
   while(uit.hasNext()) {
     TestUnit::Test t=uit.next();
     if (vstring(t.name).find(pref) != vstring::npos) {
-      out << "Running " << t.name << "... ";
+      out << "Running " << t.name << "... \r";
       out.flush();
       bool ok;
       {
