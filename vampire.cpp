@@ -504,13 +504,20 @@ void spiderMode()
       reportSpiderStatus('+');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
+      
     case Statistics::TIME_LIMIT:
       reportSpiderStatus('t');
+      break;
+      
     case Statistics::MEMORY_LIMIT:
       reportSpiderStatus('m');
+      break;
+      
     case Statistics::UNKNOWN:
     case Statistics::INAPPROPRIATE:
       reportSpiderStatus('u');
+      break;
+      
     case Statistics::REFUTATION_NOT_FOUND:
       if(env.statistics->discardedNonRedundantClauses > 0){
         reportSpiderStatus('n');
@@ -519,18 +526,19 @@ void spiderMode()
         reportSpiderStatus('i');
       }
       break;
+      
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
+      
     default:
       ASSERTION_VIOLATION;
     }
-    // env.statistics->print(env.out());
   } else {
 #if VZ3
-    if(z3_exception){
-      if(strcmp(z3_exception->msg(),"out of memory\n")){
+    if (z3_exception){
+      if (strcmp(z3_exception->msg(),"out of memory\n")){
         reportSpiderStatus('m');
       }
       else{ reportSpiderFail(); }
