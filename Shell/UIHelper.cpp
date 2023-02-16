@@ -76,6 +76,7 @@ void reportSpiderFail()
 
 void reportSpiderStatus(char status)
 {
+#if VZ3
   if (Lib::env.options && Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
     return;
   }
@@ -101,6 +102,7 @@ void reportSpiderStatus(char status)
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
     << commitNumber << ':' << z3Version << "\n";
   env.endOutput();
+#endif
 }
 
 bool szsOutputMode() {
