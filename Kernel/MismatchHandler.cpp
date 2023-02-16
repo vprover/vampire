@@ -344,10 +344,8 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
                  .map([](auto& x) { return make_pair(std::move(x.first), -x.second); }))
               );
   };
-  auto continueUnif        = [&](auto c) { return AbstractionResult(EqualIf({ std::move(c) }, {})); };
-
   if (diff.size() == 0) {
-    return AbstractionResult(EqualIf({}, {}));
+    return AbstractionResult(EqualIf());
 
   } else if ( vars.hasNext() ) {
     auto v = vars.next();
@@ -359,23 +357,18 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
         return iterTraits(getArrayishObjectIterator(diff))
             .filter([&](auto& x) { return x != v; }); 
       };
-      return ifIntTraits(n, 
-          [&](auto n) { return continueUnif(UnificationConstraint(numMul(-v.second, v.first), sum(rest()))); },
-          [&](auto n) { return continueUnif(UnificationConstraint(v.first, 
+      return AbstractionResult(ifIntTraits(n, 
+          [&](auto n) { return EqualIf().unify(UnificationConstraint(numMul(-v.second, v.first), sum(rest()))); },
+          [&](auto n) { return EqualIf().unify(UnificationConstraint(v.first, 
                             sum(rest().map([&](auto x) { return make_pair(std::move(x.first), divOrPanic(n, x.second, -num)); })
                               ))); }
-          );
+          ));
       ;
     } else {
       // multiplet variables
-      return AbstractionResult(EqualIf({}, { toConstr(diff) }));
+      return AbstractionResult(EqualIf().constr(toConstr(diff)));
     }
   } 
-  // struct Bucket {
-  //   unsigned functor;
-  //   Recycled<Stack<pair<TermSpec, Numeral>>> summands;
-  //   Numeral coeffSum;
-  // };
 
   Recycled<Stack<UnificationConstraint>> unify;
   Recycled<Stack<UnificationConstraint>> constr;
@@ -415,7 +408,7 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
     curSummands->push(std::move(x));
   }
   if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
-  auto out = AbstractionResult(EqualIf(std::move(unify), std::move(constr))); 
+  auto out = AbstractionResult(EqualIf().unify(std::move(unify)).constr(std::move(constr))); 
   DEBUG_UWA(2, "alasca3: ", out)
   return out;
 }
@@ -455,7 +448,7 @@ Option<MismatchHandler::AbstractionResult> alasca3(AbstractingUnifier& au, TermS
       return some(MismatchHandler::AbstractionResult(MismatchHandler::NeverEqual{}));
     } else {
       // this means all
-      return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf({},{ UnificationConstraint(v, t) })));
+      return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf().constr(UnificationConstraint(v, t))));
     }
   };
   if (t1.isVar()) return occ(t1, t2);
@@ -490,9 +483,9 @@ Option<MismatchHandler::AbstractionResult> funcExt(
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
        ) {
-        return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf(
-              { UnificationConstraint(t1.termArg(0), t2.termArg(0)) },
-              { UnificationConstraint(t1.termArg(1), t2.termArg(1)) })));
+        return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf()
+              .unify (UnificationConstraint(t1.termArg(0), t2.termArg(0)))
+              .constr(UnificationConstraint(t1.termArg(1), t2.termArg(1)))));
       }
     }
   }
@@ -532,27 +525,27 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       { return iterTraits(diff.iterFifo()).map([](auto f) { return f.functor(); }); };
 
       if (diff1.size() == 0 && diff2.size() == 0) {
-        return some(AbstractionResult(EqualIf({}, {})));
+        return some(AbstractionResult(EqualIf()));
 
       } else if (( diff1.size() == 0 && diff2.size() != 0 )
               || ( diff2.size() == 0 && diff1.size() != 0 ) ) {
         return some(AbstractionResult(NeverEqual{}));
 
       } else if (_mode == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
-        return some(AbstractionResult(EqualIf({ UnificationConstraint(diff1[0], sum(diff2)) }, {})));
+        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(diff1[0], sum(diff2)))));
 
       } else if (_mode == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
-        return some(AbstractionResult(EqualIf({ UnificationConstraint(diff2[0], sum(diff1)) }, {})));
+        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(diff2[0], sum(diff1)))));
 
       } else if (concatIters(diff1.iterFifo(), diff2.iterFifo()).any([](auto x) { return x.isVar(); })) {
-        return some(AbstractionResult(EqualIf({}, {diffConstr()})));
+        return some(AbstractionResult(EqualIf().constr(diffConstr())));
 
       } else if (iterSortedDiff(functors(diff1), functors(diff2)).hasNext()
               || iterSortedDiff(functors(diff2), functors(diff1)).hasNext()) {
         return some(AbstractionResult(NeverEqual{}));
 
       } else {
-        return some(AbstractionResult(EqualIf({}, {diffConstr()})));
+        return some(AbstractionResult(EqualIf().constr(diffConstr())));
       }
 
 
@@ -566,10 +559,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
     auto abs = canAbstract(au, t1, t2);
     DEBUG_UWA(1, "canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
-        return AbstractionResult(EqualIf(
-              {},
-              { UnificationConstraint(t1, t2) }
-              ));
+        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2)));
     });
   }
 }
@@ -692,10 +682,10 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
         } else {
           ASS(absRes->is<MismatchHandler::EqualIf>())
           auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
-          for (auto& x : *conditions.unify) {
+          for (auto& x : conditions.unify()) {
             pushTodo(std::move(x));
           }
-          for (auto& x: *conditions.constraints) {
+          for (auto& x: conditions.constr()) {
             add(std::move(x));
           }
         }

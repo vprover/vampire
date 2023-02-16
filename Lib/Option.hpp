@@ -431,9 +431,14 @@ public:
     A next() { return _self.take().unwrap(); }
   };
   
+  Option<A const&> asRef() const { return someIf(isSome(), [&]() -> decltype(auto) { return unwrap(); }); }
+  Option<A      &> asRef()       { return someIf(isSome(), [&]() -> decltype(auto) { return unwrap(); }); }
 
   OptionIter intoIter() &&
   { return OptionIter(std::move(*this)); }
+
+  auto iter() const& { return asRef().intoIter(); }
+  auto iter()      & { return asRef().intoIter(); }
 
   friend std::ostream& operator<<(std::ostream& out, Option const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
@@ -442,6 +447,22 @@ public:
   auto flatten()      & { return andThen([](auto x) { return  std::move(x); }); }
   auto flatten()     && { return std::move(*this).andThen([](auto x) { return  std::move(x); }); }
   auto flatten() const& { return andThen([](auto x) { return  std::move(x); }); }
+
+  friend bool operator<(Option const& lhs, Option const& rhs) 
+  { 
+    if (lhs.isSome() < rhs.isSome()) {
+      return true;
+    } else if (lhs.isSome() > rhs.isSome()) {
+      return false;
+    } else if (lhs.isNone()) {
+      ASS(rhs.isNone()) 
+      return false;
+    } else {
+      ASS(rhs.isSome()) 
+      ASS(lhs.isSome()) 
+      return lhs.unwrap() < rhs.unwrap();
+    }
+  }
 };
 
 

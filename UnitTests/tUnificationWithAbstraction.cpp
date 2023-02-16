@@ -187,6 +187,10 @@ struct IndexTest {
 #define RAT_SUGAR                                                                                   \
    __ALLOW_UNUSED(                                                                                  \
       DECL_DEFAULT_VARS                                                                             \
+      DECL_VAR(x0, 0)                                                                               \
+      DECL_VAR(x1, 1)                                                                               \
+      DECL_VAR(x2, 2)                                                                               \
+      DECL_VAR(x3, 3)                                                                               \
       NUMBER_SUGAR(Rat)                                                                             \
       DECL_SORT(s)                                                                                  \
       DECL_FUNC(r2s, {Rat}, s)                                                                      \
@@ -1163,7 +1167,6 @@ ROB_UNIFY_TEST(ac2_test_02_bad,
     })
 
 
-
 ROB_UNIFY_TEST(alasca3_test_01,
     Options::UnificationWithAbstraction::ALASCA3,
     f2(x, a + b + c),
@@ -1303,6 +1306,43 @@ ROB_UNIFY_TEST(constr_var_01,
       .querySigma  = s2r(x),
       .resultSigma = s2r(r2s(s2r(x) + y)),
       .constraints = Stack<Literal*>{x != r2s(s2r(x) + y)},
+    })
+
+ROB_UNIFY_TEST(top_level_constraints_1,
+    Options::UnificationWithAbstraction::AC2,
+    a + y + x,
+    a + b + c,
+    TermUnificationResultSpec { 
+      .querySigma  = a + y + x,
+      .resultSigma = a + b + c,
+      .constraints = Stack<Literal*>{ b + c != x + y },
+    })
+
+RUN_TEST(top_level_constraints_2,
+    RAT_SUGAR,
+    IndexTest {
+      .index = getTermIndex(Options::UnificationWithAbstraction::AC2),
+      .insert = {
+        a + b + c,
+        b,
+        a + b + a + c,
+        f(x),
+        f(a),
+      },
+      .query = a + y + x,
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = a + x0 + x1,
+            .resultSigma = a + b + c,
+            .constraints = Stack<Literal*>{ a + b + c != a + x1 + x0 } }, 
+
+          TermUnificationResultSpec 
+          { .querySigma  = a + x2 + x3,
+            .resultSigma = a + b + a + c,
+            .constraints = Stack<Literal*>{ a + b + a + c != a + x3 + x2 } }, 
+
+      },
     })
 
 

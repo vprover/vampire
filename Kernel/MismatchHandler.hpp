@@ -73,21 +73,49 @@ public:
   MismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
 
   struct EqualIf { 
-    Recycled<Stack<UnificationConstraint>> unify; 
-    Recycled<Stack<UnificationConstraint>> constraints; 
+    Recycled<Stack<UnificationConstraint>> _unify; 
+    Recycled<Stack<UnificationConstraint>> _constr; 
 
-    EqualIf( std::initializer_list<UnificationConstraint> unify,
-             std::initializer_list<UnificationConstraint> constraints
-        ) : unify(unify)
-          , constraints(constraints) {  }
+    EqualIf() : _unify(), _constr() {}
 
-    EqualIf( Recycled<Stack<UnificationConstraint>> unify,
-             Recycled<Stack<UnificationConstraint>> constraints
-        ) : unify(std::move(unify))
-          , constraints(std::move(constraints)) {  }
+
+    auto unify()  -> decltype(auto) { return *_unify; }
+    auto constr() -> decltype(auto) { return *_constr; }
+
+    EqualIf constr(decltype(_constr) constr) &&
+    { _constr = std::move(constr); return std::move(*this); }
+
+    EqualIf unify(decltype(_unify) unify) &&
+    { _unify = std::move(unify); return std::move(*this); }
+
+
+    template<class... As>
+    EqualIf constr(UnificationConstraint constr, As... constrs) &&
+    { 
+      unsigned constexpr len = TypeList::Size<TypeList::List<UnificationConstraint, As...>>::val;
+      _constr->reserve(len);
+      __push(*_constr, std::move(constr), std::move(constrs)...);
+      return std::move(*this); 
+    }
+
+
+    template<class... As>
+    EqualIf unify(UnificationConstraint unify, As... unifys) &&
+    { 
+      unsigned constexpr len = TypeList::Size<TypeList::List<UnificationConstraint, As...>>::val;
+      _unify->reserve(len);
+      __push(*_unify, std::move(unify), std::move(unifys)...);
+      return std::move(*this); 
+    }
 
     friend std::ostream& operator<<(std::ostream& out, EqualIf const& self)
-    { return out << "EqualIf(unify: " << self.unify << ", constr: " << self.constraints <<  ")"; }
+    { return out << "EqualIf(unify: " << self._unify << ", constr: " << self._constr <<  ")"; }
+   private:
+    void __push(Stack<UnificationConstraint>& s)
+    {  }
+    template<class... As>
+    void __push(Stack<UnificationConstraint>& s, UnificationConstraint c, As... as)
+    { s.push(std::move(c)); __push(s, std::move(as)...); }
   };
 
   struct NeverEqual {

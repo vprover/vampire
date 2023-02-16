@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Backtrackable.hpp"
+#include "Lib/Recycled.hpp"
 #include "Term.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/DHMap.hpp"
@@ -106,11 +107,16 @@ class TermSpec
   // TODO get rid of implicit copying of this
   struct Appl {
     unsigned functor;
-    Stack<TermSpec> args;
+    Option<Recycled<Stack<TermSpec>>> args;
     auto asTuple() const -> decltype(auto) { return std::tie(functor, args); }
-    IMPL_COMPARISONS_FROM_TUPLE(Appl)
-    IMPL_HASH_FROM_TUPLE(Appl)
+    IMPL_COMPARISONS_FROM_TUPLE(TermSpec::Appl)
+    IMPL_HASH_FROM_TUPLE(TermSpec::Appl)
     bool isSort() const { return false; }
+
+    TermSpec const& arg(unsigned i) const { return (**args)[i]; }
+    auto argsIter() const 
+    { return iterTraits(args.iter())
+                  .flatMap([](auto& args) { return getArrayishObjectIterator<const_ref_t>(*args); }); }
   };
   Coproduct<
     Appl,
@@ -130,8 +136,11 @@ public:
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
   IMPL_HASH_FROM_TUPLE(TermSpec)
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
-  TermSpec(TermList self, int index) : _self(OldTermSpec(self, index)) { }
-  TermSpec(unsigned functor, std::initializer_list<TermSpec> args) : _self(Appl{functor, args}) {}
+  TermSpec(TermList self, int index) : _self(OldTermSpec(self, index)) {}
+  TermSpec(unsigned functor, std::initializer_list<TermSpec> args) : _self(Appl{functor, someIf(args.size() != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 
+  {
+    if (args.size() != 0) _self.template unwrap<Appl>().args.unwrap()->init(args);
+  }
 
   TermList::Top top() const;
   TermSpec deref(RobSubstitution const* s) const;
@@ -179,12 +188,14 @@ public:
   UnificationConstraint() {}
   CLASS_NAME(UnificationConstraint)
   USE_ALLOCATOR(UnificationConstraint)
+  // UnificationConstraint(UnificationConstraint&&) = default;
+  // UnificationConstraint& operator=(UnificationConstraint&&) = default;
   auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2); }
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
   IMPL_HASH_FROM_TUPLE(UnificationConstraint);
 
-  UnificationConstraint(TermSpec const& t1, TermSpec const& t2)
-  : _t1(t1), _t2(t2)
+  UnificationConstraint(TermSpec t1, TermSpec t2)
+  : _t1(std::move(t1)), _t2(std::move(t2))
   {}
 
   Option<Literal*> toLiteral(RobSubstitution& s);
@@ -410,7 +421,7 @@ private:
       if(_term.isNone()) {
 	      _subst->_bank.remove(_var);
       } else {
-	      _subst->_bank.set(_var,*_term);
+	      _subst->_bank.set(_var,std::move(*_term));
       }
     }
     friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
