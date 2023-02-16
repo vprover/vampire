@@ -94,6 +94,11 @@ private:
 
   static OperatorType* getTypeFromKey(OperatorKey* key, unsigned taArity);
 
+  static TermList getEmpty() { 
+    static TermList empty(0,false);
+    empty.makeEmpty();
+    return empty;
+  }
   //static const TermList PREDICATE_FLAG;
 
 public:
@@ -107,7 +112,7 @@ public:
     CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
 
     OperatorKey* key = setupKey(arity,sorts);
-    (*key)[arity] = AtomicSort::boolSort();
+    (*key)[arity] = getEmpty();
     return getTypeFromKey(key,taArity);
   }
 
@@ -115,7 +120,7 @@ public:
     CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
 
     OperatorKey* key = setupKey(sorts);
-    (*key)[sorts.size()] = AtomicSort::boolSort();
+    (*key)[sorts.size()] = getEmpty();
     return getTypeFromKey(key,taArity);
   }
 
@@ -123,7 +128,7 @@ public:
     CALL("OperatorType::getPredicateTypeUniformRange");
 
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
-    (*key)[arity] = AtomicSort::boolSort();
+    (*key)[arity] = getEmpty();
     return getTypeFromKey(key, taArity);
   }
 
@@ -199,11 +204,11 @@ public:
   //TODO functions below do not hold for higher-order
   //In higher-order we have boolean functions
 
-  bool isPredicateType() const { return (*_key)[arity() - numTypeArguments()] == AtomicSort::boolSort(); };
-  bool isFunctionType() const { return (*_key)[arity() - numTypeArguments()] != AtomicSort::boolSort(); };
+  bool isPredicateType() const { return (*_key)[arity() - numTypeArguments()].isEmpty(); };
+  bool isFunctionType() const { return !(*_key)[arity() - numTypeArguments()].isEmpty(); };
 
   /**
-   * The result sort of function types; or AtomicSort::boolSort() for predicates.
+   * The result sort of function types; or empty for predicates.
    */
   TermList result() const {
     CALL("OperatorType::result");

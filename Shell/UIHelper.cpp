@@ -629,42 +629,22 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
   //    << sym->name() << ": ";
 
+  vstring symName = sym->name();
+  if(typeCon && env.signature->isBoolCon(symNumber)){
+    ASS(env.options->showFOOL());
+    symName = "$bool";
+  }
+
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
     out << (env.property->higherOrder() ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
-        << sym->name() << ": ";
+        << symName << ": ";
     out << type->toString();
     out << ")." << endl;
   }
   //out << ")." << endl;
 }
-
-/**
- * Output to @b out all sort declarations for the current signature.
- * Built-in sorts and structures sorts will not be output.
- * @author Evgeny Kotelnikov
- * @since 04/09/2015 Gothneburg
- */
-/*void UIHelper::outputSortDeclarations(ostream& out)
-{
-  CALL("UIHelper::outputSortDeclarations");
-
-  if(env.statistics->higherOrder){
-    return;
-  }
-
-  unsigned sorts = env.sorts->count();
-  for (unsigned sort = 1; sort < sorts; ++sort) {
-    if (sort < Sorts::FIRST_USER_SORT && ((sort != 1) || !env.options->showFOOL())) {
-      continue;
-    }
-    if (SortHelper::isStructuredSort(sort)) {
-      continue;
-    }
-    out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
-  }
-}*/ // UIHelper::outputSortDeclarations
 
 } // namespace Shell
