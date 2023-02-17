@@ -32,17 +32,6 @@ namespace Indexing
 
 using namespace Kernel;
 
-void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
-{
-  CALL("LiteralIndex::handleLiteral");
-
-  if(add) {
-    _is->insert(lit, cl);
-  } else {
-    _is->remove(lit, cl);
-  }
-}
-
 void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
 {
   CALL("BinaryResolutionIndex::handleClause");
@@ -225,7 +214,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         return;
       }
       //there is no counterpart, so insert the clause into the partial index
-      _partialIndex->insert(greater, c);
+      _partialIndex->insert(DefaultLiteralLeafData(greater, c));
     }
     else {
       Clause* d;
@@ -235,7 +224,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 	handleEquivalence(c, greater, d, dgr, false);
       }
       else {
-	_partialIndex->remove(greater, c);
+	_partialIndex->remove(DefaultLiteralLeafData(greater, c));
       }
     }
   }
@@ -329,14 +318,14 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
     ALWAYS(_counterparts.insert(d, c));
 
     //we can remove the literal from the index of partial definitions
-    _partialIndex->remove(dgr, d);
+    _partialIndex->remove(DefaultLiteralLeafData(dgr, d));
   }
   else {
     _counterparts.remove(c);
     _counterparts.remove(d);
 
     //we put the remaining counterpart into the index of partial definitions
-    _partialIndex->insert(dgr, d);
+    _partialIndex->insert(DefaultLiteralLeafData(dgr, d));
   }
 
 }
@@ -383,11 +372,7 @@ void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
   Literal* lit = (*c)[0];
   ASS(lit != nullptr);
 
-  if (adding) {
-    _is->insert(lit, c);
-  } else {
-    _is->remove(lit, c);
-  }
+  _is->handle(DefaultLiteralLeafData(lit, c), adding);
 }
 
 }

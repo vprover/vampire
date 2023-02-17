@@ -29,9 +29,9 @@ public:
   using LeafData = LeafData_;
   virtual ~LiteralIndexingStructure() {}
 
-  virtual void handle(Literal* lit, Clause* cls, bool insert) = 0;
-  void insert(Literal* lit, Clause* cls) { handle(lit, cls, /* insert = */ true ); }
-  void remove(Literal* lit, Clause* cls) { handle(lit, cls, /* insert = */ false); }
+  virtual void handle(LeafData ld, bool insert) = 0;
+  void insert(LeafData ld) { handle(std::move(ld), /* insert = */ true ); }
+  void remove(LeafData ld) { handle(std::move(ld), /* insert = */ false); }
 
   virtual VirtualIterator<LeafData> getAll() { NOT_IMPLEMENTED; }
   virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }

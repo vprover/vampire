@@ -50,6 +50,9 @@ struct DefaultLiteralLeafData
   DefaultLiteralLeafData(Clause* cls, Literal* literal)
     : clause(cls), literal(literal) {  }
 
+  DefaultLiteralLeafData(Literal* lit, Clause* cl)
+    : DefaultLiteralLeafData(cl, lit) {}
+
 private:
   auto asTuple() const
   { return make_tuple(

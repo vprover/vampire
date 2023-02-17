@@ -178,7 +178,7 @@ struct IndexTest {
   void run() {
     CALL("IndexTest::run")
 
-    DECL_PRED(dummy, Stack<SortSugar>())
+    DECL_PRED(dummy, {})
     for (auto x : this->insert) {
       index->insert(DefaultTermLeafData(x, dummy(), unit(dummy())));
     }
@@ -808,8 +808,8 @@ TEST_FUN(literal_indexing)
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
 
-  index->insert(p(num(1) + num(1)), nullptr);
-  index->insert(p(1 + a          ), nullptr);
+  index->insert(DefaultLiteralLeafData(p(num(1) + num(1)), nullptr));
+  index->insert(DefaultLiteralLeafData(p(1 + a          ), nullptr));
 
   checkLiteralMatches(*index,p(b + 2),{
 
@@ -825,8 +825,8 @@ TEST_FUN(literal_indexing)
 
       });
 
-  index->insert(p(b + 2),unit(p(b + 2)));
-  index->insert(p(2 + b),unit(p(2 + b)));
+  index->insert(DefaultLiteralLeafData(p(b + 2),unit(p(b + 2))));
+  index->insert(DefaultLiteralLeafData(p(2 + b),unit(p(2 + b))));
 
   checkLiteralMatches(*index,p(b + 2),{
 
