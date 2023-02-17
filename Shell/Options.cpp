@@ -138,7 +138,10 @@ void Options::init()
 
     auto UsingPortfolioTechnology = [this] {
       // Consider extending this list when adding a new Casc-like mode
-      return Or(_mode.is(equal(Mode::CASC_HOL)),
+      return Or(
+#if VHOL                                             
+                _mode.is(equal(Mode::CASC_HOL)),
+#endif 
                 _mode.is(equal(Mode::CASC)),
                 _mode.is(equal(Mode::CASC_SAT)),
                 _mode.is(equal(Mode::SMTCOMP)),

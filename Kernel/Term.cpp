@@ -1227,6 +1227,11 @@ vstring Literal::toString() const
 
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
+#if VHOL
+  if(env.options->holPrinting() == Options::HPrinting::PRETTY){
+    s = polarity() ? "" : "¬";
+  }
+#endif    
   unsigned proj;
   if (Theory::tuples()->findProjection(functor(), true, proj)) {
     return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
