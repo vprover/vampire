@@ -54,7 +54,8 @@ public:
 protected:
   LiteralIndex(LiteralIndexingStructure<>* is) : _is(is) {}
 
-  void handleLiteral(Literal* lit, Clause* cl, bool add);
+  void handleLiteral(Literal* lit, Clause* cl, bool add)
+  { _is->handle(DefaultLiteralLeafData(cl, lit), add); }
 
   unique_ptr<LiteralIndexingStructure<>> _is;
 };

@@ -115,8 +115,15 @@ void SubstitutionTree<LeafData_>::insert(BindingMap& svBindings, LeafData ld)
   DEBUG_INSERT(0, "insert: ", svBindings, " into ", *this)
 
   if(*pnode == 0) {
-    ASS(!svBindings.isEmpty())
-    *pnode=createIntermediateNode(svBindings.getOneKey());
+    if (svBindings.isEmpty()) {
+      auto leaf = createLeaf();
+      leaf->insert(std::move(ld));
+      *pnode = leaf;
+      DEBUG_INSERT(0, "out: ", *this);
+      return;
+    } else {
+      *pnode=createIntermediateNode(svBindings.getOneKey());
+    }
   }
   if(svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());

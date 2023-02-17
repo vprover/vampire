@@ -268,18 +268,14 @@ public:
   using RSQueryResultIter = VirtualIterator<QueryResult<ResultSubstitutionSP>>;
   // TODO make const function
   template<class I, class TermOrLit, class... Args> 
-  QueryResultIter<I> iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
+  auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
   {
     CALL("SubstitutionTree::iterator");
-    return _root == nullptr 
-      ? QueryResultIter<I>::getEmpty()
-      : pvi(iterTraits(I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...))
-                    // .filter([handler](auto r) { 
-                    //   if (handler == nullptr) return true;
-                    //   auto& s = *r.subst->tryGetRobSubstitution();
-                    //   return r.constr->iter().all([&](auto& c) { return handler->recheck(c.lhs(s), c.rhs(s)); });
-                    // })
-                    );
+    return iterTraits(
+          someIf(_root != nullptr, 
+              [&]() { return I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...) ; })
+          .intoIter())
+        .flatten();
   }
 
   class LDComparator
@@ -910,10 +906,6 @@ public:
       bindSpecialVar(1,*lit->nthArgument(0));
       bindSpecialVar(0,*lit->nthArgument(1));
 
-    } else if (lit->arity() == 0) {
-      // insert a dummy term
-      bindSpecialVar(0, TermList::var(0));
-
     } else {
 
       TermList* args=lit->args();
@@ -944,9 +936,9 @@ public:
     FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed)
       : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
-      , _inLeaf(false)
+      , _inLeaf(root->isLeaf())
       , _subst(query,parent->_nextVar)
-      , _ldIterator(LDIterator::getEmpty())
+      , _ldIterator(_inLeaf ? static_cast<Leaf*>(root)->allChildren() : LDIterator::getEmpty())
       , _resultNormalizer()
       , _root(root)
       , _alternatives()
@@ -956,7 +948,6 @@ public:
     {
       CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
       ASS(root);
-      ASS(!root->isLeaf());
 
       parent->createBindings(query, reversed,
           [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
@@ -1198,8 +1189,8 @@ public:
     FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed)
       : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
-      , _inLeaf(false)
-      , _ldIterator(LDIterator::getEmpty())
+      , _inLeaf(root->isLeaf())
+      , _ldIterator(_inLeaf ? static_cast<Leaf*>(root)->allChildren() : LDIterator::getEmpty())
       , _root(root)
       , _alternatives()
       , _specVarNumbers()
@@ -1208,10 +1199,13 @@ public:
     {
       CALL("SubstitutionTree::FastInstancesIterator::FastInstancesIterator");
       ASS(root);
-      ASS(!root->isLeaf());
 
       parent->createBindings(query, reversed,
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
+
+      if (_inLeaf) {
+        _subst->onLeafEntered(); //we reset the bindings cache
+      }
     }
 
     bool hasNext();
@@ -1475,7 +1469,7 @@ public:
 
 #if VDEBUG
 public:
-  bool isEmpty() const;
+  bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
 #endif
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
