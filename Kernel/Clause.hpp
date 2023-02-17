@@ -117,50 +117,27 @@ public:
   class FeatureIterator {
     Clause* _cl;
     unsigned _featureId;
-    unsigned _numPosEq;
-    unsigned _numNegEq;
-    unsigned _numPosNeq;
-    unsigned _numNegNeq;
+    unsigned _pLen;
+    unsigned _nLen;
+    unsigned _justEq;
+    unsigned _justNeq;
     unsigned _numVarOcc;
-    unsigned _numDistinctVar;
 
   public:
     static constexpr const unsigned NUM_FEATURES = 14;
 
     FeatureIterator(Clause* cl) :
       _cl(cl), _featureId(0),
-      _numPosEq(0), _numNegEq(0), _numPosNeq(0), _numNegNeq(0),
-      _numVarOcc(0), _numDistinctVar(0) { }
+      _pLen(0), _nLen(0), _justEq(1), _justNeq(1),
+      _numVarOcc(0) { }
 
-    void computeGeneralizedLengthAndVarOcc() {
+    void computeGenLengthAndVarOcc() {
       for (unsigned i = 0; i < _cl->length(); i++) {
         Literal* l = (*_cl)[i];
         _numVarOcc += l->numVarOccs();
-        if (l->isPositive()) {
-          if (l->isEquality()) {
-            _numPosEq++;
-          } else {
-            _numPosNeq++;
-          }
-        } else {
-          if (l->isEquality()) {
-            _numNegEq++;
-          } else {
-            _numNegNeq++;
-          }
-        }
+        if (l->isPositive()) { _pLen++; } else { _nLen++; }
+        if (l->isEquality()) { _justNeq = 0; } else { _justEq = 0; }
       }
-    }
-
-    void computeDistinctVars() {
-      Set<unsigned> vars;
-      for (unsigned i = 0; i < _cl->length(); i++) {
-        VariableIterator vit((*_cl)[i]);
-        while (vit.hasNext()) {
-          vars.insert(vit.next().var());
-        }
-      }
-      _numDistinctVar = vars.size();
     }
 
     bool hasNext() {
@@ -179,20 +156,20 @@ public:
         case 1:
           return _cl->weight();
 
-        // a bit of AVATAR
         case 2:
-          return _cl->splitWeight();
+          return _cl->length();
 
-        // generalized length
         case 3:
-          computeGeneralizedLengthAndVarOcc();
-          return _numPosEq;
+          computeGenLengthAndVarOcc();
+          return _pLen;
+
         case 4:
-          return _numNegEq;
+          return _nLen;
+
         case 5:
-          return _numPosNeq;
+          return _justEq;
         case 6:
-          return _numNegNeq;
+          return _justNeq;
 
         case 7:
           return _numVarOcc;
@@ -216,11 +193,9 @@ public:
             return (0.5 * inf.getSineLevel()) / (env.maxSineLevel - 2);
           }
 
+        // a bit of AVATAR
         case 12:
-          computeDistinctVars();
-          return _numDistinctVar;
-        case 13:
-          return (double)_numDistinctVar/(double)_cl->weight();
+          return _cl->splitWeight();
 
         default:
           ASSERTION_VIOLATION;
