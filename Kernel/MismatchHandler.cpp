@@ -196,7 +196,8 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       auto sum = [](auto& diff) {
           return iterTraits(diff.iterFifo())
             .fold([](auto l, auto r) 
-              { return TermSpec(IntTraits::addF(), { l, r, }); }); };
+              { return TermSpec(IntTraits::addF(), { l, r, }); })
+            .unwrap(); };
       auto diffConstr = [&]() 
       { return UnificationConstraint(sum(diff1), sum(diff2)); };
 

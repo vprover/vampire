@@ -467,6 +467,51 @@ private:
   Option<OWN_ELEMENT_TYPE> _next;
 };
 
+template<class Iter, class Pred>
+class TakeWhileIter
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  DEFAULT_CONSTRUCTORS(TakeWhileIter)
+
+  TakeWhileIter(Iter iter, Pred pred)
+  : _pred(std::move(pred)), _iter(std::move(iter)), _next(), _break(false) {}
+
+  bool hasNext()
+  {
+    if (_break) return false;
+    if(_next.isSome()) return true;
+    
+    while(_iter.hasNext()) {
+      OWN_ELEMENT_TYPE next = move_if_value<OWN_ELEMENT_TYPE>(_iter.next());
+      if(_pred(next)) {
+        _next = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(next));
+        return true;
+      } else {
+        _break = true;
+        return false;
+      }
+    }
+    return false;
+  }
+
+  OWN_ELEMENT_TYPE next()
+  {
+    ASS(!_break)
+    ALWAYS(hasNext());
+    ASS(_next.isSome());
+    OWN_ELEMENT_TYPE out = move_if_value<OWN_ELEMENT_TYPE>(_next.unwrap());
+    _next = Option<OWN_ELEMENT_TYPE>();
+    return out;
+  }
+
+private:
+  
+  Pred _pred;
+  Iter _iter;
+  Option<OWN_ELEMENT_TYPE> _next;
+  bool _break;
+};
 
 template<class I1, class I2>
 class SortedIterDiff {
@@ -755,16 +800,12 @@ private:
 template<class It1,class It2>
 inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
-{
-  return CatIterator<It1,It2>(it1, it2);
-}
+{ return CatIterator<It1,It2>(std::move(it1), std::move(it2)); }
 
 template<class I1, class I2, class I3, class... Is>
 inline
 auto getConcatenatedIterator(I1 i1, I2 i2, I3 i3, Is... is)
-{
-  return getConcatenatedIterator(getConcatenatedIterator(i1, i2), i3, is...);
-}
+{ return getConcatenatedIterator(getConcatenatedIterator(std::move(i1), std::move(i2)), std::move(i3), std::move(is)...); }
 
 
 
@@ -1905,6 +1946,10 @@ public:
   auto flatten()
   { return iterTraits(getFlattenedIterator(std::move(_iter))); }
 
+  template<class Pred>
+  auto takeWhile(Pred p)
+  { return iterTraits(TakeWhileIter<Iter, Pred>(std::move(_iter), std::move(p))); }
+
   /** 
    * returns the first minimal element wrt the function `less` 
    * less takes two arguments of this iterators element type and 
@@ -1963,8 +2008,8 @@ public:
   }
 
   template<class F> 
-  auto fold(F fun)
-  { return fold(next(), std::move(fun)); }
+  auto fold(F fun) -> Option<Elem>
+  { return someIf(hasNext(), [&]() { return fold(next(), std::move(fun)); }); }
 
   template<class OtherIter>
   auto zip(OtherIter other)
@@ -1972,7 +2017,7 @@ public:
 
 
   auto sum()
-  { return fold(Elem(0), [](Elem l, Elem r) { return l + r; }); }
+  { return fold([](Elem l, Elem r) { return l + r; }) || []() { return Elem(0); }; }
 
   template<class Container>
   Container collect()
@@ -1981,7 +2026,6 @@ public:
     return Container::fromIterator(*this); 
   }
   
-
   template<template<class> class Container>
   Container<Elem> collect()
   { 
@@ -2033,16 +2077,29 @@ IterTraits<Iter> iterTraits(Iter i)
 static const auto range = [](auto from, auto to) 
   { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
 
-
 template<class I1, class I2>
 auto iterSortedDiff(I1 i1, I2 i2) 
 { return iterTraits(SortedIterDiff<I1,I2>(std::move(i1), std::move(i2))); }
-
 ///@}
 
 template<class Iterator>
 auto dropElementType(Iterator iter) 
 { return iterTraits(std::move(iter)).map([](auto _) { return make_tuple(); }); }
+
+// template<class CreateIer>
+// class IterAsData {
+//   CreateIter _iter;
+// public:
+//   friend bool operator<(IterAsData const&l, IterAsData const&r)
+//   { 
+//     auto i1 = iterTraits(l._iter());
+//     auto i2 = iterTraits(l._iter());
+//     while (i1.hasNext() && i2.hasNext>())
+//   }
+// };
+//
+// template<class Iter>
+// auto iterAsData(Iter iter) { return IterAsData<Iter>(std::move(iter)); }
 }
 
 #endif /* __Metaiterators__ */

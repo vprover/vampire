@@ -59,15 +59,22 @@ public:
   virtual void markTagged() final override { }
 #endif
 
+private:
+  static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
+  static bool idxIsNegative(unsigned idx) { return idx % 2; }
+  static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
+public:
+
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
     int i = 0;
     out << "{ ";
     for (auto& t : self._trees) {
-      auto f = env.signature->getPredicate(i / 2);
-      bool p = i % 2;
-      if (p) out << "~";
-      out << *f << "(" << t << "), "; 
+      if (!t.isEmpty()) {
+        auto f = env.signature->getPredicate(idxToFunctor(i));
+        if (idxIsNegative(i)) out << "~";
+        out << *f << "(" << t << "), "; 
+      }
       i++;
     }
     return out << "} ";
@@ -77,10 +84,11 @@ public:
     int i = 0;
     out << "{ " << endl;
     for (auto& t : self.self._trees) {
-      auto f = env.signature->getPredicate(i / 2);
-      bool p = i % 2;
-      OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
-      out << (p ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
+      if (!t.isEmpty()) {
+        auto f = env.signature->getPredicate(idxToFunctor(i));
+        OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
+      }
       i++;
     }
     return out << "} ";
