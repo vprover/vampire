@@ -45,6 +45,8 @@ public:
     CALL("LiteralIndexingStructure::getUnificationCount");
     return countIteratorElements(getUnifications(lit, complementary, false));
   }
+
+  virtual void output(std::ostream& out, bool multiline, unsigned indent) = 0;
 };
 
 };

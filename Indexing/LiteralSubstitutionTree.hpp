@@ -55,6 +55,9 @@ public:
   void handle(LeafData ld, bool insert) final override
   { getTree(ld.key(), /* complementary */ false).handle(std::move(ld), insert); }
 
+  void output(std::ostream& out, bool enableMultiline, unsigned indent) final override 
+  { enableMultiline ? out << multiline(*this, indent) : out << *this; }
+
   VirtualIterator<LeafData> getAll() final override
   {
     CALL("LiteralSubstitutionTree::getAll");
