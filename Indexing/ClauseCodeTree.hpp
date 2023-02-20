@@ -99,6 +99,7 @@ public:
   {
     void init(ClauseCodeTree* tree_, Clause* query_, bool sres_);
     void reset();
+    bool keepRecycled() const { return lInfos.keepRecycled(); }
 
     Clause* next(int& resolvedQueryLit);
 

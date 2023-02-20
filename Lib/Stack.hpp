@@ -116,6 +116,8 @@ public:
     }
   }
 
+  bool keepRecycled() const { return _capacity > 0; }
+
 
   Stack(const Stack& s)
    : _capacity(s._capacity)

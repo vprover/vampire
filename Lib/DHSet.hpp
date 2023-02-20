@@ -49,6 +49,8 @@ public:
     _map.reset();
   }
 
+  bool keepRecycled() const { return _map.keepRecycled(); }
+
   /**
    *  Return true iff @b val is in the set.
    */

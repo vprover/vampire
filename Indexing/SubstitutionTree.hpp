@@ -994,12 +994,6 @@ public:
   class InstMatcher 
   {
   public:
-    void reset()
-    {
-      _boundVars.reset();
-      _bindings.reset();
-      _derefBindings.reset();
-    }
 
     CLASS_NAME(SubstitutionTree::InstMatcher);
     USE_ALLOCATOR(InstMatcher);
@@ -1054,25 +1048,25 @@ public:
       CALL("SubstitutionTree::InstMatcher::bindSpecialVar");
       ASS_EQ(getBSCnt(), 0);
 
-      ALWAYS(_bindings.insert(TermList(var,true),TermSpec(true,term)));
+      ALWAYS(_bindings->insert(TermList(var,true),TermSpec(true,term)));
     }
 
     bool isSpecVarBound(unsigned specVar)
     {
-      return _bindings.find(TermList(specVar,true));
+      return _bindings->find(TermList(specVar,true));
     }
 
     /** Return term bound to special variable @b specVar */
     TermSpec getSpecVarBinding(unsigned specVar)
     {
-      TermSpec res=_bindings.get(TermList(specVar,true));
+      TermSpec res=_bindings->get(TermList(specVar,true));
 
       return res;
     }
 
     bool findSpecVarBinding(unsigned specVar, TermSpec& res)
     {
-      return _bindings.find(TermList(specVar,true), res);
+      return _bindings->find(TermList(specVar,true), res);
     }
 
     bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
@@ -1085,7 +1079,7 @@ public:
     int getBSCnt()
     {
       int res=0;
-      TermStack::Iterator vsit(_boundVars);
+      TermStack::Iterator vsit(*_boundVars);
       while(vsit.hasNext()) {
         if(vsit.next().isEmpty()) {
     res++;
@@ -1096,7 +1090,7 @@ public:
 
     void onLeafEntered()
     {
-      _derefBindings.reset();
+      _derefBindings->reset();
     }
 
   private:
@@ -1110,15 +1104,15 @@ public:
       CALL("SubstitutionTree::InstMatcher::isBound");
       ASS(var.isVar());
 
-      return _bindings.find(var);
+      return _bindings->find(var);
     }
     void bind(TermList var, TermSpec trm)
     {
       CALL("SubstitutionTree::InstMatcher::bind");
       ASS(!var.isOrdinaryVar() || !trm.q); //we do not bind ordinary vars to query terms
 
-      ALWAYS(_bindings.insert(var, trm));
-      _boundVars.push(var);
+      ALWAYS(_bindings->insert(var, trm));
+      _boundVars->push(var);
     }
 
     TermSpec deref(TermList var);
@@ -1128,16 +1122,16 @@ public:
 
     /** Stacks of bindings made on each backtrack level. Backtrack
      * levels are separated by empty terms. */
-    TermStack _boundVars;
+    Recycled<TermStack> _boundVars;
 
-    BindingMap _bindings;
+    Recycled<BindingMap> _bindings;
 
     /**
      * A cache for bindings of variables to result terms
      *
      * The map is reset whenever we enter a new leaf
      */
-    DHMap<TermList,TermList> _derefBindings;
+    Recycled<DHMap<TermList,TermList>> _derefBindings;
 
     struct DerefTask
     {
@@ -1155,7 +1149,7 @@ public:
       {
         CALL("SubstitutionTree::InstMatcher::DerefApplicator::apply");
         if(query) {
-    return im->_derefBindings.get(TermList(var, false));
+          return im->_derefBindings->get(TermList(var, false));
         }
         else {
     return TermList(var, false);
@@ -1166,7 +1160,7 @@ public:
         CALL("SubstitutionTree::InstMatcher::DerefApplicator::applyToSpecVar");
         ASS(!query);
 
-        return im->_derefBindings.get(TermList(specVar, true));
+        return im->_derefBindings->get(TermList(specVar, true));
       }
     private:
       bool query;
@@ -1205,10 +1199,10 @@ public:
       ASS(root);
 
       parent->createBindings(query, reversed,
-          [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
+          [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
 
       if (_inLeaf) {
-        _subst->onLeafEntered(); //we reset the bindings cache
+        _subst.onLeafEntered(); //we reset the bindings cache
       }
     }
 
@@ -1226,7 +1220,7 @@ public:
     bool _inLeaf;
     LDIterator _ldIterator;
 
-    Recycled<InstMatcher> _subst;
+    InstMatcher _subst;
 
     Renaming _resultDenormalizer;
     Node* _root;

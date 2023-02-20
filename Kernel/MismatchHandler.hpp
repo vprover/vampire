@@ -52,8 +52,8 @@ public:
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
   { return out << self._cont; }
 
-  void reset()
-  { _cont.reset(); }
+  void reset() { _cont.reset(); }
+  bool keepRecycled() const { return _cont.keepRecycled() > 0; }
 
   bool isEmpty() const
   { return _cont.isEmpty(); }

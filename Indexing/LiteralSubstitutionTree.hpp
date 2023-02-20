@@ -96,6 +96,12 @@ private:
   static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
 public:
 
+private:
+  static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
+  static bool idxIsNegative(unsigned idx) { return idx % 2; }
+  static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
+public:
+
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
     int i = 0;
