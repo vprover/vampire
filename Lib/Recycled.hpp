@@ -28,6 +28,9 @@ namespace Lib
 struct DefaultReset 
 { template<class T> void operator()(T& t) { t.reset(); } };
 
+struct DefaultKeepRecycled
+{ template<class T> bool operator()(T const& t) { return t.keepRecycled(); } };
+
 struct NoReset 
 { template<class T> void operator()(T& t) {  } };
 
@@ -37,11 +40,12 @@ struct NoReset
  * and returned to a pool of pre-allocated objects. When the next Recycled<T> is
  * constructed an object from the pool is returned instead of allocating heap memory.
  */
-template<class T, class Reset = DefaultReset>
+template<class T, class Reset = DefaultReset, class Keep = DefaultKeepRecycled>
 class Recycled
 {
   T _ptr;
   Reset _reset;
+  Keep _keep;
 
   static Stack<T>& mem() {
     static Stack<T> mem;
@@ -52,6 +56,7 @@ public:
   Recycled()
     : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
     , _reset()
+    , _keep()
   { }
 
   auto asTuple() const -> decltype(auto) { return std::tie(_ptr); }
@@ -73,8 +78,10 @@ public:
 
   ~Recycled()
   { 
-    _reset(_ptr);
-    mem().push(std::move(_ptr));
+    if (_keep(_ptr)) {
+      _reset(_ptr);
+      mem().push(std::move(_ptr));
+    }
   }
 
   T const& operator* () const { return  _ptr; }

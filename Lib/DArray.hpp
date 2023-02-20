@@ -89,6 +89,8 @@ public:
     std::swap(other._array, _array);
   }
 
+  bool keepRecycled() const { return _capacity > 0; }
+
   DArray(DArray&& other) : DArray() { swap(other); }
   DArray& operator=(DArray&& other) { swap(other); return *this; }
 
@@ -187,6 +189,7 @@ public:
     _array = newArray;
     return false;
   } // ensure
+
 
   /**
    * Set array's size to @b s and that its capacity is at least @b s.

@@ -127,6 +127,8 @@ public:
     }
   }
 
+  bool keepRecycled() const { return _capacity > 0; }
+
   /**
    *  Find value by the @b key. The result is true if a pair
    *  with this key is in the map. If such a pair is found,

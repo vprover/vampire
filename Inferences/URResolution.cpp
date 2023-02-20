@@ -353,7 +353,7 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     unsigned pos = ucl->getLiteralPosition(unif.literal);
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
-    itm->resolveLiteral(0, unif, cl, /* useQuerySubstitution */ true);
+    itm->resolveLiteral(0, unif, cl, /* useQuerySubstitution */ false);
 
     processAndGetClauses(itm, 1, acc);
   }

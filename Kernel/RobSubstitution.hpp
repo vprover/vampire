@@ -244,6 +244,7 @@ public:
     _bank.reset();
     _nextUnboundAvailable=0;
   }
+  bool keepRecycled() const { return _bank.keepRecycled(); }
 
   /**
    * Bind special variable to a specified term
