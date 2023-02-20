@@ -86,7 +86,7 @@ namespace Indexing {
       }
 
 
-      Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, NORM_RESULT_BANK); }
+      Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
 
       void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
       { _subs->bindSpecialVar(var, term, varBank); }
