@@ -297,11 +297,11 @@ public:
     int sdiff = int(l.size()) - int(r.size());
     if(sdiff) return sdiff;
     
-    auto i1 = l.iterFifo();
-    auto i2 = r.iterFifo();
+    auto i1 = arrayIter(l);
+    auto i2 = arrayIter(r);
     while (i1.hasNext()) {
-      auto e1 = i1.next();
-      auto e2 = i2.next();
+      auto& e1 = i1.next();
+      auto& e2 = i2.next();
       if (e1 != e2) {
         if (e1 < e2) return -1;
         if (e1 > e2) return 1;
@@ -401,24 +401,7 @@ public:
    * @since 11/03/2006 Bellevue
    */
   inline
-  void push(const C& elem)
-  {
-    CALL("Stack::push");
-
-    if (_cursor == _end) {
-      expand();
-    }
-    ASS(_cursor < _end);
-    ::new(_cursor) C(elem);
-    _cursor++;
-  } // Stack::push()
-
-  /**
-   * Push new element on the stack (move semantics version).
-   * @since 11/08/2020 
-   */
-  inline
-  void push(C&& elem)
+  void push(C elem)
   {
     CALL("Stack::push");
 
@@ -551,6 +534,15 @@ public:
     for (auto& x : elems) {
       push(std::move(x));
     }
+  }
+
+  void pushMany() {}
+
+  template<class... As>
+  void pushMany(C item, As... rest) 
+  { 
+    push(std::move(item)); 
+    pushMany(std::move(rest)...);
   }
 
 

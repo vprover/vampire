@@ -94,9 +94,8 @@ struct StackHash {
   // TODO equals()?
   template<typename T>
   static unsigned hash(const Stack<T>& s, unsigned hash = FNV32_OFFSET_BASIS) {
-    typename Stack<T>::ConstIterator it(s);
-    while(it.hasNext()) {
-      hash = HashUtils::combine(hash, ElementHash::hash(it.next()));
+    for (auto& x : s) {
+      hash = HashUtils::combine(hash, ElementHash::hash(x));
     }
     return hash;
   }

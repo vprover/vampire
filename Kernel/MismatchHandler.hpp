@@ -128,8 +128,8 @@ public:
   /** TODO document */
   Option<AbstractionResult> tryAbstract(
       AbstractingUnifier* au,
-      TermSpec t1,
-      TermSpec t2) const;
+      TermSpec const& t1,
+      TermSpec const& t2) const;
 
   // /** TODO document */
   // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
@@ -142,8 +142,8 @@ private:
   bool isInterpreted(unsigned f) const;
   bool canAbstract(
       AbstractingUnifier* au,
-      TermSpec t1,
-      TermSpec t2) const;
+      TermSpec const& t1,
+      TermSpec const& t2) const;
 };
 
 class AbstractingUnifier {

@@ -457,6 +457,7 @@ public:
   unsigned defaultHash2() const
   { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash2(); })); }
 
+  Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<A, As...> 
 
 

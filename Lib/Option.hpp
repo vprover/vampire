@@ -30,8 +30,17 @@ template<
   class T,
   typename std::enable_if<std::is_reference<T>::value, bool>::type = true
   > 
-T move_if_value(T t) 
-{ return std::forward<T>(t); }
+T move_if_value(std::remove_reference_t<T> && t) 
+{ return t; }
+
+
+template<
+  class T,
+  typename std::enable_if<std::is_reference<T>::value, bool>::type = true
+  > 
+T move_if_value(std::remove_reference_t<T>& t) 
+{ return t; }
+
 
 template<
   class T,

@@ -51,6 +51,7 @@ class Recycled
     static Stack<T> mem;
     return mem;
   }
+  Recycled(Recycled const&) = delete;
 public: 
 
   Recycled()
@@ -58,6 +59,17 @@ public:
     , _reset()
     , _keep()
   { }
+
+  template<class Clone>
+  Recycled clone(Clone cloneFn) const 
+  {
+    Recycled c; 
+    T const& from = **this;
+    T& to = *c;
+    cloneFn(to, from);
+    return c;
+  }
+
 
   auto asTuple() const -> decltype(auto) { return std::tie(_ptr); }
   IMPL_COMPARISONS_FROM_TUPLE(Recycled);
@@ -73,12 +85,15 @@ public:
 
   Recycled(Recycled&& other) = default;
   Recycled& operator=(Recycled&& other) = default;
-  Recycled(Recycled const& other) = default;
-  Recycled& operator=(Recycled const& other) = default;
+  // Recycled(Recycled const& other) = default;
+  // Recycled& operator=(Recycled const& other) = default;
 
   ~Recycled()
   { 
     if (_keep(_ptr)) {
+      // if (mem().size() > 100){
+      //   DBGE(mem().size())
+      // }
       _reset(_ptr);
       mem().push(std::move(_ptr));
     }

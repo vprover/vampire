@@ -56,14 +56,14 @@ struct VarSpec
   /** struct containing first hash function for DHMap object storing variable banks */
   struct Hash1
   {
-   static unsigned hash(VarSpec& o) {
+   static unsigned hash(VarSpec const& o) {
      return HashUtils::combine(o.var, o.index);
    }
   };
   /** struct containing second hash function for DHMap object storing variable banks */
   struct Hash2
   {
-    static unsigned hash(VarSpec& o) {
+    static unsigned hash(VarSpec const& o) {
       return HashUtils::combine(o.index, o.var);
     }
   };
@@ -100,6 +100,7 @@ struct OldTermSpec {
    term.term()->arity()==0 ));
   }
 
+  OldTermSpec clone() const { return *this; }
 };
 
 class TermSpec
@@ -116,33 +117,57 @@ class TermSpec
     auto argsIter() const 
     { return iterTraits(args.iter())
                   .flatMap([](auto& args) { return getArrayishObjectIterator<const_ref_t>(*args); }); }
+    Appl clone() const 
+    { return Appl { .functor = functor, 
+                    .args = args.map([](auto& x) { 
+                        return x.clone([](auto& to, auto const& from) { 
+                            to.loadFromIterator(
+                                arrayIter(from)
+                                  .map([](auto& c){ return c.clone(); })); 
+                            }); 
+                        }), 
+                  }; }
   };
-  Coproduct<
+  using Copro = Coproduct<
     Appl,
     OldTermSpec
-    > _self;
+    >;
+  Copro _self;
   friend class UnificationConstraint;
   friend class RobSubstitution;
 
   // TermList derefTerm() { return deref().first; }
   // int derefIndex() { return deref().second; }
+  TermSpec(TermSpec const&) = delete;
+  TermSpec(Copro self) : _self(std::move(self)) {}
 public:
+  TermSpec(TermSpec&&) = default;
+  TermSpec& operator=(TermSpec&&) = default;
   OldTermSpec old() const { return _self.unwrap<OldTermSpec>(); }
   // TODO get rid of default constructor
-  TermSpec() : _self(OldTermSpec()) {}
+  TermSpec() : TermSpec(decltype(_self)(OldTermSpec())) {}
   TermSpec(VarSpec v) : TermSpec(TermList::var(v.var), v.index) {}
-  auto asTuple() const -> decltype(auto) { return std::tie(_self); }
-  IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
-  IMPL_HASH_FROM_TUPLE(TermSpec)
+  friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
+  friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);
+  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(TermSpec);
+  unsigned defaultHash() const;
+  unsigned defaultHash2() const;
+
+  TermSpec clone() const { return TermSpec(_self.clone()); }
+  
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
   TermSpec(TermList self, int index) : _self(OldTermSpec(self, index)) {}
-  TermSpec(unsigned functor, std::initializer_list<TermSpec> args) : _self(Appl{functor, someIf(args.size() != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 
+
+
+  template<class... Args>
+  TermSpec(unsigned functor, Args... args) 
+    : _self(Appl{functor, someIf(sizeof...(args) != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 
   {
-    if (args.size() != 0) _self.template unwrap<Appl>().args.unwrap()->init(args);
+    if (sizeof...(args) != 0) _self.template unwrap<Appl>().args.unwrap()->pushMany(std::move(args)...);
   }
 
   TermList::Top top() const;
-  TermSpec deref(RobSubstitution const* s) const;
+  TermSpec const& deref(RobSubstitution const* s) const;
   bool isOutputVar() const;
   unsigned varNumber() const { return *top().var(); }
   bool definitelyGround() const;// { return t->shared() && t->ground(); }
@@ -163,7 +188,7 @@ public:
   unsigned nTermArgs() const;//{ return derefTerm().term()->numTermArguments(); }
   unsigned nAllArgs() const;//{ return derefTerm().term()->numTermArguments(); }
                             //
-  bool isNumeral()     { return isTerm() && env.signature->getFunction(functor())->numericConstant(); }
+  bool isNumeral() const { return isTerm() && env.signature->getFunction(functor())->interpretedNumber(); }
   // bool isGround()      { return _subs->apply(_term, _index).ground(); }
   TermSpec termArg(unsigned i) const;
   TermSpec typeArg(unsigned i) const;
@@ -174,6 +199,18 @@ public:
 
   TermList toTerm(RobSubstitution& s) const;
 
+};
+
+struct AutoDerefTermSpec
+{
+  TermSpec term;
+  RobSubstitution const* subs;
+  AutoDerefTermSpec clone() const { return { term.clone(), subs, }; }
+  AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s) 
+    : term(t.deref(s).clone())
+    , subs(s) { }
+  explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()), subs(other.subs) {}
+  AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
 };
 
 class UnificationConstraint
@@ -191,14 +228,16 @@ public:
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
   IMPL_HASH_FROM_TUPLE(UnificationConstraint);
 
+  UnificationConstraint clone() const { return UnificationConstraint(lhs().clone(), rhs().clone()); }
+
   UnificationConstraint(TermSpec t1, TermSpec t2)
   : _t1(std::move(t1)), _t2(std::move(t2))
   {}
 
   Option<Literal*> toLiteral(RobSubstitution& s);
 
-  TermSpec& lhs() { return _t1; }
-  TermSpec& rhs() { return _t2; }
+  TermSpec const& lhs() const { return _t1; }
+  TermSpec const& rhs() const { return _t2; }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
   { return out << self._t1 << " != " << self._t2; }
@@ -275,77 +314,8 @@ public:
   size_t size() const {return _bank.size(); }
 #endif
 
-  /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
-  
-  /** Specifies an instance of a term (i.e. (term, variable bank) pair */
-  // struct TermSpec
-  // {
-  //   /** Create a new TermSpec struct */
-  //   TermSpec() : index(0) {}
-  //   /** Create a new TermSpec struct */
-  //   TermSpec(TermList term, int index) : term(term), index(index) {}
-  //   /** Create a new TermSpec struct from a VarSpec*/
-  //   explicit TermSpec(const VarSpec& vs) : index(vs.index)
-  //   {
-  //     if(index==SPECIAL_INDEX) {
-  //       term.makeSpecialVar(vs.var);
-  //     } else {
-  //       term.makeVar(vs.var);
-  //     }
-  //   }
-  //   /**
-  //    * If it's sure, that @b ts has the same content as this TermSpec,
-  //    * return true. If they don't (or it cannot be easily checked), return
-  //    * false. Only term content is taken into account, i.e. when two
-  //    * literals are pointer do by ts.term, their polarity is ignored.
-  //    */
-  //   bool sameTermContent(const TermSpec& ts)
-  //   {
-  //     bool termSameContent=term.sameContent(&ts.term);
-  //     if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
-  //       ts.term.isTerm() && ts.term.term()->isLiteral()) {
-  //       const Literal* l1=static_cast<const Literal*>(term.term());
-  //       const Literal* l2=static_cast<const Literal*>(ts.term.term());
-  //       if(l1->functor()==l2->functor() && l1->arity()==0) {
-  //         return true;
-  //       }
-  //     }
-  //     if(!termSameContent) {
-  //       return false;
-  //     }
-  //     return index==ts.index || term.isSpecialVar() ||
-  //     	(term.isTerm() && (
-	//   (term.term()->shared() && term.term()->ground()) ||
-	//    term.term()->arity()==0 ));
-  //   }
-  //
-  //   bool isVar()
-  //   {
-  //     return term.isVar();
-  //   }
-  //   bool operator==(const TermSpec& o) const
-  //   { return term==o.term && index==o.index; }
-  //
-  //   /** term reference */
-  //   TermList term;
-  //   /** index of term to which it is bound */
-  //   int index;
-  // };
   typedef pair<TermSpec,TermSpec> TTPair;
  
-  // /** struct containing first hash function of TTPair objects*/
-  // struct TTPairHash
-  // {
-  //  static unsigned hash(TTPair& o)
-  //  {
-  //    return IdentityHash::hash(o.first.term.content())^o.first.index ^
-  //      ((IdentityHash::hash(o.second.term.content())^o.second.index)<<1);
-  //  }
-  // };
-  //
-  // friend std::ostream& operator<<(std::ostream& out, TermSpec const& self)
-  // { return out << self.term << "/" << self.index; }
-
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
   {
     if(self.index == SPECIAL_INDEX) {
@@ -369,28 +339,24 @@ private:
   static const int SPECIAL_INDEX;
 
   bool isUnbound(VarSpec v) const;
-  TermSpec deref(VarSpec v) const;
-  TermSpec derefBound(TermSpec v) const;
+  TermSpec const& deref(VarSpec v) const;
+  TermSpec const& derefBound(TermSpec const& v) const;
 
   void addToConstraints(const VarSpec& v1, const VarSpec& v2);
-  void bind(const VarSpec& v, const TermSpec& b);
+  void bind(const VarSpec& v, TermSpec b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
   bool unify(TermSpec t1, TermSpec t2);
-  bool occurs(VarSpec vs, TermSpec ts);
+  bool occurs(VarSpec const& vs, TermSpec const& ts);
 
-  inline
-  VarSpec getVarSpec(TermSpec ts) const
-  { return ts.varSpec(); }
-
-  VarSpec getVarSpec(TermList tl, int index) const
-  {
-    CALL("RobSubstitution::getVarSpec");
-    ASS(tl.isVar());
-    index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
-    return VarSpec(tl.var(), index);
-  }
+  // VarSpec getVarSpec(TermList tl, int index) const
+  // {
+  //   CALL("RobSubstitution::getVarSpec");
+  //   ASS(tl.isVar());
+  //   index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
+  //   return VarSpec(tl.var(), index);
+  // }
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
@@ -407,9 +373,9 @@ private:
     BindingBacktrackObject(RobSubstitution* subst, VarSpec v)
     :_subst(subst), _var(v)
     {
-      TermSpec t;
-      if(_subst->_bank.find(_var,t)) {
-        _term = some(t);
+      Option<TermSpec&> t = _subst->_bank.find(_var);
+      if(t) {
+        _term = some(t->clone());
       }
     }
     void backtrack()
@@ -450,30 +416,25 @@ namespace Lib {
 
   // TODO optimize to use TermList iterator
   template<>
-  struct BottomUpChildIter<pair<Kernel::TermSpec, Kernel::RobSubstitution const*>>
+  // struct BottomUpChildIter<pair<Kernel::TermSpec, Kernel::RobSubstitution const*>>
+  struct BottomUpChildIter<Kernel::AutoDerefTermSpec>
   {
-    using Item = pair<Kernel::TermSpec, Kernel::RobSubstitution const*>;
+    using Item = Kernel::AutoDerefTermSpec;
     Item _self;
     unsigned _arg;
 
-    BottomUpChildIter(Item self) : _self(self), _arg(0) {}
+    BottomUpChildIter(Item const& self) : _self(Item(self)), _arg(0) {}
  
-    Item self() { return _self; }
+    Item self() { return _self.clone(); }
 
-    Item next() 
-    { 
-      auto nxt = _self.first.anyArg(_arg++);
-      // DBGE(nxt);
-      auto dereffed = nxt.deref(_self.second);
-      // DBGE(dereffed)
-      return make_pair(dereffed, _self.second); 
-    }
+    Item next()
+    { return Kernel::AutoDerefTermSpec(_self.term.anyArg(_arg++), _self.subs); }
 
     bool hasNext()
-    { return _self.first.isTerm() && _arg < _self.first.nAllArgs(); }
+    { return _self.term.isTerm() && _arg < _self.term.nAllArgs(); }
 
     unsigned nChildren()
-    { return _self.first.isVar() ? 0 : _self.first.nAllArgs(); }
+    { return _self.term.isVar() ? 0 : _self.term.nAllArgs(); }
   };
 
 } // namespace Lib
