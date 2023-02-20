@@ -111,7 +111,9 @@ public:
   ArrayishObjectIterator(Cont arr, size_t size) : _arr(arr),
   _index(0), _size(size) {}
   inline bool hasNext() { return _index<_size; }
-  inline ELEMENT_TYPE(ArrayishObjectIterator) next() { ASS(_index<_size); return _arr[_index++]; }
+  inline OWN_ELEMENT_TYPE next() 
+  { ASS(_index<_size); 
+    return move_if_value<OWN_ELEMENT_TYPE>(_arr[_index++]); }
   inline bool knowsSize() { return true;}
   inline bool size() { return _size;}
 private:
@@ -559,7 +561,7 @@ public:
   OWN_ELEMENT_TYPE next()
   {
     moveToNext();
-    return _curr1.take().unwrap();
+    return move_if_value<OWN_ELEMENT_TYPE>(_curr1.take().unwrap());
   }
 private:
   I1 _i1;
