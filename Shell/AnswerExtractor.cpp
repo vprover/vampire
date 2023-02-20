@@ -341,7 +341,7 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
   //return false;
 
   // TODO(hzzv): move the following to a separate class and uncomment code above
-  ASS((_lastAnsLit || List<pair<Clause*, Literal*>>::isNonEmpty(_answerPairs)));
+  if (!_lastAnsLit && List<pair<Clause*, Literal*>>::isEmpty(_answerPairs)) return false;
   if (_lastAnsLit) {
     List<pair<Clause*, Literal*>>::push(make_pair(nullptr, _lastAnsLit), _answerPairs);
   }
@@ -411,7 +411,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
   CALL("AnswerLiteralManager::tryAddingAnswerLiteral");
 
-  if(unit->isClause() || unit->inputType()!=UnitInputType::CONJECTURE) {
+  if(unit->isClause() || (unit->inputType()!=UnitInputType::CONJECTURE && unit->inputType()!=UnitInputType::NEGATED_CONJECTURE)) {
     return unit;
   }
 
