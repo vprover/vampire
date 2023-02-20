@@ -1498,9 +1498,9 @@ INDEX_TEST(bug02,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
       .insert = {
-        f2(a, b),
+        f2(y, x),
       },
-      .query = f2(y, x),
+      .query = f2(a, b),
       .expected = { 
 
           TermUnificationResultSpec 
