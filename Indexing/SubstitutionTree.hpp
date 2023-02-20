@@ -17,6 +17,10 @@
 #ifndef __SubstitutionTree__
 #define __SubstitutionTree__
 
+#define DEBUG_ITER(lvl,   ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_INSERT(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_REMOVE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+
 #include <utility>
 
 #include "Forwards.hpp"
@@ -1255,7 +1259,6 @@ public:
       , _clientBDRecording(false)
       , _iterCntr(parent->_iterCnt)
     {
-#define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
       CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
       if(!root) {
@@ -1263,8 +1266,10 @@ public:
       }
 
       parent->createBindings(query, reversed, 
-          [&](unsigned var, TermList t) { _algo.bindQuerySpecialVar(var, t, QUERY_BANK); });
-      DEBUG_QUERY("query: ", _abstractingUnifier.subs())
+          [&](unsigned var, TermList t) { 
+            DEBUG_ITER(0, "bound: ", var, " -> ", t, "/", QUERY_BANK);
+            _algo.bindQuerySpecialVar(var, t, QUERY_BANK); 
+          });
 
 
       BacktrackData bd;
@@ -1412,6 +1417,7 @@ public:
         BacktrackData bd;
         bool success=enter(n,bd);
         if(!success) {
+          DEBUG_ITER(1, "backtracking.")
           bd.backtrack();
           continue;
         } else {
@@ -1433,6 +1439,7 @@ public:
         recording=true;
         _algo.bdRecord(bd);
         success = _algo.associate(_svStack->top(),n->term,bd);
+        DEBUG_ITER(0, "associate: ", _svStack->top(), " -> ", n->term, ": ", success ? "success" : "failure")
       }
       if(success) {
         if(n->isLeaf()) {
@@ -1484,4 +1491,7 @@ public:
 #include "Indexing/SubstitutionTree_FastGen.cpp"
 #include "Indexing/SubstitutionTree_FastInst.cpp"
 
+#undef DEBUG_ITER
+#undef DEBUG_INSERT
+#undef DEBUG_REMOVE
 #endif // __SubstitutionTree__

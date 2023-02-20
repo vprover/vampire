@@ -345,7 +345,13 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
                  .map([](auto& x) { return make_pair(std::move(x.first), -x.second); }))
               );
   };
-  if (diff.size() == 0) {
+  if (arrayIter(diff).any([&](auto& x) 
+        { return x.first.isTerm() && n.isMul(x.first.functor()); })) {
+
+    // non-linear multiplication. we cannot deal with this in alasca
+    return AbstractionResult(EqualIf().constr(toConstr(diff)));
+
+  } else if (diff.size() == 0) {
     return AbstractionResult(EqualIf());
 
   } else if ( vars.hasNext() ) {
@@ -367,7 +373,7 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec t1, 
       ;
     } else {
       // multiplet variables
-      return AbstractionResult(EqualIf().constr(toConstr(diff)));
+     return AbstractionResult(EqualIf().constr(toConstr(diff)));
     }
   } 
 

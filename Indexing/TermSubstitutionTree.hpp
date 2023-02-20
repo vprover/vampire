@@ -74,9 +74,7 @@ public:
   bool generalizationExists(TermList t) final override
   { return t.isVar() ? false : _inner.generalizationExists(t); }
 
-
 private:
-
 
   template<class Iterator, class TypedOrUntypedTermList> 
   auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
@@ -87,7 +85,6 @@ private:
 
   virtual void output(std::ostream& out) const final override { out << *this; }
 
-private:
 
   template<class Iterator, class TypedOrUntypedTermList, class... Args> 
   auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, Args... args)

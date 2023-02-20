@@ -14,8 +14,6 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
-#define DEBUG_INSERT(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
-#define DEBUG_REMOVE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 namespace Indexing {
 
 /**

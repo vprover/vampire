@@ -2086,6 +2086,19 @@ template<class Iterator>
 auto dropElementType(Iterator iter) 
 { return iterTraits(std::move(iter)).map([](auto _) { return make_tuple(); }); }
 
+
+template<class Array>
+auto arrayIter(Array const& x) 
+{ return iterTraits(getArrayishObjectIterator<const_ref_t>(x)); }
+
+template<class Array>
+auto arrayIter(Array      & x) 
+{ return iterTraits(getArrayishObjectIterator<mut_ref_t>(x)); }
+
+template<class Array>
+auto arrayIter(Array     && x) 
+{ return iterTraits(ownedArrayishIterator(std::move(x))); }
+
 // template<class CreateIer>
 // class IterAsData {
 //   CreateIter _iter;

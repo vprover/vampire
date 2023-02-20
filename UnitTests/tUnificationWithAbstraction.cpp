@@ -1462,3 +1462,31 @@ ROB_UNIFY_TEST(bug01,
       .constraints = Stack<Literal*>{ },
     })
 
+
+ROB_UNIFY_TEST(non_linear_mul_1,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f(3 * a),
+    f(x * a),
+    TermUnificationResultSpec { 
+      .querySigma  = f(3 * a),
+      .resultSigma = f(x * a),
+      .constraints = Stack<Literal*>{ 3 * a != x * a },
+    })
+
+
+ROB_UNIFY_TEST_FAIL(non_linear_mul_2,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(3 * a, 2),
+    f2(x * a, x))
+
+
+ROB_UNIFY_TEST(non_linear_mul_3,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(2, 3 * a),
+    f2(x, x * a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(2, 3 * a),
+      .resultSigma = f2(2, 2 * a),
+      .constraints = Stack<Literal*>{ 3 * a != 2 * a },
+    })
+
