@@ -207,13 +207,13 @@ struct IndexTest {
     )                                                                                               \
  
 
-#define RUN_TEST(name, sugar, ...)                                                                  \
+#define INDEX_TEST(name, sugar, ...)                                                                  \
   TEST_FUN(name) {                                                                                  \
        __ALLOW_UNUSED(sugar)                                                                        \
        __VA_ARGS__.run();                                                                           \
   }                                                                                                 \
 
-RUN_TEST(term_indexing_one_side_interp_01,
+INDEX_TEST(term_indexing_one_side_interp_01,
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -238,7 +238,7 @@ RUN_TEST(term_indexing_one_side_interp_01,
     })
 
 
-RUN_TEST(term_indexing_one_side_interp_02, 
+INDEX_TEST(term_indexing_one_side_interp_02, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -250,7 +250,7 @@ RUN_TEST(term_indexing_one_side_interp_02,
       .expected = Stack<TermUnificationResultSpec>(),
     })
  
-RUN_TEST(term_indexing_one_side_interp_03, 
+INDEX_TEST(term_indexing_one_side_interp_03, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -275,7 +275,7 @@ RUN_TEST(term_indexing_one_side_interp_03,
     })
 
 
-RUN_TEST(term_indexing_one_side_interp_04, 
+INDEX_TEST(term_indexing_one_side_interp_04, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -301,7 +301,7 @@ RUN_TEST(term_indexing_one_side_interp_04,
 
 
 
-RUN_TEST(term_indexing_one_side_interp_04_b, 
+INDEX_TEST(term_indexing_one_side_interp_04_b, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -321,7 +321,7 @@ RUN_TEST(term_indexing_one_side_interp_04_b,
     })
 
 
-RUN_TEST(term_indexing_one_side_interp_04_c, 
+INDEX_TEST(term_indexing_one_side_interp_04_c, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -345,7 +345,7 @@ RUN_TEST(term_indexing_one_side_interp_04_c,
       }
     })
 
-RUN_TEST(term_indexing_one_side_interp_04_d, 
+INDEX_TEST(term_indexing_one_side_interp_04_d, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -369,7 +369,7 @@ RUN_TEST(term_indexing_one_side_interp_04_d,
       }
     })
 
-RUN_TEST(term_indexing_one_side_interp_05, 
+INDEX_TEST(term_indexing_one_side_interp_05, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -399,7 +399,7 @@ RUN_TEST(term_indexing_one_side_interp_05,
 })
 
 
-RUN_TEST(term_indexing_one_side_interp_06, 
+INDEX_TEST(term_indexing_one_side_interp_06, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -429,7 +429,7 @@ RUN_TEST(term_indexing_one_side_interp_06,
 })
 
 
-RUN_TEST(term_indexing_one_side_interp_07, 
+INDEX_TEST(term_indexing_one_side_interp_07, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -460,7 +460,7 @@ RUN_TEST(term_indexing_one_side_interp_07,
       }
 })
 
-RUN_TEST(term_indexing_one_side_interp_08, 
+INDEX_TEST(term_indexing_one_side_interp_08, 
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -548,7 +548,7 @@ TEST_FUN(term_indexing_poly_01)
  
 
 
-RUN_TEST(hol_0101,
+INDEX_TEST(hol_0101,
     HOL_SUGAR(
       DECL_FUNC(f3, {srt, srt, srt}, srt)
       DECL_CONST(f1, arrow(srt, srt))
@@ -572,7 +572,7 @@ RUN_TEST(hol_0101,
     })
 
 
-RUN_TEST(hol_0102,
+INDEX_TEST(hol_0102,
     HOL_SUGAR(
       DECL_FUNC(f3, {srt, srt, srt}, srt)
       DECL_CONST(f1, arrow(srt, srt))
@@ -596,7 +596,9 @@ RUN_TEST(hol_0102,
     })
 
 
-RUN_TEST(hol_02,
+
+
+INDEX_TEST(hol_02,
     HOL_SUGAR(
       DECL_FUNC(f3, {srt, srt, srt}, srt)
       DECL_CONST(f1, arrow(srt, srt))
@@ -622,7 +624,7 @@ RUN_TEST(hol_02,
     })
 
 
-RUN_TEST(hol_03,
+INDEX_TEST(hol_03,
     HOL_SUGAR(
       DECL_FUNC(f3, {srt, srt, srt}, srt)
       DECL_CONST(f1, arrow(srt, srt))
@@ -645,8 +647,8 @@ RUN_TEST(hol_03,
       }
     })
 
-#define RUN_TEST_hol_04(idx, ...)                                                                   \
-  RUN_TEST(hol_04_ ## idx,                                                                          \
+#define INDEX_TEST_hol_04(idx, ...)                                                                   \
+  INDEX_TEST(hol_04_ ## idx,                                                                          \
     HOL_SUGAR(                                                                                      \
       DECL_FUNC(f3, {srt, srt, srt}, srt)                                                           \
       DECL_POLY_CONST(c1, 1, alpha)                                                                 \
@@ -663,7 +665,7 @@ RUN_TEST(hol_03,
     })
 
 
-RUN_TEST_hol_04(01,
+INDEX_TEST_hol_04(01,
       .query = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
       .expected =  {
         TermUnificationResultSpec 
@@ -673,7 +675,7 @@ RUN_TEST_hol_04(01,
       }
     )
 
-RUN_TEST_hol_04(02,
+INDEX_TEST_hol_04(02,
       .query = ap(h(arrow(srt,srt), srt), c2(arrow(srt, srt))),
       .expected =  {
         TermUnificationResultSpec 
@@ -684,8 +686,8 @@ RUN_TEST_hol_04(02,
     )
 
 
-#define RUN_TEST_hol_05(idx, ...)                                                                   \
-  RUN_TEST(hol_05_ ## idx,                                                                          \
+#define INDEX_TEST_hol_05(idx, ...)                                                                   \
+  INDEX_TEST(hol_05_ ## idx,                                                                          \
     HOL_SUGAR(                                                                                      \
       DECL_FUNC(f3, {srt, srt, srt}, srt)                                                           \
       DECL_POLY_CONST(c1, 1, alpha)                                                                 \
@@ -702,7 +704,7 @@ RUN_TEST_hol_04(02,
     })
 
 
-RUN_TEST_hol_05(01,
+INDEX_TEST_hol_05(01,
       .query = ap(h(arrow(srt,srt), srt), c1(arrow(srt, srt))),
       .expected =  {
         TermUnificationResultSpec 
@@ -712,7 +714,7 @@ RUN_TEST_hol_05(01,
       }
     )
 
-RUN_TEST_hol_05(02,
+INDEX_TEST_hol_05(02,
       .query = ap(h(arrow(srt,srt), srt), c2(arrow(srt, srt))),
       .expected =  {
         TermUnificationResultSpec 
@@ -722,7 +724,7 @@ RUN_TEST_hol_05(02,
       }
     )
 
-RUN_TEST(term_indexing_poly_uwa_01,
+INDEX_TEST(term_indexing_poly_uwa_01,
     POLY_RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
@@ -1318,7 +1320,7 @@ ROB_UNIFY_TEST(top_level_constraints_1,
       .constraints = Stack<Literal*>{ b + c != x + y },
     })
 
-RUN_TEST(top_level_constraints_2,
+INDEX_TEST(top_level_constraints_2,
     RAT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::AC2),
@@ -1489,4 +1491,24 @@ ROB_UNIFY_TEST(non_linear_mul_3,
       .resultSigma = f2(2, 2 * a),
       .constraints = Stack<Literal*>{ 3 * a != 2 * a },
     })
+
+
+INDEX_TEST(bug02,
+    RAT_SUGAR,
+    IndexTest {
+      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP),
+      .insert = {
+        f2(a, b),
+      },
+      .query = f2(y, x),
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = f2(a,b),
+            .resultSigma = f2(a,b),
+            .constraints = Stack<Literal*>() }, 
+
+      },
+    })
+
 
