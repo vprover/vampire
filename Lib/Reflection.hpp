@@ -34,19 +34,20 @@
   friend bool operator==(Class const& l, Class const& r)                                            \
   { return l.asTuple() == r.asTuple(); }                                                            \
                                                                                                     \
-  friend bool operator!=(Class const& l, Class const& r)                                            \
-  { return !(l == r); }                                                                             \
-                                                                                                    \
   friend bool operator<(Class const& l, Class const& r)                                             \
   { return l.asTuple() < r.asTuple(); }                                                             \
                                                                                                     \
+  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                      \
+
+#define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                \
   friend bool operator> (Class const& l, Class const& r) { return r < l; }                          \
   friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }                \
   friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }                \
+  friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }                      \
 
 #define IMPL_HASH_FROM_TUPLE(Class)                                                                 \
   unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                             \
-  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                            \
+  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                           \
 
 //The obvious way to define this macro would be
 //#define DECL_ELEMENT_TYPE(T) typedef T _ElementType

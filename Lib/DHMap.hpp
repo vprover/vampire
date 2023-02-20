@@ -129,6 +129,19 @@ public:
 
   bool keepRecycled() const { return _capacity > 0; }
 
+  Option<Val const&> find(Key const& k) const
+  {
+    auto e = findEntry(k);
+    return someIf(e != nullptr, [&]() -> Val const& { return e->_val; });
+  }
+
+
+  Option<Val&> find(Key const& k)
+  {
+    auto e = findEntry(k);
+    return someIf(e != nullptr, [&]() -> Val      & { return e->_val; });
+  }
+
   /**
    *  Find value by the @b key. The result is true if a pair
    *  with this key is in the map. If such a pair is found,
@@ -136,7 +149,7 @@ public:
    *  value of @b val remains unchanged.
    */
   inline
-  bool find(Key key, Val& val) const
+  bool find(Key const& key, Val& val) const
   {
     CALL("DHMap::find/2");
     const Entry* e=findEntry(key);
@@ -162,15 +175,15 @@ public:
     return &e->_val;
   }
 
-  /**
-   *  Return true iff a pair with @b key as a key is in the map.
-   */
-  inline
-  bool find(Key key) const
-  {
-    CALL("DHMap::find/1");
-    return findEntry(key);
-  }
+  // /**
+  //  *  Return true iff a pair with @b key as a key is in the map.
+  //  */
+  // inline
+  // bool find(Key key) const
+  // {
+  //   CALL("DHMap::find/1");
+  //   return findEntry(key);
+  // }
 
   /**
    *  Return value associated with given key. A pair with
@@ -236,10 +249,14 @@ public:
     }
   }
 
-  /** same as @b insert but using move semantics instead of copying */
-  bool emplace(Key key, Val&& val)
+  /**
+   * If there is no value stored under @b key in the map,
+   * insert pair (key,value) and return true. Otherwise, 
+   * return false.
+   */
+  bool insert(Key key, Val val)
   {
-    CALL("DHMap::emplace");
+    CALL("DHMap::insert");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -253,25 +270,14 @@ public:
 	_deleted--;
       }
       e->_info.deleted=0;
-      e->_key=key;
-      e->_val=std::move(val);
+      e->_key = std::move(key);
+      e->_val = std::move(val);
       _size++;
     }
     return !exists;
 
   }
 
-  /**
-   * If there is no value stored under @b key in the map,
-   * insert pair (key,value) and return true. Otherwise,
-   * return false.
-   * This function copies copies @b val.
-   */
-  bool insert(Key key, const Val& val)
-  {
-    CALL("DHMap::insert");
-    return emplace(key, Val(val));
-  }
 
   /**
    * If there is no value stored under @b key in the map,
@@ -400,7 +406,7 @@ public:
   {
     CALL("DHMap::set");
     ensureExpanded();
-    Entry* e=findEntryToInsert(key);
+    Entry* e = findEntryToInsert(std::move(key));
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
     if(!exists) {
       if(e->_info.timestamp!=_timestamp) {
@@ -446,7 +452,7 @@ public:
    * If there is a value stored under the @b key, remove
    * it and return true. Otherwise, return false.
    */
-  bool remove(Key key)
+  bool remove(Key const& key)
   {
     CALL("DHMap::remove");
     Entry* e=findEntry(key);
@@ -563,7 +569,7 @@ private:
     while(ep!=oldAfterLast) {
       ASS(ep);
       if(ep->_info.timestamp==oldTimestamp && !ep->_info.deleted) {
-	insert(ep->_key, ep->_val);
+	insert(std::move(ep->_key), std::move(ep->_val));
       }
       (ep++)->~Entry();
     }
@@ -574,17 +580,18 @@ private:
     }
   }
 
+
   /** Return pointer to an Entry object which contains specified key,
    * or 0, if there is no such */
   inline
-  Entry* findEntry(Key key)
+  Entry* findEntry(Key const& key)
   {
     return const_cast<Entry*>(static_cast<const DHMap*>(this)->findEntry(key));
   }
 
   /** Return pointer to an Entry object which contains specified key,
    * or 0, if there is no such */
-  const Entry* findEntry(Key key) const
+  const Entry* findEntry(Key const& key) const
   {
     CALL("DHMap::findEntry");
     if (_capacity == 0) return nullptr;
@@ -627,7 +634,7 @@ private:
 
   /** Return pointer to an Entry object which contains, or could contain
    * specified key */
-  Entry* findEntryToInsert(Key key)
+  Entry* findEntryToInsert(Key const& key)
   {
     CALL("DHMap::findEntryToInsert");
     ensureExpanded();
@@ -763,7 +770,7 @@ public:
     return VirtualIterator<Val>(new RangeIteratorCore(*this));
   }
     
-  typedef std::pair<Key,Val> Item;
+  typedef std::pair<Key const&, Val const&> Item;
 
 private:
   class ItemIteratorCore

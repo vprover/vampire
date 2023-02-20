@@ -111,7 +111,9 @@ public:
   ArrayishObjectIterator(Cont arr, size_t size) : _arr(arr),
   _index(0), _size(size) {}
   inline bool hasNext() { return _index<_size; }
-  inline ELEMENT_TYPE(ArrayishObjectIterator) next() { ASS(_index<_size); return _arr[_index++]; }
+  inline OWN_ELEMENT_TYPE next() 
+  { ASS(_index<_size); 
+    return move_if_value<OWN_ELEMENT_TYPE>(_arr[_index++]); }
   inline bool knowsSize() { return true;}
   inline bool size() { return _size;}
 private:
@@ -559,7 +561,7 @@ public:
   OWN_ELEMENT_TYPE next()
   {
     moveToNext();
-    return _curr1.take().unwrap();
+    return move_if_value<OWN_ELEMENT_TYPE>(_curr1.take().unwrap());
   }
 private:
   I1 _i1;
@@ -2085,6 +2087,18 @@ auto iterSortedDiff(I1 i1, I2 i2)
 template<class Iterator>
 auto dropElementType(Iterator iter) 
 { return iterTraits(std::move(iter)).map([](auto _) { return make_tuple(); }); }
+
+template<class Array>
+auto arrayIter(Array const& x) 
+{ return iterTraits(getArrayishObjectIterator<const_ref_t>(x)); }
+
+template<class Array>
+auto arrayIter(Array      & x) 
+{ return iterTraits(getArrayishObjectIterator<mut_ref_t>(x)); }
+
+template<class Array>
+auto arrayIter(Array     && x) 
+{ return iterTraits(ownedArrayishIterator(std::move(x))); }
 
 // template<class CreateIer>
 // class IterAsData {

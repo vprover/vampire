@@ -37,7 +37,7 @@ namespace Memo {
   template<class Arg, class Result>
   struct None 
   {
-    Option<Result> get(Arg) 
+    Option<Result> get(Arg const&)
     { return Option<Result>(); }
 
     template<class Init> Result getOrInit(Arg const& orig, Init init) 
