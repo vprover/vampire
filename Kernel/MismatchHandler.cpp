@@ -332,13 +332,14 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
       Recycled<Stack<TermSpec>> todo;
       todo->push(term.clone());
       while (todo->isNonEmpty()) {
-        auto& t = todo->pop().deref(&subs());
-        if (t.isVar()) {
-          if (t == var) {
+        auto t = todo->pop();
+        auto& dt = t.deref(&subs());
+        if (dt.isVar()) {
+          if (dt == var) {
             return true;
           }
         } else {
-          todo->loadFromIterator(t.allArgs());
+          todo->loadFromIterator(dt.allArgs());
         }
       }
       return false;
