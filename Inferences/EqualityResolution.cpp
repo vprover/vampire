@@ -162,6 +162,7 @@ struct EqualityResolution::ResultFn
       TermList qT = subst.apply(con.first.first,0);
       TermList rT = subst.apply(con.second.first,0);
 
+      ASS(qT.isTerm() || rT.isTerm())
       TermList sort = SortHelper::getResultSort(rT.isTerm() ? rT.term() : qT.term());
       Literal* constraint = Literal::createEquality(false,qT,rT,sort);      
 
