@@ -857,6 +857,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
 endif()
 
 add_compile_definitions(VTIME_PROFILING=1)
+add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
