@@ -520,7 +520,7 @@ Clause* Superposition::performSuperposition(
   auto tgtLitSR = tgtLitS->isOrientedReversed();
 
   static bool doSimS = getOptions().simulatenousSuperposition();
-  static bool psb = getOptions().parallelSymmetryBreakingSuperposition();
+  static bool psb = getOptions().symmetryBreakingSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
