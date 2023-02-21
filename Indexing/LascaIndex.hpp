@@ -77,7 +77,9 @@ public:
     TIME_TRACE(_maintainanceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
+#if VDEBUG
         auto k = appl.key();
+#endif
         _index.insert(std::move(appl));
         ASS_REP(find(k).hasNext(), k)
       } else {
