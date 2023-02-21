@@ -272,11 +272,12 @@ void Problem::refreshProperty() const
   TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
-  if(_property) {
-    delete _property;
-  }
+  auto oldProp = _property;
   _propertyValid = true;
   _property = Property::scan(_units);
+  if(oldProp) {
+    delete oldProp;
+  }
   env.property = _property;
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());

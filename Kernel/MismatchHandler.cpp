@@ -98,11 +98,12 @@ public:
   TermSpec next() {
     ASS(!_todo->isEmpty());
     while (true){
-      auto t = _todo->pop().deref(_subs).clone();
-      while (t.isTerm() && t.functor() == _function) {
-        ASS_EQ(t.nTermArgs(), 2);
-        _todo->push(t.termArg(1));
-        t = t.termArg(0);
+      auto t = _todo->pop();
+      auto dt = t.deref(_subs).clone();
+      while (dt.isTerm() && dt.functor() == _function) {
+        ASS_EQ(dt.nTermArgs(), 2);
+        _todo->push(dt.termArg(1));
+        dt = dt.termArg(0);
       }
       return t;
     }
