@@ -89,7 +89,8 @@ struct EqualityResolution::ResultFn
     }
 
     for (auto &c : absUnif.constr().iter()) {
-      ASSERTION_VIOLATION_REP("TODO reckeck")
+      DBG("TODO reckeck")
+      // ASSERTION_VIOLATION_REP("TODO reckeck")
       // if (!handler->recheck(c.lhs(absUnif.subs()), c.rhs(absUnif.subs())))
       //   return nullptr;
     }

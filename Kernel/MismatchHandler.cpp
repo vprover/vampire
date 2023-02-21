@@ -466,6 +466,7 @@ Option<MismatchHandler::AbstractionResult> alasca3(AbstractingUnifier& au, TermS
   };
   if (t1.isVar()) return occ(t1, t2);
   if (t2.isVar()) return occ(t2, t1);
+  if (t1.isSort() || t2.isSort()) return {};
   auto i1 = isAlascaInterpreted(t1, au);
   auto i2 = isAlascaInterpreted(t2, au);
   return someIf(i1 || i2, [&]() {
