@@ -114,10 +114,13 @@ class TermSpec
     IMPL_HASH_FROM_TUPLE(TermSpec::Appl)
     bool isSort() const { return false; }
 
+    Appl(Appl&&) = default;
+    Appl& operator=(Appl&&) = default;
     TermSpec const& arg(unsigned i) const { return (**args)[i]; }
     auto argsIter() const 
     { return iterTraits(args.iter())
-                  .flatMap([](auto& args) { return getArrayishObjectIterator<const_ref_t>(*args); }); }
+                  .flatMap([](auto& args) { return arrayIter(*args); }); }
+
     Appl clone() const 
     { return Appl { .functor = functor, 
                     .args = args.map([](auto& x) { 
@@ -171,7 +174,10 @@ public:
   TermSpec(unsigned functor, Args... args) 
     : _self(Appl{functor, someIf(sizeof...(args) != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 
   {
-    if (sizeof...(args) != 0) _self.template unwrap<Appl>().args.unwrap()->pushMany(std::move(args)...);
+    ASS_EQ(sizeof...(args), env.signature->getFunction(functor)->arity())
+    if (sizeof...(args) != 0) {
+      _self.template unwrap<Appl>().args.unwrap()->pushMany(std::move(args)...);
+    }
   }
 
   TermList::Top top() const;

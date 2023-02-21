@@ -17,6 +17,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Output.hpp"
+#include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"

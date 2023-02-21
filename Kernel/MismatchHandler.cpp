@@ -286,7 +286,9 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec cons
           // if there is a zero entry we override it
           i1++;
         }
-        diff[i1] = std::move(diff[i2]);
+        if (i1 != i2) {
+          diff[i1] = std::move(diff[i2]);
+        }
         i2++;
       }
     }
@@ -296,7 +298,7 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec cons
         diff.truncate(i1 + 1);
   };
 
-  auto less = [](auto & t1, auto & t2) { 
+  auto less = [](auto const& t1, auto const& t2) { 
     TIME_TRACE("comparing TermSpecs")
     auto top1 = t1.top();
     auto top2 = t2.top();
@@ -365,6 +367,7 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec cons
       auto num = v.second;
       auto rest = [&]() 
       { return arrayIter(diff).filter([&](auto& x) { return x != v; }).map([](auto& x) { return std::move(x); }); };
+      // { return arrayIter(diff).filter([&](auto& x) { return x != v; }).map([](auto& x) { return make_pair(x.first.clone(), x.second); }); };
 
       return AbstractionResult(ifIntTraits(n, 
           [&](auto n) { return EqualIf().unify(UnificationConstraint(numMul(-v.second, std::move(v.first)), sum(rest()))); },
@@ -705,6 +708,7 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
             add(std::move(x));
           }
         }
+        absRes.take();
 
       } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor()) {
         

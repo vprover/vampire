@@ -46,8 +46,7 @@ public:
   Recycled<Stack<Literal*>> literals(RobSubstitution& s);
 
   auto literalIter(RobSubstitution& s)
-  { return iterTraits(_cont.iter())
-              .filterMap([&](auto& c) { return c.toLiteral(s); }); }
+  { return arrayIter(_cont).filterMap([&](auto& c) { return c.toLiteral(s); }); }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
   { return out << self._cont; }
