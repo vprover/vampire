@@ -175,7 +175,7 @@ public:
   }
 
   TermList::Top top() const;
-  TermSpec const& deref(RobSubstitution const* s) const;
+  TermSpec const& deref(RobSubstitution const* s) const&;
   bool isOutputVar() const;
   unsigned varNumber() const { return *top().var(); }
   bool definitelyGround() const;// { return t->shared() && t->ground(); }

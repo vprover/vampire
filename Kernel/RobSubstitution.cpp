@@ -46,7 +46,7 @@ TermList::Top TermSpec::top() const
 { return _self.match([](Appl const& a) { return TermList::Top::functor(a.functor); },
                      [](OldTermSpec const& old) { return old.term.top(); }); }
 
-TermSpec const& TermSpec::deref(RobSubstitution const* s) const
+TermSpec const& TermSpec::deref(RobSubstitution const* s) const&
  { return s->derefBound(*this); };
 
 bool TermSpec::definitelyGround() const

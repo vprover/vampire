@@ -108,11 +108,12 @@ public:
   TermSpec next() {
     ASS(!_todo->isEmpty());
     while (true){
-      auto t = _todo->pop().deref(_subs).clone();
-      while (t.isTerm() && t.functor() == _function) {
-        ASS_EQ(t.nTermArgs(), 2);
-        _todo->push(t.termArg(1));
-        t = t.termArg(0);
+      auto t = _todo->pop();
+      auto dt = t.deref(_subs).clone();
+      while (dt.isTerm() && dt.functor() == _function) {
+        ASS_EQ(dt.nTermArgs(), 2);
+        _todo->push(dt.termArg(1));
+        dt = dt.termArg(0);
       }
       return t;
     }
@@ -429,17 +430,18 @@ bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec 
   ASS(t.isTerm())
   todo->push(t.clone());
   while (!todo->isEmpty()) {
-    auto& t = todo->pop().deref(&au.subs());
-    if (t.isTerm()) {
-      auto f = t.functor();
+    auto t = todo->pop();
+    auto& dt = t.deref(&au.subs());
+    if (dt.isTerm()) {
+      auto f = dt.functor();
       auto argsMightCancel = forAnyNumTraits([&](auto n){
             // check if its subterms might cancel out
             return n.isAdd(f) || n.isMul(f);
          });
       if (!argsMightCancel) {
-        todo->loadFromIterator(t.termArgs());
+        todo->loadFromIterator(dt.termArgs());
       }
-    } else if (t.isVar() && v == t.varSpec()) {
+    } else if (dt.isVar() && v == dt.varSpec()) {
       return true;
     }
   }
