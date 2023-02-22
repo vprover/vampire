@@ -438,6 +438,7 @@ public:
     friend class Option;
     DECL_ELEMENT_TYPE(A);
     bool hasNext() const { return _self.isSome(); }
+    bool hasNext()       { return _self.isSome(); }
     A next() { return _self.take().unwrap(); }
   };
   

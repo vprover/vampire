@@ -137,6 +137,69 @@ namespace Indexing {
       bool usesUwa() const
       { return _unif.usesUwa(); }
     };
+
+    class UnificationWithAbstractionWithPostprocessing 
+    { 
+      AbstractingUnifier _unif;
+      Option<bool> _finalizationResult;
+    public:
+      class NotFinalized { 
+        AbstractingUnifier* _unif; 
+        Option<bool>* _result;
+      public:
+        explicit NotFinalized(AbstractingUnifier* unif, Option<bool>* result) 
+          : _unif(unif)
+          , _result(result) 
+        { }
+
+        Option<AbstractingUnifier*> finalize() 
+        {
+          if (_result->isNone()) {
+            *_result = some(bool(_unif->finalize()));
+            if (_unif->isRecording()) {
+              _unif->bdGet().addClosure([&]() { _result = {}; });
+            }
+          }
+          return someIf(**_result, [&](){ return _unif;  });
+        }
+
+      };
+
+      using Unifier = NotFinalized;
+
+      UnificationWithAbstractionWithPostprocessing(MismatchHandler handler) 
+        : _unif(handler) 
+        , _finalizationResult()
+      {}
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      {
+        // CALL("SubstitutionTree::UnificationsIterator::associate");
+        TermList query(specialVar, /* special */ true);
+        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
+      }
+
+      Unifier unifier()
+      { return NotFinalized(&_unif, &_finalizationResult); }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _unif.subs().bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd)
+      { _unif.subs().bdRecord(bd); }
+
+      void bdDone()
+      { _unif.subs().bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+      TermList::Top getSpecialVarTop(unsigned svar)
+      { return _unif.subs().getSpecialVarTop(svar); }
+
+      bool usesUwa() const
+      { return _unif.usesUwa(); }
+    };
   };
 
 

@@ -34,7 +34,7 @@ namespace Indexing {
  * Note that unlike LiteralSubstitutionTree, TermSubstitutionTree does
  * not (yet) carry out sort checking when attempting to find unifiers, generalisations
  * or instances. In particular, if the query or result is a variable, it is the callers'
- * responsibility to ensure that the sorts are unifiable/matchable 
+ * responsibility to ensure that the sorts are unifiable/matchable
  * (edit: if the caller inserts a TypedTermList instead of a TermList, this will be handled automatically.)
  */
 
@@ -46,14 +46,14 @@ class TermSubstitutionTree
 public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
-  
-  /* 
-   * The extra flag is a higher-order concern. it is set to true when 
+
+  /*
+   * The extra flag is a higher-order concern. it is set to true when
    * we require the term query result to include two terms, the result term
-   * and another. 
+   * and another.
    *
-   * The main use case is to store a different term in the leaf to the one indexed 
-   * in the tree. This is used for example in Skolemisation on the fly where we 
+   * The main use case is to store a different term in the leaf to the one indexed
+   * in the tree. This is used for example in Skolemisation on the fly where we
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
@@ -62,16 +62,16 @@ public:
   void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
   { handleTerm(tt, LeafData(cls,lit,tt), insert); }
 
-  void insert(TermList t, Literal* lit, Clause* cls) override 
+  void insert(TermList t, Literal* lit, Clause* cls) override
   { handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
 
   void remove(TermList t, Literal* lit, Clause* cls) override
   { handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
-  void insert(TermList t, TermList trm) override 
+  void insert(TermList t, TermList trm) override
   { handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
 
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override 
+  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override
   { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
   bool generalizationExists(TermList t) override
@@ -85,18 +85,18 @@ public:
 
 private:
 
-  template<class TypedOrUntypedTermList> 
+  template<class TypedOrUntypedTermList>
   void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
   { SubstitutionTree::handle(tt, ld, insert); }
 
-  template<class Iterator, class TypedOrUntypedTermList, class... Args> 
+  template<class Iterator, class TypedOrUntypedTermList, class... Args>
   auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, Args... args)
-  { 
+  {
     return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
-      .map([this](auto qr) 
+      .map([this](auto qr)
         { return tQueryRes(
             _extra ? qr.data->extraTerm : qr.data->term,
-            qr.data->literal, qr.data->clause, std::move(qr.unif)); }) ; 
+            qr.data->literal, qr.data->clause, std::move(qr.unif)); }) ;
   }
 
   MismatchHandler _mismatchHandler;
@@ -107,6 +107,15 @@ private:
   { return out << (SubstitutionTree const&) self; }
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
+
+  auto nopostproUwa(TypedTermList t)
+  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, _mismatchHandler); }
+
+  auto postproUwa(TypedTermList t)
+  { return iterTraits(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, _mismatchHandler))
+    .filterMap([](TQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
+        { return r.unifier.finalize().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
+
 public:
   TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
@@ -116,7 +125,13 @@ public:
 
 
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t) override
-  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, _mismatchHandler)); }
+  {
+    bool doPostpro = true;
+    // return pvi(ifElseIter(doPostpro, [&](){ return   postproUwa(t); }
+    //                                , [&](){ return nopostproUwa(t); }));
+    return doPostpro ? pvi(  postproUwa(t))
+                     : pvi(nopostproUwa(t));
+  }
 
   TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }

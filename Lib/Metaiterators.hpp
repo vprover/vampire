@@ -1792,6 +1792,10 @@ public:
 
   CoproductIter(Coproduct<Is...> i) : _inner(Coproduct<Is...>(std::move(i))) {}
 
+  bool hasNext() const
+  { Coproduct<Is...>& inner = _inner;
+    return inner.apply([](auto& x) { return x.hasNext();}); }
+
   bool hasNext()
   { Coproduct<Is...>& inner = _inner;
     return inner.apply([](auto& x) { return x.hasNext();}); }
@@ -1823,7 +1827,7 @@ static auto ifElseIter(ElseIter elseIter)
 
 template<class IfIter, class... ElseIters>
 static auto ifElseIter(bool cond, IfIter ifIter, ElseIters... elseIters) 
-{ return _ifElseIter(cond, ifIter, [&]() { return ifElseIter(elseIters...); }); }
+{ return _ifElseIter(cond, std::move(ifIter), [&]() { return ifElseIter(std::move(elseIters)...); }); }
 
 
 template<class I1>

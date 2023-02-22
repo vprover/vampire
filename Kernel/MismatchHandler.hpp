@@ -164,9 +164,7 @@ public:
                                                       : Option<BacktrackData&>()              ); }
 
   bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
-  // { 
-  //   return _subs->unify(t1, bank1, t2, bank2, _uwa, this); 
-  // }
+  bool finalize();
 
 
   UnificationConstraintStack& constr() { return *_constr; }
@@ -174,6 +172,7 @@ public:
 
   RobSubstitution      & subs()       { return *_subs; }
   RobSubstitution const& subs() const { return *_subs; }
+  BacktrackData& bdGet() { return _subs->bdGet(); }
   void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
   void bdDone() { _subs->bdDone(); }
   bool usesUwa() const { return _uwa._mode != Options::UnificationWithAbstraction::OFF; }
