@@ -25,18 +25,34 @@
 namespace Lib
 {
 
-struct DefaultReset 
+struct DefaultReset
 { template<class T> void operator()(T& t) { t.reset(); } };
 
 struct DefaultKeepRecycled
 { template<class T> bool operator()(T const& t) { return t.keepRecycled(); } };
 
-struct NoReset 
+struct NoReset
 { template<class T> void operator()(T& t) {  } };
 
+template<class T>
+struct MaybeAlive
+{
+  T _self;
+  bool* _alive;
+  MaybeAlive(T self, bool* alive)
+    : _self(std::move(self)), _alive(alive)
+  { *_alive = true; }
+  ~MaybeAlive() { *_alive = false; }
+
+
+  T const& operator* () const { return  _self; }
+  T const* operator->() const { return &_self; }
+  T& operator* () { return  _self; }
+  T* operator->() { return &_self; }
+};
 /** A smart that lets you keep memory allocated, and reuse it.
  * Constructs an object of type T on the heap. When the Recycled<T> is destroyed,
- * the object is not returned, but the object is reset using Reset::operator(), 
+ * the object is not returned, but the object is reset using Reset::operator(),
  * and returned to a pool of pre-allocated objects. When the next Recycled<T> is
  * constructed an object from the pool is returned instead of allocating heap memory.
  */
@@ -47,23 +63,24 @@ class Recycled
   Reset _reset;
   Keep _keep;
 
+  static bool alive;
   static Stack<T>& mem() {
-    static Stack<T> mem;
-    return mem;
+    static MaybeAlive<Stack<T>> mem(Stack<T>(), &alive);
+    return *mem;
   }
   Recycled(Recycled const&) = delete;
-public: 
+public:
 
   Recycled()
-    : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
+    : _ptr(mem().isNonEmpty() ? mem().pop() : T())
     , _reset()
     , _keep()
   { }
 
   template<class Clone>
-  Recycled clone(Clone cloneFn) const 
+  Recycled clone(Clone cloneFn) const
   {
-    Recycled c; 
+    Recycled c;
     T const& from = **this;
     T& to = *c;
     cloneFn(to, from);
@@ -77,7 +94,7 @@ public:
 
   template<class A, class... As>
   Recycled(A a, As... as)
-    : _ptr(mem().isNonEmpty() ? mem().pop() : T()) 
+    : _ptr(mem().isNonEmpty() ? mem().pop() : T())
     , _reset()
   {
     _ptr.init(a, as...);
@@ -85,15 +102,10 @@ public:
 
   Recycled(Recycled&& other) = default;
   Recycled& operator=(Recycled&& other) = default;
-  // Recycled(Recycled const& other) = default;
-  // Recycled& operator=(Recycled const& other) = default;
 
   ~Recycled()
-  { 
-    if (_keep(_ptr)) {
-      // if (mem().size() > 100){
-      //   DBGE(mem().size())
-      // }
+  {
+    if (_keep(_ptr) && alive) {
       _reset(_ptr);
       mem().push(std::move(_ptr));
     }
@@ -107,6 +119,9 @@ public:
   friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
   { return out << self._ptr; }
 };
+
+template<class T, class Reset, class Keep>
+bool Recycled<T, Reset, Keep>::alive = true;
 
 };
 
