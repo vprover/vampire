@@ -88,7 +88,9 @@ Option<Clause*> Superposition::applyRule(
   TIME_TRACE("lasca superposition application")
 
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())
+#if VDEBUG
   auto s1 = lhs.biggerSide();
+#endif
   auto s2 = rhs.toRewrite();
   auto nothing = [&]() { return Option<Clause*>(); };
   ASS(!(s1.isVar() && lhs.isFracNum()))

@@ -220,7 +220,7 @@ public:
   ~SubstitutionTree();
 
 #define VERBOSE_OUTPUT_OPERATORS 0
-  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree<LeafData_> const& self)
   {
 #if VERBOSE_OUTPUT_OPERATORS
     out << "{ nextVar: S" << self._nextVar << ", root: (";
@@ -236,7 +236,7 @@ public:
     return out;
   }
 #undef VERBOSE_OUTPUT_OPERATORS
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self)
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<LeafData_>> const& self)
   {
     if (self.self._root) {
       self.self._root->output(out, true, /* indent */ 0);
@@ -247,8 +247,6 @@ public:
   }
 
 
-  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
   typedef VirtualIterator<LeafData*> LDIterator;
 
   template<class Unifier>
@@ -1470,7 +1468,6 @@ public:
 
 public:
   bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
-  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
   Cntr _iterCnt;
 }; // class SubstiutionTree

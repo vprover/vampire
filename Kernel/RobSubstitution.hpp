@@ -116,6 +116,7 @@ class TermSpec
 
     Appl(Appl&&) = default;
     Appl& operator=(Appl&&) = default;
+
     TermSpec const& arg(unsigned i) const { return (**args)[i]; }
     auto argsIter() const 
     { return iterTraits(args.iter())
@@ -140,8 +141,6 @@ class TermSpec
   friend class UnificationConstraint;
   friend class RobSubstitution;
 
-  // TermList derefTerm() { return deref().first; }
-  // int derefIndex() { return deref().second; }
   TermSpec(TermSpec const&) = delete;
   TermSpec(Copro self) : _self(std::move(self)) {}
 public:
@@ -151,12 +150,6 @@ public:
   // TODO get rid of default constructor
   TermSpec() : TermSpec(decltype(_self)(OldTermSpec())) {}
   TermSpec(VarSpec v) : TermSpec(TermList::var(v.var), v.index) {}
-  // auto asTuple() const -> decltype(auto) { return std::make_tuple(select(
-  //       [&](){ return isVar(); }, [&]() { return varSpec(); }
-  //                               , [&]() { return std::make_tuple(functor(), iterAsData(allArgs())); }
-  //       )); }
-  // IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
-  // IMPL_HASH_FROM_TUPLE(TermSpec)
 
   friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
   friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);

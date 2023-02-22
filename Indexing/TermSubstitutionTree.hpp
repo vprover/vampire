@@ -94,9 +94,9 @@ private:
   }
 
 
-  friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
+  friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree<LeafData_> const& self)
   { return out << self._inner; }
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree<LeafData_>> const& self)
   { return out << multiline(self.self._inner, self.indent); }
 public:
 

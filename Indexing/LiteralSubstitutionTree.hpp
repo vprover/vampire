@@ -96,8 +96,7 @@ private:
   static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
 public:
 
-  template<class D>
-  friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree<D> const& self)
+  friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree<LeafData_> const& self)
   { 
     int i = 0;
     out << "{ ";
@@ -111,7 +110,7 @@ public:
     }
     return out << "} ";
   }
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree> const& self)
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree<LeafData_>> const& self)
   { 
     int i = 0;
     out << "{ " << endl;
