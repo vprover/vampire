@@ -1071,4 +1071,4 @@ vstring RobSubstitution::TermSpec::toString() const
 { return outputToString(*this); }
 
 #endif
-}
+} // namespace Kernel
