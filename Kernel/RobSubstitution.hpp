@@ -157,6 +157,41 @@ public:
   unsigned defaultHash() const;
   unsigned defaultHash2() const;
 
+  template<class Deref>
+  static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
+    Recycled<Stack<pair<TermSpec, TermSpec>>> todo;
+    todo->push(make_pair(lhs.clone(),rhs.clone()));
+    // DBG("compare: ", lhs, " <> ", rhs)
+    while (todo->isNonEmpty()) {
+      auto lhs_ = std::move(todo->top().first);
+      auto rhs_ =           todo->pop().second;
+      auto& lhs = deref(lhs_);
+      auto& rhs = deref(rhs_);
+
+      if (lhs.isTerm() != rhs.isTerm()) {
+        return lhs.isVar() ? -1 : 1;
+
+      } else {
+        if (lhs.isTerm()) {
+          if (lhs.functor() != rhs.functor()) {
+            return lhs.functor() < rhs.functor() ? -1 : 1;
+          } else {
+            todo->loadFromIterator(lhs.allArgs().zip(rhs.allArgs()));
+          }
+        } else {
+          ASS(lhs.isVar() && rhs.isVar())
+          auto v1 = lhs.varSpec();
+          auto v2 = rhs.varSpec();
+          if (v1 != v2) {
+            return std::tie(v1.var, v1.index) < std::tie(v2.var, v2.index) ? -1 : 1;
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
+
   TermSpec clone() const { return TermSpec(_self.clone()); }
   
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);

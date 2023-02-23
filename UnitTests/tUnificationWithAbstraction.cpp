@@ -940,15 +940,17 @@ TEST_FUN(higher_order2)
 static const int NORM_QUERY_BANK=2;
 // static const int NORM_RESULT_BANK=3;
 
-Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
+Option<TermUnificationResultSpec> runRobUnify(bool diffNamespaces, TermList a, TermList b, Options::UnificationWithAbstraction opt) {
   MismatchHandler h(opt);
   AbstractingUnifier au(h);
-  bool result = au.unify(a, 0, b, 0);
+  auto n1 = 0;
+  auto n2 = diffNamespaces ? 1 : 0;
+  bool result = au.unify(a, n1, b, n2);
   if (result) {
 
     return some(TermUnificationResultSpec { 
-     .querySigma  = au.subs().apply(a, 0), 
-     .resultSigma = au.subs().apply(b, 0), 
+     .querySigma  = au.subs().apply(a, n1), 
+     .resultSigma = au.subs().apply(b, n2), 
      .constraints = *au.constr().literals(au.subs()),
     });
 
@@ -959,9 +961,9 @@ Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::U
 
 }
 
-void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, TermUnificationResultSpec exp)
+void checkRobUnify(bool diffNamespaces, TermList a, TermList b, Options::UnificationWithAbstraction opt, TermUnificationResultSpec exp)
 {
-  auto is = runRobUnify(a,b,opt);
+  auto is = runRobUnify(diffNamespaces, a,b,opt);
   if (is.isSome() && is.unwrap() == exp) {
     cout << "[  OK  ] " << a << " unify " << b << endl;
   } else {
@@ -973,9 +975,9 @@ void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction o
 }
 
 
-void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstraction opt)
+void checkRobUnifyFail(bool diffNamespaces, TermList a, TermList b, Options::UnificationWithAbstraction opt)
 {
-  auto is = runRobUnify(a,b,opt);
+  auto is = runRobUnify(diffNamespaces, a,b,opt);
   if(is.isNone()) {
       cout << "[  OK  ] " << a << " unify " << b << endl;
   } else {
@@ -986,18 +988,32 @@ void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstracti
   }
 }
 
+#define ROB_UNIFY_TEST_NAMESPACED(name, opt, lhs, rhs, ...)                                                    \
+  TEST_FUN(name)                                                                                    \
+  {                                                                                                 \
+    RAT_SUGAR                                                                                       \
+    checkRobUnify(true, lhs, rhs, opt, __VA_ARGS__ );                                                     \
+  }                                                                                                 \
+
 #define ROB_UNIFY_TEST(name, opt, lhs, rhs, ...)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
     RAT_SUGAR                                                                                       \
-    checkRobUnify(lhs, rhs, opt, __VA_ARGS__ );                                                     \
+    checkRobUnify(false, lhs, rhs, opt, __VA_ARGS__ );                                                     \
   }                                                                                                 \
 
 #define ROB_UNIFY_TEST_FAIL(name, opt, lhs, rhs)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
     RAT_SUGAR                                                                                       \
-    checkRobUnifyFail(lhs, rhs, opt);                                                               \
+    checkRobUnifyFail(false, lhs, rhs, opt);                                                               \
+  }                                                                                                 \
+
+#define ROB_UNIFY_TEST_FAIL_NAMESPACED(name, opt, lhs, rhs)                                                    \
+  TEST_FUN(name)                                                                                    \
+  {                                                                                                 \
+    RAT_SUGAR                                                                                       \
+    checkRobUnifyFail(true, lhs, rhs, opt);                                                               \
   }                                                                                                 \
 
 ROB_UNIFY_TEST(rob_unif_test_01,
@@ -1490,6 +1506,16 @@ ROB_UNIFY_TEST(non_linear_mul_3,
       .querySigma  = f2(2, 3 * a),
       .resultSigma = f2(2, 2 * a),
       .constraints = Stack<Literal*>{ 3 * a != 2 * a },
+    })
+
+ROB_UNIFY_TEST_NAMESPACED(namespace_bug_01,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(x    , x    ),
+    f2(x + y, x + z),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(x + y, x + y),
+      .resultSigma = f2(x + y, x + y),
+      .constraints = Stack<Literal*>{ },
     })
 
 

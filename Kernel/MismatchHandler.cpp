@@ -36,7 +36,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
-#define DEBUG(...) // DBG(__VA_ARGS__)
 #define DEBUG_UWA(LVL, ...)   if (LVL <= 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 // increase this number to increase  <---^
@@ -107,16 +106,15 @@ public:
 
   TermSpec next() {
     ASS(!_todo->isEmpty());
-    while (true){
-      auto t = _todo->pop();
-      auto dt = t.deref(_subs).clone();
-      while (dt.isTerm() && dt.functor() == _function) {
-        ASS_EQ(dt.nTermArgs(), 2);
-        _todo->push(dt.termArg(1));
-        dt = dt.termArg(0);
-      }
-      return t;
+    auto t = _todo->pop();
+    auto* dt = &t.deref(_subs);
+    while (dt->isTerm() && dt->functor() == _function) {
+      ASS_EQ(dt->nTermArgs(), 2);
+      _todo->push(dt->termArg(1));
+      t = t.termArg(0);
+      dt = &t.deref(_subs);
     }
+    return dt->clone();
   }
 };
 
@@ -267,21 +265,25 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec cons
 
   Recycled<Stack<pair<TermSpec, Numeral>>> _diff;
   auto& diff = *_diff;
+  DEBUG_UWA(2, "diff: ", diff, " (0)");
   diff.loadFromIterator(concatIters(
     atoms(t1),
     atoms(t2).map([](auto x) { return make_pair(std::move(x.first), -x.second); })
   ));
+  DEBUG_UWA(2, "diff: ", diff, " (1)");
 
-  auto sumUp = [](auto& diff, auto eq, auto less) {
+  auto sumUp = [](auto& diff, auto cmp) {
     auto i1 = 0;
     auto i2 = 1;
     while (i2 < diff.size()) {
       ASS(i1 < i2);
-      if (eq(diff[i1].first, diff[i2].first)) {
+      auto c = cmp(diff[i1].first, diff[i2].first);
+      ASS(c <= 0)
+      if (c == 0) {
         diff[i1].second += diff[i2].second;
         i2++;
       } else {
-        ASS(less(diff[i1].first, diff[i2].first) || eq(diff[i1].first, diff[i2].first))
+        ASS(c < 0)
         if (diff[i1].second != Numeral(0)) {
           // if there is a zero entry we override it
           i1++;
@@ -298,17 +300,29 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec cons
         diff.truncate(i1 + 1);
   };
 
-  auto less = [](auto const& t1, auto const& t2) { 
+  auto cmp = [&au](auto const& t1, auto const& t2) { 
     TIME_TRACE("comparing TermSpecs")
     auto top1 = t1.top();
     auto top2 = t2.top();
     auto v1 = !t1.isVar();
     auto v2 = !t2.isVar();
-    return std::tie(v1, top1, t1) < std::tie(v2, top2, t2);
+    if (std::tie(v1, top1) == std::tie(v2, top2)) {
+      return TermSpec::compare(t1, t2, [&au](auto& t) -> decltype(auto) { return t.deref(&au.subs()); });
+    } else {
+      return std::tie(v1, top1) < std::tie(v2, top2) ? -1 : 1;
+    }
   };
-  diff.sort([&](auto& l, auto& r) { return less(l.first, r.first); });
+  // auto less = [](auto const& t1, auto const& t2) { 
+  //   TIME_TRACE("comparing TermSpecs")
+  //   auto top1 = t1.top();
+  //   auto top2 = t2.top();
+  //   auto v1 = !t1.isVar();
+  //   auto v2 = !t2.isVar();
+  //   return std::tie(v1, top1, t1) < std::tie(v2, top2, t2);
+  // };
+  diff.sort([&](auto& l, auto& r) { return cmp(l.first, r.first) < 0; });
   DEBUG_UWA(2, "diff: ", diff, " (before summing up )");
-  sumUp(diff, [&](auto& l, auto& r) { return l.sameTermContent(r); }, less);
+  sumUp(diff, cmp);
   DEBUG_UWA(2, "diff: ", diff, " (after summing up )");
 
   auto vars = arrayIter(diff)
@@ -584,7 +598,6 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
 }
 void UnificationConstraintStack::add(UnificationConstraint c, Option<BacktrackData&> bd)
 { 
-  DEBUG("introduced constraing: ", c)
   if (bd) {
     backtrackablePush(_cont, std::move(c), *bd); 
   } else {

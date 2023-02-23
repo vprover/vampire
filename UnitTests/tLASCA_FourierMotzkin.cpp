@@ -837,6 +837,25 @@ TEST_GENERATION_WITH_SUGAR(bug03b,
     )
 
 
+TEST_GENERATION_WITH_SUGAR(bug_uwa,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .selfApplications(false)
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))  )
+      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))
+  // (not (P (+ x1 x0) (+ x2 x0))) (P x1 x2))))
+  //      (P x0 x0)
+  // ; ==================================
+  // (P x0 x1)
+      .inputs  ({ clause({ -g(x1 + x0, x2 + x0) + g(x1, x2) > 0 })  
+               ,  clause({  g(x0, x0) > 0 }) })
+      .expected(exactly(
+          clause({  g(x0, x0) > 0  })
+          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
+      ))
+    )
+
+
 #if WITH_GMP
 
 TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
