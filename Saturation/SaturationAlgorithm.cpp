@@ -974,6 +974,21 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env.checkTimeSometime<64>();
 
+  Clause* ansLitCl = cl;
+  if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+    ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
+  }
+  if (_answerLiteralManager) {
+    Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
+    if (reduced) {
+      ansLitCl = reduced;
+    }
+  }
+  if (ansLitCl != cl) {
+    addNewClause(ansLitCl);
+    onClauseReduction(cl, &ansLitCl, 1, 0);
+    return;
+  }
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
@@ -1103,21 +1118,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         return false;
       }
     }
-  }
-  Clause* ansLitCl = cl;
-  if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
-    ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
-  }
-  if (_answerLiteralManager) {
-    Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
-    if (reduced) {
-      ansLitCl = reduced;
-    }
-  }
-  if (ansLitCl != cl) {
-    addNewClause(ansLitCl);
-    onClauseReduction(cl, &ansLitCl, 1, 0);
-    return false;
   }
 
   //TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)
