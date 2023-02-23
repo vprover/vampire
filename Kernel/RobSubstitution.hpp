@@ -255,6 +255,7 @@ struct AutoDerefTermSpec
     , subs(s) { }
   explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()), subs(other.subs) {}
   AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
+  friend std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self);
 };
 
 class UnificationConstraint

@@ -1134,4 +1134,6 @@ unsigned TermSpec::defaultHash() const
 unsigned TermSpec::defaultHash2() const
 { return __hash([](auto const& x) { return DefaultHash2::hash(x); }, *this); }
 
+std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self)
+{ return out << self.term << "@" << *self.subs; }
 } // namespace Kernel

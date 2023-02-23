@@ -1426,13 +1426,7 @@ void Polynom<Number>::integrity() const {
 
 template<class Number>
 Option<Monom<Number>> Polynom<Number>::tryMonom() const
-{
-  if (_summands.size() == 1) {
-    return Option<Monom>(summandAt(0));
-  } else {
-    return Option<Monom>();
-  }
-}
+{ return someIf(_summands.size() == 1, [&](){ return summandAt(0); }); }
 
 template<class Number>
 typename Polynom<Number>::SummandIter Polynom<Number>::iterSummands() const&

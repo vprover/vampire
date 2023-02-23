@@ -11,7 +11,7 @@
 #ifndef __LIB__BOTTOM_UP_EVALUATION_HPP__
 #define __LIB__BOTTOM_UP_EVALUATION_HPP__
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG_EVAL(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 
 /**
  * @file Kernel/BottomUpEvaluation.hpp
@@ -146,6 +146,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
     } else { 
 
       BottomUpChildIter<Arg> orig = recState->pop();
+      bool computed = false;
       Result eval = memo.getOrInit(orig.self(), [&](){ 
             CALL("evaluateBottomUp(..)::closure@1")
             Result* argLst = NULL;
@@ -153,10 +154,15 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
               ASS_GE(recResults->size(), orig.nChildren());
               argLst = static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren()]));
             }
+            computed = true;
             return evaluateStep(orig.self(), argLst);
           });
 
-      DEBUG("evaluated: ", orig.self(), " -> ", eval);
+      if (computed) {
+        DEBUG_EVAL(1, "evaluted: ", orig.self(), " -> ", eval);
+      } else {
+        DEBUG_EVAL(2, "evaluted: ", orig.self(), " -> ", eval);
+      }
       recResults->pop(orig.nChildren());
       recResults->push(std::move(eval));
     }
@@ -166,7 +172,7 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 
   ASS(recResults->size() == 1);
   auto result = recResults->pop();
-  DEBUG("eval result: ", term, " -> ", result);
+  DEBUG_EVAL(0, "eval result: ", term, " -> ", result);
   return result;
 }
 
