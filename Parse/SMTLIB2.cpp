@@ -2801,6 +2801,8 @@ void SMTLIB2::markSymbolUncomputable(const vstring& name)
 
   if (!_declaredFunctions.find(name)) {
     USER_ERROR("'"+name+"' is not a user symbol");
+    // TODO(hzzv): allow marking interpreted symbols as computable?
+    //FormulaSymbol fs = getBuiltInFormulaSymbol(name); //...how to continue?
   }
   DeclaredFunction& f = _declaredFunctions.get(name);
 

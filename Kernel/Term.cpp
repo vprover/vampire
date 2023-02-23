@@ -1857,6 +1857,24 @@ Literal::Literal()
   CALL("Literal::Literal/0");
 }
 
+bool Literal::computable() const {
+  if (!env.signature->getPredicate(this->functor())->computable()) return false;
+  for (unsigned i = 0; i < arity(); ++i) {
+    const TermList* t = nthArgument(i);
+    if (!t->isTerm() || !t->term()->computable()) return false;
+  }
+  return true;
+}
+bool Literal::computableOrVar() const {
+  if (!env.signature->getPredicate(this->functor())->computable()) return false;
+  for (unsigned i = 0; i < arity(); ++i) {
+    const TermList* t = nthArgument(i);
+    if (!t->isTerm() || !t->term()->computableOrVar()) return false;
+  }
+  return true;
+}
+
+
 AtomicSort::AtomicSort()
 {
   CALL("AtomicSort::AtomicSort/0");
@@ -1986,4 +2004,24 @@ TermList Term::typeArg(unsigned n) const
   ASS_LE(0, n)
   ASS_L(n, numTypeArguments())
   return *nthArgument(n);
+}
+
+bool Term::computable() const {
+  if (!env.signature->getFunction(this->functor())->computable()) return false;
+  SubtermIterator sit(this);
+  while (sit.hasNext()) {
+    TermList t = sit.next();
+    if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) return false;
+  }
+  return true;
+}
+
+bool Term::computableOrVar() const {
+  if (!env.signature->getFunction(this->functor())->computable()) return false;
+  SubtermIterator sit(this);
+  while (sit.hasNext()) {
+    TermList t = sit.next();
+    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) return false;
+  }
+  return true;
 }

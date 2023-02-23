@@ -147,6 +147,8 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
+    if (_cl->hasAnswerLiteral() && !subst.apply(_cl->getAnswerLiteral(), 0)->computableOrVar()) return 0;
+
     unsigned newLen=_cLen+constraints.length();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 

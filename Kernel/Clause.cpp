@@ -867,17 +867,9 @@ bool Clause::computable() {
     _computable = true;
     for (unsigned i = 0; i < length(); ++i) {
       if ((*this)[i]->isAnswerLiteral()) continue;
-      if (!env.signature->getPredicate((*this)[i]->functor())->computable()) {
+      if (!(*this)[i]->computable()) {
         _computable = false;
         break;
-      }
-      SubtermIterator sit((*this)[i]);
-      while (sit.hasNext()) {
-        TermList t = sit.next();
-        if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) {
-          _computable = false;
-          break;
-        }
       }
     }
     _computableChecked = true;
