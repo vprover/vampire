@@ -161,9 +161,12 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
   Schedule main_extra;
   Schedule fallback_extra;
 
+  unsigned backoff = env->options->portfolioBackoff();
+  bool add_extra = env->options->portfolioBackoffExtra();
+
   getSchedules(*property,main,fallback);
-  getExtraSchedules(*property,main,main_extra,true,3);
-  getExtraSchedules(*property,fallback,fallback_extra,true,3);
+  getExtraSchedules(*property,main,main_extra, add_extra, backoff);
+  getExtraSchedules(*property,fallback,fallback_extra, add_extra, backoff);
 
   // Normally we do main fallback main_extra fallback_extra
   // However, in SMTCOMP mode the fallback is universal for all
@@ -197,7 +200,8 @@ bool PortfolioMode::performStrategy(Shell::Property* property)
       Schedule s = sit.next();
       if(runSchedule(s)){ return true; }
       Schedule ns;
-      getExtraSchedules(*property,s,ns,false,2);
+      // We never add extra here, if we do it we do it at the start
+      getExtraSchedules(*property,s,ns,false,backoff);
       next_schedules.push(ns);
       remainingTime = env->remainingTime()/100;
     }
