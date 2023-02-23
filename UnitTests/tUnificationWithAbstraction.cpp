@@ -34,8 +34,6 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-// TODO make this test use assertions, instead of printing output
-
 using namespace Kernel;
 using namespace Indexing;
 #define TODO ASSERTION_VIOLATION_REP("TODO")
