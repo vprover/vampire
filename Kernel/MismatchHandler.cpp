@@ -111,7 +111,7 @@ public:
     while (dt->isTerm() && dt->functor() == _function) {
       ASS_EQ(dt->nTermArgs(), 2);
       _todo->push(dt->termArg(1));
-      t = t.termArg(0);
+      t = dt->termArg(0);
       dt = &t.deref(_subs);
     }
     return dt->clone();

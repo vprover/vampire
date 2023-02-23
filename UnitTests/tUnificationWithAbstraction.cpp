@@ -1516,6 +1516,16 @@ ROB_UNIFY_TEST_NAMESPACED(namespace_bug_01,
       .constraints = Stack<Literal*>{ },
     })
 
+ROB_UNIFY_TEST(misc01,
+    Options::UnificationWithAbstraction::ALASCA3,
+    f2(f2(a + b + c + f(a), x    ), y),
+    f2(f2(x + y           , a + c), b + f(a)),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(f2(a + b + c + f(a), a + c), b + f(a)),
+      .resultSigma = f2(f2(a + b + c + f(a), a + c), b + f(a)),
+      .constraints = Stack<Literal*>{ },
+    })
+
 
 INDEX_TEST(bug02,
     RAT_SUGAR,
