@@ -123,6 +123,8 @@ struct EqualityResolution::ResultFn
       return 0;    
     }
 
+    if (_cl->hasAnswerLiteral() && !subst.apply(_cl->getAnswerLiteral(), 0)->computableOrVar()) return 0;
+
     //cout << "equalityResolution with " + _cl->toString() << endl;
     //cout << "The literal is " + lit->toString() << endl;
     //cout << "cLength " << cLength << endl;

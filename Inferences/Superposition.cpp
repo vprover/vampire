@@ -507,6 +507,9 @@ Clause* Superposition::performSuperposition(
   Literal* rwAnsLit = rwClause->getAnswerLiteral();
   Literal* eqAnsLit = eqClause->getAnswerLiteral();
   bool bothHaveAnsLit = (rwAnsLit != nullptr) && (eqAnsLit != nullptr);
+  if ((bothHaveAnsLit && !subst->apply(eqLit, eqIsResult)->computableOrVar()) ||
+      (rwAnsLit && !subst->apply(rwAnsLit, !eqIsResult)->computableOrVar()) ||
+      (eqAnsLit && !subst->apply(eqAnsLit, eqIsResult)->computableOrVar())) return 0;
   unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub - (bothHaveAnsLit ? 1 : 0);
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();

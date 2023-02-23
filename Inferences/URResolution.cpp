@@ -300,6 +300,9 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       if( !ColorHelper::compatible(itm->_color, unif.clause->color()) ) {
         continue;
       }
+      if (((itm->_ansLit && unif.clause->hasAnswerLiteral()) && !unif.substitution->apply(itm->_lits[idx], false)->computableOrVar()) ||
+          (itm->_ansLit && !unif.substitution->apply(itm->_ansLit, false)->computableOrVar()) ||
+          (unif.clause->hasAnswerLiteral() && !unif.substitution->apply(unif.clause->getAnswerLiteral(), true)->computableOrVar())) continue;
 
       Item* itm2 = new Item(*itm);
       itm2->resolveLiteral(idx, unif, unif.clause, true);
