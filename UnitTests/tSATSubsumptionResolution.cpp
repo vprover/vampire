@@ -266,10 +266,7 @@ TEST_FUN(PositiveSubsumptionResolution)
   Kernel::Clause* expected13 = clause({q(e)});
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected13));
-  cout << conclusion->toString() << endl;
-  cout << "Subsumption and resolution tests passed" << endl;
-
-  }
+}
 
   TEST_FUN(NegativeSubsumptionResolution)
 {
