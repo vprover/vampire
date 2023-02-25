@@ -131,7 +131,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // L = a where a is a single literal
   // M = b v C where sigma(a) = b is a given from the index
   // Therefore L subsumes M
-  CALL("perform1")
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, false, false);
@@ -156,7 +155,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // keep it until the end of the loop to make sure no subsumption is possible.
   // Only when it has been checked that subsumption is not possible does the conclusion of
   // subsumption resolution become relevant
-  CALL("perform2");
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _fwIndex->getGeneralizations(lit, false, false);
@@ -209,7 +207,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // The negatively matching literals are stacked and removed at the same time
   premiseStack.reset();
   litToExclude.clear();
-  CALL("perform3");
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, true, false);
@@ -217,6 +214,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       mcl = it.next().clause;
       premiseStack.push(mcl);
       litToExclude.push_back(lit);
+      break;
       // No need to loop because it is known that the literal lit will be simplified
     }
   }
@@ -238,7 +236,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
   /*******************************************************/
   // Check for the last clauses that are negatively matched in th index.
-  CALL("perform4");
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _fwIndex->getGeneralizations(lit, true, false);
