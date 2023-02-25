@@ -313,7 +313,7 @@ void Options::init()
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
       "- free uses known information only\n"
-      "- full may perform expensive operations to acheive this so may"
+      "- full may perform expensive operations to achieve this so may"
       " significantly impact on performance.\n"
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases";
     _lookup.insert(&_proofExtra);
@@ -504,7 +504,7 @@ void Options::init()
     _generalSplitting.setRandomChoices({"off","on"});
 
     _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
-    _unusedPredicateDefinitionRemoval.description="Attempt to remove predicate definitions. A predicate definition is a formula of the form ![X1,..,Xn] : (p(X1,..,XN) <=> F) where p is not equality and does not occur in F and X1,..,XN are the free variables of F. If p has only positive (negative) occurences then <=> in the definition can be replaced by => (<=). If p does not occur in the rest of the problem the definition can be removed.";
+    _unusedPredicateDefinitionRemoval.description="Attempt to remove predicate definitions. A predicate definition is a formula of the form ![X1,..,Xn] : (p(X1,..,XN) <=> F) where p is not equality and does not occur in F and X1,..,XN are the free variables of F. If p has only positive (negative) occurrences then <=> in the definition can be replaced by => (<=). If p does not occur in the rest of the problem the definition can be removed.";
     _lookup.insert(&_unusedPredicateDefinitionRemoval);
     _unusedPredicateDefinitionRemoval.tag(OptionTag::PREPROCESSING);
     _unusedPredicateDefinitionRemoval.addProblemConstraint(notWithCat(Property::UEQ));
@@ -574,7 +574,7 @@ void Options::init()
     _naming.addHardConstraint(notEqual(1));
 
     _newCNF = BoolOptionValue("newcnf","newcnf",false);
-    _newCNF.description="Use NewCNF algorithm to do naming, preprecess3 and clausificiation.";
+    _newCNF.description="Use NewCNF algorithm to do naming, preprocessing and clausification.";
     _lookup.insert(&_newCNF);
     _newCNF.addProblemConstraint(hasFormulas());
     _newCNF.addProblemConstraint(onlyFirstOrder());
@@ -594,7 +594,7 @@ void Options::init()
     _latexOutput.tag(OptionTag::OUTPUT);
 
     _latexUseDefaultSymbols = BoolOptionValue("latex_use_default_symbols","",true);
-    _latexUseDefaultSymbols.description="Interpretted symbols such as product have default LaTeX symbols"
+    _latexUseDefaultSymbols.description="Interpreted symbols such as product have default LaTeX symbols"
         " that can be used. They can be overriden in the normal way. This option can turn them off";
     _latexUseDefaultSymbols.tag(OptionTag::OUTPUT);
     _lookup.insert(&_latexUseDefaultSymbols);
@@ -748,7 +748,7 @@ void Options::init()
     "inst_gen, z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
-    // Note order of adding constraints matters (we assume previous gaurds are false)
+    // Note order of adding constraints matters (we assume previous guards are false)
     _saturationAlgorithm.setRandomChoices(isRandSat(),{"discount","otter","inst_gen","fmb"});
     _saturationAlgorithm.setRandomChoices(Or(hasCat(Property::UEQ),atomsLessThan(4000)),{"lrs","discount","otter","inst_gen"});
     _saturationAlgorithm.setRandomChoices({"discount","inst_gen","lrs","otter"});
@@ -884,7 +884,7 @@ void Options::init()
     _fmbEnumerationStrategy.tag(OptionTag::FMB);
 
     _fmbKeepSbeamGenerators = BoolOptionValue("fmb_keep_sbeam_generators","fmbksg",false);
-    _fmbKeepSbeamGenerators.description = "A modification of the sbeam emuration strategy which (for a performance price) makes it more enumeration-complete.";
+    _fmbKeepSbeamGenerators.description = "A modification of the sbeam enumeration strategy which (for a performance price) makes it more enumeration-complete.";
     // for an example where this helps try "-sa fmb -fmbas expand Problems/KRS/KRS185+1.p"
     _lookup.insert(&_fmbKeepSbeamGenerators);
     _fmbKeepSbeamGenerators.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
@@ -896,10 +896,10 @@ void Options::init()
     "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
     " 0     - Total (select everything)\n"
     " 1     - Maximal\n"
-    " 2     - ColoredFirst, MaximalSize then Lexigraphical\n"
-    " 3     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastDistinctVariables then Lexigraphical\n"
-    " 4     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastVariables, MaximalSize then Lexigraphical\n"
-    " 10    - ColoredFirst, NegativeEquality, MaximalSize, Negative then Lexigraphical\n"
+    " 2     - ColoredFirst, MaximalSize then Lexicographical\n"
+    " 3     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastDistinctVariables then Lexicographical\n"
+    " 4     - ColoredFirst, NoPositiveEquality, LeastTopLevelVariables,\n          LeastVariables, MaximalSize then Lexicographical\n"
+    " 10    - ColoredFirst, NegativeEquality, MaximalSize, Negative then Lexicographical\n"
     " 11    - Lookahead\n"
     " 666   - Random\n"
     " 1002  - Incomplete version of 2\n"
@@ -908,7 +908,7 @@ void Options::init()
     " 1010  - Incomplete version of 10\n"
     " 1011  - Incomplete version of 11\n"
     " 1666  - Incomplete version of 666\n"
-    "Or negated, which means that reversePolarity is true i.e. for selection we treat all negative non-equalty literals as "
+    "Or negated, which means that reversePolarity is true i.e. for selection we treat all negative non-equality literals as "
     "positive and vice versa (can only apply to non-equality literals).\n";
 
     _lookup.insert(&_selection);
@@ -1156,7 +1156,7 @@ void Options::init()
     "\nThe different option values define the behaviour of which theory literals to select."
     "\n- all    : hmmm.. what could that mean?!"
     "\n- neg_eq : only negative equalities"
-    "\n- strong : interpreted predicates, but no positive equalites"
+    "\n- strong : interpreted predicates, but no positive equalities"
     "\n- overlap: all literals that contain variables that are also contained in a strong literal"
     "\n- new    : deprecated"
     "\n- full   : deprecated"
@@ -1242,7 +1242,7 @@ void Options::init()
        "push_unary_minus", "pum",
        false);
     _pushUnaryMinus.description=
-          "Enable the immideate simplifications:\n"
+          "Enable the immediate simplifications:\n"
           " -(t + s) ==> -t + -s\n"
           " -(-t) ==> t\n"
           ;
@@ -1254,7 +1254,7 @@ void Options::init()
        "gaussian_variable_elimination", "gve",
        ArithmeticSimplificationMode::OFF);
     _gaussianVariableElimination.description=
-          "Enable the immideate simplification \"Gaussian Variable Elimination\":\n"
+          "Enable the immediate simplification \"Gaussian Variable Elimination\":\n"
           "\n"
           "s != t \\/ C[X] \n"
           "--------------  if s != t can be rewritten to X != r \n"
@@ -1278,7 +1278,7 @@ void Options::init()
        "arithmetic_subterm_generalizations", "asg",
        ArithmeticSimplificationMode::OFF);
     _arithmeticSubtermGeneralizations.description = "\
-          Enables variaous generalization rules for arithmetic terms as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
+          Enables various generalization rules for arithmetic terms as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
           In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_arithmeticSubtermGeneralizations);
@@ -1472,9 +1472,9 @@ void Options::init()
                   {"all","off","preordered"});
     _backwardDemodulation.description=
        "Oriented rewriting of kept clauses by newly derived unit equalities\n"
-       "s = t     L[sθ] \\/ C\n"
+       "s = t     L[sθ] \\/ C\n"
        "---------------------   where sθ > tθ (replaces RHS)\n"
-       " L[tθ] \\/ C\n";
+       " L[tθ] \\/ C\n";
     _lookup.insert(&_backwardDemodulation);
     _backwardDemodulation.tag(OptionTag::INFERENCES);
     _backwardDemodulation.addProblemConstraint(hasEquality());
@@ -1548,7 +1548,7 @@ void Options::init()
     _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
     _demodulationRedundancyCheck.description=
        "Avoids the following cases of backward and forward demodulation, as they do not preserve completeness:\n"
-       "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
+       "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
 
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
@@ -1613,7 +1613,7 @@ void Options::init()
       "--------------------,\n"
       "C[true] \\/ s = false\n"
       "where s is a boolean term that is not a variable, true or false, C[true] is "
-      "the C clause with s substituted by true. This rule is needed for effecient "
+      "the C clause with s substituted by true. This rule is needed for efficient "
       "treatment of boolean terms.";
     _lookup.insert(&_FOOLParamodulation);
     _FOOLParamodulation.tag(OptionTag::INFERENCES);
@@ -1651,9 +1651,9 @@ void Options::init()
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
     "Oriented rewriting of newly derived clauses by kept unit equalities\n"
-    "s = t     L[sθ] \\/ C\n"
+    "s = t     L[sθ] \\/ C\n"
     "---------------------  where sθ > tθ\n"
-    " L[tθ] \\/ C\n"
+    " L[tθ] \\/ C\n"
     "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.";
     _lookup.insert(&_forwardDemodulation);
     _forwardDemodulation.onlyUsefulWith(InferencingSaturationAlgorithm());
@@ -1811,7 +1811,7 @@ void Options::init()
     _injectivity.tag(OptionTag::HIGHER_ORDER);
 
     _pragmatic = BoolOptionValue("pragmatic","prag",false);
-    _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
+    _pragmatic.description="Modifies various parameters to help Vampire solve 'hard' higher-order";
     _pragmatic.onlyUsefulWith(_combinatorySuperposition.is(equal(true)));
     _lookup.insert(&_pragmatic);
     _pragmatic.addProblemConstraint(hasHigherOrder());
@@ -1877,7 +1877,7 @@ void Options::init()
 
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
     _complexBooleanReasoning.description=
-    "Switches on primitive instantiation and elimination of leibniz equality";
+    "Switches on primitive instantiation and elimination of Leibniz equality";
     _complexBooleanReasoning.onlyUsefulWith(_addProxyAxioms.is(equal(false)));
     _lookup.insert(&_complexBooleanReasoning);
     _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
@@ -1952,7 +1952,7 @@ void Options::init()
 
     _globalSubsumptionExplicitMinim = ChoiceOptionValue<GlobalSubsumptionExplicitMinim>("global_subsumption_explicit_minim","gsem",
         GlobalSubsumptionExplicitMinim::RANDOMIZED,{"off","on","randomized"});
-    _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global sumsumption reduction.";
+    _globalSubsumptionSatSolverPower.description="Explicitly minimize the result of global subsumption reduction.";
     _lookup.insert(&_globalSubsumptionExplicitMinim);
     _globalSubsumptionExplicitMinim.tag(OptionTag::INFERENCES);
     _globalSubsumptionExplicitMinim.onlyUsefulWith(_globalSubsumption.is(equal(true)));
@@ -2072,7 +2072,7 @@ void Options::init()
 
     _splittingCongruenceClosure = ChoiceOptionValue<SplittingCongruenceClosure>("avatar_congruence_closure","acc",
                                                                                 SplittingCongruenceClosure::OFF,{"model","off","on"});
-    _splittingCongruenceClosure.description="Use a congruence closure decision procedure on top of the AVATAR SAT solver. This ensures that models produced by AVATAR satisfy the theory of uninterprted functions.";
+    _splittingCongruenceClosure.description="Use a congruence closure decision procedure on top of the AVATAR SAT solver. This ensures that models produced by AVATAR satisfy the theory of uninterpreted functions.";
     _lookup.insert(&_splittingCongruenceClosure);
     _splittingCongruenceClosure.tag(OptionTag::AVATAR);
     _splittingCongruenceClosure.onlyUsefulWith(_splitting.is(equal(true)));
@@ -2130,7 +2130,7 @@ void Options::init()
     _splittingFastRestart.setRandomChoices({"on","off"});
 
     _splittingBufferedSolver = BoolOptionValue("avatar_buffered_solver","abs",false);
-    _splittingBufferedSolver.description="Added buffering funcitonality to the SAT solver used in AVATAR.";
+    _splittingBufferedSolver.description="Added buffering functionality to the SAT solver used in AVATAR.";
     _lookup.insert(&_splittingBufferedSolver);
     _splittingBufferedSolver.tag(OptionTag::AVATAR);
     _splittingBufferedSolver.onlyUsefulWith(_splitting.is(equal(true)));
@@ -2166,7 +2166,7 @@ void Options::init()
     _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",1.0);
     _splittingAvatimer.description= "Stop splitting after the specified fraction of the overall time has passed (the default 1.0 means AVATAR runs until the end).\n"
         "(the remaining time AVATAR is still switching branches and communicating with the SAT solver,\n"
-        "but not introducing new splits anymore. This fights the theoretical possibility of AVATAR's dynamic incompletness.)";
+        "but not introducing new splits anymore. This fights the theoretical possibility of AVATAR's dynamic incompleteness.)";
     _lookup.insert(&_splittingAvatimer);
     _splittingAvatimer.tag(OptionTag::AVATAR);
     _splittingAvatimer.addConstraint(greaterThan(0.0f)); //if you want to stop splitting right-away, just turn AVATAR off
@@ -2283,7 +2283,7 @@ void Options::init()
     _randomTraversals.setExperimental();
 
     _randomPolarities = BoolOptionValue("random_polarities","rp",false);
-    _randomPolarities.description="As part of preprocesssing, randomly (though consisitently) flip polarities of non-equality predicates in the whole CNF.";
+    _randomPolarities.description="As part of preprocessing, randomly (though consistently) flip polarities of non-equality predicates in the whole CNF.";
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
@@ -2295,7 +2295,7 @@ void Options::init()
     _questionAnswering.tag(OptionTag::OTHER);
 
     _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
-    _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducability of results. By default the seed is not changed.";
+    _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);
     _randomSeed.tag(OptionTag::INPUT);
 
@@ -2324,7 +2324,7 @@ void Options::init()
     _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols.\n"
                                   "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem. "
                                   "Then we have a few precedence generating schemes adopted from E: frequency - sort by frequency making rare symbols large, reverse does the opposite, "
-                                  "(For the weighted versions, each symbol occurence counts as many times as is the lenght of the clause in which it occurs.) "
+                                  "(For the weighted versions, each symbol occurence counts as many times as is the length of the clause in which it occurs.) "
                                   "unary_first is like arity, except that unary symbols are maximal (and ties are broken by frequency), "
                                   "unary_frequency is like frequency, except that unary symbols are maximal, "
                                   "const_max makes constants the largest, then falls back to arity, "
@@ -2394,17 +2394,17 @@ void Options::init()
     _functionWeights.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _lookup.insert(&_functionWeights);
 
-    _typeConPrecedence = StringOptionValue("type_con_precendence","tcp","");
+    _typeConPrecedence = StringOptionValue("type_con_precedence","tcp","");
     _typeConPrecedence.description = "A name of a file with an explicit user specified precedence on type constructor symbols.";
     _typeConPrecedence.setExperimental();
     _lookup.insert(&_typeConPrecedence);
 
-    _functionPrecedence = StringOptionValue("function_precendence","fp","");
+    _functionPrecedence = StringOptionValue("function_precedence","fp","");
     _functionPrecedence.description = "A name of a file with an explicit user specified precedence on function symbols.";
     _functionPrecedence.setExperimental();
     _lookup.insert(&_functionPrecedence);
 
-    _predicatePrecedence = StringOptionValue("predicate_precendence","pp","");
+    _predicatePrecedence = StringOptionValue("predicate_precedence","pp","");
     _predicatePrecedence.description = "A name of a file with an explicit user specified precedence on predicate symbols.";
     _predicatePrecedence.setExperimental();
     _lookup.insert(&_predicatePrecedence);

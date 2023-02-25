@@ -159,8 +159,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/BacktrackIterators.hpp
     Lib/BinaryHeap.hpp
     Lib/BitUtils.hpp
-    Lib/BucketSorter.hpp
-    Lib/Cache.hpp
     Lib/Comparison.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
@@ -183,7 +181,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/MemoryLeak.hpp
-    Lib/Metaarrays.hpp
     Lib/Metaiterators.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
@@ -192,9 +189,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Portability.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
-    Lib/RCPtr.hpp
     Lib/Recycler.hpp
-    Lib/ReferenceCounter.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
     Lib/ScopedLet.hpp

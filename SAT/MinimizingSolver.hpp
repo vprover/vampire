@@ -93,7 +93,7 @@ private:
   void updateAssignment();
 
   unsigned _varCnt;
-  SATSolverSCP _inner;
+  ScopedPtr<SATSolver> _inner;
 
   /**
    * If true, _asgn assignment corresponds to the assignment in

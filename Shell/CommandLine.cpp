@@ -58,7 +58,7 @@ void CommandLine::interpret (Options& options)
     ASS(_next < _last);
     const char* arg = *_next++;
     if (strcmp(arg, "--version")==0) {
-      cout<<VERSION_STRING<<endl;
+      cout << VERSION_STRING << endl;
 #if VZ3
       cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
 #endif

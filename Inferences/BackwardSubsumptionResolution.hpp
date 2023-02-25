@@ -19,6 +19,8 @@
 #include "InferenceEngine.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 
+namespace Indexing { class BackwardSubsumptionIndex; }
+
 namespace Inferences {
 
 class BackwardSubsumptionResolution

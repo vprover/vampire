@@ -44,6 +44,7 @@ namespace Kernel {
 
 using namespace std;
 using namespace Lib;
+typedef Map<vstring, unsigned> SymbolMap;
 
 /**
  * Class implementing signatures

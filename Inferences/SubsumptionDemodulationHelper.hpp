@@ -221,10 +221,6 @@ class SDClauseMatches
   USE_ALLOCATOR(SDClauseMatches);
 
   public:
-    // required to use std::vector::emplace_back
-    DECLARE_PLACEMENT_NEW;
-
-  public:
     SDClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts);
 
     ~SDClauseMatches();

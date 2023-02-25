@@ -21,7 +21,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/RCPtr.hpp"
 #include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -36,7 +35,6 @@ namespace Kernel {
 namespace Shell {
 
 using namespace Kernel;
-using namespace Solving;
 
 /**
  * Class Statistics
@@ -50,8 +48,8 @@ public:
 
   Statistics();
 
-  void print(ostream& out);
-  void explainRefutationNotFound(ostream& out);
+  void print(std::ostream& out);
+  void explainRefutationNotFound(std::ostream& out);
 
   // Input
   /** number of input clauses */

@@ -44,7 +44,8 @@
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
 
-#include "Lib/RCPtr.hpp"
+#include "SAT/Z3Interfacing.hpp"
+
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -75,16 +76,33 @@ void reportSpiderFail()
 
 void reportSpiderStatus(char status)
 {
-  using namespace Lib;
-
-  if(Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SPIDER) {
-    env.beginOutput();
-    env.out() << status << " "
-      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
-      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
-      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
-    env.endOutput();
+#if VZ3
+  if (Lib::env.options && Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
+    return;
   }
+
+  // compute Vampire Z3 version and commit
+  vstring version = VERSION_STRING;
+  size_t versionPosition = version.find("commit ") + strlen("commit ");
+  size_t afterVersionPosition = version.find(" ",versionPosition + 1);
+  vstring commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
+  vstring z3Version = Z3Interfacing::z3_full_version();
+  size_t spacePosition = z3Version.find(" ");
+  if (spacePosition != string::npos) {
+    z3Version = z3Version.substr(0,spacePosition);
+  }
+
+  vstring problemName = Lib::env.options->problemName();
+
+  env.beginOutput();
+  env.out()
+    << status << " "
+    << (problemName.length() == 0 ? "unknown" : problemName) << " "
+    << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
+    << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
+    << commitNumber << ':' << z3Version << "\n";
+  env.endOutput();
+#endif
 }
 
 bool szsOutputMode() {
@@ -268,9 +286,10 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     {
        // First lets pick a place to start based on the input file name
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
-
-       if(smtlib){
-         if (env.options->mode()!=Options::Mode::SPIDER) {
+       Options::Mode mode = env.options->mode();
+       
+       if (smtlib){
+         if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
@@ -293,8 +312,8 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          }
 
        }
-       else{
-         if (env.options->mode()!=Options::Mode::SPIDER) {
+       else {
+         if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
@@ -610,42 +629,22 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
   //    << sym->name() << ": ";
 
+  vstring symName = sym->name();
+  if(typeCon && env.signature->isBoolCon(symNumber)){
+    ASS(env.options->showFOOL());
+    symName = "$bool";
+  }
+
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
     out << (env.property->higherOrder() ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
-        << sym->name() << ": ";
+        << symName << ": ";
     out << type->toString();
     out << ")." << endl;
   }
   //out << ")." << endl;
 }
-
-/**
- * Output to @b out all sort declarations for the current signature.
- * Built-in sorts and structures sorts will not be output.
- * @author Evgeny Kotelnikov
- * @since 04/09/2015 Gothneburg
- */
-/*void UIHelper::outputSortDeclarations(ostream& out)
-{
-  CALL("UIHelper::outputSortDeclarations");
-
-  if(env.statistics->higherOrder){
-    return;
-  }
-
-  unsigned sorts = env.sorts->count();
-  for (unsigned sort = 1; sort < sorts; ++sort) {
-    if (sort < Sorts::FIRST_USER_SORT && ((sort != 1) || !env.options->showFOOL())) {
-      continue;
-    }
-    if (SortHelper::isStructuredSort(sort)) {
-      continue;
-    }
-    out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
-  }
-}*/ // UIHelper::outputSortDeclarations
 
 } // namespace Shell

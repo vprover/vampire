@@ -581,22 +581,24 @@ Allocator::Page* Allocator::allocatePages(size_t size)
   size_t realSize = VPAGE_SIZE*(index+1);
 
   // check if the allocation isn't too big
-  if(index>=MAX_PAGES) {
+  if (index>=MAX_PAGES) {
 #if SAFE_OUT_OF_MEM_SOLUTION
     env.beginOutput();
     reportSpiderStatus('m');
-    env.out() << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
-    if(env.statistics) {
-      env.statistics->print(env.out());
-    }
+    if (!Lib::env.options || Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
+      env.out() << "Unsupported amount of allocated memory: "<<realSize<<"!\n";
+      if(env.statistics) {
+        env.statistics->print(env.out());
+      }
 #if VDEBUG
-    Debug::Tracer::printStack(env.out());
+      Debug::Tracer::printStack(env.out());
 #endif
-    env.endOutput();
-    System::terminateImmediately(1);
+      env.endOutput();
+      System::terminateImmediately(1);
 #else
-    throw Lib::MemoryLimitExceededException();
+      throw Lib::MemoryLimitExceededException();
 #endif
+    }
   }
   // check if there is a page in the list available
   if (_pages[index]) {
@@ -613,14 +615,16 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 #if SAFE_OUT_OF_MEM_SOLUTION
       env.beginOutput();
       reportSpiderStatus('m');
-      env.out() << "Memory limit exceeded!\n";
+      if (!Lib::env.options || Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
+        env.out() << "Memory limit exceeded!\n";
 # if VDEBUG
 	Allocator::reportUsageByClasses();
 # endif
-      if(env.statistics) {
-	env.statistics->print(env.out());
+        if (env.statistics) {
+          env.statistics->print(env.out());
+        }
+        env.endOutput();
       }
-      env.endOutput();
       System::terminateImmediately(1);
 #else
       throw Lib::MemoryLimitExceededException();
@@ -630,15 +634,17 @@ Allocator::Page* Allocator::allocatePages(size_t size)
 
     char* mem = static_cast<char*>(malloc(realSize));
     if (!mem) {
-      env.beginOutput();
       reportSpiderStatus('m');
-      env.out() << "Memory limit exceeded!\n";
-      if(env.statistics) {
-        // statistics should be fine when out of memory, but not RuntimeStatistics, which allocate a Stack
-        // (i.e. potential crazy exception recursion may happen in DEBUG mode)
-        env.statistics->print(env.out());
+      if (!Lib::env.options || Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
+        env.beginOutput();
+        env.out() << "Memory limit exceeded!\n";
+        if (env.statistics) {
+          // statistics should be fine when out of memory, but not RuntimeStatistics, which allocate a Stack
+          // (i.e. potential crazy exception recursion may happen in DEBUG mode)
+          env.statistics->print(env.out());
+        }
+        env.endOutput();
       }
-      env.endOutput();
       System::terminateImmediately(1);
 
       // CANNOT throw vampire exception when out of memory - it contains allocations because of the message string
