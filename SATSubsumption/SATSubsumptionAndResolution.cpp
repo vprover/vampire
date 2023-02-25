@@ -239,10 +239,11 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
 void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder,
                                              unsigned i,
                                              unsigned j,
-                                             bool polarity)
+                                             bool polarity,
+                                             bool isNullary)
 {
   CALL("SATSubsumptionAndResolution::addBinding");
-  ASS(binder)
+  ASS(binder || isNullary)
   ASS(i < _m)
   ASS(j < _n)
   subsat::Var satVar = _solver.s.new_variable();
@@ -250,7 +251,8 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder,
   cout << satVar << " -> (" << (*_L)[i]->toString() << " " << (*_M)[j]->toString() << " " << (polarity ? "+" : "-") << ")" << endl;
 #endif
   _matchSet.addMatch(i, j, polarity, satVar);
-  _bindingsManager.commit_bindings(*binder, satVar, i, j);
+  if (!isNullary)
+    _bindingsManager.commit_bindings(*binder, satVar, i, j);
 } // SATSubsumptionAndResolution::addBinding
 
 bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *l_i,
@@ -271,14 +273,14 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *l_i,
   {
     auto binder = _bindingsManager.start_binder();
     if (MatchingUtils::matchArgs(l_i, m_j, binder)) {
-      addBinding(&binder, i, j, polarity);
+      addBinding(&binder, i, j, polarity, false);
       match = true;
     }
   }
   if (l_i->commutative()) {
     auto binder = _bindingsManager.start_binder();
     if (MatchingUtils::matchReversedArgs(l_i, m_j, binder)) {
-      addBinding(&binder, i, j, polarity);
+      addBinding(&binder, i, j, polarity, false);
       match = true;
     }
   }
@@ -304,7 +306,14 @@ bool SATSubsumptionAndResolution::fillMatchesS()
 
     for (unsigned j = 0; j < _n; ++j) {
       m_j = _M->literals()[j];
-      if (l_i->functor() != m_j->functor() || l_i->polarity() != m_j->polarity()) {
+      if (l_i->functor() != m_j->functor()
+       || l_i->polarity() != m_j->polarity()) {
+        continue;
+      }
+      if (l_i->arity() == 0) {
+        ASS(m_j->arity() == 0)
+        addBinding(nullptr, i, j, true, true);
+        foundMatch = true;
         continue;
       }
       foundMatch = checkAndAddMatch(l_i, m_j, i, j, true) || foundMatch;
@@ -348,8 +357,19 @@ void SATSubsumptionAndResolution::fillMatchesSR()
       if (l_i->functor() != m_j->functor()) {
         continue;
       }
-
-      if (l_i->polarity() == m_j->polarity()) {
+      if (l_i->arity() == 0) {
+        ASS(m_j->arity() == 0)
+        if (l_i->polarity() == m_j->polarity()) {
+          addBinding(nullptr, i, j, true, true);
+          foundPositiveMatch = true;
+        }
+        else {
+          addBinding(nullptr, i, j, false, true);
+          hasNegativeMatch = true;
+          foundNegativeMatch = true;
+        }
+      }
+      else if (l_i->polarity() == m_j->polarity()) {
         foundPositiveMatch = checkAndAddMatch(l_i, m_j, i, j, true) || foundPositiveMatch;
       } // end of positive literal match
       // dont check for negative literals if it was established that _sr_impossible

@@ -398,11 +398,13 @@ private:
    * @param i the index of the literal in the base clause
    * @param j the index of the literal in the instance clause
    * @param polarity the polarity of the match
+   * @param isNullary whether the literals l_i and m_j are nullary. If so, no binder is added to the SAT solver
    */
   void addBinding(BindingsManager::Binder *binder,
                   unsigned i,
                   unsigned j,
-                  bool polarity);
+                  bool polarity,
+                  bool isNullary);
 
   /**
    * Adds the clauses for the subsumption problem to the sat solver
