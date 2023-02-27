@@ -94,8 +94,6 @@ bool LascaState::hasSubstitutionProperty(SignedAtoms const& l)
       auto& same  = sign == Sign::Pos ? pos : neg;
       auto& other = sign == Sign::Pos ? neg : pos;
 
-
-
       if (iterTraits(other.iterFifo())
         .any([&](auto& s) { return maybeEquiv(s, term); })) 
       {

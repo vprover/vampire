@@ -2017,6 +2017,9 @@ public:
   auto zip(OtherIter other)
   { return map([other = std::move(other)](Elem x) mutable { return make_pair(std::move(x), other.next()); }); }
 
+  auto zipWithIndex()
+  { return map([idx = 0](Elem x) mutable { return make_pair(std::move(x), idx++); }); }
+
 
   auto sum()
   { return fold([](Elem l, Elem r) { return l + r; }) || []() { return Elem(0); }; }

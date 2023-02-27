@@ -80,6 +80,7 @@ public:
 #if VDEBUG
         auto k = appl.key();
 #endif
+        // DBG("insert: ", appl)
         _index.insert(std::move(appl));
         ASS_REP(find(k).hasNext(), k)
       } else {

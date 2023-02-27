@@ -89,7 +89,7 @@ using namespace Inferences::LASCA;
   DECL_FUNC(gg, {Num}, Num)                                                                         \
   DECL_FUNC(ff, {Num}, Num)                                                                         \
   DECL_FUNC(ab, {Num}, Num)                                                                         \
-  DECL_FUNC(skx, {Num}, Num)                                                                         \
+  DECL_FUNC(skx, {Num}, Num)                                                                        \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -837,7 +837,7 @@ TEST_GENERATION_WITH_SUGAR(bug03b,
     )
 
 
-TEST_GENERATION_WITH_SUGAR(bug_uwa,
+TEST_GENERATION_WITH_SUGAR(bug_uwa_01,
     SUGAR(Real),
     Generation::SymmetricTest()
       .selfApplications(false)
@@ -852,6 +852,65 @@ TEST_GENERATION_WITH_SUGAR(bug_uwa,
       .expected(exactly(
           clause({  g(x0, x0) > 0  })
           // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
+      ))
+    )
+
+#define LIMIT_SUGAR                                                                                 \
+  NUMBER_SUGAR(Real)                                                                                \
+  DECL_DEFAULT_VARS                                                                                 \
+  DECL_FUNC(ab, {Real}, Real)                                                                       \
+  DECL_FUNC(skx, {Real}, Real)                                                                       \
+  DECL_FUNC(gg, {Real}, Real)                                                                       \
+  DECL_CONST(delta, Real)                                                                           \
+  DECL_CONST(a, Real)                                                                               \
+
+
+TEST_GENERATION_WITH_SUGAR(bug_uwa_02,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .selfApplications(false)
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))  )
+      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))
+// 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
+// 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
+      .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
+                , clause({ delta + -ab(x + a) >= 0 })
+               })
+      .expected(exactly(
+          clause({ -delta + delta > 0 })
+          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
+      ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug_uwa_03,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .selfApplications(false)
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))  )
+      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))
+// 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
+// 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
+      .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
+                , clause({ c + -ab(gg(x)) > 0 })
+               })
+      .expected(exactly(
+          // clause({ -delta + delta > 0, x + a != skx(x) + a, c + -ab(gg(x)) > 0 })
+          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
+      ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug_uwa_04,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .selfApplications(false)
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))  )
+      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))
+// 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
+// 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
+      .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
+                , clause({ c + -ab(gg(x)) > 0, delta + -ab(x + a) >= 0 })
+               })
+      .expected(exactly(
       ))
     )
 

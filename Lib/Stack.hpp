@@ -27,6 +27,7 @@
 
 #include "Allocator.hpp"
 #include "Lib/Reflection.hpp"
+#include "Debug/Output.hpp"
 // #include "Backtrackable.hpp"
 //
 namespace Lib
@@ -936,6 +937,7 @@ public:
 
 
   friend std::ostream& operator<<(std::ostream& out, const Stack<C>& s) {
+    using namespace Kernel;
     out << "[";
     auto iter = s.begin();
     if(iter != s.end()) {

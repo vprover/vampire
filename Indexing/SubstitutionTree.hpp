@@ -51,6 +51,7 @@
 #include "Kernel/OperatorType.hpp"
 #include "Lib/Option.hpp"
 #include "Kernel/Signature.hpp"
+#include "Debug/Output.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -1241,7 +1242,10 @@ public:
     template<class TermOrLit, class...AlgoArgs>
     UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
       : _algo(std::move(args)...)
+#if VDEBUG
       , _svStack()
+#endif // VDEBUG
+      , _svValues()
       , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
       , _inLeaf(false)
@@ -1400,6 +1404,9 @@ public:
           //so it also pops one item out of the nodeIterators stack
           _bdStack->pop().backtrack();
           _svStack->pop();
+#if VDEBUG
+          _svValues->pop();
+#endif // VDEBUG
         }
         if(!_nodeIterators->top().hasNext()) {
           return false;
@@ -1408,14 +1415,26 @@ public:
 
         BacktrackData bd;
         bool success=enter(n,bd);
+        using namespace Kernel;
+
+          
         if(!success) {
-          DEBUG_ITER(1, "backtracking.")
+          DEBUG_ITER(0, "fail: ", 
+              outputInterleaved(", ", 
+                arrayIter(*_svStack).zip(arrayIter(*_svValues))
+                ))
+
+          // DEBUG_ITER(1, "backtracking.")
           bd.backtrack();
           continue;
         } else {
           _bdStack->push(bd);
         }
       } while(!_inLeaf);
+          DEBUG_ITER(0, "success: ", 
+              outputInterleaved(", ", 
+                arrayIter(*_svStack).zip(arrayIter(*_svValues))
+                ))
       return true;
     }
 
@@ -1430,8 +1449,9 @@ public:
 
         recording=true;
         _algo.bdRecord(bd);
+        _svValues->top() = n->term;
         success = _algo.associate(_svStack->top(),n->term,bd);
-        DEBUG_ITER(0, "associate: ", _svStack->top(), " -> ", n->term, ": ", success ? "success" : "failure")
+        DEBUG_ITER(1, "associate: ", _svStack->top(), " -> ", n->term, ": ", success ? "success" : "failure")
       }
       if(success) {
         if(n->isLeaf()) {
@@ -1440,6 +1460,7 @@ public:
         } else {
           IntermediateNode* inode=static_cast<IntermediateNode*>(n);
           _svStack->push(inode->childVar);
+          _svValues->push(TermList::empty());
           backtrackablePush(*_nodeIterators, getNodeIterator(inode), bd);
         }
       }
@@ -1452,6 +1473,9 @@ public:
 
     UnificationAlgorithm _algo;
     Recycled<VarStack> _svStack;
+#if VDEBUG
+    Recycled<Stack<TermList>> _svValues;
+#endif // VDEBUG
     bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;
