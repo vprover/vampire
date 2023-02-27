@@ -31,6 +31,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Debug/Output.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG_FINALIZE(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 
 namespace Kernel
 {
@@ -191,15 +192,19 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       }
       auto a1 = iterTraits(AcIter(IntTraits::addF(), t1.clone(), &au->subs())).template collect<Stack>();
       auto a2 = iterTraits(AcIter(IntTraits::addF(), t2.clone(), &au->subs())).template collect<Stack>();
-      a1.sort();
-      a2.sort();
+      auto cmp = [&](TermSpec const& lhs, TermSpec const& rhs) { return TermSpec::compare(lhs, rhs, [&](auto& t) -> TermSpec const& { return t.deref(&au->subs()); }); };
+      auto less = [&](TermSpec const& lhs, TermSpec const& rhs) { return cmp(lhs, rhs) < 0; };
+      a1.sort(less);
+      a2.sort(less);
+      // a1.sort();
+      // a2.sort();
 
       Recycled<Stack<TermSpec>> diff1_;
       Recycled<Stack<TermSpec>> diff2_;
       auto& diff1 = *diff1_;
       auto& diff2 = *diff2_;
-      diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2)).map([](auto& x) -> TermSpec { return x.clone(); }));
-      diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1)).map([](auto& x) -> TermSpec { return x.clone(); }));
+      diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
+      diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
       auto sum = [](auto& diff) {
           return arrayIter(diff)
             .map([](auto& x) { return x.clone(); })
@@ -298,11 +303,14 @@ bool AbstractingUnifier::finalize()
     todo->push(constr().pop(bd()));
   }
 
+  DEBUG_FINALIZE(1, "finalizing: ", todo)
   while (!todo->isEmpty()) {
     auto c = todo->pop();
+    DEBUG_FINALIZE(2, "popped: ", c);
     bool progress;
     auto res = unify(c.lhs().clone(), c.rhs().clone(), progress);
     if (!res) {
+      DEBUG_FINALIZE(1, "finalizing failed");
       return false;
     } else if (progress) {
       while (!constr().isEmpty()) { 
@@ -312,6 +320,7 @@ bool AbstractingUnifier::finalize()
       // no progress. we keep the constraints
     }
   }
+  DEBUG_FINALIZE(1, "finalizing successful: ", *this);
   return true;
 }
 
@@ -324,7 +333,7 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
   return unify(TermSpec(term1, bank1), TermSpec(term2, bank2), progress);
 }
 
-#define DEBUG_UNIFY(LVL, ...) if (LVL <= 2) DBG(__VA_ARGS__)
+#define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
   CALL("AbstractionResult::unify");
@@ -340,7 +349,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
   auto impl = [&]() -> bool {
 
     Recycled<Stack<UnificationConstraint>> toDo;
-    toDo->push(UnificationConstraint(std::move(t1), std::move(t2)));
+    toDo->push(UnificationConstraint(t1.clone(), t2.clone()));
     
     // Save encountered unification pairs to avoid
     // recomputing their unification
@@ -350,6 +359,9 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     auto doAbstract = [&](auto& l, auto& r) -> bool
     { 
       absRes = _uwa.tryAbstract(this, l, r);
+      if (absRes) {
+        DEBUG_UNIFY(2, "abstraction result: ", absRes)
+      }
       return absRes.isSome();
     };
 

@@ -31,9 +31,10 @@
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa)
+LiteralSubstitutionTree::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaPostpro)
 : _trees(env.signature->predicates() * 2)
 , _mismatchHandler(uwa)
+, _uwaPostpro(uwaPostpro)
 { }
 
 // TODO move
@@ -42,9 +43,6 @@ using RobAlgo = UnificationAlgorithms::RobUnification;
 
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(lit, complementary, retrieveSubstitutions); }
-
-VirtualIterator<LQueryRes<AbstractingUnifier*>> LiteralSubstitutionTree::getUwa(Literal* lit, bool complementary)
-{ return getResultIterator<SubstitutionTree::UnificationsIterator<UwaAlgo>>(lit, complementary, /* retrieveSubstitutions */ true, _mismatchHandler); }
 
 SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }

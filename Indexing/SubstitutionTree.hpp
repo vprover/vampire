@@ -157,12 +157,14 @@ namespace Indexing {
           if (_result->isNone()) {
             *_result = some(bool(_unif->finalize()));
             if (_unif->isRecording()) {
-              _unif->bdGet().addClosure([&]() { _result = {}; });
+              _unif->bdGet().addClosure([res = _result]() { *res = {}; });
             }
           }
           return someIf(**_result, [&](){ return _unif;  });
         }
 
+        friend std::ostream& operator<<(std::ostream& out, NotFinalized const& self)
+        { return out << *self._unif << " (finalized: " << *self._result << " @ " << self._result << " )"; }
       };
 
       using Unifier = NotFinalized;

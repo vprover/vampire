@@ -100,6 +100,7 @@ private:
 
   Index* create(IndexType t);
   Shell::Options::UnificationWithAbstraction _uwa;
+  bool _uwaPostpro;
 };
 
 };

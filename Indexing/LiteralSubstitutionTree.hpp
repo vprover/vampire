@@ -40,7 +40,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa);
+  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaPostpro);
 
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
   void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
@@ -50,7 +50,8 @@ public:
   { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
   SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
-  VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary) final override;
+  // VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary) final override;
+
   SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
@@ -63,7 +64,45 @@ private:
   static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
   static bool idxIsNegative(unsigned idx) { return idx % 2; }
   static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
+
+  template<class Iterator, class... Args>
+  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
+  {
+    CALL("LiteralSubstitutionTree::getResultIterator");
+
+    auto iter = [=](bool reversed) 
+      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
+
+    auto filterResults = [=](auto it) { 
+      return pvi(
+          std::move(it)
+          .map([](auto r) { return lQueryRes(r.data->literal, r.data->clause, std::move(r.unif)); })
+          ); 
+    };
+    return !lit->commutative() 
+      ?  filterResults(iter( /* reversed */ false))
+      :  filterResults(concatIters(
+          iter( /* reversed */ false),
+          iter( /* reversed */ true)
+        ));
+  }
+
+
+  auto nopostproUwa(Literal* lit, bool complementary)
+  { return getResultIterator<SubstitutionTree::UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, _mismatchHandler); }
+
+  auto postproUwa(Literal* lit, bool complementary)
+  { return pvi(iterTraits(getResultIterator<SubstitutionTree::UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, _mismatchHandler))
+    .filterMap([](LQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
+        { return r.unifier.finalize().map([&](AbstractingUnifier* unif) { return lQueryRes(r.literal, r.clause, unif); }); })); }
+
+
 public:
+
+
+  VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary) final override
+  { return _uwaPostpro ? pvi(  postproUwa(lit, complementary))
+                       : pvi(nopostproUwa(lit, complementary)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
@@ -105,31 +144,9 @@ private:
   // { return SLQueryResult(r.data->literal, r.data->clause, ResultSubstitutionSP((ResultSubstitution*)&*r.unif.unwrapOrElse([](){return RobSubstitutionSP();}))); }
 
 
-  template<class Iterator, class... Args>
-  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
-  {
-    CALL("LiteralSubstitutionTree::getResultIterator");
-
-    auto iter = [=](bool reversed) 
-      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
-
-    auto filterResults = [=](auto it) { 
-      return pvi(
-          std::move(it)
-          .map([](auto r) { return lQueryRes(r.data->literal, r.data->clause, std::move(r.unif)); })
-          ); 
-    };
-    return !lit->commutative() 
-      ?  filterResults(iter( /* reversed */ false))
-      :  filterResults(concatIters(
-          iter( /* reversed */ false),
-          iter( /* reversed */ true)
-        ));
-  }
-
-
   Stack<SubstitutionTree> _trees;
   MismatchHandler _mismatchHandler;
+  bool _uwaPostpro;
 };
 
 };

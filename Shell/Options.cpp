@@ -1204,6 +1204,12 @@ void Options::init()
     _unificationWithAbstraction.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstraction);
 
+    _unificationWithAbstractionPostpro = BoolOptionValue("unification_with_abstraction_postpro","uwa_pp",
+                                     false);
+    _unificationWithAbstractionPostpro.description="TODO";
+    _unificationWithAbstractionPostpro.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_unificationWithAbstractionPostpro);
+
     _useACeval = BoolOptionValue("use_ac_eval","uace",true);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
     _useACeval.tag(OptionTag::INFERENCES);

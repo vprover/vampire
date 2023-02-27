@@ -23,9 +23,10 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool extra)
+TermSubstitutionTree::TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaPostpro, bool extra)
 : SubstitutionTree()
 , _mismatchHandler(uwa)
+, _uwaPostpro(uwaPostpro)
 , _extra(extra)
 { }
 
