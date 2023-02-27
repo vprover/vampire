@@ -938,11 +938,14 @@ TEST_FUN(higher_order2)
 static const int NORM_QUERY_BANK=2;
 // static const int NORM_RESULT_BANK=3;
 
-Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt) {
+Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool finalize) {
   // TODO parameter instead of opts
   MismatchHandler h(opt);
   AbstractingUnifier au(h);
   bool result = au.unify(a, 0, b, 0);
+  if (finalize) {
+    result = au.finalize();
+  }
   if (result) {
 
     return some(TermUnificationResultSpec { 
@@ -958,9 +961,9 @@ Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::U
 
 }
 
-void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, TermUnificationResultSpec exp)
+void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool finalize, TermUnificationResultSpec exp)
 {
-  auto is = runRobUnify(a,b,opt);
+  auto is = runRobUnify(a,b,opt, finalize);
   if (is.isSome() && is.unwrap() == exp) {
     cout << "[  OK  ] " << a << " unify " << b << endl;
   } else {
@@ -972,9 +975,9 @@ void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction o
 }
 
 
-void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstraction opt)
+void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool finalize)
 {
-  auto is = runRobUnify(a,b,opt);
+  auto is = runRobUnify(a,b,opt, finalize);
   if(is.isNone()) {
       cout << "[  OK  ] " << a << " unify " << b << endl;
   } else {
@@ -985,22 +988,23 @@ void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstracti
   }
 }
 
-#define ROB_UNIFY_TEST(name, opt, lhs, rhs, ...)                                                    \
+#define ROB_UNIFY_TEST(name, opt, finalize, lhs, rhs, ...)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
     INT_SUGAR                                                                                       \
-    checkRobUnify(lhs, rhs, opt, __VA_ARGS__ );                                                     \
+    checkRobUnify(lhs, rhs, opt, finalize, __VA_ARGS__ );                                                     \
   }                                                                                                 \
 
-#define ROB_UNIFY_TEST_FAIL(name, opt, lhs, rhs)                                                    \
+#define ROB_UNIFY_TEST_FAIL(name, opt, finalize, lhs, rhs)                                                    \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
     INT_SUGAR                                                                                       \
-    checkRobUnifyFail(lhs, rhs, opt);                                                               \
+    checkRobUnifyFail(lhs, rhs, opt, finalize);                                                               \
   }                                                                                                 \
 
 ROB_UNIFY_TEST(rob_unif_test_01,
     Options::UnificationWithAbstraction::ONE_INTERP,
+    /* withFinalize */ false,
     f(b + 2), 
     f(x + 2),
     TermUnificationResultSpec { 
@@ -1011,6 +1015,7 @@ ROB_UNIFY_TEST(rob_unif_test_01,
 
 ROB_UNIFY_TEST(rob_unif_test_02,
     Options::UnificationWithAbstraction::ONE_INTERP,
+    /* withFinalize */ false,
     f(b + 2), 
     f(x + 2),
     TermUnificationResultSpec { 
@@ -1021,6 +1026,7 @@ ROB_UNIFY_TEST(rob_unif_test_02,
 
 ROB_UNIFY_TEST(rob_unif_test_03,
     Options::UnificationWithAbstraction::ONE_INTERP,
+    /* withFinalize */ false,
     f(x + 2), 
     f(a),
     TermUnificationResultSpec { 
@@ -1031,11 +1037,13 @@ ROB_UNIFY_TEST(rob_unif_test_03,
 
 ROB_UNIFY_TEST_FAIL(rob_unif_test_04,
     Options::UnificationWithAbstraction::ONE_INTERP,
+    /* withFinalize */ false,
     f(a), g(1 + a))
 
 
 ROB_UNIFY_TEST(rob_unif_test_05,
     Options::UnificationWithAbstraction::ONE_INTERP,
+    /* withFinalize */ false,
     f(a + b), 
     f(x + y),
     TermUnificationResultSpec { 
@@ -1046,6 +1054,7 @@ ROB_UNIFY_TEST(rob_unif_test_05,
 
 ROB_UNIFY_TEST(rob_unif_test_06,
     Options::UnificationWithAbstraction::ONE_INTERP,
+    /* withFinalize */ false,
     f2(x, x + 1), 
     f2(a, a),
     TermUnificationResultSpec { 
@@ -1071,6 +1080,7 @@ ROB_UNIFY_TEST(rob_unif_test_06,
 
 ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
     Options::UnificationWithAbstraction::AC1,
+    /* withFinalize */ false,
     f2(x, a + x),
     f2(c, b + a),
     TermUnificationResultSpec { 
@@ -1079,13 +1089,22 @@ ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
       .constraints = { c != b },
     })
 
+ROB_UNIFY_TEST_FAIL(over_approx_test_2_finalize_AC1,
+    Options::UnificationWithAbstraction::AC1,
+    /* withFinalize */ true,
+    f2(x, a + x),
+    f2(c, b + a)
+    )
+
 ROB_UNIFY_TEST_FAIL(over_approx_test_2_good_AC1,
     Options::UnificationWithAbstraction::AC1,
+    /* withFinalize */ false,
     f2(a + x, x),
     f2(b + a, c))
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
     Options::UnificationWithAbstraction::AC1,
+    /* withFinalize */ false,
     f2(f2(y, x), a + y + x),
     f2(f2(b, c), c + b + a),
     TermUnificationResultSpec { 
@@ -1096,6 +1115,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_good_AC1,
     Options::UnificationWithAbstraction::AC1,
+    /* withFinalize */ false,
     f2(a + x + y, f2(x, y)),
     f2(c + b + a, f2(b, c)),
     // f2(a + x, x),
@@ -1109,6 +1129,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_good_AC1,
 
 ROB_UNIFY_TEST(ac_test_01_AC1,
     Options::UnificationWithAbstraction::AC1,
+    /* withFinalize */ false,
     f2(b, a + b + c),
     f2(b, x + y + c),
     TermUnificationResultSpec { 
@@ -1119,6 +1140,7 @@ ROB_UNIFY_TEST(ac_test_01_AC1,
 
 ROB_UNIFY_TEST(ac_test_02_AC1_bad,
     Options::UnificationWithAbstraction::AC1,
+    /* withFinalize */ false,
     f2(a + b + c, c),
     f2(x + y + z, z),
     TermUnificationResultSpec { 
@@ -1129,6 +1151,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_bad,
 
 ROB_UNIFY_TEST(ac_test_02_AC1_good,
     Options::UnificationWithAbstraction::AC1,
+    /* withFinalize */ false,
     f2(c, a + b + c),
     f2(z, x + y + z),
     TermUnificationResultSpec { 
@@ -1139,6 +1162,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_good,
 
 ROB_UNIFY_TEST(ac2_test_01,
     Options::UnificationWithAbstraction::AC2,
+    /* withFinalize */ false,
     f2(x, a + b + c),
     f2(x, x + b + a),
     TermUnificationResultSpec { 
@@ -1149,6 +1173,7 @@ ROB_UNIFY_TEST(ac2_test_01,
 
 ROB_UNIFY_TEST(ac2_test_02,
     Options::UnificationWithAbstraction::AC2,
+    /* withFinalize */ false,
     f2(a + b + c, f2(x,b)),
     f2(x + y + a, f2(x,y)),
     TermUnificationResultSpec { 
@@ -1159,6 +1184,7 @@ ROB_UNIFY_TEST(ac2_test_02,
 
 ROB_UNIFY_TEST(ac2_test_02_bad,
     Options::UnificationWithAbstraction::AC2,
+    /* withFinalize */ false,
     f2(f2(x,b), a + b + c),
     f2(f2(x,y), x + y + a),
     TermUnificationResultSpec { 
@@ -1170,6 +1196,7 @@ ROB_UNIFY_TEST(ac2_test_02_bad,
 
 ROB_UNIFY_TEST(top_level_constraints_1,
     Options::UnificationWithAbstraction::AC2,
+    /* withFinalize */ false,
     a + y + x,
     a + b + c,
     TermUnificationResultSpec { 

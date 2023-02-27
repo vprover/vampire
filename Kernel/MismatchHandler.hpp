@@ -59,6 +59,7 @@ public:
   { return _cont.isEmpty(); }
 
   void add(UnificationConstraint c, Option<BacktrackData&> bd);
+  UnificationConstraint pop(Option<BacktrackData&> bd);
 };
 
 using Action = std::function<bool(unsigned, TermSpec)>;
@@ -159,11 +160,8 @@ public:
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
-  void add(UnificationConstraint c) 
-  { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
-                                                      : Option<BacktrackData&>()              ); }
-
   bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+  bool unify(TermSpec l, TermSpec r, bool& progress);
   bool finalize();
 
 
@@ -172,6 +170,7 @@ public:
 
   RobSubstitution      & subs()       { return *_subs; }
   RobSubstitution const& subs() const { return *_subs; }
+  Option<BacktrackData&> bd() { return someIf(_subs->bdIsRecording(), [&]() -> decltype(auto) { return _subs->bdGet(); }); }
   BacktrackData& bdGet() { return _subs->bdGet(); }
   void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
   void bdDone() { _subs->bdDone(); }

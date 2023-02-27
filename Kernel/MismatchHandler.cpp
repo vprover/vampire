@@ -29,6 +29,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Debug/Output.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Kernel
@@ -97,16 +98,15 @@ public:
 
   TermSpec next() {
     ASS(!_todo->isEmpty());
-    while (true){
-      auto t = _todo->pop();
-      auto dt = t.deref(_subs).clone();
-      while (dt.isTerm() && dt.functor() == _function) {
-        ASS_EQ(dt.nTermArgs(), 2);
-        _todo->push(dt.termArg(1));
-        dt = dt.termArg(0);
-      }
-      return t;
+    auto t = _todo->pop();
+    auto* dt = &t.deref(_subs);
+    while (dt->isTerm() && dt->functor() == _function) {
+      ASS_EQ(dt->nTermArgs(), 2);
+      _todo->push(dt->termArg(1));
+      t = dt->termArg(0);
+      dt = &t.deref(_subs);
     }
+    return dt->clone();
   }
 };
 
@@ -251,12 +251,22 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
 
 void UnificationConstraintStack::add(UnificationConstraint c, Option<BacktrackData&> bd)
 { 
-  DEBUG("introduced constraing: ", c)
+  DEBUG("introduced constraint: ", c)
   if (bd) {
     backtrackablePush(_cont, std::move(c), *bd); 
   } else {
     _cont.push(std::move(c));
   }
+}
+
+
+UnificationConstraint UnificationConstraintStack::pop(Option<BacktrackData&> bd)
+{ 
+  auto old = _cont.pop();
+  if (bd) {
+    bd->addClosure([this, old = old.clone()]() mutable { _cont.push(std::move(old)); });
+  }
+  return old;
 }
 
 Recycled<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& s)
@@ -280,19 +290,50 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 
 }
 
+bool AbstractingUnifier::finalize()
+{
+  CALL("AbstractionResult::finalize");
+  Recycled<Stack<UnificationConstraint>> todo;
+  while (!constr().isEmpty()) { 
+    todo->push(constr().pop(bd()));
+  }
+
+  while (!todo->isEmpty()) {
+    auto c = todo->pop();
+    bool progress;
+    auto res = unify(c.lhs().clone(), c.rhs().clone(), progress);
+    if (!res) {
+      return false;
+    } else if (progress) {
+      while (!constr().isEmpty()) { 
+        todo->push(constr().pop(bd()));
+      }
+    } else {
+      // no progress. we keep the constraints
+    }
+  }
+  return true;
+}
 
 bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, unsigned bank2)
 {
   if (_uwa._mode == Shell::Options::UnificationWithAbstraction::OFF) 
     return _subs->unify(term1, bank1, term2, bank2);
 
-#define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
+  bool progress;
+  return unify(TermSpec(term1, bank1), TermSpec(term2, bank2), progress);
+}
+
+#define DEBUG_UNIFY(LVL, ...) if (LVL <= 2) DBG(__VA_ARGS__)
+bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
+{
   CALL("AbstractionResult::unify");
-  TermSpec t1(term1, bank1);
-  TermSpec t2(term2, bank2);
-  DEBUG_UNIFY(1, *this, ".unify(", TermSpec(term1, bank1), ",", TermSpec(term2, bank2), ")")
+  ASS_NEQ(_uwa._mode, Shell::Options::UnificationWithAbstraction::OFF) 
+  DEBUG_UNIFY(1, *this, ".unify(", t1, ",", t2, ")")
+  progress = false;
 
   if(t1 == t2) {
+    progress = true;
     return true;
   }
 
@@ -353,11 +394,14 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
       auto& dt2 = x.rhs().deref(&subs());
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
       if (dt1 == dt2) {
+        progress = true;
 
       } else if(dt1.isVar() && !occurs(dt1, dt2)) {
+        progress = true;
         subs().bind(dt1.varSpec(), dt2.clone());
 
       } else if(dt2.isVar() && !occurs(dt2, dt1)) {
+        progress = true;
         subs().bind(dt2.varSpec(), dt1.clone());
 
       } else if(doAbstract(dt1, dt2)) {
@@ -369,11 +413,22 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
         } else {
           ASS(absRes->is<MismatchHandler::EqualIf>())
           auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
+          auto eq = [](UnificationConstraint& c, TermSpec const& lhs, TermSpec const& rhs) 
+          { 
+            return (c.lhs() == lhs && c.rhs() == rhs) 
+                || (c.lhs() == rhs && c.rhs() == lhs); };
+          if (progress 
+              || conditions.constr().size() != 1 
+              || conditions.unify().size() != 0
+              || !eq(conditions.constr()[0], t1, t2)
+              ) {
+            progress = true;
+          }
           for (auto& x : conditions.unify()) {
             pushTodo(std::move(x));
           }
           for (auto& x: conditions.constr()) {
-            add(std::move(x));
+            _constr->add(std::move(x), bd());
           }
         }
 

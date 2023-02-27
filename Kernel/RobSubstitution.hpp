@@ -105,6 +105,7 @@ struct OldTermSpec {
 
 class TermSpec
 {
+  // TODO get rid of implicit copying of this
   struct Appl {
     unsigned functor;
     Option<Recycled<Stack<TermSpec>>> args;
@@ -113,10 +114,14 @@ class TermSpec
     IMPL_HASH_FROM_TUPLE(TermSpec::Appl)
     bool isSort() const { return false; }
 
+    Appl(Appl&&) = default;
+    Appl& operator=(Appl&&) = default;
+
     TermSpec const& arg(unsigned i) const { return (**args)[i]; }
     auto argsIter() const 
     { return iterTraits(args.iter())
-                  .flatMap([](auto& args) { return getArrayishObjectIterator<const_ref_t>(*args); }); }
+                  .flatMap([](auto& args) { return arrayIter(*args); }); }
+
     Appl clone() const 
     { return Appl { .functor = functor, 
                     .args = args.map([](auto& x) { 
@@ -136,8 +141,6 @@ class TermSpec
   friend class UnificationConstraint;
   friend class RobSubstitution;
 
-  // TermList derefTerm() { return deref().first; }
-  // int derefIndex() { return deref().second; }
   TermSpec(TermSpec const&) = delete;
   TermSpec(Copro self) : _self(std::move(self)) {}
 public:
@@ -147,18 +150,47 @@ public:
   // TODO get rid of default constructor
   TermSpec() : TermSpec(decltype(_self)(OldTermSpec())) {}
   TermSpec(VarSpec v) : TermSpec(TermList::var(v.var), v.index) {}
-  // auto asTuple() const -> decltype(auto) { return std::make_tuple(select(
-  //       [&](){ return isVar(); }, [&]() { return varSpec(); }
-  //                               , [&]() { return std::make_tuple(functor(), iterAsData(allArgs())); }
-  //       )); }
-  // IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
-  // IMPL_HASH_FROM_TUPLE(TermSpec)
 
   friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
   friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);
   IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(TermSpec);
   unsigned defaultHash() const;
   unsigned defaultHash2() const;
+
+  template<class Deref>
+  static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
+    Recycled<Stack<pair<TermSpec, TermSpec>>> todo;
+    todo->push(make_pair(lhs.clone(),rhs.clone()));
+    // DBG("compare: ", lhs, " <> ", rhs)
+    while (todo->isNonEmpty()) {
+      auto lhs_ = std::move(todo->top().first);
+      auto rhs_ =           todo->pop().second;
+      auto& lhs = deref(lhs_);
+      auto& rhs = deref(rhs_);
+
+      if (lhs.isTerm() != rhs.isTerm()) {
+        return lhs.isVar() ? -1 : 1;
+
+      } else {
+        if (lhs.isTerm()) {
+          if (lhs.functor() != rhs.functor()) {
+            return lhs.functor() < rhs.functor() ? -1 : 1;
+          } else {
+            todo->loadFromIterator(lhs.allArgs().zip(rhs.allArgs()));
+          }
+        } else {
+          ASS(lhs.isVar() && rhs.isVar())
+          auto v1 = lhs.varSpec();
+          auto v2 = rhs.varSpec();
+          if (v1 != v2) {
+            return std::tie(v1.var, v1.index) < std::tie(v2.var, v2.index) ? -1 : 1;
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
 
   TermSpec clone() const { return TermSpec(_self.clone()); }
   
@@ -170,7 +202,10 @@ public:
   TermSpec(unsigned functor, Args... args) 
     : _self(Appl{functor, someIf(sizeof...(args) != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 
   {
-    if (sizeof...(args) != 0) _self.template unwrap<Appl>().args.unwrap()->pushMany(std::move(args)...);
+    ASS_EQ(sizeof...(args), env.signature->getFunction(functor)->arity())
+    if (sizeof...(args) != 0) {
+      _self.template unwrap<Appl>().args.unwrap()->pushMany(std::move(args)...);
+    }
   }
 
   TermList::Top top() const;
@@ -187,6 +222,8 @@ public:
   bool isNormalVar()   const { return isVar() && !isSpecialVar(); }
 
   bool isTerm() const;
+  bool isLiteral() const;
+  TermSpec sort() const;
   bool isSort() const;
   VarSpec varSpec() const;
   unsigned functor()   const;
@@ -218,6 +255,7 @@ struct AutoDerefTermSpec
     , subs(s) { }
   explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()), subs(other.subs) {}
   AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
+  friend std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self);
 };
 
 class UnificationConstraint
@@ -308,6 +346,7 @@ public:
   TermList::Top getSpecialVarTop(unsigned specialVar) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
+  Stack<Literal*> apply(Stack<Literal*> cl, int index) const;
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
@@ -319,7 +358,10 @@ public:
    * - Without backtracking, this number doesn't decrease.
    */
   size_t size() const {return _bank.size(); }
+
 #endif
+  friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
+  std::ostream& output(std::ostream& out, bool deref) const;
 
   typedef pair<TermSpec,TermSpec> TTPair;
  

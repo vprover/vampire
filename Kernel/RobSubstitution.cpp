@@ -15,7 +15,9 @@
 
 #include "RobSubstitution.hpp"
 
+#include "Debug/Assertion.hpp"
 #include "Debug/Output.hpp"
+#include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"
@@ -97,6 +99,10 @@ bool TermSpec::isTerm() const
 { return _self.match([](Appl const&)             { return true; },
                      [](OldTermSpec const& self) { return self.term.isTerm(); }); }
 
+bool TermSpec::isLiteral() const 
+{ return _self.match([](Appl const&)             { return false; },
+                     [](OldTermSpec const& self) { return self.term.isTerm() && self.term.term()->isLiteral(); }); }
+
 bool TermSpec::isSort() const 
 { return _self.match([](Appl const& a)           { return a.isSort(); },
                      [](OldTermSpec const& self) { return self.term.term()->isSort(); }); }
@@ -142,6 +148,14 @@ TermSpec TermSpec::anyArg(unsigned i) const
 TermList TermSpec::toTerm(RobSubstitution& s) const
 { return _self.match([&](Appl const& a)           { return TermList(Term::createFromIter(a.functor, iterTraits(a.argsIter()).map([&](auto& t) { return t.toTerm(s); }))); },
                      [&](OldTermSpec const& self) { return s.apply(self.term, self.index); }); }
+
+TermSpec TermSpec::sort() const
+{ return _self.match([&](Appl const& a)           -> TermSpec { 
+                        auto f = env.signature->getFunction(a.functor)->fnType();
+                        ASS_REP(f->numTypeArguments() == 0, "TODO: tricky because of polymorphism...")
+                        return TermSpec(f->result(), {});
+                     },
+                     [&](OldTermSpec const& self) -> TermSpec { return TermSpec(SortHelper::getResultSort(self.term.term()), self.index); }); }
 
 
 /**
@@ -364,7 +378,9 @@ bool RobSubstitution::occurs(VarSpec const& toFind_, TermSpec const& ts_)
 bool RobSubstitution::unify(TermSpec s, TermSpec t)
 {
   CALL("RobSubstitution::unify/2");
-  // DBG(*this, ".unify(", s, ",", t, ")")
+#define DEBUG_UNIFY(lvl, ...) if (lvl < 0) DBG("unify: ", __VA_ARGS__)
+  DEBUG_UNIFY(0, *this, ".unify(", s, ",", t, ")")
+
 
   if(s.sameTermContent(t)) {
     return true;
@@ -404,6 +420,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     auto x = toDo.pop();
     TermSpec const& dt1 = derefBound(x.lhs());
     TermSpec const& dt2 = derefBound(x.rhs());
+    DEBUG_UNIFY(1, "next pair: ", tie(dt1, dt2))
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
     if (dt1.sameTermContent(dt2)) {
@@ -446,7 +463,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     localBD.drop();
   }
 
-  // DBG(*this)
+  DEBUG_UNIFY(0, *this)
   return !mismatch;
 }
 
@@ -566,6 +583,15 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   return !mismatch;
 }
 
+
+Stack<Literal*> RobSubstitution::apply(Stack<Literal*> cl, int index) const
+{
+  CALL("RobSubstitution::apply(Clause*...)");
+  for (unsigned i = 0; i < cl.size(); i++) {
+    cl[i] = apply(cl[i], index);
+  }
+  return cl;
+}
 
 Literal* RobSubstitution::apply(Literal* lit, int index) const
 {
@@ -1078,41 +1104,11 @@ struct RobSubstitution::UnificationFn {
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 
-int compare(TermSpec const& lhs, TermSpec const& rhs) {
-  Recycled<Stack<pair<TermSpec, TermSpec>>> todo;
-  todo->push(make_pair(lhs.clone(),rhs.clone()));
-  while (todo->isNonEmpty()) {
-    auto lhs = std::move(todo->top().first);
-    auto rhs =           todo->pop().second;
-
-    if (lhs.isTerm() != rhs.isTerm()) {
-      return lhs.isVar() ? -1 : 1;
-
-    } else {
-      if (lhs.isTerm()) {
-        if (lhs.functor() != rhs.functor()) {
-          return lhs.functor() < rhs.functor() ? -1 : 1;
-        } else {
-          todo->loadFromIterator(lhs.allArgs().zip(rhs.allArgs()));
-        }
-      } else {
-        ASS(lhs.isVar() && rhs.isVar())
-        auto v1 = lhs.varSpec();
-        auto v2 = rhs.varSpec();
-        if (v1 != v2) {
-          return std::tie(v1.var, v1.index) < std::tie(v2.var, v2.index) ? -1 : 1;
-        }
-      }
-    }
-  }
-  return 0;
-}
-
 bool operator==(TermSpec const& lhs, TermSpec const& rhs)
-{ return compare(lhs, rhs) == 0; }
+{ return TermSpec::compare(lhs, rhs, [](auto& t) -> decltype(auto) { return t; }) == 0; }
 
 bool operator<(TermSpec const& lhs, TermSpec const& rhs)
-{ return compare(lhs, rhs) < 0; }
+{ return TermSpec::compare(lhs, rhs, [](auto& t) -> decltype(auto) { return t; }) < 0; }
 
 template<class HashFn>
 unsigned __hash(HashFn hashFn, TermSpec const& t) {
@@ -1138,4 +1134,6 @@ unsigned TermSpec::defaultHash() const
 unsigned TermSpec::defaultHash2() const
 { return __hash([](auto const& x) { return DefaultHash2::hash(x); }, *this); }
 
+std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self)
+{ return out << self.term << "@" << *self.subs; }
 } // namespace Kernel

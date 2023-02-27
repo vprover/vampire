@@ -70,6 +70,8 @@ class BacktrackClosure : public BacktrackObject
 public:
   CLASS_NAME(BacktrackClosure);
   USE_ALLOCATOR(BacktrackClosure);
+  BacktrackClosure(BacktrackClosure&&) = default;
+  BacktrackClosure& operator=(BacktrackClosure&&) = default;
   
   BacktrackClosure(F fun) : _fun(std::move(fun)) {}
   void backtrack() { _fun(); }
