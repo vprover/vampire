@@ -34,8 +34,8 @@ public:
   TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t)
-  { return _is->getUwa(t); }
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(t, uwa, fixedPointIteration); }
 
   TermQueryResultIterator getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }

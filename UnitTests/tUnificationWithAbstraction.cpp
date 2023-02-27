@@ -33,6 +33,8 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
+#include "z3++.h"
+#include <ios>
 
 // TODO make this test use assertions, instead of printing output
 
@@ -46,20 +48,18 @@ Clause* unit(Literal* lit)
 }
 
 
-unique_ptr<TermSubstitutionTree> getTermIndexHOL(bool postpro)
+unique_ptr<TermSubstitutionTree> getTermIndexHOL()
 { 
-  return std::make_unique<TermSubstitutionTree>(Shell::Options::UnificationWithAbstraction::FUNC_EXT, postpro, /* extra */ false);
+  return std::make_unique<TermSubstitutionTree>(/* extra */ false);
 }
 
-unique_ptr<TermSubstitutionTree> getTermIndex(Shell::Options::UnificationWithAbstraction uwa, bool postpro)
+unique_ptr<TermSubstitutionTree> getTermIndex()
 { 
-  return std::make_unique<TermSubstitutionTree>(uwa, postpro, /* extra */ false);
+  return std::make_unique<TermSubstitutionTree>(/* extra */ false);
 }
 
-auto getLiteralIndex(Shell::Options::UnificationWithAbstraction uwa, bool postpro)
-{
-  return std::make_unique<LiteralSubstitutionTree>(uwa, postpro);
-}
+auto getLiteralIndex()
+{ return std::make_unique<LiteralSubstitutionTree>(); }
 
 template<class TermOrLit>
 struct UnificationResultSpec {
@@ -88,10 +88,10 @@ struct UnificationResultSpec {
 using TermUnificationResultSpec    = UnificationResultSpec<TermList>;
 using LiteralUnificationResultSpec = UnificationResultSpec<Literal*>;
 
-void checkLiteralMatches(LiteralSubstitutionTree& index, Literal* lit, Stack<LiteralUnificationResultSpec> expected)
+void checkLiteralMatches(LiteralSubstitutionTree& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, Literal* lit, Stack<LiteralUnificationResultSpec> expected)
 {
   Stack<LiteralUnificationResultSpec> is;
-  for (auto qr : iterTraits(index.getUwa(lit, /* complementary */ false)) ) {
+  for (auto qr : iterTraits(index.getUwa(lit, /* complementary */ false, uwa, fixedPointIteration)) ) {
     // qr.substitution->numberOfConstraints();
 
     is.push(LiteralUnificationResultSpec {
@@ -153,17 +153,17 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Sta
 
 }
 
-void checkTermMatches(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected)
+void checkTermMatches(TermSubstitutionTree& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TermList term, Stack<TermUnificationResultSpec> expected)
 {
   ASS(term.isTerm())
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUwa(term.term()); });
+      [&](auto& idx, auto t) { return idx.getUwa(term.term(), uwa, fixedPointIteration); });
 }
 
-void checkTermMatches(TermSubstitutionTree& index, TypedTermList term, Stack<TermUnificationResultSpec> expected)
+void checkTermMatches(TermSubstitutionTree& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUwa(term); });
+      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration); });
 }
 
 struct IndexTest {
@@ -171,6 +171,8 @@ struct IndexTest {
   Stack<TermList> insert;
   TermSugar query;
   Stack<TermUnificationResultSpec> expected;
+  Options::UnificationWithAbstraction uwa;
+  bool fixedPointIteration = false;
 
   void run() {
     CALL("IndexTest::run")
@@ -180,7 +182,7 @@ struct IndexTest {
       index->insert(x, dummy(), unit(dummy()));
     }
 
-    checkTermMatches(*this->index, TypedTermList(this->query, this->query.sort()),this->expected);
+    checkTermMatches(*this->index, uwa, fixedPointIteration, TypedTermList(this->query, this->query.sort()),this->expected);
 
   }
 };
@@ -214,7 +216,9 @@ struct IndexTest {
 RUN_TEST(term_indexing_one_side_interp_01,
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         f(1 + num(1)),
         f(1 + a),
@@ -239,7 +243,9 @@ RUN_TEST(term_indexing_one_side_interp_01,
 RUN_TEST(term_indexing_one_side_interp_02, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         f(1 + num(1)),
         f(1 + a),
@@ -251,7 +257,9 @@ RUN_TEST(term_indexing_one_side_interp_02,
 RUN_TEST(term_indexing_one_side_interp_03, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         1 + num(1),
         1 + a,
@@ -276,7 +284,9 @@ RUN_TEST(term_indexing_one_side_interp_03,
 RUN_TEST(term_indexing_one_side_interp_04, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         1 + num(1),
         1 + a,
@@ -302,7 +312,9 @@ RUN_TEST(term_indexing_one_side_interp_04,
 RUN_TEST(term_indexing_one_side_interp_04_b, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         1 + a,
       },
@@ -322,7 +334,9 @@ RUN_TEST(term_indexing_one_side_interp_04_b,
 RUN_TEST(term_indexing_one_side_interp_04_c, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         f(1 + num(1)),
         f(1 + a),
@@ -346,7 +360,9 @@ RUN_TEST(term_indexing_one_side_interp_04_c,
 RUN_TEST(term_indexing_one_side_interp_04_d, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         g(f(1 + num(1))),
         g(f(1 + a)),
@@ -370,7 +386,9 @@ RUN_TEST(term_indexing_one_side_interp_04_d,
 RUN_TEST(term_indexing_one_side_interp_05, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         1 + num(1),
         1 + a,
@@ -400,7 +418,9 @@ RUN_TEST(term_indexing_one_side_interp_05,
 RUN_TEST(term_indexing_one_side_interp_06, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         1 + num(1),
         1 + a,
@@ -430,7 +450,9 @@ RUN_TEST(term_indexing_one_side_interp_06,
 RUN_TEST(term_indexing_one_side_interp_07, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         1 + num(1),
         1 + a,
@@ -461,7 +483,9 @@ RUN_TEST(term_indexing_one_side_interp_07,
 RUN_TEST(term_indexing_one_side_interp_08, 
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
+      .fixedPointIteration = false,
       .insert = {
         1 + num(1),
         1 + a,
@@ -495,7 +519,9 @@ RUN_TEST(term_indexing_one_side_interp_08,
 
 TEST_FUN(term_indexing_poly_01)
 {
-  auto index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false);
+  auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
+  auto fixedPointIteration = false;
+  auto index = getTermIndex();
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -508,7 +534,7 @@ TEST_FUN(term_indexing_poly_01)
   index->insert(1 + a, p(1 + a), unit(p(a + a)));
   index->insert(h(Int), p(h(Int)), unit(p(h(Int))));
 
-  checkTermMatches(*index, h(alpha), Stack<TermUnificationResultSpec>{
+  checkTermMatches(*index, uwa, fixedPointIteration, h(alpha), Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
         { .querySigma  = h(Int),
@@ -522,7 +548,7 @@ TEST_FUN(term_indexing_poly_01)
 
       });
 
-  checkTermMatches(*index, h(A), Stack<TermUnificationResultSpec>{ });
+  checkTermMatches(*index, uwa, fixedPointIteration, h(A), Stack<TermUnificationResultSpec>{ });
 }
 
 
@@ -555,7 +581,8 @@ RUN_TEST(hol_0101,
       DECL_CONST(h, arrow(arrow(srt, srt), srt))
     ),
     IndexTest {
-      .index = getTermIndexHOL(/* postpro */ false),
+      .index = getTermIndexHOL(),
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,
       .insert = {
                f3(x          , x, ap(h, f1)),
       },
@@ -579,7 +606,8 @@ RUN_TEST(hol_0102,
       DECL_CONST(h, arrow(arrow(srt, srt), srt))
     ),
     IndexTest {
-      .index = getTermIndexHOL(/* postpro */ false),
+      .index = getTermIndexHOL(),
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,
       .insert = {
                f3(ap(h, f2), y, y          ),
       },
@@ -604,7 +632,8 @@ RUN_TEST(hol_02,
       DECL_CONST(h, arrow(arrow(srt, srt), srt))
       ),
     IndexTest {
-      .index = getTermIndexHOL(/* postpro */ false),
+      .index = getTermIndexHOL(),
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,
       .insert = {
                f3(a          , x, ap(h, f1)),
                f3(x          , x, ap(h, f1)),
@@ -630,7 +659,8 @@ RUN_TEST(hol_03,
       DECL_CONST(h2, arrow(arrow(srt, srt), srt))
     ),
     IndexTest {
-      .index = getTermIndexHOL(/* postpro */ false),
+      .index = getTermIndexHOL(),
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,
       .insert = {
                ap(h1, f1),
                ap(h2, f1),
@@ -653,7 +683,8 @@ RUN_TEST(hol_03,
       DECL_POLY_CONST(h, 2, arrow(alpha, beta))                                                     \
     ),                                                                                              \
     IndexTest {                                                                                     \
-      .index = getTermIndexHOL(/* postpro */ false),                                                \
+      .index = getTermIndexHOL(),                                                \
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT, \
       .insert = {                                                                                   \
                ap(h(arrow(srt, srt), srt), c1(arrow(srt, srt))),                                    \
                ap(h(srt            , srt), c1(srt)),                                                \
@@ -692,7 +723,8 @@ RUN_TEST_hol_04(02,
       DECL_POLY_CONST(h, 2, arrow(alpha, beta))                                                     \
     ),                                                                                              \
     IndexTest {                                                                                     \
-      .index = getTermIndexHOL(/* postpro */ false),                                                \
+      .index = getTermIndexHOL(),                                                \
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT, \
       .insert = {                                                                                   \
                ap(h(arrow(srt, srt), srt), c1(arrow(srt, srt))),                                    \
                ap(h(srt            , srt), c2(srt)),                                                \
@@ -724,7 +756,8 @@ RUN_TEST_hol_05(02,
 RUN_TEST(term_indexing_poly_uwa_01,
     POLY_INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
       .insert = {
         f(alpha, a(alpha)),
         f(alpha, b(alpha)),
@@ -750,7 +783,9 @@ RUN_TEST(term_indexing_poly_uwa_01,
 
 TEST_FUN(term_indexing_interp_only)
 {
-  auto index = getTermIndex(Options::UnificationWithAbstraction::INTERP_ONLY, /* postpro */ false);
+  auto uwa = Options::UnificationWithAbstraction::INTERP_ONLY;
+  auto fixedPointIteration = false;
+  auto index = getTermIndex();
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -762,7 +797,7 @@ TEST_FUN(term_indexing_interp_only)
   index->insert(num(1) + num(1), p(num(1) + num(1)), unit(p(num(1) + num(1))));
   index->insert(1 + a, p(1 + a), unit(p(a + a)));
 
-  checkTermMatches(*index, b + 2, {
+  checkTermMatches(*index, uwa, fixedPointIteration, b + 2, {
 
         TermUnificationResultSpec 
         { .querySigma  = b + 2,
@@ -778,7 +813,7 @@ TEST_FUN(term_indexing_interp_only)
 
   index->insert(a,p(a),unit(p(a)));
 
-  checkTermMatches(*index, b + 2 , {
+  checkTermMatches(*index, uwa, fixedPointIteration, b + 2 , {
 
         TermUnificationResultSpec 
         { .querySigma  = b + 2,
@@ -796,7 +831,9 @@ TEST_FUN(term_indexing_interp_only)
 
 TEST_FUN(literal_indexing)
 {
-  auto index = getLiteralIndex(Options::UnificationWithAbstraction::ONE_INTERP, /* postpro */ false);
+  auto uwa = Options::UnificationWithAbstraction::ONE_INTERP;
+  auto fixedPointIteration = false;
+  auto index = getLiteralIndex();
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -808,7 +845,7 @@ TEST_FUN(literal_indexing)
   index->insert(p(num(1) + num(1)), unit(p(num(1) + num(1))));
   index->insert(p(1 + a), unit(p(1 + a)));  
 
-  checkLiteralMatches(*index,p(b + 2),{
+  checkLiteralMatches(*index, uwa, fixedPointIteration, p(b + 2), {
 
       LiteralUnificationResultSpec {
         .querySigma = p(b + 2),
@@ -825,7 +862,7 @@ TEST_FUN(literal_indexing)
   index->insert(p(b + 2),unit(p(b + 2)));
   index->insert(p(2 + b),unit(p(2 + b)));
 
-  checkLiteralMatches(*index,p(b + 2),{
+  checkLiteralMatches(*index, uwa, fixedPointIteration, p(b + 2), {
 
       LiteralUnificationResultSpec {
         .querySigma = p(b + 2),
@@ -864,11 +901,13 @@ TEST_FUN(higher_order)
   DECL_CONST(c, srt)  
   DECL_CONST(f, arrow(arrow(srt, srt), srt))
   DECL_CONST(g, arrow(srt, arrow(srt, srt)))
-  auto index = getTermIndexHOL(/* postpro */ false);
+  auto uwa = Options::UnificationWithAbstraction::FUNC_EXT;
+  auto fixedPointIteration = false;
+  auto index = getTermIndexHOL();
 
   index->insert(ap(f,a), 0, 0);
 
-  checkTermMatches(*index, ap(f,b), Stack<TermUnificationResultSpec>{
+  checkTermMatches(*index, uwa, fixedPointIteration, ap(f,b), Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
         { .querySigma  = ap(f,b),
@@ -880,7 +919,7 @@ TEST_FUN(higher_order)
   index->insert(ap(g,c), 0, 0);
   index->insert(g, 0, 0);
 
-  checkTermMatches(*index, TypedTermList(x, arrow(srt, srt)), Stack<TermUnificationResultSpec>{
+  checkTermMatches(*index, uwa, fixedPointIteration, TypedTermList(x, arrow(srt, srt)), Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
         { .querySigma  = ap(g,c),
@@ -889,7 +928,7 @@ TEST_FUN(higher_order)
 
       });
 
-  checkTermMatches(*index, ap(f,b), Stack<TermUnificationResultSpec>{
+  checkTermMatches(*index, uwa, fixedPointIteration, ap(f,b), Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
         { .querySigma  = ap(f,b),
@@ -919,7 +958,9 @@ TEST_FUN(higher_order)
 
 TEST_FUN(higher_order2)
 {
-  auto index = getTermIndexHOL(/* postpro */ false);
+  // auto uwa = Options::UnificationWithAbstraction::FUNC_EXT;
+  // auto fixedPointIteration = false;
+  auto index = getTermIndexHOL();
 
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
@@ -1247,7 +1288,9 @@ ROB_UNIFY_TEST(top_level_constraints_1,
 RUN_TEST(top_level_constraints_2_with_fixedPointIteration,
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::AC2, /* postpro */ true),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::AC2,
+      .fixedPointIteration = true,
       .insert = {
         a + b + c,
         b,
@@ -1275,7 +1318,9 @@ RUN_TEST(top_level_constraints_2_with_fixedPointIteration,
 RUN_TEST(top_level_constraints_2,
     INT_SUGAR,
     IndexTest {
-      .index = getTermIndex(Options::UnificationWithAbstraction::AC2, /* postpro */ false),
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::AC2,
+      .fixedPointIteration = false,
       .insert = {
         a + b + c,
         b,

@@ -57,7 +57,7 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaFixedPointIteration, bool extra);
+  explicit TermSubstitutionTree(bool extra);
 
   void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
   { handleTerm(tt, LeafData(cls,lit,tt), insert); }
@@ -99,8 +99,6 @@ private:
             qr.data->literal, qr.data->clause, std::move(qr.unif)); }) ;
   }
 
-  MismatchHandler _mismatchHandler;
-  bool _uwaFixedPointIteration;
   //higher-order concerns
   bool _extra;
 
@@ -109,11 +107,11 @@ private:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
 
-  auto nopostproUwa(TypedTermList t)
-  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, _mismatchHandler); }
+  auto nopostproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
+  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
 
-  auto postproUwa(TypedTermList t)
-  { return iterTraits(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, _mismatchHandler))
+  auto postproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
+  { return iterTraits(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
     .filterMap([](TQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
         { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
 
@@ -125,9 +123,9 @@ public:
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
 
-  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t) override
-  { return _uwaFixedPointIteration ? pvi(  postproUwa(t))
-                                   : pvi(nopostproUwa(t)); }
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
+  { return fixedPointIteration ? pvi(  postproUwa(t, uwa))
+                               : pvi(nopostproUwa(t, uwa)); }
 
   TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }

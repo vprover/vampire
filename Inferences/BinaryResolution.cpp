@@ -84,7 +84,7 @@ struct BinaryResolution::UnificationsFn
       //Binary resolution is not performed with equality literals
       return VirtualIterator<pair<Literal*, BRQueryRes> >::getEmpty();
     }
-    return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true)));
+    return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionPostpro())));
   }
 private:
   BinaryResolutionIndex* _index;

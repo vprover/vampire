@@ -31,7 +31,7 @@ public:
   virtual void insert(TermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
   virtual TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t) = 0;
+  virtual VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
   virtual TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }  
   virtual TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }

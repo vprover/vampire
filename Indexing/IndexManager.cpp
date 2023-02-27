@@ -112,67 +112,67 @@ Index* IndexManager::create(IndexType t)
                    
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    res = new BinaryResolutionIndex(new LiteralSubstitutionTree(_uwa, _uwaFixedPointIteration));
+    res = new BinaryResolutionIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case BACKWARD_SUBSUMPTION_SUBST_TREE:
-    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration));
+    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
   case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration));
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
   case URR_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration));
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
-    res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration));
+    res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(_uwa, _uwaFixedPointIteration, /* extra */ false), _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(_uwa, _uwaFixedPointIteration, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
-    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false), _alg->getOrdering());
+    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUB_VAR_SUP_LHS_SUBST_TREE:
-    res = new SubVarSupLHSIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new SubVarSupLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ true));
+    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(/* extra */ true));
     isGenerating = false;
     break;
 
   case NARROWING_INDEX:
-    res = new NarrowingIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false)); 
+    res = new NarrowingIndex(new TermSubstitutionTree(/* extra */ false)); 
     isGenerating = true;
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false)); 
+    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(/* extra */ false)); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
-    res = new AcyclicityIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false));
+    res = new AcyclicityIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE: {
-    auto tis = new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false);
+    auto tis = new TermSubstitutionTree(/* extra */ false);
     if (env.options->combinatorySup()) {
       res = new DemodulationSubtermIndexImpl<true>(tis);
     } else {
@@ -187,7 +187,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
-    res = new DemodulationLHSIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
@@ -197,17 +197,17 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration));
+    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
 
   case FSD_SUBST_TREE:
-    res = new FSDLiteralIndex(new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration));
+    res = new FSDLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    res = new RewriteRuleIndex(new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration), _alg->getOrdering());
+    res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg->getOrdering());
     isGenerating = false;
     break;
 
@@ -217,17 +217,17 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case UNIT_INT_COMPARISON_INDEX:
-    res = new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration));
+    res = new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 
   case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false));
+    res = new InductionTermIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, _uwaFixedPointIteration, /* extra */ false));
+    res = new StructInductionTermIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break;
 

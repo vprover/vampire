@@ -31,7 +31,7 @@
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaFixedPointIteration)
+LiteralSubstitutionTree::LiteralSubstitutionTree()
 : _trees(env.signature->predicates() * 2)
 { }
 

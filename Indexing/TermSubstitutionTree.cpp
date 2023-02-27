@@ -23,10 +23,8 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaFixedPointIteration, bool extra)
+TermSubstitutionTree::TermSubstitutionTree(bool extra)
 : SubstitutionTree()
-, _mismatchHandler(uwa)
-, _uwaFixedPointIteration(uwaFixedPointIteration)
 , _extra(extra)
 { }
 
