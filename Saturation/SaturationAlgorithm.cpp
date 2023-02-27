@@ -1673,7 +1673,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     auto shared = Kernel::LascaState::create(
         InequalityNormalizer(env.options->lascaStrongNormalization()), 
         &ordering, 
-        env.options->unificationWithAbstraction()
+        env.options->unificationWithAbstraction(),
+        env.options->unificationWithAbstractionFixedPointIteration()
         );
 #define SET_ORD_STATE(Ord, getOrd)                                                                  \
     try {                                                                                           \

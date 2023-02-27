@@ -155,11 +155,11 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 }
 
 #if VDEBUG
-shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering) {
+shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering, bool uwaFixedPointIteration) {
 
   auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/*rand*/ false, /*qkbo*/ true)) : nullptr;
   auto& ord = ordering == nullptr ? *qkbo : *ordering;
-  auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord, uwa);
+  auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord, uwa, uwaFixedPointIteration);
   if (qkbo)
         qkbo->setState(state);
   return state;
@@ -273,14 +273,7 @@ PolyNf LascaState::normalize(TypedTermList term)
 }
 
 Option<AbstractingUnifier> LascaState::unify(TermList lhs, TermList rhs) const 
-{
-  return AbstractingUnifier::unify(lhs, 0, rhs, 0, uwaMode(), uwaFixedPointIterator);
-  // if (unif.unify(lhs, /* var bank: */ 0, rhs, /* var bank: */ 0)) {
-  //   return some(std::move(unif));
-  // } else {
-  //   return Option<AbstractingUnifier>();
-  // }
-}
+{ return AbstractingUnifier::unify(lhs, 0, rhs, 0, uwaMode(), uwaFixedPointIteration); }
 
 IntegerConstantType normalizeFactors_divide(IntegerConstantType gcd, IntegerConstantType toCorrect)
 { return toCorrect.intDivide(gcd); }

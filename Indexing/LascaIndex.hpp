@@ -45,7 +45,7 @@ public:
   auto find(TypedTermList key)
   {
     CALL("LascaIndex::find")
-    return iterTraits(_index.getUwa(key, _shared->uwaMode(), _shared->uwaFixedPointIterator))
+    return iterTraits(_index.getUwa(key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
     // TODO prevent copying here
       .map([](auto r) { return std::make_tuple(*r.data, r.unifier);  })
       // .filter([=](auto& x) {

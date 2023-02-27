@@ -678,11 +678,14 @@ namespace Kernel {
     LascaState(
           InequalityNormalizer normalizer,
           Ordering* const ordering,
-          Shell::Options::UnificationWithAbstraction uwa
+          Shell::Options::UnificationWithAbstraction uwa,
+          bool fixedPointIteration
         )
       : normalizer(std::move(normalizer))
       , ordering(std::move(ordering))
-      , uwa(uwa) {}
+      , uwa(uwa) 
+      , uwaFixedPointIteration(fixedPointIteration)
+    {}
 
     std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
     { return std::make_tuple(IntegerConstantType(1), t); }
@@ -731,7 +734,7 @@ namespace Kernel {
     InequalityNormalizer normalizer;
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction uwa;
-    bool uwaFixedPointIterator;
+    bool const uwaFixedPointIteration;
 
     Shell::Options::UnificationWithAbstraction uwaMode() const { return uwa; }
         
@@ -752,10 +755,11 @@ namespace Kernel {
     static std::shared_ptr<LascaState> create(
           InequalityNormalizer normalizer,
           Ordering* const ordering,
-          Shell::Options::UnificationWithAbstraction const uwa
+          Shell::Options::UnificationWithAbstraction const uwa,
+          bool const fixedPointIteration
         ) 
     {
-      globalState = make_shared(LascaState(std::move(normalizer), ordering, uwa));
+      globalState = make_shared(LascaState(std::move(normalizer), ordering, uwa, fixedPointIteration));
       return globalState;
     }
 
@@ -1096,7 +1100,8 @@ namespace Kernel {
   shared_ptr<LascaState> testLascaState(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1,
     bool strongNormalization = false,
-    Ordering* ordering = nullptr
+    Ordering* ordering = nullptr,
+    bool uwaFixdPointIteration = false
     );
 #endif
 

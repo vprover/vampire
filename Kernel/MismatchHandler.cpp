@@ -639,6 +639,8 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 bool AbstractingUnifier::fixedPointIteration()
 {
   CALL("AbstractionResult::fixedPointIteration");
+  TIME_TRACE("uwa fixedPointIteration");
+
   Recycled<Stack<UnificationConstraint>> todo;
   while (!constr().isEmpty()) { 
     todo->push(constr().pop(bd()));
@@ -674,7 +676,6 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
   return unify(TermSpec(term1, bank1), TermSpec(term2, bank2), progress);
 }
 
-#define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
   CALL("AbstractionResult::unify");
