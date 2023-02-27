@@ -1307,10 +1307,10 @@ public:
     template<class TermOrLit, class...AlgoArgs>
     UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
       : _algo(std::move(args)...)
-#if VDEBUG
       , _svStack()
-#endif // VDEBUG
+#if VDEBUG
       , _svValues()
+#endif // VDEBUG
       , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
       , _inLeaf(false)
@@ -1514,7 +1514,9 @@ public:
 
         recording=true;
         _algo.bdRecord(bd);
+#if VDEBUG
         _svValues->top() = n->term;
+#endif // VDEBUG
         success = _algo.associate(_svStack->top(),n->term,bd);
         DEBUG_ITER(1, "associate: ", _svStack->top(), " -> ", n->term, ": ", success ? "success" : "failure")
       }
@@ -1525,7 +1527,9 @@ public:
         } else {
           IntermediateNode* inode=static_cast<IntermediateNode*>(n);
           _svStack->push(inode->childVar);
+#if VDEBUG
           _svValues->push(TermList::empty());
+#endif // VDEBUG
           backtrackablePush(*_nodeIterators, getNodeIterator(inode), bd);
         }
       }
