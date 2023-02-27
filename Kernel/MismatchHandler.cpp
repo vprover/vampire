@@ -521,7 +521,8 @@ Option<MismatchHandler::AbstractionResult> funcExt(
 
 Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const
 {
-  CALL("MismatchHandler::checkUWA");
+  CALL("MismatchHandler::tryAbstract");
+  TIME_TRACE("uwa tryAbstract");
   using Uwa = Shell::Options::UnificationWithAbstraction;
   ASS(_mode != Uwa::OFF)
 
