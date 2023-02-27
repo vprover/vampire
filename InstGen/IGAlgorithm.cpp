@@ -111,7 +111,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF);
+  _selected = new LiteralSubstitutionTree();
 
   _doingSatisfiabilityCheck = false;
 }
@@ -445,8 +445,8 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
   SLQueryResultIterator unifs = _selected->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
-    if(!isSelected(unif.literal)) {
-      deactivate(unif.clause);
+    if(!isSelected(unif.data->literal)) {
+      deactivate(unif.data->clause);
       continue;//literal is no longer selected
     }
 
@@ -456,26 +456,26 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
     bool properInstance2;
     auto subs = unif.unifier;
 
-    if (startGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1,properInstance1) &&
-        startGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2,properInstance2)) {
+    if (startGeneratingClause(cl, *subs, true, unif.data->clause,lit,genLits1,properInstance1) &&
+        startGeneratingClause(unif.data->clause, *subs, false, cl,unif.data->literal,genLits2,properInstance2)) {
 
       // dismatching test passed for both
 
-      if(unif.clause->length()==1) {
+      if(unif.data->clause->length()==1) {
         //we make sure the unit is added first, so that it can be used to shorten the
         //second clause by global subsumption
         if (properInstance2) {
-          finishGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2);
+          finishGeneratingClause(unif.data->clause, *subs, false, cl,unif.data->literal,genLits2);
         }
         if (properInstance1) {
-          finishGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1);
+          finishGeneratingClause(cl, *subs, true, unif.data->clause,lit,genLits1);
         }
       } else {
         if (properInstance1) {
-          finishGeneratingClause(cl, *subs, true, unif.clause,lit,genLits1);
+          finishGeneratingClause(cl, *subs, true, unif.data->clause,lit,genLits1);
         }
         if (properInstance2) {
-          finishGeneratingClause(unif.clause, *subs, false, cl,unif.literal,genLits2);
+          finishGeneratingClause(unif.data->clause, *subs, false, cl,unif.data->literal,genLits2);
         }
       }
     }
@@ -517,7 +517,7 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
   for(unsigned i=0; i<selCnt; i++) {
     iters[i] = pvi(getFilteredIterator(_selected->getUnifications((*cl)[i], true, false),
         // only count partner literals which are also semantically selected
-        [this](SLQueryResult& unif) { return isSelected(unif.literal); }));
+        [this](SLQueryResult& unif) { return isSelected(unif.data->literal); }));
   }
 
   static Stack<unsigned> candidates; // just to make sure we break the ties in a fair way
@@ -759,7 +759,7 @@ void IGAlgorithm::wipeIndexes()
   } else {
     _variantIdx = new SubstitutionTreeClauseVariantIndex();
   }
-  _selected = new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF);
+  _selected = new LiteralSubstitutionTree();
 }
 
 

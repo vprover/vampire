@@ -105,7 +105,7 @@ namespace Indexing {
     class UnificationWithAbstraction { 
       AbstractingUnifier _unif;
     public:
-      UnificationWithAbstraction(MismatchHandler handler) : _unif(handler) {}
+      UnificationWithAbstraction(MismatchHandler handler) : _unif(AbstractingUnifier::empty(handler)) {}
       using Unifier = AbstractingUnifier*;
 
       bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
@@ -117,6 +117,71 @@ namespace Indexing {
 
       Unifier unifier()
       { return &_unif; }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _unif.subs().bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd)
+      { _unif.subs().bdRecord(bd); }
+
+      void bdDone()
+      { _unif.subs().bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+      TermList::Top getSpecialVarTop(unsigned svar)
+      { return _unif.subs().getSpecialVarTop(svar); }
+
+      bool usesUwa() const
+      { return _unif.usesUwa(); }
+    };
+
+    class UnificationWithAbstractionWithPostprocessing 
+    { 
+      AbstractingUnifier _unif;
+      Option<bool> _fpRes;
+    public:
+      class NotFinalized { 
+        AbstractingUnifier* _unif; 
+        Option<bool>* _result;
+      public:
+        explicit NotFinalized(AbstractingUnifier* unif, Option<bool>* result) 
+          : _unif(unif)
+          , _result(result) 
+        { }
+
+        Option<AbstractingUnifier*> fixedPointIteration() 
+        {
+          if (_result->isNone()) {
+            *_result = some(bool(_unif->fixedPointIteration()));
+            if (_unif->isRecording()) {
+              _unif->bdGet().addClosure([res = _result]() { *res = {}; });
+            }
+          }
+          return someIf(**_result, [&](){ return _unif;  });
+        }
+
+        friend std::ostream& operator<<(std::ostream& out, NotFinalized const& self)
+        { return out << *self._unif << " (fixedPointIteration: " << *self._result << " )"; }
+      };
+
+      using Unifier = NotFinalized;
+
+      UnificationWithAbstractionWithPostprocessing(MismatchHandler handler) 
+        : _unif(AbstractingUnifier::empty(handler)) 
+        , _fpRes()
+      {}
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      {
+        // CALL("SubstitutionTree::UnificationsIterator::associate");
+        TermList query(specialVar, /* special */ true);
+        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
+      }
+
+      Unifier unifier()
+      { return NotFinalized(&_unif, &_fpRes); }
 
       void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
       { _unif.subs().bindSpecialVar(var, term, varBank); }

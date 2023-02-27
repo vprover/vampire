@@ -282,17 +282,17 @@ namespace Indexing
       int index;
       while (tqrIt.hasNext()) {
         auto tqr = tqrIt.next();
-        if (tqr.literal == _queryLit || notInAncestors(parent, tqr.literal)) {
-          if (tqr.literal == _queryLit) {
+        if (tqr.data->literal == _queryLit || notInAncestors(parent, tqr.data->literal)) {
+          if (tqr.data->literal == _queryLit) {
             index = 0;
-          } else if (parent && tqr.clause == parent->clause) {
+          } else if (parent && tqr.data->clause == parent->clause) {
             index = parent->substIndex;
           } else {
             index = _nextAvailableIndex++;
           }
-          _stack.push(CycleSearchTreeNode::unificationNode(tqr.term,
-                                                           tqr.literal,
-                                                           tqr.clause,
+          _stack.push(CycleSearchTreeNode::unificationNode(tqr.data->term,
+                                                           tqr.data->literal,
+                                                           tqr.data->clause,
                                                            parent,
                                                            index));
         }

@@ -38,8 +38,8 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t)
-  { return _is->getUwa(t); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(t, uwa, fixedPointIteration); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }

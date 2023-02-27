@@ -50,6 +50,7 @@ using namespace Saturation;
 
 EqualityFactoring::EqualityFactoring()
   : _mismatchHandler(MismatchHandler::createOnlyHigherOrder())
+  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 {
 
 }
@@ -89,12 +90,12 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, Ordering& ordering)
-      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
+  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, Ordering& ordering, bool fixedPointIteration)
+      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
-    AbstractingUnifier absUnif(_self._mismatchHandler);
+    auto absUnif = AbstractingUnifier::empty(_self._mismatchHandler);
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
@@ -117,6 +118,10 @@ struct EqualityFactoring::ResultFn
 
     if(!absUnif.unify(sLHS,0,fLHS,0)) {
       return 0;
+    }
+
+    if (_fixedPointIteration && !absUnif.fixedPointIteration()) {
+      return nullptr;
     }
 
     TermList sLHSS = absUnif.subs().apply(sLHS,0);
@@ -174,6 +179,7 @@ private:
   unsigned _cLen;
   bool _afterCheck;
   Ordering& _ordering;
+  bool _fixedPointIteration;
 };
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
@@ -194,7 +200,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
   auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering(), _uwaFixedPointIteration));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 

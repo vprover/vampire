@@ -44,6 +44,7 @@ private:
   friend struct ResultFn;
 
   MismatchHandler _mismatchHandler;
+  bool _uwaFixedPointIteration;
 };
 
 

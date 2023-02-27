@@ -140,7 +140,7 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure<>* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex = new LiteralSubstitutionTree<>(Shell::Options::UnificationWithAbstraction::OFF);
+  _partialIndex = new LiteralSubstitutionTree<>();
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()
@@ -205,12 +205,12 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         SLQueryResult qr=vit.next();
 
         // true here means complementary
-        if(!MLVariant::isVariant(c ,qr.clause, true)) {
+        if(!MLVariant::isVariant(c, qr.data->clause, true)) {
           continue;
         }
 
         //we have found a counterpart
-        handleEquivalence(c, greater, qr.clause, qr.literal, true);
+        handleEquivalence(c, greater, qr.data->clause, qr.data->literal, true);
         return;
       }
       //there is no counterpart, so insert the clause into the partial index

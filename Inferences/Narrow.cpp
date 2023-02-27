@@ -112,7 +112,7 @@ struct Narrow::ResultFn
     CALL("Narrow::ResultFn::operator()");
     
     TermQueryResult& qr = arg.second;
-    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, qr.literal, qr.unifier);
+    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.data->term, qr.data->literal, qr.unifier);
   }
 private:
   Clause* _cl;

@@ -159,10 +159,10 @@ public:
     ResultSubstitutionSP subs;
     if (_retrieveSubstitutions) {
       _resultNormalizer->reset();
-      _resultNormalizer->normalizeVariables(_found->t);
+      _resultNormalizer->normalizeVariables(_found->term);
       subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
-    auto out = TermQueryResult(subs, DefaultTermLeafData(_found->t, _found->lit, _found->cls));
+    auto out = TermQueryResult(subs, _found);
     _found=0;
     return out;
   }

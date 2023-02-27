@@ -38,8 +38,8 @@ public:
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
   // TODO make DefaultLiteralLeafData a type parameter
-  VirtualIterator<QueryRes<AbstractingUnifier*, DefaultLiteralLeafData>> getUwa(Literal* lit, bool complementary)
-  { return _is->getUwa(lit, complementary); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, DefaultLiteralLeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
 
   SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(lit, complementary, retrieveSubstitutions); }

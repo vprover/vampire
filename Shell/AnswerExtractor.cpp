@@ -185,8 +185,8 @@ public:
 
     while(_unifIts[_depth].hasNext()) {
       SLQueryResult qres = _unifIts[_depth].next();
-      ASS_EQ(goalLit->header(), qres.literal->header());
-      if(_subst.unifyArgs(goalLit, 0, qres.literal, 1)) {
+      ASS_EQ(goalLit->header(), qres.data->literal->header());
+      if(_subst.unifyArgs(goalLit, 0, qres.data->literal, 1)) {
 	return true;
       }
     }

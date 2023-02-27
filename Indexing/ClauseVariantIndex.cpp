@@ -108,7 +108,7 @@ class SubstitutionTreeClauseVariantIndex::SLQueryResultToClauseFn
 public:
 
   Clause* operator()(SLQueryResult res) {
-    return res.clause;
+    return res.data->clause;
   }
 };
 
@@ -188,7 +188,7 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
   }
 
   if(!_strees[clen]) {
-    _strees[clen]=new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF);
+    _strees[clen] = new LiteralSubstitutionTree();
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
   _strees[clen]->insert(DefaultLiteralLeafData(mainLit, cl));

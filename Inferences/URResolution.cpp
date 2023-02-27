@@ -278,12 +278,12 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
     while(unifs.hasNext()) {
       SLQueryResult unif = unifs.next();
 
-      if( !ColorHelper::compatible(itm->_color, unif.clause->color()) ) {
+      if( !ColorHelper::compatible(itm->_color, unif.data->clause->color()) ) {
         continue;
       }
 
       Item* itm2 = new Item(*itm);
-      itm2->resolveLiteral(idx, unif, unif.clause, true);
+      itm2->resolveLiteral(idx, unif, unif.data->clause, true);
       iit.insert(itm2);
 
       if(itm->_atMostOneNonGround) {
@@ -343,14 +343,14 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
   SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
-    Clause* ucl = unif.clause;
+    Clause* ucl = unif.data->clause;
 
     if( !ColorHelper::compatible(cl->color(), ucl->color()) ) {
       continue;
     }
 
     Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
-    unsigned pos = ucl->getLiteralPosition(unif.literal);
+    unsigned pos = ucl->getLiteralPosition(unif.data->literal);
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
     itm->resolveLiteral(0, unif, cl, /* useQuerySubstitution */ false);
