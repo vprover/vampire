@@ -203,8 +203,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG(1, "lhs: ", lhs)
     for (auto rhs_sigma : _rhs->find(lhs.key())) {
-      auto& rhs   = std::get<0>(rhs_sigma);
-      auto& sigma = std::get<1>(rhs_sigma);
+      auto& rhs   = *rhs_sigma.data;
+      auto& sigma = rhs_sigma.unifier;
       DEBUG(1, "  rhs: ", rhs)
       auto res = applyRule(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma);
       DEBUG(1, "")
@@ -217,8 +217,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG(1, "rhs: ", rhs)
     for (auto lhs_sigma : _lhs->find(rhs.key())) {
-      auto& lhs   = std::get<0>(lhs_sigma);
-      auto& sigma = std::get<1>(lhs_sigma);
+      auto& lhs   = *lhs_sigma.data;
+      auto& sigma = lhs_sigma.unifier;
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
         DEBUG(1, "  lhs: ", lhs)
         auto res = applyRule(lhs, RESULT_BANK, rhs, QUERY_BANK, *sigma);

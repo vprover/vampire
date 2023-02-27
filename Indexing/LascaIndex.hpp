@@ -46,23 +46,6 @@ public:
   {
     CALL("LascaIndex::find")
     return iterTraits(_index.getUwa(key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
-    // TODO prevent copying here
-      .map([](auto r) { return std::make_tuple(*r.data, r.unifier);  })
-      // .filter([=](auto& x) {
-      //     Stack<UnificationConstraint> c;
-      //     MismatchHandler hndlr(_uwa, c);
-      //     auto& uwa = get<1>(x);
-      //     auto result = uwa.cnstLiterals()
-      //       .all([&](auto lit) {
-      //           ASS(lit->isEquality() && lit->isNegative())
-      //           auto l = lit->termArg(0);
-      //           auto r = lit->termArg(1);
-      //           return l == r || hndlr.checkUWA(l,r);
-      //       });
-      //     if (!result) { DEBUG("skipping wrong constraints: ", uwa) }
-      //     ASS(c.isEmpty());
-      //     return result;
-      // })
       .timeTraced(_lookupStr.c_str()); }
 
 

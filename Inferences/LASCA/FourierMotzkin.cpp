@@ -75,8 +75,8 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG_FM(1, "lhs: ", lhs)
     for (auto rhs_sigma : _rhsIndex->find(lhs.key())) {
-      auto& rhs   = std::get<0>(rhs_sigma);
-      auto& sigma = std::get<1>(rhs_sigma);
+      auto& rhs   = *rhs_sigma.data;
+      auto& sigma = rhs_sigma.unifier;
       DEBUG_FM(1, "  rhs: ", rhs)
       auto res = applyRule(lhs, 0, rhs, 1, *sigma);
       if (res.isSome()) {
@@ -89,8 +89,8 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
     DEBUG_FM(1, "rhs: ", rhs)
 
     for (auto lhs_sigma : _lhsIndex->find(rhs.key())) {
-      auto& lhs   = std::get<0>(lhs_sigma);
-      auto& sigma = std::get<1>(lhs_sigma);
+      auto& lhs   = *lhs_sigma.data;
+      auto& sigma = lhs_sigma.unifier;
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
         DEBUG_FM(1, "  lhs: ", lhs)
         auto res = applyRule(lhs, 1, rhs, 0, *sigma);
