@@ -295,9 +295,9 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 
 }
 
-bool AbstractingUnifier::finalize()
+bool AbstractingUnifier::fixedPointIteration()
 {
-  CALL("AbstractionResult::finalize");
+  CALL("AbstractionResult::fixedPointIteration");
   Recycled<Stack<UnificationConstraint>> todo;
   while (!constr().isEmpty()) { 
     todo->push(constr().pop(bd()));

@@ -106,7 +106,7 @@ namespace Indexing {
     class UnificationWithAbstraction { 
       AbstractingUnifier _unif;
     public:
-      UnificationWithAbstraction(MismatchHandler handler) : _unif(handler) {}
+      UnificationWithAbstraction(MismatchHandler handler) : _unif(AbstractingUnifier::empty(handler)) {}
       using Unifier = AbstractingUnifier*;
 
       bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
@@ -141,7 +141,7 @@ namespace Indexing {
     class UnificationWithAbstractionWithPostprocessing 
     { 
       AbstractingUnifier _unif;
-      Option<bool> _finalizationResult;
+      Option<bool> _fpRes;
     public:
       class NotFinalized { 
         AbstractingUnifier* _unif; 
@@ -152,10 +152,10 @@ namespace Indexing {
           , _result(result) 
         { }
 
-        Option<AbstractingUnifier*> finalize() 
+        Option<AbstractingUnifier*> fixedPointIteration() 
         {
           if (_result->isNone()) {
-            *_result = some(bool(_unif->finalize()));
+            *_result = some(bool(_unif->fixedPointIteration()));
             if (_unif->isRecording()) {
               _unif->bdGet().addClosure([res = _result]() { *res = {}; });
             }
@@ -164,14 +164,14 @@ namespace Indexing {
         }
 
         friend std::ostream& operator<<(std::ostream& out, NotFinalized const& self)
-        { return out << *self._unif << " (finalized: " << *self._result << " @ " << self._result << " )"; }
+        { return out << *self._unif << " (fixedPointIteration: " << *self._result << " )"; }
       };
 
       using Unifier = NotFinalized;
 
       UnificationWithAbstractionWithPostprocessing(MismatchHandler handler) 
-        : _unif(handler) 
-        , _finalizationResult()
+        : _unif(AbstractingUnifier::empty(handler)) 
+        , _fpRes()
       {}
 
       bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
@@ -182,7 +182,7 @@ namespace Indexing {
       }
 
       Unifier unifier()
-      { return NotFinalized(&_unif, &_finalizationResult); }
+      { return NotFinalized(&_unif, &_fpRes); }
 
       void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
       { _unif.subs().bindSpecialVar(var, term, varBank); }

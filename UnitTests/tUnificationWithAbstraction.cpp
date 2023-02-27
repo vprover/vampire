@@ -168,7 +168,6 @@ void checkTermMatches(TermSubstitutionTree& index, TypedTermList term, Stack<Ter
 
 struct IndexTest {
   unique_ptr<TermSubstitutionTree> index;
-  bool finalize = false;
   Stack<TermList> insert;
   TermSugar query;
   Stack<TermUnificationResultSpec> expected;
@@ -939,32 +938,27 @@ TEST_FUN(higher_order2)
 static const int NORM_QUERY_BANK=2;
 // static const int NORM_RESULT_BANK=3;
 
-Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool finalize) {
+Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration) {
   // TODO parameter instead of opts
-  MismatchHandler h(opt);
-  AbstractingUnifier au(h);
-  bool result = au.unify(a, 0, b, 0);
-  if (finalize) {
-    result = au.finalize();
-  }
-  if (result) {
+  auto au = AbstractingUnifier::unify(a, 0, b, 0, MismatchHandler(opt), fixedPointIteration);
 
+  if (au) {
     return some(TermUnificationResultSpec { 
-     .querySigma  = au.subs().apply(a, 0), 
-     .resultSigma = au.subs().apply(b, 0), 
-     .constraints = *au.constr().literals(au.subs()),
+     .querySigma  = au->subs().apply(a, 0), 
+     .resultSigma = au->subs().apply(b, 0), 
+     .constraints = *au->constraintLiterals(),
     });
 
   } else {
-    return none<TermUnificationResultSpec>();
+    return {};
   }
 
 
 }
 
-void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool finalize, TermUnificationResultSpec exp)
+void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermUnificationResultSpec exp)
 {
-  auto is = runRobUnify(a,b,opt, finalize);
+  auto is = runRobUnify(a,b,opt, fixedPointIteration);
   if (is.isSome() && is.unwrap() == exp) {
     cout << "[  OK  ] " << a << " unify " << b << endl;
   } else {
@@ -976,9 +970,9 @@ void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction o
 }
 
 
-void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool finalize)
+void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration)
 {
-  auto is = runRobUnify(a,b,opt, finalize);
+  auto is = runRobUnify(a,b,opt, fixedPointIteration);
   if(is.isNone()) {
       cout << "[  OK  ] " << a << " unify " << b << endl;
   } else {
@@ -989,18 +983,18 @@ void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstracti
   }
 }
 
-#define ROB_UNIFY_TEST(name, opt, finalize, lhs, rhs, ...)                                          \
+#define ROB_UNIFY_TEST(name, opt, fixedPointIteration, lhs, rhs, ...)                                          \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
     INT_SUGAR                                                                                       \
-    checkRobUnify(lhs, rhs, opt, finalize, __VA_ARGS__ );                                           \
+    checkRobUnify(lhs, rhs, opt, fixedPointIteration, __VA_ARGS__ );                                           \
   }                                                                                                 \
 
-#define ROB_UNIFY_TEST_FAIL(name, opt, finalize, lhs, rhs)                                          \
+#define ROB_UNIFY_TEST_FAIL(name, opt, fixedPointIteration, lhs, rhs)                                          \
   TEST_FUN(name)                                                                                    \
   {                                                                                                 \
     INT_SUGAR                                                                                       \
-    checkRobUnifyFail(lhs, rhs, opt, finalize);                                                     \
+    checkRobUnifyFail(lhs, rhs, opt, fixedPointIteration);                                                     \
   }                                                                                                 \
 
 ROB_UNIFY_TEST(rob_unif_test_01,
@@ -1090,7 +1084,7 @@ ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
       .constraints = { c != b },
     })
 
-ROB_UNIFY_TEST_FAIL(over_approx_test_2_bad_AC1_finalize,
+ROB_UNIFY_TEST_FAIL(over_approx_test_2_bad_AC1_fixedPointIteration,
     Options::UnificationWithAbstraction::AC1,
     /* withFinalize */ true,
     f2(x, a + x),
@@ -1114,7 +1108,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
       .constraints = Stack<Literal*>{ b + c != c + b },
     })
 
-ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1_finalize,
+ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1_fixedPointIteration,
     Options::UnificationWithAbstraction::AC1,
     /* withFinalize */ true,
     f2(f2(y, x), a + y + x),
@@ -1183,7 +1177,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_bad,
       .constraints = { a + b + c != x + y + c },
     })
 
-ROB_UNIFY_TEST(ac_test_02_AC1_bad_finalize,
+ROB_UNIFY_TEST(ac_test_02_AC1_bad_fixedPointIteration,
     Options::UnificationWithAbstraction::AC1,
     /* withFinalize */ true,
     f2(c, a + b + c),
@@ -1227,7 +1221,7 @@ ROB_UNIFY_TEST(ac2_test_02_bad,
       .constraints = Stack<Literal*>{ b + c != x + b },
     })
 
-ROB_UNIFY_TEST(ac2_test_02_bad_finalize,
+ROB_UNIFY_TEST(ac2_test_02_bad_fixedPointIteration,
     Options::UnificationWithAbstraction::AC2,
     /* withFinalize */ true,
     f2(f2(x,b), a + b + c),
@@ -1250,11 +1244,10 @@ ROB_UNIFY_TEST(top_level_constraints_1,
       .constraints = Stack<Literal*>{ b + c != x + y },
     })
 
-RUN_TEST(top_level_constraints_2_with_finalize,
+RUN_TEST(top_level_constraints_2_with_fixedPointIteration,
     INT_SUGAR,
     IndexTest {
       .index = getTermIndex(Options::UnificationWithAbstraction::AC2, /* postpro */ true),
-      .finalize = true,
       .insert = {
         a + b + c,
         b,

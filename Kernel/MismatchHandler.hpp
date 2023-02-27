@@ -153,16 +153,26 @@ class AbstractingUnifier {
   Option<BacktrackData&> _bd;
   MismatchHandler _uwa;
   friend class RobSubstitution;
+  AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
   // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
-  { }
+  static AbstractingUnifier empty(MismatchHandler uwa) 
+  { return AbstractingUnifier(uwa); }
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
   bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
   bool unify(TermSpec l, TermSpec r, bool& progress);
-  bool finalize();
+  bool fixedPointIteration();
+
+
+  static Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, MismatchHandler uwa, bool fixedPointIteration)
+  {
+    auto au = AbstractingUnifier::empty(uwa);
+    if (!au.unify(t1, bank1, t2, bank2)) return {};
+    if (!fixedPointIteration || au.fixedPointIteration()) return some(std::move(au));
+    else return {};
+  }
 
 
   UnificationConstraintStack& constr() { return *_constr; }
