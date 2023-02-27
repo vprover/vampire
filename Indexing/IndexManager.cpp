@@ -36,7 +36,7 @@ using namespace Indexing;
 IndexManager::IndexManager(SaturationAlgorithm* alg) 
   : _alg(alg) 
   , _uwa(MismatchHandler::create())
-  , _uwaFixedPointIteration(env.options->unificationWithAbstractionPostpro())
+  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 { }
 
 Index* IndexManager::request(IndexType t)

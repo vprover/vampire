@@ -82,7 +82,7 @@ struct EqualityResolution::ResultFn
       handler = MismatchHandler(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
-    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, handler, env.options->unificationWithAbstractionPostpro());
+    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, handler, env.options->unificationWithAbstractionFixedPointIteration());
 
     if(absUnif.isNone()){ 
       return 0; 

@@ -50,7 +50,7 @@ using namespace Saturation;
 
 EqualityFactoring::EqualityFactoring()
   : _mismatchHandler(MismatchHandler::createOnlyHigherOrder())
-  , _uwaFixedPointIteration(env.options->unificationWithAbstractionPostpro())
+  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 {
 
 }
