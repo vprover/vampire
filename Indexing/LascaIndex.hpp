@@ -35,8 +35,8 @@ public:
   CLASS_NAME(LascaIndex);
   USE_ALLOCATOR(LascaIndex);
 
-  LascaIndex(Shell::Options::UnificationWithAbstraction uwa)
-    : _index(uwa)
+  LascaIndex()
+    : _index()
     , _shared()
   {}
 
@@ -45,8 +45,9 @@ public:
   auto find(TypedTermList key)
   {
     CALL("LascaIndex::find")
-    return iterTraits(_index.getUwa(key))
-      .map([](auto r) { return std::make_tuple(std::move(r.data()), r.unifier);  })
+    return iterTraits(_index.getUwa(key, _shared->uwaMode(), _shared->uwaFixedPointIterator))
+    // TODO prevent copying here
+      .map([](auto r) { return std::make_tuple(*r.data, r.unifier);  })
       // .filter([=](auto& x) {
       //     Stack<UnificationConstraint> c;
       //     MismatchHandler hndlr(_uwa, c);

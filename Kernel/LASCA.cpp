@@ -274,12 +274,12 @@ PolyNf LascaState::normalize(TypedTermList term)
 
 Option<AbstractingUnifier> LascaState::unify(TermList lhs, TermList rhs) const 
 {
-  AbstractingUnifier unif(uwaMode());
-  if (unif.unify(lhs, /* var bank: */ 0, rhs, /* var bank: */ 0)) {
-    return some(std::move(unif));
-  } else {
-    return Option<AbstractingUnifier>();
-  }
+  return AbstractingUnifier::unify(lhs, 0, rhs, 0, uwaMode(), uwaFixedPointIterator);
+  // if (unif.unify(lhs, /* var bank: */ 0, rhs, /* var bank: */ 0)) {
+  //   return some(std::move(unif));
+  // } else {
+  //   return Option<AbstractingUnifier>();
+  // }
 }
 
 IntegerConstantType normalizeFactors_divide(IntegerConstantType gcd, IntegerConstantType toCorrect)

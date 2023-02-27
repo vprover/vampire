@@ -136,7 +136,7 @@ struct SubVarSup::ForwardResultFn
 
     TermQueryResult& qr = arg.second;
     return _parent.performSubVarSup(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, true);
+	    qr.data->clause, qr.data->literal, qr.data->term, true);
   }
 private:
   Clause* _cl;
@@ -151,12 +151,12 @@ struct SubVarSup::BackwardResultFn
   {
     CALL("SubVarSup::BackwardResultFn::operator()");
 
-    if(_cl==arg.second.clause) {
+    if(_cl==arg.second.data->clause) {
       return 0;
     }
 
     TermQueryResult& qr = arg.second;
-    return _parent.performSubVarSup(qr.clause, qr.literal, qr.term,
+    return _parent.performSubVarSup(qr.data->clause, qr.data->literal, qr.data->term,
 	    _cl, arg.first.first, arg.first.second, false);
   }
 private:

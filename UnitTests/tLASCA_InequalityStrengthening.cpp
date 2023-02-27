@@ -70,8 +70,8 @@ auto idxInequalityStrengthening(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<InequalityStrengthening::Lhs>(uwa); },
-    [=]() { return new LascaIndex<InequalityStrengthening::Rhs>(uwa); },
+    [=]() { return new LascaIndex<InequalityStrengthening::Lhs>(); },
+    [=]() { return new LascaIndex<InequalityStrengthening::Rhs>(); },
   }; 
 }
 

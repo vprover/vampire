@@ -145,13 +145,13 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
   }
   //for now we just get the first result
   SLQueryResult qr = srqi.next();
-  Color clr = ColorHelper::combine(infClr, qr.clause->color());
+  Color clr = ColorHelper::combine(infClr, qr.data->clause->color());
   if(clr==COLOR_INVALID) {
     return false;
   }
   infClr = clr;
 
-  Literal* rwrLit = qr.literal;
+  Literal* rwrLit = qr.data->literal;
 
   TermList rwrT1 = *rwrLit->nthArgument(0);
   TermList rwrT2 = *rwrLit->nthArgument(1);
@@ -163,7 +163,7 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
   }
 
   rewriters.push(make_pair(TermPair(rwrT1,rwrT2), rwrBankIdx));
-  premises.push(qr.clause);
+  premises.push(qr.data->clause);
   return true;
 }
 
@@ -365,7 +365,7 @@ void HyperSuperposition::resolveFixedLiteral(Clause* cl, unsigned litIndex, Clau
   while(unifs.hasNext()) {
     SLQueryResult qr = unifs.next();
     Stack<Literal*> constraints;
-    Clause* genCl = BinaryResolution::generateClause(cl, lit, qr.clause, qr.literal, qr.unifier, constraints, getOptions());
+    Clause* genCl = BinaryResolution::generateClause(cl, lit, qr.data->clause, qr.data->literal, qr.unifier, constraints, getOptions());
     acc.push(ClausePair(cl, genCl));
   }
 }
@@ -387,7 +387,7 @@ void HyperSuperposition::tryUnifyingToResolveWithUnit(Clause* cl, unsigned liter
   while(unifIt.hasNext()) {
     SLQueryResult unifRes = unifIt.next();
     localRes.reset();
-    tryUnifyingSuperpositioins(cl, literalIndex, lit, unifRes.literal, true, localRes);
+    tryUnifyingSuperpositioins(cl, literalIndex, lit, unifRes.data->literal, true, localRes);
     while(localRes.isNonEmpty()) {
       Clause* resolvableCl = localRes.pop();
       resolveFixedLiteral(resolvableCl, literalIndex, acc);
@@ -537,9 +537,9 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacem
   while(unifIt.hasNext()) {
     SLQueryResult unifRes = unifIt.next();
     prems.reset();
-    prems.push(unifRes.clause);
+    prems.push(unifRes.data->clause);
 
-    if(trySimplifyingFromUnification(cl, lit, unifRes.literal, true, prems, replacement, premises)) {
+    if(trySimplifyingFromUnification(cl, lit, unifRes.data->literal, true, prems, replacement, premises)) {
       return true;
     }
   }

@@ -58,6 +58,7 @@ public:
   { return _cont.isEmpty(); }
 
   void add(UnificationConstraint c, Option<BacktrackData&> bd);
+  UnificationConstraint pop(Option<BacktrackData&> bd);
 };
 
 using Action = std::function<bool(unsigned, TermSpec)>;
@@ -151,21 +152,26 @@ class AbstractingUnifier {
   Option<BacktrackData&> _bd;
   MismatchHandler _uwa;
   friend class RobSubstitution;
+  AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
   // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) 
-  { }
+  static AbstractingUnifier empty(MismatchHandler uwa) 
+  { return AbstractingUnifier(uwa); }
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
-  void add(UnificationConstraint c) 
-  { _constr->add(std::move(c), _subs->bdIsRecording() ? Option<BacktrackData&>(_subs->bdGet())
-                                                      : Option<BacktrackData&>()              ); }
-
   bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
-  // { 
-  //   return _subs->unify(t1, bank1, t2, bank2, _uwa, this); 
-  // }
+  bool unify(TermSpec l, TermSpec r, bool& progress);
+  bool fixedPointIteration();
+
+
+  static Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, MismatchHandler uwa, bool fixedPointIteration)
+  {
+    auto au = AbstractingUnifier::empty(uwa);
+    if (!au.unify(t1, bank1, t2, bank2)) return {};
+    if (!fixedPointIteration || au.fixedPointIteration()) return some(std::move(au));
+    else return {};
+  }
 
 
   UnificationConstraintStack& constr() { return *_constr; }
@@ -173,6 +179,8 @@ public:
 
   RobSubstitution      & subs()       { return *_subs; }
   RobSubstitution const& subs() const { return *_subs; }
+  Option<BacktrackData&> bd() { return someIf(_subs->bdIsRecording(), [&]() -> decltype(auto) { return _subs->bdGet(); }); }
+  BacktrackData& bdGet() { return _subs->bdGet(); }
   void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
   void bdDone() { _subs->bdDone(); }
   bool usesUwa() const { return _uwa._mode != Options::UnificationWithAbstraction::OFF; }

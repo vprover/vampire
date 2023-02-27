@@ -200,16 +200,17 @@ public:
  * Class of objects which contain results of term queries.
  */
 template<class Unifier, class Data>
-struct QueryRes : public Data
+struct QueryRes
 {
-  QueryRes() {}
-  QueryRes(Unifier unifier, Data data) : Data(data), unifier(std::move(unifier)) {}
-
-
-  Data const& data() const
-  { return *this; }
-
   Unifier unifier;
+  Data const* data;
+
+  QueryRes() {}
+  QueryRes(Unifier unifier, Data const* data) 
+    : unifier(std::move(unifier))
+    , data(std::move(data)) {}
+
+
 
   friend std::ostream& operator<<(std::ostream& out, QueryRes const& self)
   { 
@@ -221,7 +222,7 @@ struct QueryRes : public Data
 };
 
 template<class Unifier, class Data>
-QueryRes<Unifier, Data> queryRes(Unifier unifier, Data d) 
+QueryRes<Unifier, Data> queryRes(Unifier unifier, Data const* d) 
 { return QueryRes<Unifier, Data>(std::move(unifier), std::move(d)); }
 
 struct ClauseSResQueryResult

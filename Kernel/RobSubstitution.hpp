@@ -150,7 +150,6 @@ public:
   // TODO get rid of default constructor
   TermSpec() : TermSpec(decltype(_self)(OldTermSpec())) {}
   TermSpec(VarSpec v) : TermSpec(TermList::var(v.var), v.index) {}
-
   friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
   friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);
   IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(TermSpec);
@@ -360,9 +359,6 @@ public:
   size_t size() const {return _bank.size(); }
 
 #endif
-  friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
-  std::ostream& output(std::ostream& out, bool deref) const;
-
   typedef pair<TermSpec,TermSpec> TTPair;
  
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)

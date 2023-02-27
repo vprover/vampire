@@ -82,20 +82,13 @@ struct EqualityResolution::ResultFn
       handler = MismatchHandler(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
-    AbstractingUnifier absUnif(handler);
+    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, handler, env.options->unificationWithAbstractionFixedPointIteration());
 
-    if(!absUnif.unify(arg0,0,arg1,0)){ 
+    if(absUnif.isNone()){ 
       return 0; 
     }
 
-    for (auto &c : absUnif.constr().iter()) {
-      DBG("TODO reckeck")
-      // ASSERTION_VIOLATION_REP("TODO reckeck")
-      // if (!handler->recheck(c.lhs(absUnif.subs()), c.rhs(absUnif.subs())))
-      //   return nullptr;
-    }
-    // TODO create absUnif.constrLiterals or so
-    auto constraints = absUnif.constr().literals(absUnif.subs());
+    auto constraints = absUnif->constraintLiterals();
     unsigned newLen=_cLen - 1 + constraints->length();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
@@ -104,14 +97,14 @@ struct EqualityResolution::ResultFn
 
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      litAfter = absUnif.subs().apply(lit, 0);
+      litAfter = absUnif->subs().apply(lit, 0);
     }
 
     unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
-        Literal* currAfter = absUnif.subs().apply(curr, 0);
+        Literal* currAfter = absUnif->subs().apply(curr, 0);
 
         if (litAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);

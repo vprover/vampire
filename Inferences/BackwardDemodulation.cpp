@@ -110,12 +110,12 @@ struct BackwardDemodulation::ResultFn
 
     TermQueryResult qr=arg.second;
 
-    if( !ColorHelper::compatible(_cl->color(), qr.clause->color()) ) {
+    if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match
       return BwSimplificationRecord(0);
     }
 
-    if(_cl==qr.clause || _removed->find(qr.clause)) {
+    if(_cl==qr.data->clause || _removed->find(qr.data->clause)) {
       //the retreived clause was already replaced during this
       //backward demodulation
       return BwSimplificationRecord(0);
@@ -123,7 +123,7 @@ struct BackwardDemodulation::ResultFn
 
     TermList lhs=arg.first;
 
-    TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
+    TermList qrSort = SortHelper::getTermSort(qr.data->term, qr.data->literal);
 
     /* The following check replaces the original:
       "if(qrSort!=_eqSort) {
@@ -137,7 +137,7 @@ struct BackwardDemodulation::ResultFn
     }
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-    TermList lhsS=qr.term;
+    TermList lhsS=qr.data->term;
     TermList rhsS;
 
     if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
@@ -162,26 +162,26 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
-      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) && 
+    if(_parent.getOptions().demodulationRedundancyCheck() && qr.data->literal->isEquality() &&
+      (qr.data->term==*qr.data->literal->nthArgument(0) || qr.data->term==*qr.data->literal->nthArgument(1)) && 
       // encompassment has issues only with positive units
-      (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1))) {
-      TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
+      (!_encompassing || (qr.data->literal->isPositive() && qr.data->clause->length() == 1))) {
+      TermList other=EqHelper::getOtherEqualitySide(qr.data->literal, qr.data->term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
         if (_encompassing) {
           if (qr.unifier->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
-            // under _encompassing, we know there are no other literals in qr.clause
+            // under _encompassing, we know there are no other literals in qr.data->clause
             return BwSimplificationRecord(0);
           }
         } else {
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
           Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
           bool isMax=true;
-          Clause::Iterator cit(*qr.clause);
+          Clause::Iterator cit(*qr.data->clause);
           while(cit.hasNext()) {
             Literal* lit2=cit.next();
-            if(qr.literal==lit2) {
+            if(qr.data->literal==lit2) {
               continue;
             }
             if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
@@ -202,30 +202,30 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
+    Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
-      _removed->insert(qr.clause);
-      return BwSimplificationRecord(qr.clause);
+      _removed->insert(qr.data->clause);
+      return BwSimplificationRecord(qr.data->clause);
     }
 
-    unsigned cLen=qr.clause->length();
-    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
+    unsigned cLen=qr.data->clause->length();
+    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl));
 
     (*res)[0]=resLit;
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
-      Literal* curr=(*qr.clause)[i];
-      if(curr!=qr.literal) {
+      Literal* curr=(*qr.data->clause)[i];
+      if(curr!=qr.data->literal) {
         (*res)[next++] = curr;
       }
     }
     ASS_EQ(next,cLen);
 
     env.statistics->backwardDemodulations++;
-    _removed->insert(qr.clause);
-    return BwSimplificationRecord(qr.clause,res);
+    _removed->insert(qr.data->clause);
+    return BwSimplificationRecord(qr.data->clause,res);
   }
 private:
   TermList _eqSort;

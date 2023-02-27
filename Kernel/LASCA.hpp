@@ -731,6 +731,7 @@ namespace Kernel {
     InequalityNormalizer normalizer;
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction uwa;
+    bool uwaFixedPointIterator;
 
     Shell::Options::UnificationWithAbstraction uwaMode() const { return uwa; }
         

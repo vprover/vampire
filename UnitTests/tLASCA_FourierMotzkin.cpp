@@ -99,8 +99,8 @@ auto idxFourierMotzkin(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<FourierMotzkin::Lhs>(uwa); },
-    [=]() { return new LascaIndex<FourierMotzkin::Rhs>(uwa); },
+    [=]() { return new LascaIndex<FourierMotzkin::Lhs>(); },
+    [=]() { return new LascaIndex<FourierMotzkin::Rhs>(); },
   }; 
 }
 

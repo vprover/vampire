@@ -205,12 +205,12 @@ private:
   void processIntegerComparison(Clause* premise, Literal* lit);
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
-  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
+  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const DefaultTermLeafData* bound1, const DefaultTermLeafData* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
-  void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
-  void performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound);
-  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermQueryResult& bound1, const TermQueryResult* optionalBound2);
+  void performFinIntInduction(const InductionContext& context, const DefaultTermLeafData& lb, const DefaultTermLeafData& ub);
+  void performInfIntInduction(const InductionContext& context, bool increasing, const DefaultTermLeafData& bound);
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const DefaultTermLeafData& bound1, const DefaultTermLeafData* optionalBound2);
 
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);

@@ -71,11 +71,11 @@ void SLQueryBackwardSubsumption::detach()
 
 struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
-  template<class C>
-  Clause* operator()(C const& res)
-  {
-    return res.clause;
-  }
+  Clause* operator()(DefaultLiteralLeafData const& res)
+  { return res.clause; }  
+  template<class T>
+  Clause* operator()(QueryRes<T, DefaultLiteralLeafData> const& res)
+  { return res.data->clause; }
 };
 
 struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
@@ -161,8 +161,8 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
   while(rit.hasNext()) {
     SLQueryResult qr=rit.next();
-    Clause* icl=qr.clause;
-    Literal* ilit=qr.literal;
+    Clause* icl=qr.data->clause;
+    Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();
     if(ilen<clen || icl==cl) {
       continue;
@@ -245,10 +245,10 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
 
 
-    LiteralList::push(qr.literal, matchedLits[lmIndex]);
+    LiteralList::push(qr.data->literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-	if(bi==lmIndex && (*icl)[ii]==qr.literal) {
+	if(bi==lmIndex && (*icl)[ii]==qr.data->literal) {
 	  continue;
 	}
 	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {

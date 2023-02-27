@@ -515,17 +515,19 @@ private:
   bool _break;
 };
 
-template<class I1, class I2>
+template<class I1, class I2, class Cmp>
 class SortedIterDiff {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(I1));
   DEFAULT_CONSTRUCTORS(SortedIterDiff)
 
-  SortedIterDiff(I1 i1, I2 i2) 
+  SortedIterDiff(I1 i1, I2 i2, Cmp cmp)
     : _i1(std::move(i1))
     , _i2(std::move(i2))
     , _curr1()
-    , _curr2(someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); })) {}
+    , _curr2(someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); })) 
+    , _cmp(std::move(cmp))
+    {}
 
   void moveToNext() 
   {
@@ -534,20 +536,23 @@ public:
 #   endif
     while (_curr1.isNone() && _i1.hasNext()) {
       _curr1 = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(_i1.next()));
-      ASS_REP(!_curr1.isSome() || !old1.isSome() || *old1 <= *_curr1, "iterator I1 must be sorted");
-      while (_curr2.isSome() && *_curr2 < *_curr1) {
+      ASS_REP(!_curr1.isSome() || !old1.isSome() || _cmp(*old1, *_curr1) <= 0, "iterator I1 must be sorted");
+      while (_curr2.isSome() && _cmp(*_curr2, *_curr1) < 0) {
 #       if VDEBUG
         Option<OWN_ELEMENT_TYPE> old2 = _curr2.take();
 #       endif
         _curr2 = someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE 
             { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); });
-        ASS_REP(!_curr2.isSome() || !old2.isSome() || *old2 <= *_curr2, "iterator I2 must be sorted");
+        ASS_REP(!_curr2.isSome() || !old2.isSome() || _cmp(*old2, *_curr2) <= 0, "iterator I2 must be sorted");
       }
-      if (_curr1 == _curr2) {
+      if (( _curr1.isSome() && _curr2.isSome() && _cmp(*_curr1, *_curr2) == 0 )
+          || (_curr1.isNone() && _curr2.isNone())) {
 #   if VDEBUG
     old1 = _curr1.take();
 #   endif
         _curr1 = Option<OWN_ELEMENT_TYPE>();
+        _curr2 = someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE 
+            { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); });
       }
     }
   }
@@ -568,6 +573,7 @@ private:
   I2 _i2;
   Option<OWN_ELEMENT_TYPE> _curr1;
   Option<OWN_ELEMENT_TYPE> _curr2;
+  Cmp _cmp;
 };
 
 /**
@@ -1792,6 +1798,10 @@ public:
 
   CoproductIter(Coproduct<Is...> i) : _inner(Coproduct<Is...>(std::move(i))) {}
 
+  bool hasNext() const
+  { Coproduct<Is...>& inner = _inner;
+    return inner.apply([](auto& x) { return x.hasNext();}); }
+
   bool hasNext()
   { Coproduct<Is...>& inner = _inner;
     return inner.apply([](auto& x) { return x.hasNext();}); }
@@ -1823,7 +1833,7 @@ static auto ifElseIter(ElseIter elseIter)
 
 template<class IfIter, class... ElseIters>
 static auto ifElseIter(bool cond, IfIter ifIter, ElseIters... elseIters) 
-{ return _ifElseIter(cond, ifIter, [&]() { return ifElseIter(elseIters...); }); }
+{ return _ifElseIter(cond, std::move(ifIter), [&]() { return ifElseIter(std::move(elseIters)...); }); }
 
 
 template<class I1>
@@ -2082,9 +2092,14 @@ IterTraits<Iter> iterTraits(Iter i)
 static const auto range = [](auto from, auto to) 
   { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
 
+template<class I1, class I2, class Cmp>
+auto iterSortedDiff(I1 i1, I2 i2, Cmp cmp) 
+{ return iterTraits(SortedIterDiff<I1,I2, Cmp>(std::move(i1), std::move(i2), std::move(cmp))); }
+
 template<class I1, class I2>
 auto iterSortedDiff(I1 i1, I2 i2) 
-{ return iterTraits(SortedIterDiff<I1,I2>(std::move(i1), std::move(i2))); }
+{ return iterSortedDiff(std::move(i1), std::move(i2), [&](auto& l, auto& r) { return l == r ? 0 : l < r ? -1 : 1;  }); }
+
 ///@}
 
 template<class Iterator>

@@ -47,9 +47,8 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa)
+  LiteralSubstitutionTree()
     : _trees(env.signature->predicates() * 2)
-    , _mismatchHandler(uwa)
     { }
 
   void handle(LeafData ld, bool insert) final override
@@ -74,8 +73,6 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary) final override
-  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, _mismatchHandler); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
@@ -86,7 +83,7 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* query, bool complementary, bool retrieveSubstitutions) final override
   {
     return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
-          .map([](auto qr) { return queryRes(std::move(qr.unif), *qr.data); }));
+          .map([](auto qr) { return queryRes(std::move(qr.unif), qr.data); }));
   }
 
 
@@ -94,9 +91,27 @@ private:
   static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
   static bool idxIsNegative(unsigned idx) { return idx % 2; }
   static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
+
+
+  template<class Algo>
+  using UwaIter = typename Indexing::SubstitutionTree<LeafData_>::template UnificationsIterator<Algo>;
+
+  auto nopostproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
+  { return getResultIterator<UwaIter<UnificationAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
+
+  auto postproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
+  { return pvi(iterTraits(getResultIterator<UwaIter<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
+    .filterMap([](auto r)
+        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return queryRes(unif, r.data); }); })); }
+
+
 public:
 
-  friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree<LeafData_> const& self)
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
+  { return fixedPointIteration ? pvi(  postproUwa(lit, complementary, uwa))
+                               : pvi(nopostproUwa(lit, complementary, uwa)); }
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
     int i = 0;
     out << "{ ";
@@ -153,7 +168,7 @@ private:
     auto filterResults = [=](auto it) { 
       return pvi(
           std::move(it)
-          .map([](auto r) { return queryRes(std::move(r.unif), *r.data); })
+          .map([](auto r) { return queryRes(std::move(r.unif), r.data); })
           ); 
     };
     return !lit->commutative() 
@@ -165,7 +180,6 @@ private:
   }
 
   Stack<SubstitutionTree> _trees;
-  MismatchHandler _mismatchHandler;
 };
 
 };

@@ -26,7 +26,7 @@ template<class Idx, class Data, class Iter, class Key>
 void __check(const char* operation, Idx& tree, Key key, Stack<Data> expected, Iter iter)
 {
   auto is = iterTraits(iter(key))
-    .map([](auto u) { return u.data(); })
+    .map([](auto u) { return *u.data; })
     .template collect<Stack>();
   std::sort(is.begin(), is.end());
   std::sort(expected.begin(), expected.end());
@@ -96,7 +96,7 @@ TEST_FUN(basic01) {
   DECL_FUNC(f, {srt}, srt)
   DECL_PRED(g, {srt})
   
-  TermSubstitutionTree<> tree(Shell::Options::UnificationWithAbstraction::OFF);
+  TermSubstitutionTree<> tree;
   auto dat = [](TermList k, Literal* v)  { return DefaultTermLeafData(k, v, nullptr); };
   tree.insert(dat(f(a), g(a)));
   tree.insert(dat(f(a), g(b)));
@@ -142,7 +142,7 @@ TEST_FUN(custom_data_01) {
   DECL_FUNC(f, {srt}, srt)
 
   auto dat = [](auto l, auto r) { return MyData<TermList>(l,r); };
-  TermSubstitutionTree<MyData<TermList>> tree(Shell::Options::UnificationWithAbstraction::OFF);
+  TermSubstitutionTree<MyData<TermList>> tree;
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
@@ -160,7 +160,7 @@ TEST_FUN(custom_data_02) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<TermIndexData<vstring>> tree(Shell::Options::UnificationWithAbstraction::OFF);
+  TermSubstitutionTree<TermIndexData<vstring>> tree;
   auto dat = [](TermList t,vstring s) { return TermIndexData<vstring>(t.term(), std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -184,7 +184,7 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData3> tree(Shell::Options::UnificationWithAbstraction::OFF);
+  TermSubstitutionTree<MyData3> tree;
   auto dat = [](TermList t,vstring s) { return MyData3(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -209,7 +209,7 @@ TEST_FUN(custom_data_04_no_copy_constructor) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<MyData4> tree(Shell::Options::UnificationWithAbstraction::OFF);
+  TermSubstitutionTree<MyData4> tree;
   auto dat = [](TermList t,vstring s) { return MyData4(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
@@ -239,7 +239,7 @@ TEST_FUN(zero_arity_predicate) {
   DECL_PRED(p1, {srt})
 
   using Data = MyData<Literal*>;
-  LiteralSubstitutionTree<Data> tree(Shell::Options::UnificationWithAbstraction::OFF);
+  LiteralSubstitutionTree<Data> tree;
   auto dat = [](Literal* k,vstring s) { return Data(k, std::move(s)); };
   tree.insert(dat( p0() , " p0()"));
   tree.insert(dat( p1(a), " p1(a)"));

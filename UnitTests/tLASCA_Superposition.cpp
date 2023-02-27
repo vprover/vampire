@@ -77,8 +77,8 @@ shared_ptr<LascaState> state()
 
 Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
 { return {
-    [](){ return new LascaIndex<Superposition::Lhs>(state()->uwaMode());},
-    [](){ return new LascaIndex<Superposition::Rhs>(state()->uwaMode());},
+    [](){ return new LascaIndex<Superposition::Lhs>();},
+    [](){ return new LascaIndex<Superposition::Rhs>();},
   }; }
 
 Superposition testSuperposition()

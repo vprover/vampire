@@ -84,7 +84,7 @@ struct BinaryResolution::UnificationsFn
       //Binary resolution is not performed with equality literals
       return VirtualIterator<pair<Literal*, BRQueryRes> >::getEmpty();
     }
-    return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true)));
+    return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())));
   }
 private:
   BinaryResolutionIndex* _index;
@@ -103,7 +103,7 @@ struct BinaryResolution::ResultFn
 
     auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
     auto constraints = qr.unifier->constraintLiterals();
-    return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, *constraints, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+    return BinaryResolution::generateClause(_cl, resLit, qr.data->clause, qr.data->literal, subs, *constraints, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
   }
 private:
   Clause* _cl;
