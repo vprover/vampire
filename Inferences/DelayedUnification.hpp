@@ -1,0 +1,94 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+/**
+ * @file DelayedUnification.hpp
+ * Things for Ahmed/Johannes' delayed-unification CADE '23 calculus
+ */
+
+#ifndef __DelayedUnification__
+#define __DelayedUnification__
+
+#include "Kernel/Clause.hpp"
+#include "Indexing/Index.hpp"
+#include "Inferences/InferenceEngine.hpp"
+
+namespace Inferences {
+
+// base class for delayed unification "indices"
+class TopSymbolIndex {
+public:
+  ~TopSymbolIndex() {
+    decltype(_functors)::Iterator it(_functors);
+    while(it.hasNext())
+      delete it.next();
+  }
+  void handle(unsigned functor, Clause *, Literal *, bool adding);
+  VirtualIterator<std::pair<Clause *, Literal *>> query(unsigned functor) {
+    DHSet<std::pair<Clause *, Literal *>> *entries;
+    if(!_functors.find(functor, entries))
+      return VirtualIterator<std::pair<Clause *, Literal *>>::getEmpty();
+    return entries->iterator();
+  }
+
+private:
+  // map from functors to a set of clause/literal pairs
+  // TODO DHSet doesn't have a move constructor so it has to be heap-allocated
+  // Johannes has already fixed this in the substitution-tree refactor, drop the indirection when we can
+  DHMap<unsigned, DHSet<std::pair<Clause *, Literal *>> *> _functors;
+};
+
+// selected literals in the active set that have a subterm `f(...)`
+class DelayedSubterms: public Indexing::Index, public TopSymbolIndex {
+public:
+  CLASS_NAME(DelayedSubterms);
+  USE_ALLOCATOR(DelayedSubterms);
+
+  DelayedSubterms(const Ordering &ordering) : _ordering(ordering) {}
+  void handleClause(Kernel::Clause* c, bool adding) override;
+
+private:
+  // current ordering
+  const Ordering& _ordering;
+};
+
+// selected literals in the active set of the form `f(...) = ...`
+class DelayedLHS: public Indexing::Index, public TopSymbolIndex {
+public:
+  CLASS_NAME(DelayedLHS);
+  USE_ALLOCATOR(DelayedLHS);
+
+  DelayedLHS(const Ordering &ordering, const Options &options) : _ordering(ordering), _options(options) {}
+  void handleClause(Kernel::Clause* c, bool adding) override;
+
+private:
+  // current ordering
+  const Ordering& _ordering;
+  // current options
+  const Options &_options;
+};
+
+
+// a delayed-unification version of superposition
+class DelayedSuperposition: public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(DelayedSuperposition);
+  USE_ALLOCATOR(DelayedSuperposition);
+
+  void attach(SaturationAlgorithm* salg) override;
+  ClauseIterator generateClauses(Clause* premise) override;
+
+private:
+  DelayedSubterms *_subtermIndex;
+  DelayedLHS *_lhsIndex;
+};
+
+} // namespace Inferences
+
+#endif

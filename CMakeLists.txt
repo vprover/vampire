@@ -470,6 +470,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/PolynomialEvaluation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.cpp
+    Inferences/DelayedUnification.hpp
+    Inferences/DelayedUnification.cpp
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})
 

@@ -30,6 +30,8 @@
 
 #include "IndexManager.hpp"
 
+#include "Inferences/DelayedUnification.hpp"
+
 using namespace Lib;
 using namespace Indexing;
 
@@ -254,6 +256,15 @@ Index* IndexManager::create(IndexType t)
   case STRUCT_INDUCTION_TERM_INDEX:
     tis = new TermSubstitutionTree();
     res = new StructInductionTermIndex(tis);
+    isGenerating = true;
+    break;
+
+  case DELAYED_SUBTERMS:
+    res = new Inferences::DelayedSubterms(_alg->getOrdering());
+    isGenerating = true;
+    break;
+  case DELAYED_EQUATIONS:
+    res = new Inferences::DelayedLHS(_alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
 

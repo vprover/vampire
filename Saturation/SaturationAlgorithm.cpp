@@ -92,6 +92,8 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 
+#include "Inferences/DelayedUnification.hpp"
+
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
@@ -1563,6 +1565,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution());
     if(env.options->superposition()){
       gie->addFront(new Superposition());
+      gie->addFront(new DelayedSuperposition());
     }
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
