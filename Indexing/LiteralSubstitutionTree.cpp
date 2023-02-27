@@ -33,8 +33,6 @@ namespace Indexing
 
 LiteralSubstitutionTree::LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaFixedPointIteration)
 : _trees(env.signature->predicates() * 2)
-, _mismatchHandler(uwa)
-, _uwaFixedPointIteration(uwaFixedPointIteration)
 { }
 
 // TODO move
