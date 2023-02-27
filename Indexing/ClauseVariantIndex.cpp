@@ -188,7 +188,7 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
   }
 
   if(!_strees[clen]) {
-    _strees[clen]=new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* uwaPostpro */ false);
+    _strees[clen]=new LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction::OFF, /* uwaFixedPointIteration */ false);
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
   _strees[clen]->insert(mainLit, cl);

@@ -57,7 +57,7 @@ public:
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaPostpro, bool extra);
+  TermSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaFixedPointIteration, bool extra);
 
   void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
   { handleTerm(tt, LeafData(cls,lit,tt), insert); }
@@ -100,7 +100,7 @@ private:
   }
 
   MismatchHandler _mismatchHandler;
-  bool _uwaPostpro;
+  bool _uwaFixedPointIteration;
   //higher-order concerns
   bool _extra;
 
@@ -126,8 +126,8 @@ public:
 
 
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t) override
-  { return _uwaPostpro ? pvi(  postproUwa(t))
-                       : pvi(nopostproUwa(t)); }
+  { return _uwaFixedPointIteration ? pvi(  postproUwa(t))
+                                   : pvi(nopostproUwa(t)); }
 
   TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }

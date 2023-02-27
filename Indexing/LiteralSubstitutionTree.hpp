@@ -40,7 +40,7 @@ public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaPostpro);
+  LiteralSubstitutionTree(Shell::Options::UnificationWithAbstraction uwa, bool uwaFixedPointIteration);
 
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
   void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
@@ -101,8 +101,8 @@ public:
 
 
   VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary) final override
-  { return _uwaPostpro ? pvi(  postproUwa(lit, complementary))
-                       : pvi(nopostproUwa(lit, complementary)); }
+  { return _uwaFixedPointIteration ? pvi(  postproUwa(lit, complementary))
+                                   : pvi(nopostproUwa(lit, complementary)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
@@ -146,7 +146,7 @@ private:
 
   Stack<SubstitutionTree> _trees;
   MismatchHandler _mismatchHandler;
-  bool _uwaPostpro;
+  bool _uwaFixedPointIteration;
 };
 
 };
