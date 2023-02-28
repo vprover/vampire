@@ -17,46 +17,37 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Indexing/IndexManager.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 namespace Inferences {
 
-void TopSymbolIndex::handle(unsigned functor, Clause *c, Literal *lit, bool adding) {
-  CALL("TopSymbolIndex::handle")
-  typedef std::pair<Clause *, Literal *> Entry;
-  typedef DHSet<Entry> Entries;
-
-  Entries **entriesPtr;
-  _functors.getValuePtr(functor, entriesPtr, nullptr);
-  if(!*entriesPtr)
-    *entriesPtr = new Entries();
-  Entries *entries = *entriesPtr;
-
-  if(adding)
-    entries->insert({c, lit});
-  else
-    entries->remove({c, lit});
-}
-
 void DelayedSubterms::handleClause(Clause *c, bool adding) {
-  CALL("DUSubterms::handleClause")
+  CALL("DelayedSubterms::handleClause")
 
   for(unsigned i = 0; i < c->numSelected(); i++) {
     Literal *lit = (*c)[i];
     TermIterator subterms(EqHelper::getSubtermIterator(lit, _ordering));
     while (subterms.hasNext())
-      handle(subterms.next().term()->functor(), c, lit, adding);
+      handle(c, lit, subterms.next().term(), adding);
   }
 }
 
 void DelayedLHS::handleClause(Clause *c, bool adding) {
-  CALL("DULHS::handleClause")
+  CALL("DelayedLHS::handleClause")
 
   for(unsigned i = 0; i < c->numSelected(); i++) {
     Literal *lit = (*c)[i];
-    TermIterator lhss(EqHelper::getSuperpositionLHSIterator(lit, _ordering, _options));
-    while (lhss.hasNext())
-      handle(lhss.next().term()->functor(), c, lit, adding);
+    TermIterator lhs(EqHelper::getSuperpositionLHSIterator(lit, _ordering, _options));
+    while (lhs.hasNext()) {
+      TermList next = lhs.next();
+      if(next.isTerm())
+        handle(c, lit, next.term(), adding);
+      else if(adding)
+        _variables.insert({c, lit, next});
+      else
+        _variables.remove({c, lit, next});
+    }
   }
 }
 
@@ -68,7 +59,7 @@ void DelayedSuperposition::attach(SaturationAlgorithm *salg) {
   _lhsIndex = static_cast<DelayedLHS *>(salg->getIndexManager()->request(DELAYED_EQUATIONS));
 }
 
-static Clause *superposition(
+static Clause *delayed_superposition(
   Clause *equationClause,
   Literal *equation,
   TermList lhs,
@@ -76,7 +67,7 @@ static Clause *superposition(
   Literal *subtermLiteral,
   Term *rewritten
 ) {
-  CALL("DelayedSuperposition::superposition")
+  CALL("delayed_superposition")
 
   // prevent self-superposition l = r in l = r to get r = r, which seems to happen a surprising amount
   if(equationClause == subtermClause && equation == subtermLiteral && TermList(rewritten) == lhs)
@@ -88,29 +79,40 @@ static Clause *superposition(
   std::cout << subtermClause->toString() << std::endl;
   std::cout << subtermLiteral->toString() << std::endl;
   std::cout << rewritten->toString() << std::endl;
-  std::cout << "-----------------------------" << std::endl;
 
-  Inference inf(GeneratingInference2(InferenceRule::SUPERPOSITION, equationClause, subtermClause));
-  Clause *cl = nullptr;
+  Inference inference(GeneratingInference2(
+    InferenceRule::DELAYED_SUPERPOSITION,
+    equationClause,
+    subtermClause
+  ));
 
   Renaming subtermRenaming;
   Renaming equationRenaming(subtermClause->varCnt());
 
+  unsigned arity = lhs.isVar() ? 0 : lhs.term()->arity();
+  unsigned length = equationClause->length() + subtermClause->length() + arity - 1;
+  Clause *cl = new (length) Clause(length, inference);
+
+  unsigned i = 0;
+
+  // copy literals into new clause from old
+  for(unsigned j = 0; j < subtermClause->length(); j++)
+    if((*subtermClause)[j] != subtermLiteral)
+      (*cl)[i++] = subtermRenaming.apply((*subtermClause)[j]);
+  for(unsigned j = 0; j < equationClause->length(); j++)
+    if((*equationClause)[j] != equation)
+      (*cl)[i++] = equationRenaming.apply((*equationClause)[j]);
+
+  // the rewritten literal
+  (*cl)[i++] = EqHelper::replace(
+    subtermRenaming.apply(subtermLiteral),
+    TermList(subtermRenaming.apply(rewritten)),
+    TermList(equationRenaming.apply((*equation)[0] == lhs ? (*equation)[1] : (*equation)[0]))
+  );
+
   if(lhs.isTerm()) {
     Term *lhst = lhs.term();
     ASS_EQ(lhst->functor(), rewritten->functor())
-    unsigned arity = rewritten->arity();
-    unsigned length = equationClause->length() + subtermClause->length() + arity - 1;
-    cl = new (length) Clause(length, inf);
-    unsigned i = 0;
-
-    // copy literals into new clause from old
-    for(unsigned j = 0; j < subtermClause->length(); j++)
-      if((*subtermClause)[j] != subtermLiteral)
-        (*cl)[i++] = subtermRenaming.apply((*subtermClause)[j]);
-    for(unsigned j = 0; j < equationClause->length(); j++)
-      if((*equationClause)[j] != equation)
-        (*cl)[i++] = equationRenaming.apply((*equationClause)[j]);
 
     // create disequations
     for(unsigned j = 0; j < arity; j++) {
@@ -122,80 +124,80 @@ static Clause *superposition(
       (*cl)[i++] = disequation;
     }
 
-    // the rewritten literal
-    (*cl)[i++] = EqHelper::replace(
-      subtermRenaming.apply(subtermLiteral),
-      TermList(subtermRenaming.apply(rewritten)),
-      TermList(equationRenaming.apply((*equation)[0] == lhs ? (*equation)[1] : (*equation)[0]))
-    );
   }
   else {
     NOT_IMPLEMENTED;
   }
 
-  std::cout << "produced: " << cl->toString() << std::endl;
+  std::cout << cl->toString() << std::endl;
+  std::cout << "-----------------------------" << std::endl;
   return cl;
 }
 
 ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   CALL("DelayedSuperposition::generateClauses")
 
-  typedef std::pair<Literal *, Term *> Rewritable;
-  typedef std::pair<Clause *, Literal *> Equation;
-  typedef std::pair<Equation, TermList> Rewrite;
-  typedef std::pair<Rewritable, Rewrite> Rewriting;
+  typedef TopSymbolIndex::Entry<Term *> TEntry;
+  typedef TopSymbolIndex::Entry<TermList> TLEntry;
+  typedef std::pair<TLEntry, TEntry> Superposition;
 
   // selected literals
-  auto itf1 = cl->getSelectedLiteralIterator();
+  auto fwselected = cl->getSelectedLiteralIterator();
+
   // rewritable subterms of selected literals
-  auto itf2 = getMapAndFlattenIterator(itf1, [this](Literal *lit) -> VirtualIterator<Rewritable> {
-    return pvi(pushPairIntoRightIterator(lit,
-      getMappingIterator(
-        EqHelper::getSubtermIterator(lit, _salg->getOrdering()),
-        [](TermList term) -> Term * { return term.term(); }
-      )
+  auto fwsubterms = getMapAndFlattenIterator(fwselected, [this, cl](Literal *lit) {
+    // TODO avoid boxing here? should not be necessary, but there are some move-semantic errors
+    return pvi(getMappingIterator(
+      EqHelper::getSubtermIterator(lit, _salg->getOrdering()),
+      [lit, cl](TermList term) -> TEntry { return { cl, lit, term.term() }; }
     ));
   });
-  // all clause/literal/left-hand-sides that could rewrite the subterms of selected literals
-  auto itf3 = getMapAndFlattenIterator(itf2, [this](Rewritable rewritable) -> VirtualIterator<Rewriting> {
-    unsigned functor = rewritable.second->functor();
-    return pvi(pushPairIntoRightIterator(rewritable,
-      getMapAndFlattenIterator(
-        _lhsIndex->query(functor),
-        [this](Equation equation) -> VirtualIterator<Rewrite> {
-          return pvi(pushPairIntoRightIterator(equation,
-            EqHelper::getSuperpositionLHSIterator(
-              equation.second,
-              _salg->getOrdering(),
-              _salg->getOptions()
-            )
-          ));
-        }
-    )));
-  });
-  // all successful forward superpositions on functions
-  auto itf4 = getMappingIterator(itf3, [cl](Rewriting rewriting) -> Clause * {
-    Rewrite rewrite = rewriting.second;
-    TermList lhs = rewrite.second;
-    Equation equation = rewrite.first;
-    Clause *equationClause = equation.first;
-    Literal *equationLiteral = equation.second;
-    Clause *subtermClause = cl;
-    Rewritable rewritable = rewriting.first;
-    Literal *subtermLiteral = rewritable.first;
-    Term *rewritten = rewritable.second;
 
-    return superposition(
-      equationClause,
-      equationLiteral,
-      lhs,
-      subtermClause,
-      subtermLiteral,
-      rewritten
+  // forward superpositions
+  auto fwsuperpositions = getMapAndFlattenIterator(fwsubterms, [this](TEntry subterm) {
+    return pvi(getMappingIterator(
+      _lhsIndex->query(subterm.term->functor()),
+      [subterm](TEntry entry) -> Superposition { return { entry.termList(), subterm }; }
+    ));
+  });
+
+  // selected literals
+  auto bwselected = cl->getSelectedLiteralIterator();
+
+  // oriented equations in selected literals
+  auto bwrewrites = getMapAndFlattenIterator(bwselected, [this, cl](Literal *lit) {
+    return pvi(getMappingIterator(
+      EqHelper::getSuperpositionLHSIterator(lit, _salg->getOrdering(), _salg->getOptions()),
+      [cl, lit](TermList lhs) -> TLEntry { return { cl, lit, lhs }; }
+    ));
+  });
+
+  // backward superpositions
+  auto bwsuperpositions = getMapAndFlattenIterator(bwrewrites, [this](TLEntry rewrite) {
+    return pvi(getMappingIterator(
+      _subtermIndex->query(rewrite.term.term()->functor()),
+      [rewrite](TEntry subterm) -> Superposition { return { rewrite, subterm }; }
+    ));
+  });
+
+  // fw + bw superpositions
+  auto superpositions = getConcatenatedIterator(fwsuperpositions, bwsuperpositions);
+
+  // all resulting superposition attempts
+  auto attempts = getMappingIterator(superpositions, [](Superposition superposition) {
+    TLEntry rewrite = superposition.first;
+    TEntry subterm = superposition.second;
+    return delayed_superposition(
+      rewrite.clause,
+      rewrite.literal,
+      rewrite.term,
+      subterm.clause,
+      subterm.literal,
+      subterm.term
     );
   });
 
-  return pvi(getFilteredIterator(itf4, [](Clause *cl) { return cl; }));
+  return pvi(getFilteredIterator(attempts, [](Clause *cl) { return cl; }));
 }
 
 } //namespace Inferences

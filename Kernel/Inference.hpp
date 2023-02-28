@@ -300,6 +300,7 @@ enum class InferenceRule : unsigned char {
   INDUCTION_HYPERRESOLUTION,
   /* Generalized induction hyperresolution */
   GEN_INDUCTION_HYPERRESOLUTION,
+  DELAYED_SUPERPOSITION,
   /** generated as instance of its parent */
   INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
