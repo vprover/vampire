@@ -59,78 +59,116 @@ void DelayedSuperposition::attach(SaturationAlgorithm *salg) {
   _lhsIndex = static_cast<DelayedLHS *>(salg->getIndexManager()->request(DELAYED_EQUATIONS));
 }
 
-static Clause *delayed_superposition(
+Clause *DelayedSuperposition::perform(
   Clause *equationClause,
   Literal *equation,
   TermList lhs,
   Clause *subtermClause,
   Literal *subtermLiteral,
-  Term *rewritten
+  Term *subterm
 ) {
-  CALL("delayed_superposition")
+  CALL("DelayedSuperposition::perform")
 
   // prevent self-superposition l = r in l = r to get r = r, which seems to happen a surprising amount
-  if(equationClause == subtermClause && equation == subtermLiteral && TermList(rewritten) == lhs)
+  if(equationClause == subtermClause && equation == subtermLiteral && TermList(subterm) == lhs)
     return nullptr;
 
-  std::cout << equationClause->toString() << std::endl;
-  std::cout << equation->toString() << std::endl;
-  std::cout << lhs.toString() << std::endl;
-  std::cout << subtermClause->toString() << std::endl;
-  std::cout << subtermLiteral->toString() << std::endl;
-  std::cout << rewritten->toString() << std::endl;
+  // TODO if lhs is a var, check that the rewrite is well-sorted
+  // TODO if lhs is a var, call checkSuperpositionFromVariable?
 
+  TermList rhs = EqHelper::getOtherEqualitySide(equation, lhs);
+
+  // compute a renaming for both clauses so that variables are disjoint
+  Renaming equationRenaming;
+  for(unsigned i = 0; i < equationClause->length(); i++)
+    equationRenaming.normalizeVariables((*equationClause)[i]);
+
+  Renaming subtermRenaming(equationClause->varCnt());
+  for(unsigned i = 0; i < subtermClause->length(); i++)
+    subtermRenaming.normalizeVariables((*subtermClause)[i]);
+
+  // some helpfully-renamed terms
+  TermList lhs_renamed = equationRenaming.apply(lhs);
+  TermList rhs_renamed = equationRenaming.apply(rhs);
+  Term *subterm_renamed = subtermRenaming.apply(subterm);
+
+  // if lhs is a var, check subterm > rhs
+  if(lhs.isVar() && Ordering::isGorGEorE(_salg->getOrdering().compare(rhs_renamed, TermList(subterm_renamed))))
+    return nullptr;
+
+  // TODO check whether we are rewriting smaller side of equation? superposition checks this here
+
+  // the rewritten literal
+  Literal *rewritten = EqHelper::replace(
+    subtermRenaming.apply(subtermLiteral),
+    TermList(subterm_renamed),
+    equationRenaming.apply(rhs)
+  );
+  if(EqHelper::isEqTautology(rewritten))
+    return nullptr;
+
+  // compute clause length and create a blank clause to fill
+  unsigned arity = lhs.isVar() ? 0 : lhs.term()->arity();
+  unsigned length = equationClause->length() + subtermClause->length() + arity - 1;
   Inference inference(GeneratingInference2(
     InferenceRule::DELAYED_SUPERPOSITION,
     equationClause,
     subtermClause
   ));
-
-  Renaming subtermRenaming;
-  Renaming equationRenaming(subtermClause->varCnt());
-
-  unsigned arity = lhs.isVar() ? 0 : lhs.term()->arity();
-  unsigned length = equationClause->length() + subtermClause->length() + arity - 1;
   Clause *cl = new (length) Clause(length, inference);
 
+  // how far are we through the clause?
   unsigned i = 0;
 
-  // copy literals into new clause from old
-  for(unsigned j = 0; j < subtermClause->length(); j++)
-    if((*subtermClause)[j] != subtermLiteral)
-      (*cl)[i++] = subtermRenaming.apply((*subtermClause)[j]);
+  // copy side literals into new clause from old, applying the renaming
   for(unsigned j = 0; j < equationClause->length(); j++)
     if((*equationClause)[j] != equation)
       (*cl)[i++] = equationRenaming.apply((*equationClause)[j]);
+  for(unsigned j = 0; j < subtermClause->length(); j++)
+    if((*subtermClause)[j] != subtermLiteral)
+      (*cl)[i++] = subtermRenaming.apply((*subtermClause)[j]);
 
-  // the rewritten literal
-  (*cl)[i++] = EqHelper::replace(
-    subtermRenaming.apply(subtermLiteral),
-    TermList(subtermRenaming.apply(rewritten)),
-    TermList(equationRenaming.apply((*equation)[0] == lhs ? (*equation)[1] : (*equation)[0]))
-  );
+  // add rewritten literal
+  (*cl)[i++] = rewritten;
 
   if(lhs.isTerm()) {
-    Term *lhst = lhs.term();
-    ASS_EQ(lhst->functor(), rewritten->functor())
+    Term *lhs_renamed_term = lhs_renamed.term();
+    ASS_EQ(lhs_renamed_term->functor(), subterm_renamed->functor())
 
     // create disequations
     for(unsigned j = 0; j < arity; j++) {
-      TermList larg = equationRenaming.apply((*lhst)[j]);
-      TermList rarg = subtermRenaming.apply((*rewritten)[j]);
+      TermList larg = (*lhs_renamed_term)[j];
+      TermList rarg = (*subterm_renamed)[j];
       // TODO deal with polymorphic sorts properly: this will work until it doesn't
-      TermList sort = SortHelper::getArgSort(rewritten, j);
+      TermList sort = SortHelper::getArgSort(subterm_renamed, j);
       Literal *disequation = Literal::createEquality(false, larg, rarg, sort);
       (*cl)[i++] = disequation;
     }
-
   }
   else {
-    NOT_IMPLEMENTED;
+    ASS(lhs_renamed.isVar())
+
+    // apply substitution of lhs -> subterm
+    // OK to do this as a naive replacement because of single binding with disjoint variables
+    for(unsigned i = 0; i < cl->length(); i++)
+      (*cl)[i] = EqHelper::replace(
+        (*cl)[i],
+        lhs_renamed,
+        TermList(subterm_renamed)
+      );
+
+    // TODO check literals are still maximal under substitution?
   }
 
+  /*
+  std::cout << equationClause->toString() << std::endl;
+  std::cout << lhs.toString() << " -> " << rhs.toString() << std::endl;
+  std::cout << subtermClause->toString() << std::endl;
+  std::cout << subtermLiteral->toString() << std::endl;
+  std::cout << subterm->toString() << std::endl;
   std::cout << cl->toString() << std::endl;
   std::cout << "-----------------------------" << std::endl;
+  */
   return cl;
 }
 
@@ -156,8 +194,14 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   // forward superpositions
   auto fwsuperpositions = getMapAndFlattenIterator(fwsubterms, [this](TEntry subterm) {
     return pvi(getMappingIterator(
-      _lhsIndex->query(subterm.term->functor()),
-      [subterm](TEntry entry) -> Superposition { return { entry.termList(), subterm }; }
+      getConcatenatedIterator(
+        getMappingIterator(
+          _lhsIndex->query(subterm.term->functor()),
+          [](TEntry entry) { return entry.termList(); }
+        ),
+        _lhsIndex->variables()
+      ),
+      [subterm](TLEntry rewrite) -> Superposition { return { rewrite, subterm }; }
     ));
   });
 
@@ -175,7 +219,9 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   // backward superpositions
   auto bwsuperpositions = getMapAndFlattenIterator(bwrewrites, [this](TLEntry rewrite) {
     return pvi(getMappingIterator(
-      _subtermIndex->query(rewrite.term.term()->functor()),
+      rewrite.term.isVar()
+        ? _subtermIndex->entries()
+        : _subtermIndex->query(rewrite.term.term()->functor()),
       [rewrite](TEntry subterm) -> Superposition { return { rewrite, subterm }; }
     ));
   });
@@ -184,10 +230,10 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   auto superpositions = getConcatenatedIterator(fwsuperpositions, bwsuperpositions);
 
   // all resulting superposition attempts
-  auto attempts = getMappingIterator(superpositions, [](Superposition superposition) {
+  auto attempts = getMappingIterator(superpositions, [this](Superposition superposition) {
     TLEntry rewrite = superposition.first;
     TEntry subterm = superposition.second;
-    return delayed_superposition(
+    return perform(
       rewrite.clause,
       rewrite.literal,
       rewrite.term,

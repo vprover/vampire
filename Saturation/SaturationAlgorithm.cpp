@@ -1564,7 +1564,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
     if(env.options->superposition()){
-      gie->addFront(new Superposition());
       gie->addFront(new DelayedSuperposition());
     }
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){

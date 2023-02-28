@@ -80,6 +80,13 @@ public:
       entries->remove({c, l, t});
   }
 
+  VirtualIterator<Entry<Term *>> entries() {
+    return pvi(getMapAndFlattenIterator(
+      _functors.range(),
+      [](DHSet<Entry<Term *>> *entries) { return entries->iterator(); }
+    ));
+  }
+
   VirtualIterator<Entry<Term *>> query(unsigned functor) {
     CALL("TopSymbolIndex::query")
     DHSet<Entry<Term *>> *entries;
@@ -118,7 +125,9 @@ public:
   DelayedLHS(const Ordering &ordering, const Options &options) : _ordering(ordering), _options(options) {}
   void handleClause(Kernel::Clause* c, bool adding) override;
   // variable left-hand-sides
-  DHSet<Entry<TermList>>::Iterator variables();
+  DHSet<Entry<TermList>>::Iterator variables() {
+    return decltype(_variables)::Iterator(_variables);
+  }
 
 private:
   // current ordering
@@ -140,6 +149,8 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 
 private:
+  Clause *perform(Clause *, Literal *, TermList, Clause *, Literal *, Term *);
+
   DelayedSubterms *_subtermIndex;
   DelayedLHS *_lhsIndex;
 };
