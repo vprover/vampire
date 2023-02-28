@@ -148,6 +148,7 @@ public:
       // other
       bool reverseLCM);
 
+  static KBO* newPlainKBO();
   static KBO testKBO();
 
   virtual ~KBO();

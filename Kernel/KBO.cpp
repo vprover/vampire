@@ -540,6 +540,27 @@ KBO::KBO(
   checkAdmissibility(throwError);
 }
 
+KBO* KBO::newPlainKBO() 
+{
+
+  auto predLevels = []() -> DArray<int>{
+    DArray<int> out(env.signature->predicates());
+    out.init(out.size(), 1);
+    return out;
+  };
+
+  return new KBO(
+      KboWeightMap<FuncSigTraits>::dflt(),
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+      KboWeightMap<PredSigTraits>::dflt(), 
+#endif
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->functions())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates())),
+      predLevels(),
+      false);
+}
+
 KBO KBO::testKBO() 
 {
 

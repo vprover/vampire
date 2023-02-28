@@ -66,8 +66,9 @@ class GenerationTester
   Rule _rule;
 
 public:
-  GenerationTester()
-    : _rule()
+  template<class... Args>
+  GenerationTester(Args... args)
+    : _rule(std::move(args)...)
   {}
 
   virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
@@ -191,7 +192,7 @@ public:
 
 #define __CREATE_GEN_TESTER CAT(__createGenTester_, UNIT_ID)
 
-#define REGISTER_GEN_TESTER(t, ...) auto __CREATE_GEN_TESTER() { return Test::Generation::GenerationTester<t>(); }
+#define REGISTER_GEN_TESTER(t, ...) auto __CREATE_GEN_TESTER() { return Test::Generation::GenerationTester<t>(__VA_ARGS__); }
 
 #define TEST_GENERATION(name, ...)                                                                            \
         TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 

@@ -12,6 +12,10 @@
  * Things for Ahmed/Joe's delayed-unification CADE '23 calculus
  */
 
+#define DEBUG_INSERT(lvl, ...)  if (lvl <= 0) DBG(__VA_ARGS__)
+#define DEBUG_PERFORM(lvl, ...) if (lvl <= 0) DBG(__VA_ARGS__)
+// increase nr to increase debug verbosity ^
+
 #include "DelayedUnification.hpp"
 
 #include "Kernel/EqHelper.hpp"
@@ -24,6 +28,7 @@ namespace Inferences {
 
 void DelayedSubterms::handleClause(Clause *c, bool adding) {
   CALL("DelayedSubterms::handleClause")
+  DEBUG_INSERT(1, (adding ? "inserting" : "removing"), ": ", *c)
 
   for(unsigned i = 0; i < c->numSelected(); i++) {
     Literal *lit = (*c)[i];
@@ -35,6 +40,7 @@ void DelayedSubterms::handleClause(Clause *c, bool adding) {
 
 void DelayedLHS::handleClause(Clause *c, bool adding) {
   CALL("DelayedLHS::handleClause")
+  DEBUG_INSERT(1, (adding ? "inserting" : "removing"), ": ", *c)
 
   for(unsigned i = 0; i < c->numSelected(); i++) {
     Literal *lit = (*c)[i];
@@ -57,6 +63,8 @@ void DelayedSuperposition::attach(SaturationAlgorithm *salg) {
   GeneratingInferenceEngine::attach(salg);
   _subtermIndex = static_cast<DelayedSubterms *>(salg->getIndexManager()->request(DELAYED_SUBTERMS));
   _lhsIndex = static_cast<DelayedLHS *>(salg->getIndexManager()->request(DELAYED_EQUATIONS));
+  ASS_EQ(_ord , &salg->getOrdering())
+  ASS_EQ(_opts, &salg->getOptions())
 }
 
 Clause *DelayedSuperposition::perform(
@@ -68,6 +76,8 @@ Clause *DelayedSuperposition::perform(
   Term *subterm
 ) {
   CALL("DelayedSuperposition::perform")
+  DEBUG_PERFORM(1, "lhs: ", *equationClause, " [ ", *equation      , " ][ ", lhs     , " ]")
+  DEBUG_PERFORM(1, "rhs: ", *subtermClause , " [ ", *subtermLiteral, " ][ ", *subterm, " ]")
 
   // prevent self-superposition l = r in l = r to get r = r, which seems to happen a surprising amount
   if(equationClause == subtermClause && equation == subtermLiteral && TermList(subterm) == lhs)
@@ -93,7 +103,7 @@ Clause *DelayedSuperposition::perform(
   Term *subterm_renamed = subtermRenaming.apply(subterm);
 
   // if lhs is a var, check subterm > rhs
-  if(lhs.isVar() && Ordering::isGorGEorE(_salg->getOrdering().compare(rhs_renamed, TermList(subterm_renamed))))
+  if(lhs.isVar() && Ordering::isGorGEorE(_ord->compare(rhs_renamed, TermList(subterm_renamed))))
     return nullptr;
 
   // TODO check whether we are rewriting smaller side of equation? superposition checks this here
@@ -186,7 +196,7 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   auto fwsubterms = getMapAndFlattenIterator(fwselected, [this, cl](Literal *lit) {
     // TODO avoid boxing here? should not be necessary, but there are some move-semantic errors
     return pvi(getMappingIterator(
-      EqHelper::getSubtermIterator(lit, _salg->getOrdering()),
+      EqHelper::getSubtermIterator(lit, *_ord),
       [lit, cl](TermList term) -> TEntry { return { cl, lit, term.term() }; }
     ));
   });
@@ -211,7 +221,7 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   // oriented equations in selected literals
   auto bwrewrites = getMapAndFlattenIterator(bwselected, [this, cl](Literal *lit) {
     return pvi(getMappingIterator(
-      EqHelper::getSuperpositionLHSIterator(lit, _salg->getOrdering(), _salg->getOptions()),
+      EqHelper::getSuperpositionLHSIterator(lit, *_ord, *_opts),
       [cl, lit](TermList lhs) -> TLEntry { return { cl, lit, lhs }; }
     ));
   });

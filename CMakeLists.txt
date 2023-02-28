@@ -717,6 +717,7 @@ source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
+    UnitTests/tDelayedSuperposition.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp

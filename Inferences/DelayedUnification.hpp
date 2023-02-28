@@ -144,15 +144,30 @@ class DelayedSuperposition: public GeneratingInferenceEngine {
 public:
   CLASS_NAME(DelayedSuperposition);
   USE_ALLOCATOR(DelayedSuperposition);
+  DelayedSuperposition(Ordering* ord, Options const* opts) 
+    : _subtermIndex()
+    , _lhsIndex()
+    , _ord(ord)
+    , _opts(opts) 
+    {}
 
-  void attach(SaturationAlgorithm* salg) override;
-  ClauseIterator generateClauses(Clause* premise) override;
+  void attach(SaturationAlgorithm* salg) final override;
+  ClauseIterator generateClauses(Clause* premise) final override;
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& is) final override
+  {
+    _subtermIndex = static_cast<decltype(_subtermIndex)>(is[0]);
+    _lhsIndex     = static_cast<decltype(    _lhsIndex)>(is[1]);
+  }
+#endif 
 
 private:
   Clause *perform(Clause *, Literal *, TermList, Clause *, Literal *, Term *);
 
   DelayedSubterms *_subtermIndex;
   DelayedLHS *_lhsIndex;
+  Ordering     * const _ord;
+  Options const* const _opts;
 };
 
 } // namespace Inferences
