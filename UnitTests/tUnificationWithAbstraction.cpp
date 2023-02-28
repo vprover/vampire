@@ -165,11 +165,11 @@ void checkTermMatches(TermSubstitutionTree<>& index, Options::UnificationWithAbs
 
 struct IndexTest {
   unique_ptr<TermSubstitutionTree<>> index;
+  Options::UnificationWithAbstraction uwa;
+  bool fixedPointIteration = false;
   Stack<TermList> insert;
   TermSugar query;
   Stack<TermUnificationResultSpec> expected;
-  Options::UnificationWithAbstraction uwa;
-  bool fixedPointIteration = false;
 
   void run() {
     CALL("IndexTest::run")
