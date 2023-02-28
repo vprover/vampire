@@ -15,6 +15,7 @@
 #ifndef __DelayedUnification__
 #define __DelayedUnification__
 
+#include "Debug/Assertion.hpp"
 #include "Kernel/Clause.hpp"
 #include "Indexing/Index.hpp"
 #include "Inferences/InferenceEngine.hpp"
@@ -166,6 +167,43 @@ private:
 
   DelayedSubterms *_subtermIndex;
   DelayedLHS *_lhsIndex;
+  Ordering     * const _ord;
+  Options const* const _opts;
+};
+
+class DelayedEqualityFactoring: public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(DelayedSuperposition);
+  USE_ALLOCATOR(DelayedSuperposition);
+  DelayedEqualityFactoring(Ordering* ord, Options const* opts) 
+    : _ord(ord)
+    , _opts(opts) 
+    {}
+
+  void attach(SaturationAlgorithm* salg) final override;
+  ClauseIterator generateClauses(Clause* premise) final override;
+
+private:
+
+  Ordering     * const _ord;
+  Options const* const _opts;
+};
+
+
+class DelayedEqualityResolution: public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(DelayedSuperposition);
+  USE_ALLOCATOR(DelayedSuperposition);
+  DelayedEqualityResolution(Ordering* ord, Options const* opts) 
+    : _ord(ord)
+    , _opts(opts) 
+    {}
+
+  void attach(SaturationAlgorithm* salg) final override;
+  ClauseIterator generateClauses(Clause* premise) final override;
+
+private:
+
   Ordering     * const _ord;
   Options const* const _opts;
 };

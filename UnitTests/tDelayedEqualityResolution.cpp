@@ -19,18 +19,13 @@
 using namespace Test;
 using namespace Test::Generation;
 
-inline Ordering* testOrdering(){
+inline Ordering* testOrdering() {
   static Ordering* ord = KBO::newPlainKBO();
   return ord;
 }
-Stack<Index*> delayedSuperpositionIndices()
-{ return {
-    new DelayedSubterms(*testOrdering()),
-    new DelayedLHS(*testOrdering(), *env.options),
-  }; }
 
 
-REGISTER_GEN_TESTER(DelayedSuperposition, testOrdering(), env.options)
+REGISTER_GEN_TESTER(DelayedEqualityResolution, testOrdering(), env.options)
 
 #define MY_SYNTAX_SUGAR                                                                             \
   DECL_DEFAULT_VARS                                                                                 \
@@ -46,75 +41,48 @@ REGISTER_GEN_TESTER(DelayedSuperposition, testOrdering(), env.options)
 
 TEST_GENERATION(test_01,
     Generation::TestCase()
-      .indices(delayedSuperpositionIndices())
-      .input(    clause({ selected(f(a) == b)  }) )
-      .context({ clause({ selected(g(f(c)) == c) }) })
+      .input(    clause({ selected(f(a) != b)  }) )
       .expected(exactly(
-            clause({ g(b) == c, a != c  })
+          /* nothing */
       ))
     )
 
 TEST_GENERATION(test_02,
     Generation::TestCase()
-      .indices(delayedSuperpositionIndices())
-      .input(    clause({ selected(f2(a,b) == b)  }) )
-      .context({ clause({ selected(g(f2(c,a)) == c) }) })
+      .input(    clause({ selected(f(a) != f(b))  }) )
       .expected(exactly(
-            clause({ g(b) == c, a != c, b != a  })
+            clause({ a != b  })
       ))
     )
 
-
-TEST_GENERATION(test_03_eq,
+TEST_GENERATION(test_03,
     Generation::TestCase()
-      .indices(delayedSuperpositionIndices())
-      .input(    clause({ selected(x == a)  }) )
-      .context({ clause({ selected(g(f2(c,b)) == f(a)) }) })
+      .input(    clause({ selected(f2(a,b) != f2(b,c))  }) )
       .expected(exactly(
-            clause({ a == f(a) })
-          , clause({ g(a) == f(a) })
-          , clause({ g(f2(a,b)) == f(a) })
-          , clause({ g(f2(c,a)) == f(a) })
+            clause({ a != b , b != c  })
       ))
     )
 
-TEST_GENERATION(test_03_neq,
+TEST_GENERATION(test_04,
     Generation::TestCase()
-      .indices(delayedSuperpositionIndices())
-      .input(    clause({ selected(x == a)  }) )
-      .context({ clause({ selected(g(f2(c,b)) != f(a)) }) })
+      .input(    clause({ selected(x != f(x))  }) )
       .expected(exactly(
-            clause({ a != f(a) })
-          , clause({ g(a) != f(a) })
-          , clause({ g(f2(a,b)) != f(a) })
-          , clause({ g(f2(c,a)) != f(a) })
+          /* nothing */
       ))
     )
 
-
-TEST_GENERATION(test_03_pos,
+TEST_GENERATION(test_05,
     Generation::TestCase()
-      .indices(delayedSuperpositionIndices())
-      .input(    clause({ selected(x == a)  }) )
-      .context({ clause({ selected(P(g(f2(c,b)))) }) })
+      .input(    clause({ selected(x != a), f(x) != b  }) )
       .expected(exactly(
-            clause({ P(a) })
-          , clause({ P(g(a)) })
-          , clause({ P(g(f2(a,b))) })
-          , clause({ P(g(f2(c,a))) })
+            clause({ f(a) != b  })
       ))
     )
 
-TEST_GENERATION(test_03_neg,
+TEST_GENERATION(test_06,
     Generation::TestCase()
-      .indices(delayedSuperpositionIndices())
-      .input(    clause({ selected(x == a)  }) )
-      .context({ clause({ selected(~P(g(f2(c,b)))) }) })
+      .input(    clause({ selected(x.sort(s) != x)  }) )
       .expected(exactly(
-            clause({ ~P(a) })
-          , clause({ ~P(g(a)) })
-          , clause({ ~P(g(f2(a,b))) })
-          , clause({ ~P(g(f2(c,a))) })
+            clause({ /* empty */ })
       ))
     )
-

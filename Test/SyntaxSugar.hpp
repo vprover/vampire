@@ -401,6 +401,7 @@ public:
 
   /** explicit conversion */ 
   SortId sort() const { return _srt; }
+  TermSugar sort(TermList sort) { TermSugar out = *this; out._srt = sort; return out; }
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     unsigned f = env.signature->addFunction(name,0);                                                                
@@ -481,8 +482,7 @@ inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); 
 
 inline Lit operator==(TermSugar lhs, TermSugar rhs) 
 {
-  SortId sort;
-  ALWAYS(SortHelper::tryGetResultSort(lhs, sort) || SortHelper::tryGetResultSort(rhs, sort));
+  SortId sort = lhs.sort().isEmpty() ? rhs.sort() : lhs.sort();
   return Literal::createEquality(true, lhs, rhs, sort);
 }
 

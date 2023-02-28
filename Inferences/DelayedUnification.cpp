@@ -256,4 +256,29 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   return pvi(getFilteredIterator(attempts, [](Clause *cl) { return cl; }));
 }
 
+void DelayedEqualityFactoring::attach(SaturationAlgorithm *salg) {
+  CALL("DelayedEqualityFactoring::attach")
+  GeneratingInferenceEngine::attach(salg);
+  ASS_EQ(_ord , &salg->getOrdering())
+  ASS_EQ(_opts, &salg->getOptions())
+}
+
+ClauseIterator DelayedEqualityFactoring::generateClauses(Clause *cl) {
+  CALL("DelayedEqualityFactoring::generateClauses")
+  ASSERTION_VIOLATION_REP("TODO")
+}
+
+
+void DelayedEqualityResolution::attach(SaturationAlgorithm *salg) {
+  CALL("DelayedEqualityResolution::attach")
+  GeneratingInferenceEngine::attach(salg);
+  ASS_EQ(_ord , &salg->getOrdering())
+  ASS_EQ(_opts, &salg->getOptions())
+}
+
+ClauseIterator DelayedEqualityResolution::generateClauses(Clause *cl) {
+  CALL("DelayedEqualityResolution::generateClauses")
+  ASSERTION_VIOLATION_REP("TODO")
+}
+
 } //namespace Inferences

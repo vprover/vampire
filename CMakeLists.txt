@@ -718,6 +718,8 @@ set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tDelayedSuperposition.cpp
+    UnitTests/tDelayedEqualityFactoring.cpp
+    UnitTests/tDelayedEqualityResolution.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp
