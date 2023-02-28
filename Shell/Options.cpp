@@ -1534,6 +1534,10 @@ void Options::init()
     _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
     _lookup.insert(&_superposition);
 
+    _delayedUnificationCalculus = BoolOptionValue("delayed_unification_calculus","duc",false);
+    _delayedUnificationCalculus.description= "TODO";
+    _lookup.insert(&_delayedUnificationCalculus);
+
     _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"});
     _condensation.description=
        "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
