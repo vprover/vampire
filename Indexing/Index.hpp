@@ -151,6 +151,7 @@ public:
 struct DefaultTermLeafData 
 {
   CLASS_NAME(DefaultTermLeafData);
+  USE_ALLOCATOR(DefaultTermLeafData);
 
   Clause* clause;
   Literal* literal;

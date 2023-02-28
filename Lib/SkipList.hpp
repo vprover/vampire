@@ -65,7 +65,7 @@ public:
   {
     CALL("SkipList::insert");
     void* pval = insertPositionRaw(val);
-    new(pval) Value(std::move(val));
+    ::new(pval) Value(std::move(val));
   } // SkipList::insert
 
   template<class Iterator>
