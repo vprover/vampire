@@ -44,6 +44,8 @@ TEST_GENERATION(test_01,
       .input(    clause({ selected(x == b), x == a  }) )
       .expected(exactly(
             clause({ a != b, x == b  })
+          , clause({ a != b, a == b  })
+          , clause({ a != b, b == b  })
       ))
     )
 
@@ -56,8 +58,16 @@ TEST_GENERATION(test_02,
 
 TEST_GENERATION(test_03,
     Generation::TestCase()
-      .input(    clause({ selected(f2(a,b) == a),  f2(b,c) == a  }) )
+      .input(    clause({ selected(f2(a,x) == a),  f2(y,b) == a  }) )
       .expected(exactly(
-            clause({ a != a, f2(a,b) == a, a != b, b != c  })
+            clause({ a != a, f2(a,x) == a, b != x, a != y  })
+      ))
+    )
+
+TEST_GENERATION(test_04,
+    Generation::TestCase()
+      .input(    clause({ selected(f(a) == a),  f(a) == a  }) )
+      .expected(exactly(
+            clause({ a != a, f(a) == a  })
       ))
     )

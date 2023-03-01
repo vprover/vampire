@@ -209,6 +209,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) final override;
 
 private:
+  Clause *perform(Clause *, unsigned idx) const;
 
   Ordering     * const _ord;
   Options const* const _opts;

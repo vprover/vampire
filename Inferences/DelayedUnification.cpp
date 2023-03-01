@@ -372,10 +372,12 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
   CHECK_SIDE_CONDITION(sort2 == sort1, "sort1 == sort2. sort1 :", sort1, "\tsort2: ", sort2)
   auto sort = sort1;
   CHECK_SIDE_CONDITION(notLeq(_ord->compare(l2, r2)), "not(l2 <= r2). l2 :", l2, "\tr2: ", r2)
+  CHECK_SIDE_CONDITION(notLeq(_ord->compare(l1, r1)), "not(l1 <= r1). l1 :", l1, "\tr1: ", r1)
 
   auto unif = unifDelayed(l1, l2);
   DEBUG_PERFORM(2, "unifier: ", unif)
   CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l1, l2). l1 :", l1, "\tl2: ", l2)
+
 
   Recycled<Stack<Literal*>> conclusion;
   conclusion->push(Literal::createEquality(false, unif->sigma(r1), unif->sigma(r2), sort));
@@ -444,7 +446,44 @@ void DelayedEqualityResolution::attach(SaturationAlgorithm *salg) {
 
 ClauseIterator DelayedEqualityResolution::generateClauses(Clause *cl) {
   CALL("DelayedEqualityResolution::generateClauses")
-  ASSERTION_VIOLATION_REP("TODO")
+  return pvi(
+      cl->selectedIndices()
+        .filter([=](auto i) { return (*cl)[i]->isEquality() && (*cl)[i]->isNegative(); })
+        .map([=](auto i) 
+          { return perform(cl, i); })
+        .filter([](auto x) { return x != nullptr; })
+    );
+}
+Clause* DelayedEqualityResolution::perform(Clause* cl, unsigned idx) const {
+  auto lit = (*cl)[idx];
+  auto l = *lit->nthArgument(0);
+  auto r = *lit->nthArgument(1);
+
+  DEBUG_PERFORM(1, l, " != ", r, " | rest");
+
+  auto unif = unifDelayed(l, r);
+  DEBUG_PERFORM(2, "unifier: ", unif)
+  CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l, r). l :", l, "\tr: ", r)
+
+  Recycled<Stack<Literal*>> conclusion;
+  unif->forConstraints([&](auto c) { conclusion->push(c); });
+  
+  conclusion->loadFromIterator(
+      range(0,cl->size())
+        .filter([&](auto i) { return i != idx; })
+        .map([&](auto i) { return unif->sigma((*cl)[i]); })
+      );
+
+  auto out = Clause::fromStack(
+      *conclusion, 
+      Inference(GeneratingInference1(
+        InferenceRule::DELAYED_EQUALITY_RESOLUTION,
+        cl
+      )));
+
+  DEBUG_PERFORM(1, "result: ", *out);
+  return out;
+
 }
 
 } //namespace Inferences
