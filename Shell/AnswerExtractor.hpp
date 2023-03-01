@@ -115,7 +115,7 @@ private:
 
   ConjectureSkolemReplacement _skolemReplacement;
 
-  List<pair<Clause*, Literal*>>* _answerPairs = nullptr;
+  List<pair<unsigned,pair<Clause*, Literal*>>>* _answerPairs = nullptr;
 
   Literal* _lastAnsLit = nullptr;
 };

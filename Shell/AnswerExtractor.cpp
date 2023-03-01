@@ -38,6 +38,9 @@
 
 #include "AnswerExtractor.hpp"
 
+namespace {
+  typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
+}
 
 namespace Shell
 {
@@ -341,37 +344,45 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
   //return false;
 
   // TODO(hzzv): move the following to a separate class and uncomment code above
-  if (!_lastAnsLit && List<pair<Clause*, Literal*>>::isEmpty(_answerPairs)) return false;
+  if (!_lastAnsLit && AnsList::isEmpty(_answerPairs)) return false;
   if (_lastAnsLit) {
-    List<pair<Clause*, Literal*>>::push(make_pair(nullptr, _lastAnsLit), _answerPairs);
+    AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
   }
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
   DHSet<Unit*> proofUnits;
   getNeededUnits(refutation, premiseClauses, conjectures, proofUnits);
+  DHSet<unsigned> proofNums;
+  DHSet<Unit*>::Iterator puit(proofUnits);
+  while (puit.hasNext()) proofNums.insert(puit.next()->number());
 
-  List<pair<Clause*, Literal*>>::Iterator it(_answerPairs);
+  AnsList::Iterator it(_answerPairs);
   ALWAYS(it.hasNext());
-  pair<Clause*, Literal*> p = it.next();
-  unsigned arity = p.second->arity();
+  pair<unsigned, pair<Clause*, Literal*>> p = it.next();
+  unsigned arity = p.second.second->arity();
   Stack<TermList> sorts(arity);
   for (unsigned i = 0; i < arity; i++) {
-    sorts.push(env.signature->getPredicate(p.second->functor())->predType()->arg(i));
-    answer.push(_skolemReplacement.transformTermList(*p.second->nthArgument(i), sorts[i]));
+    sorts.push(env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
+    answer.push(_skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]));
   }
   while(it.hasNext()) {
     p = it.next();
-    ASS(p.first != nullptr);
-    if (!proofUnits.contains(p.first)) {
+    ASS(p.second.first != nullptr);
+    ASS(p.first == p.second.first->number())
+    if (!proofNums.contains(p.first)) {
+      // TODO(hzzv): remove the debug printing
+      // cout << "skipped " << (p.first ? p.first->toString() : "") <<  "; " << (p.second ? p.second->toString() : "") << endl;
       continue;
     }
+    // TODO(hzzv): remove the debug printing
+    // cout << "used " << p.first << ": " << p.second.first->toString() <<  "; " << p.second.second->toString() << endl;
     // Create the condition for an if-then-else by negating the clause
-    Formula* condition = getConditionFromClause(p.first);
+    Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
-      ASS_EQ(sorts[i], env.signature->getPredicate(p.second->functor())->predType()->arg(i));
+      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
       // Construct the answer by nesting an if-then-else
-      answer[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second->nthArgument(i), sorts[i]), answer[i], sorts[i]));
+      answer[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]), answer[i], sorts[i]));
     }
   }
   return true;
@@ -552,7 +563,9 @@ Clause* AnswerLiteralManager::recordAnswerAndReduce(Clause* cl) {
     if ((*cl)[i] != ansLit) (*newCl)[idx++] = (*cl)[i];
   }
   if (!removeDefaultAnsLit) {
-    List<pair<Clause*, Literal*>>::push(make_pair(newCl, ansLit), _answerPairs);
+    // TODO(hzzv): remove the debug printing
+    // cout << "reduced using " << newCl->number() << ": " << newCl->toString() << "; " << ansLit->toString() << " (from " << cl->toString() << ")" << endl;
+    AnsList::push(make_pair(newCl->number(), make_pair(newCl, ansLit)), _answerPairs);
   } else {
     _lastAnsLit = ansLit;
   }
