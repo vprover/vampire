@@ -129,7 +129,7 @@ TEST_GENERATION(test_varbanks_01,
       .input(    clause({ selected(f2(x,y) == a)  }) )
       .context({ clause({ selected(P(f2(x,y))) }) })
       .expected(exactly(
-            clause({ P(a), x0 != x1, x2 != x3  })
+            clause({ P(a), x0 != x2.sort(s), x1 != x3.sort(s)  })
       ))
     )
 
