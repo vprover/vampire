@@ -34,6 +34,10 @@ REGISTER_GEN_TESTER(DelayedSuperposition, testOrdering(), env.options)
 
 #define MY_SYNTAX_SUGAR                                                                             \
   DECL_DEFAULT_VARS                                                                                 \
+  DECL_VAR(x0, 0)                                                                                   \
+  DECL_VAR(x1, 1)                                                                                   \
+  DECL_VAR(x2, 2)                                                                                   \
+  DECL_VAR(x3, 3)                                                                                   \
   DECL_SORT(s)                                                                                      \
   DECL_CONST(a, s)                                                                                  \
   DECL_CONST(b, s)                                                                                  \
@@ -115,6 +119,17 @@ TEST_GENERATION(test_03_neg,
           , clause({ ~P(g(a)) })
           , clause({ ~P(g(f2(a,b))) })
           , clause({ ~P(g(f2(c,a))) })
+      ))
+    )
+
+
+TEST_GENERATION(test_varbanks_01,
+    Generation::TestCase()
+      .indices(delayedSuperpositionIndices())
+      .input(    clause({ selected(f2(x,y) == a)  }) )
+      .context({ clause({ selected(P(f2(x,y))) }) })
+      .expected(exactly(
+            clause({ P(a), x0 != x1, x2 != x3  })
       ))
     )
 

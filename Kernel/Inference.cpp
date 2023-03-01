@@ -741,6 +741,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
+  case InferenceRule::DELAYED_EQUALITY_FACTORING:
+    return "delayed equality factoring";
+  case InferenceRule::DELAYED_EQUALITY_RESOLUTION:
+    return "delayed equality resolution";
   case InferenceRule::DELAYED_SUPERPOSITION:
     return "delayed superposition";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:

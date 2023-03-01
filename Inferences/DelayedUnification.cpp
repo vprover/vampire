@@ -16,6 +16,12 @@
 #define DEBUG_PERFORM(lvl, ...) if (lvl <= 0) DBG(__VA_ARGS__)
 // increase nr to increase debug verbosity ^
 
+#define CHECK_SIDE_CONDITION(cond, ...)                                                             \
+  if(!(cond)) {                                                                                     \
+    DEBUG_PERFORM(1, "sidecondition failed: ", __VA_ARGS__)                                         \
+    return nullptr;                                                                                 \
+  }                                                                                                 \
+
 #include "DelayedUnification.hpp"
 
 #include "Kernel/EqHelper.hpp"
@@ -23,6 +29,8 @@
 #include "Indexing/IndexManager.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Lib/Recycled.hpp"
 
 namespace Inferences {
 
@@ -256,6 +264,143 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   return pvi(getFilteredIterator(attempts, [](Clause *cl) { return cl; }));
 }
 
+
+struct DelayedBind {
+  TermList var;
+  TermList bound;
+
+  friend std::ostream& operator<<(std::ostream& out, DelayedBind const& self)
+  { return out  << "Bind(" << self.var << " -> " << self.bound << ")"; }
+};
+
+struct DelayedDecompose {
+  Term* t1;
+  Term* t2;
+
+  friend std::ostream& operator<<(std::ostream& out, DelayedDecompose const& self)
+  { return out  << "Decompose(" << *self.t1 << ", " << *self.t2 << ")"; }
+};
+struct DelayedRefl 
+{ friend std::ostream& operator<<(std::ostream& out, DelayedRefl const& self) { return out << "Refl"; } };
+
+struct DelayedUnifier 
+: public Coproduct<DelayedBind, DelayedDecompose, DelayedRefl> 
+{ 
+  template<class C> 
+  DelayedUnifier(C c) : Coproduct<DelayedBind, DelayedDecompose, DelayedRefl>(std::move(c)) {}
+
+  template<class T>
+  T sigma(T t) 
+  { return match(
+        [&](DelayedBind&    b) { return b.var == b.bound ? t : EqHelper::replace(t, b.var, b.bound); },
+        [&](DelayedDecompose&) { return t; },
+        [&](DelayedRefl&) { return t; }
+        ); }
+  template<class F>
+  auto forConstraints(F action)
+  { return match(
+        [&](DelayedBind&) { /* no constraints */ },
+        [&](DelayedDecompose& d) { 
+          ASS_EQ(d.t1->functor(), d.t2->functor());
+          ASS_EQ(d.t1->numTypeArguments(), 0) // <- polymorphism not suppoted yet
+          for (auto tup : termArgIter(d.t1).zip(termArgIter(d.t2)).zipWithIndex()) {
+            auto sort = SortHelper::getArgSort(d.t1, tup.second);
+            action(Literal::createEquality(false, tup.first.first, tup.first.second, sort));
+          }
+        },
+        [&](DelayedRefl& d) { /* no constraints */ }
+        ); }
+};
+
+Option<DelayedUnifier> unifDelayed(TermList t1, TermList t2)
+{
+  auto strictSubterm = [](TermList v, TermList t) 
+  { return v != t && t.containsSubterm(v); };
+
+  if (t1 == t2) {
+    return some(DelayedUnifier(DelayedRefl {} ));
+
+  } else if (t1.isVar() && !strictSubterm(t1, t2)) {
+    return some(DelayedUnifier(DelayedBind { .var = t1, .bound = t2 }));
+
+  } else if (t2.isVar() && !strictSubterm(t2, t1)) {
+    return some(DelayedUnifier(DelayedBind { .var = t2, .bound = t1 }));
+
+  } else if (t1.isTerm() && t2.isTerm() 
+      && t1.term()->functor() == t2.term()->functor()) {
+    return some(DelayedUnifier(DelayedDecompose { .t1 = t1.term(), .t2 = t2.term() }));
+
+  } else {
+    return {};
+  }
+}
+
+// C \/ l1 == r1 \/ l2 == r2
+// =========================
+// (C \/ r1 != r2 \/ l2 == r2) unif
+//
+// where
+// - l2 == r2 is selected
+// - !(l2 <= r2)
+// - unif = delayedUnification(l1, l2)
+Clause* DelayedEqualityFactoring::perform(Clause* cl
+    , unsigned lit1 // <- index of l1 == r1
+    , unsigned term1// <- index of l1 in l1 == r1
+    , unsigned lit2 // <- index of l2 == r2
+    , unsigned term2 // <- index of l2 in l2 == r2
+    ) const 
+{
+  auto sort1 = SortHelper::getEqualityArgumentSort((*cl)[lit1]);
+  auto sort2 = SortHelper::getEqualityArgumentSort((*cl)[lit2]);
+  auto l1 = *(*cl)[lit1]->nthArgument(term1);
+  auto r1 = *(*cl)[lit1]->nthArgument(1 - term1);
+  auto l2 = *(*cl)[lit2]->nthArgument(term2);
+  auto r2 = *(*cl)[lit2]->nthArgument(1 - term2);
+  DEBUG_PERFORM(1, l1, " == ", r1, " | ", l2, " == ", r2, " | rest");
+
+  auto notLeq = [](Ordering::Result r) {
+    switch (r) {
+      case Ordering::Result::GREATER: return true;
+      case Ordering::Result::INCOMPARABLE: return true;
+      case Ordering::Result::GREATER_EQ: ASSERTION_VIOLATION_REP("TODO");
+      case Ordering::Result::EQUAL: return false;
+      case Ordering::Result::LESS_EQ: return false;
+      case Ordering::Result::LESS: return false;
+    }
+  };
+
+  CHECK_SIDE_CONDITION(sort2 == sort1, "sort1 == sort2. sort1 :", sort1, "\tsort2: ", sort2)
+  auto sort = sort1;
+  CHECK_SIDE_CONDITION(notLeq(_ord->compare(l2, r2)), "not(l2 <= r2). l2 :", l2, "\tr2: ", r2)
+
+  auto unif = unifDelayed(l1, l2);
+  DEBUG_PERFORM(2, "unifier: ", unif)
+  CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l1, l2). l1 :", l1, "\tl2: ", l2)
+
+  Recycled<Stack<Literal*>> conclusion;
+  conclusion->push(Literal::createEquality(false, unif->sigma(r1), unif->sigma(r2), sort));
+  // r1 != r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  conclusion->push(Literal::createEquality(true, unif->sigma(l2), unif->sigma(r2), sort));
+  // l2 == r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  unif->forConstraints([&](auto c) { conclusion->push(c); });
+  
+  conclusion->loadFromIterator(
+      range(0,cl->size())
+        .filter([&](auto i) { return i != lit1 && i != lit2; })
+        .map([&](auto i) { return unif->sigma((*cl)[i]); })
+      );
+
+
+  auto out = Clause::fromStack(
+      *conclusion, 
+      Inference(GeneratingInference1(
+        InferenceRule::DELAYED_EQUALITY_FACTORING,
+        cl
+      )));
+  DEBUG_PERFORM(1, "result: ", *out);
+  return out;
+}
+
 void DelayedEqualityFactoring::attach(SaturationAlgorithm *salg) {
   CALL("DelayedEqualityFactoring::attach")
   GeneratingInferenceEngine::attach(salg);
@@ -265,7 +410,28 @@ void DelayedEqualityFactoring::attach(SaturationAlgorithm *salg) {
 
 ClauseIterator DelayedEqualityFactoring::generateClauses(Clause *cl) {
   CALL("DelayedEqualityFactoring::generateClauses")
-  ASSERTION_VIOLATION_REP("TODO")
+  return pvi(
+      cl->selectedIndices()
+        .flatMap([cl](auto selIdx) {
+            return pvi(range(0, cl->size())
+                .filter([=](auto j){ return j != selIdx; })
+                .map([=](auto j) { return make_pair(j, selIdx); }));
+        })
+        .filter([cl](auto pair) { 
+            auto posEquality = [](auto l) { return l->isPositive() && l->isEquality(); };
+            return posEquality((*cl)[pair.first]) && posEquality((*cl)[pair.first]); 
+        })
+        .flatMap([=](auto pair) {
+            return range(0u,2u) // <- iterator over equality side indices
+              .flatMap([=](auto term1) {
+                  return range(0u, 2u)  // <- iterator over equality side indices
+                    .map([=](auto term2) {
+                        return perform(cl, pair.first, term1, pair.second, term2);
+                    })
+                    .filter([](auto x) { return x != nullptr; });
+              });
+        })
+    );
 }
 
 

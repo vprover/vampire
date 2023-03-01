@@ -228,6 +228,9 @@ public:
     return savedTimestamp == _reductionTimestamp;
   }
 
+  auto selectedIndices()
+  { return range(0,numSelected()); }
+
   ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
   { return ArrayishObjectIterator<Clause>(*this,numSelected()); }
 

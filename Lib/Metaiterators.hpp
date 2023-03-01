@@ -1807,6 +1807,14 @@ public:
   auto fold(F fun)
   { return fold(next(), std::move(fun)); }
 
+  template<class OtherIter>
+  auto zip(OtherIter other)
+  { return map([other = std::move(other)](Elem x) mutable { return make_pair(std::move(x), other.next()); }); }
+
+  auto zipWithIndex()
+  { return map([idx = 0](Elem x) mutable { return make_pair(std::move(x), idx++); }); }
+
+
   auto sum()
   { return fold(0, [](auto l, Elem&& r) { return l + r; }); }
 
@@ -1859,9 +1867,13 @@ public:
 
 };
 
+
 template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) 
 { return IterTraits<Iter>(std::move(i)); }
+
+static const auto range = [](auto from, auto to) 
+  { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
 
 ///@}
 

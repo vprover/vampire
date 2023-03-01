@@ -104,7 +104,9 @@ namespace CoproductImpl {
     /** same as `match`, but using the same function for every type.*/                                        \
     template <class R, class F> inline R apply(unsigned idx, F f) REF {                                       \
       if (idx == 0) {                                                                                         \
-        return f(MOVE(_head));                                                                                \
+        static_assert(std::is_same<decltype(MOVE(_head)), A REF>::value, "unexpected head type");             \
+        A REF head = MOVE(_head);                                                                             \
+        return f(MOVE(head));                                                                                 \
       } else {                                                                                                \
         return MOVE(_tail).template apply<R>(idx - 1, f);                                                     \
       }                                                                                                       \
@@ -358,7 +360,7 @@ public:
    * can transform any variant instead of multiple functions per variant.                                     \
    */                                                                                                         \
   template <class F>                                                                                          \
-  inline ResultOf<F, A REF> apply(F f) REF {                                                                  \
+  inline auto apply(F f) REF -> decltype(auto) {                                                              \
     ASS_REP(_tag <= size, _tag);                                                                              \
     return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                         \
   }                                                                                                           \
@@ -401,7 +403,7 @@ public:
    * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
   template <class B> inline Option<B REF> as() REF                                                            \
-  { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
+  { return is<B>() ? Option<B REF>(unwrap<B>()) : Option<B REF>();  }                                         \
                                                                                                               \
   /**                                                                                                         \
    * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\
@@ -410,7 +412,7 @@ public:
    */                                                                                                         \
   template <unsigned idx>                                                                                     \
   inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
-  { return is<idx>() ? unwrap<idx>() : Option<TL::Get<idx, Ts> REF>();  }                                     \
+  { return is<idx>() ? Option<TL::Get<idx, Ts> REF>(unwrap<idx>()) : Option<TL::Get<idx, Ts> REF>();  }                                     \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
@@ -450,6 +452,12 @@ public:
 
   friend bool operator>=(Coproduct const& lhs, Coproduct const& rhs) 
   { return lhs > rhs || lhs == rhs; }
+
+  unsigned defaultHash() const
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash(); })); }
+
+  unsigned defaultHash2() const
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash2(); })); }
 
 }; // class Coproduct<A, As...> 
 

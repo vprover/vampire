@@ -185,6 +185,12 @@ public:
 
 private:
 
+  Clause* perform(Clause* cl,
+    unsigned lit1,
+    unsigned term1,
+    unsigned lit2,
+    unsigned term2) const;
+
   Ordering     * const _ord;
   Options const* const _opts;
 };
