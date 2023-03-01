@@ -376,12 +376,12 @@ class TermSugar : public ExpressionSugar
 
 public:
   TermSugar(bool foolConst) 
-    : ExpressionSugar(TermList(foolConst ? Term::foolTrue() : Term::foolFalse()))
-  { _srt.makeEmpty(); }
+    : TermSugar(TermList(foolConst ? Term::foolTrue() : Term::foolFalse()))
+  {}
 
   TermSugar(int trm) 
-    : ExpressionSugar(TermList(syntaxSugarGlobals().createNumeral(trm)))
-  { _srt.makeEmpty(); }
+    : TermSugar(TermList(syntaxSugarGlobals().createNumeral(trm)))
+  {}
 
   TermSugar(TermList trm) 
     : ExpressionSugar(trm)
@@ -389,6 +389,8 @@ public:
     ASS_REP(!_sugaredExpr.isEmpty(), _sugaredExpr);
     if(!_sugaredExpr.isVar()){
       _srt = SortHelper::getResultSort(_sugaredExpr.term());
+    } else {
+      _srt.makeEmpty();
     }
   }
 
@@ -481,9 +483,9 @@ inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); 
 
 
 inline Lit operator==(TermSugar lhs, TermSugar rhs) 
-{
-  SortId sort = lhs.sort().isEmpty() ? rhs.sort() : lhs.sort();
-  return Literal::createEquality(true, lhs, rhs, sort);
+{ 
+  ASS_REP(lhs.sort().isNonEmpty() || rhs.sort().isNonEmpty(), TermList(lhs).toString() + " " + TermList(rhs).toString())
+  return Literal::createEquality(true, lhs, rhs, lhs.sort().isEmpty() ? rhs.sort() : lhs.sort()); 
 }
 
 
