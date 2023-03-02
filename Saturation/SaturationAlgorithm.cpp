@@ -1560,14 +1560,16 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(res->_instantiation);
   }
 
-  if (prb.hasEquality()) {
+  if (prb.hasEquality() || env.options->delayedUnificationCalculus()) {
     if (env.options->delayedUnificationCalculus())  {
-      // add delayed unification version of superpostion rules
-      gie->addFront(new DelayedEqualityFactoring(&res->getOrdering(), &res->getOptions()));
+      // add delayed unification version of superpostion rules      
       gie->addFront(new DelayedEqualityResolution(&res->getOrdering(), &res->getOptions()));
-      if(env.options->superposition())
-          gie->addFront(new DelayedSuperposition(&res->getOrdering(), &res->getOptions()));
 
+      if(prb.hasEquality()){
+        gie->addFront(new DelayedEqualityFactoring(&res->getOrdering(), &res->getOptions()));      
+        if(env.options->superposition())
+          gie->addFront(new DelayedSuperposition(&res->getOrdering(), &res->getOptions()));
+      }
     } else {
       // add normal superpostion rules
       gie->addFront(new EqualityFactoring());
@@ -1606,7 +1608,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Choice());
   }
 
-  gie->addFront(new Factoring());
+  if(opt.delayedUnificationCalculus())
+    gie->addFront(new DelayedFactoring(&res->getOrdering(), &res->getOptions()));
+  else 
+    gie->addFront(new Factoring());
+
   if (opt.binaryResolution()) {
     if(opt.delayedUnificationCalculus())
       gie->addFront(new DelayedBinaryResolution);
