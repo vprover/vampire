@@ -190,7 +190,7 @@ private:
    * measured, or a non-negative number representing initial time of the current
    * block in the unit.
    */
-  VTHREAD_LOCAL static int s_measureInitTimes[];
+   static int s_measureInitTimes[];
 };
 
 };
