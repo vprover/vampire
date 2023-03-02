@@ -24,8 +24,11 @@ namespace Inferences {
 
 // base class for delayed unification "indices"
 template<typename T>
-class TopSymbolIndex {
+class TopSymbolIndex: public Indexing::Index {
 public:
+  CLASS_NAME(TopSymbolIndex)
+  USE_ALLOCATOR(TopSymbolIndex)
+
   struct Entry {
     Clause *clause;
     Literal *literal;
@@ -102,7 +105,7 @@ private:
 };
 
 // non-variable subterms of selected literals
-class DelayedSubterms: public Indexing::Index, public TopSymbolIndex<Term *> {
+class DelayedSubterms: public TopSymbolIndex<Term *> {
 public:
   CLASS_NAME(DelayedSubterms);
   USE_ALLOCATOR(DelayedSubterms);
@@ -116,7 +119,7 @@ private:
 };
 
 // left-hand-sides of selected positive equations
-class DelayedLHS: public Indexing::Index, public TopSymbolIndex<Term *> {
+class DelayedLHS: public TopSymbolIndex<Term *> {
 public:
   CLASS_NAME(DelayedLHS);
   USE_ALLOCATOR(DelayedLHS);
@@ -135,6 +138,15 @@ private:
   const Options &_options;
 
   DHSet<TopSymbolIndex<TermList>::Entry> _variables;
+};
+
+struct NoTerms {};
+
+// selected non-equation literals
+class DelayedNonEquations: public TopSymbolIndex<NoTerms> {
+public:
+  CLASS_NAME(DelayedNonEquations);
+  USE_ALLOCATOR(DelayedNonEquations);
 };
 
 /**
@@ -169,6 +181,7 @@ class DelayedSuperposition: public DelayedInference {
 public:
   CLASS_NAME(DelayedSuperposition);
   USE_ALLOCATOR(DelayedSuperposition);
+
   DelayedSuperposition(Ordering* ord, Options const* opts)
     : DelayedInference(ord, opts)
     , _subtermIndex()
@@ -194,8 +207,8 @@ private:
 
 class DelayedEqualityFactoring: public GeneratingInferenceEngine {
 public:
-  CLASS_NAME(DelayedSuperposition);
-  USE_ALLOCATOR(DelayedSuperposition);
+  CLASS_NAME(DelayedEqualityFactoring);
+  USE_ALLOCATOR(DelayedEqualityFactoring);
   DelayedEqualityFactoring(Ordering* ord, Options const* opts) 
     : _ord(ord)
     , _opts(opts) 
@@ -219,8 +232,8 @@ private:
 
 class DelayedEqualityResolution: public GeneratingInferenceEngine {
 public:
-  CLASS_NAME(DelayedSuperposition);
-  USE_ALLOCATOR(DelayedSuperposition);
+  CLASS_NAME(DelayedEqualityResolution);
+  USE_ALLOCATOR(DelayedEqualityResolution);
   DelayedEqualityResolution(Ordering* ord, Options const* opts) 
     : _ord(ord)
     , _opts(opts) 

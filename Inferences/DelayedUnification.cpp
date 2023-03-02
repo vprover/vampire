@@ -353,6 +353,7 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
     , unsigned term2 // <- index of l2 in l2 == r2
     ) const 
 {
+  CALL("DelayedEqualityFactoring::perform")
   auto sort1 = SortHelper::getEqualityArgumentSort((*cl)[lit1]);
   auto sort2 = SortHelper::getEqualityArgumentSort((*cl)[lit2]);
   auto l1 = *(*cl)[lit1]->nthArgument(term1);
@@ -425,7 +426,7 @@ ClauseIterator DelayedEqualityFactoring::generateClauses(Clause *cl) {
         })
         .filter([cl](auto pair) { 
             auto posEquality = [](auto l) { return l->isPositive() && l->isEquality(); };
-            return posEquality((*cl)[pair.first]) && posEquality((*cl)[pair.first]); 
+            return posEquality((*cl)[pair.first]) && posEquality((*cl)[pair.second]); 
         })
         .flatMap([=](auto pair) {
             return range(0u,2u) // <- iterator over equality side indices
@@ -460,6 +461,7 @@ ClauseIterator DelayedEqualityResolution::generateClauses(Clause *cl) {
 }
 
 Clause* DelayedEqualityResolution::perform(Clause* cl, unsigned idx) const {
+  CALL("DelayedEqualityResolution::perform")
   auto lit = (*cl)[idx];
   auto l = *lit->nthArgument(0);
   auto r = *lit->nthArgument(1);
@@ -472,7 +474,7 @@ Clause* DelayedEqualityResolution::perform(Clause* cl, unsigned idx) const {
 
   Stack<Literal*> conclusion;
   unif->forConstraints([&](auto c) { conclusion.push(c); });
-  
+
   conclusion.loadFromIterator(
       range(0,cl->size())
         .filter([&](auto i) { return i != idx; })
