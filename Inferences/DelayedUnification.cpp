@@ -30,7 +30,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Lib/Recycled.hpp"
 
 namespace Inferences {
 
@@ -68,7 +67,7 @@ void DelayedLHS::handleClause(Clause *c, bool adding) {
 
 void DelayedSuperposition::attach(SaturationAlgorithm *salg) {
   CALL("DelayedSuperposition::attach")
-  GeneratingInferenceEngine::attach(salg);
+  DelayedInference::attach(salg);
   _subtermIndex = static_cast<DelayedSubterms *>(salg->getIndexManager()->request(DELAYED_SUBTERMS));
   _lhsIndex = static_cast<DelayedLHS *>(salg->getIndexManager()->request(DELAYED_EQUATIONS));
   ASS_EQ(_ord , &salg->getOrdering())
@@ -112,6 +111,10 @@ Clause *DelayedSuperposition::perform(
 
   // if lhs is a var, check subterm > rhs
   if(lhs.isVar() && Ordering::isGorGEorE(_ord->compare(rhs_renamed, TermList(subterm_renamed))))
+    return nullptr;
+
+  // check that the lhs and the target might unify, one day
+  if(!mightPossiblyUnify(lhs_renamed, TermList(subterm_renamed)))
     return nullptr;
 
   // TODO check whether we are rewriting smaller side of equation? superposition checks this here
@@ -193,8 +196,8 @@ Clause *DelayedSuperposition::perform(
 ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   CALL("DelayedSuperposition::generateClauses")
 
-  typedef TopSymbolIndex::Entry<Term *> TEntry;
-  typedef TopSymbolIndex::Entry<TermList> TLEntry;
+  typedef TopSymbolIndex<Term *>::Entry TEntry;
+  typedef TopSymbolIndex<TermList>::Entry TLEntry;
   typedef std::pair<TLEntry, TEntry> Superposition;
 
   // selected literals
@@ -215,7 +218,7 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
       getConcatenatedIterator(
         getMappingIterator(
           _lhsIndex->query(subterm.term->functor()),
-          [](TEntry entry) { return entry.termList(); }
+          [](TEntry entry) -> TLEntry { return { entry.clause, entry.literal, TermList(entry.term) }; }
         ),
         _lhsIndex->variables()
       ),
@@ -366,6 +369,7 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
       case Ordering::Result::EQUAL: return false;
       case Ordering::Result::LESS_EQ: return false;
       case Ordering::Result::LESS: return false;
+      default: ASSERTION_VIOLATION
     }
   };
 
@@ -379,14 +383,14 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
   CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l1, l2). l1 :", l1, "\tl2: ", l2)
 
 
-  Recycled<Stack<Literal*>> conclusion;
-  conclusion->push(Literal::createEquality(false, unif->sigma(r1), unif->sigma(r2), sort));
+  Stack<Literal*> conclusion;
+  conclusion.push(Literal::createEquality(false, unif->sigma(r1), unif->sigma(r2), sort));
   // r1 != r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  conclusion->push(Literal::createEquality(true, unif->sigma(l2), unif->sigma(r2), sort));
+  conclusion.push(Literal::createEquality(true, unif->sigma(l2), unif->sigma(r2), sort));
   // l2 == r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  unif->forConstraints([&](auto c) { conclusion->push(c); });
-  
-  conclusion->loadFromIterator(
+  unif->forConstraints([&](auto c) { conclusion.push(c); });
+
+  conclusion.loadFromIterator(
       range(0,cl->size())
         .filter([&](auto i) { return i != lit1 && i != lit2; })
         .map([&](auto i) { return unif->sigma((*cl)[i]); })
@@ -394,7 +398,7 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
 
 
   auto out = Clause::fromStack(
-      *conclusion, 
+      conclusion,
       Inference(GeneratingInference1(
         InferenceRule::DELAYED_EQUALITY_FACTORING,
         cl
@@ -454,6 +458,7 @@ ClauseIterator DelayedEqualityResolution::generateClauses(Clause *cl) {
         .filter([](auto x) { return x != nullptr; })
     );
 }
+
 Clause* DelayedEqualityResolution::perform(Clause* cl, unsigned idx) const {
   auto lit = (*cl)[idx];
   auto l = *lit->nthArgument(0);
@@ -465,17 +470,17 @@ Clause* DelayedEqualityResolution::perform(Clause* cl, unsigned idx) const {
   DEBUG_PERFORM(2, "unifier: ", unif)
   CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l, r). l :", l, "\tr: ", r)
 
-  Recycled<Stack<Literal*>> conclusion;
-  unif->forConstraints([&](auto c) { conclusion->push(c); });
+  Stack<Literal*> conclusion;
+  unif->forConstraints([&](auto c) { conclusion.push(c); });
   
-  conclusion->loadFromIterator(
+  conclusion.loadFromIterator(
       range(0,cl->size())
         .filter([&](auto i) { return i != idx; })
         .map([&](auto i) { return unif->sigma((*cl)[i]); })
       );
 
   auto out = Clause::fromStack(
-      *conclusion, 
+      conclusion, 
       Inference(GeneratingInference1(
         InferenceRule::DELAYED_EQUALITY_RESOLUTION,
         cl

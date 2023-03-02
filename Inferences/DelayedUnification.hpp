@@ -23,15 +23,13 @@
 namespace Inferences {
 
 // base class for delayed unification "indices"
+template<typename T>
 class TopSymbolIndex {
 public:
-  template<typename T>
   struct Entry {
     Clause *clause;
     Literal *literal;
     T term;
-
-    Entry<TermList> termList() { return { clause, literal, TermList(term) }; }
 
     bool operator==(const Entry &other) const {
       return clause == other.clause && literal == other.literal && term == other.term;
@@ -60,14 +58,14 @@ public:
 
   ~TopSymbolIndex() {
     CALL("~TopSymbolIndex")
-    decltype(_functors)::Iterator it(_functors);
+    typename decltype(_functors)::Iterator it(_functors);
     while(it.hasNext())
       delete it.next();
   }
 
-  void handle(Clause *c, Literal *l, Term *t, bool adding) {
+  void handle(Clause *c, Literal *l, T t, bool adding) {
     CALL("TopSymbolIndex::handle")
-    typedef DHSet<Entry<Term *>> Entries;
+    typedef DHSet<Entry> Entries;
 
     Entries **entriesPtr;
     _functors.getValuePtr(t->functor(), entriesPtr, nullptr);
@@ -81,18 +79,18 @@ public:
       entries->remove({c, l, t});
   }
 
-  VirtualIterator<Entry<Term *>> entries() {
+  VirtualIterator<Entry> entries() {
     return pvi(getMapAndFlattenIterator(
       _functors.range(),
-      [](DHSet<Entry<Term *>> *entries) { return entries->iterator(); }
+      [](DHSet<Entry> *entries) { return entries->iterator(); }
     ));
   }
 
-  VirtualIterator<Entry<Term *>> query(unsigned functor) {
+  VirtualIterator<Entry> query(unsigned functor) {
     CALL("TopSymbolIndex::query")
-    DHSet<Entry<Term *>> *entries;
+    DHSet<Entry> *entries;
     if(!_functors.find(functor, entries))
-      return VirtualIterator<Entry<Term *>>::getEmpty();
+      return VirtualIterator<Entry>::getEmpty();
     return entries->iterator();
   }
 
@@ -100,11 +98,11 @@ private:
   // map from functors to a set of clause/literal pairs
   // TODO DHSet doesn't have a move constructor so it has to be heap-allocated
   // Johannes has already fixed this in the substitution-tree refactor, drop the indirection when we can
-  DHMap<unsigned, DHSet<Entry<Term *>> *> _functors;
+  DHMap<unsigned, DHSet<Entry> *> _functors;
 };
 
 // non-variable subterms of selected literals
-class DelayedSubterms: public Indexing::Index, public TopSymbolIndex {
+class DelayedSubterms: public Indexing::Index, public TopSymbolIndex<Term *> {
 public:
   CLASS_NAME(DelayedSubterms);
   USE_ALLOCATOR(DelayedSubterms);
@@ -118,7 +116,7 @@ private:
 };
 
 // left-hand-sides of selected positive equations
-class DelayedLHS: public Indexing::Index, public TopSymbolIndex {
+class DelayedLHS: public Indexing::Index, public TopSymbolIndex<Term *> {
 public:
   CLASS_NAME(DelayedLHS);
   USE_ALLOCATOR(DelayedLHS);
@@ -126,7 +124,7 @@ public:
   DelayedLHS(const Ordering &ordering, const Options &options) : _ordering(ordering), _options(options) {}
   void handleClause(Kernel::Clause* c, bool adding) override;
   // variable left-hand-sides
-  DHSet<Entry<TermList>>::Iterator variables() {
+  DHSet<TopSymbolIndex<TermList>::Entry>::Iterator variables() {
     return decltype(_variables)::Iterator(_variables);
   }
 
@@ -136,20 +134,45 @@ private:
   // current options
   const Options &_options;
 
-  DHSet<Entry<TermList>> _variables;
+  DHSet<TopSymbolIndex<TermList>::Entry> _variables;
 };
 
+/**
+ * base class for delayed inferences (so far superposition, resolution)
+ * provides mightPossiblyUnify() but is otherwise a GeneratingInferenceEngine
+ */
+class DelayedInference: public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(DelayedInference);
+  USE_ALLOCATOR(DelayedInference);
+  DelayedInference(Ordering *ord, Options const *opts)
+    : _ord(ord)
+    , _opts(opts)
+  {}
+
+  /**
+   * check whether left and right may eventually unify modulo some theory
+   * should generally err on the side of caution and return true
+   */
+  bool mightPossiblyUnify(TermList left, TermList right) {
+    // TODO do something sensible here
+    return true;
+  }
+
+protected:
+  Ordering     * const _ord;
+  Options const* const _opts;
+};
 
 // a delayed-unification version of superposition
-class DelayedSuperposition: public GeneratingInferenceEngine {
+class DelayedSuperposition: public DelayedInference {
 public:
   CLASS_NAME(DelayedSuperposition);
   USE_ALLOCATOR(DelayedSuperposition);
-  DelayedSuperposition(Ordering* ord, Options const* opts) 
-    : _subtermIndex()
+  DelayedSuperposition(Ordering* ord, Options const* opts)
+    : DelayedInference(ord, opts)
+    , _subtermIndex()
     , _lhsIndex()
-    , _ord(ord)
-    , _opts(opts) 
     {}
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -167,8 +190,6 @@ private:
 
   DelayedSubterms *_subtermIndex;
   DelayedLHS *_lhsIndex;
-  Ordering     * const _ord;
-  Options const* const _opts;
 };
 
 class DelayedEqualityFactoring: public GeneratingInferenceEngine {
