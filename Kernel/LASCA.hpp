@@ -782,6 +782,13 @@ namespace Kernel {
       return equivalent(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
     }
 
+    bool equivalent(Literal* lhs, Literal* rhs) 
+     { 
+       auto s1 = normalizer.normalizeLiteral(lhs);
+       auto s2 = normalizer.normalizeLiteral(rhs);
+       return s1 == s2;
+     }
+
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
      { return normalize(lhs) == normalize(rhs); }
 

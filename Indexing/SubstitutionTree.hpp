@@ -17,7 +17,7 @@
 #ifndef __SubstitutionTree__
 #define __SubstitutionTree__
 
-#define DEBUG_ITER(lvl,   ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_ITER(lvl,   ...) if (lvl < 1) DBG(__VA_ARGS__)
 #define DEBUG_INSERT(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 #define DEBUG_REMOVE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 

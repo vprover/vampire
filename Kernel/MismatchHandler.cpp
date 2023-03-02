@@ -142,10 +142,9 @@ MismatchHandler::AbstractionResult alasca4(AbstractingUnifier& au, TermSpec cons
             if (n.isMinus(f)) {
               out = out.termArg(0).deref(&au.subs()).clone();
               numeral = -numeral;
-            }
-            auto num = n.tryNumeral(f);
-            if (num.isSome()) {
-              return make_pair(one.clone(), numeral * (*num));
+              continue;
+            } else if (n.isNumeral(f)) {
+              return make_pair(one.clone(), numeral * (*n.tryNumeral(f)));
 
             } else if (n.isMul(f)) {
               auto lhs_ = out.termArg(0);
@@ -900,12 +899,14 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
 
   } else if (_mode == Uwa::ALASCA3) {
     auto out = alasca3(*au, t1, t2);
-    DEBUG_UWA(1, "alasca3", tie(t1, t2), " = ", out, " (ctxt: ", *au, " )")
+    DEBUG_UWA(1, "alasca3", tie(t1, t2), " = ", out)
+    DEBUG_UWA(1, "  ( ctx: ", *au, " )")
     return out;
 
   } else if (_mode == Uwa::ALASCA4) {
     auto out = alasca4(*au, t1, t2);
-    DEBUG_UWA(1, "alasca4", tie(t1, t2), " = ", out, " (ctxt: ", *au, " )")
+    DEBUG_UWA(1, "alasca4", tie(t1, t2), " = ", out)
+    DEBUG_UWA(1, "  ( ctx: ", *au, " )")
     return out;
 
   } else if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
@@ -914,6 +915,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
   } else {
     auto abs = canAbstract(au, t1, t2);
     DEBUG_UWA(1, "canAbstract(", t1, ",", t2, ") = ", abs);
+    DEBUG_UWA(1, "  ( ctx: ", *au, " )")
     return someIf(abs, [&](){
         return AbstractionResult(EqualIf().constr(UnificationConstraint(t1.clone(), t2.clone())));
     });

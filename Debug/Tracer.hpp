@@ -116,7 +116,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
   //   const char* str;
   //   unsigned limit;
   // }
-  unsigned width = 60;
+  unsigned width = 35;
   std::cout << "[ debug ] ";
   for (const char* c = file; *c != 0 && width > 0; c++, width--) {
     std::cout << *c;

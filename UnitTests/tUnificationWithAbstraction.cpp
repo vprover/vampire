@@ -9,6 +9,7 @@
  */
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
+#include "Kernel/LASCA.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Shell/Options.hpp"
@@ -63,13 +64,19 @@ struct UnificationResultSpec {
   TermOrLit querySigma;
   TermOrLit resultSigma;
   Stack<Literal*> constraints;
+  bool lascaSimpl = false;
 
   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
   {
-    return Test::TestUtils::eqModAC(l.querySigma, r.querySigma)
-       &&  Test::TestUtils::eqModAC(l.resultSigma, r.resultSigma)
+    static shared_ptr<LascaState> state = testLascaState();
+    auto eq = [&](auto t1, auto t2) { 
+      return (l.lascaSimpl || r.lascaSimpl) ? state->equivalent(t1, t2)
+                                            : Test::TestUtils::eqModAC(t1, t2);
+    };
+    return eq(l.querySigma, r.querySigma)
+       &&  eq(l.resultSigma, r.resultSigma)
        &&  Test::TestUtils::permEq(l.constraints, r.constraints,
-             [](auto& l, auto& r) { return Test::TestUtils::eqModAC(l,r); });
+             [&](auto& l, auto& r) { return eq(l,r); });
   }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationResultSpec const& self)
@@ -192,6 +199,14 @@ struct IndexTest {
       DECL_VAR(x1, 1)                                                                               \
       DECL_VAR(x2, 2)                                                                               \
       DECL_VAR(x3, 3)                                                                               \
+                                                                                                    \
+      DECL_VAR(S0, 500)                                                                             \
+      DECL_VAR(S1, 501)                                                                             \
+      DECL_VAR(S2, 502)                                                                             \
+      DECL_VAR(S3, 503)                                                                             \
+      DECL_VAR(S4, 504)                                                                             \
+      DECL_VAR(S5, 505)                                                                             \
+                                                                                                    \
       NUMBER_SUGAR(Rat)                                                                             \
       DECL_SORT(s)                                                                                  \
       DECL_FUNC(r2s, {Rat}, s)                                                                      \
@@ -199,6 +214,7 @@ struct IndexTest {
       DECL_PRED(p, {Rat})                                                                           \
       DECL_FUNC(f, {Rat}, Rat)                                                                      \
       DECL_FUNC(g, {Rat}, Rat)                                                                      \
+      DECL_FUNC(h, {Rat}, Rat)                                                                      \
       DECL_FUNC(f2, {Rat, Rat}, Rat)                                                                \
       DECL_FUNC(fa, {Rat, Rat}, Rat)                                                                \
       DECL_FUNC(g2, {Rat, Rat}, Rat)                                                                \
@@ -2115,5 +2131,18 @@ ROB_UNIFY_TEST(alasca4_misc01,
       .querySigma  = f2(f2(a + b + c + f(a), a + c), b + f(a)),
       .resultSigma = f2(f2(a + b + c + f(a), a + c), b + f(a)),
       .constraints = Stack<Literal*>{ },
+    })
+
+
+ROB_UNIFY_TEST(alasca4_bug03,
+    Options::UnificationWithAbstraction::ALASCA4,
+    /* withFinalize */ false,
+    f2(f(y), f2(f(g(a)), f2(-S2, h((-f(g(a)) + f(x)))))),
+    f2(S3  , f2(S2     , f2(S4 , h(S4 + S3)))),
+    TermUnificationResultSpec { 
+      f2(f(x), f2(f(g(a)), f2(-f(g(a)), h((-f(g(a)) + f(x)))))),
+      f2(f(x), f2(f(g(a)), f2(-f(g(a)), h((-f(g(a)) + f(x)))))),
+      .constraints = Stack<Literal*>{ },
+      .lascaSimpl = true,
     })
 

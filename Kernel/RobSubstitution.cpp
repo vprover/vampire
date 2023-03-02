@@ -19,6 +19,7 @@
 #include "Debug/Output.hpp"
 #include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
@@ -34,7 +35,24 @@ namespace Kernel
 using namespace Lib;
 
 std::ostream& operator<<(std::ostream& out, TermSpec const& self)
-{ return self._self.match([&](TermSpec::Appl const& self) -> decltype(auto) { return out << env.signature->getFunction(self.functor)->name() << "(" << commaSep(self.argsIter()) << ")"; },
+{ return self._self.match([&](TermSpec::Appl const& self) -> ostream& { 
+        forAnyNumTraits([&](auto n) -> Option<tuple<>> {
+            if (n.isAdd(self.functor)) {
+              out << "(" << self.arg(0) << " + " << self.arg(1) << ")";
+              return some(make_tuple());
+            } else if (n.isMinus(self.functor)) {
+              out << "-" << self.arg(0);
+              return some(make_tuple());
+            } else if (n.isMul(self.functor)) {
+              out << "(" << self.arg(0) << " * " << self.arg(1) << ")";
+              return some(make_tuple());
+            } else return {};
+        }) || [&]() -> tuple<> {
+          out << env.signature->getFunction(self.functor)->name() << "(" << commaSep(self.argsIter()) << ")"; 
+          return make_tuple();
+        };
+        return out;
+    },
                           [&](OldTermSpec    const& self) -> decltype(auto) { return out << self.term << "/" << self.index; }); }
 
 
