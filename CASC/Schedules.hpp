@@ -41,6 +41,7 @@ public:
   static void getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCAPSSchedule(Schedule& quick, Schedule& fallback); ////
 };
 
 }

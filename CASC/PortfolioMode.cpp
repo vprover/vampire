@@ -349,6 +349,9 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::STRUCT_INDUCTION:
     Schedules::getStructInductionSchedule(prop,quick,fallback);
     break;
+  case Options::Schedule::CAPS:
+    Schedules::getCAPSSchedule(quick, fallback);
+    break;
   }
 }
 

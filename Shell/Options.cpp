@@ -154,7 +154,8 @@ void Options::init()
          "ltb_mzr_2017",
          "smtcomp",
          "smtcomp_2018",
-         "struct_induction"});
+         "struct_induction",
+	 "caps"}); ////
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOnHard(Or(

@@ -413,7 +413,8 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2018,
-    STRUCT_INDUCTION
+    STRUCT_INDUCTION,
+    CAPS //
   };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
