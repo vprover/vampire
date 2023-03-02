@@ -229,6 +229,7 @@ public:
     ALASCA1,
     ALASCA2,
     ALASCA3,
+    ALASCA4,
   };
 
   enum class Induction : unsigned int {

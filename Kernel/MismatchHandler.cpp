@@ -119,7 +119,347 @@ public:
     return dt->clone();
   }
 };
+template<class NumTraits>
+MismatchHandler::AbstractionResult alasca4(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n) {
+  TIME_TRACE("unification with abstraction ALASCA3")
+  using EqualIf = MismatchHandler::EqualIf;
+  using AbstractionResult = MismatchHandler::AbstractionResult;
+  using NeverEqual = MismatchHandler::NeverEqual;
+  using Numeral = typename NumTraits::ConstantType;
 
+  TermSpec one = TermSpec(TermList(n.one()), 0);
+
+  auto atoms = [&](auto& term) {
+    return iterTraits(AcIter(NumTraits::addF(), term.clone(), &au.subs()))
+      .map([&](TermSpec out) -> pair<TermSpec, Numeral> {
+          // auto out = make_pair(std::move(t), one.clone());
+          auto numeral = Numeral(1);
+          while (true) {
+            if (out.isVar()) 
+              return make_pair(out.clone(), std::move(numeral));
+
+            auto f = out.functor();
+            if (n.isMinus(f)) {
+              out = out.termArg(0).deref(&au.subs()).clone();
+              numeral = -numeral;
+            }
+            auto num = n.tryNumeral(f);
+            if (num.isSome()) {
+              return make_pair(one.clone(), numeral * (*num));
+
+            } else if (n.isMul(f)) {
+              auto lhs_ = out.termArg(0);
+              auto rhs_ = out.termArg(1);
+              auto& lhs = lhs_.deref(&au.subs());
+              auto& rhs = rhs_.deref(&au.subs());;
+              if (lhs.isTerm() && n.isNumeral(lhs.functor())) {
+                out = rhs.clone();
+                numeral = numeral * (*n.tryNumeral(lhs.functor()));
+              } else if (rhs.isTerm() && n.isNumeral(rhs.functor())) {
+                out = lhs.clone();
+                numeral = numeral * (*n.tryNumeral(rhs.functor()));
+              } else {
+                // non-linear multiplication
+                return make_pair(std::move(out), numeral);
+              }
+            } else {
+              // uninterpreted
+              return make_pair(std::move(out), numeral);
+            }
+          }
+       });
+  };
+
+  Recycled<Stack<pair<TermSpec, Numeral>>> _diff;
+  auto& diff = *_diff;
+  DEBUG_UWA(2, "diff: ", diff, " (0)");
+  diff.loadFromIterator(concatIters(
+    atoms(t1),
+    atoms(t2).map([](auto x) { return make_pair(std::move(x.first), -x.second); })
+  ));
+  DEBUG_UWA(2, "diff: ", diff, " (1)");
+
+  auto sumUp = [](auto& diff, auto cmp) {
+    auto i1 = 0;
+    auto i2 = 1;
+    while (i2 < diff.size()) {
+      ASS(i1 < i2);
+      auto c = cmp(diff[i1].first, diff[i2].first);
+      ASS(c <= 0)
+      if (c == 0) {
+        diff[i1].second += diff[i2].second;
+        i2++;
+      } else {
+        ASS(c < 0)
+        if (diff[i1].second != Numeral(0)) {
+          // if there is a zero entry we override it
+          i1++;
+        }
+        if (i1 != i2) {
+          diff[i1] = std::move(diff[i2]);
+        }
+        i2++;
+      }
+    }
+    if (diff[i1].second == Numeral(0)) 
+        diff.truncate(i1);
+    else
+        diff.truncate(i1 + 1);
+  };
+
+  auto cmp = [&au](auto const& t1, auto const& t2) { 
+    TIME_TRACE("comparing TermSpecs")
+    auto top1 = t1.top();
+    auto top2 = t2.top();
+    auto v1 = !t1.isVar();
+    auto v2 = !t2.isVar();
+    if (std::tie(v1, top1) == std::tie(v2, top2)) {
+      return TermSpec::compare(t1, t2, [&au](auto& t) -> decltype(auto) { return t.deref(&au.subs()); });
+    } else {
+      return std::tie(v1, top1) < std::tie(v2, top2) ? -1 : 1;
+    }
+  };
+  // auto less = [](auto const& t1, auto const& t2) { 
+  //   TIME_TRACE("comparing TermSpecs")
+  //   auto top1 = t1.top();
+  //   auto top2 = t2.top();
+  //   auto v1 = !t1.isVar();
+  //   auto v2 = !t2.isVar();
+  //   return std::tie(v1, top1, t1) < std::tie(v2, top2, t2);
+  // };
+  diff.sort([&](auto& l, auto& r) { return cmp(l.first, r.first) < 0; });
+  DEBUG_UWA(2, "diff: ", diff, " (before summing up )");
+  sumUp(diff, cmp);
+  DEBUG_UWA(2, "diff: ", diff, " (after summing up )");
+
+  // auto vars = arrayIter(diff)
+  //               .takeWhile([](auto& x) { return x.first.isVar(); });
+
+  // TODO bin search if many elems
+  auto nVars = range(0, diff.size())
+    .find([&](auto i) { return !diff[i].first.isVar();  })
+    .unwrapOrElse([&](){ return diff.size(); });
+
+
+  ASS(nVars == 0 || diff[nVars - 1].first.isVar())
+  ASS(nVars == diff.size() || !diff[nVars].first.isVar())
+
+
+  auto numMul = [](Numeral num, TermSpec t) {
+    ASS(num != Numeral(0))
+    if (num == Numeral(1)) {
+      return std::move(t);
+
+    } else if (num == Numeral(-1)) {
+      return TermSpec(NumTraits::minusF(), std::move(t));
+
+    } else {
+      return TermSpec(NumTraits::mulF(), 
+          TermSpec(NumTraits::numeralF(num)),
+          std::move(t)
+      );
+    }
+  };
+
+  auto sum = [&](auto iter) -> TermSpec {
+      return iterTraits(std::move(iter))
+        .map([&](auto x) { return numMul(x.second, std::move(x.first)); })
+        .fold([](auto l, auto r) 
+          { return TermSpec(NumTraits::addF(), std::move(l), std::move(r)); })
+        .unwrapOrElse([&]() { return TermSpec(NumTraits::numeralF(Numeral(0))); }); };
+
+  // auto diffConstr = [&]() 
+  // { return UnificationConstraint(sum(diff1), sum(diff2)); };
+
+  auto toConstr = [&](auto& stack) {
+    return UnificationConstraint(
+              sum(arrayIter(stack)
+                 .filter([](auto& x) { return x.second.isPositive(); })
+                 .map([](auto& x) { return make_pair(std::move(std::move(x.first)), x.second); })),
+              sum(arrayIter(stack)
+                 .filter([](auto& x) { return !x.second.isPositive(); })
+                 .map([](auto& x) { return make_pair(std::move(x.first), -x.second); }))
+              );
+  };
+  if (arrayIter(diff).any([&](auto& x) 
+        { return x.first.isTerm() && n.isMul(x.first.functor()); })) {
+
+    // non-linear multiplication. we cannot deal with this in alasca
+    return AbstractionResult(EqualIf().constr(toConstr(diff)));
+
+  } else if (diff.size() == 0) {
+    return AbstractionResult(EqualIf());
+
+  // } else if ( vars.hasNext() ) {
+
+
+
+  } else if (nVars > 0) {
+     Recycled<DHSet<TermSpec>> shieldedVars;
+     for (auto i : range(nVars, diff.size())) {
+       Recycled<Stack<TermSpec>> todo;
+       todo->push(diff[i].first.clone());
+       while (todo->isNonEmpty()) {
+         auto next_ = todo->pop();
+         auto& next = next_.deref(&au.subs());
+         if (next.isVar()) {
+           shieldedVars->insert(next.clone());
+         } else {
+           todo->loadFromIterator(next.termArgs());
+         }
+       }
+     }
+     auto idx = 
+       range(0, nVars)
+          .find([&](auto i) 
+                { return !shieldedVars->contains(diff[i].first); });
+
+    if (idx) {
+      // we have a variable unshielded in this unification
+      auto num = diff[*idx].second;
+      auto& var = diff[*idx].first;
+      auto rest = [&]() 
+      { return range(0, diff.size())
+                .filter([&](auto i) { return i != *idx; })
+                .map([&](auto i) { return std::move(diff[i]); }); };
+
+      return AbstractionResult(ifIntTraits(n, 
+            [&](auto n) { return EqualIf().unify(UnificationConstraint(numMul(-num, std::move(var)), sum(rest()))); },
+            [&](auto n) { return EqualIf().unify(UnificationConstraint(std::move(var), 
+                sum(rest().map([&](auto x) { return make_pair(std::move(x.first), divOrPanic(n, x.second, -num)); })
+                  ))); }
+            ));
+
+    } else {
+      // all variables are shielded
+
+      if (nVars == 1) {
+       auto& var = diff[0].first;
+       auto  num = diff[0].second;
+
+       for (auto i : range(nVars, diff.size())) {
+         if (uncanellableOccursCheck(au, var.varSpec(), diff[i].first)) {
+           return AbstractionResult(NeverEqual{});
+         }
+       }
+     }
+     return AbstractionResult(EqualIf().constr(toConstr(diff)));
+    }
+  } 
+
+  Recycled<Stack<UnificationConstraint>> unify;
+  Recycled<Stack<UnificationConstraint>> constr;
+  auto curF = diff[0].first.functor();
+  Recycled<Stack<pair<TermSpec, Numeral>>> curSummands;
+  auto curSum = Numeral(0);  
+
+
+  auto curSumCanUnify = [&]() -> bool {
+      if (curSum != Numeral(0)) {
+        return false;
+      } else if (curSummands->size() == 2) {
+        auto& pos = (*curSummands)[0].second.isPositive() ? (*curSummands)[0] : (*curSummands)[1];
+        auto& neg = (*curSummands)[0].second.isPositive() ? (*curSummands)[1] : (*curSummands)[0];
+        ASS(pos.second.isPositive())
+        ASS(neg.second.isNegative())
+        unify->push(UnificationConstraint(
+              numMul( pos.second, std::move(pos.first)), 
+              numMul(-neg.second, std::move(neg.first))));
+        return true;
+      } else {
+        ASS(curSummands->size() >= 3)
+        constr->push(toConstr(*curSummands));
+        return true;
+      }
+  };
+
+  for (auto& x : diff) {
+    auto f = x.first.functor();
+    if (f != curF) {
+      if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
+      curF = f;
+      curSum = Numeral(0);
+      curSummands->reset();
+    }
+    curSum += x.second;
+    curSummands->push(std::move(x));
+  }
+  if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
+  return AbstractionResult(EqualIf().unify(std::move(unify)).constr(std::move(constr)));
+}
+
+bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec const& t) {
+
+  if (t.isSort()) return true; // <- for sorts arguments might never cancel out
+  Recycled<Stack<TermSpec>> todo;
+  ASS(t.isTerm())
+  todo->push(t.clone());
+  while (!todo->isEmpty()) {
+    auto t = todo->pop();
+    auto& dt = t.deref(&au.subs());
+    if (dt.isTerm()) {
+      auto f = dt.functor();
+      auto argsMightCancel = forAnyNumTraits([&](auto n){
+            // check if its subterms might cancel out
+            return n.isAdd(f) || n.isMul(f);
+         });
+      if (!argsMightCancel) {
+        todo->loadFromIterator(dt.termArgs());
+      }
+    } else if (dt.isVar() && v == dt.varSpec()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Option<MismatchHandler::AbstractionResult> alasca4(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2) {
+  ASS(t1.isTerm() || t2.isTerm())
+
+  auto interpreted = [](TermSpec const& t) {
+    if (t.isVar()) return false;
+    ASS(!t.isLiteral()) 
+    auto f = t.functor();
+    return forAnyNumTraits([&](auto numTraits) -> bool {
+        return numTraits.isAdd(f)
+            || numTraits.isNumeral(f)
+            || numTraits.isMinus(f)
+            || numTraits.isMul(f);
+    });
+  };
+
+
+  // if (t1.isVar()) return occ(t1, t2);
+  // if (t2.isVar()) return occ(t2, t1);
+
+  if ((t1.isTerm() && t1.isSort()) 
+  || ( t2.isTerm() && t2.isSort())) return {};
+
+  auto i1 = interpreted(t1);
+  auto i2 = interpreted(t2);
+  if (i1 || i2) {
+    TermList sort = (i1 ? t1.sort() : t2.sort()).old().term;
+    return forAnyNumTraits([&](auto n) {
+        return someIf(sort == n.sort(), [&]() { return alasca4(au, t1, t2, n); });
+    });
+  } else {
+    auto occ = [&au](auto& v, auto& t) {
+      ASS(v.isVar())
+      ASS(t.isTerm())
+      // we know due to the uwa algorithm that v occurs in t
+      if (uncanellableOccursCheck(au, v.varSpec(), t)) {
+        return some(MismatchHandler::AbstractionResult(MismatchHandler::NeverEqual{}));
+      } else {
+        // this means all
+        return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf().constr(UnificationConstraint(v.clone(), t.clone()))));
+      }
+    };
+
+    if (t1.isVar()) return occ(t1, t2);
+    if (t2.isVar()) return occ(t2, t1);
+    return {};
+  }
+}
 bool isAlascaInterpreted(TermSpec const& t, AbstractingUnifier& au) {
   if (t.isVar()) return false;
   ASS(!t.isLiteral()) 
@@ -215,6 +555,7 @@ bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec const& t1, Te
     case Shell::Options::UnificationWithAbstraction::AC1: 
     case Shell::Options::UnificationWithAbstraction::AC2: 
     case Shell::Options::UnificationWithAbstraction::ALASCA3: 
+    case Shell::Options::UnificationWithAbstraction::ALASCA4: 
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: 
       ASSERTION_VIOLATION_REP("should be handled in MismatchHandler::tryAbstract")
   }
@@ -433,35 +774,9 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec cons
   }
   if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
   auto out = AbstractionResult(EqualIf().unify(std::move(unify)).constr(std::move(constr))); 
-  DEBUG_UWA(2, "alasca3: ", out)
   return out;
 }
 
-
-bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec const& t) {
-
-  if (t.isSort()) return true; // <- for sorts arguments might never cancel out
-  Recycled<Stack<TermSpec>> todo;
-  ASS(t.isTerm())
-  todo->push(t.clone());
-  while (!todo->isEmpty()) {
-    auto t = todo->pop();
-    auto& dt = t.deref(&au.subs());
-    if (dt.isTerm()) {
-      auto f = dt.functor();
-      auto argsMightCancel = forAnyNumTraits([&](auto n){
-            // check if its subterms might cancel out
-            return n.isAdd(f) || n.isMul(f);
-         });
-      if (!argsMightCancel) {
-        todo->loadFromIterator(dt.termArgs());
-      }
-    } else if (dt.isVar() && v == dt.varSpec()) {
-      return true;
-    }
-  }
-  return false;
-}
 
 
 Option<MismatchHandler::AbstractionResult> alasca3(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2) {
@@ -584,7 +899,14 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
 
 
   } else if (_mode == Uwa::ALASCA3) {
-    return alasca3(*au, t1, t2);
+    auto out = alasca3(*au, t1, t2);
+    DEBUG_UWA(1, "alasca3", tie(t1, t2), " = ", out, " (ctxt: ", *au, " )")
+    return out;
+
+  } else if (_mode == Uwa::ALASCA4) {
+    auto out = alasca4(*au, t1, t2);
+    DEBUG_UWA(1, "alasca4", tie(t1, t2), " = ", out, " (ctxt: ", *au, " )")
+    return out;
 
   } else if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
     return funcExt(au, t1, t2);
