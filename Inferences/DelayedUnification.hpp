@@ -270,6 +270,29 @@ private:
 };
 
 
+class DelayedFactoring: public GeneratingInferenceEngine {
+public:
+  CLASS_NAME(DelayedFactoring);
+  USE_ALLOCATOR(DelayedFactoring);
+  DelayedFactoring(Ordering* ord, Options const* opts) 
+    : _ord(ord)
+    , _opts(opts) 
+    {}
+
+  void attach(SaturationAlgorithm* salg) final override;
+  ClauseIterator generateClauses(Clause* premise) final override;
+
+private:
+
+  Clause* perform(Clause* cl,
+    unsigned lit1,
+    unsigned lit2) const;
+
+  Ordering     * const _ord;
+  Options const* const _opts;
+};
+
+
 class DelayedEqualityResolution: public GeneratingInferenceEngine {
 public:
   CLASS_NAME(DelayedEqualityResolution);

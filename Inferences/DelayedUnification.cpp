@@ -438,6 +438,82 @@ Option<DelayedUnifier> unifDelayed(TermList t1, TermList t2)
   }
 }
 
+// C \/ L \/ L
+// =========================
+// (C \/ L1 \/ L2) unif
+//
+// where
+// - l2 == r2 is selected
+// - unif = delayedUnification(l1, l2)
+Clause* DelayedFactoring::perform(Clause* cl
+    , unsigned lit1 // <- index of l1 == r1
+    , unsigned lit2 // <- index of l2 == r2
+    ) const 
+{
+  ASSERTION_VIOLATION_REP("TODO")
+  // CALL("DelayedFactoring::perform")
+  // auto sort1 = SortHelper::getEqualityArgumentSort((*cl)[lit1]);
+  // auto sort2 = SortHelper::getEqualityArgumentSort((*cl)[lit2]);
+  // auto l1 = *(*cl)[lit1]->nthArgument(term1);
+  // auto r1 = *(*cl)[lit1]->nthArgument(1 - term1);
+  // auto l2 = *(*cl)[lit2]->nthArgument(term2);
+  // auto r2 = *(*cl)[lit2]->nthArgument(1 - term2);
+  // DEBUG_PERFORM(1, l1, " == ", r1, " | ", l2, " == ", r2, " | rest");
+  //
+  // auto notLeq = [](Ordering::Result r) {
+  //   switch (r) {
+  //     case Ordering::Result::GREATER: return true;
+  //     case Ordering::Result::INCOMPARABLE: return true;
+  //     case Ordering::Result::GREATER_EQ: ASSERTION_VIOLATION_REP("TODO");
+  //     case Ordering::Result::EQUAL: return false;
+  //     case Ordering::Result::LESS_EQ: return false;
+  //     case Ordering::Result::LESS: return false;
+  //     default: ASSERTION_VIOLATION
+  //   }
+  // };
+  //
+  // CHECK_SIDE_CONDITION(sort2 == sort1, "sort1 == sort2. sort1 :", sort1, "\tsort2: ", sort2)
+  // auto sort = sort1;
+  // CHECK_SIDE_CONDITION(notLeq(_ord->compare(l2, r2)), "not(l2 <= r2). l2 :", l2, "\tr2: ", r2)
+  // CHECK_SIDE_CONDITION(notLeq(_ord->compare(l1, r1)), "not(l1 <= r1). l1 :", l1, "\tr1: ", r1)
+  //
+  // auto unif = unifDelayed(l1, l2);
+  // DEBUG_PERFORM(2, "unifier: ", unif)
+  // CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l1, l2). l1 :", l1, "\tl2: ", l2)
+  //
+  //
+  // Stack<Literal*> conclusion;
+  // conclusion.push(Literal::createEquality(false, unif->sigma(r1), unif->sigma(r2), sort));
+  // // r1 != r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  // conclusion.push(Literal::createEquality(true, unif->sigma(l2), unif->sigma(r2), sort));
+  // // l2 == r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  // unif->forConstraints([&](auto c) { conclusion.push(c); });
+  //
+  // conclusion.loadFromIterator(
+  //     range(0,cl->size())
+  //       .filter([&](auto i) { return i != lit1 && i != lit2; })
+  //       .map([&](auto i) { return unif->sigma((*cl)[i]); })
+  //     );
+  //
+  //
+  // auto out = Clause::fromStack(
+  //     conclusion,
+  //     Inference(GeneratingInference1(
+  //       InferenceRule::DELAYED_EQUALITY_FACTORING,
+  //       cl
+  //     )));
+  // DEBUG_PERFORM(1, "result: ", *out);
+  // return out;
+}
+
+void DelayedFactoring::attach(SaturationAlgorithm *salg) {
+  CALL("DelayedFactoring::attach")
+  GeneratingInferenceEngine::attach(salg);
+  ASS_EQ(_ord , &salg->getOrdering())
+  ASS_EQ(_opts, &salg->getOptions())
+}
+
+
 // C \/ l1 == r1 \/ l2 == r2
 // =========================
 // (C \/ r1 != r2 \/ l2 == r2) unif
@@ -507,14 +583,6 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
   DEBUG_PERFORM(1, "result: ", *out);
   return out;
 }
-
-void DelayedEqualityFactoring::attach(SaturationAlgorithm *salg) {
-  CALL("DelayedEqualityFactoring::attach")
-  GeneratingInferenceEngine::attach(salg);
-  ASS_EQ(_ord , &salg->getOrdering())
-  ASS_EQ(_opts, &salg->getOptions())
-}
-
 ClauseIterator DelayedEqualityFactoring::generateClauses(Clause *cl) {
   CALL("DelayedEqualityFactoring::generateClauses")
   return pvi(
@@ -537,6 +605,28 @@ ClauseIterator DelayedEqualityFactoring::generateClauses(Clause *cl) {
                     })
                     .filter([](auto x) { return x != nullptr; });
               });
+        })
+    );
+}
+
+
+void DelayedEqualityFactoring::attach(SaturationAlgorithm *salg) {
+  CALL("DelayedEqualityFactoring::attach")
+  GeneratingInferenceEngine::attach(salg);
+  ASS_EQ(_ord , &salg->getOrdering())
+  ASS_EQ(_opts, &salg->getOptions())
+}
+
+ClauseIterator DelayedFactoring::generateClauses(Clause *cl) {
+  CALL("DelayedFactoring::generateClauses")
+  return pvi(
+      cl->selectedIndices()
+        .flatMap([this, cl](auto i) {
+            return pvi(cl->selectedIndices()
+                .filter([=](auto j){ return j != i; })
+                .map([this, i, cl](auto j) { return perform(cl, i, j); })
+                .filter([](auto x) { return x != nullptr; }));
+            ;
         })
     );
 }

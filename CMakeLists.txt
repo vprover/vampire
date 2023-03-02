@@ -719,6 +719,7 @@ set(UNIT_TESTS
     UnitTests/tQuotientE.cpp
     UnitTests/tDelayedSuperposition.cpp
     UnitTests/tDelayedEqualityFactoring.cpp
+    UnitTests/tDelayedFactoring.cpp
     UnitTests/tDelayedEqualityResolution.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
