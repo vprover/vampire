@@ -64,12 +64,7 @@ public:
 #if VDEBUG
         auto k = appl.key();
 #endif
-        // DBG("insert: ", appl)
         _index.insert(std::move(appl));
-        if (!find(k).hasNext()) {
-          DBGE(k)
-          DBGE(multiline(_index))
-        }
         ASS_REP(find(k).hasNext(), k)
       } else {
         _index.remove(std::move(appl));
