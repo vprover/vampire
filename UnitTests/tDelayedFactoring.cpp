@@ -53,6 +53,7 @@ TEST_GENERATION(test_02,
     Generation::TestCase()
       .input(    clause({ selected(P(x)), P(a)  }) )
       .expected(exactly(
+            clause({ P(a), a != x  })
       ))
     )
 
@@ -95,5 +96,41 @@ TEST_GENERATION(test_07,
       .input(    clause({ selected(P(b)), selected(P(b))  }) )
       .expected(exactly(
             clause({ P(b)  })
+      ))
+    )
+
+TEST_GENERATION(test_08,
+    Generation::TestCase()
+      .input(    clause({ P(x), P(a)  }) )
+      .expected(exactly(
+      ))
+    )
+
+TEST_GENERATION(test_09,
+    Generation::TestCase()
+      .input(    clause({ selected(P(x)), P(a), P(b)  }) )
+      .expected(exactly(
+            clause({ P(a), a != x, P(b)  })
+          , clause({ P(b), b != x, P(a)  })
+      ))
+    )
+
+TEST_GENERATION(test_10,
+    Generation::TestCase()
+      .input(    clause({ selected(P(x)), selected(P(a)), P(b)  }) )
+      .expected(exactly(
+            clause({ P(a), a != x, P(b)  })
+          , clause({ P(b), b != x, P(a)  })
+          , clause({ P(b), b != a, P(x)  })
+      ))
+    )
+
+TEST_GENERATION(test_11,
+    Generation::TestCase()
+      .input(    clause({ selected(P(x)), selected(P(a)), selected(P(b))  }) )
+      .expected(exactly(
+            clause({ P(a), a != x, P(b)  })
+          , clause({ P(b), b != x, P(a)  })
+          , clause({ P(b), b != a, P(x)  })
       ))
     )

@@ -451,7 +451,7 @@ Option<DelayedUnifier> unifDelayed(TermList t1, TermList t2)
   }
 }
 
-// C \/ L1 \/ L2
+//  C \/ L1 \/ L2
 // =========================
 // (C \/ L1 \/ L2) unif
 //
@@ -466,26 +466,11 @@ Clause* DelayedFactoring::perform(Clause* cl
   CALL("DelayedFactoring::perform")
   auto lit1 = (*cl)[i1];
   auto lit2 = (*cl)[i2];
+  // check whther L1 and L2 are unifiable, and positive
   if (lit1->isNegative() || lit2->isNegative() || lit1->functor() != lit2->functor())
     return nullptr;
 
   DEBUG_PERFORM(1, *lit1, " | ", *lit2, " | rest");
-  // auto notLeq = [](Ordering::Result r) {
-  //   switch (r) {
-  //     case Ordering::Result::GREATER: return true;
-  //     case Ordering::Result::INCOMPARABLE: return true;
-  //     case Ordering::Result::GREATER_EQ: ASSERTION_VIOLATION_REP("TODO");
-  //     case Ordering::Result::EQUAL: return false;
-  //     case Ordering::Result::LESS_EQ: return false;
-  //     case Ordering::Result::LESS: return false;
-  //     default: ASSERTION_VIOLATION
-  //   }
-  // };
-  //
-  // CHECK_SIDE_CONDITION(sort2 == sort1, "sort1 == sort2. sort1 :", sort1, "\tsort2: ", sort2)
-  // auto sort = sort1;
-  // CHECK_SIDE_CONDITION(notLeq(_ord->compare(l2, r2)), "not(l2 <= r2). l2 :", l2, "\tr2: ", r2)
-  // CHECK_SIDE_CONDITION(notLeq(_ord->compare(l1, r1)), "not(l1 <= r1). l1 :", l1, "\tr1: ", r1)
 
   auto unif = unifDelayed(lit1, lit2);
   DEBUG_PERFORM(2, "unifier: ", unif)
@@ -494,13 +479,17 @@ Clause* DelayedFactoring::perform(Clause* cl
 
   Stack<Literal*> conclusion;
 
+  // L1 or L2 to the conclusion. if either is ground we keep that one
   conclusion.push(unif->sigma(unif->sigma(lit2)->ground() ? lit2 : lit1));
+  // add all the constraints
   unif->forConstraints([&](auto c) { conclusion.push(c); });
+  // add all other literals from the hypothesis
   conclusion.loadFromIterator(
       range(0,cl->size())
         .filter([&](auto i) { return i != i1 && i != i2; })
         .map([&](auto i) { return unif->sigma((*cl)[i]); })
       );
+
   auto out = Clause::fromStack(
       conclusion,
       Inference(GeneratingInference1(
@@ -625,10 +614,11 @@ void DelayedEqualityFactoring::attach(SaturationAlgorithm *salg) {
 ClauseIterator DelayedFactoring::generateClauses(Clause *cl) {
   CALL("DelayedFactoring::generateClauses")
   return pvi(
-      range(0, cl->numSelected() - 1)
+      range(0, cl->numSelected())
         .flatMap([this, cl](auto i) {
-            return pvi(range(i + 1, cl->numSelected())
-                .map([this, i, cl](auto j) { return perform(cl, i, j); })
+            return pvi(range(i + 1, cl->size())
+                .map([this, i, cl](auto j) { 
+                  return perform(cl, i, j); })
                 .filter([](auto x) { return x != nullptr; }));
             ;
         })
