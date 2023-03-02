@@ -747,6 +747,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "delayed equality resolution";
   case InferenceRule::DELAYED_SUPERPOSITION:
     return "delayed superposition";
+  case InferenceRule::DELAYED_BINARY_RESOLUTION:
+    return "delayed resolution";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
   case InferenceRule::EQUALITY_FACTORING:

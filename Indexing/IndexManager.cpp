@@ -267,6 +267,10 @@ Index* IndexManager::create(IndexType t)
     res = new Inferences::DelayedLHS(_alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
+  case DELAYED_NONEQUATIONS:
+    res = new Inferences::DelayedNonEquations;
+    isGenerating = true;
+    break;
 
   default:
     INVALID_OPERATION("Unsupported IndexType.");

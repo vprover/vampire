@@ -1608,7 +1608,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   gie->addFront(new Factoring());
   if (opt.binaryResolution()) {
-    gie->addFront(new BinaryResolution());
+    if(opt.delayedUnificationCalculus())
+      gie->addFront(new DelayedBinaryResolution);
+    else
+      gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
     gie->addFront(new URResolution());

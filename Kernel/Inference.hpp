@@ -303,6 +303,7 @@ enum class InferenceRule : unsigned char {
   DELAYED_SUPERPOSITION,
   DELAYED_EQUALITY_FACTORING,
   DELAYED_EQUALITY_RESOLUTION,
+  DELAYED_BINARY_RESOLUTION,
   /** generated as instance of its parent */
   INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */

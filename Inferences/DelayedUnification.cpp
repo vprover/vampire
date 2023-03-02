@@ -40,8 +40,10 @@ void DelayedSubterms::handleClause(Clause *c, bool adding) {
   for(unsigned i = 0; i < c->numSelected(); i++) {
     Literal *lit = (*c)[i];
     TermIterator subterms(EqHelper::getSubtermIterator(lit, _ordering));
-    while (subterms.hasNext())
-      handle(c, lit, subterms.next().term(), adding);
+    while (subterms.hasNext()) {
+      Term *next = subterms.next().term();
+      handle(next->functor(), c, lit, next, adding);
+    }
   }
 }
 
@@ -55,7 +57,7 @@ void DelayedLHS::handleClause(Clause *c, bool adding) {
     while (lhs.hasNext()) {
       TermList next = lhs.next();
       if(next.isTerm())
-        handle(c, lit, next.term(), adding);
+        handle(next.term()->functor(), c, lit, next.term(), adding);
       else if(adding)
         _variables.insert({c, lit, next});
       else
@@ -64,6 +66,13 @@ void DelayedLHS::handleClause(Clause *c, bool adding) {
   }
 }
 
+void DelayedNonEquations::handleClause(Clause *c, bool adding) {
+  CALL("DelayedNonEquations::handleClause")
+  DEBUG_INSERT(1, (adding ? "inserting" : "removing"), ": ", *c)
+  for(unsigned i = 0; i < c->numSelected(); i++)
+    if(!(*c)[i]->isEquality())
+      handle((*c)[i]->polarity(), (*c)[i]->functor(), c, (*c)[i], adding);
+}
 
 void DelayedSuperposition::attach(SaturationAlgorithm *salg) {
   CALL("DelayedSuperposition::attach")
@@ -264,9 +273,100 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
     );
   });
 
-  return pvi(getFilteredIterator(attempts, [](Clause *cl) { return cl; }));
+  return pvi(getFilteredIterator(attempts, [](Clause *c) { return c; }));
 }
 
+void DelayedBinaryResolution::attach(SaturationAlgorithm *salg) {
+  CALL("DelayedBinaryResolution::attach")
+  DelayedInference::attach(salg);
+  _index = static_cast<DelayedNonEquations *>(salg->getIndexManager()->request(DELAYED_NONEQUATIONS));
+}
+
+Clause *DelayedBinaryResolution::perform(
+  Clause *leftClause,
+  Literal *leftLit,
+  Clause *rightClause,
+  Literal *rightLit
+) {
+  CALL("DelayedBinaryResolution::perform")
+  ASS_EQ(leftLit->functor(), rightLit->functor())
+  ASS_NEQ(leftLit->polarity(), rightLit->polarity())
+  ASS(!leftLit->isEquality())
+  DEBUG_PERFORM(1, "lhs: ", *leftClause, " [ ", *leftLit     , " ]")
+  DEBUG_PERFORM(1, "rhs: ", *rightClause, " [ ", *rightLit     , " ]")
+
+  // compute a renaming for both clauses so that variables are disjoint
+  Renaming leftRenaming;
+  for(unsigned i = 0; i < leftClause->length(); i++)
+    leftRenaming.normalizeVariables((*leftClause)[i]);
+  Renaming rightRenaming(leftClause->varCnt());
+  for(unsigned i = 0; i < rightClause->length(); i++)
+    rightRenaming.normalizeVariables((*rightClause)[i]);
+
+  // some helpfully-renamed terms
+  Literal *leftLitRenamed = leftRenaming.apply(leftLit);
+  Literal *rightLitRenamed = rightRenaming.apply(rightLit);
+
+  // check that the lhs and the target might unify, one day
+  if(!mightPossiblyUnify(TermList(leftLitRenamed), TermList(rightLitRenamed)))
+    return nullptr;
+
+  // compute clause length and create a blank clause to fill
+  unsigned arity = leftLit->arity();
+  unsigned length = leftClause->length() + rightClause->length() + arity - 2;
+  Inference inference(GeneratingInference2(
+    InferenceRule::DELAYED_BINARY_RESOLUTION,
+    leftClause,
+    rightClause
+  ));
+  Clause *cl = new (length) Clause(length, inference);
+
+  // how far are we through the clause?
+  unsigned i = 0;
+
+  // copy side literals into new clause from old, applying the renaming
+  for(unsigned j = 0; j < leftClause->length(); j++)
+    if((*leftClause)[j] != leftLit)
+      (*cl)[i++] = leftRenaming.apply((*leftClause)[j]);
+  for(unsigned j = 0; j < rightClause->length(); j++)
+    if((*rightClause)[j] != rightLit)
+      (*cl)[i++] = rightRenaming.apply((*rightClause)[j]);
+
+  //create disequations
+  for(unsigned j = 0; j < arity; j++) {
+    TermList larg = (*leftLitRenamed)[j];
+    TermList rarg = (*rightLitRenamed)[j];
+    // TODO deal with polymorphic sorts properly: this will work until it doesn't
+    TermList sort = SortHelper::getArgSort(leftLitRenamed, j);
+    Literal *disequation = Literal::createEquality(false, larg, rarg, sort);
+    (*cl)[i++] = disequation;
+  }
+
+  return cl;
+}
+
+
+
+ClauseIterator DelayedBinaryResolution::generateClauses(Clause *cl) {
+  CALL("DelayedBinaryResolution::generateClauses")
+
+  typedef TopSymbolIndex<NoTerms>::Entry Entry;
+  auto selected = cl->getSelectedLiteralIterator();
+  auto resolutions = getMapAndFlattenIterator(selected, [this, cl](Literal *lit) {
+    return getMappingIterator(
+      _index->query(!lit->polarity(), lit->functor()),
+      [this, cl, lit](Entry entry) {
+        return perform(
+          entry.clause,
+          entry.literal,
+          cl,
+          lit
+        );
+      }
+    );
+  });
+  return pvi(getFilteredIterator(resolutions, [](Clause *c) { return c; }));
+}
 
 struct DelayedBind {
   TermList var;

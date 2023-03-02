@@ -22,7 +22,10 @@
 
 namespace Inferences {
 
-// base class for delayed unification "indices"
+/**
+ * base class for delayed unification "indices"
+ * `T` is for Term *, TermList, or NoTerms depending on use
+ */
 template<typename T>
 class TopSymbolIndex: public Indexing::Index {
 public:
@@ -66,12 +69,12 @@ public:
       delete it.next();
   }
 
-  void handle(Clause *c, Literal *l, T t, bool adding) {
+  void handle(unsigned functor, Clause *c, Literal *l, T t, bool adding) {
     CALL("TopSymbolIndex::handle")
     typedef DHSet<Entry> Entries;
 
     Entries **entriesPtr;
-    _functors.getValuePtr(t->functor(), entriesPtr, nullptr);
+    _functors.getValuePtr(functor, entriesPtr, nullptr);
     if(!*entriesPtr)
       *entriesPtr = new Entries();
     Entries *entries = *entriesPtr;
@@ -102,6 +105,33 @@ private:
   // TODO DHSet doesn't have a move constructor so it has to be heap-allocated
   // Johannes has already fixed this in the substitution-tree refactor, drop the indirection when we can
   DHMap<unsigned, DHSet<Entry> *> _functors;
+};
+
+struct NoTerms {
+  bool operator ==(const NoTerms &other) const { return true; }
+  bool operator !=(const NoTerms &other) const { return false; }
+  unsigned defaultHash() const { return 0; }
+  unsigned defaultHash2() const { return 0; }
+};
+
+class TopSymbolLiteralIndex: public Indexing::Index {
+public:
+  CLASS_NAME(TopSymbolLiteralIndex);
+  USE_ALLOCATOR(TopSymbolLiteralIndex);
+
+  void handle(bool polarity, unsigned functor, Clause *c, Literal *l, bool adding) {
+    CALL("TopSymbolLiteralIndex::handle")
+    _predicates[polarity].handle(functor, c, l, {}, adding);
+  }
+
+  VirtualIterator<TopSymbolIndex<NoTerms>::Entry> query(bool polarity, unsigned functor) {
+    CALL("TopSymbolLiteralIndex::query")
+    return _predicates[polarity].query(functor);
+  }
+
+private:
+  // one top-symbol index for each polarity;
+  TopSymbolIndex<NoTerms> _predicates[2];
 };
 
 // non-variable subterms of selected literals
@@ -140,13 +170,13 @@ private:
   DHSet<TopSymbolIndex<TermList>::Entry> _variables;
 };
 
-struct NoTerms {};
-
 // selected non-equation literals
-class DelayedNonEquations: public TopSymbolIndex<NoTerms> {
+class DelayedNonEquations: public TopSymbolLiteralIndex {
 public:
   CLASS_NAME(DelayedNonEquations);
   USE_ALLOCATOR(DelayedNonEquations);
+
+  void handleClause(Kernel::Clause *c, bool adding) override;
 };
 
 /**
@@ -157,10 +187,6 @@ class DelayedInference: public GeneratingInferenceEngine {
 public:
   CLASS_NAME(DelayedInference);
   USE_ALLOCATOR(DelayedInference);
-  DelayedInference(Ordering *ord, Options const *opts)
-    : _ord(ord)
-    , _opts(opts)
-  {}
 
   /**
    * check whether left and right may eventually unify modulo some theory
@@ -170,10 +196,6 @@ public:
     // TODO do something sensible here
     return true;
   }
-
-protected:
-  Ordering     * const _ord;
-  Options const* const _opts;
 };
 
 // a delayed-unification version of superposition
@@ -183,9 +205,10 @@ public:
   USE_ALLOCATOR(DelayedSuperposition);
 
   DelayedSuperposition(Ordering* ord, Options const* opts)
-    : DelayedInference(ord, opts)
-    , _subtermIndex()
+    : _subtermIndex()
     , _lhsIndex()
+    , _ord(ord)
+    , _opts(opts)
     {}
 
   void attach(SaturationAlgorithm* salg) final override;
@@ -203,6 +226,23 @@ private:
 
   DelayedSubterms *_subtermIndex;
   DelayedLHS *_lhsIndex;
+  Ordering     * const _ord;
+  Options const* const _opts;
+};
+
+class DelayedBinaryResolution: public DelayedInference {
+public:
+  CLASS_NAME(DelayedBinaryResolution)
+  USE_ALLOCATOR(DelayedBinaryResolution)
+
+  DelayedBinaryResolution() : _index() {}
+
+  void attach(SaturationAlgorithm *salg) final override;
+  ClauseIterator generateClauses(Clause *premise) final override;
+
+private:
+  Clause *perform(Clause *, Literal *, Clause *, Literal *);
+  DelayedNonEquations *_index;
 };
 
 class DelayedEqualityFactoring: public GeneratingInferenceEngine {
