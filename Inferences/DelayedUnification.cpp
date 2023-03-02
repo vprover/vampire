@@ -415,6 +415,19 @@ struct DelayedUnifier
         ); }
 };
 
+Option<DelayedUnifier> unifDelayed(Literal* t1, Literal* t2)
+{
+  if (t1 == t2) {
+    return some(DelayedUnifier(DelayedRefl {} ));
+
+  } else if (t1->functor() == t2->functor() 
+         && t1->polarity() == t2->polarity() ) {
+    return some(DelayedUnifier(DelayedDecompose { .t1 = t1, .t2 = t2, }));
+
+  } else {
+    return {};
+  }
+}
 Option<DelayedUnifier> unifDelayed(TermList t1, TermList t2)
 {
   auto strictSubterm = [](TermList v, TermList t) 
@@ -438,28 +451,25 @@ Option<DelayedUnifier> unifDelayed(TermList t1, TermList t2)
   }
 }
 
-// C \/ L \/ L
+// C \/ L1 \/ L2
 // =========================
 // (C \/ L1 \/ L2) unif
 //
 // where
-// - l2 == r2 is selected
+// - L1, and L2 are selected
 // - unif = delayedUnification(l1, l2)
 Clause* DelayedFactoring::perform(Clause* cl
-    , unsigned lit1 // <- index of l1 == r1
-    , unsigned lit2 // <- index of l2 == r2
+    , unsigned i1 // <- index of L1
+    , unsigned i2 // <- index of L2
     ) const 
 {
-  ASSERTION_VIOLATION_REP("TODO")
-  // CALL("DelayedFactoring::perform")
-  // auto sort1 = SortHelper::getEqualityArgumentSort((*cl)[lit1]);
-  // auto sort2 = SortHelper::getEqualityArgumentSort((*cl)[lit2]);
-  // auto l1 = *(*cl)[lit1]->nthArgument(term1);
-  // auto r1 = *(*cl)[lit1]->nthArgument(1 - term1);
-  // auto l2 = *(*cl)[lit2]->nthArgument(term2);
-  // auto r2 = *(*cl)[lit2]->nthArgument(1 - term2);
-  // DEBUG_PERFORM(1, l1, " == ", r1, " | ", l2, " == ", r2, " | rest");
-  //
+  CALL("DelayedFactoring::perform")
+  auto lit1 = (*cl)[i1];
+  auto lit2 = (*cl)[i2];
+  if (lit1->isNegative() || lit2->isNegative() || lit1->functor() != lit2->functor())
+    return nullptr;
+
+  DEBUG_PERFORM(1, *lit1, " | ", *lit2, " | rest");
   // auto notLeq = [](Ordering::Result r) {
   //   switch (r) {
   //     case Ordering::Result::GREATER: return true;
@@ -476,34 +486,29 @@ Clause* DelayedFactoring::perform(Clause* cl
   // auto sort = sort1;
   // CHECK_SIDE_CONDITION(notLeq(_ord->compare(l2, r2)), "not(l2 <= r2). l2 :", l2, "\tr2: ", r2)
   // CHECK_SIDE_CONDITION(notLeq(_ord->compare(l1, r1)), "not(l1 <= r1). l1 :", l1, "\tr1: ", r1)
-  //
-  // auto unif = unifDelayed(l1, l2);
-  // DEBUG_PERFORM(2, "unifier: ", unif)
-  // CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l1, l2). l1 :", l1, "\tl2: ", l2)
-  //
-  //
-  // Stack<Literal*> conclusion;
-  // conclusion.push(Literal::createEquality(false, unif->sigma(r1), unif->sigma(r2), sort));
-  // // r1 != r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  // conclusion.push(Literal::createEquality(true, unif->sigma(l2), unif->sigma(r2), sort));
-  // // l2 == r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  // unif->forConstraints([&](auto c) { conclusion.push(c); });
-  //
-  // conclusion.loadFromIterator(
-  //     range(0,cl->size())
-  //       .filter([&](auto i) { return i != lit1 && i != lit2; })
-  //       .map([&](auto i) { return unif->sigma((*cl)[i]); })
-  //     );
-  //
-  //
-  // auto out = Clause::fromStack(
-  //     conclusion,
-  //     Inference(GeneratingInference1(
-  //       InferenceRule::DELAYED_EQUALITY_FACTORING,
-  //       cl
-  //     )));
-  // DEBUG_PERFORM(1, "result: ", *out);
-  // return out;
+
+  auto unif = unifDelayed(lit1, lit2);
+  DEBUG_PERFORM(2, "unifier: ", unif)
+  ASS(unif.isSome());
+  ASS(unif->is<DelayedDecompose>() || unif->is<DelayedRefl>());
+
+  Stack<Literal*> conclusion;
+
+  conclusion.push(unif->sigma(unif->sigma(lit2)->ground() ? lit2 : lit1));
+  unif->forConstraints([&](auto c) { conclusion.push(c); });
+  conclusion.loadFromIterator(
+      range(0,cl->size())
+        .filter([&](auto i) { return i != i1 && i != i2; })
+        .map([&](auto i) { return unif->sigma((*cl)[i]); })
+      );
+  auto out = Clause::fromStack(
+      conclusion,
+      Inference(GeneratingInference1(
+        InferenceRule::DELAYED_FACTORING,
+        cl
+      )));
+  DEBUG_PERFORM(1, "result: ", *out);
+  return out;
 }
 
 void DelayedFactoring::attach(SaturationAlgorithm *salg) {
@@ -620,10 +625,9 @@ void DelayedEqualityFactoring::attach(SaturationAlgorithm *salg) {
 ClauseIterator DelayedFactoring::generateClauses(Clause *cl) {
   CALL("DelayedFactoring::generateClauses")
   return pvi(
-      cl->selectedIndices()
+      range(0, cl->numSelected() - 1)
         .flatMap([this, cl](auto i) {
-            return pvi(cl->selectedIndices()
-                .filter([=](auto j){ return j != i; })
+            return pvi(range(i + 1, cl->numSelected())
                 .map([this, i, cl](auto j) { return perform(cl, i, j); })
                 .filter([](auto x) { return x != nullptr; }));
             ;
