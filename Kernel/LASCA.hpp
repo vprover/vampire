@@ -274,7 +274,7 @@ namespace Kernel {
     template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> renormalizeIneq(Literal* lit) const;
 
     // Literal* renormalizeLiteral(Literal* lit) const;
-    Stack<Literal*> normalizeLiteral(Literal* lit) const;
+    Recycled<Stack<Literal*>> normalizeLiteral(Literal* lit) const;
     bool isNormalized(Clause* cl)  const;
   private: 
     Literal* normalizeUninterpreted(Literal* lit) const;

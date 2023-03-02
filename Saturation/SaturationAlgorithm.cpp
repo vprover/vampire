@@ -1298,6 +1298,7 @@ void SaturationAlgorithm::activate(Clause* cl)
 void SaturationAlgorithm::doUnprocessedLoop()
 {
   CALL("SaturationAlgorithm::doUnprocessedLoop");
+  TIME_TRACE("unprocessed loop")
 
 start:
 

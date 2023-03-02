@@ -320,8 +320,8 @@ TEST_FUN(normal_subsafe) {
     { return LascaState::globalState->template signedAtoms<RealTraits>(t); };
 
   auto none = Option<SignedAtoms>();
-  auto some = [&](int i, std::initializer_list<SignedTerm> ts) 
-  { return Option<SignedAtoms>(SignedAtoms(ict(i), ts)); };
+  auto some = [&](int i, Stack<SignedTerm> ts) 
+  { return Option<SignedAtoms>(SignedAtoms(ict(i), MultiSet<SignedTerm>(std::move(ts)))); };
 
   ASS_EQ(signedAtoms(frac(1,2) * x + 7 * a), none);
   ASS_EQ(signedAtoms( x +  7 * a), none);
@@ -371,8 +371,8 @@ TEST_FUN(normal_form_lcm) {
   auto signedAtoms = [&](auto t) -> Option<SignedAtoms>
     { return LascaState::globalState->template signedAtoms<RealTraits>(t); };
 
-  auto ok = [&](int i, std::initializer_list<SignedTerm> ts) 
-  { return Option<SignedAtoms>(SignedAtoms(ict(i), ts)); };
+  auto ok = [&](int i, Stack<SignedTerm> ts) 
+  { return Option<SignedAtoms>(SignedAtoms(ict(i), std::move(ts))); };
 
   ASS_EQ(signedAtoms(frac(1,2) * a + b), 
       ok(2, {
@@ -589,8 +589,8 @@ TEST_FUN(normal_form01) {
     }                                                                                               \
   };                                                                                                \
 
-  auto ok = [&](int i, std::initializer_list<SignedTerm> ts) 
-  { return Option<SignedAtoms>(SignedAtoms(ict(i), ts)); };
+  auto ok = [&](int i, Stack<SignedTerm> ts) 
+  { return Option<SignedAtoms>(SignedAtoms(ict(i), std::move(ts))); };
 
   CHECK_EQ(signedAtoms(2 * a() + b), 
       ok(1, {

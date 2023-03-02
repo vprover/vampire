@@ -10,6 +10,7 @@
 
 #include "LASCA.hpp"
 #include "Kernel/MismatchHandler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/QKbo.hpp"
@@ -128,16 +129,23 @@ Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const
   return out;
 }
 
-Stack<Literal*> InequalityNormalizer::normalizeLiteral(Literal* lit) const 
+Recycled<Stack<Literal*>> InequalityNormalizer::normalizeLiteral(Literal* lit) const 
 {
-  auto out = tryNumTraits([&](auto numTraits)  -> Option<Stack<Literal*>> { 
-      return normalizeLasca<decltype(numTraits)>(lit)
-              .map([](auto lits) { 
-                  return iterTraits(lits.value.iterFifo())
-                        .map([](auto lit) { return lit.denormalize(); })
-                        .template collect<Stack>(); 
-                }); 
-    }) || [&]() { return Stack<Literal*>{normalizeUninterpreted(lit)}; };
+  Recycled<Stack<Literal*>> out;
+  auto num = forAnyNumTraits([&](auto numTraits) { 
+      auto norm = normalizeLasca<decltype(numTraits)>(lit);
+      if (norm.isSome()) {
+        out->loadFromIterator(
+          arrayIter(norm->value)
+            .map([](auto lit) { return lit.denormalize(); }));
+        return true;
+      } else {
+        return false;
+      }
+    }); 
+  if (!num) {
+    out->push(normalizeUninterpreted(lit));
+  }
   DEBUG(*lit, " ==> ", out)
   return out;
 }
@@ -147,7 +155,7 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
   for (unsigned i = 0; i < cl->size(); i++) {
     auto lit = (*cl)[i];
     auto norm = normalizeLiteral(lit);
-    if(norm.size() != 1 || lit != norm[0]) {
+    if(norm->size() != 1 || lit != (*norm)[0]) {
       return false;
     }
   }

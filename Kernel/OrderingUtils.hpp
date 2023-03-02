@@ -67,9 +67,34 @@ namespace Kernel {
     }
 
 
-    MultiSet(std::initializer_list<T> elems0) : MultiSet(Stack<T>(elems0)) {}
+    void reset() { _elems.reset(); }
+    bool keepRecycled() const { _elems.keepRecycled(); }
+    
+    void init(T t1, T t2)
+    { 
+      ASS(_elems.isEmpty())
+       if (t1 == t2) {
+         _elems.push(make_pair(std::move(t1), IntegerConstantType(2)));
+       } else if (t1 < t2) {
+         _elems.push(make_pair(std::move(t1), IntegerConstantType(1)));
+         _elems.push(make_pair(std::move(t2), IntegerConstantType(1)));
+       } else {
+         _elems.push(make_pair(std::move(t1), IntegerConstantType(1)));
+         _elems.push(make_pair(std::move(t2), IntegerConstantType(1)));
+       }
+    }
 
-    static MultiSet fromSortedStack(Stack<std::tuple<T, IntegerConstantType>> elems) 
+ 
+    void init(T t)
+    { 
+      ASS(_elems.isEmpty())
+      _elems.push(make_pair(std::move(t), IntegerConstantType(1)));
+    }
+
+
+    // MultiSet(std::initializer_list<T> elems0) : MultiSet(Stack<T>(elems0)) {}
+
+    static MultiSet fromSortedStack(Stack<std::tuple<T, IntegerConstantType>> elems)
     {
       MultiSet out;
       out._elems = std::move(elems);
