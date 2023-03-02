@@ -423,12 +423,12 @@ Option<MismatchHandler::AbstractionResult> alasca4(AbstractingUnifier& au, TermS
         return numTraits.isAdd(f)
             || numTraits.isNumeral(f)
             || numTraits.isMinus(f)
-          || (numTraits.isMul(f)
-              && ((t.termArg(0).deref(&au.subs()).isTerm() 
-                   && numTraits.isNumeral(t.termArg(0).deref(&au.subs()).functor()))
-               ||( t.termArg(1).deref(&au.subs()).isTerm() 
-                   && numTraits.isNumeral(t.termArg(1).deref(&au.subs()).functor()))
-              ));
+            || (numTraits.isMul(f)
+                && ((t.termArg(0).deref(&au.subs()).isTerm() 
+                     && numTraits.isNumeral(t.termArg(0).deref(&au.subs()).functor()))
+                 ||( t.termArg(1).deref(&au.subs()).isTerm() 
+                     && numTraits.isNumeral(t.termArg(1).deref(&au.subs()).functor()))
+                ));
     });
   };
 

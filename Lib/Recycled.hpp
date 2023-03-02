@@ -105,9 +105,13 @@ public:
 
   ~Recycled()
   {
-    if (_keep(_ptr) && alive) {
-      _reset(_ptr);
-      mem().push(std::move(_ptr));
+    store(std::move(_ptr), std::move(_reset), std::move(_keep));
+  }
+
+  static void store(T t, Reset reset = Reset(), Keep keep = Keep())  {
+    if (keep(t) && alive) {
+      reset(t);
+      mem().push(std::move(t));
     }
   }
 

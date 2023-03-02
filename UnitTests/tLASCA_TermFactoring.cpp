@@ -381,6 +381,14 @@ TEST_GENERATION(bug_02,
                                clause({ -23 * x0 +         0 * g(-23 * x0, x0)       > 0, -23 * x0 != -23 * x1 })   
           )))
 
+TEST_GENERATION(non_linear_tryout01,
+    Generation::SymmetricTest()
+      .inputs  ({    clause({ (x * a) - (a * a) != 0 })    })
+      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA4)))
+      .expected(exactly(  
+           clause({ 0 * (x * a) != 0 })
+          )))
+
   //  clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 })
   // uwa = ⟨{X2/0 -> X1, X1/0 -> X0, }, [(-23/1 * X0) != (-23/1 * X1)]⟩
   //  clause({ -23 * x0 > 0, -23 * x0 != -23 * x1 })
