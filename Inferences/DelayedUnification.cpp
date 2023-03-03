@@ -30,6 +30,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Lib/Recycled.hpp"
 
 namespace Inferences {
 
@@ -413,6 +414,18 @@ struct DelayedUnifier
         },
         [&](DelayedRefl& d) { /* no constraints */ }
         ); }
+
+
+  bool constraintsMightPossiblyUnify(DelayedInference& inf) const {
+    auto decomp = as<DelayedDecompose>();
+    if (decomp.isSome()) {
+      for (auto tup : termArgIter(decomp.unwrap().t1).zip(termArgIter(decomp.unwrap().t2))) {
+        if (!inf.mightPossiblyUnify(tup.first, tup.second))
+          return false;
+      }
+    }
+    return true;
+  }
 };
 
 Option<DelayedUnifier> unifDelayed(Literal* t1, Literal* t2)
@@ -461,7 +474,7 @@ Option<DelayedUnifier> unifDelayed(TermList t1, TermList t2)
 Clause* DelayedFactoring::perform(Clause* cl
     , unsigned i1 // <- index of L1
     , unsigned i2 // <- index of L2
-    ) const 
+    )
 {
   CALL("DelayedFactoring::perform")
   auto lit1 = (*cl)[i1];
@@ -476,22 +489,24 @@ Clause* DelayedFactoring::perform(Clause* cl
   DEBUG_PERFORM(2, "unifier: ", unif)
   ASS(unif.isSome());
   ASS(unif->is<DelayedDecompose>() || unif->is<DelayedRefl>());
+  CHECK_SIDE_CONDITION(unif->constraintsMightPossiblyUnify(*this), "mightPossiblyUnify")
 
-  Stack<Literal*> conclusion;
+  Recycled<Stack<Literal*>> conclusion;
+
 
   // L1 or L2 to the conclusion. if either is ground we keep that one
-  conclusion.push(unif->sigma(unif->sigma(lit2)->ground() ? lit2 : lit1));
+  conclusion->push(unif->sigma(unif->sigma(lit2)->ground() ? lit2 : lit1));
   // add all the constraints
-  unif->forConstraints([&](auto c) { conclusion.push(c); });
+  unif->forConstraints([&](auto c) { conclusion->push(c); });
   // add all other literals from the hypothesis
-  conclusion.loadFromIterator(
+  conclusion->loadFromIterator(
       range(0,cl->size())
         .filter([&](auto i) { return i != i1 && i != i2; })
         .map([&](auto i) { return unif->sigma((*cl)[i]); })
       );
 
   auto out = Clause::fromStack(
-      conclusion,
+      *conclusion,
       Inference(GeneratingInference1(
         InferenceRule::DELAYED_FACTORING,
         cl
@@ -521,7 +536,7 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
     , unsigned term1// <- index of l1 in l1 == r1
     , unsigned lit2 // <- index of l2 == r2
     , unsigned term2 // <- index of l2 in l2 == r2
-    ) const 
+    )
 {
   CALL("DelayedEqualityFactoring::perform")
   auto sort1 = SortHelper::getEqualityArgumentSort((*cl)[lit1]);
@@ -552,6 +567,7 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
   auto unif = unifDelayed(l1, l2);
   DEBUG_PERFORM(2, "unifier: ", unif)
   CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l1, l2). l1 :", l1, "\tl2: ", l2)
+  CHECK_SIDE_CONDITION(unif->constraintsMightPossiblyUnify(*this), "mightPossiblyUnify")
 
 
   Stack<Literal*> conclusion;
@@ -644,7 +660,7 @@ ClauseIterator DelayedEqualityResolution::generateClauses(Clause *cl) {
     );
 }
 
-Clause* DelayedEqualityResolution::perform(Clause* cl, unsigned idx) const {
+Clause* DelayedEqualityResolution::perform(Clause* cl, unsigned idx) {
   CALL("DelayedEqualityResolution::perform")
   auto lit = (*cl)[idx];
   auto l = *lit->nthArgument(0);
@@ -655,18 +671,20 @@ Clause* DelayedEqualityResolution::perform(Clause* cl, unsigned idx) const {
   auto unif = unifDelayed(l, r);
   DEBUG_PERFORM(2, "unifier: ", unif)
   CHECK_SIDE_CONDITION(unif.isSome(), "unifiable(l, r). l :", l, "\tr: ", r)
+  CHECK_SIDE_CONDITION(unif->constraintsMightPossiblyUnify(*this), "mightPossiblyUnify")
 
-  Stack<Literal*> conclusion;
-  unif->forConstraints([&](auto c) { conclusion.push(c); });
+  Recycled<Stack<Literal*>> conclusion;
 
-  conclusion.loadFromIterator(
+  unif->forConstraints([&](auto c) { conclusion->push(c); });
+
+  conclusion->loadFromIterator(
       range(0,cl->size())
         .filter([&](auto i) { return i != idx; })
         .map([&](auto i) { return unif->sigma((*cl)[i]); })
       );
 
   auto out = Clause::fromStack(
-      conclusion, 
+      *conclusion, 
       Inference(GeneratingInference1(
         InferenceRule::DELAYED_EQUALITY_RESOLUTION,
         cl

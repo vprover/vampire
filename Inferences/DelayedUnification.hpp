@@ -245,7 +245,7 @@ private:
   DelayedNonEquations *_index;
 };
 
-class DelayedEqualityFactoring: public GeneratingInferenceEngine {
+class DelayedEqualityFactoring: public DelayedInference {
 public:
   CLASS_NAME(DelayedEqualityFactoring);
   USE_ALLOCATOR(DelayedEqualityFactoring);
@@ -263,14 +263,14 @@ private:
     unsigned lit1,
     unsigned term1,
     unsigned lit2,
-    unsigned term2) const;
+    unsigned term2);
 
   Ordering     * const _ord;
   Options const* const _opts;
 };
 
 
-class DelayedFactoring: public GeneratingInferenceEngine {
+class DelayedFactoring: public DelayedInference {
 public:
   CLASS_NAME(DelayedFactoring);
   USE_ALLOCATOR(DelayedFactoring);
@@ -286,14 +286,14 @@ private:
 
   Clause* perform(Clause* cl,
     unsigned lit1,
-    unsigned lit2) const;
+    unsigned lit2);
 
   Ordering     * const _ord;
   Options const* const _opts;
 };
 
 
-class DelayedEqualityResolution: public GeneratingInferenceEngine {
+class DelayedEqualityResolution: public DelayedInference {
 public:
   CLASS_NAME(DelayedEqualityResolution);
   USE_ALLOCATOR(DelayedEqualityResolution);
@@ -306,7 +306,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) final override;
 
 private:
-  Clause *perform(Clause *, unsigned idx) const;
+  Clause *perform(Clause *, unsigned idx);
 
   Ordering     * const _ord;
   Options const* const _opts;
