@@ -116,7 +116,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
     return OU::lexProductCapture(
         [&]() -> Ordering::Result { 
         TIME_TRACE("atoms with levels")
-        return OU::weightedMulExt(std::get<0>(a1), std::get<0>(a2), 
+        return OU::weightedMulExt(*std::get<0>(a1), *std::get<0>(a2), 
                           [&](auto const& l, auto const& r)
                           { return OU::lexProductCapture(
                               [&]() { return this->compare(l.term, r.term); }
@@ -289,7 +289,7 @@ Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const
           if (a1.isNone() || a2.isNone()) {
             return Option<Result>(Result::INCOMPARABLE);
           } else {
-            return Option<Result>(OU::weightedMulExt(a1.unwrap(), a2.unwrap(),
+            return Option<Result>(OU::weightedMulExt(*a1.unwrap(), *a2.unwrap(),
                   [this](auto& l, auto& r) 
                   { return OU::lexProductCapture(
                       [&]() { return this->compare(l.term, r.term); },

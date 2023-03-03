@@ -94,7 +94,7 @@ public:
   static constexpr uint8_t POS_IS_INT_LEVEL = 2;
   static constexpr uint8_t NEG_IS_INT_LEVEL = 3;
 
-  using AtomsWithLvl = std::tuple<SignedAtoms, uint8_t>;
+  using AtomsWithLvl = std::tuple<Recycled<SignedAtoms>, uint8_t>;
 
 
   template<class NumTraits>
@@ -141,14 +141,12 @@ public:
     }) || [&]() -> Out {
       ASS(literal->isEquality())
       auto level = literal->isPositive() ? POS_EQ_LEVEL : NEG_EQ_LEVEL;
-      auto multiset = MultiSet<SignedTerm>({
+      Recycled<WeightedMultiSet<SignedTerm>> multiset;
+      multiset->elems.init(
         // the sign is only a dummy here to match the type of atomsWithLvl<NumTraits>
           SignedTerm::zero(literal->termArg(0)),
-          SignedTerm::zero(literal->termArg(1)),
-        });
-      return Option<AtomsWithLvl>(std::make_tuple(WeightedMultiSet<SignedTerm>(
-              IntegerConstantType(1),
-              std::move(multiset)), level));
+          SignedTerm::zero(literal->termArg(1)));
+      return Option<AtomsWithLvl>(std::make_tuple(std::move(multiset), level));
     };
   }
 

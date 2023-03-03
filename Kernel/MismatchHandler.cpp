@@ -536,13 +536,13 @@ bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec const& t1, Te
                   return Option<bool>(true);
 
                 // we have s or t being a sum `k x + ... `
-                if (concatIters(a1.unwrap().elems.iter(), a2.unwrap().elems.iter())
+                if (concatIters(a1.unwrap()->elems.iter(), a2.unwrap()->elems.iter())
                        .any([&](auto& x) { return get<0>(x).term.isVar(); }))
                   return Option<bool>(true);
 
                 return Option<bool>(Ordering::Result::EQUAL == OrderingUtils2::weightedMulExt(
-                    a1.unwrap(),
-                    a2.unwrap(),
+                    *a1.unwrap(),
+                    *a2.unwrap(),
                     [](auto& l, auto& r) { return (l.sign == r.sign && l.term.term()->functor() == r.term.term()->functor())
                       ? Ordering::Result::EQUAL
                       : Ordering::Result::INCOMPARABLE; }));

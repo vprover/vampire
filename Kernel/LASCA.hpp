@@ -704,30 +704,34 @@ namespace Kernel {
 
 
     template<class NumTraits>
-    WeightedMultiSet<SignedTerm> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
+    Recycled<WeightedMultiSet<SignedTerm>> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
     {
-      auto counts =  std::get<1>(t)->iterSummands()
-            .map([](auto s) {
-              auto count  = ifOfType<IntegerConstantType>(s.numeral,
-                             [&](IntegerConstantType num) { return num; },
-                              /* decltype(num) in { RatTraits, RealTraits } */
-                             [&](auto num) {
-                               ASS_EQ(num.denominator(), IntegerConstantType(1))
-                               return num.numerator();
-                             }).abs();
-              if (count == IntegerConstantType(0)) {
-                ASS(s.numeral.sign() == Sign::Zero)
-                count = IntegerConstantType(1);
-              }
-              SignedTerm term = {
-                .sign = s.numeral.sign(),
-                .term = s.factors->denormalize(),
-              };
-              return std::make_tuple(term, count);
-            })
-            .template collect<Stack>();
-      std::sort(counts.begin(), counts.end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
-      return WeightedMultiSet<SignedTerm>(std::get<0>(t), MultiSet<SignedTerm>::fromSortedStack(std::move(counts)));
+      Recycled<WeightedMultiSet<SignedTerm>> out;
+
+      out->elems.raw().loadFromIterator(
+          std::get<1>(t)->iterSummands()
+                .map([](auto s) {
+                  auto count  = ifOfType<IntegerConstantType>(s.numeral,
+                                 [&](IntegerConstantType num) { return num; },
+                                  /* decltype(num) in { RatTraits, RealTraits } */
+                                 [&](auto num) {
+                                   ASS_EQ(num.denominator(), IntegerConstantType(1))
+                                   return num.numerator();
+                                 }).abs();
+                  if (count == IntegerConstantType(0)) {
+                    ASS(s.numeral.sign() == Sign::Zero)
+                    count = IntegerConstantType(1);
+                  }
+                  SignedTerm term = {
+                    .sign = s.numeral.sign(),
+                    .term = s.factors->denormalize(),
+                  };
+                  return std::make_tuple(term, count);
+                })
+          );
+      std::sort(out->elems.raw().begin(), out->elems.raw().end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
+      out->elems.integrity();
+      return out;
     }
 
   public:
@@ -740,11 +744,11 @@ namespace Kernel {
         
     // TODO move to LASCA.hpp
     template<class NumTraits>
-    Option<SignedAtoms> signedAtoms(TermList t)
+    Option<Recycled<SignedAtoms>> signedAtoms(TermList t)
     {
       auto norm = this->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
       auto atoms = rmNum(divNf(norm));
-      if (hasSubstitutionProperty(atoms)) {
+      if (hasSubstitutionProperty(*atoms)) {
         return Option<decltype(atoms)>(std::move(atoms));
       } else {
         return Option<decltype(atoms)>();

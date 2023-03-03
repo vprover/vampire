@@ -13,6 +13,7 @@
  * @date 2020-04-29
  */
 
+#include "Kernel/LASCA.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/QKbo.hpp"
@@ -308,6 +309,21 @@ TEST_FUN(misc02) {
   check(ord, f(x + y), Incomp, x);
 }
 
+#define SIGNED_ATOM_TEST_FUNS                                                             \
+                                                                                          \
+  auto signedAtoms = [&](auto t) -> Option<Recycled<SignedAtoms>>                         \
+    { return LascaState::globalState->template signedAtoms<RealTraits>(t); };             \
+                                                                                          \
+  auto none = Option<Recycled<SignedAtoms>>();                                            \
+  auto some = [&](int i, Stack<SignedTerm> ts)                                            \
+  {                                                                                       \
+    Recycled<SignedAtoms> at;                                                             \
+    at->weight = ict(i);                                                                  \
+    at->elems = MultiSet<SignedTerm>(std::move(ts));                                      \
+    return Option<Recycled<SignedAtoms>>(std::move(at));                                  \
+  };                                                                                      \
+
+
 TEST_FUN(normal_subsafe) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Real)
@@ -316,12 +332,7 @@ TEST_FUN(normal_subsafe) {
   DECL_FUNC (f, {Real}, Real)
 
   (void) qkbo();
-  auto signedAtoms = [&](auto t) -> Option<SignedAtoms>
-    { return LascaState::globalState->template signedAtoms<RealTraits>(t); };
-
-  auto none = Option<SignedAtoms>();
-  auto some = [&](int i, Stack<SignedTerm> ts) 
-  { return Option<SignedAtoms>(SignedAtoms(ict(i), MultiSet<SignedTerm>(std::move(ts)))); };
+  SIGNED_ATOM_TEST_FUNS
 
   ASS_EQ(signedAtoms(frac(1,2) * x + 7 * a), none);
   ASS_EQ(signedAtoms( x +  7 * a), none);
@@ -368,56 +379,53 @@ TEST_FUN(normal_form_lcm) {
   // DECL_FUNC (f, {Real}, Real)
 
   (void) qkbo();
-  auto signedAtoms = [&](auto t) -> Option<SignedAtoms>
-    { return LascaState::globalState->template signedAtoms<RealTraits>(t); };
 
-  auto ok = [&](int i, Stack<SignedTerm> ts) 
-  { return Option<SignedAtoms>(SignedAtoms(ict(i), std::move(ts))); };
+  SIGNED_ATOM_TEST_FUNS
 
   ASS_EQ(signedAtoms(frac(1,2) * a + b), 
-      ok(2, {
+      some(2, {
         SignedTerm::pos(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
   ASS_EQ(signedAtoms(frac(1,2) * a + -b), 
-      ok(2, {
+      some(2, {
         SignedTerm::pos(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
   ASS_EQ(signedAtoms(frac(-1,2) * a + -b), 
-      ok(2, {
+      some(2, {
         SignedTerm::neg(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
   ASS_EQ(signedAtoms(frac(1,-2) * a + -b), 
-      ok(2, {
+      some(2, {
         SignedTerm::neg(a),
         SignedTerm::neg(b),
         SignedTerm::neg(b),
       }));
 
   ASS_EQ(signedAtoms(frac(-1,2) * a + b), 
-      ok(2, {
+      some(2, {
         SignedTerm::neg(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
   ASS_EQ(signedAtoms(frac(1,2) * a + frac(1,4) * b), 
-      ok(4, {
+      some(4, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
       }));
 
   // ASS_EQ(signedAtoms(frac(1,2) * a + frac(0,4) * b), 
-  // ok(2, {
+  // some(2, {
   //       SignedTerm::pos(a),
   //       SignedTerm::zero(b),
   //     }));
@@ -575,25 +583,21 @@ TEST_FUN(normal_form01) {
   DECL_FUNC (f, {Real}, Real)
 
   (void) qkbo();
-  auto signedAtoms = [&](auto t) -> Option<SignedAtoms>
-    { return LascaState::globalState->template signedAtoms<RealTraits>(t); };
-#define CHECK_EQ(is, exp) {                                                                         \
-    if (is != exp) {                                                                                \
-      std::cout << "[ FAIL ] ";                                                                     \
-      std::cout << "[     case ] " << #is << std::endl;                                             \
-      std::cout << "[       is ] " << is << std::endl;                                              \
-      std::cout << "[ expected ] " << exp << std::endl;                                             \
-      ASSERTION_VIOLATION                                                                           \
-    } else {                                                                                        \
-      std::cout << "[  OK  ] " << #is << std::endl;                                                 \
-    }                                                                                               \
-  };                                                                                                \
-
-  auto ok = [&](int i, Stack<SignedTerm> ts) 
-  { return Option<SignedAtoms>(SignedAtoms(ict(i), std::move(ts))); };
+  SIGNED_ATOM_TEST_FUNS
+#define CHECK_EQ(is, exp) {                                                               \
+    if (is != exp) {                                                                      \
+      std::cout << "[ FAIL ] ";                                                           \
+      std::cout << "[     case ] " << #is << std::endl;                                   \
+      std::cout << "[       is ] " << is << std::endl;                                    \
+      std::cout << "[ expected ] " << exp << std::endl;                                   \
+      ASSERTION_VIOLATION                                                                 \
+    } else {                                                                              \
+      std::cout << "[  OK  ] " << #is << std::endl;                                       \
+    }                                                                                     \
+  };                                                                                      \
 
   CHECK_EQ(signedAtoms(2 * a() + b), 
-      ok(1, {
+      some(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(b),
@@ -601,7 +605,7 @@ TEST_FUN(normal_form01) {
 
 #if !ENABLE_ZERO_REMOVAL
   CHECK_EQ(signedAtoms(2 * a + 0 * b), 
-      ok(1, {
+      some(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::zero(b),
@@ -609,62 +613,62 @@ TEST_FUN(normal_form01) {
 #endif // !ENABLE_ZERO_REMOVAL
 
   CHECK_EQ(signedAtoms(2 * a + 0 * a), 
-      ok(1, {
+      some(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
   CHECK_EQ(signedAtoms(2 * a + 1 * a), 
-      ok(1, {
+      some(1, {
         SignedTerm::pos(a),
         SignedTerm::pos(a),
         SignedTerm::pos(a),
       }));
 
   CHECK_EQ(signedAtoms(2 * a + -3 * a), 
-      ok(1, {
+      some(1, {
         SignedTerm::neg(a),
       }));
 
   CHECK_EQ(signedAtoms(2 * a + -4 * a), 
-      ok(1, {
+      some(1, {
         SignedTerm::neg(a),
         SignedTerm::neg(a),
       }));
 
   CHECK_EQ(signedAtoms(frac(1, 2) * a +  b), 
-      ok(2, {
+      some(2, {
         SignedTerm::pos(a),
         SignedTerm::pos(b),
         SignedTerm::pos(b),
       }));
 
   CHECK_EQ(signedAtoms(2 * a - a + -3 * a), 
-      ok(1, {
+      some(1, {
         SignedTerm::neg(a),
         SignedTerm::neg(a),
       }));
 
 #if !ENABLE_ZERO_REMOVAL
   CHECK_EQ(signedAtoms(2 * a + a + -3 * a), 
-      ok(1, {
+      some(1, {
         SignedTerm::zero(a),
       }));
 
   CHECK_EQ(signedAtoms(-2 * a - a + 3 * a), 
-      ok(1, {
+      some(1, {
         SignedTerm::zero(a),
       }));
 #endif // !ENABLE_ZERO_REMOVAL
 
   CHECK_EQ(signedAtoms(2 * f(a + 3 * b) - f(a - b + 4 * b)), 
-      ok(1, {
+      some(1, {
         SignedTerm::pos(f(a + 3 * b)),
       }));
 
 #if !ENABLE_ZERO_REMOVAL
   CHECK_EQ(signedAtoms(f(3 * b) + f(0 * a - b + 4 * b)), 
-      ok(1, {
+      some(1, {
         SignedTerm::pos(f(3 * b)),
         SignedTerm::pos(f(0 * a + 3 * b)),
       }));
