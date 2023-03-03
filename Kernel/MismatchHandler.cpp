@@ -16,6 +16,7 @@
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Recycled.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -119,6 +120,63 @@ public:
     return dt->clone();
   }
 };
+
+
+template<class NumTraits, class Action>
+auto iterAtoms(TermSpec outer, AbstractingUnifier& au, NumTraits n, Action action) {
+  static TermSpec one = TermSpec(TermList(n.one()), 0);
+  using Numeral = typename NumTraits::ConstantType;
+
+  Recycled<Stack<pair<TermSpec, Numeral>>> todo;
+  todo->push(make_pair(std::move(outer), Numeral(1)));
+  while (todo->isNonEmpty()) {
+    auto pair = todo->pop();
+    auto& term = pair.first.deref(&au.subs());
+    auto numeral = std::move(pair.second);
+    if (numeral != Numeral(0)) {
+      if (term.isVar()) {
+        action(term, numeral);
+      } else {
+        auto f = term.functor();
+        if (n.isMinus(f)) {
+          todo->push(make_pair(term.termArg(0), -numeral));
+          continue;
+
+        } else if (n.isNumeral(f)) {
+          action(one, numeral * (*n.tryNumeral(f)));
+          continue;
+
+        } else if (n.isMul(f)) {
+          auto lhs_ = term.termArg(0);
+          auto rhs_ = term.termArg(1);
+          auto& lhs = lhs_.deref(&au.subs());
+          auto& rhs = rhs_.deref(&au.subs());;
+          if (lhs.isTerm() && n.isNumeral(lhs.functor())) {
+            todo->push(make_pair(rhs.clone(), numeral * (*n.tryNumeral(lhs.functor()))));
+
+          } else if (rhs.isTerm() && n.isNumeral(rhs.functor())) {
+            todo->push(make_pair(lhs.clone(), numeral * (*n.tryNumeral(rhs.functor()))));
+
+          } else {
+            // non-linear multiplication
+            action(term, numeral);
+
+          }
+        } else if (n.isAdd(f)) {
+          todo->push(make_pair(term.termArg(0), numeral));
+          todo->push(make_pair(term.termArg(1), numeral));
+
+        } else {
+          // uninterpreted
+          action(term, numeral);
+        }
+      }
+    }
+
+  }
+};
+
+
 template<class NumTraits>
 MismatchHandler::AbstractionResult alasca4(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n) {
   TIME_TRACE("unification with abstraction ALASCA3")
@@ -127,55 +185,12 @@ MismatchHandler::AbstractionResult alasca4(AbstractingUnifier& au, TermSpec cons
   using NeverEqual = MismatchHandler::NeverEqual;
   using Numeral = typename NumTraits::ConstantType;
 
-  TermSpec one = TermSpec(TermList(n.one()), 0);
-
-  auto atoms = [&](auto& term) {
-    return iterTraits(AcIter(NumTraits::addF(), term.clone(), &au.subs()))
-      .map([&](TermSpec out) -> pair<TermSpec, Numeral> {
-          // auto out = make_pair(std::move(t), one.clone());
-          auto numeral = Numeral(1);
-          while (true) {
-            if (out.isVar()) 
-              return make_pair(out.clone(), std::move(numeral));
-
-            auto f = out.functor();
-            if (n.isMinus(f)) {
-              out = out.termArg(0).deref(&au.subs()).clone();
-              numeral = -numeral;
-              continue;
-            } else if (n.isNumeral(f)) {
-              return make_pair(one.clone(), numeral * (*n.tryNumeral(f)));
-
-            } else if (n.isMul(f)) {
-              auto lhs_ = out.termArg(0);
-              auto rhs_ = out.termArg(1);
-              auto& lhs = lhs_.deref(&au.subs());
-              auto& rhs = rhs_.deref(&au.subs());;
-              if (lhs.isTerm() && n.isNumeral(lhs.functor())) {
-                out = rhs.clone();
-                numeral = numeral * (*n.tryNumeral(lhs.functor()));
-              } else if (rhs.isTerm() && n.isNumeral(rhs.functor())) {
-                out = lhs.clone();
-                numeral = numeral * (*n.tryNumeral(rhs.functor()));
-              } else {
-                // non-linear multiplication
-                return make_pair(std::move(out), numeral);
-              }
-            } else {
-              // uninterpreted
-              return make_pair(std::move(out), numeral);
-            }
-          }
-       });
-  };
 
   Recycled<Stack<pair<TermSpec, Numeral>>> _diff;
   auto& diff = *_diff;
   DEBUG_UWA(2, "diff: ", diff, " (0)");
-  diff.loadFromIterator(concatIters(
-    atoms(t1),
-    atoms(t2).map([](auto x) { return make_pair(std::move(x.first), -x.second); })
-  ));
+  iterAtoms(t1.clone(), au, n, [&diff](auto& t, auto num) { diff.push(make_pair(t.clone(),  num)); });
+  iterAtoms(t2.clone(), au, n, [&diff](auto& t, auto num) { diff.push(make_pair(t.clone(), -num)); });
   DEBUG_UWA(2, "diff: ", diff, " (1)");
 
   auto sumUp = [](auto& diff, auto cmp) {
@@ -578,41 +593,11 @@ MismatchHandler::AbstractionResult alasca3(AbstractingUnifier& au, TermSpec cons
   using NeverEqual = MismatchHandler::NeverEqual;
   using Numeral = typename NumTraits::ConstantType;
 
-  TermSpec one = TermSpec(TermList(n.one()), 0);
-
-  auto atoms = [&](auto& t) {
-    return iterTraits(AcIter(NumTraits::addF(), t.clone(), &au.subs()))
-      .map([&](TermSpec t) -> pair<TermSpec, Numeral> {
-          if (t.isVar()) 
-            return make_pair(t.clone(), Numeral(1));
-          auto f = t.functor();
-          if (n.isMinus(f)) 
-            return make_pair(t.termArg(0).deref(&au.subs()).clone(), Numeral(-1));
-          auto num = n.tryNumeral(f);
-          if (num.isSome()) {
-            return make_pair(one.clone(), *num);
-          } else {
-            if (n.isMul(f)) {
-                auto lhs = t.termArg(0).deref(&au.subs()).clone();
-                auto lnum = someIf(lhs.isTerm(), 
-                    [&]() { return n.tryNumeral(lhs.functor()); })
-                    .flatten();
-                if (lnum) {
-                   return make_pair(t.termArg(1).deref(&au.subs()).clone(), *lnum);
-                }
-            }
-            return make_pair(t.clone(), Numeral(1));
-          }
-          });
-  };
-
   Recycled<Stack<pair<TermSpec, Numeral>>> _diff;
   auto& diff = *_diff;
   DEBUG_UWA(2, "diff: ", diff, " (0)");
-  diff.loadFromIterator(concatIters(
-    atoms(t1),
-    atoms(t2).map([](auto x) { return make_pair(std::move(x.first), -x.second); })
-  ));
+  iterAtoms(t1.clone(), au, n, [&diff](auto& t, auto num) { diff.push(make_pair(t.clone(),  num)); });
+  iterAtoms(t2.clone(), au, n, [&diff](auto& t, auto num) { diff.push(make_pair(t.clone(), -num)); });
   DEBUG_UWA(2, "diff: ", diff, " (1)");
 
   auto sumUp = [](auto& diff, auto cmp) {

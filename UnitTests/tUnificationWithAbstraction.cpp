@@ -1464,6 +1464,17 @@ ROB_UNIFY_TEST(alasca3_test_14,
       .constraints = Stack<Literal*>{},
     })
 
+ROB_UNIFY_TEST(alasca3_test_15,
+    Options::UnificationWithAbstraction::ALASCA4,
+    /* withFinalize */ false,
+    f2(x, 2 * (a + b)),
+    f2(x, x  + 2 * b +  2 * a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(0, 2 * (a + b)),
+      .resultSigma = f2(0, 0 + 2 * a  + 2 * b ),
+      .constraints = Stack<Literal*>{ },
+    })
+
 ROB_UNIFY_TEST(constr_var_01,
     Options::UnificationWithAbstraction::ALASCA3,
     /* withFinalize */ false,
@@ -1821,6 +1832,7 @@ ROB_UNIFY_TEST(alasca4_test_04,
       .constraints = Stack<Literal*>{ },
     })
 
+
 ROB_UNIFY_TEST(alasca4_test_05,
     Options::UnificationWithAbstraction::ALASCA4,
     /* withFinalize */ false,
@@ -1908,6 +1920,17 @@ ROB_UNIFY_TEST(alasca4_test_14,
       .querySigma  = f2(x, 0),
       .resultSigma = f2(x, f(a) - f(a)),
       .constraints = Stack<Literal*>{},
+    })
+
+ROB_UNIFY_TEST(alasca4_test_15,
+    Options::UnificationWithAbstraction::ALASCA4,
+    /* withFinalize */ false,
+    f2(x, 2 * (a + b)),
+    f2(x, x  + 2 * b +  2 * a),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(0, 2 * (a + b)),
+      .resultSigma = f2(0, 0 + 2 * a  + 2 * b ),
+      .constraints = Stack<Literal*>{ },
     })
 
 ROB_UNIFY_TEST(alasca4_constr_var_01,
