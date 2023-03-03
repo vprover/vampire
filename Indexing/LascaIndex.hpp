@@ -65,7 +65,7 @@ public:
         auto k = appl.key();
 #endif
         _index.insert(std::move(appl));
-        ASS_REP(find(k).hasNext(), k)
+        ASS_REP(find(k).hasNext(), outputToString("key: ", k, "\nindex: ", multiline(_index)))
       } else {
         _index.remove(std::move(appl));
       }
