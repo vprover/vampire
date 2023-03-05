@@ -161,7 +161,7 @@ class LearnedPassiveClauseContainer
 : public LRSIgnoringPassiveClauseContainer
 {
 protected:
-  virtual double scoreClause(Clause*) = 0;
+  virtual float scoreClause(Clause*) = 0;
 public:
   CLASS_NAME(LearnedPassiveClauseContainer);
   USE_ALLOCATOR(LearnedPassiveClauseContainer);
@@ -176,10 +176,24 @@ public:
   void remove(Clause* cl) override;
   Clause* popSelected() override;
 private:
-  DHMap<Clause*,double> _scores;
-  ScoreQueue _queue;
+  DHMap<Clause*,std::pair<double,unsigned>> _scores;
+  ShuffledScoreQueue _queue;
   unsigned _size;
   double _temperature;
+};
+
+class LearnedPassiveClauseContainerExperNF12cLoop5
+: public LearnedPassiveClauseContainer
+{
+public:
+  CLASS_NAME(LearnedPassiveClauseContainerExperNF12cLoop5);
+  USE_ALLOCATOR(LearnedPassiveClauseContainerExperNF12cLoop5);
+
+  LearnedPassiveClauseContainerExperNF12cLoop5(bool isOutermost, const Shell::Options& opt) :
+    LearnedPassiveClauseContainer(isOutermost,opt) {}
+  ~LearnedPassiveClauseContainerExperNF12cLoop5() override {}
+protected:
+  float scoreClause(Clause*) override;
 };
 
 /**
