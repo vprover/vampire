@@ -80,7 +80,9 @@ using TermEntryIterator = EntryIterator<TermEntry, TermFingerprintIndex>;
 
 class LiteralFingerprintIndex final : public LiteralIndexingStructure {
 public:
-
+  CLASS_NAME(LiteralFingerprintIndex);
+  USE_ALLOCATOR(LiteralFingerprintIndex);
+  
   void insert(Literal* lit, Clause* cls) override;
   void remove(Literal* lit, Clause* cls) override;
 

@@ -270,7 +270,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case DELAYED_NONEQUATIONS:
-    is=new LiteralFingerprintIndex("BinaryResIndex");    
+    is=new LiteralFingerprintIndex("BinaryResIndex");  
     res = new Inferences::DelayedNonEquations(is);
     isGenerating = true;
     break;

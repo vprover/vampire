@@ -12,7 +12,7 @@
  * Things for Ahmed/Joe's delayed-unification CADE '23 calculus
  */
 
-#define DEBUG_INSERT(lvl, ...)  if (lvl <= 1) DBG(__VA_ARGS__)
+#define DEBUG_INSERT(lvl, ...)  if (lvl <= 0) DBG(__VA_ARGS__)
 #define DEBUG_PERFORM(lvl, ...) if (lvl <= 0) DBG(__VA_ARGS__)
 // increase nr to increase debug verbosity ^
 
@@ -367,7 +367,10 @@ ClauseIterator DelayedBinaryResolution::generateClauses(Clause *cl) {
   CALL("DelayedBinaryResolution::generateClauses")
 
   auto selected = cl->getSelectedLiteralIterator();
-  auto resolutions = getMapAndFlattenIterator(selected, [this, cl](Literal *lit) {
+  auto selectedNonEquality = getFilteredIterator(selected, [](Literal* lit){
+    return !lit->isEquality();
+  });
+  auto resolutions = getMapAndFlattenIterator(selectedNonEquality, [this, cl](Literal *lit) {
     return getMappingIterator(
       // true means get complementary literals that could unify
       _index->getUnifications(lit,true),
