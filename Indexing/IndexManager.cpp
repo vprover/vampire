@@ -260,15 +260,18 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DELAYED_SUBTERMS:
-    res = new Inferences::DelayedSubterms(_alg->getOrdering());
+    tis=new TermFingerprintIndex("SubtermIndex");
+    res = new Inferences::DelayedSubterms(_alg->getOrdering(), tis);
     isGenerating = true;
     break;
   case DELAYED_EQUATIONS:
-    res = new Inferences::DelayedLHS(_alg->getOrdering(), _alg->getOptions());
+    tis=new TermFingerprintIndex("LHSIndex");
+    res = new Inferences::DelayedLHS(_alg->getOrdering(), _alg->getOptions(), tis);
     isGenerating = true;
     break;
   case DELAYED_NONEQUATIONS:
-    res = new Inferences::DelayedNonEquations;
+    is=new LiteralFingerprintIndex("BinaryResIndex");    
+    res = new Inferences::DelayedNonEquations(is);
     isGenerating = true;
     break;
 

@@ -18,9 +18,13 @@
 #include "Debug/Assertion.hpp"
 #include "Kernel/Clause.hpp"
 #include "Indexing/Index.hpp"
+#include "Indexing/TermIndex.hpp"
+#include "Indexing/LiteralIndex.hpp"
+#include "Indexing/FingerprintIndex.hpp"
 #include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
+using namespace Indexing;
 
 /**
  * base class for delayed unification "indices"
@@ -135,26 +139,28 @@ private:
 };
 
 // non-variable subterms of selected literals
-class DelayedSubterms: public TopSymbolIndex<Term *> {
+class DelayedSubterms: public TermIndex {
 public:
   CLASS_NAME(DelayedSubterms);
   USE_ALLOCATOR(DelayedSubterms);
 
-  DelayedSubterms(const Ordering &ordering) : _ordering(ordering) {}
+  DelayedSubterms(const Ordering &ordering, TermIndexingStructure* index) : 
+   TermIndex(index), _ordering(ordering) {}
   void handleClause(Kernel::Clause* c, bool adding) override;
 
 private:
   // current ordering
-  const Ordering& _ordering;
+  const Ordering& _ordering; 
 };
 
 // left-hand-sides of selected positive equations
-class DelayedLHS: public TopSymbolIndex<Term *> {
+class DelayedLHS: public TermIndex {
 public:
   CLASS_NAME(DelayedLHS);
   USE_ALLOCATOR(DelayedLHS);
 
-  DelayedLHS(const Ordering &ordering, const Options &options) : _ordering(ordering), _options(options) {}
+  DelayedLHS(const Ordering &ordering, const Options &options, TermIndexingStructure* index) : 
+    TermIndex(index), _ordering(ordering), _options(options) {}
   void handleClause(Kernel::Clause* c, bool adding) override;
   // variable left-hand-sides
   DHSet<TopSymbolIndex<TermList>::Entry>::Iterator variables() {
@@ -171,12 +177,17 @@ private:
 };
 
 // selected non-equation literals
-class DelayedNonEquations: public TopSymbolLiteralIndex {
+class DelayedNonEquations: public LiteralIndex {
 public:
   CLASS_NAME(DelayedNonEquations);
   USE_ALLOCATOR(DelayedNonEquations);
 
-  void handleClause(Kernel::Clause *c, bool adding) override;
+  DelayedNonEquations(LiteralIndexingStructure* is)
+    : LiteralIndex(is)
+  { }
+
+protected:
+  void handleClause(Clause* c, bool adding) override;
 };
 
 /**
@@ -239,6 +250,13 @@ public:
 
   void attach(SaturationAlgorithm *salg) final override;
   ClauseIterator generateClauses(Clause *premise) final override;
+
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& is) final override
+  {
+    _index = static_cast<decltype(_index)>(is[0]);
+  }
+#endif 
 
 private:
   Clause *perform(Clause *, Literal *, Clause *, Literal *);

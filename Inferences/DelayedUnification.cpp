@@ -12,7 +12,7 @@
  * Things for Ahmed/Joe's delayed-unification CADE '23 calculus
  */
 
-#define DEBUG_INSERT(lvl, ...)  if (lvl <= 0) DBG(__VA_ARGS__)
+#define DEBUG_INSERT(lvl, ...)  if (lvl <= 1) DBG(__VA_ARGS__)
 #define DEBUG_PERFORM(lvl, ...) if (lvl <= 0) DBG(__VA_ARGS__)
 // increase nr to increase debug verbosity ^
 
@@ -41,8 +41,14 @@ void DelayedSubterms::handleClause(Clause *c, bool adding) {
     Literal *lit = (*c)[i];
     TermIterator subterms(EqHelper::getSubtermIterator(lit, _ordering));
     while (subterms.hasNext()) {
-      Term *next = subterms.next().term();
-      handle(next->functor(), c, lit, next, adding);
+      TermList t = subterms.next();
+      DEBUG_INSERT(1, (adding ? "inserting" : "removing"), ": ", t)
+
+      if(adding){
+        _is->insert(t, lit, c);
+      } else {
+        _is->remove(t, lit, c);
+      }
     }
   }
 }
@@ -55,13 +61,20 @@ void DelayedLHS::handleClause(Clause *c, bool adding) {
     Literal *lit = (*c)[i];
     TermIterator lhs(EqHelper::getSuperpositionLHSIterator(lit, _ordering, _options));
     while (lhs.hasNext()) {
-      TermList next = lhs.next();
-      if(next.isTerm())
-        handle(next.term()->functor(), c, lit, next.term(), adding);
-      else if(adding)
-        _variables.insert({c, lit, next});
-      else
-        _variables.remove({c, lit, next});
+      TermList t = lhs.next();
+      DEBUG_INSERT(1, (adding ? "inserting" : "removing"), ": ", t)
+
+      if(adding){
+        if(t.isTerm())
+          _is->insert(t, lit, c);
+        else 
+          _variables.insert({c, lit, t});
+      } else {
+        if(t.isTerm())
+          _is->remove(t, lit, c);
+        else 
+          _variables.remove({c, lit, t});        
+      }
     }
   }
 }
@@ -69,9 +82,12 @@ void DelayedLHS::handleClause(Clause *c, bool adding) {
 void DelayedNonEquations::handleClause(Clause *c, bool adding) {
   CALL("DelayedNonEquations::handleClause")
   DEBUG_INSERT(1, (adding ? "inserting" : "removing"), ": ", *c)
-  for(unsigned i = 0; i < c->numSelected(); i++)
-    if(!(*c)[i]->isEquality())
-      handle((*c)[i]->polarity(), (*c)[i]->functor(), c, (*c)[i], adding);
+  for(unsigned i = 0; i < c->numSelected(); i++){
+    Literal* lit = (*c)[i];
+    if(!lit->isEquality()){
+      handleLiteral(lit, c, adding);
+    }
+  }
 }
 
 void DelayedSuperposition::attach(SaturationAlgorithm *salg) {
@@ -226,8 +242,10 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
     return pvi(getMappingIterator(
       getConcatenatedIterator(
         getMappingIterator(
-          _lhsIndex->query(subterm.term->functor()),
-          [](TEntry entry) -> TLEntry { return { entry.clause, entry.literal, TermList(entry.term) }; }
+          _lhsIndex->getUnifications(TermList(subterm.term), false),
+          [](TermQueryResult tqr) -> TLEntry {
+            return { tqr.clause, tqr.literal, tqr.term }; 
+          }
         ),
         _lhsIndex->variables()
       ),
@@ -249,10 +267,8 @@ ClauseIterator DelayedSuperposition::generateClauses(Clause *cl) {
   // backward superpositions
   auto bwsuperpositions = getMapAndFlattenIterator(bwrewrites, [this](TLEntry rewrite) {
     return pvi(getMappingIterator(
-      rewrite.term.isVar()
-        ? _subtermIndex->entries()
-        : _subtermIndex->query(rewrite.term.term()->functor()),
-      [rewrite](TEntry subterm) -> Superposition { return { rewrite, subterm }; }
+      _subtermIndex->getUnifications(rewrite.term, false),
+      [rewrite](TermQueryResult tqr) -> Superposition { return { rewrite, { tqr.clause, tqr.literal, tqr.term.term() } }; }
     ));
   });
 
@@ -350,15 +366,15 @@ Clause *DelayedBinaryResolution::perform(
 ClauseIterator DelayedBinaryResolution::generateClauses(Clause *cl) {
   CALL("DelayedBinaryResolution::generateClauses")
 
-  typedef TopSymbolIndex<NoTerms>::Entry Entry;
   auto selected = cl->getSelectedLiteralIterator();
   auto resolutions = getMapAndFlattenIterator(selected, [this, cl](Literal *lit) {
     return getMappingIterator(
-      _index->query(!lit->polarity(), lit->functor()),
-      [this, cl, lit](Entry entry) {
+      // true means get complementary literals that could unify
+      _index->getUnifications(lit,true),
+      [this, cl, lit](SLQueryResult res) {
         return perform(
-          entry.clause,
-          entry.literal,
+          res.clause,
+          res.literal,
           cl,
           lit
         );

@@ -354,6 +354,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/Index.cpp
     Indexing/IndexManager.cpp
     Indexing/InductionFormulaIndex.cpp
+    Indexing/FingerprintIndex.cpp    
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralSubstitutionTree.cpp
@@ -371,6 +372,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/FingerprintIndex.hpp    
     Indexing/GroundingIndex.hpp
     Indexing/Index.hpp
     Indexing/IndexManager.hpp
@@ -720,6 +722,7 @@ set(UNIT_TESTS
     UnitTests/tDelayedSuperposition.cpp
     UnitTests/tDelayedEqualityFactoring.cpp
     UnitTests/tDelayedFactoring.cpp
+    UnitTests/tDelayedBinaryResolution.cpp
     UnitTests/tDelayedEqualityResolution.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tGaussianElimination.cpp
