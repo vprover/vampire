@@ -123,8 +123,11 @@ public:
     unsigned _justNeq;
     unsigned _numVarOcc;
 
+    float _thAnc;
+    float _allAnc;
+
   public:
-    static constexpr const unsigned NUM_FEATURES = 14;
+    static constexpr const unsigned NUM_FEATURES = 15;
 
     FeatureIterator(Clause* cl) :
       _cl(cl), _featureId(0),
@@ -138,6 +141,13 @@ public:
         if (l->isPositive()) { _pLen++; } else { _nLen++; }
         if (l->isEquality()) { _justNeq = 0; } else { _justEq = 0; }
       }
+    }
+
+    void collectBoundedThStuff() {
+      _thAnc = _cl->inference().th_ancestors;
+      if (_thAnc > 1024.0) { _thAnc = 1024.0; }
+      _allAnc = _cl->inference().all_ancestors;
+      if (_allAnc > 1024.0) { _allAnc = 1024.0; }
     }
 
     bool hasNext() {
@@ -157,33 +167,30 @@ public:
           return _cl->weight();
 
         case 2:
-          return _cl->length();
-
-        case 3:
           computeGenLengthAndVarOcc();
           return _pLen;
 
-        case 4:
+        case 3:
           return _nLen;
 
-        case 5:
+        case 4:
           return _justEq;
-        case 6:
+        case 5:
           return _justNeq;
 
-        case 7:
+        case 6:
           return _numVarOcc;
-        case 8:
+        case 7:
           return (double)_numVarOcc/(double)_cl->weight();
 
         // CAREFUL: check in Preprocess.cpp the lines relavant to initializing the sine levels when changing the feature codes
 
         // SineLevels
-        case 9:  // redundant: the same as SineLevel == 0
+        case 8:  // redundant: the same as SineLevel == 0
           return (_cl->derivedFromGoal() ? 1.0 : 0.0);
-        case 10: // redundant: the same as SineLevel == 255
+        case 9: // redundant: the same as SineLevel == 255
           return (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) ? 1.0 : 0.0;
-        case 11:
+        case 10:
           if (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) {
             return 1.0;
           } else if (inf.getSineLevel() == 0) {
@@ -194,17 +201,21 @@ public:
           }
 
         // a bit of AVATAR
-        case 12:
+        case 11:
           return _cl->splitWeight();
+
+        case 12:
+          collectBoundedThStuff();
+          return _thAnc / _allAnc;
+
+        case 13:
+          return _thAnc;
+
+        case 14:
+          return _allAnc;
 
         default:
           ASSERTION_VIOLATION;
-
-        // TODO: add stuff regarding arithmetic
-        // << (c->isPureTheoryDescendant() ? '1' : '0') << " "
-        // << inf.th_ancestors << " "
-        // << inf.all_ancestors << " "
-        // << inf.th_ancestors / inf.all_ancestors << endl;
       }
     }
   };
