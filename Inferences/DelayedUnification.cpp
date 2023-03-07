@@ -143,7 +143,7 @@ Clause *DelayedSuperposition::perform(
 
   LiteralStack constraints;
    
-  if(!arity){
+  if(lhs.isVar()){
     subst.bind(lhs_renamed.var(), rhs_renamed);
   }
 
@@ -157,8 +157,23 @@ Clause *DelayedSuperposition::perform(
     TermList rargS = SubstHelper::apply(rarg, subst);
     
     if(largS.isVar() && !rargS.containsSubterm(largS)){
-      subst.bind(largS.var(), rargS);
-      continue;
+      TermList res;
+      if(subst.findBinding(largS.var(), res)){
+        if(res == rargS)
+          continue;
+      } else {
+        subst.bind(largS.var(), rargS);
+        continue;
+      }
+    } else if (rargS.isVar() && !largS.containsSubterm(rargS)){
+      TermList res;
+      if(subst.findBinding(rargS.var(), res)){
+        if(res == largS)
+          continue;
+      } else {
+        subst.bind(rargS.var(), largS);
+        continue;
+      }      
     }
 
     // TODO deal with polymorphic sorts properly: this will work until it doesn't
@@ -365,8 +380,23 @@ Clause *DelayedBinaryResolution::perform(
     TermList rargS = SubstHelper::apply(rarg, subst);
     
     if(largS.isVar() && !rargS.containsSubterm(largS)){
-      subst.bind(largS.var(), rargS);
-      continue;
+      TermList res;
+      if(subst.findBinding(largS.var(), res)){
+        if(res == rargS)
+          continue;
+      } else {
+        subst.bind(largS.var(), rargS);
+        continue;
+      }
+    } else if (rargS.isVar() && !largS.containsSubterm(rargS)){
+      TermList res;
+      if(subst.findBinding(rargS.var(), res)){
+        if(res == largS)
+          continue;
+      } else {
+        subst.bind(rargS.var(), largS);
+        continue;
+      }      
     }
 
     // TODO deal with polymorphic sorts properly: this will work until it doesn't
@@ -495,8 +525,23 @@ struct DelayedUnifier
             TermList rargS = SubstHelper::apply(rarg, subst);
 
             if(largS.isVar() && !rargS.containsSubterm(largS)){
-              subst.bind(largS.var(), rargS);
-              continue;
+              TermList res;
+              if(subst.findBinding(largS.var(), res)){
+                if(res == rargS)
+                  continue;
+              } else {
+                subst.bind(largS.var(), rargS);
+                continue;
+              }
+            } else if (rargS.isVar() && !largS.containsSubterm(rargS)){
+              TermList res;
+              if(subst.findBinding(rargS.var(), res)){
+                if(res == largS)
+                  continue;
+              } else {
+                subst.bind(rargS.var(), largS);
+                continue;
+              }      
             }
 
             auto sort = SortHelper::getArgSort(d.t1, i);
