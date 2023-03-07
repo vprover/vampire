@@ -730,6 +730,7 @@ namespace Kernel {
                 })
           );
       std::sort(out->elems.raw().begin(), out->elems.raw().end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
+      out->weight = std::get<0>(t);
       out->elems.integrity();
       return out;
     }

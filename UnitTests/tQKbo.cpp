@@ -424,6 +424,19 @@ TEST_FUN(normal_form_lcm) {
         SignedTerm::pos(b),
       }));
 
+  ASS_EQ(signedAtoms(-1 * a + -1 * b), 
+      some(1, {
+        SignedTerm::neg(a),
+        SignedTerm::neg(b),
+      }));
+
+  ASS_EQ(signedAtoms(-1 * a + -2 * b), 
+      some(1, {
+        SignedTerm::neg(a),
+        SignedTerm::neg(b),
+        SignedTerm::neg(b),
+      }));
+
   // ASS_EQ(signedAtoms(frac(1,2) * a + frac(0,4) * b), 
   // some(2, {
   //       SignedTerm::pos(a),
