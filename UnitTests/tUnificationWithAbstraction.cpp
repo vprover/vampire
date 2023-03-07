@@ -1465,7 +1465,7 @@ ROB_UNIFY_TEST(alasca3_test_14,
     })
 
 ROB_UNIFY_TEST(alasca3_test_15,
-    Options::UnificationWithAbstraction::ALASCA4,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, 2 * (a + b)),
     f2(x, x  + 2 * b +  2 * a),
@@ -1764,8 +1764,8 @@ INDEX_TEST(bug02,
 
 
 
-ROB_UNIFY_TEST(alasca4_test_01,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_01,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, a + b + c),
     f2(x, x + b + a),
@@ -1775,8 +1775,8 @@ ROB_UNIFY_TEST(alasca4_test_01,
       .constraints = Stack<Literal*>{},
     })
 
-ROB_UNIFY_TEST(alasca4_test_02,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_02,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(a + b + c, f2(x,b)),
     f2(x + y + a, f2(x,y)),
@@ -1786,8 +1786,8 @@ ROB_UNIFY_TEST(alasca4_test_02,
       .constraints = Stack<Literal*>{},
     })
 
-ROB_UNIFY_TEST(alasca4_test_02_bad,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_02_bad,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(f2(x,b), a + b + c),
     f2(f2(x,y), x + y + a),
@@ -1797,8 +1797,8 @@ ROB_UNIFY_TEST(alasca4_test_02_bad,
       .constraints = Stack<Literal*>{},
     })
 
-ROB_UNIFY_TEST(alasca4_test_02_bad_fpi,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_02_bad_fpi,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ true,
     f2(f2(x,b), a + b + c),
     f2(f2(x,y), x + y + a),
@@ -1809,8 +1809,8 @@ ROB_UNIFY_TEST(alasca4_test_02_bad_fpi,
     })
 
 
-ROB_UNIFY_TEST(alasca4_test_03,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_03,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, a + b + c),
     f2(x, x + b + a),
@@ -1821,8 +1821,8 @@ ROB_UNIFY_TEST(alasca4_test_03,
     })
 
 
-ROB_UNIFY_TEST(alasca4_test_04,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_04,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, 2 * a + b + c),
     f2(x, x     + b + a),
@@ -1833,8 +1833,8 @@ ROB_UNIFY_TEST(alasca4_test_04,
     })
 
 
-ROB_UNIFY_TEST(alasca4_test_05,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_05,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, 2 * a + b + c),
     f2(x, x     + b + y),
@@ -1845,8 +1845,8 @@ ROB_UNIFY_TEST(alasca4_test_05,
     })
 
 
-ROB_UNIFY_TEST(alasca4_test_06,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_06,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, b),
     f2(x, frac(1,2) * b + x + y),
@@ -1857,8 +1857,8 @@ ROB_UNIFY_TEST(alasca4_test_06,
     })
 
 
-ROB_UNIFY_TEST(alasca4_test_07,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_07,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, f(x) + y),
     f2(x, f(y) + y),
@@ -1869,21 +1869,21 @@ ROB_UNIFY_TEST(alasca4_test_07,
     })
 
 
-ROB_UNIFY_TEST_FAIL(alasca4_test_08,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_test_08,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, a + b),
     f2(x, c + b))
 
-ROB_UNIFY_TEST_FAIL(alasca4_test_09,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_test_09,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, f(a) + b),
     f2(x, f(y) + g(y)))
 
 
-ROB_UNIFY_TEST(alasca4_test_10,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_10,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, a + b + x),
     f2(x, c + b),
@@ -1893,26 +1893,26 @@ ROB_UNIFY_TEST(alasca4_test_10,
       .constraints = Stack<Literal*>{},
     })
 
-ROB_UNIFY_TEST_FAIL(alasca4_test_11,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_test_11,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, f(a) +  2 * g(a)),
     f2(x, frac(1,2) * f(a) + g(x) + g(y)))
 
-ROB_UNIFY_TEST_FAIL(alasca4_test_12,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_test_12,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, f(x) + f(b) + f(z)),
     f2(x, f(a) - f(y)))
 
-ROB_UNIFY_TEST_FAIL(alasca4_test_13,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_test_13,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, f(x)),
     f2(x, f(a) - f(y)))
 
-ROB_UNIFY_TEST(alasca4_test_14,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_14,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, 0),
     f2(x, f(a) - f(y)),
@@ -1922,8 +1922,8 @@ ROB_UNIFY_TEST(alasca4_test_14,
       .constraints = Stack<Literal*>{},
     })
 
-ROB_UNIFY_TEST(alasca4_test_15,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_test_15,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, 2 * (a + b)),
     f2(x, x  + 2 * b +  2 * a),
@@ -1933,8 +1933,8 @@ ROB_UNIFY_TEST(alasca4_test_15,
       .constraints = Stack<Literal*>{ },
     })
 
-ROB_UNIFY_TEST(alasca4_constr_var_01,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_constr_var_01,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     s2r(x),
     s2r(r2s(s2r(x) + y)),
@@ -1944,7 +1944,7 @@ ROB_UNIFY_TEST(alasca4_constr_var_01,
       .constraints = Stack<Literal*>{x != r2s(s2r(x) + y)},
     })
 
-ROB_UNIFY_TEST(alasca4_top_level_constraints_1,
+ROB_UNIFY_TEST(lpar_main_top_level_constraints_1,
     Options::UnificationWithAbstraction::AC2,
     /* withFinalize */ false,
     a + y + x,
@@ -1957,7 +1957,7 @@ ROB_UNIFY_TEST(alasca4_top_level_constraints_1,
 
 
 ROB_UNIFY_TEST(alasca3_constr_var_02,
-    Options::UnificationWithAbstraction::ALASCA4,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     x,
     f(x + f(y)),
@@ -1968,8 +1968,8 @@ ROB_UNIFY_TEST(alasca3_constr_var_02,
     })
 
 
-ROB_UNIFY_TEST(alasca4_constr_var_03,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_constr_var_03,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     x,
     f(y + f(x)),
@@ -1979,35 +1979,35 @@ ROB_UNIFY_TEST(alasca4_constr_var_03,
       .constraints = { x != f(y + f(x)) },
     })
 
-ROB_UNIFY_TEST_FAIL(alasca4_constr_var_04,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_04,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     x,
     f(f(x)))
 
-ROB_UNIFY_TEST_FAIL(alasca4_constr_var_05,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_05,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     x,
     f2(x, y + f(x))
   )
 
-ROB_UNIFY_TEST_FAIL(alasca4_constr_var_06,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_06,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     x,
     f2(y + f(x), x)
   )
 
-ROB_UNIFY_TEST_FAIL(alasca4_constr_var_07,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_07,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     x,
     f2(f(x), x)
   )
 
-ROB_UNIFY_TEST(alasca4_constr_var_08,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_constr_var_08,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     x,
     f2(y + f(x), y + f(x)),
@@ -2017,8 +2017,8 @@ ROB_UNIFY_TEST(alasca4_constr_var_08,
       .constraints = { x != f2(y + f(x), y + f(x)) },
     })
 
-ROB_UNIFY_TEST(alasca4_constr_var_09,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_constr_var_09,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     x,
     f2(f(y) + x, y + f(x)),
@@ -2029,8 +2029,8 @@ ROB_UNIFY_TEST(alasca4_constr_var_09,
     })
 
 
-ROB_UNIFY_TEST(alasca4_constr_var_10,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_constr_var_10,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, y),
     f2(y * x, 0),
@@ -2041,8 +2041,8 @@ ROB_UNIFY_TEST(alasca4_constr_var_10,
     })
 
 
-ROB_UNIFY_TEST(alasca4_constr_var_11,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_constr_var_11,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x, y),
     f2(x * y, 0),
@@ -2052,14 +2052,14 @@ ROB_UNIFY_TEST(alasca4_constr_var_11,
       .constraints = Stack<Literal*>{ },
     })
 
-ROB_UNIFY_TEST_FAIL(alasca4_non_normalized_mul_01,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_non_normalized_mul_01,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x * a * y, f2(x, y)),
     f2(5 * a    , f2(2, 3)))
 
-ROB_UNIFY_TEST(alasca4_non_normalized_mul_02,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_non_normalized_mul_02,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x * a * y, f2(x, y)),
     f2(6 * a    , f2(2, 3)),
@@ -2070,25 +2070,25 @@ ROB_UNIFY_TEST(alasca4_non_normalized_mul_02,
     })
 
 // TODO?
-// ROB_UNIFY_TEST_FAIL(alasca4_constr_var_12,
-//     Options::UnificationWithAbstraction::ALASCA4,
+// ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_12,
+//     Options::UnificationWithAbstraction::LPAR_MAIN,
 //     f2(x, y),
 //     f2(y * x, 5))
 //
-// ROB_UNIFY_TEST_FAIL(alasca4_constr_var_13,
-//     Options::UnificationWithAbstraction::ALASCA4,
+// ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_13,
+//     Options::UnificationWithAbstraction::LPAR_MAIN,
 //     f2(x, y),
 //     f2(x * y, 5))
 //
-// ROB_UNIFY_TEST_FAIL(alasca4_constr_var_14,
-//     Options::UnificationWithAbstraction::ALASCA4,
+// ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_14,
+//     Options::UnificationWithAbstraction::LPAR_MAIN,
 //     x,
 //     f(x) + g(x))
 
 
 
-ROB_UNIFY_TEST(alasca4_bug01,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_bug01,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(x - y, f2(x, y)),
     f2(0    , f2(x, y)),
@@ -2099,8 +2099,8 @@ ROB_UNIFY_TEST(alasca4_bug01,
     })
 
 
-ROB_UNIFY_TEST(alasca4_non_linear_mul_1,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_non_linear_mul_1,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f(3 * a),
     f(x * a),
@@ -2111,15 +2111,15 @@ ROB_UNIFY_TEST(alasca4_non_linear_mul_1,
     })
 
 
-ROB_UNIFY_TEST_FAIL(alasca4_non_linear_mul_2,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_non_linear_mul_2,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(3 * a, 2),
     f2(x * a, x))
 
 
-ROB_UNIFY_TEST(alasca4_non_linear_mul_3_bad,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_non_linear_mul_3_bad,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(2, 3 * a),
     f2(x, x * a),
@@ -2129,14 +2129,14 @@ ROB_UNIFY_TEST(alasca4_non_linear_mul_3_bad,
       .constraints = Stack<Literal*>{ 3 * a != 2 * a },
     })
 
-ROB_UNIFY_TEST_FAIL(alasca4_non_linear_mul_3_bad_fpi,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_FAIL(lpar_main_non_linear_mul_3_bad_fpi,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ true,
     f2(2, 3 * a),
     f2(x, x * a))
 
-ROB_UNIFY_TEST_NAMESPACED(alasca4_namespace_bug_01,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST_NAMESPACED(lpar_main_namespace_bug_01,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     f2(x    , x    ),
     f2(x + y, x + z),
     TermUnificationResultSpec { 
@@ -2145,8 +2145,8 @@ ROB_UNIFY_TEST_NAMESPACED(alasca4_namespace_bug_01,
       .constraints = Stack<Literal*>{ },
     })
 
-ROB_UNIFY_TEST(alasca4_misc01,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_misc01,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(f2(a + b + c + f(a), x    ), y),
     f2(f2(x + y           , a + c), b + f(a)),
@@ -2157,8 +2157,8 @@ ROB_UNIFY_TEST(alasca4_misc01,
     })
 
 
-ROB_UNIFY_TEST(alasca4_bug03,
-    Options::UnificationWithAbstraction::ALASCA4,
+ROB_UNIFY_TEST(lpar_main_bug03,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
     /* withFinalize */ false,
     f2(f(y), f2(f(g(a)), f2(-S2, h((-f(g(a)) + f(x)))))),
     f2(S3  , f2(S2     , f2(S4 , h(S4 + S3)))),

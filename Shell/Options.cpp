@@ -1208,7 +1208,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::OFF,
-                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2", "alasca1", "alasca2", "alasca3", "alasca4"});
+                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2", "alasca1", "alasca2", "alasca3", "lpar_one_interp", "lpar_can_abstract", "lpar_main"});
     _unificationWithAbstraction.description=
         "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
         "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1222,7 +1222,7 @@ void Options::init()
         "- alasca1: one side interpreted wrt to background theory in the alasca calculus (numeral multiplications, and addition)\n"
         "- alasca2: comparing the atoms of two terms to be unified. see the extended version of the alasca paper for details\n"
         "- alasca3: TODO describe in details (experimental wip)\n"
-        "- alasca4: TODO describe in details (experimental wip)\n"
+        "- lpar*: TODO describe in details (experimental wip)\n"
         "- ac*: experimental versions only for testing \n"
         "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::INFERENCES);
@@ -1287,7 +1287,9 @@ void Options::init()
               equal(UnificationWithAbstraction::ALASCA1)
             , equal(UnificationWithAbstraction::ALASCA2)
             , equal(UnificationWithAbstraction::ALASCA3)
-            , equal(UnificationWithAbstraction::ALASCA4)
+            , equal(UnificationWithAbstraction::LPAR_CAN_ABSTRACT)
+            , equal(UnificationWithAbstraction::LPAR_MAIN)
+            , equal(UnificationWithAbstraction::LPAR_ONE_INTERP)
             )));
 
     _lascaDemodulation  = BoolOptionValue("lasca_demodulation","la_demod",false);

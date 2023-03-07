@@ -229,7 +229,9 @@ public:
     ALASCA1,
     ALASCA2,
     ALASCA3,
-    ALASCA4,
+    LPAR_ONE_INTERP,
+    LPAR_CAN_ABSTRACT,
+    LPAR_MAIN,
   };
 
   enum class Induction : unsigned int {

@@ -178,13 +178,12 @@ auto iterAtoms(TermSpec outer, AbstractingUnifier& au, NumTraits n, Action actio
 
 
 template<class NumTraits>
-MismatchHandler::AbstractionResult alasca4(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n) {
+MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa) {
   TIME_TRACE("unification with abstraction ALASCA3")
   using EqualIf = MismatchHandler::EqualIf;
   using AbstractionResult = MismatchHandler::AbstractionResult;
   using NeverEqual = MismatchHandler::NeverEqual;
   using Numeral = typename NumTraits::ConstantType;
-
 
   Recycled<Stack<pair<TermSpec, Numeral>>> _diff;
   auto& diff = *_diff;
@@ -403,7 +402,6 @@ MismatchHandler::AbstractionResult alasca4(AbstractingUnifier& au, TermSpec cons
 }
 
 bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec const& t) {
-
   if (t.isSort()) return true; // <- for sorts arguments might never cancel out
   Recycled<Stack<TermSpec>> todo;
   ASS(t.isTerm())
@@ -427,7 +425,7 @@ bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec 
   return false;
 }
 
-Option<MismatchHandler::AbstractionResult> alasca4(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2) {
+Option<MismatchHandler::AbstractionResult> lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa) {
   ASS(t1.isTerm() || t2.isTerm())
 
   auto interpreted = [&](TermSpec const& t) {
@@ -448,37 +446,54 @@ Option<MismatchHandler::AbstractionResult> alasca4(AbstractingUnifier& au, TermS
   };
 
 
-  // if (t1.isVar()) return occ(t1, t2);
-  // if (t2.isVar()) return occ(t2, t1);
-
   if ((t1.isTerm() && t1.isSort()) 
   || ( t2.isTerm() && t2.isSort())) return {};
 
   auto i1 = interpreted(t1);
   auto i2 = interpreted(t2);
-  if (i1 || i2) {
-    TermList sort = (i1 ? t1.sort() : t2.sort()).old().term;
-    return forAnyNumTraits([&](auto n) {
-        return someIf(sort == n.sort(), [&]() { return alasca4(au, t1, t2, n); });
-    });
-  } else {
-    auto occ = [&au](auto& v, auto& t) {
-      ASS(v.isVar())
-      ASS(t.isTerm())
-      // we know due to the uwa algorithm that v occurs in t
-      if (uncanellableOccursCheck(au, v.varSpec(), t)) {
-        return some(MismatchHandler::AbstractionResult(MismatchHandler::NeverEqual{}));
-      } else {
-        // this means all
-        return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf().constr(UnificationConstraint(v.clone(), t.clone()))));
-      }
-    };
 
+  auto occ = [&au](auto& v, auto& t) {
+    ASS(v.isVar())
+    ASS(t.isTerm())
+    // we know due to the uwa algorithm that v occurs in t
+    if (uncanellableOccursCheck(au, v.varSpec(), t)) {
+      return some(MismatchHandler::AbstractionResult(MismatchHandler::NeverEqual{}));
+    } else {
+      // this means all
+      return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf().constr(UnificationConstraint(v.clone(), t.clone()))));
+    }
+  };
+
+  if (i1 || i2) {
+    using Mode = Options::UnificationWithAbstraction;
+    if (uwa == Mode::LPAR_ONE_INTERP) {
+      return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf()
+          .constr(UnificationConstraint(t1.clone(), t2.clone()))));
+    }
+
+    TermList sort = (i1 ? t1.sort() : t2.sort()).old().term;
+    auto res = forAnyNumTraits([&](auto n) {
+        return someIf(sort == n.sort(), [&]() { 
+            return lpar(au, t1, t2, n, uwa); 
+        });
+    });
+    ASS(res.isSome())
+    if (uwa == Mode::LPAR_MAIN) {
+      return res;
+    } else {
+      ASS(uwa == Mode::LPAR_CAN_ABSTRACT)
+      if (res->template is<MismatchHandler::EqualIf>())
+        return  some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf()
+            .constr(UnificationConstraint(t1.clone(), t2.clone()))));
+      else return {};
+    }
+  } else {
     if (t1.isVar()) return occ(t1, t2);
     if (t2.isVar()) return occ(t2, t1);
     return {};
   }
 }
+
 bool isAlascaInterpreted(TermSpec const& t, AbstractingUnifier& au) {
   if (t.isVar()) return false;
   ASS(!t.isLiteral()) 
@@ -574,7 +589,9 @@ bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec const& t1, Te
     case Shell::Options::UnificationWithAbstraction::AC1: 
     case Shell::Options::UnificationWithAbstraction::AC2: 
     case Shell::Options::UnificationWithAbstraction::ALASCA3: 
-    case Shell::Options::UnificationWithAbstraction::ALASCA4: 
+    case Shell::Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT: 
+    case Shell::Options::UnificationWithAbstraction::LPAR_MAIN: 
+    case Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: 
       ASSERTION_VIOLATION_REP("should be handled in MismatchHandler::tryAbstract")
   }
@@ -893,9 +910,9 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
     DEBUG_UWA(1, "  ( ctx: ", *au, " )")
     return out;
 
-  } else if (_mode == Uwa::ALASCA4) {
-    auto out = alasca4(*au, t1, t2);
-    DEBUG_UWA(1, "alasca4", tie(t1, t2), " = ", out)
+  } else if (_mode == Uwa::LPAR_CAN_ABSTRACT || _mode == Uwa::LPAR_ONE_INTERP || _mode == Uwa::LPAR_MAIN) {
+    auto out = lpar(*au, t1, t2, _mode);
+    DEBUG_UWA(1, "lpar", tie(t1, t2), " = ", out)
     DEBUG_UWA(1, "  ( ctx: ", *au, " )")
     return out;
 
