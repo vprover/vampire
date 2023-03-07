@@ -384,9 +384,9 @@ TEST_GENERATION(bug_02,
 TEST_GENERATION(non_linear_tryout01,
     Generation::SymmetricTest()
       .inputs  ({    clause({ (x * a) - (a * a) != 0 })    })
-      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA4)))
+      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_MAIN)))
       .expected(exactly(  
-           clause({ 0 * (x * a) != 0 })
+           clause({ 0 * (a * a) != 0 })
           )))
 
   //  clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 })
