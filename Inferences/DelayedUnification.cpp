@@ -232,7 +232,7 @@ Clause *DelayedSuperposition::perform(
     }
 
   // add rewritten literal
-  (*cl)[i++] = rewritten;
+  (*cl)[i++] = subst.isEmpty() ? rewritten : SubstHelper::apply(rewritten, subst);
 
   if(lhs.isTerm()) {
     ASS_EQ(lhs_renamed.term()->functor(), subterm_renamed->functor())
