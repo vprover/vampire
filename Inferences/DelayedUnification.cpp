@@ -584,10 +584,12 @@ Clause* DelayedFactoring::perform(Clause* cl
 
   Stack<Literal*> conclusion;
 
-  // L1 or L2 to the conclusion. if either is ground we keep that one
-  conclusion.push(unif->sigma(unif->sigma(lit2)->ground() ? lit2 : lit1));
   // add all the constraints
   unif->forConstraints([&](auto c) { conclusion.push(c); });
+
+  // L1 or L2 to the conclusion. if either is ground we keep that one
+  conclusion.push(unif->sigma(unif->sigma(lit2)->ground() ? lit2 : lit1));
+
   // add all other literals from the hypothesis
   conclusion.loadFromIterator(
       range(0,cl->size())
@@ -660,11 +662,13 @@ Clause* DelayedEqualityFactoring::perform(Clause* cl
 
 
   Stack<Literal*> conclusion;
+
+  unif->forConstraints([&](auto c) { conclusion.push(c); });
+
   conclusion.push(Literal::createEquality(false, unif->sigma(r1), unif->sigma(r2), sort));
   // r1 != r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   conclusion.push(Literal::createEquality(true, unif->sigma(l2), unif->sigma(r2), sort));
   // l2 == r2 <---^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  unif->forConstraints([&](auto c) { conclusion.push(c); });
 
   conclusion.loadFromIterator(
       range(0,cl->size())
