@@ -32,6 +32,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 
 namespace Inferences {
@@ -114,7 +115,7 @@ Clause *DelayedSuperposition::perform(
   DEBUG_PERFORM(1, "lhs: ", *equationClause, " [ ", *equation      , " ][ ", lhs     , " ]")
   DEBUG_PERFORM(1, "rhs: ", *subtermClause , " [ ", *subtermLiteral, " ][ ", *subterm, " ]")
 
-  static Substitution subst;
+  static RobSubstitution subst;
   subst.reset();
 
   // prevent self-superposition l = r in l = r to get r = r, which seems to happen a surprising amount
@@ -126,77 +127,63 @@ Clause *DelayedSuperposition::perform(
 
   TermList rhs = EqHelper::getOtherEqualitySide(equation, lhs);
 
-  // compute a renaming for both clauses so that variables are disjoint
-  Renaming equationRenaming;
-  for(unsigned i = 0; i < equationClause->length(); i++)
-    equationRenaming.normalizeVariables((*equationClause)[i]);
-
-  Renaming subtermRenaming(equationClause->varCnt());
-  for(unsigned i = 0; i < subtermClause->length(); i++)
-    subtermRenaming.normalizeVariables((*subtermClause)[i]);
-
-  // some helpfully-renamed terms
-  TermList lhs_renamed = equationRenaming.apply(lhs);
-  TermList rhs_renamed = equationRenaming.apply(rhs);
-  Term *subterm_renamed = subtermRenaming.apply(subterm);
   unsigned arity = lhs.isVar() ? 0 : lhs.term()->arity();
-
-  LiteralStack constraints;
    
   if(lhs.isVar()){
-    subst.bind(lhs_renamed.var(), rhs_renamed);
+    ALWAYS(subst.unify(lhs, 0, TermList(subterm), 1));
   }
 
+  Stack<pair<TermList,TermList>> possibleConstriants;
   for(unsigned j = 0; j < arity; j++) {
-    TermList larg = (*lhs_renamed.term())[j];
-    TermList rarg = (*subterm_renamed)[j];
+    TermList larg = (*lhs.term())[j];
+    TermList rarg = (*subterm)[j];
     
-    if(larg == rarg) continue;
+    TermList largS = subst.apply(larg, 0);
+    TermList rargS = subst.apply(rarg, 1);
     
-    TermList largS = SubstHelper::apply(larg, subst);
-    TermList rargS = SubstHelper::apply(rarg, subst);
-    
-    if(largS.isVar() && !rargS.containsSubterm(largS)){
-      TermList res;
-      if(subst.findBinding(largS.var(), res)){
-        if(res == rargS)
-          continue;
-      } else {
-        subst.bind(largS.var(), rargS);
+    if(largS.isVar() || rargS.isVar()){
+      if(subst.unify(larg, 0, rarg, 1)){
         continue;
       }
-    } else if (rargS.isVar() && !largS.containsSubterm(rargS)){
-      TermList res;
-      if(subst.findBinding(rargS.var(), res)){
-        if(res == largS)
-          continue;
-      } else {
-        subst.bind(rargS.var(), largS);
-        continue;
-      }      
     }
 
-    // TODO deal with polymorphic sorts properly: this will work until it doesn't
-    TermList sort = SortHelper::getArgSort(subterm_renamed, j);
-    Literal *disequation = Literal::createEquality(false, largS, rargS, sort);
-    constraints.push(disequation);
+    possibleConstriants.push(make_pair(larg, rarg));
   }
 
+  LiteralStack constraints;
+  while(!possibleConstriants.isEmpty()){
+    pair<TermList,TermList> p = possibleConstriants.pop();
+    TermList largS = subst.apply(p.first, 0);
+    TermList rargS = subst.apply(p.second, 1);
+
+    if(largS != rargS){
+      ASS(largS.isTerm() || rargS.isTerm());
+      // TODO deal with polymorphic sorts properly: this will work until it doesn't
+      TermList sort = SortHelper::getResultSort(rargS.isVar() ? largS.term() : rargS.term());
+      Literal *disequation = Literal::createEquality(false, largS, rargS, sort);
+      constraints.push(disequation);
+    }
+  }
+
+  TermList rhsS = subst.apply(rhs, 0);
+  TermList subtermS = subst.apply(TermList(subterm), 1);
+  Literal* subtermLiteralS = subst.apply(subtermLiteral,1);
+
   // if lhs is a var, check subterm > rhs
-  if(lhs.isVar() && Ordering::isGorGEorE(_ord->compare(rhs_renamed, TermList(subterm_renamed))))
+  if(lhs.isVar() && Ordering::isGorGEorE(_ord->compare(rhsS, subtermS)))
     return nullptr;
 
   // check that the lhs and the target might unify, one day
-  if(!mightPossiblyUnify(lhs_renamed, TermList(subterm_renamed)))
+  if(!mightPossiblyUnify(lhs, TermList(subterm)))
     return nullptr;
 
   // TODO check whether we are rewriting smaller side of equation? superposition checks this here
 
   // the rewritten literal
   Literal *rewritten = EqHelper::replace(
-    subtermRenaming.apply(subtermLiteral),
-    TermList(subterm_renamed),
-    equationRenaming.apply(rhs)
+    subtermLiteralS,
+    subtermS,
+    rhsS
   );
   if(EqHelper::isEqTautology(rewritten))
     return nullptr;
@@ -216,26 +203,20 @@ Clause *DelayedSuperposition::perform(
   // copy side literals into new clause from old, applying the renaming
   for(unsigned j = 0; j < equationClause->length(); j++)
     if((*equationClause)[j] != equation){
-      Literal* lit = equationRenaming.apply((*equationClause)[j]);
-      if(!subst.isEmpty()){
-        lit = SubstHelper::apply(lit, subst);
-      }
+      Literal* lit = subst.apply((*equationClause)[j] , 0);
       (*cl)[i++] = lit;
     }
   for(unsigned j = 0; j < subtermClause->length(); j++)
     if((*subtermClause)[j] != subtermLiteral){
-      Literal* lit = subtermRenaming.apply((*subtermClause)[j]);
-      if(!subst.isEmpty()){
-        lit = SubstHelper::apply(lit, subst);
-      }
+      Literal* lit = subst.apply((*subtermClause)[j] , 1);
       (*cl)[i++] = lit;      
     }
 
   // add rewritten literal
-  (*cl)[i++] = subst.isEmpty() ? rewritten : SubstHelper::apply(rewritten, subst);
+  (*cl)[i++] = rewritten;
 
   if(lhs.isTerm()) {
-    ASS_EQ(lhs_renamed.term()->functor(), subterm_renamed->functor())
+    ASS_EQ(lhs.term()->functor(), subterm->functor())
 
     // create disequations
     while(!constraints.isEmpty()) {
@@ -243,20 +224,19 @@ Clause *DelayedSuperposition::perform(
     }
   }
   else {
-    ASS(lhs_renamed.isVar())
-
+    ASS(lhs.isVar())
     // TODO check literals are still maximal under substitution?
   }
 
-  /*
-  std::cout << equationClause->toString() << std::endl;
+  
+  /*std::cout << equationClause->toString() << std::endl;
   std::cout << lhs.toString() << " -> " << rhs.toString() << std::endl;
   std::cout << subtermClause->toString() << std::endl;
   std::cout << subtermLiteral->toString() << std::endl;
   std::cout << subterm->toString() << std::endl;
   std::cout << cl->toString() << std::endl;
-  std::cout << "-----------------------------" << std::endl;
-  */
+  std::cout << "-----------------------------" << std::endl;*/
+  
   return cl;
 }
 
@@ -353,61 +333,46 @@ Clause *DelayedBinaryResolution::perform(
   DEBUG_PERFORM(1, "lhs: ", *leftClause, " [ ", *leftLit     , " ]")
   DEBUG_PERFORM(1, "rhs: ", *rightClause, " [ ", *rightLit     , " ]")
 
-  static Substitution subst;
+  static RobSubstitution subst;
   subst.reset();
 
-  // compute a renaming for both clauses so that variables are disjoint
-  Renaming leftRenaming;
-  for(unsigned i = 0; i < leftClause->length(); i++)
-    leftRenaming.normalizeVariables((*leftClause)[i]);
-  Renaming rightRenaming(leftClause->varCnt());
-  for(unsigned i = 0; i < rightClause->length(); i++)
-    rightRenaming.normalizeVariables((*rightClause)[i]);
-
-  // some helpfully-renamed terms
-  Literal *leftLitRenamed = leftRenaming.apply(leftLit);
-  Literal *rightLitRenamed = rightRenaming.apply(rightLit);
   unsigned arity = leftLit->arity();
 
-  LiteralStack constraints;
+  Stack<pair<TermList,TermList>> possibleConstriants;
   for(unsigned j = 0; j < arity; j++) {
-    TermList larg = (*leftLitRenamed)[j];
-    TermList rarg = (*rightLitRenamed)[j];
+    TermList larg = (*leftLit)[j];
+    TermList rarg = (*rightLit)[j];
     
-    if(larg == rarg) continue;
+    TermList largS = subst.apply(larg, 0);
+    TermList rargS = subst.apply(rarg, 1);
     
-    TermList largS = SubstHelper::apply(larg, subst);
-    TermList rargS = SubstHelper::apply(rarg, subst);
-    
-    if(largS.isVar() && !rargS.containsSubterm(largS)){
-      TermList res;
-      if(subst.findBinding(largS.var(), res)){
-        if(res == rargS)
-          continue;
-      } else {
-        subst.bind(largS.var(), rargS);
+    if(largS.isVar() || rargS.isVar()){
+      if(subst.unify(larg, 0, rarg, 1)){
         continue;
       }
-    } else if (rargS.isVar() && !largS.containsSubterm(rargS)){
-      TermList res;
-      if(subst.findBinding(rargS.var(), res)){
-        if(res == largS)
-          continue;
-      } else {
-        subst.bind(rargS.var(), largS);
-        continue;
-      }      
     }
 
-    // TODO deal with polymorphic sorts properly: this will work until it doesn't
-    TermList sort = SortHelper::getArgSort(leftLitRenamed, j);
-    Literal *disequation = Literal::createEquality(false, largS, rargS, sort);
-    constraints.push(disequation);
+    possibleConstriants.push(make_pair(larg, rarg));
+  }
+
+  LiteralStack constraints;
+  while(!possibleConstriants.isEmpty()){
+    pair<TermList,TermList> p = possibleConstriants.pop();
+    TermList largS = subst.apply(p.first, 0);
+    TermList rargS = subst.apply(p.second, 1);
+
+    if(largS != rargS){
+      ASS(largS.isTerm() || rargS.isTerm());
+      // TODO deal with polymorphic sorts properly: this will work until it doesn't
+      TermList sort = SortHelper::getResultSort(rargS.isVar() ? largS.term() : rargS.term());
+      Literal *disequation = Literal::createEquality(false, largS, rargS, sort);
+      constraints.push(disequation);
+    }
   }
 
 
   // check that the lhs and the target might unify, one day
-  if(!mightPossiblyUnify(TermList(leftLitRenamed), TermList(rightLitRenamed)))
+  if(!mightPossiblyUnify(TermList(leftLit), TermList(rightLit)))
     return nullptr;
 
   // compute clause length and create a blank clause to fill
@@ -425,18 +390,12 @@ Clause *DelayedBinaryResolution::perform(
   // copy side literals into new clause from old, applying the renaming
   for(unsigned j = 0; j < leftClause->length(); j++)
     if((*leftClause)[j] != leftLit){
-      Literal* lit = leftRenaming.apply((*leftClause)[j]);
-      if(!subst.isEmpty()){
-        lit = SubstHelper::apply(lit, subst);
-      }
+      Literal* lit = subst.apply((*leftClause)[j], 0);
       (*cl)[i++] = lit;
     }
   for(unsigned j = 0; j < rightClause->length(); j++)
     if((*rightClause)[j] != rightLit){
-      Literal* lit = rightRenaming.apply((*rightClause)[j]);
-      if(!subst.isEmpty()){
-        lit = SubstHelper::apply(lit, subst);
-      }
+      Literal* lit = subst.apply((*rightClause)[j], 1);
       (*cl)[i++] = lit;      
     }
 
@@ -445,6 +404,14 @@ Clause *DelayedBinaryResolution::perform(
     (*cl)[i++] = constraints.pop();
   }
 
+  /*cout << "left clause " << leftClause->toString() << endl;
+  cout << "left lit " << leftLit->toString() << endl;
+  cout << "right clause " << rightClause->toString() << endl;
+  cout << "right lit " << rightLit->toString() << endl;
+  cout << "cl " << cl->toString() << endl;
+  cout << "subst " << subst.toString() << endl;
+  cout << "------------" << endl;*/
+ 
   return cl;
 }
 
@@ -497,14 +464,14 @@ struct DelayedUnifier
 { 
   template<class C> 
   DelayedUnifier(C c) : Coproduct<DelayedBind, DelayedDecompose, DelayedRefl>(std::move(c)) {
-
+    subst=RobSubstitutionSP(new RobSubstitution());
   }
 
   template<class T>
   T sigma(T t) 
   { return match(
-        [&](DelayedBind&    b) { return b.bound.containsSubterm(b.var) ? t : EqHelper::replace(t, b.var, b.bound); },
-        [&](DelayedDecompose&) { return subst.isEmpty() ? t : SubstHelper::apply(t,subst); },
+        [&](DelayedBind&    b) { return b.bound == b.var ? t : EqHelper::replace(t, b.var, b.bound); },
+        [&](DelayedDecompose&) { return subst->apply(t,0); },
         [&](DelayedRefl&) { return t; }
         ); }
   template<class F>
@@ -515,43 +482,42 @@ struct DelayedUnifier
           ASS_EQ(d.t1->functor(), d.t2->functor());
           ASS_EQ(d.t1->numTypeArguments(), 0) // <- polymorphism not suppoted yet
 
-          for(unsigned i = 0 ; i < d.t1->arity(); i ++){
-            TermList larg = (*d.t1)[i]; 
-            TermList rarg = (*d.t2)[i];            
 
-            if(larg == rarg) continue;
+          Stack<pair<TermList,TermList>> possibleConstriants;
+          for(unsigned j = 0; j < d.t1->arity(); j++) {
+            TermList larg = (*d.t1)[j];
+            TermList rarg = (*d.t2)[j];
             
-            TermList largS = SubstHelper::apply(larg, subst);
-            TermList rargS = SubstHelper::apply(rarg, subst);
-
-            if(largS.isVar() && !rargS.containsSubterm(largS)){
-              TermList res;
-              if(subst.findBinding(largS.var(), res)){
-                if(res == rargS)
-                  continue;
-              } else {
-                subst.bind(largS.var(), rargS);
+            TermList largS = subst->apply(larg, 0);
+            TermList rargS = subst->apply(rarg, 0);
+            
+            if(largS.isVar() || rargS.isVar()){
+              if(subst->unify(larg, 0, rarg, 0)){
                 continue;
               }
-            } else if (rargS.isVar() && !largS.containsSubterm(rargS)){
-              TermList res;
-              if(subst.findBinding(rargS.var(), res)){
-                if(res == largS)
-                  continue;
-              } else {
-                subst.bind(rargS.var(), largS);
-                continue;
-              }      
             }
 
-            auto sort = SortHelper::getArgSort(d.t1, i);
-            action(Literal::createEquality(false, largS, rargS, sort));
+            possibleConstriants.push(make_pair(larg, rarg));
+          }
+
+          while(!possibleConstriants.isEmpty()){
+            pair<TermList,TermList> p = possibleConstriants.pop();
+            TermList largS = subst->apply(p.first, 0);
+            TermList rargS = subst->apply(p.second, 0);
+
+            if(largS != rargS){
+              ASS(largS.isTerm() || rargS.isTerm());
+              // TODO deal with polymorphic sorts properly: this will work until it doesn't
+              TermList sort = SortHelper::getResultSort(rargS.isVar() ? largS.term() : rargS.term());
+              Literal *disequation = Literal::createEquality(false, largS, rargS, sort);
+              action(disequation);
+            }
           }
         },
         [&](DelayedRefl& d) { /* no constraints */ }
         ); }
 
-  Substitution subst;
+  RobSubstitutionSP subst;
 };
 
 Option<DelayedUnifier> unifDelayed(Literal* t1, Literal* t2)
