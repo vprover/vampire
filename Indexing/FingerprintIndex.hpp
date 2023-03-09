@@ -100,7 +100,7 @@ private:
 
   class SLQRIterator {
   public:
-    SLQRIterator(LitEntryIterator  results, Literal* lit);
+    SLQRIterator(LitEntryIterator  results, Literal* lit, bool complementary);
     DECL_ELEMENT_TYPE(SLQueryResult);
     bool hasNext();
     OWN_ELEMENT_TYPE next();
@@ -111,6 +111,7 @@ private:
     RobSubstitutionSP _subst;
     SLQueryResult _next;
     bool _hasNext;
+    bool _complementary;
   };
 
   class UnificationIterator final : public SLQRIterator {

@@ -303,13 +303,15 @@ TermFingerprintIndex::TQRIterator::TQRIterator(
 
 LiteralFingerprintIndex::SLQRIterator::SLQRIterator(
   LitEntryIterator it,
-  Literal* lit
+  Literal* lit,
+  bool complementary
 ) :
   _it(it),
   _query(lit),
   _subst(new RobSubstitution()),
   _next(),
-  _hasNext(false)
+  _hasNext(false),
+  _complementary(complementary)
 {}
 
 bool TermFingerprintIndex::TQRIterator::hasNext() {
@@ -359,14 +361,25 @@ SLQueryResult LiteralFingerprintIndex::SLQRIterator::next() {
 
 bool TermFingerprintIndex::UnificationIterator::prepareSubst() {
   CALL("TermFingerprintIndex::UnificationIterator::prepareSubst");
-  // when using for delayed inferences, always return true
-  return true;
+  _subst->reset();
+  if(_subst->unify(_query, 0, _next.term, 1)) {
+    _next.substitution =
+      ResultSubstitution::fromSubstitution(_subst.ptr(), 0, 1);
+    return true;
+  }
+  return false;
 }
 
 bool LiteralFingerprintIndex::UnificationIterator::prepareSubst() {
   CALL("LiteralFingerprintIndex::UnificationIterator::prepareSubst");
-  // when using for delayed inferences, always return true
-  return true;
+  _subst->reset();
+  auto unifiers = _subst->unifiers(_query, 0, _next.literal, 1, _complementary); 
+  while(unifiers.hasNext()) {
+    _next.substitution =
+      ResultSubstitution::fromSubstitution(unifiers.next(), 0, 1);
+    return true;
+  }
+  return false;
 }
 
 bool TermFingerprintIndex::GeneralizationIterator::prepareSubst() {
@@ -435,7 +448,7 @@ SLQueryResultIterator LiteralFingerprintIndex::getUnifications(Literal* lit,
   Stack<unsigned> buckets;
   _index.getUnifications(buckets, lit, complementary);
   return
-    pvi(UnificationIterator(LitEntryIterator(*this, std::move(buckets)), lit));
+    pvi(UnificationIterator(LitEntryIterator(*this, std::move(buckets)), lit, complementary));
 }
 
 TermQueryResultIterator TermFingerprintIndex::getUnifications(
