@@ -13,6 +13,10 @@
 #include "Lib/Array.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/STL.hpp"
+#include <array>
+#include "Indexing/TermIndexingStructure.hpp"
+#include "Indexing/LiteralIndexingStructure.hpp"
+
 
 namespace Indexing {
 class FingerprintIndex {
@@ -21,12 +25,12 @@ public:
   USE_ALLOCATOR(FingerprintIndex);
 
   static const unsigned FINGERPRINT_SIZE = 6;
-  static std::array<signed, FINGERPRINT_SIZE> fingerprint(TermList ts);
+  static std::array<signed, FINGERPRINT_SIZE> fingerprint(Term* ts, bool complementary = false);
   FingerprintIndex();
-  unsigned getBucket(TermList ts);
-  void getUnifications(Stack<unsigned> &results, TermList ts);
-  void getGeneralizations(Stack<unsigned> &results, TermList ts);
-  void getInstances(Stack<unsigned> &results, TermList ts);
+  unsigned getBucket(Term* ts);
+  void getUnifications(Stack<unsigned> &results, Term* ts, bool complementary = false);
+  void getGeneralizations(Stack<unsigned> &results, Term* ts);
+  void getInstances(Stack<unsigned> &results, Term* ts);
 
 private:
   vmap<std::pair<unsigned, signed>, unsigned> _edges;
@@ -34,12 +38,101 @@ private:
   unsigned _fresh_bucket;
 }; // class FingerprintIndex
 
+// forward declaration
+class TermFingerprintIndex;
+class LiteralFingerprintIndex;
+
+struct LitEntry {
+  Clause *cls;
+  Literal *lit;
+  bool operator==(const LitEntry &other) const;
+};
+
+struct TermEntry {
+  Clause *cls;
+  Literal *lit;
+  TermList term;
+  bool operator==(const TermEntry &other) const;
+};
+
+template<class Entry, class Index> 
+class EntryIterator // template definition
+{ 
+public:
+  EntryIterator(
+    const Index &index,
+    Stack<unsigned> &&buckets
+  );
+  DECL_ELEMENT_TYPE(Entry);
+  bool hasNext();
+  void nextBucket();
+  OWN_ELEMENT_TYPE next();
+private:
+  const Index &_index;
+  Stack<unsigned> _buckets;
+  typename vvector<Entry>::const_iterator _entry;
+  typename vvector<Entry>::const_iterator _end;
+};
+
+
+using LitEntryIterator = EntryIterator<LitEntry, LiteralFingerprintIndex>;
+using TermEntryIterator = EntryIterator<TermEntry, TermFingerprintIndex>;
+
+class LiteralFingerprintIndex final : public LiteralIndexingStructure {
+public:
+  CLASS_NAME(LiteralFingerprintIndex);
+  USE_ALLOCATOR(LiteralFingerprintIndex);
+  
+  void insert(Literal* lit, Clause* cls) override;
+  void remove(Literal* lit, Clause* cls) override;
+
+  LiteralFingerprintIndex(vstring name = "") : _name(name) {}
+
+  SLQueryResultIterator getUnifications(Literal* lit,
+    bool complementary, bool retrieveSubstitutions) override;
+
+  vstring name() { return _name; }
+
+#if VDEBUG
+  void markTagged() override {};
+#endif
+private: 
+
+  class SLQRIterator {
+  public:
+    SLQRIterator(LitEntryIterator  results, Literal* lit);
+    DECL_ELEMENT_TYPE(SLQueryResult);
+    bool hasNext();
+    OWN_ELEMENT_TYPE next();
+    virtual bool prepareSubst() = 0;
+  protected:
+    LitEntryIterator _it;
+    Literal* _query;
+    RobSubstitutionSP _subst;
+    SLQueryResult _next;
+    bool _hasNext;
+  };
+
+  class UnificationIterator final : public SLQRIterator {
+  public:
+    using SLQRIterator::SLQRIterator;
+    bool prepareSubst() override;
+  };
+
+  friend class EntryIterator<LitEntry, LiteralFingerprintIndex>;
+  FingerprintIndex _index;
+  Array<vvector<LitEntry>> _buckets;
+  vstring _name;
+};
+
 class TermFingerprintIndex final : public TermIndexingStructure {
 public:
   CLASS_NAME(TermFingerprintIndex);
   USE_ALLOCATOR(TermFingerprintIndex);
   void insert(TermList t, Literal *lit, Clause *cls) override;
   void remove(TermList t, Literal *lit, Clause *cls) override;
+
+  TermFingerprintIndex(vstring name = "") : _name(name) {}
 
   TermQueryResultIterator getUnifications(
     TermList t,
@@ -56,50 +149,31 @@ public:
   TermQueryResultIterator getInstances(
     TermList t,
     bool retrieveSubstitutions = true
-  );
+  ) override;
+
+  vstring name() { return _name; }
 
 #if VDEBUG
   void markTagged() override {};
 #endif
 private:
-  struct Entry {
-    Clause *cls;
-    Literal *lit;
-    TermList term;
-    bool operator==(const Entry &other) const;
-  };
-
-  class EntryIterator {
-  public:
-    EntryIterator(
-      const TermFingerprintIndex &index,
-      Stack<unsigned> &&buckets
-    );
-    DECL_ELEMENT_TYPE(Entry);
-    bool hasNext();
-    void nextBucket();
-    OWN_ELEMENT_TYPE next();
-  private:
-    const TermFingerprintIndex &_index;
-    Stack<unsigned> _buckets;
-    vvector<Entry>::const_iterator _entry;
-    vvector<Entry>::const_iterator _end;
-  };
 
   class TQRIterator {
   public:
-    TQRIterator(EntryIterator results, TermList query);
+    TQRIterator(TermEntryIterator results, TermList query);
     DECL_ELEMENT_TYPE(TermQueryResult);
     bool hasNext();
     OWN_ELEMENT_TYPE next();
     virtual bool prepareSubst() = 0;
   protected:
-    EntryIterator _it;
+    TermEntryIterator _it;
     TermList _query;
     RobSubstitutionSP _subst;
     TermQueryResult _next;
     bool _hasNext;
   };
+
+  TermQueryResultIterator getAll(TermList query);
 
   class UnificationIterator final : public TQRIterator {
   public:
@@ -119,9 +193,10 @@ private:
     bool prepareSubst() override;
   };
 
-  friend class EntryIterator;
+  friend class EntryIterator<TermEntry, TermFingerprintIndex>;
   FingerprintIndex _index;
-  Array<vvector<Entry>> _buckets;
+  Array<vvector<TermEntry>> _buckets;
+  vstring _name;
 }; // class TermFingerprintIndex
 } //namespace Indexing
 
