@@ -31,6 +31,10 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/List.hpp"
 
+#include "Saturation/SaturationAlgorithm.hpp"
+
+#include "Shell/FunctionDefinitionHandler.hpp"
+
 #include "InductionHelper.hpp"
 #include "InferenceEngine.hpp"
 
@@ -39,22 +43,42 @@ namespace Inferences
 
 using namespace Kernel;
 using namespace Saturation;
+using namespace Shell;
+using namespace Lib;
 
-Term* getPlaceholderForTerm(Term* t);
+class ActiveOccurrenceIterator
+  : public IteratorCore<TermList>
+{
+public:
+  ActiveOccurrenceIterator(Term* term, FunctionDefinitionHandler* fnDefHandler)
+  : _stack(8), _fnDefHandler(fnDefHandler)
+  {
+    _stack.push(term);
+    ASS(term->ground());
+    ActiveOccurrenceIterator::next();
+  }
+
+  bool hasNext() override { return !_stack.isEmpty(); }
+  TermList next() override;
+private:
+  Stack<Term*> _stack;
+  FunctionDefinitionHandler* _fnDefHandler;
+};
+
+Term* getPlaceholderForTerm(const vvector<Term*>& ts, unsigned i);
 
 class TermReplacement : public TermTransformer {
 public:
-  TermReplacement(Term* o, TermList r) : _o(o), _r(r) {} 
+  TermReplacement(const vmap<Term*, TermList>& m) : _m(m) {}
   TermList transformSubterm(TermList trm) override;
 protected:
-  Term* _o;
-  TermList _r;
+  vmap<Term*,TermList> _m;
 };
 
 class SkolemSquashingTermReplacement : public TermReplacement {
 public:
-  SkolemSquashingTermReplacement(Term* o, TermList r, unsigned& var)
-    : TermReplacement(o, r), _v(var) {}
+  SkolemSquashingTermReplacement(const vmap<Term*, TermList>& m, unsigned& var)
+    : TermReplacement(m), _v(var) {}
   TermList transformSubterm(TermList trm) override;
   DHMap<Term*, unsigned> _tv; // maps terms to their variable replacement
 private:
@@ -62,10 +86,12 @@ private:
 };
 
 struct InductionContext {
-  explicit InductionContext(Term* t)
-    : _indTerm(t) {}
-  InductionContext(Term* t, Literal* l, Clause* cl)
-    : InductionContext(t)
+  explicit InductionContext(vvector<Term*>&& ts)
+    : _indTerms(ts) {}
+  explicit InductionContext(const vvector<Term*>& ts)
+    : _indTerms(ts) {}
+  InductionContext(const vvector<Term*>& ts, Literal* l, Clause* cl)
+    : InductionContext(ts)
   {
     insert(cl, l);
   }
@@ -76,13 +102,15 @@ struct InductionContext {
     node->second.push(lit);
   }
 
-  Formula* getFormula(TermList r, bool opposite, Substitution* subst = nullptr) const;
-  Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
+  Formula* getFormula(const vvector<TermList>& r, bool opposite, Substitution* subst = nullptr) const;
+  Formula* getFormulaWithSquashedSkolems(const vvector<TermList>& r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
 
   vstring toString() const {
     vstringstream str;
-    str << *_indTerm << endl;
+    for (const auto& indt : _indTerms) {
+      str << *indt << endl;
+    }
     for (const auto& kv : _cls) {
       str << *kv.first << endl;
       for (const auto& lit : kv.second) {
@@ -92,7 +120,7 @@ struct InductionContext {
     return str.str();
   }
 
-  Term* _indTerm = nullptr;
+  vvector<Term*> _indTerms;
   // One could induct on all literals of a clause, but if a literal
   // doesn't contain the induction term, it just introduces a couple
   // of tautologies and duplicate literals (a hypothesis clause will
@@ -117,14 +145,29 @@ public:
 
 protected:
   InductionContext _context;
-private:
   bool _used;
+};
+
+class ActiveOccurrenceContextReplacement
+  : public ContextReplacement {
+public:
+  ActiveOccurrenceContextReplacement(const InductionContext& context, FunctionDefinitionHandler* fnDefHandler);
+  InductionContext next() override;
+  bool hasNonActive() const { return _hasNonActive; }
+
+protected:
+  TermList transformSubterm(TermList trm) override;
+
+private:
+  FunctionDefinitionHandler* _fnDefHandler;
+  vvector<unsigned> _iteration;
+  vvector<unsigned> _matchCount;
+  bool _hasNonActive;
 };
 
 class ContextSubsetReplacement
   : public ContextReplacement {
 public:
-  static ContextReplacement* instance(const InductionContext& context, const Options& opt);
   ContextSubsetReplacement(const InductionContext& context, const unsigned maxSubsetSize);
 
   bool hasNext() override;
@@ -134,18 +177,17 @@ protected:
   TermList transformSubterm(TermList trm) override;
 
 private:
-  bool hasNextInner() const {
-    return _iteration < _maxIterations;
-  }
+  bool shouldSkipIteration() const;
+  void stepIteration();
   // _iteration serves as a map of occurrences to replace
-  unsigned _iteration = 0;
-  unsigned _maxIterations;
+  vvector<unsigned> _iteration;
+  vvector<unsigned> _maxIterations;
   // Counts how many occurrences were already encountered in one transformation
-  unsigned _matchCount = 0;
-  unsigned _occurrences;
-  const unsigned _maxOccurrences = 20;
+  vvector<unsigned> _matchCount;
+  const unsigned _maxOccurrences = 1 << 20;
   const unsigned _maxSubsetSize;
   bool _ready;
+  bool _done;
 };
 
 class Induction
@@ -174,16 +216,17 @@ private:
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
   InductionFormulaIndex _formulaIndex;
+  InductionFormulaIndex _recFormulaIndex;
 };
 
 class InductionClauseIterator
 {
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
+  InductionClauseIterator(Clause* premise, InductionHelper helper, SaturationAlgorithm* salg,
     TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
-      : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
-      _formulaIndex(formulaIndex)
+      : _helper(helper), _opt(salg->getOptions()), _structInductionTermIndex(structInductionTermIndex),
+      _formulaIndex(formulaIndex), _fnDefHandler(salg->getFunctionDefinitionHandler())
   {
     processClause(premise);
   }
@@ -213,6 +256,7 @@ private:
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
+  void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const vvector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
 
   bool notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e);
 
@@ -221,6 +265,7 @@ private:
   const Options& _opt;
   TermIndex* _structInductionTermIndex;
   InductionFormulaIndex& _formulaIndex;
+  FunctionDefinitionHandler* _fnDefHandler;
 };
 
 };

@@ -20,6 +20,8 @@
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
+
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Inferences/Induction.hpp"
@@ -52,7 +54,7 @@ inline Clause* fromInduction(Clause* cl) {
 }
 
 InductionContext inductionContext(TermSugar t, std::initializer_list<Clause*> cls) {
-  InductionContext res(t.sugaredExpr().term());
+  InductionContext res({ t.sugaredExpr().term() });
   for (const auto& cl : cls) {
     for (unsigned i = 0; i < cl->length(); i++) {
       res.insert(cl, (*cl)[i]);
@@ -236,7 +238,7 @@ private:
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
   __ALLOW_UNUSED(                                                                          \
     auto r0 = r.dtor(0);                                                                   \
-    TermSugar ph_s(TermList(getPlaceholderForTerm(sK1.sugaredExpr().term())));                  \
+    TermSugar ph_s(TermList(getPlaceholderForTerm({ sK1.sugaredExpr().term() }, 0)));      \
   )                                                                                        \
   DECL_CONST(b1, u)                                                                        \
   DECL_CONST(b2, u)                                                                        \
@@ -245,6 +247,7 @@ private:
   DECL_TERM_ALGEBRA(u, {b1, b2, r1, r2})                                                   \
   DECL_FUNC(f, {s, s}, s)                                                                  \
   DECL_FUNC(g, {s}, s)                                                                     \
+  DECL_FUNC(h, {s, s}, s)                                                                  \
   DECL_PRED(p, {s})                                                                        \
   DECL_PRED(p1, {s})                                                                       \
   DECL_PRED(q, {u})                                                                        \
@@ -1115,6 +1118,132 @@ TEST_GENERATION_INDUCTION(test_33,
         clause({ ~p(f(b,b)), r(skx5) == sK2 }),
       })
     )
+
+//
+// FUNCTION DEFINITION TESTS
+//
+
+auto setup = [](SaturationAlgorithm& salg) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  salg.setFunctionDefinitionHandler(new Shell::FunctionDefinitionHandler());
+
+  std::initializer_list<std::initializer_list<std::tuple<
+    TermSugar,TermSugar,std::initializer_list<Lit>>>> functionDefs =
+  {
+    {
+      { f(b,y),       y,                       { } },
+      { f(r(x),b),    f(x,x),                  { } },
+      { f(r(x),r(y)), h(f(x,g(y)),f(r(x),y)), { } },
+    },
+    {
+      { h(b,y),    y,       { } },
+      { h(r(x),y), h(x,y), { } },
+    },
+    {
+      { p(b()).wrapInTerm(),     b()/*unused*/, { } },
+      { p(r(r(x))).wrapInTerm(), b()/*unused*/, { p(x), x != b() } },
+    }
+  };
+  auto fu = new FormulaUnit(nullptr, FromInput(UnitInputType::AXIOM));
+  for (const auto& fd : functionDefs) {
+    Stack<FunctionDefinitionHandler::Branch> st;
+    for (const auto& t : fd) {
+      LiteralStack lits;
+      for (const auto& l : get<2>(t)) {
+        lits.push(l);
+      }
+      st.push({ get<0>(t).sugaredExpr().term(), get<1>(t).sugaredExpr(), lits });
+    }
+    salg.getFunctionDefinitionHandler()->addFunction(st, fu);
+  }
+};
+
+TEST_GENERATION_INDUCTION(test_34,
+    Generation::TestCase()
+      .setup(setup)
+      .options({
+        { "induction", "struct" },
+        { "structural_induction_kind", "recursion" },
+      })
+      .indices(getIndices())
+      .input( clause({ ~p(sK1) }) )
+      .expected({
+        clause({ ~p(b), ~p(r(b)), p(skx0) }),
+        clause({ ~p(b), ~p(r(b)), ~p(r(r(skx0))) }),
+      })
+    )
+
+TEST_GENERATION_INDUCTION(test_35,
+    Generation::TestCase()
+      .setup(setup)
+      .options({
+        { "induction", "struct" },
+        { "structural_induction_kind", "recursion" },
+      })
+      .indices(getIndices())
+      .input( clause({ f(sK1,sK2) != g(sK2) }) )
+      .expected({
+        clause({ f(b,skx0) != g(skx0), f(skx1,skx1) == g(skx1), f(skx2,g(skx3)) == g(g(skx3)) }),
+        clause({ f(b,skx0) != g(skx0), f(r(skx1),b) != g(b), f(skx2,g(skx3)) == g(g(skx3)) }),
+        clause({ f(b,skx0) != g(skx0), f(skx1,skx1) == g(skx1), f(r(skx2),skx3) == g(skx3) }),
+        clause({ f(b,skx0) != g(skx0), f(r(skx1),b) != g(b), f(r(skx2),skx3) == g(skx3) }),
+        clause({ f(b,skx0) != g(skx0), f(skx1,skx1) == g(skx1), f(r(skx2),r(skx3)) != g(r(skx3)) }),
+        clause({ f(b,skx0) != g(skx0), f(r(skx1),b) != g(b), f(r(skx2),r(skx3)) != g(r(skx3)) }),
+      })
+    )
+
+// only schemes from active positions are picked up
+// and there is one generalization only for active occurrences
+TEST_GENERATION_INDUCTION(test_36,
+    Generation::TestCase()
+      .setup(setup)
+      .options({
+        { "induction", "struct" },
+        { "induction_on_active_occurrences", "on" },
+      })
+      .indices(getIndices())
+      .input( clause({ h(h(sK1,sK2),f(sK3,sK4)) != g(sK4) }) )
+      .expected({
+        clause({ h(h(b,sK2),f(sK3,sK4)) != g(sK4), h(h(skx0,sK2),f(sK3,sK4)) == g(sK4) }),
+        clause({ h(h(b,sK2),f(sK3,sK4)) != g(sK4), h(h(r(skx0),sK2),f(sK3,sK4)) != g(sK4) }),
+
+        clause({ h(h(sK1,sK2),f(sK3,b)) != g(b), h(h(sK1,sK2),f(sK3,skx1)) == g(skx1) }),
+        clause({ h(h(sK1,sK2),f(sK3,b)) != g(b), h(h(sK1,sK2),f(sK3,r(skx1))) != g(r(skx1)) }),
+
+        clause({ h(h(sK1,sK2),f(sK3,sK4)) != g(b), h(h(sK1,sK2),f(sK3,sK4)) == g(skx1) }),
+        clause({ h(h(sK1,sK2),f(sK3,sK4)) != g(b), h(h(sK1,sK2),f(sK3,sK4)) != g(r(skx1)) }),
+      })
+    )
+
+// active occurrences are always inducted on in generalizations
+TEST_GENERATION_INDUCTION(test_37,
+    Generation::TestCase()
+      .setup(setup)
+      .options({
+        { "induction", "struct" },
+        { "induction_on_active_occurrences", "on" },
+        { "induction_gen", "on" },
+      })
+      .indices(getIndices())
+      .input( clause({ h(h(sK1,sK1),sK1) != g(sK1) }) )
+      .expected({
+        clause({ h(h(b,sK1),sK1) != g(b), h(h(skx0,sK1),sK1) == g(skx0) }),
+        clause({ h(h(b,sK1),sK1) != g(b), h(h(r(skx0),sK1),sK1) != g(r(skx0)) }),
+
+        clause({ h(h(b,b),sK1) != g(b), h(h(skx1,skx1),sK1) == g(skx1) }),
+        clause({ h(h(b,b),sK1) != g(b), h(h(r(skx1),r(skx1)),sK1) != g(r(skx1)) }),
+
+        clause({ h(h(b,sK1),b) != g(b), h(h(skx2,sK1),skx2) == g(skx2) }),
+        clause({ h(h(b,sK1),b) != g(b), h(h(r(skx2),sK1),r(skx2)) != g(r(skx2)) }),
+
+        clause({ h(h(b,b),b) != g(b), h(h(skx3,skx3),skx3) == g(skx3) }),
+        clause({ h(h(b,b),b) != g(b), h(h(r(skx3),r(skx3)),r(skx3)) != g(r(skx3)) }),
+      })
+    )
+
+//
+// GENERALIZATION TESTS
+//
 
 // no generalization
 TEST_FUN(generalizations_01) {

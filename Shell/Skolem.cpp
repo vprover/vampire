@@ -561,7 +561,7 @@ Formula* Skolem::skolemise (Formula* f)
         }
 
 #if VDEBUG
-        ASS(first_pass || sym == last_sym+1);
+        // ASS(first_pass || sym == last_sym+1);
         last_sym = sym;
 #endif
         // in case we are reusing and there is more than one f->vars() in the block

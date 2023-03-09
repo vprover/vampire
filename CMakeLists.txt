@@ -401,6 +401,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ExtensionalityResolution.cpp
     Inferences/Factoring.cpp
     Inferences/FastCondensation.cpp
+    Inferences/FnDefRewriting.cpp
     Inferences/FOOLParamodulation.cpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardLiteralRewriting.cpp
@@ -558,6 +559,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
     Shell/GoalGuessing.cpp
+    Shell/FunctionDefinitionHandler.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
@@ -745,6 +747,10 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
+    UnitTests/tInductionGeneralization.cpp
+    UnitTests/tTermAlgebra.cpp
+    UnitTests/tFnDefRewriting.cpp
+    UnitTests/tFunctionDefinitionHandler.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 

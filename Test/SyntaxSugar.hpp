@@ -32,8 +32,10 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
+#include "Shell/FunctionDefinitionHandler.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
 #define __TO_SORT_INT IntegerConstantType::getSort()
@@ -431,6 +433,11 @@ public:
     l._selected = true;
     return l;
   }
+
+  TermSugar wrapInTerm()
+  {
+    return TermSugar(TermList(_lit));
+  }
 };
 
 inline TermSugar frac(int a, int b) 
@@ -689,6 +696,10 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
 }
 
 inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
+  // avoid redeclaration
+  if (env.signature->isTermAlgebraSort(sort.sugaredExpr())) {
+    return;
+  }
 
   using namespace Shell;
 

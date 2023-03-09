@@ -61,6 +61,7 @@
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Injectivity.hpp"
 #include "Inferences/Factoring.hpp"
+#include "Inferences/FnDefRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
@@ -336,6 +337,11 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   if (inst->_extensionality != 0) {
     env.statistics->finalExtensionalityClauses = inst->_extensionality->size();
   }
+}
+
+void SaturationAlgorithm::setFunctionDefinitionHandler(FunctionDefinitionHandler* fnDefHandler)
+{
+  _fnDefHandler = fnDefHandler;
 }
 
 /**
@@ -1543,6 +1549,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.splitting()){
     res->_splitter = new Splitter();
   }
+  res->_fnDefHandler = prb.getFunctionDefinitionHandler();
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
@@ -1632,6 +1639,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (opt.termAlgebraInferences()) {
       gie->addFront(new InjectivityGIE());
     }
+  }
+  if (env.options->functionDefinitionRewriting()) {
+    gie->addFront(new FnDefRewriting());
+    res->addForwardSimplifierToFront(new FnDefRewriting());
   }
 
   CompositeSGI* sgi = new CompositeSGI();

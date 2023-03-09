@@ -164,6 +164,8 @@ namespace Shell {
     unsigned getSubtermPredicate();
     void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
 
+    static void excludeTermFromAvailables(Kernel::TermStack& availables, Kernel::TermList e, unsigned& var);
+
     friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
   private:
     TermList _sort;

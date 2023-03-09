@@ -63,6 +63,7 @@ class TestCase;
 template<class Rule>
 class GenerationTester
 {
+protected:
   Rule _rule;
 
 public:
@@ -87,6 +88,7 @@ class TestCase
   Stack<Clause*> _context;
   bool _premiseRedundant;
   Stack<Indexing::Index*> _indices;
+  std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   OptionMap _options;
   Stack<Condition> _preConditions;
   Stack<Condition> _postConditions;
@@ -119,6 +121,7 @@ public:
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<Indexing::Index*>, indices)
+  BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   BUILDER_METHOD(OptionMap, options)
   BUILDER_METHOD(Stack<Condition>, preConditions)
   BUILDER_METHOD(Stack<Condition>, postConditions)
@@ -135,6 +138,7 @@ public:
       env.options->set(kv.first, kv.second);
     }
     MockedSaturationAlgorithm alg(p, o);
+    _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
     rule.setTestIndices(_indices);
     rule.InferenceEngine::attach(&alg);

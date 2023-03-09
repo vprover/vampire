@@ -262,6 +262,13 @@ void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
   _partiallyDeletedPredicates.insert(pred,definition);
 }
 
+void Problem::addFunctionDefinitionHandler(Shell::FunctionDefinitionHandler* handler)
+{
+  CALL("Problem::addFunctionDefinitionHandler");
+
+  _fnDefHandler = handler;
+}
+
 /**
  * Recalculate the property from the current set of formulas
  */
