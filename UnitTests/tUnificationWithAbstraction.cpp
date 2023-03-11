@@ -1482,6 +1482,78 @@ ROB_UNIFY_TEST(alasca3_test_15,
       .constraints = Stack<Literal*>{ },
     })
 
+ROB_UNIFY_TEST(lpar_main_test_16,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    2 * f(x),
+    2 * f(y),
+    TermUnificationResultSpec { 
+      .querySigma  = 2 * f(x),
+      .resultSigma = 2 * f(x),
+      .constraints = Stack<Literal*>{ },
+    })
+
+ROB_UNIFY_TEST(lpar_main_test_17,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    2 * f(x),
+    f(y) + f(z),
+    TermUnificationResultSpec { 
+      .querySigma  = 2 * f(x),
+      .resultSigma = f(x) + f(x),
+      .constraints = Stack<Literal*>{ },
+    })
+
+ROB_UNIFY_TEST_FAIL(lpar_main_test_18,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    2 * f(x),
+    f(y) + frac(1,2) *  f(z))
+
+ROB_UNIFY_TEST(lpar_main_test_19,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    2 * f(x) - f(y) - f(z),
+    num(0),
+    TermUnificationResultSpec { 
+      .querySigma  = 2 * f(x) - f(x) - f(x),
+      .resultSigma = num(0),
+      .constraints = Stack<Literal*>{ },
+    })
+
+ROB_UNIFY_TEST(lpar_main_test_20,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    -2 * f(x) + f(y) + f(z),
+    num(0),
+    TermUnificationResultSpec { 
+      .querySigma  = -2 * f(x) + f(x) + f(x),
+      .resultSigma = num(0),
+      .constraints = Stack<Literal*>{ },
+    })
+
+ROB_UNIFY_TEST(lpar_main_test_21,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f(x) + f(y),
+    f(a) + f(b),
+    TermUnificationResultSpec { 
+      .querySigma  = f(x) + f(y),
+      .resultSigma = f(a) + f(b),
+      .constraints = { f(a) + f(b) != f(x) + f(y) },
+    })
+
+ROB_UNIFY_TEST(lpar_main_test_22,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ true,
+    f(x) + f(y) + g(x),
+    f(a) + f(b) + g(a),
+    TermUnificationResultSpec { 
+      .querySigma  = f(a) + f(b) + g(a),
+      .resultSigma = f(a) + f(b) + g(a),
+      .constraints = Stack<Literal*>{},
+    })
+
 ROB_UNIFY_TEST(constr_var_01,
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,

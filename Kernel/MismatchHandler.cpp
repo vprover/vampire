@@ -366,22 +366,40 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
   Recycled<Stack<UnificationConstraint>> unify;
   Recycled<Stack<UnificationConstraint>> constr;
   auto curF = diff[0].first.functor();
-  Recycled<Stack<pair<TermSpec, Numeral>>> curSummands;
+  Recycled<Stack<pair<TermSpec, Numeral>>> curPosSummands;
+  Recycled<Stack<pair<TermSpec, Numeral>>> curNegSummands;
   auto curSum = Numeral(0);  
 
 
   auto curSumCanUnify = [&]() -> bool {
       if (curSum != Numeral(0)) {
         return false;
-      } else if (curSummands->size() == 2) {
-        ASS((*curSummands)[0].second == -(*curSummands)[1].second)
-        unify->push(UnificationConstraint(
-          std::move((*curSummands)[0].first),
-          std::move((*curSummands)[1].first)));
+
+      } else if (curNegSummands->size() == 1) {
+        for (auto& s : *curPosSummands) {
+          unify->push(UnificationConstraint(
+            std::move((*curNegSummands)[0].first),
+            std::move(s.first)));
+        }
         return true;
+
+      } else if (curPosSummands->size() == 1) {
+        // ASS((*curPosSummands)[0].second == -(*curSummands)[1].second)
+        for (auto& s : *curNegSummands) {
+          unify->push(UnificationConstraint(
+            std::move((*curPosSummands)[0].first),
+            std::move(s.first)));
+        }
+        return true;
+
       } else {
-        ASS(curSummands->size() >= 3)
-        constr->push(toConstr(*curSummands));
+        ASS(curPosSummands->size() + curNegSummands->size() >= 3)
+        constr->push(UnificationConstraint(
+              sum(arrayIter(*curPosSummands)
+                 .map([](auto& x) { return make_pair(std::move(x.first), x.second); })),
+              sum(arrayIter(*curNegSummands)
+                 .map([](auto& x) { return make_pair(std::move(x.first), -x.second); }))
+              ));
         return true;
       }
   };
@@ -392,10 +410,11 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
       if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
       curF = f;
       curSum = Numeral(0);
-      curSummands->reset();
+      curPosSummands->reset();
+      curNegSummands->reset();
     }
     curSum += x.second;
-    curSummands->push(std::move(x));
+    (x.second.isPositive() ? curPosSummands : curNegSummands)->push(std::move(x));
   }
   if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
   return AbstractionResult(EqualIf().unify(std::move(unify)).constr(std::move(constr)));
