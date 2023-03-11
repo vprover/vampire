@@ -106,6 +106,13 @@ void Renaming::normalizeVariables(TermList t)
   }
 }
 
+
+void Renaming::normalizeVariables(TypedTermList t)
+{
+  normalizeVariables(TermList(t));
+  normalizeVariables(t.sort());
+}
+
 void Renaming::makeInverse(const Renaming& orig)
 {
   ASS_EQ(_nextVar,0);

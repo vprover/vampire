@@ -328,6 +328,8 @@ Clause* Superposition::performSuperposition(
     AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
 {
   CALL("Superposition::performSuperposition");
+
+
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
@@ -381,11 +383,11 @@ Clause* Superposition::performSuperposition(
   Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
-#if VDEBUG
-  if(!hasConstraints){
-    ASS_EQ(rwTermS,eqLHSS);
-  }
-#endif
+// #if VDEBUG
+//   if(!hasConstraints){
+//     ASS_EQ(rwTermS,eqLHSS); // <-  this does not hold anymore for new uwa as we might return something equivalent instead of the same term
+//   }
+// #endif
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 

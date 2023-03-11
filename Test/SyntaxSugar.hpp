@@ -362,7 +362,7 @@ public:
   }
 
   TermSugar(TermList trm, SortSugar sort)
-    : ExpressionSugar(trm)
+    : TermSugar(trm)
   {
     ASS(_sugaredExpr.isVar());
     _srt = sort.sugaredExpr();
@@ -475,8 +475,7 @@ inline Lit operator==(TermSugar lhs, SortedTermSugar rhs)
 
 inline Lit operator==(TermSugar lhs, TermSugar rhs) 
 {
-  SortId sort;
-  ALWAYS(SortHelper::tryGetResultSort(lhs, sort) || SortHelper::tryGetResultSort(rhs, sort));
+  SortId sort = lhs.sort().isNonEmpty() ? lhs.sort() : rhs.sort();
   return Literal::createEquality(true, lhs, rhs, sort);
 }
 

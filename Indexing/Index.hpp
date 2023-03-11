@@ -159,8 +159,6 @@ struct DefaultTermLeafData
   TermList _sort;
 
 
-  using Key = TermList;
-
   DefaultTermLeafData() {}
 
   DefaultTermLeafData(TypedTermList t, Literal* l, Clause* c)
@@ -173,7 +171,8 @@ struct DefaultTermLeafData
     : DefaultTermLeafData(TypedTermList(t), nullptr, nullptr)
   {}
 
-  Key const& key() const { return term; }
+  Coproduct<TypedTermList, TermList> key() const { return _sort.isEmpty() ? Coproduct<TypedTermList, TermList>(term)
+                                                                          : Coproduct<TypedTermList, TermList>(TypedTermList(term, _sort)); }
   TermList sort() const { return _sort; }
 
 private:

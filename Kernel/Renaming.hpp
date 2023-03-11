@@ -78,7 +78,16 @@ public:
 
   void normalizeVariables(const Term* t);
   void normalizeVariables(TermList t);
+  void normalizeVariables(TypedTermList t);
+  template<class A, class B>
+  void normalizeVariables(Coproduct<A, B> t) 
+  { return t.apply([&](auto& t){ return normalizeVariables(t); }); }
   void makeInverse(const Renaming& orig);
+
+
+  template<class A, class B>
+  static Coproduct<A,B> normalize(Coproduct<A, B> t)
+  { return t.apply([&](auto& t){ return Coproduct<A,B>(normalize(t)); }); }
 
   static Literal* normalize(Literal* l);
   static TypedTermList normalize(TypedTermList l);

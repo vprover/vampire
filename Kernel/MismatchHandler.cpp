@@ -1008,6 +1008,7 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
   return unify(TermSpec(term1, bank1), TermSpec(term2, bank2), progress);
 }
 
+
 bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
   CALL("AbstractionResult::unify");

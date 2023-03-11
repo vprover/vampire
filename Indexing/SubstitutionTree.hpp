@@ -359,8 +359,12 @@ public:
 
   };
 
+  template<class A, class B>
+  static bool isGround(Coproduct<A,B> t)
+  { return t.apply([&](auto& t){ return isGround(t); }); }
   static bool isGround(Literal* literal) { return literal->ground(); }
   static bool isGround(TermList term) { return term.ground(); }
+  static bool isGround(TypedTermList term) { return term.ground() && term.sort().ground(); }
 
   enum NodeAlgorithm
   {
@@ -934,7 +938,10 @@ public:
      */
     Recycled<ArrayMap<TermList>> _bindings;
   };
-
+   
+  template<class BindingFunction, class A, class B>
+  void createBindings(Coproduct<A,B> term, bool reversed, BindingFunction bindSpecialVar)
+  { return term.apply([&](auto& t) { return createBindings(t, reversed, bindSpecialVar); }); }
   // TODO document
   template<class BindingFunction>
   void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
@@ -948,8 +955,9 @@ public:
   void createBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
   { 
     bindSpecialVar(0, term); 
-    if (term.isTerm())
+    if (term.isTerm()) {
       bindSpecialVar(1, SortHelper::getResultSort(term.term()));
+    }
   }
 
   template<class BindingFunction>
@@ -1322,6 +1330,7 @@ public:
     {
       CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
+      DEBUG_ITER(2, "iterating on: ", multiline(*parent));
       if(!root) {
         return;
       }
