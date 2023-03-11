@@ -294,6 +294,7 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
                  .map([](auto& x) { return make_pair(std::move(x.first), -x.second); }))
               );
   };
+
   if (arrayIter(diff).any([&](auto& x) 
         { return x.first.isTerm() && n.isMul(x.first.functor()); })) {
 
@@ -360,6 +361,8 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
     }
   } 
 
+  // no variables
+
   Recycled<Stack<UnificationConstraint>> unify;
   Recycled<Stack<UnificationConstraint>> constr;
   auto curF = diff[0].first.functor();
@@ -371,13 +374,10 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
       if (curSum != Numeral(0)) {
         return false;
       } else if (curSummands->size() == 2) {
-        auto& pos = (*curSummands)[0].second.isPositive() ? (*curSummands)[0] : (*curSummands)[1];
-        auto& neg = (*curSummands)[0].second.isPositive() ? (*curSummands)[1] : (*curSummands)[0];
-        ASS(pos.second.isPositive())
-        ASS(neg.second.isNegative())
+        ASS((*curSummands)[0].second == -(*curSummands)[1].second)
         unify->push(UnificationConstraint(
-              numMul( pos.second, std::move(pos.first)), 
-              numMul(-neg.second, std::move(neg.first))));
+          std::move((*curSummands)[0].first),
+          std::move((*curSummands)[1].first)));
         return true;
       } else {
         ASS(curSummands->size() >= 3)
@@ -1023,8 +1023,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
   auto impl = [&]() -> bool {
 
-    Recycled<Stack<UnificationConstraint>> toDo;
-    toDo->push(UnificationConstraint(t1.clone(), t2.clone()));
+    Recycled<Stack<UnificationConstraint>> todo;
+    todo->push(UnificationConstraint(t1.clone(), t2.clone()));
     
     // Save encountered unification pairs to avoid
     // recomputing their unification
@@ -1050,11 +1050,11 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         // TODO restore this branch?
         // if (pair.first.isVar() && isUnbound(pair.first.varSpec()) &&
         //     pair.second.isVar() && isUnbound(pair.second.varSpec())) {
-        //   toDo.push(pair);
+        //   todo.push(pair);
         // } else 
         if (!encountered->find(pair)) {
           encountered->insert(pair.clone());
-          toDo->push(std::move(pair));
+          todo->push(std::move(pair));
         }
     };
 
@@ -1076,10 +1076,10 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     };
 
 
-    while (toDo->isNonEmpty()) {
-      auto x = toDo->pop();
-      auto& dt1 = x.lhs().deref(&subs());
-      auto& dt2 = x.rhs().deref(&subs());
+    while (todo->isNonEmpty()) {
+      auto cur = todo->pop();
+      auto& dt1 = cur.lhs().deref(&subs());
+      auto& dt2 = cur.rhs().deref(&subs());
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
       if (dt1 == dt2) {
         progress = true;
@@ -1096,6 +1096,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
         ASS(absRes);
         if (absRes->is<MismatchHandler::NeverEqual>()) {
+          progress = true;
           return false;
 
         } else {
@@ -1113,6 +1114,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
             progress = true;
           }
           for (auto& x : conditions.unify()) {
+            ASS_NEQ(x, cur)
             pushTodo(std::move(x));
           }
           for (auto& x: conditions.constr()) {
