@@ -12,6 +12,7 @@
  * Implements class InferenceStore.
  */
 
+#include "Kernel/Theory.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
@@ -1297,7 +1298,11 @@ protected:
         if (r < RealConstantType(0)) {
           out << "(-";
         }
-        out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
+        if (r.denominator() != IntegerConstantType(1)) {
+          out << r.numerator().abs() << ".0";
+        } else {
+          out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
+        }
         if (r < RealConstantType(0)) {
           out << ")";
         }
