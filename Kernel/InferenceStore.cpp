@@ -1297,7 +1297,7 @@ protected:
         if (r < RealConstantType(0)) {
           out << "(-";
         }
-        out << "(/ " << r.numerator().abs() << " " << r.denominator() << ")";
+        out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
         if (r < RealConstantType(0)) {
           out << ")";
         }

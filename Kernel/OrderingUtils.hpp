@@ -274,6 +274,8 @@ namespace Kernel {
 
             res = l < r ? res : Ordering::reverse(res);
 
+            DBGE(l)
+            DBGE(r)
             ASS_EQ(res, cmp_(l, r))
             return res;
           };

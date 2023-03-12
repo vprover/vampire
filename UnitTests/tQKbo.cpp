@@ -198,7 +198,6 @@ TEST_FUN(uninterpreted_terms_05) {
   check(ord, g(x,y), Incomp, g(y,x));
 }
 
-
 TEST_FUN(interpreted_terms_01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -736,6 +735,15 @@ TEST_FUN(numerals) {
 #if !ENABLE_ZERO_REMOVAL
   check(ord,  num(3) + -2 + 0 * a, Greater, num(3));
 #endif // !ENABLE_ZERO_REMOVAL
+  check(ord,  num(2), Greater, num(1));
+  {
+    NUMBER_SUGAR(Rat)
+    check(ord,  num(2), Greater, num(1));
+  }
+  {
+    NUMBER_SUGAR(Int)
+    check(ord,  num(2), Greater, num(1));
+  }
 
 }
 
