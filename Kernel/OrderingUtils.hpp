@@ -274,7 +274,7 @@ namespace Kernel {
 
             res = l < r ? res : Ordering::reverse(res);
 
-            ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", r, " expected: ", get(r)) )
+            ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", get(r)) )
             return res;
           };
 
