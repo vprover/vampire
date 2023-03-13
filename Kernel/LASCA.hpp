@@ -807,6 +807,8 @@ namespace Kernel {
           cl->size(), 
           [=](unsigned l, unsigned r) 
           { return ordering->compare((*cl)[l], (*cl)[r]); },
+          [=](unsigned i) -> Literal&
+          { return *(*cl)[i]; },
           sel)
         .map([=](auto i) 
             { return SelectedLiteral(cl, i, *this); });
@@ -834,6 +836,8 @@ namespace Kernel {
                   lit.term().nSummands(),
                   [=](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
+                  [=](unsigned i)
+                  { return monomAt(i); },
                   selection);
     }
 
@@ -1024,6 +1028,8 @@ namespace Kernel {
           atoms->size(), 
           [=](unsigned l, unsigned r) 
           { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
+          [=](unsigned i)
+          { return (*atoms)[i].atom(); },
           criterion)
         .map([=](auto i) 
             { return (*atoms)[i]; })

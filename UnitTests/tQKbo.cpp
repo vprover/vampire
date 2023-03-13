@@ -744,6 +744,8 @@ TEST_FUN(numerals) {
     NUMBER_SUGAR(Int)
     check(ord,  num(2), Greater, num(1));
   }
+  check(ord,  num(0), Less, num(1));
+  check(ord,  num(1), Greater, num(0));
 
 }
 

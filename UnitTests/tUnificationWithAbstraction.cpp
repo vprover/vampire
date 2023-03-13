@@ -2132,6 +2132,63 @@ ROB_UNIFY_TEST(lpar_main_constr_var_11,
       .constraints = Stack<Literal*>{ },
     })
 
+ROB_UNIFY_TEST_FAIL(lpar_main_misc02,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f2(2 * f(x) + g(a), f2(x, y)),
+    f2(f(a) + f(b) + g(x), f2(x, y))
+    )
+    
+
+ROB_UNIFY_TEST_FAIL(lpar_main_misc03,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f2(2 * f(x) + g(a), f2(x, y)),
+    f2(f(a) + f(a) + g(b), f2(x, y))
+    )
+
+ROB_UNIFY_TEST(lpar_main_misc04,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f2(2 * f(x) + g(b), f2(x, y)),
+    f2(f(a) + f(a) + g(y), f2(x, y)),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(2 * f(a) + g(b), f2(a, b)),
+      .resultSigma = f2(f(a) + f(a) + g(b), f2(a, b)),
+      .constraints = Stack<Literal*>{ },
+    })
+
+ROB_UNIFY_TEST(lpar_main_misc05,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f2(2 * f(x) + g(a), f2(x, y)),
+    f2(f(a) + f(y) + g(y), f2(x, y)),
+    TermUnificationResultSpec { 
+      .querySigma  = f2(2 * f(a) + g(a), f2(a, a)),
+      .resultSigma = f2(f(a) + f(a) + g(a), f2(a, a)),
+      .constraints = Stack<Literal*>{ },
+    })
+
+ROB_UNIFY_TEST_FAIL(lpar_main_misc06,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f2(2 * f(x) + g(b), f2(x, y)),
+    f2(f(a) + f(a) + g(x), f2(x, y)))
+
+ROB_UNIFY_TEST_FAIL(lpar_main_misc07,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f2(2 * f(x) + g(b)       , f2(x, y)),
+    f2(f(a) + f(a) + 2 * g(x), f2(x, y))
+    )
+
+ROB_UNIFY_TEST_FAIL(lpar_main_misc08,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f2(2 * f(x) + g(b)        , f2(x, y)),
+    f2(f(a) + f(a) + -2 * g(x), f2(x, y))
+    )
+
 ROB_UNIFY_TEST_FAIL(lpar_main_non_normalized_mul_01,
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,

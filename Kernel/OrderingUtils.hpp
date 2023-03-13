@@ -247,8 +247,8 @@ namespace Kernel {
            : Ordering::Result::INCOMPARABLE; 
     }
 
-    template<class Cmp>
-    static auto maxElems(unsigned nElems, Cmp cmp_, SelectionCriterion sel)
+    template<class Cmp, class GetElem>
+    static auto maxElems(unsigned nElems, Cmp cmp_, GetElem get, SelectionCriterion sel)
     {
       CALL("OrderingUtils::maxElems")
       auto cmpCache = make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
@@ -274,9 +274,7 @@ namespace Kernel {
 
             res = l < r ? res : Ordering::reverse(res);
 
-            DBGE(l)
-            DBGE(r)
-            ASS_EQ(res, cmp_(l, r))
+            ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", r, " expected: ", get(r)) )
             return res;
           };
 
