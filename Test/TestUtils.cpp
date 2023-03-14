@@ -117,6 +117,9 @@ std::ostream& Pretty<Literal*>::prettyPrint(std::ostream& out) const
 template<>
 std::ostream& Pretty<Clause>::prettyPrint(std::ostream& out) const
 { 
+  if (_self.isEmpty()) {
+    return out << "_|_";
+  }
   auto iter = _self.iterLits();
     out << "{ ";
   if (iter.hasNext()) {

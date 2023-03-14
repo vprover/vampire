@@ -2307,6 +2307,18 @@ ROB_UNIFY_TEST(lpar_main_bug03,
       .lascaSimpl = true,
     })
 
+
+ROB_UNIFY_TEST_NAMESPACED(lpar_main_lhs_var_test_namespaces_1,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    x.sort(Rat),
+    f(x),
+    TermUnificationResultSpec { 
+      .querySigma = f(x),
+      .resultSigma = f(x),
+      .constraints = Stack<Literal*>{ },
+    })
+
 TermList binList(FuncSugar f2, Stack<TermList> ts) 
 {
   return arrayIter(std::move(ts))

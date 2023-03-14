@@ -978,6 +978,7 @@ namespace Kernel {
     bool interpretedFunction(Term* t) 
     { return forAnyNumTraits([&](auto numTraits) -> bool {
             return theory->isInterpretedFunction(t, numTraits.addI)
+                || theory->isInterpretedFunction(t, numTraits.minusI)
                 || theory->isInterpretedConstant(t)
                 || (theory->isInterpretedFunction(t, numTraits.mulI)
                     && theory->isInterpretedConstant(t->termArg(0)));

@@ -94,9 +94,9 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
-shared_ptr<LascaState> state() 
+shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
 { 
-  static shared_ptr<LascaState> out = testLascaState(UWA_MODE); 
+  shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
   return out;
 }
 
@@ -106,12 +106,12 @@ Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
     [](){ return new LascaIndex<Superposition::Rhs>();},
   }; }
 
-Superposition testSuperposition()
-{ return Superposition(state()); }
+Superposition testSuperposition(Options::UnificationWithAbstraction uwa)
+{ return Superposition(state(uwa)); }
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperposition()))
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperposition(UWA_MODE)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -660,6 +660,32 @@ TEST_GENERATION(bug06,
               })
       ))
     )
+
+TEST_GENERATION(abstraction_bug01a,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::ALASCA2)))
+      .selfApplications(false)
+      .inputs  ({ 
+          clause({ 0 == f2(f(x), 0)  }),
+          clause({ 0 == f2(a, x) + -f2(a, -x + b) })
+        })
+      .expected(exactly(
+          // nothing
+      ))
+    )
  
-// iG8(sK29)[ sK29 ] ( inLitPlus: 1 )
-// X0 = X1 \/ real__refqtmk(X0) != real__refqtmk(X1)
+TEST_GENERATION(abstraction_bug01b,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .selfApplications(false)
+      .inputs  ({ 
+          clause({ 0 == f2(f(x), 0)  }),
+          clause({ 0 == f2(a, x) + -f2(a, -x + b) })
+        })
+      .expected(exactly(
+          // nothing
+      ))
+    )
+ 
