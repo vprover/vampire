@@ -205,7 +205,7 @@ namespace Kernel {
       ASS_G(weight, IntegerConstantType(0))
     }
 
-    void reset() { elems.reset(); }
+    void reset() { elems.reset(); weight = IntegerConstantType(1); }
     bool keepRecycled() const { return elems.keepRecycled(); }
 
     friend std::ostream& operator<<(std::ostream& out, WeightedMultiSet const& self)
@@ -274,7 +274,7 @@ namespace Kernel {
 
             res = l < r ? res : Ordering::reverse(res);
 
-            ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", get(r)) )
+            ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", res ))
             return res;
           };
 

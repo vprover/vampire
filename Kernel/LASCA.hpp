@@ -743,7 +743,6 @@ namespace Kernel {
 
     Shell::Options::UnificationWithAbstraction uwaMode() const { return uwa; }
         
-    // TODO move to LASCA.hpp
     template<class NumTraits>
     Option<Recycled<SignedAtoms>> signedAtoms(TermList t)
     {

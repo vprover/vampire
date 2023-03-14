@@ -65,6 +65,20 @@ public:
     INCOMPARABLE=6
   };
 
+  friend ostream& operator<<(ostream& out, Kernel::Ordering::Result const& r)
+  {
+    switch (r) {
+      case Kernel::Ordering::Result::GREATER: return out << "GREATER";
+      case Kernel::Ordering::Result::LESS: return out << "LESS";
+      case Kernel::Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
+      case Kernel::Ordering::Result::LESS_EQ: return out << "LESS_EQ";
+      case Kernel::Ordering::Result::EQUAL: return out << "EQUAL";
+      case Kernel::Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+    }
+    ASSERTION_VIOLATION
+    return out << "UNKNOWN";
+  }
+
   Ordering();
   Ordering(Ordering&&) = default;
   Ordering& operator=(Ordering&&) = default;
@@ -261,18 +275,5 @@ protected:
 
 } // namespace Kernel
 
-inline ostream& operator<<(ostream& out, Kernel::Ordering::Result const& r) 
-{
-  switch (r) {
-    case Kernel::Ordering::Result::GREATER: return out << "GREATER";
-    case Kernel::Ordering::Result::LESS: return out << "LESS";
-    case Kernel::Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
-    case Kernel::Ordering::Result::LESS_EQ: return out << "LESS_EQ";
-    case Kernel::Ordering::Result::EQUAL: return out << "EQUAL";
-    case Kernel::Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
-  }
-  ASSERTION_VIOLATION
-  return out << "UNKNOWN";
-}
 
 #endif
