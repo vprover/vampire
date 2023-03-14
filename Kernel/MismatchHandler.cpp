@@ -458,7 +458,7 @@ Option<MismatchHandler::AbstractionResult> lpar(AbstractingUnifier& au, TermSpec
             || (numTraits.isMul(f)
                 && ((t.termArg(0).deref(&au.subs()).isTerm() 
                      && numTraits.isNumeral(t.termArg(0).deref(&au.subs()).functor()))
-                 ||( t.termArg(1).deref(&au.subs()).isTerm() 
+                ||( t.termArg(1).deref(&au.subs()).isTerm() 
                      && numTraits.isNumeral(t.termArg(1).deref(&au.subs()).functor()))
                 ));
     });
@@ -523,7 +523,10 @@ bool isAlascaInterpreted(TermSpec const& t, AbstractingUnifier& au) {
           || numTraits.isMinus(f)
           || (numTraits.isMul(f)
               && (t.termArg(0).deref(&au.subs()).isTerm() 
-              && numTraits.isNumeral(t.termArg(0).deref(&au.subs()).functor())));
+              && numTraits.isNumeral(t.termArg(0).deref(&au.subs()).functor()))
+                ||( t.termArg(1).deref(&au.subs()).isTerm() 
+                     && numTraits.isNumeral(t.termArg(1).deref(&au.subs()).functor()))
+             );
   });
 };
 
