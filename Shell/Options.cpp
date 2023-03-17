@@ -1542,30 +1542,23 @@ void Options::init()
     _condensation.onlyUsefulWith(InferencingSaturationAlgorithm());
     _condensation.setRandomChoices({"on","off","fast"});
 
-    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedunancyCheck>("demodulation_redundancy_check","drc",DemodulationRedunancyCheck::ON,{"off","encompass","on"});
     _demodulationRedundancyCheck.description=
-       "Avoids the following cases of backward and forward demodulation, as they do not preserve completeness:\n"
+       "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
 
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
-       "where t > t1 and s = t > C (RHS replaced)";
+       "where t > t1 and s = t > C (RHS replaced)\n"
+       "With `on`, we check this condition and don't demodulate if we could violate completeness.\n"
+       "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
+       "With `off`, we skip the checks, save time, but become incomplete.";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
     _demodulationRedundancyCheck.onlyUsefulWith(InferencingSaturationAlgorithm());
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
-    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
-
-    _demodulationEncompassment = BoolOptionValue("demodulation_encompassment","de",false);
-    _demodulationEncompassment.description= "Treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper)";
-    _lookup.insert(&_demodulationEncompassment);
-    _demodulationEncompassment.tag(OptionTag::INFERENCES);
-    _demodulationEncompassment.onlyUsefulWith(InferencingSaturationAlgorithm());
-    _demodulationEncompassment.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
-    _demodulationEncompassment.onlyUsefulWith(_demodulationRedundancyCheck.is(equal(true)));
-    _demodulationEncompassment.addProblemConstraint(hasEquality());
-    _demodulationEncompassment.setRandomChoices({"on","off"});
+    _demodulationRedundancyCheck.setRandomChoices({"on","encompass","off"});
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
@@ -3513,7 +3506,9 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // URR is complete for Horn problems
   }
 
-  if (!_demodulationRedundancyCheck.actualValue) return false;
+  if (_demodulationRedundancyCheck.actualValue == DemodulationRedunancyCheck::OFF) {
+    return false;
+  }
   if (!_superpositionFromVariables.actualValue) return false;
 
   // only checking resolution rules remain
