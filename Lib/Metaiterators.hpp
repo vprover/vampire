@@ -849,6 +849,9 @@ public:
    * the @b size() function, and if the @b knowsSize() function returns true.
    */
   inline size_t size() const { return _inner.size(); }
+
+  auto reverse() && 
+  { return MappingIterator<decltype(std::move(_inner).reverse()), Functor, ResultType>(std::move(_inner).reverse(), std::move(_func)); }
 private:
   Functor _func;
   Inner _inner;
@@ -1266,6 +1269,11 @@ public:
   inline T next() { return _next++; };
   inline bool knowsSize() const { return true; }
   inline size_t size() const { return (_to>_from) ? (_to-_from) : 0; }
+  auto reverse() &&
+  { 
+    auto to = _to;
+    return getMappingIterator(std::move(*this), [to](auto i) { return to - 1 - i; }); 
+  }
 private:
   T _next;
   T _from;
@@ -2030,6 +2038,8 @@ public:
   auto zipWithIndex()
   { return map([idx = 0](Elem x) mutable { return make_pair(std::move(x), idx++); }); }
 
+  auto reverse() &&
+  { return iterTraits(std::move(_iter).reverse()); }
 
   auto sum()
   { return fold([](Elem l, Elem r) { return l + r; }) || []() { return Elem(0); }; }
@@ -2108,15 +2118,32 @@ auto dropElementType(Iterator iter)
 
 template<class Array>
 auto arrayIter(Array const& x) 
-{ return iterTraits(getArrayishObjectIterator<const_ref_t>(x)); }
+{ return range(0, x.size())
+     .map([&x](auto i) -> decltype(auto) { return x[i]; }); }
+
 
 template<class Array>
-auto arrayIter(Array      & x) 
-{ return iterTraits(getArrayishObjectIterator<mut_ref_t>(x)); }
+auto arrayIter(Array& x) 
+{ return range(0, x.size())
+     .map([&x](auto i) -> decltype(auto) { return x[i]; }); }
+
 
 template<class Array>
-auto arrayIter(Array     && x) 
-{ return iterTraits(ownedArrayishIterator(std::move(x))); }
+auto arrayIter(Array&& x) 
+{ return range(0, x.size())
+     .map([x = std::move(x)](auto i) { return std::move(x[i]); }); }
+
+// template<class Array>
+// auto arrayIter(Array const& x) 
+// { return iterTraits(getArrayishObjectIterator<const_ref_t>(x)); }
+//
+// template<class Array>
+// auto arrayIter(Array      & x) 
+// { return iterTraits(getArrayishObjectIterator<mut_ref_t>(x)); }
+//
+// template<class Array>
+// auto arrayIter(Array     && x) 
+// { return iterTraits(ownedArrayishIterator(std::move(x))); }
 
 // template<class CreateIer>
 // class IterAsData {
