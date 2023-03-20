@@ -24,6 +24,7 @@
 
 namespace Indexing {
 
+template<class Data>
 class LiteralIndex
 : public Index
 {
@@ -37,8 +38,7 @@ public:
   SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
-  // TODO make DefaultLiteralLeafData a type parameter
-  VirtualIterator<QueryRes<AbstractingUnifier*, DefaultLiteralLeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
 
   SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
@@ -52,49 +52,49 @@ public:
 
 
 protected:
-  LiteralIndex(LiteralIndexingStructure<>* is) : _is(is) {}
+  LiteralIndex(LiteralIndexingStructure<Data>* is) : _is(is) {}
 
   void handleLiteral(Literal* lit, Clause* cl, bool add)
-  { _is->handle(DefaultLiteralLeafData(cl, lit), add); }
+  { _is->handle(Data(cl, lit), add); }
 
-  unique_ptr<LiteralIndexingStructure<>> _is;
+  unique_ptr<LiteralIndexingStructure<Data>> _is;
 };
 
 class BinaryResolutionIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(BinaryResolutionIndex);
   USE_ALLOCATOR(BinaryResolutionIndex);
 
   BinaryResolutionIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex(is) {};
+  : LiteralIndex<DefaultLiteralLeafData>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 };
 
 class BackwardSubsumptionIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(BackwardSubsumptionIndex);
   USE_ALLOCATOR(BackwardSubsumptionIndex);
 
   BackwardSubsumptionIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex(is) {};
+  : LiteralIndex<DefaultLiteralLeafData>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 };
 
 class FwSubsSimplifyingLiteralIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(FwSubsSimplifyingLiteralIndex);
   USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
 
   FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure<>* is)
-    : LiteralIndex(is)
+    : LiteralIndex<DefaultLiteralLeafData>(is)
   { }
 
 protected:
@@ -102,14 +102,14 @@ protected:
 };
 
 class FSDLiteralIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(FSDLiteralIndex);
   USE_ALLOCATOR(FSDLiteralIndex);
 
   FSDLiteralIndex(LiteralIndexingStructure<>* is)
-    : LiteralIndex(is)
+    : LiteralIndex<DefaultLiteralLeafData>(is)
   { }
 
 protected:
@@ -117,27 +117,27 @@ protected:
 };
 
 class UnitClauseLiteralIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(UnitClauseLiteralIndex);
   USE_ALLOCATOR(UnitClauseLiteralIndex);
 
   UnitClauseLiteralIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex(is) {};
+  : LiteralIndex<DefaultLiteralLeafData>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 };
 
 class NonUnitClauseLiteralIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(NonUnitClauseLiteralIndex);
   USE_ALLOCATOR(NonUnitClauseLiteralIndex);
 
   NonUnitClauseLiteralIndex(LiteralIndexingStructure<>* is, bool selectedOnly=false)
-  : LiteralIndex(is), _selectedOnly(selectedOnly) {};
+  : LiteralIndex<DefaultLiteralLeafData>(is), _selectedOnly(selectedOnly) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
@@ -145,7 +145,7 @@ private:
 };
 
 class RewriteRuleIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(RewriteRuleIndex);
@@ -170,27 +170,27 @@ private:
 };
 
 class DismatchingLiteralIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(DismatchingLiteralIndex);
   USE_ALLOCATOR(DismatchingLiteralIndex);
 
   DismatchingLiteralIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex(is) {};
+  : LiteralIndex<DefaultLiteralLeafData>(is) {};
   void handleClause(Clause* c, bool adding);
   void addLiteral(Literal* c);
 };
 
 class UnitIntegerComparisonLiteralIndex
-: public LiteralIndex
+: public LiteralIndex<DefaultLiteralLeafData>
 {
 public:
   CLASS_NAME(UnitIntegerComparisonLiteralIndex);
   USE_ALLOCATOR(UnitIntegerComparisonLiteralIndex);
 
   UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex(is) {}
+  : LiteralIndex<DefaultLiteralLeafData>(is) {}
 
 protected:
   void handleClause(Clause* c, bool adding);

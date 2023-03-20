@@ -35,7 +35,7 @@ public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);
 
-  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex)
+  InductionHelper(LiteralIndex<DefaultLiteralLeafData>* comparisonIndex, TermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
   VirtualIterator<DefaultTermLeafData> getLess(Term* t);
@@ -61,7 +61,7 @@ private:
   VirtualIterator<DefaultTermLeafData> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
 
   // The following pointers can be null if splitting or integer induction is off.
-  LiteralIndex* _comparisonIndex;  // not owned
+  LiteralIndex<DefaultLiteralLeafData>* _comparisonIndex;  // not owned
   TermIndex* _inductionTermIndex;  // not owned
 };
 

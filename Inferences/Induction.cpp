@@ -255,7 +255,7 @@ void Induction::attach(SaturationAlgorithm* salg) {
 
   GeneratingInferenceEngine::attach(salg);
   if (InductionHelper::isIntInductionOneOn()) {
-    _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
+    _comparisonIndex = static_cast<LiteralIndex<DefaultLiteralLeafData>*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
   if (InductionHelper::isNonUnitStructInductionOn()) {

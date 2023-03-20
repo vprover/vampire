@@ -133,6 +133,7 @@ struct MyData {
 };
 
 
+
 TEST_FUN(custom_data_01) {
 
   DECL_DEFAULT_VARS
@@ -150,6 +151,29 @@ TEST_FUN(custom_data_01) {
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
   check_unify(tree, f(b), Stack<MyData<TermList>>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
+}
+
+
+TEST_FUN(custom_data_literal_01) {
+
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_PRED(p, {srt})
+
+  auto dat = [](Literal* l, auto r) { return MyData<Literal*>(l,r); };
+  LiteralSubstitutionTree<MyData<Literal*>> tree;
+  tree.insert(dat( p(a), "a"));
+  tree.insert(dat(~p(a), "b"));
+  tree.insert(dat( p(a), "c"));
+
+  check_unify(tree,  p(a), { dat(p(a), "a"), dat(p(a), "c") });
+  check_unify(tree, ~p(a), { dat(~p(a), "b") });
+  check_unify(tree,  p(b), Stack<MyData<Literal*>>{});
+  check_unify(tree, ~p(b), Stack<MyData<Literal*>>{});
+  check_unify(tree,  p(x), { dat( p(a), "a"), dat(p(a), "c") });
+  check_unify(tree, ~p(x), { dat(~p(a), "b") });
 }
 
 TEST_FUN(custom_data_02) {
@@ -280,3 +304,4 @@ TEST_FUN(zero_arity_predicate) {
   check_unify(tree, a != a, Stack<Data>{});
 
 }
+

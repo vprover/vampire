@@ -30,7 +30,7 @@ using namespace Test::Generation;
 #define SKOLEM_VAR_MIN 100
 #define DECL_SKOLEM_VAR(x, i) DECL_VAR(x, i+SKOLEM_VAR_MIN)
 
-LiteralIndex* comparisonIndex() {
+LiteralIndex<DefaultLiteralLeafData>* comparisonIndex() {
   return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree<>());
 }
 

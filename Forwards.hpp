@@ -136,6 +136,7 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
+template<class Data>
 class LiteralIndex;
 struct DefaultLiteralLeafData;
 struct DefaultTermLeafData;
