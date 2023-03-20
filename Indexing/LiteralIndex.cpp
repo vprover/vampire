@@ -214,7 +214,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         return;
       }
       //there is no counterpart, so insert the clause into the partial index
-      _partialIndex->insert(DefaultLiteralLeafData(greater, c));
+      _partialIndex->insert(LiteralClause(greater, c));
     }
     else {
       Clause* d;
@@ -224,7 +224,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 	handleEquivalence(c, greater, d, dgr, false);
       }
       else {
-	_partialIndex->remove(DefaultLiteralLeafData(greater, c));
+	_partialIndex->remove(LiteralClause(greater, c));
       }
     }
   }
@@ -318,14 +318,14 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
     ALWAYS(_counterparts.insert(d, c));
 
     //we can remove the literal from the index of partial definitions
-    _partialIndex->remove(DefaultLiteralLeafData(dgr, d));
+    _partialIndex->remove(LiteralClause(dgr, d));
   }
   else {
     _counterparts.remove(c);
     _counterparts.remove(d);
 
     //we put the remaining counterpart into the index of partial definitions
-    _partialIndex->insert(DefaultLiteralLeafData(dgr, d));
+    _partialIndex->insert(LiteralClause(dgr, d));
   }
 
 }
@@ -372,7 +372,7 @@ void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
   Literal* lit = (*c)[0];
   ASS(lit != nullptr);
 
-  _is->handle(DefaultLiteralLeafData(lit, c), adding);
+  _is->handle(LiteralClause(lit, c), adding);
 }
 
 }

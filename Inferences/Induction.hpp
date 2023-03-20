@@ -163,7 +163,7 @@ public:
 
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {
-    _comparisonIndex = static_cast<LiteralIndex<DefaultLiteralLeafData>*>(indices[0]);
+    _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(indices[0]);
     _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
     _structInductionTermIndex = static_cast<TermIndex*>(indices[2]);
   }
@@ -171,7 +171,7 @@ public:
 
 private:
   // The following pointers can be null if int induction is off.
-  LiteralIndex<DefaultLiteralLeafData>* _comparisonIndex = nullptr;
+  LiteralIndex<LiteralClause>* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
   InductionFormulaIndex _formulaIndex;

@@ -32,7 +32,7 @@ public:
   CLASS_NAME(LiteralIndex);
   USE_ALLOCATOR(LiteralIndex);
 
-  VirtualIterator<DefaultLiteralLeafData> getAll()
+  VirtualIterator<LiteralClause> getAll()
   { return _is->getAll(); }
 
   SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
@@ -61,40 +61,40 @@ protected:
 };
 
 class BinaryResolutionIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(BinaryResolutionIndex);
   USE_ALLOCATOR(BinaryResolutionIndex);
 
   BinaryResolutionIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex<DefaultLiteralLeafData>(is) {};
+  : LiteralIndex<LiteralClause>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 };
 
 class BackwardSubsumptionIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(BackwardSubsumptionIndex);
   USE_ALLOCATOR(BackwardSubsumptionIndex);
 
   BackwardSubsumptionIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex<DefaultLiteralLeafData>(is) {};
+  : LiteralIndex<LiteralClause>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 };
 
 class FwSubsSimplifyingLiteralIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(FwSubsSimplifyingLiteralIndex);
   USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
 
   FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure<>* is)
-    : LiteralIndex<DefaultLiteralLeafData>(is)
+    : LiteralIndex<LiteralClause>(is)
   { }
 
 protected:
@@ -102,14 +102,14 @@ protected:
 };
 
 class FSDLiteralIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(FSDLiteralIndex);
   USE_ALLOCATOR(FSDLiteralIndex);
 
   FSDLiteralIndex(LiteralIndexingStructure<>* is)
-    : LiteralIndex<DefaultLiteralLeafData>(is)
+    : LiteralIndex<LiteralClause>(is)
   { }
 
 protected:
@@ -117,27 +117,27 @@ protected:
 };
 
 class UnitClauseLiteralIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(UnitClauseLiteralIndex);
   USE_ALLOCATOR(UnitClauseLiteralIndex);
 
   UnitClauseLiteralIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex<DefaultLiteralLeafData>(is) {};
+  : LiteralIndex<LiteralClause>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 };
 
 class NonUnitClauseLiteralIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(NonUnitClauseLiteralIndex);
   USE_ALLOCATOR(NonUnitClauseLiteralIndex);
 
   NonUnitClauseLiteralIndex(LiteralIndexingStructure<>* is, bool selectedOnly=false)
-  : LiteralIndex<DefaultLiteralLeafData>(is), _selectedOnly(selectedOnly) {};
+  : LiteralIndex<LiteralClause>(is), _selectedOnly(selectedOnly) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
@@ -145,7 +145,7 @@ private:
 };
 
 class RewriteRuleIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(RewriteRuleIndex);
@@ -170,27 +170,27 @@ private:
 };
 
 class DismatchingLiteralIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(DismatchingLiteralIndex);
   USE_ALLOCATOR(DismatchingLiteralIndex);
 
   DismatchingLiteralIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex<DefaultLiteralLeafData>(is) {};
+  : LiteralIndex<LiteralClause>(is) {};
   void handleClause(Clause* c, bool adding);
   void addLiteral(Literal* c);
 };
 
 class UnitIntegerComparisonLiteralIndex
-: public LiteralIndex<DefaultLiteralLeafData>
+: public LiteralIndex<LiteralClause>
 {
 public:
   CLASS_NAME(UnitIntegerComparisonLiteralIndex);
   USE_ALLOCATOR(UnitIntegerComparisonLiteralIndex);
 
   UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure<>* is)
-  : LiteralIndex<DefaultLiteralLeafData>(is) {}
+  : LiteralIndex<LiteralClause>(is) {}
 
 protected:
   void handleClause(Clause* c, bool adding);

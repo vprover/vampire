@@ -71,10 +71,10 @@ void SLQueryBackwardSubsumption::detach()
 
 struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
-  Clause* operator()(DefaultLiteralLeafData const& res)
+  Clause* operator()(LiteralClause const& res)
   { return res.clause; }  
   template<class T>
-  Clause* operator()(QueryRes<T, DefaultLiteralLeafData> const& res)
+  Clause* operator()(QueryRes<T, LiteralClause> const& res)
   { return res.data->clause; }
 };
 

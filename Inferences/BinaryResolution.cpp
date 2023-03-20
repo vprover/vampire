@@ -51,7 +51,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 // TODO remove after refactor
-using BRQueryRes = QueryRes<AbstractingUnifier*, DefaultLiteralLeafData>;
+using BRQueryRes = QueryRes<AbstractingUnifier*, LiteralClause>;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {

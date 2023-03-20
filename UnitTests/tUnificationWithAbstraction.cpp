@@ -47,7 +47,7 @@ Clause* unit(Literal* lit)
   return clause({ lit });
 }
 
-static const auto lld = [](auto l) { return DefaultLiteralLeafData(nullptr, l); };
+static const auto lld = [](auto l) { return LiteralClause(nullptr, l); };
 static const auto tld = [](auto t) { return TermLiteralClause(t, nullptr, nullptr); };
 
 
@@ -842,8 +842,8 @@ TEST_FUN(literal_indexing)
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
 
-  index->insert(DefaultLiteralLeafData(p(num(1) + num(1)), nullptr));
-  index->insert(DefaultLiteralLeafData(p(1 + a          ), nullptr));
+  index->insert(LiteralClause(p(num(1) + num(1)), nullptr));
+  index->insert(LiteralClause(p(1 + a          ), nullptr));
 
   checkLiteralMatches(*index, uwa, fixedPointIteration, p(b + 2), {
 
@@ -859,8 +859,8 @@ TEST_FUN(literal_indexing)
 
       });
 
-  index->insert(DefaultLiteralLeafData(p(b + 2),unit(p(b + 2))));
-  index->insert(DefaultLiteralLeafData(p(2 + b),unit(p(2 + b))));
+  index->insert(LiteralClause(p(b + 2),unit(p(b + 2))));
+  index->insert(LiteralClause(p(2 + b),unit(p(2 + b))));
 
   checkLiteralMatches(*index, uwa, fixedPointIteration, p(b + 2), {
 

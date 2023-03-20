@@ -26,7 +26,7 @@
 namespace Indexing {
 
 /** A wrapper class around SubstitutionTree that makes it usable  as a LiteralIndexingStructure */
-template<class LeafData_ = DefaultLiteralLeafData>
+template<class LeafData_ = LiteralClause>
 class LiteralSubstitutionTree
 : public LiteralIndexingStructure<LeafData_>
 {

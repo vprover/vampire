@@ -36,22 +36,22 @@ using namespace Lib;
 using namespace Saturation;
 
 
-struct DefaultLiteralLeafData 
+struct LiteralClause 
 {
-  CLASS_NAME(DefaultLiteralLeafData);
+  CLASS_NAME(LiteralClause);
 
-  DefaultLiteralLeafData() {}
+  LiteralClause() {}
   using Key = Literal*;
 
   Key const& key() const
   { return literal; }
 
 
-  DefaultLiteralLeafData(Clause* cls, Literal* literal)
+  LiteralClause(Clause* cls, Literal* literal)
     : clause(cls), literal(literal) {  }
 
-  DefaultLiteralLeafData(Literal* lit, Clause* cl)
-    : DefaultLiteralLeafData(cl, lit) {}
+  LiteralClause(Literal* lit, Clause* cl)
+    : LiteralClause(cl, lit) {}
 
 private:
   auto asTuple() const
@@ -62,14 +62,14 @@ private:
       literal == nullptr ? 0 : literal->getId()); }
 public:
 
-  IMPL_COMPARISONS_FROM_TUPLE(DefaultLiteralLeafData)
+  IMPL_COMPARISONS_FROM_TUPLE(LiteralClause)
 
   Clause* clause;
   Literal* literal;
   TermList sort() { return key()->isEquality() ? SortHelper::getEqualityArgumentSort(key()) : TermList::empty();  };
 
 
-  friend std::ostream& operator<<(std::ostream& out, DefaultLiteralLeafData const& self)
+  friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
   { return out << "{ " << outputPtr(self.clause)
                << ", " << outputPtr(self.literal)
                << " }"; }
@@ -249,7 +249,7 @@ struct FormulaQueryResult
 };
 
 using TermQueryResult = QueryRes<ResultSubstitutionSP ,   TermLiteralClause>;
-using SLQueryResult   = QueryRes<ResultSubstitutionSP, DefaultLiteralLeafData>;
+using SLQueryResult   = QueryRes<ResultSubstitutionSP, LiteralClause>;
 
 using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
 using SLQueryResultIterator   = VirtualIterator<SLQueryResult>;

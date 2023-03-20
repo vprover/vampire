@@ -591,7 +591,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
   unsigned selCnt = cl->numSelected();
   ASS_GE(selCnt,1);
   for(unsigned i=0; i<selCnt; i++) {
-    _selected->insert(DefaultLiteralLeafData((*cl)[i], cl));
+    _selected->insert(LiteralClause((*cl)[i], cl));
   }
 }
 
@@ -601,7 +601,7 @@ void IGAlgorithm::removeFromIndex(Clause* cl)
 
   unsigned selCnt = cl->numSelected();
   for(unsigned i=0; i<selCnt; i++) {
-    _selected->remove(DefaultLiteralLeafData((*cl)[i], cl));
+    _selected->remove(LiteralClause((*cl)[i], cl));
   }
 }
 

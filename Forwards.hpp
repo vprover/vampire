@@ -138,7 +138,7 @@ class Index;
 class IndexManager;
 template<class Data>
 class LiteralIndex;
-struct DefaultLiteralLeafData;
+struct LiteralClause;
 struct TermLiteralClause;
 template<class Data = TermLiteralClause>
 class TermIndex;
