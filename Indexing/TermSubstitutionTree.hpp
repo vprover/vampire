@@ -40,7 +40,7 @@ namespace Indexing {
 
 
 /** A wrapper class around SubstitutionTree that makes it usable  as a TermIndexingStructure */
-template<class LeafData_ = DefaultTermLeafData>
+template<class LeafData_ = TermLiteralClause>
 class TermSubstitutionTree
 : public TermIndexingStructure<LeafData_>
 {

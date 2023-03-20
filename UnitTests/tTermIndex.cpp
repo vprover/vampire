@@ -97,13 +97,13 @@ TEST_FUN(basic01) {
   DECL_PRED(g, {srt})
   
   TermSubstitutionTree<> tree;
-  auto dat = [](TermList k, Literal* v)  { return DefaultTermLeafData(k, v, nullptr); };
+  auto dat = [](TermList k, Literal* v)  { return TermLiteralClause(k, v, nullptr); };
   tree.insert(dat(f(a), g(a)));
   tree.insert(dat(f(a), g(b)));
   tree.insert(dat(f(a), g(c)));
 
   check_unify(tree, f(a), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
-  check_unify(tree, f(b), Stack<DefaultTermLeafData>{});
+  check_unify(tree, f(b), Stack<TermLiteralClause>{});
   check_unify(tree, f(x), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
 }
 

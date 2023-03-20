@@ -151,7 +151,7 @@ private:
 class Induction
 : public GeneratingInferenceEngine
 {
-  using TermIndex = Indexing::TermIndex<DefaultTermLeafData>;
+  using TermIndex = Indexing::TermIndex<TermLiteralClause>;
 public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
@@ -179,7 +179,7 @@ private:
 
 class InductionClauseIterator
 {
-  using TermIndex               = Indexing::TermIndex<DefaultTermLeafData>;
+  using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
@@ -205,12 +205,12 @@ private:
   void processIntegerComparison(Clause* premise, Literal* lit);
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
-  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const DefaultTermLeafData* bound1, const DefaultTermLeafData* bound2);
+  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
-  void performFinIntInduction(const InductionContext& context, const DefaultTermLeafData& lb, const DefaultTermLeafData& ub);
-  void performInfIntInduction(const InductionContext& context, bool increasing, const DefaultTermLeafData& bound);
-  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const DefaultTermLeafData& bound1, const DefaultTermLeafData* optionalBound2);
+  void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
+  void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermLiteralClause& bound1, const TermLiteralClause* optionalBound2);
 
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);

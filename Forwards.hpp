@@ -139,10 +139,10 @@ class IndexManager;
 template<class Data>
 class LiteralIndex;
 struct DefaultLiteralLeafData;
-struct DefaultTermLeafData;
-template<class Data = DefaultTermLeafData>
+struct TermLiteralClause;
+template<class Data = TermLiteralClause>
 class TermIndex;
-template<class Data = DefaultTermLeafData>
+template<class Data = TermLiteralClause>
 class TermIndexingStructure;
 
 class TermSharing;

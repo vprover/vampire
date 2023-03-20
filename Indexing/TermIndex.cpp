@@ -51,7 +51,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
                                               : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
-      ((TermSubstitutionTree<DefaultTermLeafData>*)&*_is)->handle(DefaultTermLeafData(tt, lit, c), adding);
+      ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause(tt, lit, c), adding);
     }
   }
 }
@@ -67,7 +67,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-	    _tree->handle(DefaultTermLeafData(TypedTermList(lhsi.next(), SortHelper::getEqualityArgumentSort(lit)), lit, c), adding);
+	    _tree->handle(TermLiteralClause(TypedTermList(lhsi.next(), SortHelper::getEqualityArgumentSort(lit)), lit, c), adding);
     }
   }
 }
@@ -102,9 +102,9 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
         continue;
       }
       if (adding) {
-        _is->insert(DefaultTermLeafData(t, lit, c));
+        _is->insert(TermLiteralClause(t, lit, c));
       } else {
-        _is->remove(DefaultTermLeafData(t, lit, c));
+        _is->remove(TermLiteralClause(t, lit, c));
       }
     }
   }
@@ -130,9 +130,9 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   while (lhsi.hasNext()) {
     auto t = lhsi.next();
     if (adding) {
-      _is->insert(DefaultTermLeafData(t, lit, c));
+      _is->insert(TermLiteralClause(t, lit, c));
     } else {
-      _is->remove(DefaultTermLeafData(t, lit, c));
+      _is->remove(TermLiteralClause(t, lit, c));
     }
   }
 }
@@ -157,9 +157,9 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
               InductionHelper::isIntInductionTermListInLiteral(tl.term(), lit)) {
             if (adding) {
-              _is->insert(DefaultTermLeafData(tl, lit, c));
+              _is->insert(TermLiteralClause(tl, lit, c));
             } else {
-              _is->remove(DefaultTermLeafData(tl, lit, c));
+              _is->remove(TermLiteralClause(tl, lit, c));
             }
           }
         }
@@ -194,9 +194,9 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
           InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
         if (adding) {
-          _is->insert(DefaultTermLeafData(tl, lit, c));
+          _is->insert(TermLiteralClause(tl, lit, c));
         } else {
-          _is->remove(DefaultTermLeafData(tl, lit, c));
+          _is->remove(TermLiteralClause(tl, lit, c));
         }
       }
     }
@@ -223,9 +223,9 @@ void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
     while(rvi.hasNext()){
       TermList var = rvi.next();
       if (adding) {
-        _is->insert(DefaultTermLeafData(var, lit, c));
+        _is->insert(TermLiteralClause(var, lit, c));
       } else {
-        _is->remove(DefaultTermLeafData(var, lit, c));
+        _is->remove(TermLiteralClause(var, lit, c));
       }
     }
   }
@@ -242,9 +242,9 @@ void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
     while (lhsi.hasNext()) {
       TermList lhs=lhsi.next();
       if (adding) {
-        _is->insert(DefaultTermLeafData(lhs, lit, c));
+        _is->insert(TermLiteralClause(lhs, lit, c));
       } else {
-        _is->remove(DefaultTermLeafData(lhs, lit, c));
+        _is->remove(TermLiteralClause(lhs, lit, c));
       }
     }
   }
@@ -300,32 +300,32 @@ void PrimitiveInstantiationIndex::populateIndex()
   notEqualsTerm = AH::createAppTerm3(srtOf(notEqualsTerm), notEqualsTerm, x, y);
 
   if(set == Options::PISet::ALL){
-    _is->insert(DefaultTermLeafData(kTerm1, 0, 0));
-    _is->insert(DefaultTermLeafData(kTerm2, 0, 0));
-    _is->insert(DefaultTermLeafData(andTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(orTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(impTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(notTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(equalsTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(notEqualsTerm, 0, 0));
+    _is->insert(TermLiteralClause(kTerm1, 0, 0));
+    _is->insert(TermLiteralClause(kTerm2, 0, 0));
+    _is->insert(TermLiteralClause(andTerm, 0, 0));
+    _is->insert(TermLiteralClause(orTerm, 0, 0));
+    _is->insert(TermLiteralClause(impTerm, 0, 0));
+    _is->insert(TermLiteralClause(notTerm, 0, 0));
+    _is->insert(TermLiteralClause(equalsTerm, 0, 0));
+    _is->insert(TermLiteralClause(notEqualsTerm, 0, 0));
   } else if (set == Options::PISet::ALL_EXCEPT_NOT_EQ){
-    _is->insert(DefaultTermLeafData(kTerm1, 0, 0));
-    _is->insert(DefaultTermLeafData(kTerm2, 0, 0));
-    _is->insert(DefaultTermLeafData(andTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(orTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(impTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(notTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(equalsTerm, 0, 0));
+    _is->insert(TermLiteralClause(kTerm1, 0, 0));
+    _is->insert(TermLiteralClause(kTerm2, 0, 0));
+    _is->insert(TermLiteralClause(andTerm, 0, 0));
+    _is->insert(TermLiteralClause(orTerm, 0, 0));
+    _is->insert(TermLiteralClause(impTerm, 0, 0));
+    _is->insert(TermLiteralClause(notTerm, 0, 0));
+    _is->insert(TermLiteralClause(equalsTerm, 0, 0));
   } else if (set == Options::PISet::FALSE_TRUE_NOT){
-    _is->insert(DefaultTermLeafData(kTerm1, 0, 0));
-    _is->insert(DefaultTermLeafData(kTerm2, 0, 0));
-    _is->insert(DefaultTermLeafData(notTerm, 0, 0));
+    _is->insert(TermLiteralClause(kTerm1, 0, 0));
+    _is->insert(TermLiteralClause(kTerm2, 0, 0));
+    _is->insert(TermLiteralClause(notTerm, 0, 0));
   } else if (set == Options::PISet::FALSE_TRUE_NOT_EQ_NOT_EQ){
-    _is->insert(DefaultTermLeafData(kTerm1, 0, 0));
-    _is->insert(DefaultTermLeafData(kTerm2, 0, 0));
-    _is->insert(DefaultTermLeafData(notTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(equalsTerm, 0, 0));
-    _is->insert(DefaultTermLeafData(notEqualsTerm, 0, 0));
+    _is->insert(TermLiteralClause(kTerm1, 0, 0));
+    _is->insert(TermLiteralClause(kTerm2, 0, 0));
+    _is->insert(TermLiteralClause(notTerm, 0, 0));
+    _is->insert(TermLiteralClause(equalsTerm, 0, 0));
+    _is->insert(TermLiteralClause(notEqualsTerm, 0, 0));
   }
 }
 
@@ -378,18 +378,18 @@ void NarrowingIndex::populateIndex()
   Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
 
   if(set == Options::Narrow::ALL){
-    _is->insert(DefaultTermLeafData(lhsS, sLit, 0));
-    _is->insert(DefaultTermLeafData(lhsC, cLit, 0));
-    _is->insert(DefaultTermLeafData(lhsB, bLit, 0));
-    _is->insert(DefaultTermLeafData(lhsK, kLit, 0));
-    _is->insert(DefaultTermLeafData(lhsI, iLit, 0));
+    _is->insert(TermLiteralClause(lhsS, sLit, 0));
+    _is->insert(TermLiteralClause(lhsC, cLit, 0));
+    _is->insert(TermLiteralClause(lhsB, bLit, 0));
+    _is->insert(TermLiteralClause(lhsK, kLit, 0));
+    _is->insert(TermLiteralClause(lhsI, iLit, 0));
   } else if (set == Options::Narrow::SKI) {
-    _is->insert(DefaultTermLeafData(lhsS, sLit, 0));
-    _is->insert(DefaultTermLeafData(lhsK, kLit, 0));
-    _is->insert(DefaultTermLeafData(lhsI, iLit, 0));
+    _is->insert(TermLiteralClause(lhsS, sLit, 0));
+    _is->insert(TermLiteralClause(lhsK, kLit, 0));
+    _is->insert(TermLiteralClause(lhsI, iLit, 0));
   } else if (set == Options::Narrow::SK){
-    _is->insert(DefaultTermLeafData(lhsS, sLit, 0));
-    _is->insert(DefaultTermLeafData(lhsK, kLit, 0));
+    _is->insert(TermLiteralClause(lhsS, sLit, 0));
+    _is->insert(TermLiteralClause(lhsK, kLit, 0));
   }
 }
 

@@ -55,7 +55,7 @@ typedef Lib::VirtualIterator<CycleQueryResult*> CycleQueryResultsIterator;
 class AcyclicityIndex
 : public Index
 {
-  using TermIndexingStructure   = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndexingStructure   = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   AcyclicityIndex(TermIndexingStructure* tis) :
     _sIndexes(),

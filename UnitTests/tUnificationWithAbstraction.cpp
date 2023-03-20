@@ -48,7 +48,7 @@ Clause* unit(Literal* lit)
 }
 
 static const auto lld = [](auto l) { return DefaultLiteralLeafData(nullptr, l); };
-static const auto tld = [](auto t) { return DefaultTermLeafData(t, nullptr, nullptr); };
+static const auto tld = [](auto t) { return TermLiteralClause(t, nullptr, nullptr); };
 
 
 unique_ptr<TermSubstitutionTree<>> getTermIndexHOL()
@@ -179,7 +179,7 @@ struct IndexTest {
 
     DECL_PRED(dummy, {})
     for (auto x : this->insert) {
-      index->insert(DefaultTermLeafData(x, dummy(), unit(dummy())));
+      index->insert(TermLiteralClause(x, dummy(), unit(dummy())));
     }
 
     checkTermMatches(*this->index, uwa, fixedPointIteration, TypedTermList(this->query, this->query.sort()),this->expected);

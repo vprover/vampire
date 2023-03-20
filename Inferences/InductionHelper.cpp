@@ -37,8 +37,8 @@ namespace {
 struct SLQueryResultToTermQueryResultFn
 {
   SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
-  DefaultTermLeafData operator() (const SLQueryResult slqr) {
-    return DefaultTermLeafData(slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause);
+  TermLiteralClause operator() (const SLQueryResult slqr) {
+    return TermLiteralClause(slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause);
   }
 
   TermList variable;
@@ -66,7 +66,7 @@ bool isIntegerComparisonLiteral(Literal* lit) {
 
 };  // namespace
 
-VirtualIterator<DefaultTermLeafData> InductionHelper::getComparisonMatch(
+VirtualIterator<TermLiteralClause> InductionHelper::getComparisonMatch(
     bool polarity, bool termIsLeft, Term* t) {
   CALL("InductionHelper::getComparisonMatch");
 
@@ -77,7 +77,7 @@ VirtualIterator<DefaultTermLeafData> InductionHelper::getComparisonMatch(
                                 SLQueryResultToTermQueryResultFn(var)));
 }
 
-VirtualIterator<DefaultTermLeafData> InductionHelper::getLess(Term* t)
+VirtualIterator<TermLiteralClause> InductionHelper::getLess(Term* t)
 {
   CALL("InductionHelper::getLess");
   return pvi(getConcatenatedIterator(
@@ -87,7 +87,7 @@ VirtualIterator<DefaultTermLeafData> InductionHelper::getLess(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/false, t)));
 }
 
-VirtualIterator<DefaultTermLeafData> InductionHelper::getGreater(Term* t)
+VirtualIterator<TermLiteralClause> InductionHelper::getGreater(Term* t)
 {
   CALL("InductionHelper::getGreater");
   return pvi(getConcatenatedIterator(
