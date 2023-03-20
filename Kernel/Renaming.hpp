@@ -76,6 +76,7 @@ public:
   TermList apply(TermList l);
   bool identity() const;
 
+  void normalizeVariables(const Literal* t);
   void normalizeVariables(const Term* t);
   void normalizeVariables(TermList t);
   void makeInverse(const Renaming& orig);
