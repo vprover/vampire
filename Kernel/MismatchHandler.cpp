@@ -121,11 +121,16 @@ public:
   }
 };
 
+TermSpec norm(TermSpec outer, AbstractingUnifier& au);
 
 template<class NumTraits, class Action>
 auto iterAtoms(TermSpec outer, AbstractingUnifier& au, NumTraits n, Action action) {
   static TermSpec one = TermSpec(TermList(n.one()), 0);
   using Numeral = typename NumTraits::ConstantType;
+  // auto action = [&](auto& term, auto numeral) {
+  //   ASS(!isInterpreted(term))
+  //   re
+  // };
 
   Recycled<Stack<pair<TermSpec, Numeral>>> todo;
   todo->push(make_pair(std::move(outer), Numeral(1)));
@@ -176,6 +181,102 @@ auto iterAtoms(TermSpec outer, AbstractingUnifier& au, NumTraits n, Action actio
   }
 };
 
+TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
+
+  auto& t = outer.deref(&au.subs());
+  if (t.isVar()) {
+    return t.clone();
+  } else {
+    auto s = t.sort();
+    auto uninterpreted = [&](auto& orig){
+      return orig.isVar() 
+                ? orig.clone() 
+                : TermSpec::fromIter(orig.functor(), 
+                    concatIters(
+                      orig.typeArgs(),
+                      orig.termArgs()
+                      .map([&](auto x) {
+                        // TODO unrecursify
+                        return norm(std::move(x), au);
+                        }))
+                    );
+    };
+    auto numResult = forAnyNumTraits([&](auto n){
+        return someIf(s == TermSpec(n.sort(), 0), [&](){
+            using Numeral = typename decltype(n)::ConstantType;
+            Recycled<Stack<pair<TermSpec, Numeral>>> sum;
+            iterAtoms(t.clone(), au, n, [&](auto& term, auto num) {
+                sum->push(make_pair(uninterpreted(term), num));
+            });
+
+            auto cmp = [&au](auto const& t1, auto const& t2) { 
+              TIME_TRACE("comparing TermSpecs")
+              auto top1 = t1.top();
+              auto top2 = t2.top();
+              auto v1 = !t1.isVar();
+              auto v2 = !t2.isVar();
+              if (std::tie(v1, top1) == std::tie(v2, top2)) {
+                return TermSpec::compare(t1, t2, [&au](auto& t) -> decltype(auto) { return t.deref(&au.subs()); });
+              } else {
+                return std::tie(v1, top1) < std::tie(v2, top2) ? -1 : 1;
+              }
+            };
+
+            auto sumUp = [](auto& diff, auto cmp) {
+              auto i1 = 0;
+              auto i2 = 1;
+              while (i2 < diff.size()) {
+                ASS(i1 < i2);
+                auto c = cmp(diff[i1].first, diff[i2].first);
+                ASS(c <= 0)
+                if (c == 0) {
+                  diff[i1].second += diff[i2].second;
+                  i2++;
+                } else {
+                  ASS(c < 0)
+                  if (diff[i1].second != Numeral(0)) {
+                    // if there is a zero entry we override it
+                    i1++;
+                  }
+                  if (i1 != i2) {
+                    diff[i1] = std::move(diff[i2]);
+                  }
+                  i2++;
+                }
+              }
+              if (diff[i1].second == Numeral(0)) 
+                  diff.truncate(i1);
+              else
+                  diff.truncate(i1 + 1);
+            };
+            sum->sort([&](auto& l, auto& r) { return cmp(l.first, r.first) < 0; });
+            sumUp(*sum, cmp);
+
+            auto result = 
+              arrayIter(*sum)
+                .reverse()
+                .map([&](auto& pair) { 
+                    ASS(pair.second != Numeral(0))
+                    auto k = pair.second;
+                    auto& atomNorm = pair.first;
+
+                    return k == Numeral( 1) ? std::move(atomNorm)
+                         : k == Numeral(-1) ? TermSpec(n.minusF(), std::move(atomNorm))
+                         : TermSpec(n.mulF(), TermSpec(n.numeralF(k)), std::move(atomNorm));
+
+                })
+                .fold([&](auto l, auto r)
+                    { return TermSpec(n.addF(), std::move(l), std::move(r)); });
+            return result.isSome() ? std::move(*result) : TermSpec(n.numeralF(Numeral(0)));
+        });
+
+    });
+    return numResult.isSome() ? std::move(*numResult) : uninterpreted(t);
+  }
+}
+
+
+
 
 template<class NumTraits>
 MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa) {
@@ -185,68 +286,14 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
   using NeverEqual = MismatchHandler::NeverEqual;
   using Numeral = typename NumTraits::ConstantType;
 
+  
   Recycled<Stack<pair<TermSpec, Numeral>>> _diff;
   auto& diff = *_diff;
-  DEBUG_UWA(2, "diff: ", diff, " (0)");
-  iterAtoms(t1.clone(), au, n, [&diff](auto& t, auto num) { diff.push(make_pair(t.clone(),  num)); });
-  iterAtoms(t2.clone(), au, n, [&diff](auto& t, auto num) { diff.push(make_pair(t.clone(), -num)); });
-  DEBUG_UWA(2, "diff: ", diff, " (1)");
+  auto dt = TermSpec(n.addF(), TermSpec(n.minusF(), t1.clone()), t2.clone());
+  auto nf = norm(std::move(dt), au);
 
-  auto sumUp = [](auto& diff, auto cmp) {
-    auto i1 = 0;
-    auto i2 = 1;
-    while (i2 < diff.size()) {
-      ASS(i1 < i2);
-      auto c = cmp(diff[i1].first, diff[i2].first);
-      ASS(c <= 0)
-      if (c == 0) {
-        diff[i1].second += diff[i2].second;
-        i2++;
-      } else {
-        ASS(c < 0)
-        if (diff[i1].second != Numeral(0)) {
-          // if there is a zero entry we override it
-          i1++;
-        }
-        if (i1 != i2) {
-          diff[i1] = std::move(diff[i2]);
-        }
-        i2++;
-      }
-    }
-    if (diff[i1].second == Numeral(0)) 
-        diff.truncate(i1);
-    else
-        diff.truncate(i1 + 1);
-  };
-
-  auto cmp = [&au](auto const& t1, auto const& t2) { 
-    TIME_TRACE("comparing TermSpecs")
-    auto top1 = t1.top();
-    auto top2 = t2.top();
-    auto v1 = !t1.isVar();
-    auto v2 = !t2.isVar();
-    if (std::tie(v1, top1) == std::tie(v2, top2)) {
-      return TermSpec::compare(t1, t2, [&au](auto& t) -> decltype(auto) { return t.deref(&au.subs()); });
-    } else {
-      return std::tie(v1, top1) < std::tie(v2, top2) ? -1 : 1;
-    }
-  };
-  // auto less = [](auto const& t1, auto const& t2) { 
-  //   TIME_TRACE("comparing TermSpecs")
-  //   auto top1 = t1.top();
-  //   auto top2 = t2.top();
-  //   auto v1 = !t1.isVar();
-  //   auto v2 = !t2.isVar();
-  //   return std::tie(v1, top1, t1) < std::tie(v2, top2, t2);
-  // };
-  diff.sort([&](auto& l, auto& r) { return cmp(l.first, r.first) < 0; });
-  DEBUG_UWA(2, "diff: ", diff, " (before summing up )");
-  sumUp(diff, cmp);
-  DEBUG_UWA(2, "diff: ", diff, " (after summing up )");
-
-  // auto vars = arrayIter(diff)
-  //               .takeWhile([](auto& x) { return x.first.isVar(); });
+  iterAtoms(std::move(nf), au, n,
+    [&diff](auto& t, auto num) { diff.push(make_pair(t.clone(),  num)); });
 
   // TODO bin search if many elems
   auto nVars = range(0, diff.size())
@@ -378,7 +425,7 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
       } else if (curNegSummands->size() == 1) {
         for (auto& s : *curPosSummands) {
           unify->push(UnificationConstraint(
-            std::move((*curNegSummands)[0].first),
+            (*curNegSummands)[0].first.clone(),
             std::move(s.first)));
         }
         return true;
@@ -387,7 +434,7 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
         // ASS((*curPosSummands)[0].second == -(*curSummands)[1].second)
         for (auto& s : *curNegSummands) {
           unify->push(UnificationConstraint(
-            std::move((*curPosSummands)[0].first),
+            (*curPosSummands)[0].first.clone(),
             std::move(s.first)));
         }
         return true;
@@ -405,7 +452,7 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
   };
 
   for (auto& x : diff) {
-    auto f = x.first.functor();
+    auto f = x.first.deref(&au.subs()).functor();
     if (f != curF) {
       if (!curSumCanUnify()) return AbstractionResult(NeverEqual{});
       curF = f;

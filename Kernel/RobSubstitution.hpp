@@ -197,6 +197,18 @@ public:
   TermSpec(TermList self, int index) : _self(OldTermSpec(self, index)) {}
 
 
+
+  TermSpec(unsigned functor, Recycled<Stack<TermSpec>> args)
+    : _self(Appl {functor, someIf(args->isNonEmpty(), [&]() { return std::move(args); })} )
+  {  }
+
+  template<class Iter>
+  static TermSpec fromIter(unsigned functor, Iter args) {
+    Recycled<Stack<TermSpec>> stack;
+    stack->moveFromIterator(args);
+    return TermSpec(functor, std::move(stack));
+  }
+
   template<class... Args>
   TermSpec(unsigned functor, Args... args) 
     : _self(Appl{functor, someIf(sizeof...(args) != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 

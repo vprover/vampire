@@ -2224,6 +2224,35 @@ ROB_UNIFY_TEST(lpar_main_non_normalized_mul_02,
 
 
 
+ROB_UNIFY_TEST(lpar_better_normalization_01,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f(x + y) + f(y + x),
+    f(x + y) + f(x + y),
+    TermUnificationResultSpec { 
+      .querySigma  = f(x + y) + f(y + x),
+      .resultSigma = f(x + y) + f(x + y),
+      .constraints = Stack<Literal*>{ },
+    })
+
+ROB_UNIFY_TEST(lpar_better_normalization_02,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f(x + 0) + f(0 + x),
+    f(b + a) + f(a + b),
+    TermUnificationResultSpec { 
+      .querySigma  = 2 * f(a + b),
+      .resultSigma = 2 * f(a + b),
+      .constraints = Stack<Literal*>{ },
+      .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST_FAIL(lpar_better_normalization_03,
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    f(c + f(x)) + f(c + f(x)),
+    f(b + f(a)) + f(f(a) + b))
+
 ROB_UNIFY_TEST(lpar_main_bug01,
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,

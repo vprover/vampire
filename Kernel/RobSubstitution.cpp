@@ -138,8 +138,9 @@ unsigned TermSpec::functor() const
 
 
 unsigned TermSpec::nTypeArgs() const 
-{ return _self.match([](Appl const& a)           { return env.signature->getFunction(a.functor)->numTypeArguments(); },
-                     [](OldTermSpec const& self) { return self.term.term()->numTermArguments(); }); }
+{ 
+  return _self.match([](Appl const& a)           { return env.signature->getFunction(a.functor)->numTypeArguments(); },
+                     [](OldTermSpec const& self) { return self.term.term()->numTypeArguments(); }); }
 
 unsigned TermSpec::nTermArgs() const 
 { return _self.match([](Appl const& a)           { return env.signature->getFunction(a.functor)->numTermArguments(); },
