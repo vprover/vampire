@@ -401,9 +401,9 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
 
     while (toDo->isNonEmpty()) {
-      auto x = toDo->pop();
-      auto& dt1 = x.lhs().deref(&subs());
-      auto& dt2 = x.rhs().deref(&subs());
+      auto cur = toDo->pop();
+      auto& dt1 = cur.lhs().deref(&subs());
+      auto& dt2 = cur.rhs().deref(&subs());
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
       if (dt1 == dt2) {
         progress = true;
@@ -437,6 +437,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
             progress = true;
           }
           for (auto& x : conditions.unify()) {
+            ASS_NEQ(x, cur)
             pushTodo(std::move(x));
           }
           for (auto& x: conditions.constr()) {
