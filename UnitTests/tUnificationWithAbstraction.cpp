@@ -51,15 +51,15 @@ static const auto lld = [](auto l) { return LiteralClause(nullptr, l); };
 static const auto tld = [](auto t) { return TermLiteralClause(t, nullptr, nullptr); };
 
 
-unique_ptr<TermSubstitutionTree<>> getTermIndexHOL()
-{ return std::make_unique<TermSubstitutionTree<>>(); }
+unique_ptr<TermSubstitutionTree<TermLiteralClause>> getTermIndexHOL()
+{ return std::make_unique<TermSubstitutionTree<TermLiteralClause>>(); }
 
-unique_ptr<TermSubstitutionTree<>> getTermIndex()
-{ return std::make_unique<TermSubstitutionTree<>>();
+unique_ptr<TermSubstitutionTree<TermLiteralClause>> getTermIndex()
+{ return std::make_unique<TermSubstitutionTree<TermLiteralClause>>();
 }
 
 auto getLiteralIndex()
-{ return std::make_unique<LiteralSubstitutionTree<>>(); }
+{ return std::make_unique<LiteralSubstitutionTree<LiteralClause>>(); }
 
 template<class TermOrLit>
 struct UnificationResultSpec {
@@ -88,7 +88,7 @@ struct UnificationResultSpec {
 using TermUnificationResultSpec    = UnificationResultSpec<TermList>;
 using LiteralUnificationResultSpec = UnificationResultSpec<Literal*>;
 
-void checkLiteralMatches(LiteralSubstitutionTree<>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, Literal* lit, Stack<LiteralUnificationResultSpec> expected)
+void checkLiteralMatches(LiteralSubstitutionTree<LiteralClause>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, Literal* lit, Stack<LiteralUnificationResultSpec> expected)
 {
   Stack<LiteralUnificationResultSpec> is;
   for (auto qr : iterTraits(index.getUwa(lit, /* complementary */ false, uwa, fixedPointIteration)) ) {
@@ -121,9 +121,9 @@ void checkLiteralMatches(LiteralSubstitutionTree<>& index, Options::UnificationW
 }
 
 template<class F>
-void checkTermMatchesWithUnifFun(TermSubstitutionTree<>& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
+void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermLiteralClause>& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
 {
-  CALL("checkTermMatchesWithUnifFun(TermSubstitutionTree<>& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)")
+  CALL("checkTermMatchesWithUnifFun(TermSubstitutionTree<TermLiteralClause>& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)")
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
@@ -153,21 +153,21 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<>& index, TermList term, S
 
 }
 
-void checkTermMatches(TermSubstitutionTree<>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TermList term, Stack<TermUnificationResultSpec> expected)
+void checkTermMatches(TermSubstitutionTree<TermLiteralClause>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TermList term, Stack<TermUnificationResultSpec> expected)
 {
   ASS(term.isTerm())
   return checkTermMatchesWithUnifFun(index, term, expected, 
       [&](auto& idx, auto t) { return idx.getUwa(term.term(), uwa, fixedPointIteration); });
 }
 
-void checkTermMatches(TermSubstitutionTree<>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TypedTermList term, Stack<TermUnificationResultSpec> expected)
+void checkTermMatches(TermSubstitutionTree<TermLiteralClause>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
       [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration); });
 }
 
 struct IndexTest {
-  unique_ptr<TermSubstitutionTree<>> index;
+  unique_ptr<TermSubstitutionTree<TermLiteralClause>> index;
   Stack<TermList> insert;
   TermSugar query;
   Stack<TermUnificationResultSpec> expected;

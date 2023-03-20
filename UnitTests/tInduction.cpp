@@ -31,15 +31,15 @@ using namespace Test::Generation;
 #define DECL_SKOLEM_VAR(x, i) DECL_VAR(x, i+SKOLEM_VAR_MIN)
 
 LiteralIndex<LiteralClause>* comparisonIndex() {
-  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree<>());
+  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree<LiteralClause>());
 }
 
-TermIndex<>* intInductionIndex() {
-  return new InductionTermIndex(new TermSubstitutionTree<>());
+TermIndex<TermLiteralClause>* intInductionIndex() {
+  return new InductionTermIndex(new TermSubstitutionTree<TermLiteralClause>());
 }
 
-TermIndex<>* structInductionIndex() {
-  return new StructInductionTermIndex(new TermSubstitutionTree<>());
+TermIndex<TermLiteralClause>* structInductionIndex() {
+  return new StructInductionTermIndex(new TermSubstitutionTree<TermLiteralClause>());
 }
 
 Stack<Index*> getIndices() {

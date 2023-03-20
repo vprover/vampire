@@ -137,10 +137,10 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure<>* is, Ordering& ordering)
+RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure<LiteralClause>* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex = new LiteralSubstitutionTree<>();
+  _partialIndex = new LiteralSubstitutionTree<LiteralClause>();
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()

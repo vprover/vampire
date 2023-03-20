@@ -24,7 +24,7 @@
 
 namespace Indexing {
 
-template<class LeafData_ = LiteralClause>
+template<class LeafData_>
 class LiteralIndexingStructure {
 public:
   using LeafData = LeafData_;

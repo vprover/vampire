@@ -96,7 +96,7 @@ TEST_FUN(basic01) {
   DECL_FUNC(f, {srt}, srt)
   DECL_PRED(g, {srt})
   
-  TermSubstitutionTree<> tree;
+  TermSubstitutionTree<TermLiteralClause> tree;
   auto dat = [](TermList k, Literal* v)  { return TermLiteralClause(k, v, nullptr); };
   tree.insert(dat(f(a), g(a)));
   tree.insert(dat(f(a), g(b)));

@@ -140,9 +140,9 @@ template<class Data>
 class LiteralIndex;
 struct LiteralClause;
 struct TermLiteralClause;
-template<class Data = TermLiteralClause>
+template<class Data>
 class TermIndex;
-template<class Data = TermLiteralClause>
+template<class Data>
 class TermIndexingStructure;
 
 class TermSharing;

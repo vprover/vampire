@@ -67,7 +67,7 @@ public:
   CLASS_NAME(BinaryResolutionIndex);
   USE_ALLOCATOR(BinaryResolutionIndex);
 
-  BinaryResolutionIndex(LiteralIndexingStructure<>* is)
+  BinaryResolutionIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
@@ -80,7 +80,7 @@ public:
   CLASS_NAME(BackwardSubsumptionIndex);
   USE_ALLOCATOR(BackwardSubsumptionIndex);
 
-  BackwardSubsumptionIndex(LiteralIndexingStructure<>* is)
+  BackwardSubsumptionIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
@@ -93,7 +93,7 @@ public:
   CLASS_NAME(FwSubsSimplifyingLiteralIndex);
   USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
 
-  FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure<>* is)
+  FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
     : LiteralIndex<LiteralClause>(is)
   { }
 
@@ -108,7 +108,7 @@ public:
   CLASS_NAME(FSDLiteralIndex);
   USE_ALLOCATOR(FSDLiteralIndex);
 
-  FSDLiteralIndex(LiteralIndexingStructure<>* is)
+  FSDLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
     : LiteralIndex<LiteralClause>(is)
   { }
 
@@ -123,7 +123,7 @@ public:
   CLASS_NAME(UnitClauseLiteralIndex);
   USE_ALLOCATOR(UnitClauseLiteralIndex);
 
-  UnitClauseLiteralIndex(LiteralIndexingStructure<>* is)
+  UnitClauseLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
@@ -136,7 +136,7 @@ public:
   CLASS_NAME(NonUnitClauseLiteralIndex);
   USE_ALLOCATOR(NonUnitClauseLiteralIndex);
 
-  NonUnitClauseLiteralIndex(LiteralIndexingStructure<>* is, bool selectedOnly=false)
+  NonUnitClauseLiteralIndex(LiteralIndexingStructure<LiteralClause>* is, bool selectedOnly=false)
   : LiteralIndex<LiteralClause>(is), _selectedOnly(selectedOnly) {};
 protected:
   void handleClause(Clause* c, bool adding);
@@ -151,7 +151,7 @@ public:
   CLASS_NAME(RewriteRuleIndex);
   USE_ALLOCATOR(RewriteRuleIndex);
 
-  RewriteRuleIndex(LiteralIndexingStructure<>* is, Ordering& ordering);
+  RewriteRuleIndex(LiteralIndexingStructure<LiteralClause>* is, Ordering& ordering);
   ~RewriteRuleIndex();
 
   Clause* getCounterpart(Clause* c) {
@@ -164,7 +164,7 @@ protected:
 private:
   void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);
 
-  LiteralIndexingStructure<>* _partialIndex;
+  LiteralIndexingStructure<LiteralClause>* _partialIndex;
   DHMap<Clause*,Clause*> _counterparts;
   Ordering& _ordering;
 };
@@ -176,7 +176,7 @@ public:
   CLASS_NAME(DismatchingLiteralIndex);
   USE_ALLOCATOR(DismatchingLiteralIndex);
 
-  DismatchingLiteralIndex(LiteralIndexingStructure<>* is)
+  DismatchingLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
   void handleClause(Clause* c, bool adding);
   void addLiteral(Literal* c);
@@ -189,7 +189,7 @@ public:
   CLASS_NAME(UnitIntegerComparisonLiteralIndex);
   USE_ALLOCATOR(UnitIntegerComparisonLiteralIndex);
 
-  UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure<>* is)
+  UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {}
 
 protected:
