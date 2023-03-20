@@ -709,6 +709,7 @@ set(UNIT_TESTS
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tBinaryInferenceEngine.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
