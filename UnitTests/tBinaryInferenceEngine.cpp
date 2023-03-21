@@ -179,3 +179,13 @@ TEST_GENERATION(basic01,
             clause({ p(b)  }) 
       ))
     )
+
+TEST_GENERATION(basic02,
+    Generation::SymmetricTest()
+      .indices(myRuleIndices())
+      .inputs  ({ clause({ selected( ~p(a)  ), p(b)  }) 
+                , clause({ selected( p(x) )        }) })
+      .expected(exactly(
+            clause({ p(b)  }) 
+      ))
+    )
