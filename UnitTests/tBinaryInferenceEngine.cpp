@@ -8,12 +8,16 @@
  * and in the source directory
  */
 
+#include "Forwards.hpp"
+#include "Indexing/IndexManager.hpp"
+#include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/BinaryInferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 
 #include "Test/GenerationTester.hpp"
+#include "Lib/Reflection.hpp"
 
 using namespace Kernel;
 using namespace Inferences;
@@ -26,38 +30,71 @@ public:
 
   struct Lhs 
   {
-    Clause* clause;
+    Clause* cl;
     unsigned literalIndex;
 
     Literal* key() const 
-    { return (*clause)[literalIndex]; }
+    { return (*cl)[literalIndex]; }
+
+    Clause* clause() const 
+    { return cl; }
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
-    { return out << *self.clause << "[" << self.literalIndex << "]"; }
+    { return out << *self.cl<< "[" << self.literalIndex << "]"; }
+
+    auto asTuple() const -> decltype(auto)
+    { return std::tie(cl, literalIndex); }
+
+    static auto iter(Clause* cl) {
+      return pvi(range(0, cl->numSelected())
+        .filter([cl](auto i) { return !(*cl)[i]->isEquality(); })
+        .filter([cl](auto i) { return (*cl)[i]->isNegative(); })
+        .map([cl](auto i) { return Lhs { .cl = cl, .literalIndex = i, }; }));
+    }
+
+    IMPL_COMPARISONS_FROM_TUPLE(Lhs);
   };
 
   struct Rhs 
   {
-    Clause* clause;
+    Clause* cl;
     unsigned literalIndex;
 
     Literal* key() const 
-    { return (*clause)[literalIndex]; }
+    { return (*cl)[literalIndex]; }
+
+    Clause* clause() const 
+    { return cl; }
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
-    { return out << *self.clause << "[" << self.literalIndex << "]"; }
+    { return out << *self.cl << "[" << self.literalIndex << "]"; }
+
+    auto asTuple() const -> decltype(auto)
+    { return std::tie(cl, literalIndex); }
+
+    static auto iter(Clause* cl) {
+      return pvi(range(0, cl->numSelected())
+        .filter([cl](auto i) { return !(*cl)[i]->isEquality(); })
+        .filter([cl](auto i) { return (*cl)[i]->isPositive(); })
+        .map([cl](auto i) { return Rhs { .cl = cl, .literalIndex = i, }; }));
+    }
+
+    IMPL_COMPARISONS_FROM_TUPLE(Rhs);
   };
 
 
-  IndexType lhsIndexType() const;
-  IndexType rhsIndexType() const;
+  IndexType lhsIndexType() const
+  { return Indexing::SIMPLE_BINARY_RESOLUTION_LHS; }
+
+  IndexType rhsIndexType() const
+  { return Indexing::SIMPLE_BINARY_RESOLUTION_RHS; }
 
   VirtualIterator<Lhs> iterLhs(Clause* cl) const
   {
     return pvi(range(0, cl->numSelected())
       .filter([cl](auto i) { return !(*cl)[i]->isEquality(); })
       .filter([cl](auto i) { return (*cl)[i]->isNegative(); })
-      .map([cl](auto i) { return Lhs { .clause = cl, .literalIndex = i, }; }));
+      .map([cl](auto i) { return Lhs { .cl = cl, .literalIndex = i, }; }));
   };
 
   VirtualIterator<Rhs> iterRhs(Clause* cl) const
@@ -65,18 +102,40 @@ public:
     return pvi(range(0, cl->numSelected())
       .filter([cl](auto i) { return !(*cl)[i]->isEquality(); })
       .filter([cl](auto i) { return (*cl)[i]->isPositive(); })
-      .map([cl](auto i) { return Rhs { .clause = cl, .literalIndex = i, }; }));
+      .map([cl](auto i) { return Rhs { .cl = cl, .literalIndex = i, }; }));
   }
 
   Clause* apply(
-      Lhs const& lhs, unsigned lhsVarBank,
-      Rhs const& rhs, unsigned rhsVarBank,
-      RobSubstitution& uwa
-      ) const;
+      Lhs const& lhs, bool lRes,
+      Rhs const& rhs, bool rRes,
+      ResultSubstitution& subs
+      ) const
+  {
+
+    auto lhsLits = range(0, lhs.clause()->size())
+      .filter([&](auto i) { return i != lhs.literalIndex; })
+      .map([&](auto i){ 
+          auto lit = (*lhs.clause())[i];
+          return subs.apply(lit, lRes);
+      });
+
+    auto rhsLits = range(0, rhs.clause()->size())
+      .filter([&](auto i) { return i != rhs.literalIndex; })
+      .map([&](auto i){ 
+          auto lit = (*rhs.clause())[i];
+          return subs.apply(lit, rRes);
+      });
+
+    return Clause::fromIterator(
+        concatIters(lhsLits, rhsLits), 
+        Inference(GeneratingInference2(InferenceRule::SIMPLE_BINARY_RESOLUTION, lhs.clause(), rhs.clause())));
+  }
 };
 
 Stack<std::function<Indexing::Index*()>> myRuleIndices()
 { return Stack<std::function<Indexing::Index*()>>{
+  []() -> Index* { return new SimpleLiteralIndex<SimpleBinaryResolution::Lhs>(new LiteralSubstitutionTree<SimpleBinaryResolution::Lhs>()); },
+  []() -> Index* { return new SimpleLiteralIndex<SimpleBinaryResolution::Rhs>(new LiteralSubstitutionTree<SimpleBinaryResolution::Rhs>()); }
   }; }
 
 SimpleBinaryResolution myRule()
@@ -114,9 +173,9 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<BinaryInferenceEngine<Sim
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
       .indices(myRuleIndices())
-      .inputs  ({ clause({ selected( 3 * f(x) - 4 == 0 )  }) 
-                , clause({ selected(     3 * f(x) >  0 )  }) })
+      .inputs  ({ clause({ selected( p(a)  ), p(b)  }) 
+                , clause({ selected( ~p(x) )        }) })
       .expected(exactly(
-            clause({ 3 * frac(4,3) > 0  })
+            clause({ p(b)  }) 
       ))
     )

@@ -20,6 +20,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Shell/Options.hpp"
 #include "Indexing/IndexManager.hpp"
+#include "Indexing/LiteralIndex.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -80,16 +81,20 @@ public:
     // TODO get rid of stack
     Stack<Clause*> out;
 
+    // auto result = RESULT_BANK;
+    // auto query  = QUERY_BANK;
+    auto result = true;
+    auto query  = false;
     for (auto const& lhs : iterTraits(_inf.iterLhs(premise))) {
       DEBUG_BIN_INF(1, "lhs: ", lhs)
       for (auto rhs_sigma : iterTraits(_rhs->getUnifications(lhs.key(), /* subs */ true))) {
         auto& rhs   = *rhs_sigma.data;
         auto& sigma = rhs_sigma.unifier;
         DEBUG_BIN_INF(1, "  rhs: ", rhs)
-        auto res = _inf.apply(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma);
+        auto concl = _inf.apply(lhs, query, rhs, result, *sigma);
         DEBUG_BIN_INF(1, "")
-        if (res != nullptr) {
-          out.push(res);
+        if (concl != nullptr) {
+          out.push(concl);
         }
       }
     }
@@ -101,10 +106,10 @@ public:
         auto& sigma = lhs_sigma.unifier;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG_BIN_INF(1, "  lhs: ", lhs)
-          auto res = _inf.apply(lhs, RESULT_BANK, rhs, QUERY_BANK, *sigma);
+          auto concl = _inf.apply(lhs, result, rhs, query, *sigma);
           DEBUG_BIN_INF(1, "")
-          if (res != nullptr) {
-            out.push(res);
+          if (concl != nullptr) {
+            out.push(concl);
           }
         }
       }

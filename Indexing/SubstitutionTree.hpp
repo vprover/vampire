@@ -1363,17 +1363,6 @@ public:
       if (_retrieveSubstitution) {
           Renaming normalizer;
           normalizer.normalizeVariables(ld->key());
-          if (ld->sort().isNonEmpty()) {
-            normalizer.normalizeVariables(ld->sort());
-          }
-          // if(_literalRetrieval) {
-          //   normalizer.normalizeVariables(ld.literal);
-          // } else {
-          //   normalizer.normalizeVariables(ld.term);
-          //   if (ld.sort.isNonEmpty()) {
-          //     normalizer.normalizeVariables(ld.sort);
-          //   }
-          // }
 
           ASS(_clientBacktrackData.isEmpty());
           _algo.bdRecord(_clientBacktrackData);

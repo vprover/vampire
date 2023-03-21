@@ -32,19 +32,19 @@ public:
   CLASS_NAME(LiteralIndex);
   USE_ALLOCATOR(LiteralIndex);
 
-  VirtualIterator<LiteralClause> getAll()
+  VirtualIterator<Data> getAll()
   { return _is->getAll(); }
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
 
-  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(lit, complementary, retrieveSubstitutions); }
 
-  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getInstances(lit, complementary, retrieveSubstitutions); }
 
   size_t getUnificationCount(Literal* lit, bool complementary)
@@ -54,11 +54,32 @@ public:
 protected:
   LiteralIndex(LiteralIndexingStructure<Data>* is) : _is(is) {}
 
+  void handle(Data data, bool add)
+  { _is->handle(std::move(data), add); }
+
   void handleLiteral(Literal* lit, Clause* cl, bool add)
-  { _is->handle(Data(cl, lit), add); }
+  { handle(Data(cl, lit), add); }
 
   unique_ptr<LiteralIndexingStructure<Data>> _is;
 };
+
+template<class Data>
+class SimpleLiteralIndex
+: public LiteralIndex<Data>
+{
+public:
+  CLASS_NAME(SimpleLiteralIndex);
+  USE_ALLOCATOR(SimpleLiteralIndex);
+
+  SimpleLiteralIndex(LiteralIndexingStructure<Data>* inner) : LiteralIndex<Data>(inner) {};
+protected:
+  void handleClause(Clause* c, bool adding) override {
+    for (auto x : iterTraits(Data::iter(c))) {
+      LiteralIndex<Data>::handle(std::move(x), adding);
+    }
+  }
+};
+
 
 class BinaryResolutionIndex
 : public LiteralIndex<LiteralClause>

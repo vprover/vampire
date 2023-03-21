@@ -290,9 +290,6 @@ typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>:
   if(_retrieveSubstitution) {
     _resultNormalizer->reset();
     _resultNormalizer->normalizeVariables(ld->key());
-    if (ld->sort().isNonEmpty()) {
-      _resultNormalizer->normalizeVariables(ld->sort());
-    }
 
     return queryResult(ld,_subst.getSubstitution(&*_resultNormalizer));
   } else {
