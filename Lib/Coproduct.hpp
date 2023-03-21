@@ -104,7 +104,9 @@ namespace CoproductImpl {
     /** same as `match`, but using the same function for every type.*/                                        \
     template <class R, class F> inline R apply(unsigned idx, F f) REF {                                       \
       if (idx == 0) {                                                                                         \
-        return f(MOVE(_head));                                                                                \
+        static_assert(std::is_same<decltype(MOVE(_head)), A REF>::value, "unexpected head type");             \
+        A REF head = MOVE(_head);                                                                             \
+        return f(MOVE(head));                                                                                 \
       } else {                                                                                                \
         return MOVE(_tail).template apply<R>(idx - 1, f);                                                     \
       }                                                                                                       \
@@ -278,6 +280,12 @@ class Coproduct<A, As...>
   /** unsafe default constructor, content will be uninit */
   Coproduct() : _tag(std::numeric_limits<unsigned>::max()) {}
 
+
+  Coproduct(Coproduct<As...> tail) 
+    : _tag(tail._tag + 1)
+    , _content(std::move(tail).apply([](auto x) { return decltype(_content)(std::move(x)); }))
+    {}
+
 public:
   CLASS_NAME(Coproduct)
 
@@ -290,6 +298,10 @@ public:
   unsigned tag() const { return _tag; }
 
 public:
+
+  Coproduct fromTail(Coproduct<As...> tail) 
+  { return Coproduct(std::move(tail)); }
+
 
   /** Returns whether this coproduct is the variant idx */
   template<unsigned idx> bool is() const 
@@ -358,7 +370,7 @@ public:
    * can transform any variant instead of multiple functions per variant.                                     \
    */                                                                                                         \
   template <class F>                                                                                          \
-  inline ResultOf<F, A REF> apply(F f) REF {                                                                  \
+  inline auto apply(F f) REF -> decltype(auto) {                                                              \
     ASS_REP(_tag <= size, _tag);                                                                              \
     return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                         \
   }                                                                                                           \
@@ -496,6 +508,35 @@ template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
         self.apply([](auto const& x){ return std::hash<std::remove_const_t<std::remove_reference_t<decltype(x)>>>{}(x); }));
   }
 };
+template<class... As> struct SelectOutput;
+
+template<class Cons> struct SelectOutput<Cons> { using type = Coproduct<std::result_of_t<Cons()>>; };
+
+template<class Cond, class Cons, class... Rest>
+struct SelectOutput<Cond, Cons, Rest...> {
+  using type = TypeList::Into<Coproduct, 
+     TypeList::Concat< TypeList::List<std::result_of_t<Cons()>>
+                     , typename SelectOutput<Rest...>::type::Ts 
+                     >>;
+};
+
+// static_assert(std::is_same<sel)
+
+// template<class Cond, class Cons, class... Rest>
+// using SelectOutput = ;
+
+template<class Cons>
+auto select(Cons cons) -> Coproduct<decltype(cons())>
+{ return Coproduct<decltype(cons())>::template variant<0>(cons()); }
+
+template<class Cond, class Cons, class... Rest>
+auto select(Cond cond, Cons cons, Rest... rest) ->  SelectOutput<Cond, Cons, Rest...>
+{
+  return cond() ? SelectOutput<Cond, Cons, Rest...>::template variant<0>(cons())
+                : SelectOutput<Cond, Cons, Rest...>::fromTail(select(std::move(rest)...));
+}
+
+
 
 
 template<class... As>
