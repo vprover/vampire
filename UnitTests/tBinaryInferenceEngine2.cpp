@@ -25,29 +25,28 @@ using namespace Inferences;
 using namespace Test;
 using namespace Indexing;
 
-class SimpleBinaryResolution {
+
+class SimpleSubsumptionResolution {
 public:
   static constexpr unsigned DEBUG_LEVEL = 0;
-
 
   struct Lhs 
   {
     Clause* cl;
-    unsigned literalIndex;
 
     using Key = Literal*;
 
     Literal* key() const 
-    { return Literal::positiveLiteral((*cl)[literalIndex]); }
+    { return Literal::complementaryLiteral((*cl)[0]); }
 
     Clause* clause() const 
     { return cl; }
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
-    { return out << *self.cl<< "[" << self.literalIndex << "]"; }
+    { return out << *self.cl; }
 
     auto asTuple() const -> decltype(auto)
-    { return std::tie(cl, literalIndex); }
+    { return std::tie(cl); }
 
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
   };
@@ -75,24 +74,23 @@ public:
   };
 
 
-  using Matching = BinInfMatching::Unification<Lhs, Rhs>;
+  using Matching = BinInfMatching::RightInstanceOfLeft<Lhs, Rhs>;
 
   IndexType indexType() const
-  { return Indexing::SIMPLE_BINARY_RESOLUTION; }
+  { return Indexing::SIMPLE_SUBSUMPTION_RESOLUTION; }
 
   VirtualIterator<Lhs> iterLhs(Clause* cl) const
   {
-    return pvi(range(0, cl->numSelected())
-      .filter([cl](auto i) { return !(*cl)[i]->isEquality(); })
-      .filter([cl](auto i) { return (*cl)[i]->isNegative(); })
-      .map([cl](auto i) { return Lhs { .cl = cl, .literalIndex = i, }; }));
-  };
+    if (cl->size() == 1 && !(*cl)[0]->isEquality()) {
+      return pvi(getSingletonIterator(Lhs { .cl = cl }));
+    } else {
+      return VirtualIterator<Lhs>::getEmpty();
+    }
+  }
 
   VirtualIterator<Rhs> iterRhs(Clause* cl) const
   {
     return pvi(range(0, cl->numSelected())
-      .filter([cl](auto i) { return !(*cl)[i]->isEquality(); })
-      .filter([cl](auto i) { return (*cl)[i]->isPositive(); })
       .map([cl](auto i) { return Rhs { .cl = cl, .literalIndex = i, }; }));
   }
 
@@ -103,34 +101,24 @@ public:
       ) const
   {
 
-    auto lhsLits = range(0, lhs.clause()->size())
-      .filter([&](auto i) { return i != lhs.literalIndex; })
-      .map([&](auto i){ 
-          auto lit = (*lhs.clause())[i];
-          return subs.apply(lit, lRes);
-      });
-
     auto rhsLits = range(0, rhs.clause()->size())
       .filter([&](auto i) { return i != rhs.literalIndex; })
       .map([&](auto i){ 
-          auto lit = (*rhs.clause())[i];
-          return subs.apply(lit, rRes);
+          return (*rhs.clause())[i];
       });
 
     return Clause::fromIterator(
-        concatIters(lhsLits, rhsLits), 
-        Inference(GeneratingInference2(InferenceRule::SIMPLE_BINARY_RESOLUTION, lhs.clause(), rhs.clause())));
+        rhsLits, 
+        Inference(SimplifyingInference2(InferenceRule::SIMPLE_SUBSUMPTION_RESOLUTION, lhs.clause(), rhs.clause())));
   }
 };
 
 
-Stack<std::function<Indexing::Index*()>> myRuleIndices()
-{ return Stack<std::function<Indexing::Index*()>>{
-  []() -> Index* { return new BinInfIndex<SimpleBinaryResolution>(); }
-  }; }
 
-SimpleBinaryResolution myRule()
-{ return SimpleBinaryResolution(); }
+Stack<std::function<Indexing::Index*()>> simplSubResoIndices()
+{ return Stack<std::function<Indexing::Index*()>>{
+  []() -> Index* { return new BinInfIndex<SimpleSubsumptionResolution>(); }
+  }; }
 
 #define MY_SYNTAX_SUGAR                                                                   \
                                                                                           \
@@ -155,7 +143,7 @@ SimpleBinaryResolution myRule()
   DECL_PRED(q2, {s,s})                                                                    \
                
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<BinaryInferenceEngine<SimpleBinaryResolution>>(BinaryInferenceEngine<SimpleBinaryResolution>(myRule())))
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<BinaryInferenceEngine<SimpleSubsumptionResolution>>(BinaryInferenceEngine<SimpleSubsumptionResolution>(SimpleSubsumptionResolution())))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -163,7 +151,7 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<BinaryInferenceEngine<Sim
 
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
-      .indices(myRuleIndices())
+      .indices(simplSubResoIndices())
       .inputs  ({ clause({ selected( p(a)  ), p(b)  }) 
                 , clause({ selected( ~p(x) )        }) })
       .expected(exactly(
@@ -173,63 +161,19 @@ TEST_GENERATION(basic01,
 
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
-      .indices(myRuleIndices())
-      .inputs  ({ clause({ selected( ~p(a)  ), p(b)  }) 
-                , clause({ selected( p(x) )        }) })
+      .indices(simplSubResoIndices())
+      .inputs  ({ clause({ selected( ~p(x)  ), p(b)  }) 
+                , clause({ selected( p(a) )        }) })
       .expected(exactly(
-            clause({ p(b)  }) 
+          /* nothing */
       ))
     )
 
 TEST_GENERATION(basic03,
     Generation::SymmetricTest()
-      .indices(myRuleIndices())
+      .indices(simplSubResoIndices())
       .inputs  ({ clause({ selected( ~p(a) ), p(b)  }) 
-                , clause({ selected(  p(b) )        }) })
+                , clause({ selected(  p(x) ), p(c)  }) })
       .expected(exactly(     /* nothing */             ))
     )
 
-
-TEST_GENERATION(basic04,
-    Generation::SymmetricTest()
-      .indices(myRuleIndices())
-      .inputs  ({ clause({ selected( p(a)  ), p(b)  }) 
-                , clause({ selected( p(x) )        }) })
-      .expected(exactly(     /* nothing */             ))
-    )
-
-TEST_GENERATION(basic05,
-    Generation::SymmetricTest()
-      .indices(myRuleIndices())
-      .inputs  ({ clause({ selected( ~p(a)  )  }) 
-                , clause({ selected( p(x) )        }) })
-      .expected(exactly( clause({ })         ))
-    )
-
-TEST_GENERATION(basic06,
-    Generation::SymmetricTest()
-      .indices(myRuleIndices())
-      .inputs  ({ clause({ selected( ~p(f2(x, b)) ), q(f(x)) }) 
-                , clause({ selected(  p(f2(a, x)) ), q(g(x)) }) 
-                }) 
-      .expected(exactly( clause({ q(f(a)), q(g(b)) })         ))
-    )
-
-TEST_GENERATION(basic07,
-    Generation::SymmetricTest()
-      .indices(myRuleIndices())
-      .inputs  ({ clause({ selected(  p(f2(x, b)) ), q(f(x)) }) 
-                , clause({ selected(  p(f2(a, x)) ), q(g(x)) }) 
-                }) 
-      .expected(exactly( /* nothing */ ))
-    )
-
-
-TEST_GENERATION(basic08,
-    Generation::SymmetricTest()
-      .indices(myRuleIndices())
-      .inputs  ({ clause({ selected(  p(f2(x, b)) ), q(f(x)) }) 
-                , clause({ selected( ~p(f2(a, x)) ), q(g(x)) }) 
-                }) 
-      .expected(exactly( clause({ q(f(a)), q(g(b)) })         ))
-    )

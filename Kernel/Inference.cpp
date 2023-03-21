@@ -992,6 +992,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "sigma clausification";
   case InferenceRule::VPI_ELIMINATION:
     return "pi clausification";
+  case InferenceRule::SIMPLE_SUBSUMPTION_RESOLUTION:
+    return "simple subsumption resolution";
   case InferenceRule::SIMPLE_BINARY_RESOLUTION:
     return "simple binary resolution";
   case InferenceRule::HOL_EQUALITY_ELIMINATION:

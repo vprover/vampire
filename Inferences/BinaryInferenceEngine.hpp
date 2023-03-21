@@ -57,14 +57,13 @@ public:
 
   AutoSubstitutionTree() : _self() {}
 
-  auto handle(Data data, bool adding) 
-  { _self.handle(std::move(data), adding); }
+  auto handle(Data data, bool adding) { _self.handle(std::move(data), adding); }
+  auto instancesOf(Key const& key) { return _self.instancesOf(key); }
+  auto generalizationsOf(Key const& key) { return _self.generalizationsOf(key); }
+  auto unifications(Key const& key) { return _self.unifications(key); }
 
-  auto unifications(Key const& key)
-  { return _self.unifications(key); }
-
-  friend std::ostream& operator<<(std::ostream& out, AutoSubstitutionTree const& self)
-  { return *self._self; }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<AutoSubstitutionTree> const& self) { return out << multiline(self.self, self.indent); }
+  friend std::ostream& operator<<(std::ostream& out, AutoSubstitutionTree const& self) { return out << self._self; }
 };
 
 #define DEBUG_BIN_INF(lvl, ...) if (lvl < BinInf::DEBUG_LEVEL) DBG(__VA_ARGS__)
@@ -72,7 +71,15 @@ public:
 
 namespace BinInfMatching {
   template<class Lhs, class Rhs>
-  struct Unification {
+  struct RightInstanceOfLeft 
+  {
+    static auto findRhs(AutoSubstitutionTree<Rhs>& rhs, Lhs const& lhs) { return rhs.instancesOf(lhs.key()); }
+    static auto findLhs(AutoSubstitutionTree<Lhs>& lhs, Rhs const& rhs) { return lhs.generalizationsOf(rhs.key()); }
+  };
+
+  template<class Lhs, class Rhs>
+  struct Unification 
+  {
     static auto findRhs(AutoSubstitutionTree<Rhs>& rhs, Lhs const& lhs) { return rhs.unifications(lhs.key()); }
     static auto findLhs(AutoSubstitutionTree<Lhs>& lhs, Rhs const& rhs) { return lhs.unifications(rhs.key()); }
   };
@@ -111,8 +118,8 @@ public:
 
   void setInf(BinInf* inf) { _inf = inf; }
 
-  friend std::ostream& operator<<(std::ostream& out, BinInfIndex const& self)
-  { return *self._self; }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<BinInfIndex> const& self) { return out << multiline(self.self, self.indent); }
+  friend std::ostream& operator<<(std::ostream& out, BinInfIndex const& self) { return out << self._self; }
 };
 
 

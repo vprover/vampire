@@ -710,6 +710,7 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tBinaryInferenceEngine.cpp
+    UnitTests/tBinaryInferenceEngine2.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp

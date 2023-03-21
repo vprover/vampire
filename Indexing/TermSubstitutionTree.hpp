@@ -124,6 +124,12 @@ public:
                                : pvi(nopostproUwa(t, uwa)); }
 
 
+  auto instancesOf(TypedTermList t)
+  { return pvi(getResultIterator<FastInstancesIterator>(t, /* retrieveSubstitutions */ true)); }
+
+  auto generalizationsOf(TypedTermList t)
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, /* retrieveSubstitutions */ true)); }
+
   auto unifications(TypedTermList t)
   { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, /* retrieveSubstitutions */ true); }
 

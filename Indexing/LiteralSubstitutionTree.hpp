@@ -74,9 +74,15 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> unifications(Literal* lit)
   { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, /* complementary */ false, /* retrieveSubstitutions */ true); }
 
+  auto instancesOf(Literal* t)
+  { return getResultIterator<FastInstancesIterator>(t, /* complementary */ false, /* retrieveSubstitutions */ true); }
+
+  auto generalizationsOf(Literal* t)
+  { return getResultIterator<FastGeneralizationsIterator>(t, /* complementary */ false, /* retrieveSubstitutions */ true); }
+
+
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions); }
-
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
