@@ -19,6 +19,7 @@
 #include "Index.hpp"
 
 #include "TermIndexingStructure.hpp"
+#include "TermSubstitutionTree.hpp"
 #include "Lib/Set.hpp"
 
 namespace Indexing {
@@ -30,21 +31,28 @@ public:
   CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
-  virtual ~TermIndex();
+  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions = true);
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions = true);
-  TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions = true);
-  TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions = true);
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(t, uwa, fixedPointIteration); }
 
+  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }
+
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
+  { return _is->getGeneralizations(t, retrieveSubstitutions); }
+
+  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true)
+  { return _is->getInstances(t, retrieveSubstitutions); }
+
+
+  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
+  { return out << *self._is; }
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
-  TermIndexingStructure* _is;
+  unique_ptr<TermIndexingStructure> _is;
 };
 
 class SuperpositionSubtermIndex
@@ -69,13 +77,14 @@ public:
   CLASS_NAME(SuperpositionLHSIndex);
   USE_ALLOCATOR(SuperpositionLHSIndex);
 
-  SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  SuperpositionLHSIndex(TermSubstitutionTree* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
+  TermSubstitutionTree* _tree;
 };
 
 /**
@@ -152,6 +161,7 @@ protected:
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////
 
+#if VHOL
 class SkolemisingFormulaIndex
 : public TermIndex
 {
@@ -163,6 +173,7 @@ public:
   {}
   void insertFormula(TermList formula, TermList skolem);
 };
+#endif
 
 /*class HeuristicInstantiationIndex
 : public TermIndex

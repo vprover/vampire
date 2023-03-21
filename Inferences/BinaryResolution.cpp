@@ -14,6 +14,8 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Indexing/ResultSubstitution.hpp"
+#include "Kernel/MismatchHandler.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -31,6 +33,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/IndexManager.hpp"
+#include "Indexing/SubstitutionTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -38,7 +41,6 @@
 #include "Shell/Statistics.hpp"
 
 #include "BinaryResolution.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Inferences
 {
@@ -47,6 +49,9 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+// TODO remove after refactor
+using BRQueryRes = LQueryRes<AbstractingUnifier*>;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
@@ -71,14 +76,16 @@ void BinaryResolution::detach()
 
 struct BinaryResolution::UnificationsFn
 {
-  UnificationsFn(BinaryResolutionIndex* index) : _index(index) {}
-  VirtualIterator<pair<Literal*, SLQueryResult>> operator()(Literal* lit)
+
+  UnificationsFn(BinaryResolutionIndex* index)
+  : _index(index) {}
+  VirtualIterator<pair<Literal*, BRQueryRes> > operator()(Literal* lit)
   {
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
-      return VirtualIterator<pair<Literal*, SLQueryResult>>::getEmpty();
+      return VirtualIterator<pair<Literal*, BRQueryRes> >::getEmpty();
     }
-    return pvi( pushPairIntoRightIterator(lit, _index->getUnifications(lit, true)) );
+    return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())));
   }
 private:
   BinaryResolutionIndex* _index;
@@ -88,14 +95,16 @@ struct BinaryResolution::ResultFn
 {
   ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  Clause* operator()(pair<Literal*, SLQueryResult> arg)
+  Clause* operator()(pair<Literal*, BRQueryRes> arg)
   {
     CALL("BinaryResolution::ResultFn::operator()");
 
-    SLQueryResult& qr = arg.second;
+    BRQueryRes& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+    auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
+    auto constraints = qr.unifier->constraintLiterals();
+    return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, *constraints, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
   }
 private:
   Clause* _cl;
@@ -110,32 +119,31 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
+                                ResultSubstitutionSP subs, Stack<Literal*> const& constraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
-  ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
+  ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
-  if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
+  if(!ColorHelper::compatible(queryCl->color(),resultCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
       env.beginOutput();
-      env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
+      env.out() << "Blocked resolution of " << *queryCl << " and " << * resultCl << endl;
       env.endOutput();
     }
     if(opts.colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
       if(salg) {
         ColorHelper::tryUnblock(queryCl, salg);
-        ColorHelper::tryUnblock(qr.clause, salg);
+        ColorHelper::tryUnblock(resultCl, salg);
       }
     }
     return 0;
   }
 
-  unsigned numberOfConstraints = qr.substitution->numberOfConstraints();
-  bool withConstraints = numberOfConstraints > 0;
   unsigned clength = queryCl->length();
-  unsigned dlength = qr.clause->length();
+  unsigned dlength = resultCl->length();
 
   // LRS-specific optimization:
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
@@ -143,11 +151,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
   unsigned wlb=0;//weight lower bound
   unsigned numPositiveLiteralsLowerBound = // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
-      Int::max(queryLit->isPositive() ? queryCl->numPositiveLiterals()-1 : queryCl->numPositiveLiterals(),
-              qr.literal->isPositive() ? qr.clause->numPositiveLiterals()-1 : qr.clause->numPositiveLiterals());
+      Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
+              resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
-  Inference inf(GeneratingInference2(withConstraints?
-      InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, qr.clause));
+  Inference inf(GeneratingInference2(constraints.isNonEmpty() ?
+      InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, resultCl));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
@@ -160,8 +168,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       }
     }
     for(unsigned i=0;i<dlength;i++) {
-      Literal* curr=(*qr.clause)[i];
-      if(curr!=qr.literal) {
+      Literal* curr=(*resultCl)[i];
+      if(curr!=resultLit) {
         wlb+=curr->weight();
       }
     }
@@ -172,7 +180,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  unsigned newLength = clength+dlength-2+numberOfConstraints;
+  unsigned newLength = clength+dlength-2+constraints.size();
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -180,33 +188,18 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   Literal* queryLitAfter = 0;
   if (ord && queryCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-    queryLitAfter = qr.substitution->applyToQuery(queryLit);
+    queryLitAfter = subs->applyToQuery(queryLit);
   }
-#if VDEBUG
-/*
-  if(withConstraints && constraints->size() > 0){
-    cout << "Other: " << qr.clause->toString() << endl;
-    cout << "queryLit: " << queryLit->toString() << endl;
-    cout << "resLit: " << qr.literal->toString() << endl;
-    cout << "SUB:" << endl << qr.substitution->toString() << endl;
-*/
-/*
-    cout << "SUB(deref):" << endl << qr.substitution->toString(true) << endl;
-*/
-  //}
-#endif
 
   unsigned next = 0;
-  auto constraints = qr.substitution->getConstraints();
-  while(constraints.hasNext()){
-    Literal* constraint = constraints.next();
-    (*res)[next++] = constraint;
-  }  
+  for(Literal* c : constraints){
+      (*res)[next++] = c; 
+  }
 
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit) {
-      Literal* newLit=qr.substitution->applyToQuery(curr);
+      Literal* newLit = subs->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
         if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
@@ -236,15 +229,15 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   Literal* qrLitAfter = 0;
-  if (ord && qr.clause->numSelected() > 1) {
+  if (ord && resultCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-    qrLitAfter = qr.substitution->applyToResult(qr.literal);
+    qrLitAfter = subs->applyToResult(resultLit);
   }
 
   for(unsigned i=0;i<dlength;i++) {
-    Literal* curr=(*qr.clause)[i];
-    if(curr!=qr.literal) {
-      Literal* newLit = qr.substitution->applyToResult(curr);
+    Literal* curr=(*resultCl)[i];
+    if(curr!=resultLit) {
+      Literal* newLit = subs->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
         if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
@@ -254,7 +247,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
           return 0;
         }
       }
-      if (qrLitAfter && i < qr.clause->numSelected()) {
+      if (qrLitAfter && i < resultCl->numSelected()) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
         Ordering::Result o = ord->compare(newLit,qrLitAfter);
@@ -267,20 +260,18 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
           return 0;
         }
       }
-
+      ASS_L(next, newLength)
       (*res)[next] = newLit;
       next++;
     }
   }
 
-  if(withConstraints){
+  if(constraints.isNonEmpty()){
     env.statistics->cResolution++;
   }
   else{ 
     env.statistics->resolution++;
   }
-
-  //cout << "RESULT " << res->toString() << endl;
 
   return res;
 }

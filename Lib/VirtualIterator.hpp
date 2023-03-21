@@ -130,8 +130,7 @@ class VirtualIterator {
 public:
   CLASS_NAME(VirtualIterator);
   USE_ALLOCATOR(VirtualIterator);
-  DECLARE_PLACEMENT_NEW;
-  
+
   DECL_ELEMENT_TYPE(T);
 
   /** Return an empty iterator */
@@ -314,7 +313,7 @@ public:
   CLASS_NAME(ProxyIterator);
   USE_ALLOCATOR(ProxyIterator);
   
-  explicit ProxyIterator(Inner inn) :_inn(inn) {}
+  explicit ProxyIterator(Inner inn) : _inn(std::move(inn)) {}
   bool hasNext() { return _inn.hasNext(); };
   T next() { return _inn.next(); };
 private:
@@ -335,7 +334,7 @@ template<class Inner>
 inline
 VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
 {
-  return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(it));
+  return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(std::move(it)));
 }
 
 

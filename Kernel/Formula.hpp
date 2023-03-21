@@ -18,8 +18,6 @@
 #ifndef __Formula__
 #define __Formula__
 
-#include <utility>
-
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
@@ -93,15 +91,8 @@ public:
   bool isFreeVariable(unsigned var) const;
   VList* boundVariables () const;
 
-  // miscellaneous
-  bool equals(const Formula*) const;
-  void collectAtoms(Stack<Literal*>& acc);
-  void collectPredicates(Stack<unsigned>& acc);
-  void collectPredicatesWithPolarity(Stack<pair<unsigned,int> >& acc, int polarity=1);
-
   // output
   vstring toString() const;
-  vstring toStringInScopeOf(Connective con) const;
   static vstring toString(Connective con);
   bool parenthesesRequired(Connective outer) const;
   // auxiliary functions
@@ -132,7 +123,6 @@ public:
   CLASS_NAME(Formula);
   USE_ALLOCATOR(Formula);
 protected:
-  static vstring toString(const Formula* f);
 
   /** Create a dummy formula will null content */
   explicit Formula(Connective con)
@@ -404,7 +394,7 @@ class BoolTermFormula
   TermList _ts;
 }; // class BoolTermFormula
 
-// definitions, had to be put out of class
+// out-of-line to break cyclic dependency on subclasses
 
 /** Return the list of variables of a quantified formula */
 inline
@@ -569,8 +559,6 @@ TermList Formula::getBooleanTerm()
   ASS(_connective == BOOL_TERM);
   return static_cast<BoolTermFormula*>(this)->getTerm();
 }
-
-// operators
 
 std::ostream& operator<< (ostream& out, const Formula& f);
 std::ostream& operator<< (ostream& out, const Formula* f);

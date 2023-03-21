@@ -67,7 +67,7 @@ struct PrimitiveInstantiation::ResultFn
     // another option is to use RobSubstitution and allow it to 
     // rename terms apart. That way, we don't need to worry about freshness 
     // of variables. The potential downside is that the whole RobSubstitution
-    // mechanism is complicated a may add its own overhead. Worth investigating 
+    // mechanism is complicated and may add its own overhead. Worth investigating 
     // though
     _heads.push(AH::top());
     _heads.push(AH::bottom());
@@ -104,7 +104,6 @@ struct PrimitiveInstantiation::ResultFn
         _heads.push(AH::sigma(sortVar));
         break;      
     }
-
   }
   
   Clause* createRes()

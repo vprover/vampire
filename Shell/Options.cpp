@@ -1214,6 +1214,12 @@ void Options::init()
     _unificationWithAbstraction.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstraction);
 
+    _unificationWithAbstractionFixedPointIteration = BoolOptionValue("unification_with_abstraction_postpro","uwa_fpi",
+                                     false);
+    _unificationWithAbstractionFixedPointIteration.description="TODO";
+    _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
+
     _useACeval = BoolOptionValue("use_ac_eval","uace",true);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
     _useACeval.tag(OptionTag::INFERENCES);
@@ -1791,6 +1797,9 @@ void Options::init()
     _pragmatic.addProblemConstraint(hasHigherOrder());
     _pragmatic.tag(OptionTag::HIGHER_ORDER);
 
+    // TODO we have two ways of enabling function extensionality abstraction atm:
+    // this option, and `-uwa`. 
+    // We should sort this out before merging into master.
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
     _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";

@@ -86,7 +86,6 @@ struct Choice::AxiomsIterator
     _set = term.rhs();
     _headSort = AH::lhsSort(term);
     _resultSort = SortHelper::getResultSort(term.term());
-
     //cout << "the result sort is " + _resultSort.toString() << endl;
 
     DHSet<unsigned>* ops = env.signature->getChoiceOperators();
@@ -154,7 +153,8 @@ struct Choice::ResultFn
 {
   ResultFn(){}
   
-  VirtualIterator<Clause*> operator() (TermList term){
+  VirtualIterator<Clause*> operator() (Term* t){
+    TermList term(t);
     TermList op = term.lhs();
     if(op.isVar()){
       return pvi(AxiomsIterator(term));
@@ -168,22 +168,19 @@ struct Choice::ResultFn
 
 struct Choice::IsChoiceTerm
 {
-  bool operator()(TermList t)
+  bool operator()(Term* t)
   { 
     TermStack args;
     TermList head;
     ApplicativeHelper::getHeadAndArgs(t, head, args);
     if(args.size() == 1){
-    
-      TermList headSort = AH::lhsSort(t);
+      TermList headSort = AH::lhsSort(TermList(t));
 
       TermList tv = TermList(0, false);
       TermList o  = AtomicSort::boolSort();
       TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
    
       static RobSubstitution subst;
-      subst.reset();
-
       subst.reset();
       return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
              subst.match(sort,0,headSort,1));
@@ -197,7 +194,7 @@ struct Choice::SubtermsFn
 {
   SubtermsFn() {}
 
-  VirtualIterator<TermList> operator()(Literal* lit)
+  VirtualIterator<Term*> operator()(Literal* lit)
   {
     CALL("Choice::RewriteableSubtermsFn()");
 

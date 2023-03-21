@@ -16,7 +16,7 @@
 #define __SubstHelper__
 
 #include "Lib/DArray.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 
 #include "Formula.hpp"
 #include "SortHelper.hpp"
@@ -196,8 +196,8 @@ private:
 
     for(unsigned i=0;i<len;i++) {
       TermList trm=terms[i];
-      if(trm.isVSpecialVar()||trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
-	return false;
+      if(trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
+	      return false;
       }
     }
     return true;
@@ -326,20 +326,10 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     ASSERTION_VIOLATION;
   }
 
-  Stack<TermList*>* toDo;
-  Stack<Term*>* terms;
-  Stack<bool>* modified;
-  Stack<TermList>* args;
-
-  Recycler::get(toDo);
-  Recycler::get(terms);
-  Recycler::get(modified);
-  Recycler::get(args);
-
-  toDo->reset();
-  terms->reset();
-  modified->reset();
-  args->reset();
+  Recycled<Stack<TermList*>> toDo;
+  Recycled<Stack<Term*>> terms;
+  Recycled<Stack<bool>> modified;
+  Recycled<Stack<TermList>> args;
 
   modified->push(false);
   toDo->push(trm->args());
@@ -402,7 +392,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       }
       continue;
     }
-    ASS(tl.isVSpecialVar() || tl.isTerm());
+    ASS(tl.isTerm());
     if(tl.isVar() || (tl.term()->shared() && tl.term()->ground())) {
       args->push(tl);
       continue;
@@ -451,11 +441,6 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       }
     }
   }
-
-  Recycler::release(args);
-  Recycler::release(modified);
-  Recycler::release(terms);
-  Recycler::release(toDo);
 
   return result;
 }

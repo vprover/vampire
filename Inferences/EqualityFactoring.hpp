@@ -33,6 +33,7 @@ class EqualityFactoring
 public:
   CLASS_NAME(EqualityFactoring);
   USE_ALLOCATOR(EqualityFactoring);
+  EqualityFactoring(){}
 
   void attach(SaturationAlgorithm* salg);
 
@@ -42,8 +43,7 @@ private:
   struct IsDifferentPositiveEqualityFn;
   struct FactorablePairsFn;
   struct ResultFn;
-
-  MismatchHandler* _handler;
+  friend struct ResultFn;
 };
 
 

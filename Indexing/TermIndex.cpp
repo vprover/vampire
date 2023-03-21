@@ -26,6 +26,8 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#include "Indexing/TermSubstitutionTree.hpp"
+
 #include "TermIndex.hpp"
 
 namespace Indexing {
@@ -33,36 +35,6 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
-
-TermIndex::~TermIndex()
-{
-  delete _is;
-}
-
-TermQueryResultIterator TermIndex::getUnifications(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getUnifications(t, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getUnificationsUsingSorts(TermList t, TermList sort,
-          bool retrieveSubstitutions)
-{
-  return _is->getUnificationsUsingSorts(t, sort, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getGeneralizations(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getGeneralizations(t, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getInstances(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getInstances(t, retrieveSubstitutions);
-}
-
 
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
@@ -73,7 +45,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti;
+    VirtualIterator<Term*> rsti;
 #if VHOL    
     if(!env.property->higherOrder()){
 #endif
@@ -83,13 +55,10 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
       rsti = EqHelper::getFoSubtermIterator(lit,_ord);
     }
 #endif
+
     while (rsti.hasNext()) {
-      if (adding) {
-        _is->insert(rsti.next(), lit, c);
-      }
-      else {
-        _is->remove(rsti.next(), lit, c);
-      }
+      auto tt = TypedTermList(rsti.next());
+      ((TermSubstitutionTree*)&*_is)->handle(tt, lit, c, adding);
     }
   }
 }
@@ -105,13 +74,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
-      if (adding) {
-	_is->insert(lhs, lit, c);
-      }
-      else {
-	_is->remove(lhs, lit, c);
-      }
+	    _tree->handle(TypedTermList(lhsi.next(), SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
     }
   }
 }
@@ -135,7 +98,7 @@ void DemodulationSubtermIndex<SubtermIterator>::handleClause(Clause* c, bool add
     Literal* lit=(*c)[i];
     SubtermIterator it(lit);
     while (it.hasNext()) {
-      TermList t=it.next();
+      TermList t=TermList(it.next());
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
         //It is enough to insert a term only once per clause.
         //Also, once we know term was inserted, we know that all its
@@ -198,7 +161,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
           // TODO: each term (and its subterms) should be processed
           // only once per literal, see DemodulationSubtermIndex
           if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-              InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
+              InductionHelper::isIntInductionTermListInLiteral(tl.term(), lit)) {
             if (adding) {
               _is->insert(tl, lit, c);
             } else {
@@ -251,11 +214,15 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
 // Indices for higher-order inferences from here on//
 /////////////////////////////////////////////////////
 
+#if VHOL
+
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
 {
   CALL("SkolemisingFormulaIndex::insertFormula");
   _is->insert(formula, skolem);
 }
+
+#endif
 
 /*void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
 {
@@ -332,6 +299,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
 
   VList::destroy(boundVar);
 }*/
+
 
 
 } // namespace Indexing

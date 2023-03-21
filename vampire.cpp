@@ -36,9 +36,6 @@
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
 
-#include "Lib/RCPtr.hpp"
-
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -50,8 +47,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-
-//#include "InstGen/IGAlgorithm.hpp"
 
 #include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"

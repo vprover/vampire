@@ -16,7 +16,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -126,10 +126,6 @@ Rectify::Renaming::~Renaming ()
   for (int i = _capacity-1;i >= 0;i--) {
     VarUsageTrackingList::destroy(_array[i]);
     _array[i] = 0;
-  }
-
-  if(_used) {
-    Recycler::release(_used);
   }
 } // Renaming::~Renaming
 
@@ -552,10 +548,6 @@ unsigned Rectify::Renaming::bind (unsigned var)
   unsigned result;
 
   if(VarManager::varNamePreserving()) {
-    if(!_used) {
-      Recycler::get(_used);
-      _used->reset();
-    }
     if(_used->insert(var)) {
       result=var;
     }
@@ -661,9 +653,7 @@ FormulaList* Rectify::rectify (FormulaList* fs)
 {
   CALL ("Rectify::rectify (FormulaList*)");
 
-  Stack<FormulaList*>* els;
-  Recycler::get(els);
-  els->reset();
+  Recycled<Stack<FormulaList*>> els;
 
   FormulaList* el = fs;
   while(el) {
@@ -689,21 +679,7 @@ FormulaList* Rectify::rectify (FormulaList* fs)
     }
   }
 
-  Recycler::release(els);
   return res;
-
-//  if (fs->isEmpty()) {
-//    return fs;
-//  }
-//  Formula* f = fs->head();
-//  FormulaList* tail = fs->tail();
-//  Formula* g = rectify(f);
-//  FormulaList* gs = rectify(tail);
-//
-//  if (f == g && tail == gs) {
-//    return fs;
-//  }
-//  return new FormulaList(g,gs);
 } // Rectify::rectify(FormulaList*)
 
 /**

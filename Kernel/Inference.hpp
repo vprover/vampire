@@ -304,9 +304,8 @@ enum class InferenceRule : unsigned char {
   INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
-  /** the last generating inference marker --
-        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
-        (see also isGeneratingInferenceRule) */
+
+#if VHOL
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
 
@@ -317,6 +316,8 @@ enum class InferenceRule : unsigned char {
   LEIBNIZ_ELIMINATION,
 
   NEGATIVE_EXT,
+
+  POSITIVE_EXT,
 
   IMITATE,
 
@@ -333,6 +334,11 @@ enum class InferenceRule : unsigned char {
   VPI_ELIMINATION,
 
   HOL_EQUALITY_ELIMINATION,
+
+#endif
+  /** the last generating inference marker --
+        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        (see also isGeneratingInferenceRule) */
 
   INTERNAL_GENERATING_INFERNCE_LAST,
 
@@ -505,6 +511,7 @@ enum class InferenceRule : unsigned char {
   FOOL_AXIOM_TRUE_NEQ_FALSE,
   FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,
    
+#if VHOL   
   FUNC_EXT_AXIOM,
 
   /** beginning of proxy funxtion axioms marker --*/
@@ -523,7 +530,8 @@ enum class InferenceRule : unsigned char {
   PI_PROXY_AXIOM,
   /* Exists proxy axiom */
   SIGMA_PROXY_AXIOM,
-
+#endif 
+  
   /** the last internal theory axiom marker --
     axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
   INTERNAL_THEORY_AXIOM_LAST,

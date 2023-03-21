@@ -17,7 +17,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -199,14 +199,7 @@ class SubtermIterator
 public:
   SubtermIterator(const Term* term) : _used(false)
   {
-    Recycler::get(_stack);
-    _stack->reset();
-
     pushNext(term->args());
-  }
-  ~SubtermIterator()
-  {
-    Recycler::release(_stack);
   }
 
   bool hasNext();
@@ -226,10 +219,7 @@ public:
   void right();
 protected:
   SubtermIterator() : _used(false)
-  {
-    Recycler::get(_stack);
-    _stack->reset();
-  }
+  { }
 
   inline
   void pushNext(const TermList* t)
@@ -239,7 +229,7 @@ protected:
     }
   }
 
-  Stack<const TermList*>* _stack;
+  Recycled<Stack<const TermList*>> _stack;
   bool _used;
 };
 
@@ -366,7 +356,7 @@ private:
 #if VHOL
 
 class FirstOrderSubtermIt
-: public IteratorCore<TermList>
+: public IteratorCore<Term*>
 {
 public:
   FirstOrderSubtermIt(Term* term, bool includeSelf=false) 
@@ -388,7 +378,7 @@ public:
   }
 
   bool hasNext(){ return !_stack.isEmpty(); }
-  TermList next();
+  Term* next();
   void right();
 
 private:
@@ -560,7 +550,7 @@ private:
  *     another
  */
 class NonVariableNonTypeIterator
-  : public IteratorCore<TermList>
+  : public IteratorCore<Term*>
 {
 public:
   NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
@@ -581,7 +571,7 @@ public:
 
   /** true if there exists at least one subterm */
   bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
+  Term* next();
   void right();
 private:
   /** available non-variable subterms */
@@ -756,16 +746,27 @@ public:
   unsigned size() const { return _lit->arity(); }
 };
 
+
+/** iterator over all term arguments of @code term */
 static const auto termArgIter = [](Term* term) 
   { return iterTraits(getRangeIterator<unsigned>(0, term->numTermArguments()))
       .map([=](auto i)
            { return term->termArg(i); }); };
 
+/** iterator over all type arguments of @code term */
 static const auto typeArgIter = [](Term* term) 
   { return iterTraits(getRangeIterator<unsigned>(0, term->numTypeArguments()))
       .map([=](auto i)
            { return term->typeArg(i); }); };
 
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIter = [](Term* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
+      .map([=](auto i)
+           { return *term->nthArgument(i); }); };
+
+
+IterTraits<VirtualIterator<Term>> acIter(TermList t, unsigned f);
 
 }
 

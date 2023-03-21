@@ -21,6 +21,8 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/MismatchHandler.hpp"
+#include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Comparison.hpp"
@@ -33,14 +35,19 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
+#include "Lib/Recycled.hpp"
+#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/OperatorType.hpp"
+#include "Lib/Option.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -50,6 +57,11 @@
 #include <iostream>
 #endif
 
+
+// TODO where should these go?
+static constexpr int QUERY_BANK=0;
+static constexpr int RESULT_BANK=1;
+static constexpr int NORM_RESULT_BANK=3;
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -60,35 +72,234 @@ using namespace Kernel;
 
 namespace Indexing {
 
+  namespace UnificationAlgorithms {
+    class RobUnification { 
+      Recycled<RobSubstitution> _subs;
+    public:
+      RobUnification() : _subs() {}
+      using Unifier = ResultSubstitutionSP; 
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      {
+        CALL("SubstitutionTree::UnificationsIterator::associate");
+        TermList query(specialVar, /* special */ true);
+        return _subs->unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
+      }
+
+
+      Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _subs->bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+      void bdDone() { _subs->bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+      TermList::Top getSpecialVarTop(unsigned svar) 
+      { return _subs->getSpecialVarTop(svar); }
+
+      bool usesUwa() const { return false; }
+    };
+
+    class UnificationWithAbstraction { 
+      AbstractingUnifier _unif;
+    public:
+      UnificationWithAbstraction(MismatchHandler handler) : _unif(AbstractingUnifier::empty(handler)) {}
+      using Unifier = AbstractingUnifier*;
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      {
+        // CALL("SubstitutionTree::UnificationsIterator::associate");
+        TermList query(specialVar, /* special */ true);
+        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
+      }
+
+      Unifier unifier()
+      { return &_unif; }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _unif.subs().bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd)
+      { _unif.subs().bdRecord(bd); }
+
+      void bdDone()
+      { _unif.subs().bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+      TermList::Top getSpecialVarTop(unsigned svar)
+      { return _unif.subs().getSpecialVarTop(svar); }
+
+      bool usesUwa() const
+      { return _unif.usesUwa(); }
+    };
+
+    class UnificationWithAbstractionWithPostprocessing 
+    { 
+      AbstractingUnifier _unif;
+      Option<bool> _fpRes;
+    public:
+      class NotFinalized { 
+        AbstractingUnifier* _unif; 
+        Option<bool>* _result;
+      public:
+        explicit NotFinalized(AbstractingUnifier* unif, Option<bool>* result) 
+          : _unif(unif)
+          , _result(result) 
+        { }
+
+        Option<AbstractingUnifier*> fixedPointIteration() 
+        {
+          if (_result->isNone()) {
+            *_result = some(bool(_unif->fixedPointIteration()));
+            if (_unif->isRecording()) {
+              _unif->bdGet().addClosure([res = _result]() { *res = {}; });
+            }
+          }
+          return someIf(**_result, [&](){ return _unif;  });
+        }
+
+        friend std::ostream& operator<<(std::ostream& out, NotFinalized const& self)
+        { return out << *self._unif << " (fixedPointIteration: " << *self._result << " )"; }
+      };
+
+      using Unifier = NotFinalized;
+
+      UnificationWithAbstractionWithPostprocessing(MismatchHandler handler) 
+        : _unif(AbstractingUnifier::empty(handler)) 
+        , _fpRes()
+      {}
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      {
+        // CALL("SubstitutionTree::UnificationsIterator::associate");
+        TermList query(specialVar, /* special */ true);
+        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
+      }
+
+      Unifier unifier()
+      { return NotFinalized(&_unif, &_fpRes); }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _unif.subs().bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd)
+      { _unif.subs().bdRecord(bd); }
+
+      void bdDone()
+      { _unif.subs().bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+      TermList::Top getSpecialVarTop(unsigned svar)
+      { return _unif.subs().getSpecialVarTop(svar); }
+
+      bool usesUwa() const
+      { return _unif.usesUwa(); }
+    };
+  };
+
+
+class SubstitutionTree;
+std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
+std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
+
+template<class Key> struct SubtitutionTreeConfig;
+
+/** a counter that is compiled away in release mode */
+struct Cntr {
+#if VDEBUG
+  Cntr() : self(0) {}
+  int self;
+  operator int() const { return self; }
+#endif 
+};
+
+/** a reference to a Cntr that increments the counter when it is created and decrements it when it goes out of scope
+ * This can be used to count the number of instances when an object of this type is added as a member field to the class 
+ * that should be counted */
+class InstanceCntr {
+public:
+#if VDEBUG
+  Cntr& _cntr;
+
+  InstanceCntr& operator=(InstanceCntr&& other) 
+  { swap(other._cntr, _cntr); return *this; }
+
+  InstanceCntr(InstanceCntr&& other) 
+    : _cntr(other._cntr)
+  { other._cntr.self++; }
+
+  InstanceCntr(Cntr& cntr) : _cntr(cntr) 
+  { _cntr.self++; }
+  ~InstanceCntr() 
+  { _cntr.self--; }
+#else // VDEBUG
+  InstanceCntr(Cntr& parent) {}
+#endif 
+};
+
 /**
- * Class of substitution trees. In fact, contains an array of substitution
- * trees.
- * @since 16/08/2008 flight Sydney-San Francisco
+ * Class of substitution trees. 
+ *
+ * We can either store typed terms, or literals in a subtitution tree.
+ * Classically we'd think of inserting/removing only one term t into a substitution tree. 
+ * This can be understood as inserting the substitution { S0 -> t } into the tree.
+ *
+ * In general we can insertt a substitution with more than just this one binding. 
+ * This is what we do in order to store the sort of variables, and in order to insert all the arguments of a literal:
+ * - For a term t of sort s we insert { S0 -> t; S1 -> s }
+ * - For literals (~)P(t0..tn) we insert { S0 -> t0 .. Sn -> tn }.
+ * (Note that we do not check the predicate or the polarity of literals here. This happens in LiteralSubstitutionTree)
  */
 class SubstitutionTree
 {
 
 public:
+  static constexpr int QRS_QUERY_BANK = 0;
+  static constexpr int QRS_RESULT_BANK = 1;
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(int nodes);
-  ~SubstitutionTree();
+  SubstitutionTree();
+  SubstitutionTree(SubstitutionTree const&) = delete;
+  SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
+  SubstitutionTree(SubstitutionTree&& other)
+  : SubstitutionTree()
+  {
+    std::swap(_nextVar, other._nextVar);
+    std::swap(_root, other._root);
+#if VDEBUG
+    std::swap(_tag, other._tag);
+#endif
+  }
 
-  // Tags are used as a debug tool to turn debugging on for a particular instance
-  bool tag;
-  virtual void markTagged(){ tag=true;}
+  virtual ~SubstitutionTree();
 
-//protected:
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
 
   struct LeafData {
     LeafData() {}
+
+    LeafData(Clause* cls, Literal* literal, TypedTermList term, TermList extraTerm)
+    : clause(cls), literal(literal), term(term), sort(term.sort()), extraTerm(extraTerm) {}
+    LeafData(Clause* cls, Literal* literal, TypedTermList term)
+    : clause(cls), literal(literal), term(term), sort(term.sort()) { extraTerm.makeEmpty();}
+
     LeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
-    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) {}
+    : clause(cls), literal(literal), term(term), extraTerm(extraTerm) { sort.makeEmpty();}
     LeafData(Clause* cls, Literal* literal, TermList term)
-    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty();}
+    : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty(); sort.makeEmpty(); }
+
     LeafData(Clause* cls, Literal* literal)
-    : clause(cls), literal(literal) { term.makeEmpty(); extraTerm.makeEmpty(); }
+    : clause(cls), literal(literal) { term.makeEmpty(); sort.makeEmpty(), extraTerm.makeEmpty(); }
     inline
     bool operator==(const LeafData& o)
     { return clause==o.clause && literal==o.literal && term==o.term; }
@@ -96,19 +307,42 @@ public:
     Clause* clause;
     Literal* literal;
     TermList term;
+    TermList sort;
     // In some higher-order use cases, we want to store a different term 
     // in the leaf to the indexed term. extraTerm is used for this purpose.
     // In all other situations it is empty
     TermList extraTerm;
 
-    vstring toString(){
-      vstring ret = "LD " + literal->toString();// + " in " + clause->literalsOnlyToString();
-      if(!term.isEmpty()){ ret += " with " +term.toString(); }
-      return ret;
-    }
-
   };
-  typedef VirtualIterator<LeafData&> LDIterator;
+  typedef VirtualIterator<LeafData*> LDIterator;
+
+  template<class Unifier>
+  struct QueryResult {
+    LeafData const* data; 
+    Unifier unif;
+
+    QueryResult(LeafData const* ld, Unifier unif) : data(ld), unif(std::move(unif)) {}
+  };
+  template<class Unifier>
+  static QueryResult<Unifier>  queryResult(LeafData const* ld, Unifier unif) 
+  { return QueryResult<Unifier>(ld, std::move(unif)); }
+
+  template<class I> using QueryResultIter = VirtualIterator<QueryResult<typename I::Unifier>>;
+  // TODO get rid of me
+  using RSQueryResult = QueryResult<ResultSubstitutionSP>;
+  // TODO get rid of me
+  using RSQueryResultIter = VirtualIterator<QueryResult<ResultSubstitutionSP>>;
+  // TODO make const function
+  template<class I, class TermOrLit, class... Args> 
+  auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
+  {
+    CALL("SubstitutionTree::iterator");
+    return iterTraits(
+          someIf(_root != nullptr, 
+              [&]() { return I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...) ; })
+          .intoIter())
+        .flatten();
+  }
 
   class LDComparator
   {
@@ -116,18 +350,9 @@ public:
     inline
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
-      CALL("SubstitutionTree::LDComparator::compare");
-
-      /*
-      cout << "ld1: " << ld1.toString() << endl;
-      cout << "ld2: " << ld2.toString() << endl;
-      */
+      CALL("SubstitutionTree::Comparator::compare");
 
       if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
-        //if(ld1.clause->number()==ld2.clause->number()){
-          //cout << "XXX " << ld1.clause << " and " << ld2.clause << endl;
-          //cout << ld2.clause->toString() << endl;
-        //}
         ASS_NEQ(ld1.clause->number(), ld2.clause->number());
         return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
       }
@@ -175,6 +400,10 @@ public:
 
   class Node {
   public:
+    friend std::ostream& operator<<(ostream& out, OutputMultiline<Node> const& self) 
+    { self.self.output(out, /* multiline = */ true, self.indent); return out; }
+    friend std::ostream& operator<<(ostream& out, Node const& self) 
+    { self.output(out, /* multiline = */ false, /* indent */ 0); return out; }
     inline
     Node() { term.makeEmpty(); }
     inline
@@ -183,7 +412,6 @@ public:
     /** True if a leaf node */
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
-    virtual bool withSorts(){ return false; }
     /**
      * Return number of elements held in the node.
      *
@@ -209,13 +437,7 @@ public:
     /** term at this node */
     TermList term;
 
-    virtual void print(unsigned depth=0){
-       printDepth(depth);
-       cout <<  "[" + term.toString() + "]" << endl;
-    }
-    void printDepth(unsigned depth){
-      while(depth-->0){ cout <<" "; }
-    }
+    virtual void output(std::ostream& out, bool multiline, int indent) const = 0;
   };
 
 
@@ -234,7 +456,7 @@ public:
     IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar) {}
 
     inline
-    bool isLeaf() const { return false; };
+    bool isLeaf() const final override { return false; };
 
     virtual NodeIterator allChildren() = 0;
     virtual NodeIterator variableChildren() = 0;
@@ -250,15 +472,14 @@ public:
      * If canCreate is false, null pointer is returned in case
      * suitable child does not exist.
      */
-    virtual Node** childByTop(TermList t, bool canCreate) = 0;
+    virtual Node** childByTop(TermList::Top t, bool canCreate) = 0;
 
 
     /**
      * Remove child which points to node with top symbol of @b t.
      * This node has to still exist in time of the call to remove method.
      */
-    virtual void remove(TermList t) = 0;
-
+    virtual void remove(TermList::Top t) = 0;
     /**
      * Remove all children of the node without destroying them.
      */
@@ -266,7 +487,7 @@ public:
 
     void destroyChildren();
 
-    void makeEmpty()
+    void makeEmpty() final override
     {
       Node::makeEmpty();
       removeAllChildren();
@@ -276,15 +497,7 @@ public:
 
     const unsigned childVar;
 
-    virtual void print(unsigned depth=0){
-       auto children = allChildren();
-       printDepth(depth);
-       cout << "I [" << childVar << "] with " << term.toString() << endl;
-       while(children.hasNext()){
-         (*children.next())->print(depth+1);
-       }
-    }
-
+    virtual void output(std::ostream& out, bool multiline, int indent) const override;
   }; // class SubstitutionTree::IntermediateNode
 
   class Leaf
@@ -300,19 +513,12 @@ public:
     Leaf(TermList ts) : Node(ts) {}
 
     inline
-    bool isLeaf() const { return true; };
+    bool isLeaf() const final override { return true; };
     virtual LDIterator allChildren() = 0;
     virtual void insert(LeafData ld) = 0;
     virtual void remove(LeafData ld) = 0;
     void loadChildren(LDIterator children);
-
-    virtual void print(unsigned depth=0){
-       auto children = allChildren();
-       while(children.hasNext()){
-         printDepth(depth);
-         cout << children.next().toString() << endl;
-       } 
-    }
+    virtual void output(std::ostream& out, bool multiline, int indent) const override;
   };
 
   //These classes and methods are defined in SubstitutionTree_Nodes.cpp
@@ -374,8 +580,8 @@ public:
       return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
   	    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList t, bool canCreate);
-    void remove(TermList t);
+    virtual Node** childByTop(TermList::Top t, bool canCreate);
+    void remove(TermList::Top t);
 
 #if VDEBUG
     virtual void assertValid() const
@@ -437,7 +643,7 @@ public:
   		    NodeSkipList::PtrIterator(_nodes),
   		    IsPtrToVarNodeFn()) );
     }
-    virtual Node** childByTop(TermList t, bool canCreate)
+    virtual Node** childByTop(TermList::Top t, bool canCreate)
     {
       CALL("SubstitutionTree::SListIntermediateNode::childByTop");
 
@@ -452,11 +658,9 @@ public:
       }
       return res;
     }
-    inline
-    void remove(TermList t)
-    {
-      _nodes.remove(t);
-    }
+
+    inline void remove(TermList::Top t)
+    { _nodes.remove(t); }
 
     CLASS_NAME(SubstitutionTree::SListIntermediateNode);
     USE_ALLOCATOR(SListIntermediateNode);
@@ -464,26 +668,26 @@ public:
     class NodePtrComparator
     {
     public:
-      static Comparison compare(TermList t1,TermList t2)
+      static Comparison compare(TermList::Top t1, TermList::Top t2)
       {
         CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
 
-        if(t1.isVar()) {
-          if(t2.isVar()) {
-            return Int::compare(t1.var(), t2.var());
+        if(t1.var()) {
+          if(t2.var()) {
+            return Int::compare(*t1.var(), *t2.var());
           }
           return LESS;
         }
-        if(t2.isVar()) {
+        if(t2.var()) {
           return GREATER;
         }
-        return Int::compare(t1.term()->functor(), t2.term()->functor());
+        return Int::compare(*t1.functor(), *t2.functor());
       }
 
       static Comparison compare(Node* n1, Node* n2)
-      { return compare(n1->term, n2->term); }
-      static Comparison compare(TermList t1, Node* n2)
-      { return compare(t1, n2->term); }
+      { return compare(n1->term.top(), n2->term.top()); }
+      static Comparison compare(TermList::Top t1, Node* n2)
+      { return compare(t1, n2->term.top()); }
     };
     typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
     NodeSkipList _nodes;
@@ -522,65 +726,343 @@ public:
   //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
   //that when SkipList is used.
   typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
-  //typedef SkipList<Binding,Binding::Comparator> BindingQueue;
-//  typedef SkipList<unsigned,SpecVarComparator> SpecVarQueue;
   typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
   typedef Stack<unsigned> VarStack;
 
-  void getBindings(Term* t, BindingMap& binding);
+  void getBindingsArgBindings(Term* t, BindingMap& binding);
+
+  Leaf* findLeaf(BindingMap& svBindings)
+  { ASS(!_root || !_root->isLeaf() )
+    return _root ? findLeaf(_root, svBindings) : nullptr; }
 
   Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
-  void insert(Node** node,BindingMap& binding,LeafData ld);
-  void remove(Node** node,BindingMap& binding,LeafData ld);
+  void setSort(TypedTermList const& term, LeafData& ld)
+  {
+    ASS_EQ(ld.term, term)
+    ld.sort = term.sort();
+  }
+
+  void setSort(TermList const& term, LeafData& ld)
+  {
+    ASS_EQ(ld.term, term)
+    if (term.isTerm()) {
+      ld.sort = SortHelper::getResultSort(term.term());
+    }
+  }
+
+
+  void setSort(Literal* literal, LeafData &ld)
+  { 
+    ASS_EQ(ld.literal, literal); 
+    if (literal->isEquality()) {
+      ld.sort = SortHelper::getEqualityArgumentSort(literal);
+    }
+  }
+
+
+  template<class Key>
+  void handle(Key const& key, LeafData ld, bool doInsert)
+  {
+    auto norm = Renaming::normalize(key);
+    Recycled<BindingMap> bindings;
+    setSort(key, ld);
+    createBindings(norm, /* reversed */ false,
+        [&](auto var, auto term) { 
+          bindings->insert(var, term);
+          _nextVar = max(_nextVar, (int)var + 1);
+        });
+    if (doInsert) insert(*bindings, ld);
+    else          remove(*bindings, ld);
+  }
+
+private:
+  void insert(BindingMap& binding,LeafData ld);
+  void remove(BindingMap& binding,LeafData ld);
 
   /** Number of the next variable */
   int _nextVar;
-  /** Array of nodes */
-  ZIArray<Node*> _nodes;
 
-  class LeafIterator
-  : public IteratorCore<Leaf*>
+  Node* _root;
+#if VDEBUG
+  bool _tag;
+#endif
+public:
+#if VDEBUG
+  // Tags are used as a debug tool to turn debugging on for a particular instance
+  virtual void markTagged(){ _tag=true;}
+#endif
+
+  class RenamingSubstitution 
+  : public ResultSubstitution 
   {
   public:
-    LeafIterator(SubstitutionTree* st)
-    : _nextRootPtr(st->_nodes.begin()), _afterLastRootPtr(st->_nodes.end()),
-    _nodeIterators(8) {}
-    bool hasNext();
-    Leaf* next()
-    {
-      ASS(_curr->isLeaf());
-      return static_cast<Leaf*>(_curr);
+    Recycled<Renaming> _query;
+    Recycled<Renaming> _result;
+    RenamingSubstitution(): _query(), _result() {}
+    virtual ~RenamingSubstitution() override {}
+    virtual TermList applyToQuery(TermList t) final override { return _query->apply(t); }
+    virtual Literal* applyToQuery(Literal* l) final override { return _query->apply(l); }
+    virtual TermList applyToResult(TermList t) final override { return _result->apply(t); }
+    virtual Literal* applyToResult(Literal* l) final override { return _result->apply(l); }
+
+    virtual TermList applyTo(TermList t, unsigned index) final override { ASSERTION_VIOLATION; }
+    virtual Literal* applyTo(Literal* l, unsigned index) final override { NOT_IMPLEMENTED; }
+
+    virtual size_t getQueryApplicationWeight(TermList t) final override { return t.weight(); }
+    virtual size_t getQueryApplicationWeight(Literal* l) final override  { return l->weight(); }
+    virtual size_t getResultApplicationWeight(TermList t) final override { return t.weight(); }
+    virtual size_t getResultApplicationWeight(Literal* l) final override { return l->weight(); }
+
+    void output(std::ostream& out) const final override
+    { out << "{ _query: " << _query << ", _result: " << _result << " }"; }
+  };
+
+  template<class Query>
+  bool generalizationExists(Query query)
+  {
+    return _root == nullptr 
+      ? false
+      : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false).hasNext();
+  }
+
+  template<class Query>
+  RSQueryResultIter getVariants(Query query, bool retrieveSubstitutions)
+  {
+    CALL("LiteralSubstitutionTree::getVariants");
+
+
+    auto renaming = retrieveSubstitutions ? make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
+    ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(&*renaming) : ResultSubstitutionSP();
+
+    Query normQuery;
+    if (retrieveSubstitutions) {
+      renaming->_query->normalizeVariables(query);
+      normQuery = renaming->_query->apply(query);
+    } else {
+      normQuery = Renaming::normalize(query);
     }
+
+    Recycled<BindingMap> svBindings;
+    createBindings(normQuery, /* reversed */ false,
+        [&](auto v, auto t) { {
+          _nextVar = max<int>(_nextVar, v + 1); // TODO do we need this line?
+          svBindings->insert(v, t);
+        } });
+    Leaf* leaf = findLeaf(*svBindings);
+    if(leaf==0) {
+      return RSQueryResultIter::getEmpty();
+    } else {
+      return pvi(iterTraits(leaf->allChildren())
+        .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData* ld) 
+          {
+            ResultSubstitutionSP subs;
+            if (retrieveSubstitutions) {
+              renaming->_result->reset();
+              renaming->_result->normalizeVariables(SubtitutionTreeConfig<Query>::getKey(*ld));
+              subs = resultSubst;
+            }
+            return queryResult(ld, subs);
+          }));
+    }
+  }
+
+  class LeafIterator
+  {
+  public:
+    LeafIterator(LeafIterator&&) = default;
+    LeafIterator& operator=(LeafIterator&&) = default;
+    DECL_ELEMENT_TYPE(Leaf*);
+    LeafIterator(SubstitutionTree* st);
+    bool hasNext();
+    Leaf* next();
   private:
-    Node** _nextRootPtr;
-    Node** _afterLastRootPtr;
+    void skipToNextLeaf();
     Node* _curr;
     Stack<NodeIterator> _nodeIterators;
   };
 
-  typedef pair<LeafData*, ResultSubstitutionSP> QueryResult;
+   /**
+   * Class that supports matching operations required by
+   * retrieval of generalizations in substitution trees.
+   */
+  class GenMatcher
+  {
+    static unsigned weight(Literal* l) { return l->weight(); }
+    static unsigned weight(TermList t) { return  t.weight(); }
+  public:
+    GenMatcher(GenMatcher&&) = default;
+    GenMatcher& operator=(GenMatcher&&) = default;
+
+    /**
+     * @b nextSpecVar Number higher than any special variable present in the tree.
+     * 	It's used to determine size of the array that stores bindings of
+     * 	special variables.
+     */
+    template<class TermOrLit>
+    GenMatcher(TermOrLit query, unsigned nextSpecVar)
+      : _maxVar(weight(query) - 1)
+    {
+      if(_specVars->size()<nextSpecVar) {
+        //_specVars can get really big, but it was introduced instead of hash table
+        //during optimizations, as it raised performance by abour 5%.
+        _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
+      }
+      _bindings->ensure(weight(query));
+    }
 
 
-  class GenMatcher;
+
+    CLASS_NAME(SubstitutionTree::GenMatcher);
+    USE_ALLOCATOR(GenMatcher);
+
+    /**
+     * Bind special variable @b var to @b term. This method
+     * should be called only before any calls to @b matchNext()
+     * and @b backtrack().
+     */
+    void bindSpecialVar(unsigned var, TermList term)
+    {
+      (*_specVars)[var]=term;
+    }
+    /**
+     * Return term bound to special variable @b specVar
+     */
+    TermList getSpecVarBinding(unsigned specVar)
+    { return (*_specVars)[specVar]; }
+
+    bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
+    bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
+    void backtrack();
+    bool tryBacktrack();
+
+    ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
+
+    int getBSCnt()
+    {
+      int res=0;
+      VarStack::Iterator vsit(*_boundVars);
+      while(vsit.hasNext()) {
+    if(vsit.next()==BACKTRACK_SEPARATOR) {
+      res++;
+    }
+      }
+      return res;
+    }
+
+  protected:
+    static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
+
+    struct Binder;
+    struct Applicator;
+    class Substitution;
+
+    Recycled<VarStack> _boundVars;
+    Recycled<DArray<TermList>, NoReset> _specVars;
+    //                         ^^^^^^^ all values that will be read, will be overridden anyways so we can safe time by not resetting.
+
+    /**
+     * Inheritors must assign the maximal possible number of an ordinary
+     * variable that can be bound during the retrievall process.
+     */
+    unsigned _maxVar;
+
+    /**
+     * Inheritors must ensure that the size of this map will
+     * be at least @b _maxVar+1
+     */
+    Recycled<ArrayMap<TermList>> _bindings;
+  };
+
+  // TODO document
+  template<class BindingFunction>
+  void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
+  {
+    bindSpecialVar(0, term);
+    bindSpecialVar(1, term.sort());
+  }
+
+  // TODO document
+  template<class BindingFunction>
+  void createBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
+  { 
+    bindSpecialVar(0, term); 
+    if (term.isTerm())
+      bindSpecialVar(1, SortHelper::getResultSort(term.term()));
+  }
+
+  template<class BindingFunction>
+  void createBindings(Literal* lit, bool reversed, BindingFunction bindSpecialVar)
+  {
+    if (lit->isEquality()) {
+
+      if (reversed) {
+        bindSpecialVar(1,*lit->nthArgument(0));
+        bindSpecialVar(0,*lit->nthArgument(1));
+      } else {
+        bindSpecialVar(0,*lit->nthArgument(0));
+        bindSpecialVar(1,*lit->nthArgument(1));
+      }
+
+      bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
+
+    } else if(reversed) {
+      ASS(lit->commutative());
+      ASS_EQ(lit->arity(),2);
+
+      bindSpecialVar(1,*lit->nthArgument(0));
+      bindSpecialVar(0,*lit->nthArgument(1));
+
+    } else {
+
+      TermList* args=lit->args();
+      int nextVar = 0;
+      while (! args->isEmpty()) {
+        unsigned var = nextVar++;
+        bindSpecialVar(var,*args);
+        args = args->next();
+      }
+    }
+  }
 
   /**
    * Iterator, that yields generalizations of given term/literal.
    */
   class FastGeneralizationsIterator
-  : public IteratorCore<QueryResult>
   {
   public:
-    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query,
-            bool retrieveSubstitution, bool reversed,bool withoutTop, MismatchHandler* hndler = 0);
+    FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
+    FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
+    DECL_ELEMENT_TYPE(RSQueryResult);
+    using Unifier = ResultSubstitutionSP;
+    /**
+     * If @b reversed If true, parameters of supplied binary literal are
+     * 	reversed. (useful for retrieval commutative terms)
+     */
+    template<class TermOrLit>
+    FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed)
+      : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
+      , _retrieveSubstitution(retrieveSubstitution)
+      , _inLeaf(root->isLeaf())
+      , _subst(query,parent->_nextVar)
+      , _ldIterator(_inLeaf ? static_cast<Leaf*>(root)->allChildren() : LDIterator::getEmpty())
+      , _resultNormalizer()
+      , _root(root)
+      , _alternatives()
+      , _specVarNumbers()
+      , _nodeTypes()
+      , _iterCntr(parent->_iterCnt)
+    {
+      CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
+      ASS(root);
 
-    ~FastGeneralizationsIterator();
+      parent->createBindings(query, reversed,
+          [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
+    }
 
-    QueryResult next();
+    RSQueryResult next();
     bool hasNext();
   protected:
-    void createInitialBindings(Term* t);
-    void createReversedInitialBindings(Term* t);
 
     bool findNextLeaf();
     bool enterNode(Node*& node);
@@ -594,149 +1076,527 @@ public:
      * This is false in the beginning when it is in the root */
     bool _inLeaf;
 
-    GenMatcher* _subst;
+    GenMatcher _subst;
 
     LDIterator _ldIterator;
 
-    Renaming _resultNormalizer;
+    Recycled<Renaming> _resultNormalizer;
 
     Node* _root;
-    SubstitutionTree* _tree;
 
-    Stack<void*> _alternatives;
-    Stack<unsigned> _specVarNumbers;
-    Stack<NodeAlgorithm> _nodeTypes;
+    Recycled<Stack<void*>> _alternatives;
+    Recycled<Stack<unsigned>> _specVarNumbers;
+    Recycled<Stack<NodeAlgorithm>> _nodeTypes;
+    InstanceCntr _iterCntr;
   };
 
-  class InstMatcher;
+
+  /**
+   * Class that supports matching operations required by
+   * retrieval of generalizations in substitution trees.
+   */
+  class InstMatcher 
+  {
+  public:
+
+    CLASS_NAME(SubstitutionTree::InstMatcher);
+    USE_ALLOCATOR(InstMatcher);
+
+    struct TermSpec
+    {
+      TermSpec() : q(false) {
+      #if VDEBUG
+        t.makeEmpty();
+      #endif
+      }
+      TermSpec(bool q, TermList t)
+      : q(q), t(t)
+      {
+        CALL("SubstitutionTree::InstMatcher::TermSpec::TermSpec");
+
+        //query does not contain special vars
+        ASS(!q || !t.isTerm() || t.term()->shared());
+        ASS(!q || !t.isSpecialVar());
+      }
+
+      vstring toString()
+      {
+        CALL("SubstitutionTree::InstMatcher::TermSpec::toString");
+        return (q ? "q|" : "n|")+t.toString();
+      }
+
+      /**
+       * Return true if the @b t field can be use as a binding for a query
+       * term variable in the retrieved substitution
+       */
+      bool isFinal()
+      {
+        //the fact that a term is shared means it does not contain any special variables
+        return q
+      ? (t.isTerm() && t.term()->ground())
+      : (t.isOrdinaryVar() || (t.isTerm() && t.term()->shared()) );
+      }
+
+      bool q;
+      TermList t;
+    };
+
+    /**
+     * Bind special variable @b var to @b term
+     *
+     * This method should be called only before any calls to @b matchNext()
+     * and @b backtrack().
+     */
+    void bindSpecialVar(unsigned var, TermList term)
+    {
+      CALL("SubstitutionTree::InstMatcher::bindSpecialVar");
+      ASS_EQ(getBSCnt(), 0);
+
+      ALWAYS(_bindings->insert(TermList(var,true),TermSpec(true,term)));
+    }
+
+    bool isSpecVarBound(unsigned specVar)
+    {
+      return _bindings->find(TermList(specVar,true));
+    }
+
+    /** Return term bound to special variable @b specVar */
+    TermSpec getSpecVarBinding(unsigned specVar)
+    {
+      TermSpec res=_bindings->get(TermList(specVar,true));
+
+      return res;
+    }
+
+    bool findSpecVarBinding(unsigned specVar, TermSpec& res)
+    {
+      return _bindings->find(TermList(specVar,true), res);
+    }
+
+    bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
+    bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
+
+    void backtrack();
+    bool tryBacktrack();
+    ResultSubstitutionSP getSubstitution(Renaming* resultDenormalizer);
+
+    int getBSCnt()
+    {
+      int res=0;
+      TermStack::Iterator vsit(*_boundVars);
+      while(vsit.hasNext()) {
+        if(vsit.next().isEmpty()) {
+    res++;
+        }
+      }
+      return res;
+    }
+
+    void onLeafEntered()
+    {
+      _derefBindings->reset();
+    }
+
+  private:
+
+    class Substitution;
+
+    TermList derefQueryBinding(unsigned var);
+
+    bool isBound(TermList var)
+    {
+      CALL("SubstitutionTree::InstMatcher::isBound");
+      ASS(var.isVar());
+
+      return _bindings->find(var);
+    }
+    void bind(TermList var, TermSpec trm)
+    {
+      CALL("SubstitutionTree::InstMatcher::bind");
+      ASS(!var.isOrdinaryVar() || !trm.q); //we do not bind ordinary vars to query terms
+
+      ALWAYS(_bindings->insert(var, trm));
+      _boundVars->push(var);
+    }
+
+    TermSpec deref(TermList var);
+
+    typedef DHMap<TermList, TermSpec> BindingMap;
+    typedef Stack<TermList> TermStack;
+
+    /** Stacks of bindings made on each backtrack level. Backtrack
+     * levels are separated by empty terms. */
+    Recycled<TermStack> _boundVars;
+
+    Recycled<BindingMap> _bindings;
+
+    /**
+     * A cache for bindings of variables to result terms
+     *
+     * The map is reset whenever we enter a new leaf
+     */
+    Recycled<DHMap<TermList,TermList>> _derefBindings;
+
+    struct DerefTask
+    {
+      DerefTask(TermList var) : var(var) { trm.t.makeEmpty(); }
+      DerefTask(TermList var, TermSpec trm) : var(var), trm(trm) {}
+      TermList var;
+      TermSpec trm;
+      bool buildDerefTerm() { return trm.t.isNonEmpty(); };
+    };
+
+    struct DerefApplicator
+    {
+      DerefApplicator(InstMatcher* im, bool query) : query(query), im(im) {}
+      TermList apply(unsigned var)
+      {
+        CALL("SubstitutionTree::InstMatcher::DerefApplicator::apply");
+        if(query) {
+          return im->_derefBindings->get(TermList(var, false));
+        }
+        else {
+    return TermList(var, false);
+        }
+      }
+      TermList applyToSpecVar(unsigned specVar)
+      {
+        CALL("SubstitutionTree::InstMatcher::DerefApplicator::applyToSpecVar");
+        ASS(!query);
+
+        return im->_derefBindings->get(TermList(specVar, true));
+      }
+    private:
+      bool query;
+      InstMatcher* im;
+    };
+  };
 
   /**
    * Iterator, that yields generalizations of given term/literal.
    */
   class FastInstancesIterator
-  : public IteratorCore<QueryResult>
   {
   public:
-    FastInstancesIterator(SubstitutionTree* parent, Node* root, Term* query,
-	    bool retrieveSubstitution, bool reversed, bool withoutTop, 
-      MismatchHandler* hndler = 0);
-    ~FastInstancesIterator();
+    FastInstancesIterator(FastInstancesIterator&&) = default;
+    FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
+    DECL_ELEMENT_TYPE(RSQueryResult);
+    using Unifier = ResultSubstitutionSP;
+
+    /**
+     * If @b reversed If true, parameters of supplied binary literal are
+     * 	reversed. (useful for retrieval commutative terms)
+     */
+    template<class TermOrLit>
+    FastInstancesIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed)
+      : _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
+      , _retrieveSubstitution(retrieveSubstitution)
+      , _inLeaf(root->isLeaf())
+      , _ldIterator(_inLeaf ? static_cast<Leaf*>(root)->allChildren() : LDIterator::getEmpty())
+      , _root(root)
+      , _alternatives()
+      , _specVarNumbers()
+      , _nodeTypes()
+      , _iterCntr(parent->_iterCnt)
+    {
+      CALL("SubstitutionTree::FastInstancesIterator::FastInstancesIterator");
+      ASS(root);
+
+      parent->createBindings(query, reversed,
+          [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
+
+      if (_inLeaf) {
+        _subst.onLeafEntered(); //we reset the bindings cache
+      }
+    }
 
     bool hasNext();
-    QueryResult next();
+    RSQueryResult next();
   protected:
-    void createInitialBindings(Term* t);
-    void createReversedInitialBindings(Term* t);
     bool findNextLeaf();
 
     bool enterNode(Node*& node);
 
   private:
+
     bool _literalRetrieval;
     bool _retrieveSubstitution;
     bool _inLeaf;
     LDIterator _ldIterator;
 
-    InstMatcher* _subst;
+    InstMatcher _subst;
 
     Renaming _resultDenormalizer;
     Node* _root;
 
-    Stack<void*> _alternatives;
-    Stack<unsigned> _specVarNumbers;
-    Stack<NodeAlgorithm> _nodeTypes;
-#if VDEBUG
-    SubstitutionTree* _tree;
-#endif
+    Recycled<Stack<void*>> _alternatives;
+    Recycled<Stack<unsigned>> _specVarNumbers;
+    Recycled<Stack<NodeAlgorithm>> _nodeTypes;
+    InstanceCntr _iterCntr;
   };
 
-  class UnificationsIterator
-  : public IteratorCore<QueryResult>
+  template<class UnificationAlgorithm>
+  class UnificationsIterator final
   {
   public:
-    UnificationsIterator(SubstitutionTree* parent, Node* root, Term* query, 
-      bool retrieveSubstitution, bool reversed, bool withoutTop,
-      MismatchHandler* hndler = 0);
-    ~UnificationsIterator();
+    UnificationsIterator(UnificationsIterator&&) = default;
+    UnificationsIterator& operator=(UnificationsIterator&&) = default;
+    using Unifier = typename UnificationAlgorithm::Unifier;
+    DECL_ELEMENT_TYPE(QueryResult<Unifier>);
 
-    bool hasNext();
-    QueryResult next();
-    bool tag;
-  protected:
-    virtual bool associate(TermList query, TermList node);
-    virtual NodeIterator getNodeIterator(IntermediateNode* n);
+    template<class TermOrLit, class...AlgoArgs>
+    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
+      : _algo(std::move(args)...)
+      , _svStack()
+      , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
+      , _retrieveSubstitution(retrieveSubstitution)
+      , _inLeaf(false)
+      , _ldIterator(LDIterator::getEmpty())
+      , _nodeIterators()
+      , _bdStack()
+      , _clientBDRecording(false)
+      , _iterCntr(parent->_iterCnt)
+#if VDEBUG
+      , _tag(parent->_tag)
+#endif
+    {
+#define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
+      CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
-    void createInitialBindings(Term* t);
-    /**
-     * For a binary comutative literal, creates initial bindings,
-     * where the order of special variables is reversed.
-     */
-    void createReversedInitialBindings(Term* t);
-    bool findNextLeaf();
-    bool enter(Node* n, BacktrackData& bd);
+      if(!root) {
+        return;
+      }
+
+      parent->createBindings(query, reversed, 
+          [&](unsigned var, TermList t) { _algo.bindQuerySpecialVar(var, t, QUERY_BANK); });
+      DEBUG_QUERY("query: ", _abstractingUnifier.subs())
 
 
-    static const int QUERY_BANK=0;
-    static const int RESULT_BANK=1;
-    static const int NORM_QUERY_BANK=2;
-    static const int NORM_RESULT_BANK=3;
+      BacktrackData bd;
+      enter(root, bd);
+      bd.drop();
+    }
 
-    RobSubstitution subst;
-    VarStack svStack;
+
+    ~UnificationsIterator()
+    {
+      if(_clientBDRecording) {
+        _algo.bdDone();
+        _clientBDRecording=false;
+        _clientBacktrackData.backtrack();
+      }
+      // if (_bdStack) 
+        while(_bdStack->isNonEmpty()) {
+          _bdStack->pop().backtrack();
+        }
+    }
+
+    bool hasNext()
+    {
+      CALL("SubstitutionTree::UnificationsIterator::hasNext");
+
+      if(_clientBDRecording) {
+        _algo.bdDone();
+        _clientBDRecording=false;
+        _clientBacktrackData.backtrack();
+      }
+
+      while(!_ldIterator.hasNext() && findNextLeaf()) {}
+      return _ldIterator.hasNext();
+    }
+
+    QueryResult<Unifier> next()
+    {
+      CALL("SubstitutionTree::UnificationsIterator::next");
+
+      while(!_ldIterator.hasNext() && findNextLeaf()) {}
+      ASS(_ldIterator.hasNext());
+
+      ASS(!_clientBDRecording);
+
+      auto ld = _ldIterator.next();
+      // TODO resolve this kinda messy bit
+      if (_retrieveSubstitution) {
+          Renaming normalizer;
+          if(_literalRetrieval) {
+            normalizer.normalizeVariables(ld->literal);
+          } else {
+            normalizer.normalizeVariables(ld->term);
+            if (ld->sort.isNonEmpty()) {
+              normalizer.normalizeVariables(ld->sort);
+            }
+          }
+
+          ASS(_clientBacktrackData.isEmpty());
+          _algo.bdRecord(_clientBacktrackData);
+          _clientBDRecording=true;
+
+          _algo.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
+      }
+
+      return queryResult(ld, _algo.unifier());
+    }
 
   private:
-    bool literalRetrieval;
-    bool retrieveSubstitution;
-    bool inLeaf;
-    LDIterator ldIterator;
-    Stack<NodeIterator> nodeIterators;
-    Stack<BacktrackData> bdStack;
-    bool clientBDRecording;
-    BacktrackData clientBacktrackData;
-    Renaming queryNormalizer;
-    MismatchHandler* handler;
-    UnificationConstraintStack constraints;
+    // bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+    // {
+    //   CALL("SubstitutionTree::UnificationsIterator::associate");
+    //   TermList query(specialVar, /* special */ true);
+    //   return _abstractingUnifier.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
+    // }
+
+    NodeIterator getNodeIterator(IntermediateNode* n)
+    {
+      CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
+
+      // TODO rename usesUwa to something more self explanatory
+      if (_algo.usesUwa()) {
+        return n->allChildren();
+      }
+
+      unsigned specVar=n->childVar;
+      // TermList qt = _abstractingUnifier.subs().getSpecialVarTop(specVar);
+      // TODO should this function really be part of algo?
+      auto top = _algo.getSpecialVarTop(specVar);
+      if(top.var()) {
+        return n->allChildren();
+      } else {
+        Node** match=n->childByTop(top, false);
+        if(match) {
+          return pvi( 
+            getConcatenatedIterator(
+         getSingletonIterator(match),
+         n->variableChildren() 
+           ));
+        } else {
+          return n->variableChildren();
+        }
+      }
+    }
+
+    bool findNextLeaf()
+    {
+      CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
+
+      if(_nodeIterators->isEmpty()) {
+        //There are no node iterators in the stack, so there's nowhere
+        //to look for the next leaf.
+        //This shouldn't hapen during the regular retrieval process, but it
+        //can happen when there are no literals inserted for a predicate,
+        //or when predicates with zero arity are encountered.
+        ASS(_bdStack->isEmpty());
+        return false;
+      }
+
+      if(_inLeaf) {
+        ASS(!_clientBDRecording);
+        //Leave the current leaf
+        _bdStack->pop().backtrack();
+        _inLeaf=false;
+      }
+
+      ASS(!_clientBDRecording);
+      ASS(_bdStack->length()+1==_nodeIterators->length());
+
+      do {
+        while(!_nodeIterators->top().hasNext() && !_bdStack->isEmpty()) {
+          //backtrack undos everything that enter(...) method has done,
+          //so it also pops one item out of the nodeIterators stack
+          _bdStack->pop().backtrack();
+          _svStack->pop();
+        }
+        if(!_nodeIterators->top().hasNext()) {
+          return false;
+        }
+        Node* n=*_nodeIterators->top().next();
+
+        BacktrackData bd;
+        bool success=enter(n,bd);
+        if(!success) {
+          bd.backtrack();
+          continue;
+        } else {
+          _bdStack->push(bd);
+        }
+      } while(!_inLeaf);
+      return true;
+    }
+
+    bool enter(Node* n, BacktrackData& bd)
+    {
+      CALL("SubstitutionTree::UnificationsIterator::enter");
+
+      bool success=true;
+      bool recording=false;
+      if(!n->term.isEmpty()) {
+        //n is proper node, not a root
+
+        recording=true;
+        _algo.bdRecord(bd);
+        success = _algo.associate(_svStack->top(),n->term,bd);
+      }
+      if(success) {
+        if(n->isLeaf()) {
+          _ldIterator=static_cast<Leaf*>(n)->allChildren();
+          _inLeaf=true;
+        } else {
+          IntermediateNode* inode=static_cast<IntermediateNode*>(n);
+          _svStack->push(inode->childVar);
+          backtrackablePush(*_nodeIterators, getNodeIterator(inode), bd);
+        }
+      }
+      if(recording) {
+        _algo.bdDone();
+      }
+      return success;
+    }
+
+
+    UnificationAlgorithm _algo;
+    Recycled<VarStack> _svStack;
+    bool _literalRetrieval;
+    bool _retrieveSubstitution;
+    bool _inLeaf;
+    LDIterator _ldIterator;
+    Recycled<Stack<NodeIterator>> _nodeIterators;
+    Recycled<Stack<BacktrackData>> _bdStack;
+    bool _clientBDRecording;
+    BacktrackData _clientBacktrackData;
+    InstanceCntr _iterCntr;
 #if VDEBUG
-    SubstitutionTree* tree;
+    bool _tag;
 #endif
   };
 
-/*
-  class GeneralizationsIterator
-  : public UnificationsIterator
-  {
-  public:
-    GeneralizationsIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed, bool withoutTop, bool useC)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop, useC) {}; 
-
-  protected:
-    virtual bool associate(TermList query, TermList node);
-    virtual NodeIterator getNodeIterator(IntermediateNode* n);
-  };
-*/
-/*
-  class InstancesIterator
-  : public UnificationsIterator
-  {
-  public:
-    InstancesIterator(SubstitutionTree* parent, Node* root, Term* query, bool retrieveSubstitution, bool reversed,bool withoutTop,bool useC)
-    : UnificationsIterator(parent, root, query, retrieveSubstitution, reversed, withoutTop,useC) {}; 
-  protected:
-    virtual bool associate(TermList query, TermList node);
-    virtual NodeIterator getNodeIterator(IntermediateNode* n);
-  };
-*/
 
 #if VDEBUG
 public:
-  static vstring nodeToString(Node* topNode);
-  vstring toString() const;
-  bool isEmpty() const;
-
-  int _iteratorCnt;
+  bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
 #endif
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
+  Cntr _iterCnt;
 }; // class SubstiutionTree
+
+template<> 
+struct SubtitutionTreeConfig<Literal*> 
+{
+  static Literal* const& getKey(SubstitutionTree::LeafData const& ld)
+  { return ld.literal;  }
+};
+
+
+template<> 
+struct SubtitutionTreeConfig<TermList> 
+{
+  static TermList const& getKey(SubstitutionTree::LeafData const& ld)
+  { return ld.term;  }
+};
+
+
+
+using RobUnificationsIterator = SubstitutionTree::UnificationsIterator<UnificationAlgorithms::RobUnification>;
+
 
 } // namespace Indexing
 

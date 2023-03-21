@@ -401,7 +401,7 @@ public:
    * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
   template <class B> inline Option<B REF> as() REF                                                            \
-  { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
+  { return is<B>() ? Option<B REF>(unwrap<B>()) : Option<B REF>();  }                                         \
                                                                                                               \
   /**                                                                                                         \
    * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\
@@ -410,7 +410,7 @@ public:
    */                                                                                                         \
   template <unsigned idx>                                                                                     \
   inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
-  { return is<idx>() ? unwrap<idx>() : Option<TL::Get<idx, Ts> REF>();  }                                     \
+  { return is<idx>() ? Option<TL::Get<idx, Ts> REF>(unwrap<idx>()) : Option<TL::Get<idx, Ts> REF>();  }                                     \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
@@ -451,6 +451,13 @@ public:
   friend bool operator>=(Coproduct const& lhs, Coproduct const& rhs) 
   { return lhs > rhs || lhs == rhs; }
 
+  unsigned defaultHash() const
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash(); })); }
+
+  unsigned defaultHash2() const
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash2(); })); }
+
+  Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<A, As...> 
 
 

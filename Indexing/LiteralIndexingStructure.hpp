@@ -18,6 +18,9 @@
 
 #include "Forwards.hpp"
 #include "Index.hpp"
+#include "Kernel/MismatchHandler.hpp"
+#include "Lib/VirtualIterator.hpp"
+#include "Shell/Options.hpp"
 
 namespace Indexing {
 
@@ -29,14 +32,17 @@ public:
   virtual void remove(Literal* lit, Clause* cls) = 0;
 
   virtual SLQueryResultIterator getAll() { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getVariants(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+
+  virtual SLQueryResultIterator getUnifications(Literal* lit, 
+    bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, 
+    bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
+  virtual SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary,
+   bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getInstances(Literal* lit, bool complementary, 
+    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getVariants(Literal* lit, bool complementary, 
+    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual size_t getUnificationCount(Literal* lit, bool complementary)
   {
@@ -45,7 +51,6 @@ public:
   }
 
 #if VDEBUG
-  virtual vstring toString() { return "<not supported>"; }
   virtual void markTagged() = 0;
 #endif
 

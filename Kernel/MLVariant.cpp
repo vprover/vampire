@@ -22,7 +22,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Metaarrays.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/TriangularArray.hpp"

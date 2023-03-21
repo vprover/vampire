@@ -111,6 +111,7 @@ set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
+    Debug/Output.hpp
     )
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
@@ -138,8 +139,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/BacktrackIterators.hpp
     Lib/BinaryHeap.hpp
     Lib/BitUtils.hpp
-    Lib/BucketSorter.hpp
-    Lib/Cache.hpp
     Lib/Comparison.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
@@ -162,7 +161,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/MemoryLeak.hpp
-    Lib/Metaarrays.hpp
     Lib/Metaiterators.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
@@ -171,9 +169,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Portability.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
-    Lib/RCPtr.hpp
-    Lib/Recycler.hpp
-    Lib/ReferenceCounter.hpp
+    Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
     Lib/ScopedLet.hpp
@@ -310,10 +306,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/PolynomialNormalizer.cpp
     Kernel/ApplicativeHelper.hpp
     Kernel/ApplicativeHelper.cpp
-#    Kernel/SKIKBO.hpp
-#    Kernel/SKIKBO.cpp
-    Indexing/TypeSubstitutionTree.cpp
-    Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/BetaEtaISE.cpp
@@ -326,6 +318,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/ArgCong.cpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp
+    Inferences/PositiveExt.cpp
+    Inferences/PositiveExt.hpp    
     Inferences/BoolEqToDiseq.hpp
     Inferences/BoolEqToDiseq.cpp
     Inferences/PrimitiveInstantiation.cpp
@@ -370,7 +364,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermSharing.cpp
     Indexing/TermSubstitutionTree.cpp
     Indexing/AcyclicityIndex.hpp
-    Indexing/ClauseCodeTree.hpp
+    Indexing/ClauseCodeTree.hpp    
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.hpp
@@ -647,8 +641,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
-    Shell/UnificationWithAbstractionConfig.hpp
-    Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     Shell/Lexer.hpp
@@ -745,6 +737,7 @@ set(UNIT_TESTS
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
     UnitTests/tEqualityResolution.cpp
+    UnitTests/tImitateProject.cpp
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp

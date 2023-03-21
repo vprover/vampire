@@ -16,18 +16,19 @@
 #define __Indexing_Index__
 
 #include "Forwards.hpp"
+#include "Debug/Output.hpp"
 
 #include "Lib/Event.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Lib/Allocator.hpp"
 
 namespace Indexing
 {
-
 using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
@@ -36,43 +37,60 @@ using namespace Saturation;
 /**
  * Class of objects which contain results of single literal queries.
  */
-struct SLQueryResult
+template<class Unifier>
+struct LQueryRes
 {
-  SLQueryResult() {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s)
-  : literal(l), clause(c), substitution(s) {}
-  SLQueryResult(Literal* l, Clause* c)
-  : literal(l), clause(c) {}
+  LQueryRes() {}
+  LQueryRes(Literal* l, Clause* c, Unifier unifier)
+  : literal(l), clause(c), unifier(std::move(unifier)) {}
+
 
   Literal* literal;
   Clause* clause;
-  ResultSubstitutionSP substitution;
+  Unifier unifier;
 
   struct ClauseExtractFn
   {
-    Clause* operator()(const SLQueryResult& res)
+    Clause* operator()(const LQueryRes& res)
     {
       return res.clause;
     }
   };
 };
+template<class Unifier>
+LQueryRes<Unifier> lQueryRes(Literal* l, Clause* c, Unifier unifier)
+{ return LQueryRes<Unifier>(l,c,std::move(unifier)); }
 
 /**
  * Class of objects which contain results of term queries.
  */
-struct TermQueryResult
+template<class Unifier>
+struct TQueryRes
 {
-  TermQueryResult() : literal(nullptr), clause(nullptr) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  : term(t), literal(l), clause(c), substitution(s) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c)
-  : term(t), literal(l), clause(c) {}
+  TQueryRes() {}
+  TQueryRes(TermList t, Literal* l, Clause* c, Unifier unifier)
+  : term(t), literal(l), clause(c), unifier(std::move(unifier)) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
-  ResultSubstitutionSP substitution;
+
+  Unifier unifier;
+
+  friend std::ostream& operator<<(std::ostream& out, TQueryRes const& self)
+  { 
+    return out 
+      << "{ term: " << self.term 
+      << ", literal: " << outputPtr(self.literal)
+      << ", clause: " << outputPtr(self.literal)
+      << ", unifier: " << self.unifier
+      << "}";
+  }
 };
+
+template<class Unifier>
+TQueryRes<Unifier> tQueryRes(TermList t, Literal* l, Clause* c, Unifier unifier) 
+{ return TQueryRes<Unifier>(t,l,c,std::move(unifier)); }
 
 struct ClauseSResQueryResult
 {
@@ -98,8 +116,11 @@ struct FormulaQueryResult
   ResultSubstitutionSP substitution;
 };
 
-typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
-typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
+using TermQueryResult = TQueryRes<ResultSubstitutionSP>;
+using SLQueryResult   = LQueryRes<ResultSubstitutionSP>;
+
+using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
+using SLQueryResultIterator = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 

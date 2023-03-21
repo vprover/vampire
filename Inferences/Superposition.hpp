@@ -20,6 +20,7 @@
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
 
@@ -44,7 +45,7 @@ private:
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer);
+    AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
@@ -54,8 +55,6 @@ private:
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
   struct ForwardResultFn;
-  struct RewriteableSubtermsFn;
-  struct ApplicableRewritesFn;
 
   struct LHSsFn;
   struct RewritableResultsFn;

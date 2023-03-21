@@ -40,7 +40,6 @@
 
 
 #include "ImitateProject.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Inferences
 {

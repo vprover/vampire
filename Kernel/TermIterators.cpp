@@ -245,7 +245,7 @@ bool TopLevelVarIterator::hasNext()
 
 typedef ApplicativeHelper AH;
 
-TermList FirstOrderSubtermIt::next()
+Term* FirstOrderSubtermIt::next()
 {
   CALL("FirstOrderSubtermIt::next");
 
@@ -263,7 +263,7 @@ TermList FirstOrderSubtermIt::next()
       }
     }
   }
-  return TermList(t);
+  return t;
 }
 
 void FirstOrderSubtermIt::right()
@@ -373,7 +373,7 @@ void NonVariableIterator::right()
  * @since 20/06/2019 Manchester
  * @author Ahmed Bhayat
  */
-TermList NonVariableNonTypeIterator::next()
+Term* NonVariableNonTypeIterator::next()
 {
   CALL("NonVariableNonTypeIterator::next");
 
@@ -388,7 +388,7 @@ TermList NonVariableNonTypeIterator::next()
   }
   unsigned taArity; 
   unsigned arity;
-  
+
   if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
     taArity = 0;
     arity = 2;
@@ -404,7 +404,7 @@ TermList NonVariableNonTypeIterator::next()
       _added++;
     }
   }
-  return TermList(t);
+  return t;
 }
 
 /**

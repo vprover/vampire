@@ -908,6 +908,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "generalized induction hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
     return "gaussian variable elimination";
+#if VHOL
   case InferenceRule::FUNC_EXT_AXIOM:
     return "functional extensionality axiom";
   case InferenceRule::EQUALITY_PROXY_AXIOM:
@@ -928,6 +929,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "argument congruence";
   case InferenceRule::NEGATIVE_EXT:
     return "negative extensionality";
+ case InferenceRule::POSITIVE_EXT:
+    return "negative extensionality";    
   case InferenceRule::INJECTIVITY:
     return "injectivity";
   case InferenceRule::HOL_NOT_ELIMINATION:
@@ -958,6 +961,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "imitate";
   case InferenceRule::PROJECT:
     return "project";
+#endif
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
   case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 

@@ -87,8 +87,9 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
     // we shouldn't replace variables, hence NonVariableIterator
     NonVariableNonTypeIterator nvi(literal);
     while (nvi.hasNext()) {
-      TermList subterm = nvi.next();
-      unsigned functor = subterm.term()->functor();
+      Term* st = nvi.next();
+      unsigned functor = st->functor();
+      TermList subterm(st);
 
       // we shouldn't replace boolean constants
       if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {

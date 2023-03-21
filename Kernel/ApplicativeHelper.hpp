@@ -42,6 +42,8 @@ public:
 
   static TermList getDeBruijnIndex(int index, TermList sort);
 
+  static TermList placeholder(TermList sort);
+
   static TermList getNthArg(TermList arrowSort, unsigned argNum);
   static TermList getResultApplieadToNArgs(TermList arrowSort, unsigned argNum);
   static unsigned getArity(TermList sort);
@@ -60,6 +62,7 @@ public:
 
   static void getArgSorts(TermList t, TermStack& sorts);
   static Signature::Proxy getProxy(const TermList t);
+
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
@@ -155,6 +158,27 @@ private:
   unsigned _cutOff; // any index higher than _cutOff is a free index
   int _shiftBy; // the amount to shift a free index by
   int _minFreeIndex;
+};
+
+class FOSubtermReplacer : public TermTransformer
+{
+public:
+  FOSubtermReplacer() : 
+    _nextIsPrefix(false),
+    _topLevel(true),
+    _mode(env.options->functionExtensionality()) {
+    dontTransformSorts();
+  }
+
+  TermList replace(TermList term);
+  TermList transformSubterm(TermList t) override; 
+  void onTermEntry(Term* t) override;
+  void onTermExit(Term* t) override;
+
+private:
+  bool _nextIsPrefix;
+  bool _topLevel;
+  Shell::Options::FunctionExtensionality _mode;
 };
 
 

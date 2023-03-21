@@ -85,7 +85,7 @@ private:
   // Add any clauses that have been buffered to _inner and solve.
   void flushUnadded();
 
-  SATSolverSCP _inner;
+  ScopedPtr<SATSolver> _inner;
 
  /**
   * A buffer for new literals that do not yet appear in the solver

@@ -88,34 +88,33 @@ void EqualityFactoring::attach(SaturationAlgorithm* salg)
   CALL("EqualityFactoring::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  _handler = salg->getIndexManager()->mismatchHandler();
 }
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(Clause* cl, MismatchHandler* hndlr, bool afterCheck, Ordering& ordering)
-      : _cl(cl), _cLen(cl->length()), _handler(hndlr), _afterCheck(afterCheck), _ordering(ordering) {}
+
+  ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
+      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
+
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
+    static RobSubstitution subst;
+    subst.reset();
 
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
     ASS(fLit->isEquality());
 
-    VSpecVarToTermMap termMap;
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
-
-    static RobSubstitution subst(_handler);
-    subst.reset();
 
     if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
     }
 
-    TermList srtS=subst.apply(srt,0);
+    TermList srtS = subst.apply(srt,0);
 
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
@@ -123,21 +122,22 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    if(!subst.unify(sLHS,0,fLHS,0)){
-      return 0;    
-    }    
+    if(!subst.unify(sLHS,0,fLHS,0)) {
+      return 0;
+    }
 
-    TermList sLHSS=subst.apply(sLHS,0);
-    TermList sRHSS=subst.apply(sRHS,0);
+    TermList sLHSS = subst.apply(sLHS,0);
+    TermList sRHSS = subst.apply(sRHS,0);
     if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
     }
-    TermList fRHSS=subst.apply(fRHS,0);
+    TermList fRHSS = subst.apply(fRHS,0);
     if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
+    //auto constraints = absUnif.constr().literals(absUnif.subs());
+    unsigned newLen=_cLen /*+constraints->length()*/;
 
-    unsigned newLen=_cLen+subst.numberOfConstraints();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
@@ -166,11 +166,10 @@ struct EqualityFactoring::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    auto constraints = subst.getConstraints();
-    while(constraints.hasNext()){
-      Literal* constraint = constraints.next();
-      (*res)[next++] = constraint;
-    }
+
+    /*for(Literal* c : *constraints){
+      (*res)[next++] = c;
+    }*/
     ASS_EQ(next,newLen);
 
     env.statistics->equalityFactoring++;
@@ -180,7 +179,6 @@ struct EqualityFactoring::ResultFn
 private:
   Clause* _cl;
   unsigned _cLen;
-  MismatchHandler* _handler;
   bool _afterCheck;
   Ordering& _ordering;
 };
@@ -202,7 +200,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(premise, _handler,
+  auto it5 = getMappingIterator(it4,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());

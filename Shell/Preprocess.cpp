@@ -59,7 +59,6 @@
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
-#include "Lib/RCPtr.hpp"
 
 #include "Kernel/TermIterators.hpp"
 

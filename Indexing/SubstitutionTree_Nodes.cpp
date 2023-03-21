@@ -51,7 +51,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return pvi( LDList::RefIterator(_children) );
+    return pvi( iterTraits(LDList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   inline
   void insert(LeafData ld)
@@ -97,7 +97,7 @@ public:
   inline
   LDIterator allChildren()
   {
-    return pvi( LDSkipList::RefIterator(_children) );
+    return pvi( iterTraits(LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   void insert(LeafData ld) {
     CALL("SubstitutionTree::SListLeaf::insert");
@@ -161,13 +161,12 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
   }
 }
 
-SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
-	childByTop(TermList t, bool canCreate)
+SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::childByTop(TermList::Top t, bool canCreate)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
 
   for(int i=0;i<_size;i++) {
-    if(TermList::sameTop(t, _nodes[i]->term)) {
+    if(t == _nodes[i]->term.top()) {
       return &_nodes[i];
     }
   }
@@ -180,12 +179,12 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::
   return 0;
 }
 
-void SubstitutionTree::UArrIntermediateNode::remove(TermList t)
+void SubstitutionTree::UArrIntermediateNode::remove(TermList::Top t)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::remove");
 
   for(int i=0;i<_size;i++) {
-    if(TermList::sameTop(t, _nodes[i]->term)) {
+    if(t == _nodes[i]->term.top()) {
       _size--;
       _nodes[i]=_nodes[_size];
       _nodes[_size]=0;

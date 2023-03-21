@@ -67,7 +67,7 @@ bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList
   ASSERTION_VIOLATION;
 }
 
-TermIterator EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getSubtermIterator");
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
@@ -81,7 +81,7 @@ TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& o
   return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
 }
 
-TermIterator EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<Term*> EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getFoSubtermIterator");
   return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord);
@@ -94,7 +94,7 @@ TermIterator EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
  * superposition.
  */
 template<class SubtermIterator>
-TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
   CALL("EqHelper::getRewritableSubtermIterator");
 
@@ -120,7 +120,7 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
 #endif
     }
     if (!sel.isTerm()) {
-      return TermIterator::getEmpty();
+      return VirtualIterator<ELEMENT_TYPE(SubtermIterator)>::getEmpty();
     }
     return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
   }

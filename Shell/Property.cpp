@@ -986,8 +986,8 @@ bool Property::hasXEqualsY(const Formula* f)
 	if (!ts2->isVar()) {
 	  break;
 	}
-	Var v1 = ts1->var();
-	Var v2 = ts2->var();
+	unsigned v1 = ts1->var();
+	unsigned v2 = ts2->var();
 	if (v1 == v2) {
 	  break;
 	}

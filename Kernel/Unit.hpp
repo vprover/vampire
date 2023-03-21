@@ -115,8 +115,6 @@ public:
   unsigned getWeight();
 
   Formula* getFormula();
-  void collectAtoms(Stack<Literal*>& acc);
-  void collectPredicates(Stack<unsigned>& acc);
 
   /**
    * Increase the number of references to the unit.

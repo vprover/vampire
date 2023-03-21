@@ -22,6 +22,7 @@
 #include "Kernel/MismatchHandler.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 
 namespace Indexing
@@ -56,8 +57,10 @@ enum IndexType {
   GLOBAL_SUBSUMPTION_INDEX,
 
   ACYCLICITY_INDEX,
-  PRIMITIVE_INSTANTIATION_INDEX,
+
+#if VHOL
   SKOLEMISING_FORMULA_INDEX,
+#endif
 
   UNIT_INT_COMPARISON_INDEX,
   INDUCTION_TERM_INDEX,
@@ -72,7 +75,6 @@ public:
 
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
   explicit IndexManager(SaturationAlgorithm* alg);
-  ~IndexManager();
 
   void setSaturationAlgorithm(SaturationAlgorithm* alg) 
   { 
@@ -85,7 +87,6 @@ public:
   void release(IndexType t);
   bool contains(IndexType t);
   Index* get(IndexType t);
-  MismatchHandler* mismatchHandler(){ return _handler.isEmpty() ? nullptr : &_handler; }
 
   void provideIndex(IndexType t, Index* index);
 private:
@@ -97,9 +98,9 @@ private:
   SaturationAlgorithm* _alg;
   DHMap<IndexType,Entry> _store;
 
-  MismatchHandler _handler;
-
   Index* create(IndexType t);
+  Shell::Options::UnificationWithAbstraction _uwa;
+  bool _uwaFixedPointIteration;
 };
 
 };

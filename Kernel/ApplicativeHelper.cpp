@@ -260,6 +260,53 @@ bool TermShifter::exploreSubterms(TermList orig, TermList newTerm)
   return false;
 }
 
+TermList FOSubtermReplacer::replace(TermList term)
+{
+  CALL("FOSubtermReplacer::replace");
+
+  TermList transformed = transformSubterm(term);
+  if(transformed != term) return transformed;    
+  _topLevel = false;
+  return transform(term);  
+}
+
+TermList FOSubtermReplacer::transformSubterm(TermList t)
+{
+  CALL("FOSubtermReplacer::transformSubterm");
+
+  typedef ApplicativeHelper AH;
+
+  if(_nextIsPrefix) return t;
+  if(t.isVar()) return t;
+
+  // Not expecting any unreduced redexes here
+  ASS(!t.head().isLambdaTerm());
+
+  auto sort = SortHelper::getResultSort(t.term());
+  if(t.isLambdaTerm() ||  t.head().isVar()) return AH::placeholder(sort);
+
+  if(_mode == Options::FunctionExtensionality::ABSTRACTION){
+    if(sort.isArrowSort() || sort.isVar() || (sort.isBoolSort() && !_topLevel)){
+      return AH::placeholder(sort);
+    }
+  }
+  return t;
+} 
+
+void FOSubtermReplacer::onTermEntry(Term* t)
+{
+  CALL("FOSubtermReplacer::onTermEntry");
+
+  if(t->isApplication()) _nextIsPrefix = true;
+}
+
+void FOSubtermReplacer::onTermExit(Term* t)
+{
+  CALL("FOSubtermReplacer::onTermExit");
+
+  _nextIsPrefix = false;
+}
+
 TermList ApplicativeHelper::app2(TermList sort, TermList head, TermList arg1, TermList arg2)
 {
   CALL("ApplicativeHelper::app2");
@@ -296,7 +343,7 @@ TermList ApplicativeHelper::app(TermList head, TermList arg)
 TermList ApplicativeHelper::app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared)
 {
   CALL("ApplicativeHelper::app/3");
- 
+
   static TermStack args;
   args.reset();
   args.push(s1);
@@ -367,13 +414,16 @@ TermList ApplicativeHelper::getDeBruijnIndex(int index, TermList sort)
 {
   CALL("ApplicativeHelper::createDBIndex");
      
-  bool added;
-  unsigned fun = env.signature->addDeBruijnIndex(index, sort, added); 
-  if(added){
-    env.signature->getFunction(fun)->setType(OperatorType::getConstantsType(sort));
-  }
-  auto t = TermList(Term::createConstant(fun));
-  return t;
+  unsigned fun = env.signature->getDeBruijnIndex(index); 
+  return TermList(Term::create1(fun, sort));
+}
+
+TermList ApplicativeHelper::placeholder(TermList sort)
+{
+  CALL("ApplicativeHelper::placeholder");
+
+  unsigned fun = env.signature->getPlaceholder(); 
+  return TermList(Term::create1(fun, sort));  
 }
 
 /** indexed from 1 */

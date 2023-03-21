@@ -19,161 +19,177 @@
 #include "Forwards.hpp"
 #include "Shell/Options.hpp"
 #include "Term.hpp"
-#include "Kernel/TermTransformer.hpp"
-#include "Lib/MaybeBool.hpp"
-#include "Lib/BiMap.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Option.hpp"
+#include "RobSubstitution.hpp"
+#include "Indexing/ResultSubstitution.hpp"
+#include "Kernel/Signature.hpp"
+#include "Lib/Reflection.hpp"
+#include "Shell/Options.hpp"
 
 namespace Kernel
 {
 
-class AtomicMismatchHandler 
+
+class UnificationConstraintStack
 {
+  Stack<UnificationConstraint> _cont;
 public:
+  CLASS_NAME(UnificationConstraintStack)
+  USE_ALLOCATOR(UnificationConstraintStack)
+  UnificationConstraintStack() : _cont() {}
+  UnificationConstraintStack(UnificationConstraintStack&&) = default;
+  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
 
-  virtual ~AtomicMismatchHandler();
+  auto iter() const
+  { return iterTraits(_cont.iter()); }
 
-  // Returns true if <t1, t2> can form a constraint
-  // Implementors NEED to override this function with
-  // their specific logic. 
-  // It shold be possible to make use of isConstraintTerm() here
-  virtual bool isConstraintPair(TermList t1, TermList t2) = 0;
-  virtual TermList transformSubterm(TermList t) = 0;
+  Recycled<Stack<Literal*>> literals(RobSubstitution& s);
 
-  // With polymorphism, a term may end up being a constraint term
-  // depending on type substitutions.
-  // Also a term such as f(a,b) : $int may be a constraint term 
-  // but we also want to unify against it.
-  //
-  // Implementors of this function need to be aware of the following:
-  // - when a term t is inserted into a substitution tree that uses a handler
-  //   this function is run on t. 
-  //   + If it returns true, we subsequently ONLY create constraints with t and 
-  //     do not try and unify with t (unless the query term is a variable)
-  //   + If it returns false, we ONLY unify and do not create constraints with t
-  //   + If it returns maybe we will attempt to do BOTH. Unify query terms with t
-  //     and create constraints.
-  // - Similarly, when we query with a term trm, we run this function on trm
-  //   + If it returns true, we ONLY attempt to find constraint partners for trm
-  //   + If it returns false, we ONLY attempt to find unification partners for trm
-  //   + If it returns maybe, we attempt to find BOTH type of partners for trm
-  // - It may be convenient to use this function in the implementation of transformSubterm
-  //   View UWAMismatchHandler::transformSubterm() for an example of this
-  virtual MaybeBool isConstraintTerm(TermList t) = 0;
+  auto literalIter(RobSubstitution& s)
+  { return iterTraits(_cont.iter())
+              .filterMap([&](auto& c) { return c.toLiteral(s); }); }
+
+  friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
+  { return out << self._cont; }
+
+  void reset() { _cont.reset(); }
+  bool keepRecycled() const { return _cont.keepRecycled() > 0; }
+
+  bool isEmpty() const
+  { return _cont.isEmpty(); }
+
+  void add(UnificationConstraint c, Option<BacktrackData&> bd);
+  UnificationConstraint pop(Option<BacktrackData&> bd);
 };
 
-/**
- * Meta handler
- * Invariant: for all handlers in _inner, a maximum of ONE handler
- * can return a non-false value on a call to isConstraintTerm 
- */
-class MismatchHandler : 
-  public TermTransformer
+using Action = std::function<bool(unsigned, TermSpec)>;
+using SpecialVar = unsigned;
+using WaitingMap = DHMap<SpecialVar, Action>;
+
+class MismatchHandler final
 {
+  Shell::Options::UnificationWithAbstraction _mode;
+  friend class AbstractingUnifier;
 public:
 
-  MismatchHandler() {
-    createNonShared(); 
-    dontTransformSorts();
-  }
+  MismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
 
-  // Returns true if the mismatch can be handled by some handler
-  //
-  // Implementors do NOT need to override this function. Only the composite handler
-  // needs to.
-  bool handle(TermList t1, unsigned index1, 
-              TermList t2, unsigned index2, 
-              UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
+  struct EqualIf { 
+    Recycled<Stack<UnificationConstraint>> _unify; 
+    Recycled<Stack<UnificationConstraint>> _constr; 
 
-  TermList transformSubterm(TermList trm) override;
-#if VHOL  
-  void onTermEntry(Term* t) override;
-  void onTermExit(Term* t) override;
-#endif
-  MaybeBool isConstraintTerm(TermList t); 
+    EqualIf() : _unify(), _constr() {}
 
-  static Term* get(unsigned var);
 
-  void addHandler(unique_ptr<AtomicMismatchHandler> hndlr);
-  bool isEmpty() const { return _inners.isEmpty(); }
+    auto unify()  -> decltype(auto) { return *_unify; }
+    auto constr() -> decltype(auto) { return *_constr; }
 
-  CLASS_NAME(MismatchHandler);
-  USE_ALLOCATOR(MismatchHandler);
+    EqualIf constr(decltype(_constr) constr) &&
+    { _constr = std::move(constr); return std::move(*this); }
 
-  static TermList getVSpecVar(Term* trm)
-  {
-    CALL("MismatchHandler::getVSpecVar");
+    EqualIf unify(decltype(_unify) unify) &&
+    { _unify = std::move(unify); return std::move(*this); }
 
-    unsigned vNum;
-    if(_termMap.find(trm, vNum)){
-      ASS(vNum > TermList::SPEC_UPPER_BOUND);
-      return TermList(vNum, true);
-    } else {
-      unsigned vNum = TermList::SPEC_UPPER_BOUND + _termMap.size() + 1;
-      _termMap.insert(vNum, trm);
-      return TermList(vNum, true);
+
+    template<class... As>
+    EqualIf constr(UnificationConstraint constr, As... constrs) &&
+    { 
+      unsigned constexpr len = TypeList::Size<TypeList::List<UnificationConstraint, As...>>::val;
+      _constr->reserve(len);
+      __push(*_constr, std::move(constr), std::move(constrs)...);
+      return std::move(*this); 
     }
+
+
+    template<class... As>
+    EqualIf unify(UnificationConstraint unify, As... unifys) &&
+    { 
+      unsigned constexpr len = TypeList::Size<TypeList::List<UnificationConstraint, As...>>::val;
+      _unify->reserve(len);
+      __push(*_unify, std::move(unify), std::move(unifys)...);
+      return std::move(*this); 
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, EqualIf const& self)
+    { return out << "EqualIf(unify: " << self._unify << ", constr: " << self._constr <<  ")"; }
+   private:
+    void __push(Stack<UnificationConstraint>& s)
+    {  }
+    template<class... As>
+    void __push(Stack<UnificationConstraint>& s, UnificationConstraint c, As... as)
+    { s.push(std::move(c)); __push(s, std::move(as)...); }
+  };
+
+  struct NeverEqual {
+    friend std::ostream& operator<<(std::ostream& out, NeverEqual const&)
+    { return out << "NeverEqual"; } 
+  };
+
+  using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
+
+  /** TODO document */
+  Option<AbstractionResult> tryAbstract(
+      AbstractingUnifier* au,
+      TermSpec const& t1,
+      TermSpec const& t2) const;
+
+  // /** TODO document */
+  // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
+
+  static Shell::Options::UnificationWithAbstraction create();
+
+private:
+  // for old non-alasca uwa modes
+  bool isInterpreted(unsigned f) const;
+  bool canAbstract(
+      AbstractingUnifier* au,
+      TermSpec const& t1,
+      TermSpec const& t2) const;
+};
+
+class AbstractingUnifier {
+  Recycled<RobSubstitution> _subs;
+  Recycled<UnificationConstraintStack> _constr;
+  Option<BacktrackData&> _bd;
+  MismatchHandler _uwa;
+  friend class RobSubstitution;
+  AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
+public:
+  // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
+  static AbstractingUnifier empty(MismatchHandler uwa) 
+  { return AbstractingUnifier(uwa); }
+
+  bool isRecording() { return _subs->bdIsRecording(); }
+
+  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+  bool unify(TermSpec l, TermSpec r, bool& progress);
+  bool fixedPointIteration();
+
+
+  static Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, MismatchHandler uwa, bool fixedPointIteration)
+  {
+    auto au = AbstractingUnifier::empty(uwa);
+    if (!au.unify(t1, bank1, t2, bank2)) return {};
+    if (!fixedPointIteration || au.fixedPointIteration()) return some(std::move(au));
+    else return {};
   }
 
-private:
-  void introduceConstraint(
-      TermList t1, unsigned index1, 
-      TermList t2, unsigned index2, 
-      UnificationConstraintStack& ucs, BacktrackData& bd, bool recording);
 
-#if VHOL
-  TermStack _appTerms;
-#endif
-  static VSpecVarToTermMap _termMap;
-  Stack<unique_ptr<AtomicMismatchHandler>> _inners;
+  UnificationConstraintStack& constr() { return *_constr; }
+  Recycled<Stack<Literal*>> constraintLiterals() { return _constr->literals(*_subs); }
+
+  RobSubstitution      & subs()       { return *_subs; }
+  RobSubstitution const& subs() const { return *_subs; }
+  Option<BacktrackData&> bd() { return someIf(_subs->bdIsRecording(), [&]() -> decltype(auto) { return _subs->bdGet(); }); }
+  BacktrackData& bdGet() { return _subs->bdGet(); }
+  void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+  void bdDone() { _subs->bdDone(); }
+  bool usesUwa() const { return _uwa._mode != Options::UnificationWithAbstraction::OFF; }
+
+  friend std::ostream& operator<<(std::ostream& out, AbstractingUnifier const& self)
+  { return out << "(" << self._subs << ", " << self._constr << ")"; }
 };
 
-class UWAMismatchHandler : public AtomicMismatchHandler
-{
-public:
-  UWAMismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
-  ~UWAMismatchHandler() override {}
-
-  bool isConstraintPair(TermList t1, TermList t2) override; 
-  TermList transformSubterm(TermList trm) override;
-  MaybeBool isConstraintTerm(TermList t) override; 
-
-  CLASS_NAME(UWAMismatchHandler);
-  USE_ALLOCATOR(UWAMismatchHandler);
-private:
-  bool checkUWA(TermList t1, TermList t2); 
-  Shell::Options::UnificationWithAbstraction const _mode;
-};
-
-#if VHOL
-class ExtensionalityMismatchHandler : public AtomicMismatchHandler
-{
-public:
-  ExtensionalityMismatchHandler() {}
-  ~ExtensionalityMismatchHandler() override {}
-  
-  bool isConstraintPair(TermList t1, TermList t2) override;
-  TermList transformSubterm(TermList trm) override;
-  MaybeBool isConstraintTerm(TermList t) override; 
-
-  CLASS_NAME(ExtensionalityMismatchHandler);
-  USE_ALLOCATOR(ExtensionalityMismatchHandler);
-};
-
-class HOMismatchHandler : public AtomicMismatchHandler
-{
-public:
-  HOMismatchHandler() {}
-  ~HOMismatchHandler() override {}
-  
-  bool isConstraintPair(TermList t1, TermList t2) override;
-  TermList transformSubterm(TermList trm) override;
-  MaybeBool isConstraintTerm(TermList t) override; 
-
-  CLASS_NAME(HOMismatchHandler);
-  USE_ALLOCATOR(HOMismatchHandler);
-};
-
-#endif
-
-}
+} // namespace Kernel
 #endif /*__MismatchHandler__*/

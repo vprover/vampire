@@ -38,7 +38,6 @@
 
 
 #include "EqualityResolution.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -72,13 +71,13 @@ void EqualityResolution::attach(SaturationAlgorithm* salg)
   CALL("EqualityResolution::attach");
 
   GeneratingInferenceEngine::attach(salg);
-  _handler = salg->getIndexManager()->mismatchHandler();
 }
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, MismatchHandler* hndlr=0, bool afterCheck = false, Ordering* ord = nullptr)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()), _handler(hndlr) {}
+  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
+      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
+
   Clause* operator() (Literal* lit)
   {
     CALL("EqualityResolution::ResultFn::operator()");
@@ -86,21 +85,29 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
+    static MismatchHandler _mismatchHandler = MismatchHandler::create();
+    auto handler = _mismatchHandler;
+
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    static RobSubstitution subst(_handler);
-    subst.reset();
-
-    if(!subst.unify(arg0,0,arg1,0)){
-      return 0;    
+    // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
+    // and therefore a constraint can be created between arguments
+    if(arg0.isTerm() && arg1.isTerm() &&
+       arg0.term()->functor() != arg1.term()->functor()){
+      handler = MismatchHandler(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
-    //cout << "equalityResolution with " + _cl->toString() << endl;
-    //cout << "The literal is " + lit->toString() << endl;
-    //cout << "cLength " << cLength << endl;
+    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, handler, 
+      env.options->unificationWithAbstractionFixedPointIteration());
 
-    unsigned newLen=_cLen-1+ subst.numberOfConstraints();
+    if(absUnif.isNone()){ 
+      return 0; 
+    }
+
+    // TODO create absUnif.constrLiterals or so
+    auto constraints = absUnif->constraintLiterals();
+    unsigned newLen=_cLen - 1 + constraints->length();
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
@@ -108,14 +115,14 @@ struct EqualityResolution::ResultFn
 
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      litAfter = subst.apply(lit, 0);
+      litAfter = absUnif->subs().apply(lit, 0);
     }
 
     unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
-        Literal* currAfter = subst.apply(curr, 0);
+        Literal* currAfter = absUnif->subs().apply(curr, 0);
 
         if (litAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
@@ -130,10 +137,9 @@ struct EqualityResolution::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    auto constraints = subst.getConstraints();
-    while(constraints.hasNext()){
-      Literal* constraint = constraints.next();
-      (*res)[next++] = constraint;
+
+    for (auto l : *constraints) {
+      (*res)[next++] = l;
     }
     ASS_EQ(next,newLen);
 
@@ -146,7 +152,6 @@ private:
   Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
-  MismatchHandler* _handler;
 };
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
@@ -162,7 +167,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
 
-  auto it3 = getMappingIterator(it2,ResultFn(premise, _handler,
+  auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
       &_salg->getOrdering()));
 

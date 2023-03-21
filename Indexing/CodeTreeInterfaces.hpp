@@ -48,9 +48,12 @@ public:
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
   bool generalizationExists(TermList t);
+  // TODO: get rid of NOT_IMPLEMENTED
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) { NOT_IMPLEMENTED; }
 
 #if VDEBUG
   virtual void markTagged(){ NOT_IMPLEMENTED; } 
+  virtual void output(std::ostream& out) const { out << "CodeTree"; }
 #endif
 
 private:

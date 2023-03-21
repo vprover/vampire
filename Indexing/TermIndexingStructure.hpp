@@ -17,6 +17,7 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
+#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 namespace Indexing {
 
@@ -29,22 +30,27 @@ public:
   virtual void insert(TermList t, TermList trm){ NOT_IMPLEMENTED; }
   virtual void insert(TermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
-  virtual TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
+  virtual TermQueryResultIterator getUnifications(TermList t, 
+    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, 
+    Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
+  virtual TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }  
-  virtual TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getGeneralizations(TermList t, 
+    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getInstances(TermList t, 
+    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
 
 #if VDEBUG
   virtual void markTagged() = 0;
+  virtual void output(std::ostream& output) const = 0;
 #endif
-
+  friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self)
+  { self.output(out); return out; }
 };
+
 
 };
 

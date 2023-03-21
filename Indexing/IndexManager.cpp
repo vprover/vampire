@@ -35,23 +35,12 @@
 using namespace Lib;
 using namespace Indexing;
 
-IndexManager::IndexManager(SaturationAlgorithm* alg) : _alg(alg), _handler()
-{
-  CALL("IndexManager::IndexManager");
 
-  // other handlers can be added here
-  if(env.options->unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF){
-    _handler.addHandler(make_unique<UWAMismatchHandler>(env.options->unificationWithAbstraction()));
-  }
-#if VHOL
-  if(env.property->higherOrder()){
-    _handler.addHandler(make_unique<ExtensionalityMismatchHandler>());
-    _handler.addHandler(make_unique<HOMismatchHandler>());    
-  }
-#endif
-}
-
-IndexManager::~IndexManager() { }
+IndexManager::IndexManager(SaturationAlgorithm* alg) 
+  : _alg(alg) 
+  , _uwa(MismatchHandler::create())
+  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
+{ }
 
 Index* IndexManager::request(IndexType t)
 {
@@ -121,63 +110,54 @@ Index* IndexManager::create(IndexType t)
   CALL("IndexManager::create");
 
   Index* res;
-  LiteralIndexingStructure* is;
-  TermIndexingStructure* tis;
 
   bool isGenerating;
-                    
+                   
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree(mismatchHandler());
-    res=new BinaryResolutionIndex(is);
+    res = new BinaryResolutionIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case BACKWARD_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new BackwardSubsumptionIndex(is);
+    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
   case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new UnitClauseLiteralIndex(is);
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
   case URR_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new UnitClauseLiteralIndex(is);
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new NonUnitClauseLiteralIndex(is);
+    res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(mismatchHandler());
-    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(mismatchHandler());
-    res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-  
+
+#if VHOL
   case SKOLEMISING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(0, true);
-    res=new SkolemisingFormulaIndex(tis);
+    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(/* extra */ true));
     isGenerating = false;
     break;
+#endif  
 
    case ACYCLICITY_INDEX:
-    tis = new TermSubstitutionTree();
-    res = new AcyclicityIndex(tis);
+    res = new AcyclicityIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break; 
-
-  case DEMODULATION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+    
+  case DEMODULATION_SUBTERM_SUBST_TREE: {
+    auto tis=new TermSubstitutionTree(/* extra */ false);
 #if VHOL
     if (env.property->higherOrder()) {
       res=new DemodulationSubtermIndex<FirstOrderSubtermIt>(tis);
@@ -189,39 +169,35 @@ Index* IndexManager::create(IndexType t)
 #endif
     isGenerating = false;
     break;
+  }
+
   case DEMODULATION_LHS_CODE_TREE:
-    tis=new CodeTreeTIS();
-    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new CodeTreeTIS(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree();
-    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
   case FW_SUBSUMPTION_CODE_TREE:
-    res=new CodeTreeSubsumptionIndex();
+    res = new CodeTreeSubsumptionIndex();
     isGenerating = false;
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-//    is=new CodeTreeLIS();
-    res=new FwSubsSimplifyingLiteralIndex(is);
+    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
 
   case FSD_SUBST_TREE:
-    is = new LiteralSubstitutionTree();
-    res = new FSDLiteralIndex(is);
+    res = new FSDLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new RewriteRuleIndex(is, _alg->getOrdering());
+    res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg->getOrdering());
     isGenerating = false;
     break;
 
@@ -231,20 +207,17 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case UNIT_INT_COMPARISON_INDEX:
-    is = new LiteralSubstitutionTree();
-    res = new UnitIntegerComparisonLiteralIndex(is);
+    res = new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 
   case INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree();
-    res = new InductionTermIndex(tis);
+    res = new InductionTermIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree();
-    res = new StructInductionTermIndex(tis);
+    res = new StructInductionTermIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break;
 

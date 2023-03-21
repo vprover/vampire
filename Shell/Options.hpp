@@ -219,12 +219,12 @@ public:
   enum class UnificationWithAbstraction : unsigned int {
     OFF,
     INTERP_ONLY,
-    ONE_INTERP//,
-    //CONSTANT,
-    //ALL,
-    //GROUND
-    // removed final three options
-    // can add them back once we agree on desired behaviour
+    ONE_INTERP,
+    CONSTANT,
+    ALL,
+    GROUND,
+    AC1,
+    AC2,
   };
 
   enum class Induction : unsigned int {
@@ -2183,6 +2183,7 @@ public:
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
+  bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
   bool useACeval() const { return _useACeval.actualValue;}
 
@@ -2414,7 +2415,6 @@ public:
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
-  void setFE(FunctionExtensionality value){ _functionExtensionality.actualValue = value; } 
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
@@ -2762,6 +2762,9 @@ private:
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
+
+  BoolOptionValue _unificationWithAbstractionFixedPointIteration; 
+  BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   FloatOptionValue _lrsEstimateCorrectionCoef;

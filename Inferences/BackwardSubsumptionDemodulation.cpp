@@ -495,7 +495,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 #endif
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
-      TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+      TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
 
       if (!attempted.insert(lhsS)) {
         // We have already tried to demodulate the term lhsS and did not

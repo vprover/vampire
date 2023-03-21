@@ -7,10 +7,9 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
+/**!
  *
- * @autor Johannes Schoisswohl
- * @date 2020-04-29
+ * @author Ahmed Bhayat
  */
 
 #include "Test/UnitTesting.hpp"
@@ -215,3 +214,57 @@ TEST_FUN(eta_reduction06) {
 
   ASS_EQ(reduced, ap(f,g).sugaredExpr());
 }
+
+TEST_FUN(fo_subterm_rep1) {            
+  DECL_SORT(srt)
+  DECL_ARROW_SORT(gSrt, {srt, srt}) 
+  // TODO wierd stuff below...      
+  DECL_ARROW_SORT(fSrt, {gSrt, srt, srt}) 
+  DECL_HOL_VAR(y, 1, gSrt) 
+  DECL_HOL_VAR(x, 2, srt)         
+  DECL_CONST(f, fSrt)     
+  DECL_CONST(g, gSrt)     
+
+  env.options->setHolPrinting(Options::HPrinting::PRETTY);
+  env.property->forceHigherOrder();
+
+  FOSubtermReplacer sr;
+  auto t = ap(ap(f,g), ap(y, x));
+
+  auto replaced = sr.replace( t );
+
+  cout << t << endl;
+  cout << replaced << endl;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

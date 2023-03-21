@@ -113,6 +113,9 @@ void Term::destroyNonShared()
   }
 }
 
+bool TermList::ground() const
+{ return isTerm() && term()->ground(); }
+
 /**
  * Return true if the term does not contain any unshared proper term.
  *
@@ -149,7 +152,7 @@ VList* TermList::freeVariables() const
   VList* result = VList::empty();
   VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push(fvi.next());
+    stack.pushBack(fvi.next());
   }
   return result;
 } // TermList::freeVariables
@@ -240,6 +243,10 @@ bool TermList::equals(TermList t1, TermList t2)
   }
   return true;
 }
+
+TermList::Top TermList::top() const
+{ return isTerm() ? TermList::Top::functor(term()->functor()) 
+                  : TermList::Top::var(var());            }
 
 /**
  * Return true if all proper terms in the @ args list are shared
@@ -589,6 +596,18 @@ bool Term::isEquals() const {
   CALL("Term::isEquals");
 
   return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::EQUALS;  
+}
+
+bool TermList::isPlaceholder() {
+  CALL("TermList::isPlaceholder");
+
+   return !isVar() && term()->isPlaceholder(); 
+}
+
+bool Term::isPlaceholder() const {
+  CALL("Term::isPlaceholder");
+  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);    
 }
 
 Option<unsigned> TermList::deBruijnIndex() const {
@@ -1803,7 +1822,7 @@ VList* Term::freeVariables() const
   VList* result = VList::empty();
   VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push(fvi.next());
+    stack.pushBack(fvi.next());
   }
   return result;
 } // Term::freeVariables
@@ -1943,7 +1962,7 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
  *  structure if all arguments are shared.
  * @since 07/01/2008 Torrevieja
  */
-AtomicSort* AtomicSort::create(AtomicSort* sort,TermList* args)
+AtomicSort* AtomicSort::create(AtomicSort const* sort,TermList* args)
 {
   CALL("AtomicSort::create/2");
 
@@ -1964,7 +1983,7 @@ AtomicSort* AtomicSort::create(AtomicSort* sort,TermList* args)
   return s;
 }
 
-AtomicSort* AtomicSort::createNonShared(AtomicSort* sort,TermList* args)
+AtomicSort* AtomicSort::createNonShared(AtomicSort const* sort,TermList* args)
 {
   CALL("AtomicSort::createNonShared");
 
@@ -2367,7 +2386,7 @@ std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
   return out<<l.toString();
 }
 
-bool operator<(const TermList& lhs, const TermList& rhs) 
+bool Kernel::operator<(const TermList& lhs, const TermList& rhs) 
 { 
   auto cmp = lhs.isTerm() - rhs.isTerm();
   if (cmp != 0) return cmp < 0;

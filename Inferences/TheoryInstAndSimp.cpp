@@ -13,7 +13,6 @@
  */
 
 #if VZ3
-#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -49,6 +48,8 @@
 #include "TheoryInstAndSimp.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
+
+#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 namespace Inferences
 {

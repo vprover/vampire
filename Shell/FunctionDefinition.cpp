@@ -189,7 +189,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     for(unsigned i=0;i<clen;i++) {
       NonVariableNonTypeIterator nvit((*cl)[i]);
       while(nvit.hasNext()) {
-        unsigned fn=nvit.next().term()->functor();
+        unsigned fn=nvit.next()->functor();
         occCounter[fn]++;
       }
     }
@@ -213,7 +213,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     ASS_EQ(occCounter[d->fun], 1);
     NonVariableNonTypeIterator nvit((*d->defCl)[0]);
     while(nvit.hasNext()) {
-      unsigned fn=nvit.next().term()->functor();
+      unsigned fn=nvit.next()->functor();
       occCounter[fn]--;
       if(occCounter[fn]==1 && def[fn]) {
 	toDo.push(def[fn]);

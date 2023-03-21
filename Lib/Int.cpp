@@ -35,8 +35,9 @@ using namespace Lib;
  */
 vstring Int::toString (int i)
 {
-  char tmp [20];
-  sprintf(tmp,"%d",i);
+  constexpr auto BUFSIZE = 20;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%d",i);
   vstring result(tmp);
 
   return result;
@@ -51,8 +52,9 @@ vstring Int::toString (int i)
  */
 vstring Int::toString(double d)
 {
-  char tmp [256];
-  sprintf(tmp,"%g",d);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%g",d);
   vstring result(tmp);
 
   return result;
@@ -67,8 +69,9 @@ vstring Int::toString(double d)
  */
 vstring Int::toString(long l)
 {
-  char tmp [256];
-  sprintf(tmp,"%ld",l);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%ld",l);
   vstring result(tmp);
 
   return result;
@@ -81,8 +84,9 @@ vstring Int::toString(long l)
  */
 vstring Int::toString(unsigned i)
 {
-  char tmp [256];
-  sprintf(tmp,"%u",i);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%u",i);
   vstring result(tmp);
 
   return result;
@@ -93,8 +97,9 @@ vstring Int::toString(unsigned i)
  */
 vstring Int::toString(unsigned long i)
 {
-  char tmp [256];
-  sprintf(tmp,"%lu",i);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%lu",i);
   vstring result(tmp);
 
   return result;
@@ -102,8 +107,9 @@ vstring Int::toString(unsigned long i)
 
 vstring Int::toHexString(size_t i)
 {
-  char tmp [256];
-  sprintf(tmp,"0x%zx",i);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"0x%zx",i);
   vstring result(tmp);
 
   return result;

@@ -18,6 +18,8 @@
 
 #include "InferenceEngine.hpp"
 
+namespace Indexing { class BackwardSubsumptionIndex; }
+
 namespace Inferences {
 
 using namespace Indexing;

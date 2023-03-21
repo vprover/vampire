@@ -98,7 +98,8 @@ public:
   struct ClauseMatcher
   {
     void init(ClauseCodeTree* tree_, Clause* query_, bool sres_);
-    void deinit();
+    void reset();
+    bool keepRecycled() const { return lInfos.keepRecycled(); }
 
     Clause* next(int& resolvedQueryLit);
 
@@ -138,7 +139,7 @@ public:
      */
     DArray<LitInfo> lInfos;
 
-    Stack<LiteralMatcher*> lms;
+    Stack<Recycled<LiteralMatcher, NoReset>> lms;
   };
 
 private:

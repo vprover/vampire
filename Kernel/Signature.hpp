@@ -44,6 +44,7 @@ namespace Kernel {
 
 using namespace std;
 using namespace Lib;
+typedef Map<vstring, unsigned> SymbolMap;
 
 /**
  * Class implementing signatures
@@ -252,10 +253,12 @@ class Signature
     inline void setProxy(Proxy prox){ _prox = prox; }
     inline Proxy proxy(){ return _prox; }
     
+#if VHOL
     inline void setDBIndex(int index){ _dbIndex = index; }
     inline Option<unsigned> dbIndex(){
       return _dbIndex > -1 ? Option<unsigned>((unsigned)_dbIndex) : Option<unsigned>();
     }
+#endif
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
@@ -430,13 +433,15 @@ class Signature
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
   unsigned addNamePredicate(unsigned arity);
   unsigned addNameFunction(unsigned arity);
-  unsigned addDeBruijnIndex(int index, TermList sort, bool& added);
   void addEquality();
+
 #if VHOL
   unsigned getApp();
   unsigned getLam();
   unsigned getDiff();
   unsigned getChoice();
+  unsigned getDeBruijnIndex(int index);  
+  unsigned getPlaceholder();
 #endif
 
   // Interpreted symbol declarations
@@ -642,6 +647,10 @@ class Signature
 
   bool isLamFun(unsigned fun) const{
     return (fun == _lamFun && _lamFun != UINT_MAX);
+  }
+
+  bool isPlaceholder(unsigned fun) const{
+    return (fun == _placeholderFun && _placeholderFun != UINT_MAX);
   }
 #endif
 
@@ -914,12 +923,6 @@ private:
    */
   DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
 
-  /**
-   * Map from the sort and number of a de bruijn index, to the functor used to 
-   * represent it
-   */
-  DHMap<pair<TermList, int>, unsigned> _dbIndices;
-
   /** the number of string constants */
   unsigned _strings;
   /** the number of integer constants */
@@ -934,6 +937,7 @@ private:
   unsigned _arrowCon;
   unsigned _appFun;
   unsigned _lamFun;
+  unsigned _placeholderFun;
 #endif
 
   /**

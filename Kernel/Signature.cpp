@@ -252,6 +252,7 @@ Signature::Signature ():
     _arrowCon(UINT_MAX),
     _appFun(UINT_MAX),
     _lamFun(UINT_MAX),
+    _placeholderFun(UINT_MAX),
 #endif
     _termAlgebras()
 {
@@ -794,6 +795,38 @@ unsigned Signature::getChoice(){
   }
   return choice;
 }
+
+unsigned Signature::getDeBruijnIndex(int index)
+{
+  CALL("Signature::addDeBruijnIndex");
+  
+  bool added = false;
+  unsigned fun = addFunction("db" + Int::toString(index), 1, added);
+  if(added){
+    TermList alpha = TermList(0, false);
+    Symbol * sym = getFunction(fun);
+    sym->setType(OperatorType::getConstantsType(alpha, 1));   
+    sym->setDBIndex(index);  
+  }
+  return fun;
+}
+
+unsigned Signature::getPlaceholder()
+{
+  CALL("Signature::getPlaceholder");
+
+  if(_placeholderFun != UINT_MAX){
+    return _placeholderFun;
+  }
+
+  unsigned fun = addFreshFunction(1,"ph");
+  _placeholderFun = fun;
+  TermList alpha = TermList(0, false);
+  Symbol * sym = getFunction(fun);
+  sym->setType(OperatorType::getConstantsType(alpha, 1));   
+  return fun;
+}
+
 #endif
 
 /**
@@ -882,23 +915,6 @@ unsigned Signature::addNameFunction(unsigned arity)
   return addFreshFunction(arity,"sP");
 } // addNamePredicate
 
-unsigned Signature::addDeBruijnIndex(int index, TermList sort, bool& added)
-{
-  CALL("Signature::addDeBruijnIndex");
-  
-  unsigned fun;
-  auto sortIndexPair = make_pair(sort,index);
-  if(_dbIndices.find(sortIndexPair,fun)){
-    added = false;
-    return fun;
-  }
-  added = true;
-  fun = addFreshFunction(0, "db");
-  Symbol* sym = getFunction(fun);
-  sym->setDBIndex(index);  
-  _dbIndices.insert(sortIndexPair, fun);
-  return fun;
-}
 
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,

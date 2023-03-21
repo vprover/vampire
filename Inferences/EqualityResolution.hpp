@@ -41,8 +41,6 @@ public:
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;
-
-  MismatchHandler* _handler;
 };
 
 

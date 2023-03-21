@@ -93,7 +93,7 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
     Literal* lit=(*cl)[li];
     SubtermIterator it(lit);
     while(it.hasNext()) {
-      TermList trm=it.next();
+      TermList trm = TermList(it.next());
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -140,12 +140,13 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
         TermList rhsS;
-        if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
+        auto subs = qr.unifier;
+        if(!subs->isIdentityOnQueryWhenResultBound()) {
           //When we apply substitution to the rhs, we get a term, that is
           //a variant of the term we'd like to get, as new variables are
           //produced in the substitution application.
-          TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
-          TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
+          TermList lhsSBadVars = subs->applyToResult(qr.term);
+          TermList rhsSBadVars = subs->applyToResult(rhs);
           Renaming rNorm, qNorm, qDenorm;
           rNorm.normalizeVariables(lhsSBadVars);
           qNorm.normalizeVariables(trm);
@@ -153,7 +154,7 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
           ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
           rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
         } else {
-          rhsS=qr.substitution->applyToBoundResult(rhs);
+          rhsS = subs->applyToBoundResult(rhs);
         }
         if(resultTermIsVar){
           rhsS = subst.apply(rhsS, 0);
@@ -193,11 +194,11 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
           if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
             if (_encompassing) {
               // last chance, if the matcher is not a renaming
-              if (qr.substitution->isRenamingOn(qr.term,true /* we talk of result term */)) {
+              if (subs->isRenamingOn(qr.term,true /* we talk of result term */)) {
                 continue; // under _encompassing, we know there are no other literals in cl
               }
             } else {
-              Literal* eqLitS=qr.substitution->applyToBoundResult(qr.literal);
+              Literal* eqLitS = subs->applyToBoundResult(qr.literal);
               bool isMax=true;
               for(unsigned li2=0;li2<cLen;li2++) {
                 if(li==li2) {

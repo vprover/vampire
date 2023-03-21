@@ -14,14 +14,12 @@
 
 #if VDEBUG
 #include <cstring>
+#include <ostream>
 
 #include "Assertion.hpp"
 #include "Tracer.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/System.hpp"
-#include "Lib/Timer.hpp"
-#include "Shell/Options.hpp"
 
 using namespace Lib;
 using namespace Shell;

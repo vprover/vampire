@@ -77,27 +77,31 @@ std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
 #endif
 
     auto func = term->functor();
-    if (!term->isSort() && theory->isInterpretedFunction(func)) {
-      switch(theory->interpretFunction(func)) {
-#define NUM_CASE(oper) \
-        case Kernel::Theory::INT_  ## oper: \
-        case Kernel::Theory::REAL_ ## oper: \
-        case Kernel::Theory::RAT_  ## oper
 
-        NUM_CASE(PLUS):     
-          return printOp(out, term, "+");
-        NUM_CASE(MULTIPLY):
-          return printOp(out, term, "*");
-        // case Kernel::Theory::EQUAL:
-        //   return printOp("=")
-        default: {}
+    Signature::Symbol* sym;
+    if (term->isSort()) {
+      sym = env.signature->getTypeCon(func);
+    } else {
+      if (theory->isInterpretedFunction(func)) {
+        switch(theory->interpretFunction(func)) {
+#define NUM_CASE(oper) \
+          case Kernel::Theory::INT_  ## oper: \
+          case Kernel::Theory::REAL_ ## oper: \
+          case Kernel::Theory::RAT_  ## oper
+
+          NUM_CASE(PLUS):     
+            return printOp(out, term, "+");
+          NUM_CASE(MULTIPLY):
+            return printOp(out, term, "*");
+          // case Kernel::Theory::EQUAL:
+          //   return printOp("=")
+          default: {}
 #undef NUM_CASE
+        }
       }
+      sym = env.signature->getFunction(func);
     }
 
-    Signature::Symbol* sym = term->isSort() ?
-      env.signature->getTypeCon(func) :
-      env.signature->getFunction(func);
     out << sym->name();
     if (sym->arity() > 0) {
       out << "(" << pretty(*term->nthArgument(0));
@@ -183,7 +187,7 @@ bool TestUtils::isAC(Term* t)
   auto f = t->functor();
   if (t->isLiteral()) {
     return theory->isInterpretedPredicate(f) && isAC(theory->interpretPredicate(f));
-  } else if(t->isSort()){
+  } else if (t->isSort()) {
     return false;
   } else {
     return theory->isInterpretedFunction(f) && isAC(theory->interpretFunction(f));

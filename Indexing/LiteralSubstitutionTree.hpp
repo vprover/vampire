@@ -16,153 +16,134 @@
 #ifndef __LiteralSubstitutionTree__
 #define __LiteralSubstitutionTree__
 
+#include "Indexing/Index.hpp"
+#include "Kernel/MismatchHandler.hpp"
+#include "Lib/VirtualIterator.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
 
 namespace Indexing {
 
+/** A wrapper class around SubstitutionTree that makes it usable  as a LiteralIndexingStructure */
 class LiteralSubstitutionTree
-: public LiteralIndexingStructure, SubstitutionTree
+: public LiteralIndexingStructure
 {
+  using FastInstancesIterator = SubstitutionTree::FastInstancesIterator;
+  using BindingMap = SubstitutionTree::BindingMap;
+  using LDIterator = SubstitutionTree::LDIterator;
+  using FastGeneralizationsIterator = SubstitutionTree::FastGeneralizationsIterator;
+  using LeafData = SubstitutionTree::LeafData;
+  using LeafIterator = SubstitutionTree::LeafIterator;
+  using Leaf = SubstitutionTree::Leaf;
+
 public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree(MismatchHandler* hndlr = 0);
+  LiteralSubstitutionTree();
 
-  void insert(Literal* lit, Clause* cls);
-  void remove(Literal* lit, Clause* cls);
-  void handleLiteral(Literal* lit, Clause* cls, bool insert);
+  void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
+  void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
 
-  SLQueryResultIterator getAll();
+  SLQueryResultIterator getAll() final override;
+  void handleLiteral(Literal* lit, Clause* cls, bool insert)
+  { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
-  SLQueryResultIterator getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
-  SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
-
-  SLQueryResultIterator getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
-
-  SLQueryResultIterator getVariants(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
 #if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
-  vstring toString() {return SubstitutionTree::toString();}
+  virtual void markTagged() final override { }
 #endif
 
 private:
-  struct SLQueryResultFunctor;
-  struct LDToSLQueryResultFn;
-  struct LDToSLQueryResultWithSubstFn;
-  struct UnifyingContext;
-  struct PropositionalLDToSLQueryResultWithSubstFn;
-  struct LeafToLDIteratorFn;
+  static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
+  static bool idxIsNegative(unsigned idx) { return idx % 2; }
+  static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
 
-  template <bool instantiation>
-  struct MatchingFilter
+  template<class Iterator, class... Args>
+  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
   {
-    MatchingFilter(Literal* queryLit, bool retrieveSubstitutions)
-    : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)),
-      _isTwoVarEq(queryLit->isTwoVarEquality()),
-      _retrieveSubstitutions(retrieveSubstitutions) {}
+    CALL("LiteralSubstitutionTree::getResultIterator");
 
-    bool enter(const SLQueryResult& res)
-    {
-      CALL("LiteralSubstitutionTree::MatchingFilter::enter()");
-      ASS(res.literal->isEquality());
-    
-      if(instantiation){
-        //if the query lit isn't a two variable equality, sort unification
-        //is guranteed via term unification
-        if(!_isTwoVarEq){ return true; }
-      } else {
-        //generaisation
-        if(!res.literal->isTwoVarEquality()){ return true; }
-      }
+    auto iter = [=](bool reversed) 
+      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
 
-      TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
-      if(_retrieveSubstitutions) {
-        return instantiation ? res.substitution->matchSorts(_queryEqSort, resSort) 
-                             : res.substitution->matchSorts(resSort, _queryEqSort); 
-      } else {
-        static RobSubstitution subst;
-        subst.reset();
-        return instantiation ? subst.match(_queryEqSort, 0, resSort, 1):
-                               subst.match(resSort, 0, _queryEqSort, 1);           
+    auto filterResults = [=](auto it) { 
+      return pvi(
+          std::move(it)
+          .map([](auto r) { return lQueryRes(r.data->literal, r.data->clause, std::move(r.unif)); })
+          ); 
+    };
+    return !lit->commutative() 
+      ?  filterResults(iter( /* reversed */ false))
+      :  filterResults(concatIters(
+          iter( /* reversed */ false),
+          iter( /* reversed */ true)
+        ));
+  }
+
+
+  auto nopostproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
+  { return getResultIterator<SubstitutionTree::UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
+
+  auto postproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
+  { return pvi(iterTraits(getResultIterator<SubstitutionTree::UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
+    .filterMap([](LQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
+        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return lQueryRes(r.literal, r.clause, unif); }); })); }
+
+
+public:
+
+
+  VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
+  { return fixedPointIteration ? pvi(  postproUwa(lit, complementary, uwa))
+                               : pvi(nopostproUwa(lit, complementary, uwa)); }
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
+  { 
+    int i = 0;
+    out << "{ ";
+    for (auto& t : self._trees) {
+      if (!t.isEmpty()) {
+        auto f = env.signature->getPredicate(idxToFunctor(i));
+        if (idxIsNegative(i)) out << "~";
+        out << *f << "(" << t << "), "; 
       }
+      i++;
     }
-
-    //dummy. UnificationFilter needs a leave function to undo the sort unification.
-    //MatchingFilter doesn't require this, since the sort unifier is added onto
-    //the final term unifier and undone by the next call to backTrack() in FastGen 
-    //or FastInst iterator.
-    void leave(const SLQueryResult& res){  }
-  private:
-    TermList _queryEqSort;
-    bool _isTwoVarEq;
-    bool _retrieveSubstitutions;
-  };
-
-  template <bool polymorphic>
-  struct UnificationFilter
-  {
-    UnificationFilter(Literal* queryLit, bool retrieveSubstitutions)
-    : _queryEqSort(SortHelper::getEqualityArgumentSort(queryLit)), 
-      _retrieveSubs(retrieveSubstitutions) {}
-
-    bool enter(const SLQueryResult& res)
-    {
-      CALL("LiteralSubstitutionTree::UnificationFilter::enter()");
-      ASS(res.literal->isEquality());
-      
-      //the polymorphism check isn't strictly necessary. However, if it wasn't
-      //included, on monomorphic problems we would be using unification to check
-      //whether two constant are identical
-
-      TermList resSort = SortHelper::getEqualityArgumentSort(res.literal);
-      if(!polymorphic){
-        return _queryEqSort == resSort;
-      } else if(_retrieveSubs){
-        RobSubstitution* subst = res.substitution->tryGetRobSubstitution();
-        ASS(subst);
-        subst->bdRecord(_bdataEq);
-        bool success = subst->unify(_queryEqSort, 0, resSort, 1);
-        subst->bdDone();
-        if(!success){
-          _bdataEq.backtrack();
-        }
-        return success;
-      } else {
-        static RobSubstitution subst;
-        subst.reset();
-        return subst.unify(_queryEqSort, 0, resSort, 1);
+    return out << "} ";
+  }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree> const& self)
+  { 
+    int i = 0;
+    out << "{ " << endl;
+    for (auto& t : self.self._trees) {
+      if (!t.isEmpty()) {
+        auto f = env.signature->getPredicate(idxToFunctor(i));
+        OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
       }
+      i++;
     }
+    return out << "} ";
+  }
 
-    void leave(const SLQueryResult& res){
-      CALL("LiteralSubstitutionTree::UnificationFilter::leave()");
-      if(_retrieveSubs && polymorphic){
-        _bdataEq.backtrack();
-        ASS(_bdataEq.isEmpty());
-      }
-    }
-  private:
-    TermList _queryEqSort;
-    bool _retrieveSubs;
-    BacktrackData _bdataEq;
-  };
 
-  MismatchHandler* _handler;
+private:
+  SubstitutionTree& getTree(Literal* lit, bool complementary);
 
-  template<class Iterator, class Filter>
-  SLQueryResultIterator getResultIterator(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions);
+  // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<AbstractingUnifier*>> r)
+  // { return lQueryRes(r.data->literal, r.data->clause, *r.unif); }
+  //
+  // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<RobSubstitutionSP>> r)
+  // { return SLQueryResult(r.data->literal, r.data->clause, ResultSubstitutionSP((ResultSubstitution*)&*r.unif.unwrapOrElse([](){return RobSubstitutionSP();}))); }
 
-  unsigned getRootNodeIndex(Literal* t, bool complementary=false);
-  bool _polymorphic;
+
+  Stack<SubstitutionTree> _trees;
 };
 
 };

@@ -22,6 +22,7 @@
 #include "Forwards.hpp"
 #include "VString.hpp"
 #include "Kernel/Unit.hpp"
+#include "Lib/Option.hpp"
 
 // the 32-bit FNV prime
 static const unsigned FNV32_PRIME = 16777619;
@@ -93,9 +94,8 @@ struct StackHash {
   // TODO equals()?
   template<typename T>
   static unsigned hash(const Stack<T>& s, unsigned hash = FNV32_OFFSET_BASIS) {
-    typename Stack<T>::ConstIterator it(s);
-    while(it.hasNext()) {
-      hash = HashUtils::combine(hash, ElementHash::hash(it.next()));
+    for (auto& x : s) {
+      hash = HashUtils::combine(hash, ElementHash::hash(x));
     }
     return hash;
   }
@@ -112,6 +112,27 @@ struct VectorHash {
       res = HashUtils::combine(res, ElementHash::hash(s[i]));
     }
     return res;
+  }
+};
+
+template<class InnerHash> 
+struct TupleHash {
+
+  template <std::size_t Index, typename... Ts>
+  static inline typename std::enable_if<Index == sizeof...(Ts), unsigned>::type
+  tuple_hash_impl(const std::tuple<Ts...> &t) { return 0; }
+
+  template <std::size_t Index, typename... Ts>
+  static inline typename std::enable_if<Index < sizeof...(Ts), unsigned>::type
+  tuple_hash_impl(const std::tuple<Ts...> &t) 
+  { return Lib::HashUtils::combine(tuple_hash_impl<Index + 1>(t), InnerHash::hash(std::get<Index>(t))); }
+
+
+  template<typename... T>
+  static unsigned hash(tuple<T...> const& s) {
+    //C++17: repace with std::apply:
+    // return std::apply(s, [](auto... args) { return HashUtils::combine(hash(args)...); });
+    return tuple_hash_impl<0>(s);
   }
 };
 
@@ -200,6 +221,7 @@ public:
     );
   }
 
+
   /**
    * FNV-1a with initial value @b hash.
    * @since 31/03/2006
@@ -229,6 +251,17 @@ public:
     }
     return hash;
   }
+
+
+
+  template<typename... T>
+  static unsigned hash(tuple<T...> const& s) 
+  { return TupleHash<DefaultHash>::hash(s); }
+
+  template<typename T>
+  static unsigned hash(Lib::Option<T> const& o) 
+  { return o.isSome() ? o->defaultHash()
+                      : Lib::DefaultHash::hash(typeid(T).hash_code()); }
 };
 
 // a default secondary hash for doubly-hashed containers
@@ -297,6 +330,14 @@ public:
       DefaultHash2::hash(pp.second)
     );
   }
+  template<typename... T>
+  static unsigned hash(tuple<T...> const& s) 
+  { return TupleHash<DefaultHash2>::hash(s); }
+
+  template<typename T>
+  static unsigned hash(Lib::Option<T> const& o) 
+  { return o.isSome() ? o->defaultHash2()
+                      : Lib::DefaultHash2::hash(typeid(T).hash_code()); }
 };
 
 } // namespace Lib
@@ -309,6 +350,12 @@ template<class T> struct hash<Lib::Stack<T>>
   { return Lib::StackHash<Lib::StlHash>::hash(s); }
 };
 
-}
+
+template<class... T> struct hash<tuple<T...>> 
+{
+  size_t operator()(tuple<T...> const& s) const 
+  { return Lib::DefaultHash::hash(s); }
+};
+} // std
 
 #endif
