@@ -216,6 +216,7 @@ enum class InferenceRule : unsigned char {
   EQUALITY_RESOLUTION_WITH_DELETION,
   /** subsumption resolution simplification rule */
   SUBSUMPTION_RESOLUTION,
+  SIMPLE_SUBSUMPTION_RESOLUTION,
   /** forward demodulation inference */
   FORWARD_DEMODULATION,
   /** backward demodulation inference */

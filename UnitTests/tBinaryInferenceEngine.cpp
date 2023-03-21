@@ -233,3 +233,93 @@ TEST_GENERATION(basic08,
                 }) 
       .expected(exactly( clause({ q(f(a)), q(g(b)) })         ))
     )
+
+class SimpleSubsumptionResolution {
+public:
+  static constexpr unsigned DEBUG_LEVEL = 0;
+
+  struct Lhs 
+  {
+    Clause* cl;
+
+    using Key = Literal*;
+
+    Literal* key() const 
+    { return Literal::complementaryLiteral((*cl)[0]); }
+
+    Clause* clause() const 
+    { return cl; }
+
+    friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
+    { return out << *self.cl; }
+
+    auto asTuple() const -> decltype(auto)
+    { return std::tie(cl); }
+
+    IMPL_COMPARISONS_FROM_TUPLE(Lhs);
+  };
+
+  struct Rhs 
+  {
+    Clause* cl;
+    unsigned literalIndex;
+
+    using Key = Literal*;
+
+    Literal* key() const 
+    { return (*cl)[literalIndex]; }
+
+    Clause* clause() const 
+    { return cl; }
+
+    friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
+    { return out << *self.cl << "[" << self.literalIndex << "]"; }
+
+    auto asTuple() const -> decltype(auto)
+    { return std::tie(cl, literalIndex); }
+
+    IMPL_COMPARISONS_FROM_TUPLE(Rhs);
+  };
+
+
+  using Matching = BinInfMatching::RightInstanceOfLeft<Lhs, Rhs>;
+
+  IndexType indexType() const;
+  // { return Indexing::SIMPLE_BINARY_RESOLUTION; }
+
+  VirtualIterator<Lhs> iterLhs(Clause* cl) const
+  {
+    if (cl->size() == 1 && !(*cl)[0]->isEquality()) {
+      return pvi(getSingletonIterator(Lhs { .cl = cl }));
+    } else {
+      VirtualIterator<Lhs>::getEmpty();
+    }
+  }
+
+  VirtualIterator<Rhs> iterRhs(Clause* cl) const
+  {
+    return pvi(range(0, cl->numSelected())
+      .map([cl](auto i) { return Rhs { .cl = cl, .literalIndex = i, }; }));
+  }
+
+  Clause* apply(
+      Lhs const& lhs, bool lRes,
+      Rhs const& rhs, bool rRes,
+      ResultSubstitution& subs
+      ) const
+  {
+
+    auto rhsLits = range(0, rhs.clause()->size())
+      .filter([&](auto i) { return i != rhs.literalIndex; })
+      .map([&](auto i){ 
+          auto lit = (*rhs.clause())[i];
+          return subs.apply(lit, rRes);
+      });
+
+    return Clause::fromIterator(
+        rhsLits, 
+        Inference(SimplifyingInference2(InferenceRule::SIMPLE_SUBSUMPTION_RESOLUTION, lhs.clause(), rhs.clause())));
+  }
+};
+
+
