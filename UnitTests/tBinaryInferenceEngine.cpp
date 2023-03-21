@@ -26,15 +26,17 @@ using namespace Indexing;
 
 class SimpleBinaryResolution {
 public:
-  static constexpr unsigned DEBUG_LEVEL = 0;
+  static constexpr unsigned DEBUG_LEVEL = 2;
 
   struct Lhs 
   {
     Clause* cl;
     unsigned literalIndex;
 
+    using Key = Literal*;
+
     Literal* key() const 
-    { return (*cl)[literalIndex]; }
+    { return Literal::positiveLiteral((*cl)[literalIndex]); }
 
     Clause* clause() const 
     { return cl; }
@@ -60,6 +62,8 @@ public:
     Clause* cl;
     unsigned literalIndex;
 
+    using Key = Literal*;
+
     Literal* key() const 
     { return (*cl)[literalIndex]; }
 
@@ -83,11 +87,8 @@ public:
   };
 
 
-  IndexType lhsIndexType() const
-  { return Indexing::SIMPLE_BINARY_RESOLUTION_LHS; }
-
-  IndexType rhsIndexType() const
-  { return Indexing::SIMPLE_BINARY_RESOLUTION_RHS; }
+  IndexType indexType() const
+  { return Indexing::SIMPLE_BINARY_RESOLUTION; }
 
   VirtualIterator<Lhs> iterLhs(Clause* cl) const
   {
@@ -134,8 +135,7 @@ public:
 
 Stack<std::function<Indexing::Index*()>> myRuleIndices()
 { return Stack<std::function<Indexing::Index*()>>{
-  []() -> Index* { return new SimpleLiteralIndex<SimpleBinaryResolution::Lhs>(new LiteralSubstitutionTree<SimpleBinaryResolution::Lhs>()); },
-  []() -> Index* { return new SimpleLiteralIndex<SimpleBinaryResolution::Rhs>(new LiteralSubstitutionTree<SimpleBinaryResolution::Rhs>()); }
+  []() -> Index* { return new BinInfIndex<SimpleBinaryResolution>(); }
   }; }
 
 SimpleBinaryResolution myRule()
@@ -188,4 +188,57 @@ TEST_GENERATION(basic02,
       .expected(exactly(
             clause({ p(b)  }) 
       ))
+    )
+
+TEST_GENERATION(basic03,
+    Generation::SymmetricTest()
+      .indices(myRuleIndices())
+      .inputs  ({ clause({ selected( ~p(a) ), p(b)  }) 
+                , clause({ selected(  p(b) )        }) })
+      .expected(exactly(     /* nothing */             ))
+    )
+
+
+TEST_GENERATION(basic04,
+    Generation::SymmetricTest()
+      .indices(myRuleIndices())
+      .inputs  ({ clause({ selected( p(a)  ), p(b)  }) 
+                , clause({ selected( p(x) )        }) })
+      .expected(exactly(     /* nothing */             ))
+    )
+
+TEST_GENERATION(basic05,
+    Generation::SymmetricTest()
+      .indices(myRuleIndices())
+      .inputs  ({ clause({ selected( ~p(a)  )  }) 
+                , clause({ selected( p(x) )        }) })
+      .expected(exactly( clause({ })         ))
+    )
+
+TEST_GENERATION(basic06,
+    Generation::SymmetricTest()
+      .indices(myRuleIndices())
+      .inputs  ({ clause({ selected( ~p(f2(x, b)) ), q(f(x)) }) 
+                , clause({ selected(  p(f2(a, x)) ), q(g(x)) }) 
+                }) 
+      .expected(exactly( clause({ q(f(a)), q(g(b)) })         ))
+    )
+
+TEST_GENERATION(basic07,
+    Generation::SymmetricTest()
+      .indices(myRuleIndices())
+      .inputs  ({ clause({ selected(  p(f2(x, b)) ), q(f(x)) }) 
+                , clause({ selected(  p(f2(a, x)) ), q(g(x)) }) 
+                }) 
+      .expected(exactly( /* nothing */ ))
+    )
+
+
+TEST_GENERATION(basic08,
+    Generation::SymmetricTest()
+      .indices(myRuleIndices())
+      .inputs  ({ clause({ selected(  p(f2(x, b)) ), q(f(x)) }) 
+                , clause({ selected( ~p(f2(a, x)) ), q(g(x)) }) 
+                }) 
+      .expected(exactly( clause({ q(f(a)), q(g(b)) })         ))
     )

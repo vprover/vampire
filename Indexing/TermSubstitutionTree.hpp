@@ -124,6 +124,10 @@ public:
                                : pvi(nopostproUwa(t, uwa)); }
 
 
+  auto unifications(TypedTermList t)
+  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, /* retrieveSubstitutions */ true); }
+
+  [[deprecated("untyped method. use getUnificationsUsingSorts(..) or unifications() instead")]]
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(TermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
 

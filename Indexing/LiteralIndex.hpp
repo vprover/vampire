@@ -50,6 +50,11 @@ public:
   size_t getUnificationCount(Literal* lit, bool complementary)
   { return _is->getUnificationCount(lit, complementary); }
 
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralIndex> const& self)
+  { return out << multiline(*self.self._is); }
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralIndex const& self)
+  { return out << *self._is; }
 
 protected:
   LiteralIndex(LiteralIndexingStructure<Data>* is) : _is(is) {}
@@ -62,24 +67,6 @@ protected:
 
   unique_ptr<LiteralIndexingStructure<Data>> _is;
 };
-
-template<class Data>
-class SimpleLiteralIndex
-: public LiteralIndex<Data>
-{
-public:
-  CLASS_NAME(SimpleLiteralIndex);
-  USE_ALLOCATOR(SimpleLiteralIndex);
-
-  SimpleLiteralIndex(LiteralIndexingStructure<Data>* inner) : LiteralIndex<Data>(inner) {};
-protected:
-  void handleClause(Clause* c, bool adding) override {
-    for (auto x : iterTraits(Data::iter(c))) {
-      LiteralIndex<Data>::handle(std::move(x), adding);
-    }
-  }
-};
-
 
 class BinaryResolutionIndex
 : public LiteralIndex<LiteralClause>

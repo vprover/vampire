@@ -67,6 +67,13 @@ public:
         );
   }
 
+
+  /** retrieves leaf data with keys that unify with lit, and the respective unifying substition
+   * The result is an iteator over all such query results
+   */
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> unifications(Literal* lit)
+  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, /* complementary */ false, /* retrieveSubstitutions */ true); }
+
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions); }
 
@@ -108,6 +115,10 @@ public:
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
   { return fixedPointIteration ? pvi(  postproUwa(lit, complementary, uwa))
                                : pvi(nopostproUwa(lit, complementary, uwa)); }
+
+  virtual void output(std::ostream& out, bool multi, unsigned indent) const override 
+  { if (multi) out << multiline(*this, indent);
+    else       out << *this; }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 

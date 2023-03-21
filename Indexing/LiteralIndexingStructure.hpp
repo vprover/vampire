@@ -47,6 +47,13 @@ public:
     return countIteratorElements(getUnifications(lit, complementary, false));
   }
 
+  virtual void output(std::ostream& out, bool multiline, unsigned indent) const { out << "unimplemented output operator"; }
+
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralIndexingStructure> const& self)
+  { self.self.output(out, /* multiline */ true, /* indent */ self.indent); return out; }
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralIndexingStructure const& self)
+  { self.output(out, /* multiline */ false, /* indent */ 0); return out; }
 };
 
 };
