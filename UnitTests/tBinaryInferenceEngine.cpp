@@ -10,6 +10,7 @@
 
 #include "Forwards.hpp"
 #include "Indexing/IndexManager.hpp"
+#include "Indexing/LiteralIndex.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -26,7 +27,8 @@ using namespace Indexing;
 
 class SimpleBinaryResolution {
 public:
-  static constexpr unsigned DEBUG_LEVEL = 2;
+  static constexpr unsigned DEBUG_LEVEL = 0;
+
 
   struct Lhs 
   {
@@ -46,13 +48,6 @@ public:
 
     auto asTuple() const -> decltype(auto)
     { return std::tie(cl, literalIndex); }
-
-    static auto iter(Clause* cl) {
-      return pvi(range(0, cl->numSelected())
-        .filter([cl](auto i) { return !(*cl)[i]->isEquality(); })
-        .filter([cl](auto i) { return (*cl)[i]->isNegative(); })
-        .map([cl](auto i) { return Lhs { .cl = cl, .literalIndex = i, }; }));
-    }
 
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
   };
@@ -76,16 +71,11 @@ public:
     auto asTuple() const -> decltype(auto)
     { return std::tie(cl, literalIndex); }
 
-    static auto iter(Clause* cl) {
-      return pvi(range(0, cl->numSelected())
-        .filter([cl](auto i) { return !(*cl)[i]->isEquality(); })
-        .filter([cl](auto i) { return (*cl)[i]->isPositive(); })
-        .map([cl](auto i) { return Rhs { .cl = cl, .literalIndex = i, }; }));
-    }
-
     IMPL_COMPARISONS_FROM_TUPLE(Rhs);
   };
 
+
+  using Matching = BinInfMatching::Unification<Lhs, Rhs>;
 
   IndexType indexType() const
   { return Indexing::SIMPLE_BINARY_RESOLUTION; }
@@ -132,6 +122,7 @@ public:
         Inference(GeneratingInference2(InferenceRule::SIMPLE_BINARY_RESOLUTION, lhs.clause(), rhs.clause())));
   }
 };
+
 
 Stack<std::function<Indexing::Index*()>> myRuleIndices()
 { return Stack<std::function<Indexing::Index*()>>{

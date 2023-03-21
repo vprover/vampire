@@ -25,6 +25,7 @@
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+#include <memory>
 
 namespace Inferences {
 
@@ -68,35 +69,47 @@ public:
 
 #define DEBUG_BIN_INF(lvl, ...) if (lvl < BinInf::DEBUG_LEVEL) DBG(__VA_ARGS__)
 
+
+namespace BinInfMatching {
+  template<class Lhs, class Rhs>
+  struct Unification {
+    static auto findRhs(AutoSubstitutionTree<Rhs>& rhs, Lhs const& lhs) { return rhs.unifications(lhs.key()); }
+    static auto findLhs(AutoSubstitutionTree<Lhs>& lhs, Rhs const& rhs) { return lhs.unifications(rhs.key()); }
+  };
+}
+
+
 template<class BinInf>
 class BinInfIndex
 : public Index
 {
   using Lhs = typename BinInf::Lhs;
   using Rhs = typename BinInf::Rhs;
+  BinInf* _inf;
   AutoSubstitutionTree<Lhs> _lhs;
   AutoSubstitutionTree<Rhs> _rhs;
 public:
   CLASS_NAME(BinInfIndex);
   USE_ALLOCATOR(BinInfIndex);
 
-  BinInfIndex() : _lhs(), _rhs() {}
+  BinInfIndex() : _inf(nullptr), _lhs(), _rhs() {}
 
-  auto findRhs(Lhs const& lhs) { return _rhs.unifications(lhs.key()); }
-  auto findLhs(Rhs const& rhs) { return _lhs.unifications(rhs.key()); }
-
+  auto findRhs(Lhs const& lhs) { return BinInf::Matching::findRhs(_rhs, lhs); }
+  auto findLhs(Rhs const& rhs) { return BinInf::Matching::findLhs(_lhs, rhs); }
 
   void handleClause(Clause* c, bool adding) override 
   {
-    for (auto x : iterTraits(Lhs::iter(c))) {
+    for (auto x : iterTraits(_inf->iterLhs(c))) {
       DEBUG_BIN_INF(1, "inserting lhs: ", x)
       _lhs.handle(std::move(x), adding);
     }
-    for (auto x : iterTraits(Rhs::iter(c))) {
+    for (auto x : iterTraits(_inf->iterRhs(c))) {
       DEBUG_BIN_INF(1, "inserting rhs: ", x)
       _rhs.handle(std::move(x), adding);
     }
   }
+
+  void setInf(BinInf* inf) { _inf = inf; }
 
   friend std::ostream& operator<<(std::ostream& out, BinInfIndex const& self)
   { return *self._self; }
@@ -119,6 +132,8 @@ public:
     : _inf(std::move(inf))
     , _idx(nullptr)
   {  }
+  
+  static_assert(std::is_same<typename Lhs::Key, typename Rhs::Key>::value, "keys of inference must be of the same type");
 
   void attach(SaturationAlgorithm* salg) final override
   { 
@@ -126,12 +141,14 @@ public:
     ASS(!_idx);
     GeneratingInferenceEngine::attach(salg);
     _idx = static_cast<decltype(_idx)> (salg->getIndexManager()->request(_inf.indexType()));
+    _idx->setInf(&_inf);
   }
 
   void detach() final override
   {
     CALL("BinaryInferenceEngine::detach");
     ASS(_salg);
+    _idx->setInf(nullptr);
     _salg->getIndexManager()->release(_inf.indexType());
     _idx = 0;
     GeneratingInferenceEngine::detach();
