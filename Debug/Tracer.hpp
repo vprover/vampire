@@ -116,12 +116,12 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
   //   const char* str;
   //   unsigned limit;
   // }
-  int width = 60;
+  unsigned width = 35;
   std::cout << "[ debug ] ";
   for (const char* c = file; *c != 0 && width > 0; c++, width--) {
     std::cout << *c;
   }
-  for (int i = 0; i < width; i++) {
+  for (unsigned i = 0; i < width; i++) {
     std::cout << ' ';
   }
   std::cout <<  "@" << setw(5) << line << ":";
@@ -129,7 +129,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
   for (unsigned i = 0; i< _depth; i++) {
     cout << "  ";
   }
-  cout <<_current->_fun << ": ";
+  // cout <<_current->_fun << ": ";
   // cout << std::setw(30) <<_current->_fun << std::setw(0) << ": ";
   // cout << _lastControlPoint << ": ";
 
@@ -140,28 +140,44 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 
 } // namespace Debug
 
+#ifdef ABSOLUTE_SOURCE_DIR
+#define __REL_FILE__  (&__FILE__[sizeof(ABSOLUTE_SOURCE_DIR) / sizeof(ABSOLUTE_SOURCE_DIR[0])])
+#else
+#define __REL_FILE__  __FILE__
+#endif
+
 
 #  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
 #  define CALL(Fun) AUX_CALL(__LINE__,Fun)
-#  define DBG(...) { Debug::Tracer::printDbg(__FILE__, __LINE__, __VA_ARGS__); }
+#  define WARN(...) { Debug::Tracer::printDbg(__REL_FILE__, __LINE__, "WARNING: ", __VA_ARGS__); }
+#  define DBG(...) { Debug::Tracer::printDbg(__REL_FILE__, __LINE__, __VA_ARGS__); }
 #  define __ECHO_DBG(...) __VA_ARGS__
 #  define DBG_RETURN(msg, ...) { auto out = [&]() __VA_ARGS__ (); DBG(__ECHO_DBG(msg), out);  return out; }
 #  define DBGE(x) DBG(#x, " = ", x)
-#  define ECHO(x) Debug::Tracer::echoValue(__FILE__, __LINE__, #x " = ", x)
+
+#  define WRAP_DBG(msg, ...)                                                                        \
+    auto __WRAP_DBG_FUNC = [&]() { __VA_ARGS__ };                                                   \
+    DBG(msg, " start")                                                                              \
+    auto out = __WRAP_DBG_FUNC();                                                                   \
+    DBG(msg, " end")                                                                                \
+    return out; 
+#  define ECHO(x) Debug::Tracer::echoValue(__FILENAME__, __LINE__, #x " = ", x)
 #  define CALLC(Fun,check) if (check){ AUX_CALL(__LINE__,Fun) }
 #  define CONTROL(description) Debug::Tracer::controlPoint(description)
-#  define AFTER(number,command) \
+#  define AFTER(number,command)                                                                     \
             if (Debug::Tracer::passedControlPoints() >= number) { command };
-#  define BETWEEN(number1,number2,command) \
-            if (Debug::Tracer::passedControlPoints() >= number1 &&	\
-                Debug::Tracer::passedControlPoints() <= number2)	\
+#  define BETWEEN(number1,number2,command)                                                          \
+            if (Debug::Tracer::passedControlPoints() >= number1 &&	                                 \
+                Debug::Tracer::passedControlPoints() <= number2)	                                   \
               { command };
 
 #else // ! VDEBUG
+#  define WARN(...) {}
 #  define DBG(...) {}
 #  define DBGE(x) {}
 #  define CALL(Fun) 
+#  define WRAP_DBG(msg, ...) __VA_ARGS__
 #  define CALLC(Fun,check) 
 #  define CONTROL(description)
 #  define DBG_RETURN(msg, ...) { __VA_ARGS__ }
