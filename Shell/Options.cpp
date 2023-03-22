@@ -535,6 +535,11 @@ void Options::init()
     _lookup.insert(&_theoryFlattening);
     _theoryFlattening.tag(OptionTag::PREPROCESSING);
 
+    _ignoreUnrecognizedLogic = BoolOptionValue("ignore_unrecognized_logic","iul",false);
+    _ignoreUnrecognizedLogic.description = "Try proof search anyways, if vampire would throw an \"unrecognized logic\" error otherwise.";
+    _lookup.insert(&_ignoreUnrecognizedLogic);
+    _ignoreUnrecognizedLogic.tag(OptionTag::INPUT);
+
     _sineDepth = UnsignedOptionValue("sine_depth","sd",0);
     _sineDepth.description=
     "Limit number of iterations of the transitive closure algorithm that selects formulas based on SInE's D-relation (see SInE description). 0 means no limit, 1 is a maximal limit (least selected axioms), 2 allows two iterations, etc...";
