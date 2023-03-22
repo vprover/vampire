@@ -28,11 +28,9 @@
 namespace Indexing {
 
 /*
- * Note that unlike LiteralSubstitutionTree, TermSubstitutionTree does
- * not (yet) carry out sort checking when attempting to find unifiers, generalisations
- * or instances. In particular, if the query or result is a variable, it is the callers'
- * responsibility to ensure that the sorts are unifiable/matchable 
- * (edit: if the caller inserts a TypedTermList instead of a TermList, this will be handled automatically.)
+ * As of 22/03/2023 TermSubstitutionTrees carry our type checking.
+ * Thus, there is no need to check whether the type of returned terms match those of the query
+ * as this is now done within the tree.
  */
 
 
@@ -56,23 +54,23 @@ public:
    */
   TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
 
-  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
-  { handleTerm(tt, LeafData(cls,lit,tt), insert); }
+  void handle(TypedTermList t, Literal* lit, Clause* cls, bool adding)
+  { handleTerm(t, LeafData(cls, lit, t), adding); }
 
-  void insert(TermList t, Literal* lit, Clause* cls) override 
+  void insert(TypedTermList t, Literal* lit, Clause* cls) override 
   { handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
 
-  void remove(TermList t, Literal* lit, Clause* cls) override
+  void remove(TypedTermList t, Literal* lit, Clause* cls) override
   { handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
-  void insert(TermList t, TermList trm) override 
+  void insert(TypedTermList t, TermList trm) override 
   { handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
 
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override 
+  void insert(TypedTermList t, TermList trm, Literal* lit, Clause* cls) override 
   { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
   bool generalizationExists(TermList t) override
-  { return t.isVar() ? false : SubstitutionTree::generalizationExists(t); }
+  { return t.isVar() ? false : SubstitutionTree::generalizationExists(TypedTermList(t.term())); }
 
 
 #if VDEBUG
@@ -82,12 +80,11 @@ public:
 private:
 
 
-  template<class TypedOrUntypedTermList> 
-  void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
+  void handleTerm(TypedTermList tt, LeafData ld, bool insert)
   { SubstitutionTree::handle(tt, ld, insert); }
 
-  template<class Iterator, class TypedOrUntypedTermList> 
-  auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, bool withConstraints)
+  template<class Iterator> 
+  auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, bool withConstraints)
   { 
     return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints))
       .map([this](QueryResult qr) 
@@ -104,18 +101,14 @@ private:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline((SubstitutionTree const&) self.self); }
 public:
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override
+  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) override
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions, bool withConstraints) override
+  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions, bool withConstraints) override
   { return pvi(getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints)); }
-
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions, bool withConstr) override
-  { return pvi(getResultIterator<UnificationsIterator>(tt, retrieveSubstitutions, withConstr)); }
-
 
 };
 
