@@ -33,10 +33,9 @@ public:
 
   virtual ~TermIndex();
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true, bool withConstraints = false);
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true, bool withConstraints = false);
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true);
+  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true, bool withConstraints = false);
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
+  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true);
 
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
@@ -238,7 +237,7 @@ public:
   void insertFormula(TermList formula, TermList skolem);
 };
 
-class HeuristicInstantiationIndex
+/*class HeuristicInstantiationIndex
 : public TermIndex
 {
 public:
@@ -266,7 +265,7 @@ public:
   void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
 protected:
   void handleClause(Clause* c, bool adding);
-};
+};*/
 
 };
 #endif /* __TermIndex__ */

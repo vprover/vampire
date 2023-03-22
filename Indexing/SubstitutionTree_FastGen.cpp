@@ -127,9 +127,6 @@ public:
   Literal* applyToBoundResult(Literal* lit) override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
-  bool matchSorts(TermList base, TermList instance) override
-  { return _parent->matchNextAux(instance, base, false); }
-
   bool isIdentityOnQueryWhenResultBound() override
   { return true; }
 

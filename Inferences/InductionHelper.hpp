@@ -40,7 +40,7 @@ public:
   TermQueryResultIterator getLess(Term* t);
   TermQueryResultIterator getGreater(Term* t);
 
-  TermQueryResultIterator getTQRsForInductionTerm(TermList inductionTerm);
+  TermQueryResultIterator getTQRsForInductionTerm(Term* inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();

@@ -92,7 +92,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi)) );
+	       TermUnificationRetriever(bsi, lit)) );
       break;
     }
     case 2:  //forward superposition
@@ -104,7 +104,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       nextIt=pvi( getMapAndFlattenIterator(
 	       getMappingIterator(EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
            [](Term* t) { return TermList(t); }),
-	       TermUnificationRetriever(fsi)) );
+	       TermUnificationRetriever(fsi, lit)) );
       break;
     }
     case 3:  //equality resolution
@@ -150,13 +150,15 @@ private:
 
   struct TermUnificationRetriever
   {
-    TermUnificationRetriever(TermIndex* index) : _index(index) {}
+    TermUnificationRetriever(TermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
     VirtualIterator<void> operator()(TermList trm)
     {
-      return pvi( getStaticCastIterator<void>(_index->getUnifications(trm,false)) );
+      TypedTermList tt(trm, SortHelper::getTermSort(trm, _lit));
+      return pvi( getStaticCastIterator<void>(_index->getUnifications(tt,false)) );
     }
   private:
     TermIndex* _index;
+    Literal* _lit;
   };
 
   int stage;

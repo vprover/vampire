@@ -133,11 +133,6 @@ public:
    */
   virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
-  //extend of literals with a matching of their sorts if possible
-  virtual bool matchSorts(TermList base, TermList instance) { 
-    NOT_IMPLEMENTED; 
-  }
-
   static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
   virtual void output(std::ostream& ) const = 0;
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)

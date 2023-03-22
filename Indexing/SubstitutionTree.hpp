@@ -1007,11 +1007,6 @@ public:
     bindSpecialVar(1, term.sort());
   }
 
-  // TODO document
-  template<class BindingFunction>
-  void createBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
-  { bindSpecialVar(0, term); }
-
   template<class BindingFunction>
   void createBindings(Literal* lit, bool reversed, BindingFunction bindSpecialVar)
   {

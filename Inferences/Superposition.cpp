@@ -143,7 +143,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // returns a pair with the original pair and the unification result (includes substitution)
   auto itf3 = getMapAndFlattenIterator(itf2,
       [this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUnificationsUsingSorts(arg.second, /*retrieveSubstitutions*/ true, withConstraints)); });
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUnifications(arg.second, /*retrieveSubstitutions*/ true, withConstraints)); });
 
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
@@ -154,7 +154,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       [this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(
               arg, 
-              _subtermIndex->getUnificationsUsingSorts(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), 
+              _subtermIndex->getUnifications(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), 
                 /* retrieveSubstitutions */ true, withConstraints)); });
 
   //Perform backward superposition
