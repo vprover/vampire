@@ -76,13 +76,15 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 
 struct BackwardDemodulation::RewritableClausesFn
 {
-  RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
+  RewritableClausesFn(DemodulationSubtermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
   VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
-    return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
+    TermList sort = SortHelper::getTermSort(lhs, _lit);
+    return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(TypedTermList(lhs,sort), true)) );
   }
 private:
   DemodulationSubtermIndex* _index;
+  Literal* _lit;
 };
 
 
@@ -123,18 +125,9 @@ struct BackwardDemodulation::ResultFn
 
     TermList lhs=arg.first;
 
-    TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-
-    /* The following check replaces the original:
-      "if(qrSort!=_eqSort) {
-         return BwSimplificationRecord(0);
-      }"
-      from the monomorphic setting */
-    if(lhs.isVar()){
-      if(!qr.unifier->matchSorts(_eqSort, qrSort)) {
-        return BwSimplificationRecord(0);        
-      }
-    }
+    // AYB there used to be a check here to ensure that the sorts
+    // matched. This is no longer necessary, as sort matching / unification
+    // is handled directly within the tree
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
     TermList lhsS=qr.term;
@@ -257,7 +250,7 @@ void BackwardDemodulation::perform(Clause* cl,
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
-			    RewritableClausesFn(_index)),
+			    RewritableClausesFn(_index, lit)),
 		    ResultFn(cl, *this)),
  	    RemovedIsNonzeroFn()) );
 

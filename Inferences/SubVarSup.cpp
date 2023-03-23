@@ -87,7 +87,9 @@ struct SubVarSup::RewritableResultsFn
   {
     CALL("SubVarSup::RewritableResultsFn()");
 
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    TypedTermList tt(arg.second, SortHelper::getTermSort(arg.second, arg.first));
+
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(tt, true)) );
   }
 private:
   SubVarSupSubtermIndex* _index;
@@ -118,9 +120,11 @@ struct SubVarSup::ApplicableRewritesFn
   {
     CALL("SubVarSup::ApplicableRewritesFn()");
 
+    TypedTermList tt(arg.second, SortHelper::getTermSort(arg.second, arg.first));
+
     //get everything in the tree
     //false means dont use substitution
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, false)) );
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(tt, false)) );
   }
 private:
   SubVarSupLHSIndex* _index;

@@ -43,10 +43,10 @@ public:
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
+  void insert(TypedTermList t, Literal* lit, Clause* cls);
+  void remove(TypedTermList t, Literal* lit, Clause* cls);
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
   bool generalizationExists(TermList t);
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) { NOT_IMPLEMENTED; }

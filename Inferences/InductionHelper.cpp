@@ -96,11 +96,11 @@ TermQueryResultIterator InductionHelper::getGreater(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList inductionTerm) {
+TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   CALL("InductionHelper::getIndTQRsForInductionTerm");
 
   ASS(_inductionTermIndex);
-  return _inductionTermIndex->getUnifications(inductionTerm);
+  return _inductionTermIndex->getUnifications(TypedTermList(inductionTerm));
 }
 
 bool InductionHelper::isIntegerComparison(Clause* c) {

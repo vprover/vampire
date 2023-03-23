@@ -16,6 +16,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Environment.hpp"
@@ -199,6 +200,8 @@ namespace Indexing
                         AcyclicityIndex& aindex)
       :
       _queryLit(queryLit),
+      _index(nullptr),
+      _tis(nullptr),
       _nextResult(nullptr),
       _stack(0),
       _subst(new RobSubstitution()),
@@ -275,8 +278,9 @@ namespace Indexing
     {
       CALL("Acyclicity::pushUnificationOnStack");
 
+      ASS(t.isTerm());
       ASS(_tis);
-      TermQueryResultIterator tqrIt = _tis->getUnifications(t);
+      TermQueryResultIterator tqrIt = _tis->getUnifications(TypedTermList(t.term()));
       int index;
       while (tqrIt.hasNext()) {
         TermQueryResult tqr = tqrIt.next();
@@ -386,7 +390,7 @@ namespace Indexing
   private:
     Literal *_queryLit;
     SIndex *_index;
-    TermIndexingStructure *_tis;    
+    TermIndexingStructure *_tis;
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
     RobSubstitution *_subst;
@@ -432,7 +436,7 @@ namespace Indexing
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, *t, getSubterms(fs->term())));
-        _tis->insert(*t, lit, c);
+        _tis->insert(TypedTermList(t->term()), lit, c);
       }
     }
   }
@@ -451,7 +455,7 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-     _tis->remove(*t, lit, c);
+     _tis->remove(TypedTermList(t->term()), lit, c);
     }
   }
 

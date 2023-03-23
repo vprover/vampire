@@ -102,8 +102,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
-      TermList querySort = SortHelper::getTermSort(trm, lit);
-
       bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&           
 	         (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
@@ -112,7 +110,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         toplevelCheck &= lit->isPositive() && (cLen == 1);        
       }
 
-      TermQueryResultIterator git=_index->getGeneralizations(trm, true);
+      TermQueryResultIterator git=_index->getGeneralizations(TypedTermList(trm.term()), true);
       while(git.hasNext()) {
         TermQueryResult qr=git.next();
         ASS_EQ(qr.clause->length(),1);
@@ -130,6 +128,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         static RobSubstitution subst; 
         bool resultTermIsVar = qr.term.isVar();
         if(resultTermIsVar){
+          TermList querySort = SortHelper::getTermSort(trm, lit);
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
           subst.reset(); 
           if(!subst.match(eqSort, 0, querySort, 1)){

@@ -37,15 +37,14 @@ public:
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }
+  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true)
+  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
-
 
   friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
   { return out << *self._is; }
@@ -249,7 +248,7 @@ public:
   void insertFormula(TermList formula, TermList skolem);
 };
 
-class HeuristicInstantiationIndex
+/*class HeuristicInstantiationIndex
 : public TermIndex
 {
 public:
@@ -277,7 +276,7 @@ public:
   void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
 protected:
   void handleClause(Clause* c, bool adding);
-};
+};*/
 
 };
 #endif /* __TermIndex__ */

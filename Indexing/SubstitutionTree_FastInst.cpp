@@ -48,13 +48,6 @@ public:
   {
   }
 
-  bool matchSorts(TermList base, TermList instance) override
-  {
-    CALL("SubstitutionTree::InstMatcher::Substitution::matchSorts");
-
-    return _parent->matchNextAux(base, instance, false);
-  }
-
   TermList applyToBoundQuery(TermList t) override
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");

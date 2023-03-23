@@ -80,8 +80,10 @@ struct Narrow::ApplicableNarrowsFn
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Narrow::ApplicableRewritesFn()");
+    ASS(arg.second.isTerm());
 
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    TypedTermList tt(arg.second.term());
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(tt, true)) );
   }
 private:
   NarrowingIndex* _index;
