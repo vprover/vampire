@@ -34,31 +34,31 @@ namespace Kernel
 using namespace Lib;
 
 std::ostream& operator<<(std::ostream& out, TermSpec const& self)
-{ return self._self.match([&](TermSpec::Appl const& self) -> decltype(auto) { return out << env.signature->getFunction(self.functor)->name() << "(" << commaSep(self.argsIter()) << ")"; },
-                          [&](OldTermSpec    const& self) -> decltype(auto) { return out << self.term << "/" << self.index; }); }
+{ return self._self.match([&](CompositeTermSpec const& self) -> decltype(auto) { return out << env.signature->getFunction(self.functor)->name() << "(" << commaSep(self.argsIter()) << ")"; },
+                          [&](AtomicTermSpec    const& self) -> decltype(auto) { return out << self.term << "/" << self.index; }); }
 
 
 bool TermSpec::isOutputVar() const
-{ return _self.match([](Appl const&) { return false; },
-                     [](OldTermSpec const& self) { ASS(self.index != RobSubstitution::UNBOUND_INDEX || self.term.isVar()); return  self.index == RobSubstitution::UNBOUND_INDEX; }); }
+{ return _self.match([](CompositeTermSpec const&) { return false; },
+                     [](AtomicTermSpec const& self) { ASS(self.index != RobSubstitution::UNBOUND_INDEX || self.term.isVar()); return  self.index == RobSubstitution::UNBOUND_INDEX; }); }
 
 
 TermList::Top TermSpec::top() const
-{ return _self.match([](Appl const& a) { return TermList::Top::functor(a.functor); },
-                     [](OldTermSpec const& old) { return old.term.top(); }); }
+{ return _self.match([](CompositeTermSpec const& a) { return TermList::Top::functor(a.functor); },
+                     [](AtomicTermSpec const& old) { return old.term.top(); }); }
 
 TermSpec const& TermSpec::deref(RobSubstitution const* s) const&
  { return s->derefBound(*this); };
 
 bool TermSpec::definitelyGround() const
-{ return _self.match([](Appl const& a) { return iterTraits(a.argsIter()).all([](auto& x) { return x.definitelyGround(); }); },
-                     [](OldTermSpec const& t) { return t.term.isTerm() && t.term.term()->shared() && t.term.term()->ground(); }); }
+{ return _self.match([](CompositeTermSpec const& a) { return iterTraits(a.argsIter()).all([](auto& x) { return x.definitelyGround(); }); },
+                     [](AtomicTermSpec const& t) { return t.term.isTerm() && t.term.term()->shared() && t.term.term()->ground(); }); }
 
 unsigned TermSpec::weight() const
 { 
   ASS(definitelyGround())
-  return _self.match([](Appl const& a) { return iterTraits(a.argsIter()).map([](auto& x) { return x.weight(); }).sum(); },
-                     [](OldTermSpec const& t) { return t.term.term()->weight(); }); }
+  return _self.match([](CompositeTermSpec const& a) { return iterTraits(a.argsIter()).map([](auto& x) { return x.weight(); }).sum(); },
+                     [](AtomicTermSpec const& t) { return t.term.term()->weight(); }); }
 
 const int RobSubstitution::SPECIAL_INDEX=-2;
 const int RobSubstitution::UNBOUND_INDEX=-1;
@@ -72,8 +72,8 @@ bool TermSpec::sameTermContent(TermSpec const& other) const
   } else {
     ASS(isTerm())
     ASS(other.isTerm())
-    auto t1 =       _self.as<OldTermSpec>();
-    auto t2 = other._self.as<OldTermSpec>();
+    auto t1 =       _self.as<AtomicTermSpec>();
+    auto t2 = other._self.as<AtomicTermSpec>();
     if (t1.isSome() && t2.isSome()) {
       return t1->term == t2->term && (
            (t1->index == t2->index)
@@ -88,74 +88,74 @@ bool TermSpec::sameTermContent(TermSpec const& other) const
 }
 
 bool TermSpec::isSpecialVar() const 
-{ return _self.match([](Appl const&)             { return false; },
-                     [](OldTermSpec const& self) { return self.term.isSpecialVar(); }); }
+{ return _self.match([](CompositeTermSpec const&)             { return false; },
+                     [](AtomicTermSpec const& self) { return self.term.isSpecialVar(); }); }
 
 bool TermSpec::isVar() const 
-{ return _self.match([](Appl const&)             { return false; },
-                     [](OldTermSpec const& self) { return self.term.isVar(); }); }
+{ return _self.match([](CompositeTermSpec const&)             { return false; },
+                     [](AtomicTermSpec const& self) { return self.term.isVar(); }); }
 
 bool TermSpec::isTerm() const 
-{ return _self.match([](Appl const&)             { return true; },
-                     [](OldTermSpec const& self) { return self.term.isTerm(); }); }
+{ return _self.match([](CompositeTermSpec const&)             { return true; },
+                     [](AtomicTermSpec const& self) { return self.term.isTerm(); }); }
 
 bool TermSpec::isLiteral() const 
-{ return _self.match([](Appl const&)             { return false; },
-                     [](OldTermSpec const& self) { return self.term.isTerm() && self.term.term()->isLiteral(); }); }
+{ return _self.match([](CompositeTermSpec const&)             { return false; },
+                     [](AtomicTermSpec const& self) { return self.term.isTerm() && self.term.term()->isLiteral(); }); }
 
 bool TermSpec::isSort() const 
-{ return _self.match([](Appl const& a)           { return a.isSort(); },
-                     [](OldTermSpec const& self) { return self.term.term()->isSort(); }); }
+{ return _self.match([](CompositeTermSpec const& a)           { return a.isSort(); },
+                     [](AtomicTermSpec const& self) { return self.term.term()->isSort(); }); }
 
 
 VarSpec TermSpec::varSpec() const 
 { 
-  auto s = _self.as<OldTermSpec>();
+  auto s = _self.as<AtomicTermSpec>();
   return VarSpec(s->term.var(), s->term.isSpecialVar() ? RobSubstitution::SPECIAL_INDEX : s->index);
 }
 
 unsigned TermSpec::functor() const
-{ return _self.match([](Appl const& a)           { return a.functor; },
-                     [](OldTermSpec const& self) { return self.term.term()->functor(); }); }
+{ return _self.match([](CompositeTermSpec const& a)           { return a.functor; },
+                     [](AtomicTermSpec const& self) { return self.term.term()->functor(); }); }
 
 
 unsigned TermSpec::nTypeArgs() const 
-{ return _self.match([](Appl const& a)           { return env.signature->getFunction(a.functor)->numTypeArguments(); },
-                     [](OldTermSpec const& self) { return self.term.term()->numTermArguments(); }); }
+{ return _self.match([](CompositeTermSpec const& a)           { return env.signature->getFunction(a.functor)->numTypeArguments(); },
+                     [](AtomicTermSpec const& self) { return self.term.term()->numTermArguments(); }); }
 
 unsigned TermSpec::nTermArgs() const 
-{ return _self.match([](Appl const& a)           { return env.signature->getFunction(a.functor)->numTermArguments(); },
-                     [](OldTermSpec const& self) { return self.term.term()->numTermArguments(); }); }
+{ return _self.match([](CompositeTermSpec const& a)           { return env.signature->getFunction(a.functor)->numTermArguments(); },
+                     [](AtomicTermSpec const& self) { return self.term.term()->numTermArguments(); }); }
 
 unsigned TermSpec::nAllArgs() const
-{ return _self.match([](Appl const& a)           { return a.args.map([](auto& x) { return x->size(); }).unwrapOr(0); },
-                     [](OldTermSpec const& self) { return self.term.term()->arity(); }); }
+{ return _self.match([](CompositeTermSpec const& a)           { return a.args.map([](auto& x) { return x->size(); }).unwrapOr(0); },
+                     [](AtomicTermSpec const& self) { return self.term.term()->arity(); }); }
 
 
 TermSpec TermSpec::termArg(unsigned i) const
-{ return _self.match([&](Appl const& a)           { return a.arg(i + nTypeArgs()).clone(); },
-                     [&](OldTermSpec const& self) { return TermSpec(self.term.term()->termArg(i), self.index); }); }
+{ return _self.match([&](CompositeTermSpec const& a)           { return a.arg(i + nTypeArgs()).clone(); },
+                     [&](AtomicTermSpec const& self) { return TermSpec(self.term.term()->termArg(i), self.index); }); }
 
 TermSpec TermSpec::typeArg(unsigned i) const
-{ return _self.match([&](Appl const& a)           { return a.arg(i).clone(); },
-                     [&](OldTermSpec const& self) { return TermSpec(self.term.term()->typeArg(i), self.index); }); }
+{ return _self.match([&](CompositeTermSpec const& a)           { return a.arg(i).clone(); },
+                     [&](AtomicTermSpec const& self) { return TermSpec(self.term.term()->typeArg(i), self.index); }); }
 
 TermSpec TermSpec::anyArg(unsigned i) const
-{ return _self.match([&](Appl const& a)           { return a.arg(i).clone(); },
-                     [&](OldTermSpec const& self) { return TermSpec(*self.term.term()->nthArgument(i), self.index); }); }
+{ return _self.match([&](CompositeTermSpec const& a)           { return a.arg(i).clone(); },
+                     [&](AtomicTermSpec const& self) { return TermSpec(*self.term.term()->nthArgument(i), self.index); }); }
 
 
 TermList TermSpec::toTerm(RobSubstitution& s) const
-{ return _self.match([&](Appl const& a)           { return TermList(Term::createFromIter(a.functor, iterTraits(a.argsIter()).map([&](auto& t) { return t.toTerm(s); }))); },
-                     [&](OldTermSpec const& self) { return s.apply(self.term, self.index); }); }
+{ return _self.match([&](CompositeTermSpec const& a)           { return TermList(Term::createFromIter(a.functor, iterTraits(a.argsIter()).map([&](auto& t) { return t.toTerm(s); }))); },
+                     [&](AtomicTermSpec const& self) { return s.apply(self.term, self.index); }); }
 
 TermSpec TermSpec::sort() const
-{ return _self.match([&](Appl const& a)           -> TermSpec { 
+{ return _self.match([&](CompositeTermSpec const& a)           -> TermSpec { 
                         auto f = env.signature->getFunction(a.functor)->fnType();
                         ASS_REP(f->numTypeArguments() == 0, "TODO: tricky because of polymorphism...")
                         return TermSpec(f->result(), {});
                      },
-                     [&](OldTermSpec const& self) -> TermSpec { return TermSpec(SortHelper::getResultSort(self.term.term()), self.index); }); }
+                     [&](AtomicTermSpec const& self) -> TermSpec { return TermSpec(SortHelper::getResultSort(self.term.term()), self.index); }); }
 
 
 /**
@@ -496,8 +496,8 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   TermList* bt=&obase.term;
   TermList* it=&oinstance.term;
 
-  OldTermSpec binding1;
-  OldTermSpec binding2;
+  AtomicTermSpec binding1;
+  AtomicTermSpec binding2;
 
   for (;;) {
     TermSpec bts(*bt,base.old().index);
@@ -734,89 +734,6 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
                                  : (1 + range(0, orig.term.nAllArgs())
                                            .map([&](auto i) { return sizes[i]; })
                                            .sum()); });
-
-  //
-  // static Stack<TermList*> toDo(8);
-  // static Stack<int> toDoIndex(8);
-  // static Stack<Term*> terms(8);
-  // static Stack<VarSpec> termRefVars(8);
-  // static Stack<size_t> argSizes(8);
-  //
-  // static DHMap<VarSpec, size_t, VarSpec::Hash1, VarSpec::Hash2> known;
-  // known.reset();
-  //
-  // //is inserted into termRefVars, if respective
-  // //term in terms isn't referenced by any variable
-  // const VarSpec nilVS(-1,0);
-  //
-  // toDo.push(&trm);
-  // toDoIndex.push(index);
-  //
-  // while(!toDo.isEmpty()) {
-  //   TermList* tt=toDo.pop();
-  //   index=toDoIndex.pop();
-  //   if(tt->isEmpty()) {
-  //     Term* orig=terms.pop();
-  //     unsigned arity = orig->arity();
-  //     //here we assume, that stack is an array with
-  //     //second topmost element as &top()-1, third at
-  //     //&top()-2, etc...
-  //     size_t* szArr=&argSizes.top() - (orig->arity()-1);
-  //     size_t sz = 1; //1 for the function symbol
-  //     for(unsigned i=0; i<arity; i++) {
-  //       sz += szArr[i];
-  //     }
-  //     argSizes.truncate(argSizes.length() - arity);
-  //     argSizes.push(sz);
-  //
-  //     VarSpec ref=termRefVars.pop();
-  //     if(ref!=nilVS) {
-  //       ALWAYS(known.insert(ref,sz));
-  //     }
-  //     continue;
-  //   } else {
-  //     //if tt==&trm, we're dealing with the top
-  //     //term, for which the next() is undefined
-  //     if(tt!=&trm) {
-  //       toDo.push(tt->next());
-  //       toDoIndex.push(index);
-  //     }
-  //   }
-  //
-  //   TermSpec ts(*tt,index);
-  //
-  //   VarSpec vs;
-  //   if(ts.isVar()) {
-  //     vs=root(ts.varSpec());
-  //
-  //     size_t found;
-  //     if(known.find(vs, found)) {
-  //       argSizes.push(found);
-  //       continue;
-  //     }
-  //
-  //     ts=deref(vs);
-  //     if(ts.isVar()) {
-  //       ASS(ts.isOutputVar());
-  //       argSizes.push(1);
-  //       continue;
-  //     }
-  //   } else {
-  //     vs=nilVS;
-  //   }
-  //   Term* t = ts.old().term.term();
-  //   if(t->shared() && t->ground()) {
-  //     argSizes.push(t->weight());
-  //     continue;
-  //   }
-  //   terms.push(t);
-  //   termRefVars.push(vs);
-  //
-  //   toDo.push(t->args());
-  //   toDoIndex.push(ts.old().index);
-  // }
-  // ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && argSizes.length()==1);
-  // return argSizes.pop();
 }
 
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const

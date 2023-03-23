@@ -70,17 +70,17 @@ struct VarSpec
 };
 
 // TODO get rid of this
-struct OldTermSpec {
-  OldTermSpec() {}
-  OldTermSpec(TermList t, int i) : term(t), index(i) {}
+struct AtomicTermSpec {
+  AtomicTermSpec() {}
+  AtomicTermSpec(TermList t, int i) : term(t), index(i) {}
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
-  IMPL_COMPARISONS_FROM_TUPLE(OldTermSpec)
-  IMPL_HASH_FROM_TUPLE(OldTermSpec)
+  IMPL_COMPARISONS_FROM_TUPLE(AtomicTermSpec)
+  IMPL_HASH_FROM_TUPLE(AtomicTermSpec)
 
   TermList term;
   int index;
 
-  bool sameTermContent(const OldTermSpec& ts)
+  bool sameTermContent(const AtomicTermSpec& ts)
   {
     bool termSameContent=term.sameContent(&ts.term);
     if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
@@ -100,42 +100,46 @@ struct OldTermSpec {
    term.term()->arity()==0 ));
   }
 
-  OldTermSpec clone() const { return *this; }
+  AtomicTermSpec clone() const { return *this; }
 };
+
+class TermSpec;
+
+// TODO get rid of implicit copying of this
+struct CompositeTermSpec {
+  unsigned functor;
+  Option<Recycled<Stack<TermSpec>>> args;
+  auto asTuple() const -> decltype(auto) { return std::tie(functor, args); }
+  IMPL_COMPARISONS_FROM_TUPLE(CompositeTermSpec)
+  IMPL_HASH_FROM_TUPLE(CompositeTermSpec)
+  bool isSort() const { return false; }
+
+  CompositeTermSpec(CompositeTermSpec&&) = default;
+  CompositeTermSpec& operator=(CompositeTermSpec&&) = default;
+
+  TermSpec const& arg(unsigned i) const { return (**args)[i]; }
+  auto argsIter() const 
+  { return iterTraits(args.iter())
+                .flatMap([](auto& args) { return arrayIter(*args); }); }
+
+  CompositeTermSpec clone() const 
+  { return CompositeTermSpec { .functor = functor, 
+                  .args = args.map([](auto& x) { 
+                      return x.clone([](auto& to, auto const& from) { 
+                          to.loadFromIterator(
+                              arrayIter(from)
+                                .map([](auto& c){ return c.clone(); })); 
+                          }); 
+                      }), 
+                }; }
+};
+
 
 class TermSpec
 {
-  // TODO get rid of implicit copying of this
-  struct Appl {
-    unsigned functor;
-    Option<Recycled<Stack<TermSpec>>> args;
-    auto asTuple() const -> decltype(auto) { return std::tie(functor, args); }
-    IMPL_COMPARISONS_FROM_TUPLE(TermSpec::Appl)
-    IMPL_HASH_FROM_TUPLE(TermSpec::Appl)
-    bool isSort() const { return false; }
-
-    Appl(Appl&&) = default;
-    Appl& operator=(Appl&&) = default;
-
-    TermSpec const& arg(unsigned i) const { return (**args)[i]; }
-    auto argsIter() const 
-    { return iterTraits(args.iter())
-                  .flatMap([](auto& args) { return arrayIter(*args); }); }
-
-    Appl clone() const 
-    { return Appl { .functor = functor, 
-                    .args = args.map([](auto& x) { 
-                        return x.clone([](auto& to, auto const& from) { 
-                            to.loadFromIterator(
-                                arrayIter(from)
-                                  .map([](auto& c){ return c.clone(); })); 
-                            }); 
-                        }), 
-                  }; }
-  };
   using Copro = Coproduct<
-    Appl,
-    OldTermSpec
+    CompositeTermSpec,
+    AtomicTermSpec
     >;
   Copro _self;
   friend class UnificationConstraint;
@@ -146,9 +150,9 @@ class TermSpec
 public:
   TermSpec(TermSpec&&) = default;
   TermSpec& operator=(TermSpec&&) = default;
-  OldTermSpec old() const { return _self.unwrap<OldTermSpec>(); }
+  AtomicTermSpec old() const { return _self.unwrap<AtomicTermSpec>(); }
   // TODO get rid of default constructor
-  TermSpec() : TermSpec(decltype(_self)(OldTermSpec())) {}
+  TermSpec() : TermSpec(decltype(_self)(AtomicTermSpec())) {}
   TermSpec(VarSpec v) : TermSpec(TermList::var(v.var), v.index) {}
   friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
   friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);
@@ -194,16 +198,16 @@ public:
   TermSpec clone() const { return TermSpec(_self.clone()); }
   
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
-  TermSpec(TermList self, int index) : _self(OldTermSpec(self, index)) {}
+  TermSpec(TermList self, int index) : _self(AtomicTermSpec(self, index)) {}
 
 
   template<class... Args>
   TermSpec(unsigned functor, Args... args) 
-    : _self(Appl{functor, someIf(sizeof...(args) != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 
+    : _self(CompositeTermSpec{functor, someIf(sizeof...(args) != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 
   {
     ASS_EQ(sizeof...(args), env.signature->getFunction(functor)->arity())
     if (sizeof...(args) != 0) {
-      _self.template unwrap<Appl>().args.unwrap()->pushMany(std::move(args)...);
+      _self.template unwrap<CompositeTermSpec>().args.unwrap()->pushMany(std::move(args)...);
     }
   }
 
