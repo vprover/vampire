@@ -129,9 +129,6 @@ public:
   Literal* applyToBoundResult(Literal* lit) override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
-  bool matchSorts(TermList base, TermList instance) override
-  { return _parent->matchNextAux(instance, base, false); }
-
   bool isIdentityOnQueryWhenResultBound() override
   { return true; }
 
@@ -290,9 +287,6 @@ typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>:
   if(_retrieveSubstitution) {
     _resultNormalizer->reset();
     _resultNormalizer->normalizeVariables(ld->key());
-    if (ld->sort().isNonEmpty()) {
-      _resultNormalizer->normalizeVariables(ld->sort());
-    }
 
     return queryResult(ld,_subst.getSubstitution(&*_resultNormalizer));
   } else {

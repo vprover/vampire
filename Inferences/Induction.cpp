@@ -35,6 +35,7 @@
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Induction.hpp"
 
@@ -466,7 +467,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // add formula with default bound
           if (_opt.integerInductionDefaultBound()) {
             InductionFormulaIndex::Entry* e = nullptr;
-            static TermLiteralClause defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
+            static TermLiteralClause defaultBound(theory->representConstant(IntegerConstantType(0)), nullptr, nullptr);
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
             if (notDoneInt(ctx, nullptr, nullptr, e)) {
@@ -483,7 +484,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(Set<Term*>::Iterator(ta_terms))
         .map([this](Term* arg) {
-          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TermList(arg), true));
+          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), true));
         }));
     }
     // put clauses from queries into contexts alongside with the given clause and induction term
@@ -572,7 +573,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
     auto bound = *lit->nthArgument(positive ? 1-i : i);
 
     auto bound2 = iterTraits(i ? _helper.getGreater(indt) : _helper.getLess(indt)).collect<Stack>();
-    auto it = iterTraits(_helper.getTQRsForInductionTerm(indtl))
+    auto it = iterTraits(_helper.getTQRsForInductionTerm(indt))
       .filter([&premise](const auto& tqr) {
         return tqr.data->clause != premise;
       })
@@ -582,7 +583,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
-    auto b = TermLiteralClause(bound, lit, premise);
+    auto b = TermLiteralClause(TypedTermList(bound, IntTraits::sort()), lit, premise);
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();
@@ -684,7 +685,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2)
 {
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-  static TermList ph(getPlaceholderForTerm(context._indTerm));
+  static TypedTermList ph(getPlaceholderForTerm(context._indTerm));
   // lower bound
   if (bound1) {
     auto lhs = bound1->literal->polarity() ? bound1->term : ph;

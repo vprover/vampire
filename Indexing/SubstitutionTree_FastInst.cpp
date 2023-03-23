@@ -48,13 +48,6 @@ public:
   {
   }
 
-  bool matchSorts(TermList base, TermList instance) override
-  {
-    CALL("SubstitutionTree::InstMatcher::Substitution::matchSorts");
-
-    return _parent->matchNextAux(base, instance, false);
-  }
-
   TermList applyToBoundQuery(TermList t) override
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
@@ -407,9 +400,6 @@ typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>:
     if(!ground) {
       Renaming normalizer;
       normalizer.normalizeVariables(ld->key());
-      if (ld->sort().isNonEmpty()) {
-        normalizer.normalizeVariables(ld->sort());
-      }
       _resultDenormalizer.makeInverse(normalizer);
     }
 

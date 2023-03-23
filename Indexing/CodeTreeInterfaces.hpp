@@ -44,11 +44,13 @@ public:
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
+  /* INFO: we ignore unifying the sort of the keys here */
   virtual void handle(TermLiteralClause data, bool insert) final override
   { if (insert) { _insert(data.term, data.literal, data.clause); }
     else        { _remove(data.term, data.literal, data.clause); } }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
+  // TODO use TypedTermList here too
   bool generalizationExists(TermList t) final override;
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<QueryRes<AbstractingUnifier*, TermLiteralClause>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
@@ -56,8 +58,8 @@ public:
   virtual void output(std::ostream& out) const final override { out << "CodeTree"; }
 
 private:
-  void _insert(TermList t, Literal* lit, Clause* cls);
-  void _remove(TermList t, Literal* lit, Clause* cls);
+  void _insert(TypedTermList t, Literal* lit, Clause* cls);
+  void _remove(TypedTermList t, Literal* lit, Clause* cls);
 
   class ResultIterator;
 

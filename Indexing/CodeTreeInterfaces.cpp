@@ -177,7 +177,7 @@ private:
   Recycled<TermCodeTree::TermMatcher> _matcher;
 };
 
-void CodeTreeTIS::_insert(TermList t, Literal* lit, Clause* cls)
+void CodeTreeTIS::_insert(TypedTermList t, Literal* lit, Clause* cls)
 {
   CALL("CodeTreeTIS::insert");
 
@@ -185,14 +185,14 @@ void CodeTreeTIS::_insert(TermList t, Literal* lit, Clause* cls)
   _ct.insert(ti);
 }
 
-void CodeTreeTIS::_remove(TermList t, Literal* lit, Clause* cls)
+void CodeTreeTIS::_remove(TypedTermList t, Literal* lit, Clause* cls)
 {
   CALL("CodeTreeTIS::remove");
   
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator CodeTreeTIS::getGeneralizations(TermList t, bool retrieveSubstitutions)
+TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
   CALL("CodeTreeTIS::getGeneralizations");
 
