@@ -78,7 +78,7 @@ public:
 
 template<class Value>
 class TermIndexData {
-  TermList _key;
+  TypedTermList _key;
   // TODO rename to _extra (?)
   Value _value;
 public:
@@ -86,12 +86,13 @@ public:
 
   TermIndexData() {}
 
-  TermIndexData(Term* key, Value v)
-    : _key(TermList(key))
+  TermIndexData(TypedTermList key, Value v)
+    : _key(key)
     , _value(std::move(v))
   {}
 
-  TermList const& key() const 
+  using Key = TypedTermList;
+  Key const& key() const 
   { return _key; }
 
   TermList sort() const 
@@ -153,34 +154,28 @@ struct TermLiteralClause
 
   Clause* clause;
   Literal* literal;
-  TermList term;
-  TermList _sort;
+  TypedTermList term;
 
 
-  using Key = TermList;
+  using Key = TypedTermList;
 
-  TermLiteralClause() {}
+  TermLiteralClause() : clause(nullptr), literal(nullptr), term() {}
 
   TermLiteralClause(TypedTermList t, Literal* l, Clause* c)
-    : clause(c), literal(l), term(t), _sort(t.sort()) {}
-
-  TermLiteralClause(TermList t, Literal* l, Clause* c)
-    : clause(c), literal(l), term(t), _sort(TermList::empty()) {}
+    : clause(c), literal(l), term(t) {}
 
   explicit TermLiteralClause(Term* t)
     : TermLiteralClause(TypedTermList(t), nullptr, nullptr)
   {}
 
   Key const& key() const { return term; }
-  TermList sort() const { return _sort; }
 
 private:
   auto  asTuple() const
   { return make_tuple(
       clause  == nullptr, clause  == nullptr ? 0 : clause->number(), 
       literal == nullptr, literal == nullptr ? 0 : literal->getId(), 
-      term,
-      _sort); }
+      term); }
 public:
 
   IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)

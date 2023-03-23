@@ -381,6 +381,8 @@ public:
     }
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
+
+  operator TypedTermList() const { return TypedTermList(TermList(*this), sort()); }
 };
 
 class SortedTermSugar : public TermSugar

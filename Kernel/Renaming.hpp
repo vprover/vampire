@@ -79,6 +79,8 @@ public:
   void normalizeVariables(const Literal* t);
   void normalizeVariables(const Term* t);
   void normalizeVariables(TermList t);
+  void normalizeVariables(TypedTermList t)
+  { normalizeVariables(TermList(t)); normalizeVariables(t.sort()); }
   void makeInverse(const Renaming& orig);
 
   static Literal* normalize(Literal* l);

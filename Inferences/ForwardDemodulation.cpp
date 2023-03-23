@@ -102,8 +102,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
-      TermList querySort = SortHelper::getTermSort(trm, lit);
-
       bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&           
 	         (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
@@ -112,7 +110,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         toplevelCheck &= lit->isPositive() && (cLen == 1);        
       }
 
-      auto git=_index->getGeneralizations(trm, true);
+      auto git = _index->getGeneralizations(trm.term(), true);
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
@@ -121,21 +119,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           continue;
         }
 
-        // to deal with polymorphic matching
-        // Ideally, we would like to extend the substitution 
-        // returned by the index to carry out the sort match.
-        // However, ForwardDemodulation uses a CodeTree as its
-        // indexing mechanism, and it is not clear how to extend
-        // the substitution returned by a code tree.
-        static RobSubstitution subst; 
-        bool resultTermIsVar = qr.data->term.isVar();
-        if(resultTermIsVar){
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
-          subst.reset(); 
-          if(!subst.match(eqSort, 0, querySort, 1)){
-            continue;        
-          }
-        }
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
         TermList rhsS;
@@ -154,9 +137,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
         } else {
           rhsS = subs->applyToBoundResult(rhs);
-        }
-        if(resultTermIsVar){
-          rhsS = subst.apply(rhsS, 0);
         }
 
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);

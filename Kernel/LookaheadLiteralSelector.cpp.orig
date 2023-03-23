@@ -46,7 +46,6 @@ using namespace Saturation;
  */
 struct LookaheadLiteralSelector::GenIteratorIterator
 {
-  using TermIndex = Indexing::TermIndex<TermLiteralClause>;
   DECL_ELEMENT_TYPE(VirtualIterator<tuple<>>);
 
   GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}
@@ -152,11 +151,18 @@ private:
 
   struct TermUnificationRetriever
   {
-    TermUnificationRetriever(TermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
+<<<<<<< HEAD
+    TermUnificationRetriever(TermIndex* index) : _index(index) {}
     VirtualIterator<tuple<>> operator()(TermList trm)
     {
-      // TODO getting the sort of the term in this way is very inefficient
-      return pvi( dropElementType(_index->getUnifications(TypedTermList(trm, SortHelper::getTermSort(trm, _lit)),false)) );
+      return pvi( dropElementType(_index->getUnifications(trm,false)) );
+=======
+    TermUnificationRetriever(TermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
+    VirtualIterator<void> operator()(TermList trm)
+    {
+      TypedTermList tt(trm, SortHelper::getTermSort(trm, _lit));
+      return pvi( getStaticCastIterator<void>(_index->getUnifications(tt,false)) );
+>>>>>>> joe-substitution-tree-refactor
     }
   private:
     TermIndex* _index;

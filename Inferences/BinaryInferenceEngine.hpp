@@ -58,9 +58,9 @@ public:
   AutoSubstitutionTree() : _self() {}
 
   auto handle(Data data, bool adding) { _self.handle(std::move(data), adding); }
-  auto instancesOf(Key const& key) { return _self.instancesOf(key); }
-  auto generalizationsOf(Key const& key) { return _self.generalizationsOf(key); }
-  auto unifications(Key const& key) { return _self.unifications(key); }
+  auto getInstances(Key const& key) { return _self.getInstances(key); }
+  auto getGeneralizations(Key const& key) { return _self.getGeneralizations(key); }
+  auto getUnifications(Key const& key) { return _self.getUnifications(key); }
 
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<AutoSubstitutionTree> const& self) { return out << multiline(self.self, self.indent); }
   friend std::ostream& operator<<(std::ostream& out, AutoSubstitutionTree const& self) { return out << self._self; }
@@ -73,15 +73,15 @@ namespace BinInfMatching {
   template<class Lhs, class Rhs>
   struct RightInstanceOfLeft 
   {
-    static auto findRhs(AutoSubstitutionTree<Rhs>& rhs, Lhs const& lhs) { return rhs.instancesOf(lhs.key()); }
-    static auto findLhs(AutoSubstitutionTree<Lhs>& lhs, Rhs const& rhs) { return lhs.generalizationsOf(rhs.key()); }
+    static auto findRhs(AutoSubstitutionTree<Rhs>& rhs, Lhs const& lhs) { return rhs.getInstances(lhs.key()); }
+    static auto findLhs(AutoSubstitutionTree<Lhs>& lhs, Rhs const& rhs) { return lhs.getGeneralizations(rhs.key()); }
   };
 
   template<class Lhs, class Rhs>
   struct Unification 
   {
-    static auto findRhs(AutoSubstitutionTree<Rhs>& rhs, Lhs const& lhs) { return rhs.unifications(lhs.key()); }
-    static auto findLhs(AutoSubstitutionTree<Lhs>& lhs, Rhs const& rhs) { return lhs.unifications(rhs.key()); }
+    static auto findRhs(AutoSubstitutionTree<Rhs>& rhs, Lhs const& lhs) { return rhs.getUnifications(lhs.key()); }
+    static auto findLhs(AutoSubstitutionTree<Lhs>& lhs, Rhs const& rhs) { return lhs.getUnifications(rhs.key()); }
   };
 }
 

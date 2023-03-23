@@ -16,6 +16,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 
+#include "Kernel/SortHelper.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -36,12 +37,12 @@ namespace {
 
 struct SLQueryResultToTermQueryResultFn
 {
-  SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
+  SLQueryResultToTermQueryResultFn(TypedTermList v) : variable(v) {}
   TermLiteralClause operator() (const SLQueryResult slqr) {
     return TermLiteralClause(slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause);
   }
 
-  TermList variable;
+  TypedTermList variable;
 };
 
 bool isIntegerComparisonLiteral(Literal* lit) {
@@ -71,7 +72,7 @@ VirtualIterator<TermLiteralClause> InductionHelper::getComparisonMatch(
   CALL("InductionHelper::getComparisonMatch");
 
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-  static TermList var(0, false);
+  static TypedTermList var(TermList::var(0), SortHelper::getResultSort(t));
   Literal* pattern = Literal::create2(less, polarity, termIsLeft ? TermList(t) : var, termIsLeft ? var : TermList(t));
   return pvi(getMappingIterator(_comparisonIndex->getUnifications(pattern, /*complementary=*/ false, /*retrieveSubstitution=*/ true),
                                 SLQueryResultToTermQueryResultFn(var)));
@@ -97,11 +98,11 @@ VirtualIterator<TermLiteralClause> InductionHelper::getGreater(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList inductionTerm) {
+TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   CALL("InductionHelper::getIndTQRsForInductionTerm");
 
   ASS(_inductionTermIndex);
-  return _inductionTermIndex->getUnifications(inductionTerm);
+  return _inductionTermIndex->getUnifications(TypedTermList(inductionTerm));
 }
 
 bool InductionHelper::isIntegerComparison(Clause* c) {
