@@ -121,9 +121,9 @@ void checkLiteralMatches(LiteralSubstitutionTree& index, Options::UnificationWit
 }
 
 template<class F>
-void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
+void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TypedTermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
 {
-  CALL("checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)")
+  CALL("checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TypedTermList term, Stack<TermUnificationResultSpec> expected, F unifFun)")
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
@@ -153,13 +153,6 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Sta
 
 }
 
-void checkTermMatches(TermSubstitutionTree& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TermList term, Stack<TermUnificationResultSpec> expected)
-{
-  ASS(term.isTerm())
-  return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUwa(term.term(), uwa, fixedPointIteration); });
-}
-
 void checkTermMatches(TermSubstitutionTree& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
@@ -168,7 +161,7 @@ void checkTermMatches(TermSubstitutionTree& index, Options::UnificationWithAbstr
 
 struct IndexTest {
   unique_ptr<TermSubstitutionTree> index;
-  Stack<TermList> insert;
+  Stack<TypedTermList> insert;
   TermSugar query;
   Stack<TermUnificationResultSpec> expected;
   Options::UnificationWithAbstraction uwa;
@@ -979,7 +972,7 @@ TEST_FUN(higher_order2)
 static const int NORM_QUERY_BANK=2;
 // static const int NORM_RESULT_BANK=3;
 
-Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration) {
+Option<TermUnificationResultSpec> runRobUnify(TypedTermList a, TypedTermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration) {
   // TODO parameter instead of opts
   auto au = AbstractingUnifier::unify(a, 0, b, 0, MismatchHandler(opt), fixedPointIteration);
 
@@ -997,7 +990,7 @@ Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::U
 
 }
 
-void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermUnificationResultSpec exp)
+void checkRobUnify(TypedTermList a, TypedTermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermUnificationResultSpec exp)
 {
   auto is = runRobUnify(a,b,opt, fixedPointIteration);
   if (is.isSome() && is.unwrap() == exp) {
@@ -1011,7 +1004,7 @@ void checkRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction o
 }
 
 
-void checkRobUnifyFail(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration)
+void checkRobUnifyFail(TypedTermList a, TypedTermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration)
 {
   auto is = runRobUnify(a,b,opt, fixedPointIteration);
   if(is.isNone()) {

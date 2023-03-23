@@ -26,6 +26,7 @@
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -350,6 +351,7 @@ public:
   TermList::Top getSpecialVarTop(unsigned specialVar) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
+  TypedTermList apply(TypedTermList t, int index) const { return TypedTermList(apply(TermList(t), index), apply(t.sort(), index)); }
   Stack<Literal*> apply(Stack<Literal*> cl, int index) const;
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
