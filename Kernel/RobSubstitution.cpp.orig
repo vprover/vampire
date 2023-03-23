@@ -35,7 +35,8 @@ namespace Kernel
 using namespace Lib;
 
 std::ostream& operator<<(std::ostream& out, TermSpec const& self)
-{ return self._self.match([&](CompositeTermSpec const& self) -> ostream& { 
+<<<<<<< HEAD
+{ return self._self.match([&](TermSpec::Appl const& self) -> ostream& { 
         forAnyNumTraits([&](auto n) -> Option<tuple<>> {
             if (n.isAdd(self.functor)) {
               out << "(" << self.arg(0) << " + " << self.arg(1) << ")";
@@ -53,7 +54,11 @@ std::ostream& operator<<(std::ostream& out, TermSpec const& self)
         };
         return out;
     },
+                          [&](OldTermSpec    const& self) -> decltype(auto) { return out << self.term << "/" << self.index; }); }
+=======
+{ return self._self.match([&](CompositeTermSpec const& self) -> decltype(auto) { return out << env.signature->getFunction(self.functor)->name() << "(" << commaSep(self.argsIter()) << ")"; },
                           [&](AtomicTermSpec    const& self) -> decltype(auto) { return out << self.term << "/" << self.index; }); }
+>>>>>>> substitution-tree-custom-leaf-data
 
 
 bool TermSpec::isOutputVar() const
@@ -138,8 +143,14 @@ unsigned TermSpec::functor() const
 
 
 unsigned TermSpec::nTypeArgs() const 
+<<<<<<< HEAD
+{ 
+  return _self.match([](Appl const& a)           { return env.signature->getFunction(a.functor)->numTypeArguments(); },
+                     [](OldTermSpec const& self) { return self.term.term()->numTypeArguments(); }); }
+=======
 { return _self.match([](CompositeTermSpec const& a)           { return env.signature->getFunction(a.functor)->numTypeArguments(); },
-                     [](AtomicTermSpec const& self) { return self.term.term()->numTypeArguments(); }); }
+                     [](AtomicTermSpec const& self) { return self.term.term()->numTermArguments(); }); }
+>>>>>>> substitution-tree-custom-leaf-data
 
 unsigned TermSpec::nTermArgs() const 
 { return _self.match([](CompositeTermSpec const& a)           { return env.signature->getFunction(a.functor)->numTermArguments(); },

@@ -30,16 +30,16 @@ using namespace Indexing;
 using namespace Kernel;
 
 class InductionHelper {
-  using TermIndex               = Indexing::TermIndex<DefaultTermLeafData>;
+  using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
   CLASS_NAME(InductionHelper);
   USE_ALLOCATOR(InductionHelper);
 
-  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex)
+  InductionHelper(LiteralIndex<LiteralClause>* comparisonIndex, TermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
-  VirtualIterator<DefaultTermLeafData> getLess(Term* t);
-  VirtualIterator<DefaultTermLeafData> getGreater(Term* t);
+  VirtualIterator<TermLiteralClause> getLess(Term* t);
+  VirtualIterator<TermLiteralClause> getGreater(Term* t);
 
   TermQueryResultIterator getTQRsForInductionTerm(TermList inductionTerm);
 
@@ -58,10 +58,10 @@ public:
   static bool isStructInductionFunctor(unsigned f);
 
 private:
-  VirtualIterator<DefaultTermLeafData> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
+  VirtualIterator<TermLiteralClause> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
 
   // The following pointers can be null if splitting or integer induction is off.
-  LiteralIndex* _comparisonIndex;  // not owned
+  LiteralIndex<LiteralClause>* _comparisonIndex;  // not owned
   TermIndex* _inductionTermIndex;  // not owned
 };
 

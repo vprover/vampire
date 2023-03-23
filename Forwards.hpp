@@ -136,12 +136,13 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
+template<class Data>
 class LiteralIndex;
-struct DefaultLiteralLeafData;
-struct DefaultTermLeafData;
-template<class Data = DefaultTermLeafData>
+struct LiteralClause;
+struct TermLiteralClause;
+template<class Data>
 class TermIndex;
-template<class Data = DefaultTermLeafData>
+template<class Data>
 class TermIndexingStructure;
 
 class TermSharing;

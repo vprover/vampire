@@ -37,21 +37,21 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-class CodeTreeTIS : public TermIndexingStructure<DefaultTermLeafData>
+class CodeTreeTIS : public TermIndexingStructure<TermLiteralClause>
 {
 public:
 
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  virtual void handle(DefaultTermLeafData data, bool insert) final override
+  virtual void handle(TermLiteralClause data, bool insert) final override
   { if (insert) { _insert(data.term, data.literal, data.clause); }
     else        { _remove(data.term, data.literal, data.clause); } }
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
   bool generalizationExists(TermList t) final override;
   // TODO: get rid of NOT_IMPLEMENTED
-  VirtualIterator<QueryRes<AbstractingUnifier*, DefaultTermLeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
+  VirtualIterator<QueryRes<AbstractingUnifier*, TermLiteralClause>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
   virtual void output(std::ostream& out) const final override { out << _ct; }
 

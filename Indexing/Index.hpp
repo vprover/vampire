@@ -37,22 +37,22 @@ using namespace Lib;
 using namespace Saturation;
 
 
-struct DefaultLiteralLeafData 
+struct LiteralClause 
 {
-  CLASS_NAME(DefaultLiteralLeafData);
+  CLASS_NAME(LiteralClause);
 
-  DefaultLiteralLeafData() {}
+  LiteralClause() {}
   using Key = Literal*;
 
   Key const& key() const
   { return literal; }
 
 
-  DefaultLiteralLeafData(Clause* cls, Literal* literal)
+  LiteralClause(Clause* cls, Literal* literal)
     : clause(cls), literal(literal) {  }
 
-  DefaultLiteralLeafData(Literal* lit, Clause* cl)
-    : DefaultLiteralLeafData(cl, lit) {}
+  LiteralClause(Literal* lit, Clause* cl)
+    : LiteralClause(cl, lit) {}
 
 private:
   auto asTuple() const
@@ -63,14 +63,14 @@ private:
       literal == nullptr ? 0 : literal->getId()); }
 public:
 
-  IMPL_COMPARISONS_FROM_TUPLE(DefaultLiteralLeafData)
+  IMPL_COMPARISONS_FROM_TUPLE(LiteralClause)
 
   Clause* clause;
   Literal* literal;
   TermList sort() { return key()->isEquality() ? SortHelper::getEqualityArgumentSort(key()) : TermList::empty();  };
 
 
-  friend std::ostream& operator<<(std::ostream& out, DefaultLiteralLeafData const& self)
+  friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
   { return out << "{ " << outputPtr(self.clause)
                << ", " << outputPtr(self.literal)
                << " }"; }
@@ -148,10 +148,10 @@ public:
   }
 };
 
-struct DefaultTermLeafData 
+struct TermLiteralClause 
 {
-  CLASS_NAME(DefaultTermLeafData);
-  USE_ALLOCATOR(DefaultTermLeafData);
+  CLASS_NAME(TermLiteralClause);
+  USE_ALLOCATOR(TermLiteralClause);
 
   Clause* clause;
   Literal* literal;
@@ -159,16 +159,18 @@ struct DefaultTermLeafData
   TermList _sort;
 
 
-  DefaultTermLeafData() {}
+  using Key = TermList;
 
-  DefaultTermLeafData(TypedTermList t, Literal* l, Clause* c)
+  TermLiteralClause() {}
+
+  TermLiteralClause(TypedTermList t, Literal* l, Clause* c)
     : clause(c), literal(l), term(t), _sort(t.sort()) {}
 
-  DefaultTermLeafData(TermList t, Literal* l, Clause* c)
+  TermLiteralClause(TermList t, Literal* l, Clause* c)
     : clause(c), literal(l), term(t), _sort(TermList::empty()) {}
 
-  explicit DefaultTermLeafData(Term* t)
-    : DefaultTermLeafData(TypedTermList(t), nullptr, nullptr)
+  explicit TermLiteralClause(Term* t)
+    : TermLiteralClause(TypedTermList(t), nullptr, nullptr)
   {}
 
   Coproduct<TypedTermList, TermList> key() const { return _sort.isEmpty() ? Coproduct<TypedTermList, TermList>(term)
@@ -184,10 +186,10 @@ private:
       _sort); }
 public:
 
-  IMPL_COMPARISONS_FROM_TUPLE(DefaultTermLeafData)
+  IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
 
-  friend std::ostream& operator<<(std::ostream& out, DefaultTermLeafData const& self)
-  { return out << "DefaultTermLeafData("
+  friend std::ostream& operator<<(std::ostream& out, TermLiteralClause const& self)
+  { return out << "TermLiteralClause("
                << self.term << ", "
                << outputPtr(self.literal)
                << outputPtr(self.clause)
@@ -249,8 +251,8 @@ struct FormulaQueryResult
   ResultSubstitutionSP substitution;
 };
 
-using TermQueryResult = QueryRes<ResultSubstitutionSP ,   DefaultTermLeafData>;
-using SLQueryResult   = QueryRes<ResultSubstitutionSP, DefaultLiteralLeafData>;
+using TermQueryResult = QueryRes<ResultSubstitutionSP ,   TermLiteralClause>;
+using SLQueryResult   = QueryRes<ResultSubstitutionSP, LiteralClause>;
 
 using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
 using SLQueryResultIterator   = VirtualIterator<SLQueryResult>;

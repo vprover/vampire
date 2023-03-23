@@ -255,7 +255,7 @@ void Induction::attach(SaturationAlgorithm* salg) {
 
   GeneratingInferenceEngine::attach(salg);
   if (InductionHelper::isIntInductionOneOn()) {
-    _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
+    _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
   if (InductionHelper::isNonUnitStructInductionOn()) {
@@ -466,7 +466,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // add formula with default bound
           if (_opt.integerInductionDefaultBound()) {
             InductionFormulaIndex::Entry* e = nullptr;
-            static DefaultTermLeafData defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
+            static TermLiteralClause defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
             if (notDoneInt(ctx, nullptr, nullptr, e)) {
@@ -582,7 +582,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
-    auto b = DefaultTermLeafData(bound, lit, premise);
+    auto b = TermLiteralClause(bound, lit, premise);
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();
@@ -681,7 +681,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 
 // helper function to properly add bounds to integer induction contexts,
 // where the bounds are not part of the inner formula for the induction
-void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const DefaultTermLeafData* bound1, const DefaultTermLeafData* bound2)
+void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2)
 {
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
   static TermList ph(getPlaceholderForTerm(context._indTerm));
@@ -913,7 +913,7 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   }
 }
 
-void InductionClauseIterator::performFinIntInduction(const InductionContext& context, const DefaultTermLeafData& lb, const DefaultTermLeafData& ub)
+void InductionClauseIterator::performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub)
 {
   CALL("InductionClauseIterator::performInfIntInduction");
   InductionFormulaIndex::Entry* e = nullptr;
@@ -924,7 +924,7 @@ void InductionClauseIterator::performFinIntInduction(const InductionContext& con
   resolveClauses(context, e, &lb, &ub);
 }
 
-void InductionClauseIterator::performInfIntInduction(const InductionContext& context, bool increasing, const DefaultTermLeafData& bound)
+void InductionClauseIterator::performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound)
 {
   CALL("InductionClauseIterator::performInfIntInduction");
   InductionFormulaIndex::Entry* e = nullptr;
@@ -947,7 +947,7 @@ void InductionClauseIterator::performInfIntInduction(const InductionContext& con
 // either infinity or -infinity. (The intervals are set such that the hypothesis
 // is valid: if interval_y(Y) holds for some Y, then either interval_x(Y) holds,
 // or depending on 'increasing' either interval_x(Y-1) or interval_x(Y+1) holds.)
-void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const DefaultTermLeafData& bound1, const DefaultTermLeafData* optionalBound2)
+void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermLiteralClause& bound1, const TermLiteralClause* optionalBound2)
 {
   CALL("InductionClauseIterator::performIntInduction");
 

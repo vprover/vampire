@@ -114,8 +114,8 @@ Index* IndexManager::create(IndexType t)
   CALL("IndexManager::create");
 
   Index* res;
-  using TermSubstitutionTree    = Indexing::TermSubstitutionTree<>;
-  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
+  using TermSubstitutionTree    = Indexing::TermSubstitutionTree<TermLiteralClause>;
+  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 
   bool isGenerating;
   switch(t) {

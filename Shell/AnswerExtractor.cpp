@@ -120,7 +120,7 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
 class ConjunctionGoalAnswerExractor::SubstBuilder
 {
 public:
-  SubstBuilder(LiteralStack& goalLits, LiteralIndexingStructure<>& lemmas, RobSubstitution& subst)
+  SubstBuilder(LiteralStack& goalLits, LiteralIndexingStructure<LiteralClause>& lemmas, RobSubstitution& subst)
    : _goalLits(goalLits), _lemmas(lemmas), _subst(subst),
      _goalCnt(goalLits.size()), _btData(_goalCnt), _unifIts(_goalCnt), _triedEqUnif(_goalCnt)
   {}
@@ -201,7 +201,7 @@ public:
 
 private:
   LiteralStack& _goalLits;
-  LiteralIndexingStructure<>& _lemmas;
+  LiteralIndexingStructure<LiteralClause>& _lemmas;
   RobSubstitution& _subst;
 
   unsigned _goalCnt;

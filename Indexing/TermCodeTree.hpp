@@ -46,7 +46,7 @@ protected:
 public:
   TermCodeTree();
   
-  using TermInfo = DefaultTermLeafData;
+  using TermInfo = TermLiteralClause;
 
 
   void insert(TermInfo* ti);
