@@ -104,7 +104,8 @@ public:
     auto rhsLits = range(0, rhs.clause()->size())
       .filter([&](auto i) { return i != rhs.literalIndex; })
       .map([&](auto i){ 
-          return (*rhs.clause())[i];
+          auto lit = (*rhs.clause())[i];
+          return subs.apply(lit, rRes);
       });
 
     return Clause::fromIterator(

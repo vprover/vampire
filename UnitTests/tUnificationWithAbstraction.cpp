@@ -33,7 +33,6 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "z3++.h"
 #include <ios>
 
 // TODO make this test use assertions, instead of printing output
