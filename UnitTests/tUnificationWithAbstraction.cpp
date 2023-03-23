@@ -46,7 +46,6 @@ Clause* unit(Literal* lit)
   return clause({ lit });
 }
 
-static const auto lld = [](auto l) { return LiteralClause(nullptr, l); };
 static const auto tld = [](auto t) { return TermLiteralClause(TypedTermList(t), nullptr, nullptr); };
 
 
@@ -519,7 +518,6 @@ TEST_FUN(term_indexing_poly_01)
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
   NUMBER_SUGAR(Int)
-  DECL_PRED(p, {Int})
   DECL_CONST(a, Int) 
   DECL_POLY_CONST(h, 1, alpha)
   DECL_SORT(A)
@@ -782,7 +780,6 @@ TEST_FUN(term_indexing_interp_only)
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
-  DECL_PRED(p, {Int})
 
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
@@ -968,9 +965,6 @@ TEST_FUN(higher_order2)
   // TODO
   // reportTermMatches(index,ap(ap(f,b),a),srt);
 }
-
-static const int NORM_QUERY_BANK=2;
-// static const int NORM_RESULT_BANK=3;
 
 Option<TermUnificationResultSpec> runRobUnify(TypedTermList a, TypedTermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration) {
   // TODO parameter instead of opts
