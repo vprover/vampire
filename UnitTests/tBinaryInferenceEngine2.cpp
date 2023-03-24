@@ -16,6 +16,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/BinaryInferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Debug/Output.hpp"
 
 #include "Test/GenerationTester.hpp"
 #include "Lib/Reflection.hpp"
@@ -28,25 +29,26 @@ using namespace Indexing;
 
 class SimpleSubsumptionResolution {
 public:
-  static constexpr unsigned DEBUG_LEVEL = 0;
+  static constexpr unsigned DEBUG_LEVEL = 1;
 
   struct Lhs 
   {
     Clause* cl;
+    unsigned literalIndex;
 
     using Key = Literal*;
 
     Literal* key() const 
-    { return Literal::complementaryLiteral((*cl)[0]); }
+    { return Literal::complementaryLiteral((*cl)[literalIndex]); }
 
     Clause* clause() const 
     { return cl; }
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
-    { return out << *self.cl; }
+    { return out << *self.cl << "[" << self.literalIndex << "]"; }
 
     auto asTuple() const -> decltype(auto)
-    { return std::tie(cl); }
+    { return std::tie(cl, literalIndex); }
 
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
   };
@@ -81,11 +83,8 @@ public:
 
   VirtualIterator<Lhs> iterLhs(Clause* cl) const
   {
-    if (cl->size() == 1 && !(*cl)[0]->isEquality()) {
-      return pvi(getSingletonIterator(Lhs { .cl = cl }));
-    } else {
-      return VirtualIterator<Lhs>::getEmpty();
-    }
+    return pvi(range(0, cl->numSelected())
+      .map([cl](auto i) { return Lhs { .cl = cl, .literalIndex = i, }; }));
   }
 
   VirtualIterator<Rhs> iterRhs(Clause* cl) const
@@ -101,15 +100,29 @@ public:
       ) const
   {
 
-    auto rhsLits = range(0, rhs.clause()->size())
-      .filter([&](auto i) { return i != rhs.literalIndex; })
-      .map([&](auto i){ 
-          auto lit = (*rhs.clause())[i];
-          return subs.apply(lit, rRes);
-      });
+    auto rhsLits = [&]() {  
+      return range(0, rhs.clause()->size())
+        .filter([&](auto i) { return i != rhs.literalIndex; })
+        .map([&](auto i)
+            { return (*rhs.clause())[i]; });
+    };
+
+    auto lhsLits = [&]() {
+      return range(0, lhs.clause()->size())
+        .filter([&](auto i) { return i != lhs.literalIndex; })
+        .map([&](auto i)
+            { return subs.apply((*lhs.clause())[i], lRes); });
+    };
+
+    for (auto lit : lhsLits()) {
+       if (rhsLits().find([&](auto r) { return r == lit; })
+                        .isNone()) {
+         return RuleApplicationResult::fail(*this, *lit, " is not contained in ", outputInterleaved(" | ", rhsLits()));
+       }
+    }
 
     return Clause::fromIterator(
-        rhsLits, 
+        rhsLits(),
         Inference(SimplifyingInference2(InferenceRule::SIMPLE_SUBSUMPTION_RESOLUTION, lhs.clause(), rhs.clause())));
   }
 };
@@ -158,6 +171,7 @@ TEST_GENERATION(basic01,
       .expected(exactly(
             clause({ p(b)  }) 
       ))
+      // .premiseRedundant(true)
     )
 
 TEST_GENERATION(basic02,
@@ -168,6 +182,7 @@ TEST_GENERATION(basic02,
       .expected(exactly(
           /* nothing */
       ))
+      // .premiseRedundant(true)
     )
 
 TEST_GENERATION(basic03,
@@ -176,5 +191,17 @@ TEST_GENERATION(basic03,
       .inputs  ({ clause({ selected( ~p(a) ), p(b)  }) 
                 , clause({ selected(  p(x) ), p(c)  }) })
       .expected(exactly(     /* nothing */             ))
+      // .premiseRedundant(true)
     )
 
+
+TEST_GENERATION(basic04,
+    Generation::SymmetricTest()
+      .indices(simplSubResoIndices())
+      .inputs  ({ clause({ selected(  p(f(a)) ), p(a), p(b)  }) 
+                , clause({ selected( ~p(f(x)) ), p(x)        }) })
+      .expected(exactly(
+            clause({ p(a), p(b)  }) 
+      ))
+      // .premiseRedundant(true)
+    )
