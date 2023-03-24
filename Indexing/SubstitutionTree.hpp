@@ -63,7 +63,7 @@ using namespace Kernel;
 
 namespace Indexing {
 
-  namespace UnificationAlgoritms {
+  namespace MatchingAlgorithms {
     struct Unification {
       static bool associate(RobSubstitution& subs, TermList query, unsigned queryBank, TermList tree, unsigned treeBank, MismatchHandler* handler) 
       { return subs.unify(query, queryBank, tree, treeBank, handler); }
@@ -983,16 +983,16 @@ public:
     BacktrackData& _bd;
   };  
 
-  template<class UnificationAlgorithm>
-  class UnificationsIterator final
+  template<class MatchAlgo>
+  class TreeIter final
   {
   public:
-    UnificationsIterator(UnificationsIterator&&) = default;
-    UnificationsIterator& operator=(UnificationsIterator&&) = default;
+    TreeIter(TreeIter&&) = default;
+    TreeIter& operator=(TreeIter&&) = default;
     DECL_ELEMENT_TYPE(QueryResult);
 
     template<class TermOrLit>
-    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* funcSubtermMap)
+    TreeIter(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, bool useC, FuncSubtermMap* funcSubtermMap)
       : _subst()
       , _svStack()
       , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
@@ -1011,7 +1011,7 @@ public:
 #endif
     {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
-      CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
+      CALL("SubstitutionTree::TreeIter::TreeIter");
 
       ASS(!_useUWAConstraints || retrieveSubstitution);
       ASS(!_useUWAConstraints || parent->_useC);
@@ -1036,7 +1036,7 @@ public:
     }
 
 
-    ~UnificationsIterator()
+    ~TreeIter()
     {
       if(_clientBDRecording) {
         _subst->bdDone();
@@ -1051,7 +1051,7 @@ public:
 
     bool hasNext()
     {
-      CALL("SubstitutionTree::UnificationsIterator::hasNext");
+      CALL("SubstitutionTree::TreeIter::hasNext");
 
       if(_clientBDRecording) {
         _subst->bdDone();
@@ -1066,7 +1066,7 @@ public:
 
     QueryResult next()
     {
-      CALL("SubstitutionTree::UnificationsIterator::next");
+      CALL("SubstitutionTree::TreeIter::next");
 
       while(!_ldIterator.hasNext() && findNextLeaf()) {}
       ASS(_ldIterator.hasNext());
@@ -1103,7 +1103,7 @@ public:
   protected:
     bool associate(TermList query, TermList node, BacktrackData& bd)
     {
-      CALL("SubstitutionTree::UnificationsIterator::associate");
+      CALL("SubstitutionTree::TreeIter::associate");
 
       //The ordering of the if statements is important here. Higher-order problems
       //should never require theory resoning (at the moment, theories cannot be parsed in HOL)
@@ -1111,18 +1111,18 @@ public:
       //the wrong handler being used.
       if(_useHOConstraints){
         STHOMismatchHandler hndlr(*_constraints,bd);
-        return UnificationAlgorithm::associate(*_subst, query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
+        return MatchAlgo::associate(*_subst, query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
       }
       if(_useUWAConstraints){ 
         SubstitutionTreeMismatchHandler hndlr(*_constraints,bd);
-        return UnificationAlgorithm::associate(*_subst, query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+        return MatchAlgo::associate(*_subst, query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
       } 
-      return UnificationAlgorithm::associate(*_subst, query, QUERY_BANK, node, NORM_RESULT_BANK, nullptr);
+      return MatchAlgo::associate(*_subst, query, QUERY_BANK, node, NORM_RESULT_BANK, nullptr);
     }
 
     NodeIterator getNodeIterator(IntermediateNode* n)
     {
-      CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
+      CALL("SubstitutionTree::TreeIter::getNodeIterator");
 
       unsigned specVar=n->childVar;
       TermList qt=_subst->getSpecialVarTop(specVar);
@@ -1144,7 +1144,7 @@ public:
 
     bool findNextLeaf()
     {
-      CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
+      CALL("SubstitutionTree::TreeIter::findNextLeaf");
 
       if(_nodeIterators->isEmpty()) {
         //There are no node iterators in the stack, so there's nowhere
@@ -1191,7 +1191,7 @@ public:
     }
     bool enter(Node* n, BacktrackData& bd)
     {
-      CALL("SubstitutionTree::UnificationsIterator::enter");
+      CALL("SubstitutionTree::TreeIter::enter");
 
 #if VDEBUG
       if(_tag){
@@ -1263,16 +1263,17 @@ public:
     bool _tag;
 #endif
   };
-  using FastInstancesIterator       = UnificationsIterator<UnificationAlgoritms::Instantiation>;
-  using FastGeneralizationsIterator = UnificationsIterator<UnificationAlgoritms::Generalization>;
 
+  using GenIter  = TreeIter<MatchingAlgorithms::Generalization>;
+  using InstIter = TreeIter<MatchingAlgorithms::Instantiation>;
+  using UnifIter = TreeIter<MatchingAlgorithms::Unification>;
 
   template<class Query>
   bool generalizationExists(Query query)
   {
     return _root == nullptr 
       ? false
-      : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false, /* useC */ false, /* funcSubtermMap */ nullptr).hasNext();
+      : GenIter(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false, /* useC */ false, /* funcSubtermMap */ nullptr).hasNext();
   }
 
 #if VDEBUG

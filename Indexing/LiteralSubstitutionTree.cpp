@@ -34,16 +34,16 @@ LiteralSubstitutionTree::LiteralSubstitutionTree(bool useC)
 { }
 
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
-{ return getResultIterator<UnificationsIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
+{ return getResultIterator<SubstitutionTree::UnifIter>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
 
 SLQueryResultIterator LiteralSubstitutionTree::getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions)
-{ return getResultIterator<UnificationsIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ true); }
+{ return getResultIterator<SubstitutionTree::UnifIter>(lit, complementary, retrieveSubstitutions, /* constraints */ true); }
 
 SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
-{ return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
+{ return getResultIterator<SubstitutionTree::GenIter>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
 
 SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
-{ return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
+{ return getResultIterator<SubstitutionTree::InstIter>(lit, complementary, retrieveSubstitutions, /* constraints */ false); }
 
 
 SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)

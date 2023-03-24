@@ -102,13 +102,13 @@ private:
   { return out << multiline((SubstitutionTree const&) self.self); }
 public:
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+  { return pvi(getResultIterator<SubstitutionTree::InstIter>(t, retrieveSubstitutions, /* constraints */ false)); }
 
   TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+  { return pvi(getResultIterator<SubstitutionTree::GenIter>(t, retrieveSubstitutions, /* constraints */ false)); }
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions, bool withConstraints) override
-  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgoritms::Unification>>(t, retrieveSubstitutions, withConstraints)); }
+  { return pvi(getResultIterator<SubstitutionTree::UnifIter>(t, retrieveSubstitutions, withConstraints)); }
 
 };
 
