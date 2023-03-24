@@ -64,9 +64,18 @@ using namespace Kernel;
 namespace Indexing {
 
   namespace UnificationAlgoritms {
-    struct Unification { };
-    struct Generalization { };
-    struct Instantiation { };
+    struct Unification {
+      static bool associate(RobSubstitution& subs, TermList query, unsigned queryBank, TermList tree, unsigned treeBank, MismatchHandler* handler) 
+      { return subs.unify(query, queryBank, tree, treeBank, handler); }
+    };
+    struct Generalization { 
+      static bool associate(RobSubstitution& subs, TermList query, unsigned queryBank, TermList tree, unsigned treeBank, MismatchHandler* handler) 
+      { ASS(handler == nullptr) return subs.match(/* base */ tree, treeBank,  /* instance */ query, queryBank); }
+    };
+    struct Instantiation { 
+      static bool associate(RobSubstitution& subs, TermList t1, unsigned bank1, TermList t2, unsigned bank2, MismatchHandler* handler) 
+      { return Generalization::associate(subs, t2, bank2, t1, bank1, handler); }
+    };
   }
 
 class SubstitutionTree;
@@ -1102,13 +1111,13 @@ public:
       //the wrong handler being used.
       if(_useHOConstraints){
         STHOMismatchHandler hndlr(*_constraints,bd);
-        return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
+        return UnificationAlgorithm::associate(*_subst, query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
       }
       if(_useUWAConstraints){ 
         SubstitutionTreeMismatchHandler hndlr(*_constraints,bd);
-        return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
+        return UnificationAlgorithm::associate(*_subst, query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
       } 
-      return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK);
+      return UnificationAlgorithm::associate(*_subst, query, QUERY_BANK, node, NORM_RESULT_BANK, nullptr);
     }
 
     NodeIterator getNodeIterator(IntermediateNode* n)
