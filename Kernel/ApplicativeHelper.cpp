@@ -260,9 +260,9 @@ bool TermShifter::exploreSubterms(TermList orig, TermList newTerm)
   return false;
 }
 
-TermList FOSubtermReplacer::replace(TermList term)
+TermList ToPlaceholders::replace(TermList term)
 {
-  CALL("FOSubtermReplacer::replace");
+  CALL("ToPlaceholders::replace");
 
   TermList transformed = transformSubterm(term);
   if(transformed != term) return transformed;    
@@ -270,9 +270,9 @@ TermList FOSubtermReplacer::replace(TermList term)
   return transform(term);  
 }
 
-TermList FOSubtermReplacer::transformSubterm(TermList t)
+TermList ToPlaceholders::transformSubterm(TermList t)
 {
-  CALL("FOSubtermReplacer::transformSubterm");
+  CALL("ToPlaceholders::transformSubterm");
 
   typedef ApplicativeHelper AH;
 
@@ -293,16 +293,16 @@ TermList FOSubtermReplacer::transformSubterm(TermList t)
   return t;
 } 
 
-void FOSubtermReplacer::onTermEntry(Term* t)
+void ToPlaceholders::onTermEntry(Term* t)
 {
-  CALL("FOSubtermReplacer::onTermEntry");
+  CALL("ToPlaceholders::onTermEntry");
 
   if(t->isApplication()) _nextIsPrefix = true;
 }
 
-void FOSubtermReplacer::onTermExit(Term* t)
+void ToPlaceholders::onTermExit(Term* t)
 {
-  CALL("FOSubtermReplacer::onTermExit");
+  CALL("ToPlaceholders::onTermExit");
 
   _nextIsPrefix = false;
 }

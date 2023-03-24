@@ -516,50 +516,53 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
       it = t->args();
     } else {
       if (! TermList::sameTopFunctor(bts.old().term,its.old().term)) {
-	if(bts.old().term.isSpecialVar()) {
-	  VarSpec bvs(bts.old().term.var(), SPECIAL_INDEX);
+        if(bts.old().term.isSpecialVar()) {
+          VarSpec bvs(bts.old().term.var(), SPECIAL_INDEX);
           auto binding = _bank.find(bvs);
-	  if(binding) {
-            binding1 = binding->old();
-	    ASS_EQ(binding1.index, base.old().index);
-	    bt=&binding1.term;
-	    continue;
-	  } else {
-	    bind(bvs,its.clone());
-	  }
-	} else if(its.old().term.isSpecialVar()) {
-	  VarSpec ivs(its.old().term.var(), SPECIAL_INDEX);
+          
+          if(binding) {
+                  binding1 = binding->old();
+            ASS_EQ(binding1.index, base.old().index);
+            bt=&binding1.term;
+            continue;
+          } else {
+            bind(bvs,its.clone());
+          }
+        } else if(its.old().term.isSpecialVar()) {
+          VarSpec ivs(its.old().term.var(), SPECIAL_INDEX);
           auto binding = _bank.find(ivs);
-	  if(binding) {
+
+          if(binding) {
             binding2 = binding->old();
-	    ASS_EQ(binding2.index, instance.old().index);
-	    it=&binding2.term;
-	    continue;
-	  } else {
-	    bind(ivs,bts.clone());
-	  }
-	} else if(bts.old().term.isOrdinaryVar()) {
-	  VarSpec bvs(bts.old().term.var(), bts.old().index);
+            ASS_EQ(binding2.index, instance.old().index);
+            it=&binding2.term;
+            continue;
+          } else {
+            bind(ivs,bts.clone());
+          }
+        } else if(bts.old().term.isOrdinaryVar()) {
+          VarSpec bvs(bts.old().term.var(), bts.old().index);
           auto binding = _bank.find(bvs);
-	  if(binding) {
+          
+          if(binding) {
             binding1 = binding->old();
-	    ASS_EQ(binding1.index, instance.old().index);
-	    if(!TermList::equals(binding1.term, its.old().term))
-	    {
-	      mismatch=true;
-	      break;
-	    }
-	  } else {
-	    bind(bvs,its.clone());
-	  }
-	} else {
-	  mismatch=true;
-	  break;
-	}
+            ASS_EQ(binding1.index, instance.old().index);
+            if(!TermList::equals(binding1.term, its.old().term))
+            {
+              mismatch=true;
+              break;
+            }
+          } else {
+            bind(bvs,its.clone());
+          }
+        } else {
+          mismatch=true;
+          break;
+        }
       }
 
       if (subterms.isEmpty()) {
-	break;
+        break;
       }
       bt = subterms.pop();
       it = subterms.pop();

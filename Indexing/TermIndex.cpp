@@ -86,7 +86,7 @@ void DemodulationSubtermIndex<SubtermIterator>::handleClause(Clause* c, bool add
 
   TIME_TRACE("backward demodulation index maintenance");
 
-  static DHSet<TermList> inserted;
+  static DHSet<Term*> inserted;
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
@@ -98,7 +98,7 @@ void DemodulationSubtermIndex<SubtermIterator>::handleClause(Clause* c, bool add
     Literal* lit=(*c)[i];
     SubtermIterator it(lit);
     while (it.hasNext()) {
-      TermList t=TermList(it.next());
+      Term* t= it.next();
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
         //It is enough to insert a term only once per clause.
         //Also, once we know term was inserted, we know that all its
@@ -107,10 +107,10 @@ void DemodulationSubtermIndex<SubtermIterator>::handleClause(Clause* c, bool add
         continue;
       }
       if (adding) {
-        _is->insert(t, lit, c);
+        _is->insert(TypedTermList(t), lit, c);
       }
       else {
-        _is->remove(t, lit, c);
+        _is->remove(TypedTermList(t), lit, c);
       }
     }
   }
@@ -134,11 +134,13 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   Literal* lit=(*c)[0];
   TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while (lhsi.hasNext()) {
+    auto lhs = lhsi.next();
+    TypedTermList tt(lhs, SortHelper::getTermSort(lhs, lit));
     if (adding) {
-      _is->insert(lhsi.next(), lit, c);
+      _is->insert(tt, lit, c);
     }
     else {
-      _is->remove(lhsi.next(), lit, c);
+      _is->remove(tt, lit, c);
     }
   }
 }
@@ -160,12 +162,13 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
           if (!tl.term()) continue;
           // TODO: each term (and its subterms) should be processed
           // only once per literal, see DemodulationSubtermIndex
-          if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-              InductionHelper::isIntInductionTermListInLiteral(tl.term(), lit)) {
+          Term* t = tl.term();
+          if (InductionHelper::isInductionTermFunctor(t->functor()) &&
+              InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
             if (adding) {
-              _is->insert(tl, lit, c);
+              _is->insert(TypedTermList(t), lit, c);
             } else {
-              _is->remove(tl, lit, c);
+              _is->remove(TypedTermList(t), lit, c);
             }
           }
         }
@@ -197,12 +200,13 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
         continue;
       }
       ASS(tl.isTerm());
-      if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-          InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
+      Term* t = tl.term();
+      if (InductionHelper::isInductionTermFunctor(t->functor()) &&
+          InductionHelper::isStructInductionFunctor(t->functor())) {
         if (adding) {
-          _is->insert(tl, lit, c);
+          _is->insert(TypedTermList(t), lit, c);
         } else {
-          _is->remove(tl, lit, c);
+          _is->remove(TypedTermList(t), lit, c);
         }
       }
     }
@@ -219,7 +223,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
 {
   CALL("SkolemisingFormulaIndex::insertFormula");
-  _is->insert(formula, skolem);
+  _is->insert(TypedTermList(formula.term()), skolem);
 }
 
 #endif
@@ -263,7 +267,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
         combTerm = LambdaElimination().elimLambda(lambdaTerm);
         if(!_insertedInstantiations.contains(combTerm)){
-        /*cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
+        cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
         cout << "arg " + leftArgs[i].toString() << endl;
         cout << "inserting " + lambdaTerm->toString() << endl;
         cout << "inserting " + combTerm.toString() << endl;
@@ -281,7 +285,7 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
         lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
         combTerm = LambdaElimination().elimLambda(lambdaTerm);
         if(!_insertedInstantiations.contains(combTerm)){
-        /*cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
+        cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
         cout << "arg " + rightArgs[i].toString() << endl;
         cout << "inserting " + lambdaTerm->toString() << endl;
         cout << "inserting " + combTerm.toString() << endl; 
@@ -299,7 +303,6 @@ void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
 
   VList::destroy(boundVar);
 }*/
-
 
 
 } // namespace Indexing

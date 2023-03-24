@@ -25,20 +25,24 @@ class TermIndexingStructure {
 public:
   virtual ~TermIndexingStructure() {}
 
-  virtual void insert(TermList t, Literal* lit, Clause* cls) = 0;
-  virtual void remove(TermList t, Literal* lit, Clause* cls) = 0;
-  virtual void insert(TermList t, TermList trm){ NOT_IMPLEMENTED; }
-  virtual void insert(TermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
+  virtual void insert(TypedTermList t, Literal* lit, Clause* cls) = 0;
+  virtual void remove(TypedTermList t, Literal* lit, Clause* cls) = 0;
+  virtual void insert(TypedTermList t, TermList trm){ NOT_IMPLEMENTED; }
+  virtual void insert(TypedTermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
-  virtual TermQueryResultIterator getUnifications(TermList t, 
+  virtual TermQueryResultIterator getUnifications(TypedTermList t, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, 
     Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
-  virtual TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, 
-    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }  
-  virtual TermQueryResultIterator getGeneralizations(TermList t, 
+
+#if VHOL
+  virtual VirtualIterator<TQueryRes<HOLUnifier*>> getHOLUnifs(TypedTermList t)
+    { NOT_IMPLEMENTED; }
+#endif
+  
+  virtual TermQueryResultIterator getGeneralizations(TypedTermList t, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getInstances(TermList t, 
+  virtual TermQueryResultIterator getInstances(TypedTermList t, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }

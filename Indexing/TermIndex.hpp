@@ -31,19 +31,21 @@ public:
   CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
+  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }
+#if VHOL
+  VirtualIterator<TQueryRes<HOLUnifier*>> getHOLUnifs(TypedTermList t)
+  { return _is->getHOLUnifs(t); }
+#endif
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true)
+  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
 
 

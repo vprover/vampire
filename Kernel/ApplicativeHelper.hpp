@@ -160,10 +160,13 @@ private:
   int _minFreeIndex;
 };
 
-class FOSubtermReplacer : public TermTransformer
+// replaces higher-order subterms (subterms with variable heads e.g., X a b &
+// lambda terms) with a special polymorphic constant we call a "placeholder".
+// Depending on the mode functional and Boolean subterms may also be replaced
+class ToPlaceholders : public TermTransformer
 {
 public:
-  FOSubtermReplacer() : 
+  ToPlaceholders() : 
     _nextIsPrefix(false),
     _topLevel(true),
     _mode(env.options->functionExtensionality()) {

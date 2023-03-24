@@ -557,9 +557,10 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         rule = convert(Signature::PI);
         newTerm = piRemoval(args[0], c, srt);
       } else {
+        ASS(term.isTerm());
         bool newTermCreated = false;
         if(index){
-          auto results = index->getGeneralizations(term, true);
+          auto results = index->getGeneralizations(TypedTermList(term.term()), true);
           if(results.hasNext()){
             TermQueryResult tqr = results.next();
             TermList skolemTerm = tqr.term;
@@ -571,7 +572,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         if(!newTermCreated){
           TermList skolemTerm = sigmaRemoval(args[0], srt);
           if(index){
-            index->insertFormula(term, skolemTerm);
+            index->insertFormula(TypedTermList(term.term()), skolemTerm);
           }
           newTerm = AH::app(srt, args[0], skolemTerm);
         }

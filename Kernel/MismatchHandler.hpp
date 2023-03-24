@@ -191,5 +191,22 @@ public:
   { return out << "(" << self._subs << ", " << self._constr << ")"; }
 };
 
+#if VHOL
+//TODO move from Mismatch handler to somewhere more suitable
+class HOLUnifier {
+  Recycled<RobSubstitution> _subs;
+
+public:
+
+  HOLUnifier() : _subs() {}
+
+  bool unifyWithPlaceholders(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+
+  RobSubstitution      & subs()       { return *_subs; }
+  RobSubstitution const& subs() const { return *_subs; }
+
+};
+#endif
+
 } // namespace Kernel
 #endif /*__MismatchHandler__*/

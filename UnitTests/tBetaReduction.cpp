@@ -228,7 +228,7 @@ TEST_FUN(fo_subterm_rep1) {
   env.options->setHolPrinting(Options::HPrinting::PRETTY);
   env.property->forceHigherOrder();
 
-  FOSubtermReplacer sr;
+  ToPlaceholders sr;
   auto t = ap(ap(f,g), ap(y, x));
 
   auto replaced = sr.replace( t );

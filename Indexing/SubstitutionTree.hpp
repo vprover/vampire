@@ -86,7 +86,6 @@ namespace Indexing {
         return _subs->unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
       }
 
-
       Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
 
       void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
@@ -103,6 +102,41 @@ namespace Indexing {
 
       bool usesUwa() const { return false; }
     };
+
+    class UnificationsWithPlaceholders { 
+      HOLUnifier _unif;
+    public:
+      UnificationsWithPlaceholders() : _unif() {}
+      using Unifier = HOLUnifier*;
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      {
+        // CALL("SubstitutionTree::UnificationsIterator::associate");
+        TermList query(specialVar, /* special */ true);
+        return _unif.unifyWithPlaceholders(query, QUERY_BANK, node, NORM_RESULT_BANK);
+      }
+
+      Unifier unifier()
+      { return &_unif; }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _unif.subs().bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd)
+      { _unif.subs().bdRecord(bd); }
+
+      void bdDone()
+      { _unif.subs().bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+      TermList::Top getSpecialVarTop(unsigned svar)
+      { return _unif.subs().getSpecialVarTop(svar); }
+
+      bool usesUwa() const
+      { return false; }
+    };    
 
     class UnificationWithAbstraction { 
       AbstractingUnifier _unif;
@@ -980,15 +1014,6 @@ public:
   {
     bindSpecialVar(0, term);
     bindSpecialVar(1, term.sort());
-  }
-
-  // TODO document
-  template<class BindingFunction>
-  void createBindings(TermList term, bool reversed, BindingFunction bindSpecialVar)
-  { 
-    bindSpecialVar(0, term); 
-    if (term.isTerm())
-      bindSpecialVar(1, SortHelper::getResultSort(term.term()));
   }
 
   template<class BindingFunction>

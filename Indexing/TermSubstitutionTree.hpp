@@ -31,11 +31,9 @@
 namespace Indexing {
 
 /*
- * Note that unlike LiteralSubstitutionTree, TermSubstitutionTree does
- * not (yet) carry out sort checking when attempting to find unifiers, generalisations
- * or instances. In particular, if the query or result is a variable, it is the callers'
- * responsibility to ensure that the sorts are unifiable/matchable
- * (edit: if the caller inserts a TypedTermList instead of a TermList, this will be handled automatically.)
+ * As of 22/03/2023 TermSubstitutionTrees carry our type checking.
+ * Thus, there is no need to check whether the type of returned terms match those of the query
+ * as this is now done within the tree.
  */
 
 
@@ -59,24 +57,23 @@ public:
    */
   explicit TermSubstitutionTree(bool extra);
 
-  void handle(TypedTermList tt, Literal* lit, Clause* cls, bool insert)
-  { handleTerm(tt, LeafData(cls,lit,tt), insert); }
+  void handle(TypedTermList t, Literal* lit, Clause* cls, bool adding)
+  { handleTerm(t, LeafData(cls, lit, t), adding); }
 
-  void insert(TermList t, Literal* lit, Clause* cls) override
+  void insert(TypedTermList t, Literal* lit, Clause* cls) override 
   { handleTerm(t, LeafData(cls,lit,t), /* insert */ true); }
 
-  void remove(TermList t, Literal* lit, Clause* cls) override
+  void remove(TypedTermList t, Literal* lit, Clause* cls) override
   { handleTerm(t, LeafData(cls,lit,t), /* insert */ false); }
 
-  void insert(TermList t, TermList trm) override
+  void insert(TypedTermList t, TermList trm) override 
   { handleTerm(t, LeafData(0, 0, t, trm), /* insert */ true); }
 
-
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls) override
+  void insert(TypedTermList t, TermList trm, Literal* lit, Clause* cls) override 
   { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
   bool generalizationExists(TermList t) override
-  { return t.isVar() ? false : SubstitutionTree::generalizationExists(t); }
+  { return t.isVar() ? false : SubstitutionTree::generalizationExists(TypedTermList(t.term())); }
 
 #if VDEBUG
   virtual void markTagged() override { SubstitutionTree::markTagged();}
@@ -85,12 +82,18 @@ public:
 
 private:
 
-  template<class TypedOrUntypedTermList>
-  void handleTerm(TypedOrUntypedTermList tt, LeafData ld, bool insert)
-  { SubstitutionTree::handle(tt, ld, insert); }
+  void handleTerm(TypedTermList tt, LeafData ld, bool insert)
+  { 
+#if VHOL
+    if(env.property->higherOrder()){
+      // replace higher-order terms with placeholder constants
+      tt =  TypedTermList(ToPlaceholders().replace(tt), tt.sort());
+    }
+#endif
+    SubstitutionTree::handle(tt, ld, insert); }
 
-  template<class Iterator, class TypedOrUntypedTermList, class... Args>
-  auto getResultIterator(TypedOrUntypedTermList query, bool retrieveSubstitutions, Args... args)
+  template<class Iterator, class... Args>
+  auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, Args... args)
   {
     return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
       .map([this](auto qr)
@@ -116,22 +119,29 @@ private:
         { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
 
 public:
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions) override
+  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions) override
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
   { return fixedPointIteration ? pvi(  postproUwa(t, uwa))
                                : pvi(nopostproUwa(t, uwa)); }
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions) override
+#if VHOL
+  VirtualIterator<TQueryRes<HOLUnifier*>> getHOLUnifs(TypedTermList t) final override
+  {       
+    t =  TypedTermList(ToPlaceholders().replace(t), t.sort());
+    // we don't do post-processign here, as various inferences may wish to process in different ways.
+    // For example, for generating inferences we may wish to use a complex high-order unification alogithm
+    // whilst for simplification inferences we may wish to simply use pattern unification
+    return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationsWithPlaceholders>>(t, true));
+  }
+#endif
+
+  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
-
-  TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(tt, retrieveSubstitutions)); }
-
 };
 
 };
