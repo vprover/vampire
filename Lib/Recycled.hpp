@@ -118,6 +118,10 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
   { return out << self._ptr; }
+
+  template<class Idx> auto operator[](Idx const& idx)       { return _ptr[idx]; }
+  template<class Idx> auto operator[](Idx const& idx) const { return _ptr[idx]; }
+  auto size() const { return _ptr.size(); }
 };
 
 template<class T, class Reset, class Keep>

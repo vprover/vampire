@@ -240,8 +240,7 @@ public:
   {
     CALL("BinaryInferenceEngine::generateClauses(Clause* premise)")
     ASS(_idx)
-    // TODO get rid of stack
-    Stack<Clause*> out;
+    Recycled<Stack<Clause*>> out;
 
     bool redundant = false;
 
@@ -249,44 +248,13 @@ public:
     // auto query  = QUERY_BANK;
     auto result = true;
     auto query  = false;
-    for (auto const& lhs : iterTraits(_inf.iterLhs(premise))) {
-      DEBUG_BIN_INF(0, "lhs: ", lhs)
-      for (auto rhs_sigma : iterTraits(_idx->findRhs(lhs))) {
-        auto& rhs   = *rhs_sigma.data;
-        auto& sigma = rhs_sigma.unifier;
-        DEBUG_BIN_INF(0, "  rhs: ", rhs)
-        _inf.apply(lhs, query, rhs, result, *sigma)
-           .match(
-              [&](RuleApplicationResult::Ok ok) {
-                for (auto c : ok.derived()) {
-                  DEBUG_BIN_INF(0, "    derived: ", *c);
-                  out.push(c);
-                }
-                for (auto c : ok.redundant()) {
-                  if (c == premise) {
-                    redundant = true;
-                  } else {
-                    ASSERTION_VIOLATION_REP("TODO")
-                  }
-                }
-                ASS_REP(ok.redundant().size() == 0, "TODO")
-              },
-              [](RuleApplicationResult::Fail) { /* nothing to do */ });
-      }
-    }
 
-    for (auto const& rhs : iterTraits(_inf.iterRhs(premise))) {
-      DEBUG_BIN_INF(0, "rhs: ", rhs)
-      for (auto lhs_sigma : iterTraits(_idx->findLhs(rhs))) {
-        auto& lhs   = *lhs_sigma.data;
-        auto& sigma = lhs_sigma.unifier;
-        if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-          DEBUG_BIN_INF(0, "  lhs: ", lhs)
-          _inf.apply(lhs, result, rhs, query, *sigma)
+    auto apply = [&](auto& lhs, auto lquery, auto& rhs, auto rquery, auto& sigma) {
+      return _inf.apply(lhs, lquery, rhs, rquery, sigma)
             .match([&](RuleApplicationResult::Ok ok) {
                   for (auto c : ok.derived()) {
                     DEBUG_BIN_INF(0, "    derived: ", *c);
-                    out.push(c);
+                    out->push(c);
                   }
                   for (auto c : ok.redundant()) {
                     if (c == premise) {
@@ -298,6 +266,25 @@ public:
                   ASS_REP(ok.redundant().size() == 0, "TODO")
                 },
                 [](RuleApplicationResult::Fail) { /* nothing to do */ });
+    };
+
+    for (auto const& lhs : iterTraits(_inf.iterLhs(premise))) {
+      DEBUG_BIN_INF(0, "lhs: ", lhs)
+      for (auto rhs_sigma : iterTraits(_idx->findRhs(lhs))) {
+        auto& rhs   = *rhs_sigma.data;
+        auto& sigma = rhs_sigma.unifier;
+        DEBUG_BIN_INF(0, "  rhs: ", rhs)
+        apply(lhs, query, rhs, result, *sigma);
+      }
+    }
+
+    for (auto const& rhs : iterTraits(_inf.iterRhs(premise))) {
+      DEBUG_BIN_INF(0, "rhs: ", rhs)
+      for (auto lhs_sigma : iterTraits(_idx->findLhs(rhs))) {
+        auto& lhs   = *lhs_sigma.data;
+        auto& sigma = lhs_sigma.unifier;
+        if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
+          apply(lhs, result, rhs, query, *sigma);
         }
       }
     }
