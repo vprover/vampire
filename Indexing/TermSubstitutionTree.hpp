@@ -108,7 +108,7 @@ public:
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions, bool withConstraints) override
-  { return pvi(getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints)); }
+  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgoritms::Unification>>(t, retrieveSubstitutions, withConstraints)); }
 
 };
 

@@ -25,7 +25,7 @@ namespace Indexing {
 class LiteralSubstitutionTree
 : public LiteralIndexingStructure
 {
-  using UnificationsIterator = SubstitutionTree::UnificationsIterator;
+  using UnificationsIterator = SubstitutionTree::UnificationsIterator<UnificationAlgoritms::Unification>;
   using FastInstancesIterator = SubstitutionTree::FastInstancesIterator;
   using BindingMap = SubstitutionTree::BindingMap;
   using LDIterator = SubstitutionTree::LDIterator;
