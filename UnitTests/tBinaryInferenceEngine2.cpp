@@ -94,7 +94,7 @@ public:
       .map([cl](auto i) { return Rhs { .cl = cl, .literalIndex = i, }; }));
   }
 
-  Clause* apply(
+  RuleApplicationResult apply(
       Lhs const& lhs, bool lRes,
       Rhs const& rhs, bool rRes,
       ResultSubstitution& subs

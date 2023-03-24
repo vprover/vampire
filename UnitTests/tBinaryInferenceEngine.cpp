@@ -96,7 +96,7 @@ public:
       .map([cl](auto i) { return Rhs { .cl = cl, .literalIndex = i, }; }));
   }
 
-  Clause* apply(
+  RuleApplicationResult apply(
       Lhs const& lhs, bool lRes,
       Rhs const& rhs, bool rRes,
       ResultSubstitution& subs
@@ -117,9 +117,10 @@ public:
           return subs.apply(lit, rRes);
       });
 
-    return Clause::fromIterator(
-        concatIters(lhsLits, rhsLits), 
-        Inference(GeneratingInference2(InferenceRule::SIMPLE_BINARY_RESOLUTION, lhs.clause(), rhs.clause())));
+    return RuleApplicationResult::derived(
+      Clause::fromIterator(
+          concatIters(lhsLits, rhsLits), 
+          Inference(GeneratingInference2(InferenceRule::SIMPLE_BINARY_RESOLUTION, lhs.clause(), rhs.clause()))));
   }
 };
 

@@ -11,6 +11,7 @@
 #ifndef __BinaryInferenceEngine__
 #define __BinaryInferenceEngine__
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Indexing/LiteralSubstitutionTree.hpp"
@@ -122,10 +123,83 @@ public:
   friend std::ostream& operator<<(std::ostream& out, BinInfIndex const& self) { return out << self._self; }
 };
 
+class RuleApplicationResultOk
+{
+  Recycled<Stack<Clause*>> _derived;
+  Recycled<Stack<Clause*>> _redundant;
+public:
+  RuleApplicationResultOk() {}
+
+  template<class... Args>
+  RuleApplicationResultOk derived(Clause* cl1, Clause* cl2, Args... args) &&
+  { 
+    ASS(cl1)
+    _derived->push(cl1); 
+    return std::move(*this).derived(cl2, args...); 
+  }
+
+  RuleApplicationResultOk derived(Clause* cl) &&
+  { 
+    ASS(cl)
+    _derived->push(cl); 
+    return std::move(*this); 
+  }
+
+
+  template<class... Args>
+  RuleApplicationResultOk redundant(Clause* cl1, Clause* cl2, Args... args) &&
+  { 
+    ASS(cl1)
+    _redundant->push(cl1); 
+    return std::move(*this).redundant(cl2, args...); 
+  }
+
+  RuleApplicationResultOk redundant(Clause* cl) &&
+  { 
+    ASS(cl)
+    _redundant->push(cl); 
+    return std::move(*this); 
+  }
+
+  Stack<Clause*> const& derived() const& { return *_derived; }
+  Stack<Clause*> const& redundant() const& { return *_redundant; }
+
+}; 
+
+class RuleApplicationResultFail
+{
+public:
+  template<class BinInf, class... Msg>
+  RuleApplicationResultFail(BinInf& inf, Msg const&... msg)
+  { DEBUG_BIN_INF(1, "application failed: ", msg...); }
+}; 
+
+class RuleApplicationResult 
+: public Coproduct< RuleApplicationResultOk
+                  , RuleApplicationResultFail> 
+{
+public:
+  using Ok   = RuleApplicationResultOk;
+  using Fail = RuleApplicationResultFail;
+
+  RuleApplicationResult(Ok   ok)    : Coproduct(std::move(ok)) {}
+  RuleApplicationResult(Fail fail)  : Coproduct(std::move(fail)) {}
+  RuleApplicationResult(Clause* cl) : Coproduct(derived(cl)) {}
+
+
+  template<class... Cs>
+  static Ok derived(Cs... clauses)
+  { return Ok().derived(std::move(clauses)...); }
+
+  template<class BinInf, class... Msgs>
+  static Fail fail(BinInf& inf, Msgs const&... msgs)
+  { return Fail(inf, msgs...); }
+};
+
 
 template<class BinInf>
 class BinaryInferenceEngine
-: public GeneratingInferenceEngine
+: public SimplifyingGeneratingInference
 {
 public:
   CLASS_NAME(BinaryInferenceEngine);
@@ -146,7 +220,7 @@ public:
   { 
     CALL("BinaryInferenceEngine::attach");
     ASS(!_idx);
-    GeneratingInferenceEngine::attach(salg);
+    SimplifyingGeneratingInference::attach(salg);
     _idx = static_cast<decltype(_idx)> (salg->getIndexManager()->request(_inf.indexType()));
     _idx->setInf(&_inf);
   }
@@ -158,16 +232,18 @@ public:
     _idx->setInf(nullptr);
     _salg->getIndexManager()->release(_inf.indexType());
     _idx = 0;
-    GeneratingInferenceEngine::detach();
+    SimplifyingGeneratingInference::detach();
   }
 
 
-  ClauseIterator generateClauses(Clause* premise) final override
+  ClauseGenerationResult generateSimplify(Clause* premise) final override
   {
     CALL("BinaryInferenceEngine::generateClauses(Clause* premise)")
     ASS(_idx)
     // TODO get rid of stack
     Stack<Clause*> out;
+
+    bool redundant = false;
 
     // auto result = RESULT_BANK;
     // auto query  = QUERY_BANK;
@@ -179,11 +255,23 @@ public:
         auto& rhs   = *rhs_sigma.data;
         auto& sigma = rhs_sigma.unifier;
         DEBUG_BIN_INF(0, "  rhs: ", rhs)
-        auto concl = _inf.apply(lhs, query, rhs, result, *sigma);
-        DEBUG_BIN_INF(0, "")
-        if (concl != nullptr) {
-          out.push(concl);
-        }
+        _inf.apply(lhs, query, rhs, result, *sigma)
+           .match(
+              [&](RuleApplicationResult::Ok ok) {
+                for (auto c : ok.derived()) {
+                  DEBUG_BIN_INF(0, "    derived: ", *c);
+                  out.push(c);
+                }
+                for (auto c : ok.redundant()) {
+                  if (c == premise) {
+                    redundant = true;
+                  } else {
+                    ASSERTION_VIOLATION_REP("TODO")
+                  }
+                }
+                ASS_REP(ok.redundant().size() == 0, "TODO")
+              },
+              [](RuleApplicationResult::Fail) { /* nothing to do */ });
       }
     }
 
@@ -194,15 +282,30 @@ public:
         auto& sigma = lhs_sigma.unifier;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG_BIN_INF(0, "  lhs: ", lhs)
-          auto concl = _inf.apply(lhs, result, rhs, query, *sigma);
-          DEBUG_BIN_INF(0, "")
-          if (concl != nullptr) {
-            out.push(concl);
-          }
+          _inf.apply(lhs, result, rhs, query, *sigma)
+            .match([&](RuleApplicationResult::Ok ok) {
+                  for (auto c : ok.derived()) {
+                    DEBUG_BIN_INF(0, "    derived: ", *c);
+                    out.push(c);
+                  }
+                  for (auto c : ok.redundant()) {
+                    if (c == premise) {
+                      redundant = true;
+                    } else {
+                      ASSERTION_VIOLATION_REP("TODO")
+                    }
+                  }
+                  ASS_REP(ok.redundant().size() == 0, "TODO")
+                },
+                [](RuleApplicationResult::Fail) { /* nothing to do */ });
         }
       }
     }
-    return pvi(arrayIter(std::move(out)));
+
+    return ClauseGenerationResult {
+      .clauses = pvi(arrayIter(std::move(out))),
+      .premiseRedundant = redundant,
+    };
   }
 
 #if VDEBUG
