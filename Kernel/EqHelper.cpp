@@ -70,7 +70,6 @@ bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList
 Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 {
   CALL("EqHelper::replace(Literal*,...)");
-
   return static_cast<Literal*>(replace(static_cast<Term*>(lit), what, by));
 }
 

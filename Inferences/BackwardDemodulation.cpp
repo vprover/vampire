@@ -124,32 +124,12 @@ struct BackwardDemodulation::ResultFn
     }
 
     TermList lhs=arg.first;
-
-    // AYB there used to be a check here to ensure that the sorts
-    // matched. This is no longer necessary, as sort matching / unification
-    // is handled directly within the tree
+    ASS_EQ(qr.substitution->applyToQuery(lhs), qr.term)
+    ASS_EQ(qr.substitution->applyToResult(qr.term), qr.term)
+    TermList lhsS = qr.term;
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-    TermList lhsS=qr.term;
-    TermList rhsS;
-
-    if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
-      //When we apply substitution to the rhs, we get a term, that is
-      //a variant of the term we'd like to get, as new variables are
-      //produced in the substitution application.
-      //We'd rather rename variables in the rhs, than in the whole clause
-      //that we're simplifying.
-      TermList lhsSBadVars=qr.substitution->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.substitution->applyToQuery(rhs);
-      Renaming rNorm, qNorm, qDenorm;
-      rNorm.normalizeVariables(lhsSBadVars);
-      qNorm.normalizeVariables(lhsS);
-      qDenorm.makeInverse(qNorm);
-      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-    } else {
-      rhsS=qr.substitution->applyToBoundQuery(rhs);
-    }
+    TermList rhsS = qr.substitution->applyToQuery(rhs);
 
     if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(0);

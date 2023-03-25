@@ -181,14 +181,11 @@ TEST_FUN(current_issue)
   //3. p($sum(b,2)) [input] matches with constraints 
 }
 
-static const int NORM_QUERY_BANK=2;
-static const int NORM_RESULT_BANK=3;
-
 struct testMismatchHandler : MismatchHandler
 {
 testMismatchHandler(Stack<UnificationConstraint>* c) : _constraints(c) {}
 bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList node, unsigned index2){
-    ASS(index1 == NORM_QUERY_BANK && index2 == NORM_RESULT_BANK);
+    ASS(index1 == QUERY_BANK && index2 == RESULT_BANK);
     static unsigned _var = 0;
     unsigned x = _var++;
     TermList nodeVar = TermList(x,true);
@@ -208,12 +205,12 @@ void reportRobUnify(TermList a, TermList b)
   Stack<UnificationConstraint> constraints;
   //MismatchHandler* hndlr = new testMismatchHandler(&constraints);
   MismatchHandler* hndlr = new UWAMismatchHandler(constraints);
-  bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
+  bool result = sub.unify(a,QUERY_BANK,b,RESULT_BANK,hndlr);
   cout << "Result is " << result << endl;
   if(result){
     // cout << "> Substitution is " << endl << sub.toString();
     cout << "> Constraints are:" << endl;
-    auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
+    auto rs = ResultSubstitution::fromSubstitution(&sub,QUERY_BANK,RESULT_BANK);
     for(unsigned i=0;i<constraints.size();i++){
       auto con = (constraints)[i];
       TermList qT = sub.apply(con.first.first,con.first.second);

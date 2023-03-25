@@ -108,7 +108,7 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
         tqr = results.next();
         
         name = tqr.term;
-        nameS = tqr.substitution->applyToBoundResult(name);
+        nameS = tqr.substitution->applyToResult(name);
 
         Literal* defLit = tqr.literal;
         if(positive == defLit->polarity()){

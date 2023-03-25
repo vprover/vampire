@@ -41,12 +41,14 @@ class ResultSubstitution
 {
 public:
   virtual ~ResultSubstitution() {}
-  virtual TermList applyToQuery(TermList t) { NOT_IMPLEMENTED; }
-  virtual Literal* applyToQuery(Literal* l) { NOT_IMPLEMENTED; }
-  virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
-  virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
+  virtual TermList applyToQuery(TermList t) = 0;
+  virtual Literal* applyToQuery(Literal* l) = 0;
+  virtual TermList applyToResult(TermList t) = 0;
+  virtual Literal* applyToResult(Literal* l) = 0;
 
+  [[deprecated("use apply(), instead!!")]]
   virtual TermList applyTo(TermList t, unsigned index) { ASSERTION_VIOLATION; }
+  [[deprecated("use apply(), instead!!")]]
   virtual Literal* applyTo(Literal* l, unsigned index) { NOT_IMPLEMENTED; }
 
   /** if implementation cannot easily give result for this, zero is returned */
@@ -81,57 +83,6 @@ public:
       return getQueryApplicationWeight(t);
     }
   }
-
-  /**
-   * Apply substitution to result term that fulfills the condition,
-   * that all its variables are bound to some term of the query.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnQueryWhenResultBound() method returns true,
-   * as then there's no need to apply the substitution to any
-   * query terms.
-   */
-  virtual TermList applyToBoundResult(TermList t)
-  { return applyToResult(t); }
-
-  /**
-   * Apply substitution to result term that fulfills the condition,
-   * that all its variables are bound to some term of the query.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnQueryWhenResultBound() method returns true,
-   * as then there is no need to apply the substitution to any
-   * query terms.
-   */
-  virtual Literal* applyToBoundResult(Literal* lit)
-  { return applyToResult(lit); }
-
-  /**
-   * Return true if, when the substitution is applied to a result
-   * term through the @b applyToBoundResult function, the corresponding
-   * substitution for query terms is identity.
-   */
-  virtual bool isIdentityOnQueryWhenResultBound() {return false;}
-
-
-  /**
-   * Apply substitution to query term that fulfills the condition,
-   * that all its variables are bound to some term of the result.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnResultWhenQueryBound() method returns true,
-   * as then there is no need to apply the substitution to any
-   * result terms.
-   */
-  virtual TermList applyToBoundQuery(TermList t)
-  { return applyToQuery(t); }
-
-  /**
-   * Return true if, when the substitution is applied to a query
-   * term through the @b applyToBoundQuery function, the corresponding
-   * substitution for query terms is identity.
-   */
-  virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
   static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
   virtual void output(std::ostream& ) const = 0;

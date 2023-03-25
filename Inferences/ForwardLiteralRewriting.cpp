@@ -73,12 +73,12 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       Literal* rhs0 = (qr.literal==(*qr.clause)[0]) ? (*qr.clause)[1] : (*qr.clause)[0];
       Literal* rhs = lit->isNegative() ? rhs0 : Literal::complementaryLiteral(rhs0);
 
-      ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
+      ASS_EQ(qr.substitution->applyToQuery(lit), lit)
 
       //Due to the way we build the _index, we know that rhs contains only
       //variables present in qr.literal
       ASS(qr.literal->containsAllVariablesOf(rhs));
-      Literal* rhsS=qr.substitution->applyToBoundResult(rhs);
+      Literal* rhsS=qr.substitution->applyToResult(rhs);
 
       if(ordering.compare(lit, rhsS)!=Ordering::GREATER) {
   continue;

@@ -63,16 +63,24 @@ using namespace Kernel;
 
 namespace Indexing {
 
+
+  static const int QUERY_BANK=0;
+  static const int RESULT_BANK=1;
+  static const int NORM_RESULT_BANK=3;
+
   namespace MatchingAlgorithms {
     struct Unification {
+      static void initSubs(RobSubstitution& subs) {  }
       static bool associate(RobSubstitution& subs, TermList query, unsigned queryBank, TermList tree, unsigned treeBank, MismatchHandler* handler) 
       { return subs.unify(query, queryBank, tree, treeBank, handler); }
     };
     struct Generalization { 
+      static void initSubs(RobSubstitution& subs) { subs.setOutputIndex(QUERY_BANK); }
       static bool associate(RobSubstitution& subs, TermList query, unsigned queryBank, TermList tree, unsigned treeBank, MismatchHandler* handler) 
       { ASS(handler == nullptr) return subs.match(/* base */ tree, treeBank,  /* instance */ query, queryBank); }
     };
     struct Instantiation { 
+      static void initSubs(RobSubstitution& subs) { subs.setOutputIndex(RESULT_BANK); }
       static bool associate(RobSubstitution& subs, TermList t1, unsigned bank1, TermList t2, unsigned bank2, MismatchHandler* handler) 
       { return Generalization::associate(subs, t2, bank2, t1, bank1, handler); }
     };
@@ -1012,6 +1020,7 @@ public:
     {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
       CALL("SubstitutionTree::TreeIter::TreeIter");
+      MatchAlgo::initSubs(*_subst);
 
       ASS(!_useUWAConstraints || retrieveSubstitution);
       ASS(!_useUWAConstraints || parent->_useC);
@@ -1238,10 +1247,6 @@ public:
       return success;
     }
 
-
-    static const int QUERY_BANK=0;
-    static const int RESULT_BANK=1;
-    static const int NORM_RESULT_BANK=3;
 
     Recycled<RobSubstitution> _subst;
     Recycled<VarStack> _svStack;

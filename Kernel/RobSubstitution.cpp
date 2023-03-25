@@ -98,8 +98,15 @@ void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, i
     Renaming::Item itm=nit.next();
     VarSpec normal(itm.second, normalIndex);
     VarSpec denormalized(itm.first, denormalizedIndex);
-    ASS(!_bank.find(denormalized));
-    bindVar(denormalized,normal);
+    if (denormalizedIndex == _outputIndex) {
+      // TODO this is a bit of a hack. think of better ways of doing denormalization
+      ASS(!_bank.find(normal));
+      bindVar(normal, denormalized);
+
+    } else {
+      ASS(!_bank.find(denormalized));
+      bindVar(denormalized,normal);
+    }
   }
 }
 
@@ -164,6 +171,7 @@ RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
 }
 
 /**
+ * TODO document new behaviour with _outputIndex
  * If @b v is a bound variable then return the term or root variable
  * it is bound to. Otherwise, return the next unbound variable in the
  * UNBOUND_INDEX. This effectively names unbound variables apart from
@@ -176,11 +184,16 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
     TermSpec binding;
     bool found=_bank.find(v,binding);
     if(!found) {
-      binding.index=UNBOUND_INDEX;
-      binding.term.makeVar(_nextUnboundAvailable++);
-      const_cast<RobSubstitution&>(*this).bind(v,binding);
-      return binding;
-    } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()
+      if (_outputIndex == UNBOUND_INDEX) {
+        binding.index=UNBOUND_INDEX;
+        binding.term.makeVar(_nextUnboundAvailable++);
+        const_cast<RobSubstitution&>(*this).bind(v,binding);
+        return binding;
+      } else {
+        ASS_REP(v.index == _outputIndex, "illegal _outputIndex for this substitution")
+        return TermSpec(v);
+      }
+    } else if(binding.index == _outputIndex || binding.term.isTerm()
               || binding.term.isVSpecialVar()) {
       return binding;
     }
@@ -195,7 +208,7 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   //Aux terms don't contain special variables, ergo
   //should be shared.
   //ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
-  ASS_NEQ(v.index, UNBOUND_INDEX);
+  ASS_NEQ(v.index, _outputIndex);
 
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
@@ -240,7 +253,7 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
-    if(!found || binding.index==UNBOUND_INDEX || binding.isVSpecialVar() || 
+    if(!found || binding.index == _outputIndex || binding.isVSpecialVar() || 
         binding.term.isTerm()) {
       return v;
     }
@@ -654,7 +667,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 
       ts=deref(vs);
       if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
-        ASS(ts.index==UNBOUND_INDEX);
+        ASS(ts.index == _outputIndex);
         args.push(ts.term);
         continue;
       }
@@ -749,7 +762,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 
       ts=deref(vs);
       if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
-        ASS(ts.index==UNBOUND_INDEX);
+        ASS(ts.index == _outputIndex);
         argSizes.push(1);
         continue;
       }

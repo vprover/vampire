@@ -14,6 +14,7 @@
  */
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Exception.hpp"
 #include "Lib/Recycled.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -50,20 +51,23 @@ public:
 
   CLASS_NAME(CodeTreeSubstitution);
   USE_ALLOCATOR(CodeTreeSubstitution);
+  TermList applyToQuery(TermList t) override { return t; }
+  Literal* applyToQuery(Literal* t) override { return t; }
 
-  TermList applyToBoundResult(TermList t) override
+  /** works only on "bound variables". That are variables that were involved in buiding the substitution */
+  TermList applyToResult(TermList t) override
   {
-    CALL("CodeTreeSubstitution::applyToBoundResult(TermList)");
+    CALL("CodeTreeSubstitution::applyToResult(TermList)");
     return SubstHelper::apply(t, *getApplicator());
   }
 
-  Literal* applyToBoundResult(Literal* lit) override
+  /** works only on "bound variables". That are variables that were involved in buiding the substitution */
+  Literal* applyToResult(Literal* lit) override
   {
-    CALL("CodeTreeSubstitution::applyToBoundResult(Literal*)");
+    CALL("CodeTreeSubstitution::applyToResult(Literal*)");
     return SubstHelper::apply(lit, *getApplicator());
   }
 
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
   struct Applicator
   {

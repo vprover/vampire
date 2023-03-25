@@ -40,7 +40,9 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
+  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0), _outputIndex(UNBOUND_INDEX) {}
+
+  void setOutputIndex(unsigned idx) { _outputIndex = int(idx); }
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
@@ -62,6 +64,7 @@ public:
     _funcSubtermMap = 0;
     _bank.reset();
     _nextUnboundAvailable=0;
+    _outputIndex = UNBOUND_INDEX;
   }
 
   void setMap(FuncSubtermMap* fmap){
@@ -256,6 +259,7 @@ private:
   FuncSubtermMap* _funcSubtermMap;
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
+  int _outputIndex;
 
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
   { return out << self._bank; }
@@ -301,6 +305,7 @@ private:
   struct MatchingFn;
   struct UnificationFn;
 
+  
 };
 
 };
