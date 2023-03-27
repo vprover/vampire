@@ -338,7 +338,7 @@ bool RewritableVarsIt::hasNext()
 {
   CALL("RewritableVarsIt::hasNext");
 
-  if(!_next.isEmpty()){ return true; }
+  if(_next.isSome()){ return true; }
 
   static TermStack args;
   TermList head;
@@ -349,7 +349,7 @@ bool RewritableVarsIt::hasNext()
     AH::getHeadSortAndArgs(t, head, headSort, args);
     if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var()) 
        && (s.isVar() || s.isArrowSort())){
-      _next = head;
+      _next = some(TypedTermList(head, headSort));
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
       unsigned count = 1;
@@ -358,7 +358,7 @@ bool RewritableVarsIt::hasNext()
         _stack.push(args.pop());
       }
     }
-    if(!_next.isEmpty()){ return true; }
+    if(_next.isSome()){ return true; }
   }
   return false;
 }

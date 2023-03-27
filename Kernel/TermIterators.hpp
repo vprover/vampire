@@ -355,15 +355,14 @@ private:
 
 
 class RewritableVarsIt
-  : public IteratorCore<TermList>
 {
 public: //includeSelf for compatibility
-  RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) : _stack(8)
+  DECL_ELEMENT_TYPE(TypedTermList);
+  RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) :  _next(), _stack(8)
   {
     CALL("RewritableVarsIt");
 
     _unstableVars = unstableVars;
-    _next.makeEmpty();
     if(t->isLiteral()){
       TermList t0 = *t->nthArgument(0);
       TermList t1 = *t->nthArgument(1);
@@ -382,15 +381,13 @@ public: //includeSelf for compatibility
   }
 
   bool hasNext();
-  TermList next(){
-    ASS(!_next.isEmpty());
-    ASS(_next.isVar());
-    TermList res = _next;
-    _next.makeEmpty();
-    return res;
+  TypedTermList next(){
+    ASS(_next.isSome());
+    ASS(_next->isVar());
+    return *_next.take();
   }
 private:
-  TermList _next;
+  Option<TypedTermList> _next;
   Stack<TermList> _stack;
   Stack<TermList> _sorts;
   DHSet<unsigned>* _unstableVars;
@@ -842,12 +839,12 @@ class LiteralArgIterator
   Literal* _lit;
   unsigned _idx;
 public:
-  DECL_ELEMENT_TYPE(TermList);
+  DECL_ELEMENT_TYPE(TypedTermList);
 
   LiteralArgIterator(Literal* lit) : _lit(lit), _idx(0) {}
 
   inline bool hasNext() const { return _idx < _lit->arity(); }
-  inline TermList next() { return *_lit->nthArgument(_idx++); }
+  inline TermList next() { return TypedTermList(*_lit->nthArgument(_idx), SortHelper::getArgSort(_lit, _idx)); _idx++; }
   unsigned size() const { return _lit->arity(); }
 };
 
@@ -871,6 +868,6 @@ static const auto anyArgIter = [](Term* term)
            { return *term->nthArgument(i); }); };
 
 
-}
+} // namespace Kernel
 
 #endif // __TermIterators__

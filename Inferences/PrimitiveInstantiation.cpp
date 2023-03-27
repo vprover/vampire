@@ -120,8 +120,8 @@ struct PrimitiveInstantiation::ApplicableRewritesFn
     TermList lhs = *l->nthArgument(0);
     TermList rhs = *l->nthArgument(1);
    
-    TypedTermList lhst(lhs, SortHelper::getTermSort(lhs, l));
-    TypedTermList rhst(rhs, SortHelper::getTermSort(rhs, l));
+    TypedTermList lhst(lhs, SortHelper::getEqualityArgumentSort(l));
+    TypedTermList rhst(rhs, SortHelper::getEqualityArgumentSort(l));
 
     TermStack args;
     TermList head;

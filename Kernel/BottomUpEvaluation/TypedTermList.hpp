@@ -50,6 +50,27 @@ struct BottomUpChildIter<Kernel::TypedTermList>
   { return _self; }
 };
 
+template<class EvalFn, class Memo>
+Kernel::Literal* evaluateLiteralBottomUp(Kernel::Literal* const& lit, EvalFn evaluateStep, Memo& memo)
+{
+  using namespace Kernel;
+  Recycled<Stack<TermList>> args;
+  for (unsigned i = 0; i < lit->arity(); i++) {
+    args->push(evaluateBottomUp(TypedTermList(*lit->nthArgument(i), SortHelper::getArgSort(lit, i)), evaluateStep, memo));
+  }
+  return Literal::create(lit, args->begin());
+}
+
+
+template<class EvalFn>
+Kernel::Literal* evaluateLiteralBottomUp(Kernel::Literal* const& lit, EvalFn evaluateStep)
+{
+  using namespace Memo;
+  auto memo = None<typename EvalFn::Arg, typename EvalFn::Result>();
+  return evaluateLiteralBottomUp(lit, evaluateStep, memo);
+}
+
+
 } // namespace Lib
 
 

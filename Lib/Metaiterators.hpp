@@ -1737,6 +1737,28 @@ public:
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
   { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), std::move(f)))); }
 
+  auto unique()
+  { 
+    Map<OWN_ELEMENT_TYPE, std::tuple<>> found;
+    return iterTraits(std::move(*this)
+        .filterMap([found = std::move(found)](OWN_ELEMENT_TYPE next) mutable {
+          if (found.tryGet(next).isSome()) {
+            return Option<OWN_ELEMENT_TYPE>();
+          } else {
+            found.insert(next, make_tuple());
+            return Option<OWN_ELEMENT_TYPE>(std::move(next));
+          }
+        })); 
+  }
+
+  auto persistent()
+  { 
+    auto stack = collect<Stack>();
+    return iterTraits(ownedArrayishIterator(std::move(stack)));
+  }
+
+
+
 
   /** 
    * returns the first minimal element wrt the function `less` 
@@ -1852,6 +1874,7 @@ static auto concatIters(I1 i1)
 template<class I1, class I2, class... Is>
 static auto concatIters(I1 i1, I2 i2, Is... is) 
 { return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+
 
 
 ///@}
