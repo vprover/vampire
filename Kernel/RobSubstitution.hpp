@@ -42,6 +42,19 @@ public:
   
   RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0), _outputIndex(UNBOUND_INDEX) {}
 
+  /* When a `RobSubstitution` is applied to a Term by default the variables in the resulting
+   * Term will be in a new variable index, that starts mapping the first occurring
+   * variable in the output to X0, the second one to X1, ....
+   * In some cases this behavious should be changed. For example if we a variables sigma such that
+   * `(s)sigma = t` using `RobSubstitution::match` we want that the variables are not assigned to a new
+   * index but to the same one as `t`. Therefore this function lets you set the output index of the
+   * substitution.
+   *
+   * Be aware that this is not possible when:
+   * - applying the substitution to variables that are not in the output index, that were not bound in the
+   *   substitution (i.e. part of generalization operations, etc.)
+   * - computing unifications
+   */
   void setOutputIndex(unsigned idx) { _outputIndex = int(idx); }
 
   SubstIterator matches(Literal* base, int baseIndex,

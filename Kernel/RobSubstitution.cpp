@@ -99,7 +99,6 @@ void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, i
     VarSpec normal(itm.second, normalIndex);
     VarSpec denormalized(itm.first, denormalizedIndex);
     if (denormalizedIndex == _outputIndex) {
-      // TODO this is a bit of a hack. think of better ways of doing denormalization
       ASS(!_bank.find(normal));
       bindVar(normal, denormalized);
 
@@ -171,11 +170,13 @@ RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
 }
 
 /**
- * TODO document new behaviour with _outputIndex
- * If @b v is a bound variable then return the term or root variable
- * it is bound to. Otherwise, return the next unbound variable in the
- * UNBOUND_INDEX. This effectively names unbound variables apart from
- * any variables in the range of bound variables.
+ * If @b is bound return the root variable / term it is bound to.
+ * If _outputIndex == UNBOUND_INDEX (default behaviour), return the next
+ * unbound variable in the UNBOUND_INDEX. This effectively names unbound
+ * variables apart from any variables in the range of bound variables.
+ * If _outputIndex != UNBOUND_INDEX, (i.e. it has been set to something
+ * else using setOutputIndex), return the root variable must be of the
+ * _outputIndex and is returned as is, otherwise we fail on an exception.
  */
 RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
 {
@@ -190,7 +191,7 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
         const_cast<RobSubstitution&>(*this).bind(v,binding);
         return binding;
       } else {
-        ASS_REP(v.index == _outputIndex, "illegal _outputIndex for this substitution")
+        ASS_REP(v.index == _outputIndex, "variable bound index different from _outputIndex. This probably means you either called the wrong operations (e.g. unify) after using setOutputIndex, or you are trying to apply the substitution to a variable that was not bound by this substitution (e.g. by calling RobSubstitution::match or so)")
         return TermSpec(v);
       }
     } else if(binding.index == _outputIndex || binding.term.isTerm()
