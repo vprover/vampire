@@ -244,6 +244,14 @@ public:
   std::remove_reference_t<A>      * asPtr()       { return isSome() ? &unwrap() : nullptr; }
   std::remove_reference_t<A> const* asPtr() const { return isSome() ? &unwrap() : nullptr; }
 
+
+  Option take() 
+  {
+    Option out;
+    swap(*this,out);
+    return out;
+  }
+
   /** 
    * returns the value held by this option if there is one, or calls the given function f without arguments, 
    * initializes the closuer with the returned value, and returns a reference to the value afterwards.

@@ -65,6 +65,7 @@ public:
 
   static bool tryGetVariableSort(unsigned var, Formula* f, TermList& res);
   static TermList getVariableSort(TermList var, Term* t);
+  [[deprecated("This function is usually only used if we loose the information about the sort of a variable somewhere while over subterms. Recovering the information using this method iterating the literal/term again, is very inefficient and should be avoided. Make sure to use TermIterators that return TypedTermList instead, or raise a discussion on slack/github if you have a use case where this function is *really* needed.")]]
   static TermList getTermSort(TermList trm, Literal* lit);
 
   static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);

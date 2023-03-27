@@ -92,7 +92,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);
     while(it.hasNext()) {
-      TermList trm = TermList(it.next());
+      TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -110,7 +110,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         toplevelCheck &= lit->isPositive() && (cLen == 1);        
       }
 
-      TermQueryResultIterator git=_index->getGeneralizations(TypedTermList(trm.term()), true);
+      TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
         TermQueryResult qr=git.next();
         ASS_EQ(qr.clause->length(),1);
@@ -128,7 +128,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         static RobSubstitution subst; 
         bool resultTermIsVar = qr.term.isVar();
         if(resultTermIsVar){
-          TermList querySort = SortHelper::getTermSort(trm, lit);
+          TermList querySort = trm.sort();
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
           subst.reset(); 
           if(!subst.match(eqSort, 0, querySort, 1)){

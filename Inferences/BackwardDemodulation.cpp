@@ -76,15 +76,13 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 
 struct BackwardDemodulation::RewritableClausesFn
 {
-  RewritableClausesFn(DemodulationSubtermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
-  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
+  RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
+  VirtualIterator<pair<TypedTermList,TermQueryResult> > operator() (TypedTermList lhs)
   {
-    TermList sort = SortHelper::getTermSort(lhs, _lit);
-    return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(TypedTermList(lhs,sort), true)) );
+    return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
 private:
   DemodulationSubtermIndex* _index;
-  Literal* _lit;
 };
 
 
@@ -250,7 +248,7 @@ void BackwardDemodulation::perform(Clause* cl,
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
-			    RewritableClausesFn(_index, lit)),
+			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this)),
  	    RemovedIsNonzeroFn()) );
 
