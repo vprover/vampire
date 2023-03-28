@@ -434,6 +434,7 @@ protected:
 
     // Print
     for(unsigned i=0;i<delayed.size();i++){
+      DBGE(delayed[i]->number())
       printStep(delayed[i]);
     }
 
@@ -941,7 +942,7 @@ protected:
         << "(r"<<_is->getUnitIdStr(cs)
     	<< ",conjecture, "
     	<< getQuantifiedStr(cs)
-    	<< " ). %"<<ruleName(rule)<<"\n";
+    	<< " ). %"<<ruleName(rule)<<  " " << cs->number() << "\n";
 
     while(parents.hasNext()) {
       Unit* prem=parents.next();

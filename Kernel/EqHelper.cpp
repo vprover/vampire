@@ -33,11 +33,8 @@ using namespace Shell;
  */
 template<class TermListIter>
 auto withEqualitySort(Literal* eq, TermListIter iter)
-{ 
-  ASS(eq->isEquality());
-  return pvi(iterTraits(std::move(iter))
-    .map([eq](TermList t) { return TypedTermList(t, SortHelper::getEqualityArgumentSort(eq)); })); 
-}
+{ return pvi(iterTraits(std::move(iter))
+    .map([eq](TermList t) { return TypedTermList(t, SortHelper::getEqualityArgumentSort(eq)); })); }
 
 /**
  * Return the other side of an equality @b eq than the @b lhs
