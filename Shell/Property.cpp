@@ -97,7 +97,7 @@ Property::Property()
  * Create a new property, scan the units with it and return the property.
  * @since 22/07/2011 Manchester
  */
-Property* Property::scan(UnitList* units)
+SmartPtr<Property> Property::scan(UnitList* units)
 {
   CALL("Property::scan");
 
@@ -111,21 +111,10 @@ Property* Property::scan(UnitList* units)
     env.signature->getPredicate(p)->resetUnitUsageCnt(); 
    }
 
-  Property* prop = new Property;
+  SmartPtr<Property> prop(new Property);
   prop->add(units);
   return prop;
 } // Property::scan
-
-/**
- * Destroy the property. If this property is used as env.property, set env.property to null.
- * @since 22/07/2011 Manchester
- */
-Property::~Property()
-{
-  CALL("Property::~Property");
-
-  ASS(this == env.property);
-}
 
 /**
  * Add units and modify an existing property.

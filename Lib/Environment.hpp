@@ -22,6 +22,7 @@
 #include "Forwards.hpp"
 #include "Exception.hpp"
 #include "DHMap.hpp"
+#include "SmartPtr.hpp"
 
 namespace Lib {
 
@@ -53,7 +54,7 @@ public:
   /** Currently used statistics */
   Shell::Statistics* statistics;
   /** Last read properties */
-  Shell::Property* property;
+  SmartPtr<Shell::Property> property;
   /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
 

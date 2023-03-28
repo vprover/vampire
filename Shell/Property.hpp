@@ -158,9 +158,8 @@ public:
 
   // constructor, operators new and delete
   explicit Property();
-  static Property* scan(UnitList*);
+  static SmartPtr<Property> scan(UnitList*);
   void add(UnitList*);
-  ~Property();
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}

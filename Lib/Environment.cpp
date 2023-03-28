@@ -44,7 +44,6 @@ using namespace Shell;
 Environment::Environment()
   : signature(0),
     sharing(0),
-    property(0),
     maxSineLevel(1),
     predicateSineLevels(nullptr),
     colorUsed(false),
@@ -64,7 +63,7 @@ Environment::Environment()
   statistics = new Statistics;  
   signature = new Signature;
   sharing = new TermSharing;
-  property = new Property;
+  property = SmartPtr<Property>(new Property);
 
   //view comment in Signature.cpp
   signature->addEquality();
@@ -98,7 +97,6 @@ Environment::~Environment()
   delete sharing;
   delete signature;
   delete statistics;
-  delete property;
   if (predicateSineLevels) delete predicateSineLevels;
   {
     BYPASSING_ALLOCATOR; // use of std::function in options

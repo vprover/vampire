@@ -67,7 +67,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   // because of bad things the time limit is actually taken from env!
   int oldTimeLimit = env.options->timeLimitInDeciseconds();
-  Property* oldProperty = env.property;
+  SmartPtr<Property> oldProperty = env.property;
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   env.options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);

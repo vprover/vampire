@@ -19,6 +19,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/MaybeBool.hpp"
+#include "Lib/SmartPtr.hpp"
 
 #include "Shell/SMTLIBLogic.hpp"
 
@@ -222,7 +223,7 @@ private:
   SMTLIBLogic _smtlibLogic;
 
   mutable bool _propertyValid;
-  mutable Property* _property;
+  mutable SmartPtr<Property> _property;
 };
 
 }

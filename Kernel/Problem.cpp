@@ -272,9 +272,6 @@ void Problem::refreshProperty() const
   TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
-  if(_property) {
-    delete _property;
-  }
   _propertyValid = true;
   _property = Property::scan(_units);
   env.property = _property;
@@ -367,9 +364,9 @@ Property* Problem::getProperty() const
   if(!_propertyValid) {
     refreshProperty();
   }
-  ASS(_property);
 
-  return _property;
+  ASS(_property);
+  return _property.ptr();
 }
 
 
