@@ -614,6 +614,7 @@ void Preprocess::newCnf(Problem& prb)
     Unit* u = us.next();
     if (env.options->showPreprocessing()) {
       env.beginOutput();
+      DBGE(u->number())
       env.out() << "[PP] clausify: " << u->toString() << std::endl;
       env.endOutput();
     }
