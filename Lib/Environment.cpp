@@ -63,7 +63,6 @@ Environment::Environment()
   statistics = new Statistics;  
   signature = new Signature;
   sharing = new TermSharing;
-  property = SmartPtr<Property>(new Property);
 
   //view comment in Signature.cpp
   signature->addEquality();

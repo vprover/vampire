@@ -23,6 +23,7 @@
 #include "Exception.hpp"
 #include "DHMap.hpp"
 #include "SmartPtr.hpp"
+#include "Shell/Property.hpp"
 
 namespace Lib {
 
@@ -53,8 +54,26 @@ public:
   Indexing::TermSharing* sharing;
   /** Currently used statistics */
   Shell::Statistics* statistics;
-  /** Last read properties */
-  SmartPtr<Shell::Property> property;
+
+  /**
+   * "last read" properties on a best-effort basis
+   *
+   * The way this used to work was that `env` owned a Property `env.property`,
+   * and stuff like "do we have polymorphic symbols" was read from that.
+   * This caused various headaches, because Problem also had the same Property instance.
+   * The two had to be kept in sync, and various code relied on `env.property`.
+   * This effectively assumes exactly one Problem instance and is generally ugly.
+   *
+   * New code _should not_ use these properties, and should get it from a Problem instance instead.
+   **/
+  bool hasNonDefaultSorts;
+  bool hasInterpretedOperations;
+  bool hasPolymorphicSym;
+  bool higherOrder;
+  Shell::Property::Category category;
+  //TODO only utilised by FMB which should eventually update to use the new sorts (as TermLists)
+  ZIArray<bool> usesSort;
+
   /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
 

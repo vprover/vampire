@@ -107,7 +107,7 @@ Index* IndexManager::create(IndexType t)
   bool isGenerating;
   static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                    env.property->higherOrder();
+                    env.higherOrder;
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:

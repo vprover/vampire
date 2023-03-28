@@ -67,7 +67,15 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   // because of bad things the time limit is actually taken from env!
   int oldTimeLimit = env.options->timeLimitInDeciseconds();
-  SmartPtr<Property> oldProperty = env.property;
+
+  // copy legacy properties from env
+  bool hasNonDefaultSorts = env.hasNonDefaultSorts;
+  bool hasInterpretedOperations = env.hasInterpretedOperations;
+  bool hasPolymorphicSym = env.hasPolymorphicSym;
+  bool higherOrder = env.higherOrder;
+  Shell::Property::Category category = env.category;
+  ZIArray<bool> usesSort = env.usesSort;
+
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   env.options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);
@@ -86,7 +94,14 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   Timer::setLimitEnforcement(true);
   env.options->setTimeLimitInDeciseconds(oldTimeLimit);
-  env.property = oldProperty;
+
+  // restore legacy properties to env
+  env.hasNonDefaultSorts = hasNonDefaultSorts;
+  env.hasInterpretedOperations = hasInterpretedOperations;
+  env.hasPolymorphicSym = hasPolymorphicSym;
+  env.higherOrder = higherOrder;
+  env.category = category;
+  env.usesSort = usesSort;
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
 

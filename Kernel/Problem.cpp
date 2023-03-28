@@ -98,7 +98,6 @@ void Problem::initValues()
   _mayHaveInequalityResolvableWithDeletion = true;
   _mayHaveXEqualsY = true;
   _propertyValid = false;
-  _property = env.property;
 }
 
 /**
@@ -274,7 +273,16 @@ void Problem::refreshProperty() const
 
   _propertyValid = true;
   _property = Property::scan(_units);
-  env.property = _property;
+
+  // copy legacy properties to env
+  env.hasNonDefaultSorts = _property->hasNonDefaultSorts();
+  env.hasInterpretedOperations = _property->hasInterpretedOperations();
+  env.hasPolymorphicSym = _property->hasPolymorphicSym();
+  env.higherOrder = _property->higherOrder();
+  env.category = _property->category();
+  for(unsigned i = 0; i < _property->sortsUsed(); i++)
+    env.usesSort[i] = _property->usesSort(i);
+
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
   readDetailsFromProperty();

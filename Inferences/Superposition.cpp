@@ -195,7 +195,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool extByAbstraction = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
-                               && env.property->higherOrder();
+                               && env.higherOrder;
 
   auto itf1 = premise->getSelectedLiteralIterator();
 

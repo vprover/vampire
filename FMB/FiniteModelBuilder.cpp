@@ -92,7 +92,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
       || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
-      env.property->hasInterpretedOperations()) {
+      env.hasInterpretedOperations) {
 
       if(outputAllowed()) {
         env.beginOutput();
@@ -689,7 +689,7 @@ void FiniteModelBuilder::init()
 
 
     for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
-      bool epr = env.property->category()==Property::EPR
+      bool epr = env.category==Property::EPR
                  // if we have no functions we are epr in this sort
                  || dFunctions[s]==0; 
       if(epr){
@@ -706,7 +706,7 @@ void FiniteModelBuilder::init()
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
     for(unsigned s=0;s<env.signature->typeCons();s++){
-      if((env.property->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
+      if((env.usesSort[s] || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
         if(dmembers->size() > 1){ 

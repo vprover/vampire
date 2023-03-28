@@ -213,7 +213,7 @@ Formula* FOOLElimination::process(Formula* formula) {
        */
 
       if (literal->isEquality() && 
-         (!env.property->higherOrder() || env.options->equalityToEquivalence())) { 
+         (!env.higherOrder || env.options->equalityToEquivalence())) {
         ASS_EQ(literal->arity(), 2);
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);

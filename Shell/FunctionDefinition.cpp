@@ -892,13 +892,13 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     }
     //Higher-order often contains definitions of the form
     //f = ^x^y...
-    if (rhs->arity() && !env.property->higherOrder()) { // c = f(...)
+    if (rhs->arity() && !env.higherOrder) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    if(!env.property->higherOrder()){
+    if(!env.higherOrder){
       return new Def(lhs,rhs,true,true);
     }
   }
