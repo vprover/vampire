@@ -298,14 +298,24 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
 
   TermList varTerm(var, false);
 
-  Recycled<Stack<Formula*>> todo;
-  todo->push(f);
-  while (todo->isNonEmpty()) {
-    Formula* sf = todo->pop();
+  SubformulaIterator sfit(f);
+  while (sfit.hasNext()) {
+    Formula* sf = sfit.next();
     if (sf->connective() == LITERAL){
 
       Literal* lit = sf->literal();
 
+      // first handle the special equality case
+      if(lit->isEquality()){
+         TermList* left = lit->nthArgument(0);
+         TermList* right = lit->nthArgument(1);
+         if((left->isVar() && left->var()==var) ||
+            (right->isVar() && right->var()==var)){
+
+           res = getEqualityArgumentSort(lit); 
+           return true;
+         }
+      }
       if(tryGetVariableSort(varTerm, lit, res)){
         return true;
       }
@@ -326,50 +336,6 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
   }
   return false;
 }
-
-// {
-//   CALL("SortHelper::tryGetVariableSort(unsigned,Formula*,unsigned&)");
-//
-//   TermList varTerm(var, false);
-//
-//   SubformulaIterator sfit(f);
-//   while (sfit.hasNext()) {
-//     Formula* sf = sfit.next();
-//     if (sf->connective() == LITERAL){
-//
-//       Literal* lit = sf->literal();
-//
-//       // first handle the special equality case
-//       if(lit->isEquality()){
-//          TermList* left = lit->nthArgument(0);
-//          TermList* right = lit->nthArgument(1);
-//          if((left->isVar() && left->var()==var) ||
-//             (right->isVar() && right->var()==var)){
-//
-//            res = getEqualityArgumentSort(lit); 
-//            return true;
-//          }
-//       }
-//       if(tryGetVariableSort(varTerm, lit, res)){
-//         return true;
-//       }
-//     }
-//     if(sf->connective() == BOOL_TERM){
-//       TermList stt = sf->getBooleanTerm();
-//       if(stt.isVar() && stt.var()==var){
-//         res = AtomicSort::boolSort();
-//         return true;
-//       }
-//       if(stt.isTerm()){
-//         Term* st = stt.term();
-//         if(tryGetVariableSort(varTerm,st,res)){
-//           return true;
-//         } 
-//       }
-//     } 
-//   }
-//   return false;
-// }
 
 
 /**
@@ -816,37 +782,6 @@ void SortHelper::normaliseSort(TermStack qVars, TermList& sort)
   sort = SubstHelper::apply(sort, subst);
 }
 
-
-bool SortHelper::tryGetVariableSort(unsigned var, Literal* lit, TermList& result)
-{
-  // first handle the special equality case
-  if(lit->isEquality()){
-     TermList* left = lit->nthArgument(0);
-     TermList* right = lit->nthArgument(1);
-     if((left->isVar() && left->var()==var) ||
-        (right->isVar() && right->var()==var)){
-
-       result = getEqualityArgumentSort(lit); 
-       return true;
-     } else if (
-            (left->isTerm()  && tryGetVariableSort(TermList(var), left->term(), result))
-         || (right->isTerm() && tryGetVariableSort(TermList(var), right->term(), result))) {
-       return true;
-     }
-  } else {
-    for (unsigned i = 0; i < lit->arity(); i++) {
-      auto a = *lit->nthArgument(i);
-      if (a.isVar() && a.var() == var) {
-        result = SortHelper::getArgSort(lit, i);
-        return true;
-      } else if (a.isTerm() && tryGetVariableSort(TermList(var), a.term(), result)) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
 /**
  * If variable @c var occurrs in term @c t, set @c result to its
  * sort and return true. Otherwise return false.
@@ -894,8 +829,6 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
     }
     if(t->isFormula()){
       Formula* f = t->getSpecialData()->getFormula();
-      DBGE(var)
-      DBGE(f)
       if(tryGetVariableSort(var.var(), f, result)){
         return true;
       }
