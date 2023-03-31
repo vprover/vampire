@@ -8,6 +8,7 @@
  * and in the source directory
  */
 
+#if VHOL
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -79,3 +80,5 @@ TEST_GENERATION(test_03,                                   // <- name
       ))
       .higherOrder(true)      
     )
+
+#endif

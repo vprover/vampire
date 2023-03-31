@@ -136,7 +136,7 @@ public:
   }
 
 #if VHOL
-  TermQueryResultIterator getPotentialHOLUnifiers(TypedTermList t) final override
+  TermQueryResultIterator getHOLUnifiers(TypedTermList t) final override
   {       
     TypedTermList tp = TypedTermList(ToPlaceholders().replace(t), t.sort());
     return pvi(getResultIterator<UnificationsIterator<HOLAlgo>>(tp, false, t));

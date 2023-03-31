@@ -92,12 +92,6 @@ UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
  *    of the form f(type_args, term_args). In most cases, inferences should NOT
  *    be working on type arguments. Please view TermIterators.hpp for a list of
  *    iterators available.
- *  - TermSubstitutionTrees, do NOT carry out any type checking. Thus, in the case
- *    where either the search or query term is a variable, a type check needs to
- *    be carried out by the inference code. This check may be a unification check or 
- *    a matching check depending on whether the inference is using unification or
- *    matching. Please view Superposition.cpp for an example of a unification check
- *    and ForwardDemodulation for an example of a matching check.
  */
 
 /**
@@ -254,6 +248,7 @@ enum class InferenceRule : unsigned char {
     inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
   /* FOOL paramodulation-like simplifying rule */
+#if VHOL
   CASES_SIMP,
 
   BOOL_SIMP,
@@ -261,7 +256,7 @@ enum class InferenceRule : unsigned char {
   BETA_ETA_NORMALISE,
 
   FLEX_FLEX_SIMPLIFY,
-
+#endif
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
 
@@ -574,10 +569,12 @@ inline bool isInternalTheoryAxiomRule(InferenceRule r) {
       toNumber(r) < toNumber(InferenceRule::INTERNAL_THEORY_AXIOM_LAST));
 }
 
+#if VHOL
 inline bool isProxyAxiomRule(InferenceRule r) {
   return (toNumber(r) >= toNumber(InferenceRule::PROXY_AXIOM) &&
       toNumber(r) < toNumber(InferenceRule::INTERNAL_THEORY_AXIOM_LAST));
 }
+#endif
 
 inline bool isExternalTheoryAxiomRule(InferenceRule r) {
   return r == InferenceRule::EXTERNAL_THEORY_AXIOM;
@@ -874,9 +871,13 @@ public:
     return isInternalTheoryAxiomRule(_rule) || isExternalTheoryAxiomRule(_rule);
   }
 
+#if VHOL
+  // Proxy axioms performed really badly, so perhaps just get
+  // rid of this stuff?
   bool isProxyAxiom() const {
     return isProxyAxiomRule(_rule);
   }  
+#endif
 
   /*
    * returns true if clause is an external theory axiom

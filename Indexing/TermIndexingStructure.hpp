@@ -36,7 +36,7 @@ public:
   virtual TermQueryResultIterator getUwa(TypedTermList t) = 0;
 
 #if VHOL
-  virtual TermQueryResultIterator getPotentialHOLUnifiers(TypedTermList t)
+  virtual TermQueryResultIterator getHOLUnifiers(TypedTermList t)
     { NOT_IMPLEMENTED; }
 #endif
   

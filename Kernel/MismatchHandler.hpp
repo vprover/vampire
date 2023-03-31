@@ -115,6 +115,44 @@ private:
 
 namespace UnificationAlgorithms {
 
+// TODO moce somewhere more suitable
+class RobUnification { 
+public:
+
+  // to be used for tree calls
+  bool associate(unsigned specialVar, TermList node, BacktrackData& bd, RobSubstitution* sub)
+  {
+    CALL("RobUnification::associate");
+    TermList query(specialVar, /* special */ true);
+    return sub->unify(query, Indexing::QUERY_BANK, node, Indexing::NORM_RESULT_BANK);
+  }
+
+  // To be used for non-tree calls. Return an iterator instead of bool
+  // to fit HOL interface
+  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, bool topLevelCheck = false){
+    CALL("RobUnification::unifiers");     
+
+    static RobSubstitution subst;
+    subst.reset();
+
+    if(subst.unify(t1, index1, t2, index2)){
+      return pvi(getSingletonIterator(&subst));
+    }
+    return SubstIterator::getEmpty();
+  }
+
+  // function is called when in the leaf of a substitution tree 
+  // during unification. t is the term stored in the leaf
+  SubstIterator postprocess(RobSubstitution* sub, TermList t){
+    CALL("RobUnification::postprocess");     
+    
+    // sub is a unifier of query and leaf term t, return it
+    return pvi(getSingletonIterator(sub));
+  }
+
+  bool usesUwa() const { return false; }
+};
+
 class AbstractingUnification {
   MismatchHandler _uwa;
   bool _fpi;

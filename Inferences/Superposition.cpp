@@ -149,12 +149,13 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       [this](pair<Literal*, TypedTermList> arg)
       { auto unifs = usingUwa ? _lhsIndex->getUwa(arg.second) :
 #if VHOL
-                    (usingHOL ? _lhsIndex->getPotentialHOLUnifiers(arg.second) :
+                    (usingHOL ? _lhsIndex->getHOLUnifiers(arg.second) :
 #endif
                                 _lhsIndex->getUnifications(arg.second)
 #if VHOL
-                    );
+                    )
 #endif
+      ;
         return pushPairIntoRightIterator(arg, unifs ); });
 
   //Perform forward superposition
@@ -168,12 +169,13 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       { TypedTermList tt(arg.second, SortHelper::getEqualityArgumentSort(arg.first));
         auto unifs = usingUwa ? _subtermIndex->getUwa(tt) :
 #if VHOL
-                    (usingHOL ? _subtermIndex->getPotentialHOLUnifiers(tt) :
+                    (usingHOL ? _subtermIndex->getHOLUnifiers(tt) :
 #endif
                                 _subtermIndex->getUnifications(tt)
 #if VHOL
-                    );
+                    )
 #endif      
+      ;
         return pushPairIntoRightIterator(arg, unifs); });
 
   //Perform backward superposition

@@ -31,7 +31,9 @@
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Indexing/TermIndex.hpp"
 
+#if VHOL
 #include "Shell/LambdaConversion.hpp"
+#endif
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -45,10 +47,11 @@ using namespace Indexing;
 
 #define TODO ASSERTION_VIOLATION_REP("TODO")
 
-
+#if VHOL
 TermList toDBs(TermList t){
   return LambdaConversion().convertLambda(t);
 }
+#endif
 
 Clause* unit(Literal* lit)
 {
@@ -161,11 +164,13 @@ void checkTermMatches(TermSubstitutionTree& index, TypedTermList term, Stack<Ter
       [&](auto& idx, auto t) { return idx.getUwa(term); });
 }
 
+#if VHOL
 void checkHigherOrderTermMatches(TermSubstitutionTree& index, TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, false,
-      [&](auto& idx, auto t) { return idx.getPotentialHOLUnifiers(term); });
+      [&](auto& idx, auto t) { return idx.getHOLUnifiers(term); });
 }
+#endif
 
 struct IndexTest {
   unique_ptr<TermSubstitutionTree> index;

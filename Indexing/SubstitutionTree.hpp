@@ -617,7 +617,11 @@ public:
   {
     // in higher-order case we replace certain subterms with so-called
     // placeholders, so assertion below doesn't hold in general
-    ASS(ld.term == term || env.property->higherOrder());
+    ASS(ld.term == term 
+#if VHOL
+      || env.property->higherOrder()
+#endif
+      );
     ld.sort = term.sort();
   }
 

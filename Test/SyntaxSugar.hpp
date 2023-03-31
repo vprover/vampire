@@ -28,7 +28,9 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
+#if VHOL
 #include "Kernel/ApplicativeHelper.hpp"
+#endif
 #include "Kernel/TypedTermList.hpp"
 
 #include "Indexing/TermSharing.hpp"
@@ -247,11 +249,14 @@ class SyntaxSugarGlobals
 
 public:
   static SyntaxSugarGlobals& instance() {
+#if VHOL
     _instance.setApply();
     _instance.setLambda();
+#endif
     return _instance;
   }
 
+#if VHOL
   void setApply()
   {
     apply = [](TermList sort, TermList t1, TermList t2) {
@@ -259,7 +264,6 @@ public:
       return app;
     };
   }
-
 
   void setLambda()
   {
@@ -270,6 +274,7 @@ public:
       return TermList(lambdaTerm);
     };
   }  
+#endif
 
   void setNumTraits(IntTraits)
   {
@@ -356,9 +361,13 @@ public:
 
   SortSugar(const char* name, Stack<SortSugar> as_) 
   {
+#if VHOL
     if(as_.isEmpty()){
+#endif
       _sugaredExpr = TermList(AtomicSort::createConstant(name));
+#if VHOL
     } else {
+      //AYB TODO, we don't need this now that we have the arrow sort creation functions
       Stack<SortId> as;     
       for (auto a : as_){ as.push(a.sugaredExpr()); }
       auto res = as.pop();
@@ -367,6 +376,7 @@ public:
       while(!as.isEmpty()){ as2.push(as.pop()); }
       _sugaredExpr = AtomicSort::arrowSort(as2, res);      
     }
+#endif
   }
 
   SortSugar(const char* name) 
@@ -459,6 +469,7 @@ inline TermSugar fool(bool b)
 
 ////////////////////////// operators to create terms ////////////////////////// 
 
+#if VHOL
 inline TermSugar ap(SortSugar sort, TermSugar lhs, TermSugar rhs) 
 { return ApplicativeHelper::app(sort, lhs, rhs); }  
 
@@ -468,6 +479,7 @@ inline TermSugar ap(TermSugar lhs, TermSugar rhs)
 inline TermSugar lam(TermSugar var, TermSugar term)  { 
   return syntaxSugarGlobals().lambda(var.sort(), var, term.sort(), term); 
 }
+#endif
 
 inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }  
 inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().mul(lhs, rhs); }  
@@ -533,13 +545,15 @@ __IMPL_NUMBER_BIN_FUN(operator<=, Lit)
 __IMPL_NUMBER_BIN_FUN(operator> , Lit)
 __IMPL_NUMBER_BIN_FUN(operator>=, Lit)
 
-
+#if VHOL
 inline SortSugar arrow(TermList args, TermList res) 
 { return AtomicSort::arrowSort({ args }, res);      }
 
 inline SortSugar arrow(Stack<TermList> args, TermList res) 
 { return AtomicSort::arrowSort(args, res);      }
   
+#endif
+
 class FuncSugar {
   unsigned _functor;
   unsigned _arity;

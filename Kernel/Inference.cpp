@@ -307,8 +307,9 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
   computeTheoryRunningSums();
 
   _isPureTheoryDescendant = isTheoryAxiom();
+#if VHOL  
   _proxyAxiomsDescendant = isProxyAxiom();
-
+#endif
   //_inductionDepth = 0 from initDefault (or set externally)
   //_sineLevel = MAX from initDefault (or set externally)
 }
@@ -327,7 +328,9 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise->isPureTheoryDescendant();
+#if VHOL  
   _proxyAxiomsDescendant = premise->isProxyAxiomsDescendant();
+#endif
   _sineLevel = premise->getSineLevel();
 
   updateStatistics();
@@ -348,7 +351,9 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
 
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
-  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();  
+#if VHOL  
+  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant(); 
+#endif 
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 
   updateStatistics();
@@ -380,13 +385,17 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
       const Inference& inf = it->head()->inference();
       _inputType = getInputType(_inputType,inf.inputType());
       _isPureTheoryDescendant &= inf.isPureTheoryDescendant();
+#if VHOL
       _proxyAxiomsDescendant &= inf.isProxyAxiomsDescendant();
+#endif
       _sineLevel = min(_sineLevel,inf.getSineLevel());
       it=it->tail();
     }
   } else {
     _isPureTheoryDescendant = isTheoryAxiom();
+#if VHOL  
     _proxyAxiomsDescendant = isProxyAxiom();
+#endif
   }
 
   updateStatistics();
@@ -961,9 +970,9 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "imitate";
   case InferenceRule::PROJECT:
     return "project";
-#endif
-    /* this cases are no actual inference rules but only markeres to separatea groups of rules */
+  /* these cases are no actual inference rules but only markeres to separatea groups of rules */    
   case InferenceRule::PROXY_AXIOM:
+#endif
   case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 
   case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST: 
   case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:

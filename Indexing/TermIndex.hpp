@@ -38,8 +38,8 @@ public:
   { return _is->getUwa(t); }
 
 #if VHOL
-  TermQueryResultIterator getPotentialHOLUnifiers(TypedTermList t)
-  { return _is->getPotentialHOLUnifiers(t); }
+  TermQueryResultIterator getHOLUnifiers(TypedTermList t)
+  { return _is->getHOLUnifiers(t); }
 #endif
 
   TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)

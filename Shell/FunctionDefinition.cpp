@@ -377,7 +377,11 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
   while(unfoldIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(unfoldIterator.next());
     ASS(cl->isClause());
+#if VHOL
+    // AYB TODO not sure what is the point of the below
+    // proxy axioms are probably going to be removed anyway
     if(cl->isProxyAxiomsDescendant()){ continue; }
+#endif
     Clause* newCl=applyDefinitions(cl);
     if(cl!=newCl) {
 //      cout<<"D- "<<(*cl)<<endl;

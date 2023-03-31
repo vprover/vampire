@@ -305,7 +305,10 @@ void Statistics::print(ostream& out)
 
 
   HEADING("Simplifying Inferences",duplicateLiterals+trivialInequalities+
-      forwardSubsumptionResolution+backwardSubsumptionResolution+proxyEliminations+
+      forwardSubsumptionResolution+backwardSubsumptionResolution+
+#if VHOL
+      proxyEliminations+
+#endif
       forwardDemodulations+backwardDemodulations+forwardLiteralRewrites+
       forwardSubsumptionDemodulations+backwardSubsumptionDemodulations+
       condensations+globalSubsumption+evaluationCnt
@@ -313,7 +316,9 @@ void Statistics::print(ostream& out)
       +( asgCnt - asgViolations)
       +( evaluationCnt - evaluationIncomp - evaluationGreater)
       +innerRewrites
+#if VHOL
       +booleanSimps
+#endif
       );
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
@@ -338,8 +343,10 @@ void Statistics::print(ostream& out)
   COND_OUT("Evaluation count",         evaluationCnt);
   COND_OUT("Evaluation results greater than premise", evaluationGreater);
   COND_OUT("Evaluation results incomparable to premise", evaluationIncomp);
+#if VHOL
   COND_OUT("Logicial proxy rewrites", proxyEliminations);
   COND_OUT("Boolean simplifications", booleanSimps)
+#endif
   //COND_OUT("Interpreted simplifications", interpretedSimplifications);
   SEPARATOR;
 
@@ -361,11 +368,11 @@ void Statistics::print(ostream& out)
 
   HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
-      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+leibnizElims+
+      cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+
 #if VHOL
-      argumentCongruence+negativeExtensionality+
+      argumentCongruence+leibnizElims+negativeExtensionality+
       +primitiveInstantiations+choiceInstances+positiveExtensionality+
 #endif
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication);

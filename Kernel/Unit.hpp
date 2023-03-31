@@ -76,8 +76,10 @@ public:
   bool derivedFromGoal() const { return _inference.derivedFromGoal(); }
   /** see isPureTheoryDescendant in Inference.cpp */
   bool isPureTheoryDescendant() const { return _inference.isPureTheoryDescendant(); }
+#if VHOL
   /** see isProxyAxiomsDescendant in Inference.cpp */
   bool isProxyAxiomsDescendant() const { return _inference.isProxyAxiomsDescendant(); }
+#endif
   /** see isTheoryAxiom in Inference.cpp */
   bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
 

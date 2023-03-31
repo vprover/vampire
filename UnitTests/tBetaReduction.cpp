@@ -12,6 +12,8 @@
  * @author Ahmed Bhayat
  */
 
+#if VHOL
+
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
@@ -237,7 +239,7 @@ TEST_FUN(fo_subterm_rep1) {
   cout << replaced << endl;
 }
 
-
+#endif
 
 
 

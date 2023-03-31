@@ -86,7 +86,9 @@ class TestCase
   Stack<ClausePattern> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
+#if VHOL
   bool _higherOrder;
+#endif
   Stack<Indexing::Index*> _indices;
   OptionMap _options;
   Stack<Condition> _preConditions;
@@ -105,7 +107,11 @@ class TestCase
 
 public:
 
-  TestCase() : _rule(), _input(NULL), _expected(), _premiseRedundant(false), _higherOrder(false), _options() {}
+  TestCase() : _rule(), _input(NULL), _expected(), _premiseRedundant(false),
+#if VHOL  
+   _higherOrder(false), 
+#endif
+   _options() {}
 
 #define BUILDER_METHOD(type, field)                                                                           \
   TestCase field(type field)                                                                                  \
@@ -118,7 +124,9 @@ public:
   BUILDER_METHOD(Stack<Clause*>, context)
   BUILDER_METHOD(Stack<ClausePattern>, expected)
   BUILDER_METHOD(bool, premiseRedundant)
-  BUILDER_METHOD(bool, higherOrder)  
+#if VHOL
+  BUILDER_METHOD(bool, higherOrder)
+#endif  
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<Indexing::Index*>, indices)
   BUILDER_METHOD(OptionMap, options)
@@ -145,9 +153,11 @@ public:
       i->attachContainer(&container);
     }
 
+#if VHOL
     if(_higherOrder){
       env.property->forceHigherOrder();
     }
+#endif
 
     // add the clauses to the index
     for (auto c : _context) {
