@@ -22,7 +22,6 @@
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
-#include "Indexing/SubstitutionTree.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
@@ -33,6 +32,8 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/HOLUnification.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -58,7 +59,7 @@ struct EqualityResolution::IsNegativeEqualityFn
   { 
     return l->isEquality() && l->isNegative()
 #if VHOL
-        // no point trying to resolve too terms of functional sort
+        // no point trying to resolve two terms of functional sort
         // instead, let negExt grow both sides and then resolve...
         && !SortHelper::getEqualityArgumentSort(l).isArrowSort();
 #endif
@@ -73,90 +74,101 @@ void EqualityResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
 }
 
+template<class UnifAlgo>
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
 
-  Clause* operator() (Literal* lit)
+  template<class...AlgoArgs>
+  ResultFn(Clause* cl, bool afterCheck, Ordering* ord, AlgoArgs... args)
+      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()),
+        _algo(std::move(args)...) {}
+
+  ClauseIterator operator() (Literal* lit)
   {
     CALL("EqualityResolution::ResultFn::operator()");
 
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static MismatchHandler _mismatchHandler = MismatchHandler::create();
-    auto handler = _mismatchHandler;
+   // static MismatchHandler _mismatchHandler = MismatchHandler::create();
+   // auto handler = _mismatchHandler;
+
+    Recycled<ClauseStack> results;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
-    // and therefore a constraint can be created between arguments
-    if(arg0.isTerm() && arg1.isTerm() &&
-       arg0.term()->functor() != arg1.term()->functor()){
-      handler = MismatchHandler(Shell::Options::UnificationWithAbstraction::OFF);
-    }
+    auto substs = _algo.unifiers(arg0, 0, arg1, 0, /* no top level constraints */ true);
 
-    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, handler, 
-      env.options->unificationWithAbstractionFixedPointIteration());
+    while(substs.hasNext()){
+      RobSubstitution* sub = substs.next();
 
-    if(absUnif.isNone()){ 
-      return 0; 
-    }
+      auto constraints = sub->constraints();
+      unsigned newLen=_cLen - 1 + constraints->length();
 
-    // TODO create absUnif.constrLiterals or so
-    auto constraints = absUnif->constraintLiterals();
-    unsigned newLen=_cLen - 1 + constraints->length();
+      Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+      Literal* litAfter = 0;
 
-    Literal* litAfter = 0;
-
-    if (_afterCheck && _cl->numSelected() > 1) {
-      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      litAfter = absUnif->subs().apply(lit, 0);
-    }
-
-    unsigned next = 0;
-    for(unsigned i=0;i<_cLen;i++) {
-      Literal* curr=(*_cl)[i];
-      if(curr!=lit) {
-        Literal* currAfter = absUnif->subs().apply(curr, 0);
-
-        if (litAfter) {
-          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-          if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
-          }
-        }
-
-        (*res)[next++] = currAfter;
+      if (_afterCheck && _cl->numSelected() > 1) {
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+        litAfter = sub->apply(lit, 0);
       }
+
+      unsigned next = 0;
+      bool afterCheckFailed = false;
+      for(unsigned i=0;i<_cLen;i++) {
+        Literal* curr=(*_cl)[i];
+        if(curr!=lit) {
+          Literal* currAfter = sub->apply(curr, 0);
+
+          if (litAfter) {
+            TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+
+            if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
+              env.statistics->inferencesBlockedForOrderingAftercheck++;
+              res->destroy();
+              afterCheckFailed = true;
+              break;
+            }
+          }
+
+          (*res)[next++] = currAfter;
+        }
+      }
+
+      // try next unifier (of course there isn't one in the syntactic first-order case)
+      if(afterCheckFailed) continue;
+
+      for (auto l : *constraints) {
+        (*res)[next++] = l;
+      }
+      ASS_EQ(next,newLen);
+
+      env.statistics->equalityResolution++;
+      results->push(res);
     }
-
-    for (auto l : *constraints) {
-      (*res)[next++] = l;
-    }
-    ASS_EQ(next,newLen);
-
-    env.statistics->equalityResolution++;
-
-    return res;
+    return pvi(getUniquePersistentIterator(ClauseStack::Iterator(*results)));
   }
 private:
   bool _afterCheck;
   Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
+  UnifAlgo _algo;
 };
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
   CALL("EqualityResolution::generateClauses");
+
+  static auto uwa                 = env.options->unificationWithAbstraction();
+  static bool fixedPointIteration = env.options->unificationWithAbstractionFixedPointIteration();
+  static bool usingUwa            = uwa !=Options::UnificationWithAbstraction::OFF;
+
+#if VHOL
+  static bool usingHOL = env.property->higherOrder();
+#endif
 
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();
@@ -167,13 +179,23 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
 
-  auto it3 = getMappingIterator(it2,ResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->getOrdering()));
+  bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  Ordering* ord = &_salg->getOrdering();
 
-  auto it4 = getFilteredIterator(it3,NonzeroFn());
+  if(usingUwa){
+    return pvi(getMapAndFlattenIterator(it2, 
+      ResultFn<AbstractingAlgo>(premise, afterCheck, ord, MismatchHandler(uwa), fixedPointIteration)));
+  }
 
-  return pvi( it4 );
+#if VHOL
+  if(usingHOL){
+    return pvi(getMapAndFlattenIterator(it2, 
+      ResultFn<HOLAlgo>        (premise, afterCheck, ord)));
+  }
+#endif
+
+  return pvi(getMapAndFlattenIterator(it2, 
+      ResultFn<RobAlgo>        (premise, afterCheck, ord)));
 }
 
 /**
@@ -184,8 +206,12 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 Clause* EqualityResolution::tryResolveEquality(Clause* cl, Literal* toResolve)
 {
   CALL("EqualityResolution::tryResolveEquality");
+  
+  // AYB should template tryResolveEquality function really...
+  auto it = ResultFn<RobAlgo>(cl, /* no aftercheck */ false, /* no ordering */ nullptr)(toResolve);
 
-  return ResultFn(cl)(toResolve);
+  if(it.hasNext()) return it.next();
+  else return 0;
 }
 
 }

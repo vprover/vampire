@@ -135,6 +135,12 @@ enum SymbolType{FUNC, PRED, TYPE_CON};
 
 namespace Indexing
 {
+
+// TODO where should these go?
+static constexpr int QUERY_BANK=0;
+static constexpr int RESULT_BANK=1;
+static constexpr int NORM_RESULT_BANK=3;
+
 class Index;
 class IndexManager;
 class LiteralIndex;
@@ -146,6 +152,7 @@ class TermSharing;
 
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
+//typedef Lib::VirtualIterator<ResultSubstitutionSP> SubstSPIterator;
 
 };
 

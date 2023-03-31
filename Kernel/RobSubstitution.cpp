@@ -119,6 +119,11 @@ unsigned TermSpec::functor() const
 { return _self.match([](Appl const& a)           { return a.functor; },
                      [](OldTermSpec const& self) { return self.term.term()->functor(); }); }
 
+#if VHOL
+  bool TermSpec::isPlaceholder() const
+  { return _self.match([](Appl const& a)           { return false; },
+                       [](OldTermSpec const& self) { return self.term.isPlaceholder(); }); }
+#endif
 
 unsigned TermSpec::nTypeArgs() const 
 { return _self.match([](Appl const& a)           { return env.signature->getFunction(a.functor)->numTypeArguments(); },
@@ -158,6 +163,42 @@ TermSpec TermSpec::sort() const
                      },
                      [&](OldTermSpec const& self) -> TermSpec { return TermSpec(SortHelper::getResultSort(self.term.term()), self.index); }); }
 
+
+void UnificationConstraintStack::add(UnificationConstraint c, Option<BacktrackData&> bd)
+{ 
+  if (bd) {
+    backtrackablePush(_cont, std::move(c), *bd); 
+  } else {
+    _cont.push(std::move(c));
+  }
+}
+
+UnificationConstraint UnificationConstraintStack::pop(Option<BacktrackData&> bd)
+{ 
+  auto old = _cont.pop();
+  if (bd) {
+    bd->addClosure([this, old = old.clone()]() mutable { _cont.push(std::move(old)); });
+  }
+  return old;
+}
+
+Recycled<Stack<Literal*>> UnificationConstraintStack::literals(RobSubstitution& s)
+{ 
+  Recycled<Stack<Literal*>> out;
+  out->reserve(_cont.size());
+  out->loadFromIterator(literalIter(s));
+  return out;
+}
+
+
+Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
+{ 
+  auto t1 = _t1.toTerm(s);
+  auto t2 = _t2.toTerm(s);
+  return t1 == t2 
+    ? Option<Literal*>()
+    : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));
+}
 
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
@@ -272,6 +313,7 @@ TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar) const
 TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
 {
   CALL("RobSubstitution::derefBound");
+
   TermSpec const* t = &t_;
   for(;;) {
     if (t->isTerm() || t->isOutputVar()) {

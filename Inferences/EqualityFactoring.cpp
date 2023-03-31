@@ -90,17 +90,17 @@ void EqualityFactoring::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
 }
 
+template<class UnifAlgo>
 struct EqualityFactoring::ResultFn
 {
 
   ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
-      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
+      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering),
+        _algo()  {}
 
-  Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
+  ClauseIterator operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     CALL("EqualityFactoring::ResultFn::operator()");
-    static RobSubstitution subst;
-    subst.reset();
 
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
@@ -110,9 +110,14 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
+    static RobSubstitution subst;
+    subst.reset();
+
     if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
-      return 0;
+      return ClauseIterator::getEmpty();
     }
+
+    Recycled<ClauseStack> results;
 
     TermList srtS = subst.apply(srt,0);
 
@@ -121,71 +126,84 @@ struct EqualityFactoring::ResultFn
     TermList fLHS=arg.second.second;
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
+  
+    auto unifiers = _algo.unifiers(sLHS,0,fLHS,0);
 
-    if(!subst.unify(sLHS,0,fLHS,0)) {
-      return 0;
-    }
+    while(unifiers.hasNext()){
+      RobSubstitution* subst = unifiers.next();
 
-    TermList sLHSS = subst.apply(sLHS,0);
-    TermList sRHSS = subst.apply(sRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
-      return 0;
-    }
-    TermList fRHSS = subst.apply(fRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
-      return 0;
-    }
-    //auto constraints = absUnif.constr().literals(absUnif.subs());
-    unsigned newLen=_cLen /*+constraints->length()*/;
-
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
-
-    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
-
-    Literal* sLitAfter = 0;
-    if (_afterCheck && _cl->numSelected() > 1) {
-      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      sLitAfter = subst.apply(sLit, 0);
-    }
-
-    unsigned next = 1;
-    for(unsigned i=0;i<_cLen;i++) {
-      Literal* curr=(*_cl)[i];
-      if(curr!=sLit) {
-        Literal* currAfter = subst.apply(curr, 0);
-
-        if (sLitAfter) {
-          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-          if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
-          }
-        }
-
-        (*res)[next++] = currAfter;
+      TermList sLHSS = subst->apply(sLHS,0);
+      TermList sRHSS = subst->apply(sRHS,0);
+      if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
+        // try next unifier (of course there isn't one in the syntactic first-order case)
+        continue;
       }
+      TermList fRHSS = subst->apply(fRHS,0);
+      if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
+        continue;
+      }
+      auto constraints = subst->constraints();
+      unsigned newLen=_cLen - 1 + constraints->length();
+
+      Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+
+      (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
+
+      Literal* sLitAfter = 0;
+      if (_afterCheck && _cl->numSelected() > 1) {
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+        sLitAfter = subst->apply(sLit, 0);
+      }
+
+      unsigned next = 1;
+      bool afterCheckFailed = false;
+      for(unsigned i=0;i<_cLen;i++) {
+        Literal* curr=(*_cl)[i];
+        if(curr!=sLit) {
+          Literal* currAfter = subst->apply(curr, 0);
+
+          if (sLitAfter) {
+            TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+            if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
+              env.statistics->inferencesBlockedForOrderingAftercheck++;
+              res->destroy();
+              afterCheckFailed = true;
+              break;
+            }
+          }
+
+          (*res)[next++] = currAfter;
+        }
+      }
+
+      // try next unifier (of course there isn't one in the syntactic first-order case)
+      if(afterCheckFailed) continue;
+
+      for(Literal* c : *constraints){
+        (*res)[next++] = c;
+      }
+      ASS_EQ(next,newLen);
+
+      env.statistics->equalityFactoring++;
+      results->push(res);
     }
-
-    /*for(Literal* c : *constraints){
-      (*res)[next++] = c;
-    }*/
-    ASS_EQ(next,newLen);
-
-    env.statistics->equalityFactoring++;
-
-    return res;
+    return pvi(getUniquePersistentIterator(ClauseStack::Iterator(*results)));    
   }
 private:
   Clause* _cl;
   unsigned _cLen;
   bool _afterCheck;
   Ordering& _ordering;
+  UnifAlgo _algo;
 };
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 {
   CALL("EqualityFactoring::generateClauses");
+
+#if VHOL
+  static bool usingHOL = env.property->higherOrder();
+#endif
 
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
@@ -200,12 +218,16 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
+  bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  Ordering& ord = _salg->getOrdering();
 
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
+#if VHOL
+  if(usingHOL){
+    return pvi(getMapAndFlattenIterator(it4, ResultFn<HOLAlgo>(premise, afterCheck, ord)));
+  }
+#endif
 
-  return pvi( it6 );
+  return   pvi(getMapAndFlattenIterator(it4, ResultFn<RobAlgo>(premise, afterCheck, ord)));
 }
 
 }

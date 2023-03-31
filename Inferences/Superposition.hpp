@@ -45,7 +45,7 @@ private:
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-    AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer);
+    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,

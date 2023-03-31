@@ -173,6 +173,7 @@ bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nod
   CALL("SubstitutionTree::GenMatcher::matchNextAux");
 
   bool success;
+
   if(nodeTerm.isTerm()) {
     Term* nt=nodeTerm.term();
     if(nt->shared() && nt->ground()) {
@@ -183,7 +184,7 @@ bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nod
       ASS(nt->arity()>0);
 
       success = queryTerm.isTerm() && queryTerm.term()->functor()==nt->functor() &&
-	MatchingUtils::matchArgs(nt, queryTerm.term(), binder);
+                  MatchingUtils::matchArgs(nt, queryTerm.term(), binder);
     }
   } else {
     ASS_METHOD(nodeTerm,isOrdinaryVar());
@@ -199,11 +200,11 @@ bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nod
     if(separate) {
       //we have to unbind ordinary variables, that were bound.
       for(;;) {
-	unsigned boundVar = _boundVars->pop();
-	if(boundVar==BACKTRACK_SEPARATOR) {
-	  break;
-	}
-	_bindings->remove(boundVar);
+        unsigned boundVar = _boundVars->pop();
+        if(boundVar==BACKTRACK_SEPARATOR) {
+          break;
+        }
+        _bindings->remove(boundVar);
       }
     }
   }
@@ -266,7 +267,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
   return _ldIterator.hasNext();
 }
 
-SubstitutionTree::RSQueryResult SubstitutionTree::FastGeneralizationsIterator::next()
+SubstitutionTree::QueryResultIter SubstitutionTree::FastGeneralizationsIterator::next()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::next");
 
@@ -282,9 +283,11 @@ SubstitutionTree::RSQueryResult SubstitutionTree::FastGeneralizationsIterator::n
       _resultNormalizer->normalizeVariables(ld->term);
     }
 
-    return queryResult(ld,_subst.getSubstitution(&*_resultNormalizer));
+    // TODO update this once we make matching iterators templated on matching algorithm
+    // or remove altogether if we go with Joe's refactor
+    return pvi(getSingletonIterator(QueryResult(ld,_subst.getSubstitution(&*_resultNormalizer))));
   } else {
-    return queryResult(ld, ResultSubstitutionSP());
+    return pvi(getSingletonIterator(QueryResult(ld, ResultSubstitutionSP())));
   }
 }
 
@@ -321,23 +324,23 @@ main_loop_start:
 
     if(curr) {
       if(sibilingsRemain) {
-	ASS(_nodeTypes->top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives->top()));
-	currSpecVar=_specVarNumbers->top();
+        ASS(_nodeTypes->top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives->top()));
+        currSpecVar=_specVarNumbers->top();
       } else {
-	currSpecVar=_specVarNumbers->pop();
+        currSpecVar=_specVarNumbers->pop();
       }
     }
     //let's find a node we haven't been to...
     while(curr==0 && _alternatives->isNonEmpty()) {
       void* currAlt=_alternatives->pop();
       if(!currAlt) {
-	//there's no alternative at this level, we have to backtrack
-	_nodeTypes->pop();
-	_specVarNumbers->pop();
-	if(_alternatives->isNonEmpty()) {
-	  _subst.backtrack();
-	}
-	continue;
+        //there's no alternative at this level, we have to backtrack
+        _nodeTypes->pop();
+        _specVarNumbers->pop();
+        if(_alternatives->isNonEmpty()) {
+          _subst.backtrack();
+        }
+        continue;
       }
 
       NodeAlgorithm parentType=_nodeTypes->top();
@@ -345,42 +348,42 @@ main_loop_start:
       //proper term nodes that we want to enter don't appear
       //on _alternatives stack (as we always enter them first)
       if(parentType==UNSORTED_LIST) {
-	Node** alts=static_cast<Node**>(currAlt);
-	while(*alts && !(*alts)->term.isVar()) {
-	  alts++;
-	}
-	curr=*(alts++);
-	while(*alts && !(*alts)->term.isVar()) {
-	  alts++;
-	}
-	if(*alts) {
-	  _alternatives->push(alts);
-	  sibilingsRemain=true;
-	} else {
-	  sibilingsRemain=false;
-	}
+        Node** alts=static_cast<Node**>(currAlt);
+        while(*alts && !(*alts)->term.isVar()) {
+          alts++;
+        }
+        curr=*(alts++);
+        while(*alts && !(*alts)->term.isVar()) {
+          alts++;
+        }
+        if(*alts) {
+          _alternatives->push(alts);
+          sibilingsRemain=true;
+        } else {
+          sibilingsRemain=false;
+        }
       } else {
-	ASS_EQ(parentType,SKIP_LIST)
-	auto alts = static_cast<SListIntermediateNode::NodeSkipList::Node *>(currAlt);
-	if(alts->head()->term.isVar()) {
-	  curr=alts->head();
-	  if(alts->tail() && alts->tail()->head()->term.isVar()) {
-	    _alternatives->push(alts->tail());
-	    sibilingsRemain=true;
-	  } else {
-	    sibilingsRemain=false;
-	  }
-	}
+        ASS_EQ(parentType,SKIP_LIST)
+        auto alts = static_cast<SListIntermediateNode::NodeSkipList::Node *>(currAlt);
+        if(alts->head()->term.isVar()) {
+          curr=alts->head();
+          if(alts->tail() && alts->tail()->head()->term.isVar()) {
+            _alternatives->push(alts->tail());
+            sibilingsRemain=true;
+          } else {
+            sibilingsRemain=false;
+          }
+        }
       }
 
       if(sibilingsRemain) {
-	currSpecVar=_specVarNumbers->top();
+        currSpecVar=_specVarNumbers->top();
       } else {
-	_nodeTypes->pop();
-	currSpecVar=_specVarNumbers->pop();
+        _nodeTypes->pop();
+        currSpecVar=_specVarNumbers->pop();
       }
       if(curr) {
-	break;
+        break;
       }
     }
     if(!curr) {
@@ -402,14 +405,14 @@ main_loop_start:
       ASS(curr);
       ASSERT_VALID(*curr);
       if(!_subst.matchNext(specVar, curr->term, false)) {
-	//matching failed, let's go back to the node, that had multiple children
-	//_subst->backtrack();
-	if(sibilingsRemain || _alternatives->isNonEmpty()) {
-	  //this backtrack can happen for two different reasons and have two different meanings:
-	  //either matching at [1] was separated from the previous one and we're backtracking it,
-	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
-	  _subst.backtrack();
-	}
+        //matching failed, let's go back to the node, that had multiple children
+        //_subst->backtrack();
+        if(sibilingsRemain || _alternatives->isNonEmpty()) {
+          //this backtrack can happen for two different reasons and have two different meanings:
+          //either matching at [1] was separated from the previous one and we're backtracking it,
+          //or it was not, which means it had no sibilings and we're backtracking from its parent.
+          _subst.backtrack();
+        }
         curr=0;
         goto main_loop_start;
       }

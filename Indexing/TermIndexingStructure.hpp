@@ -17,7 +17,8 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
+#include "Kernel/TypedTermList.hpp"
+#include "Kernel/HOLUnification.hpp"
 
 namespace Indexing {
 
@@ -32,11 +33,10 @@ public:
 
   virtual TermQueryResultIterator getUnifications(TypedTermList t, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, 
-    Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
+  virtual TermQueryResultIterator getUwa(TypedTermList t) = 0;
 
 #if VHOL
-  virtual VirtualIterator<TQueryRes<HOLUnifier*>> getHOLUnifs(TypedTermList t)
+  virtual TermQueryResultIterator getPotentialHOLUnifiers(TypedTermList t)
     { NOT_IMPLEMENTED; }
 #endif
   

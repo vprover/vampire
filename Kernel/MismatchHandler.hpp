@@ -30,47 +30,12 @@
 namespace Kernel
 {
 
-
-class UnificationConstraintStack
-{
-  Stack<UnificationConstraint> _cont;
-public:
-  CLASS_NAME(UnificationConstraintStack)
-  USE_ALLOCATOR(UnificationConstraintStack)
-  UnificationConstraintStack() : _cont() {}
-  UnificationConstraintStack(UnificationConstraintStack&&) = default;
-  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
-
-  auto iter() const
-  { return iterTraits(_cont.iter()); }
-
-  Recycled<Stack<Literal*>> literals(RobSubstitution& s);
-
-  auto literalIter(RobSubstitution& s)
-  { return iterTraits(_cont.iter())
-              .filterMap([&](auto& c) { return c.toLiteral(s); }); }
-
-  friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
-  { return out << self._cont; }
-
-  void reset() { _cont.reset(); }
-  bool keepRecycled() const { return _cont.keepRecycled() > 0; }
-
-  bool isEmpty() const
-  { return _cont.isEmpty(); }
-
-  void add(UnificationConstraint c, Option<BacktrackData&> bd);
-  UnificationConstraint pop(Option<BacktrackData&> bd);
-};
-
-using Action = std::function<bool(unsigned, TermSpec)>;
-using SpecialVar = unsigned;
-using WaitingMap = DHMap<SpecialVar, Action>;
-
 class MismatchHandler final
 {
   Shell::Options::UnificationWithAbstraction _mode;
-  friend class AbstractingUnifier;
+  friend class UnificationAlgorithms::AbstractingUnification;
+
+  using AbstractingAlgo = UnificationAlgorithms::AbstractingUnification;
 public:
 
   MismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
@@ -80,7 +45,6 @@ public:
     Recycled<Stack<UnificationConstraint>> _constr; 
 
     EqualIf() : _unify(), _constr() {}
-
 
     auto unify()  -> decltype(auto) { return *_unify; }
     auto constr() -> decltype(auto) { return *_constr; }
@@ -130,9 +94,11 @@ public:
 
   /** TODO document */
   Option<AbstractionResult> tryAbstract(
-      AbstractingUnifier* au,
+      RobSubstitution* rob,
       TermSpec const& t1,
       TermSpec const& t2) const;
+
+  auto mode() const { return _mode; }
 
   // /** TODO document */
   // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
@@ -143,70 +109,52 @@ private:
   // for old non-alasca uwa modes
   bool isInterpreted(unsigned f) const;
   bool canAbstract(
-      AbstractingUnifier* au,
       TermSpec const& t1,
       TermSpec const& t2) const;
 };
 
-class AbstractingUnifier {
-  Recycled<RobSubstitution> _subs;
-  Recycled<UnificationConstraintStack> _constr;
-  Option<BacktrackData&> _bd;
+namespace UnificationAlgorithms {
+
+class AbstractingUnification {
   MismatchHandler _uwa;
-  friend class RobSubstitution;
-  AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
+  bool _fpi;
+
 public:
   // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  static AbstractingUnifier empty(MismatchHandler uwa) 
-  { return AbstractingUnifier(uwa); }
+  AbstractingUnification(MismatchHandler uwa, bool fixedPointIter) : 
+   _uwa(uwa), _fpi(fixedPointIter) {  }
 
-  bool isRecording() { return _subs->bdIsRecording(); }
+  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, RobSubstitution* sub);
+  bool unify(TermSpec l, TermSpec r, bool& progress, RobSubstitution* sub);
+  bool fixedPointIteration(RobSubstitution* sub);
+  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, bool topLevelCheck = false);
+  SubstIterator postprocess(RobSubstitution* sub, TermList t);
 
-  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
-  bool unify(TermSpec l, TermSpec r, bool& progress);
-  bool fixedPointIteration();
-
-
-  static Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, MismatchHandler uwa, bool fixedPointIteration)
+  bool associate(unsigned specialVar, TermList node, BacktrackData& bd, RobSubstitution* sub)
   {
-    auto au = AbstractingUnifier::empty(uwa);
-    if (!au.unify(t1, bank1, t2, bank2)) return {};
-    if (!fixedPointIteration || au.fixedPointIteration()) return some(std::move(au));
-    else return {};
+    CALL("AbstractingUnification::associate");
+    
+    TermList query(specialVar, /* special */ true);
+    return unify(query, Indexing::QUERY_BANK, node, Indexing::NORM_RESULT_BANK, sub);
   }
 
+  //RobSubstitution& subs(){ return *_subs; }
 
-  UnificationConstraintStack& constr() { return *_constr; }
-  Recycled<Stack<Literal*>> constraintLiterals() { return _constr->literals(*_subs); }
+  /*Option<AbstractingUnification*> fixedPointIteration() 
+  {
+    if (_result->isNone()) {
+      *_result = some(bool(fixedPointIteration()));
+      if (_unif->isRecording()) {
+        _unif->bdGet().addClosure([res = _result]() { *res = {}; });
+      }
+    }
+    return someIf(**_result, [&](){ return _unif;  });
+  }*/
 
-  RobSubstitution      & subs()       { return *_subs; }
-  RobSubstitution const& subs() const { return *_subs; }
-  Option<BacktrackData&> bd() { return someIf(_subs->bdIsRecording(), [&]() -> decltype(auto) { return _subs->bdGet(); }); }
-  BacktrackData& bdGet() { return _subs->bdGet(); }
-  void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
-  void bdDone() { _subs->bdDone(); }
-  bool usesUwa() const { return _uwa._mode != Options::UnificationWithAbstraction::OFF; }
-
-  friend std::ostream& operator<<(std::ostream& out, AbstractingUnifier const& self)
-  { return out << "(" << self._subs << ", " << self._constr << ")"; }
+  bool usesUwa() const { return _uwa.mode() != Options::UnificationWithAbstraction::OFF; }
 };
 
-#if VHOL
-//TODO move from Mismatch handler to somewhere more suitable
-class HOLUnifier {
-  Recycled<RobSubstitution> _subs;
-
-public:
-
-  HOLUnifier() : _subs() {}
-
-  bool unifyWithPlaceholders(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
-
-  RobSubstitution      & subs()       { return *_subs; }
-  RobSubstitution const& subs() const { return *_subs; }
-
-};
-#endif
+}
 
 } // namespace Kernel
 #endif /*__MismatchHandler__*/

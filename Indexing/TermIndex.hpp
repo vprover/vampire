@@ -34,12 +34,12 @@ public:
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return _is->getUwa(t, uwa, fixedPointIteration); }
+  TermQueryResultIterator getUwa(TypedTermList t)
+  { return _is->getUwa(t); }
 
 #if VHOL
-  VirtualIterator<TQueryRes<HOLUnifier*>> getHOLUnifs(TypedTermList t)
-  { return _is->getHOLUnifs(t); }
+  TermQueryResultIterator getPotentialHOLUnifiers(TypedTermList t)
+  { return _is->getPotentialHOLUnifiers(t); }
 #endif
 
   TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)

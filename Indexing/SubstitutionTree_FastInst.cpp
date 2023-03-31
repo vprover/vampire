@@ -119,7 +119,7 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
       TermList derefBoundTerm;
 
       if(_derefBindings->find(bvar, derefBoundTerm)) {
-	ALWAYS(_derefBindings->insert(tvar, derefBoundTerm));
+        ALWAYS(_derefBindings->insert(tvar, derefBoundTerm));
       }
 
       ALWAYS(_bindings->find(bvar,varBinding));
@@ -133,13 +133,13 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
       toDo.push(DerefTask(tvar, varBinding));
       VariableIterator vit(varBinding.t);
       while(vit.hasNext()) {
-	TermList btv=vit.next(); //bound term variable
-	if(varBinding.q || btv.isSpecialVar()) {
-	  ASS(_bindings->find(btv));
-	  if(!_derefBindings->find(btv)) {
-	    toDo.push(DerefTask(btv));
-	  }
-	}
+        TermList btv=vit.next(); //bound term variable
+        if(varBinding.q || btv.isSpecialVar()) {
+          ASS(_bindings->find(btv));
+          if(!_derefBindings->find(btv)) {
+            toDo.push(DerefTask(btv));
+          }
+        }
       }
     }
     next_loop:
@@ -308,8 +308,8 @@ bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList no
       bool dt2Bindable= !dt2.isTerm() && (ts2.q || !dt2.isOrdinaryVar());
 
       if(!dt1Bindable && !dt2Bindable) {
-	success=false;
-	goto finish;
+        success=false;
+        goto finish;
       }
 
       //we try to bind ordinary variables first, as binding a special
@@ -318,34 +318,34 @@ bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList no
       //may come later, so we want to keep it unbound)
 
       if(ts1.q && dt1.isOrdinaryVar() && !isBound(dt1)) {
-	bind(dt1, TermSpec(ts2.q,dt2));
-	continue;
+        bind(dt1, TermSpec(ts2.q,dt2));
+        continue;
       }
       if(ts2.q && dt2.isOrdinaryVar() && !isBound(dt2)) {
-	bind(dt2, TermSpec(ts1.q,dt1));
-	continue;
+        bind(dt2, TermSpec(ts1.q,dt1));
+        continue;
       }
 
       if(dt2.isSpecialVar() && !isBound(dt2)) {
-	ASS(!ts2.q);
-	bind(dt2, TermSpec(ts1.q,dt1));
-	continue;
+        ASS(!ts2.q);
+        bind(dt2, TermSpec(ts1.q,dt1));
+        continue;
       }
       if(dt1.isSpecialVar() && !isBound(dt1)) {
-	ASS(!ts1.q);
-	bind(dt1, TermSpec(ts2.q,dt2));
-	continue;
+        ASS(!ts1.q);
+        bind(dt1, TermSpec(ts2.q,dt2));
+        continue;
       }
 
       TermSpec deref1=TermSpec(ts1.q, dt1);
       TermSpec deref2=TermSpec(ts2.q, dt2);
       if(dt1Bindable) {
-	ASS(isBound(dt1)); //if unbound, we would have assigned it earlier
-	deref1=deref(dt1);
+        ASS(isBound(dt1)); //if unbound, we would have assigned it earlier
+        deref1=deref(dt1);
       }
       if(dt2Bindable) {
-	ASS(isBound(dt2));
-	deref2=deref(dt2);
+        ASS(isBound(dt2));
+        deref2=deref(dt2);
       }
 
       toDo.push(make_pair(deref1, deref2));
@@ -377,7 +377,7 @@ bool SubstitutionTree::FastInstancesIterator::hasNext()
 #undef LOGGING
 #define LOGGING 0
 
-SubstitutionTree::RSQueryResult SubstitutionTree::FastInstancesIterator::next()
+SubstitutionTree::QueryResultIter SubstitutionTree::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
 
@@ -399,9 +399,11 @@ SubstitutionTree::RSQueryResult SubstitutionTree::FastInstancesIterator::next()
       }
       _resultDenormalizer.makeInverse(normalizer);
     }
-    return queryResult(ld, _subst.getSubstitution(&_resultDenormalizer));
+    // TODO update this once we make matching iterators templated on matching algorithm
+    // or remove altogether if we go with Joe's refactor
+    return pvi(getSingletonIterator(QueryResult(ld, _subst.getSubstitution(&_resultDenormalizer))));
   } else {
-    return queryResult(ld, ResultSubstitutionSP());
+    return pvi(getSingletonIterator(QueryResult(ld, ResultSubstitutionSP())));
   }
 }
 #undef LOGGING
@@ -454,9 +456,9 @@ main_loop_start:
         _nodeTypes->pop();
         _specVarNumbers->pop();
         if(_alternatives->isNonEmpty()) {
-	  _subst.backtrack();
-	}
-	continue;
+          _subst.backtrack();
+        }
+        continue;
       }
 
       NodeAlgorithm parentType = _nodeTypes->top();
@@ -465,26 +467,26 @@ main_loop_start:
       //matching by a variable (as there is always at most one child
       //for matching by term)
       if(parentType==UNSORTED_LIST) {
-	Node** alts=static_cast<Node**>(currAlt);
-	curr=*(alts++);
-	if(*alts) {
-	  _alternatives->push(alts);
-	  sibilingsRemain=true;
-	} else {
-	  sibilingsRemain=false;
-	}
+        Node** alts=static_cast<Node**>(currAlt);
+        curr=*(alts++);
+        if(*alts) {
+          _alternatives->push(alts);
+          sibilingsRemain=true;
+        } else {
+          sibilingsRemain=false;
+        }
       } else {
-	ASS_EQ(parentType,SKIP_LIST)
-	auto alts = static_cast<SListIntermediateNode::NodeSkipList::Node *>(currAlt);
-	ASS(alts);
+        ASS_EQ(parentType,SKIP_LIST)
+        auto alts = static_cast<SListIntermediateNode::NodeSkipList::Node *>(currAlt);
+        ASS(alts);
 
-	curr=alts->head();
-	if(alts->tail()) {
-	  _alternatives->push(alts->tail());
-	  sibilingsRemain=true;
-	} else {
-	  sibilingsRemain=false;
-	}
+        curr=alts->head();
+        if(alts->tail()) {
+          _alternatives->push(alts->tail());
+          sibilingsRemain=true;
+        } else {
+          sibilingsRemain=false;
+        }
       }
 
       if(sibilingsRemain) {
@@ -504,7 +506,7 @@ main_loop_start:
       //match unsuccessful, try next alternative
       curr=0;
       if(!sibilingsRemain && _alternatives->isNonEmpty()) {
-	_subst.backtrack();
+        _subst.backtrack();
       }
       continue;
     }
@@ -515,14 +517,14 @@ main_loop_start:
       ASS(curr);
       ASSERT_VALID(*curr);
       if(!_subst.matchNext(specVar, curr->term, false)) {
-	//matching failed, let's go back to the node, that had multiple children
-	//_subst.backtrack();
-	if(sibilingsRemain || _alternatives->isNonEmpty()) {
-	  //this backtrack can happen for two different reasons and have two different meanings:
-	  //either matching at [1] was separated from the previous one and we're backtracking it,
-	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
-	  _subst.backtrack();
-	}
+        //matching failed, let's go back to the node, that had multiple children
+        //_subst.backtrack();
+        if(sibilingsRemain || _alternatives->isNonEmpty()) {
+          //this backtrack can happen for two different reasons and have two different meanings:
+          //either matching at [1] was separated from the previous one and we're backtracking it,
+          //or it was not, which means it had no sibilings and we're backtracking from its parent.
+          _subst.backtrack();
+        }
         curr=0;
         goto main_loop_start;
       }
@@ -590,8 +592,8 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
       }
 
       if(*nl) {
-	//we've found the term with the same top functor
-	ASS_EQ((*nl)->term.term()->functor(),bindingFunctor);
+        //we've found the term with the same top functor
+        ASS_EQ((*nl)->term.term()->functor(),bindingFunctor);
         curr=*nl;
         noAlternatives=true; //there is at most one term with each top functor
       }
@@ -618,7 +620,7 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
       //only term with the same top functor will be matched by a term
       Node** byTop=inode->childByTop(query.top(), false);
       if(byTop) {
-	curr=*byTop;
+        curr=*byTop;
       }
       nl=0;
     }

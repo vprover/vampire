@@ -39,6 +39,7 @@
 #include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/HOLUnification.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -57,11 +58,6 @@
 #include <iostream>
 #endif
 
-
-// TODO where should these go?
-static constexpr int QUERY_BANK=0;
-static constexpr int RESULT_BANK=1;
-static constexpr int NORM_RESULT_BANK=3;
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -71,174 +67,6 @@ using namespace Kernel;
 #define REORDERING 1
 
 namespace Indexing {
-
-  namespace UnificationAlgorithms {
-    class RobUnification { 
-      Recycled<RobSubstitution> _subs;
-    public:
-      RobUnification() : _subs() {}
-      using Unifier = ResultSubstitutionSP; 
-
-      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-      {
-        CALL("SubstitutionTree::UnificationsIterator::associate");
-        TermList query(specialVar, /* special */ true);
-        return _subs->unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
-      }
-
-      Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
-
-      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
-      { _subs->bindSpecialVar(var, term, varBank); }
-
-      void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
-      void bdDone() { _subs->bdDone(); }
-
-      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
-      { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
-
-      TermList::Top getSpecialVarTop(unsigned svar) 
-      { return _subs->getSpecialVarTop(svar); }
-
-      bool usesUwa() const { return false; }
-    };
-
-    class UnificationsWithPlaceholders { 
-      HOLUnifier _unif;
-    public:
-      UnificationsWithPlaceholders() : _unif() {}
-      using Unifier = HOLUnifier*;
-
-      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-      {
-        // CALL("SubstitutionTree::UnificationsIterator::associate");
-        TermList query(specialVar, /* special */ true);
-        return _unif.unifyWithPlaceholders(query, QUERY_BANK, node, NORM_RESULT_BANK);
-      }
-
-      Unifier unifier()
-      { return &_unif; }
-
-      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
-      { _unif.subs().bindSpecialVar(var, term, varBank); }
-
-      void bdRecord(BacktrackData& bd)
-      { _unif.subs().bdRecord(bd); }
-
-      void bdDone()
-      { _unif.subs().bdDone(); }
-
-      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
-      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
-
-      TermList::Top getSpecialVarTop(unsigned svar)
-      { return _unif.subs().getSpecialVarTop(svar); }
-
-      bool usesUwa() const
-      { return false; }
-    };    
-
-    class UnificationWithAbstraction { 
-      AbstractingUnifier _unif;
-    public:
-      UnificationWithAbstraction(MismatchHandler handler) : _unif(AbstractingUnifier::empty(handler)) {}
-      using Unifier = AbstractingUnifier*;
-
-      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-      {
-        // CALL("SubstitutionTree::UnificationsIterator::associate");
-        TermList query(specialVar, /* special */ true);
-        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
-      }
-
-      Unifier unifier()
-      { return &_unif; }
-
-      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
-      { _unif.subs().bindSpecialVar(var, term, varBank); }
-
-      void bdRecord(BacktrackData& bd)
-      { _unif.subs().bdRecord(bd); }
-
-      void bdDone()
-      { _unif.subs().bdDone(); }
-
-      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
-      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
-
-      TermList::Top getSpecialVarTop(unsigned svar)
-      { return _unif.subs().getSpecialVarTop(svar); }
-
-      bool usesUwa() const
-      { return _unif.usesUwa(); }
-    };
-
-    class UnificationWithAbstractionWithPostprocessing 
-    { 
-      AbstractingUnifier _unif;
-      Option<bool> _fpRes;
-    public:
-      class NotFinalized { 
-        AbstractingUnifier* _unif; 
-        Option<bool>* _result;
-      public:
-        explicit NotFinalized(AbstractingUnifier* unif, Option<bool>* result) 
-          : _unif(unif)
-          , _result(result) 
-        { }
-
-        Option<AbstractingUnifier*> fixedPointIteration() 
-        {
-          if (_result->isNone()) {
-            *_result = some(bool(_unif->fixedPointIteration()));
-            if (_unif->isRecording()) {
-              _unif->bdGet().addClosure([res = _result]() { *res = {}; });
-            }
-          }
-          return someIf(**_result, [&](){ return _unif;  });
-        }
-
-        friend std::ostream& operator<<(std::ostream& out, NotFinalized const& self)
-        { return out << *self._unif << " (fixedPointIteration: " << *self._result << " )"; }
-      };
-
-      using Unifier = NotFinalized;
-
-      UnificationWithAbstractionWithPostprocessing(MismatchHandler handler) 
-        : _unif(AbstractingUnifier::empty(handler)) 
-        , _fpRes()
-      {}
-
-      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-      {
-        // CALL("SubstitutionTree::UnificationsIterator::associate");
-        TermList query(specialVar, /* special */ true);
-        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
-      }
-
-      Unifier unifier()
-      { return NotFinalized(&_unif, &_fpRes); }
-
-      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
-      { _unif.subs().bindSpecialVar(var, term, varBank); }
-
-      void bdRecord(BacktrackData& bd)
-      { _unif.subs().bdRecord(bd); }
-
-      void bdDone()
-      { _unif.subs().bdDone(); }
-
-      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
-      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
-
-      TermList::Top getSpecialVarTop(unsigned svar)
-      { return _unif.subs().getSpecialVarTop(svar); }
-
-      bool usesUwa() const
-      { return _unif.usesUwa(); }
-    };
-  };
-
 
 class SubstitutionTree;
 std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
@@ -350,32 +178,30 @@ public:
   };
   typedef VirtualIterator<LeafData*> LDIterator;
 
-  template<class Unifier>
   struct QueryResult {
     LeafData const* data; 
-    Unifier unif;
+    ResultSubstitutionSP unif;
 
-    QueryResult(LeafData const* ld, Unifier unif) : data(ld), unif(std::move(unif)) {}
+    QueryResult(LeafData const* ld, ResultSubstitutionSP unifier) : data(ld), unif(unifier) {}
   };
-  template<class Unifier>
-  static QueryResult<Unifier>  queryResult(LeafData const* ld, Unifier unif) 
-  { return QueryResult<Unifier>(ld, std::move(unif)); }
 
-  template<class I> using QueryResultIter = VirtualIterator<QueryResult<typename I::Unifier>>;
-  // TODO get rid of me
-  using RSQueryResult = QueryResult<ResultSubstitutionSP>;
-  // TODO get rid of me
-  using RSQueryResultIter = VirtualIterator<QueryResult<ResultSubstitutionSP>>;
+  using QueryResultIter = VirtualIterator<QueryResult>;
+
   // TODO make const function
   template<class I, class TermOrLit, class... Args> 
   auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
   {
     CALL("SubstitutionTree::iterator");
-    return iterTraits(
+    if(_root == nullptr)
+      return QueryResultIter::getEmpty();
+
+    return pvi(getFlattenedIterator(vi(new I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...))));
+
+    /*return iterTraits(
           someIf(_root != nullptr, 
               [&]() { return I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...) ; })
           .intoIter())
-        .flatten();
+        .flatten().flatten();*/
   }
 
   class LDComparator
@@ -571,7 +397,11 @@ public:
   {
     bool operator()(Node** n)
     {
-      return (*n)->term.isVar();
+      return (*n)->term.isVar() 
+#if VHOL
+      || (*n)->term.isPlaceholder() // treat placeholders exactly like variables
+#endif
+      ;
     }
   };
 
@@ -715,11 +545,23 @@ public:
         if(t2.var()) {
           return GREATER;
         }
+#if VHOL
+        if(env.property->higherOrder()){
+          // always put placeholder directly after variables in SkipList
+          // so that IsPtrToVarNodeFn return true for placehodlers as well
+          bool t1IsPlaceholder = env.signature->isPlaceholder(t1.functor());
+          bool t2IsPlaceholder = env.signature->isPlaceholder(t2.functor());
+          if(t1IsPlaceholder && !t2IsPlaceholder) return LESS;
+          if(t2IsPlaceholder && !t1IsPlaceholder) return GREATER;
+        }
+#endif
         return Int::compare(*t1.functor(), *t2.functor());
       }
 
       static Comparison compare(Node* n1, Node* n2)
-      { return compare(n1->term.top(), n2->term.top()); }
+      { return compare(n1->term.top(), n2->term.top()); 
+
+      }
       static Comparison compare(TermList::Top t1, Node* n2)
       { return compare(t1, n2->term.top()); }
     };
@@ -773,7 +615,9 @@ public:
 
   void setSort(TypedTermList const& term, LeafData& ld)
   {
-    ASS_EQ(ld.term, term)
+    // in higher-order case we replace certain subterms with so-called
+    // placeholders, so assertion below doesn't hold in general
+    ASS(ld.term == term || env.property->higherOrder());
     ld.sort = term.sort();
   }
 
@@ -861,7 +705,7 @@ public:
   }
 
   template<class Query>
-  RSQueryResultIter getVariants(Query query, bool retrieveSubstitutions)
+  QueryResultIter getVariants(Query query, bool retrieveSubstitutions)
   {
     CALL("LiteralSubstitutionTree::getVariants");
 
@@ -885,7 +729,7 @@ public:
         } });
     Leaf* leaf = findLeaf(*svBindings);
     if(leaf==0) {
-      return RSQueryResultIter::getEmpty();
+      return QueryResultIter::getEmpty();
     } else {
       return pvi(iterTraits(leaf->allChildren())
         .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData* ld) 
@@ -896,7 +740,7 @@ public:
               renaming->_result->normalizeVariables(SubtitutionTreeConfig<Query>::getKey(*ld));
               subs = resultSubst;
             }
-            return queryResult(ld, subs);
+            return QueryResult(ld, subs);
           }));
     }
   }
@@ -1054,11 +898,12 @@ public:
    * Iterator, that yields generalizations of given term/literal.
    */
   class FastGeneralizationsIterator
+  : public IteratorCore<QueryResultIter>
   {
   public:
-    FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
-    FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
-    DECL_ELEMENT_TYPE(RSQueryResult);
+//    FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
+//    FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
+    DECL_ELEMENT_TYPE(QueryResultIter);
     using Unifier = ResultSubstitutionSP;
     /**
      * If @b reversed If true, parameters of supplied binary literal are
@@ -1085,7 +930,7 @@ public:
           [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
     }
 
-    RSQueryResult next();
+    QueryResultIter next();
     bool hasNext();
   protected:
 
@@ -1301,11 +1146,12 @@ public:
    * Iterator, that yields generalizations of given term/literal.
    */
   class FastInstancesIterator
+  : public IteratorCore<QueryResultIter>
   {
   public:
-    FastInstancesIterator(FastInstancesIterator&&) = default;
-    FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
-    DECL_ELEMENT_TYPE(RSQueryResult);
+//    FastInstancesIterator(FastInstancesIterator&&) = default;
+//    FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
+    DECL_ELEMENT_TYPE(QueryResultIter);
     using Unifier = ResultSubstitutionSP;
 
     /**
@@ -1336,7 +1182,7 @@ public:
     }
 
     bool hasNext();
-    RSQueryResult next();
+    QueryResultIter next();
   protected:
     bool findNextLeaf();
 
@@ -1362,16 +1208,17 @@ public:
 
   template<class UnificationAlgorithm>
   class UnificationsIterator final
+  : public IteratorCore<QueryResultIter>
   {
   public:
-    UnificationsIterator(UnificationsIterator&&) = default;
-    UnificationsIterator& operator=(UnificationsIterator&&) = default;
-    using Unifier = typename UnificationAlgorithm::Unifier;
-    DECL_ELEMENT_TYPE(QueryResult<Unifier>);
+//    UnificationsIterator(UnificationsIterator&&) = default;
+//    UnificationsIterator& operator=(UnificationsIterator&&) = default;
+    DECL_ELEMENT_TYPE(QueryResultIter);
 
     template<class TermOrLit, class...AlgoArgs>
     UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
-      : _algo(std::move(args)...)
+      : _subst()
+      , _algo(std::move(args)...)
       , _svStack()
       , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
       , _retrieveSubstitution(retrieveSubstitution)
@@ -1385,7 +1232,7 @@ public:
       , _tag(parent->_tag)
 #endif
     {
-#define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
+#define DEBUG_QUERY(...)  //DBG(__VA_ARGS__)
       CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
 
       if(!root) {
@@ -1393,9 +1240,8 @@ public:
       }
 
       parent->createBindings(query, reversed, 
-          [&](unsigned var, TermList t) { _algo.bindQuerySpecialVar(var, t, QUERY_BANK); });
-      DEBUG_QUERY("query: ", _abstractingUnifier.subs())
-
+          [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t, QUERY_BANK); });
+      DEBUG_QUERY("query: ", *_subst);
 
       BacktrackData bd;
       enter(root, bd);
@@ -1405,8 +1251,10 @@ public:
 
     ~UnificationsIterator()
     {
+      CALL("SubstitutionTree::UnificationsIterator::~UnificationsIterator");
+
       if(_clientBDRecording) {
-        _algo.bdDone();
+        _subst->bdDone();
         _clientBDRecording=false;
         _clientBacktrackData.backtrack();
       }
@@ -1421,7 +1269,7 @@ public:
       CALL("SubstitutionTree::UnificationsIterator::hasNext");
 
       if(_clientBDRecording) {
-        _algo.bdDone();
+        _subst->bdDone();
         _clientBDRecording=false;
         _clientBacktrackData.backtrack();
       }
@@ -1430,7 +1278,7 @@ public:
       return _ldIterator.hasNext();
     }
 
-    QueryResult<Unifier> next()
+    QueryResultIter next()
     {
       CALL("SubstitutionTree::UnificationsIterator::next");
 
@@ -1442,33 +1290,36 @@ public:
       auto ld = _ldIterator.next();
       // TODO resolve this kinda messy bit
       if (_retrieveSubstitution) {
-          Renaming normalizer;
-          if(_literalRetrieval) {
-            normalizer.normalizeVariables(ld->literal);
-          } else {
-            normalizer.normalizeVariables(ld->term);
-            if (ld->sort.isNonEmpty()) {
-              normalizer.normalizeVariables(ld->sort);
-            }
+        Renaming normalizer;
+        if(_literalRetrieval) {
+          normalizer.normalizeVariables(ld->literal);
+        } else {
+          normalizer.normalizeVariables(ld->term);
+          if (ld->sort.isNonEmpty()) {
+            normalizer.normalizeVariables(ld->sort);
           }
+        }
 
-          ASS(_clientBacktrackData.isEmpty());
-          _algo.bdRecord(_clientBacktrackData);
-          _clientBDRecording=true;
+        ASS(_clientBacktrackData.isEmpty());
+        _subst->bdRecord(_clientBacktrackData);
+        _clientBDRecording=true;
 
-          _algo.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
+        _subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
       }
 
-      return queryResult(ld, _algo.unifier());
+      // postprocess in the leaf
+      // For syntactic first-order unification postprocessing just wraps 
+      // the single unifier into an iterator
+      // For UWA, if fixed point iteration has been chosen, this is carried out
+      // For HOL, a set of HOL unifiers are returned
+      SubstIterator substs = _algo.postprocess(&*_subst, ld->term);
+      return pvi(iterTraits(substs).map([ld](RobSubstitution* subst){  
+          return QueryResult(ld, 
+            ResultSubstitution::fromSubstitution(subst, QUERY_BANK, RESULT_BANK));
+        }));
     }
 
   private:
-    // bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-    // {
-    //   CALL("SubstitutionTree::UnificationsIterator::associate");
-    //   TermList query(specialVar, /* special */ true);
-    //   return _abstractingUnifier.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
-    // }
 
     NodeIterator getNodeIterator(IntermediateNode* n)
     {
@@ -1482,7 +1333,7 @@ public:
       unsigned specVar=n->childVar;
       // TermList qt = _abstractingUnifier.subs().getSpecialVarTop(specVar);
       // TODO should this function really be part of algo?
-      auto top = _algo.getSpecialVarTop(specVar);
+      auto top = _subst->getSpecialVarTop(specVar);
       if(top.var()) {
         return n->allChildren();
       } else {
@@ -1555,10 +1406,9 @@ public:
       bool recording=false;
       if(!n->term.isEmpty()) {
         //n is proper node, not a root
-
         recording=true;
-        _algo.bdRecord(bd);
-        success = _algo.associate(_svStack->top(),n->term,bd);
+        _subst->bdRecord(bd);
+        success = _algo.associate(_svStack->top(),n->term,bd,&*_subst);
       }
       if(success) {
         if(n->isLeaf()) {
@@ -1571,11 +1421,13 @@ public:
         }
       }
       if(recording) {
-        _algo.bdDone();
+        _subst->bdDone();
       }
+
       return success;
     }
 
+    Recycled<RobSubstitution> _subst;    
 
     UnificationAlgorithm _algo;
     Recycled<VarStack> _svStack;

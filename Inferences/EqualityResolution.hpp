@@ -30,6 +30,10 @@ using namespace Saturation;
 class EqualityResolution
 : public GeneratingInferenceEngine
 {
+  using AbstractingAlgo = UnificationAlgorithms::AbstractingUnification;
+  using RobAlgo = UnificationAlgorithms::RobUnification;
+  using HOLAlgo = UnificationAlgorithms::HOLUnification;
+  
 public:
   CLASS_NAME(EqualityResolution);
   USE_ALLOCATOR(EqualityResolution);
@@ -39,6 +43,8 @@ public:
   ClauseIterator generateClauses(Clause* premise);
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
+
+  template<class UnifAlgo>
   struct ResultFn;
   struct IsNegativeEqualityFn;
 };

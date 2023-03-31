@@ -35,8 +35,8 @@ public:
 
   virtual SLQueryResultIterator getUnifications(Literal* lit, 
     bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, 
-    bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
+  virtual SLQueryResultIterator getUwa(Literal* lit, 
+    bool complementary) = 0;
   virtual SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary,
    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual SLQueryResultIterator getInstances(Literal* lit, bool complementary, 

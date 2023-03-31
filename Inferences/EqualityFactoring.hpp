@@ -30,6 +30,9 @@ using namespace Saturation;
 class EqualityFactoring
 : public GeneratingInferenceEngine
 {
+  using RobAlgo = UnificationAlgorithms::RobUnification;
+  using HOLAlgo = UnificationAlgorithms::HOLUnification;
+
 public:
   CLASS_NAME(EqualityFactoring);
   USE_ALLOCATOR(EqualityFactoring);
@@ -42,8 +45,9 @@ private:
   struct IsPositiveEqualityFn;
   struct IsDifferentPositiveEqualityFn;
   struct FactorablePairsFn;
+
+  template<class UnifAlgo>
   struct ResultFn;
-  friend struct ResultFn;
 };
 
 

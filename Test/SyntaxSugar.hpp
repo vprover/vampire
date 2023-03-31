@@ -29,6 +29,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
@@ -408,6 +409,8 @@ public:
     ASS(_sugaredExpr.isVar());
     _srt = sort.sugaredExpr();
   }
+
+  operator TypedTermList() const {return TypedTermList(_sugaredExpr, _srt);}
 
   /** explicit conversion */ 
   SortId sort() const { return _srt; }

@@ -45,7 +45,7 @@ public:
 
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, Stack<Literal*> const& constraints, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
+                                ResultSubstitutionSP subs, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
   ClauseIterator generateClauses(Clause* premise);
 
 private:

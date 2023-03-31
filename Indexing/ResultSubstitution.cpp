@@ -54,6 +54,9 @@ public:
 
   virtual void output(std::ostream& out) const final override { out << *_subst; }
 
+  /** return iterator over constraints */
+  virtual Recycled<LiteralStack> getConstraints() override { return _subst->constraints(); }
+
 private:
   RobSubstitution* _subst;
   int _queryBank;

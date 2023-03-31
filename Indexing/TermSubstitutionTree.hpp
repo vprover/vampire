@@ -27,6 +27,7 @@
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
+#include "Kernel/HOLUnification.hpp"
 
 namespace Indexing {
 
@@ -41,6 +42,10 @@ namespace Indexing {
 class TermSubstitutionTree
 : public TermIndexingStructure, SubstitutionTree
 {
+  using AbstractingAlgo = UnificationAlgorithms::AbstractingUnification;
+  using RobAlgo = UnificationAlgorithms::RobUnification;
+  using HOLAlgo = UnificationAlgorithms::HOLUnification;
+
 public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
@@ -81,7 +86,7 @@ public:
 #endif
 
 private:
-
+  
   void handleTerm(TypedTermList tt, LeafData ld, bool insert)
   { 
 #if VHOL
@@ -110,13 +115,10 @@ private:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
 
-  auto nopostproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
-
-  auto postproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  { return iterTraits(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-    .filterMap([](TQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
-        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
+  //auto postproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
+  //{ return iterTraits(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
+  //  .filterMap([](TQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
+  //      { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
 
 public:
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
@@ -125,23 +127,24 @@ public:
   TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
-  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return fixedPointIteration ? pvi(  postproUwa(t, uwa))
-                               : pvi(nopostproUwa(t, uwa)); }
+  TermQueryResultIterator getUwa(TypedTermList t) final override
+  { 
+    static auto uwa                 = env.options->unificationWithAbstraction();
+    static bool fixedPointIteration = env.options->unificationWithAbstractionFixedPointIteration();
+
+    return pvi(getResultIterator<UnificationsIterator<AbstractingAlgo>>(t, true, MismatchHandler(uwa), fixedPointIteration));
+  }
 
 #if VHOL
-  VirtualIterator<TQueryRes<HOLUnifier*>> getHOLUnifs(TypedTermList t) final override
+  TermQueryResultIterator getPotentialHOLUnifiers(TypedTermList t) final override
   {       
-    t =  TypedTermList(ToPlaceholders().replace(t), t.sort());
-    // we don't do post-processign here, as various inferences may wish to process in different ways.
-    // For example, for generating inferences we may wish to use a complex high-order unification alogithm
-    // whilst for simplification inferences we may wish to simply use pattern unification
-    return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationsWithPlaceholders>>(t, true));
+    TypedTermList tp = TypedTermList(ToPlaceholders().replace(t), t.sort());
+    return pvi(getResultIterator<UnificationsIterator<HOLAlgo>>(tp, false, t));
   }
 #endif
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
+  { return pvi(getResultIterator<UnificationsIterator<RobAlgo>>(t, retrieveSubstitutions)); }
 };
 
 };

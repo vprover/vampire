@@ -35,10 +35,6 @@ LiteralSubstitutionTree::LiteralSubstitutionTree()
 : _trees(env.signature->predicates() * 2)
 { }
 
-// TODO move
-using UwaAlgo = UnificationAlgorithms::UnificationWithAbstraction;
-using RobAlgo = UnificationAlgorithms::RobUnification;
-
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(lit, complementary, retrieveSubstitutions); }
 

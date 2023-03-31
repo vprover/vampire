@@ -82,7 +82,7 @@ void Superposition::detach()
 struct Superposition::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TypedTermList>, TQueryRes<AbstractingUnifier*>> arg)
+  Clause* operator()(pair<pair<Literal*, TypedTermList>, TermQueryResult> arg)
   {
     CALL("Superposition::ForwardResultFn::operator()");
 
@@ -100,7 +100,7 @@ private:
 struct Superposition::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<AbstractingUnifier*>> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     CALL("Superposition::BackwardResultFn::operator()");
 
@@ -124,11 +124,11 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   CALL("Superposition::generateClauses");
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
-  //cout << "SUPERPOSITION with " << premise->toString() << endl;
+  static bool usingUwa = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+#if VHOL
+  static bool usingHOL = env.property->higherOrder();
+#endif
 
-  //TODO probably shouldn't go here!
-  //static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-   
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
@@ -147,10 +147,15 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // returns a pair with the original pair and the unification result (includes substitution)
   auto itf3 = getMapAndFlattenIterator(itf2,
       [this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, 
-        _lhsIndex->getUwa(arg.second, 
-                          env.options->unificationWithAbstraction(), 
-                          env.options->unificationWithAbstractionFixedPointIteration())); });
+      { auto unifs = usingUwa ? _lhsIndex->getUwa(arg.second) :
+#if VHOL
+                    (usingHOL ? _lhsIndex->getPotentialHOLUnifiers(arg.second) :
+#endif
+                                _lhsIndex->getUnifications(arg.second)
+#if VHOL
+                    );
+#endif
+        return pushPairIntoRightIterator(arg, unifs ); });
 
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
@@ -160,12 +165,16 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   auto itb3 = getMapAndFlattenIterator(itb2, 
       [this] (pair<Literal*, TermList> arg)
-      { return pushPairIntoRightIterator(
-              arg, 
-              _subtermIndex->getUwa(TypedTermList(arg.second, 
-                                    SortHelper::getEqualityArgumentSort(arg.first)), 
-                                    env.options->unificationWithAbstraction(), 
-                                    env.options->unificationWithAbstractionFixedPointIteration())); });
+      { TypedTermList tt(arg.second, SortHelper::getEqualityArgumentSort(arg.first));
+        auto unifs = usingUwa ? _subtermIndex->getUwa(tt) :
+#if VHOL
+                    (usingHOL ? _subtermIndex->getPotentialHOLUnifiers(tt) :
+#endif
+                                _subtermIndex->getUnifications(tt)
+#if VHOL
+                    );
+#endif      
+        return pushPairIntoRightIterator(arg, unifs); });
 
   //Perform backward superposition
   auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
@@ -334,7 +343,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
+    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
 {
   CALL("Superposition::performSuperposition");
   TIME_TRACE("perform superposition");
@@ -342,10 +351,8 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  auto constraints = unifier->constraintLiterals();
-  auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
-  // auto constraints = rawConstraints ? rawConstraints->literals(*subst->tryGetRobSubstitution()) : Recycled<Stack<Literal*>>();
-  bool hasConstraints = !constraints->isEmpty();
+  auto constraints = subst->getConstraints();
+  bool hasConstraints = constraints->size() > 0;
 
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 

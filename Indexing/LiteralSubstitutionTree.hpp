@@ -21,6 +21,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
+#include "Kernel/HOLUnification.hpp"
 
 namespace Indexing {
 
@@ -35,6 +36,9 @@ class LiteralSubstitutionTree
   using LeafData = SubstitutionTree::LeafData;
   using LeafIterator = SubstitutionTree::LeafIterator;
   using Leaf = SubstitutionTree::Leaf;
+  using AbstractingAlgo = UnificationAlgorithms::AbstractingUnification;
+  using RobAlgo = UnificationAlgorithms::RobUnification;
+  using HOLAlgo = UnificationAlgorithms::HOLUnification;
 
 public:
   CLASS_NAME(LiteralSubstitutionTree);
@@ -50,6 +54,7 @@ public:
   { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
   SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  //TODO add getHOL required for subsumption
 
   SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
@@ -86,22 +91,22 @@ private:
         ));
   }
 
-
-  auto nopostproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  { return getResultIterator<SubstitutionTree::UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
-
-  auto postproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  { return pvi(iterTraits(getResultIterator<SubstitutionTree::UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-    .filterMap([](LQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
-        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return lQueryRes(r.literal, r.clause, unif); }); })); }
+  //auto postproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
+  //{ return pvi(iterTraits(getResultIterator<SubstitutionTree::UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
+  //  .filterMap([](LQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
+  //      { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return lQueryRes(r.literal, r.clause, unif); }); })); }
 
 
 public:
 
 
-  VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return fixedPointIteration ? pvi(  postproUwa(lit, complementary, uwa))
-                               : pvi(nopostproUwa(lit, complementary, uwa)); }
+  SLQueryResultIterator getUwa(Literal* lit, bool complementary) final override
+  { 
+    static auto uwa                 = env.options->unificationWithAbstraction();
+    static bool fixedPointIteration = env.options->unificationWithAbstractionFixedPointIteration();
+
+    return getResultIterator<SubstitutionTree::UnificationsIterator<AbstractingAlgo>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa), fixedPointIteration);
+  }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 

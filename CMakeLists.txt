@@ -233,6 +233,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RobSubstitution.cpp
+    Kernel/HOLUnification.cpp
     Kernel/MismatchHandler.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
@@ -283,6 +284,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
     Kernel/RobSubstitution.hpp
+    Kernel/HOLUnification.hpp    
     Kernel/MismatchHandler.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp

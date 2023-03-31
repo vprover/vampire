@@ -50,9 +50,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-// TODO remove after refactor
-using BRQueryRes = LQueryRes<AbstractingUnifier*>;
-
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
   CALL("BinaryResolution::attach");
@@ -79,13 +76,16 @@ struct BinaryResolution::UnificationsFn
 
   UnificationsFn(BinaryResolutionIndex* index)
   : _index(index) {}
-  VirtualIterator<pair<Literal*, BRQueryRes> > operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, SLQueryResult> > operator()(Literal* lit)
   {
+    static bool usingUwa = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
-      return VirtualIterator<pair<Literal*, BRQueryRes> >::getEmpty();
+      return VirtualIterator<pair<Literal*, SLQueryResult> >::getEmpty();
     }
-    return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())));
+    return pvi( pushPairIntoRightIterator(lit, usingUwa ? _index->getUwa(lit, /* complementary */ true) :
+                                                          _index->getUnifications(lit, true, true)));
   }
 private:
   BinaryResolutionIndex* _index;
@@ -95,16 +95,15 @@ struct BinaryResolution::ResultFn
 {
   ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  Clause* operator()(pair<Literal*, BRQueryRes> arg)
+  Clause* operator()(pair<Literal*, SLQueryResult> arg)
   {
     CALL("BinaryResolution::ResultFn::operator()");
 
-    BRQueryRes& qr = arg.second;
+    SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
-    auto constraints = qr.unifier->constraintLiterals();
-    return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, *constraints, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+    auto subs = qr.unifier;
+    return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
   }
 private:
   Clause* _cl;
@@ -120,10 +119,12 @@ private:
  * in which case also ls is assumed to be not 0.
  */
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, Stack<Literal*> const& constraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+                                ResultSubstitutionSP subs, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
+
+  auto constraints = subs->getConstraints();
 
   if(!ColorHelper::compatible(queryCl->color(),resultCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
@@ -154,7 +155,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
               resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
-  Inference inf(GeneratingInference2(constraints.isNonEmpty() ?
+  Inference inf(GeneratingInference2(constraints->isNonEmpty() ?
       InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, resultCl));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
@@ -180,7 +181,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  unsigned newLength = clength+dlength-2+constraints.size();
+  unsigned newLength = clength+dlength-2+constraints->size();
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -192,7 +193,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   unsigned next = 0;
-  for(Literal* c : constraints){
+  for(Literal* c : *constraints){
       (*res)[next++] = c; 
   }
 
@@ -266,7 +267,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if(constraints.isNonEmpty()){
+  if(constraints->isNonEmpty()){
     env.statistics->cResolution++;
   }
   else{ 

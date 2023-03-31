@@ -228,6 +228,10 @@ public:
   VarSpec varSpec() const;
   unsigned functor()   const;
 
+#if VHOL
+  bool isPlaceholder() const;
+#endif
+
   unsigned nTypeArgs() const;//{ return derefTerm().term()->numTypeArguments(); }
   unsigned nTermArgs() const;//{ return derefTerm().term()->numTermArguments(); }
   unsigned nAllArgs() const;//{ return derefTerm().term()->numTermArguments(); }
@@ -289,19 +293,54 @@ public:
 
 };
 
+class UnificationConstraintStack
+{
+  Stack<UnificationConstraint> _cont;
+public:
+  CLASS_NAME(UnificationConstraintStack)
+  USE_ALLOCATOR(UnificationConstraintStack)
+  UnificationConstraintStack() : _cont() {}
+  UnificationConstraintStack(UnificationConstraintStack&&) = default;
+  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
 
+  auto iter() const
+  { return iterTraits(_cont.iter()); }
 
+  Recycled<Stack<Literal*>> literals(RobSubstitution& s);
+
+  auto literalIter(RobSubstitution& s)
+  { return iterTraits(_cont.iter())
+              .filterMap([&](auto& c) { return c.toLiteral(s); }); }
+
+  friend std::ostream& operator<<(std::ostream& out, UnificationConstraintStack const& self)
+  { return out << self._cont; }
+
+  void reset() { _cont.reset(); }
+  bool keepRecycled() const { return _cont.keepRecycled() > 0; }
+
+  bool isEmpty() const
+  { return _cont.isEmpty(); }
+
+  void add(UnificationConstraint c, Option<BacktrackData&> bd);
+  UnificationConstraint pop(Option<BacktrackData&> bd);
+};
 
 using namespace Lib;
 
-class AbstractingUnifier;
+namespace UnificationAlgorithms {
+  class AbstractingUnification;
+  class HOLUnification;
+  class RobUnification;
+}
 class UnificationConstraint;
 
 class RobSubstitution
 :public Backtrackable
 {
-  friend class AbstractingUnifier;
+  friend class UnificationAlgorithms::AbstractingUnification;
+  friend class UnificationAlgorithms::HOLUnification;
   friend class UnificationConstraint;
+
 public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
@@ -327,8 +366,11 @@ public:
   void reset()
   {
     _bank.reset();
+    _constr->reset();
     _nextUnboundAvailable=0;
   }
+  
+  Recycled<LiteralStack> constraints(){ return _constr->literals(*this); }
 
   bool keepRecycled() const { return _bank.keepRecycled(); }
 
@@ -364,8 +406,6 @@ public:
 #endif
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
   std::ostream& output(std::ostream& out, bool deref) const;
-
-  typedef pair<TermSpec,TermSpec> TTPair;
  
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
   {
@@ -375,7 +415,6 @@ public:
       return out << "X" << self.var << "/" << self.index;
     }
   }
-
 
   RobSubstitution(RobSubstitution&& obj) = default;
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
@@ -393,8 +432,16 @@ private:
   TermSpec const& deref(VarSpec v) const;
   TermSpec const& derefBound(TermSpec const& v) const;
 
+  void pushConstraint(UnificationConstraint c){
+    _constr->add(std::move(c), bd());
+  }
+  UnificationConstraint popConstraint(){
+    return _constr->pop(bd());
+  }  
+  bool emptyConstraints(){
+    return _constr->isEmpty();
+  }
 
-  void addToConstraints(const VarSpec& v1, const VarSpec& v2);
   void bind(const VarSpec& v, TermSpec b);
 
   void bindVar(const VarSpec& var, const VarSpec& to);
@@ -403,6 +450,15 @@ private:
   bool unify(TermSpec t1, TermSpec t2);
 
   bool occurs(VarSpec const& vs, TermSpec const& ts);
+
+  
+  Option<BacktrackData&> bd(){
+    if(bdIsRecording()){
+      return Option<BacktrackData&>(bdGet());
+    } else {
+      return Option<BacktrackData&>();
+    }
+  }
 
   // VarSpec getVarSpec(TermList tl, int index) const
   // {
@@ -415,10 +471,11 @@ private:
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
   BankType _bank;
+  Recycled<UnificationConstraintStack> _constr;
   mutable unsigned _nextUnboundAvailable;
 
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
-  { return out << self._bank; }
+  { return out << "bindings: " << self._bank << "\n" << "constraints: " << self._constr; }
 
   class BindingBacktrackObject
   : public BacktrackObject
