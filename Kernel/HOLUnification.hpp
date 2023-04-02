@@ -50,7 +50,7 @@ public:
 
   bool unifyWithPlaceholders(TermList t1, unsigned bank1, TermList t2, unsigned bank2, RobSubstitution* sub);
   bool associate(unsigned specialVar, TermList node, BacktrackData& bd, RobSubstitution* sub);
-  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, bool topLevelCheck = false);
+  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false);
   SubstIterator postprocess(RobSubstitution*, TermList t);
 
   // method used to decide whether to return all children of a node during tree

@@ -90,15 +90,13 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-   // static MismatchHandler _mismatchHandler = MismatchHandler::create();
-   // auto handler = _mismatchHandler;
-
+    Recycled<RobSubstitution> sub;
     Recycled<ClauseStack> results;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    auto substs = _algo.unifiers(arg0, 0, arg1, 0, /* no top level constraints */ true);
+    auto substs = _algo.unifiers(arg0, 0, arg1, 0, &*sub, /* no top level constraints */ true);
 
     while(substs.hasNext()){
       RobSubstitution* sub = substs.next();

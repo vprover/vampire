@@ -22,7 +22,7 @@ namespace Kernel
 
 namespace UnificationAlgorithms {
 
-SubstIterator HOLUnification::unifiers(TermList t1, int index1, TermList t2, int index2, bool topLevelCheck)
+SubstIterator HOLUnification::unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck)
 {
   CALL("HOLUnification::unifiers");
 

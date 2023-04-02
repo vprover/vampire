@@ -129,14 +129,11 @@ public:
 
   // To be used for non-tree calls. Return an iterator instead of bool
   // to fit HOL interface
-  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, bool topLevelCheck = false){
-    CALL("RobUnification::unifiers");     
+  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false){
+    CALL("RobUnification::unifiers");
 
-    static RobSubstitution subst;
-    subst.reset();
-
-    if(subst.unify(t1, index1, t2, index2)){
-      return pvi(getSingletonIterator(&subst));
+    if(sub->unify(t1, index1, t2, index2)){
+      return pvi(getSingletonIterator(sub));
     }
     return SubstIterator::getEmpty();
   }
@@ -165,7 +162,7 @@ public:
   bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, RobSubstitution* sub);
   bool unify(TermSpec l, TermSpec r, bool& progress, RobSubstitution* sub);
   bool fixedPointIteration(RobSubstitution* sub);
-  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, bool topLevelCheck = false);
+  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false);
   SubstIterator postprocess(RobSubstitution* sub, TermList t);
 
   bool associate(unsigned specialVar, TermList node, BacktrackData& bd, RobSubstitution* sub)

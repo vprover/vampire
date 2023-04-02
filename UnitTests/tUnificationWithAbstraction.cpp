@@ -834,8 +834,11 @@ static const int NORM_QUERY_BANK=2;
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration) {
 
   Kernel::UnificationAlgorithms::AbstractingUnification au(MismatchHandler(opt), fixedPointIteration);
+  
+  static Kernel::RobSubstitution subst;
+  subst.reset();
 
-  auto unifs = au.unifiers(a, 0, b, 0);
+  auto unifs = au.unifiers(a, 0, b, 0, &subst);
 
   if (unifs.hasNext()) {
     Kernel::RobSubstitution* sub = unifs.next();

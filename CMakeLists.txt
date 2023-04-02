@@ -739,6 +739,7 @@ set(UNIT_TESTS
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
     UnitTests/tEqualityResolution.cpp
+    UnitTests/tEqualityFactoring.cpp
     UnitTests/tImitateProject.cpp
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp

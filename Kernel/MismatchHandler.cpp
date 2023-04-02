@@ -240,12 +240,9 @@ bool AbstractingUnification::unify(TermList term1, unsigned bank1, TermList term
   return unify(TermSpec(term1, bank1), TermSpec(term2, bank2), progress, sub);
 }
 
-SubstIterator AbstractingUnification::unifiers(TermList t1, int index1, TermList t2, int index2, bool topLevelCheck)
+SubstIterator AbstractingUnification::unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck)
 {
   CALL("AbstractingUnification::unifiers");
-
-  static RobSubstitution subst;
-  subst.reset();
 
   // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
   // and therefore a constraint can be created between arguments
@@ -254,18 +251,18 @@ SubstIterator AbstractingUnification::unifiers(TermList t1, int index1, TermList
     return SubstIterator::getEmpty();
   }
 
-  bool unifies = unify(t1, index1, t2, index2, &subst);
+  bool unifies = unify(t1, index1, t2, index2, sub);
 
   if(!unifies){
     return SubstIterator::getEmpty();
   }
 
   if(!_fpi){
-    return pvi(getSingletonIterator(&subst));
+    return pvi(getSingletonIterator(sub));
   }
 
-  bool success = fixedPointIteration(&subst);
-  return success ? pvi(getSingletonIterator(&subst)) : SubstIterator::getEmpty();
+  bool success = fixedPointIteration(sub);
+  return success ? pvi(getSingletonIterator(sub)) : SubstIterator::getEmpty();
 }
 
 SubstIterator AbstractingUnification::postprocess(RobSubstitution* sub, TermList t)

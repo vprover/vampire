@@ -110,16 +110,16 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    static RobSubstitution subst;
-    subst.reset();
+    Recycled<RobSubstitution> subst;
+    // TODO, do we need to reset?
 
-    if (!subst.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
+    if (!subst->unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return ClauseIterator::getEmpty();
     }
 
     Recycled<ClauseStack> results;
 
-    TermList srtS = subst.apply(srt,0);
+    TermList srtS = subst->apply(srt,0);
 
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
@@ -127,13 +127,14 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
   
-    auto unifiers = _algo.unifiers(sLHS,0,fLHS,0);
+    auto unifiers = _algo.unifiers(sLHS,0,fLHS,0, &*subst);
 
     while(unifiers.hasNext()){
       RobSubstitution* subst = unifiers.next();
 
       TermList sLHSS = subst->apply(sLHS,0);
       TermList sRHSS = subst->apply(sRHS,0);
+
       if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
         // try next unifier (of course there isn't one in the syntactic first-order case)
         continue;
@@ -143,7 +144,7 @@ struct EqualityFactoring::ResultFn
         continue;
       }
       auto constraints = subst->constraints();
-      unsigned newLen=_cLen - 1 + constraints->length();
+      unsigned newLen=_cLen + constraints->length();
 
       Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 

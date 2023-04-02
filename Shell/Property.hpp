@@ -191,6 +191,12 @@ public:
   int maxFunArity() const { return _maxFunArity; }
   /** Maximal arity of a type con in the problem */
   unsigned maxTypeConArity() const { return _maxTypeConArity; }
+#if VDEBUG
+  // for use by polymorphic unit tests
+  // have to force the type con arity to avoid 
+  // running KBOforEPR
+  void forceMaxTypeConArity() { _maxTypeConArity = 1; }
+#endif
   /** Total number of variables in problem */
   int totalNumberOfVariables() const { return _totalNumberOfVariables;}
 
