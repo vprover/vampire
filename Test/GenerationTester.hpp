@@ -89,6 +89,7 @@ class TestCase
 #if VHOL
   bool _higherOrder;
 #endif
+  bool _polymorphic;
   Stack<Indexing::Index*> _indices;
   OptionMap _options;
   Stack<Condition> _preConditions;
@@ -111,7 +112,7 @@ public:
 #if VHOL  
    _higherOrder(false), 
 #endif
-   _options() {}
+   _polymorphic(false), _options() {}
 
 #define BUILDER_METHOD(type, field)                                                                           \
   TestCase field(type field)                                                                                  \
@@ -127,6 +128,7 @@ public:
 #if VHOL
   BUILDER_METHOD(bool, higherOrder)
 #endif  
+  BUILDER_METHOD(bool, polymorphic)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<Indexing::Index*>, indices)
   BUILDER_METHOD(OptionMap, options)
@@ -140,6 +142,11 @@ public:
     auto container = PlainClauseContainer();
     Problem p;
     Options o;
+
+    if(_polymorphic){
+      p.getProperty()->forceMaxTypeConArity();     
+    }
+
     for (const auto& kv : _options) {
       o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);
