@@ -515,8 +515,12 @@ inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); 
 inline Lit operator==(TermSugar lhs, TermSugar rhs) 
 {
   SortId sort;
-  ALWAYS(SortHelper::tryGetResultSort(lhs, sort) || SortHelper::tryGetResultSort(rhs, sort));
-  return Literal::createEquality(true, lhs, rhs, sort);
+  SortId lhsSort = lhs.sort();
+  SortId rhsSort = rhs.sort();
+  ASS(!lhsSort.isEmpty() || !rhsSort.isEmpty());
+  ASS(lhsSort.isEmpty() || rhsSort.isEmpty() || lhsSort == rhsSort);
+  SortId nonEmptySort = lhsSort.isEmpty() ? rhsSort : lhsSort;
+  return Literal::createEquality(true, lhs, rhs, nonEmptySort);
 }
 
 

@@ -183,31 +183,31 @@ start:
       Node* child=inode->_nodes[0];
       bool removeProblematicNode=false;
       if(svBindings.find(boundVar)) {
-	TermList term=svBindings.get(boundVar);
-	bool wouldDescendIntoChild = inode->childByTop(term.top(),false)!=0;
-	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
-	if(!wouldDescendIntoChild) {
-	  //if we'd have to perform all postponed splitting due to
-	  //node with a single child, we rather remove that node
-	  //from the tree and deal with the binding, it represented,
-	  //later.
-	  removeProblematicNode=true;
-	}
+        TermList term=svBindings.get(boundVar);
+        bool wouldDescendIntoChild = inode->childByTop(term.top(),false)!=0;
+        ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
+        if(!wouldDescendIntoChild) {
+          //if we'd have to perform all postponed splitting due to
+          //node with a single child, we rather remove that node
+          //from the tree and deal with the binding, it represented,
+          //later.
+          removeProblematicNode=true;
+        }
       } else if(!child->term.isTerm() || child->term.term()->shared()) {
-	//We can remove nodes binding to special variables undefined in our branch
-	//of the tree, as long as we're sure, that during split resolving we put these
-	//binding nodes below nodes that define spec. variables they bind.
-	removeProblematicNode=true;
+        //We can remove nodes binding to special variables undefined in our branch
+        //of the tree, as long as we're sure, that during split resolving we put these
+        //binding nodes below nodes that define spec. variables they bind.
+        removeProblematicNode=true;
       } else {
-	canPostponeSplits = false;
+        canPostponeSplits = false;
       }
       if(removeProblematicNode) {
-	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
-	child->term=inode->term;
-	*pnode=child;
-	inode->makeEmpty();
-	delete inode;
-	goto start;
+        unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
+        child->term=inode->term;
+        *pnode=child;
+        inode->makeEmpty();
+        delete inode;
+        goto start;
       }
     }
   }

@@ -178,15 +178,17 @@ public:
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; ASS_EQ(tag(), REF); }
-  class Top : public Coproduct<unsigned, unsigned> {
-    Top(Coproduct<unsigned, unsigned> self) : Coproduct<unsigned, unsigned>(self) {}
+  class Top : public Coproduct<unsigned, unsigned, unsigned> {
+    Top(Coproduct<unsigned, unsigned, unsigned> self) : Coproduct<unsigned, unsigned, unsigned>(self) {}
   public:
     static Top functor(unsigned f) { return Top(Coproduct::variant<0>(f)); }
     static Top var    (unsigned v) { return Top(Coproduct::variant<1>(v)); }
+    static Top nonsplittable (unsigned id) { return Top(Coproduct::variant<2>(id)); }
     Option<unsigned> functor() const { return as<0>().toOwned(); }
     Option<unsigned> var()     const { return as<1>().toOwned(); }
+    Option<unsigned> id()      const { return as<2>().toOwned(); }
   };
-  Top top() const;
+  Top top(bool splittable = true) const;
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
