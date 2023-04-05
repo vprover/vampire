@@ -74,6 +74,27 @@ std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> co
 
 template<class Key> struct SubtitutionTreeConfig;
 
+class Splittable {
+public:
+  CLASS_NAME(Splittable);
+  USE_ALLOCATOR(Splittable);
+
+  virtual ~Splittable(){}
+
+  // we should never call this function for default implementation
+  virtual bool operator()(TermList t) = 0;
+};
+
+class HOLSplittable : public Splittable {
+public:
+  CLASS_NAME(HOLSplittable);
+  USE_ALLOCATOR(HOLSplittable);
+
+  bool operator()(TermList t) override { //TODO 
+    return true;
+  }
+};
+
 /** a counter that is compiled away in release mode */
 struct Cntr {
 #if VDEBUG
@@ -129,7 +150,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree();
+  SubstitutionTree(Splittable* splittable = 0);
   SubstitutionTree(SubstitutionTree const&) = delete;
   SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
   SubstitutionTree(SubstitutionTree&& other)
@@ -137,6 +158,7 @@ public:
   {
     std::swap(_nextVar, other._nextVar);
     std::swap(_root, other._root);
+    std::swap(_splittable, other._splittable);
 #if VDEBUG
     std::swap(_tag, other._tag);
 #endif
@@ -662,10 +684,16 @@ private:
   void insert(BindingMap& binding,LeafData ld);
   void remove(BindingMap& binding,LeafData ld);
 
+  // To avoid slowing down / modifying standard insertion 
+  // and remove, we define functions below
+  void splittableInsert(BindingMap& binding,LeafData ld);
+  void splittableRemove(BindingMap& binding,LeafData ld);
+
   /** Number of the next variable */
   int _nextVar;
 
   Node* _root;
+  Splittable* _splittable;
 #if VDEBUG
   bool _tag;
 #endif

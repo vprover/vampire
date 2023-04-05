@@ -49,9 +49,10 @@ using namespace Indexing;
  * Initialise the substitution tree.
  * @since 16/08/2008 flight Sydney-San Francisco
  */
-SubstitutionTree::SubstitutionTree()
+SubstitutionTree::SubstitutionTree(Splittable* splittable)
   : _nextVar(0)
   , _root(nullptr)
+  , _splittable(splittable)
 #if VDEBUG
   , _tag(false)
 #endif
@@ -70,6 +71,8 @@ SubstitutionTree::~SubstitutionTree()
   CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iterCnt,0);
   delete _root;
+  if(_splittable)
+    delete _splittable;
 } // SubstitutionTree::~SubstitutionTree
 
 /**
@@ -125,6 +128,222 @@ struct BindingComparator
 #endif
   }
 };
+
+
+void SubstitutionTree::splittableInsert(BindingMap& binding,LeafData ld)
+{
+#define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
+  CALL("SubstitutionTree::splittableInsert");
+  ASS_EQ(_iterCnt,0);
+  ASS(_splittable);
+
+  auto pnode = &_root;
+  DEBUG_INSERT("insert: ", svBindings, " into ", *this)
+
+  if(*pnode == 0) {
+    if (svBindings.isEmpty()) {
+      auto leaf = createLeaf();
+      leaf->insert(std::move(ld));
+      *pnode = leaf;
+      DEBUG_INSERT(0, "out: ", *this);
+      return;
+    } else {
+      *pnode=createIntermediateNode(svBindings.getOneKey());
+    }
+  }
+  if(svBindings.isEmpty()) {
+    ASS((*pnode)->isLeaf());
+    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
+    static_cast<Leaf*>(*pnode)->insert(ld);
+    DEBUG_INSERT("out: ", *this);
+    return;
+  }
+
+  typedef BinaryHeap<UnresolvedSplitRecord, BindingComparator> SplitRecordHeap;
+  static SplitRecordHeap unresolvedSplits;
+  unresolvedSplits.reset();
+
+  ASS((*pnode));
+  ASS(!(*pnode)->isLeaf());
+
+start:
+
+#if REORDERING
+  ASS(!(*pnode)->isLeaf() || !unresolvedSplits.isEmpty());
+  bool canPostponeSplits=false;
+  if((*pnode)->isLeaf() || (*pnode)->algorithm()!=UNSORTED_LIST) {
+    canPostponeSplits=false;
+  } else {
+    UArrIntermediateNode* inode = static_cast<UArrIntermediateNode*>(*pnode);
+    canPostponeSplits = inode->size()==1;
+    if(canPostponeSplits) {
+      unsigned boundVar=inode->childVar;
+      Node* child=inode->_nodes[0];
+      bool removeProblematicNode=false;
+      if(svBindings.find(boundVar)) {
+        TermList term=svBindings.get(boundVar);
+        bool wouldDescendIntoChild = inode->childByTop(term.top(),false)!=0;
+        ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
+        if(!wouldDescendIntoChild) {
+          //if we'd have to perform all postponed splitting due to
+          //node with a single child, we rather remove that node
+          //from the tree and deal with the binding, it represented,
+          //later.
+          removeProblematicNode=true;
+        }
+      } else if(!child->term.isTerm() || child->term.term()->shared()) {
+        //We can remove nodes binding to special variables undefined in our branch
+        //of the tree, as long as we're sure, that during split resolving we put these
+        //binding nodes below nodes that define spec. variables they bind.
+        removeProblematicNode=true;
+      } else {
+        canPostponeSplits = false;
+      }
+      if(removeProblematicNode) {
+        unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
+        child->term=inode->term;
+        *pnode=child;
+        inode->makeEmpty();
+        delete inode;
+        goto start;
+      }
+    }
+  }
+  canPostponeSplits|=unresolvedSplits.isEmpty();
+  if(!canPostponeSplits) {
+
+    while(!unresolvedSplits.isEmpty()) {
+      UnresolvedSplitRecord urr=unresolvedSplits.pop();
+
+      Node* node=*pnode;
+      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
+      node->term=urr.original;
+
+      *pnode=newNode;
+
+      Node** nodePosition=newNode->childByTop(node->term.top(), true);
+      ASS(!*nodePosition);
+      *nodePosition=node;
+    }
+  }
+#endif
+  ASS(!(*pnode)->isLeaf());
+
+  IntermediateNode* inode = static_cast<IntermediateNode*>(*pnode);
+  ASS(inode);
+
+  unsigned boundVar=inode->childVar;
+  TermList term=svBindings.get(boundVar);
+  svBindings.remove(boundVar);
+
+  //Into pparent we store the node, we might be inserting into.
+  //So in the case we do insert, we might check whether this node
+  //needs expansion.
+  Node** pparent=pnode;
+  pnode=inode->childByTop(term.top(),true);
+
+  if (*pnode == 0) {
+    BindingMap::Iterator svit(svBindings);
+    BinaryHeap<Binding, BindingComparator> remainingBindings;
+    while (svit.hasNext()) {
+      unsigned var;
+      TermList term;
+      svit.next(var, term);
+      remainingBindings.insert(Binding(var, term));
+    }
+    while (!remainingBindings.isEmpty()) {
+      Binding b=remainingBindings.pop();
+      IntermediateNode* inode = createIntermediateNode(term, b.var);
+      term=b.term;
+
+      *pnode = inode;
+      pnode = inode->childByTop(term.top(),true);
+    }
+    Leaf* lnode=createLeaf(term);
+    *pnode=lnode;
+    lnode->insert(ld);
+
+    ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent));
+    DEBUG_INSERT("out: ", *this);
+    return;
+  }
+
+
+  TermList* tt = &term;
+  TermList* ss = &(*pnode)->term;
+
+  ASS(TermList::sameTop(*ss, *tt));
+
+
+  // ss is the term in node, tt is the term to be inserted
+  // ss and tt have the same top symbols but are not equal
+  // create the common subterm of ss,tt and an alternative node
+  Stack<TermList*> subterms(64);
+  for (;;) {
+    if (*tt!=*ss && TermList::sameTop(*ss,*tt)) {
+      // ss and tt have the same tops and are different, so must be non-variables
+      ASS(! ss->isVar());
+      ASS(! tt->isVar());
+
+      Term* s = ss->term();
+      Term* t = tt->term();
+
+      ASS(s->arity() > 0);
+      ASS(s->functor() == t->functor());
+
+      if (s->shared()) {
+        // create a shallow copy of s
+        s = Term::cloneNonShared(s);
+        ss->setTerm(s);
+      }
+
+      ss = s->args();
+      tt = t->args();
+      if (ss->next()->isEmpty()) {
+        continue;
+      }
+      subterms.push(ss->next());
+      subterms.push(tt->next());
+    } else {
+      if (! TermList::sameTop(*ss,*tt)) {
+        unsigned x;
+        if(!ss->isSpecialVar()) {
+          x = _nextVar++;
+        #if REORDERING
+          unresolvedSplits.insert(UnresolvedSplitRecord(x,*ss));
+          ss->makeSpecialVar(x);
+        #else
+          Node::split(pnode,ss,x);
+        #endif
+        } else {
+          x=ss->var();
+        }
+        svBindings.set(x,*tt);
+      }
+
+      if (subterms.isEmpty()) {
+        break;
+      }
+      tt = subterms.pop();
+      ss = subterms.pop();
+      if (! ss->next()->isEmpty()) {
+        subterms.push(ss->next());
+        subterms.push(tt->next());
+      }
+    }
+  }
+
+  if (svBindings.isEmpty()) {
+    ASS((*pnode)->isLeaf());
+    ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
+    Leaf* leaf = static_cast<Leaf*>(*pnode);
+    leaf->insert(ld);
+    DEBUG_INSERT("out: ", *this);
+    return;
+  }
+
+  goto start;  
+}
 
 
 /**
