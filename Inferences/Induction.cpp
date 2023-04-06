@@ -1159,11 +1159,11 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   while(cit.hasNext()){
     IntUnionFind::ElementIterator eIt = cit.next();
     _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst));
-    // if(_opt.showInduction()){
+    if(_opt.showInduction()){
       env.beginOutput();
       env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;
       env.endOutput();
-    // }
+    }
   }
 }
 

@@ -1536,15 +1536,9 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
         USER_ERROR_EXPR("Only function constructors are allowed: "+fst);
       }
       auto fn = env.signature->getFunction(sym.first);
-      unsigned i = 0;
-      // we need the type arguments in reverse order,
-      // so we push them on a stack and pop them
-      Stack<LExpr*> st;
-      while (tRdr.hasNext() && i++ < fn->numTypeArguments()) {
-        st.push(tRdr.readNext());
-      }
-      while (st.isNonEmpty()) {
-        _todo.push(make_pair(PO_PARSE_SORT, st.pop()));
+      for (unsigned i = 0; i < fn->numTypeArguments(); i++) {
+        ALWAYS(tRdr.hasNext());
+        _todo.push(make_pair(PO_PARSE_SORT, tRdr.readNext()));
       }
     }
     pRdr.acceptEOL();
@@ -1578,7 +1572,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     unsigned i = 0;
     Substitution subst;
     while (tRdr.hasNext()) {
-      auto arg = tRdr.readNext();
+      auto argExp = tRdr.readNext();
       ASS_L(i,type->arity());
       if (i < type->numTypeArguments()) {
         if (_results.isEmpty() || _results.top().isSeparator()) {
@@ -1590,12 +1584,12 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
         i++;
         continue;
       }
-      if (!arg->isAtom() || isAlreadyKnownSymbol(arg->str)) {
-        USER_ERROR_EXPR("Nested ctors ("+arg->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
+      if (!argExp->isAtom() || isAlreadyKnownSymbol(argExp->str)) {
+        USER_ERROR_EXPR("Nested ctors ("+argExp->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
       }
       // from the type arguments used in the matched term we instantiate the type of the other variables
-      if (!lookup->insert(arg->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
-        USER_ERROR_EXPR("Variable '" + arg->str + "' has already been defined");
+      if (!lookup->insert(argExp->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
+        USER_ERROR_EXPR("Variable '" + argExp->str + "' has already been defined");
       }
     }
   }
@@ -1707,12 +1701,12 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   if (varUsed) {
     Stack<TermList> argTerms;
     // the number of type arguments for all ctors is the arity of the type
-    unsigned numTypeArgs = env.signature->getTypeCon(sort.term()->functor())->typeConType()->arity();
+    unsigned numTypeArgs = env.signature->getTypeCon(matchedTermSort.term()->functor())->typeConType()->arity();
     for (const auto &kv : ctorFunctors) {
       argTerms.reset();
       for (unsigned j = 0; j < kv.second->arity(); j++) {
         if (j < numTypeArgs) {
-          argTerms.push(*sort.term()->nthArgument(j));
+          argTerms.push(*matchedTermSort.term()->nthArgument(j));
         } else {
           argTerms.push(TermList(_nextVar++, false));
         }
