@@ -1976,6 +1976,8 @@ public:
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   unsigned multicore() const { return _multicore.actualValue; }
   void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
+  unsigned portfolioBackoff() const { return _portfolioBackoff.actualValue; }
+  bool portfolioBackoffExtra() const { return _portfolioBackoffExtra.actualValue; }
   float slowness() const {return _slowness.actualValue; }
   InputSyntax inputSyntax() const { return _inputSyntax.actualValue; }
   void setInputSyntax(InputSyntax newVal) { _inputSyntax.actualValue = newVal; }
@@ -2520,6 +2522,8 @@ private:
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
+  UnsignedOptionValue _portfolioBackoff;
+  BoolOptionValue _portfolioBackoffExtra;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
 

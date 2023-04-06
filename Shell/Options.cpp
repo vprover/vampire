@@ -183,6 +183,34 @@ void Options::init()
       _mode.is(equal(Mode::PORTFOLIO))
     ));
 
+    _portfolioBackoff = UnsignedOptionValue("portfolio_backoff","pb",2);
+    _portfolioBackoff.description = "When running in portfolio modes use this multiplier to backoff when repeating strategies";
+    _lookup.insert(&_portfolioBackoff);
+    _portfolioBackoff.reliesOnHard(Or(
+      _mode.is(equal(Mode::CASC)),
+      _mode.is(equal(Mode::CASC_HOL)),
+      _mode.is(equal(Mode::CASC_SAT)),
+      _mode.is(equal(Mode::SMTCOMP)),
+#if VTHREADED
+      _mode.is(equal(Mode::THREADED)),
+#endif
+      _mode.is(equal(Mode::PORTFOLIO))
+    ));
+
+    _portfolioBackoffExtra = BoolOptionValue("portfolio_backoff_extra","pbe",true);
+    _portfolioBackoffExtra.description = "When running in portfolio modes add extra experimental options to backoff strategies"; 
+    _lookup.insert(&_portfolioBackoffExtra);
+    _portfolioBackoffExtra.reliesOnHard(Or(
+      _mode.is(equal(Mode::CASC)),
+      _mode.is(equal(Mode::CASC_HOL)),
+      _mode.is(equal(Mode::CASC_SAT)),
+      _mode.is(equal(Mode::SMTCOMP)),
+#if VTHREADED
+      _mode.is(equal(Mode::THREADED)),
+#endif
+      _mode.is(equal(Mode::PORTFOLIO))
+    ));
+
     _slowness = FloatOptionValue("slowness","",1.3);
     _slowness.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode";
     _lookup.insert(&_slowness);
