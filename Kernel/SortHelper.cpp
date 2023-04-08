@@ -827,12 +827,16 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       }
       continue;
     }
+    /*
+    // also the isFormula case is intentionally left out!
+    // (all subformulas get iterated over by the top level tryGetVariableSort(unsigned var, Formula* f, ... ))
     if(t->isFormula()){
       Formula* f = t->getSpecialData()->getFormula();
       if(tryGetVariableSort(var.var(), f, result)){
         return true;
       }
     }
+    */
     if (t->isLambda()) {
       TermList sort = t->getSpecialData()->getLambdaExpSort();
       TermList lambdaTerm = t->getSpecialData()->getLambdaExp();
