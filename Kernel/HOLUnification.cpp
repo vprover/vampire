@@ -39,7 +39,7 @@ SubstIterator HOLUnification::postprocess(RobSubstitution* sub, TermList t)
   return pvi(getSingletonIterator(sub));  
 }
 
-bool HOLUnification::associate(unsigned specialVar, TermList node, BacktrackData& bd, RobSubstitution* sub)
+bool HOLUnification::associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub)
 {
   CALL("HOLUnification::associate");
   TermList query(specialVar, /* special */ true);

@@ -120,7 +120,7 @@ class RobUnification {
 public:
 
   // to be used for tree calls
-  bool associate(unsigned specialVar, TermList node, BacktrackData& bd, RobSubstitution* sub)
+  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub)
   {
     CALL("RobUnification::associate");
     TermList query(specialVar, /* special */ true);
@@ -165,26 +165,13 @@ public:
   SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false);
   SubstIterator postprocess(RobSubstitution* sub, TermList t);
 
-  bool associate(unsigned specialVar, TermList node, BacktrackData& bd, RobSubstitution* sub)
+  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub)
   {
     CALL("AbstractingUnification::associate");
     
     TermList query(specialVar, /* special */ true);
     return unify(query, Indexing::QUERY_BANK, node, Indexing::NORM_RESULT_BANK, sub);
   }
-
-  //RobSubstitution& subs(){ return *_subs; }
-
-  /*Option<AbstractingUnification*> fixedPointIteration() 
-  {
-    if (_result->isNone()) {
-      *_result = some(bool(fixedPointIteration()));
-      if (_unif->isRecording()) {
-        _unif->bdGet().addClosure([res = _result]() { *res = {}; });
-      }
-    }
-    return someIf(**_result, [&](){ return _unif;  });
-  }*/
 
   bool usesUwa() const { return _uwa.mode() != Options::UnificationWithAbstraction::OFF; }
 };

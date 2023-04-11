@@ -49,7 +49,7 @@ public:
   HOLUnification(TermList query) :  _origQuery(query) {}
 
   bool unifyWithPlaceholders(TermList t1, unsigned bank1, TermList t2, unsigned bank2, RobSubstitution* sub);
-  bool associate(unsigned specialVar, TermList node, BacktrackData& bd, RobSubstitution* sub);
+  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub);
   SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false);
   SubstIterator postprocess(RobSubstitution*, TermList t);
 

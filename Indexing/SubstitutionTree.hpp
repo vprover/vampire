@@ -1414,7 +1414,7 @@ public:
         //n is proper node, not a root
         recording=true;
         _subst->bdRecord(bd);
-        success = _algo.associate(_svStack->top(),n->term,bd,&*_subst);
+        success = _algo.associate(_svStack->top(),n->term,n->splittable(),&*_subst);
       }
       if(success) {
         if(n->isLeaf()) {
