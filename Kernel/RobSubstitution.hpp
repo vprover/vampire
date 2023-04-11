@@ -271,8 +271,9 @@ public:
   UnificationConstraint() {}
   CLASS_NAME(UnificationConstraint)
   USE_ALLOCATOR(UnificationConstraint)
-  // UnificationConstraint(UnificationConstraint&&) = default;
-  // UnificationConstraint& operator=(UnificationConstraint&&) = default;
+  UnificationConstraint(UnificationConstraint&&) = default;
+  UnificationConstraint& operator=(UnificationConstraint&&) = default;
+ 
   auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2); }
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
   IMPL_HASH_FROM_TUPLE(UnificationConstraint);

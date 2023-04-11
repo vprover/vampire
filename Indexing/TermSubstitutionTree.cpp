@@ -17,6 +17,10 @@
 #include "Kernel/Term.hpp"
 #include "TermSubstitutionTree.hpp"
 
+#if VHOL
+#include "Indexing/HOLSubstitutionTree.hpp"
+#endif
+
 namespace Indexing
 {
 
@@ -25,8 +29,12 @@ using namespace Kernel;
 
 
 TermSubstitutionTree::TermSubstitutionTree(bool extra)
-: SubstitutionTree()
-, _extra(extra)
+:  _extra(extra)
+#if VHOL
+  ,_tree(env.property->higherOrder() ? new HOLSubstitutionTree() : new SubstitutionTree())
+#else
+  ,_tree(new SubstitutionTree())
+#endif
 { }
 
 } // namespace  Indexing

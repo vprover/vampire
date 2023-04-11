@@ -27,7 +27,10 @@
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
+
+#if VHOL
 #include "Kernel/HOLUnification.hpp"
+#endif
 
 namespace Indexing {
 
@@ -40,11 +43,16 @@ namespace Indexing {
 
 /** A wrapper class around SubstitutionTree that makes it usable  as a TermIndexingStructure */
 class TermSubstitutionTree
-: public TermIndexingStructure, SubstitutionTree
+: public TermIndexingStructure
 {
   using AbstractingAlgo = UnificationAlgorithms::AbstractingUnification;
   using RobAlgo = UnificationAlgorithms::RobUnification;
+  using LeafData = SubstitutionTree::LeafData;
+  using FastInstancesIterator = SubstitutionTree::FastInstancesIterator;
+  using FastGeneralizationsIterator = SubstitutionTree::FastGeneralizationsIterator;  
+#if VHOL
   using HOLAlgo = UnificationAlgorithms::HOLUnification;
+#endif
 
 public:
   CLASS_NAME(TermSubstitutionTree);
@@ -78,29 +86,22 @@ public:
   { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
   bool generalizationExists(TermList t) override
-  { return t.isVar() ? false : SubstitutionTree::generalizationExists(TypedTermList(t.term())); }
+  { return t.isVar() ? false : _tree->generalizationExists(TypedTermList(t.term())); }
 
 #if VDEBUG
-  virtual void markTagged() override { SubstitutionTree::markTagged();}
+  virtual void markTagged() override { _tree->markTagged();}
   virtual void output(std::ostream& out) const final override { out << *this; }
 #endif
 
 private:
   
   void handleTerm(TypedTermList tt, LeafData ld, bool insert)
-  { 
-#if VHOL
-    if(env.property->higherOrder()){
-      // replace higher-order terms with placeholder constants
-      tt =  TypedTermList(ToPlaceholders().replace(tt), tt.sort());
-    }
-#endif
-    SubstitutionTree::handle(tt, ld, insert); }
+  { _tree->handle(tt, ld, insert); }
 
   template<class Iterator, class... Args>
   auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, Args... args)
   {
-    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
+    return iterTraits(_tree->iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
       .map([this](auto qr)
         { return tQueryRes(
             _extra ? qr.data->extraTerm : qr.data->term,
@@ -109,6 +110,7 @@ private:
 
   //higher-order concerns
   bool _extra;
+  unique_ptr<SubstitutionTree> _tree;
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
   { return out << (SubstitutionTree const&) self; }
@@ -132,19 +134,19 @@ public:
     static auto uwa                 = env.options->unificationWithAbstraction();
     static bool fixedPointIteration = env.options->unificationWithAbstractionFixedPointIteration();
 
-    return pvi(getResultIterator<UnificationsIterator<AbstractingAlgo>>(t, true, MismatchHandler(uwa), fixedPointIteration));
+    return pvi(getResultIterator<SubstitutionTree::UnificationsIterator<AbstractingAlgo>>(t, true, MismatchHandler(uwa), fixedPointIteration));
   }
 
 #if VHOL
   TermQueryResultIterator getHOLUnifiers(TypedTermList t) final override
   {       
     TypedTermList tp = TypedTermList(ToPlaceholders().replace(t), t.sort());
-    return pvi(getResultIterator<UnificationsIterator<HOLAlgo>>(tp, false, t));
+    return pvi(getResultIterator<SubstitutionTree::UnificationsIterator<HOLAlgo>>(tp, false, t));
   }
 #endif
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<UnificationsIterator<RobAlgo>>(t, retrieveSubstitutions)); }
+  { return pvi(getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(t, retrieveSubstitutions)); }
 };
 
 };

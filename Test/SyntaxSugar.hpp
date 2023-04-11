@@ -127,6 +127,8 @@
 #define DECL_HOL_VAR(x, i, s) auto x = TermSugar(TermList::var(i), s);
 #define DECL_VAR_SORTED(x, i, s) auto x = TermSugar(TermList::var(i), s);
 
+#define DECL_BOOL_SORT(b)  auto b = SortSugar(AtomicSort::boolSort());
+
 #define DECL_DEFAULT_VARS                                                                                     \
   __ALLOW_UNUSED(                                                                                             \
     DECL_VAR(x, 0)                                                                                            \

@@ -826,6 +826,68 @@ TEST_FUN(higher_order3)
       });
 }
 
+// AYB not a real test, but if run with debugging info
+// in HOLSubstitutionTree, very useful for ensuring
+// that insertions and deletions are taking place correctly
+/*TEST_FUN(higher_order_tree)
+{
+  env.property->forceHigherOrder();
+
+  env.options->set("pretty_hol_printing","pretty");
+  env.options->set("func_ext", "abstraction");
+  auto index = getTermIndex();
+
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt) 
+
+  DECL_CONST(a, arrow(srt,srt))
+  DECL_CONST(b, srt)  
+  DECL_CONST(d, arrow(srt, arrow(srt, srt)))  
+  DECL_CONST(e, srt)    
+  DECL_CONST(f, arrow(arrow(srt,srt), srt))
+  DECL_HOL_VAR(x, 0, srt)
+  DECL_HOL_VAR(y, 1, arrow(srt,srt))
+  DECL_HOL_VAR(z, 2, arrow(srt,srt))
+  DECL_BOOL_SORT(bools);
+  DECL_CONST(p, arrow(srt,bools))  
+  DECL_CONST(g, arrow(bools,srt))  
+
+
+  auto t = ap(f, lam(x, ap(a, x)));
+  t = toDBs(t);
+  auto t2 = ap(f,lam(x, b));
+  t2 = toDBs(t2);
+
+  index->insert(t, 0, 0);
+  index->insert(t2, 0, 0);
+
+  index->remove(t2, 0, 0);
+  index->remove(t, 0, 0);
+
+  index->insert(ap(y,b), 0, 0);
+  index->insert(ap(y, ap(a,b)), 0, 0);
+  index->insert(ap(z, ap(a,b)), 0, 0);
+
+  index->remove(ap(y,b), 0, 0);
+  index->remove(ap(y, ap(a,b)), 0, 0);
+  index->remove(ap(z, ap(a,b)), 0, 0);
+
+  index->insert(ap(f,ap(d,b)), 0, 0);
+  index->insert(ap(f,ap(d,e)), 0, 0);  
+
+  index->remove(ap(f,ap(d,b)), 0, 0);
+  index->remove(ap(f,ap(d,e)), 0, 0);  
+
+  index->insert(ap(p,b), 0, 0);
+  index->insert(ap(p,e), 0, 0);  
+
+  index->remove(ap(p,b), 0, 0);
+  index->remove(ap(p,e), 0, 0);  
+
+  index->insert(ap(g, ap(p,b)), 0, 0);
+  index->insert(ap(g, ap(p,e)), 0, 0);  
+}*/
+
 #endif
 
 static const int NORM_QUERY_BANK=2;

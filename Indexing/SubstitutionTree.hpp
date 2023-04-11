@@ -74,27 +74,6 @@ std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> co
 
 template<class Key> struct SubtitutionTreeConfig;
 
-class Splittable {
-public:
-  CLASS_NAME(Splittable);
-  USE_ALLOCATOR(Splittable);
-
-  virtual ~Splittable(){}
-
-  // we should never call this function for default implementation
-  virtual bool operator()(TermList t) = 0;
-};
-
-class HOLSplittable : public Splittable {
-public:
-  CLASS_NAME(HOLSplittable);
-  USE_ALLOCATOR(HOLSplittable);
-
-  bool operator()(TermList t) override { //TODO 
-    return true;
-  }
-};
-
 /** a counter that is compiled away in release mode */
 struct Cntr {
 #if VDEBUG
@@ -150,7 +129,7 @@ public:
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
-  SubstitutionTree(Splittable* splittable = 0);
+  SubstitutionTree();
   SubstitutionTree(SubstitutionTree const&) = delete;
   SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
   SubstitutionTree(SubstitutionTree&& other)
@@ -158,7 +137,6 @@ public:
   {
     std::swap(_nextVar, other._nextVar);
     std::swap(_root, other._root);
-    std::swap(_splittable, other._splittable);
 #if VDEBUG
     std::swap(_tag, other._tag);
 #endif
@@ -281,6 +259,9 @@ public:
   };
 
   class Node {
+  protected:
+    bool canSplit;
+
   public:
     friend std::ostream& operator<<(ostream& out, OutputMultiline<Node> const& self) 
     { self.self.output(out, /* multiline = */ true, self.indent); return out; }
@@ -289,11 +270,13 @@ public:
     inline
     Node() { term.makeEmpty(); }
     inline
-    Node(TermList ts) : term(ts) { }
+    Node(TermList ts, bool splittable = true) : canSplit(splittable), term(ts) { }
     virtual ~Node();
     /** True if a leaf node */
     virtual bool isLeaf() const = 0;
     virtual bool isEmpty() const = 0;
+
+    TermList::Top top() const { return term.top(canSplit); }
     /**
      * Return number of elements held in the node.
      *
@@ -301,6 +284,10 @@ public:
      */
     virtual int size() const { NOT_IMPLEMENTED; }
     virtual NodeAlgorithm algorithm() const = 0;
+
+
+    bool splittable() const { return canSplit; }
+    void setSplittable(bool b) { canSplit = b; }
 
     /**
      * Remove all referenced structures without destroying them.
@@ -335,7 +322,8 @@ public:
 
     /** Build a new intermediate node */
     inline
-    IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar) {}
+    IntermediateNode(TermList ts, unsigned childVar, bool splittable) : 
+      Node(ts, splittable), childVar(childVar) {}
 
     inline
     bool isLeaf() const final override { return false; };
@@ -366,7 +354,7 @@ public:
      * Remove all children of the node without destroying them.
      */
     virtual void removeAllChildren() = 0;
-
+ 
     void destroyChildren();
 
     void makeEmpty() final override
@@ -392,7 +380,7 @@ public:
     {}
     /** Build a new leaf */
     inline
-    Leaf(TermList ts) : Node(ts) {}
+    Leaf(TermList ts, bool splittable) : Node(ts, splittable) {}
 
     inline
     bool isLeaf() const final override { return true; };
@@ -409,21 +397,18 @@ public:
   class SListLeaf;
   class SetLeaf;
   static Leaf* createLeaf();
-  static Leaf* createLeaf(TermList ts);
+  static Leaf* createLeaf(TermList ts, bool splittable = true);
   static void ensureLeafEfficiency(Leaf** l);
   static IntermediateNode* createIntermediateNode(unsigned childVar);
-  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar);
+  static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar, bool splittable = true);
   static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
 
   struct IsPtrToVarNodeFn
   {
     bool operator()(Node** n)
     {
-      return (*n)->term.isVar() 
-#if VHOL
-      || (*n)->term.isPlaceholder() // treat placeholders exactly like variables
-#endif
-      ;
+      // treat non-splittable nodes like variable nodes
+      return (*n)->term.isVar() || !(*n)->splittable();
     }
   };
 
@@ -437,7 +422,8 @@ public:
       _nodes[0]=0;
     }
     inline
-    UArrIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar), _size(0)
+    UArrIntermediateNode(TermList ts, unsigned childVar, bool splittable = true) 
+      : IntermediateNode(ts, childVar, splittable), _size(0)
     {
       _nodes[0]=0;
     }
@@ -488,7 +474,8 @@ public:
   {
   public:
     SListIntermediateNode(unsigned childVar) : IntermediateNode(childVar) {}
-    SListIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar) {}
+    SListIntermediateNode(TermList ts, unsigned childVar, bool splittable = true) : 
+      IntermediateNode(ts, childVar, splittable) {}
 
     ~SListIntermediateNode()
     {
@@ -567,25 +554,26 @@ public:
         if(t2.var()) {
           return GREATER;
         }
-#if VHOL
-        if(env.property->higherOrder()){
-          // always put placeholder directly after variables in SkipList
-          // so that IsPtrToVarNodeFn return true for placehodlers as well
-          bool t1IsPlaceholder = env.signature->isPlaceholder(t1.functor());
-          bool t2IsPlaceholder = env.signature->isPlaceholder(t2.functor());
-          if(t1IsPlaceholder && !t2IsPlaceholder) return LESS;
-          if(t2IsPlaceholder && !t1IsPlaceholder) return GREATER;
+
+        if(t1.id()) {
+          if(t2.id()) {
+            return Int::compare(*t1.id(), *t2.id());
+          }
+          return LESS;
         }
-#endif
+        if(t2.id()) {
+          return GREATER;
+        }
+
         return Int::compare(*t1.functor(), *t2.functor());
       }
 
       static Comparison compare(Node* n1, Node* n2)
-      { return compare(n1->term.top(), n2->term.top()); 
+      { return compare(n1->top(), n2->top()); 
 
       }
       static Comparison compare(TermList::Top t1, Node* n2)
-      { return compare(t1, n2->term.top()); }
+      { return compare(t1, n2->top()); }
     };
     typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
     NodeSkipList _nodes;
@@ -637,22 +625,8 @@ public:
 
   void setSort(TypedTermList const& term, LeafData& ld)
   {
-    // in higher-order case we replace certain subterms with so-called
-    // placeholders, so assertion below doesn't hold in general
-    ASS(ld.term == term 
-#if VHOL
-      || env.property->higherOrder()
-#endif
-      );
+    ASS(ld.term == term);
     ld.sort = term.sort();
-  }
-
-  void setSort(TermList const& term, LeafData& ld)
-  {
-    ASS_EQ(ld.term, term)
-    if (term.isTerm()) {
-      ld.sort = SortHelper::getResultSort(term.term());
-    }
   }
 
 
@@ -665,8 +639,14 @@ public:
   }
 
 
+  virtual void handle(TypedTermList const& key, LeafData ld, bool doInsert)
+  { handleImpl(key, ld, doInsert); }
+
+  virtual void handle(Literal* const& key, LeafData ld, bool doInsert)
+  { handleImpl(key, ld, doInsert); }
+
   template<class Key>
-  void handle(Key const& key, LeafData ld, bool doInsert)
+  void handleImpl(Key const& key, LeafData ld, bool doInsert)
   {
     auto norm = Renaming::normalize(key);
     Recycled<BindingMap> bindings;
@@ -680,20 +660,14 @@ public:
     else          remove(*bindings, ld);
   }
 
-private:
+protected:
   void insert(BindingMap& binding,LeafData ld);
   void remove(BindingMap& binding,LeafData ld);
-
-  // To avoid slowing down / modifying standard insertion 
-  // and remove, we define functions below
-  void splittableInsert(BindingMap& binding,LeafData ld);
-  void splittableRemove(BindingMap& binding,LeafData ld);
 
   /** Number of the next variable */
   int _nextVar;
 
   Node* _root;
-  Splittable* _splittable;
 #if VDEBUG
   bool _tag;
 #endif

@@ -248,7 +248,12 @@ TermList::Top TermList::top(bool splittable) const
 { 
   CALL("TermList::top");
 
-  if(!splittable) return TermList::Top::nonsplittable(term()->getId());
+  if(!splittable){
+    ASS(isTerm());
+    ASS(term()->shared()); // TODO is this valid???
+
+    return TermList::Top::nonsplittable(term()->getId());
+  } 
 
   return isTerm() ? TermList::Top::functor(term()->functor()) 
                   : TermList::Top::var(var());            

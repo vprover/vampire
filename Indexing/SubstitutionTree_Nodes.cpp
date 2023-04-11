@@ -36,7 +36,7 @@ public:
   inline
   UListLeaf() : _children(0), _size(0) {}
   inline
-  UListLeaf(TermList ts) : Leaf(ts), _children(0), _size(0) {}
+  UListLeaf(TermList ts, bool splittable = true) : Leaf(ts, splittable), _children(0), _size(0) {}
   ~UListLeaf()
   {
     LDList::destroy(_children);
@@ -82,7 +82,7 @@ class SubstitutionTree::SListLeaf
 {
 public:
   SListLeaf() {}
-  SListLeaf(TermList ts) : Leaf(ts) {}
+  SListLeaf(TermList ts, bool splittable = true) : Leaf(ts, splittable) {}
 
   static SListLeaf* assimilate(Leaf* orig);
 
@@ -123,9 +123,9 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf()
   return new UListLeaf();
 }
 
-SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
+SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts, bool splittable)
 {
-  return new UListLeaf(ts);
+  return new UListLeaf(ts, splittable);
 }
 
 SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar)
@@ -134,10 +134,10 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(uns
   return new UArrIntermediateNode(childVar);
 }
 
-SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar)
+SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar, bool splittable)
 {
   CALL("SubstitutionTree::createIntermediateNode/3");
-  return new UArrIntermediateNode(ts, childVar);
+  return new UArrIntermediateNode(ts, childVar, splittable);
 }
 
 void SubstitutionTree::IntermediateNode::destroyChildren()
@@ -164,9 +164,9 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
 SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::childByTop(TermList::Top t, bool canCreate)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
-
+  
   for(int i=0;i<_size;i++) {
-    if(t == _nodes[i]->term.top()) {
+    if(t == _nodes[i]->top()) {
       return &_nodes[i];
     }
   }
@@ -184,7 +184,7 @@ void SubstitutionTree::UArrIntermediateNode::remove(TermList::Top t)
   CALL("SubstitutionTree::UArrIntermediateNode::remove");
 
   for(int i=0;i<_size;i++) {
-    if(t == _nodes[i]->term.top()) {
+    if(t == _nodes[i]->top()) {
       _size--;
       _nodes[i]=_nodes[_size];
       _nodes[_size]=0;
@@ -203,7 +203,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
 {
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
 
-  IntermediateNode* res = new SListIntermediateNode(orig->term, orig->childVar);
+  IntermediateNode* res = new SListIntermediateNode(orig->term, orig->childVar, orig->splittable());
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;
@@ -218,7 +218,7 @@ SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
 {
   CALL("SubstitutionTree::SListLeaf::assimilate");
 
-  SListLeaf* res=new SListLeaf(orig->term);
+  SListLeaf* res=new SListLeaf(orig->term, orig->splittable());
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;
