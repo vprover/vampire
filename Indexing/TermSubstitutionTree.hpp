@@ -113,9 +113,9 @@ private:
   unique_ptr<SubstitutionTree> _tree;
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
-  { return out << (SubstitutionTree const&) self; }
+  { return out <<  *self._tree; }
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
-  { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
+  { return out << multiline(*self.self._tree, self.indent); }
 
   //auto postproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
   //{ return iterTraits(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
@@ -140,8 +140,7 @@ public:
 #if VHOL
   TermQueryResultIterator getHOLUnifiers(TypedTermList t) final override
   {       
-    TypedTermList tp = TypedTermList(ToPlaceholders().replace(t), t.sort());
-    return pvi(getResultIterator<SubstitutionTree::UnificationsIterator<HOLAlgo>>(tp, false, t));
+    return pvi(getResultIterator<SubstitutionTree::UnificationsIterator<HOLAlgo>>(t, true));
   }
 #endif
 

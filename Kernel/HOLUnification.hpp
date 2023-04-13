@@ -38,20 +38,26 @@ namespace UnificationAlgorithms {
 
 
 class HOLUnification {
-  // when this class is used for tree unification the field
-  // below holds the original query before higher-order subterms have
-  // been replaced by placeholders
-  TermList _origQuery; 
-  bool unify(TermSpec t1, TermSpec t2, RobSubstitution* sub);
+
+  bool unify(TermSpec t1, TermSpec t2, bool splittable, RobSubstitution* sub);
+
+  // TODO if we implement solid fragment, this will not work...
+  enum OracleResult
+  {
+    SUCCESS=1,
+    FAILURE=2,
+    OUT_OF_FRAGMENT=3
+  };  
+
+  OracleResult fixpointUnify(VarSpec var, const TermSpec& t2, RobSubstitution* sub);
 
 public:
-  HOLUnification() {  _origQuery.makeEmpty(); }
-  HOLUnification(TermList query) :  _origQuery(query) {}
+  HOLUnification() { }
 
-  bool unifyWithPlaceholders(TermList t1, unsigned bank1, TermList t2, unsigned bank2, RobSubstitution* sub);
+  bool unifyTreeTerms(TermList t1, unsigned bank1, TermList t2, unsigned bank2, bool splittable , RobSubstitution* sub);
   bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub);
   SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false);
-  SubstIterator postprocess(RobSubstitution*, TermList t);
+  SubstIterator postprocess(RobSubstitution*);
 
   // method used to decide whether to return all children of a node during tree
   // traversal or only the children with same top

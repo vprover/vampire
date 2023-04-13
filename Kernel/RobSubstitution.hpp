@@ -229,7 +229,11 @@ public:
   unsigned functor()   const;
 
 #if VHOL
-  bool isPlaceholder() const;
+  bool isApplication() const;
+  TermList head(RobSubstitution* s) const;
+  bool isArrowSort();
+  bool isBoolSort();  
+  int index() const;
 #endif
 
   unsigned nTypeArgs() const;//{ return derefTerm().term()->numTypeArguments(); }

@@ -265,7 +265,7 @@ SubstIterator AbstractingUnification::unifiers(TermList t1, int index1, TermList
   return success ? pvi(getSingletonIterator(sub)) : SubstIterator::getEmpty();
 }
 
-SubstIterator AbstractingUnification::postprocess(RobSubstitution* sub, TermList t)
+SubstIterator AbstractingUnification::postprocess(RobSubstitution* sub)
 {
   CALL("AbstractingUnification::postprocess");
  

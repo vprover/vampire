@@ -1301,9 +1301,8 @@ public:
           normalizer.normalizeVariables(ld->literal);
         } else {
           normalizer.normalizeVariables(ld->term);
-          if (ld->sort.isNonEmpty()) {
-            normalizer.normalizeVariables(ld->sort);
-          }
+          ASS (ld->sort.isNonEmpty());
+          normalizer.normalizeVariables(ld->sort);
         }
 
         ASS(_clientBacktrackData.isEmpty());
@@ -1318,7 +1317,7 @@ public:
       // the single unifier into an iterator
       // For UWA, if fixed point iteration has been chosen, this is carried out
       // For HOL, a set of HOL unifiers are returned
-      SubstIterator substs = _algo.postprocess(&*_subst, ld->term);
+      SubstIterator substs = _algo.postprocess(&*_subst);
       return pvi(iterTraits(substs).map([ld](RobSubstitution* subst){  
           return QueryResult(ld, 
             ResultSubstitution::fromSubstitution(subst, QUERY_BANK, RESULT_BANK));

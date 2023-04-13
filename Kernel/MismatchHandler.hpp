@@ -140,7 +140,7 @@ public:
 
   // function is called when in the leaf of a substitution tree 
   // during unification. t is the term stored in the leaf
-  SubstIterator postprocess(RobSubstitution* sub, TermList t){
+  SubstIterator postprocess(RobSubstitution* sub){
     CALL("RobUnification::postprocess");     
     
     // sub is a unifier of query and leaf term t, return it
@@ -163,7 +163,7 @@ public:
   bool unify(TermSpec l, TermSpec r, bool& progress, RobSubstitution* sub);
   bool fixedPointIteration(RobSubstitution* sub);
   SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false);
-  SubstIterator postprocess(RobSubstitution* sub, TermList t);
+  SubstIterator postprocess(RobSubstitution* sub);
 
   bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub)
   {

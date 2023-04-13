@@ -126,14 +126,15 @@ void checkLiteralMatches(LiteralSubstitutionTree& index, Literal* lit, Stack<Lit
 }
 
 template<class F>
-void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, bool applySub, F unifFun)
+void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
 {
   CALL("checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)")
+ 
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
-        .querySigma  = applySub ? qr.unifier->apply(term, /* result */ QUERY_BANK) : term,
-        .resultSigma = applySub ? qr.unifier->apply(qr.term, /* result */ RESULT_BANK) : qr.term,
+        .querySigma  = qr.unifier->apply(term, /* result */ QUERY_BANK) ,
+        .resultSigma = qr.unifier->apply(qr.term, /* result */ RESULT_BANK) ,
         .constraints = *qr.unifier->getConstraints(),
     });
   }
@@ -160,14 +161,14 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Sta
 
 void checkTermMatches(TermSubstitutionTree& index, TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
-  return checkTermMatchesWithUnifFun(index, term, expected, true,
+  checkTermMatchesWithUnifFun(index, term, expected,
       [&](auto& idx, auto t) { return idx.getUwa(term); });
 }
 
 #if VHOL
 void checkHigherOrderTermMatches(TermSubstitutionTree& index, TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
-  return checkTermMatchesWithUnifFun(index, term, expected, false,
+  checkTermMatchesWithUnifFun(index, term, expected,
       [&](auto& idx, auto t) { return idx.getHOLUnifiers(term); });
 }
 #endif
@@ -735,7 +736,7 @@ TEST_FUN(higher_order)
         TermUnificationResultSpec 
         { .querySigma  = ap(f,b),
           .resultSigma = ap(f,a),
-          .constraints = Stack<Literal*>{ } }, 
+          .constraints = Stack<Literal*>{a != b } }, 
 
       });
 
@@ -745,7 +746,7 @@ TEST_FUN(higher_order)
   checkHigherOrderTermMatches(*index, TypedTermList(x, arrow(srt, srt)), Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
-        { .querySigma  = x,
+        { .querySigma  = ap(g,c),
           .resultSigma = ap(g,c),
           .constraints = Stack<Literal*>{} }, 
 
@@ -756,7 +757,7 @@ TEST_FUN(higher_order)
         TermUnificationResultSpec 
         { .querySigma  = ap(f,b),
           .resultSigma = ap(f,a),
-          .constraints = Stack<Literal*>{  } }, 
+          .constraints = Stack<Literal*>{ a != b } }, 
 
       });
 
@@ -765,7 +766,7 @@ TEST_FUN(higher_order)
         TermUnificationResultSpec 
         { .querySigma  = ap(g,d),
           .resultSigma = ap(g,c),
-          .constraints = Stack<Literal*>{  } }, 
+          .constraints = Stack<Literal*>{ ap(g,c) != ap(g,d) } }, 
 
       });
 }
@@ -783,6 +784,8 @@ TEST_FUN(higher_order2)
 
   DECL_CONST(a, srt)
   DECL_HOL_VAR(x, 0, arrow(srt, srt))
+  DECL_HOL_VAR(x2, 2, arrow(srt, arrow(srt, srt))) 
+  DECL_HOL_VAR(x3, 3, srt)
 
   index->insert(ap(x, a), 0, 0);
 
@@ -791,9 +794,26 @@ TEST_FUN(higher_order2)
         TermUnificationResultSpec 
         { .querySigma  = a,
           .resultSigma = ap(x,a),
-          .constraints = Stack<Literal*>{  } }, 
+          .constraints = {a != ap(x,a) } }, 
 
       });
+
+  index->insert(ap(ap(x2, a), x3), 0, 0);
+   
+  checkHigherOrderTermMatches(*index, x3, Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+        { .querySigma  = ap(ap(x2, a), x3),
+          .resultSigma = ap(ap(x2, a), x3),
+          .constraints = Stack<Literal*>{} }, 
+
+        TermUnificationResultSpec 
+        { .querySigma  = ap(x,a),
+          .resultSigma = ap(x,a),
+          .constraints = Stack<Literal*>{ } }, 
+
+      });
+
 }
 
 TEST_FUN(higher_order3)
@@ -811,8 +831,8 @@ TEST_FUN(higher_order3)
   DECL_CONST(f, arrow(arrow(srt,srt), srt))
   DECL_HOL_VAR(x, 0, srt)
 
-  auto t = ap(f, lam(x, ap(a, x)));
-  t = toDBs(t);
+  auto lamTerm = toDBs(lam(x, ap(a, x)));
+  auto t = ap(f, lamTerm);
 
   index->insert(t, 0, 0);
 
@@ -821,7 +841,7 @@ TEST_FUN(higher_order3)
         TermUnificationResultSpec 
         { .querySigma  = ap(f,a),
           .resultSigma = toDBs(ap(f, lam(x, ap(a, x)))),
-          .constraints = Stack<Literal*>{  } }, 
+          .constraints = Stack<Literal*>{ a != lamTerm  } }, 
 
       });
 }

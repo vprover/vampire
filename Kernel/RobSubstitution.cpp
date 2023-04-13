@@ -120,9 +120,26 @@ unsigned TermSpec::functor() const
                      [](OldTermSpec const& self) { return self.term.term()->functor(); }); }
 
 #if VHOL
-  bool TermSpec::isPlaceholder() const
+  bool TermSpec::isApplication() const
   { return _self.match([](Appl const& a)           { return false; },
-                       [](OldTermSpec const& self) { return self.term.isPlaceholder(); }); }
+                       [](OldTermSpec const& self) { return self.term.isApplication(); }); }
+
+  // TODO consider dereference before this check as a term may not have a var head after dereferencing
+  TermList TermSpec::head(RobSubstitution* s) const
+  { return _self.match([&](Appl const& a)           { ASSERTION_VIOLATION; return toTerm(*s); },
+                       [&](OldTermSpec const& self) { return toTerm(*s).head(); }); }
+
+  bool TermSpec::isArrowSort()
+  { return _self.match([](Appl const& a)           { return false; },
+                       [](OldTermSpec& self)       { return self.term.isArrowSort(); }); }
+
+  bool TermSpec::isBoolSort()
+  { return _self.match([](Appl const& a)           { return false; },
+                       [](OldTermSpec& self)       { return self.term.isBoolSort(); }); }  
+
+  int TermSpec::index() const
+  { return _self.match([](Appl const& a)           { ASSERTION_VIOLATION; return -1; },
+                       [](OldTermSpec const& self) { return self.index; }); }  
 #endif
 
 unsigned TermSpec::nTypeArgs() const 
