@@ -229,6 +229,11 @@ public:
   TermList domain();
   TermList result();
   TermList finalResult();
+  // return the weak head normal form of the term
+  TermList whnf();
+  TermList betaNF();
+  TermList etaNF();
+  TermList betaEtaNF();
 #endif
 
   bool containsSubterm(TermList v);

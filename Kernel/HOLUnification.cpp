@@ -57,7 +57,7 @@ bool HOLUnification::unifyTreeTerms(TermList t1, unsigned bank1, TermList t2, un
 
 // TODO consider aadding a check for loose De Bruijn indices
 // see E prover code by petar /TERMS/cte_fixpoint_unif.c
-#define DEBUG_FP_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
+#define DEBUG_FP_UNIFY(LVL, ...) if (LVL <= 1) DBG(__VA_ARGS__)
 HOLUnification::OracleResult HOLUnification::fixpointUnify(VarSpec var, const TermSpec& t, RobSubstitution* sub)
 {
   CALL("HOLUnification::fixpointUnify");
@@ -67,11 +67,7 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(VarSpec var, const Te
     bool underFlex;
   };
 
-  BetaNormaliser bn;
-  EtaNormaliser en;
-
-  // TODO does oder matter between eta and beta normalistion?
-  bool tIsLambda = bn.normalise(en.normalise(t.toTerm(*sub))).isLambdaTerm();
+  bool tIsLambda = t.toTerm(*sub).whnf().isLambdaTerm();
   VarSpec toFind = sub->root(var);
   TermSpec ts = sub->derefBound(t).clone();
   if(ts.isVar()) {
@@ -88,19 +84,17 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(VarSpec var, const Te
 
   while (todo->isNonEmpty()){
     auto ts = todo->pop();
-    TermList trm = ts.t.toTerm(*sub);
-    int index    = ts.t.index();
 
-    TermList head;
-    TermStack args;
 
-    ApplicativeHelper::getHeadAndArgs(trm, head, args);
+    TermSpec head;
+    Stack<TermSpec> args;
+
+    ts.t.headAndArgs(head, args);
 
     if (head.isVar()) {
-      VarSpec tvar = sub->root(VarSpec(head.var(), index));
+      VarSpec tvar = sub->root(head.varSpec());
       if(tvar == toFind) {
         if(ts.underFlex || (tIsLambda && args.size())){
-          sub->pushConstraint(UnificationConstraint(TermSpec(var), ts.t.clone()));
           return OracleResult::OUT_OF_FRAGMENT;
         } else {
           return OracleResult::FAILURE;          
@@ -114,22 +108,20 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(VarSpec var, const Te
       }
 
     } else {
-      Term* term = head.term();
       // this is a bit nasty.
       // if we know that the original variable is a term var
       // we wouldn't need to iterate through sort arguments
       // sadly, that is not the case ...
-      for(unsigned i = 0; i < term->arity(); i++){
-        TermSpec spec((*term)[i], index);
-        todo->push(TermSpecFP { .t = std::move(spec), .underFlex = ts.underFlex} );
+      for(auto c : head.allArgs()){
+        todo->push(TermSpecFP { .t = c.clone(), .underFlex = ts.underFlex} );
       }
     }
 
     bool argsUnderFlex = head.isVar() ? true : ts.underFlex;
 
     for(unsigned i = 0; i < args.size(); i++){
-      TermSpec spec(args[i], index);
-      todo->push(TermSpecFP { .t = std::move(spec), .underFlex = argsUnderFlex} );      
+      // TODO double iteration over args. Once here and once in TermSpec::headAndArgs(...)
+      todo->push(TermSpecFP { args[i].clone(), .underFlex = argsUnderFlex} );      
     }
   }
 
@@ -139,7 +131,7 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(VarSpec var, const Te
 }
 
 
-#define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
+#define DEBUG_UNIFY(LVL, ...) if (LVL <= 2) DBG(__VA_ARGS__)
 bool HOLUnification::unify(TermSpec t1, TermSpec t2, bool splittable, RobSubstitution* sub)
 {
   CALL("HOLUnification::unify");
@@ -177,26 +169,31 @@ bool HOLUnification::unify(TermSpec t1, TermSpec t2, bool splittable, RobSubstit
     };
 
     auto sortCheck = [](auto& t) {
-      if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION &&
-        (t.isNormalVar() || t.isArrowSort() || t.isBoolSort())){
-        return true;
-      }
-      return false;
+      return
+        env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION &&
+        (t.isNormalVar() || t.isArrowSort() || t.isBoolSort());
     };
 
     while (toDo->isNonEmpty()) {
       auto x = toDo->pop();
       auto& dt1 = x.lhs().deref(sub);
       auto& dt2 = x.rhs().deref(sub);
+      DEBUG_UNIFY(2, ".unify(", dt1, ",", dt2, ")")
 
       if (dt1 == dt2) {
         // do nothing
       } else if(dt1.isVar()) {
-        if(fixpointUnify(dt1.varSpec(), dt2, sub) == OracleResult::FAILURE)
-          return false;
+        auto res = fixpointUnify(dt1.varSpec(), dt2, sub);
+        if(res == OracleResult::FAILURE) return false;
+        if(res == OracleResult::OUT_OF_FRAGMENT)
+          sub->pushConstraint(UnificationConstraint(dt1.clone(), dt2.clone()));
+
       } else if(dt2.isVar()) {
-        if(fixpointUnify(dt2.varSpec(), dt1, sub) == OracleResult::FAILURE)
-          return false;
+        auto res = fixpointUnify(dt2.varSpec(), dt1, sub);        
+        if(res == OracleResult::FAILURE) return false;
+        if(res == OracleResult::OUT_OF_FRAGMENT)
+          sub->pushConstraint(UnificationConstraint(dt2.clone(), dt1.clone()));
+
       } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor()) {
         
         if(dt1.isApplication()){
@@ -214,8 +211,12 @@ bool HOLUnification::unify(TermSpec t1, TermSpec t2, bool splittable, RobSubstit
           // Not sure the logic below is right. Things get very complicated because
           // the sorts can be special variables. I think what we have below is an 
           // over approximation, but I am not 100%
-          if(sortCheck(dt1s1) || dt1t2head.isVar() || dt1t2head.isLambdaTerm() ||
-             sortCheck(dt2s1) || dt2t2head.isVar() || dt2t2head.isLambdaTerm() ) {
+          if(dt1t2.isVar() || dt2t2.isVar()){
+            // if either is a variable let fixpoint unification decide 
+            // whether to create a constraint or to bind
+            pushTodo(UnificationConstraint(std::move(dt1t2), std::move(dt2t2)));
+          } else if(sortCheck(dt1s1) || dt1t2head.isVar() || dt1t2head.isLambdaTerm() ||
+                    sortCheck(dt2s1) || dt2t2head.isVar() || dt2t2head.isLambdaTerm() ) {
             sub->pushConstraint(UnificationConstraint(dt1t2.clone(), dt2t2.clone()));
           } else {
             pushTodo(UnificationConstraint(std::move(dt1t2), std::move(dt2t2)));

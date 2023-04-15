@@ -359,9 +359,33 @@ TermList TermList::result(){
 }
 
 TermList TermList::finalResult(){
-  CALL("AtomicSort::finalResult");
+  CALL("TermList::finalResult");
 
   return isVar() || !isArrowSort() ? *this : static_cast<AtomicSort*>(term())->finalResult();
+}
+
+TermList TermList::whnf(){
+  CALL("TermList::whnf");
+
+  return BetaNormaliser().transformSubterm(*this);
+}
+
+TermList TermList::betaNF(){
+  CALL("TermList::betaNF");
+
+  return BetaNormaliser().normalise(*this);
+}
+
+TermList TermList::etaNF(){
+  CALL("TermList::etaNF");
+
+  return EtaNormaliser().normalise(*this);
+}
+
+TermList TermList::betaEtaNF(){
+  CALL("TermList::betaEtaNF");
+
+  return this->betaNF().etaNF();
 }
 
 TermList AtomicSort::result(){

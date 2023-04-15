@@ -42,8 +42,8 @@ Clause* BetaEtaSimplify::simplify(Clause* c)
     TermList t0 = *lit->nthArgument(0);
     TermList t1 = *lit->nthArgument(1);
 
-    TermList t0r = EtaNormaliser().normalise(BetaNormaliser().normalise(t0));  
-    TermList t1r = EtaNormaliser().normalise(BetaNormaliser().normalise(t1));       
+    TermList t0r = t0.betaEtaNF();  
+    TermList t1r = t1.betaEtaNF();       
     
 
     if((t0r != t0) || (t1r != t1)){

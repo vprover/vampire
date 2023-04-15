@@ -124,7 +124,6 @@ unsigned TermSpec::functor() const
   { return _self.match([](Appl const& a)           { return false; },
                        [](OldTermSpec const& self) { return self.term.isApplication(); }); }
 
-  // TODO consider dereference before this check as a term may not have a var head after dereferencing
   TermList TermSpec::head(RobSubstitution* s) const
   { return _self.match([&](Appl const& a)           { ASSERTION_VIOLATION; return toTerm(*s); },
                        [&](OldTermSpec const& self) { return toTerm(*s).head(); }); }
@@ -137,9 +136,18 @@ unsigned TermSpec::functor() const
   { return _self.match([](Appl const& a)           { return false; },
                        [](OldTermSpec& self)       { return self.term.isBoolSort(); }); }  
 
-  int TermSpec::index() const
-  { return _self.match([](Appl const& a)           { ASSERTION_VIOLATION; return -1; },
-                       [](OldTermSpec const& self) { return self.index; }); }  
+  void TermSpec::headAndArgs(TermSpec& head, Stack<TermSpec>& args) 
+  { return _self.match([ ](Appl const& a)           { ASSERTION_VIOLATION; },
+                       [&](OldTermSpec const& self) { 
+      TermList headt;
+      static TermStack argst;
+      ApplicativeHelper::getHeadAndArgs(self.term, headt, argst);
+      head = TermSpec(headt, self.index);
+      for(unsigned i = 0; i < argst.size(); i++){
+        args.push(TermSpec(argst[i], self.index));
+      }                                             }); 
+  }  
+
 #endif
 
 unsigned TermSpec::nTypeArgs() const 

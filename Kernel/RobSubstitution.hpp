@@ -234,6 +234,7 @@ public:
   bool isArrowSort();
   bool isBoolSort();  
   int index() const;
+  void headAndArgs(TermSpec& head, Stack<TermSpec>& args);
 #endif
 
   unsigned nTypeArgs() const;//{ return derefTerm().term()->numTypeArguments(); }

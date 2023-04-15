@@ -61,12 +61,12 @@ public:
   static TermList rhsSort(TermList t);   
 
   static void getArgSorts(TermList t, TermStack& sorts);
-  static Signature::Proxy getProxy(const TermList t);
+  static Signature::Proxy getProxy(const TermList& t);
 
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
-  static bool canHeadReduce(TermList t);
+  static bool canHeadReduce(const TermList& head, const TermStack& args);
   static TermList createGeneralBinding(unsigned freshVar, TermList head, 
     TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, bool surround = true);
   static TermList surroundWithLambdas(TermList t, TermStack& sorts);
@@ -94,6 +94,7 @@ public:
     dontTransformSorts();
   }  
   TermList normalise(TermList t);
+  // puts term into weak head normal form
   TermList transformSubterm(TermList t) override;
   bool exploreSubterms(TermList orig, TermList newTerm) override;
 };
@@ -124,7 +125,7 @@ public:
   RedexReducer() {
     dontTransformSorts();
   }    
-  TermList reduce(TermList redex);
+  TermList reduce(TermList head, TermStack& args);
   TermList transformSubterm(TermList t) override; 
   void onTermEntry(Term* t) override;
   void onTermExit(Term* t) override;

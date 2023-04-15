@@ -35,8 +35,13 @@ TermList BetaNormaliser::transformSubterm(TermList t)
 {
   CALL("BetaNormaliser::transformSubterm");
 
-  while(ApplicativeHelper::canHeadReduce(t)){
-    t = RedexReducer().reduce(t);
+  TermList head;
+  TermStack args;
+  ApplicativeHelper::getHeadAndArgs(t, head, args);
+
+  while(ApplicativeHelper::canHeadReduce(head, args)){
+    t = RedexReducer().reduce(head, args);
+    ApplicativeHelper::getHeadAndArgs(t, head, args);    
   }
   
   return t;
@@ -138,14 +143,10 @@ bool EtaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
   return true;
 }
 
-TermList RedexReducer::reduce(TermList redex)
+TermList RedexReducer::reduce(TermList head, TermStack& args)
 {
   CALL("RedexReducer::reduce");
-  ASS(AH::canHeadReduce(redex));
-  
-  TermList head;
-  TermStack args;
-  AH::getHeadAndArgs(redex, head, args);
+  ASS(AH::canHeadReduce(head, args));
 
   _replace = 0;
   TermList t1 = head.lambdaBody();
@@ -570,7 +571,7 @@ TermList ApplicativeHelper::rhsSort(TermList t)
   return *t.term()->nthArgument(0);
 }   
 
-Signature::Proxy ApplicativeHelper::getProxy(const TermList t)
+Signature::Proxy ApplicativeHelper::getProxy(const TermList& t)
 {
   CALL("ApplicativeHelper::getProxy");
   if(t.isVar()){
@@ -594,12 +595,9 @@ bool ApplicativeHelper::isFalse(TermList term){
   return term.isTerm() && !term.term()->isSort() && env.signature->isFoolConstantSymbol(false, term.term()->functor());
 }
 
-bool ApplicativeHelper::canHeadReduce(TermList t){
+bool ApplicativeHelper::canHeadReduce(TermList const& head, TermStack const& args){
   CALL("ApplicativeHelper::canHeadReduce");
   
-  TermList head;
-  TermStack args;
-  getHeadAndArgs(t, head, args);
   return head.isLambdaTerm() && args.size();
 }
 

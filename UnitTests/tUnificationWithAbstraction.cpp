@@ -846,6 +846,165 @@ TEST_FUN(higher_order3)
       });
 }
 
+TEST_FUN(higher_order4)
+{
+  env.property->forceHigherOrder();
+
+  env.options->set("pretty_hol_printing","pretty");
+  env.options->set("func_ext", "abstraction");
+  auto index = getTermIndex();
+
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt) 
+
+  DECL_CONST(a, srt)
+  DECL_CONST(g, arrow(srt,srt))
+  DECL_CONST(f, arrow(arrow(srt,srt), arrow(srt, srt)))
+  DECL_HOL_VAR(x, 0, arrow(srt,srt))
+
+
+  auto t = ap(ap(f, g), a);
+
+  index->insert(t, 0, 0);
+
+  checkHigherOrderTermMatches(*index, ap(ap(f, x), ap(x,a)), Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+        { .querySigma  = ap(ap(f, g), ap(g,a)),
+          .resultSigma = ap(ap(f, g), a),
+          .constraints = { ap(g, a) != a  } }, 
+
+      });
+}
+
+TEST_FUN(higher_order5)
+{
+  env.property->forceHigherOrder();
+
+  env.options->set("pretty_hol_printing","pretty");
+  env.options->set("func_ext", "abstraction");
+  auto index = getTermIndex();
+
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt) 
+
+  DECL_CONST(a, srt)
+  DECL_CONST(g, arrow(srt,srt))
+  DECL_CONST(f, arrow(arrow(srt,srt), arrow(srt, srt)))
+  DECL_HOL_VAR(x, 0, arrow(srt,srt))
+
+
+  auto t = ap(ap(f, g), a);
+
+  index->insert(t, 0, 0);
+
+  checkHigherOrderTermMatches(*index, ap(ap(f, x), ap(x,a)), Stack<TermUnificationResultSpec>{
+
+        TermUnificationResultSpec 
+        { .querySigma  = ap(ap(f, g), ap(g,a)),
+          .resultSigma = ap(ap(f, g), a),
+          .constraints = { ap(g, a) != a  } }, 
+
+      });
+}
+
+
+TEST_FUN(higher_order6)
+{
+  env.property->forceHigherOrder();
+
+  env.options->set("pretty_hol_printing","pretty");
+  env.options->set("func_ext", "abstraction");
+  auto index = getTermIndex();
+
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt) 
+
+  DECL_CONST(f, arrow(srt, arrow(srt, srt)))
+  DECL_HOL_VAR(x, 0, srt)
+  DECL_HOL_VAR(z, 1, srt)
+  DECL_HOL_VAR(y, 2, arrow(srt, srt))
+
+  auto t = ap(ap(f, x), x);
+
+  index->insert(t, 0, 0);
+
+  checkHigherOrderTermMatches(*index, ap(ap(f, ap(y,z)), z), Stack<TermUnificationResultSpec>{
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(ap(f, ap(y,x)), x),
+      .resultSigma = ap(ap(f, x), x),
+      .constraints = { ap(y,x) != x  } }, 
+
+  });
+}
+
+TEST_FUN(higher_order7)
+{
+  env.property->forceHigherOrder();
+
+  env.options->set("pretty_hol_printing","pretty");
+  env.options->set("func_ext", "abstraction");
+  auto index = getTermIndex();
+
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt) 
+
+  DECL_CONST(f, arrow(srt, arrow(srt, srt)))
+  DECL_CONST(g, arrow(srt, srt))  
+  DECL_HOL_VAR(x, 0, srt)
+  DECL_HOL_VAR(z, 1, srt)
+
+  auto t = ap(ap(f, x), x);
+
+  index->insert(t, 0, 0);
+
+  checkHigherOrderTermMatches(*index, ap(ap(f, ap(g,z)), z), Stack<TermUnificationResultSpec>{
+  });
+}
+
+TEST_FUN(higher_order8)
+{
+  env.property->forceHigherOrder();
+
+  env.options->set("pretty_hol_printing","pretty");
+  env.options->set("func_ext", "abstraction");
+  auto index = getTermIndex();
+
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt) 
+
+  DECL_CONST(a, srt)  
+  DECL_CONST(g, arrow(srt,srt))  
+  DECL_HOL_VAR(x, 0, arrow(srt,srt))
+  DECL_HOL_VAR(z, 1, arrow(srt,srt))
+
+
+  index->insert(ap(x,a), 0, 0);
+  index->insert(ap(z,a), 0, 0);
+  index->insert(ap(g,ap(z, a)), 0, 0);
+
+
+  checkHigherOrderTermMatches(*index, ap(g,a), Stack<TermUnificationResultSpec>{
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(g,a),
+      .resultSigma = ap(x,a),
+      .constraints = { ap(g,a) != ap(x,a)  } }, 
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(g,a),
+      .resultSigma = ap(z,a),
+      .constraints = { ap(g,a) != ap(z,a)  } },       
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(g,a),
+      .resultSigma = ap(g,ap(x,a)), //really irritating variable renaming...
+      .constraints = { a != ap(x,a)  } }, 
+
+  });
+}
+
 // AYB not a real test, but if run with debugging info
 // in HOLSubstitutionTree, very useful for ensuring
 // that insertions and deletions are taking place correctly
