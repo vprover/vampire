@@ -974,20 +974,23 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env.checkTimeSometime<64>();
 
-  Clause* ansLitCl = cl;
-  if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
-    ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
-  }
-  if (_answerLiteralManager) {
+  static bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+
+  if (synthesis) {
+    ASS((_answerLiteralManager != nullptr));
+    Clause* ansLitCl = cl;
+    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+      ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
+    }
     Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
     if (reduced) {
       ansLitCl = reduced;
     }
-  }
-  if (ansLitCl != cl) {
-    addNewClause(ansLitCl);
-    onClauseReduction(cl, &ansLitCl, 1, 0);
-    return;
+    if (ansLitCl != cl) {
+      addNewClause(ansLitCl);
+      onClauseReduction(cl, &ansLitCl, 1, 0);
+      return;
+    }
   }
 
   cl=doImmediateSimplification(cl);
@@ -1814,9 +1817,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
   }
-  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL ||
-      opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
+  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
+  } else if (opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
+    res->_answerLiteralManager = SynthesisManager::getInstance();
   }
   return res;
 } // SaturationAlgorithm::createFromOptions

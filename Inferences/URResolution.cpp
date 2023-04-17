@@ -145,7 +145,7 @@ struct URResolution::Item
         bool neg = rlit->isNegative(); 
         Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
         if (neg) resolved = Literal::complementaryLiteral(resolved);
-        _ansLit = AnswerLiteralManager::makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
+        _ansLit = SynthesisManager::makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
       }
     }
 

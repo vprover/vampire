@@ -942,6 +942,7 @@ Term* Term::createFromLiteral(Literal* l)
   if (l->isEquality()) fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
   bool added = false;
   unsigned fn = env.signature->addFunction(fnName, arity, added);
+  env.signature->addSynthesisPair(fn, l->functor());
   if (added) {
     Signature::Symbol* sym = env.signature->getFunction(fn);
     Stack<TermList> argSorts;
@@ -1224,7 +1225,7 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
 Term* Term::createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
 {
   CALL("Term::createRegularITE");
-  unsigned itefn = AnswerLiteralManager::getITEFunctionSymbol(branchSort);
+  unsigned itefn = SynthesisManager::getITEFunctionSymbol(branchSort);
   return Term::create(itefn, {TermList(condition), thenBranch, elseBranch});
 }
 

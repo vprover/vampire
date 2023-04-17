@@ -40,7 +40,7 @@ public:
 
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) = 0;
 
-  virtual void tryOutputInputUnits();
+  void tryOutputInputUnits();
 
   void addInputUnit(Unit* unit) { UnitList::push(unit, _inputs); }
 protected:
@@ -68,9 +68,38 @@ public:
   void addAnswerLiterals(Problem& prb);
   bool addAnswerLiterals(UnitList*& units);
 
-  void onNewClause(Clause* cl);
+  virtual void onNewClause(Clause* cl);
 
-  Clause* recordAnswerAndReduce(Clause* cl);
+  virtual Clause* recordAnswerAndReduce(Clause* cl) { return nullptr; };
+
+protected:
+  Clause* getRefutation(Clause* answer);
+  Literal* getAnswerLiteral(VList* vars,Formula* f);
+
+private:
+  Unit* tryAddingAnswerLiteral(Unit* unit);
+
+  virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit);
+
+  virtual Formula* quantifyJunction(Formula* junction, VList* existsVars, Unit* originalUnit);
+
+  Clause* getResolverClause(unsigned pred);
+
+  RCClauseStack _answers;
+
+  DHMap<unsigned, Clause*> _resolverClauses;
+};
+
+class SynthesisManager : public AnswerLiteralManager
+{
+public:
+  static SynthesisManager* getInstance();
+
+  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
+
+  virtual void onNewClause(Clause* cl) override;
+
+  virtual Clause* recordAnswerAndReduce(Clause* cl) override;
 
   void bindSkolemToVar(Term* skolem, unsigned var);
 
@@ -101,17 +130,11 @@ private:
     vmap<Term*, unsigned> _skolemToVar;
   };
 
-  Literal* getAnswerLiteral(VList* vars,Formula* f);
-  Unit* tryAddingAnswerLiteral(Unit* unit);
+  virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
 
-  Clause* getResolverClause(unsigned pred);
-  Clause* getRefutation(Clause* answer);
+  virtual Formula* quantifyJunction(Formula* junction, VList* existsVars, Unit* originalUnit) override;
 
   Formula* getConditionFromClause(Clause* cl);
-
-  RCClauseStack _answers;
-
-  DHMap<unsigned, Clause*> _resolverClauses;
 
   ConjectureSkolemReplacement _skolemReplacement;
 

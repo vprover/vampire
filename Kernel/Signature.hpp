@@ -909,6 +909,16 @@ class Signature
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
 
+  void addSynthesisPair(unsigned fn, unsigned pred) {
+    ASS(fn < _funs.length());
+    ASS(pred < _preds.length());
+    _synthesisFnToPred.insert(fn, pred);
+  }
+
+  unsigned getPredForSynthesisFn(unsigned fn) {
+    return _synthesisFnToPred.get(fn);
+  }
+
 private:
   Stack<TermList> _dividesNvalues;
   DHMap<Term*, int> _formulaCounts;
@@ -983,6 +993,8 @@ private:
    * Map from sorts to the associated term algebra, if applicable for the sort
    */ 
   DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
+
+  DHMap<unsigned, unsigned> _synthesisFnToPred;
 
   //TODO Why are these here? They are not used anywhere. AYB
   //void defineOptionTermAlgebra(unsigned optionSort);

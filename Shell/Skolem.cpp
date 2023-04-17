@@ -96,17 +96,32 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
     return unit;
   }
 
-  DHMap<unsigned,TermList>::Iterator vit(_varSorts);
-  AnswerLiteralManager* alm = AnswerLiteralManager::getInstance();
-  bool addedToALM = false;
-  while (vit.hasNext()) {
-    unsigned v = vit.nextKey();
-    TermList tl = _subst.apply(v);
-    if (tl.isTerm()) {
-      alm->bindSkolemToVar(tl.term(), v);
-      if (!addedToALM) {
-        alm->addInputUnit(unit);
-        addedToALM = true;
+  static bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  if (synthesis) {
+    DHSet<unsigned> answerAllowedVars;
+    if (f->connective()==EXISTS) {
+      VList* vars = f->vars();
+      VList::Iterator it(vars);
+      while (it.hasNext()) answerAllowedVars.insert(it.next());
+    }
+
+    DHMap<unsigned,TermList>::Iterator vit(_varSorts);
+    SynthesisManager* sm = SynthesisManager::getInstance();
+    bool added = false;
+    while (vit.hasNext()) {
+      unsigned v = vit.nextKey();
+      TermList tl = _subst.apply(v);
+      if (tl.isTerm()) {
+        ASS(env.signature->getFunction(tl.term()->functor())->skolem());
+        if (!answerAllowedVars.contains(v)) {
+          env.signature->getFunction(tl.term()->functor())->markUncomputable();
+        } else {
+          sm->bindSkolemToVar(tl.term(), v);
+          if (!added) {
+            sm->addInputUnit(unit);
+            added = true;
+          }
+        }
       }
     }
   }
