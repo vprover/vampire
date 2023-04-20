@@ -511,13 +511,13 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
 {
   CALL("IGAlgorithm::lookaheadSelection");
 
-  static DArray<VirtualIterator<SLQueryResult>> iters; //IG unification iterators
+  static DArray<VirtualIterator<LQueryRes<ResultSubstitutionSP>>> iters; //IG unification iterators
   iters.ensure(selCnt);
 
   for(unsigned i=0; i<selCnt; i++) {
     iters[i] = pvi(getFilteredIterator(_selected->getUnifications((*cl)[i], /* complementary */ true, /* retrieveSubs */ false),
         // only count partner literals which are also semantically selected
-        [this](SLQueryResult& unif) { return isSelected(unif.literal); }));
+        [this](auto& unif) { return isSelected(unif.literal); }));
   }
 
   static Stack<unsigned> candidates; // just to make sure we break the ties in a fair way

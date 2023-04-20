@@ -54,7 +54,7 @@ VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree
   CALL("LiteralSubstitutionTree::getVariants");
 
   return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
-        .map([](auto qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.unif); }));
+        .map([](auto qr) { return lQueryRes(qr.data->literal, qr.data->clause, qr.unif); }));
 }
 
 // TODO no substitution in this resultIterator
@@ -66,7 +66,7 @@ VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
          .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
          .flatMap([](Leaf* l) { return l->allChildren(); })
-         .map([](auto ld) { return SLQueryResult(ld->literal, ld->clause, ResultSubstitutionSP()); })
+         .map([](auto ld) { return lQueryRes(ld->literal, ld->clause, ResultSubstitutionSP()); })
       );
 }
 

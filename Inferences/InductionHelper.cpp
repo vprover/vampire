@@ -36,7 +36,7 @@ namespace {
 struct SLQueryResultToTermQueryResultFn
 {
   SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
-  TQueryRes<SmartPtr<ResultSubstitution>> operator() (const SLQueryResult slqr) {
+  TQueryRes<SmartPtr<ResultSubstitution>> operator() (const LQueryRes<ResultSubstitutionSP> slqr) {
     return TQueryRes<SmartPtr<ResultSubstitution>>(slqr.unifier->applyToQuery(variable), slqr.literal, slqr.clause, ResultSubstitutionSP());
   }
 

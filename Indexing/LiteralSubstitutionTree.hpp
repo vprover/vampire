@@ -136,13 +136,6 @@ public:
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary);
 
-  // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<AbstractingUnifier*>> r)
-  // { return lQueryRes(r.data->literal, r.data->clause, *r.unif); }
-  //
-  // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<RobSubstitutionSP>> r)
-  // { return SLQueryResult(r.data->literal, r.data->clause, ResultSubstitutionSP((ResultSubstitution*)&*r.unif.unwrapOrElse([](){return RobSubstitutionSP();}))); }
-
-
   Stack<SubstitutionTree> _trees;
 };
 

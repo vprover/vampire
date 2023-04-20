@@ -71,7 +71,8 @@ void SLQueryBackwardSubsumption::detach()
 
 struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
-  Clause* operator()(const SLQueryResult& res)
+  template<class T>
+  Clause* operator()(const LQueryRes<T>& res)
   {
     return res.clause;
   }
@@ -159,7 +160,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
   auto rit = _index->getInstances( (*cl)[lmIndex], /* complementary */ false, /* retrieveSubs */ false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
+    auto qr = rit.next();
     Clause* icl=qr.clause;
     Literal* ilit=qr.literal;
     unsigned ilen=icl->length();
