@@ -69,15 +69,6 @@ void SLQueryBackwardSubsumption::detach()
   BackwardSimplificationEngine::detach();
 }
 
-struct SLQueryBackwardSubsumption::ClauseExtractorFn
-{
-  template<class T>
-  Clause* operator()(const LQueryRes<T>& res)
-  {
-    return res.clause;
-  }
-};
-
 struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
 {
   BwSimplificationRecord operator()(Clause* cl)
@@ -105,7 +96,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     auto rit = _index->getAll();
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
-		    getMappingIterator(rit,ClauseExtractorFn()),
+		    getMappingIterator(rit, [](auto const& res) { return res.clause; }),
 		    getNonequalFn(cl)));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();
@@ -119,7 +110,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     auto rit = _index->getInstances( (*cl)[0], /* complementary */ false, /* retrieveSubs */ false);
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
-		    getMappingIterator(rit,ClauseExtractorFn()),
+		    getMappingIterator(rit, [](auto const& res) { return res.clause; }),
 		    getNonequalFn(cl)));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();

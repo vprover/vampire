@@ -68,16 +68,6 @@ void BackwardSubsumptionResolution::detach()
   BackwardSimplificationEngine::detach();
 }
 
-// TODO remove me
-struct BackwardSubsumptionResolution::ClauseExtractorFn
-{
-  template<class T>
-  Clause* operator()(const T& res)
-  {
-    return res.clause;
-  }
-};
-
 struct BackwardSubsumptionResolution::ClauseToBwSimplRecordFn
 {
   BwSimplificationRecord operator()(Clause* cl)
