@@ -103,11 +103,13 @@ private:
   SmartPtr<LiteralMiniIndex> _queryIndex;
 };
 
+// TODO remove me
 class SubstitutionTreeClauseVariantIndex::SLQueryResultToClauseFn
 {
 public:
 
-  Clause* operator()(SLQueryResult res) {
+  template<class T>
+  Clause* operator()(LQueryRes<T> res) {
     return res.clause;
   }
 };

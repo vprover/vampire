@@ -193,7 +193,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 
   auto rit = _index->getInstances(candidateQueryLit, /* complementary */ false, /* retrieveSubs */ false);
   while (rit.hasNext()) {
-    SLQueryResult qr = rit.next();
+    auto qr = rit.next();
     Clause* candidate = qr.clause;
 
     // not enough literals to fit match and rewritten literal (performance)

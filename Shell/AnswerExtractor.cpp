@@ -184,7 +184,7 @@ public:
     Literal* goalLit = _goalLits[_depth];
 
     while(_unifIts[_depth].hasNext()) {
-      SLQueryResult qres = _unifIts[_depth].next();
+      auto qres = _unifIts[_depth].next();
       ASS_EQ(goalLit->header(), qres.literal->header());
       if(_subst.unifyArgs(goalLit, 0, qres.literal, 1)) {
 	return true;
@@ -272,7 +272,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
   VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> alit = lemmas.getAll();
   while(alit.hasNext()) {
-    SLQueryResult aqr = alit.next();
+    auto aqr = alit.next();
   }
 
   if(!SubstBuilder(goalLits, lemmas, subst).run()) {

@@ -144,7 +144,7 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
     return false;
   }
   //for now we just get the first result
-  SLQueryResult qr = srqi.next();
+  auto qr = srqi.next();
   Color clr = ColorHelper::combine(infClr, qr.clause->color());
   if(clr==COLOR_INVALID) {
     return false;
@@ -363,7 +363,7 @@ void HyperSuperposition::resolveFixedLiteral(Clause* cl, unsigned litIndex, Clau
   Literal* lit = (*cl)[litIndex];
   auto unifs = _index->getUnifications(lit, /* complementary = */ true, /* retrieveSubstitutions */ true);
   while(unifs.hasNext()) {
-    SLQueryResult qr = unifs.next();
+    auto qr = unifs.next();
     Stack<Literal*> constraints;
     Clause* genCl = BinaryResolution::generateClause(cl, lit, qr.clause, qr.literal, qr.unifier, constraints, getOptions());
     acc.push(ClausePair(cl, genCl));
@@ -385,7 +385,7 @@ void HyperSuperposition::tryUnifyingToResolveWithUnit(Clause* cl, unsigned liter
   static ClauseStack localRes;
 
   while(unifIt.hasNext()) {
-    SLQueryResult unifRes = unifIt.next();
+    auto unifRes = unifIt.next();
     localRes.reset();
     tryUnifyingSuperpositioins(cl, literalIndex, lit, unifRes.literal, true, localRes);
     while(localRes.isNonEmpty()) {
@@ -535,7 +535,7 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacem
   static ClauseStack prems;
 
   while(unifIt.hasNext()) {
-    SLQueryResult unifRes = unifIt.next();
+    auto unifRes = unifIt.next();
     prems.reset();
     prems.push(unifRes.clause);
 
