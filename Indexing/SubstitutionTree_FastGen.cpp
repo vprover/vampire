@@ -128,9 +128,6 @@ public:
   Literal* applyToBoundResult(Literal* lit) override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
-  bool isIdentityOnQueryWhenResultBound() override
-  { return true; }
-
   // virtual void output(std::ostream& out) const final override 
   // { out << "GenMatcher::Substitution(<output unimplemented>)"; }
 private:

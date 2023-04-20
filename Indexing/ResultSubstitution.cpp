@@ -62,34 +62,34 @@ private:
 
 ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
 { return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
-/**
- * This is a copy paste version of ResultSubsition::isRenamingOn, instantiated for result = true.
- */
-bool GenSubstitution::isRenamingOnResult(TermList t) 
-{
-  CALL("ResultSubstitution::isRenamingOn");
-
-  DHMap<TermList,TermList> renamingInMaking;
-
-  VariableIterator it(t);
-  while(it.hasNext()) {
-    TermList v = it.next();
-    ASS(v.isVar());
-
-    TermList vSubst;
-    ASS(isIdentityOnQueryWhenResultBound());
-    // code trees don't implement general apply, but satisfy the assertion which makes the following OK
-    vSubst = applyToBoundResult(v);
-    if (!vSubst.isVar()) {
-      return false;
-    }
-    TermList vStored;
-    if (!renamingInMaking.findOrInsert(v,vStored,vSubst) && vStored != vSubst) {
-      return false;
-    }
-  }
-  return true;
-}
+// /**
+//  * This is a copy paste version of ResultSubsition::isRenamingOn, instantiated for result = true.
+//  */
+// bool GenSubstitution::isRenamingOnResult(TermList t) 
+// {
+//   CALL("ResultSubstitution::isRenamingOn");
+//
+//   DHMap<TermList,TermList> renamingInMaking;
+//
+//   VariableIterator it(t);
+//   while(it.hasNext()) {
+//     TermList v = it.next();
+//     ASS(v.isVar());
+//
+//     TermList vSubst;
+//     static_assert(isIdentityOnQueryWhenResultBound, "");
+//     // code trees don't implement general apply, but satisfy the assertion which makes the following OK
+//     vSubst = applyToBoundResult(v);
+//     if (!vSubst.isVar()) {
+//       return false;
+//     }
+//     TermList vStored;
+//     if (!renamingInMaking.findOrInsert(v,vStored,vSubst) && vStored != vSubst) {
+//       return false;
+//     }
+//   }
+//   return true;
+// }
 
 /**
  * This is a copy paste version of ResultSubsition::isRenamingOn, instantiated for result = false.

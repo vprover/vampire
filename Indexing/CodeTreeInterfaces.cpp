@@ -64,7 +64,6 @@ public:
     return SubstHelper::apply(lit, *getApplicator());
   }
 
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
   struct Applicator
   {

@@ -139,21 +139,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
         TermList rhsS;
         auto subs = qr.unifier;
-        if(!subs->isIdentityOnQueryWhenResultBound()) {
-          //When we apply substitution to the rhs, we get a term, that is
-          //a variant of the term we'd like to get, as new variables are
-          //produced in the substitution application.
-          TermList lhsSBadVars = subs->applyToResult(qr.term);
-          TermList rhsSBadVars = subs->applyToResult(rhs);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(trm);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-        } else {
-          rhsS = subs->applyToBoundResult(rhs);
-        }
+        static_assert(remove_reference_t<decltype(*subs)>::isIdentityOnQueryWhenResultBound, "");
+        rhsS = subs->applyToBoundResult(rhs);
         if(resultTermIsVar){
           rhsS = subst.apply(rhsS, 0);
         }
