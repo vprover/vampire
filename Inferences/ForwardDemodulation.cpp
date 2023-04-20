@@ -110,9 +110,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         toplevelCheck &= lit->isPositive() && (cLen == 1);        
       }
 
-      TermQueryResultIterator git=_index->getGeneralizations(TypedTermList(trm.term()), true);
+      auto git = _index->getGeneralizations(TypedTermList(trm.term()), true);
       while(git.hasNext()) {
-        TermQueryResult qr=git.next();
+        auto qr = git.next();
         ASS_EQ(qr.clause->length(),1);
 
         if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {
@@ -192,7 +192,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
             if (_encompassing) {
               // last chance, if the matcher is not a renaming
-              if (subs->isRenamingOn(qr.term,true /* we talk of result term */)) {
+              if (subs->isRenamingOnResult(qr.term)) {
+              // if (subs->isRenamingOn(qr.term,true /* we talk of result term */)) {
                 continue; // under _encompassing, we know there are no other literals in cl
               }
             } else {

@@ -125,6 +125,11 @@ private:
   RefCounter* _refCnt;
 };
 
+template<class T> 
+SmartPtr<T> smartPtr(T* ptr, bool nondisposable) { return SmartPtr<T>(ptr, nondisposable); }
+template<class T> 
+SmartPtr<T> smartPtr(T* ptr                    ) { return SmartPtr<T>(ptr); }
+
 };
 
 #endif /*__SmartPtr__*/

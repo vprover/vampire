@@ -322,7 +322,7 @@ struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
-  VirtualIterator<InductionContext> operator()(pair<Term*, VirtualIterator<TermQueryResult>> arg) {
+  VirtualIterator<InductionContext> operator()(pair<Term*, VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>>> arg) {
     auto indDepth = _premise->inference().inductionDepth();
     // heuristic 2
     if (indDepth) {
@@ -465,7 +465,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // add formula with default bound
           if (_opt.integerInductionDefaultBound()) {
             InductionFormulaIndex::Entry* e = nullptr;
-            static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr, ResultSubstitutionSP());
+            static TQueryRes<SmartPtr<ResultSubstitution>> defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr, ResultSubstitutionSP());
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
             if (notDoneInt(ctx, nullptr, nullptr, e)) {
@@ -478,11 +478,11 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
     }
     // collect term queries for each induction term
-    auto sideLitsIt = VirtualIterator<pair<Term*, TermQueryResultIterator>>::getEmpty();
+    auto sideLitsIt = VirtualIterator<pair<Term*, VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>>>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(Set<Term*>::Iterator(ta_terms))
         .map([this](Term* arg) {
-          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), true));
+          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), /* retrieveSubsitutions */ true));
         }));
     }
     // put clauses from queries into contexts alongside with the given clause and induction term
@@ -581,7 +581,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
-    TermQueryResult b(bound, lit, premise, ResultSubstitutionSP());
+    TQueryRes<SmartPtr<ResultSubstitution>> b(bound, lit, premise, ResultSubstitutionSP());
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();
@@ -680,7 +680,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 
 // helper function to properly add bounds to integer induction contexts,
 // where the bounds are not part of the inner formula for the induction
-void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2)
+void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TQueryRes<SmartPtr<ResultSubstitution>>* bound1, const TQueryRes<SmartPtr<ResultSubstitution>>* bound2)
 {
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
   static TermList ph(getPlaceholderForTerm(context._indTerm));
@@ -912,7 +912,7 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   }
 }
 
-void InductionClauseIterator::performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub)
+void InductionClauseIterator::performFinIntInduction(const InductionContext& context, const TQueryRes<SmartPtr<ResultSubstitution>>& lb, const TQueryRes<SmartPtr<ResultSubstitution>>& ub)
 {
   CALL("InductionClauseIterator::performInfIntInduction");
   InductionFormulaIndex::Entry* e = nullptr;
@@ -923,7 +923,7 @@ void InductionClauseIterator::performFinIntInduction(const InductionContext& con
   resolveClauses(context, e, &lb, &ub);
 }
 
-void InductionClauseIterator::performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound)
+void InductionClauseIterator::performInfIntInduction(const InductionContext& context, bool increasing, const TQueryRes<SmartPtr<ResultSubstitution>>& bound)
 {
   CALL("InductionClauseIterator::performInfIntInduction");
   InductionFormulaIndex::Entry* e = nullptr;
@@ -946,7 +946,7 @@ void InductionClauseIterator::performInfIntInduction(const InductionContext& con
 // either infinity or -infinity. (The intervals are set such that the hypothesis
 // is valid: if interval_y(Y) holds for some Y, then either interval_x(Y) holds,
 // or depending on 'increasing' either interval_x(Y-1) or interval_x(Y+1) holds.)
-void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermQueryResult& bound1, const TermQueryResult* optionalBound2)
+void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TQueryRes<SmartPtr<ResultSubstitution>>& bound1, const TQueryRes<SmartPtr<ResultSubstitution>>* optionalBound2)
 {
   CALL("InductionClauseIterator::performIntInduction");
 

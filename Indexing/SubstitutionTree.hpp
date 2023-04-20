@@ -327,10 +327,6 @@ public:
   { return QueryResult<Unifier>(ld, std::move(unif)); }
 
   template<class I> using QueryResultIter = VirtualIterator<QueryResult<typename I::Unifier>>;
-  // TODO get rid of me
-  using RSQueryResult = QueryResult<ResultSubstitutionSP>;
-  // TODO get rid of me
-  using RSQueryResultIter = VirtualIterator<QueryResult<ResultSubstitutionSP>>;
   // TODO make const function
   template<class I, class TermOrLit, class... Args> 
   auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
@@ -840,7 +836,7 @@ public:
   }
 
   template<class Query>
-  RSQueryResultIter getVariants(Query query, bool retrieveSubstitutions)
+  VirtualIterator<QueryResult<SmartPtr<ResultSubstitution>>> getVariants(Query query, bool retrieveSubstitutions)
   {
     CALL("LiteralSubstitutionTree::getVariants");
 
@@ -864,7 +860,7 @@ public:
         } });
     Leaf* leaf = findLeaf(*svBindings);
     if(leaf==0) {
-      return RSQueryResultIter::getEmpty();
+      return VirtualIterator<QueryResult<SmartPtr<ResultSubstitution>>>::getEmpty();
     } else {
       return pvi(iterTraits(leaf->allChildren())
         .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData* ld) 
@@ -951,7 +947,7 @@ public:
     void backtrack();
     bool tryBacktrack();
 
-    ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
+    SmartPtr<GenSubstitution> getSubstitution(Renaming* resultNormalizer);
 
     int getBSCnt()
     {
@@ -1039,8 +1035,9 @@ public:
   public:
     FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
     FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
-    DECL_ELEMENT_TYPE(RSQueryResult);
-    using Unifier = ResultSubstitutionSP;
+    // TODO change me
+    using Unifier = SmartPtr<GenSubstitution>;
+    DECL_ELEMENT_TYPE(QueryResult<Unifier>);
     /**
      * If @b reversed If true, parameters of supplied binary literal are
      * 	reversed. (useful for retrieval commutative terms)
@@ -1066,7 +1063,7 @@ public:
           [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
     }
 
-    RSQueryResult next();
+    OWN_ELEMENT_TYPE next();
     bool hasNext();
   protected:
 
@@ -1286,7 +1283,7 @@ public:
   public:
     FastInstancesIterator(FastInstancesIterator&&) = default;
     FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
-    DECL_ELEMENT_TYPE(RSQueryResult);
+    DECL_ELEMENT_TYPE(QueryResult<SmartPtr<ResultSubstitution>>);
     using Unifier = ResultSubstitutionSP;
 
     /**
@@ -1317,7 +1314,7 @@ public:
     }
 
     bool hasNext();
-    RSQueryResult next();
+    QueryResult<SmartPtr<ResultSubstitution>> next();
   protected:
     bool findNextLeaf();
 

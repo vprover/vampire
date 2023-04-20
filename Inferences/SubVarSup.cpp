@@ -83,7 +83,7 @@ void SubVarSup::detach()
 struct SubVarSup::RewritableResultsFn
 {
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("SubVarSup::RewritableResultsFn()");
 
@@ -116,7 +116,7 @@ private:
 struct SubVarSup::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("SubVarSup::ApplicableRewritesFn()");
 
@@ -134,11 +134,11 @@ private:
 struct SubVarSup::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> arg)
   {
     CALL("SubVarSup::ForwardResultFn::operator()");
 
-    TermQueryResult& qr = arg.second;
+    auto& qr = arg.second;
     return _parent.performSubVarSup(_cl, arg.first.first, arg.first.second,
 	    qr.clause, qr.literal, qr.term, true);
   }
@@ -151,7 +151,7 @@ private:
 struct SubVarSup::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> arg)
   {
     CALL("SubVarSup::BackwardResultFn::operator()");
 
@@ -159,7 +159,7 @@ struct SubVarSup::BackwardResultFn
       return 0;
     }
 
-    TermQueryResult& qr = arg.second;
+    auto& qr = arg.second;
     return _parent.performSubVarSup(qr.clause, qr.literal, qr.term,
 	    _cl, arg.first.first, arg.first.second, false);
   }

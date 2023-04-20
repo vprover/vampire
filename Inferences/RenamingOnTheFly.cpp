@@ -100,7 +100,7 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
       
       bool nameExists = false;
       bool needToAddDefClause = true;
-      TermQueryResult tqr;
+      TQueryRes<SmartPtr<ResultSubstitution>> tqr;
       TermList nameS;
       TermList name;
       while(results.hasNext()){

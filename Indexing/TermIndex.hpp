@@ -18,6 +18,8 @@
 
 #include "Index.hpp"
 
+#include "Indexing/ResultSubstitution.hpp"
+#include "Lib/SmartPtr.hpp"
 #include "TermIndexingStructure.hpp"
 #include "TermSubstitutionTree.hpp"
 #include "Lib/Set.hpp"
@@ -37,7 +39,7 @@ public:
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>>  getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true)

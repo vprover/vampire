@@ -77,7 +77,7 @@ void Narrow::detach()
 struct Narrow::ApplicableNarrowsFn
 {
   ApplicableNarrowsFn(NarrowingIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Narrow::ApplicableRewritesFn()");
     ASS(arg.second.isTerm());
@@ -109,11 +109,11 @@ private:
 struct Narrow::ResultFn
 {
   ResultFn(Clause* cl, Narrow& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> arg)
   {
     CALL("Narrow::ResultFn::operator()");
     
-    TermQueryResult& qr = arg.second;
+    auto& qr = arg.second;
     return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, qr.literal, qr.unifier);
   }
 private:

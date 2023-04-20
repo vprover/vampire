@@ -32,6 +32,7 @@ public:
   virtual ~GenSubstitution() {}
   virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
+  bool isRenamingOnResult(TermList t);
 
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getResultApplicationWeight(TermList t) { return 0; }

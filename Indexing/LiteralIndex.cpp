@@ -43,7 +43,7 @@ SLQueryResultIterator LiteralIndex::getAll()
 }
 
 
-SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
+VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> LiteralIndex::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   return _is->getGeneralizations(lit, complementary, retrieveSubstitutions);

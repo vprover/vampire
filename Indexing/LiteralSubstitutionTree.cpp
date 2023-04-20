@@ -42,7 +42,7 @@ using RobAlgo = UnificationAlgorithms::RobUnification;
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(lit, complementary, retrieveSubstitutions); }
 
-SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
+VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
 
 SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)

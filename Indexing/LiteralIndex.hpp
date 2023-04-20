@@ -41,7 +41,7 @@ public:
   VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
 
-  SLQueryResultIterator getGeneralizations(Literal* lit,
+  VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 
   SLQueryResultIterator getInstances(Literal* lit,
