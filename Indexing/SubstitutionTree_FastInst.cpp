@@ -377,7 +377,7 @@ bool SubstitutionTree::FastInstancesIterator::hasNext()
 #undef LOGGING
 #define LOGGING 0
 
-SubstitutionTree::RSQueryResult SubstitutionTree::FastInstancesIterator::next()
+SubstitutionTree::QueryResult<SmartPtr<ResultSubstitution>> SubstitutionTree::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
 

@@ -13,6 +13,7 @@
  * and some auxiliary classes.
  */
 
+#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
 
@@ -104,7 +105,7 @@ private:
 };
 
 class SubstitutionTree::GenMatcher::Substitution
-: public ResultSubstitution
+: public GenSubstitution
 {
 public:
   CLASS_NAME(SubstitutionTree::GenMatcher::Substitution);
@@ -130,8 +131,8 @@ public:
   bool isIdentityOnQueryWhenResultBound() override
   { return true; }
 
-  virtual void output(std::ostream& out) const final override 
-  { out << "GenMatcher::Substitution(<output unimplemented>)"; }
+  // virtual void output(std::ostream& out) const final override 
+  // { out << "GenMatcher::Substitution(<output unimplemented>)"; }
 private:
   Applicator* getApplicator()
   {
@@ -250,12 +251,9 @@ bool SubstitutionTree::GenMatcher::tryBacktrack()
 }
 
 
-ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
-	Renaming* resultNormalizer)
-{
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultNormalizer));
-}
+// TODO remove me
+SmartPtr<GenSubstitution> SubstitutionTree::GenMatcher::getSubstitution( Renaming* resultNormalizer)
+{ return SmartPtr<GenSubstitution>(new Substitution(this, resultNormalizer)); }
 
 
 
@@ -267,7 +265,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
   return _ldIterator.hasNext();
 }
 
-SubstitutionTree::RSQueryResult SubstitutionTree::FastGeneralizationsIterator::next()
+SubstitutionTree::QueryResult<SmartPtr<GenSubstitution>> SubstitutionTree::FastGeneralizationsIterator::next()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::next");
 
@@ -285,7 +283,7 @@ SubstitutionTree::RSQueryResult SubstitutionTree::FastGeneralizationsIterator::n
 
     return queryResult(ld,_subst.getSubstitution(&*_resultNormalizer));
   } else {
-    return queryResult(ld, ResultSubstitutionSP());
+    return queryResult(ld, SmartPtr<GenSubstitution>());
   }
 }
 

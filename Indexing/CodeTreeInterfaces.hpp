@@ -46,7 +46,7 @@ public:
   void insert(TypedTermList t, Literal* lit, Clause* cls);
   void remove(TypedTermList t, Literal* lit, Clause* cls);
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
+  VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
   bool generalizationExists(TermList t);
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) { NOT_IMPLEMENTED; }

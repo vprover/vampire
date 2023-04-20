@@ -18,6 +18,7 @@
 
 
 #include "Forwards.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/MismatchHandler.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/TypedTermList.hpp"
@@ -116,7 +117,7 @@ public:
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
+  VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
 

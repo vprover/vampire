@@ -109,7 +109,7 @@ private:
 
 
 class CodeTreeTIS::ResultIterator
-: public IteratorCore<TermQueryResult>
+: public IteratorCore<TQueryRes<SmartPtr<GenSubstitution>>>
 {
 public:
   ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions)
@@ -151,18 +151,18 @@ public:
     return _found;
   }
 
-  TermQueryResult next()
+  TQueryRes<SmartPtr<GenSubstitution>> next()
   {
     CALL("CodeTreeTIS::ResultIterator::next");
     ASS(_found);
 
-    ResultSubstitutionSP subs;
+    SmartPtr<GenSubstitution> subs;
     if (_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->t);
-      subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
+      subs = smartPtr(static_cast<GenSubstitution*>(_subst), /* nondisposable */ true);
     }
-    auto out = TermQueryResult(_found->t, _found->lit, _found->cls, subs);
+    auto out = tQueryRes(_found->t, _found->lit, _found->cls, subs);
     _found=0;
     return out;
   }
@@ -192,12 +192,12 @@ void CodeTreeTIS::remove(TypedTermList t, Literal* lit, Clause* cls)
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
+VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>> CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
   CALL("CodeTreeTIS::getGeneralizations");
 
   if(_ct.isEmpty()) {
-    return TermQueryResultIterator::getEmpty();
+    return VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>>::getEmpty();
   }
 
   return vi( new ResultIterator(this, t, retrieveSubstitutions) );
