@@ -36,13 +36,13 @@ public:
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
   VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>>  getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
 
   friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)

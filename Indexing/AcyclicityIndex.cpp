@@ -280,7 +280,7 @@ namespace Indexing
 
       ASS(t.isTerm());
       ASS(_tis);
-      TermQueryResultIterator tqrIt = _tis->getUnifications(TypedTermList(t.term()));
+      auto tqrIt = _tis->getUnifications(TypedTermList(t.term()));
       int index;
       while (tqrIt.hasNext()) {
         auto tqr = tqrIt.next();
