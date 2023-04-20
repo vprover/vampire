@@ -32,6 +32,7 @@ public:
   virtual ~GenSubstitution() {}
   virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
+
   bool isRenamingOnResult(TermList t);
 
   /** if implementation cannot easily give result for this, zero is returned */
@@ -90,6 +91,8 @@ public:
   virtual TermList applyToQuery(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToQuery(Literal* l) { NOT_IMPLEMENTED; }
   virtual TypedTermList applyToQuery(TypedTermList t) { return TypedTermList(applyToQuery(TermList(t)), applyToQuery(t.sort())); }
+
+  bool isRenamingOnQuery(TermList t);
 
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getQueryApplicationWeight(TermList t) { return 0; }

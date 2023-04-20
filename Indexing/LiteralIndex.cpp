@@ -49,7 +49,7 @@ VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> LiteralIndex::getGeneraliz
   return _is->getGeneralizations(lit, complementary, retrieveSubstitutions);
 }
 
-VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralIndex::getInstances(Literal* lit,
+VirtualIterator<LQueryRes<SmartPtr<InstSubstitution>>> LiteralIndex::getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   return _is->getInstances(lit, complementary, retrieveSubstitutions);

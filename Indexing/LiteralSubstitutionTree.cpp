@@ -45,7 +45,7 @@ VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree
 VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
 
-VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
+VirtualIterator<LQueryRes<SmartPtr<InstSubstitution>>> LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions); }
 
 

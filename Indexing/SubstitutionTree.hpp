@@ -1181,7 +1181,7 @@ public:
 
     void backtrack();
     bool tryBacktrack();
-    ResultSubstitutionSP getSubstitution(Renaming* resultDenormalizer);
+    SmartPtr<InstSubstitution> getSubstitution(Renaming* resultDenormalizer);
 
     int getBSCnt()
     {
@@ -1283,8 +1283,8 @@ public:
   public:
     FastInstancesIterator(FastInstancesIterator&&) = default;
     FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
-    DECL_ELEMENT_TYPE(QueryResult<SmartPtr<ResultSubstitution>>);
-    using Unifier = ResultSubstitutionSP;
+    using Unifier = SmartPtr<InstSubstitution>;
+    DECL_ELEMENT_TYPE(QueryResult<Unifier>);
 
     /**
      * If @b reversed If true, parameters of supplied binary literal are
@@ -1314,7 +1314,7 @@ public:
     }
 
     bool hasNext();
-    QueryResult<SmartPtr<ResultSubstitution>> next();
+    OWN_ELEMENT_TYPE next();
   protected:
     bool findNextLeaf();
 

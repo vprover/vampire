@@ -42,7 +42,7 @@ public:
   VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>>  getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
-  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<TQueryRes<SmartPtr<InstSubstitution>>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
 
   friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
