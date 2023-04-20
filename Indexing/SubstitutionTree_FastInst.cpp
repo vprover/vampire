@@ -65,9 +65,6 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() override
-  { return true; }
-
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;
