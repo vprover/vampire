@@ -118,7 +118,6 @@ struct FormulaQueryResult
 using SLQueryResult   = LQueryRes<ResultSubstitutionSP>;
 
 using TermQueryResultIterator = VirtualIterator<TQueryRes<SmartPtr<ResultSubstitution>>>;
-using SLQueryResultIterator = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 

@@ -45,15 +45,15 @@ public:
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
   void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
 
-  SLQueryResultIterator getAll() final override;
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getAll() final override;
   void handleLiteral(Literal* lit, Clause* cls, bool insert)
   { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
   VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
-  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
-  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
 #if VDEBUG
   virtual void markTagged() final override { }

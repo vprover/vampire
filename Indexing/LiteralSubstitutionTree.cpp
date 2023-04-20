@@ -39,17 +39,17 @@ LiteralSubstitutionTree::LiteralSubstitutionTree()
 using UwaAlgo = UnificationAlgorithms::UnificationWithAbstraction;
 using RobAlgo = UnificationAlgorithms::RobUnification;
 
-SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
+VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(lit, complementary, retrieveSubstitutions); }
 
 VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
 
-SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
+VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions); }
 
 
-SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
+VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getVariants");
 
@@ -58,7 +58,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool 
 }
 
 // TODO no substitution in this resultIterator
-SLQueryResultIterator LiteralSubstitutionTree::getAll()
+VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree::getAll()
 {
   CALL("LiteralSubstitutionTree::getAll");
 
@@ -78,9 +78,5 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
   }
   return _trees[idx];
 }
-
-// template<class Iterator, class... Args>
-// SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
-
 
 } // namespace Indexing

@@ -33,9 +33,9 @@ public:
 
   virtual ~LiteralIndex();
 
-  SLQueryResultIterator getAll();
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getAll();
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
   VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
@@ -44,7 +44,7 @@ public:
   VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 
-  SLQueryResultIterator getInstances(Literal* lit,
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 
   size_t getUnificationCount(Literal* lit, bool complementary);
