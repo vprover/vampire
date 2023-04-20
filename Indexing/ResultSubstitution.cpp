@@ -62,12 +62,12 @@ private:
 
 ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
 { return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
-/**
- * This is a copy paste version of ResultSubsition::isRenamingOn, instantiated for result = true.
- */
-bool GenSubstitution::isRenamingOnResult(TermList t) 
+
+/** Test whether the function sigma is a renaming on the variables of @param t */
+template<class Sigma>
+bool isRenamingOn(Sigma sigma, TermList t)
 {
-  CALL("ResultSubstitution::isRenamingOn");
+  CALL("isRenamingOn");
 
   DHMap<TermList,TermList> renamingInMaking;
 
@@ -76,10 +76,7 @@ bool GenSubstitution::isRenamingOnResult(TermList t)
     TermList v = it.next();
     ASS(v.isVar());
 
-    TermList vSubst;
-    static_assert(isIdentityOnQueryWhenResultBound, "");
-    // code trees don't implement general apply, but satisfy the assertion which makes the following OK
-    vSubst = applyToBoundResult(v);
+    TermList vSubst = sigma(v);
     if (!vSubst.isVar()) {
       return false;
     }
@@ -89,6 +86,15 @@ bool GenSubstitution::isRenamingOnResult(TermList t)
     }
   }
   return true;
+}
+
+/**
+ * This is a copy paste version of ResultSubsition::isRenamingOn, instantiated for result = true.
+ */
+bool GenSubstitution::isRenamingOnResult(TermList t) 
+{
+  CALL("ResultSubstitution::isRenamingOn");
+  return isRenamingOn([this](TermList t) { return applyToBoundResult(t); }, t);
 }
 
 /**
@@ -97,64 +103,7 @@ bool GenSubstitution::isRenamingOnResult(TermList t)
 bool InstSubstitution::isRenamingOnQuery(TermList t) 
 {
   CALL("ResultSubstitution::isRenamingOn");
-
-  DHMap<TermList,TermList> renamingInMaking;
-
-  VariableIterator it(t);
-  while(it.hasNext()) {
-    TermList v = it.next();
-    ASS(v.isVar());
-
-    TermList vSubst;
-    static_assert(isIdentityOnResultWhenQueryBound, "");
-    // the above holds, for a change, for the used substitution trees
-    vSubst = applyToBoundQuery(v);
-    if (!vSubst.isVar()) {
-      return false;
-    }
-    TermList vStored;
-    if (!renamingInMaking.findOrInsert(v,vStored,vSubst) && vStored != vSubst) {
-      return false;
-    }
-  }
-  return true;
+  return isRenamingOn([this](TermList t) { return applyToBoundQuery(t); }, t);
 }
-
-// /**
-//  * Test whether this substitution object is a renaming on the variables of @param t
-//  * @param result indicates whether we mean the "bank" applied 
-//  * to a result term or a query one (cf. applyToQuery/applyToResult)
-//  */
-// bool ResultSubstitution::isRenamingOn(TermList t, bool result) 
-// {
-//   CALL("ResultSubstitution::isRenamingOn");
-//
-//   DHMap<TermList,TermList> renamingInMaking;
-//
-//   VariableIterator it(t);
-//   while(it.hasNext()) {
-//     TermList v = it.next();
-//     ASS(v.isVar());
-//
-//     TermList vSubst;
-//     if (result) {
-//       ASS(isIdentityOnQueryWhenResultBound());
-//       // code trees don't implement general apply, but satisfy the assertion which makes the following OK
-//       vSubst = applyToBoundResult(v);
-//     } else {
-//       ASS(isIdentityOnResultWhenQueryBound());
-//       // the above holds, for a change, for the used substitution trees
-//       vSubst = applyToBoundQuery(v);
-//     }
-//     if (!vSubst.isVar()) {
-//       return false;
-//     }
-//     TermList vStored;
-//     if (!renamingInMaking.findOrInsert(v,vStored,vSubst) && vStored != vSubst) {
-//       return false;
-//     }
-//   }
-//   return true;
-// }
 
 } // namespace Indexing
