@@ -134,14 +134,29 @@ public:
  * term/literal that was retrieved from the index.
  */
 class ResultSubstitution
-: public InstSubstitution
-, public GenSubstitution
 {
 public:
   virtual ~ResultSubstitution() {}
 
+  virtual TermList applyToQuery(TermList t) = 0;
+  virtual Literal* applyToQuery(Literal* l) = 0;
+
+  virtual TermList applyToResult(TermList t) = 0;
+  virtual Literal* applyToResult(Literal* l) = 0;
+
   virtual TermList applyTo(TermList t, unsigned index) { ASSERTION_VIOLATION; }
   virtual Literal* applyTo(Literal* l, unsigned index) { NOT_IMPLEMENTED; }
+
+  /** if implementation cannot easily give result for this, zero is returned */
+  virtual size_t getResultApplicationWeight(TermList t) { return 0; }
+  /** if implementation cannot easily give result for this, zero is returned */
+  virtual size_t getResultApplicationWeight(Literal* l) { return 0; }
+
+
+  /** if implementation cannot easily give result for this, zero is returned */
+  virtual size_t getQueryApplicationWeight(TermList t) { return 0; }
+  /** if implementation cannot easily give result for this, zero is returned */
+  virtual size_t getQueryApplicationWeight(Literal* l) { return 0; }
 
   template<typename T>
   T apply(T t, bool result)
@@ -154,7 +169,7 @@ public:
     }
   }
 
-  bool isRenamingOn(TermList t, bool result);
+  // bool isRenamingOn(TermList t, bool result);
 
   /** if implementation cannot easily give result for this, zero is returned */
   template<typename T>

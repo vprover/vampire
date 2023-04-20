@@ -36,7 +36,7 @@ std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec 
 
 
 class SubstitutionTree::InstMatcher::Substitution
-: public ResultSubstitution
+: public InstSubstitution
 {
 public:
   CLASS_NAME(SubstitutionTree::InstMatcher::Substitution);
@@ -68,10 +68,6 @@ public:
   bool isIdentityOnResultWhenQueryBound() override
   { return true; }
 
-  
-
-  virtual void output(std::ostream& out) const final override 
-  { out << "InstMatcher::Substitution(<output unimplemented>)"; }
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;

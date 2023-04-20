@@ -35,7 +35,7 @@ using namespace Lib;
 using namespace Kernel;
 
 class CodeTreeSubstitution
-: public ResultSubstitution
+: public GenSubstitution
 {
 public:
   CodeTreeSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
@@ -96,9 +96,6 @@ private:
     }
     return _applicator;
   }
-
-  virtual void output(std::ostream& out) const final override 
-  { out << "CodeTreeSubstitution(<output unimplemented>)"; }
 
   CodeTree::BindingArray* _bindings;
   Renaming* _resultNormalizer;
