@@ -114,7 +114,7 @@ private:
         { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
 
 public:
-  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
+  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getInstances(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
   VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
@@ -125,7 +125,7 @@ public:
   { return fixedPointIteration ? pvi(  postproUwa(t, uwa))
                                : pvi(nopostproUwa(t, uwa)); }
 
-  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
+  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
 
 };
