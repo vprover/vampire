@@ -45,7 +45,6 @@ public:
 
   void perform(Clause* premise, BwSimplificationRecordIterator& simplifications);
 private:
-  struct ClauseExtractorFn;
   struct ClauseToBwSimplRecordFn;
 
   bool _byUnitsOnly;
