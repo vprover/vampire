@@ -30,15 +30,8 @@ class GenSubstitution
 {
 public:
   virtual ~GenSubstitution() {}
-  virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
-  virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
 
   bool isRenamingOnResult(TermList t);
-
-  /** if implementation cannot easily give result for this, zero is returned */
-  virtual size_t getResultApplicationWeight(TermList t) { return 0; }
-  /** if implementation cannot easily give result for this, zero is returned */
-  virtual size_t getResultApplicationWeight(Literal* l) { return 0; }
 
   /**
    * Apply substitution to result term that fulfills the condition,
@@ -49,8 +42,7 @@ public:
    * as then there's no need to apply the substitution to any
    * query terms.
    */
-  virtual TermList applyToBoundResult(TermList t)
-  { return applyToResult(t); }
+  virtual TermList applyToBoundResult(TermList t) = 0;
 
   /**
    * Apply substitution to result term that fulfills the condition,
@@ -61,15 +53,14 @@ public:
    * as then there is no need to apply the substitution to any
    * query terms.
    */
-  virtual Literal* applyToBoundResult(Literal* lit)
-  { return applyToResult(lit); }
+  virtual Literal* applyToBoundResult(Literal* lit) = 0;
 
   /**
    * Return true if, when the substitution is applied to a result
    * term through the @b applyToBoundResult function, the corresponding
    * substitution for query terms is identity.
    */
-  virtual bool isIdentityOnQueryWhenResultBound() {return false;}
+  static constexpr bool isIdentityOnQueryWhenResultBound = true;
 };
 
 

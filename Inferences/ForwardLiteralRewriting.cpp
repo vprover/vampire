@@ -23,6 +23,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ForwardLiteralRewriting.hpp"
+#include <type_traits>
 
 namespace Inferences
 {
@@ -74,7 +75,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       Literal* rhs = lit->isNegative() ? rhs0 : Literal::complementaryLiteral(rhs0);
       auto subs = qr.unifier;
 
-      ASS(subs->isIdentityOnQueryWhenResultBound());
+      static_assert(remove_reference_t<decltype(*subs)>::isIdentityOnQueryWhenResultBound, "");
 
       //Due to the way we build the _index, we know that rhs contains only
       //variables present in qr.literal
