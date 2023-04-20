@@ -42,6 +42,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "BackwardDemodulation.hpp"
+#include <type_traits>
 
 namespace Inferences {
 
@@ -133,23 +134,8 @@ struct BackwardDemodulation::ResultFn
     TermList lhsS=qr.term;
     TermList rhsS;
 
-    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
-      //When we apply substitution to the rhs, we get a term, that is
-      //a variant of the term we'd like to get, as new variables are
-      //produced in the substitution application.
-      //We'd rather rename variables in the rhs, than in the whole clause
-      //that we're simplifying.
-      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
-      Renaming rNorm, qNorm, qDenorm;
-      rNorm.normalizeVariables(lhsSBadVars);
-      qNorm.normalizeVariables(lhsS);
-      qDenorm.makeInverse(qNorm);
-      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-    } else {
-      rhsS=qr.unifier->applyToBoundQuery(rhs);
-    }
+    static_assert(remove_reference_t<decltype(*qr.unifier)>::isIdentityOnResultWhenQueryBound, "");
+    rhsS=qr.unifier->applyToBoundQuery(rhs);
 
     if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(0);

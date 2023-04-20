@@ -79,16 +79,8 @@ class InstSubstitution
 {
 public:
   virtual ~InstSubstitution() {}
-  virtual TermList applyToQuery(TermList t) { NOT_IMPLEMENTED; }
-  virtual Literal* applyToQuery(Literal* l) { NOT_IMPLEMENTED; }
-  virtual TypedTermList applyToQuery(TypedTermList t) { return TypedTermList(applyToQuery(TermList(t)), applyToQuery(t.sort())); }
 
   bool isRenamingOnQuery(TermList t);
-
-  /** if implementation cannot easily give result for this, zero is returned */
-  virtual size_t getQueryApplicationWeight(TermList t) { return 0; }
-  /** if implementation cannot easily give result for this, zero is returned */
-  virtual size_t getQueryApplicationWeight(Literal* l) { return 0; }
 
 
   /**
@@ -100,15 +92,14 @@ public:
    * as then there is no need to apply the substitution to any
    * result terms.
    */
-  virtual TermList applyToBoundQuery(TermList t)
-  { return applyToQuery(t); }
+  virtual TermList applyToBoundQuery(TermList t) = 0;
 
   /**
    * Return true if, when the substitution is applied to a query
    * term through the @b applyToBoundQuery function, the corresponding
    * substitution for query terms is identity.
    */
-  virtual bool isIdentityOnResultWhenQueryBound() {return false;}
+  static constexpr bool isIdentityOnResultWhenQueryBound = true;
 };
 
 
