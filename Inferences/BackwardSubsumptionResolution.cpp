@@ -110,7 +110,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   if(clen==1) {
     List<BwSimplificationRecord>* simplRes=0;
 
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], true, false);
+    VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> rit=_index->getInstances( (*cl)[0], /* complementary */ true, /* retrieveSubs */ false);
     while(rit.hasNext()) {
       SLQueryResult qr=rit.next();
 
@@ -157,7 +157,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   List<BwSimplificationRecord>* simplRes=0;
 
-  SLQueryResultIterator rit=_index->getInstances( lmLit, true, false);
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> rit=_index->getInstances( lmLit, /* complementary */ true, /* retrieveSubs */ false);
   while(rit.hasNext()) {
     SLQueryResult qr=rit.next();
     Clause* icl=qr.clause;
@@ -279,7 +279,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   mustPredInit=false;
   basePredsInit=false;
 
-  rit=_index->getInstances( lmLit, false, false);
+  rit=_index->getInstances( lmLit, /* complementary */ false, /* retrieveSubs */ false);
   while(rit.hasNext()) {
     SLQueryResult qr=rit.next();
     Clause* icl=qr.clause;

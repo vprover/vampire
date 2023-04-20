@@ -206,7 +206,7 @@ private:
 
   unsigned _goalCnt;
   DArray<BacktrackData> _btData;
-  DArray<SLQueryResultIterator> _unifIts;
+  DArray<VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>>> _unifIts;
   DArray<bool> _triedEqUnif;
 
   unsigned _depth;
@@ -270,7 +270,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
   RobSubstitution subst;
 
-  SLQueryResultIterator alit = lemmas.getAll();
+  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> alit = lemmas.getAll();
   while(alit.hasNext()) {
     SLQueryResult aqr = alit.next();
   }
