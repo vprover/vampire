@@ -77,7 +77,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
-  VirtualIterator<pair<TermList,TQueryRes<SmartPtr<ResultSubstitution>>> > operator() (TermList lhs)
+  VirtualIterator<pair<TermList,TQueryRes<SmartPtr<InstSubstitution>>> > operator() (TermList lhs)
   {
     TermList sort = SortHelper::getTermSort(lhs, _lit);
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(TypedTermList(lhs,sort), true)) );
@@ -106,7 +106,7 @@ struct BackwardDemodulation::ResultFn
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (pair<TermList,TQueryRes<SmartPtr<ResultSubstitution>>> arg)
+  BwSimplificationRecord operator() (pair<TermList,TQueryRes<SmartPtr<InstSubstitution>>> arg)
   {
     CALL("BackwardDemodulation::ResultFn::operator()");
 
@@ -163,7 +163,7 @@ struct BackwardDemodulation::ResultFn
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
         if (_encompassing) {
-          if (qr.unifier->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
+          if (qr.unifier->isRenamingOnQuery(lhs)) {
             // under _encompassing, we know there are no other literals in qr.clause
             return BwSimplificationRecord(0);
           }

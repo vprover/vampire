@@ -52,7 +52,7 @@ public:
   VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
   VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
-  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  VirtualIterator<LQueryRes<SmartPtr<InstSubstitution>>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
 #if VDEBUG

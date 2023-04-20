@@ -92,6 +92,34 @@ bool GenSubstitution::isRenamingOnResult(TermList t)
 }
 
 /**
+ * This is a copy paste version of ResultSubsition::isRenamingOn, instantiated for result = false.
+ */
+bool InstSubstitution::isRenamingOnQuery(TermList t) 
+{
+  CALL("ResultSubstitution::isRenamingOn");
+
+  DHMap<TermList,TermList> renamingInMaking;
+
+  VariableIterator it(t);
+  while(it.hasNext()) {
+    TermList v = it.next();
+    ASS(v.isVar());
+
+    TermList vSubst;
+    ASS(isIdentityOnResultWhenQueryBound());
+    // the above holds, for a change, for the used substitution trees
+    vSubst = applyToBoundQuery(v);
+    if (!vSubst.isVar()) {
+      return false;
+    }
+    TermList vStored;
+    if (!renamingInMaking.findOrInsert(v,vStored,vSubst) && vStored != vSubst) {
+      return false;
+    }
+  }
+  return true;
+}
+/**
  * Test whether this substitution object is a renaming on the variables of @param t
  * @param result indicates whether we mean the "bank" applied 
  * to a result term or a query one (cf. applyToQuery/applyToResult)

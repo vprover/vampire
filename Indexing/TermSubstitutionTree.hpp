@@ -114,7 +114,7 @@ private:
         { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
 
 public:
-  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getInstances(TypedTermList t, bool retrieveSubstitutions) override
+  VirtualIterator<TQueryRes<SmartPtr<InstSubstitution>>> getInstances(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
   VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override

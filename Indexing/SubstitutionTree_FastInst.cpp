@@ -13,6 +13,7 @@
  * and some auxiliary classes.
  */
 
+#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
 
@@ -77,12 +78,11 @@ private:
 };
 
 
-ResultSubstitutionSP SubstitutionTree::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
+// TODO remove me
+SmartPtr<InstSubstitution> SubstitutionTree::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
 {
   CALL("SubstitutionTree::InstMatcher::getSubstitution");
-
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultDenormalizer));
+  return SmartPtr<InstSubstitution>(new Substitution(this, resultDenormalizer));
 }
 
 TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
@@ -377,7 +377,7 @@ bool SubstitutionTree::FastInstancesIterator::hasNext()
 #undef LOGGING
 #define LOGGING 0
 
-SubstitutionTree::QueryResult<SmartPtr<ResultSubstitution>> SubstitutionTree::FastInstancesIterator::next()
+SubstitutionTree::QueryResult<SmartPtr<InstSubstitution>> SubstitutionTree::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
 
@@ -402,7 +402,7 @@ SubstitutionTree::QueryResult<SmartPtr<ResultSubstitution>> SubstitutionTree::Fa
 
     return queryResult(ld, _subst.getSubstitution(&_resultDenormalizer));
   } else {
-    return queryResult(ld, ResultSubstitutionSP());
+    return queryResult(ld, SmartPtr<InstSubstitution>());
   }
 }
 #undef LOGGING

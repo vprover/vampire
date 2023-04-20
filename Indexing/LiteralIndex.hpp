@@ -44,8 +44,7 @@ public:
   VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 
-  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true);
+  VirtualIterator<LQueryRes<SmartPtr<InstSubstitution>>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true);
 
   size_t getUnificationCount(Literal* lit, bool complementary);
 
