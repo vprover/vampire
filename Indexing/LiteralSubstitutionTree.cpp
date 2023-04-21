@@ -58,7 +58,7 @@ VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree
 }
 
 // TODO no substitution in this resultIterator
-VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree::getAll()
+VirtualIterator<LQueryRes<Nothing>> LiteralSubstitutionTree::getAll()
 {
   CALL("LiteralSubstitutionTree::getAll");
 
@@ -66,7 +66,7 @@ VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
          .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
          .flatMap([](Leaf* l) { return l->allChildren(); })
-         .map([](auto ld) { return lQueryRes(ld->literal, ld->clause, ResultSubstitutionSP()); })
+         .map([](auto ld) { return lQueryRes(ld->literal, ld->clause, Nothing()); })
       );
 }
 

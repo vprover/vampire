@@ -188,4 +188,6 @@ class Property;
 class Statistics;
 }
 
+using Nothing = std::tuple<>;
+
 #endif /* __Forwards__ */

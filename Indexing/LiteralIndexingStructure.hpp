@@ -31,7 +31,7 @@ public:
   virtual void insert(Literal* lit, Clause* cls) = 0;
   virtual void remove(Literal* lit, Clause* cls) = 0;
 
-  virtual VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getAll() { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<LQueryRes<Nothing>> getAll() { NOT_IMPLEMENTED; }
   virtual VirtualIterator<LQueryRes<RobSubstitution*>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
   virtual VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }

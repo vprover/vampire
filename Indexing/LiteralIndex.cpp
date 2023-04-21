@@ -37,7 +37,7 @@ LiteralIndex::~LiteralIndex()
   delete _is;
 }
 
-VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralIndex::getAll()
+VirtualIterator<LQueryRes<Nothing>> LiteralIndex::getAll()
 {
   return _is->getAll();
 }

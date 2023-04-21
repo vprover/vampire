@@ -33,7 +33,7 @@ public:
 
   virtual ~LiteralIndex();
 
-  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getAll();
+  VirtualIterator<LQueryRes<Nothing>> getAll();
 
   VirtualIterator<LQueryRes<RobSubstitution*>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }

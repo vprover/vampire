@@ -45,7 +45,7 @@ public:
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
   void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
 
-  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getAll() final override;
+  VirtualIterator<LQueryRes<Nothing>> getAll() final override;
   void handleLiteral(Literal* lit, Clause* cls, bool insert)
   { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
