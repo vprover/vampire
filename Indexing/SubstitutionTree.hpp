@@ -810,13 +810,11 @@ public:
     Recycled<Renaming> _result;
     RenamingSubstitution(): _query(), _result() {}
     virtual ~RenamingSubstitution() override {}
+
     virtual TermList applyToQuery(TermList t) final override { return _query->apply(t); }
     virtual Literal* applyToQuery(Literal* l) final override { return _query->apply(l); }
     virtual TermList applyToResult(TermList t) final override { return _result->apply(t); }
     virtual Literal* applyToResult(Literal* l) final override { return _result->apply(l); }
-
-    virtual TermList applyTo(TermList t, unsigned index) final override { ASSERTION_VIOLATION; }
-    virtual Literal* applyTo(Literal* l, unsigned index) final override { NOT_IMPLEMENTED; }
 
     virtual size_t getQueryApplicationWeight(TermList t) final override { return t.weight(); }
     virtual size_t getQueryApplicationWeight(Literal* l) final override  { return l->weight(); }
