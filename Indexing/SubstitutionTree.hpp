@@ -57,10 +57,6 @@
 #endif
 
 
-// TODO where should these go?
-static constexpr int QUERY_BANK=0;
-static constexpr int RESULT_BANK=1;
-static constexpr int NORM_RESULT_BANK=3;
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -76,7 +72,7 @@ namespace Indexing {
       Recycled<RobSubstitution> _subs;
     public:
       RobUnification() : _subs() {}
-      using Unifier = ResultSubstitutionSP; 
+      using Unifier = RobSubstitution*; 
 
       bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
       {
@@ -86,7 +82,7 @@ namespace Indexing {
       }
 
 
-      Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
+      Unifier unifier() { return &*_subs; }
 
       void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
       { _subs->bindSpecialVar(var, term, varBank); }

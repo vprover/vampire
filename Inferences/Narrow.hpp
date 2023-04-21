@@ -44,7 +44,7 @@ private:
 
   Clause* performNarrow(
     Clause* nClause, Literal* nLiteral, TermList nTerm, 
-    TermList combAxLhs, Literal* combAx, ResultSubstitutionSP subst);
+    TermList combAxLhs, Literal* combAx, RobSubstitution* subst);
  
   struct ApplicableNarrowsFn;
   struct RewriteableSubtermsFn;

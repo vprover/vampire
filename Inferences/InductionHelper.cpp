@@ -36,8 +36,8 @@ namespace {
 struct SLQueryResultToTermQueryResultFn
 {
   SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
-  TQueryRes<SmartPtr<ResultSubstitution>> operator() (const LQueryRes<ResultSubstitutionSP> slqr) {
-    return TQueryRes<SmartPtr<ResultSubstitution>>(slqr.unifier->applyToQuery(variable), slqr.literal, slqr.clause, ResultSubstitutionSP());
+  TQueryRes<RobSubstitution*> operator() (const LQueryRes<RobSubstitution*> slqr) {
+    return TQueryRes<RobSubstitution*>(slqr.unifier->applyToQuery(variable), slqr.literal, slqr.clause, /* subs */ nullptr);
   }
 
   TermList variable;
@@ -65,7 +65,7 @@ bool isIntegerComparisonLiteral(Literal* lit) {
 
 };  // namespace
 
-VirtualIterator<TQueryRes<ResultSubstitutionSP>> InductionHelper::getComparisonMatch(
+VirtualIterator<TQueryRes<RobSubstitution*>> InductionHelper::getComparisonMatch(
     bool polarity, bool termIsLeft, Term* t) {
   CALL("InductionHelper::getComparisonMatch");
 
@@ -76,7 +76,7 @@ VirtualIterator<TQueryRes<ResultSubstitutionSP>> InductionHelper::getComparisonM
                                 SLQueryResultToTermQueryResultFn(var)));
 }
 
-VirtualIterator<TQueryRes<ResultSubstitutionSP>> InductionHelper::getLess(Term* t)
+VirtualIterator<TQueryRes<RobSubstitution*>> InductionHelper::getLess(Term* t)
 {
   CALL("InductionHelper::getLess");
   return pvi(getConcatenatedIterator(
@@ -86,7 +86,7 @@ VirtualIterator<TQueryRes<ResultSubstitutionSP>> InductionHelper::getLess(Term* 
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/false, t)));
 }
 
-VirtualIterator<TQueryRes<ResultSubstitutionSP>> InductionHelper::getGreater(Term* t)
+VirtualIterator<TQueryRes<RobSubstitution*>> InductionHelper::getGreater(Term* t)
 {
   CALL("InductionHelper::getGreater");
   return pvi(getConcatenatedIterator(
@@ -96,7 +96,7 @@ VirtualIterator<TQueryRes<ResultSubstitutionSP>> InductionHelper::getGreater(Ter
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-VirtualIterator<TQueryRes<ResultSubstitutionSP>> InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
+VirtualIterator<TQueryRes<RobSubstitution*>> InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   CALL("InductionHelper::getIndTQRsForInductionTerm");
 
   ASS(_inductionTermIndex);

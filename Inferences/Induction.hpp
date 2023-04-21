@@ -203,12 +203,12 @@ private:
   void processIntegerComparison(Clause* premise, Literal* lit);
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
-  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TQueryRes<SmartPtr<ResultSubstitution>>* bound1, const TQueryRes<SmartPtr<ResultSubstitution>>* bound2);
+  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TQueryRes<RobSubstitution*>* bound1, const TQueryRes<RobSubstitution*>* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
-  void performFinIntInduction(const InductionContext& context, const TQueryRes<SmartPtr<ResultSubstitution>>& lb, const TQueryRes<SmartPtr<ResultSubstitution>>& ub);
-  void performInfIntInduction(const InductionContext& context, bool increasing, const TQueryRes<SmartPtr<ResultSubstitution>>& bound);
-  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TQueryRes<SmartPtr<ResultSubstitution>>& bound1, const TQueryRes<SmartPtr<ResultSubstitution>>* optionalBound2);
+  void performFinIntInduction(const InductionContext& context, const TQueryRes<RobSubstitution*>& lb, const TQueryRes<RobSubstitution*>& ub);
+  void performInfIntInduction(const InductionContext& context, bool increasing, const TQueryRes<RobSubstitution*>& bound);
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TQueryRes<RobSubstitution*>& bound1, const TQueryRes<RobSubstitution*>* optionalBound2);
 
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);

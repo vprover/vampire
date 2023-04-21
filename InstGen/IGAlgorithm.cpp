@@ -334,7 +334,7 @@ bool IGAlgorithm::isSelected(Literal* lit)
  * if the subst is not a proper instantiator of orig,
  * in which case the clause generation should be abandoned.
  */
-bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance)
+bool IGAlgorithm::startGeneratingClause(Clause* orig, RobSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance)
 {
   CALL("IGAlgorithm::startGeneratingClause");
 
@@ -392,7 +392,7 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
 /**
  * Finish generating the clause started in startGeneratingClause, also updating dismatching constraints of orig if applicable.
  */
-void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits)
+void IGAlgorithm::finishGeneratingClause(Clause* orig, RobSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits)
 {
   CALL("IGAlgorithm::finishGeneratingClause");
 
@@ -511,7 +511,7 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
 {
   CALL("IGAlgorithm::lookaheadSelection");
 
-  static DArray<VirtualIterator<LQueryRes<ResultSubstitutionSP>>> iters; //IG unification iterators
+  static DArray<VirtualIterator<LQueryRes<RobSubstitution*>>> iters; //IG unification iterators
   iters.ensure(selCnt);
 
   for(unsigned i=0; i<selCnt; i++) {

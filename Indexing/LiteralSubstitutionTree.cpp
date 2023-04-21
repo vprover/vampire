@@ -39,7 +39,7 @@ LiteralSubstitutionTree::LiteralSubstitutionTree()
 using UwaAlgo = UnificationAlgorithms::UnificationWithAbstraction;
 using RobAlgo = UnificationAlgorithms::RobUnification;
 
-VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
+VirtualIterator<LQueryRes<RobSubstitution*>> LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(lit, complementary, retrieveSubstitutions); }
 
 VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)

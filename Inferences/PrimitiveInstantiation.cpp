@@ -86,10 +86,10 @@ struct PrimitiveInstantiation::ResultFn
 {
   ResultFn(Clause* cl): _cl(cl){}
   
-  Clause* operator() (TQueryRes<SmartPtr<ResultSubstitution>> tqr){
+  Clause* operator() (TQueryRes<RobSubstitution*> tqr){
     const int QUERY = 0;
 
-    ResultSubstitutionSP subst = tqr.unifier;
+    auto subst = tqr.unifier;
 
     unsigned cLen = _cl->length(); 
    
@@ -113,7 +113,7 @@ struct PrimitiveInstantiation::ApplicableRewritesFn
 {
   
   ApplicableRewritesFn(PrimitiveInstantiationIndex* index) : _index(index){}
-  VirtualIterator<TQueryRes<SmartPtr<ResultSubstitution>>> operator()(Literal* l)
+  VirtualIterator<TQueryRes<RobSubstitution*>> operator()(Literal* l)
   {
     CALL("PrimitiveInstantiation::ApplicableRewritesFn()");
         

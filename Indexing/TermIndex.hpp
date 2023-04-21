@@ -36,7 +36,7 @@ public:
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<TQueryRes<RobSubstitution*>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
   VirtualIterator<TQueryRes<SmartPtr<GenSubstitution>>>  getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)

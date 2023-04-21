@@ -302,12 +302,18 @@ using namespace Lib;
 class AbstractingUnifier;
 class UnificationConstraint;
 
+// TODO where should these go?
+static constexpr int QUERY_BANK=0;
+static constexpr int RESULT_BANK=1;
+static constexpr int NORM_RESULT_BANK=3;
+
 class RobSubstitution
 :public Backtrackable
 {
   friend class AbstractingUnifier;
   friend class UnificationConstraint;
 public:
+
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
@@ -351,10 +357,24 @@ public:
   TermList::Top getSpecialVarTop(unsigned specialVar) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
+
+
+
   TypedTermList apply(TypedTermList t, int index) const { return TypedTermList(apply(TermList(t), index), apply(t.sort(), index)); }
+
+  template<class TermOrLit> TermOrLit applyToQuery(TermOrLit t) const { return apply(t, QUERY_BANK); }
+  template<class TermOrLit> TermOrLit applyToResult(TermOrLit t) const { return apply(t, RESULT_BANK); }
+
+  template<class TermOrLit> TermOrLit apply(TermOrLit t, bool result) const { return result ? applyToResult(t) : applyToQuery(t); }
+
   Stack<Literal*> apply(Stack<Literal*> cl, int index) const;
+
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
+
+  template<class TermOrLit> 
+  size_t getApplicationResultWeight(TermList t, bool result) const 
+  { return getApplicationResultWeight(t, result ? RESULT_BANK : QUERY_BANK); }
 
 #if VDEBUG
   /**

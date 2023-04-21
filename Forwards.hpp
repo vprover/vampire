@@ -144,8 +144,7 @@ class TermIndexingStructure;
 class TermSharing;
 
 class ResultSubstitution;
-typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
-
+using ResultSubstitutionSP = Lib::SmartPtr<ResultSubstitution>;
 };
 
 namespace Saturation

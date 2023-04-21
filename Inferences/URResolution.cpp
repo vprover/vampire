@@ -124,7 +124,7 @@ struct URResolution::Item
    * substitution is applied to the literals, otherwise the result
    * part is applied.
    */
-  void resolveLiteral(unsigned idx, LQueryRes<ResultSubstitutionSP>& unif, Clause* premise, bool useQuerySubstitution)
+  void resolveLiteral(unsigned idx, LQueryRes<RobSubstitution*>& unif, Clause* premise, bool useQuerySubstitution)
   {
     CALL("URResolution::Item::resolveLiteral");
 

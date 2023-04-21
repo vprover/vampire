@@ -49,7 +49,7 @@ public:
   void handleLiteral(Literal* lit, Clause* cls, bool insert)
   { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
-  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  VirtualIterator<LQueryRes<RobSubstitution*>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
   VirtualIterator<LQueryRes<SmartPtr<GenSubstitution>>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   VirtualIterator<LQueryRes<SmartPtr<InstSubstitution>>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;

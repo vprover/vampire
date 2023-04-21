@@ -35,7 +35,7 @@ public:
 
   VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getAll();
 
-  VirtualIterator<LQueryRes<SmartPtr<ResultSubstitution>>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<LQueryRes<RobSubstitution*>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
   VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)

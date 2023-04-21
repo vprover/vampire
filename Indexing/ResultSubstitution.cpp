@@ -51,9 +51,6 @@ private:
   int _resultBank;
 };
 
-ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
-{ return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
-
 /** Test whether the function sigma is a renaming on the variables of @param t */
 template<class Sigma>
 bool isRenamingOn(Sigma sigma, TermList t)

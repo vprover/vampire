@@ -103,8 +103,8 @@ private:
 
   void tryGeneratingInstances(Clause* cl, unsigned litIdx);
 
-  bool startGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance);
-  void finishGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits);
+  bool startGeneratingClause(Clause* orig, RobSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance);
+  void finishGeneratingClause(Clause* orig, RobSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits);
 
   bool isSelected(Literal* lit);
 

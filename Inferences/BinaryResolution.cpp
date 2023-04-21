@@ -101,7 +101,7 @@ struct BinaryResolution::ResultFn
     BRQueryRes& qr = arg.second;
     Literal* resLit = arg.first;
 
-    auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
+    auto subs = &qr.unifier->subs();
     auto constraints = qr.unifier->constraintLiterals();
     return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, *constraints, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
   }
@@ -119,7 +119,7 @@ private:
  * in which case also ls is assumed to be not 0.
  */
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, Stack<Literal*> const& constraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+                                RobSubstitution* subs, Stack<Literal*> const& constraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses

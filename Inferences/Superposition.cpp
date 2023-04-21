@@ -246,7 +246,7 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
  */
 bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
+      RobSubstitution* subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
 {
   CALL("Superposition::earlyWeightLimitCheck");
 
@@ -274,8 +274,8 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
     return false;
   }
 
-  unsigned lhsSWeight = subst->getApplicationWeight(eqLHS, eqIsResult);
-  unsigned rhsSWeight = subst->getApplicationWeight(eqRHS, eqIsResult);
+  unsigned lhsSWeight = subst->getApplicationResultWeight(eqLHS, eqIsResult);
+  unsigned rhsSWeight = subst->getApplicationResultWeight(eqRHS, eqIsResult);
   int rwrBalance = rhsSWeight-lhsSWeight;
 
   if(rwrBalance>=0) {
@@ -299,7 +299,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
     }
   }
 
-  unsigned rwLitSWeight = subst->getApplicationWeight(rwLit, !eqIsResult);
+  unsigned rwLitSWeight = subst->getApplicationResultWeight(rwLit, !eqIsResult);
 
   unsigned finalLitWeight = rwLitSWeight+(rwrBalance*rwrCnt);
   if(!passiveClauseContainer->fulfilsWeightLimit(nonInvolvedLiteralWLB + finalLitWeight, numPositiveLiteralsLowerBound, inf)) {
@@ -328,7 +328,7 @@ Clause* Superposition::performSuperposition(
 
   // the first checks the reference and the second checks the stack
   auto constraints = unifier->constraintLiterals();
-  auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
+  auto subst = &unifier->subs();
   // auto constraints = rawConstraints ? rawConstraints->literals(*subst->tryGetRobSubstitution()) : Recycled<Stack<Literal*>>();
   bool hasConstraints = !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 

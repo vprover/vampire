@@ -37,10 +37,10 @@ public:
   InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
-  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getLess(Term* t);
-  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getGreater(Term* t);
+  VirtualIterator<TQueryRes<RobSubstitution*>> getLess(Term* t);
+  VirtualIterator<TQueryRes<RobSubstitution*>> getGreater(Term* t);
 
-  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getTQRsForInductionTerm(Term* inductionTerm);
+  VirtualIterator<TQueryRes<RobSubstitution*>> getTQRsForInductionTerm(Term* inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();
@@ -57,7 +57,7 @@ public:
   static bool isStructInductionFunctor(unsigned f);
 
 private:
-  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
+  VirtualIterator<TQueryRes<RobSubstitution*>> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
 
   // The following pointers can be null if splitting or integer induction is off.
   LiteralIndex* _comparisonIndex;  // not owned

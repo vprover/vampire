@@ -107,12 +107,12 @@ struct ClauseSResQueryResult
 struct FormulaQueryResult
 {
   FormulaQueryResult() {}
-  FormulaQueryResult(FormulaUnit* unit, Formula* f, ResultSubstitutionSP s=ResultSubstitutionSP())
+  FormulaQueryResult(FormulaUnit* unit, Formula* f, RobSubstitution* s = nullptr)
   : unit(unit), formula(f), substitution(s) {}
 
   FormulaUnit* unit;
   Formula* formula;
-  ResultSubstitutionSP substitution;
+  RobSubstitution* substitution;
 };
 
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;

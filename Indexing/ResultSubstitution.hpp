@@ -158,8 +158,6 @@ public:
       return getQueryApplicationWeight(t);
     }
   }
-
-  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
   virtual void output(std::ostream& ) const = 0;
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { self.output(out); return out; }

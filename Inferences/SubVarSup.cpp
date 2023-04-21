@@ -83,7 +83,7 @@ void SubVarSup::detach()
 struct SubVarSup::RewritableResultsFn
 {
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, TQueryRes<RobSubstitution*>> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("SubVarSup::RewritableResultsFn()");
 
@@ -116,7 +116,7 @@ private:
 struct SubVarSup::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, TQueryRes<RobSubstitution*>> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("SubVarSup::ApplicableRewritesFn()");
 
@@ -134,7 +134,7 @@ private:
 struct SubVarSup::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<RobSubstitution*>> arg)
   {
     CALL("SubVarSup::ForwardResultFn::operator()");
 
@@ -151,7 +151,7 @@ private:
 struct SubVarSup::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<SmartPtr<ResultSubstitution>>> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<RobSubstitution*>> arg)
   {
     CALL("SubVarSup::BackwardResultFn::operator()");
 

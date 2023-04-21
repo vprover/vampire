@@ -125,7 +125,7 @@ public:
   { return fixedPointIteration ? pvi(  postproUwa(t, uwa))
                                : pvi(nopostproUwa(t, uwa)); }
 
-  VirtualIterator<TQueryRes<ResultSubstitutionSP>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
+  VirtualIterator<TQueryRes<RobSubstitution*>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
 
 };
