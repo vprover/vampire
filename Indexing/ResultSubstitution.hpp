@@ -126,9 +126,6 @@ public:
   virtual TermList applyToResult(TermList t) = 0;
   virtual Literal* applyToResult(Literal* l) = 0;
 
-  virtual TermList applyTo(TermList t, unsigned index) = 0;
-  virtual Literal* applyTo(Literal* l, unsigned index) = 0;
-
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getResultApplicationWeight(TermList t) = 0;
   /** if implementation cannot easily give result for this, zero is returned */
