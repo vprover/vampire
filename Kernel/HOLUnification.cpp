@@ -107,7 +107,7 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(VarSpec var, const Te
         }
       }
 
-    } else {
+    } else { // TODO what about if head is a lambda term??
       // this is a bit nasty.
       // if we know that the original variable is a term var
       // we wouldn't need to iterate through sort arguments
@@ -143,11 +143,10 @@ bool HOLUnification::unify(TermSpec t1, TermSpec t2, bool splittable, RobSubstit
 
   auto impl = [&]() -> bool {
 
-    TermList t1t = t1.toTerm(*sub);
-    TermList t1thead = t1t.head();
+    TermList t1thead = t1.deref(sub).head();
 
     // Node term and query term must have the same type. Hence we do not
-    // to check for type of query. We can rely on the !splittable check 
+    // check type of query. We can rely on the !splittable check 
     if(!t1t.isVar() && (t1thead.isVar() || t1thead.isLambdaTerm() || !splittable)) {
       // create top level constraint
       sub->pushConstraint(UnificationConstraint(t1.clone(), t2.clone()));

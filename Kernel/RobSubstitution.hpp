@@ -233,7 +233,6 @@ public:
   TermList head(RobSubstitution* s) const;
   bool isArrowSort();
   bool isBoolSort();  
-  int index() const;
   void headAndArgs(TermSpec& head, Stack<TermSpec>& args);
 #endif
 

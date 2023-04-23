@@ -31,7 +31,6 @@ TEST_FUN(beta_reduction01) {
   DECL_SORT(srt)
   DECL_HOL_VAR(x0, 0, srt)
   DECL_CONST(a, srt)    
-  DECL_CONST(b, srt)  
 
   BetaNormaliser bn;
   auto t = ap(lam(x0,x0),a);
@@ -215,6 +214,43 @@ TEST_FUN(eta_reduction06) {
   auto reduced = en.normalise( tdb );
 
   ASS_EQ(reduced, ap(f,g).sugaredExpr());
+}
+
+TEST_FUN(whnf_01) {            
+  DECL_SORT(srt)
+  DECL_HOL_VAR(x, 0, srt)
+  DECL_HOL_VAR(y, 1, srt)  
+  DECL_CONST(f, arrow(srt,srt))     
+  DECL_CONST(a, srt)     
+
+  env.options->setHolPrinting(Options::HPrinting::PRETTY);
+  env.property->forceHigherOrder();
+
+  auto inner = ap(f, ap(  lam(x,x), a  ));
+  auto t = ap(lam(y,y), inner  );
+  auto tdb = toDeBruijnIndices(t);
+
+
+  ASS_EQ(tdb.whnf(), toDeBruijnIndices(inner));
+}
+
+TEST_FUN(whnf_02) {            
+  DECL_SORT(srt)
+  DECL_HOL_VAR(x, 0, srt)
+  DECL_HOL_VAR(y, 1, srt) 
+  DECL_HOL_VAR(z, 2, srt)
+  DECL_HOL_VAR(q, 3, srt)            
+  DECL_CONST(f, arrow(srt,srt))     
+  DECL_CONST(a, srt)     
+
+  env.options->setHolPrinting(Options::HPrinting::PRETTY);
+  env.property->forceHigherOrder();  
+
+  auto t = lam(y,ap(lam(x, lam(z, ap( lam(q,q), x   ) )), a));
+  auto tdb = toDeBruijnIndices(t);
+
+
+  ASS_EQ(tdb.whnf(), toDeBruijnIndices(lam(y, lam(z, a))));
 }
 
 TEST_FUN(fo_subterm_rep1) {            

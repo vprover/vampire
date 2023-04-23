@@ -118,6 +118,22 @@ private:
   TermList _awaiting;
 };
 
+// similar to BetaNormaliser, but places a term in WHNF instead
+// of into full normal form
+class WHNF : public TermTransformer
+{
+public:
+
+  WHNF() {
+    dontTransformSorts();
+  }  
+  TermList normalise(TermList t);
+  // puts term into weak head normal form
+  TermList transformSubterm(TermList t) override;
+  bool exploreSubterms(TermList orig, TermList newTerm) override;
+};
+
+
 class RedexReducer : public TermTransformer 
 {
 public:

@@ -367,7 +367,7 @@ TermList TermList::finalResult(){
 TermList TermList::whnf(){
   CALL("TermList::whnf");
 
-  return BetaNormaliser().transformSubterm(*this);
+  return WHNF().normalise(*this);
 }
 
 TermList TermList::betaNF(){

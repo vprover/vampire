@@ -35,12 +35,15 @@ TermList BetaNormaliser::transformSubterm(TermList t)
 {
   CALL("BetaNormaliser::transformSubterm");
 
+  if(t.isLambdaTerm()) return t;
+
   TermList head;
   TermStack args;
   ApplicativeHelper::getHeadAndArgs(t, head, args);
 
   while(ApplicativeHelper::canHeadReduce(head, args)){
     t = RedexReducer().reduce(head, args);
+    if(t.isLambdaTerm()) break;
     ApplicativeHelper::getHeadAndArgs(t, head, args);    
   }
   
@@ -53,6 +56,29 @@ bool BetaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
 
   if(newTerm.term()->hasRedex()) return true;
   return false;
+}
+
+TermList WHNF::normalise(TermList t)
+{
+  CALL("WHNF::normalise");
+
+  // term transformer does not work at the top level...
+  t = transformSubterm(t);
+  return t.isLambdaTerm() ? transform(t) : t;
+}
+
+TermList WHNF::transformSubterm(TermList t)
+{
+  CALL("WHNF::transformSubterm");
+
+  return BetaNormaliser().transformSubterm(t);
+}
+
+bool WHNF::exploreSubterms(TermList orig, TermList newTerm)
+{
+  CALL("WHNF::exploreSubterms");
+
+  return newTerm.isLambdaTerm() && newTerm.term()->hasRedex();
 }
 
 TermList EtaNormaliser::normalise(TermList t)
@@ -531,6 +557,10 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
   CALL("ApplicativeHelper::getHeadAndArgs");
 
   if(!args.isEmpty()){ args.reset(); }
+
+  while(term.isLambdaTerm()){
+    term = term.lambdaBody();
+  }
 
   while(term.isApplication()){
     args.push(term.rhs()); 

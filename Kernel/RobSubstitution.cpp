@@ -126,7 +126,7 @@ unsigned TermSpec::functor() const
 
   TermList TermSpec::head(RobSubstitution* s) const
   { return _self.match([&](Appl const& a)           { ASSERTION_VIOLATION; return toTerm(*s); },
-                       [&](OldTermSpec const& self) { return toTerm(*s).head(); }); }
+                       [&](OldTermSpec const& self) { return self.term.head(); }); }
 
   bool TermSpec::isArrowSort()
   { return _self.match([](Appl const& a)           { return false; },
@@ -709,91 +709,6 @@ TermList RobSubstitution::apply(TermList trm, int index) const
         return tout;
       });
   return out;
-
-  // TODO check the use of nilVS & memorization
-  // static Stack<TermList*> toDo(8);
-  // static Stack<int> toDoIndex(8);
-  // static Stack<Term*> terms(8);
-  // static Stack<VarSpec> termRefVars(8);
-  // static Stack<TermList> args(8);
-  // static DHMap<VarSpec, TermList, VarSpec::Hash1, VarSpec::Hash2> known;
-  //
-  // //is inserted into termRefVars, if respective
-  // //term in terms isn't referenced by any variable
-  // const VarSpec nilVS(-1,0);
-  //
-  // toDo.push(&trm);
-  // toDoIndex.push(index);
-  //
-  // while(!toDo.isEmpty()) {
-  //   TermList* tt=toDo.pop();
-  //   index=toDoIndex.pop();
-  //   if(tt->isEmpty()) {
-  //     Term* orig=terms.pop();
-  //     //here we assume, that stack is an array with
-  //     //second topmost element as &top()-1, third at
-  //     //&top()-2, etc...
-  //     TermList* argLst=&args.top() - (orig->arity()-1);
-  //     args.truncate(args.length() - orig->arity());
-  //     TermList constructed;
-  //     if(orig->isSort()){
-  //       constructed.setTerm(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst));                
-  //     } else {
-  //       constructed.setTerm(Term::create(orig,argLst));        
-  //     }
-  //     args.push(constructed);
-  //
-  //     VarSpec ref=termRefVars.pop();
-  //     if(ref!=nilVS) {
-  //       ALWAYS(known.insert(ref,constructed));
-  //     }
-  //     continue;
-  //   } else {
-  //     //if tt==&trm, we're dealing with the top
-  //     //term, for which the next() is undefined
-  //     if(tt!=&trm) {
-  //       toDo.push(tt->next());
-  //       toDoIndex.push(index);
-  //     }
-  //   }
-  //
-  //   TermSpec ts(*tt,index);
-  //
-  //   VarSpec vs;
-  //   if(ts.isVar()) {
-  //     vs=root(ts.varSpec() );
-  //
-  //     TermList found;
-  //     if(known.find(vs, found)) {
-  //       args.push(found);
-  //       continue;
-  //     }
-  //
-  //     ts=deref(vs);
-  //     if(ts.isVar()) {
-  //       ASS(ts.isOutputVar());
-  //       args.push(ts.term);
-  //       continue;
-  //     }
-  //   } else {
-  //     vs=nilVS;
-  //   }
-  //   Term* t = ts.term.term();
-  //   if(t->shared() && t->ground()) {
-  //     args.push(TermList(t));
-  //     continue;
-  //   }
-  //   terms.push(t);
-  //   termRefVars.push(vs);
-  //
-  //   toDo.push(t->args());
-  //   toDoIndex.push(ts.index);
-  // }
-  // ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
-  // known.reset();
-  //
-  //
-  // return args.pop();
 }
 
 TermList RobSubstitution::apply(TermSpec t) 
@@ -809,89 +724,6 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
                                  : (1 + range(0, orig.term.nAllArgs())
                                            .map([&](auto i) { return sizes[i]; })
                                            .sum()); });
-
-  //
-  // static Stack<TermList*> toDo(8);
-  // static Stack<int> toDoIndex(8);
-  // static Stack<Term*> terms(8);
-  // static Stack<VarSpec> termRefVars(8);
-  // static Stack<size_t> argSizes(8);
-  //
-  // static DHMap<VarSpec, size_t, VarSpec::Hash1, VarSpec::Hash2> known;
-  // known.reset();
-  //
-  // //is inserted into termRefVars, if respective
-  // //term in terms isn't referenced by any variable
-  // const VarSpec nilVS(-1,0);
-  //
-  // toDo.push(&trm);
-  // toDoIndex.push(index);
-  //
-  // while(!toDo.isEmpty()) {
-  //   TermList* tt=toDo.pop();
-  //   index=toDoIndex.pop();
-  //   if(tt->isEmpty()) {
-  //     Term* orig=terms.pop();
-  //     unsigned arity = orig->arity();
-  //     //here we assume, that stack is an array with
-  //     //second topmost element as &top()-1, third at
-  //     //&top()-2, etc...
-  //     size_t* szArr=&argSizes.top() - (orig->arity()-1);
-  //     size_t sz = 1; //1 for the function symbol
-  //     for(unsigned i=0; i<arity; i++) {
-  //       sz += szArr[i];
-  //     }
-  //     argSizes.truncate(argSizes.length() - arity);
-  //     argSizes.push(sz);
-  //
-  //     VarSpec ref=termRefVars.pop();
-  //     if(ref!=nilVS) {
-  //       ALWAYS(known.insert(ref,sz));
-  //     }
-  //     continue;
-  //   } else {
-  //     //if tt==&trm, we're dealing with the top
-  //     //term, for which the next() is undefined
-  //     if(tt!=&trm) {
-  //       toDo.push(tt->next());
-  //       toDoIndex.push(index);
-  //     }
-  //   }
-  //
-  //   TermSpec ts(*tt,index);
-  //
-  //   VarSpec vs;
-  //   if(ts.isVar()) {
-  //     vs=root(ts.varSpec());
-  //
-  //     size_t found;
-  //     if(known.find(vs, found)) {
-  //       argSizes.push(found);
-  //       continue;
-  //     }
-  //
-  //     ts=deref(vs);
-  //     if(ts.isVar()) {
-  //       ASS(ts.isOutputVar());
-  //       argSizes.push(1);
-  //       continue;
-  //     }
-  //   } else {
-  //     vs=nilVS;
-  //   }
-  //   Term* t = ts.old().term.term();
-  //   if(t->shared() && t->ground()) {
-  //     argSizes.push(t->weight());
-  //     continue;
-  //   }
-  //   terms.push(t);
-  //   termRefVars.push(vs);
-  //
-  //   toDo.push(t->args());
-  //   toDoIndex.push(ts.old().index);
-  // }
-  // ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && argSizes.length()==1);
-  // return argSizes.pop();
 }
 
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
