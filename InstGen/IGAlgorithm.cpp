@@ -442,9 +442,9 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
 
   Literal* lit = (*cl)[litIdx];
 
-  SLQueryResultIterator unifs = _selected->getUnifications(lit, true, true);
+  auto unifs = _selected->getUnifications(lit, /* complementary */ true, /* retrieveSubs */ true);
   while(unifs.hasNext()) {
-    SLQueryResult unif = unifs.next();
+    auto unif = unifs.next();
     if(!isSelected(unif.data->literal)) {
       deactivate(unif.data->clause);
       continue;//literal is no longer selected
@@ -511,13 +511,13 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
 {
   CALL("IGAlgorithm::lookaheadSelection");
 
-  static DArray<VirtualIterator<SLQueryResult>> iters; //IG unification iterators
+  static DArray<VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LiteralClause>>> iters; //IG unification iterators
   iters.ensure(selCnt);
 
   for(unsigned i=0; i<selCnt; i++) {
-    iters[i] = pvi(getFilteredIterator(_selected->getUnifications((*cl)[i], true, false),
+    iters[i] = pvi(getFilteredIterator(_selected->getUnifications((*cl)[i], /* complementary */ true, /* retrieveSubs */ false),
         // only count partner literals which are also semantically selected
-        [this](SLQueryResult& unif) { return isSelected(unif.data->literal); }));
+        [this](auto& unif) { return isSelected(unif.data->literal); }));
   }
 
   static Stack<unsigned> candidates; // just to make sure we break the ties in a fair way

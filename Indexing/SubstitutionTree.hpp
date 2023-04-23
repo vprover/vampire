@@ -75,7 +75,7 @@ namespace Indexing {
       Recycled<RobSubstitution> _subs;
     public:
       RobUnification() : _subs() {}
-      using Unifier = ResultSubstitutionSP; 
+      using Unifier = SmartPtr<ResultSubstitution>; 
 
       bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
       {
@@ -326,10 +326,6 @@ public:
   { return QueryResult<Unifier>(ld, std::move(unif)); }
 
   template<class I> using QueryResultIter = VirtualIterator<QueryResult<typename I::Unifier>>;
-  // TODO get rid of me
-  using RSQueryResult = QueryResult<ResultSubstitutionSP>;
-  // TODO get rid of me
-  using RSQueryResultIter = VirtualIterator<QueryResult<ResultSubstitutionSP>>;
   // TODO make const function
   template<class I, class TermOrLit, class... Args> 
   auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
@@ -748,13 +744,11 @@ public:
     Recycled<Renaming> _result;
     RenamingSubstitution(): _query(), _result() {}
     virtual ~RenamingSubstitution() override {}
+
     virtual TermList applyToQuery(TermList t) final override { return _query->apply(t); }
     virtual Literal* applyToQuery(Literal* l) final override { return _query->apply(l); }
     virtual TermList applyToResult(TermList t) final override { return _result->apply(t); }
     virtual Literal* applyToResult(Literal* l) final override { return _result->apply(l); }
-
-    virtual TermList applyTo(TermList t, unsigned index) final override { ASSERTION_VIOLATION; }
-    virtual Literal* applyTo(Literal* l, unsigned index) final override { NOT_IMPLEMENTED; }
 
     virtual size_t getQueryApplicationWeight(TermList t) final override { return t.weight(); }
     virtual size_t getQueryApplicationWeight(Literal* l) final override  { return l->weight(); }
@@ -774,13 +768,13 @@ public:
   }
 
   template<class Query>
-  RSQueryResultIter getVariants(Query query, bool retrieveSubstitutions)
+  VirtualIterator<QueryResult<SmartPtr<ResultSubstitution>>> getVariants(Query query, bool retrieveSubstitutions)
   {
     CALL("LiteralSubstitutionTree::getVariants");
 
 
     auto renaming = retrieveSubstitutions ? make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
-    ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(&*renaming) : ResultSubstitutionSP();
+    SmartPtr<ResultSubstitution> resultSubst = retrieveSubstitutions ? SmartPtr<ResultSubstitution>(&*renaming) : SmartPtr<ResultSubstitution>();
 
     Query normQuery;
     if (retrieveSubstitutions) {
@@ -797,12 +791,12 @@ public:
         } });
     Leaf* leaf = findLeaf(*svBindings);
     if(leaf==0) {
-      return RSQueryResultIter::getEmpty();
+      return VirtualIterator<QueryResult<SmartPtr<ResultSubstitution>>>::getEmpty();
     } else {
       return pvi(iterTraits(leaf->allChildren())
         .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData* ld) 
           {
-            ResultSubstitutionSP subs;
+            SmartPtr<ResultSubstitution> subs;
             if (retrieveSubstitutions) {
               renaming->_result->reset();
               renaming->_result->normalizeVariables(ld->key());
@@ -884,7 +878,7 @@ public:
     void backtrack();
     bool tryBacktrack();
 
-    ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
+    SmartPtr<GenSubstitution> getSubstitution(Renaming* resultNormalizer);
 
     int getBSCnt()
     {
@@ -972,8 +966,9 @@ public:
   public:
     FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
     FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
-    DECL_ELEMENT_TYPE(RSQueryResult);
-    using Unifier = ResultSubstitutionSP;
+    // TODO change me
+    using Unifier = SmartPtr<GenSubstitution>;
+    DECL_ELEMENT_TYPE(QueryResult<Unifier>);
     /**
      * If @b reversed If true, parameters of supplied binary literal are
      * 	reversed. (useful for retrieval commutative terms)
@@ -999,7 +994,7 @@ public:
           [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
     }
 
-    RSQueryResult next();
+    OWN_ELEMENT_TYPE next();
     bool hasNext();
   protected:
 
@@ -1116,7 +1111,7 @@ public:
 
     void backtrack();
     bool tryBacktrack();
-    ResultSubstitutionSP getSubstitution(Renaming* resultDenormalizer);
+    SmartPtr<InstSubstitution> getSubstitution(Renaming* resultDenormalizer);
 
     int getBSCnt()
     {
@@ -1218,8 +1213,8 @@ public:
   public:
     FastInstancesIterator(FastInstancesIterator&&) = default;
     FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
-    DECL_ELEMENT_TYPE(RSQueryResult);
-    using Unifier = ResultSubstitutionSP;
+    using Unifier = SmartPtr<InstSubstitution>;
+    DECL_ELEMENT_TYPE(QueryResult<Unifier>);
 
     /**
      * If @b reversed If true, parameters of supplied binary literal are
@@ -1249,7 +1244,7 @@ public:
     }
 
     bool hasNext();
-    RSQueryResult next();
+    OWN_ELEMENT_TYPE next();
   protected:
     bool findNextLeaf();
 

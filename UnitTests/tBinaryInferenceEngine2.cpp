@@ -96,7 +96,7 @@ public:
   RuleApplicationResult apply(
       Lhs const& lhs, bool lRes,
       Rhs const& rhs, bool rRes,
-      ResultSubstitution& subs
+      GenToInstSubstitution& subs
       ) const
   {
 
@@ -111,7 +111,7 @@ public:
       return range(0, lhs.clause()->size())
         .filter([&](auto i) { return i != lhs.literalIndex; })
         .map([&](auto i)
-            { return subs.apply((*lhs.clause())[i], lRes); });
+            { return subs.applyToGen((*lhs.clause())[i]); });
     };
 
     for (auto lit : lhsLits()) {

@@ -42,6 +42,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "BackwardDemodulation.hpp"
+#include <type_traits>
 
 namespace Inferences {
 
@@ -77,7 +78,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
-  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
+  VirtualIterator<pair<TermList,QueryRes<SmartPtr<InstSubstitution>, TermLiteralClause>> > operator() (TermList lhs)
   {
     TermList sort = SortHelper::getTermSort(lhs, _lit);
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(TypedTermList(lhs,sort), true)) );
@@ -106,11 +107,11 @@ struct BackwardDemodulation::ResultFn
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (pair<TermList,QueryRes<SmartPtr<InstSubstitution>, TermLiteralClause>> arg)
   {
     CALL("BackwardDemodulation::ResultFn::operator()");
 
-    TermQueryResult qr=arg.second;
+    auto qr=arg.second;
 
     if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match
@@ -133,23 +134,8 @@ struct BackwardDemodulation::ResultFn
     TermList lhsS=qr.data->term;
     TermList rhsS;
 
-    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
-      //When we apply substitution to the rhs, we get a term, that is
-      //a variant of the term we'd like to get, as new variables are
-      //produced in the substitution application.
-      //We'd rather rename variables in the rhs, than in the whole clause
-      //that we're simplifying.
-      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
-      Renaming rNorm, qNorm, qDenorm;
-      rNorm.normalizeVariables(lhsSBadVars);
-      qNorm.normalizeVariables(lhsS);
-      qDenorm.makeInverse(qNorm);
-      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-    } else {
-      rhsS=qr.unifier->applyToBoundQuery(rhs);
-    }
+    static_assert(remove_reference_t<decltype(*qr.unifier)>::isIdentityOnResultWhenQueryBound, "");
+    rhsS=qr.unifier->applyToBoundQuery(rhs);
 
     if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
@@ -163,7 +149,7 @@ struct BackwardDemodulation::ResultFn
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
         if (_encompassing) {
-          if (qr.unifier->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
+          if (qr.unifier->isRenamingOnQuery(lhs)) {
             // under _encompassing, we know there are no other literals in qr.data->clause
             return BwSimplificationRecord(0);
           }

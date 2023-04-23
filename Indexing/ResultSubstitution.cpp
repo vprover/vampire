@@ -32,20 +32,11 @@ public:
   RSProxy(RobSubstitution* subst, int queryBank, int resultBank)
   : _subst(subst), _queryBank(queryBank), _resultBank(resultBank) {}
 
-  TermList applyToQuery(TermList t) override
-  { return _subst->apply(t,_queryBank); }
-  Literal* applyToQuery(Literal* l) override
-  { return _subst->apply(l,_queryBank); }
+  TermList applyToQuery(TermList t) override { return _subst->apply(t,_queryBank); }
+  Literal* applyToQuery(Literal* l) override { return _subst->apply(l,_queryBank); }
 
-  TermList applyToResult(TermList t) override
-  { return _subst->apply(t,_resultBank); }
-  Literal* applyToResult(Literal* l) override
-  { return _subst->apply(l,_resultBank); }
-
-  TermList applyTo(TermList t,unsigned index) override
-  { return _subst->apply(t,index); }
-  Literal* applyTo(Literal* l,unsigned index) override
-  { return _subst->apply(l,index); }
+  TermList applyToResult(TermList t) override { return _subst->apply(t,_resultBank); }
+  Literal* applyToResult(Literal* l) override { return _subst->apply(l,_resultBank); }
 
   virtual size_t getQueryApplicationWeight(TermList t) override { return _subst->getApplicationResultWeight(t, _queryBank); }
   virtual size_t getQueryApplicationWeight(Literal* l) override { return _subst->getApplicationResultWeight(l, _queryBank); }
@@ -60,17 +51,14 @@ private:
   int _resultBank;
 };
 
-ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
-{ return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
+SmartPtr<ResultSubstitution> ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
+{ return SmartPtr<ResultSubstitution>(new RSProxy(s, queryBank, resultBank)); }
 
-/**
- * Test whether this substitution object is a renaming on the variables of @param t
- * @param result indicates whether we mean the "bank" applied 
- * to a result term or a query one (cf. applyToQuery/applyToResult)
- */
-bool ResultSubstitution::isRenamingOn(TermList t, bool result) 
+/** Test whether the function sigma is a renaming on the variables of @param t */
+template<class Sigma>
+bool isRenamingOn(Sigma sigma, TermList t)
 {
-  CALL("ResultSubstitution::isRenamingOn");
+  CALL("isRenamingOn");
 
   DHMap<TermList,TermList> renamingInMaking;
 
@@ -79,16 +67,7 @@ bool ResultSubstitution::isRenamingOn(TermList t, bool result)
     TermList v = it.next();
     ASS(v.isVar());
 
-    TermList vSubst;
-    if (result) {
-      ASS(isIdentityOnQueryWhenResultBound());
-      // code trees don't implement general apply, but satisfy the assertion which makes the following OK
-      vSubst = applyToBoundResult(v);
-    } else {
-      ASS(isIdentityOnResultWhenQueryBound());
-      // the above holds, for a change, for the used substitution trees
-      vSubst = applyToBoundQuery(v);
-    }
+    TermList vSubst = sigma(v);
     if (!vSubst.isVar()) {
       return false;
     }
@@ -98,6 +77,24 @@ bool ResultSubstitution::isRenamingOn(TermList t, bool result)
     }
   }
   return true;
+}
+
+/**
+ * This is a copy paste version of ResultSubsition::isRenamingOn, instantiated for result = true.
+ */
+bool GenSubstitution::isRenamingOnResult(TermList t) 
+{
+  CALL("ResultSubstitution::isRenamingOn");
+  return isRenamingOn([this](TermList t) { return applyToBoundResult(t); }, t);
+}
+
+/**
+ * This is a copy paste version of ResultSubsition::isRenamingOn, instantiated for result = false.
+ */
+bool InstSubstitution::isRenamingOnQuery(TermList t) 
+{
+  CALL("ResultSubstitution::isRenamingOn");
+  return isRenamingOn([this](TermList t) { return applyToBoundQuery(t); }, t);
 }
 
 } // namespace Indexing

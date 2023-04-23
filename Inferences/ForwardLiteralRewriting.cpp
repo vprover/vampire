@@ -23,6 +23,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ForwardLiteralRewriting.hpp"
+#include <type_traits>
 
 namespace Inferences
 {
@@ -56,9 +57,9 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    SLQueryResultIterator git=_index->getGeneralizations(lit, lit->isNegative(), true);
+    auto git = _index->getGeneralizations(lit, lit->isNegative(), true);
     while(git.hasNext()) {
-      SLQueryResult qr=git.next();
+      auto qr = git.next();
       Clause* counterpart=_index->getCounterpart(qr.data->clause);
 
       if(!ColorHelper::compatible(cl->color(), qr.data->clause->color()) ||
@@ -74,7 +75,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       Literal* rhs = lit->isNegative() ? rhs0 : Literal::complementaryLiteral(rhs0);
       auto subs = qr.unifier;
 
-      ASS(subs->isIdentityOnQueryWhenResultBound());
+      static_assert(remove_reference_t<decltype(*subs)>::isIdentityOnQueryWhenResultBound, "");
 
       //Due to the way we build the _index, we know that rhs contains only
       //variables present in qr.data->literal

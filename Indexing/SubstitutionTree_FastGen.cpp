@@ -13,6 +13,7 @@
  * and some auxiliary classes.
  */
 
+#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
 
@@ -106,7 +107,7 @@ private:
 
 template<class LeafData_>
 class SubstitutionTree<LeafData_>::GenMatcher::Substitution
-: public ResultSubstitution
+: public GenSubstitution
 {
 public:
   CLASS_NAME(SubstitutionTree::GenMatcher::Substitution);
@@ -129,11 +130,8 @@ public:
   Literal* applyToBoundResult(Literal* lit) override
   { return SubstHelper::apply(lit, *getApplicator()); }
 
-  bool isIdentityOnQueryWhenResultBound() override
-  { return true; }
-
-  virtual void output(std::ostream& out) const final override 
-  { out << "GenMatcher::Substitution(<output unimplemented>)"; }
+  // virtual void output(std::ostream& out) const final override 
+  // { out << "GenMatcher::Substitution(<output unimplemented>)"; }
 private:
   Applicator* getApplicator()
   {
@@ -256,13 +254,10 @@ bool SubstitutionTree<LeafData_>::GenMatcher::tryBacktrack()
 }
 
 
+// TODO remove me
 template<class LeafData_>
-ResultSubstitutionSP SubstitutionTree<LeafData_>::GenMatcher::getSubstitution(
-	Renaming* resultNormalizer)
-{
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultNormalizer));
-}
+SmartPtr<GenSubstitution> SubstitutionTree<LeafData_>::GenMatcher::getSubstitution( Renaming* resultNormalizer)
+{ return SmartPtr<GenSubstitution>(new Substitution(this, resultNormalizer)); }
 
 
 
@@ -276,7 +271,7 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::hasNext()
 }
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>::FastGeneralizationsIterator::next()
+typename SubstitutionTree<LeafData_>::template QueryResult<SmartPtr<GenSubstitution>> SubstitutionTree<LeafData_>::FastGeneralizationsIterator::next()
 {
   CALL("SubstitutionTree::FastGeneralizationsIterator::next");
 
@@ -290,7 +285,7 @@ typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>:
 
     return queryResult(ld,_subst.getSubstitution(&*_resultNormalizer));
   } else {
-    return queryResult(ld, ResultSubstitutionSP());
+    return queryResult(ld, SmartPtr<GenSubstitution>());
   }
 }
 

@@ -19,6 +19,8 @@
 #include "Index.hpp"
 
 #include "Indexing/TermSubstitutionTree.hpp"
+#include "Indexing/ResultSubstitution.hpp"
+#include "Lib/SmartPtr.hpp"
 #include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
 
@@ -39,13 +41,13 @@ public:
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, Data>>  getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<SmartPtr<InstSubstitution>, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
 
   friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)

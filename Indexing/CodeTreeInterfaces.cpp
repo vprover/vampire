@@ -35,7 +35,7 @@ using namespace Lib;
 using namespace Kernel;
 
 class CodeTreeSubstitution
-: public ResultSubstitution
+: public GenSubstitution
 {
 public:
   CodeTreeSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
@@ -64,7 +64,6 @@ public:
     return SubstHelper::apply(lit, *getApplicator());
   }
 
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
   struct Applicator
   {
@@ -97,9 +96,6 @@ private:
     return _applicator;
   }
 
-  virtual void output(std::ostream& out) const final override 
-  { out << "CodeTreeSubstitution(<output unimplemented>)"; }
-
   CodeTree::BindingArray* _bindings;
   Renaming* _resultNormalizer;
   Applicator* _applicator;
@@ -109,7 +105,7 @@ private:
 
 
 class CodeTreeTIS::ResultIterator
-: public IteratorCore<TermQueryResult>
+: public IteratorCore<QueryRes<SmartPtr<GenSubstitution>, TermLiteralClause>>
 {
 public:
   ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions)
@@ -151,18 +147,19 @@ public:
     return _found;
   }
 
-  TermQueryResult next()
+  QueryRes<SmartPtr<GenSubstitution>, TermLiteralClause> next()
   {
     CALL("CodeTreeTIS::ResultIterator::next");
     ASS(_found);
 
-    ResultSubstitutionSP subs;
+    SmartPtr<GenSubstitution> subs;
     if (_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->term);
-      subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
+      subs = smartPtr(static_cast<GenSubstitution*>(_subst), /* nondisposable */ true);
     }
-    auto out = TermQueryResult(subs, _found);
+    auto out = queryRes(subs, _found);
+    // TODO are we leaking memory here? I'm pretty sure (Joe)
     _found=0;
     return out;
   }
@@ -192,12 +189,12 @@ void CodeTreeTIS::_remove(TypedTermList t, Literal* lit, Clause* cls)
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
+VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, TermLiteralClause>> CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
   CALL("CodeTreeTIS::getGeneralizations");
 
   if(_ct.isEmpty()) {
-    return TermQueryResultIterator::getEmpty();
+    return VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, TermLiteralClause>>::getEmpty();
   }
 
   return vi( new ResultIterator(this, t, retrieveSubstitutions) );

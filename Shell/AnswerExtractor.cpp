@@ -184,7 +184,7 @@ public:
     Literal* goalLit = _goalLits[_depth];
 
     while(_unifIts[_depth].hasNext()) {
-      SLQueryResult qres = _unifIts[_depth].next();
+      auto qres = _unifIts[_depth].next();
       ASS_EQ(goalLit->header(), qres.data->literal->header());
       if(_subst.unifyArgs(goalLit, 0, qres.data->literal, 1)) {
 	return true;
@@ -206,7 +206,7 @@ private:
 
   unsigned _goalCnt;
   DArray<BacktrackData> _btData;
-  DArray<SLQueryResultIterator> _unifIts;
+  DArray<VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LiteralClause>>> _unifIts;
   DArray<bool> _triedEqUnif;
 
   unsigned _depth;
@@ -270,9 +270,9 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
   RobSubstitution subst;
 
-  SLQueryResultIterator alit = lemmas.getAll();
+  VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LiteralClause>> alit = lemmas.getAll();
   while(alit.hasNext()) {
-    SLQueryResult aqr = alit.next();
+    auto aqr = alit.next();
   }
 
   if(!SubstBuilder(goalLits, lemmas, subst).run()) {

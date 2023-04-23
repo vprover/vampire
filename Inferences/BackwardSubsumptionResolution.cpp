@@ -68,14 +68,6 @@ void BackwardSubsumptionResolution::detach()
   BackwardSimplificationEngine::detach();
 }
 
-struct BackwardSubsumptionResolution::ClauseExtractorFn
-{
-  Clause* operator()(const SLQueryResult& res)
-  {
-    return res.data->clause;
-  }
-};
-
 struct BackwardSubsumptionResolution::ClauseToBwSimplRecordFn
 {
   BwSimplificationRecord operator()(Clause* cl)
@@ -110,9 +102,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   if(clen==1) {
     List<BwSimplificationRecord>* simplRes=0;
 
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], true, false);
+    auto rit = _index->getInstances( (*cl)[0], /* complementary */ true, /* retrieveSubs */ false);
     while(rit.hasNext()) {
-      SLQueryResult qr=rit.next();
+      auto qr = rit.next();
 
       if(!checkedClauses.insert(qr.data->clause)) {
 	continue;
@@ -157,9 +149,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   List<BwSimplificationRecord>* simplRes=0;
 
-  SLQueryResultIterator rit=_index->getInstances( lmLit, true, false);
+  auto rit = _index->getInstances( lmLit, /* complementary */ true, /* retrieveSubs */ false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
+    auto qr=rit.next();
     Clause* icl=qr.data->clause;
     Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();
@@ -279,9 +271,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   mustPredInit=false;
   basePredsInit=false;
 
-  rit=_index->getInstances( lmLit, false, false);
+  rit=_index->getInstances( lmLit, /* complementary */ false, /* retrieveSubs */ false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
+    auto qr = rit.next();
     Clause* icl=qr.data->clause;
     Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();

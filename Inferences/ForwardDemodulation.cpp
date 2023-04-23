@@ -112,7 +112,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
       auto git = _index->getGeneralizations(trm.term(), true);
       while(git.hasNext()) {
-        auto qr=git.next();
+        auto qr = git.next();
         ASS_EQ(qr.data->clause->length(),1);
 
         if(!ColorHelper::compatible(cl->color(), qr.data->clause->color())) {
@@ -123,21 +123,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
         TermList rhsS;
         auto subs = qr.unifier;
-        if(!subs->isIdentityOnQueryWhenResultBound()) {
-          //When we apply substitution to the rhs, we get a term, that is
-          //a variant of the term we'd like to get, as new variables are
-          //produced in the substitution application.
-          TermList lhsSBadVars = subs->applyToResult(qr.data->term);
-          TermList rhsSBadVars = subs->applyToResult(rhs);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(trm);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-        } else {
-          rhsS = subs->applyToBoundResult(rhs);
-        }
+        static_assert(remove_reference_t<decltype(*subs)>::isIdentityOnQueryWhenResultBound, "");
+        rhsS = subs->applyToBoundResult(rhs);
 
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
@@ -173,7 +160,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
             if (_encompassing) {
               // last chance, if the matcher is not a renaming
-              if (subs->isRenamingOn(qr.data->term,true /* we talk of result term */)) {
+              if (subs->isRenamingOnResult(qr.data->term)) {
                 continue; // under _encompassing, we know there are no other literals in cl
               }
             } else {

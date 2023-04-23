@@ -18,6 +18,7 @@
 
 
 #include "Forwards.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/MismatchHandler.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/TypedTermList.hpp"
@@ -103,21 +104,18 @@ private:
         { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return queryRes(unif, r.data); }); }); }
 
 public:
-  VirtualIterator<Indexing::QueryRes<ResultSubstitutionSP, LeafData_>> getInstances(TypedTermList t, bool retrieveSubstitutions = true) final override
+  VirtualIterator<Indexing::QueryRes<SmartPtr<InstSubstitution>, LeafData_>> getInstances(TypedTermList t, bool retrieveSubstitutions = true) final override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override
+  VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, LeafData>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
   { return fixedPointIteration ? pvi(  postproUwa(t, uwa))
                                : pvi(nopostproUwa(t, uwa)); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
+  VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LeafData>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
-
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions) final override
-  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(tt, retrieveSubstitutions)); }
 
 };
 

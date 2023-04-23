@@ -26,6 +26,106 @@ namespace Indexing {
 
 using namespace Kernel;
 
+// TODO rename
+class GenToInstSubstitution
+{
+public:
+  virtual ~GenToInstSubstitution() {}
+
+  virtual TermList applyToGen(TermList t) = 0;
+  virtual Literal* applyToGen(Literal* t) = 0;
+
+  TypedTermList applyToGen(TypedTermList t)
+  { return TypedTermList(applyToGen(TermList(t)), applyToGen(t.sort())); }
+};
+
+class GenSubstitution
+: public GenToInstSubstitution
+{
+public:
+  virtual ~GenSubstitution() {}
+
+  virtual TermList applyToGen(TermList t) final override { return applyToBoundResult(t); }
+  virtual Literal* applyToGen(Literal* t) final override { return applyToBoundResult(t); }
+
+  bool isRenamingOnResult(TermList t);
+
+  /**
+   * Apply substitution to result term that fulfills the condition,
+   * that all its variables are bound to some term of the query.
+   *
+   * Applying this substitution makes sense, when
+   * @b isIdentityOnQueryWhenResultBound() method returns true,
+   * as then there's no need to apply the substitution to any
+   * query terms.
+   */
+  virtual TermList applyToBoundResult(TermList t) = 0;
+
+  /**
+   * Apply substitution to result term that fulfills the condition,
+   * that all its variables are bound to some term of the query.
+   *
+   * Applying this substitution makes sense, when
+   * @b isIdentityOnQueryWhenResultBound() method returns true,
+   * as then there is no need to apply the substitution to any
+   * query terms.
+   */
+  virtual Literal* applyToBoundResult(Literal* lit) = 0;
+
+  /**
+   * Return true if, when the substitution is applied to a result
+   * term through the @b applyToBoundResult function, the corresponding
+   * substitution for query terms is identity.
+   */
+  static constexpr bool isIdentityOnQueryWhenResultBound = true;
+};
+
+
+/**
+ * Represents a substitution, that has been retrieved from an
+ * indexing structure.
+ *
+ * It distinguishes two classes of terms/literals --
+ * query and result ones. Variables in query
+ * terms/literals have the same meaning as variables in query
+ * that was the indexing structure asked, and variables in
+ * result terms/literals have the meaning of variables in the
+ * term/literal that was retrieved from the index.
+ */
+class InstSubstitution
+: public GenToInstSubstitution
+{
+public:
+  virtual ~InstSubstitution() {}
+
+  bool isRenamingOnQuery(TermList t);
+
+
+  /**
+   * Apply substitution to query term that fulfills the condition,
+   * that all its variables are bound to some term of the result.
+   *
+   * Applying this substitution makes sense, when
+   * @b isIdentityOnResultWhenQueryBound() method returns true,
+   * as then there is no need to apply the substitution to any
+   * result terms.
+   */
+  virtual TermList applyToBoundQuery(TermList t) = 0;
+  virtual Literal* applyToBoundQuery(Literal* t) = 0;
+
+  virtual TermList applyToGen(TermList t) final override { return applyToBoundQuery(t); }
+  virtual Literal* applyToGen(Literal* t) final override { return applyToBoundQuery(t); }
+
+  /**
+   * Return true if, when the substitution is applied to a query
+   * term through the @b applyToBoundQuery function, the corresponding
+   * substitution for query terms is identity.
+   */
+  static constexpr bool isIdentityOnResultWhenQueryBound = true;
+};
+
+
+
 /**
  * Represents a substitution, that has been retrieved from an
  * indexing structure.
@@ -41,24 +141,24 @@ class ResultSubstitution
 {
 public:
   virtual ~ResultSubstitution() {}
-  virtual TermList applyToQuery(TermList t) { NOT_IMPLEMENTED; }
-  virtual Literal* applyToQuery(Literal* l) { NOT_IMPLEMENTED; }
-  virtual TypedTermList applyToQuery(TypedTermList t) { return TypedTermList(applyToQuery(TermList(t)), applyToQuery(t.sort())); }
-  virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
-  virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
-  virtual TypedTermList applyToResult(TypedTermList t) { return TypedTermList(applyToResult(TermList(t)), applyToResult(t.sort())); }
 
-  virtual TermList applyTo(TermList t, unsigned index) { ASSERTION_VIOLATION; }
-  virtual Literal* applyTo(Literal* l, unsigned index) { NOT_IMPLEMENTED; }
+  virtual TermList applyToQuery(TermList t) = 0;
+  virtual Literal* applyToQuery(Literal* l) = 0;
+
+  virtual TermList applyToResult(TermList t) = 0;
+  virtual Literal* applyToResult(Literal* l) = 0;
+  TypedTermList applyToResult(TypedTermList t) { return TypedTermList(applyToResult(TermList(t)), applyToResult(t.sort())); }
 
   /** if implementation cannot easily give result for this, zero is returned */
-  virtual size_t getQueryApplicationWeight(TermList t) { return 0; }
+  virtual size_t getResultApplicationWeight(TermList t) = 0;
   /** if implementation cannot easily give result for this, zero is returned */
-  virtual size_t getQueryApplicationWeight(Literal* l) { return 0; }
+  virtual size_t getResultApplicationWeight(Literal* l) = 0;
+
+
   /** if implementation cannot easily give result for this, zero is returned */
-  virtual size_t getResultApplicationWeight(TermList t) { return 0; }
+  virtual size_t getQueryApplicationWeight(TermList t) = 0;
   /** if implementation cannot easily give result for this, zero is returned */
-  virtual size_t getResultApplicationWeight(Literal* l) { return 0; }
+  virtual size_t getQueryApplicationWeight(Literal* l) = 0;
 
   template<typename T>
   T apply(T t, bool result)
@@ -71,8 +171,6 @@ public:
     }
   }
 
-  bool isRenamingOn(TermList t, bool result);
-
   /** if implementation cannot easily give result for this, zero is returned */
   template<typename T>
   size_t getApplicationWeight(T t, bool result)
@@ -84,62 +182,12 @@ public:
     }
   }
 
-  /**
-   * Apply substitution to result term that fulfills the condition,
-   * that all its variables are bound to some term of the query.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnQueryWhenResultBound() method returns true,
-   * as then there's no need to apply the substitution to any
-   * query terms.
-   */
-  virtual TermList applyToBoundResult(TermList t)
-  { return applyToResult(t); }
-
-  /**
-   * Apply substitution to result term that fulfills the condition,
-   * that all its variables are bound to some term of the query.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnQueryWhenResultBound() method returns true,
-   * as then there is no need to apply the substitution to any
-   * query terms.
-   */
-  virtual Literal* applyToBoundResult(Literal* lit)
-  { return applyToResult(lit); }
-
-  /**
-   * Return true if, when the substitution is applied to a result
-   * term through the @b applyToBoundResult function, the corresponding
-   * substitution for query terms is identity.
-   */
-  virtual bool isIdentityOnQueryWhenResultBound() {return false;}
-
-
-  /**
-   * Apply substitution to query term that fulfills the condition,
-   * that all its variables are bound to some term of the result.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnResultWhenQueryBound() method returns true,
-   * as then there is no need to apply the substitution to any
-   * result terms.
-   */
-  virtual TermList applyToBoundQuery(TermList t)
-  { return applyToQuery(t); }
-
-  /**
-   * Return true if, when the substitution is applied to a query
-   * term through the @b applyToBoundQuery function, the corresponding
-   * substitution for query terms is identity.
-   */
-  virtual bool isIdentityOnResultWhenQueryBound() {return false;}
-
-  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
+  static SmartPtr<ResultSubstitution> fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
   virtual void output(std::ostream& ) const = 0;
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { self.output(out); return out; }
 };
+
 
 }; // namepace Indexing
 

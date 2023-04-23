@@ -139,12 +139,12 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
   }
   Literal* queryEq = Literal::createEquality(true, ut1, ut2, srt);
 
-  SLQueryResultIterator srqi = _index->getUnifications(queryEq, false, false);
+  auto srqi = _index->getUnifications(queryEq, /* complementary */ false, /* retrieveSubs */ false);
   if(!srqi.hasNext()) {
     return false;
   }
   //for now we just get the first result
-  SLQueryResult qr = srqi.next();
+  auto qr = srqi.next();
   Color clr = ColorHelper::combine(infClr, qr.data->clause->color());
   if(clr==COLOR_INVALID) {
     return false;
@@ -361,9 +361,9 @@ void HyperSuperposition::resolveFixedLiteral(Clause* cl, unsigned litIndex, Clau
   CALL("HyperSuperposition::resolveFixedLiteral");
 
   Literal* lit = (*cl)[litIndex];
-  SLQueryResultIterator unifs = _index->getUnifications(lit, /* complementary = */ true, /* retrieveSubstitutions */ true);
+  auto unifs = _index->getUnifications(lit, /* complementary = */ true, /* retrieveSubstitutions */ true);
   while(unifs.hasNext()) {
-    SLQueryResult qr = unifs.next();
+    auto qr = unifs.next();
     Stack<Literal*> constraints;
     Clause* genCl = BinaryResolution::generateClause(cl, lit, qr.data->clause, qr.data->literal, qr.unifier, constraints, getOptions());
     acc.push(ClausePair(cl, genCl));
@@ -380,12 +380,12 @@ void HyperSuperposition::tryUnifyingToResolveWithUnit(Clause* cl, unsigned liter
     return;
   }
   Literal* queryLit = getUnifQueryLit(lit);
-  SLQueryResultIterator unifIt = _index->getUnifications(queryLit, true, false);
+  auto unifIt = _index->getUnifications(queryLit, /* complementary */ true, /* retrieveSubs */ false);
 
   static ClauseStack localRes;
 
   while(unifIt.hasNext()) {
-    SLQueryResult unifRes = unifIt.next();
+    auto unifRes = unifIt.next();
     localRes.reset();
     tryUnifyingSuperpositioins(cl, literalIndex, lit, unifRes.data->literal, true, localRes);
     while(localRes.isNonEmpty()) {
@@ -530,12 +530,12 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacem
     return false;
   }
   Literal* queryLit = getUnifQueryLit(lit);
-  SLQueryResultIterator unifIt = _index->getUnifications(queryLit, true, false);
+  auto unifIt = _index->getUnifications(queryLit, /* complementary */ true, /* retrieveSubs */ false);
 
   static ClauseStack prems;
 
   while(unifIt.hasNext()) {
-    SLQueryResult unifRes = unifIt.next();
+    auto unifRes = unifIt.next();
     prems.reset();
     prems.push(unifRes.data->clause);
 

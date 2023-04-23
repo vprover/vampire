@@ -83,7 +83,7 @@ void SubVarSup::detach()
 struct SubVarSup::RewritableResultsFn
 {
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, QueryRes<SmartPtr<ResultSubstitution>, TermLiteralClause>> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("SubVarSup::RewritableResultsFn()");
 
@@ -116,7 +116,7 @@ private:
 struct SubVarSup::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, QueryRes<SmartPtr<ResultSubstitution>, TermLiteralClause>> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("SubVarSup::ApplicableRewritesFn()");
 
@@ -134,11 +134,11 @@ private:
 struct SubVarSup::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<SmartPtr<ResultSubstitution>, TermLiteralClause>> arg)
   {
     CALL("SubVarSup::ForwardResultFn::operator()");
 
-    TermQueryResult& qr = arg.second;
+    auto& qr = arg.second;
     return _parent.performSubVarSup(_cl, arg.first.first, arg.first.second,
 	    qr.data->clause, qr.data->literal, qr.data->term, true);
   }
@@ -151,7 +151,7 @@ private:
 struct SubVarSup::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<SmartPtr<ResultSubstitution>, TermLiteralClause>> arg)
   {
     CALL("SubVarSup::BackwardResultFn::operator()");
 
@@ -159,9 +159,8 @@ struct SubVarSup::BackwardResultFn
       return 0;
     }
 
-    TermQueryResult& qr = arg.second;
-    return _parent.performSubVarSup(qr.data->clause, qr.data->literal, qr.data->term,
-	    _cl, arg.first.first, arg.first.second, false);
+    auto& qr = arg.second;
+    return _parent.performSubVarSup(qr.data->clause, qr.data->literal, qr.data->term, _cl, arg.first.first, arg.first.second, false);
   }
 private:
   Clause* _cl;

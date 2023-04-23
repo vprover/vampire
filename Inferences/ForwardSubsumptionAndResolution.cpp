@@ -234,7 +234,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   ASS(cmStore.isEmpty());
 
   for (unsigned li = 0; li < clen; li++) {
-    SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
+    auto rit = _unitIndex->getGeneralizations((*cl)[li], /* complementary */ false, /* retrieveSubstitutions */ false);
     while (rit.hasNext()) {
       Clause *premise = rit.next().data->clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
@@ -250,9 +250,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     LiteralMiniIndex miniIndex(cl);
 
     for (unsigned li = 0; li < clen; li++) {
-      SLQueryResultIterator rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
+      auto rit = _fwIndex->getGeneralizations((*cl)[li], /* complementary */ false, /* retrieveSubstitutions */ false);
       while (rit.hasNext()) {
-        SLQueryResult res = rit.next();
+        auto res = rit.next();
         Clause *mcl = res.data->clause;
         if (mcl->hasAux()) {
           //we've already checked this clause
@@ -287,7 +287,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li];
-        SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
+        auto rit = _unitIndex->getGeneralizations(resLit, /* complementary */ true, /* retrieveSubstitutions */ false);
         while (rit.hasNext()) {
           Clause *mcl = rit.next().data->clause;
           if (ColorHelper::compatible(cl->color(), mcl->color())) {
@@ -323,9 +323,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li]; //resolved literal
-        SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
+        auto rit = _fwIndex->getGeneralizations(resLit, /* complementary */ true, /* retrieveSubstitutions */ false);
         while (rit.hasNext()) {
-          SLQueryResult res = rit.next();
+          auto res = rit.next();
           Clause *mcl = res.data->clause;
 
           ClauseMatches *cms = nullptr;

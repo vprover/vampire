@@ -28,6 +28,7 @@
 #include "Kernel/Theory.hpp"
 
 #include "Shell/Options.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "InductionHelper.hpp"
 
@@ -38,8 +39,9 @@ namespace {
 struct SLQueryResultToTermQueryResultFn
 {
   SLQueryResultToTermQueryResultFn(TypedTermList v) : variable(v) {}
-  TermLiteralClause operator() (const SLQueryResult slqr) {
-    return TermLiteralClause(slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause);
+
+  TermLiteralClause operator() (const QueryRes<SmartPtr<ResultSubstitution>, LiteralClause> slqr) {
+    return TermLiteralClause(TypedTermList(slqr.unifier->applyToQuery(variable), IntTraits::sort()), slqr.data->literal, slqr.data->clause);
   }
 
   TypedTermList variable;
@@ -98,7 +100,7 @@ VirtualIterator<TermLiteralClause> InductionHelper::getGreater(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
+VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, TermLiteralClause>> InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   CALL("InductionHelper::getIndTQRsForInductionTerm");
 
   ASS(_inductionTermIndex);

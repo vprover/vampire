@@ -35,16 +35,16 @@ public:
   VirtualIterator<Data> getAll()
   { return _is->getAll(); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, Data>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, Data>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<SmartPtr<InstSubstitution>, Data>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getInstances(lit, complementary, retrieveSubstitutions); }
 
   size_t getUnificationCount(Literal* lit, bool complementary)

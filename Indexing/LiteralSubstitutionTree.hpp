@@ -67,27 +67,30 @@ public:
         );
   }
 
+  void handleLiteral(Literal* lit, Clause* cls, bool insert)
+  { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit)
+
+  VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LeafData_>> getUnifications(Literal* lit)
   { return getUnifications(lit, /* complementary */ false, /* retrieveSubst */ true); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit)
+  VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, LeafData>> getGeneralizations(Literal* lit)
   { return getGeneralizations(lit, /* complementary */ false, /* retrieveSubst */ true); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit)
+  VirtualIterator<QueryRes<SmartPtr<InstSubstitution>, LeafData>> getInstances(Literal* lit)
   { return getInstances(lit, /* complementary */ false, /* retrieveSubst */ true); }
 
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) final override
+  VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) final override
   { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) final override
+  VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) final override
   { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) final override
+  VirtualIterator<QueryRes<SmartPtr<InstSubstitution>, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) final override
   { return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* query, bool complementary, bool retrieveSubstitutions = true) final override
+  VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LeafData>> getVariants(Literal* query, bool complementary, bool retrieveSubstitutions = true) final override
   {
     return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
           .map([](auto qr) { return queryRes(std::move(qr.unif), qr.data); }));
@@ -167,7 +170,6 @@ private:
     }
     return _trees[idx];
   }
-
 
   template<class Iterator, class... Args>
   auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)

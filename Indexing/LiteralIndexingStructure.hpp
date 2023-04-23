@@ -35,11 +35,11 @@ public:
   void remove(LeafData ld) { handle(std::move(ld), /* insert = */ false); }
 
   virtual VirtualIterator<LeafData> getAll() { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LeafData>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
-  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<SmartPtr<InstSubstitution>, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, LeafData>> getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual size_t getUnificationCount(Literal* lit, bool complementary)
   {

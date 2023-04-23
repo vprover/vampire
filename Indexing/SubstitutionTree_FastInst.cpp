@@ -13,6 +13,7 @@
  * and some auxiliary classes.
  */
 
+#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
 
@@ -35,11 +36,11 @@ std::ostream& operator<< (ostream& out, typename SubstitutionTree<LeafData_>::In
 
 template<class LeafData_>
 class SubstitutionTree<LeafData_>::InstMatcher::Substitution
-: public ResultSubstitution
+: public InstSubstitution
 {
 public:
-  CLASS_NAME(SubstitutionTree::InstMatcher::Substitution);
-  USE_ALLOCATOR(SubstitutionTree::InstMatcher::Substitution);
+  CLASS_NAME(SubstitutionTree<LeafData_>::InstMatcher::Substitution);
+  USE_ALLOCATOR(SubstitutionTree<LeafData_>::InstMatcher::Substitution);
   
   Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
   : _parent(parent), _resultDenormalizer(resultDenormalizer)
@@ -55,6 +56,13 @@ public:
     return SubstHelper::apply(t, *this);
   }
 
+  Literal* applyToBoundQuery(Literal* t) override
+  {
+    CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
+
+    return SubstHelper::apply(t, *this);
+  }
+
   TermList apply(unsigned var)
   {
     CALL("SubstitutionTree::InstMatcher::Substitution::apply");
@@ -64,26 +72,18 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() override
-  { return true; }
-
-  
-
-  virtual void output(std::ostream& out) const final override 
-  { out << "InstMatcher::Substitution(<output unimplemented>)"; }
 private:
   InstMatcher* _parent;
   Renaming* _resultDenormalizer;
 };
 
 
+// TODO remove me
 template<class LeafData_>
-ResultSubstitutionSP SubstitutionTree<LeafData_>::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
+SmartPtr<InstSubstitution> SubstitutionTree<LeafData_>::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
 {
   CALL("SubstitutionTree::InstMatcher::getSubstitution");
-
-  return ResultSubstitutionSP(
-	  new Substitution(this, resultDenormalizer));
+  return SmartPtr<InstSubstitution>(new Substitution(this, resultDenormalizer));
 }
 
 template<class LeafData_>
@@ -386,7 +386,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
 #define LOGGING 0
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>::FastInstancesIterator::next()
+typename SubstitutionTree<LeafData_>::template QueryResult<SmartPtr<InstSubstitution>> SubstitutionTree<LeafData_>::FastInstancesIterator::next()
 {
   CALL("SubstitutionTree::FastInstancesIterator::next");
 
@@ -405,7 +405,7 @@ typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>:
 
     return queryResult(ld, _subst.getSubstitution(&_resultDenormalizer));
   } else {
-    return queryResult(ld, ResultSubstitutionSP());
+    return queryResult(ld, SmartPtr<InstSubstitution>());
   }
 }
 #undef LOGGING

@@ -324,7 +324,7 @@ struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
-  VirtualIterator<InductionContext> operator()(pair<Term*, TermQueryResultIterator> arg) {
+  VirtualIterator<InductionContext> operator()(pair<Term*, VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, TermLiteralClause>>> arg) {
     auto indDepth = _premise->inference().inductionDepth();
     // heuristic 2
     if (indDepth) {
@@ -480,11 +480,11 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
     }
     // collect term queries for each induction term
-    auto sideLitsIt = VirtualIterator<pair<Term*, TermQueryResultIterator>>::getEmpty();
+    auto sideLitsIt = VirtualIterator<pair<Term*, VirtualIterator<QueryRes<SmartPtr<GenSubstitution>, TermLiteralClause>>>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(Set<Term*>::Iterator(ta_terms))
         .map([this](Term* arg) {
-          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), true));
+          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), /* retrieveSubsitutions */ true));
         }));
     }
     // put clauses from queries into contexts alongside with the given clause and induction term

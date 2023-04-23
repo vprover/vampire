@@ -69,15 +69,6 @@ void SLQueryBackwardSubsumption::detach()
   BackwardSimplificationEngine::detach();
 }
 
-struct SLQueryBackwardSubsumption::ClauseExtractorFn
-{
-  Clause* operator()(LiteralClause const& res)
-  { return res.clause; }  
-  template<class T>
-  Clause* operator()(QueryRes<T, LiteralClause> const& res)
-  { return res.data->clause; }
-};
-
 struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
 {
   BwSimplificationRecord operator()(Clause* cl)
@@ -105,7 +96,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     auto rit = _index->getAll();
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
-		    getMappingIterator(rit,ClauseExtractorFn()),
+		    getMappingIterator(rit, [](auto const& res) { return res.clause; }),
 		    getNonequalFn(cl)));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();
@@ -116,10 +107,10 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   }
 
   if(clen==1) {
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
+    auto rit = _index->getInstances( (*cl)[0], /* complementary */ false, /* retrieveSubs */ false);
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
-		    getMappingIterator(rit,ClauseExtractorFn()),
+		    getMappingIterator(rit, [](auto const& res) { return res.data->clause; }),
 		    getNonequalFn(cl)));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();
@@ -158,9 +149,9 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
-  SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
+  auto rit = _index->getInstances( (*cl)[lmIndex], /* complementary */ false, /* retrieveSubs */ false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
+    auto qr = rit.next();
     Clause* icl=qr.data->clause;
     Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();

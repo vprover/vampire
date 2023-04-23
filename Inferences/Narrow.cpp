@@ -77,7 +77,7 @@ void Narrow::detach()
 struct Narrow::ApplicableNarrowsFn
 {
   ApplicableNarrowsFn(NarrowingIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TermList>, QueryRes<SmartPtr<ResultSubstitution>, TermLiteralClause>> > operator()(pair<Literal*, TermList> arg)
   {
     CALL("Narrow::ApplicableRewritesFn()");
     ASS(arg.second.isTerm());
@@ -109,11 +109,11 @@ private:
 struct Narrow::ResultFn
 {
   ResultFn(Clause* cl, Narrow& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<SmartPtr<ResultSubstitution>, TermLiteralClause>> arg)
   {
     CALL("Narrow::ResultFn::operator()");
     
-    TermQueryResult& qr = arg.second;
+    auto& qr = arg.second;
     return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.data->term, qr.data->literal, qr.unifier);
   }
 private:
@@ -148,7 +148,7 @@ ClauseIterator Narrow::generateClauses(Clause* premise)
  */
 Clause* Narrow::performNarrow(
     Clause* nClause, Literal* nLiteral, TermList nTerm, 
-    TermList combAxLhs, Literal* combAx, ResultSubstitutionSP subst)
+    TermList combAxLhs, Literal* combAx, SmartPtr<ResultSubstitution> subst)
 {
   CALL("Narrow::performNarrow");
   // we want the rwClause and eqClause to be active

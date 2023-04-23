@@ -41,7 +41,7 @@ public:
   VirtualIterator<TermLiteralClause> getLess(Term* t);
   VirtualIterator<TermLiteralClause> getGreater(Term* t);
 
-  TermQueryResultIterator getTQRsForInductionTerm(Term* inductionTerm);
+  VirtualIterator<QueryRes<SmartPtr<ResultSubstitution>, TermLiteralClause>> getTQRsForInductionTerm(Term* inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();

@@ -235,19 +235,14 @@ struct ClauseSResQueryResult
 struct FormulaQueryResult
 {
   FormulaQueryResult() {}
-  FormulaQueryResult(FormulaUnit* unit, Formula* f, ResultSubstitutionSP s=ResultSubstitutionSP())
+  FormulaQueryResult(FormulaUnit* unit, Formula* f, SmartPtr<ResultSubstitution> s=SmartPtr<ResultSubstitution>())
   : unit(unit), formula(f), substitution(s) {}
 
   FormulaUnit* unit;
   Formula* formula;
-  ResultSubstitutionSP substitution;
+  SmartPtr<ResultSubstitution> substitution;
 };
 
-using TermQueryResult = QueryRes<ResultSubstitutionSP ,   TermLiteralClause>;
-using SLQueryResult   = QueryRes<ResultSubstitutionSP, LiteralClause>;
-
-using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
-using SLQueryResultIterator   = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 
