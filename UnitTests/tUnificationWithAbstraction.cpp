@@ -46,7 +46,6 @@ Clause* unit(Literal* lit)
   return clause({ lit });
 }
 
-static const auto lld = [](auto l) { return LiteralClause(nullptr, l); };
 static const auto tld = [](auto t) { return TermLiteralClause(t, nullptr, nullptr); };
 
 
@@ -193,53 +192,54 @@ struct IndexTest {
 };
 
 
-#define RAT_SUGAR                                                                                   \
-   __ALLOW_UNUSED(                                                                                  \
-      DECL_DEFAULT_VARS                                                                             \
-      DECL_VAR(x0, 0)                                                                               \
-      DECL_VAR(x1, 1)                                                                               \
-      DECL_VAR(x2, 2)                                                                               \
-      DECL_VAR(x3, 3)                                                                               \
-                                                                                                    \
-      DECL_VAR(S0, 500)                                                                             \
-      DECL_VAR(S1, 501)                                                                             \
-      DECL_VAR(S2, 502)                                                                             \
-      DECL_VAR(S3, 503)                                                                             \
-      DECL_VAR(S4, 504)                                                                             \
-      DECL_VAR(S5, 505)                                                                             \
-      DECL_VAR(S6, 506)                                                                             \
-      DECL_VAR(S7, 507)                                                                             \
-      DECL_VAR(S8, 508)                                                                             \
-      DECL_VAR(S9, 509)                                                                             \
-      DECL_VAR(S10, 510)                                                                             \
-      DECL_VAR(S11, 511)                                                                             \
-      DECL_VAR(S12, 512)                                                                             \
-                                                                                                    \
-      NUMBER_SUGAR(Rat)                                                                             \
-      DECL_SORT(s)                                                                                  \
-      DECL_FUNC(r2s, {Rat}, s)                                                                      \
-      DECL_FUNC(s2r, {s}, Rat)                                                                      \
-      DECL_PRED(p, {Rat})                                                                           \
-      DECL_FUNC(f, {Rat}, Rat)                                                                      \
-      DECL_FUNC(g, {Rat}, Rat)                                                                      \
-      DECL_FUNC(h, {Rat}, Rat)                                                                      \
-      DECL_FUNC(f2, {Rat, Rat}, Rat)                                                                \
-      DECL_FUNC(fa, {Rat, Rat}, Rat)                                                                \
-      DECL_FUNC(g2, {Rat, Rat}, Rat)                                                                \
-      DECL_CONST(a, Rat)                                                                            \
-      DECL_CONST(b, Rat)                                                                            \
-      DECL_CONST(c, Rat)                                                                            \
-    )                                                                                               \
+#define SUGAR(Num)                                                                        \
+   __ALLOW_UNUSED(                                                                        \
+      DECL_DEFAULT_VARS                                                                   \
+      DECL_VAR(x0, 0)                                                                     \
+      DECL_VAR(x1, 1)                                                                     \
+      DECL_VAR(x2, 2)                                                                     \
+      DECL_VAR(x3, 3)                                                                     \
+                                                                                          \
+      DECL_VAR(S0, 500)                                                                   \
+      DECL_VAR(S1, 501)                                                                   \
+      DECL_VAR(S2, 502)                                                                   \
+      DECL_VAR(S3, 503)                                                                   \
+      DECL_VAR(S4, 504)                                                                   \
+      DECL_VAR(S5, 505)                                                                   \
+      DECL_VAR(S6, 506)                                                                   \
+      DECL_VAR(S7, 507)                                                                   \
+      DECL_VAR(S8, 508)                                                                   \
+      DECL_VAR(S9, 509)                                                                   \
+      DECL_VAR(S10, 510)                                                                  \
+      DECL_VAR(S11, 511)                                                                  \
+      DECL_VAR(S12, 512)                                                                  \
+                                                                                          \
+      NUMBER_SUGAR(Num)                                                                   \
+      DECL_SORT(s)                                                                        \
+      DECL_FUNC(r2s, {Num}, s)                                                            \
+      DECL_FUNC(s2r, {s}, Num)                                                            \
+      DECL_PRED(p, {Num})                                                                 \
+      DECL_FUNC(f, {Num}, Num)                                                            \
+      DECL_FUNC(g, {Num}, Num)                                                            \
+      DECL_FUNC(h, {Num}, Num)                                                            \
+      DECL_FUNC(f2, {Num, Num}, Num)                                                      \
+      DECL_FUNC(fa, {Num, Num}, Num)                                                      \
+      DECL_FUNC(g2, {Num, Num}, Num)                                                      \
+      DECL_CONST(a, Num)                                                                  \
+      DECL_CONST(b, Num)                                                                  \
+      DECL_CONST(c, Num)                                                                  \
+    )                                                                                     \
  
 
-#define INDEX_TEST(name, sugar, ...)                                                                \
-  TEST_FUN(name) {                                                                                  \
-       __ALLOW_UNUSED(sugar)                                                                        \
-       __VA_ARGS__.run();                                                                           \
-  }                                                                                                 \
+
+#define INDEX_TEST(name, sugar, ...)                                                      \
+  TEST_FUN(name) {                                                                        \
+       __ALLOW_UNUSED(sugar)                                                              \
+       __VA_ARGS__.run();                                                                 \
+  }                                                                                       \
 
 INDEX_TEST(term_indexing_one_side_interp_01,
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -266,7 +266,7 @@ INDEX_TEST(term_indexing_one_side_interp_01,
 
 
 INDEX_TEST(term_indexing_one_side_interp_02, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -280,7 +280,7 @@ INDEX_TEST(term_indexing_one_side_interp_02,
     })
  
 INDEX_TEST(term_indexing_one_side_interp_03, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -307,7 +307,7 @@ INDEX_TEST(term_indexing_one_side_interp_03,
 
 
 INDEX_TEST(term_indexing_one_side_interp_04, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -335,7 +335,7 @@ INDEX_TEST(term_indexing_one_side_interp_04,
 
 
 INDEX_TEST(term_indexing_one_side_interp_04_b, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -357,7 +357,7 @@ INDEX_TEST(term_indexing_one_side_interp_04_b,
 
 
 INDEX_TEST(term_indexing_one_side_interp_04_c, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -383,7 +383,7 @@ INDEX_TEST(term_indexing_one_side_interp_04_c,
     })
 
 INDEX_TEST(term_indexing_one_side_interp_04_d, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -409,7 +409,7 @@ INDEX_TEST(term_indexing_one_side_interp_04_d,
     })
 
 INDEX_TEST(term_indexing_one_side_interp_05, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -441,7 +441,7 @@ INDEX_TEST(term_indexing_one_side_interp_05,
 
 
 INDEX_TEST(term_indexing_one_side_interp_06, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -473,7 +473,7 @@ INDEX_TEST(term_indexing_one_side_interp_06,
 
 
 INDEX_TEST(term_indexing_one_side_interp_07, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -506,7 +506,7 @@ INDEX_TEST(term_indexing_one_side_interp_07,
 })
 
 INDEX_TEST(term_indexing_one_side_interp_08, 
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -576,22 +576,22 @@ TEST_FUN(term_indexing_poly_01)
 }
 
 
-#define POLY_RAT_SUGAR                                                                              \
-  DECL_DEFAULT_VARS                                                                                 \
-  DECL_DEFAULT_SORT_VARS                                                                            \
-  NUMBER_SUGAR(Rat)                                                                                 \
-  DECL_POLY_CONST(b, 1, alpha)                                                                      \
-  DECL_POLY_CONST(a, 1, alpha)                                                                      \
-  DECL_POLY_FUNC(f, 1, {alpha}, alpha)                                                              \
-  DECL_SORT(A)                                                                                      \
-  DECL_CONST(someA, A)                                                                              \
+#define POLY_SUGAR(Rat)                                                                   \
+  DECL_DEFAULT_VARS                                                                       \
+  DECL_DEFAULT_SORT_VARS                                                                  \
+  NUMBER_SUGAR(Rat)                                                                       \
+  DECL_POLY_CONST(b, 1, alpha)                                                            \
+  DECL_POLY_CONST(a, 1, alpha)                                                            \
+  DECL_POLY_FUNC(f, 1, {alpha}, alpha)                                                    \
+  DECL_SORT(A)                                                                            \
+  DECL_CONST(someA, A)                                                                    \
 
 
-#define HOL_SUGAR(...)                                                                              \
-  DECL_DEFAULT_VARS                                                                                 \
-  DECL_DEFAULT_SORT_VARS                                                                            \
-  NUMBER_SUGAR(Rat)                                                                                 \
-  DECL_SORT(srt)                                                                                    \
+#define HOL_SUGAR(...)                                                                    \
+  DECL_DEFAULT_VARS                                                                       \
+  DECL_DEFAULT_SORT_VARS                                                                  \
+  NUMBER_SUGAR(Rat)                                                                       \
+  DECL_SORT(srt)                                                                          \
   __VA_ARGS__
 
  
@@ -700,22 +700,22 @@ INDEX_TEST(hol_03,
       }
     })
 
-#define INDEX_TEST_hol_04(idx, ...)                                                                 \
-  INDEX_TEST(hol_04_ ## idx,                                                                        \
-    HOL_SUGAR(                                                                                      \
-      DECL_FUNC(f3, {srt, srt, srt}, srt)                                                           \
-      DECL_POLY_CONST(c1, 1, alpha)                                                                 \
-      DECL_POLY_CONST(c2, 1, alpha)                                                                 \
-      DECL_POLY_CONST(h, 2, arrow(alpha, beta))                                                     \
-    ),                                                                                              \
-    IndexTest {                                                                                     \
-      .index = getTermIndexHOL(),                                                                   \
-      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,                                         \
-      .insert = {                                                                                   \
-               ap(h(arrow(srt, srt), srt), c1(arrow(srt, srt))),                                    \
-               ap(h(srt            , srt), c1(srt)),                                                \
-      },                                                                                            \
-      __VA_ARGS__                                                                                   \
+#define INDEX_TEST_hol_04(idx, ...)                                                       \
+  INDEX_TEST(hol_04_ ## idx,                                                              \
+    HOL_SUGAR(                                                                            \
+      DECL_FUNC(f3, {srt, srt, srt}, srt)                                                 \
+      DECL_POLY_CONST(c1, 1, alpha)                                                       \
+      DECL_POLY_CONST(c2, 1, alpha)                                                       \
+      DECL_POLY_CONST(h, 2, arrow(alpha, beta))                                           \
+    ),                                                                                    \
+    IndexTest {                                                                           \
+      .index = getTermIndexHOL(),                                                         \
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,                               \
+      .insert = {                                                                         \
+               ap(h(arrow(srt, srt), srt), c1(arrow(srt, srt))),                          \
+               ap(h(srt            , srt), c1(srt)),                                      \
+      },                                                                                  \
+      __VA_ARGS__                                                                         \
     })
 
 
@@ -740,22 +740,22 @@ INDEX_TEST_hol_04(02,
     )
 
 
-#define INDEX_TEST_hol_05(idx, ...)                                                                 \
-  INDEX_TEST(hol_05_ ## idx,                                                                        \
-    HOL_SUGAR(                                                                                      \
-      DECL_FUNC(f3, {srt, srt, srt}, srt)                                                           \
-      DECL_POLY_CONST(c1, 1, alpha)                                                                 \
-      DECL_POLY_CONST(c2, 1, alpha)                                                                 \
-      DECL_POLY_CONST(h, 2, arrow(alpha, beta))                                                     \
-    ),                                                                                              \
-    IndexTest {                                                                                     \
-      .index = getTermIndexHOL(),                                                                   \
-      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,                                         \
-      .insert = {                                                                                   \
-               ap(h(arrow(srt, srt), srt), c1(arrow(srt, srt))),                                    \
-               ap(h(srt            , srt), c2(srt)),                                                \
-      },                                                                                            \
-      __VA_ARGS__                                                                                   \
+#define INDEX_TEST_hol_05(idx, ...)                                                       \
+  INDEX_TEST(hol_05_ ## idx,                                                              \
+    HOL_SUGAR(                                                                            \
+      DECL_FUNC(f3, {srt, srt, srt}, srt)                                                 \
+      DECL_POLY_CONST(c1, 1, alpha)                                                       \
+      DECL_POLY_CONST(c2, 1, alpha)                                                       \
+      DECL_POLY_CONST(h, 2, arrow(alpha, beta))                                           \
+    ),                                                                                    \
+    IndexTest {                                                                           \
+      .index = getTermIndexHOL(),                                                         \
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,                               \
+      .insert = {                                                                         \
+               ap(h(arrow(srt, srt), srt), c1(arrow(srt, srt))),                          \
+               ap(h(srt            , srt), c2(srt)),                                      \
+      },                                                                                  \
+      __VA_ARGS__                                                                         \
     })
 
 
@@ -780,7 +780,7 @@ INDEX_TEST_hol_05(02,
     )
 
 INDEX_TEST(term_indexing_poly_uwa_01,
-    POLY_RAT_SUGAR,
+    POLY_SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -1001,9 +1001,6 @@ TEST_FUN(higher_order2)
   // reportTermMatches(index,ap(ap(f,b),a),srt);
 }
 
-static const int NORM_QUERY_BANK=2;
-// static const int NORM_RESULT_BANK=3;
-
 Option<TermUnificationResultSpec> runRobUnify(bool diffNamespaces, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermList a, TermList b) {
   // TODO parameter instead of opts
   auto n1 = 0;
@@ -1051,35 +1048,36 @@ void checkRobUnifyFail(bool diffNamespaces, Options::UnificationWithAbstraction 
   }
 }
 
-#define ROB_UNIFY_TEST_NAMESPACED(name, opt, fixedPointIteration, lhs, rhs, ...)                                         \
-  TEST_FUN(name)                                                                                    \
-  {                                                                                                 \
-    RAT_SUGAR                                                                                       \
+#define ROB_UNIFY_TEST_NAMESPACED(name, opt, fixedPointIteration, lhs, rhs, ...)          \
+  TEST_FUN(name)                                                                          \
+  {                                                                                       \
+    __ALLOW_UNUSED(SUGAR(Rat))                                                            \
     checkRobUnify(/* namespaced */ true, opt, fixedPointIteration, lhs, rhs,  __VA_ARGS__ );                                                     \
-  }                                                                                                 \
+  }                                                                                       \
 
-#define ROB_UNIFY_TEST(name, opt, fixedPointIteration, lhs, rhs, ...)                               \
-  TEST_FUN(name)                                                                                    \
-  {                                                                                                 \
-    RAT_SUGAR                                                                                       \
+#define ROB_UNIFY_TEST(name, sugar, opt, fixedPointIteration, lhs, rhs, ...)              \
+  TEST_FUN(name)                                                                          \
+  {                                                                                       \
+    __ALLOW_UNUSED(sugar)                                                                 \
     checkRobUnify(/* namespaced */ false, opt, fixedPointIteration, lhs, rhs, __VA_ARGS__ );        \
-  }                                                                                                 \
+  }                                                                                       \
 
-#define ROB_UNIFY_TEST_FAIL(name, opt, fixedPointIteration, lhs, rhs)                               \
-  TEST_FUN(name)                                                                                    \
-  {                                                                                                 \
-    RAT_SUGAR                                                                                       \
-    checkRobUnifyFail(false, opt, fixedPointIteration, lhs, rhs);                                   \
-  }                                                                                                 \
+#define ROB_UNIFY_TEST_FAIL(name, sugar, opt, fixedPointIteration, lhs, rhs)                     \
+  TEST_FUN(name)                                                                          \
+  {                                                                                       \
+    __ALLOW_UNUSED(sugar)                                                            \
+    checkRobUnifyFail(false, opt, fixedPointIteration, lhs, rhs);                         \
+  }                                                                                       \
 
-#define ROB_UNIFY_TEST_FAIL_NAMESPACED(name, opt, lhs, rhs)                                         \
-  TEST_FUN(name)                                                                                    \
-  {                                                                                                 \
-    RAT_SUGAR                                                                                       \
-    checkRobUnifyFail(true, opt, /* fixedPointIteration */ false, lhs, rhs);                        \
-  }                                                                                                 \
+#define ROB_UNIFY_TEST_FAIL_NAMESPACED(name, opt, lhs, rhs)                               \
+  TEST_FUN(name)                                                                          \
+  {                                                                                       \
+    SUGAR(Rat)                                                                            \
+    checkRobUnifyFail(true, opt, /* fixedPointIteration */ false, lhs, rhs);              \
+  }                                                                                       \
 
 ROB_UNIFY_TEST(rob_unif_test_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ONE_INTERP,
     /* fixedPointIteration */ false,
     f(b + 2), 
@@ -1091,6 +1089,7 @@ ROB_UNIFY_TEST(rob_unif_test_01,
     })
 
 ROB_UNIFY_TEST(rob_unif_test_02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ONE_INTERP,
     /* fixedPointIteration */ false,
     f(b + 2), 
@@ -1102,6 +1101,7 @@ ROB_UNIFY_TEST(rob_unif_test_02,
     })
 
 ROB_UNIFY_TEST(rob_unif_test_03,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ONE_INTERP,
     /* fixedPointIteration */ false,
     f(x + 2), 
@@ -1113,12 +1113,14 @@ ROB_UNIFY_TEST(rob_unif_test_03,
     })
 
 ROB_UNIFY_TEST_FAIL(rob_unif_test_04,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ONE_INTERP,
     /* fixedPointIteration */ false,
     f(a), g(1 + a))
 
 
 ROB_UNIFY_TEST(rob_unif_test_05,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ONE_INTERP,
     /* fixedPointIteration */ false,
     f(a + b), 
@@ -1130,6 +1132,7 @@ ROB_UNIFY_TEST(rob_unif_test_05,
     })
 
 ROB_UNIFY_TEST(rob_unif_test_06,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ONE_INTERP,
     /* fixedPointIteration */ false,
     f2(x, x + 1), 
@@ -1141,6 +1144,7 @@ ROB_UNIFY_TEST(rob_unif_test_06,
     })
 
 // ROB_UNIFY_TEST(over_approx_test_1_bad,
+// SUGAR(Rat),
 //     Options::UnificationWithAbstraction::AC1,
 //     f2(x + b, x),
 //     f2(a    , a),
@@ -1151,11 +1155,13 @@ ROB_UNIFY_TEST(rob_unif_test_06,
 //     })
 //
 // ROB_UNIFY_TEST_FAIL(over_approx_test_1_good,
+// SUGAR(Rat),
 //     Options::UnificationWithAbstraction::AC1,
 //     f2(x, x + b),
 //     f2(a, a    ))
 
 ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ false,
     f2(x, a + x),
@@ -1167,6 +1173,7 @@ ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
     })
 
 ROB_UNIFY_TEST_FAIL(over_approx_test_2_bad_AC1_fixedPointIteration,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ true,
     f2(x, a + x),
@@ -1174,12 +1181,14 @@ ROB_UNIFY_TEST_FAIL(over_approx_test_2_bad_AC1_fixedPointIteration,
     )
 
 ROB_UNIFY_TEST_FAIL(over_approx_test_2_good_AC1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ false,
     f2(a + x, x),
     f2(b + a, c))
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ false,
     f2(f2(y, x), a + y + x),
@@ -1191,6 +1200,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
     })
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1_fixedPointIteration,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ true,
     f2(f2(y, x), a + y + x),
@@ -1202,6 +1212,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1_fixedPointIteration,
     })
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_good_AC1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ false,
     f2(a + x + y, f2(x, y)),
@@ -1216,6 +1227,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_good_AC1,
 
 
 ROB_UNIFY_TEST(ac_bug_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ false,
     a + b + c + a,
@@ -1227,6 +1239,7 @@ ROB_UNIFY_TEST(ac_bug_01,
     })
 
 ROB_UNIFY_TEST(ac_test_01_AC1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ false,
     f2(b, a + b + c),
@@ -1238,6 +1251,7 @@ ROB_UNIFY_TEST(ac_test_01_AC1,
     })
 
 ROB_UNIFY_TEST(ac_test_02_AC1_good,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ false,
     f2(a + b + c, c),
@@ -1249,6 +1263,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_good,
     })
 
 ROB_UNIFY_TEST(ac_test_02_AC1_bad,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ false,
     f2(c, a + b + c),
@@ -1260,6 +1275,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_bad,
     })
 
 ROB_UNIFY_TEST(ac_test_02_AC1_bad_fixedPointIteration,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC1,
     /* fixedPointIteration */ true,
     f2(c, a + b + c),
@@ -1271,6 +1287,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_bad_fixedPointIteration,
     })
 
 ROB_UNIFY_TEST(ac2_test_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC2,
     /* fixedPointIteration */ false,
     f2(x, a + b + c),
@@ -1282,6 +1299,7 @@ ROB_UNIFY_TEST(ac2_test_01,
     })
 
 ROB_UNIFY_TEST(ac2_test_02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC2,
     /* fixedPointIteration */ false,
     f2(a + b + c, f2(x,b)),
@@ -1293,6 +1311,7 @@ ROB_UNIFY_TEST(ac2_test_02,
     })
 
 ROB_UNIFY_TEST(ac2_test_02_bad,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC2,
     /* fixedPointIteration */ false,
     f2(f2(x,b), a + b + c),
@@ -1304,6 +1323,7 @@ ROB_UNIFY_TEST(ac2_test_02_bad,
     })
 
 ROB_UNIFY_TEST(ac2_test_02_bad_fixedPointIteration,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC2,
     /* fixedPointIteration */ true,
     f2(f2(x,b), a + b + c),
@@ -1316,6 +1336,7 @@ ROB_UNIFY_TEST(ac2_test_02_bad_fixedPointIteration,
 
 
 ROB_UNIFY_TEST(alasca3_test_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, a + b + c),
@@ -1327,6 +1348,7 @@ ROB_UNIFY_TEST(alasca3_test_01,
     })
 
 ROB_UNIFY_TEST(alasca3_test_02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(a + b + c, f2(x,b)),
@@ -1338,6 +1360,7 @@ ROB_UNIFY_TEST(alasca3_test_02,
     })
 
 ROB_UNIFY_TEST(alasca3_test_02_bad,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(f2(x,b), a + b + c),
@@ -1349,6 +1372,7 @@ ROB_UNIFY_TEST(alasca3_test_02_bad,
     })
 
 ROB_UNIFY_TEST(alasca3_test_02_bad_fpi,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ true,
     f2(f2(x,b), a + b + c),
@@ -1361,6 +1385,7 @@ ROB_UNIFY_TEST(alasca3_test_02_bad_fpi,
 
 
 ROB_UNIFY_TEST(alasca3_test_03,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, a + b + c),
@@ -1373,6 +1398,7 @@ ROB_UNIFY_TEST(alasca3_test_03,
 
 
 ROB_UNIFY_TEST(alasca3_test_04,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, 2 * a + b + c),
@@ -1384,6 +1410,7 @@ ROB_UNIFY_TEST(alasca3_test_04,
     })
 
 ROB_UNIFY_TEST(alasca3_test_05,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, 2 * a + b + c),
@@ -1396,6 +1423,7 @@ ROB_UNIFY_TEST(alasca3_test_05,
 
 
 ROB_UNIFY_TEST(alasca3_test_06,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, 2 * a +             b + c),
@@ -1408,6 +1436,7 @@ ROB_UNIFY_TEST(alasca3_test_06,
 
 
 ROB_UNIFY_TEST(alasca3_test_07,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, f(x) + y),
@@ -1420,12 +1449,14 @@ ROB_UNIFY_TEST(alasca3_test_07,
 
 
 ROB_UNIFY_TEST_FAIL(alasca3_test_08,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, a + b),
     f2(x, c + b))
 
 ROB_UNIFY_TEST_FAIL(alasca3_test_09,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, f(a) + b),
@@ -1433,6 +1464,7 @@ ROB_UNIFY_TEST_FAIL(alasca3_test_09,
 
 
 ROB_UNIFY_TEST(alasca3_test_10,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, a + b + x),
@@ -1444,24 +1476,28 @@ ROB_UNIFY_TEST(alasca3_test_10,
     })
 
 ROB_UNIFY_TEST_FAIL(alasca3_test_11,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, f(a) +  2 * g(a)),
     f2(x, frac(1,2) * f(a) + g(x) + g(y)))
 
 ROB_UNIFY_TEST_FAIL(alasca3_test_12,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, f(x) + f(b) + f(z)),
     f2(x, f(a) - f(y)))
 
 ROB_UNIFY_TEST_FAIL(alasca3_test_13,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, f(x)),
     f2(x, f(a) - f(y)))
 
 ROB_UNIFY_TEST(alasca3_test_14,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, 0),
@@ -1473,6 +1509,7 @@ ROB_UNIFY_TEST(alasca3_test_14,
     })
 
 ROB_UNIFY_TEST(alasca3_test_15,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, 2 * (a + b)),
@@ -1484,6 +1521,7 @@ ROB_UNIFY_TEST(alasca3_test_15,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_16,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     2 * f(x),
@@ -1495,6 +1533,7 @@ ROB_UNIFY_TEST(lpar_main_test_16,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_17,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     2 * f(x),
@@ -1506,12 +1545,14 @@ ROB_UNIFY_TEST(lpar_main_test_17,
     })
 
 ROB_UNIFY_TEST_FAIL(lpar_main_test_18,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     2 * f(x),
     f(y) + frac(1,2) *  f(z))
 
 ROB_UNIFY_TEST(lpar_main_test_19,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     2 * f(x) - f(y) - f(z),
@@ -1523,6 +1564,7 @@ ROB_UNIFY_TEST(lpar_main_test_19,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_20,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     -2 * f(x) + f(y) + f(z),
@@ -1534,6 +1576,7 @@ ROB_UNIFY_TEST(lpar_main_test_20,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_21,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f(x) + f(y),
@@ -1545,6 +1588,7 @@ ROB_UNIFY_TEST(lpar_main_test_21,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_22,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ true,
     f(x) + f(y) + g(x),
@@ -1556,6 +1600,7 @@ ROB_UNIFY_TEST(lpar_main_test_22,
     })
 
 ROB_UNIFY_TEST(constr_var_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     s2r(x),
@@ -1567,6 +1612,7 @@ ROB_UNIFY_TEST(constr_var_01,
     })
 
 ROB_UNIFY_TEST(top_level_constraints_1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC2,
     /* fixedPointIteration */ false,
     a + y + x,
@@ -1578,7 +1624,7 @@ ROB_UNIFY_TEST(top_level_constraints_1,
     })
 
 INDEX_TEST(top_level_constraints_2_with_fixedPointIteration,
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::AC2,
@@ -1608,7 +1654,7 @@ INDEX_TEST(top_level_constraints_2_with_fixedPointIteration,
 
 
 INDEX_TEST(top_level_constraints_2,
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::AC2,
@@ -1639,6 +1685,7 @@ INDEX_TEST(top_level_constraints_2,
 
 
 ROB_UNIFY_TEST(constr_var_02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     x,
@@ -1651,6 +1698,7 @@ ROB_UNIFY_TEST(constr_var_02,
 
 
 ROB_UNIFY_TEST(constr_var_03,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     x,
@@ -1662,12 +1710,14 @@ ROB_UNIFY_TEST(constr_var_03,
     })
 
 ROB_UNIFY_TEST_FAIL(constr_var_04,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     x,
     f(f(x)))
 
 ROB_UNIFY_TEST_FAIL(constr_var_05,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     x,
@@ -1675,6 +1725,7 @@ ROB_UNIFY_TEST_FAIL(constr_var_05,
   )
 
 ROB_UNIFY_TEST_FAIL(constr_var_06,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     x,
@@ -1682,6 +1733,7 @@ ROB_UNIFY_TEST_FAIL(constr_var_06,
   )
 
 ROB_UNIFY_TEST_FAIL(constr_var_07,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     x,
@@ -1689,6 +1741,7 @@ ROB_UNIFY_TEST_FAIL(constr_var_07,
   )
 
 ROB_UNIFY_TEST(constr_var_08,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     x,
@@ -1700,6 +1753,7 @@ ROB_UNIFY_TEST(constr_var_08,
     })
 
 ROB_UNIFY_TEST(constr_var_09,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     x,
@@ -1712,6 +1766,7 @@ ROB_UNIFY_TEST(constr_var_09,
 
 
 ROB_UNIFY_TEST(constr_var_10,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, y),
@@ -1725,6 +1780,7 @@ ROB_UNIFY_TEST(constr_var_10,
 
 
 ROB_UNIFY_TEST(constr_var_11,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x, y),
@@ -1754,6 +1810,7 @@ ROB_UNIFY_TEST(constr_var_11,
 
 
 ROB_UNIFY_TEST(bug01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(x - y, f2(x, y)),
@@ -1766,6 +1823,7 @@ ROB_UNIFY_TEST(bug01,
 
 
 ROB_UNIFY_TEST(non_linear_mul_1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f(3 * a),
@@ -1778,6 +1836,7 @@ ROB_UNIFY_TEST(non_linear_mul_1,
 
 
 ROB_UNIFY_TEST_FAIL(non_linear_mul_2,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(3 * a, 2),
@@ -1785,6 +1844,7 @@ ROB_UNIFY_TEST_FAIL(non_linear_mul_2,
 
 
 ROB_UNIFY_TEST(non_linear_mul_3_bad,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(2, 3 * a),
@@ -1796,6 +1856,7 @@ ROB_UNIFY_TEST(non_linear_mul_3_bad,
     })
 
 ROB_UNIFY_TEST_FAIL(non_linear_mul_3_bad_fpi,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ true,
     f2(2, 3 * a),
@@ -1813,6 +1874,7 @@ ROB_UNIFY_TEST_NAMESPACED(namespace_bug_01,
     })
 
 ROB_UNIFY_TEST(misc01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::ALASCA3,
     /* fixedPointIteration */ false,
     f2(f2(a + b + c + f(a), x    ), y),
@@ -1825,7 +1887,7 @@ ROB_UNIFY_TEST(misc01,
 
 
 INDEX_TEST(bug02,
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::ONE_INTERP,
@@ -1846,6 +1908,7 @@ INDEX_TEST(bug02,
 
 
 ROB_UNIFY_TEST(lpar_main_test_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, a + b + c),
@@ -1857,6 +1920,7 @@ ROB_UNIFY_TEST(lpar_main_test_01,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(a + b + c, f2(x,b)),
@@ -1868,6 +1932,7 @@ ROB_UNIFY_TEST(lpar_main_test_02,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_02_bad,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(f2(x,b), a + b + c),
@@ -1879,6 +1944,7 @@ ROB_UNIFY_TEST(lpar_main_test_02_bad,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_02_bad_fpi,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ true,
     f2(f2(x,b), a + b + c),
@@ -1891,6 +1957,7 @@ ROB_UNIFY_TEST(lpar_main_test_02_bad_fpi,
 
 
 ROB_UNIFY_TEST(lpar_main_test_03,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, a + b + c),
@@ -1903,6 +1970,7 @@ ROB_UNIFY_TEST(lpar_main_test_03,
 
 
 ROB_UNIFY_TEST(lpar_main_test_04,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, 2 * a + b + c),
@@ -1915,6 +1983,7 @@ ROB_UNIFY_TEST(lpar_main_test_04,
 
 
 ROB_UNIFY_TEST(lpar_main_test_05,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, 2 * a + b + c),
@@ -1927,6 +1996,7 @@ ROB_UNIFY_TEST(lpar_main_test_05,
 
 
 ROB_UNIFY_TEST(lpar_main_test_06,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, b),
@@ -1939,6 +2009,7 @@ ROB_UNIFY_TEST(lpar_main_test_06,
 
 
 ROB_UNIFY_TEST(lpar_main_test_07,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, f(x) + y),
@@ -1951,12 +2022,14 @@ ROB_UNIFY_TEST(lpar_main_test_07,
 
 
 ROB_UNIFY_TEST_FAIL(lpar_main_test_08,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, a + b),
     f2(x, c + b))
 
 ROB_UNIFY_TEST_FAIL(lpar_main_test_09,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, f(a) + b),
@@ -1964,6 +2037,7 @@ ROB_UNIFY_TEST_FAIL(lpar_main_test_09,
 
 
 ROB_UNIFY_TEST(lpar_main_test_10,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, a + b + x),
@@ -1975,24 +2049,28 @@ ROB_UNIFY_TEST(lpar_main_test_10,
     })
 
 ROB_UNIFY_TEST_FAIL(lpar_main_test_11,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, f(a) +  2 * g(a)),
     f2(x, frac(1,2) * f(a) + g(x) + g(y)))
 
 ROB_UNIFY_TEST_FAIL(lpar_main_test_12,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, f(x) + f(b) + f(z)),
     f2(x, f(a) - f(y)))
 
 ROB_UNIFY_TEST_FAIL(lpar_main_test_13,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, f(x)),
     f2(x, f(a) - f(y)))
 
 ROB_UNIFY_TEST(lpar_main_test_14,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, 0),
@@ -2004,6 +2082,7 @@ ROB_UNIFY_TEST(lpar_main_test_14,
     })
 
 ROB_UNIFY_TEST(lpar_main_test_15,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, 2 * (a + b)),
@@ -2015,6 +2094,7 @@ ROB_UNIFY_TEST(lpar_main_test_15,
     })
 
 ROB_UNIFY_TEST(lpar_main_constr_var_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     s2r(x),
@@ -2026,6 +2106,7 @@ ROB_UNIFY_TEST(lpar_main_constr_var_01,
     })
 
 ROB_UNIFY_TEST(lpar_main_top_level_constraints_1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::AC2,
     /* fixedPointIteration */ false,
     a + y + x,
@@ -2038,6 +2119,7 @@ ROB_UNIFY_TEST(lpar_main_top_level_constraints_1,
 
 
 ROB_UNIFY_TEST(alasca3_constr_var_02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     x,
@@ -2050,6 +2132,7 @@ ROB_UNIFY_TEST(alasca3_constr_var_02,
 
 
 ROB_UNIFY_TEST(lpar_main_constr_var_03,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     x,
@@ -2061,12 +2144,14 @@ ROB_UNIFY_TEST(lpar_main_constr_var_03,
     })
 
 ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_04,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     x,
     f(f(x)))
 
 ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_05,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     x,
@@ -2074,6 +2159,7 @@ ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_05,
   )
 
 ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_06,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     x,
@@ -2081,6 +2167,7 @@ ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_06,
   )
 
 ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_07,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     x,
@@ -2088,6 +2175,7 @@ ROB_UNIFY_TEST_FAIL(lpar_main_constr_var_07,
   )
 
 ROB_UNIFY_TEST(lpar_main_constr_var_08,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     x,
@@ -2099,6 +2187,7 @@ ROB_UNIFY_TEST(lpar_main_constr_var_08,
     })
 
 ROB_UNIFY_TEST(lpar_main_constr_var_09,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     x,
@@ -2111,6 +2200,7 @@ ROB_UNIFY_TEST(lpar_main_constr_var_09,
 
 
 ROB_UNIFY_TEST(lpar_main_constr_var_10,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, y),
@@ -2123,6 +2213,7 @@ ROB_UNIFY_TEST(lpar_main_constr_var_10,
 
 
 ROB_UNIFY_TEST(lpar_main_constr_var_11,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x, y),
@@ -2134,6 +2225,7 @@ ROB_UNIFY_TEST(lpar_main_constr_var_11,
     })
 
 ROB_UNIFY_TEST_FAIL(lpar_main_misc02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(2 * f(x) + g(a), f2(x, y)),
@@ -2142,6 +2234,7 @@ ROB_UNIFY_TEST_FAIL(lpar_main_misc02,
     
 
 ROB_UNIFY_TEST_FAIL(lpar_main_misc03,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(2 * f(x) + g(a), f2(x, y)),
@@ -2149,6 +2242,7 @@ ROB_UNIFY_TEST_FAIL(lpar_main_misc03,
     )
 
 ROB_UNIFY_TEST(lpar_main_misc04,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(2 * f(x) + g(b), f2(x, y)),
@@ -2160,6 +2254,7 @@ ROB_UNIFY_TEST(lpar_main_misc04,
     })
 
 ROB_UNIFY_TEST(lpar_main_misc05,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(2 * f(x) + g(a), f2(x, y)),
@@ -2171,12 +2266,14 @@ ROB_UNIFY_TEST(lpar_main_misc05,
     })
 
 ROB_UNIFY_TEST_FAIL(lpar_main_misc06,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(2 * f(x) + g(b), f2(x, y)),
     f2(f(a) + f(a) + g(x), f2(x, y)))
 
 ROB_UNIFY_TEST_FAIL(lpar_main_misc07,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(2 * f(x) + g(b)       , f2(x, y)),
@@ -2184,6 +2281,7 @@ ROB_UNIFY_TEST_FAIL(lpar_main_misc07,
     )
 
 ROB_UNIFY_TEST_FAIL(lpar_main_misc08,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(2 * f(x) + g(b)        , f2(x, y)),
@@ -2191,12 +2289,14 @@ ROB_UNIFY_TEST_FAIL(lpar_main_misc08,
     )
 
 ROB_UNIFY_TEST_FAIL(lpar_main_non_normalized_mul_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x * a * y, f2(x, y)),
     f2(5 * a    , f2(2, 3)))
 
 ROB_UNIFY_TEST(lpar_main_non_normalized_mul_02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x * a * y, f2(x, y)),
@@ -2226,6 +2326,7 @@ ROB_UNIFY_TEST(lpar_main_non_normalized_mul_02,
 
 
 ROB_UNIFY_TEST(lpar_better_normalization_01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f(x + y) + f(y + x),
@@ -2237,6 +2338,7 @@ ROB_UNIFY_TEST(lpar_better_normalization_01,
     })
 
 ROB_UNIFY_TEST(lpar_better_normalization_02,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f(x + 0) + f(0 + x),
@@ -2249,12 +2351,14 @@ ROB_UNIFY_TEST(lpar_better_normalization_02,
     })
 
 ROB_UNIFY_TEST_FAIL(lpar_better_normalization_03,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f(c + f(x)) + f(c + f(x)),
     f(b + f(a)) + f(f(a) + b))
 
 ROB_UNIFY_TEST(lpar_main_bug01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(x - y, f2(x, y)),
@@ -2267,6 +2371,7 @@ ROB_UNIFY_TEST(lpar_main_bug01,
 
 
 ROB_UNIFY_TEST(lpar_main_non_linear_mul_1,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f(3 * a),
@@ -2279,6 +2384,7 @@ ROB_UNIFY_TEST(lpar_main_non_linear_mul_1,
 
 
 ROB_UNIFY_TEST_FAIL(lpar_main_non_linear_mul_2,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(3 * a, 2),
@@ -2286,6 +2392,7 @@ ROB_UNIFY_TEST_FAIL(lpar_main_non_linear_mul_2,
 
 
 ROB_UNIFY_TEST(lpar_main_non_linear_mul_3_bad,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(2, 3 * a),
@@ -2297,6 +2404,7 @@ ROB_UNIFY_TEST(lpar_main_non_linear_mul_3_bad,
     })
 
 ROB_UNIFY_TEST_FAIL(lpar_main_non_linear_mul_3_bad_fpi,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ true,
     f2(2, 3 * a),
@@ -2314,6 +2422,7 @@ ROB_UNIFY_TEST_NAMESPACED(lpar_main_namespace_bug_01,
     })
 
 ROB_UNIFY_TEST(lpar_main_misc01,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(f2(a + b + c + f(a), x    ), y),
@@ -2326,6 +2435,7 @@ ROB_UNIFY_TEST(lpar_main_misc01,
 
 
 ROB_UNIFY_TEST(lpar_main_bug03,
+    SUGAR(Rat),
     Options::UnificationWithAbstraction::LPAR_MAIN,
     /* fixedPointIteration */ false,
     f2(f(y), f2(f(g(a)), f2(-S2, h((-f(g(a)) + f(x)))))),
@@ -2357,7 +2467,7 @@ TermList binList(FuncSugar f2, Stack<TermList> ts)
 }
 
 INDEX_TEST(bug_wrong_ouptut_var_01,
-    RAT_SUGAR,
+    SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
       .uwa = Options::UnificationWithAbstraction::LPAR_MAIN,
@@ -2376,3 +2486,37 @@ INDEX_TEST(bug_wrong_ouptut_var_01,
 
       },
     })
+
+ROB_UNIFY_TEST(lpar_main_int_bug01,
+    SUGAR(Int),
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    -x,
+    a + y + -f(y),
+    TermUnificationResultSpec { 
+      .querySigma  = -(-(a + x + -f(x))),
+      .resultSigma = a + x + -f(x),
+      .constraints = Stack<Literal*>{ },
+      .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(lpar_main_int_bug02,
+    SUGAR(Int),
+    Options::UnificationWithAbstraction::LPAR_MAIN,
+    /* fixedPointIteration */ false,
+    2 * x,
+    a + y + -f(y),
+    TermUnificationResultSpec { 
+      .querySigma  = 2 * x,
+      .resultSigma = a + y + -f(y),
+      .constraints = { 2 * x != a + y + -f(y)  },
+      // .lascaSimpl = true,
+    })
+
+
+// ROB_UNIFY_TEST_FAIL(lpar_main_int_bug03,
+//     SUGAR(Int),
+//     Options::UnificationWithAbstraction::LPAR_MAIN,
+//     /* fixedPointIteration */ false,
+//     2 * x,
+//     x)

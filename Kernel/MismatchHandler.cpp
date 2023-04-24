@@ -385,7 +385,11 @@ MismatchHandler::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& 
                 .map([&](auto i) { return std::move(diff[i]); }); };
 
       return AbstractionResult(ifIntTraits(n, 
-            [&](auto n) { return EqualIf().unify(UnificationConstraint(numMul(-num, std::move(var)), sum(rest()))); },
+            [&](auto n) { return num == Numeral(-1) ? EqualIf().unify(UnificationConstraint(std::move(var), sum(rest())))
+                               : num == Numeral( 1) ? EqualIf().unify(UnificationConstraint(std::move(var), sum(rest().map([](auto x) { return make_pair(std::move(x.first), -std::move(x.second)); }))))
+                               :                      EqualIf().constr(UnificationConstraint(numMul(-num, std::move(var)), sum(rest())))
+                                                    ; },
+            // [&](auto n) { return EqualIf().unify(UnificationConstraint(numMul(-num, std::move(var)), sum(rest()))); },
             [&](auto n) { return EqualIf().unify(UnificationConstraint(std::move(var), 
                 sum(rest().map([&](auto x) { return make_pair(std::move(x.first), divOrPanic(n, x.second, -num)); })
                   ))); }
@@ -1181,7 +1185,11 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
             progress = true;
           }
           for (auto& x : conditions.unify()) {
+            if (x == cur) {
+              DBGE(x)
+              DBGE(cur)
             ASS_NEQ(x, cur)
+            }
             pushTodo(std::move(x));
           }
           for (auto& x: conditions.constr()) {
