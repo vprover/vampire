@@ -9,6 +9,7 @@
  */
 
 #include "LASCA.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/MismatchHandler.hpp"
 #include "Kernel/NumTraits.hpp"
@@ -310,19 +311,46 @@ SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, LascaState& sh
 
 std::shared_ptr<LascaState> LascaState::globalState = nullptr;
 
+Option<std::function<TermList(TermList*)>> translateInterpretedFunction(unsigned f);
+Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigned f);
+
 void LascaState::realization(Problem& p)
 {
   auto trans = tranlateSignature();
   auto& fs  = trans.first;
   auto& ps  = trans.second;
   auto translateTerm = [&](TermList t) -> TermList { 
-    return t; 
+    return evalBottomUp<TermList>(t, [&](auto orig, auto* evalArgs) {
+        if (orig.isVar()) {
+          return orig;
+        } else {
+          auto f = orig.term()->functor();
+          auto itp = translateInterpretedFunction(f);
+          if (itp) {
+            return (*itp)(evalArgs);
+          } else {
+            return TermList(Term::create(fs[f], orig.term()->arity(), evalArgs));
+          }
+        }
+    });
   };
   auto translateLit = [&](Literal* lit) -> Literal* {
-    return Literal::createFromIter(
-        lit->polarity(),
-        ps[lit->functor()], 
+    auto p = lit->functor();
+    auto itp = translateInterpretedPredicate(p);
+
+    Recycled<Stack<TermList>> args;
+    args->loadFromIterator(
         anyArgIter(lit).map([&](auto arg) { return translateTerm(arg); }));
+    if (itp) {
+      return (*itp)(args->begin());
+    } else {
+      return Literal::createFromIter(
+          lit->polarity(),
+          ps[lit->functor()], 
+          args->iterFifo()
+          );
+    }
+
   };
   p.mapUnits([&](auto c_) {
       Recycled<Stack<Unit*>> out;
@@ -379,35 +407,43 @@ pair<Stack<unsigned>, Stack<unsigned>> LascaState::tranlateSignature()
     { return iterArgs(o).any([&](auto a) { return a == ints; }); };
 
   for (auto f : range(0, env.signature->functions())) {
-    ASS_REP(theory->isInterpretedFunction(f), "TODO")
-    auto sym = env.signature->getFunction(f);
-    auto op = sym->fnType();
-    if (hasIntArgs(op) || op->result() == ints) {
-      Recycled<Stack<TermList>> args = mappedArgs(op);
-      auto res = op->result() == ints ? reals : op->result();
-      
-      fs.push(
-            env.signature->addFreshFunction(
-              OperatorType::getFunctionType(*args, res), 
-              sym->name().c_str()));
+    auto f_ = translateInterpretedFunction(f);
+    if (f_) {
+      fs.push(-1); // <- dummy. should never be accessed
     } else {
-      fs.push(f);
+      auto sym = env.signature->getFunction(f);
+      auto op = sym->fnType();
+      if (hasIntArgs(op) || op->result() == ints) {
+        Recycled<Stack<TermList>> args = mappedArgs(op);
+        auto res = op->result() == ints ? reals : op->result();
+        
+        fs.push(
+              env.signature->addFreshFunction(
+                OperatorType::getFunctionType(*args, res), 
+                sym->name().c_str()));
+      } else {
+        fs.push(f);
+      }
     }
   }
 
   Stack<unsigned> ps;
   for (auto p : range(0, env.signature->predicates())) {
-    ASS_REP(theory->isInterpretedPredicate(p), "TODO")
-    auto sym = env.signature->getPredicate(p);
-    auto op = sym->predType();
-    if (hasIntArgs(op)) {
-      Recycled<Stack<TermList>> args = mappedArgs(op);
-      ps.push(
-            env.signature->addFreshPredicate(
-              OperatorType::getPredicateType(*args),
-              sym->name().c_str()));
+    auto p_ = translateInterpretedPredicate(p);
+    if (p_) {
+      ps.push(-1); // <- dummy. should never be accessed
     } else {
-      ps.push(p);
+      auto sym = env.signature->getPredicate(p);
+      auto op = sym->predType();
+      if (hasIntArgs(op)) {
+        Recycled<Stack<TermList>> args = mappedArgs(op);
+        ps.push(
+              env.signature->addFreshPredicate(
+                OperatorType::getPredicateType(*args),
+                sym->name().c_str()));
+      } else {
+        ps.push(p);
+      }
     }
   }
   return make_pair(std::move(fs), std::move(ps));
