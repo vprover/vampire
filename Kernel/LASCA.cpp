@@ -15,6 +15,7 @@
 #include "Kernel/MismatchHandler.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Theory.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Indexing/ResultSubstitution.hpp"
@@ -25,6 +26,9 @@
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Kernel {
 using Inferences::PolynomialEvaluation;
+
+// number type to which integers are being translated to
+using R = RealTraits;
 
 bool isInequality(LascaPredicate const& self) 
 {
@@ -313,11 +317,16 @@ SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, LascaState& sh
 std::shared_ptr<LascaState> LascaState::globalState = nullptr;
 
 Option<std::function<TermList(TermList*)>> translateInterpretedFunction(unsigned f) {
+  auto fn = [](auto x) { return some(std::function<TermList(TermList*)>(std::move(x))); };
+
+  auto sym = env.signature->getFunction(f);
+  if(sym->integerConstant()) {
+    return fn([sym](auto x) { return R::constantTl(typename R::ConstantType(sym->integerValue(), IntegerConstantType(1))); });
+  }
+
   if(!theory->isInterpretedFunction(f))
     return {};
 
-  auto fn = [](auto x) { return some(std::function<TermList(TermList*)>(std::move(x))); };
-  using R = RealTraits;
 
   auto remainder = [](auto quotient)
   { return [quotient](TermList* ts) { return R::add(ts[0], R::minus(R::mul(ts[1], quotient(ts)))); }; };
@@ -448,7 +457,6 @@ Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigne
     return {};
 
   auto fn = [](auto x) { return some(std::function<Literal*(TermList*)>(std::move(x))); };
-  using R = RealTraits;
 
   switch(theory->interpretPredicate(f)) {
     case Interpretation::EQUAL: return fn([](auto x) -> Literal* { ASSERTION_VIOLATION_REP("this should never be called bc alas equality is special") });
@@ -600,7 +608,7 @@ void LascaState::realization(Problem& p)
         auto itp = normalizer.normalizeLasca<IntTraits>(l);
         if (itp) {
           for (auto nl : itp->value) {
-            clOut->push(RealTraits::isInt(false, nl.term().denormalize()));
+            clOut->push(R::isInt(false, nl.term().denormalize()));
           }
         }
         clOut->push(translateLit(l));
@@ -613,7 +621,6 @@ void LascaState::realization(Problem& p)
   });
 
   // TODO replace these axioms by rules (?)
-  using R = RealTraits;
   auto x = TermList::var(0);
 
   p.units() = 
@@ -632,7 +639,7 @@ pair<Stack<unsigned>, Stack<unsigned>> LascaState::tranlateSignature()
 {
   Stack<unsigned> fs;
 
-  auto reals = RealTraits::sort();
+  auto reals = R::sort();
   auto ints  = IntTraits::sort();
 
   auto iterArgs = [&](OperatorType* o)  
