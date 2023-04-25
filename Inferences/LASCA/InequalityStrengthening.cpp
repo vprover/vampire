@@ -65,6 +65,7 @@ using Rhs = InequalityStrengthening::Rhs;
 ClauseIterator InequalityStrengthening::generateClauses(Clause* premise) 
 {
   CALL("InequalityStrengthening::generateClauses(Clause* premise)")
+  // TODO refactor so this function is not copied and pasted among all unifying lasca rules
   ASS(_lhsIndex)
   ASS(_rhsIndex)
   ASS(_shared)
@@ -72,11 +73,11 @@ ClauseIterator InequalityStrengthening::generateClauses(Clause* premise)
 
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG("lhs: ", lhs)
-    for (auto rhs_sigma : _rhsIndex->find(lhs.monom())) {
-      auto& rhs   = std::get<0>(rhs_sigma);
-      auto& sigma = std::get<1>(rhs_sigma);
+    for (auto rhs_sigma : _rhsIndex->find(lhs.key())) {
+      auto& rhs   = *rhs_sigma.data;
+      auto& sigma = rhs_sigma.unifier;
       DEBUG("  rhs: ", rhs)
-      auto res = applyRule(lhs, 0, rhs, 1, sigma);
+      auto res = applyRule(lhs, 0, rhs, 1, *sigma);
       if (res.isSome()) {
         out.push(res.unwrap());
       }
@@ -86,12 +87,12 @@ ClauseIterator InequalityStrengthening::generateClauses(Clause* premise)
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG("rhs: ", rhs)
 
-    for (auto lhs_sigma : _lhsIndex->find(rhs.monom())) {
-      auto& lhs   = std::get<0>(lhs_sigma);
-      auto& sigma = std::get<1>(lhs_sigma);
+    for (auto lhs_sigma : _lhsIndex->find(rhs.key())) {
+      auto& lhs   = *lhs_sigma.data;
+      auto& sigma = lhs_sigma.unifier;
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
         DEBUG("  lhs: ", lhs)
-        auto res = applyRule(lhs, 1, rhs, 0, sigma);
+        auto res = applyRule(lhs, 1, rhs, 0, *sigma);
         if (res.isSome()) {
           out.push(res.unwrap());
         }
@@ -105,7 +106,7 @@ ClauseIterator InequalityStrengthening::generateClauses(Clause* premise)
 Option<Clause*> InequalityStrengthening::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
-    UwaResult& uwa
+    AbstractingUnifier& uwa
     ) const 
 {
   return lhs.numTraits().apply([&](auto numTraits) {
@@ -118,7 +119,7 @@ template<class NumTraits>
 Option<Clause*> InequalityStrengthening::applyRule(NumTraits,
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
-    UwaResult& uwa
+    AbstractingUnifier& uwa
     ) const 
 {
 
@@ -138,11 +139,13 @@ Option<Clause*> InequalityStrengthening::applyRule(NumTraits,
     ASS_EQ(lhs.symbol(), LascaPredicate::IS_INT_POS)
     ASS_EQ(rhs.symbol(), LascaPredicate::GREATER)
     ASS_EQ(lhs.sort(), rhs.sort())
+    auto cnst = uwa.constraintLiterals();
+    auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t, bank); };
 
     Stack<Literal*> out( lhs.clause()->size() - 1 // <- C1
                        + rhs.clause()->size() - 1 // <- C2
                        + 2                        // <- k s t₂ + k/j >= 0 \/ ~isInt((j/k) t₂ - t₁)
-                       + uwa.cnst().size());      // Cnst
+                       + cnst->size());      // Cnst
 
 
     auto jAbs = lhs.numeral().unwrap<typename NumTraits::ConstantType>().abs();
@@ -156,30 +159,30 @@ Option<Clause*> InequalityStrengthening::applyRule(NumTraits,
     };
     auto k = rhs.numeral().unwrap<typename NumTraits::ConstantType>();
 
-    auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
+    auto L1σ = sigma(lhs.literal(), lhsVarBank);
     check_side_condition( 
         "isInt(j s₁ + t₁)σ /⪯ C₁σ",
         lhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = uwa.sigma(L, lhsVarBank);
+             auto Lσ = sigma(L, lhsVarBank);
              out.push(Lσ);
              return _shared->notLeq(L1σ, Lσ);
            }));
 
 
-    auto L2σ = uwa.sigma(rhs.literal(), rhsVarBank);
+    auto L2σ = sigma(rhs.literal(), rhsVarBank);
     check_side_condition(
         "(k s₂ + t₂ > 0)σ /≺ C₂σ",
         rhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = uwa.sigma(L, rhsVarBank);
+             auto Lσ = sigma(L, rhsVarBank);
              out.push(Lσ);
              return _shared->notLess(L2σ, Lσ);
            }));
 
 
-    auto s1σ = uwa.sigma(lhs.monom(), lhsVarBank);
-    auto s2σ = uwa.sigma(rhs.monom(), rhsVarBank);
+    auto s1σ = sigma(lhs.monom(), lhsVarBank);
+    auto s2σ = sigma(rhs.monom(), rhsVarBank);
     // ASS_REP(_shared->equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
     Stack<TermList> t1σ(rhs.nContextTerms());
     Stack<TermList> t2σ(lhs.nContextTerms());
@@ -188,7 +191,7 @@ Option<Clause*> InequalityStrengthening::applyRule(NumTraits,
         "s₁σ /⪯ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = uwa.sigma(ti.factors->denormalize(), lhsVarBank);
+             auto tiσ = sigma(ti.factors->denormalize(), lhsVarBank);
              t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
              return _shared->notLeq(s1σ, tiσ);
            }))
@@ -197,7 +200,7 @@ Option<Clause*> InequalityStrengthening::applyRule(NumTraits,
         "s₂σ /⪯ t₂σ ",
         rhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = uwa.sigma(ti.factors->denormalize(), rhsVarBank);
+             auto tiσ = sigma(ti.factors->denormalize(), rhsVarBank);
              t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
              return _shared->notLeq(s2σ, tiσ);
            }))
@@ -215,10 +218,10 @@ Option<Clause*> InequalityStrengthening::applyRule(NumTraits,
     out.push(NumTraits::isInt(false, resolventTerm));
     // ~isInt(k s₂ + t₂ - (k / j) >= 0)σ
     out.push(NumTraits::geq(true, NumTraits::add(
-            uwa.sigma(rhs.ircLiteral().apply([](auto l) { return l.denormalize(); })->termArg(0), rhsVarBank), 
+            sigma(rhs.ircLiteral().apply([](auto l) { return l.denormalize(); })->termArg(0), rhsVarBank), 
             NumTraits::constantTl(-k / jAbs)), NumTraits::zero()));
 
-    out.loadFromIterator(uwa.cnstLiterals());
+    out.loadFromIterator(cnst->iterFifo());
 
     Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_INEQUALITY_STRENGTHENING, lhs.clause(), rhs.clause()));
     auto cl = Clause::fromStack(out, inf);

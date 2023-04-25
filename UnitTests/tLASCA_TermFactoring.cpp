@@ -61,7 +61,7 @@ using namespace Inferences::LASCA;
 
 
 TermFactoring testTermFactoring(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     )
 { 
   return TermFactoring(testLascaState(uwa));
@@ -379,6 +379,14 @@ TEST_GENERATION(bug_02,
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
       .expected(exactly(  
                                clause({ -23 * x0 +         0 * g(-23 * x0, x0)       > 0, -23 * x0 != -23 * x1 })   
+          )))
+
+TEST_GENERATION(non_linear_tryout01,
+    Generation::SymmetricTest()
+      .inputs  ({    clause({ (x * a) - (a * a) != 0 })    })
+      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .expected(exactly(  
+           clause({ 0 * (a * a) != 0 })
           )))
 
   //  clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 })

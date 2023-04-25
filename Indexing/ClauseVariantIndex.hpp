@@ -21,6 +21,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
+#include "Indexing/LiteralSubstitutionTree.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -52,7 +53,7 @@ protected:
 
 class SubstitutionTreeClauseVariantIndex : public ClauseVariantIndex
 {
-  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<>;
+  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 public:
   CLASS_NAME(SubstitutionTreeClauseVariantIndex);
   USE_ALLOCATOR(SubstitutionTreeClauseVariantIndex);
@@ -96,7 +97,7 @@ private:
   unsigned termFunctorHash(Term* t, unsigned hash_begin) {
     unsigned func = t->functor();
     // cout << "will hash funtor " << func << endl;
-    return Hash::hash((const unsigned char*)&func,sizeof(func),hash_begin);
+    return DefaultHash::hash(func, hash_begin);
   }
 
   unsigned computeHashAndCountVariables(unsigned var, VarCounts& varCnts, unsigned hash_begin) {
@@ -110,8 +111,7 @@ private:
     }
 
     // cout << "will hash variable" << endl;
-
-    return Hash::hash((const unsigned char*)&varHash,sizeof(varHash),hash_begin);
+    return DefaultHash::hash(varHash, hash_begin);
   }
 
   unsigned computeHashAndCountVariables(TermList* tl, VarCounts& varCnts, unsigned hash_begin);

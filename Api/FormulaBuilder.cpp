@@ -1300,19 +1300,19 @@ vstring StringIterator::next()
 //////////////////////////////
 // Output implementation
 
-std::ostream& operator<< (std::ostream& str,const Api::Sort& sort)
+std::ostream& ::operator<< (std::ostream& str,const Api::Sort& sort)
 {
   CALL("operator<< (ostream&,const Api::Sort&)");
   return str<<env.sorts->sortName(sort);
 }
 
-ostream& operator<< (ostream& str,const Api::Formula& f)
+ostream& ::operator<< (ostream& str,const Api::Formula& f)
 {
   CALL("operator<< (ostream&,const Api::Formula&)");
   return str<<f.toString();
 }
 
-ostream& operator<< (ostream& str,const Api::AnnotatedFormula& af)
+ostream& ::operator<< (ostream& str,const Api::AnnotatedFormula& af)
 {
   CALL("operator<< (ostream&,const Api::AnnotatedFormula&)");
   return str<<af.toString();

@@ -322,7 +322,7 @@ PolyNf normalizeTerm(TypedTermList t)
   TIME_TRACE("normalizing to PolyNf")
   DEBUG("normalizing ", t)
   // Memo::None<TypedTermList,NormalizationResult> memo;
-  Memo::Hashed<TypedTermList,NormalizationResult, StlHash> memo;
+  static Memo::Hashed<TypedTermList,NormalizationResult, StlHash> memo;
   struct Eval 
   {
     using Arg    = TypedTermList;
@@ -331,6 +331,7 @@ PolyNf normalizeTerm(TypedTermList t)
     NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
     { 
       CALL("normalizeTerm(TypedTermList)::eval::operator()")
+  TIME_TRACE("normalizing to PolyNf inner")
       auto sort = t.sort();
       if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
       if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
@@ -352,8 +353,8 @@ PolyNf normalizeTerm(TypedTermList t)
 
     }
   };
-  NormalizationResult r = evaluateBottomUp(t, Eval{});
-  return std::move(r).apply(RenderPolyNf{});
+  NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
+  return TIME_TRACE_EXPR("render PolyNf", std::move(r).apply(RenderPolyNf{}));
 }
 
 TermList PolyNf::denormalize() const

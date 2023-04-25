@@ -27,6 +27,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Normalisation.hpp"
+#include "Shell/Shuffling.hpp"
 #include "Shell/TheoryFinder.hpp"
 
 #include <unistd.h>
@@ -34,6 +35,7 @@
 #include <fstream>
 #include <stdio.h>
 #include <cstdio>
+#include <random>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -137,12 +139,21 @@ bool PortfolioMode::searchForProof()
    * also, cf. the beginning of Preprocessing::preprocess*/
   Shell::Property* property = _prb->getProperty();
   {
-    TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
+    TIME_TRACE(TimeTrace::PREPROCESSING);
 
     //we normalize now so that we don't have to do it in every child Vampire
     ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase,Statistics::NORMALIZATION);
-    Normalisation().normalise(*_prb);
     
+    if (env.options->normalize()) { // set explicitly by CASC(SAT) and SMTCOMP modes
+      Normalisation().normalise(*_prb);
+    }
+
+    // note that this is shuffleInput for the master process (for exceptional/experimental use)
+    // the usual way is to have strategies request shuffling explicitly in the schedule strings
+    if (env.options->shuffleInput()) {
+      Shuffling().shuffle(*_prb);
+    } 
+
     //TheoryFinder cannot cope with polymorphic input
     if(!env.property->hasPolymorphicSym()){
       TheoryFinder(_prb->units(),property).search();
@@ -152,149 +163,197 @@ bool PortfolioMode::searchForProof()
   // now all the cpu usage will be in children, we'll just be waiting for them
   Timer::setLimitEnforcement(false);
 
-  return performStrategy(property);
+  return prepareScheduleAndPerform(*property);
 }
 
-// TODO this name confuses me
-bool PortfolioMode::performStrategy(Shell::Property* property)
+bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 {
-  CALL("PortfolioMode::performStrategy");
+  CALL("PortfolioMode::prepareScheduleAndPerform");
 
+  // this is the one and only schedule that will leave this function
+  // we fill it up in various ways
+  Schedule schedule;
+
+  // take the respective schedules from our "Tablets of Stone"
   Schedule main;
   Schedule fallback;
-  Schedule main_extra;
-  Schedule fallback_extra;
+  getSchedules(prop,main,fallback);
+  
+  /** 
+   * The idea next is to create extra schedules based on the just loaded ones
+   * mainly by adding new options that are not yet included in the schedules
+   * into a copy of an official schedule to be appended after it (so as not to disturb the original).
+   * 
+   * The expectation is that the code below will be updated before each competition submission
+   * 
+   * Note that the final schedule is longer and longer with each copy,
+   * so consider carefully which selected options (and combinations) to "try on top" of it.
+   */
 
-  // TODO this doesn't make a lot of sense to me either
-  // first make *_extra (x3 multiplier with new options) schedules
-  // then later repeat them (x2 multiplier, no new options) until timeout
-  // if this is really what we want, fine, but why?!
-  getSchedules(*property,main,fallback);
-  getExtraSchedules(*property,main,main_extra,true,3);
-  getExtraSchedules(*property,fallback,fallback_extra,true,3);
+  // a (temporary) helper lambda that will go away as soon as we have new schedules from spider
+  auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) { 
+    CALL("PortfolioMode::prepareScheduleAndPerform-additionsSinceTheLastSpiderings");
 
-  // Normally we do main fallback main_extra fallback_extra
-  // However, in SMTCOMP mode the fallback is universal for all
-  // logics e.g. it's not very strong. Therefore, in SMTCOMP
-  // mode we do main main_extra fallback fallback_extra
+    // Always try these
+    addScheduleExtra(sOrig,sWithExtras,"si=on:rtra=on:rawr=on:rp=on"); // shuffling options
+    addScheduleExtra(sOrig,sWithExtras,"sp=frequency");                // frequency sp; this is in casc19 but not smt18
+    addScheduleExtra(sOrig,sWithExtras,"avsq=on:plsq=on");             // split queues
+    addScheduleExtra(sOrig,sWithExtras,"av=on:atotf=0.5");             // turn AVATAR off
 
-  Schedule schedule;
-  if(env.options->schedule() == Options::Schedule::SMTCOMP){
+    if(!prop.higherOrder()){
+      //these options are not currently HOL compatible
+      addScheduleExtra(sOrig,sWithExtras,"bsd=on:fsd=on"); // subsumption demodulation
+      addScheduleExtra(sOrig,sWithExtras,"to=lpo");        // lpo
+    }
+
+    // If contains integers, rationals and reals
+    if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
+      addScheduleExtra(sOrig,sWithExtras,"hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
+      addScheduleExtra(sOrig,sWithExtras,"gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
+      addScheduleExtra(sOrig,sWithExtras,"sos=theory:sstl=5");  // theory sos with non-default limit 
+      addScheduleExtra(sOrig,sWithExtras,"thsq=on");            // theory split queues, default
+      addScheduleExtra(sOrig,sWithExtras,"thsq=on:thsqd=16");   // theory split queues, other ratio
+    }
+    // If contains datatypes
+    if(prop.props() & Property::PR_HAS_DT_CONSTRUCTORS){
+      addScheduleExtra(sOrig,sWithExtras,"gtg=exists_all:ind=struct");
+      addScheduleExtra(sOrig,sWithExtras,"ind=struct:sik=one:indgen=on:indoct=on:drc=off");
+      addScheduleExtra(sOrig,sWithExtras,"ind=struct:sik=one:indgen=on");
+      addScheduleExtra(sOrig,sWithExtras,"ind=struct:sik=one:indoct=on");
+      addScheduleExtra(sOrig,sWithExtras,"ind=struct:sik=all:indmd=1");
+    }
+
+    // If in SMT-COMP mode try guessing the goal (and adding the twee trick!)
+    if(env.options->schedule() == Options::Schedule::SMTCOMP){
+      addScheduleExtra(sOrig,sWithExtras,"gtg=exists_all:tgt=full");
+    }
+    else
+    {
+      // Don't try this in SMT-COMP mode as it requires a goal
+      addScheduleExtra(sOrig,sWithExtras,"slsq=on");
+      addScheduleExtra(sOrig,sWithExtras,"tgt=full");
+    }
+  };
+
+  // now various ways of creating schedule extension based on their "age and flavour"
+  if (env.options->schedule() == Options::Schedule::CASC) {
+
     schedule.loadFromIterator(main.iterFifo());
-    schedule.loadFromIterator(main_extra.iterFifo());
     schedule.loadFromIterator(fallback.iterFifo());
-    schedule.loadFromIterator(fallback_extra.iterFifo());
-  }
-  else{
+    additionsSinceTheLastSpiderings(main,schedule);
+    additionsSinceTheLastSpiderings(fallback,schedule);
+
+  } else if (env.options->schedule() == Options::Schedule::CASC_SAT) {
+
     schedule.loadFromIterator(main.iterFifo());
     schedule.loadFromIterator(fallback.iterFifo());
-    schedule.loadFromIterator(main_extra.iterFifo());
-    schedule.loadFromIterator(fallback_extra.iterFifo());
+    // randomize and use the new fmb option
+    addScheduleExtra(main,schedule,"si=on:rtra=on:rawr=on:rp=on:fmbksg=on");
+    addScheduleExtra(fallback,schedule,"si=on:rtra=on:rawr=on:rp=on:fmbksg=on");
+
+  } else if (env.options->schedule() == Options::Schedule::SMTCOMP) {
+    // Normally we do main fallback main_extra fallback_extra
+    // However, in SMTCOMP mode the fallback is universal for all
+    // logics e.g. it's not very strong. Therefore, in SMTCOMP
+    // mode we do main main_extra fallback fallback_extra
+
+    schedule.loadFromIterator(main.iterFifo());
+    additionsSinceTheLastSpiderings(main,schedule);
+    schedule.loadFromIterator(fallback.iterFifo());
+    additionsSinceTheLastSpiderings(fallback,schedule);
+
+  } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_UNS) {
+    ASS(fallback.isEmpty());
+
+    schedule.loadFromIterator(main.iterFifo());
+    addScheduleExtra(main,schedule,"rp=on:de=on"); // random polarities, demodulation encompassment
+    
+  } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_SAT) {
+    ASS(fallback.isEmpty());
+
+    schedule.loadFromIterator(main.iterFifo());
+    addScheduleExtra(main,schedule,"rp=on:fmbksg=on:de=on"); // random polarities, demodulation encompassment for saturation, fmbksg for the fmb's    
+  } else {
+    // all other schedules just get loaded plain
+
+    schedule.loadFromIterator(main.iterFifo());
+    schedule.loadFromIterator(fallback.iterFifo());
   }
 
   if (schedule.isEmpty()) {
     USER_ERROR("The schedule is empty.");
   }
 
-  return runScheduleAndRecoverProof(property, std::move(schedule));
+  return runScheduleAndRecoverProof(std::move(schedule));
+};
+
+/**
+ * Take strategy strings from @param sOld, update their time (and intruction) limit, 
+ * multiplying it by @param limit_multiplier and put the new strings into @param sNew.
+ * 
+ * @author Giles, Martin
+ */
+void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier) 
+{
+  CALL("PortfolioMode::rescaleScheduleLimits");
+
+  Schedule::BottomFirstIterator it(sOld);
+  while(it.hasNext()){
+    vstring s = it.next();
+
+    // rescale the instruction limit, if present
+    size_t bidx = s.rfind(":i=");
+    if (bidx == vstring::npos) {
+      bidx = s.rfind("_i=");
+    }
+    if (bidx != vstring::npos) {
+      bidx += 3; // advance past the "[:_]i=" bit
+      size_t eidx = s.find_first_of(":_",bidx); // find the end of the number there
+      ASS_NEQ(eidx,vstring::npos);
+      vstring instrStr = s.substr(bidx,eidx-bidx);
+      unsigned instr;
+      ALWAYS(Int::stringToUnsignedInt(instrStr,instr));
+      instr *= limit_multiplier;
+      s = s.substr(0,bidx) + Lib::Int::toString(instr) + s.substr(eidx);
+    }
+
+    // do the analogous with the time limit suffix
+    vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+    unsigned time;
+    ALWAYS(Lib::Int::stringToUnsignedInt(ts,time));
+    vstring prefix = s.substr(0,s.find_last_of("_"));
+    // Add a copy with increased time limit ...
+    vstring new_time_suffix = Lib::Int::toString((int)(time*limit_multiplier));
+
+    sNew.push(prefix + "_" + new_time_suffix);
+  }
 }
 
 /**
- * The idea here is to create extra schedules based on the existing schedules
- * There are two motivations
- *  1. Sometimes the provided schedules don't fill the given time limit
- *  2. Sometimes we have new options that are not yet included in the schedules
- *
- * This function will
- *  1. Increase the time limit of existing strategies (by time_multiplier)
- *  2. Add extra options to existing strategies (if add_extra is true)
- *
- * The expectation is that the extra_opts is updated before each competition submission
- *
- * IMPORTANT - every time we add something to extra_opts we are multiplying the length of the old schedule. For example,
- * if the old schedule takes 60 seconds to run and the length of extra_opts is 10 then extra could take 10 minutes to run
- * of course, many of the new strategies might fail immediately due to inconsistent constraints etc but in general we want
- * to keep extra_opts for important new additions only.
- *
- * @author Giles
- **/
-void PortfolioMode::getExtraSchedules(Property& prop, Schedule& old, Schedule& extra, bool add_extra, int time_multiplier)
+ * Take strategy strings from @param sOld and update them by adding @param extra 
+ * as additional option settings, pushing the new strings into @param sNew.
+ * 
+ * @author Giles, Martin
+ */
+void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra)
 {
-  CALL("PortfolioMode::getExtraSchedules");
+  CALL("PortfolioMode::addScheduleExtra");
 
-  // Add new extra_opts here
-  Stack<vstring> extra_opts;
-
-  if(add_extra){
-
-   // Always try these
-   extra_opts.push("sp=frequency");     // frequency sp; this is in casc19 but not smt18
-   extra_opts.push("avsq=on:plsq=on");  // split queues
-   //extra_opts.push("etr=on");         // equational_tautology_removal
-   extra_opts.push("av=on:atotf=0.5");     // turn AVATAR off
-
-   if(!prop.higherOrder()){
-     //these options are not currently HOL compatible
-     extra_opts.push("bsd=on:fsd=on"); // subsumption demodulation
-     extra_opts.push("to=lpo");           // lpo
-   }
-
-   // If contains integers, rationals and reals
-   if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-
-    extra_opts.push("hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
-    extra_opts.push("gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
-    extra_opts.push("sos=theory:sstl=5");  // theory sos with non-default limit 
-    extra_opts.push("thsq=on");            // theory split queues, default
-    extra_opts.push("thsq=on:thsqd=16");   // theory split queues, other ratio
-   }
-   // If contains datatypes
-   if(prop.props() & Property::PR_HAS_DT_CONSTRUCTORS){
-     extra_opts.push("gtg=exists_all:ind=struct");
-     extra_opts.push("ind=struct:sik=one:indgen=on:indoct=on:drc=off");
-     extra_opts.push("ind=struct:sik=one:indgen=on");
-     extra_opts.push("ind=struct:sik=one:indoct=on");
-     extra_opts.push("ind=struct:sik=all:indmd=1");
-   }
-
-   // If in SMT-COMP mode try guessing the goal (and adding the twee trick!)
-   if(env.options->schedule() == Options::Schedule::SMTCOMP){
-    extra_opts.push("gtg=exists_all:tgt=full");
-   }
-   else{
-   // Don't try this in SMT-COMP mode as it requires a goal
-    extra_opts.push("slsq=on");
-    extra_opts.push("tgt=full");
-   }
-
-  }
-
-  Schedule::BottomFirstIterator it(old);
+  Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
-      vstring s = it.next();
-      // try and grab time string
-      vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
-      int t;
-      if(Lib::Int::stringToInt(ts,t)){
-        vstring prefix = s.substr(0,s.find_last_of("_")); 
+    vstring s = it.next();
 
-        // Add a copy with increased time limit
-        vstring new_s = prefix + "_" + Lib::Int::toString(t*time_multiplier);
-        extra.push(new_s);
+    auto idx = s.find_last_of("_");
 
-        // Add copies with new extra options (keeping the old time limit) 
-        Stack<vstring>::Iterator addit(extra_opts);
-        while(addit.hasNext()){
-          vstring new_s = prefix + ":" + addit.next() + "_" + Lib::Int::toString(t);
-          extra.push(new_s);
-        }
-      }
-      else{ASSERTION_VIOLATION;}
+    vstring prefix = s.substr(0,idx); 
+    vstring suffix = s.substr(idx,vstring::npos);
+    vstring new_s = prefix + ((prefix.back() != '_') ? ":" : "") + extra + suffix;
+
+    sNew.push(new_s);
   }
-
 }
 
-void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fallback)
+void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule& fallback)
 {
   CALL("PortfolioMode::getSchedules");
 
@@ -302,6 +361,14 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   case Options::Schedule::FILE:
     Schedules::getScheduleFromFile(env.options->scheduleFile(), quick);
     break;
+
+  case Options::Schedule::SNAKE_TPTP_UNS:
+    Schedules::getSnakeTptpUnsSchedule(prop,quick);
+    break;
+  case Options::Schedule::SNAKE_TPTP_SAT:
+    Schedules::getSnakeTptpSatSchedule(prop,quick);
+    break;
+
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
@@ -348,7 +415,7 @@ void PortfolioMode::getSchedules(Property& prop, Schedule& quick, Schedule& fall
   }
 }
 
-bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
+bool PortfolioMode::runSchedule(Schedule schedule) {
   CALL("PortfolioMode::runSchedule");
   TIME_TRACE("run schedule");
 
@@ -365,7 +432,7 @@ bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
       // by copies with x2 time limits and do this forever
       if(!it.hasNext()) {
         Schedule next;
-        getExtraSchedules(*property, schedule, next, false, 2);
+        rescaleScheduleLimits(schedule, next, 2.0);
         schedule = next;
         it = Schedule::BottomFirstIterator(schedule);
       }
@@ -425,7 +492,7 @@ bool PortfolioMode::runSchedule(Shell::Property *property, Schedule schedule) {
  * Run a schedule.
  * Return true if a proof was found, otherwise return false.
  */
-bool PortfolioMode::runScheduleAndRecoverProof(Shell::Property *property, Schedule schedule)
+bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
 {
   CALL("PortfolioMode::runScheduleAndRecoverProof");
 
@@ -434,7 +501,7 @@ bool PortfolioMode::runScheduleAndRecoverProof(Shell::Property *property, Schedu
 
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
-  bool result = runSchedule(property, std::move(schedule));
+  bool result = runSchedule(std::move(schedule));
 
   //All children have been killed. Now safe to print proof
   if(result && env.options->printProofToFile().empty()){
@@ -482,14 +549,35 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
   vstring sliceTimeStr = sliceCode.substr(pos+1);
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
-  ASS_G(sliceTime,0); //strategies with zero time don't make sense
 
-  unsigned time = _slowness * sliceTime + 1;
-  // TODO: huh?
-  if (time < 10) {
-    time++;
+  if (sliceTime == 0 && !Timer::instructionLimitingInPlace()) {
+    if (outputAllowed()) {
+      env.beginOutput();
+      addCommentSignForSZS(env.out());
+      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attemping to translate instructions to time" << endl;
+      env.endOutput();
+    }
+
+    size_t bidx = sliceCode.find(":i=");
+    if (bidx == vstring::npos) {
+      bidx = sliceCode.find("_i=");
+      if (bidx == vstring::npos) {
+        return 0; // run (essentially) forever
+      }
+    } // we have a valid begin index
+    bidx += 3; // advance it past the "*i=" bit
+    size_t eidx = sliceCode.find_first_of(":_",bidx); // find the end of the number there
+    ASS_NEQ(eidx,vstring::npos);
+    vstring sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
+    unsigned sliceInstr;
+    ALWAYS(Int::stringToUnsignedInt(sliceInstrStr,sliceInstr));
+    
+    // sliceTime is in deci second, we assume a roughly 2GHz CPU here
+    sliceTime = sliceInstr / 200;
+    if (sliceTime == 0) { sliceTime = 1; }
   }
-  return time;
+
+  return _slowness * sliceTime;
 } // getSliceTime
 
 /**
@@ -501,7 +589,8 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
   TIME_TRACE("run slice");
 
   int sliceTime = getSliceTime(sliceCode);
-  if (sliceTime > timeLimitInDeciseconds)
+  if (sliceTime > timeLimitInDeciseconds 
+    || !sliceTime) // no limit set, i.e. "infinity"
   {
     sliceTime = timeLimitInDeciseconds;
   }
@@ -510,6 +599,14 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
   try
   {
     Options opt = *env.options;
+
+    // opt.randomSeed() would normally be inherited from the parent
+    // addCommentSignForSZS(cout) << "runSlice - seed before setting: " << opt.randomSeed() << endl;    
+    if (env.options->randomizeSeedForPortfolioWorkers()) {
+      // but here we want each worker to have their own seed
+      opt.setRandomSeed(std::random_device()());
+      // ... unless a strategy sets a seed explicitly, just below
+    }
     opt.readFromEncodedOptions(sliceCode);
     opt.setTimeLimitInDeciseconds(sliceTime);
     int stl = opt.simulatedTimeLimit();
@@ -542,10 +639,12 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   int resultValue=1;
   env.timer->reset();
   env.timer->start();
+
+  Timer::resetInstructionMeasuring();
   Timer::setLimitEnforcement(true);
 
   Options opt = strategyOpt;
-  //we have already performed the normalization
+  //we have already performed the normalization (or don't care about it)
   opt.setNormalize(false);
   opt.setForcedOptionValues();
   opt.checkGlobalOptionConstraints();
@@ -553,7 +652,12 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   if (outputAllowed()) {
     env.beginOutput();
-    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << endl;
+    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << 
+      " for (" << opt.timeLimitInDeciseconds() << "ds"<<
+#ifdef __linux__
+      "/" << opt.instructionLimit() << "Mi" <<
+#endif
+      ")" << endl;
     env.endOutput();
   }
 

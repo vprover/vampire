@@ -22,6 +22,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Set.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -184,17 +185,18 @@ public:
   CLASS_NAME(ActiveClauseContainer);
   USE_ALLOCATOR(ActiveClauseContainer);
 
-  ActiveClauseContainer(const Shell::Options& opt) : _size(0)/*, _opt(opt)*/ {}
+  ActiveClauseContainer(const Shell::Options& opt) {}
 
   void add(Clause* c) override;
   void remove(Clause* c) override;
 
-  unsigned sizeEstimate() const override { return _size; }
+  unsigned sizeEstimate() const override { return _clauses.size(); }
+  ClauseIterator clauses() const { return pvi(_clauses.iter()); }
 
 protected:
   void onLimitsUpdated() override;
 private:
-  unsigned _size;
+  Set<Clause*> _clauses;
   // const Shell::Options& _opt;
 };
 

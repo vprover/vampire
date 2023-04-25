@@ -63,14 +63,13 @@ Option<Clause*> InequalityFactoring::applyRule(
 
   auto nothing = [&]() { return Option<Clause*>{}; };
 
-  auto uwa_ = _shared->unify(l1.monom(), l2.monom());
+  auto uwa = _shared->unify(l1.monom(), l2.monom());
 
   CHECK_CONDITION("⟨σ,Cnst⟩ = uwa(s1,s2)",
-                  uwa_.isSome())
-  auto& uwa = uwa_.unwrap();
+                  uwa.isSome())
 
-  auto sigma = [&](auto x){ return uwa.sigma(x, /* varbank */ 0); };
-  auto& cnst  = uwa.cnst();
+  auto cnst  = uwa->constraintLiterals();
+  auto sigma = [&](auto x){ return uwa->subs().apply(x, /* varbank */ 0); };
   auto j = l1.numeral().unwrap<Numeral>();
   auto k = l2.numeral().unwrap<Numeral>();
   auto s1 = l1.monom();
@@ -111,7 +110,7 @@ Option<Clause*> InequalityFactoring::applyRule(
         }));
 
                                   //
-  Stack<Literal*> concl(premise->size() + cnst.size());
+  Stack<Literal*> concl(premise->size() + cnst->size());
 
   // adding `Cσ`
   { 
@@ -141,7 +140,7 @@ Option<Clause*> InequalityFactoring::applyRule(
       cond1 || cond2);
 
   // adding `Cnst`
-  concl.loadFromIterator(uwa.cnstLiterals());
+  concl.loadFromIterator(cnst->iterFifo());
 
   // adding `(±ks2 + t2 <> 0) σ`
   concl.push(L2σ);

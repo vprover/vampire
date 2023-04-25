@@ -45,7 +45,7 @@ GroundingIndex::GroundingIndex(const Options& opt)
       ASSERTION_VIOLATION_REP(opt.satSolver());
   }
   
-  _grounder = new GlobalSubsumptionGrounder(_solver.ptr());
+  _grounder = new Kernel::GlobalSubsumptionGrounder(_solver.ptr());
 }
 
 void GroundingIndex::handleClause(Clause* c, bool adding)

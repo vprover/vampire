@@ -26,7 +26,15 @@
 #include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
-#include "Backtrackable.hpp"
+#include "Lib/Reflection.hpp"
+#include "Debug/Output.hpp"
+// #include "Backtrackable.hpp"
+//
+namespace Lib
+{
+template<class T>
+class Stack;
+}
 
 namespace std
 {
@@ -36,8 +44,8 @@ void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2);
 
 namespace Lib {
 
-template<typename C>
-struct Relocator<Stack<C> >;
+// template<typename C>
+// struct Relocator<Stack<C> >;
 
 /**
  * Class of flexible-size generic stacks.
@@ -61,7 +69,6 @@ public:
 
   CLASS_NAME(Stack);
   USE_ALLOCATOR(Stack);
-  DECLARE_PLACEMENT_NEW;
 
 
   /**
@@ -109,6 +116,8 @@ public:
       _end = _stack + _capacity;
     }
   }
+
+  bool keepRecycled() const { return _capacity > 0; }
 
 
   Stack(const Stack& s)
@@ -255,7 +264,7 @@ public:
   static Stack fromIterator(It it) {
     CALL("Stack::fromIterator");
     Stack out;
-    out.moveFromIterator(it);
+    out.moveFromIterator(std::move(it));
     return out;
   }
   /* a first-in-first-out iterator  */
@@ -287,6 +296,33 @@ public:
 
     return _stack[n];
   }
+
+  friend int cmp(const Stack& l, const Stack& r)
+  {
+    CALL("Stack::operator<");
+
+    int sdiff = int(l.size()) - int(r.size());
+    if(sdiff) return sdiff;
+    
+    auto i1 = arrayIter(l);
+    auto i2 = arrayIter(r);
+    while (i1.hasNext()) {
+      auto& e1 = i1.next();
+      auto& e2 = i2.next();
+      if (e1 != e2) {
+        if (e1 < e2) return -1;
+        if (e1 > e2) return 1;
+      }
+    }
+    ASS(!i2.hasNext())
+    return 0;
+  }
+
+  friend bool operator< (const Stack& l, const Stack& r) { return cmp(l,r) <  0; }
+  friend bool operator<=(const Stack& l, const Stack& r) { return cmp(l,r) <= 0; }
+  friend bool operator> (const Stack& l, const Stack& r) { return cmp(l,r) >  0; }
+  friend bool operator>=(const Stack& l, const Stack& r) { return cmp(l,r) >= 0; }
+
 
   bool operator==(const Stack& o) const
   {
@@ -372,24 +408,7 @@ public:
    * @since 11/03/2006 Bellevue
    */
   inline
-  void push(const C& elem)
-  {
-    CALL("Stack::push");
-
-    if (_cursor == _end) {
-      expand();
-    }
-    ASS(_cursor < _end);
-    ::new(_cursor) C(elem);
-    _cursor++;
-  } // Stack::push()
-
-  /**
-   * Push new element on the stack (move semantics version).
-   * @since 11/08/2020 
-   */
-  inline
-  void push(C&& elem)
+  void push(C elem)
   {
     CALL("Stack::push");
 
@@ -445,7 +464,6 @@ public:
   template<class Less = std::less<C>>
   void sort(Less less = std::less<C>{})
   { std::sort(begin(), end(), less); }
-
 
   /** like Stack::sort but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this */
   template<class Equal = std::equal_to<C>>
@@ -517,6 +535,24 @@ public:
     _cursor = _stack;
   }
 
+  void init(std::initializer_list<C> elems)
+  {
+    reserve(elems.size());
+    for (auto& x : elems) {
+      push(std::move(x));
+    }
+  }
+
+  void pushMany() {}
+
+  template<class... As>
+  void pushMany(C item, As... rest) 
+  { 
+    push(std::move(item)); 
+    pushMany(std::move(rest)...);
+  }
+
+
   /** Sets the length of the stack to @b len
    *  @since 27/12/2007 Manchester */
   inline
@@ -552,21 +588,6 @@ public:
     }
     return false;
   }
-
-#if VDEBUG
-  vstring toString()
-  {
-    vstring ret = "[";
-    Iterator it(const_cast<Stack&>(*this));
-    while(it.hasNext()){
-      C el = it.next();
-      ret += Int::toString(static_cast<unsigned int>(el));
-      if(it.hasNext()){ ret +=",";}
-    }
-    return ret+"]";
-  }
-
-#endif
 
   friend class RefIterator;
 
@@ -912,25 +933,11 @@ protected:
     _capacity = newCapacity;
   } // Stack::expand
 
-  class PushBacktrackObject: public BacktrackObject
-  {
-    Stack* st;
-  public:
-    CLASS_NAME(Stack::PushBacktrackObject);
-    USE_ALLOCATOR(Stack::PushBacktrackObject);
-    
-    PushBacktrackObject(Stack* st) : st(st) {}
-    void backtrack() { st->pop(); }
-  };
 public:
 
-  void backtrackablePush(C v, BacktrackData& bd)
-  {
-    push(v);
-    bd.addBacktrackObject(new PushBacktrackObject(this));
-  }
 
-  friend ostream& operator<<(ostream& out, const Stack<C>& s) {
+  friend std::ostream& operator<<(std::ostream& out, const Stack<C>& s) {
+    using namespace Kernel;
     out << "[";
     auto iter = s.begin();
     if(iter != s.end()) {
@@ -955,15 +962,15 @@ public:
 
 };
 
-template<typename C>
-struct Relocator<Stack<C> >
-{
-  static void relocate(Stack<C>* oldStack, void* newAddr)
-  {
-    ::new(newAddr) Stack<C>(std::move(*oldStack));
-    oldStack->~Stack<C>();
-  }
-};
+// template<typename C>
+// struct Relocator<Stack<C> >
+// {
+//   static void relocate(Stack<C>* oldStack, void* newAddr)
+//   {
+//     ::new(newAddr) Stack<C>(std::move(*oldStack));
+//     oldStack->~Stack<C>();
+//   }
+// };
 
 
 } // namespace Lib

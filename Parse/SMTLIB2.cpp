@@ -501,7 +501,11 @@ void SMTLIB2::readLogic(const vstring& logicStr)
   case SMT_UFBV:
     USER_ERROR("unsupported logic "+logicStr);
   default:
-    USER_ERROR("unrecognized logic "+logicStr);
+    if (env.options->ignoreUnrecognizedLogic()) {
+      break;
+    } else {
+      USER_ERROR("unrecognized logic ", logicStr, " ( use `--ignore_unrecognized_logic on` if you want vampire to try proof search anyways)");
+    }
   }
 
 }
@@ -1828,6 +1832,9 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
       USER_ERROR("Multiple occurrence of variable "+vName+" in quantification "+exp->toString());
     }
   }
+
+  if(!lRdr.hasNext())
+    USER_ERROR("Missing body in quantification " + exp->toString());
 
   _scopes.push(lookup);
 

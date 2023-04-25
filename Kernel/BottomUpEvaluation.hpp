@@ -25,6 +25,7 @@
  */ 
 
 #include "Lib/Stack.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/TypeList.hpp"
 
@@ -36,7 +37,7 @@ namespace Memo {
   template<class Arg, class Result>
   struct None 
   {
-    Option<Result> get(Arg) 
+    Option<Result> get(Arg const&)
     { return Option<Result>(); }
 
     template<class Init> Result getOrInit(Arg const& orig, Init init) 
@@ -44,7 +45,7 @@ namespace Memo {
   };
 
   /** a memoization realized as a hashmap */
-  template<class Arg, class Result, class Hash = Hash>
+  template<class Arg, class Result, class Hash = DefaultHash>
   class Hashed 
   {
     Map<Arg, Result, Hash> _memo;
@@ -126,53 +127,51 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 
   
   /* recursion state. Contains a stack of items that are being recursed on. */
-  Stack<BottomUpChildIter<Arg>> recState;
-  Stack<Result> recResults;
+  Recycled<Stack<BottomUpChildIter<Arg>>> recState;
+  Recycled<Stack<Result>> recResults;
 
-  recState.push(BottomUpChildIter<Arg>(term));
+  recState->push(BottomUpChildIter<Arg>(term));
 
-  while (!recState.isEmpty()) {
-
-    if (recState.top().hasNext()) {
-      Arg t = recState.top().next();
+  while (!recState->isEmpty()) {
+    if (recState->top().hasNext()) {
+      Arg t = recState->top().next();
 
       Option<Result> cached = memo.get(t);
       if (cached.isSome()) {
-        recResults.push(std::move(cached).unwrap()); 
+        recResults->push(std::move(cached).unwrap()); 
       } else {
-        recState.push(BottomUpChildIter<Arg>(t));
+        recState->push(BottomUpChildIter<Arg>(t));
       }
 
     } else { 
 
-      BottomUpChildIter<Arg> orig = recState.pop();
+      BottomUpChildIter<Arg> orig = recState->pop();
       bool computed = false;
       Result eval = memo.getOrInit(orig.self(), [&](){ 
             CALL("evaluateBottomUp(..)::closure@1")
             Result* argLst = NULL;
             if (orig.nChildren() != 0) {
-              ASS_GE(recResults.size(), orig.nChildren());
-              argLst = static_cast<Result*>(&recResults[recResults.size() - orig.nChildren()]);
+              ASS_GE(recResults->size(), orig.nChildren());
+              argLst = static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren()]));
             }
             computed = true;
             return evaluateStep(orig.self(), argLst);
           });
-
 
       if (computed) {
         DEBUG_EVAL(1, "evaluted: ", orig.self(), " -> ", eval);
       } else {
         DEBUG_EVAL(2, "evaluted: ", orig.self(), " -> ", eval);
       }
-      recResults.pop(orig.nChildren());
-      recResults.push(std::move(eval));
+      recResults->pop(orig.nChildren());
+      recResults->push(std::move(eval));
     }
   }
-  ASS(recState.isEmpty())
+  ASS(recState->isEmpty())
     
 
-  ASS(recResults.size() == 1);
-  auto result = recResults.pop();
+  ASS(recResults->size() == 1);
+  auto result = recResults->pop();
   DEBUG_EVAL(0, "eval result: ", term, " -> ", result);
   return result;
 }
@@ -186,6 +185,19 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   return evaluateBottomUp(term, evaluateStep, memo);
 }
 
+
+template<class R, class A, class F>
+R evalBottomUp(A const& term, F fun)
+{
+  struct Eval {
+    using Result = R;
+    using Arg = A;
+    F& fun;
+    Result operator()(Arg const& a, Result* rs)
+    { return fun(a,rs); }
+  };
+  return evaluateBottomUp(term, Eval{fun});
+}
 
 
 } // namespace Lib

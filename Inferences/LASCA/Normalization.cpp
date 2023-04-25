@@ -36,7 +36,6 @@
 #include "Debug/TimeProfiling.hpp"
 
 #include "Normalization.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
@@ -58,15 +57,15 @@ Clause* Normalization::simplify(Clause* cl)
   CALL("LASCA::Normalization::simplify(...)")
   TIME_TRACE("perform lasca normalization")
   bool altered = false; 
-  auto out = Stack<Literal*>(cl->size());
+  Recycled<Stack<Literal*>> out;
   for (unsigned i = 0; i < cl->size(); i++) {
     auto lits = _shared->normalizer.normalizeLiteral((*cl)[i]);
-    out.loadFromIterator(lits.iterFifo());
-    altered |= lits.size() != 1 || lits[0] != (*cl)[i];
+    out->loadFromIterator(lits->iterFifo());
+    altered |= lits->size() != 1 || (*lits)[0] != (*cl)[i];
   }
   if (altered) {
     Inference inf(SimplifyingInference1(Kernel::InferenceRule::LASCA_NORMALIZATION, cl));
-    auto outCl = Clause::fromStack(out, inf);
+    auto outCl = Clause::fromStack(*out, inf);
     DEBUG(*cl, " ==> ", *outCl)
     return outCl;
   } else {

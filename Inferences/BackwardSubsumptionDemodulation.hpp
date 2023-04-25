@@ -60,7 +60,7 @@ class BackwardSubsumptionDemodulation
     void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 
   private:
-    RequestedIndex<SimplifyingLiteralIndex> _index;
+    RequestedIndex<BackwardSubsumptionIndex> _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;

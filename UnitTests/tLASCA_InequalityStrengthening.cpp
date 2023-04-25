@@ -64,19 +64,19 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LASCA1
+#define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
 auto idxInequalityStrengthening(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<InequalityStrengthening::Lhs>(uwa); },
-    [=]() { return new LascaIndex<InequalityStrengthening::Rhs>(uwa); },
+    [=]() { return new LascaIndex<InequalityStrengthening::Lhs>(); },
+    [=]() { return new LascaIndex<InequalityStrengthening::Rhs>(); },
   }; 
 }
 
 InequalityStrengthening testInequalityStrengthening(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) 
 { return InequalityStrengthening(testLascaState(uwa)); }
 
@@ -91,7 +91,7 @@ class LascaGenTester : public Test::Generation::GenerationTester<Rule>
   { 
     auto toStack = [](Kernel::Clause* cl) {
       return iterTraits(cl->iterLits())
-        .flatMap([](auto l) { return ownedArrayishIterator(LascaState::globalState->normalizer.normalizeLiteral(l)); })
+        .flatMap([](auto l) { return arrayIter(Stack<Literal*>(*LascaState::globalState->normalizer.normalizeLiteral(l))); })
         .template collect<Stack<Literal*>>();
     };
     return TestUtils::eqModACRect(toStack(lhs), toStack(rhs)); }

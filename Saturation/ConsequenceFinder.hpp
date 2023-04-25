@@ -21,6 +21,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/SkipList.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"

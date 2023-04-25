@@ -98,16 +98,16 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
       srt_.isSome())
   auto& srt = srt_.unwrap();
 
-  auto uwa_ = _shared->unify(s1, s2);
+  auto uwa = _shared->unify(s1, s2);
   check_side_condition(
       "uwa(s1,s2) = ⟨σ,Cnst⟩",
-      uwa_.isSome())
+      uwa.isSome())
   
-  auto& uwa = uwa_.unwrap();
-  auto sigma = [&](auto t) { return uwa.sigma(t, /* varbank */ 0); };
+  auto sigma = [&](auto t) { return uwa->subs().apply(t, /* varbank */ 0); };
+  auto cnst = uwa->constraintLiterals();
 
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
-                      + uwa.cnst().size()); // <- Cnstσ
+                      + cnst->size()); // <- Cnstσ
 
   auto L2σ = sigma(l2.literal());
   check_side_condition(
@@ -132,7 +132,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   concl.push(res);
 
   // adding Cnst
-  concl.loadFromIterator(uwa.cnstLiterals());
+  concl.loadFromIterator(cnst->iterFifo());
 
   Inference inf(GeneratingInference1(Kernel::InferenceRule::LASCA_EQ_FACTORING, l1.clause()));
   auto out = Clause::fromStack(concl, inf);

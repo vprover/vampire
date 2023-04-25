@@ -235,10 +235,10 @@ public:
     CALL("Instantiation::AllSubstitutionsIterator");
     DHMap<unsigned,TermList> sortedVars;
     SortHelper::collectVariableSorts(cl,sortedVars);
-    VirtualIterator<std::pair<unsigned,TermList>> it = sortedVars.items();
+    auto it = sortedVars.items();
 
     while(it.hasNext()){
-       std::pair<unsigned,TermList> item = it.next();
+       auto item = it.next();
        DArray<Term*>* array = new DArray<Term*>();
        array->initFromIterator(ins->getCandidateTerms(cl,item.first,item.second));
        candidates.insert(item.first,array);

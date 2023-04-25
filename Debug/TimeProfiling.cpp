@@ -20,6 +20,21 @@ namespace Shell {
 
 using namespace Lib;
 
+// TODO: these should be dispensable with C++17 onwards
+const char* const TimeTrace::CLAUSE_GENERATION;
+const char* const TimeTrace::CONSEQUENCE_FINDING;
+const char* const TimeTrace::FMB_DEFINITION_INTRODUCTION;
+const char* const TimeTrace::HYPER_SUP;
+const char* const TimeTrace::LITERAL_ORDER_AFTERCHECK;
+const char* const TimeTrace::PARSING;
+const char* const TimeTrace::PASSIVE_CONTAINER_MAINTENANCE;
+const char* const TimeTrace::PREPROCESSING;
+const char* const TimeTrace::PROPERTY_EVALUATION;
+const char* const TimeTrace::AVATAR_SAT_SOLVER;
+const char* const TimeTrace::SHUFFLING;
+const char* const TimeTrace::SINE_SELECTION;
+const char* const TimeTrace::TERM_SHARING;
+
 TimeTrace::TimeTrace() 
   : _root("[root]")
   , _stack({ {&_root, Clock::now(), }, }) 
@@ -95,12 +110,6 @@ TimeTrace::ScopedChangeRoot::~ScopedChangeRoot()
 
 TimeTrace::Duration TimeTrace::Node::totalDuration() const
 { return measurements.sum(); }
-
-const char* TimeTrace::Groups::PREPROCESSING = "preprocessing";
-const char* TimeTrace::Groups::PARSING = "parsing";
-const char* TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
-
-
   
 std::ostream& operator<<(std::ostream& out, TimeTrace::Duration const& self)
 { 
@@ -288,7 +297,7 @@ void TimeTrace::Node::flatten_(FlattenState& s)
       node->measurements.extend(c->measurements);
     }
 
-    s.recPath.push(this);
+    s.recPath.push(&*c);
     c->flatten_(s);
     s.recPath.pop();
   }

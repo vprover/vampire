@@ -17,38 +17,33 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
+#include "Kernel/TypedTermList.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 namespace Indexing {
 
 template<class Data>
 class TermIndexingStructure {
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<Data>;
 public:
   virtual ~TermIndexingStructure() {}
 
-  virtual void insert(Data data) = 0;
-  virtual void remove(Data data) = 0;
+  virtual void handle(Data data, bool insert) = 0;
+  void insert(Data data) { handle(std::move(data), /* insert */ true ); }
+  void remove(Data data) { handle(std::move(data), /* insert */ false); }
 
-  // virtual void remove(TermList t, Literal* lit, Clause* cls) = 0;
-
-  virtual TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }  
-  virtual TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }  
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
 
-  virtual std::ostream& output(std::ostream& out) const = 0;
-
-  friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self) 
-  { return self.output(out); }
+  virtual void output(std::ostream& output) const = 0;
+  friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self)
+  { self.output(out); return out; }
 };
+
 
 };
 

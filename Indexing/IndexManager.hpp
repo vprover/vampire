@@ -21,6 +21,7 @@
 #include "Index.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 
 namespace Indexing
@@ -30,15 +31,17 @@ using namespace Lib;
 using namespace Saturation;
 
 enum IndexType {
-  GENERATING_SUBST_TREE=1,
-  SIMPLIFYING_SUBST_TREE,
-  SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE,
-  GENERATING_UNIT_CLAUSE_SUBST_TREE,
-  GENERATING_NON_UNIT_CLAUSE_SUBST_TREE,
+  BINARY_RESOLUTION_SUBST_TREE=1,
+  BACKWARD_SUBSUMPTION_SUBST_TREE,
+  FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE,
+
+  URR_UNIT_CLAUSE_SUBST_TREE,
+  URR_NON_UNIT_CLAUSE_SUBST_TREE,
+  
   SUPERPOSITION_SUBTERM_SUBST_TREE,
   SUPERPOSITION_LHS_SUBST_TREE,
   SUB_VAR_SUP_SUBTERM_SUBST_TREE,
-  SUB_VAR_SUP_LHS_SUBST_TREE,  
+  SUB_VAR_SUP_LHS_SUBST_TREE,
   LASCA_IS_INT_RESOLUTION_LHS_SUBST_TREE,
   LASCA_IS_INT_RESOLUTION_RHS_SUBST_TREE,
   LASCA_INEQUALITY_STRENGTHENING_RHS,
@@ -48,11 +51,12 @@ enum IndexType {
   LASCA_SUPERPOSITION_RHS_SUBST_TREE,
   LASCA_FWD_DEMODULATION_SUBST_TREE,
   LASCA_BWD_DEMODULATION_SUBST_TREE,
+
   DEMODULATION_SUBTERM_SUBST_TREE,
+  DEMODULATION_LHS_CODE_TREE,
   DEMODULATION_LHS_SUBST_TREE,
 
   FW_SUBSUMPTION_CODE_TREE,
-
   FW_SUBSUMPTION_SUBST_TREE,
   BW_SUBSUMPTION_SUBST_TREE,
 
@@ -81,19 +85,20 @@ public:
 
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
   explicit IndexManager(SaturationAlgorithm* alg);
-  ~IndexManager();
-  void setSaturationAlgorithm(SaturationAlgorithm* alg);
+  void setSaturationAlgorithm(SaturationAlgorithm* alg) 
+  { 
+    CALL("IndexManager::setSaturationAlgorithm");
+    ASS(!_alg);
+    ASS(alg);
+    _alg = alg; 
+  }
   Index* request(IndexType t);
   void release(IndexType t);
   bool contains(IndexType t);
   Index* get(IndexType t);
 
   void provideIndex(IndexType t, Index* index);
-
-  LiteralIndexingStructure* getGeneratingLiteralIndexingStructure() { ASS(_genLitIndex); return _genLitIndex; };
 private:
-
-  void attach(SaturationAlgorithm* salg);
 
   struct Entry {
     Index* index;
@@ -102,9 +107,9 @@ private:
   SaturationAlgorithm* _alg;
   DHMap<IndexType,Entry> _store;
 
-  LiteralIndexingStructure* _genLitIndex;
-
   Index* create(IndexType t);
+  Shell::Options::UnificationWithAbstraction _uwa;
+  bool _uwaFixedPointIteration;
 };
 
 };

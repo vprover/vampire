@@ -55,7 +55,7 @@ void TermCodeTree::insert(TermInfo* ti)
   code.reset();
 
 
-  TermList t=ti->t;
+  TermList t=ti->term;
   if (t.isVar()) {
     code.push(CodeOp::getTermOp(ASSIGN_VAR,0));
   }
@@ -84,7 +84,7 @@ void TermCodeTree::remove(const TermInfo& ti)
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
   
-  FlatTerm* ft=FlatTerm::create(ti.t);
+  FlatTerm* ft=FlatTerm::create(ti.term);
   rtm.init(ft, this, &firstsInBlocks);
   
   TermInfo* rti;
@@ -167,7 +167,7 @@ void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
   tp=0;
 }
 
-void TermCodeTree::TermMatcher::deinit()
+void TermCodeTree::TermMatcher::reset()
 {
   CALL("TermCodeTree::TermMatcher::deinit");
   

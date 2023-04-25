@@ -20,7 +20,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "Shell/Options.hpp"
 
@@ -45,13 +44,6 @@ public:
 
   void attach(SaturationAlgorithm* salg) final override;
   void detach() final override;
-
-
-  template<class NumTraits>
-  Stack<Clause*> applyRule(Clause* premise, 
-    Literal* lit1, LascaLiteral<NumTraits> l1, Monom<NumTraits> j_s1,
-    Literal* lit2, LascaLiteral<NumTraits> l2, Monom<NumTraits> k_s2,
-    UwaResult sigma_cnst);
 
   template<class NumTraits>
   ClauseIterator generateClauses(Clause* premise, 

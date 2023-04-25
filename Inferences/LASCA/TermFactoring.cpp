@@ -52,6 +52,7 @@
 #  define DEBUG(...)
 #endif // __DEBUG_OUTPUT
 
+
 using Kernel::InequalityLiteral;
 
 namespace Inferences {
@@ -134,17 +135,17 @@ Option<Clause*> TermFactoring::applyRule(
       "s₁, s₂ are not variables",
       !sel1.monom().isVar() && !sel2.monom().isVar())
 
-  auto uwa_ = _shared->unify(s1, s2);
-  if (uwa_.isNone())  
+  auto uwa = _shared->unify(s1, s2);
+  if (uwa.isNone())  
     return nothing();
 
-  auto& uwa = uwa_.unwrap();
-  auto sigma = [&](auto t) { return uwa.sigma(t, /* var bank */ 0); };
+  auto cnst = uwa->constraintLiterals();
+  auto sigma = [&](auto t) { return uwa->subs().apply(t, /* var bank */ 0); };
 
   // auto pivot_sigma = sigma(sel1.literal());
   // //   ^^^^^^^^^^^ (k₁ s₁ + k₂ s₂ + t <> 0)σ
 
-  Stack<Literal*> conclusion(sel1.clause()->size() + uwa.cnst().size());
+  Stack<Literal*> conclusion(sel1.clause()->size() + cnst->size());
 
   // adding `Cσ`, and checking side condition
   for (auto l : sel1.contextLiterals()) {
@@ -213,7 +214,7 @@ Option<Clause*> TermFactoring::applyRule(
   conclusion.push(resLit);
 
   // adding `Cnst`
-  conclusion.loadFromIterator(uwa.cnstLiterals());
+  conclusion.loadFromIterator(cnst->iterFifo());
 
   Inference inf(GeneratingInference1(Kernel::InferenceRule::LASCA_TERM_FACTORING, sel1.clause()));
   auto clause = Clause::fromStack(conclusion, inf);
@@ -275,7 +276,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 
   return pvi(iterTraits(ownedArrayishIterator(std::move(litRanges)))
                 .flatMap([=] (auto r) {
-                       ASS_REP(r.first < r.second, r)
+                       ASS(r.first < r.second)
                        return range(r.first, r.second - 1)
                                 .flatMap([=](auto i) {
                                    return range(i + 1, r.second)

@@ -37,30 +37,28 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-class CodeTreeTIS : public TermIndexingStructure<DefaultTermLeafData>
+class CodeTreeTIS : public TermIndexingStructure<TermLiteralClause>
 {
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<DefaultTermLeafData>;
-  using TermQueryResult         = Indexing::TermQueryResult<DefaultTermLeafData>;
 public:
 
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  virtual void insert(DefaultTermLeafData data) final override
-  { _insert(data.term, data.literal, data.clause); }
-  virtual void remove(DefaultTermLeafData data) final override
-  { _remove(data.term, data.literal, data.clause); }
-
-  void _insert(TermList t, Literal* lit, Clause* cls);
-  void _remove(TermList t, Literal* lit, Clause* cls);
+  virtual void handle(TermLiteralClause data, bool insert) final override
+  { if (insert) { _insert(data.term, data.literal, data.clause); }
+    else        { _remove(data.term, data.literal, data.clause); } }
 
   TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
   bool generalizationExists(TermList t) final override;
+  // TODO: get rid of NOT_IMPLEMENTED
+  VirtualIterator<QueryRes<AbstractingUnifier*, TermLiteralClause>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
-  virtual std::ostream& output(std::ostream& out) const final override
-  { return out << _ct; }
+  virtual void output(std::ostream& out) const final override { out << _ct; }
 
 private:
+  void _insert(TermList t, Literal* lit, Clause* cls);
+  void _remove(TermList t, Literal* lit, Clause* cls);
+
   class ResultIterator;
 
   TermCodeTree _ct;

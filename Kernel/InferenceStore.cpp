@@ -12,6 +12,7 @@
  * Implements class InferenceStore.
  */
 
+#include "Kernel/Theory.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
@@ -274,7 +275,6 @@ struct InferenceStore::ProofPrinter
 
     outputAxiomNames=env.options->outputAxiomNames();
     delayPrinting=true;
-    proofExtra=env.options->proofExtra()!=Options::ProofExtra::OFF;
   }
 
   void scheduleForPrinting(Unit* us)
@@ -405,12 +405,6 @@ protected:
         out << _is->getUnitIdStr(prem);
         first=false;
       }
-
-      // print Extra
-      vstring extra;
-      if (env.proofExtra && env.proofExtra->find(cs,extra) && extra != "") {
-        out << ", " << extra;
-      }
       out << "]" << endl;
     }
   }
@@ -458,7 +452,6 @@ protected:
 
   bool outputAxiomNames;
   bool delayPrinting;
-  bool proofExtra;
 };
 
 struct InferenceStore::ProofPropertyPrinter
@@ -1305,7 +1298,11 @@ protected:
         if (r < RealConstantType(0)) {
           out << "(-";
         }
-        out << "(/ " << r.numerator().abs() << " " << r.denominator() << ")";
+        if (r.denominator() != IntegerConstantType(1)) {
+          out << r.numerator().abs() << ".0";
+        } else {
+          out << "(/ " << r.numerator().abs() << ".0 " << r.denominator() << ".0)";
+        }
         if (r < RealConstantType(0)) {
           out << ")";
         }

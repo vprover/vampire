@@ -8,6 +8,7 @@
  * and in the source directory
  */
 #include "Test/UnitTesting.hpp"
+#include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
@@ -22,6 +23,7 @@
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
+#include "Debug/Output.hpp"
 
 using namespace std;
 using namespace Kernel;

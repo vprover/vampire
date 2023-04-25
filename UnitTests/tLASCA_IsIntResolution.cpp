@@ -64,16 +64,16 @@ using namespace Inferences::LASCA;
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
 auto idxIsIntResolution(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<IsIntResolution::Lhs>(uwa); },
-    [=]() { return new LascaIndex<IsIntResolution::Rhs>(uwa); },
+    [=]() { return new LascaIndex<IsIntResolution::Lhs>(); },
+    [=]() { return new LascaIndex<IsIntResolution::Rhs>(); },
   }; 
 }
 
 IsIntResolution testIsIntResolution(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) 
 { return IsIntResolution(testLascaState(uwa)); }
 

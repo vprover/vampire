@@ -17,12 +17,13 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/Index.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/TriangularArray.hpp"
 #include "Lib/Vector.hpp"
@@ -45,24 +46,7 @@ protected:
 public:
   TermCodeTree();
   
-  struct TermInfo
-  {
-    TermInfo(TermList t, Literal* lit, Clause* cls)
-    : t(t), lit(lit), cls(cls) {}
-
-    inline bool operator==(const TermInfo& o)
-    { return cls==o.cls && t==o.t && lit==o.lit; }
-
-    inline bool operator!=(const TermInfo& o)
-    { return !(*this==o); }
-
-    CLASS_NAME(TermCodeTree::TermInfo);
-    USE_ALLOCATOR(TermInfo);
-
-    TermList t;
-    Literal* lit;
-    Clause* cls;
-  };
+  using TermInfo = TermLiteralClause;
 
 
   void insert(TermInfo* ti);
@@ -84,7 +68,7 @@ public:
     TermMatcher();
 
     void init(CodeTree* tree, TermList t);
-    void deinit();
+    void reset();
     
     TermInfo* next();
     

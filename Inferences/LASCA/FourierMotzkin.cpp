@@ -17,7 +17,7 @@
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG_FM(lvl, ...) if (lvl <= 0) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace LASCA {
@@ -65,6 +65,7 @@ using Rhs = FourierMotzkin::Rhs;
 
 ClauseIterator FourierMotzkin::generateClauses(Clause* premise) 
 {
+  // TODO refactor so this function is not copied and pasted among all unifying lasca rules
   CALL("FourierMotzkin::generateClauses(Clause* premise)")
   ASS(_lhsIndex)
   ASS(_rhsIndex)
@@ -72,12 +73,12 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
   Stack<Clause*> out;
 
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
-    DEBUG("lhs: ", lhs)
-    for (auto rhs_sigma : _rhsIndex->find(lhs.monom())) {
-      auto& rhs   = std::get<0>(rhs_sigma);
-      auto& sigma = std::get<1>(rhs_sigma);
-      DEBUG("  rhs: ", rhs)
-      auto res = applyRule(lhs, 0, rhs, 1, sigma);
+    DEBUG_FM(1, "lhs: ", lhs)
+    for (auto rhs_sigma : _rhsIndex->find(lhs.key())) {
+      auto& rhs   = *rhs_sigma.data;
+      auto& sigma = rhs_sigma.unifier;
+      DEBUG_FM(1, "  rhs: ", rhs)
+      auto res = applyRule(lhs, 0, rhs, 1, *sigma);
       if (res.isSome()) {
         out.push(res.unwrap());
       }
@@ -85,14 +86,14 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
   }
 
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
-    DEBUG("rhs: ", rhs)
+    DEBUG_FM(1, "rhs: ", rhs)
 
-    for (auto lhs_sigma : _lhsIndex->find(rhs.monom())) {
-      auto& lhs   = std::get<0>(lhs_sigma);
-      auto& sigma = std::get<1>(lhs_sigma);
+    for (auto lhs_sigma : _lhsIndex->find(rhs.key())) {
+      auto& lhs   = *lhs_sigma.data;
+      auto& sigma = lhs_sigma.unifier;
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-        DEBUG("  lhs: ", lhs)
-        auto res = applyRule(lhs, 1, rhs, 0, sigma);
+        DEBUG_FM(1, "  lhs: ", lhs)
+        auto res = applyRule(lhs, 1, rhs, 0, *sigma);
         if (res.isSome()) {
           out.push(res.unwrap());
         }
@@ -135,7 +136,7 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 Option<Clause*> FourierMotzkin::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
-    UwaResult& uwa
+    AbstractingUnifier& uwa
     ) const 
 {
 
@@ -143,6 +144,8 @@ Option<Clause*> FourierMotzkin::applyRule(
 
   CALL("FourierMotzkin::applyRule")
   TIME_TRACE("fourier motzkin")
+  auto cnst = uwa.constraintLiterals();
+  auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t,bank); };
 
 
   return lhs.numTraits().apply([&](auto numTraits) {
@@ -153,7 +156,7 @@ Option<Clause*> FourierMotzkin::applyRule(
 
 #define check_side_condition(cond, cond_code)                                                       \
     if (!(cond_code)) {                                                                             \
-      DEBUG("side condition not fulfiled: " cond)                                                   \
+      DEBUG_FM(1, "side condition not fulfiled: " cond)                                                   \
       return Option<Clause*>();                                                                     \
     }                                                                                               \
 
@@ -177,7 +180,7 @@ Option<Clause*> FourierMotzkin::applyRule(
 #if __LASCA_FM_DERIVE_EQUALITIES
                        + (tight ? 1 : 0)          // <- -k s₂ + t₂ ≈ 0
 #endif // __LASCA_FM_DERIVE_EQUALITIES
-                       + uwa.cnst().size());      // Cnst
+                       + cnst->size());      // Cnst
 
 
     ASS(!NumTraits::isFractional() || (!lhs.monom().isVar() && !rhs.monom().isVar()))
@@ -186,30 +189,30 @@ Option<Clause*> FourierMotzkin::applyRule(
     //     "s₁, s₂ are not variables",
     //     !lhs.monom().isVar() && !rhs.monom().isVar())
 
-    auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
+    auto L1σ = sigma(lhs.literal(), lhsVarBank);
     check_side_condition( 
         "(+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ",
         lhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = uwa.sigma(L, lhsVarBank);
+             auto Lσ = sigma(L, lhsVarBank);
              out.push(Lσ);
              return _shared->notLeq(L1σ, Lσ);
            }));
 
 
-    auto L2σ = uwa.sigma(rhs.literal(), rhsVarBank);
+    auto L2σ = sigma(rhs.literal(), rhsVarBank);
     check_side_condition(
         "(-k s₂ + t₂ >₂ 0)σ /≺ C₂σ",
         rhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = uwa.sigma(L, rhsVarBank);
+             auto Lσ = sigma(L, rhsVarBank);
              out.push(Lσ);
              return _shared->notLess(L2σ, Lσ);
            }));
 
 
-    auto s1σ = uwa.sigma(lhs.monom(), lhsVarBank);
-    auto s2σ = uwa.sigma(rhs.monom(), rhsVarBank);
+    auto s1σ = sigma(lhs.monom(), lhsVarBank);
+    auto s2σ = sigma(rhs.monom(), rhsVarBank);
     // ASS_REP(_shared->equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
     Stack<TermList> t1σ(rhs.nContextTerms());
     Stack<TermList> t2σ(lhs.nContextTerms());
@@ -218,7 +221,7 @@ Option<Clause*> FourierMotzkin::applyRule(
         "s₁σ /⪯ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = uwa.sigma(ti.factors->denormalize(), lhsVarBank);
+             auto tiσ = sigma(ti.factors->denormalize(), lhsVarBank);
              t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
              return _shared->notLeq(s1σ, tiσ);
            }))
@@ -227,13 +230,13 @@ Option<Clause*> FourierMotzkin::applyRule(
         "s₂σ /⪯ t₂σ ",
         rhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = uwa.sigma(ti.factors->denormalize(), rhsVarBank);
+             auto tiσ = sigma(ti.factors->denormalize(), rhsVarBank);
              t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
              return _shared->notLeq(s2σ, tiσ);
            }))
 
-    // DEBUG("(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)
-    // DEBUG("(-k s₂ + t₂ >₂ 0)σ = ", *L2σ)
+    // DEBUG_FM(1, "(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)
+    // DEBUG_FM(1, "(-k s₂ + t₂ >₂ 0)σ = ", *L2σ)
     // check_side_condition(
     //     "( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ",
     //     _shared->notLeq(L2σ, L1σ));
@@ -260,7 +263,7 @@ Option<Clause*> FourierMotzkin::applyRule(
 
     if (tight) {
       auto rhsSum = // -> (-k s₂ + t₂)σ
-        uwa.sigma(rhs.literal(), rhsVarBank)->termArg(0);
+        sigma(rhs.literal(), rhsVarBank)->termArg(0);
       out.push(NumTraits::eq(true, rhsSum, NumTraits::zero()));
     }
 #else 
@@ -271,11 +274,11 @@ Option<Clause*> FourierMotzkin::applyRule(
 
 #endif
 
-    out.loadFromIterator(uwa.cnstLiterals());
+    out.loadFromIterator(cnst->iterFifo());
 
     Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_FOURIER_MOTZKIN, lhs.clause(), rhs.clause()));
     auto cl = Clause::fromStack(out, inf);
-    DEBUG("out: ", *cl);
+    DEBUG_FM(1, "out: ", *cl);
     return Option<Clause*>(cl);
   });
 }

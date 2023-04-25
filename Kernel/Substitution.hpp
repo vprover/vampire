@@ -41,7 +41,6 @@ class Substitution
 public:
   CLASS_NAME(Substitution);
   USE_ALLOCATOR(Substitution);
-  DECLARE_PLACEMENT_NEW;
 
   Substitution() {}
 

@@ -400,12 +400,11 @@ void SineSelector::perform(Problem& prb)
   prb.invalidateByRemoval();
 }
 
-static const char* SINE_SELECTION = "sine selection";
 bool SineSelector::perform(UnitList*& units)
 {
   CALL("SineSelector::perform");
 
-  TIME_TRACE(SINE_SELECTION);
+  TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   initGeneralityFunction(units);
 
@@ -631,7 +630,7 @@ void SineTheorySelector::initSelectionStructure(UnitList* units)
 {
   CALL("SineTheorySelector::initSelectionStructure");
 
-  TIME_TRACE(SINE_SELECTION)
+  TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   initGeneralityFunction(units);
 
@@ -651,7 +650,7 @@ void SineTheorySelector::perform(UnitList*& units)
 {
   CALL("SineTheorySelector::perform");
 
-  TIME_TRACE(SINE_SELECTION);
+  TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   handlePossibleSignatureChange();
 

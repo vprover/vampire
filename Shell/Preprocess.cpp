@@ -38,6 +38,7 @@
 #include "Kernel/LASCA.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
+#include "Shuffling.hpp"
 #include "NNF.hpp"
 #include "Options.hpp"
 #include "PredicateDefinition.hpp"
@@ -57,7 +58,6 @@
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
-#include "Lib/RCPtr.hpp"
 
 #include "Kernel/TermIterators.hpp"
 
@@ -117,6 +117,17 @@ void Preprocess::preprocess(Problem& prb)
       env.out() << "normalization" << std::endl;
 
     Normalisation().normalise(prb);
+  }
+
+  if (_options.shuffleInput()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    env.statistics->phase=Statistics::SHUFFLING;    
+
+    if (env.options->showPreprocessing())
+      env.out() << "shuffling1" << std::endl;
+
+    // shuffling at the very beginning
+    Shuffling::shuffle(prb);
   }
 
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
@@ -224,6 +235,16 @@ void Preprocess::preprocess(Problem& prb)
     preprocess1(prb);
   }
 
+  if (_options.shuffleInput()) {
+   TIME_TRACE(TimeTrace::SHUFFLING);
+    env.statistics->phase=Statistics::SHUFFLING;
+    if (env.options->showPreprocessing())
+      env.out() << "shuffling2" << std::endl;
+
+    // axioms have been added, fool eliminated; moreover, after flattening, more opportunity for shuffling inside
+    Shuffling::shuffle(prb);
+  }
+
   // stop here if clausification is not required
   if (!_clausify) {
     return;
@@ -249,6 +270,16 @@ void Preprocess::preprocess(Problem& prb)
       env.out() << "preprocess 2 (ennf,flatten)" << std::endl;
 
     preprocess2(prb);
+  }
+
+  if (_options.shuffleInput()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    env.statistics->phase=Statistics::SHUFFLING;
+    if (env.options->showPreprocessing())
+      env.out() << "shuffling3" << std::endl;
+
+    // more flattening -> more shuffling
+    Shuffling::shuffle(prb);
   }
 
   if (prb.mayHaveFormulas() && _options.newCNF() && 
@@ -413,6 +444,25 @@ void Preprocess::preprocess(Problem& prb)
 
      BlockedClauseElimination bce;
      bce.apply(prb);
+   }
+
+   if (_options.shuffleInput()) {
+     TIME_TRACE(TimeTrace::SHUFFLING);
+     env.statistics->phase=Statistics::SHUFFLING;
+     if (env.options->showPreprocessing())
+       env.out() << "shuffling4" << std::endl;
+
+     // cnf and many other things happened - shuffle one more time
+     Shuffling::shuffle(prb);
+   }
+
+   if (_options.randomPolarities()) {
+     TIME_TRACE(TimeTrace::SHUFFLING);
+     env.statistics->phase=Statistics::SHUFFLING;
+     if (env.options->showPreprocessing())
+       env.out() << "flipping polarities" << std::endl;
+
+     Shuffling::polarityFlip(prb);
    }
 
    if (env.options->showPreprocessing()) {

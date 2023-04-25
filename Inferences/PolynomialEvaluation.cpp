@@ -259,7 +259,7 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
       );
     }
   };
-  auto out = evaluateBottomUp(normalized, Eval{ *this, _removeZeros, });
+  auto out = evaluateBottomUp(normalized, Eval{ *this, _removeZeros, }, _memo);
   return out.map([&normalized](PolyNf out) {
       return out == normalized ? Option<PolyNf>()
                                : Option<PolyNf>(std::move(out));

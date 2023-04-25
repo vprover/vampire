@@ -40,10 +40,13 @@ using namespace Inferences::LASCA;
   NUMBER_SUGAR(Num)                                                                                           \
   DECL_DEFAULT_VARS                                                                                           \
   DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(g, {Num, Num}, Num)                                                                               \
+  DECL_FUNC(g, {Num}, Num)                                                                                    \
+  DECL_FUNC(f2, {Num, Num}, Num)                                                                               \
   DECL_CONST(a, Num)                                                                                          \
   DECL_CONST(b, Num)                                                                                          \
   DECL_CONST(c, Num)                                                                                          \
+  DECL_CONST(d, Num)                                                                                          \
+  DECL_CONST(e, Num)                                                                                          \
   DECL_PRED(R, {Num,Num})                                                                                     \
   DECL_PRED(P, {Num})                                                                                         \
 
@@ -51,7 +54,7 @@ using namespace Inferences::LASCA;
 
 
 VariableElimination testVariableElimination(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     )
 { 
   return VariableElimination(testLascaState(uwa), /* simplify */ true);
@@ -273,11 +276,11 @@ TEST_GENERATION(neq2,
 
 TEST_GENERATION(misc01,
     Generation::SymmetricTest()
-      .inputs ({  clause({ 0 != -3 * x +               g(y,z) , 0 != x + -10 * z })})
-                       // 0 !=      x +        -(1/3) g(y,z) , 0 != x + -10 * z
+      .inputs ({  clause({ 0 != -3 * x +               f2(y,z) , 0 != x + -10 * z })})
+                       // 0 !=      x +        -(1/3) f2(y,z) , 0 != x + -10 * z
       .expected(exactly(anyOf(
-            clause({ 0 !=  10 * z + frac(-1, 3) * g(y,z) }), 
-            clause({ 0 != -10 * z + frac( 1, 3) * g(y,z) })
+            clause({ 0 !=  10 * z + frac(-1, 3) * f2(y,z) }), 
+            clause({ 0 != -10 * z + frac( 1, 3) * f2(y,z) })
       )))
       .premiseRedundant(true)
     )
@@ -287,10 +290,10 @@ TEST_GENERATION(misc01,
 
 TEST_GENERATION(misc02,
     Generation::SymmetricTest()
-      .inputs ({  clause({ 0 != 30 * x +          g(y,z) , 0 != 2 * x +       y })})
-                     // { 0 !=      x + (1/30) * g(y,z) , 0 !=     x + (1/2) y }
+      .inputs ({  clause({ 0 != 30 * x +          f2(y,z) , 0 != 2 * x +       y })})
+                     // { 0 !=      x + (1/30) * f2(y,z) , 0 !=     x + (1/2) y }
       .expected(exactly(anyOf(
-                 clause({ 0 != frac(-1,2) * y + frac(1,30) * g(y,z) })
+                 clause({ 0 != frac(-1,2) * y + frac(1,30) * f2(y,z) })
       )))
       .premiseRedundant(true)
     )
@@ -380,6 +383,44 @@ TEST_GENERATION(bug04,
       // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
       .inputs ({         clause({ -x + y >= 0, x + -z >= 0, -f(y) + f(z) > 0 })})
       .expected(exactly( clause({ y             - z >= 0, f(z) - f(y) > 0}) ))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(bug05,
+    Generation::SymmetricTest()
+//     (assert (forall ((x4 Real)(y Real)(z Real)(x2 Real)(x Real))(or false
+//   (>= (+ (* (/ 11 1) y) (+ a (* (/ 14 1) z))) (/ 0 1))
+//   (>= (+ (* (-(/ 5 1)) x) (+ e (+ (* (-(/ 4 1)) f(z)) (* (-(/ 7 1)) b)))) (/ 0 1))
+//   (>= (+ (* (-(/ 4 1)) x) (+ (* (-(/ 19 1)) g(z)) (+ (- (* c y)) (- (* d f(z)))))) (/ 0 1))
+//   (>= (+ (/ 15 1) (+ (* (/ 15 1) x) (+ (* (/ 6 1) y) (* (-(/ 17 1)) b)))) (/ 0 1))
+//   )))
+    .inputs({clause({
+          // 11 * y + a + 14 *  z >= 0
+          -5 * x + e + -4 * f(z) + -7 * b >= 0,
+          -4 * x +  -19 * g(z) + - c * y  + - (d * f(z)) >= 0,
+          15 + 15 * x + 6 * y + -17 * b >= 0,
+        })
+      })
+//
+//
+// ;- rule: lasca variable elimination
+//
+// ;- unit id: 3469
+// (assert (not (forall ((x4 Real)(y Real)(z Real)(x2 Real))(or false
+//   -- (>= (+ (* (/ 11 1) y) (+ a (* (/ 14 1) z))) (/ 0 1))
+//   (>= (+ (* (-(/ 7 5)) b) (+ (* (-(/ 4 5)) f(z)) (+ (* (/ 1 5) e) (+ (* (-(/ 17 15)) b) (+ (* (/ 2 5) y) (/ 1 1)))))) (/ 0 1))
+//   (>= (+ (* (-(/ 1 4)) (* d f(z))) (+ (* (-(/ 1 4)) (* c y)) (+ (* (-(/ 19 4)) g(z)) (+ (* (-(/ 17 15)) b) (+ (* (/ 2 5) y) (/ 1 1)))))) (/ 0 1))
+//   ))))
+// (check-sat)
+      // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
+      .expected(exactly( clause({
+          // -x + 1/5 * e + -4/5 * f(z) + -7/5 * b >= 0
+          // -x +  -19/4 * g(z) + - 1/4 * c * y  + -1/4 * (d * f(z)) >= 0
+          //  x + 1 + 6/15 * y + -17/15 * b >= 0
+           /////////
+           1 + frac(6,15) * y + frac(-17,15) * b + frac(1,5) * e + frac(-4,5) * f(z) + frac(-7,5) * b >= 0,
+           1 + frac(6,15) * y + frac(-17,15) * b + frac(-19,4) * g(z) + frac(-1,4) * c * y  + frac(-1,4) * (d * f(z)) >= 0,
+              }) ))
       .premiseRedundant(true)
     )
 

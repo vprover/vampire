@@ -18,12 +18,14 @@
 #ifndef __LASCA__
 #define __LASCA__
 
+#include "Indexing/Index.hpp"
 #include "Kernel/Formula.hpp"
 #include "Lib/Int.hpp"
 #include "Forwards.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
+#include "Kernel/MismatchHandler.hpp"
 
 #include "Signature.hpp" 
 #include "SortHelper.hpp"
@@ -272,7 +274,7 @@ namespace Kernel {
     template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> renormalizeIneq(Literal* lit) const;
 
     // Literal* renormalizeLiteral(Literal* lit) const;
-    Stack<Literal*> normalizeLiteral(Literal* lit) const;
+    Recycled<Stack<Literal*>> normalizeLiteral(Literal* lit) const;
     bool isNormalized(Clause* cl)  const;
   private: 
     Literal* normalizeUninterpreted(Literal* lit) const;
@@ -281,76 +283,76 @@ namespace Kernel {
   struct LascaState;
   using UwaSubstitution = Coproduct<RobSubstitution, Indexing::ResultSubstitutionSP>; 
 
-  template<class TermOrLit> 
-  auto applySubst(Indexing::ResultSubstitution& subst, TermOrLit t, int varBank) { return subst.applyTo(t, varBank);  }
+  // template<class TermOrLit> 
+  // auto applySubst(Indexing::ResultSubstitution& subst, TermOrLit t, int varBank) { return subst.applyTo(t, varBank);  }
+  //
+  // template<class TermOrLit> 
+  // auto applySubst(Indexing::ResultSubstitutionSP const& subst, TermOrLit t, int varBank) { return subst->applyTo(t, varBank);  }
+  //
+  // template<class TermOrLit> 
+  // auto applySubst(RobSubstitution const& subst, TermOrLit t, int varBank) { return subst.apply(t, varBank);  }
+  //
+  // template<class TermOrLit> 
+  // auto applySubst(UwaSubstitution const& subst, TermOrLit t, int varBank)
+  // { return subst.apply([&](auto& s) { return applySubst(s, t, varBank); });  }
 
-  template<class TermOrLit> 
-  auto applySubst(Indexing::ResultSubstitutionSP const& subst, TermOrLit t, int varBank) { return subst->applyTo(t, varBank);  }
 
-  template<class TermOrLit> 
-  auto applySubst(RobSubstitution const& subst, TermOrLit t, int varBank) { return subst.apply(t, varBank);  }
-
-  template<class TermOrLit> 
-  auto applySubst(UwaSubstitution const& subst, TermOrLit t, int varBank)
-  { return subst.apply([&](auto& s) { return applySubst(s, t, varBank); });  }
-
-
-  struct UwaResult {
-    UwaSubstitution _sigma;
-    Stack<UnificationConstraint> _cnst;
-
-    UwaResult(RobSubstitution sigma, Stack<UnificationConstraint> cnst) 
-      : _sigma(decltype(_sigma)(std::move(sigma)))
-      , _cnst(std::move(cnst)) 
-    {  }
-
-    template<class T>
-    UwaResult(Indexing::TermQueryResult<T> const& qr)
-      : _sigma(decltype(_sigma)(qr.substitution))
-      , _cnst( qr.constraints ? *qr.constraints : decltype(_cnst)() )
-    { }
-
-    UwaResult(UwaResult&&) = default;
-    UwaResult& operator=(UwaResult&&) = default;
-
-    template<class Subst>
-    static auto cnstLiterals(Subst& sigma, Stack<UnificationConstraint> const& cnst)
-    {
-      return iterTraits(cnst.iterFifo())
-        .map([&](auto c){
-          auto toTerm = [&](pair<TermList, unsigned> & constraintPair) -> TermList
-                        { return applySubst(sigma, constraintPair.first, constraintPair.second); };
-         auto sort = c.first.first.isTerm() ? SortHelper::getResultSort(c.first.first.term())
-                                            : SortHelper::getResultSort(c.second.first.term());
-          // lσ != rσ
-          return Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort);
-        });
-    }
-
-    auto const& cnst() const { return _cnst; }
-
-    template<class TermOrLit>
-    auto sigma(TermOrLit x, unsigned varBank) const 
-    { return applySubst(_sigma, x, varBank); }
-
-    auto cnstLiterals() const
-    { return cnstLiterals(_sigma, _cnst); }
-
-    friend std::ostream& operator<<(std::ostream& out, UwaResult const& self)
-    { 
-      out << "⟨" << self._sigma << ", [";
-      auto iter = self.cnstLiterals();
-      if (iter.hasNext()) {
-        out << *iter.next();
-        while (iter.hasNext())
-          out << " \\/ " << *iter.next();
-      }
-      return out << "]⟩"; 
-    }
-  private:
-    // UwaResult() : _sigma(), _cnst() {  }
-    friend struct LascaState;
-  };
+  // struct UwaResult {
+  //   UwaSubstitution _sigma;
+  //   Stack<UnificationConstraint> _cnst;
+  //
+  //   UwaResult(RobSubstitution sigma, Stack<UnificationConstraint> cnst) 
+  //     : _sigma(decltype(_sigma)(std::move(sigma)))
+  //     , _cnst(std::move(cnst)) 
+  //   {  }
+  //
+  //   template<class T>
+  //   UwaResult(Indexing::QueryRes<AbstractingUnifier*, class Data> const& qr)
+  //     : _sigma(decltype(_sigma)(qr.substitution))
+  //     , _cnst( qr.constraints ? *qr.constraints : decltype(_cnst)() )
+  //   { }
+  //
+  //   UwaResult(UwaResult&&) = default;
+  //   UwaResult& operator=(UwaResult&&) = default;
+  //
+  //   template<class Subst>
+  //   static auto cnstLiterals(Subst& sigma, Stack<UnificationConstraint> const& cnst)
+  //   {
+  //     return iterTraits(cnst.iterFifo())
+  //       .map([&](auto c){
+  //         auto toTerm = [&](pair<TermList, unsigned> & constraintPair) -> TermList
+  //                       { return applySubst(sigma, constraintPair.first, constraintPair.second); };
+  //        auto sort = c.first.first.isTerm() ? SortHelper::getResultSort(c.first.first.term())
+  //                                           : SortHelper::getResultSort(c.second.first.term());
+  //         // lσ != rσ
+  //         return Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort);
+  //       });
+  //   }
+  //
+  //   auto const& cnst() const { return _cnst; }
+  //
+  //   template<class TermOrLit>
+  //   auto sigma(TermOrLit x, unsigned varBank) const 
+  //   { return applySubst(_sigma, x, varBank); }
+  //
+  //   auto cnstLiterals() const
+  //   { return cnstLiterals(_sigma, _cnst); }
+  //
+  //   friend std::ostream& operator<<(std::ostream& out, UwaResult const& self)
+  //   { 
+  //     out << "⟨" << self._sigma << ", [";
+  //     auto iter = self.cnstLiterals();
+  //     if (iter.hasNext()) {
+  //       out << *iter.next();
+  //       while (iter.hasNext())
+  //         out << " \\/ " << *iter.next();
+  //     }
+  //     return out << "]⟩"; 
+  //   }
+  // private:
+  //   // UwaResult() : _sigma(), _cnst() {  }
+  //   friend struct LascaState;
+  // };
 
   // template<class NumTraits>
   // struct SelectedAtomicTerm 
@@ -491,8 +493,8 @@ namespace Kernel {
     auto symbol() const
     { return ircLiteral().apply([](auto& l) { return l.symbol(); }); }
 
-    using Key = TermList;
-    auto key() const { return monom(); }
+    TypedTermList key() const { return TypedTermList(monom(), sort()); }
+
     friend std::ostream& operator<<(std::ostream& out, SelectedSummand const& self);
 
     auto asTuple() const
@@ -600,13 +602,12 @@ namespace Kernel {
     //     // else
     //     [&]() { return _inner.unwrap<1>().contextLiterals(); }); }
 
-    TermList key() const 
-    { return biggerSide(); }
 
     Literal* literal() const
     { return _inner.apply([](auto& x) { return x.literal(); }); }
 
-    TermList sort() const { ASSERTION_VIOLATION  }
+    TermList sort() const { return SortHelper::getEqualityArgumentSort(literal()); }
+    TypedTermList key() const { return TypedTermList(biggerSide(), sort()); }
 
     friend std::ostream& operator<<(std::ostream& out, SelectedEquality const& self)
     { 
@@ -677,11 +678,14 @@ namespace Kernel {
     LascaState(
           InequalityNormalizer normalizer,
           Ordering* const ordering,
-          Shell::Options::UnificationWithAbstraction const uwa
+          Shell::Options::UnificationWithAbstraction uwa,
+          bool fixedPointIteration
         )
       : normalizer(std::move(normalizer))
       , ordering(std::move(ordering))
-      , uwa(std::move(uwa)) {}
+      , uwa(uwa) 
+      , uwaFixedPointIteration(fixedPointIteration)
+    {}
 
     std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
     { return std::make_tuple(IntegerConstantType(1), t); }
@@ -700,45 +704,51 @@ namespace Kernel {
 
 
     template<class NumTraits>
-    WeightedMultiSet<SignedTerm> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
+    Recycled<WeightedMultiSet<SignedTerm>> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
     {
-      auto counts =  std::get<1>(t)->iterSummands()
-            .map([](auto s) {
-              auto count  = ifOfType<IntegerConstantType>(s.numeral,
-                             [&](IntegerConstantType num) { return num; },
-                              /* decltype(num) in { RatTraits, RealTraits } */
-                             [&](auto num) {
-                               ASS_EQ(num.denominator(), IntegerConstantType(1))
-                               return num.numerator();
-                             }).abs();
-              if (count == IntegerConstantType(0)) {
-                ASS(s.numeral.sign() == Sign::Zero)
-                count = IntegerConstantType(1);
-              }
-              SignedTerm term = {
-                .sign = s.numeral.sign(),
-                .term = s.factors->denormalize(),
-              };
-              return std::make_tuple(term, count);
-            })
-            .template collect<Stack>();
-      std::sort(counts.begin(), counts.end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
-      return WeightedMultiSet<SignedTerm>(std::get<0>(t), MultiSet<SignedTerm>::fromSortedStack(std::move(counts)));
+      Recycled<WeightedMultiSet<SignedTerm>> out;
+
+      out->elems.raw().loadFromIterator(
+          std::get<1>(t)->iterSummands()
+                .map([](auto s) {
+                  auto count  = ifOfType<IntegerConstantType>(s.numeral,
+                                 [&](IntegerConstantType num) { return num; },
+                                  /* decltype(num) in { RatTraits, RealTraits } */
+                                 [&](auto num) {
+                                   ASS_EQ(num.denominator(), IntegerConstantType(1))
+                                   return num.numerator();
+                                 }).abs();
+                  if (count == IntegerConstantType(0)) {
+                    ASS(s.numeral.sign() == Sign::Zero)
+                    count = IntegerConstantType(1);
+                  }
+                  SignedTerm term = {
+                    .sign = s.numeral.sign(),
+                    .term = s.factors->denormalize(),
+                  };
+                  return std::make_tuple(term, count);
+                })
+          );
+      std::sort(out->elems.raw().begin(), out->elems.raw().end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
+      out->weight = std::get<0>(t);
+      out->elems.integrity();
+      return out;
     }
 
   public:
     InequalityNormalizer normalizer;
     Ordering* const ordering;
-    Shell::Options::UnificationWithAbstraction const uwa;
+    Shell::Options::UnificationWithAbstraction uwa;
+    bool const uwaFixedPointIteration;
 
+    Shell::Options::UnificationWithAbstraction uwaMode() const { return uwa; }
         
-    // TODO move to LASCA.hpp
     template<class NumTraits>
-    Option<SignedAtoms> signedAtoms(TermList t)
+    Option<Recycled<SignedAtoms>> signedAtoms(TermList t)
     {
       auto norm = this->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
       auto atoms = rmNum(divNf(norm));
-      if (hasSubstitutionProperty(atoms)) {
+      if (hasSubstitutionProperty(*atoms)) {
         return Option<decltype(atoms)>(std::move(atoms));
       } else {
         return Option<decltype(atoms)>();
@@ -756,10 +766,11 @@ namespace Kernel {
     static std::shared_ptr<LascaState> create(
           InequalityNormalizer normalizer,
           Ordering* const ordering,
-          Shell::Options::UnificationWithAbstraction const uwa
+          Shell::Options::UnificationWithAbstraction const uwa,
+          bool const fixedPointIteration
         ) 
     {
-      globalState = make_shared(LascaState(std::move(normalizer), ordering, uwa));
+      globalState = make_shared(LascaState(std::move(normalizer), ordering, uwa, fixedPointIteration));
       return globalState;
     }
 
@@ -782,8 +793,19 @@ namespace Kernel {
       return equivalent(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
     }
 
+    bool equivalent(Literal* lhs, Literal* rhs) 
+     { 
+       auto s1 = normalizer.normalizeLiteral(lhs);
+       auto s2 = normalizer.normalizeLiteral(rhs);
+       return s1 == s2;
+     }
+
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
      { return normalize(lhs) == normalize(rhs); }
+
+    bool isAtomic(Term* t) { return !interpretedFunction(t); }
+    // bool isAtomic(TermList t) { return t.isVar() || isAtomic(t.term()); }
+
 
     auto maxLits(Clause* cl, SelectionCriterion sel) {
       CALL("LascaState::maxLits")
@@ -791,6 +813,8 @@ namespace Kernel {
           cl->size(), 
           [=](unsigned l, unsigned r) 
           { return ordering->compare((*cl)[l], (*cl)[r]); },
+          [=](unsigned i) -> Literal&
+          { return *(*cl)[i]; },
           sel)
         .map([=](auto i) 
             { return SelectedLiteral(cl, i, *this); });
@@ -818,6 +842,8 @@ namespace Kernel {
                   lit.term().nSummands(),
                   [=](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
+                  [=](unsigned i)
+                  { return monomAt(i); },
                   selection);
     }
 
@@ -958,6 +984,7 @@ namespace Kernel {
     bool interpretedFunction(Term* t) 
     { return forAnyNumTraits([&](auto numTraits) -> bool {
             return theory->isInterpretedFunction(t, numTraits.addI)
+                || theory->isInterpretedFunction(t, numTraits.minusI)
                 || theory->isInterpretedConstant(t)
                 || (theory->isInterpretedFunction(t, numTraits.mulI)
                     && theory->isInterpretedConstant(t->termArg(0)));
@@ -1008,6 +1035,8 @@ namespace Kernel {
           atoms->size(), 
           [=](unsigned l, unsigned r) 
           { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
+          [=](unsigned i)
+          { return (*atoms)[i].atom(); },
           criterion)
         .map([=](auto i) 
             { return (*atoms)[i]; })
@@ -1051,7 +1080,7 @@ namespace Kernel {
 
   public:
 
-    Option<UwaResult> unify(TermList lhs, TermList rhs) const;
+    Option<AbstractingUnifier> unify(TermList lhs, TermList rhs) const;
     Option<AnyLascaLiteral> renormalize(Literal*);
     Option<AnyInequalityLiteral> renormalizeIneq(Literal*);
     PolyNf normalize(TypedTermList);
@@ -1094,9 +1123,10 @@ namespace Kernel {
 
 #if VDEBUG
   shared_ptr<LascaState> testLascaState(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1,
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1,
     bool strongNormalization = false,
-    Ordering* ordering = nullptr
+    Ordering* ordering = nullptr,
+    bool uwaFixdPointIteration = false
     );
 #endif
 

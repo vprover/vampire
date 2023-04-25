@@ -36,6 +36,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "SAT/SATInference.hpp"
 #include "SAT/MinimizingSolver.hpp"
@@ -115,7 +116,7 @@ void SplittingBranchSelector::init()
     if (_ccModel) {
       _dpModel = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     }
-  }
+  }  
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -150,6 +151,11 @@ void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
     case Options::SplittingLiteralPolarityAdvice::NONE:
       // do nothing
     break;
+    case Options::SplittingLiteralPolarityAdvice::RANDOM:
+      _solver->suggestPolarity(lit.var(),Random::getBit());
+    break;
+    default:
+      ASSERTION_VIOLATION;
   }
 }
 
@@ -381,7 +387,6 @@ int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
 
   return max;
 }
-static const char* SAT_SOLVER = "SAT solver";
 
 SATSolver::Status SplittingBranchSelector::processDPConflicts()
 {
@@ -431,7 +436,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     // there was conflict, so we try looking for a different model
     {
-      TIME_TRACE(SAT_SOLVER);
+      TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
       
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
@@ -587,7 +592,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   
   SATSolver::Status stat;
   {
-    TIME_TRACE(SAT_SOLVER);
+    TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
     if (randomize) {
       _solver->randomizeForNextAssignment(maxSatVar);
     }
@@ -700,6 +705,8 @@ void Splitter::init(SaturationAlgorithm* sa)
   _flushQuotient = opts.splittingFlushQuotient();
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
   _congruenceClosure = opts.splittingCongruenceClosure();
+  _shuffleComponents = opts.randomTraversals();
+
 #if VZ3
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
@@ -1031,7 +1038,7 @@ vstring Splitter::splitsToString(SplitSet* splits)
  *
  * Comment by Giles. 
  */
-bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
+bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 {
   CALL("Splitter::getComponents");
   ASS_EQ(acc.size(), 0);
@@ -1045,7 +1052,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash, Hash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1055,7 +1062,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
       if(master!=i) {
-  components.doUnion(master, i);
+        components.doUnion(master, i);
       }
     }
   }
@@ -1085,6 +1092,9 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     }
   }
   ASS_EQ(acc.size(),compCnt);
+  if (shuffle) {
+    Shuffling::shuffleArray(acc.begin(),compCnt);
+  }
   return true;
 }
 
@@ -1127,7 +1137,7 @@ bool Splitter::doSplitting(Clause* cl)
   static Stack<LiteralStack> comps;
   comps.reset();
   // fills comps with components, returning if not splittable
-  if(!getComponents(cl, comps)) {
+  if(!getComponents(cl, comps, _shuffleComponents)) {
     return handleNonSplittable(cl);
   }
 
@@ -1285,6 +1295,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     compCl->setAge(orig->age());
     compCl->inference().th_ancestors = orig->inference().th_ancestors;
     compCl->inference().all_ancestors = orig->inference().all_ancestors;
+    compCl->inference().setSineLevel(orig->inference().getSineLevel());
   } else {
     compCl->setAge(AGE_NOT_FILLED);
     // We don't know anything about the derivation of the clause, so we set values which are as neutral as possible.

@@ -54,19 +54,19 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LASCA1
+#define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
 FwdDemodulation* testFwdDemodulation     () 
 { return new FwdDemodulation(testLascaState(UWA_MODE)); }
 
 Indexing::Index* testFwdDemodulationIndex() 
-{ return new LascaIndex<Demodulation::Lhs>(UWA_MODE); }
+{ return new LascaIndex<Demodulation::Lhs>(); }
 
 BwdDemodulation* testBwdDemodulation     () 
 { return new BwdDemodulation(testLascaState(UWA_MODE)); }
 
 Indexing::Index* testBwdDemodulationIndex() 
-{ return new LascaIndex<Demodulation::Rhs>(UWA_MODE); }
+{ return new LascaIndex<Demodulation::Rhs>(); }
 
 BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwd   ,   testFwdDemodulation     ()  );
 BUILDER_SET_DEFAULT(FwdBwdSimplification::TestCase, fwdIdx, { testFwdDemodulationIndex() });
@@ -112,7 +112,7 @@ TEST_SIMPLIFICATION(basic03,
     FwdBwdSimplification::TestCase()
       .simplifyWith({    clause(   { 0 == f(x) - x      }   ) })
       .toSimplify  ({    clause(   { r(f(a), f(b))      }   ) })
-      .expected(    {    clause(   { r(  a , f(b))      }   ) })
+      .expected(    {    clause(   { r(f(a),   b )      }   ) })
     )
 
 TEST_SIMPLIFICATION(basic04,

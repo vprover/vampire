@@ -413,7 +413,7 @@ Precedence Precedence::random()
   Precedence out(
       DArray<int>::fromIterator(getRangeIterator<int>(0, env.signature-> functions())),
       DArray<int>::fromIterator(getRangeIterator<int>(0, env.signature->predicates())));
-  auto rng = std::minstd_rand(Random::getInteger());
+  auto rng = std::minstd_rand(Random::getInteger( /* arbitrary modulus .. change it as u please */ 65536));
   std::shuffle(out. _funPrec.begin(), out. _funPrec.end(), rng);
   std::shuffle(out._predPrec.begin(), out._predPrec.end(), rng);
   return out;

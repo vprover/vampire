@@ -504,9 +504,7 @@ KBO::KBO(
 
 KBO KBO::testKBO(bool randomized, bool qkboPrecedence)
 {
-  // auto rng = [](int i) -> int { return Random::getInteger() % i; };
-
-  auto rng = std::minstd_rand(Random::getInteger());
+  auto rng = std::minstd_rand(Random::getInteger( /* arbitrary modulus .. change it as u please */ 65536));
 
   auto shuffle = [&](auto xs) { 
     if (randomized) 

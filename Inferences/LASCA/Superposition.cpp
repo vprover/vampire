@@ -14,6 +14,7 @@
  */
 
 #include "Superposition.hpp"
+#include "Indexing/SubstitutionTree.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -80,20 +81,23 @@ void Superposition::setTestIndices(Stack<Indexing::Index*> const& indices)
 Option<Clause*> Superposition::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
-    UwaResult& uwa
+    AbstractingUnifier& uwa
     ) const 
 {
-  CALL("LASCA::Superposition::applyRule(Lhs const&, unsigned, Rhs const&, unsigned, UwaResult&)")
+  CALL("LASCA::Superposition::applyRule(Lhs const&, unsigned, Rhs const&, unsigned, AbstractingUnifier&)")
   TIME_TRACE("lasca superposition application")
 
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())
+#if VDEBUG
   auto s1 = lhs.biggerSide();
+#endif
   auto s2 = rhs.toRewrite();
-  auto nothing = [&]() {
-    return Option<Clause*>();
-  };
+  auto nothing = [&]() { return Option<Clause*>(); };
   ASS(!(s1.isVar() && lhs.isFracNum()))
   ASS(!s2.isVar())
+
+  auto cnst = uwa.constraintLiterals();
+  auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t, bank); };
 
 #define check_side_condition(cond, cond_code)                                                       \
     if (!(cond_code)) {                                                                             \
@@ -106,7 +110,7 @@ Option<Clause*> Superposition::applyRule(
   Stack<Literal*> concl(lhs.clause()->size() - 1 // <- C1σ
                       + rhs.clause()->size() - 1 // <- C2σ
                       + 1                        // <- L[s2]σ 
-                      + uwa.cnst().size());      // <- Cnstσ
+                      + cnst->size());      // <- Cnstσ
 
 
   auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
@@ -127,32 +131,32 @@ Option<Clause*> Superposition::applyRule(
         ).isSome()
       )
 
-  auto L1σ = uwa.sigma(lhs.literal(), lhsVarBank);
+  auto L1σ = sigma(lhs.literal(), lhsVarBank);
   check_side_condition(
         "(s1 ≈ t)σ /⪯ C1σ",
         lhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = uwa.sigma(L, lhsVarBank);
+             auto Lσ = sigma(L, lhsVarBank);
              concl.push(Lσ);
              return _shared->notLeq(L1σ, Lσ);
            }))
 
   // •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
   //   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
-  auto L2σ = uwa.sigma(rhs.literal(), rhsVarBank);
+  auto L2σ = sigma(rhs.literal(), rhsVarBank);
   bool inLitPlus = rhs.inLitPlus();
   check_side_condition(
       inLitPlus ? "L[s2]σ /⪯ C2σ"
                 : "L[s2]σ /≺ C2σ",
         rhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = uwa.sigma(L, rhsVarBank);
+             auto Lσ = sigma(L, rhsVarBank);
              concl.push(Lσ);
              return inLitPlus ? _shared->notLeq(L2σ, Lσ)
                               : _shared->notLess(L2σ, Lσ);
            }));
 
-  auto s2σ = uwa.sigma(s2, rhsVarBank);
+  auto s2σ = sigma(s2, rhsVarBank);
 
   check_side_condition(
       "s2σ ⊴ ti ∈ active(L[s2]σ)", 
@@ -165,8 +169,8 @@ Option<Clause*> Superposition::applyRule(
       _shared->notLeq(L2σ, L1σ))
 
 
-  auto s1σ = uwa.sigma(lhs.biggerSide() , lhsVarBank);
-  auto tσ  = uwa.sigma(lhs.smallerSide(), lhsVarBank);
+  auto s1σ = sigma(lhs.biggerSide() , lhsVarBank);
+  auto tσ  = sigma(lhs.smallerSide(), lhsVarBank);
   check_side_condition(
       "s1σ /⪯ tσ",
       _shared->notLeq(s1σ, tσ))
@@ -178,7 +182,7 @@ Option<Clause*> Superposition::applyRule(
   concl.push(resolvent);
 
   // adding Cnst
-  concl.loadFromIterator(uwa.cnstLiterals());
+  concl.loadFromIterator(cnst->iterFifo());
 
   Inference inf(GeneratingInference2(Kernel::InferenceRule::LASCA_SUPERPOSITION, lhs.clause(), rhs.clause()));
   auto out = Clause::fromStack(concl, inf);
@@ -199,10 +203,10 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
     DEBUG(1, "lhs: ", lhs)
     for (auto rhs_sigma : _rhs->find(lhs.key())) {
-      auto& rhs   = std::get<0>(rhs_sigma);
-      auto& sigma = std::get<1>(rhs_sigma);
+      auto& rhs   = *rhs_sigma.data;
+      auto& sigma = rhs_sigma.unifier;
       DEBUG(1, "  rhs: ", rhs)
-      auto res = applyRule(lhs, 0, rhs, 1, sigma);
+      auto res = applyRule(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma);
       DEBUG(1, "")
       if (res.isSome()) {
         out.push(res.unwrap());
@@ -213,11 +217,11 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
     DEBUG(1, "rhs: ", rhs)
     for (auto lhs_sigma : _lhs->find(rhs.key())) {
-      auto& lhs   = std::get<0>(lhs_sigma);
-      auto& sigma = std::get<1>(lhs_sigma);
+      auto& lhs   = *lhs_sigma.data;
+      auto& sigma = lhs_sigma.unifier;
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
         DEBUG(1, "  lhs: ", lhs)
-        auto res = applyRule(lhs, 1, rhs, 0, sigma);
+        auto res = applyRule(lhs, RESULT_BANK, rhs, QUERY_BANK, *sigma);
         DEBUG(1, "")
         if (res.isSome()) {
           out.push(res.unwrap());

@@ -116,7 +116,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
     return OU::lexProductCapture(
         [&]() -> Ordering::Result { 
         TIME_TRACE("atoms with levels")
-        return OU::weightedMulExt(std::get<0>(a1), std::get<0>(a2), 
+        return OU::weightedMulExt(*std::get<0>(a1), *std::get<0>(a2), 
                           [&](auto const& l, auto const& r)
                           { return OU::lexProductCapture(
                               [&]() { return this->compare(l.term, r.term); }
@@ -138,12 +138,15 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
               ASS_EQ(l1->isPositive(), l2->isPositive())
               return Option<Ordering::Result>(OU::lexProductCapture(
                   // TODO make use of the constant size of the multiset
-                  [&]() { return OU::mulExt(nfEquality<NumTraits>(l1), nfEquality<NumTraits>(l2), this->asClosure()); }
-                , [&]() { return OU::mulExt(
+                  [&]() { 
+                    auto e1 = nfEquality<NumTraits>(l1);
+                    auto e2 = nfEquality<NumTraits>(l2);
+                    return OU::mulExt(*e1, *e2, this->asClosure()); }
+                , [&]() { 
+                  Recycled<MultiSet<TermList>> m1; m1->init(l1->termArg(0), l1->termArg(1));
+                  Recycled<MultiSet<TermList>> m2; m2->init(l2->termArg(0), l2->termArg(1));
                   // TODO make use of the constant size of the multiset
-                                    MultiSet<TermList>{l1->termArg(0), l1->termArg(1)}, 
-                                    MultiSet<TermList>{l2->termArg(0), l2->termArg(1)}, 
-                                    this->asClosure()); }
+                  return OU::mulExt(*m1,*m2,this->asClosure()); }
               ));
             } else if ( l1->isEquality() && !l2->isEquality()) {
               ASS(l1->isNegative())
@@ -286,7 +289,7 @@ Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const
           if (a1.isNone() || a2.isNone()) {
             return Option<Result>(Result::INCOMPARABLE);
           } else {
-            return Option<Result>(OU::weightedMulExt(a1.unwrap(), a2.unwrap(),
+            return Option<Result>(OU::weightedMulExt(*a1.unwrap(), *a2.unwrap(),
                   [this](auto& l, auto& r) 
                   { return OU::lexProductCapture(
                       [&]() { return this->compare(l.term, r.term); },
@@ -358,17 +361,17 @@ Option<TermList> QKbo::abstr(TermList t) const
     if (res.isSome()) {
       return res.unwrap();
     } else {
-      Stack<TermList> args(term->arity());
-      args.loadFromIterator(typeArgIter(term));
+      Recycled<Stack<TermList>> args;
+      args->loadFromIterator(typeArgIter(term));
       for (auto a : termArgIter(term)) {
         auto abs = abstr(a);
         if (abs.isNone()) {
           return abs;
         } else {
-          args.push(abs.unwrap());
+          args->push(abs.unwrap());
         }
       }
-      return Out(TermList(Term::create(term, args.begin())));
+      return Out(TermList(Term::create(term, args->begin())));
     }
   }
 }

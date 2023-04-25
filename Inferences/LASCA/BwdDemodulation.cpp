@@ -72,12 +72,12 @@ void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& s
     Stack<BwSimplificationRecord> simpls;
     Set<Clause*> simplified;
     for (auto rhs : _index->instances(lhs.biggerSide())) {
-        auto toSimpl = rhs.clause;
+        auto toSimpl = rhs.data->clause;
         if (simplified.contains(toSimpl)) {
           /* We skip this potential simplification, because we do not simplify the same clause in 
            * two different ways with the same equality.  */
         } else {
-          auto maybeSimpl = Demod::apply(*_shared, lhs, rhs.data());
+          auto maybeSimpl = Demod::apply(*_shared, lhs, *rhs.data);
           if (maybeSimpl.isSome()) {
             simplified.insert(toSimpl);
             simpls.push(BwSimplificationRecord(toSimpl, maybeSimpl.unwrap()));

@@ -18,10 +18,14 @@
 
 #include "Forwards.hpp"
 #include "Lib/Backtrackable.hpp"
+#include "Lib/Recycled.hpp"
 #include "Term.hpp"
-#include "MismatchHandler.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
+#include "Lib/Environment.hpp"
+#include "Kernel/Signature.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -30,26 +34,303 @@
 
 namespace Kernel
 {
+struct VarSpec
+{
+  /** Create a new VarSpec struct */
+  VarSpec() {}
+  /** Create a new VarSpec struct */
+  VarSpec(unsigned var, int index) : var(var), index(index) {}
+
+  bool operator==(const VarSpec& o) const
+  { return var==o.var && index==o.index; }
+  bool operator!=(const VarSpec& o) const
+  { return !(*this==o); }
+
+  friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
+
+  /** number of variable */
+  unsigned var;
+  /** index of variable bank */
+  int index;
+
+  /** struct containing first hash function for DHMap object storing variable banks */
+  struct Hash1
+  {
+   static unsigned hash(VarSpec const& o) {
+     return HashUtils::combine(o.var, o.index);
+   }
+  };
+  /** struct containing second hash function for DHMap object storing variable banks */
+  struct Hash2
+  {
+    static unsigned hash(VarSpec const& o) {
+      return HashUtils::combine(o.index, o.var);
+    }
+  };
+};
+
+// TODO get rid of this
+struct AtomicTermSpec {
+  AtomicTermSpec() {}
+  AtomicTermSpec(TermList t, int i) : term(t), index(i) {}
+  auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
+  IMPL_COMPARISONS_FROM_TUPLE(AtomicTermSpec)
+  IMPL_HASH_FROM_TUPLE(AtomicTermSpec)
+
+  TermList term;
+  int index;
+
+  bool sameTermContent(const AtomicTermSpec& ts)
+  {
+    bool termSameContent=term.sameContent(&ts.term);
+    if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
+      ts.term.isTerm() && ts.term.term()->isLiteral()) {
+      const Literal* l1=static_cast<const Literal*>(term.term());
+      const Literal* l2=static_cast<const Literal*>(ts.term.term());
+      if(l1->functor()==l2->functor() && l1->arity()==0) {
+        return true;
+      }
+    }
+    if(!termSameContent) {
+      return false;
+    }
+    return index==ts.index || term.isSpecialVar() ||
+      (term.isTerm() && (
+  (term.term()->shared() && term.term()->ground()) ||
+   term.term()->arity()==0 ));
+  }
+
+  AtomicTermSpec clone() const { return *this; }
+};
+
+class TermSpec;
+
+// TODO get rid of implicit copying of this
+struct CompositeTermSpec {
+  unsigned functor;
+  Option<Recycled<Stack<TermSpec>>> args;
+  auto asTuple() const -> decltype(auto) { return std::tie(functor, args); }
+  IMPL_COMPARISONS_FROM_TUPLE(CompositeTermSpec)
+  IMPL_HASH_FROM_TUPLE(CompositeTermSpec)
+  bool isSort() const { return false; }
+
+  CompositeTermSpec(CompositeTermSpec&&) = default;
+  CompositeTermSpec& operator=(CompositeTermSpec&&) = default;
+
+  TermSpec const& arg(unsigned i) const { return (**args)[i]; }
+  auto argsIter() const 
+  { return iterTraits(args.iter())
+                .flatMap([](auto& args) { return arrayIter(*args); }); }
+
+  CompositeTermSpec clone() const 
+  { return CompositeTermSpec { .functor = functor, 
+                  .args = args.map([](auto& x) { 
+                      return x.clone([](auto& to, auto const& from) { 
+                          to.loadFromIterator(
+                              arrayIter(from)
+                                .map([](auto& c){ return c.clone(); })); 
+                          }); 
+                      }), 
+                }; }
+};
+
+
+class TermSpec
+{
+  using Copro = Coproduct<
+    CompositeTermSpec,
+    AtomicTermSpec
+    >;
+  Copro _self;
+  friend class UnificationConstraint;
+  friend class RobSubstitution;
+
+  TermSpec(TermSpec const&) = delete;
+  TermSpec(Copro self) : _self(std::move(self)) {}
+public:
+  TermSpec(TermSpec&&) = default;
+  TermSpec& operator=(TermSpec&&) = default;
+  AtomicTermSpec old() const { return _self.unwrap<AtomicTermSpec>(); }
+  // TODO get rid of default constructor
+  TermSpec() : TermSpec(decltype(_self)(AtomicTermSpec())) {}
+  TermSpec(VarSpec v) : TermSpec(TermList::var(v.var), v.index) {}
+  friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
+  friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);
+  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(TermSpec);
+  unsigned defaultHash() const;
+  unsigned defaultHash2() const;
+
+  template<class Deref>
+  static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
+    Recycled<Stack<pair<TermSpec, TermSpec>>> todo;
+    todo->push(make_pair(lhs.clone(),rhs.clone()));
+    // DBG("compare: ", lhs, " <> ", rhs)
+    while (todo->isNonEmpty()) {
+      auto lhs_ = std::move(todo->top().first);
+      auto rhs_ =           todo->pop().second;
+      auto& lhs = deref(lhs_);
+      auto& rhs = deref(rhs_);
+
+      if (lhs.isTerm() != rhs.isTerm()) {
+        return lhs.isVar() ? -1 : 1;
+
+      } else {
+        if (lhs.isTerm()) {
+          if (lhs.functor() != rhs.functor()) {
+            return lhs.functor() < rhs.functor() ? -1 : 1;
+          } else {
+            todo->loadFromIterator(lhs.allArgs().zip(rhs.allArgs()));
+          }
+        } else {
+          ASS(lhs.isVar() && rhs.isVar())
+          auto v1 = lhs.varSpec();
+          auto v2 = rhs.varSpec();
+          if (v1 != v2) {
+            return std::tie(v1.var, v1.index) < std::tie(v2.var, v2.index) ? -1 : 1;
+          }
+        }
+      }
+    }
+    return 0;
+  }
+
+
+  TermSpec clone() const { return TermSpec(_self.clone()); }
+  
+  friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
+  TermSpec(TermList self, int index) : _self(AtomicTermSpec(self, index)) {}
+
+
+
+  TermSpec(unsigned functor, Recycled<Stack<TermSpec>> args)
+    : _self(CompositeTermSpec {functor, someIf(args->isNonEmpty(), [&]() { return std::move(args); })} )
+  {  }
+
+  template<class Iter>
+  static TermSpec fromIter(unsigned functor, Iter args) {
+    Recycled<Stack<TermSpec>> stack;
+    stack->moveFromIterator(args);
+    return TermSpec(functor, std::move(stack));
+  }
+
+  template<class... Args>
+  TermSpec(unsigned functor, Args... args) 
+    : _self(CompositeTermSpec{functor, someIf(sizeof...(args) != 0, []() { return Recycled<Stack<TermSpec>>(); }) }) 
+  {
+    ASS_EQ(sizeof...(args), env.signature->getFunction(functor)->arity())
+    if (sizeof...(args) != 0) {
+      _self.template unwrap<CompositeTermSpec>().args.unwrap()->pushMany(std::move(args)...);
+    }
+  }
+
+  TermList::Top top() const;
+  TermSpec const& deref(RobSubstitution const* s) const&;
+  bool isOutputVar() const;
+  unsigned varNumber() const { return *top().var(); }
+  bool definitelyGround() const;// { return t->shared() && t->ground(); }
+  // assuming it's ground
+  unsigned weight() const;
+  bool sameTermContent(TermSpec const& other) const;
+
+  bool isSpecialVar()  const;
+  bool isVar()         const;
+  bool isNormalVar()   const { return isVar() && !isSpecialVar(); }
+
+  bool isTerm() const;
+  bool isLiteral() const;
+  TermSpec sort() const;
+  bool isSort() const;
+  VarSpec varSpec() const;
+  unsigned functor()   const;
+
+  unsigned nTypeArgs() const;//{ return derefTerm().term()->numTypeArguments(); }
+  unsigned nTermArgs() const;//{ return derefTerm().term()->numTermArguments(); }
+  unsigned nAllArgs() const;//{ return derefTerm().term()->numTermArguments(); }
+                            //
+  bool isNumeral() const { return isTerm() && env.signature->getFunction(functor())->interpretedNumber(); }
+  // bool isGround()      { return _subs->apply(_term, _index).ground(); }
+  TermSpec termArg(unsigned i) const;
+  TermSpec typeArg(unsigned i) const;
+  TermSpec anyArg(unsigned i) const;
+  auto typeArgs() const { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
+  auto termArgs() const { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
+  auto allArgs() const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
+
+  TermList toTerm(RobSubstitution& s) const;
+
+};
+
+struct AutoDerefTermSpec
+{
+  TermSpec term;
+  RobSubstitution const* subs;
+  AutoDerefTermSpec clone() const { return { term.clone(), subs, }; }
+  AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s) 
+    : term(t.deref(s).clone())
+    , subs(s) { }
+  explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()), subs(other.subs) {}
+  AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
+  friend std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self);
+};
+
+class UnificationConstraint
+{
+  TermSpec _t1;
+  TermSpec _t2;
+public:
+  // TODO get rid of default constr
+  UnificationConstraint() {}
+  CLASS_NAME(UnificationConstraint)
+  USE_ALLOCATOR(UnificationConstraint)
+  // UnificationConstraint(UnificationConstraint&&) = default;
+  // UnificationConstraint& operator=(UnificationConstraint&&) = default;
+  auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2); }
+  IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
+  IMPL_HASH_FROM_TUPLE(UnificationConstraint);
+
+  UnificationConstraint clone() const { return UnificationConstraint(lhs().clone(), rhs().clone()); }
+
+  UnificationConstraint(TermSpec t1, TermSpec t2)
+  : _t1(std::move(t1)), _t2(std::move(t2))
+  {}
+
+  Option<Literal*> toLiteral(RobSubstitution& s);
+
+  TermSpec const& lhs() const { return _t1; }
+  TermSpec const& rhs() const { return _t2; }
+
+  friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
+  { return out << self._t1 << " != " << self._t2; }
+
+};
+
+
+
 
 using namespace Lib;
+
+class AbstractingUnifier;
+class UnificationConstraint;
 
 class RobSubstitution
 :public Backtrackable
 {
+  friend class AbstractingUnifier;
+  friend class UnificationConstraint;
 public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
+  RobSubstitution() : _nextUnboundAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0);
+  bool unify(TermList t1,int index1, TermList t2, int index2);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
-  bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0);
+  bool unifyArgs(Term* t1,int index1, Term* t2, int index2);
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
@@ -59,14 +340,11 @@ public:
   }
   void reset()
   {
-    _funcSubtermMap = 0;
     _bank.reset();
     _nextUnboundAvailable=0;
   }
+  bool keepRecycled() const { return _bank.keepRecycled(); }
 
-  void setMap(FuncSubtermMap* fmap){
-    _funcSubtermMap = fmap;
-  }
   /**
    * Bind special variable to a specified term
    *
@@ -80,7 +358,7 @@ public:
     ASS(!_bank.find(vs));
     bind(vs, TermSpec(t,index));
   }
-  TermList getSpecialVarTop(unsigned specialVar) const;
+  TermList::Top getSpecialVarTop(unsigned specialVar) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
   Stack<Literal*> apply(Stack<Literal*> cl, int index) const;
@@ -88,7 +366,6 @@ public:
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
 #if VDEBUG
-  vstring toString(bool deref=false) const;
   /**
    * Return number of bindings stored in the substitution.
    *
@@ -98,166 +375,57 @@ public:
   size_t size() const {return _bank.size(); }
 
 #endif
-  friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
-  std::ostream& output(std::ostream& out, bool deref) const;
-
-  /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
-  struct VarSpec
-  {
-    /** Create a new VarSpec struct */
-    VarSpec() {}
-    /** Create a new VarSpec struct */
-    VarSpec(unsigned var, int index) : var(var), index(index) {}
-
-    bool operator==(const VarSpec& o) const
-    { return var==o.var && index==o.index; }
-    bool operator!=(const VarSpec& o) const
-    { return !(*this==o); }
-
-#if VDEBUG
-    vstring toString() const;
-#endif
-    friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
-
-    /** number of variable */
-    unsigned var;
-    /** index of variable bank */
-    int index;
-
-    /** struct containing first hash function for DHMap object storing variable banks */
-    struct Hash1
-    {
-     static unsigned hash(VarSpec& o) {
-       return HashUtils::combine(o.var, o.index);
-     }
-    };
-    /** struct containing second hash function for DHMap object storing variable banks */
-    struct Hash2
-    {
-      static unsigned hash(VarSpec& o) {
-        return HashUtils::combine(o.index, o.var);
-      }
-    };
-  };
-  /** Specifies an instance of a term (i.e. (term, variable bank) pair */
-  struct TermSpec
-  {
-    /** Create a new TermSpec struct */
-    TermSpec() : index(0) {}
-    /** Create a new TermSpec struct */
-    TermSpec(TermList term, int index) : term(term), index(index) {}
-    /** Create a new TermSpec struct from a VarSpec*/
-    explicit TermSpec(const VarSpec& vs) : index(vs.index)
-    {
-      if(index==SPECIAL_INDEX) {
-        term.makeSpecialVar(vs.var);
-      } else {
-        term.makeVar(vs.var);
-      }
-    }
-    /**
-     * If it's sure, that @b ts has the same content as this TermSpec,
-     * return true. If they don't (or it cannot be easily checked), return
-     * false. Only term content is taken into account, i.e. when two
-     * literals are pointer do by ts.term, their polarity is ignored.
-     */
-    bool sameTermContent(const TermSpec& ts)
-    {
-      bool termSameContent=term.sameContent(&ts.term);
-      if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
-        ts.term.isTerm() && ts.term.term()->isLiteral()) {
-        const Literal* l1=static_cast<const Literal*>(term.term());
-        const Literal* l2=static_cast<const Literal*>(ts.term.term());
-        if(l1->functor()==l2->functor() && l1->arity()==0) {
-          return true;
-        }
-      }
-      if(!termSameContent) {
-        return false;
-      }
-      return index==ts.index || term.isSpecialVar() ||
-      	(term.isTerm() && (
-	  (term.term()->shared() && term.term()->ground()) ||
-	   term.term()->arity()==0 ));
-    }
-
-    bool isVSpecialVar()
-    {
-      return term.isVSpecialVar();
-    }
-
-    bool isVar()
-    {
-      return term.isVar();
-    }
-    bool operator==(const TermSpec& o) const
-    { return term==o.term && index==o.index; }
-#if VDEBUG
-    vstring toString() const;
-#endif
-    friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
-
-    /** term reference */
-    TermList term;
-    /** index of term to which it is bound */
-    int index;
-  };
   typedef pair<TermSpec,TermSpec> TTPair;
-  friend std::ostream& operator<<(std::ostream& out,  VarSpec const& self);
-  friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
-
-  /** struct containing first hash function of TTPair objects*/
-  struct TTPairHash
+ 
+  friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
   {
-   static unsigned hash(TTPair& o)
-   {
-     return IdentityHash::hash(o.first.term.content())^o.first.index ^
-       ((IdentityHash::hash(o.second.term.content())^o.second.index)<<1);
-   }
-  };
+    if(self.index == SPECIAL_INDEX) {
+      return out << "S" << self.var;
+    } else {
+      return out << "X" << self.var << "/" << self.index;
+    }
+  }
 
-  /* We disable copy assignment and copy construction */
+
   RobSubstitution(RobSubstitution&& obj) = default;
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
-
-
 private:
+  TermList apply(TermSpec);
+  friend class TermSpec;
+  RobSubstitution(const RobSubstitution& obj) = delete;
+  RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
 
-  static const int SPECIAL_INDEX;
   static const int UNBOUND_INDEX;
+  static const int SPECIAL_INDEX;
 
   bool isUnbound(VarSpec v) const;
-  TermSpec deref(VarSpec v) const;
-  TermSpec derefBound(TermSpec v) const;
+  TermSpec const& deref(VarSpec v) const;
+  TermSpec const& derefBound(TermSpec const& v) const;
 
-  void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);
-  void bind(const VarSpec& v, const TermSpec& b);
+  void addToConstraints(const VarSpec& v1, const VarSpec& v2);
+  void bind(const VarSpec& v, TermSpec b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
-  bool occurs(VarSpec vs, TermSpec ts);
+  bool unify(TermSpec t1, TermSpec t2);
+  bool occurs(VarSpec const& vs, TermSpec const& ts);
 
-  inline
-  VarSpec getVarSpec(TermSpec ts) const
-  {
-    return getVarSpec(ts.term, ts.index);
-  }
-
-  VarSpec getVarSpec(TermList tl, int index) const
-  {
-    CALL("RobSubstitution::getVarSpec");
-    ASS(tl.isVar());
-    index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
-    return VarSpec(tl.var(), index);
-  }
+  // VarSpec getVarSpec(TermList tl, int index) const
+  // {
+  //   CALL("RobSubstitution::getVarSpec");
+  //   ASS(tl.isVar());
+  //   index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
+  //   return VarSpec(tl.var(), index);
+  // }
 
   typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
 
-  FuncSubtermMap* _funcSubtermMap;
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
+
+  friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
+  { return out << self._bank; }
 
   class BindingBacktrackObject
   : public BacktrackObject
@@ -266,30 +434,27 @@ private:
     BindingBacktrackObject(RobSubstitution* subst, VarSpec v)
     :_subst(subst), _var(v)
     {
-      if(! _subst->_bank.find(_var,_term)) {
-	_term.term.makeEmpty();
+      Option<TermSpec&> t = _subst->_bank.find(_var);
+      if(t) {
+        _term = some(t->clone());
       }
     }
     void backtrack()
     {
-      if(_term.term.isEmpty()) {
-	_subst->_bank.remove(_var);
+      if(_term.isNone()) {
+	      _subst->_bank.remove(_var);
       } else {
-	_subst->_bank.set(_var,_term);
+	      _subst->_bank.set(_var,std::move(*_term));
       }
     }
-#if VDEBUG
-    vstring toString() const
-    {
-      return "(ROB backtrack object for "+ _var.toString() +")";
-    }
-#endif
+    friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
+    { return out << "(ROB backtrack object for " << self._var << ")"; }
     CLASS_NAME(RobSubstitution::BindingBacktrackObject);
     USE_ALLOCATOR(BindingBacktrackObject);
   private:
     RobSubstitution* _subst;
     VarSpec _var;
-    TermSpec _term;
+    Option<TermSpec> _term;
   };
 
   template<class Fn>
@@ -307,5 +472,32 @@ private:
 };
 
 };
+
+namespace Lib {
+
+  // TODO optimize to use TermList iterator
+  template<>
+  // struct BottomUpChildIter<pair<Kernel::TermSpec, Kernel::RobSubstitution const*>>
+  struct BottomUpChildIter<Kernel::AutoDerefTermSpec>
+  {
+    using Item = Kernel::AutoDerefTermSpec;
+    Item _self;
+    unsigned _arg;
+
+    BottomUpChildIter(Item const& self) : _self(Item(self)), _arg(0) {}
+ 
+    Item self() { return _self.clone(); }
+
+    Item next()
+    { return Kernel::AutoDerefTermSpec(_self.term.anyArg(_arg++), _self.subs); }
+
+    bool hasNext()
+    { return _self.term.isTerm() && _arg < _self.term.nAllArgs(); }
+
+    unsigned nChildren()
+    { return _self.term.isVar() ? 0 : _self.term.nAllArgs(); }
+  };
+
+} // namespace Lib
 
 #endif /*__RobSubstitution__*/

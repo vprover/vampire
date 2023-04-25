@@ -14,6 +14,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Kernel/SortHelper.hpp"
 #include "Lib/DArray.hpp"
 #include "Indexing/TermSharing.hpp"
 
@@ -83,7 +84,19 @@ bool Renaming::identity() const
 }
 
 /**
- * Make the renaming normalize variables of term or literal @c t
+ * Make the renaming normalize variables of literal @c t
+ */
+void Renaming::normalizeVariables(const Literal* t)
+{
+  normalizeVariables((const Term*) t);
+  if (t->isEquality()) {
+    normalizeVariables(SortHelper::getEqualityArgumentSort(t));
+  }
+}
+
+
+/**
+ * Make the renaming normalize variables of term @c t
  */
 void Renaming::normalizeVariables(const Term* t)
 {
@@ -106,6 +119,13 @@ void Renaming::normalizeVariables(TermList t)
   }
 }
 
+
+void Renaming::normalizeVariables(TypedTermList t)
+{
+  normalizeVariables(TermList(t));
+  normalizeVariables(t.sort());
+}
+
 void Renaming::makeInverse(const Renaming& orig)
 {
   ASS_EQ(_nextVar,0);
@@ -121,29 +141,47 @@ void Renaming::makeInverse(const Renaming& orig)
   _identity = orig.identity();
 }
 
+TypedTermList Renaming::normalize(TypedTermList l)
+{
+  CALL("Renaming::normalize(Literal*)");
+  if (l.isTerm()) {
+    return TypedTermList(normalize(l.term()));
+  } else {
+    Recycled<Renaming> n;
+    n->normalizeVariables(TermList(l));
+    n->normalizeVariables(l.sort());
+    return TypedTermList(n->apply(TermList(l)), n->apply(l.sort()));
+  }
+}
+
+
 Literal* Renaming::normalize(Literal* l)
 {
   CALL("Renaming::normalize(Literal*)");
 
-  static Renaming n;
-  n.reset();
-  n.normalizeVariables(l);
-  return n.apply(l);
+  Recycled<Renaming> n;
+  n->normalizeVariables(l);
+  return n->apply(l);
 }
 
 Term* Renaming::normalize(Term* trm)
 {
   CALL("Renaming::normalize(Term*)");
 
-  static Renaming n;
-  n.reset();
-  n.normalizeVariables(trm);
-  return n.apply(trm);
+  Recycled<Renaming> n;
+  n->normalizeVariables(trm);
+  return n->apply(trm);
 }
 
+TermList Renaming::normalize(TermList trm)
+{
+  CALL("Renaming::normalize(TermList)");
 
-std::ostream& operator<<(std::ostream& out, Renaming const& self)
-{ return out << self._data; }
+  Recycled<Renaming> n;
+  n->normalizeVariables(trm);
+  return n->apply(trm);
+}
+
 
 #if VDEBUG
 

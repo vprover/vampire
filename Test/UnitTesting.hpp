@@ -55,7 +55,11 @@ public:
    * returns true iff all tests of the unit were successfull.
    */
   bool run(ostream& out);
-  bool runTest(vstring const& testCase);
+  bool runTestsWithNameSubstring(vstring const& pref, ostream& out);
+  bool runTest(vstring const& name);
+
+
+  bool hasTest(vstring const& name);
 
   friend std::ostream& operator<<(ostream& out, TestUnit const& t)
   { return out << t._name << t._tests; }
@@ -64,6 +68,7 @@ public:
 
   Stack<Test> const& tests() { return _tests; }
 private:
+  Test* findTest(vstring const& testCase);
   /** Runs a test as a single process and awaits its termination.
    * This is to provide isolation when running multiple tests in one go.
    *

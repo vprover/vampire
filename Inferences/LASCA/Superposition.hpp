@@ -19,8 +19,8 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "Shell/Options.hpp"
 
@@ -76,27 +76,25 @@ public:
              .filter([](auto& l) { return !forAnyNumTraits([&](auto n) { return n.isNumeral(l.biggerSide()); }); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
-
-    TermList sort() const { ASSERTION_VIOLATION }
   };
 
   struct Rhs : public SelectedLiteral
   {
     static const char* name() { return "lasca superposition rhs"; }
 
-    Rhs(SelectedLiteral lit, TermList toRewrite, bool inLitPlus) 
+    Rhs(SelectedLiteral lit, TypedTermList toRewrite, bool inLitPlus) 
       : SelectedLiteral(std::move(lit))
       , _toRewrite(toRewrite)
       , _inLitPlus(inLitPlus)
     {  }
 
-    TermList _toRewrite;
+    TypedTermList _toRewrite;
     bool _inLitPlus;
 
-    TermList toRewrite() const { return _toRewrite; }
+    TypedTermList toRewrite() const { return _toRewrite; }
 
-    TermList key() const { return toRewrite(); }
-    TermList sort() const { ASSERTION_VIOLATION }
+    TypedTermList key() const { return toRewrite(); }
+    TermList sort() const { return toRewrite().sort(); }
 
     bool inLitPlus() const
     { return _inLitPlus; }
@@ -146,8 +144,9 @@ public:
              return VirtualIterator<Out>::getEmpty();
            } else {
              return pvi(iterTraits(vi(new NonVariableNonTypeIterator(term.term(), includeSelf)))
-                 .map([=](TermList t) 
-                   { return Rhs(sel, t, inLitPlus); }));
+                 .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || LascaState::globalState->isAtomic(t); })
+                 .map([=](auto t) { return Rhs(sel, t, inLitPlus); }))
+               ;
            }
         });
     }
@@ -171,7 +170,7 @@ private:
   Option<Clause*> applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
-      UwaResult& uwa
+      AbstractingUnifier& uwa
       ) const;
 
 
