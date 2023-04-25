@@ -2414,6 +2414,7 @@ public:
   EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_FORCE : _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
   bool lasca() const { return _lasca.actualValue; }
+  bool alascaRealization() const { return _alascaRealization.actualValue; }
   bool lascaDemodulation() const { return _lascaDemodulation.actualValue; }
   bool lascaStrongNormalization() const { return _lascaStrongNormalization.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
@@ -2851,6 +2852,7 @@ private:
   BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   BoolOptionValue _lasca;
+  BoolOptionValue _alascaRealization;
   BoolOptionValue _lascaDemodulation;
   BoolOptionValue _lascaStrongNormalization;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;

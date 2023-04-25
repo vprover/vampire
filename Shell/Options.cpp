@@ -1243,6 +1243,15 @@ void Options::init()
             , equal(UnificationWithAbstraction::LASCA4)
             )));
 
+
+    // TODO option values & documentation
+    _alascaRealization  = BoolOptionValue("realization","alascai",false);
+    _alascaRealization.description= "Enables the translation of integer to real problems \n";
+    _lookup.insert(&_alascaRealization);
+    _alascaRealization.tag(OptionTag::PREPROCESSING);
+    _alascaRealization.setExperimental();
+    _alascaRealization.onlyUsefulWith2(_lasca.is(equal(true)));
+
     _lascaDemodulation  = BoolOptionValue("lasca_demodulation","la_demod",false);
     _lascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
     _lookup.insert(&_lascaDemodulation);

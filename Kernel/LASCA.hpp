@@ -746,6 +746,13 @@ namespace Kernel {
     }
 
 
+    /** applies the alascai preprocessing that transforms integer reasoning into real reasoning */
+    void realization(Problem& p) 
+    {
+      ASSERTION_VIOLATION_REP("TODO")
+    }
+
+
     static std::shared_ptr<LascaState> create(
           InequalityNormalizer normalizer,
           Ordering* const ordering,

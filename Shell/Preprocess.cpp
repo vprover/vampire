@@ -431,6 +431,11 @@ void Preprocess::preprocess(Problem& prb)
      env.out() << "preprocessing finished" << std::endl;
      env.endOutput();
    }
+
+   if (env.options->alascaRealization()) {
+     // TODO get rid of global state.
+     LascaState::globalState->realization(prb);
+   }
 } // Preprocess::preprocess ()
 
 
