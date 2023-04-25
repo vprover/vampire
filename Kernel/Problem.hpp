@@ -19,8 +19,11 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/MaybeBool.hpp"
+#include "Lib/Recycled.hpp"
 
 #include "Shell/SMTLIBLogic.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Kernel {
 
@@ -130,6 +133,51 @@ public:
   {
     invalidateProperty();
     _hasFOOL = false;
+  }
+
+  // TODO use this generic function in Preprocess::clausify, and Preprocess::newCNF
+  template<class F>
+  void mapUnits(F function)
+  {
+    CALL("Problem::mapUnits");
+    using namespace Lib;
+    Problem& prb = *this;
+
+    //we check if we haven't discovered an empty clause during preprocessing
+    Unit* emptyClause = 0;
+
+    bool modified = false;
+
+    UnitList::DelIterator us(prb.units());
+    while (us.hasNext()) {
+      Unit* u = us.next();
+      if (u->isClause() && static_cast<Clause*>(u)->isEmpty()) {
+        emptyClause = u;
+        goto fin;
+      }
+      Recycled<Stack<Unit*>> clauses = function(u);
+      if (clauses->size() != 1 || (*clauses)[0] != u) {
+        modified = true;
+      }
+
+      for (Unit* cl : iterTraits(clauses->iterFifo())) {
+        if (cl->isClause() && static_cast<Clause*>(cl)->isEmpty()) {
+          emptyClause = static_cast<Clause*>(cl);
+          goto fin;
+        }
+        us.insert(cl);
+      }
+      us.del();
+    }
+    fin:
+    if (emptyClause) {
+      UnitList::destroy(prb.units());
+      prb.units() = 0;
+      UnitList::push(emptyClause, prb.units());
+    }
+    if (modified) {
+      prb.invalidateProperty();
+    }
   }
 
   void reportFOOLAdded()

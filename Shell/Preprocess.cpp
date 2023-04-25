@@ -611,6 +611,31 @@ void Preprocess::naming(Problem& prb)
   prb.invalidateProperty();
 }
 
+template<class C>
+void clausifyWith(C& clausifier, Problem& prb)
+{
+  CALL("Preprocess::clausifyWith");
+
+  prb.mapUnits([&](Unit* u) -> Recycled<Stack<Unit*>> {
+    Recycled<Stack<Unit*>> out;
+    if (env.options->showPreprocessing()) {
+      env.beginOutput();
+      env.out() << "[PP] clausify: " << u->toString() << std::endl;
+      env.endOutput();
+    }
+    if (u->isClause()) {
+      out->push(u);
+      return out;
+    }
+
+    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
+    clausifier.clausify(fu,(Stack<Clause*>&)*out);
+    return out;
+  });
+  prb.reportFormulasEliminated();
+}
+
+
 /**
  * Perform the NewCNF algorithm on problem @c prb which is in ENNF
  */
@@ -620,53 +645,8 @@ void Preprocess::newCnf(Problem& prb)
 
   env.statistics->phase=Statistics::NEW_CNF;
 
-  // TODO: this is an ugly copy-paste of "Preprocess::clausify"
-
-  //we check if we haven't discovered an empty clause during preprocessing
-  Unit* emptyClause = 0;
-
-  bool modified = false;
-
-  UnitList::DelIterator us(prb.units());
   NewCNF cnf(env.options->naming());
-  Stack<Clause*> clauses(32);
-  while (us.hasNext()) {
-    Unit* u = us.next();
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify: " << u->toString() << std::endl;
-      env.endOutput();
-    }
-    if (u->isClause()) {
-      if (static_cast<Clause*>(u)->isEmpty()) {
-        emptyClause = u;
-        break;
-      }
-      continue;
-    }
-    modified = true;
-    FormulaUnit* fu = static_cast<FormulaUnit*>(u);
-    cnf.clausify(fu,clauses);
-    while (! clauses.isEmpty()) {
-      Clause* cl = clauses.pop();
-      if (cl->isEmpty()) {
-        emptyClause = cl;
-        goto fin;
-      }
-      us.insert(cl);
-    }
-    us.del();
-  }
-  fin:
-  if (emptyClause) {
-    UnitList::destroy(prb.units());
-    prb.units() = 0;
-    UnitList::push(emptyClause, prb.units());
-  }
-  if (modified) {
-    prb.invalidateProperty();
-  }
-  prb.reportFormulasEliminated();
+  clausifyWith(cnf, prb);
 } 
 
 /**
@@ -735,54 +715,14 @@ void Preprocess::preprocess3 (Problem& prb)
   }
 } // Preprocess::preprocess3
 
+
+
 void Preprocess::clausify(Problem& prb)
 {
   CALL("Preprocess::clausify");
 
   env.statistics->phase=Statistics::CLAUSIFICATION;
 
-  //we check if we haven't discovered an empty clause during preprocessing
-  Unit* emptyClause = 0;
-
-  bool modified = false;
-
-  UnitList::DelIterator us(prb.units());
   CNF cnf;
-  Stack<Clause*> clauses(32);
-  while (us.hasNext()) {
-    Unit* u = us.next();
-    if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify: " << u->toString() << std::endl;
-      env.endOutput();
-    }
-    if (u->isClause()) {
-      if (static_cast<Clause*>(u)->isEmpty()) {
-        emptyClause = u;
-        break;
-      }
-      continue;
-    }
-    modified = true;
-    cnf.clausify(u,clauses);
-    while (! clauses.isEmpty()) {
-      Unit* u = clauses.pop();
-      if (static_cast<Clause*>(u)->isEmpty()) {
-        emptyClause = u;
-        goto fin;
-      }
-      us.insert(u);
-    }
-    us.del();
-  }
-  fin:
-  if (emptyClause) {
-    UnitList::destroy(prb.units());
-    prb.units() = 0;
-    UnitList::push(emptyClause, prb.units());
-  }
-  if (modified) {
-    prb.invalidateProperty();
-  }
-  prb.reportFormulasEliminated();
+  clausifyWith(cnf, prb);
 }
