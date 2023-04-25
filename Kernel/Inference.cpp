@@ -790,6 +790,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "theory tautology sat conflict";
   case InferenceRule::GENERIC_THEORY_AXIOM:
   case InferenceRule::THA_COMMUTATIVITY:
+  case InferenceRule::THA_ALASCAI:
   case InferenceRule::THA_ASSOCIATIVITY:
   case InferenceRule::THA_RIGHT_IDENTINTY:
   case InferenceRule::THA_LEFT_IDENTINTY:

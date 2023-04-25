@@ -612,6 +612,20 @@ void LascaState::realization(Problem& p)
       return out;
   });
 
+  // TODO replace these axioms by rules (?)
+  using R = RealTraits;
+  auto x = TermList::var(0);
+
+  p.units() = 
+    /* isInt(x) -> toInt(x) == x */
+        UnitList::cons(Clause::fromStack({ R::isInt(false, x), R::eq(true, x, R::toInt(x))}, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
+    /* 0 <= x - toInt(x) */
+      , UnitList::cons(Clause::fromStack({ R::leq(true, R::zero(), R::add(x, R::minus(R::toInt(x)))) }, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
+    /* x - toInt(x) < 1 */
+      , UnitList::cons(Clause::fromStack({ R::less(true, R::add(x, R::minus(R::toInt(x))), R::one()) }, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
+      , p.units())))
+    ;
+
 }
 
 pair<Stack<unsigned>, Stack<unsigned>> LascaState::tranlateSignature()

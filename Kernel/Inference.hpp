@@ -528,6 +528,7 @@ enum class InferenceRule : unsigned char {
   THA_TRUNC2,
   THA_TRUNC3,
   THA_TRUNC4,
+  THA_ALASCAI, // TODO <- split into multiple ones
   THA_ARRAY_EXTENSIONALITY,
   THA_BOOLEAN_ARRAY_EXTENSIONALITY, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
   THA_BOOLEAN_ARRAY_WRITE1, // currently applied to a formula, so won't propagate to clause->isTheoryAxiom()
