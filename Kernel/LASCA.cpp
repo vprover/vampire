@@ -9,6 +9,7 @@
  */
 
 #include "LASCA.hpp"
+#include "Debug/Assertion.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/MismatchHandler.hpp"
@@ -311,8 +312,240 @@ SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, LascaState& sh
 
 std::shared_ptr<LascaState> LascaState::globalState = nullptr;
 
-Option<std::function<TermList(TermList*)>> translateInterpretedFunction(unsigned f);
-Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigned f);
+Option<std::function<TermList(TermList*)>> translateInterpretedFunction(unsigned f) {
+  if(!theory->isInterpretedFunction(f))
+    return {};
+
+  auto fn = [](auto x) { return some(std::function<TermList(TermList*)>(std::move(x))); };
+  using R = RealTraits;
+
+  auto remainder = [](auto quotient)
+  { return [quotient](TermList* ts) { return R::add(ts[0], R::minus(R::mul(ts[1], quotient(ts)))); }; };
+
+  auto quotientF = [](TermList* ts) { return R::toInt(R::div(ts[0], ts[1])); };
+  auto quotientE = [=](TermList* ts) { 
+    return TermList(Term::createITE(new AtomicFormula(R::greater(true, ts[1], R::zero())),
+          quotientF(ts),
+          R::minus(R::toInt(R::minus(R::div(ts[0], ts[1])))),
+          R::sort()));
+  };
+
+  switch(theory->interpretFunction(f)) {
+    case Interpretation::EQUAL: 
+
+    case Interpretation::INT_IS_INT: 
+    case Interpretation::INT_IS_RAT: 
+    case Interpretation::INT_IS_REAL: 
+    case Interpretation::INT_GREATER: 
+    case Interpretation::INT_GREATER_EQUAL: 
+    case Interpretation::INT_LESS: 
+    case Interpretation::INT_LESS_EQUAL: 
+    case Interpretation::INT_DIVIDES: 
+    case Interpretation::RAT_IS_INT:
+    case Interpretation::RAT_IS_RAT:
+    case Interpretation::RAT_IS_REAL:
+    case Interpretation::RAT_GREATER:
+    case Interpretation::RAT_GREATER_EQUAL:
+    case Interpretation::RAT_LESS:
+    case Interpretation::RAT_LESS_EQUAL:
+    case Interpretation::REAL_IS_INT:
+    case Interpretation::REAL_IS_RAT:
+    case Interpretation::REAL_IS_REAL:
+    case Interpretation::REAL_GREATER:
+    case Interpretation::REAL_GREATER_EQUAL:
+    case Interpretation::REAL_LESS:
+    case Interpretation::REAL_LESS_EQUAL:
+      ASSERTION_VIOLATION_REP("Not a function interpretation")
+
+      //numeric functions
+
+    case Interpretation::INT_SUCCESSOR:   return fn([](TermList* ts) { return R::add(ts[0], R::one()); });
+    case Interpretation::INT_UNARY_MINUS: return fn([](TermList* ts) { return R::minus(ts[0]); });
+    case Interpretation::INT_PLUS:        return fn([](TermList* ts) { return R::add(ts[0], ts[1]); });
+    case Interpretation::INT_MINUS:       return fn([](TermList* ts) { return R::add(ts[0], R::minus(ts[1])); });
+    case Interpretation::INT_MULTIPLY:    return fn([](TermList* ts) { return R::mul(ts[0], ts[1]); });
+
+    case Interpretation::INT_CEILING:
+    case Interpretation::INT_TRUNCATE:
+    case Interpretation::INT_ROUND: 
+                                          // TODO check differenc between RAT_TO_INT and RAT_FLOOR
+    case Interpretation::INT_TO_INT:
+    case Interpretation::INT_FLOOR:       return fn([](auto ts) { return ts[0]; });
+
+    case Interpretation::INT_QUOTIENT_F:  return fn(quotientF);
+    case Interpretation::INT_REMAINDER_F: return fn(remainder(quotientF));
+
+    case Interpretation::INT_QUOTIENT_E:  return fn(quotientE);
+    case Interpretation::INT_REMAINDER_E: return fn(remainder(quotientE));
+
+    case Interpretation::INT_QUOTIENT_T:
+    case Interpretation::INT_REMAINDER_T:
+    case Interpretation::INT_ABS:
+        ASSERTION_VIOLATION_REP("TODO: look up the semantics of this and implement a translation")
+        return {};
+
+    case Interpretation::RAT_UNARY_MINUS:
+    case Interpretation::RAT_PLUS:
+    case Interpretation::RAT_MINUS:
+    case Interpretation::RAT_MULTIPLY:
+    case Interpretation::RAT_QUOTIENT:
+    case Interpretation::RAT_QUOTIENT_E:
+    case Interpretation::RAT_QUOTIENT_T:
+    case Interpretation::RAT_QUOTIENT_F:
+    case Interpretation::RAT_REMAINDER_E:
+    case Interpretation::RAT_REMAINDER_T:
+    case Interpretation::RAT_REMAINDER_F:
+    case Interpretation::RAT_FLOOR:
+    case Interpretation::RAT_ROUND:
+
+    case Interpretation::REAL_UNARY_MINUS:
+    case Interpretation::REAL_PLUS:
+    case Interpretation::REAL_MINUS:
+    case Interpretation::REAL_MULTIPLY:
+    case Interpretation::REAL_QUOTIENT:
+    case Interpretation::REAL_QUOTIENT_E:
+    case Interpretation::REAL_QUOTIENT_T:
+    case Interpretation::REAL_QUOTIENT_F:
+    case Interpretation::REAL_REMAINDER_E:
+    case Interpretation::REAL_REMAINDER_T:
+    case Interpretation::REAL_REMAINDER_F:
+    case Interpretation::REAL_FLOOR:
+    case Interpretation::REAL_ROUND:
+
+    case Interpretation::INT_TO_RAT:
+    case Interpretation::INT_TO_REAL:
+    case Interpretation::RAT_TO_INT:
+    case Interpretation::RAT_TO_RAT:
+    case Interpretation::RAT_TO_REAL:
+    case Interpretation::REAL_TO_INT:
+    case Interpretation::REAL_TO_RAT:
+    case Interpretation::REAL_TO_REAL:
+
+      // array functions
+    case Interpretation::ARRAY_SELECT:
+    case Interpretation::ARRAY_STORE:
+        ASSERTION_VIOLATION_REP("TODO integrate with arrays")
+        return {};
+
+    case Interpretation::INVALID_INTERPRETATION:
+    case Interpretation::ARRAY_BOOL_SELECT:
+        ASSERTION_VIOLATION_REP("not a function interpretation")
+        return {};
+
+    case Interpretation::REAL_TRUNCATE:
+    case Interpretation::RAT_TRUNCATE:
+        ASSERTION_VIOLATION_REP("TODO: translated to ite + floor")
+        return {};
+    case Interpretation::REAL_CEILING:
+    case Interpretation::RAT_CEILING:
+        ASSERTION_VIOLATION_REP("TODO: this should translate to -floor(-x)")
+        return {};
+    }
+}
+Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigned f)
+{
+  if(!theory->isInterpretedPredicate(f))
+    return {};
+
+  auto fn = [](auto x) { return some(std::function<Literal*(TermList*)>(std::move(x))); };
+  using R = RealTraits;
+
+  switch(theory->interpretPredicate(f)) {
+    case Interpretation::EQUAL: return fn([](auto x) -> Literal* { ASSERTION_VIOLATION_REP("this should never be called bc alas equality is special") });
+
+    case Interpretation::INT_IS_INT:  
+    case Interpretation::INT_IS_RAT: 
+    case Interpretation::INT_IS_REAL: 
+        ASSERTION_VIOLATION_REP("TODO")
+      return {};
+
+    case Interpretation::INT_GREATER:       return fn([](auto ts){ return R::greater(true, ts[0], ts[1]); });
+    case Interpretation::INT_GREATER_EQUAL: return fn([](auto ts){ return R::geq    (true, ts[0], ts[1]); });
+    case Interpretation::INT_LESS:          return fn([](auto ts){ return R::less   (true, ts[0], ts[1]); }); 
+    case Interpretation::INT_LESS_EQUAL:    return fn([](auto ts){ return R::leq    (true, ts[0], ts[1]); }); 
+    case Interpretation::INT_DIVIDES:       return fn([](auto ts){ return R::isInt  (true, R::div(ts[1], ts[0])); });
+
+    case Interpretation::RAT_IS_INT:
+    case Interpretation::RAT_IS_RAT:
+    case Interpretation::RAT_IS_REAL:
+    case Interpretation::RAT_GREATER:
+    case Interpretation::RAT_GREATER_EQUAL:
+    case Interpretation::RAT_LESS:
+    case Interpretation::RAT_LESS_EQUAL:
+    case Interpretation::REAL_IS_INT:
+    case Interpretation::REAL_IS_RAT:
+    case Interpretation::REAL_IS_REAL:
+    case Interpretation::REAL_GREATER:
+    case Interpretation::REAL_GREATER_EQUAL:
+    case Interpretation::REAL_LESS:
+    case Interpretation::REAL_LESS_EQUAL:
+      return {};
+    case Interpretation::ARRAY_BOOL_SELECT:
+      ASSERTION_VIOLATION_REP("TODO integrate with arrays")
+      return {};
+
+    case Interpretation::INT_SUCCESSOR:
+    case Interpretation::INT_UNARY_MINUS:
+    case Interpretation::INT_PLUS:
+    case Interpretation::INT_MINUS:
+    case Interpretation::INT_MULTIPLY:
+    case Interpretation::INT_QUOTIENT_E:
+    case Interpretation::INT_QUOTIENT_T:
+    case Interpretation::INT_QUOTIENT_F:
+    case Interpretation::INT_REMAINDER_E:
+    case Interpretation::INT_REMAINDER_T:
+    case Interpretation::INT_REMAINDER_F:
+    case Interpretation::INT_FLOOR:
+    case Interpretation::INT_CEILING:
+    case Interpretation::INT_TRUNCATE:
+    case Interpretation::INT_ROUND:
+    case Interpretation::INT_ABS:
+    case Interpretation::INT_TO_INT:
+    case Interpretation::INT_TO_RAT:
+    case Interpretation::INT_TO_REAL:
+    case Interpretation::ARRAY_SELECT:
+    case Interpretation::ARRAY_STORE:
+    case Interpretation::RAT_UNARY_MINUS:
+    case Interpretation::RAT_PLUS:
+    case Interpretation::RAT_MINUS:
+    case Interpretation::RAT_MULTIPLY:
+    case Interpretation::RAT_QUOTIENT:
+    case Interpretation::RAT_QUOTIENT_E:
+    case Interpretation::RAT_QUOTIENT_T:
+    case Interpretation::RAT_QUOTIENT_F:
+    case Interpretation::RAT_REMAINDER_E:
+    case Interpretation::RAT_REMAINDER_T:
+    case Interpretation::RAT_REMAINDER_F:
+    case Interpretation::RAT_FLOOR:
+    case Interpretation::RAT_CEILING:
+    case Interpretation::RAT_TRUNCATE:
+    case Interpretation::RAT_ROUND:
+    case Interpretation::REAL_UNARY_MINUS:
+    case Interpretation::REAL_PLUS:
+    case Interpretation::REAL_MINUS:
+    case Interpretation::REAL_MULTIPLY:
+    case Interpretation::REAL_QUOTIENT:
+    case Interpretation::REAL_QUOTIENT_E:
+    case Interpretation::REAL_QUOTIENT_T:
+    case Interpretation::REAL_QUOTIENT_F:
+    case Interpretation::REAL_REMAINDER_E:
+    case Interpretation::REAL_REMAINDER_T:
+    case Interpretation::REAL_REMAINDER_F:
+    case Interpretation::REAL_FLOOR:
+    case Interpretation::REAL_CEILING:
+    case Interpretation::REAL_TRUNCATE:
+    case Interpretation::REAL_ROUND:
+    case Interpretation::RAT_TO_INT:
+    case Interpretation::RAT_TO_RAT:
+    case Interpretation::RAT_TO_REAL:
+    case Interpretation::REAL_TO_INT:
+    case Interpretation::REAL_TO_RAT:
+    case Interpretation::REAL_TO_REAL:
+    case Interpretation::INVALID_INTERPRETATION:
+      ASSERTION_VIOLATION_REP("not a predicate interpretation")
+      return {};
+    }
+}
 
 void LascaState::realization(Problem& p)
 {
@@ -336,13 +569,17 @@ void LascaState::realization(Problem& p)
   };
   auto translateLit = [&](Literal* lit) -> Literal* {
     auto p = lit->functor();
+    if (lit->isEquality()) {
+      return Literal::createEquality(lit->polarity(), translateTerm(lit->termArg(0)), translateTerm(lit->termArg(1)), SortHelper::getEqualityArgumentSort(lit));
+    }
     auto itp = translateInterpretedPredicate(p);
 
     Recycled<Stack<TermList>> args;
     args->loadFromIterator(
         anyArgIter(lit).map([&](auto arg) { return translateTerm(arg); }));
     if (itp) {
-      return (*itp)(args->begin());
+      auto res = (*itp)(args->begin());
+      return lit->polarity() != res->polarity() ? Literal::complementaryLiteral(res) : res;
     } else {
       return Literal::createFromIter(
           lit->polarity(),
@@ -375,13 +612,6 @@ void LascaState::realization(Problem& p)
       return out;
   });
 
-  // for (auto p : range(0, env.signature->predicates())) {
-  //   auto sym = env.signature->getPredicate(p);
-  //   if (hasIntArgs(sym->predType())) {
-  //   }
-  //
-  // }
-  ASSERTION_VIOLATION_REP("TODO")
 }
 
 pair<Stack<unsigned>, Stack<unsigned>> LascaState::tranlateSignature()

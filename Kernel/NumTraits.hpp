@@ -195,6 +195,7 @@ struct NumTraits;
     IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , Add  , SHORT, _PLUS       , 2)                          \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , Mul  , SHORT, _MULTIPLY   , 2)                          \
     __NUM_TRAITS_IF_FRAC(SHORT,                                                                     \
+        IMPL_NUM_TRAITS__INTERPRETED_FUN(toInt, ToInt, SHORT, _FLOOR      , 1)                      \
         IMPL_NUM_TRAITS__INTERPRETED_FUN(div, Div, SHORT, _QUOTIENT, 2)                             \
         static ConstantType constant(int num, int den) { return ConstantType(num, den); }           \
         static Term* constantT(int num, int den) { return theory->representConstant(constant(num, den)); }    \
