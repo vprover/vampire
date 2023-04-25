@@ -52,8 +52,7 @@ Term* getPlaceholderForTerm(Term* t)
   static DHMap<TermList,Term*> placeholders;
   TermList srt = env.signature->getFunction(t->functor())->fnType()->result();
   if(!placeholders.find(srt)){
-    unsigned fresh = env.signature->addFreshFunction(0,(srt.toString() + "_placeholder").c_str());
-    env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
+    unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),(srt.toString() + "_placeholder").c_str());
     auto res = Term::createConstant(fresh);
     placeholders.insert(srt,res);
     return res;

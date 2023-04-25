@@ -9,11 +9,15 @@
  */
 
 #include "LASCA.hpp"
+#include "Kernel/Inference.hpp"
 #include "Kernel/MismatchHandler.hpp"
+#include "Kernel/NumTraits.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/QKbo.hpp"
+#include "Kernel/Problem.hpp"
 // #include "Kernel/LaLpo.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -305,6 +309,109 @@ SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, LascaState& sh
 {}
 
 std::shared_ptr<LascaState> LascaState::globalState = nullptr;
+
+void LascaState::realization(Problem& p)
+{
+  auto trans = tranlateSignature();
+  auto& fs  = trans.first;
+  auto& ps  = trans.second;
+  auto translateTerm = [&](TermList t) -> TermList { 
+    return t; 
+  };
+  auto translateLit = [&](Literal* lit) -> Literal* {
+    return Literal::createFromIter(
+        lit->polarity(),
+        ps[lit->functor()], 
+        anyArgIter(lit).map([&](auto arg) { return translateTerm(arg); }));
+  };
+  p.mapUnits([&](auto c_) {
+      Recycled<Stack<Unit*>> out;
+      ASS(c_->isClause());
+      auto c =  static_cast<Clause*>(c_);
+      Recycled<Stack<Literal*>> clOut;
+      
+      for (auto l : iterTraits(c->iterLits())) {
+        
+        auto itp = normalizer.normalizeLasca<IntTraits>(l);
+        if (itp) {
+          for (auto nl : itp->value) {
+            clOut->push(RealTraits::isInt(false, nl.term().denormalize()));
+          }
+        }
+        clOut->push(translateLit(l));
+      }
+
+      out->push(Clause::fromStack(*clOut, 
+          Inference(FormulaTransformation(InferenceRule::ALASCAI_REALIZATION, c))));
+
+      return out;
+  });
+
+  // for (auto p : range(0, env.signature->predicates())) {
+  //   auto sym = env.signature->getPredicate(p);
+  //   if (hasIntArgs(sym->predType())) {
+  //   }
+  //
+  // }
+  ASSERTION_VIOLATION_REP("TODO")
+}
+
+pair<Stack<unsigned>, Stack<unsigned>> LascaState::tranlateSignature()
+{
+  Stack<unsigned> fs;
+
+  auto reals = RealTraits::sort();
+  auto ints  = IntTraits::sort();
+
+  auto iterArgs = [&](OperatorType* o)  
+    { return range(0, o->arity())
+               .map([&](auto i) { return o->arg(i); }); };
+
+
+  auto mappedArgs = [&](OperatorType* o)  { 
+      Recycled<Stack<TermList>> out;
+      out->loadFromIterator(iterArgs(o)
+          .map([&](auto a) {  return a == ints ? reals : a; }));
+      return out;
+    };
+
+  auto hasIntArgs = [&](OperatorType* o)  
+    { return iterArgs(o).any([&](auto a) { return a == ints; }); };
+
+  for (auto f : range(0, env.signature->functions())) {
+    ASS_REP(theory->isInterpretedFunction(f), "TODO")
+    auto sym = env.signature->getFunction(f);
+    auto op = sym->fnType();
+    if (hasIntArgs(op) || op->result() == ints) {
+      Recycled<Stack<TermList>> args = mappedArgs(op);
+      auto res = op->result() == ints ? reals : op->result();
+      
+      fs.push(
+            env.signature->addFreshFunction(
+              OperatorType::getFunctionType(*args, res), 
+              sym->name().c_str()));
+    } else {
+      fs.push(f);
+    }
+  }
+
+  Stack<unsigned> ps;
+  for (auto p : range(0, env.signature->predicates())) {
+    ASS_REP(theory->isInterpretedPredicate(p), "TODO")
+    auto sym = env.signature->getPredicate(p);
+    auto op = sym->predType();
+    if (hasIntArgs(op)) {
+      Recycled<Stack<TermList>> args = mappedArgs(op);
+      ps.push(
+            env.signature->addFreshPredicate(
+              OperatorType::getPredicateType(*args),
+              sym->name().c_str()));
+    } else {
+      ps.push(p);
+    }
+  }
+  return make_pair(std::move(fs), std::move(ps));
+}
 
 } // namespace Kernel
 

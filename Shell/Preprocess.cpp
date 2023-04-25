@@ -321,6 +321,13 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  // TODO is this the right point in the pipeline?
+  if (env.options->alascaRealization()) {
+    // TODO get rid of global state.
+    LascaState::globalState->realization(prb);
+  }
+
+
   prb.getProperty();
 
   if (prb.mayHaveFunctionDefinitions()) {
@@ -480,11 +487,6 @@ void Preprocess::preprocess(Problem& prb)
    if (env.options->showPreprocessing()) {
      env.out() << "preprocessing finished" << std::endl;
      env.endOutput();
-   }
-
-   if (env.options->alascaRealization()) {
-     // TODO get rid of global state.
-     LascaState::globalState->realization(prb);
    }
 } // Preprocess::preprocess ()
 

@@ -485,9 +485,7 @@ void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset()
 Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, SortId sort) 
 { 
   if (_constants.size() == _used)  {
-    unsigned sym = env.signature->addFreshFunction(0, prefix);
-    env.signature->getFunction(sym)
-                 ->setType(OperatorType::getConstantsType(sort));
+    unsigned sym = env.signature->addFreshFunction(OperatorType::getConstantsType(sort), prefix);
     DEBUG("new constant for sort ", sort, ": ", *env.signature->getFunction(sym));
     _constants.push(Term::createConstant(sym));
   }

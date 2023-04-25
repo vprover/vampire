@@ -653,7 +653,7 @@ Splitter::Splitter()
 {
   CALL("Splitter::Splitter");
   if(env.options->proof()==Options::Proof::TPTP){
-    unsigned spl = env.signature->addFreshFunction(0,"spl");
+    unsigned spl = env.signature->addFreshFunction(unsigned(0),"spl");
     splPrefix = env.signature->functionName(spl)+"_";
   }
 }

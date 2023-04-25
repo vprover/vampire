@@ -344,7 +344,7 @@ Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt
 {
     CALL("FunctionRelationshipInference::getName");
 
-    unsigned label= env.signature->addFreshPredicate(0,"label");
+    unsigned label= env.signature->addFreshPredicate(unsigned(0),"label");
     env.signature->getPredicate(label)->markLabel();
 
     unsigned fsT = fromSrt.term()->functor();

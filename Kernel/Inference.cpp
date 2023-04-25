@@ -697,6 +697,8 @@ vstring Kernel::ruleName(InferenceRule rule)
 //  case MINISCOPE:
   case InferenceRule::CLAUSIFY:
     return "cnf transformation";
+  case InferenceRule::ALASCAI_REALIZATION:
+    return "alascai realization";
   case InferenceRule::FORMULIFY:
     return "formulify";
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:

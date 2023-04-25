@@ -1474,16 +1474,12 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
 
     TermList trm;
     if (sort == AtomicSort::boolSort()) {
-      unsigned symb = env.signature->addFreshPredicate(0,"sLP");
-      OperatorType* type = OperatorType::getPredicateType(0, nullptr);
-      env.signature->getPredicate(symb)->setType(type);
+      unsigned symb = env.signature->addFreshPredicate(OperatorType::getPredicateType(0, nullptr),"sLP");
 
       Formula* atom = new AtomicFormula(Literal::create(symb,0,true,false,nullptr));
       trm = TermList(Term::createFormula(atom));
     } else {
-      unsigned symb = env.signature->addFreshFunction (0,"sLF");
-      OperatorType* type = OperatorType::getFunctionType(0, nullptr, sort);
-      env.signature->getFunction(symb)->setType(type);
+      unsigned symb = env.signature->addFreshFunction(OperatorType::getFunctionType(0, nullptr, sort),"sLF");
 
       trm = TermList(Term::createConstant(symb));
     }

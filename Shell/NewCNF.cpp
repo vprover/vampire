@@ -740,8 +740,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
     ASS_EQ(tupleType->arity(), VList::length(symbols));
 
-    unsigned tuple = env.signature->addFreshFunction(0, "tuple");
-    env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
+    unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleSort), "tuple");
 
     TermList tupleTerm = TermList(Term::createConstant(tuple));
 

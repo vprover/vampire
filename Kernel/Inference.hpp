@@ -200,6 +200,8 @@ enum class InferenceRule : unsigned char {
   SKOLEMIZE,
   /** obtain clause from a formula */
   CLAUSIFY,
+  /** alascai prepreocessing transforming integer into real problems */
+  ALASCAI_REALIZATION,
   /** the (preprocessing/normalisation) formula transformation marker --
     inferences between GENERIC_FORMULA_TRANSFORMATION and INTERNAL_FORMULA_TRANSFORMATION_LAST
     will be automatically understood as formula transformations (see also isFormulaTransformation) */

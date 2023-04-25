@@ -968,6 +968,13 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
   return result;
 } // addFreshFunction
 
+unsigned Signature::addFreshFunction(OperatorType* op, const char* prefix, const char* suffix)
+{
+  auto f = addFreshFunction(op->arity(), prefix, suffix);
+  getFunction(f)->setType(op);
+  return f;
+}
+
 /**
  * Add fresh typeCon of a given arity and with a given prefix. If suffix is non-zero,
  * the typeCon name will be prefixI, where I is an integer, otherwise it will be
@@ -1027,6 +1034,13 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
   sym->markSkip();
   return result;
 } // addFreshPredicate
+
+unsigned Signature::addFreshPredicate(OperatorType* op, const char* prefix, const char* suffix)
+{
+  auto p = addFreshPredicate(op->arity(), prefix, suffix);
+  getPredicate(p)->setType(op);
+  return p;
+}
 
 /**
  * Return a new Skolem function. If @b suffix is nonzero, include it

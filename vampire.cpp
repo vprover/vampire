@@ -589,7 +589,7 @@ void clausifyMode(bool theory)
     }
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
-    unsigned p = env.signature->addFreshPredicate(0,"p");
+    unsigned p = env.signature->addFreshPredicate(unsigned(0),"p");
     Clause* c = new(2) Clause(2,NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
     (*c)[0] = Literal::create(p,0,true,false,0);
     (*c)[1] = Literal::create(p,0,false,false,0);

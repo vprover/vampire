@@ -95,7 +95,7 @@ bool ModelPrinter::tryOutput(ostream& stm)
   //TODO fix the below AYB
   if(env.signature->functions()!=0) {
     if(_usedConstants.isEmpty()) {
-      unsigned newFunc = env.signature->addFreshFunction(0,"c");
+      unsigned newFunc = env.signature->addFreshFunction(unsigned(0),"c");
       TermList newConstTrm(Term::create(newFunc, 0, 0));
       _usedConstants.push(newConstTrm);
       _usedConstantSet.insert(newFunc);

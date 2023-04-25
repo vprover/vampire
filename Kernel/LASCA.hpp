@@ -756,12 +756,10 @@ namespace Kernel {
     }
 
 
-    /** applies the alascai preprocessing that transforms integer reasoning into real reasoning */
-    void realization(Problem& p) 
-    {
-      ASSERTION_VIOLATION_REP("TODO")
-    }
+    pair<Stack<unsigned>, Stack<unsigned>> tranlateSignature();
 
+    /** applies the alascai preprocessing that transforms integer reasoning into real reasoning */
+    void realization(Problem& p);
 
     static std::shared_ptr<LascaState> create(
           InequalityNormalizer normalizer,
@@ -990,9 +988,8 @@ namespace Kernel {
                     && theory->isInterpretedConstant(t->termArg(0)));
       }); }
 
-    bool interpretedPred(Literal* t) {
-      auto f = t->functor();
-      return t->isEquality()
+    bool interpretedPred(unsigned f) {
+      return f == 0
         || forAnyNumTraits([&](auto numTraits) -> bool {
             return f == numTraits.geqF()
                ||  f == numTraits.greaterF()
@@ -1000,13 +997,15 @@ namespace Kernel {
       });
     }
 
+    bool interpretedPred(Literal* t) 
+    { return interpretedPred(t->functor()); }
+
     bool isUninterpretedEquality(Literal* t) {
       return t->isEquality()
         && !forAnyNumTraits([&](auto numTraits) -> bool {
             return SortHelper::getEqualityArgumentSort(t) == numTraits.sort();
       });
     }
-
 
     auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) {
       using Out = SelectedAtom;

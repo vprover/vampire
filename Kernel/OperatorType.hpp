@@ -119,6 +119,9 @@ public:
     return getTypeFromKey(key,taArity);
   }
 
+  static OperatorType* getPredicateType(Stack<TermList> const& args, unsigned taArity = 0) 
+  { return getPredicateType(args.size(), args.begin(), taArity); }
+
   static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, unsigned taArity = 0) {
     CALL("OperatorType::getPredicateTypeUniformRange");
 
@@ -126,6 +129,7 @@ public:
     (*key)[arity] = AtomicSort::boolSort();
     return getTypeFromKey(key, taArity);
   }
+
 
   static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, unsigned taArity = 0) {
     CALL("OperatorType::getFunctionType");
@@ -142,6 +146,9 @@ public:
     (*key)[sorts.size()] = resultSort;
     return getTypeFromKey(key,taArity);
   }
+
+  static OperatorType* getFunctionType(Stack<TermList>const& args, TermList resultSort, unsigned taArity = 0) 
+  { return getFunctionType(args.size(), args.begin(), resultSort, taArity); }
 
   static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, unsigned taArity = 0) {
     CALL("OperatorType::getFunctionTypeUniformRange");

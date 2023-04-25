@@ -379,7 +379,7 @@ public:
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
   static Term* create(unsigned fn, Stack<TermList> const& args) { return Term::create(fn, args.length(), args.begin()); }
   template<class Iter>
-  static Term* createFromIter(unsigned fn, Iter args) 
+  static Term* createFromIter(unsigned fn, Iter args)
   { 
     Recycled<Stack<TermList>> stack;
     stack->loadFromIterator(args);
@@ -949,6 +949,19 @@ public:
 	  bool commutative, const TermList* args);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
+  template<class Iter>
+  static Literal* createFromIter(bool polarity, unsigned fn, Iter iter)
+  {
+    Recycled<Stack<TermList>> args;
+    args->loadFromIterator(iter);
+    return create(fn, args->size(), polarity, /* commutative */ false, args->begin());
+  }
+
+  template<class Iter>
+  static Literal* createFromIter(Literal* lit, Iter iter)
+  { return createFromIter(lit->polarity(), lit->functor(), std::move(iter)); }
+
+
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
