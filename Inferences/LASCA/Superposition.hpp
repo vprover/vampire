@@ -144,7 +144,8 @@ public:
              return VirtualIterator<Out>::getEmpty();
            } else {
              return pvi(iterTraits(vi(new NonVariableNonTypeIterator(term.term(), includeSelf)))
-                 .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || LascaState::globalState->isAtomic(t); })
+                 // .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || LascaState::globalState->isAtomic(t); })
+                 .filter([](auto& t) { return LascaState::globalState->isAtomic(t); })
                  .map([=](auto t) { return Rhs(sel, t, inLitPlus); }))
                ;
            }

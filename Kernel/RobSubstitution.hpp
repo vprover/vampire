@@ -300,7 +300,7 @@ public:
   TermSpec const& rhs() const { return _t2; }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
-  { return out << self._t1 << " != " << self._t2; }
+  { return out << self._t1 << " ?= " << self._t2; }
 
 };
 

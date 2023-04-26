@@ -527,6 +527,35 @@ for_diamond(TEST_only_replace_in_active)
 
 for_polarity(TEST_only_replace_in_active_uninterpretd)
 
+// 17851. 0 = (-400 + uninterp_mul(400,1)) [lasca normalization 17849]
+// 17137. 0 = (a + (-b + uninterp_mul((-a + b),1))) [lasca normalization 17135]
+// 115090. 0 = (a + (-b + 400)) [lasca superposition 17851,17137]
+TEST_GENERATION_WITH_SUGAR(int_bug01, SUGAR(Int),
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .inputs  ({ clause({ 0 == (-400 + f2(400,1))  }) 
+                , clause({ 0 == (a + (-b + f2((-a + b),1)))  }) 
+                })
+      .expected(exactly(  ))
+    )
+
+
+// 17851. 0 = (-400 + uninterp_mul(400,1)) [lasca normalization 17849]
+// 17137. 0 = (a + (-b + uninterp_mul((-a + b),1))) [lasca normalization 17135]
+// 115090. 0 = (a + (-b + 400)) [lasca superposition 17851,17137]
+TEST_GENERATION_WITH_SUGAR(int_bug02, SUGAR(Int),
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_ONE_INTERP)))
+      .selfApplications(false)
+      .inputs  ({ clause({ 0 == (-400 + f2(400,1))  }) 
+                , clause({ 0 == (a + (-b + f2((-a + b),1)))  }) 
+                })
+      .expected(exactly( clause({ 0 == a + -b + 400, -a + b != 400 }) ))
+    )
+
+
 #if INT_TESTS
 TEST_GENERATION_WITH_SUGAR(int_01, SUGAR(Int),
     Generation::SymmetricTest()
