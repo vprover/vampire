@@ -323,8 +323,9 @@ void Preprocess::preprocess(Problem& prb)
 
   // TODO is this the right point in the pipeline?
   if (env.options->alascaRealization()) {
-    // TODO get rid of global state.
-    LascaState::globalState->realization(prb);
+    // TODO shall we really create a fesh instance here or use the same one  as in the global lasca state?
+    InequalityNormalizer norm(/* strong */ false);
+    norm.realization(prb);
   }
 
 

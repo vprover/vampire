@@ -43,6 +43,20 @@ bool isInequality(LascaPredicate const& self)
   ASSERTION_VIOLATION
 }
 
+
+bool isEquality(LascaPredicate const& self) 
+{
+  switch(self) {
+    case LascaPredicate::IS_INT_POS: 
+    case LascaPredicate::IS_INT_NEG: 
+    case LascaPredicate::GREATER: 
+    case LascaPredicate::GREATER_EQ: return false;
+    case LascaPredicate::EQ: 
+    case LascaPredicate::NEQ: return true;
+  }
+  ASSERTION_VIOLATION
+}
+
 bool isIsInt(LascaPredicate const& self) 
 {
   switch(self) {
@@ -555,7 +569,7 @@ Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigne
     }
 }
 
-void LascaState::realization(Problem& p)
+void InequalityNormalizer::realization(Problem& p)
 {
   auto trans = tranlateSignature();
   auto& fs  = trans.first;
@@ -578,7 +592,8 @@ void LascaState::realization(Problem& p)
   auto translateLit = [&](Literal* lit) -> Literal* {
     auto p = lit->functor();
     if (lit->isEquality()) {
-      return Literal::createEquality(lit->polarity(), translateTerm(lit->termArg(0)), translateTerm(lit->termArg(1)), SortHelper::getEqualityArgumentSort(lit));
+      auto s = SortHelper::getEqualityArgumentSort(lit);
+      return Literal::createEquality(lit->polarity(), translateTerm(lit->termArg(0)), translateTerm(lit->termArg(1)), s == IntTraits::sort() ? R::sort() : s);
     }
     auto itp = translateInterpretedPredicate(p);
 
@@ -605,10 +620,11 @@ void LascaState::realization(Problem& p)
       
       for (auto l : iterTraits(c->iterLits())) {
         
-        auto itp = normalizer.normalizeLasca<IntTraits>(l);
+
+        auto itp = normalizeLasca<IntTraits>(l);
         if (itp) {
           for (auto nl : itp->value) {
-            clOut->push(R::isInt(false, nl.term().denormalize()));
+            clOut->push(R::isInt(false, translateTerm(nl.term().denormalize())));
           }
         }
         clOut->push(translateLit(l));
@@ -616,6 +632,7 @@ void LascaState::realization(Problem& p)
 
       out->push(Clause::fromStack(*clOut, 
           Inference(FormulaTransformation(InferenceRule::ALASCAI_REALIZATION, c))));
+
 
       return out;
   });
@@ -633,9 +650,22 @@ void LascaState::realization(Problem& p)
       , p.units())))
     ;
 
+  for (auto f : fs) {
+    Recycled<Stack<TermList>> args;
+    if (f != unsigned(-1)) {
+      auto arity = env.signature->getFunction(f)->arity();
+      while(args->size() < arity) {
+        args->push(TermList::var(args->size()));
+      }
+
+      // adding isInt(f(x1, ..., xn))
+      p.units() = UnitList::cons(Clause::fromStack({ R::isInt(true, TermList(Term::create(f, arity, args->begin()))) }, Inference(TheoryAxiom(InferenceRule::ALASCAI_REALIZATION_AXIOM))), p.units());
+    }
+  }
+
 }
 
-pair<Stack<unsigned>, Stack<unsigned>> LascaState::tranlateSignature()
+pair<Stack<unsigned>, Stack<unsigned>> InequalityNormalizer::tranlateSignature()
 {
   Stack<unsigned> fs;
 
@@ -644,7 +674,7 @@ pair<Stack<unsigned>, Stack<unsigned>> LascaState::tranlateSignature()
 
   auto iterArgs = [&](OperatorType* o)  
     { return range(0, o->arity())
-               .map([&](auto i) { return o->arg(i); }); };
+               .map([=](auto i) { return o->arg(i); }); };
 
 
   auto mappedArgs = [&](OperatorType* o)  { 

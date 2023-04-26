@@ -98,6 +98,7 @@ namespace Kernel {
 
   /** returns true iff the predicate is > or >= */
   bool isInequality(LascaPredicate const& self);
+  bool isEquality(LascaPredicate const& self);
   bool isIsInt(LascaPredicate const& self);
 
   std::ostream& operator<<(std::ostream& out, LascaPredicate const& self);
@@ -179,6 +180,9 @@ namespace Kernel {
 
     bool isInequality() const
     { return Kernel::isInequality(symbol()); }
+
+    bool isEquality() const
+    { return Kernel::isEquality(symbol()); }
 
     bool isIsInt() const
     { return Kernel::isIsInt(symbol()); }
@@ -276,6 +280,12 @@ namespace Kernel {
     // Literal* renormalizeLiteral(Literal* lit) const;
     Recycled<Stack<Literal*>> normalizeLiteral(Literal* lit) const;
     bool isNormalized(Clause* cl)  const;
+
+    pair<Stack<unsigned>, Stack<unsigned>> tranlateSignature();
+
+    /** applies the alascai preprocessing that transforms integer reasoning into real reasoning */
+    void realization(Problem& p);
+
   private: 
     Literal* normalizeUninterpreted(Literal* lit) const;
   };
@@ -468,6 +478,11 @@ namespace Kernel {
     { return ircLiteral().apply([](auto& lit)
                                { return lit.isInequality(); }); }
 
+
+    bool isEquality() const
+    { return ircLiteral().apply([](auto& lit)
+                               { return lit.isEquality(); }); }
+
     bool isIsInt() const
     { return ircLiteral().apply([](auto& lit)
                                { return lit.isIsInt(); }); }
@@ -542,7 +557,7 @@ namespace Kernel {
     explicit SelectedEquality(SelectedSummand s) 
       : _inner(decltype(_inner)::variant<0>(std::move(s))) 
     { 
-      ASS(!_inner.unwrap<0>().isInequality()) 
+      ASS(_inner.unwrap<0>().isEquality()) 
       ASS(_inner.unwrap<0>().numTraits().apply([](auto x) { return x.isFractional(); }))
     }
 
@@ -755,12 +770,6 @@ namespace Kernel {
       }
     }
 
-
-    pair<Stack<unsigned>, Stack<unsigned>> tranlateSignature();
-
-    /** applies the alascai preprocessing that transforms integer reasoning into real reasoning */
-    void realization(Problem& p);
-
     static std::shared_ptr<LascaState> create(
           InequalityNormalizer normalizer,
           Ordering* const ordering,
@@ -962,7 +971,7 @@ namespace Kernel {
         .filterMap([](auto x) -> Option<Out>
                    { return x.match(
                        [](SelectedSummand& x) {
-                          return x.isInequality() ? Option<Out>()
+                          return !x.isEquality() ? Option<Out>()
                               : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
                               : Option<Out>(Out(std::move(x)));
                        },
