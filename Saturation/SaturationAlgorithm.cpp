@@ -14,6 +14,9 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Inferences/LASCA/InequalityStrengthening.hpp"
+#include "Inferences/LASCA/IsIntFactoring.hpp"
+#include "Inferences/LASCA/IsIntResolution.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -1701,6 +1704,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new LASCA::EqFactoring(shared)); 
     sgi->push(new LASCA::FourierMotzkin(shared)); 
     sgi->push(new LASCA::Superposition(shared)); 
+    if (env.options->alascaRealization()) {
+      sgi->push(new LASCA::IsIntResolution(shared)); 
+      sgi->push(new LASCA::IsIntFactoring(shared)); 
+      sgi->push(new LASCA::InequalityStrengthening(shared)); 
+    }
   }
 
 
