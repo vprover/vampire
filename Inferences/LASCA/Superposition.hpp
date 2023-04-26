@@ -23,6 +23,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "Shell/Options.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -143,8 +144,12 @@ public:
            if (term.isVar()) {
              return VirtualIterator<Out>::getEmpty();
            } else {
+
              return pvi(iterTraits(vi(new NonVariableNonTypeIterator(term.term(), includeSelf)))
                  // .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || LascaState::globalState->isAtomic(t); })
+                 .inspect([](Term* t) { 
+                   static bool alascai = env.options->alascaRealization();
+                   return !alascai || SortHelper::getResultSort(t) != IntTraits::sort();  })
                  .filter([](auto& t) { return LascaState::globalState->isAtomic(t); })
                  .map([=](auto t) { return Rhs(sel, t, inLitPlus); }))
                ;
