@@ -1209,6 +1209,14 @@ void Options::init()
     _lookup.insert(&_thiTautologyDeletion);
     _thiTautologyDeletion.setExperimental();
     _thiTautologyDeletion.onlyUsefulWith(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
+
+    _z3Timeout = UnsignedOptionValue("z3_timeout", "z3t", 0);
+    _z3Timeout.description = "Set a timeout for solve calls to z3 in ms.";
+    _lookup.insert(&_z3Timeout);
+    _z3Timeout.onlyUsefulWith(Or(
+          _theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)),
+          _satSolver.is(equal(SatSolver::Z3))
+          ));
 #endif
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",

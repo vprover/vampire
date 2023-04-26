@@ -2215,6 +2215,7 @@ public:
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
   bool thiGeneralise() const { return _thiGeneralise.actualValue; }
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
+  unsigned z3Timeout() { return _z3Timeout.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
@@ -2807,6 +2808,7 @@ private:
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
   BoolOptionValue _thiGeneralise;
   BoolOptionValue _thiTautologyDeletion;
+  UnsignedOptionValue _z3Timeout;;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   BoolOptionValue _unificationWithAbstractionFixedPointIteration; 

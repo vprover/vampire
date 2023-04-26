@@ -283,6 +283,9 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring c
   _exporter.apply([&](auto& e) { e.initialize(); });
 
   z3_set_param("rewriter.expand_store_eq", true);
+  if (env.options->z3Timeout() != 0) {
+    z3_set_param("timeout", env.options->z3Timeout());
+  }
   z3_set_param("model.completion", MODEL_COMPLETION);
   z3_set_param("model.compact", true); // keeps z3 from compressing its model. ~50% of the runtime of get_model is spent doing that otherwise
 
