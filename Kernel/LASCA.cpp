@@ -650,16 +650,21 @@ void InequalityNormalizer::realization(Problem& p)
       , p.units())))
     ;
 
-  for (auto f : fs) {
+  for (auto i : range(0, fs.size())) {
+    auto f = fs[i];
     Recycled<Stack<TermList>> args;
-    if (f != unsigned(-1)) {
+    if (f != unsigned(-1) && f != i) {
+      // ^^^^^^^^^^^^^^^     ^^^^^^-> has been transformed
+      //     \->not interpreted
+
       auto arity = env.signature->getFunction(f)->arity();
       while(args->size() < arity) {
         args->push(TermList::var(args->size()));
       }
 
       // adding isInt(f(x1, ..., xn))
-      p.units() = UnitList::cons(Clause::fromStack({ R::isInt(true, TermList(Term::create(f, arity, args->begin()))) }, Inference(TheoryAxiom(InferenceRule::ALASCAI_REALIZATION_AXIOM))), p.units());
+      auto cl = Clause::fromStack({ R::isInt(true, TermList(Term::create(f, arity, args->begin()))) }, Inference(TheoryAxiom(InferenceRule::ALASCAI_REALIZATION_AXIOM)));
+      p.units() = UnitList::cons(cl, p.units());
     }
   }
 
@@ -690,7 +695,7 @@ pair<Stack<unsigned>, Stack<unsigned>> InequalityNormalizer::tranlateSignature()
   for (auto f : range(0, env.signature->functions())) {
     auto f_ = translateInterpretedFunction(f);
     if (f_) {
-      fs.push(-1); // <- dummy. should never be accessed
+      fs.push(unsigned(-1)); // <- dummy. should never be accessed
     } else {
       auto sym = env.signature->getFunction(f);
       auto op = sym->fnType();
@@ -698,8 +703,7 @@ pair<Stack<unsigned>, Stack<unsigned>> InequalityNormalizer::tranlateSignature()
         Recycled<Stack<TermList>> args = mappedArgs(op);
         auto res = op->result() == ints ? reals : op->result();
         
-        fs.push(
-              env.signature->addFreshFunction(
+        fs.push(env.signature->addFreshFunction(
                 OperatorType::getFunctionType(*args, res), 
                 sym->name().c_str()));
       } else {
