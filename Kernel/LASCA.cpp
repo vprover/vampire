@@ -650,21 +650,25 @@ void InequalityNormalizer::realization(Problem& p)
       , p.units())))
     ;
 
-  for (auto i : range(0, fs.size())) {
-    auto f = fs[i];
+  for (auto origF : range(0, fs.size())) {
+    auto newF = fs[origF];
     Recycled<Stack<TermList>> args;
-    if (f != unsigned(-1) && f != i) {
-      // ^^^^^^^^^^^^^^^     ^^^^^^-> has been transformed
+    if (newF != unsigned(-1) && newF != origF) {
+      // ^^^^^^^^^^^^^^^^^^^    ^^^^^^^^^^^^^^-> has been transformed
       //     \->not interpreted
 
-      auto arity = env.signature->getFunction(f)->arity();
+      auto arity = env.signature->getFunction(newF)->arity();
       while(args->size() < arity) {
         args->push(TermList::var(args->size()));
       }
 
-      // adding isInt(f(x1, ..., xn))
-      auto cl = Clause::fromStack({ R::isInt(true, TermList(Term::create(f, arity, args->begin()))) }, Inference(TheoryAxiom(InferenceRule::ALASCAI_REALIZATION_AXIOM)));
-      p.units() = UnitList::cons(cl, p.units());
+      if (env.signature->getFunction(origF)->fnType()->result() == IntTraits::sort()) {
+
+
+        // adding isInt(newF(x1, ..., xn))
+        auto cl = Clause::fromStack({ R::isInt(true, TermList(Term::create(newF, arity, args->begin()))) }, Inference(TheoryAxiom(InferenceRule::ALASCAI_REALIZATION_AXIOM)));
+        p.units() = UnitList::cons(cl, p.units());
+      }
     }
   }
 
