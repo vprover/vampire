@@ -788,9 +788,9 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "distinctness axiom";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     return "theory tautology sat conflict";
+  case InferenceRule::GENERIC_THEORY_AXIOM:
   case InferenceRule::ALASCAI_REALIZATION_AXIOM:
     return "realization axiom";
-  case InferenceRule::GENERIC_THEORY_AXIOM:
   case InferenceRule::THA_COMMUTATIVITY:
   case InferenceRule::THA_ALASCAI:
   case InferenceRule::THA_ASSOCIATIVITY:

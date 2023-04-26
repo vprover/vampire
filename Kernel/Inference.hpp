@@ -489,12 +489,12 @@ enum class InferenceRule : unsigned char {
   /** A (first-order) tautology generated on behalf of a decision procedure,
    * whose propositional counterpart becomes a conflict clause in a sat solver */
   THEORY_TAUTOLOGY_SAT_CONFLICT,
-  ALASCAI_REALIZATION_AXIOM, // TODO <- split into multiple ones
 
   /** a not further specified theory axiom internally added by the class TheoryAxioms. */
   GENERIC_THEORY_AXIOM, // CAREFUL: adding rules here influences the theory_split_queue heuristic
   /** Some specific groups of axioms coming from TheoryAxioms.cpp" */
   THA_COMMUTATIVITY,
+  ALASCAI_REALIZATION_AXIOM, // TODO <- split into multiple ones
   THA_ASSOCIATIVITY,
   THA_RIGHT_IDENTINTY,
   THA_LEFT_IDENTINTY,
