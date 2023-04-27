@@ -266,6 +266,22 @@ public:
     }
   }
 
+
+  /**
+   * Push all elements from @b it iterator to the list.
+   *
+   * The first element in the iterator will end up as last in the list
+   */
+  template<class It>
+  static List* fromIterator(It it)
+  {
+    List* out = nullptr;
+    while(it.hasNext()) {
+      push(it.next(), out);
+    }
+    return out;
+  }
+
   /** pop the first element and return it */
   static C pop(List* &lst)
   {
