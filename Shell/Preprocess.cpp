@@ -321,14 +321,6 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  // TODO is this the right point in the pipeline?
-  if (env.options->alascaRealization()) {
-    // TODO shall we really create a fesh instance here or use the same one  as in the global lasca state?
-    InequalityNormalizer norm(/* strong */ false);
-    norm.realization(prb);
-  }
-
-
   prb.getProperty();
 
   if (prb.mayHaveFunctionDefinitions()) {
@@ -381,6 +373,14 @@ void Preprocess::preprocess(Problem& prb)
      EqResWithDeletion resolver;
      resolver.apply(prb);
    }
+
+  // TODO is this the right point in the pipeline?
+  if (env.options->alascaRealization()) {
+    // TODO shall we really create a fesh instance here or use the same one  as in the global lasca state?
+    InequalityNormalizer norm(/* strong */ false);
+    norm.realization(prb);
+  }
+
 
    if (_options.generalSplitting()) {
      if (prb.higherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
