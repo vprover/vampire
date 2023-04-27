@@ -420,7 +420,6 @@ Option<std::function<TermList(TermList*)>> translateInterpretedFunction(unsigned
     case Interpretation::RAT_REMAINDER_F:
     case Interpretation::RAT_FLOOR:
     case Interpretation::RAT_ROUND:
-
     case Interpretation::REAL_UNARY_MINUS:
     case Interpretation::REAL_PLUS:
     case Interpretation::REAL_MINUS:
@@ -434,18 +433,27 @@ Option<std::function<TermList(TermList*)>> translateInterpretedFunction(unsigned
     case Interpretation::REAL_REMAINDER_F:
     case Interpretation::REAL_FLOOR:
     case Interpretation::REAL_ROUND:
-
-    case Interpretation::INT_TO_RAT:
-    case Interpretation::INT_TO_REAL:
     case Interpretation::RAT_TO_INT:
     case Interpretation::RAT_TO_RAT:
     case Interpretation::RAT_TO_REAL:
     case Interpretation::REAL_TO_INT:
     case Interpretation::REAL_TO_RAT:
     case Interpretation::REAL_TO_REAL:
+        return {}; // rat and real functions
+
+    case Interpretation::INT_TO_RAT:
+    case Interpretation::INT_TO_REAL:
+        ASSERTION_VIOLATION_REP("TODO implement. needs to be guarded to be sound i think")
+        return {}; // rat and real functions
 
       // array functions
-    case Interpretation::ARRAY_SELECT:
+    case Interpretation::ARRAY_SELECT: 
+    // {
+    //     auto ty = env.signature->getFunction(f)->fnType();
+    //     if (ty->result() == IntTraits::sort() || ty->arg(1) == IntTraits::sort()) {
+    //
+    //     }
+    // }
     case Interpretation::ARRAY_STORE:
         ASSERTION_VIOLATION_REP("TODO integrate with arrays")
         return {};
