@@ -127,9 +127,6 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
 
-  //TODO probably shouldn't go here!
-  static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
