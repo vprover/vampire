@@ -14,6 +14,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/MismatchHandler.hpp"
 #include "Kernel/NumTraits.hpp"
+#include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Recycled.hpp"
@@ -21,11 +22,17 @@
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/QKbo.hpp"
 #include "Kernel/Problem.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Test/SyntaxSugar.hpp"
+#include <initializer_list>
+#include <mach/port.h>
 // #include "Kernel/LaLpo.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Kernel {
 using Inferences::PolynomialEvaluation;
+template<class T>
+using RStack = Recycled<Stack<T>>;
 
 // number type to which integers are being translated to
 using R = RealTraits;
@@ -473,6 +480,371 @@ Option<std::function<TermList(TermList*)>> translateInterpretedFunction(unsigned
         return {};
     }
 }
+
+using Guards = Recycled<Stack<Literal*>>;
+template<class T> 
+using GuardedResult = Recycled<Stack<pair<T, Guards>>>;
+
+template<class T>
+struct _Unwrap;
+
+// template<template<class> class Cons, class T> 
+// struct _Unwrap<Cons<T>> {
+//   using type = T;
+// };
+
+
+template<class T> 
+struct _Unwrap<GuardedResult<T>> {
+  using type = T;
+};
+
+
+// template<class T> 
+// struct _Unwrap<T*> {
+//   using type = T;
+// };
+
+template<class T> 
+using Unwrap = typename _Unwrap<T>::type;
+
+// gmap: (a -> b) -> GuardedResult a -> GuardedResult b
+template<class F>
+auto gmap(F f) 
+{
+   return [f = std::move(f)](auto arg) { 
+     GuardedResult<std::result_of_t<F(Unwrap<decltype(arg)>)>> out;
+     for (auto& x : *arg) {
+       out->push(make_pair(f(std::move(x.first)), std::move(x.second)));
+     }
+     return out; 
+   };
+}
+
+template<class T> 
+T clone(T const& orig)
+{ return T(orig); }
+
+template<class T> 
+RStack<T> clone(RStack<T> const& orig)
+{
+  RStack<T> out;
+  out->loadFromIterator(iterTraits(orig->iter()).map(clone));
+  return out;
+}
+
+// gflatten: GuardedResult (GuardedResult a) -> GuardedResult a
+template<class T>
+auto gflatten(GuardedResult<GuardedResult<T>> opts_of_opts) 
+{
+  GuardedResult<T> out;
+  for (auto& opts : *opts_of_opts) {
+    auto& guards = opts.second;
+    for (auto& opt : *opts.first) {
+      auto gs = std::move(opts.second);
+      gs->loadFromIterator(guards->iter());
+      // decltype(opt.first) opt_copy;
+      // opt_copy->loadFromIterator(iterTraits(opt.first->iterFifo()));
+      out->push(make_pair(clone(opt.first), std::move(gs)));
+    }
+  }
+  return out;
+}
+// gflatmap: (a -> GuardedResult b) -> GuardedResult a -> GuardedResult b
+template<class F>
+auto gflatmap(F f) 
+{ return [f = std::move(f)](auto arg) { return gflatten(gmap(f)(std::move(arg))); }; }
+
+// greturn: a -> GuardedResult a
+template<class T>
+auto greturn(T t)  -> GuardedResult<T>
+{ 
+  GuardedResult<T> out;
+  out->push(make_pair(std::move(t), Guards()));
+  return out; 
+}
+
+
+// : (GuardedResult a -> b) -> (GuardedResult a -> GuardedResult b)
+
+// flipGuarded: GuardedResult(Arg*) -> (GuardedResult Arg)*
+template<class T>
+auto flipGuarded(GuardedResult<T>* ts, unsigned cnt) -> GuardedResult<RStack<T>> {
+  // using Result = std::result_of_t<CreateTerm(unsigned, Arg*)>;
+  GuardedResult<RStack<T>> out;
+
+  Recycled<Stack<unsigned>> guardSelections;
+  guardSelections->loadFromIterator(range(0, cnt).map([](auto) { return 0; }));
+
+  // auto createTermFromIter = [&](auto iter) {
+  //   Recycled<Stack<ELEMENT_TYPE(decltype(iter))>> args;
+  //   args->loadFromIterator(iter);
+  //   return createTerm(cnt, args->begin());
+  // };
+
+  auto incr = [&]() {
+    unsigned i = 0;
+    while (i < guardSelections->size()) {
+      (*guardSelections)[i]++;
+      if ((*guardSelections)[i] >= ts[i]->size()) {
+        (*guardSelections)[i] = 0;
+        i++;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  do {
+    auto chosen_arg_version = [&](auto arg_idx) -> pair<T, Guards>& {
+      auto& arg = *ts[arg_idx];
+      auto chosen_version_idx = (*guardSelections)[arg_idx];
+      return arg[chosen_version_idx];
+    };
+    RStack<T> ts;
+    ts->loadFromIterator(
+            range(0, cnt)
+              .map([&](unsigned i) { return chosen_arg_version(i).first; }));
+    Guards guards;
+    guards->loadFromIterator(range(0, cnt)
+              .flatMap([&](unsigned i) { return chosen_arg_version(i).second->iter(); }));
+    out->push(make_pair(std::move(ts), std::move(guards)));
+  } while (incr());
+
+  return out;
+}
+
+template<class CreateTerm, class Arg>
+GuardedResult<std::result_of_t<CreateTerm(unsigned, Arg*)>> liftGuarded(unsigned arity, GuardedResult<Arg>* ts, CreateTerm createTerm) {
+  using Result = std::result_of_t<CreateTerm(unsigned, Arg*)>;
+  GuardedResult<Result> out;
+
+  Recycled<Stack<unsigned>> guardSelections;
+  guardSelections->loadFromIterator(range(0, arity).map([](auto) { return 0; }));
+
+  auto createTermFromIter = [&](auto iter) {
+    Recycled<Stack<ELEMENT_TYPE(decltype(iter))>> args;
+    args->loadFromIterator(iter);
+    return createTerm(arity, args->begin());
+  };
+
+  auto incr = [&]() {
+    unsigned i = 0;
+    while (i < guardSelections->size()) {
+      (*guardSelections)[i]++;
+      if ((*guardSelections)[i] >= ts[i]->size()) {
+        (*guardSelections)[i] = 0;
+        i++;
+      } else {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  do {
+    auto chosen_arg_version = [&](auto arg_idx) -> pair<Arg, Guards>& {
+      auto& arg = *ts[arg_idx];
+      auto chosen_version_idx = (*guardSelections)[arg_idx];
+      return arg[chosen_version_idx];
+    };
+    auto term = createTermFromIter(
+            range(0, arity)
+              .map([&](unsigned i) { return chosen_arg_version(i).first; }));
+    Guards guards;
+    guards->loadFromIterator(range(0, arity)
+              .flatMap([&](unsigned i) { return chosen_arg_version(i).second->iter(); }));
+    out->push(make_pair(std::move(term), std::move(guards)));
+  } while (incr());
+
+  return out;
+}
+
+Option<std::function<GuardedResult<TermList>(TermList*)>> translateInterpretedFunction_(unsigned f) {
+
+  auto fng = [](auto _arity, auto f) { return some(std::function<GuardedResult<TermList>(TermList*)>(
+        [f = std::move(f)](TermList* args) -> GuardedResult<TermList> { return f(args); })); 
+  };
+
+
+  auto fn = [](auto arity, auto f) { return some(std::function<GuardedResult<TermList>(TermList*)>(
+        [f = std::move(f)](TermList* args) -> GuardedResult<TermList> { 
+          return greturn(f(args));
+          // return liftGuarded(arity, args, [f = std::move(f)](auto _arity, auto x){ return f(x); });
+          // GuardedResult<TermList> options;
+          // options->push(make_pair(f(args), Guards()));
+          // return options; 
+        })); 
+  };
+
+  auto sym = env.signature->getFunction(f);
+  if(sym->integerConstant()) {
+    return fn(0, [sym](auto x) { return R::constantTl(typename R::ConstantType(sym->integerValue(), IntegerConstantType(1))); });
+  }
+
+  if(!theory->isInterpretedFunction(f))
+    return {};
+
+
+  auto _remainder = [](TermList* args, TermList quotient)
+  { return R::add(args[0], R::minus(R::mul(args[1], quotient))); };
+
+  auto remainder = [_remainder](auto quotient)
+  { return [_remainder, quotient](TermList* ts) { return _remainder(ts, quotient(ts)); }; };
+
+
+  auto remainderG = [_remainder](auto quotient /* TermList -> GuardedResult<TermList>
+  */)
+  { 
+    // return fmap(remainderG)
+    return [_remainder, quotient](TermList* ts) -> GuardedResult<TermList> { 
+      return gmap([_remainder, ts](auto q){ return _remainder(ts, q); })(quotient(ts));;
+   }; };
+
+  auto quotientF = [](TermList* ts) { return R::toInt(R::div(ts[0], ts[1])); };
+  auto quotientE = [=](TermList* ts) -> GuardedResult<TermList> {
+    GuardedResult<TermList> out;
+    {
+      Guards gs;
+      auto t = quotientF(ts);
+      gs->init({
+            R::greater(false, ts[1], R::zero()),
+            // R::isInt(false, ts[1]),
+          });
+      out->push(make_pair(t, std::move(gs)));
+    }
+    {
+      Guards gs;
+      auto t = R::minus(R::toInt(R::minus(R::div(ts[0], ts[1]))));
+      gs->init({
+            R::less(false, ts[1], R::zero()),
+            // R::isInt(false, ts[1]),
+          });
+      out->push(make_pair(t, std::move(gs)));
+    }
+    return out;
+  };
+  switch(theory->interpretFunction(f)) {
+    case Interpretation::EQUAL: 
+
+    case Interpretation::INT_IS_INT: 
+    case Interpretation::INT_IS_RAT: 
+    case Interpretation::INT_IS_REAL: 
+    case Interpretation::INT_GREATER: 
+    case Interpretation::INT_GREATER_EQUAL: 
+    case Interpretation::INT_LESS: 
+    case Interpretation::INT_LESS_EQUAL: 
+    case Interpretation::INT_DIVIDES: 
+    case Interpretation::RAT_IS_INT:
+    case Interpretation::RAT_IS_RAT:
+    case Interpretation::RAT_IS_REAL:
+    case Interpretation::RAT_GREATER:
+    case Interpretation::RAT_GREATER_EQUAL:
+    case Interpretation::RAT_LESS:
+    case Interpretation::RAT_LESS_EQUAL:
+    case Interpretation::REAL_IS_INT:
+    case Interpretation::REAL_IS_RAT:
+    case Interpretation::REAL_IS_REAL:
+    case Interpretation::REAL_GREATER:
+    case Interpretation::REAL_GREATER_EQUAL:
+    case Interpretation::REAL_LESS:
+    case Interpretation::REAL_LESS_EQUAL:
+      ASSERTION_VIOLATION_REP("Not a function interpretation")
+
+      //numeric functions
+
+    case Interpretation::INT_SUCCESSOR:   return fn(1, [](TermList* ts) { return R::add(ts[0], R::one()); });
+    case Interpretation::INT_UNARY_MINUS: return fn(1, [](TermList* ts) { return R::minus(ts[0]); });
+    case Interpretation::INT_PLUS:        return fn(2, [](TermList* ts) { return R::add(ts[0], ts[1]); });
+    case Interpretation::INT_MINUS:       return fn(2, [](TermList* ts) { return R::add(ts[0], R::minus(ts[1])); });
+    case Interpretation::INT_MULTIPLY:    return fn(2, [](TermList* ts) { return R::mul(ts[0], ts[1]); });
+
+    case Interpretation::INT_CEILING:
+    case Interpretation::INT_TRUNCATE:
+    case Interpretation::INT_ROUND: 
+                                          // TODO check differenc between RAT_TO_INT and RAT_FLOOR
+    case Interpretation::INT_TO_INT:
+    case Interpretation::INT_FLOOR:       return fn(1, [](auto ts) { return ts[0]; });
+
+    case Interpretation::INT_QUOTIENT_F:  return fn(2, quotientF);
+    case Interpretation::INT_REMAINDER_F: return fn(2, remainder(quotientF));
+
+    case Interpretation::INT_QUOTIENT_E:  return fng(2, quotientE);
+    case Interpretation::INT_REMAINDER_E: return fng(2, remainderG(quotientE));
+
+    case Interpretation::INT_QUOTIENT_T:
+    case Interpretation::INT_REMAINDER_T:
+    case Interpretation::INT_ABS:
+        ASSERTION_VIOLATION_REP("TODO: look up the semantics of this and implement a translation")
+        return {};
+
+    case Interpretation::RAT_UNARY_MINUS:
+    case Interpretation::RAT_PLUS:
+    case Interpretation::RAT_MINUS:
+    case Interpretation::RAT_MULTIPLY:
+    case Interpretation::RAT_QUOTIENT:
+    case Interpretation::RAT_QUOTIENT_E:
+    case Interpretation::RAT_QUOTIENT_T:
+    case Interpretation::RAT_QUOTIENT_F:
+    case Interpretation::RAT_REMAINDER_E:
+    case Interpretation::RAT_REMAINDER_T:
+    case Interpretation::RAT_REMAINDER_F:
+    case Interpretation::RAT_FLOOR:
+    case Interpretation::RAT_ROUND:
+    case Interpretation::REAL_UNARY_MINUS:
+    case Interpretation::REAL_PLUS:
+    case Interpretation::REAL_MINUS:
+    case Interpretation::REAL_MULTIPLY:
+    case Interpretation::REAL_QUOTIENT:
+    case Interpretation::REAL_QUOTIENT_E:
+    case Interpretation::REAL_QUOTIENT_T:
+    case Interpretation::REAL_QUOTIENT_F:
+    case Interpretation::REAL_REMAINDER_E:
+    case Interpretation::REAL_REMAINDER_T:
+    case Interpretation::REAL_REMAINDER_F:
+    case Interpretation::REAL_FLOOR:
+    case Interpretation::REAL_ROUND:
+    case Interpretation::RAT_TO_INT:
+    case Interpretation::RAT_TO_RAT:
+    case Interpretation::RAT_TO_REAL:
+    case Interpretation::REAL_TO_INT:
+    case Interpretation::REAL_TO_RAT:
+    case Interpretation::REAL_TO_REAL:
+        return {}; // rat and real functions
+
+    case Interpretation::INT_TO_RAT:
+    case Interpretation::INT_TO_REAL:
+        ASSERTION_VIOLATION_REP("TODO implement. needs to be guarded to be sound i think")
+        return {}; // rat and real functions
+
+      // array functions
+    case Interpretation::ARRAY_SELECT: 
+    // {
+    //     auto ty = env.signature->getFunction(f)->fnType();
+    //     if (ty->result() == IntTraits::sort() || ty->arg(1) == IntTraits::sort()) {
+    //
+    //     }
+    // }
+    case Interpretation::ARRAY_STORE:
+        ASSERTION_VIOLATION_REP("TODO integrate with arrays")
+        return {};
+
+    case Interpretation::INVALID_INTERPRETATION:
+    case Interpretation::ARRAY_BOOL_SELECT:
+        ASSERTION_VIOLATION_REP("not a function interpretation")
+        return {};
+
+    case Interpretation::REAL_TRUNCATE:
+    case Interpretation::RAT_TRUNCATE:
+        ASSERTION_VIOLATION_REP("TODO: translated to ite + floor")
+        return {};
+    case Interpretation::REAL_CEILING:
+    case Interpretation::RAT_CEILING:
+        ASSERTION_VIOLATION_REP("TODO: this should translate to -floor(-x)")
+        return {};
+    }
+}
 Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigned f)
 {
   if(!theory->isInterpretedPredicate(f))
@@ -577,69 +949,158 @@ Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigne
     }
 }
 
+// GuardedResult<TermList> liftGuarded(unsigned functor, unsigned arity, GuardedResult<TermList>* ts, unsigned i) {
+//
+//   if (i == arity) {
+//
+//   }
+// }
+
 void InequalityNormalizer::realization(Problem& p)
 {
   auto trans = tranlateSignature();
-  auto& fs  = trans.first;
-  auto& ps  = trans.second;
-  auto translateTerm = [&](TermList t) -> TermList { 
-    return evalBottomUp<TermList>(t, [&](auto orig, auto* evalArgs) {
+  auto& realizedFs  = trans.first;
+  auto& realizedPs  = trans.second;
+
+  auto translateTerm = [&](TermList t) -> GuardedResult<TermList> { 
+    return evalBottomUp<GuardedResult<TermList>>(t, [&](auto orig, auto* evalArgs) {
+        GuardedResult<TermList> out;
         if (orig.isVar()) {
-          return orig;
+          out->push(make_pair(orig, Guards()));
+          return out;
         } else {
           auto f = orig.term()->functor();
-          auto itp = translateInterpretedFunction(f);
+          auto arity = orig.term()->arity();
+          GuardedResult<RStack<TermList>> args = flipGuarded(evalArgs, arity);
+          // *itp: TermList* -> GuardedResult (TermList*)
+          // gflatmap(*itp): GuardedResult(TermList*) -> GuardedResult (TermList*)
+          auto itp = translateInterpretedFunction_(f);
           if (itp) {
-            return (*itp)(evalArgs);
+            return gflatmap([&](auto args) { return (*itp)(args->begin()); })(std::move(args));
           } else {
-            return TermList(Term::create(fs[f], orig.term()->arity(), evalArgs));
+            return gmap([&](auto args) { return TermList(Term::create(realizedFs[f], arity, args->begin())); })(std::move(args));
           }
         }
     });
   };
-  auto translateLit = [&](Literal* lit) -> Literal* {
-    auto p = lit->functor();
-    if (lit->isEquality()) {
-      auto s = SortHelper::getEqualityArgumentSort(lit);
-      return Literal::createEquality(lit->polarity(), translateTerm(lit->termArg(0)), translateTerm(lit->termArg(1)), s == IntTraits::sort() ? R::sort() : s);
-    }
-    auto itp = translateInterpretedPredicate(p);
 
-    Recycled<Stack<TermList>> args;
+
+  // auto translateTermOld = [&](TermList t) -> GuardedResult<TermList> { 
+  //   return evalBottomUp<GuardedResult<TermList>>(t, [&](auto orig, auto* evalArgs) {
+  //       GuardedResult<TermList> out;
+  //       if (orig.isVar()) {
+  //         out->push(make_pair(orig, Guards()));
+  //         return out;
+  //       } else {
+  //         auto f = orig.term()->functor();
+  //         auto itp = translateInterpretedFunction(f);
+  //         return liftGuarded(orig.term()->arity(), evalArgs, 
+  //             [&](auto arity, TermList* args) {
+  //               return itp.isSome() ? (*itp)(args)
+  //                                   : TermList(Term::create(realizedFs[f], arity, args));
+  //             });
+  //       }
+  //   });
+  // };
+
+  auto translateLit = [&](Literal* lit) -> GuardedResult<Literal*> {
+    auto p = lit->functor();
+    Recycled<Stack<GuardedResult<TermList>>> args;
     args->loadFromIterator(
-        anyArgIter(lit).map([&](auto arg) { return translateTerm(arg); }));
-    if (itp) {
-      auto res = (*itp)(args->begin());
-      return lit->polarity() != res->polarity() ? Literal::complementaryLiteral(res) : res;
-    } else {
-      return Literal::createFromIter(
-          lit->polarity(),
-          ps[lit->functor()], 
-          args->iterFifo()
-          );
-    }
+        anyArgIter(lit)
+          .map([&](TermList t) 
+            { return translateTerm(t); }));
+
+    return liftGuarded(args->size(), args->begin(), 
+        [&](unsigned arity, TermList* args) -> Literal* {
+          if (lit->isEquality()) {
+            auto s = SortHelper::getEqualityArgumentSort(lit);
+            return Literal::createEquality(lit->polarity(), args[0], args[1], s == IntTraits::sort() ? R::sort() : s);
+          }
+
+          auto itp = translateInterpretedPredicate(p);
+
+          if (itp) {
+            auto res = (*itp)(args);
+            return lit->polarity() != res->polarity() ? Literal::complementaryLiteral(res) : res;
+          } else {
+            return Literal::create(
+                realizedPs[lit->functor()], 
+                arity,
+                lit->polarity(),
+                /* commutative */ false,
+                args);
+          }
+
+
+        });
+
+    // if (lit->isEquality()) {
+    //   auto s = SortHelper::getEqualityArgumentSort(lit);
+    //   return Literal::createEquality(lit->polarity(), translateTerm(lit->termArg(0)), translateTerm(lit->termArg(1)), s == IntTraits::sort() ? R::sort() : s);
+    // }
+    // auto itp = translateInterpretedPredicate(p);
+    //
+    // Recycled<Stack<TermList>> args;
+    // args->loadFromIterator(
+    //     anyArgIter(lit).map([&](auto arg) { return translateTerm(arg); }));
+    // if (itp) {
+    //   auto res = (*itp)(args->begin());
+    //   return lit->polarity() != res->polarity() ? Literal::complementaryLiteral(res) : res;
+    // } else {
+    //   return Literal::createFromIter(
+    //       lit->polarity(),
+    //       realizedPs[lit->functor()], 
+    //       args->iterFifo()
+    //       );
+    // }
 
   };
   p.mapUnits([&](auto c_) {
       Recycled<Stack<Unit*>> out;
       ASS(c_->isClause());
-      auto c =  static_cast<Clause*>(c_);
-      Recycled<Stack<Literal*>> clOut;
+      auto input =  static_cast<Clause*>(c_);
+
+      // return liftGuarded(, GuardedResult<TermList> *ts, CreateTerm createTerm);
+
+
+      // GuardedResult<Recycled<Stack<>>
+      Recycled<Stack<GuardedResult<Literal*>>> lits;
+
       
-      for (auto l : iterTraits(c->iterLits())) {
+      for (auto l : iterTraits(input->iterLits())) {
         
 
         auto itp = normalizeLasca<IntTraits>(l);
         if (itp) {
           for (auto nl : itp->value) {
-            clOut->push(R::isInt(false, translateTerm(nl.term().denormalize())));
+            auto trm = translateTerm(nl.term().denormalize());
+            lits->push(liftGuarded(1, &trm,
+                  [](auto _arity, auto args) { return R::isInt(false, args[0]); }));
+            // lits->push(R::isInt(false, trm));
           }
         }
-        clOut->push(translateLit(l));
+        lits->push(translateLit(l));
+
       }
 
-      out->push(Clause::fromStack(*clOut, 
-          Inference(FormulaTransformation(InferenceRule::ALASCAI_REALIZATION, c))));
+      GuardedResult<Recycled<Stack<Literal*>>> clauses = liftGuarded(lits->size(), lits->begin(),
+          [](auto arity, auto args) {
+            Recycled<Stack<Literal*>> ls;
+            ls->loadFromIterator(range(0, arity).map([&](auto i) { return args[i]; }));
+            return ls;
+          });
+
+      out->loadFromIterator(
+          iterTraits(clauses->iter())
+          .map([input](pair<Recycled<Stack<Literal*>>, 
+                            Recycled<Stack<Literal*>>>& cl) -> Unit* {
+              auto out = std::move(cl.first);
+              out->loadFromIterator(cl.second->iter());
+              return Clause::fromStack(*out, Inference(FormulaTransformation(InferenceRule::ALASCAI_REALIZATION, input)));
+            })
+          );
+
 
 
       return out;
@@ -658,8 +1119,8 @@ void InequalityNormalizer::realization(Problem& p)
       , p.units())))
     ;
 
-  for (auto origF : range(0, fs.size())) {
-    auto newF = fs[origF];
+  for (auto origF : range(0, realizedFs.size())) {
+    auto newF = realizedFs[origF];
     Recycled<Stack<TermList>> args;
     if (newF != unsigned(-1) && newF != origF) {
       // ^^^^^^^^^^^^^^^^^^^    ^^^^^^^^^^^^^^-> has been transformed
@@ -684,7 +1145,7 @@ void InequalityNormalizer::realization(Problem& p)
 
 pair<Stack<unsigned>, Stack<unsigned>> InequalityNormalizer::tranlateSignature()
 {
-  Stack<unsigned> fs;
+  Stack<unsigned> realizedFs;
 
   auto reals = R::sort();
   auto ints  = IntTraits::sort();
@@ -707,7 +1168,7 @@ pair<Stack<unsigned>, Stack<unsigned>> InequalityNormalizer::tranlateSignature()
   for (auto f : range(0, env.signature->functions())) {
     auto f_ = translateInterpretedFunction(f);
     if (f_) {
-      fs.push(unsigned(-1)); // <- dummy. should never be accessed
+      realizedFs.push(unsigned(-1)); // <- dummy. should never be accessed
     } else {
       auto sym = env.signature->getFunction(f);
       auto op = sym->fnType();
@@ -715,35 +1176,35 @@ pair<Stack<unsigned>, Stack<unsigned>> InequalityNormalizer::tranlateSignature()
         Recycled<Stack<TermList>> args = mappedArgs(op);
         auto res = op->result() == ints ? reals : op->result();
         
-        fs.push(env.signature->addFreshFunction(
+        realizedFs.push(env.signature->addFreshFunction(
                 OperatorType::getFunctionType(*args, res), 
                 sym->name().c_str()));
       } else {
-        fs.push(f);
+        realizedFs.push(f);
       }
     }
   }
 
-  Stack<unsigned> ps;
+  Stack<unsigned> realizedPs;
   for (auto p : range(0, env.signature->predicates())) {
     auto p_ = translateInterpretedPredicate(p);
     if (p_) {
-      ps.push(-1); // <- dummy. should never be accessed
+      realizedPs.push(-1); // <- dummy. should never be accessed
     } else {
       auto sym = env.signature->getPredicate(p);
       auto op = sym->predType();
       if (hasIntArgs(op)) {
         Recycled<Stack<TermList>> args = mappedArgs(op);
-        ps.push(
+        realizedPs.push(
               env.signature->addFreshPredicate(
                 OperatorType::getPredicateType(*args),
                 sym->name().c_str()));
       } else {
-        ps.push(p);
+        realizedPs.push(p);
       }
     }
   }
-  return make_pair(std::move(fs), std::move(ps));
+  return make_pair(std::move(realizedFs), std::move(realizedPs));
 }
 
 } // namespace Kernel

@@ -379,6 +379,7 @@ void Preprocess::preprocess(Problem& prb)
     // TODO shall we really create a fesh instance here or use the same one  as in the global lasca state?
     InequalityNormalizer norm(/* strong */ false);
     norm.realization(prb);
+    FOOLElimination().apply(prb);
   }
 
 
