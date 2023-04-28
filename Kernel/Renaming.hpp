@@ -37,14 +37,18 @@ public:
   USE_ALLOCATOR(Renaming);
 
   Renaming() :
-    _nextVar(0), _identity(true) {
+    _nextVar(0), _identity(true), _bank(DEFAULT_BANK) {
   }
 
   /*
    * Construct a renaming with names starting at firstVar
    */
   Renaming(unsigned firstVar) :
-    _nextVar(firstVar), _identity(true) {
+    _nextVar(firstVar), _identity(true), _bank(DEFAULT_BANK) {
+  }
+
+  Renaming(unsigned firstVar, VarBank bank) :
+    _nextVar(firstVar), _identity(true), _bank(bank) {
   }
 
   void reset()
@@ -52,8 +56,16 @@ public:
     _data.reset();
     _nextVar = 0;
     _identity = true;
+    _bank = DEFAULT_BANK;
   }
   bool keepRecycled() const { return _data.keepRecycled() > 0; }
+
+  void init(unsigned firstVar, VarBank bank){
+    _data.reset();
+    _nextVar = firstVar;
+    _identity = true;
+    _bank = bank;    
+  }
 
   unsigned getOrBind(unsigned v)
   {
@@ -61,7 +73,7 @@ public:
     if (_data.findOrInsert(v, res, _nextVar)) {
       _nextVar++;
       if(v!=res) {
-	_identity = false;
+        _identity = false;
       }
     }
     return res;
@@ -70,6 +82,8 @@ public:
   { return _data.get(v); }
   bool contains(unsigned v)
   { return _data.find(v); }
+
+  VarBank bank() { return _bank; }
 
   Literal* apply(Literal* l);
   Term* apply(Term* l);
@@ -80,10 +94,10 @@ public:
   void normalizeVariables(TermList t);
   void makeInverse(const Renaming& orig);
 
-  static Literal* normalize(Literal* l);
-  static TypedTermList normalize(TypedTermList l);
-  static Term* normalize(Term* t);
-  static TermList normalize(TermList t);
+  static Literal* normalize(Literal* l, VarBank bank = DEFAULT_BANK);
+  static TypedTermList normalize(TypedTermList l, VarBank bank = DEFAULT_BANK);
+  static Term* normalize(Term* t, VarBank bank = DEFAULT_BANK);
+  static TermList normalize(TermList t, VarBank bank = DEFAULT_BANK);
   friend std::ostream& operator<<(std::ostream& out, Renaming const& self)
   { return out << self._data; }
 
@@ -97,7 +111,7 @@ private:
   public:
     Applicator(Renaming* parent) : _parent(parent) {}
     TermList apply(unsigned var)
-    { return TermList(_parent->getOrBind(var), false); }
+    { return TermList(_parent->getOrBind(var), _parent->bank()); }
   private:
     Renaming* _parent;
   };
@@ -106,6 +120,8 @@ private:
   VariableMap _data;
   unsigned _nextVar;
   bool _identity;
+  // we may wish to rename and place on bank simultaneously
+  VarBank _bank;
 public:
   typedef VariableMap::Item Item;
   VirtualIterator<Item> items() const { return _data.items(); }

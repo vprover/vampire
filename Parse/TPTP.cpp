@@ -3287,7 +3287,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
                    "is not $ttype as mandated by TF1");
       }
     } else {
-      static RobSubstitution subst;
+      static RobSubstitutionTS subst;
       subst.reset();
       if(!subst.match(sort, 0, tsSort, 1)) {
         USER_ERROR("Failed to create predicate application for " + name + " of type " + type->toString() + "\n" +
@@ -3341,7 +3341,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
                    "is not $tType as mandated by TF1");
       }
     } else {
-      static RobSubstitution subst;
+      static RobSubstitutionTS subst;
       subst.reset();
       if(!subst.match(sort, 0, ssSort, 1)){
         USER_ERROR("Failed to create function application for " + name + " of type " + type->toString() + "\n" +

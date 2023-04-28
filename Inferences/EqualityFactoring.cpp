@@ -110,16 +110,16 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    Recycled<RobSubstitution> subst;
+    Recycled<RobSubstitutionTL> subst;
     // TODO, do we need to reset?
 
-    if (!subst->unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
+    if (!subst->unify(srt, SortHelper::getEqualityArgumentSort(fLit))) {
       return ClauseIterator::getEmpty();
     }
 
     Recycled<ClauseStack> results;
 
-    TermList srtS = subst->apply(srt,0);
+    TermList srtS = subst->apply(srt,DEFAULT_BANK);
 
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
@@ -127,19 +127,19 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
   
-    auto unifiers = _algo.unifiers(sLHS,0,fLHS,0, &*subst);
+    auto unifiers = _algo.unifiers(sLHS,fLHS, &*subst);
 
     while(unifiers.hasNext()){
-      RobSubstitution* subst = unifiers.next();
+      RobSubstitutionTL* subst = unifiers.next();
 
-      TermList sLHSS = subst->apply(sLHS,0);
-      TermList sRHSS = subst->apply(sRHS,0);
+      TermList sLHSS = subst->apply(sLHS,DEFAULT_BANK);
+      TermList sRHSS = subst->apply(sRHS,DEFAULT_BANK);
 
       if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
         // try next unifier (of course there isn't one in the syntactic first-order case)
         continue;
       }
-      TermList fRHSS = subst->apply(fRHS,0);
+      TermList fRHSS = subst->apply(fRHS,DEFAULT_BANK);
       if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
         continue;
       }
@@ -153,7 +153,7 @@ struct EqualityFactoring::ResultFn
       Literal* sLitAfter = 0;
       if (_afterCheck && _cl->numSelected() > 1) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-        sLitAfter = subst->apply(sLit, 0);
+        sLitAfter = subst->apply(sLit, DEFAULT_BANK);
       }
 
       unsigned next = 1;
@@ -161,7 +161,7 @@ struct EqualityFactoring::ResultFn
       for(unsigned i=0;i<_cLen;i++) {
         Literal* curr=(*_cl)[i];
         if(curr!=sLit) {
-          Literal* currAfter = subst->apply(curr, 0);
+          Literal* currAfter = subst->apply(curr, DEFAULT_BANK);
 
           if (sLitAfter) {
             TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);

@@ -20,7 +20,10 @@
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
+#include "TermTransformer.hpp"
+#if VHOL
 #include "ApplicativeHelper.hpp"
+#endif
 #include "Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
@@ -226,7 +229,7 @@ bool TermList::equals(TermList t1, TermList t2)
       stack.push(s->args());
       stack.push(t->args());
     }
-    else if (ss->content()!=tt->content()) {
+    else if (*ss != *tt) {
       stack.reset();
       return false;
     }
@@ -364,10 +367,10 @@ TermList TermList::finalResult(){
   return isVar() || !isArrowSort() ? *this : static_cast<AtomicSort*>(term())->finalResult();
 }
 
-TermList TermList::whnf(){
-  CALL("TermList::whnf");
+TermList TermList::whnfDeref(RobSubstitutionTL* sub){
+  CALL("TermList::whnfDeref");
 
-  return WHNF().normalise(*this);
+  return WHNFDeref(sub).normalise(*this);
 }
 
 TermList TermList::betaNF(){
@@ -688,6 +691,35 @@ unsigned Term::numTermArguments() const
   
   ASS(_arity >= numTypeArguments())                  
   return _arity - numTypeArguments(); 
+}
+
+TermList TermList::toBank(VarBank b)
+{
+  CALL("TermList::toBank");
+
+  if(isVar())
+    return TermList(_var.var, b);
+
+  return TermList(term()->toBank(b));
+}
+
+TermList TermList::nthArg(unsigned i) const {
+  ASS(isTerm());
+  return *term()->nthArgument(i);
+}
+
+Term* Term::toBank(VarBank b)
+{
+  CALL("Term::toBank");
+
+  return ToBank(b).toBank(this);
+}
+
+Literal* Literal::toBank(VarBank b)
+{
+  CALL("Literal::toBank");
+
+  return ToBank(b).toBank(this);
 }
 
 bool TermList::containsSubterm(TermList trm)
@@ -2201,7 +2233,7 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
 
    TermList srt1, srt2;
 #if VDEBUG
-   static RobSubstitution checkSortSubst;
+   static RobSubstitutionTL checkSortSubst;
    checkSortSubst.reset();
 #endif
 
@@ -2211,14 +2243,14 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
        ASS_REP(arg2.isVar(), arg2.toString());
        return createVariableEquality(polarity, arg1, arg2, sort);
      }
-     ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1));
+     ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt2));
    }
    else {    
-    ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt1, 1), sort.toString(), srt1.toString());
+    ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt1), sort.toString(), srt1.toString());
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
        checkSortSubst.reset();
-       ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1), sort.toString(), arg2.toString() + " :  " + srt2.toString());
+       ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt2), sort.toString(), arg2.toString() + " :  " + srt2.toString());
      }
 #endif
    }
@@ -2431,7 +2463,7 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   } else {
     ASS(lhs.isVar())
     ASS(rhs.isVar())
-    return lhs.var() < rhs.var();
+    return lhs.var() < rhs.var(); // TODO compare indexes???
   }
 }
 

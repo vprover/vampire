@@ -20,6 +20,7 @@
 #include "Lib/Deque.hpp"
 #include "Lib/BiMap.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -120,17 +121,20 @@ private:
 
 // similar to BetaNormaliser, but places a term in WHNF instead
 // of into full normal form
-class WHNF : public TermTransformer
+class WHNFDeref : public TermTransformer
 {
 public:
 
-  WHNF() {
+  WHNFDeref( RobSubstitutionTL* sub) : _sub(sub) {
     dontTransformSorts();
   }  
   TermList normalise(TermList t);
   // puts term into weak head normal form
   TermList transformSubterm(TermList t) override;
   bool exploreSubterms(TermList orig, TermList newTerm) override;
+
+private:
+  RobSubstitutionTL* _sub;
 };
 
 

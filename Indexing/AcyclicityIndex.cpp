@@ -204,7 +204,7 @@ namespace Indexing
       _tis(nullptr),
       _nextResult(nullptr),
       _stack(0),
-      _subst(new RobSubstitution()),
+      _subst(new RobSubstitutionTS()),
       _substChanges(0),
       _nextAvailableIndex(0),
       _currentDepth(0)
@@ -393,7 +393,7 @@ namespace Indexing
     TermIndexingStructure *_tis;
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
-    RobSubstitution *_subst;
+    RobSubstitutionTS *_subst;
     Stack<BacktrackData> _substChanges;
     int _nextAvailableIndex;
     unsigned _currentDepth;

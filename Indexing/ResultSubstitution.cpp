@@ -29,7 +29,7 @@ public:
   CLASS_NAME(RSProxy);
   USE_ALLOCATOR(RSProxy);
   
-  RSProxy(RobSubstitution* subst, int queryBank, int resultBank)
+  RSProxy(RobSubstitutionTL* subst, VarBank queryBank, VarBank resultBank)
   : _subst(subst), _queryBank(queryBank), _resultBank(resultBank) {}
 
   TermList applyToQuery(TermList t) override
@@ -42,10 +42,10 @@ public:
   Literal* applyToResult(Literal* l) override
   { return _subst->apply(l,_resultBank); }
 
-  TermList applyTo(TermList t,unsigned index) override
-  { return _subst->apply(t,index); }
-  Literal* applyTo(Literal* l,unsigned index) override
-  { return _subst->apply(l,index); }
+  TermList applyTo(TermList t,VarBank bank) override
+  { return _subst->apply(t,bank); }
+  Literal* applyTo(Literal* l,VarBank bank) override
+  { return _subst->apply(l,bank); }
 
   virtual size_t getQueryApplicationWeight(TermList t) override { return _subst->getApplicationResultWeight(t, _queryBank); }
   virtual size_t getQueryApplicationWeight(Literal* l) override { return _subst->getApplicationResultWeight(l, _queryBank); }
@@ -58,12 +58,12 @@ public:
   virtual Recycled<LiteralStack> getConstraints() override { return _subst->constraints(); }
 
 private:
-  RobSubstitution* _subst;
-  int _queryBank;
-  int _resultBank;
+  RobSubstitutionTL* _subst;
+  VarBank _queryBank;
+  VarBank _resultBank;
 };
 
-ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
+ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitutionTL* s, VarBank queryBank, VarBank resultBank)
 { return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
 
 /**

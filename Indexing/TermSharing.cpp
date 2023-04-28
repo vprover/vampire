@@ -108,7 +108,7 @@ Term* TermSharing::insert(Term* t)
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
-      swap(ts1->_content, ts2->_content);
+      t->argSwap();
     }
   }
 
@@ -275,7 +275,7 @@ Literal* TermSharing::insert(Literal* t)
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
-      swap(ts1->_content, ts2->_content);
+      t->argSwap();
     }
   }
 
@@ -356,7 +356,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
   if (argNormGt(*ts1, *ts2)) {
-    swap(ts1->_content, ts2->_content);
+    t->argSwap();
   }
 
   //we need these values set during insertion into the sharing set
@@ -502,7 +502,7 @@ bool TermSharing::equals(const Term* s,const Term* t)
   const TermList* ss = s->args();
   const TermList* tt = t->args();
   while (! ss->isEmpty()) {
-    if (ss->_content != tt->_content) {
+    if (*ss != *tt) {
       return false;
     }
     ss = ss->next();

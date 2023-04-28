@@ -55,14 +55,14 @@ private:
   typedef pair<Clause*,Clause*> ClausePair;
   typedef Stack<ClausePair> ClausePairStack;
 
-  bool tryToUnifyTwoTermPairs(RobSubstitution& subst, TermList tp1t1, int bank11,
+  bool tryToUnifyTwoTermPairs(RobSubstitutionTS& subst, TermList tp1t1, int bank11,
       TermList tp1t2, int bank12, TermList tp2t1, int bank21, TermList tp2t2, int bank22);
 
   bool tryMakeTopUnifiableByRewriter(TermList t1, TermList t2, int t2Bank, int& nextAvailableBank, ClauseStack& premises,
-      RewriterStack& rewriters, RobSubstitution& subst, Color& infClr);
+      RewriterStack& rewriters, RobSubstitutionTS& subst, Color& infClr);
 
   bool tryGetRewriters(Term* t1, Term* t2, int t2Bank, int& nextAvailableBank, ClauseStack& premises,
-      RewriterStack& rewriters, RobSubstitution& subst, Color& infClr);
+      RewriterStack& rewriters, RobSubstitutionTS& subst, Color& infClr);
 
   void tryUnifyingSuperpositioins(Clause* cl, unsigned literalIndex, Term* t1, Term* t2,
       bool disjointVariables, ClauseStack& acc);

@@ -90,16 +90,16 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    Recycled<RobSubstitution> sub;
+    Recycled<RobSubstitutionTL> sub;
     Recycled<ClauseStack> results;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    auto substs = _algo.unifiers(arg0, 0, arg1, 0, &*sub, /* no top level constraints */ true);
+    auto substs = _algo.unifiers(arg0, arg1, &*sub, /* no top level constraints */ true);
 
     while(substs.hasNext()){
-      RobSubstitution* sub = substs.next();
+      RobSubstitutionTL* sub = substs.next();
 
       auto constraints = sub->constraints();
       unsigned newLen=_cLen - 1 + constraints->length();
@@ -110,7 +110,7 @@ struct EqualityResolution::ResultFn
 
       if (_afterCheck && _cl->numSelected() > 1) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-        litAfter = sub->apply(lit, 0);
+        litAfter = sub->apply(lit, DEFAULT_BANK);
       }
 
       unsigned next = 0;
@@ -118,7 +118,7 @@ struct EqualityResolution::ResultFn
       for(unsigned i=0;i<_cLen;i++) {
         Literal* curr=(*_cl)[i];
         if(curr!=lit) {
-          Literal* currAfter = sub->apply(curr, 0);
+          Literal* currAfter = sub->apply(curr, DEFAULT_BANK);
 
           if (litAfter) {
             TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);

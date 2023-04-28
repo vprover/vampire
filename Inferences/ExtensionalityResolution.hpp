@@ -50,7 +50,7 @@ public:
   static Clause* performExtensionalityResolution(
     Clause* extCl, Literal* extLit,
     Clause* otherCl, Literal* otherLit,
-    RobSubstitution* subst,
+    RobSubstitutionTS* subst,
     unsigned& counter,
     const Options& opts);
 private:

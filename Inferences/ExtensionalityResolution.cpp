@@ -76,22 +76,22 @@ private:
  */
 struct ExtensionalityResolution::ForwardUnificationsFn
 {
-  ForwardUnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
-  VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> > operator()(pair<Literal*, ExtensionalityClause> arg)
+  ForwardUnificationsFn() { _subst = RobSubstitutionTSSP(new RobSubstitutionTS()); }
+  VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitutionTS*> > operator()(pair<Literal*, ExtensionalityClause> arg)
   {
     CALL("ExtensionalityResolution::ForwardUnificationsFn::operator()");
     
     Literal* trmEq = arg.first;
     Literal* varEq = arg.second.literal;
 
-    SubstIterator unifs = _subst->unifiers(varEq,0,trmEq,1,true);
+    SubstIteratorTS unifs = _subst->unifiers(varEq,0,trmEq,1,true);
     if (!unifs.hasNext()) {
-      return VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >::getEmpty();
+      return VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitutionTS*> >::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, unifs));
   }
 private:
-  RobSubstitutionSP _subst;
+  RobSubstitutionTSSP _subst;
 };
 
 /**
@@ -100,11 +100,11 @@ private:
 struct ExtensionalityResolution::ForwardResultFn
 {
   ForwardResultFn(Clause* otherCl, ExtensionalityResolution& parent) : _otherCl(otherCl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
+  Clause* operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitutionTS*> arg)
   {
     CALL("ExtensionalityResolution::ForwardResultFn::operator()");
     
-    RobSubstitution* subst = arg.second;
+    RobSubstitutionTS* subst = arg.second;
     Literal* otherLit = arg.first.first;
     Clause* extCl = arg.first.second.clause;
     Literal* extLit = arg.first.second.literal;
@@ -166,22 +166,22 @@ private:
 struct ExtensionalityResolution::BackwardUnificationsFn
 {
   BackwardUnificationsFn(Literal* extLit)
-  : _extLit (extLit) { _subst = RobSubstitutionSP(new RobSubstitution()); }
-  VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> > operator()(pair<Clause*, Literal*> arg)
+  : _extLit (extLit) { _subst = RobSubstitutionTSSP(new RobSubstitutionTS()); }
+  VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitutionTS*> > operator()(pair<Clause*, Literal*> arg)
   {
     CALL("ExtensionalityResolution::BackwardUnificationsFn::operator()");
     
     Literal* otherLit = arg.second;
     
-    SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
+    SubstIteratorTS unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
     if (!unifs.hasNext()) {
-      return VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> >::getEmpty();
+      return VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitutionTS*> >::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, unifs));
   }
 private:
   Literal* _extLit;
-  RobSubstitutionSP _subst;
+  RobSubstitutionTSSP _subst;
 };
 
 /**
@@ -190,11 +190,11 @@ private:
 struct ExtensionalityResolution::BackwardResultFn
 {
   BackwardResultFn(Clause* extCl, Literal* extLit, ExtensionalityResolution& parent) : _extCl(extCl), _extLit(extLit), _parent(parent) {}
-  Clause* operator()(pair<pair<Clause*, Literal*>, RobSubstitution*> arg)
+  Clause* operator()(pair<pair<Clause*, Literal*>, RobSubstitutionTS*> arg)
   {
     CALL("ExtensionalityResolution::BackwardResultFn::operator()");
     
-    RobSubstitution* subst = arg.second;
+    RobSubstitutionTS* subst = arg.second;
     Clause* otherCl = arg.first.first;
     Literal* otherLit = arg.first.second;
 
@@ -217,7 +217,7 @@ private:
 Clause* ExtensionalityResolution::performExtensionalityResolution(
   Clause* extCl, Literal* extLit,
   Clause* otherCl, Literal* otherLit,
-  RobSubstitution* subst,
+  RobSubstitutionTS* subst,
   unsigned& counter,
   const Options& opts)
 {

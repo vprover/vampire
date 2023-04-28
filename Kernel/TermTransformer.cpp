@@ -264,7 +264,7 @@ TermList TermTransformer::transform(TermList ts)
       return ts;
     }
   }
-}     
+}   
 
 TermList SubtermReplacer::transformSubterm(TermList t)
 {
@@ -272,6 +272,31 @@ TermList SubtermReplacer::transformSubterm(TermList t)
 
   if(t == _what) return _by;
   return t;
+}
+
+
+TypedTermList ToBank::toBank(TypedTermList term){
+  CALL("ToBank::toBank");
+
+  TermList sort = term.sort();
+  
+  return(TypedTermList(term.isVar() ? transformSubterm(term) : transform(term), 
+                       sort.isVar() ? transformSubterm(sort) : transform(sort)  )); 
+}
+
+TermList ToBank::transformSubterm(TermList t) {
+  CALL("ToBank::transformSubterm");
+
+  if(t.isVar() && t.bank() != _bank){
+    return TermList(t.var(), _bank);
+  }
+  return t;
+}
+
+bool ToBank::exploreSubterms(TermList orig, TermList newTerm) {
+  CALL("ToBank::exploreSubterms");
+
+  return !(newTerm.isTerm() && newTerm.term()->shared() && newTerm.term()->ground()); 
 }
 
 Formula* TermTransformer::transform(Formula* f)

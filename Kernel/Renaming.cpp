@@ -121,13 +121,13 @@ void Renaming::makeInverse(const Renaming& orig)
   _identity = orig.identity();
 }
 
-TypedTermList Renaming::normalize(TypedTermList l)
+TypedTermList Renaming::normalize(TypedTermList l, VarBank bank)
 {
   CALL("Renaming::normalize(Literal*)");
   if (l.isTerm()) {
-    return TypedTermList(normalize(l.term()));
+    return TypedTermList(normalize(l.term(), bank));
   } else {
-    Recycled<Renaming> n;
+    Recycled<Renaming> n(0, bank);
     n->normalizeVariables(TermList(l));
     n->normalizeVariables(l.sort());
     return TypedTermList(n->apply(TermList(l)), n->apply(l.sort()));
@@ -135,29 +135,29 @@ TypedTermList Renaming::normalize(TypedTermList l)
 }
 
 
-Literal* Renaming::normalize(Literal* l)
+Literal* Renaming::normalize(Literal* l, VarBank bank)
 {
   CALL("Renaming::normalize(Literal*)");
 
-  Recycled<Renaming> n;
+  Recycled<Renaming> n(0, bank);
   n->normalizeVariables(l);
   return n->apply(l);
 }
 
-Term* Renaming::normalize(Term* trm)
+Term* Renaming::normalize(Term* trm, VarBank bank)
 {
   CALL("Renaming::normalize(Term*)");
 
-  Recycled<Renaming> n;
+  Recycled<Renaming> n(0, bank);
   n->normalizeVariables(trm);
   return n->apply(trm);
 }
 
-TermList Renaming::normalize(TermList trm)
+TermList Renaming::normalize(TermList trm, VarBank bank)
 {
   CALL("Renaming::normalize(TermList)");
 
-  Recycled<Renaming> n;
+  Recycled<Renaming> n(0, bank);
   n->normalizeVariables(trm);
   return n->apply(trm);
 }

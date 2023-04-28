@@ -45,7 +45,7 @@ class ElimLeibniz : public GeneratingInferenceEngine
 
     bool isPair(Literal* l1, Literal* l2);
 
-    Clause* createConclusion(Clause* premise, Literal* newLit, Literal* posLit, Literal* negLit, RobSubstitution& subst);
+    Clause* createConclusion(Clause* premise, Literal* newLit, Literal* posLit, Literal* negLit, RobSubstitutionTL& subst);
 
     LeibEqRec getLiteralInfo(Literal* lit);
 

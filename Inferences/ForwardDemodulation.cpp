@@ -126,7 +126,7 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
         // However, ForwardDemodulation uses a CodeTree as its
         // indexing mechanism, and it is not clear how to extend
         // the substitution returned by a code tree.
-        static RobSubstitution subst; 
+        static RobSubstitutionTS subst; 
         bool resultTermIsVar = qr.term.isVar();
         if(resultTermIsVar){
           TermList querySort = SortHelper::getTermSort(trm, lit);

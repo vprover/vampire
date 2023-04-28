@@ -39,7 +39,7 @@ namespace UnificationAlgorithms {
 
 class HOLUnification {
 
-  bool unify(TermSpec t1, TermSpec t2, bool splittable, RobSubstitution* sub);
+  bool unifyTreeTerms(TermList t1, TermList t2, bool splittable, RobSubstitutionTL* sub);
 
   // TODO if we implement solid fragment, this will not work...
   enum OracleResult
@@ -49,15 +49,16 @@ class HOLUnification {
     OUT_OF_FRAGMENT=3
   };  
 
-  OracleResult fixpointUnify(VarSpec var, const TermSpec& t2, RobSubstitution* sub);
+  OracleResult fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub);
+
+  using UnificationConstraint = UnificationConstraint<TermList,VarBank>;
 
 public:
   HOLUnification() { }
 
-  bool unifyTreeTerms(TermList t1, unsigned bank1, TermList t2, unsigned bank2, bool splittable , RobSubstitution* sub);
-  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub);
-  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false);
-  SubstIterator postprocess(RobSubstitution*);
+  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub);
+  SubstIterator unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck = false);
+  SubstIterator postprocess(RobSubstitutionTL*);
 
   // method used to decide whether to return all children of a node during tree
   // traversal or only the children with same top

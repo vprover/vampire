@@ -86,18 +86,18 @@ ElimLeibniz::LeibEqRec ElimLeibniz::getLiteralInfo(Literal* lit){
 }
 
 Clause* ElimLeibniz::createConclusion(Clause* premise, Literal* newLit, 
-                                      Literal* posLit, Literal* negLit, RobSubstitution& subst){
+                                      Literal* posLit, Literal* negLit, RobSubstitutionTL& subst){
   CALL("ElimLeibniz::createConclusion");
 
   unsigned newLen=premise->length() - 1;
   Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::LEIBNIZ_ELIMINATION, premise));
-  Literal* newLitAfter = subst.apply(newLit, 0);
+  Literal* newLitAfter = subst.apply(newLit, DEFAULT_BANK);
 
   unsigned next = 0;
   for(unsigned i=0;i<premise->length();i++) {
     Literal* curr=(*premise)[i];
     if(curr!=posLit && curr!=negLit){
-      Literal* currAfter = subst.apply(curr, 0);
+      Literal* currAfter = subst.apply(curr, DEFAULT_BANK);
       (*res)[next++] = currAfter;
     }
   }
@@ -149,7 +149,7 @@ ClauseIterator ElimLeibniz::generateClauses(Clause* premise)
 afterLoop:
 
   ClauseStack clauses;
-  static RobSubstitution subst;
+  static RobSubstitutionTL subst;
   subst.reset();
  
   LeibEqRec lerPosLit = getLiteralInfo(posLit);
@@ -163,7 +163,7 @@ afterLoop:
   TermList vEquals = AH::equality(argS);
   // creating the term  = arg  (which is eta-equivalent to ^x. arg = x)
   TermList t1 = AH::app(vEquals, lerNegLit.arg);
-  if(subst.unify(var, 0, t1, 0)){
+  if(subst.unify(var, t1)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
     clauses.push(c);
     subst.reset();
@@ -173,7 +173,7 @@ afterLoop:
   // creating the term ^x. arg != x
   TermList t2 = AH::lambda(argS, AH::app(AH::neg(), AH::app(AH::app(vEquals, lerPosLit.arg),db)));
 
-  if(subst.unify(var, 0, t2, 0)){
+  if(subst.unify(var, t2)){
     Clause* c = createConclusion(premise, newLit, posLit, negLit, subst);
     clauses.push(c);
   }  

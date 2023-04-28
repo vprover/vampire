@@ -90,7 +90,18 @@ enum ArgumentOrderVals {
   AO_INCOMPARABLE=6,
 };
 
+enum VarBank {
+  DEFAULT_BANK=0,
+  QUERY_BANK=1,
+  RESULT_BANK=2,
+  NORM_RESULT_BANK=3,
+  FRESH_BANK=4,
+  OUTPUT_BANK=5
+};
+
 bool operator<(const TermList& lhs, const TermList& rhs);
+
+class RobSubstitutionTL; // forward declaration
 
 /**
  * Class containing either a pointer to a compound term or
@@ -103,8 +114,12 @@ public:
   static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
   /** dummy constructor, does nothing */
   TermList() {}
-  /** creates a term list and initialises its content with data */
-  explicit TermList(size_t data) : _content(data) {}
+  /** creates a term list and initialises its content with data 
+    * AYB deprecated. Should NOT be using a TermList to store arbitrary data 
+    * Kept for backwards compatibility */
+  explicit TermList(size_t data)  {
+    _var.var = data;
+  }
   /** creates a term list containing a pointer to a term */
   explicit TermList(Term* t) : _term(t) { ASS_EQ(tag(), REF); }
   /** creates a term list containing a variable. If @b special is true, then the variable
@@ -118,6 +133,12 @@ public:
     else {
       makeVar(var);
     }
+  }
+
+  TermList(unsigned var, VarBank bank)
+  {
+    // special variables never need to be on a bank
+    makeVar(var, bank);
   }
 
   /** the tag */
@@ -143,7 +164,7 @@ public:
 
   /** return the variable number */
   inline unsigned var() const
-  { ASS(isVar()); return _content / 4; }
+  { ASS(isVar()); return _var.var; }
   /** the term contains reference to Term class */
   inline bool isTerm() const
   { return tag() == REF; }
@@ -154,11 +175,12 @@ public:
   /** True of the terms have the same content. Useful for comparing
    * arguments of shared terms. */
   inline bool sameContent(const TermList* t) const
-  { return _content == t->_content ; }
+  { return *this == *t ; }
   inline bool sameContent(const TermList& t) const
   { return sameContent(&t); }
-  /** return the content, useful for e.g., term argument comparison */
-  inline size_t content() const { return _content; }
+  /** return the content, useful for e.g., term argument comparison
+    * AYB depracated */
+  inline size_t content() const { return _var.var; }
 
   /** default hash is to hash the content */
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
@@ -166,15 +188,32 @@ public:
 
   vstring toString() const;
 
+  inline VarBank bank() const 
+  { return static_cast<VarBank>(_var.bank); }
+ 
+  inline bool isOutputVar() const
+  { return isVar() && bank() == OUTPUT_BANK; }
+
+  inline bool onBank() const
+  { return isVar() && bank() != DEFAULT_BANK; }
+
   /** make the term into an ordinary variable with a given number */
-  inline void makeVar(unsigned vnumber)
-  { _content = vnumber * 4 + ORD_VAR; }
+  inline void makeVar(unsigned vnumber, VarBank bank = DEFAULT_BANK)
+  { 
+    _var.var = vnumber; 
+    _var.tag = ORD_VAR; 
+    _var.bank = bank;
+  }
   /** make the term into a special variable with a given number */
   inline void makeSpecialVar(unsigned vnumber)
-  { _content = vnumber * 4 + SPEC_VAR; }
+  { 
+    _var.var = vnumber; 
+    _var.tag = SPEC_VAR;
+    _var.bank = DEFAULT_BANK;
+  }
   /** make the term empty (so that isEmpty() returns true) */
   inline void makeEmpty()
-  { _content = FUN; }
+  { _var.tag = FUN; }
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; ASS_EQ(tag(), REF); }
@@ -230,11 +269,16 @@ public:
   TermList result();
   TermList finalResult();
   // return the weak head normal form of the term
-  TermList whnf();
+  TermList whnfDeref(RobSubstitutionTL* sub);
   TermList betaNF();
   TermList etaNF();
   TermList betaEtaNF();
 #endif
+
+  TermList toBank(VarBank bank);
+  // Use with care! Make sure that it is a term before calling
+  // mainly here for compatibility with TermSpec in RobSubstitution
+  TermList nthArg(unsigned i) const;
 
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
@@ -250,9 +294,29 @@ public:
 #endif
 
   inline bool operator==(const TermList& t) const
-  { return _content==t._content; }
+  { 
+    if(isVar()){
+      return _var.tag  == t._var.tag &&
+             _var.var  == t._var.var &&
+             _var.bank == t._var.bank;
+    } else if(isTerm()){
+      return _term == t._term;
+    } else {
+      // I don't think we ever want to compare info,
+      // but hey why not
+      return _info.tag == t._info.tag &&
+             _info.polarity == t._info.polarity &&
+             _info.commutative == t._info.commutative &&
+             _info.shared == t._info.shared &&
+             _info.literal == t._info.literal &&
+             _info.sort == t._info.sort &&
+             _info.hasTermVar == t._info.hasTermVar &&
+             _info.order == t._info.order &&
+             _info.id    == t._info.id; //ignoring HOL data for now
+    }
+  }
   inline bool operator!=(const TermList& t) const
-  { return _content!=t._content; }
+  { return !(*this == t); }
 
   friend bool operator<(const TermList& lhs, const TermList& rhs);
 
@@ -262,8 +326,15 @@ private:
   union {
     /** reference to another term */
     Term* _term;
-    /** raw content, can be anything */
-    size_t _content;
+    /** variable */
+    struct {
+      /** a TermTag indicating what is stored here */      
+      unsigned tag : 2;
+      /** bank the variable is currently on */
+      unsigned bank : 30;      
+      /** variable number */
+      unsigned var : 32;  
+    } _var;
     /** Used by Term, storing some information about the term using bits */
     /*
      * A note from 2022: the following bitfield is somewhat non-portable.
@@ -290,14 +361,14 @@ private:
       unsigned sort : 1;
       /** true if term contains at least one term var */
       unsigned hasTermVar : 1;
-#if VHOL
+  #if VHOL
       /** true if the term contains a De Bruijn index */
       unsigned hasDBIndex : 1;
       /** true if the term contains a redex */
       unsigned hasRedex : 1;
       /** true if a term contains a lambda */
       unsigned hasLambda : 1;
-#endif
+  #endif
 
       /** Ordering comparison result for commutative term arguments, one of
        * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
@@ -312,9 +383,10 @@ private:
       /** term id hiding in this _info */
       // this should not be removed without care,
       // otherwise the bitfield layout might shift, resulting in broken pointer tagging
-      unsigned id : 32;
+      unsigned id : 32; 
     } _info;
   };
+  
   friend class Indexing::TermSharing;
   friend class Term;
   friend class Literal;
@@ -322,7 +394,7 @@ private:
 }; // class TermList
 
 static_assert(
-  sizeof(TermList) == sizeof(size_t),
+  sizeof(TermList) == 8,
   "size of TermList must be the same size as that of size_t"
 );
 
@@ -642,7 +714,7 @@ public:
 
     TermList* ts1 = args();
     TermList* ts2 = ts1->next();
-    swap(ts1->_content, ts2->_content);
+    swap(ts1->_var, ts2->_var);
   }
 
   /** Return the weight. Applicable only to shared terms */
@@ -852,6 +924,8 @@ public:
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(Term* t);
   size_t countSubtermOccurrences(TermList subterm);
+
+  Term* toBank(VarBank bank);
 
   /** Return true if term has no non-constant functions as subterms */
   bool isShallow() const;
@@ -1165,6 +1239,8 @@ public:
   {
     return _args[0]._info.polarity;
   } // polarity
+
+  Literal* toBank(VarBank b);
 
   /**
    * Mark this object as an equality between two variables.

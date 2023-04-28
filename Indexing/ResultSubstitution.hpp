@@ -46,8 +46,8 @@ public:
   virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
 
-  virtual TermList applyTo(TermList t, unsigned index) { ASSERTION_VIOLATION; }
-  virtual Literal* applyTo(Literal* l, unsigned index) { NOT_IMPLEMENTED; }
+  virtual TermList applyTo(TermList t, VarBank bank) { ASSERTION_VIOLATION; }
+  virtual Literal* applyTo(Literal* l, VarBank bank) { NOT_IMPLEMENTED; }
 
   /** if implementation cannot easily give result for this, zero is returned */
   virtual size_t getQueryApplicationWeight(TermList t) { return 0; }
@@ -135,7 +135,7 @@ public:
    */
   virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
-  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
+  static ResultSubstitutionSP fromSubstitution(RobSubstitutionTL* s, VarBank queryBank, VarBank resultBank);
   virtual void output(std::ostream& ) const = 0;
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { self.output(out); return out; }

@@ -503,9 +503,9 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
   // cout << "lit: " << lit->toString() << endl;
   // cout << "plit: " << plit->toString() << endl;
 
-  static RobSubstitution subst_main;
+  static RobSubstitutionTS subst_main;
   subst_main.reset();
-  if(!subst_main.unifyArgs(lit,0,plit,1)) {
+  if(!subst_main.unify(TermList(lit),0,TermList(plit),1)) {
     return true; // since they don't resolve
   }
 
@@ -538,7 +538,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
   static DHSet<Literal*> pcl_lits;
   pcl_lits.reset();
 
-  static RobSubstitution subst_aux;
+  static RobSubstitutionTS subst_aux;
   subst_aux.reset();
 
   for (unsigned i = 0; i < pcl->length(); i++) {
@@ -554,7 +554,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
     // cout << "insert2(scurlit): " << scurlit->toString() << endl;
 
     if (curlit != plit && cl_lits.find(opscurlit)) {
-      if (opslit->functor() != scurlit->functor() || !subst_aux.unifyArgs(opslit,0,scurlit,0)) { // opslit is the same thing as plit(subst_main)
+      if (opslit->functor() != scurlit->functor() || !subst_aux.unify(TermList(opslit),0,TermList(scurlit),0)) { // opslit is the same thing as plit(subst_main)
         return true;
       } else {
         subst_aux.reset();

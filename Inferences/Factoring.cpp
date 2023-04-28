@@ -55,9 +55,9 @@ public:
   UnificationsOnPositiveFn(Clause* cl, LiteralSelector& sel)
   : _cl(cl), _sel(sel)
   {
-    _subst=RobSubstitutionSP(new RobSubstitution());
+    _subst=RobSubstitutionSP(new RobSubstitutionTL());
   }
-  VirtualIterator<pair<Literal*,RobSubstitution*> > operator() (pair<unsigned,unsigned> nums)
+  VirtualIterator<pair<Literal*,RobSubstitutionTL*> > operator() (pair<unsigned,unsigned> nums)
   {
     CALL("Factoring::UnificationsFn::operator()");
 
@@ -70,19 +70,19 @@ public:
 
     if(l1->isEquality()) {
       //We don't perform factoring with equalities
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
+      return VirtualIterator<pair<Literal*,RobSubstitutionTL*> >::getEmpty();
     }
 
     if(_sel.isNegativeForSelection(l1)) {
       //We don't perform factoring on negative literals
       // (this check only becomes relevant, when there is more than one literal selected
       // and yet the selected ones are not all positive -- see the check in generateClauses)
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
+      return VirtualIterator<pair<Literal*,RobSubstitutionTL*> >::getEmpty();
     }
 
-    SubstIterator unifs=_subst->unifiers(l1,0,l2,0, false);
+    SubstIterator unifs=_subst->unifiers(l1,l2, false);
     if(!unifs.hasNext()) {
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
+      return VirtualIterator<pair<Literal*,RobSubstitutionTL*> >::getEmpty();
     }
 
     return pvi( pushPairIntoRightIterator(l2, unifs) );
@@ -104,7 +104,7 @@ class Factoring::ResultsFn
 public:
   ResultsFn(Clause* cl, bool afterCheck, Ordering& ord)
   : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
-  Clause* operator() (pair<Literal*,RobSubstitution*> arg)
+  Clause* operator() (pair<Literal*,RobSubstitutionTL*> arg)
   {
     CALL("Factoring::ResultsFn::operator()");
 
@@ -119,13 +119,13 @@ public:
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-      skippedAfter = arg.second->apply(skipped, 0);
+      skippedAfter = arg.second->apply(skipped, DEFAULT_BANK);
     }
 
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=skipped) {
-        Literal* currAfter = arg.second->apply(curr, 0);
+        Literal* currAfter = arg.second->apply(curr, DEFAULT_BANK);
 
         if (skippedAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);

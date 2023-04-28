@@ -1076,16 +1076,16 @@ Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::U
 
   Kernel::UnificationAlgorithms::AbstractingUnification au(MismatchHandler(opt), fixedPointIteration);
   
-  static Kernel::RobSubstitution subst;
+  static Kernel::RobSubstitutionTL subst;
   subst.reset();
 
-  auto unifs = au.unifiers(a, 0, b, 0, &subst);
+  auto unifs = au.unifiers(a, b, &subst);
 
   if (unifs.hasNext()) {
-    Kernel::RobSubstitution* sub = unifs.next();
+    Kernel::RobSubstitutionTL* sub = unifs.next();
     return some(TermUnificationResultSpec { 
-     .querySigma  = sub->apply(a, 0), 
-     .resultSigma = sub->apply(b, 0), 
+     .querySigma  = sub->apply(a, DEFAULT_BANK), 
+     .resultSigma = sub->apply(b, DEFAULT_BANK), 
      .constraints = *sub->constraints(),
     });
   } else {

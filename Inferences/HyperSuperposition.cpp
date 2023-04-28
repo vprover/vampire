@@ -90,7 +90,7 @@ bool HyperSuperposition::rewriterEntryComparator(RewriterEntry p1, RewriterEntry
   return w1<w2;
 }
 
-bool HyperSuperposition::tryToUnifyTwoTermPairs(RobSubstitution& subst, TermList tp1t1, int bank11,
+bool HyperSuperposition::tryToUnifyTwoTermPairs(RobSubstitutionTS& subst, TermList tp1t1, int bank11,
     TermList tp1t2, int bank12, TermList tp2t1, int bank21, TermList tp2t2, int bank22)
 {
   CALL("HyperSuperposition::tryToUnifyTwoTermPairs");
@@ -116,7 +116,7 @@ bool HyperSuperposition::tryToUnifyTwoTermPairs(RobSubstitution& subst, TermList
 }
 
 bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2, int t2Bank, int& nextAvailableBank, ClauseStack& premises,
-      RewriterStack& rewriters, RobSubstitution& subst, Color& infClr)
+      RewriterStack& rewriters, RobSubstitutionTS& subst, Color& infClr)
 {
   CALL("HyperSuperposition::tryGetTopRewriter");
 
@@ -171,7 +171,7 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
  * the content of the reference arguments is undefined in case of failure
  */
 bool HyperSuperposition::tryGetRewriters(Term* t1, Term* t2, int t2Bank, int& nextAvailableBank, ClauseStack& premises,
-      RewriterStack& rewriters, RobSubstitution& subst, Color& infClr)
+      RewriterStack& rewriters, RobSubstitutionTS& subst, Color& infClr)
 {
   CALL("HyperSuperposition::tryGetRewriters");
   ASS_EQ(t1->isLiteral(),t2->isLiteral());
@@ -226,7 +226,7 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
 
   Color clauseClr = cl->color();
 
-  static RobSubstitution subst;
+  static RobSubstitutionTS subst;
   subst.reset();
 
   int bank2 = disjointVariables ? 1 : 0;
@@ -274,9 +274,9 @@ void HyperSuperposition::tryUnifyingSuperpositioins(Clause* cl, unsigned literal
     t1Rwr = SubtermReplacer(src,tgt).transform(t1Rwr);
   }
 
-  static RobSubstitution checkerSubst;
+  static RobSubstitutionTS checkerSubst;
   checkerSubst.reset();
-  if(!checkerSubst.unifyArgs(t1Rwr, 0, t2, bank2)) {
+  if(!checkerSubst.unify(TermList(t1Rwr), 0, TermList(t2), bank2)) {
     return;
   }
 
@@ -430,7 +430,7 @@ bool HyperSuperposition::tryGetUnifyingPremises(Term* t1, Term* t2, Color clr, b
 
   Color clauseClr = clr;
 
-  static RobSubstitution subst;
+  static RobSubstitutionTS subst;
   subst.reset();
 
   int bank2 = disjointVariables ? 1 : 0;

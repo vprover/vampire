@@ -83,7 +83,7 @@ struct Choice::AxiomsIterator
     CALL("Choice::AxiomsIterator");
     ASS(term.isApplication());
 
-    _set = term.rhs();
+    _set = term.rhs(); 
     _headSort = AH::lhsSort(term);
     _resultSort = SortHelper::getResultSort(term.term());
     //cout << "the result sort is " + _resultSort.toString() << endl;
@@ -106,21 +106,21 @@ struct Choice::AxiomsIterator
       _choiceOps.remove(op);
       OperatorType* type = env.signature->getFunction(op)->fnType();
       
-      static RobSubstitution subst;
+      static RobSubstitutionTL subst;
       static TermStack typeArgs;
       typeArgs.reset();
       subst.reset();
 
       for(int i = type->numTypeArguments() -1; i >= 0; i--){
-        TermList typeArg = TermList((unsigned)i, false);
+        TermList typeArg = TermList((unsigned)i, VarBank::QUERY_BANK);
         typeArgs.push(typeArg);
       }
       Term* choiceOp = Term::create(op, typeArgs.size(), typeArgs.begin());
       TermList choiceOpSort = SortHelper::getResultSort(choiceOp);
-      if(subst.unify(choiceOpSort, 0, _headSort, 1)){
+      if(subst.unify(choiceOpSort, _headSort)){
         _nextChoiceOperator = TermList(choiceOp);
-        _opApplied = subst.apply(_nextChoiceOperator, 0);
-        _setApplied = subst.apply(_set, 1);
+        _opApplied = subst.apply(_nextChoiceOperator, VarBank::QUERY_BANK);
+        _setApplied = subst.apply(_set, DEFAULT_BANK);
         _inBetweenNextandHasNext = true;
         return true;
       }
@@ -176,14 +176,14 @@ struct Choice::IsChoiceTerm
     if(args.size() == 1){
       TermList headSort = AH::lhsSort(TermList(t));
 
-      TermList tv = TermList(0, false);
+      TermList tv = TermList(0, VarBank::QUERY_BANK); // put on QUERY_BANK to separate in from variables in headSort
       TermList o  = AtomicSort::boolSort();
       TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
    
-      static RobSubstitution subst;
+      static RobSubstitutionTL subst;
       subst.reset();
       return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
-             subst.match(sort,0,headSort,1));
+             subst.match(sort,headSort));
     }
     return false;
   }

@@ -17,6 +17,7 @@
 
 #include "Forwards.hpp"
 #include "Term.hpp"
+#include "TypedTermList.hpp"
 
 
 namespace Kernel {
@@ -51,7 +52,7 @@ public:
   Term* transform(Term* term);
   Literal* transform(Literal* lit);
   TermList transform(TermList ts);
-  
+
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   // Deliberately empty bodies. 
@@ -88,6 +89,22 @@ private:
   TermList _by;
 };
 
+class ToBank : public TermTransformer
+{
+public:
+  ToBank(VarBank bank) : _bank(bank) {}
+
+  Term*         toBank(Term* t){ return transform(t); }
+  Literal*      toBank(Literal* l){ return transform(l); }  
+  TypedTermList toBank(TypedTermList term);
+
+  TermList transformSubterm(TermList t) override;
+  bool exploreSubterms(TermList orig, TermList newTerm) override;
+private:
+  VarBank _bank;
+};
+
+
 /**
  * Has similar philosophy to TermTransformer, but:
  *  goes bottom up and so subterms of currently considered terms
@@ -110,7 +127,6 @@ protected:
   TermList transform(TermList ts);
   Formula* transform(Formula* f);
 };
-
 
 }
 

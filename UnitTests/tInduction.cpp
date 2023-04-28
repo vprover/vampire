@@ -176,7 +176,7 @@ private:
     return true;
   }
 
-  Kernel::RobSubstitution _subst;
+  Kernel::RobSubstitutionTS _subst;
   unordered_set<unsigned> _varsMatched;
   BacktrackData _btd;
 

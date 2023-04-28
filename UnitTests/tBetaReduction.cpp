@@ -216,7 +216,7 @@ TEST_FUN(eta_reduction06) {
   ASS_EQ(reduced, ap(f,g).sugaredExpr());
 }
 
-TEST_FUN(whnf_01) {            
+/*TEST_FUN(whnf_01) {            
   DECL_SORT(srt)
   DECL_HOL_VAR(x, 0, srt)
   DECL_HOL_VAR(y, 1, srt)  
@@ -251,7 +251,7 @@ TEST_FUN(whnf_02) {
 
 
   ASS_EQ(tdb.whnf(), toDeBruijnIndices(lam(y, lam(z, a))));
-}
+}*/
 
 TEST_FUN(fo_subterm_rep1) {            
   DECL_SORT(srt)

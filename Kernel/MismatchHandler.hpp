@@ -40,6 +40,8 @@ public:
 
   MismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
 
+  using UnificationConstraint = UnificationConstraint<TermList,VarBank>;
+
   struct EqualIf { 
     Recycled<Stack<UnificationConstraint>> _unify; 
     Recycled<Stack<UnificationConstraint>> _constr; 
@@ -94,9 +96,9 @@ public:
 
   /** TODO document */
   Option<AbstractionResult> tryAbstract(
-      RobSubstitution* rob,
-      TermSpec const& t1,
-      TermSpec const& t2) const;
+      RobSubstitutionTL* rob,
+      TermList const& t1,
+      TermList const& t2) const;
 
   auto mode() const { return _mode; }
 
@@ -109,8 +111,8 @@ private:
   // for old non-alasca uwa modes
   bool isInterpreted(unsigned f) const;
   bool canAbstract(
-      TermSpec const& t1,
-      TermSpec const& t2) const;
+      TermList const& t1,
+      TermList const& t2) const;
 };
 
 namespace UnificationAlgorithms {
@@ -120,19 +122,19 @@ class RobUnification {
 public:
 
   // to be used for tree calls
-  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub)
+  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
   {
     CALL("RobUnification::associate");
     TermList query(specialVar, /* special */ true);
-    return sub->unify(query, Indexing::QUERY_BANK, node, Indexing::NORM_RESULT_BANK);
+    return sub->unify(query, node);
   }
 
   // To be used for non-tree calls. Return an iterator instead of bool
   // to fit HOL interface
-  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false){
+  SubstIterator unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck = false){
     CALL("RobUnification::unifiers");
 
-    if(sub->unify(t1, index1, t2, index2)){
+    if(sub->unify(t1, t2)){
       return pvi(getSingletonIterator(sub));
     }
     return SubstIterator::getEmpty();
@@ -140,7 +142,7 @@ public:
 
   // function is called when in the leaf of a substitution tree 
   // during unification. t is the term stored in the leaf
-  SubstIterator postprocess(RobSubstitution* sub){
+  SubstIterator postprocess(RobSubstitutionTL* sub){
     CALL("RobUnification::postprocess");     
     
     // sub is a unifier of query and leaf term t, return it
@@ -159,18 +161,18 @@ public:
   AbstractingUnification(MismatchHandler uwa, bool fixedPointIter) : 
    _uwa(uwa), _fpi(fixedPointIter) {  }
 
-  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, RobSubstitution* sub);
-  bool unify(TermSpec l, TermSpec r, bool& progress, RobSubstitution* sub);
-  bool fixedPointIteration(RobSubstitution* sub);
-  SubstIterator unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck = false);
-  SubstIterator postprocess(RobSubstitution* sub);
+  bool unify(TermList t1, TermList t2, RobSubstitutionTL* sub);
+  bool unify(TermList l,  TermList r, bool& progress, RobSubstitutionTL* sub);
+  bool fixedPointIteration(RobSubstitutionTL* sub);
+  SubstIterator unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck = false);
+  SubstIterator postprocess(RobSubstitutionTL* sub);
 
-  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitution* sub)
+  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
   {
     CALL("AbstractingUnification::associate");
     
     TermList query(specialVar, /* special */ true);
-    return unify(query, Indexing::QUERY_BANK, node, Indexing::NORM_RESULT_BANK, sub);
+    return unify(query, node, sub);
   }
 
   bool usesUwa() const { return _uwa.mode() != Options::UnificationWithAbstraction::OFF; }

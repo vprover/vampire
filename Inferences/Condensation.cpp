@@ -74,19 +74,19 @@ Clause* Condensation::simplify(Clause* cl)
 
     newLits.ensure(newLen);
 
-    RobSubstitution subst0;
+    RobSubstitutionTL subst0;
     // For each unifying subst of l1 and l2
     // apply the subst to l1 and search for instances of this in the clause
     // (note that this is symmetric to applying subst to l2)
-    SubstIterator sit=subst0.unifiers(l1,0,l2,0,false);
+    SubstIterator sit=subst0.unifiers(l1,l2,false);
     while(sit.hasNext()) {
-      RobSubstitution* subst=sit.next();
+      RobSubstitutionTL* subst=sit.next();
       alts.init(newLen,0);
       bool success=false;
 
       unsigned next=0;
       {
-        Literal* lit=subst->apply(l1,0);
+        Literal* lit=subst->apply(l1, DEFAULT_BANK);
         newLits[next] = lit;
         // Use lit as a query to find instances of it in cmi (i.e. the clause)
         LiteralMiniIndex::InstanceIterator iit(cmi, lit, false);
@@ -105,7 +105,7 @@ Clause* Condensation::simplify(Clause* cl)
       // apply the subst and search for instances of the result as before
       for(unsigned i=0;i<clen;i++) {
         if(i!=l1Index && i!=l2Index) {
-          Literal* lit=subst->apply((*cl)[i],0);
+          Literal* lit=subst->apply((*cl)[i],DEFAULT_BANK);
           newLits[next] = lit;
           LiteralMiniIndex::InstanceIterator iit(cmi, lit, false);
           if(!iit.hasNext()) {

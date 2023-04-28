@@ -69,42 +69,47 @@ bool MismatchHandler::isInterpreted(unsigned functor) const
 
 class AcIter {
   unsigned _function;
-  Recycled<Stack<TermSpec>> _todo;
-  RobSubstitution const* _subs;
+  Recycled<TermStack> _todo;
+  RobSubstitutionTL const* _subs;
 public:
-  AcIter(unsigned function, TermSpec t, RobSubstitution const* subs) : _function(function), _todo(), _subs(subs) 
-  { _todo->push(std::move(t)); }
+  AcIter(unsigned function, TermList t, RobSubstitutionTL const* subs) : _function(function), _todo(), _subs(subs) 
+  { _todo->push(t); }
 
-  DECL_ELEMENT_TYPE(TermSpec);
+  DECL_ELEMENT_TYPE(TermList);
 
   bool hasNext() const { return !_todo->isEmpty(); }
 
-  TermSpec next() {
+  TermList next() {
     ASS(!_todo->isEmpty());
     auto t = _todo->pop();
-    auto* dt = &t.deref(_subs);
-    while (dt->isTerm() && dt->functor() == _function) {
-      ASS_EQ(dt->nTermArgs(), 2);
-      _todo->push(dt->termArg(1));
-      t = dt->termArg(0);
-      dt = &t.deref(_subs);
+    auto* dt = &_subs->derefBound(t);
+    while (dt->isTerm() && dt->term()->functor() == _function) {
+      ASS_EQ(dt->term()->arity(), 2);
+      _todo->push(dt->term()->termArg(1));
+      t = dt->term()->termArg(0);
+      dt = &_subs->derefBound(t);
     }
-    return dt->clone();
+    return *dt;
   }
 };
 
 // auto acIter(unsigned f, TermSpec t)
 // { return iterTraits(AcIter(f, t)); }
 
-bool MismatchHandler::canAbstract(TermSpec const& t1, TermSpec const& t2) const 
+bool MismatchHandler::canAbstract(TermList const& t1, TermList const& t2) const 
 {
-
+  
+  auto isNumeral = [](TermList t){
+    ASS(t.isTerm());
+    return env.signature->getFunction(t.term()->functor())->interpretedNumber();
+  };
+ 
   if(!(t1.isTerm() && t2.isTerm())) return false;
-  if(t1.isSort() || t2.isSort()) return false;
+  if(t1.term()->isSort() || t2.term()->isSort()) return false;
 
-  bool t1Interp = isInterpreted(t1.functor());
-  bool t2Interp = isInterpreted(t2.functor());
-  bool bothNumbers = t1.isNumeral() && t2.isNumeral();
+  bool t1Interp = isInterpreted(t1.term()->functor());
+  bool t2Interp = isInterpreted(t2.term()->functor());
+  bool bothNumbers = isNumeral(t1) && isNumeral(t2);
 
   switch(_mode) {
     case Shell::Options::UnificationWithAbstraction::INTERP_ONLY:
@@ -114,8 +119,8 @@ bool MismatchHandler::canAbstract(TermSpec const& t1, TermSpec const& t2) const
       break;
     case Shell::Options::UnificationWithAbstraction::CONSTANT:
       return !bothNumbers && (t2Interp || t2Interp)
-            && (t1Interp || t1.nTermArgs())
-            && (t2Interp || t2.nTermArgs());
+            && (t1Interp || t1.term()->numTermArguments())
+            && (t2Interp || t2.term()->numTermArguments());
     case Shell::Options::UnificationWithAbstraction::ALL:
     case Shell::Options::UnificationWithAbstraction::GROUND:
       return true;
@@ -128,7 +133,7 @@ bool MismatchHandler::canAbstract(TermSpec const& t1, TermSpec const& t2) const
   ASSERTION_VIOLATION;
 }
 
-Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubstitution* sub, TermSpec const& t1, TermSpec const& t2) const
+Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubstitutionTL* sub, TermList const& t1, TermList const& t2) const
 {
   CALL("MismatchHandler::checkUWA");
   using Uwa = Shell::Options::UnificationWithAbstraction;
@@ -137,36 +142,34 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubst
 
   // TODO add parameter instead of reading from options
   if (_mode == Uwa::AC1 || _mode == Uwa::AC2) {
-    if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
-     || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
+    if (!(t1.isTerm() && theory->isInterpretedFunction(t1.term()->functor(), IntTraits::addI))
+     || !(t2.isTerm() && theory->isInterpretedFunction(t2.term()->functor(), IntTraits::addI))) {
       return Option<AbstractionResult>();
     }
-    auto a1 = iterTraits(AcIter(IntTraits::addF(), t1.clone(), sub)).template collect<Stack>();
-    auto a2 = iterTraits(AcIter(IntTraits::addF(), t2.clone(), sub)).template collect<Stack>();
-    auto cmp = [&](TermSpec const& lhs, TermSpec const& rhs) { return TermSpec::compare(lhs, rhs, [&](auto& t) -> TermSpec const& { return t.deref(sub); }); };
-    auto less = [&](TermSpec const& lhs, TermSpec const& rhs) { return cmp(lhs, rhs) < 0; };
+    auto a1 = iterTraits(AcIter(IntTraits::addF(), t1, sub)).template collect<Stack>();
+    auto a2 = iterTraits(AcIter(IntTraits::addF(), t2, sub)).template collect<Stack>();
+    // TODO not sure that the below works as desired AYB
+    auto less = [&](TermList const& lhs, TermList const& rhs) { return lhs < rhs; };
     a1.sort(less);
     a2.sort(less);
-    // a1.sort();
-    // a2.sort();
 
-    Recycled<Stack<TermSpec>> diff1_;
-    Recycled<Stack<TermSpec>> diff2_;
+    Recycled<TermStack> diff1_;
+    Recycled<TermStack> diff2_;
     auto& diff1 = *diff1_;
     auto& diff2 = *diff2_;
-    diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
-    diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
+    diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2)).map([](auto& x) -> TermList { return x; }));
+    diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1)).map([](auto& x) -> TermList { return x; }));
     auto sum = [](auto& diff) {
         return arrayIter(diff)
-          .map([](auto& x) { return x.clone(); })
+          .map([](auto& x) { return x; })
           .fold([](auto l, auto r) 
-            { return TermSpec(IntTraits::addF(), std::move(l), std::move(r)); })
+            { return TermList(Term::create2(IntTraits::addF(), l, r)); }) //create non-shared? 
           .unwrap(); };
     auto diffConstr = [&]() 
     { return UnificationConstraint(sum(diff1), sum(diff2)); };
 
     auto functors = [](auto& diff) 
-    { return arrayIter(diff).map([](auto& f) { return f.functor(); }); };
+    { return arrayIter(diff).map([](auto& f) { return f.term()->functor(); }); };
 
     if (diff1.size() == 0 && diff2.size() == 0) {
       return some(AbstractionResult(EqualIf()));
@@ -176,10 +179,10 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubst
       return some(AbstractionResult(NeverEqual{}));
 
     } else if (_mode == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
-      return some(AbstractionResult(EqualIf().unify(UnificationConstraint(std::move(diff1[0]), sum(diff2)))));
+      return some(AbstractionResult(EqualIf().unify(UnificationConstraint(diff1[0], sum(diff2)))));
 
     } else if (_mode == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
-      return some(AbstractionResult(EqualIf().unify(UnificationConstraint(std::move(diff2[0]), sum(diff1)))));
+      return some(AbstractionResult(EqualIf().unify(UnificationConstraint(diff2[0], sum(diff1)))));
 
     } else if (concatIters(arrayIter(diff1), arrayIter(diff2)).any([](auto& x) { return x.isVar(); })) {
       return some(AbstractionResult(EqualIf().constr(diffConstr())));
@@ -195,7 +198,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubst
     auto abs = canAbstract(t1, t2);
     DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
-        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1.clone(), t2.clone())));
+        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2)));
     });
   }
 }
@@ -203,10 +206,10 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubst
 namespace UnificationAlgorithms {
 
 
-bool AbstractingUnification::fixedPointIteration(RobSubstitution* sub)
+bool AbstractingUnification::fixedPointIteration(RobSubstitutionTL* sub)
 {
   CALL("AbstractingUnification::fixedPointIteration");
-  Recycled<Stack<UnificationConstraint>> todo;
+  Recycled<Stack<UnificationConstraint<TermList,VarBank>>> todo;
   while (!sub->emptyConstraints()) { 
     todo->push(sub->popConstraint());
   }
@@ -216,7 +219,7 @@ bool AbstractingUnification::fixedPointIteration(RobSubstitution* sub)
     auto c = todo->pop();
     DEBUG_FINALIZE(2, "popped: ", c);
     bool progress;
-    auto res = unify(c.lhs().clone(), c.rhs().clone(), progress, sub);
+    auto res = unify(c.lhs(), c.rhs(), progress, sub);
     if (!res) {
       DEBUG_FINALIZE(1, "finalizing failed");
       return false;
@@ -232,15 +235,15 @@ bool AbstractingUnification::fixedPointIteration(RobSubstitution* sub)
   return true;
 }
 
-bool AbstractingUnification::unify(TermList term1, unsigned bank1, TermList term2, unsigned bank2, RobSubstitution* sub)
+bool AbstractingUnification::unify(TermList term1, TermList term2, RobSubstitutionTL* sub)
 {
   ASS(_uwa._mode != Shell::Options::UnificationWithAbstraction::OFF); 
 
   bool progress;
-  return unify(TermSpec(term1, bank1), TermSpec(term2, bank2), progress, sub);
+  return unify(term1, term2, progress, sub);
 }
 
-SubstIterator AbstractingUnification::unifiers(TermList t1, int index1, TermList t2, int index2, RobSubstitution* sub, bool topLevelCheck)
+SubstIterator AbstractingUnification::unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck)
 {
   CALL("AbstractingUnification::unifiers");
 
@@ -251,7 +254,7 @@ SubstIterator AbstractingUnification::unifiers(TermList t1, int index1, TermList
     return SubstIterator::getEmpty();
   }
 
-  bool unifies = unify(t1, index1, t2, index2, sub);
+  bool unifies = unify(t1, t2, sub);
 
   if(!unifies){
     return SubstIterator::getEmpty();
@@ -265,7 +268,7 @@ SubstIterator AbstractingUnification::unifiers(TermList t1, int index1, TermList
   return success ? pvi(getSingletonIterator(sub)) : SubstIterator::getEmpty();
 }
 
-SubstIterator AbstractingUnification::postprocess(RobSubstitution* sub)
+SubstIterator AbstractingUnification::postprocess(RobSubstitutionTL* sub)
 {
   CALL("AbstractingUnification::postprocess");
  
@@ -279,26 +282,26 @@ SubstIterator AbstractingUnification::postprocess(RobSubstitution* sub)
 
 
 #define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
-bool AbstractingUnification::unify(TermSpec t1, TermSpec t2, bool& progress, RobSubstitution* sub)
+bool AbstractingUnification::unify(TermList t1, TermList t2, bool& progress, RobSubstitutionTL* sub)
 {
   CALL("AbstractingUnification::unify");
   ASS_NEQ(_uwa._mode, Shell::Options::UnificationWithAbstraction::OFF) 
   DEBUG_UNIFY(1, ".unify(", t1, ",", t2, ")")
   progress = false;
 
-  if(t1 == t2) {
+  if(sub->sameTermContent(t1,t2)) {
     progress = true;
     return true;
   }
 
   auto impl = [&]() -> bool {
 
-    Recycled<Stack<UnificationConstraint>> toDo;
-    toDo->push(UnificationConstraint(t1.clone(), t2.clone()));
+    Recycled<Stack<UnificationConstraint<TermList,VarBank>>> toDo;
+    toDo->push(UnificationConstraint<TermList,VarBank>(t1, t2));
 
     // Save encountered unification pairs to avoid
     // recomputing their unification
-    Recycled<DHSet<UnificationConstraint>> encountered;
+    Recycled<DHSet<UnificationConstraint<TermList,VarBank>>> encountered;
 
     Option<MismatchHandler::AbstractionResult> absRes;
     auto doAbstract = [&](auto& l, auto& r) -> bool
@@ -322,27 +325,28 @@ bool AbstractingUnification::unify(TermSpec t1, TermSpec t2, bool& progress, Rob
         //   toDo.push(pair);
         // } else 
         if (!encountered->find(pair)) {
-          encountered->insert(pair.clone());
-          toDo->push(std::move(pair));
+          encountered->insert(pair);
+          toDo->push(pair);
         }
     };
 
 
     while (toDo->isNonEmpty()) {
       auto x = toDo->pop();
-      auto& dt1 = x.lhs().deref(sub);
-      auto& dt2 = x.rhs().deref(sub);
+      TermList dt1 = sub->derefBound(x.lhs());
+      TermList dt2 = sub->derefBound(x.rhs());
+
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
-      if (dt1 == dt2) {
+      if (sub->sameTermContent(dt1, dt2)) {
         progress = true;
 
-      } else if(dt1.isVar() && !sub->occurs(dt1.varSpec(), dt2)) {
+      } else if(dt1.isVar() && !sub->occurs(dt1, dt2)) {
         progress = true;
-        sub->bind(dt1.varSpec(), dt2.clone());
+        sub->bind(dt1, dt2);
 
-      } else if(dt2.isVar() && !sub->occurs(dt2.varSpec(), dt1)) {
+      } else if(dt2.isVar() && !sub->occurs(dt2, dt1)) {
         progress = true;
-        sub->bind(dt2.varSpec(), dt1.clone());
+        sub->bind(dt2, dt1);
 
       } else if(doAbstract(dt1, dt2)) {
 
@@ -353,7 +357,7 @@ bool AbstractingUnification::unify(TermSpec t1, TermSpec t2, bool& progress, Rob
         } else {
           ASS(absRes->is<MismatchHandler::EqualIf>())
           auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
-          auto eq = [](UnificationConstraint& c, TermSpec const& lhs, TermSpec const& rhs) 
+          auto eq = [](UnificationConstraint<TermList,VarBank>& c, TermList const& lhs, TermList const& rhs) 
           { 
             return (c.lhs() == lhs && c.rhs() == rhs) 
                 || (c.lhs() == rhs && c.rhs() == lhs); };
@@ -372,10 +376,10 @@ bool AbstractingUnification::unify(TermSpec t1, TermSpec t2, bool& progress, Rob
           }
         }
 
-      } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor()) {
+      } else if(dt1.isTerm() && dt2.isTerm() && dt1.term()->functor() == dt2.term()->functor()) {
         
-        for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
-          pushTodo(UnificationConstraint(std::move(c.first), std::move(c.second)));
+        for (unsigned i = 0; i < dt1.term()->arity(); i++) {
+          pushTodo(UnificationConstraint<TermList,VarBank>(dt1.nthArg(i), dt2.nthArg(i)));
         }
 
       } else {

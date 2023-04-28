@@ -96,9 +96,13 @@ class Problem;
 class Renaming;
 class Substitution;
 
-class RobSubstitution;
-typedef VirtualIterator<RobSubstitution*> SubstIterator;
-typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
+class RobSubstitutionTL;
+typedef VirtualIterator<RobSubstitutionTL*> SubstIterator;
+typedef Lib::SmartPtr<RobSubstitutionTL> RobSubstitutionSP;
+
+class RobSubstitutionTS;
+typedef VirtualIterator<RobSubstitutionTS*> SubstIteratorTS;
+typedef Lib::SmartPtr<RobSubstitutionTS> RobSubstitutionTSSP;
 
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
@@ -136,10 +140,6 @@ enum SymbolType{FUNC, PRED, TYPE_CON};
 namespace Indexing
 {
 
-// TODO where should these go?
-static constexpr int QUERY_BANK=0;
-static constexpr int RESULT_BANK=1;
-static constexpr int NORM_RESULT_BANK=3;
 
 class Index;
 class IndexManager;

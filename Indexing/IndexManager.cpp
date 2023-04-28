@@ -151,10 +151,10 @@ Index* IndexManager::create(IndexType t)
     break;
 #endif  
 
-   case ACYCLICITY_INDEX:
-    res = new AcyclicityIndex(new TermSubstitutionTree(/* extra */ false));
+  case ACYCLICITY_INDEX:
+    res = new AcyclicityIndex(new TermSubstitutionTree( false));
     isGenerating = true;
-    break; 
+    break;
     
   case DEMODULATION_SUBTERM_SUBST_TREE: {
     auto tis=new TermSubstitutionTree(/* extra */ false);

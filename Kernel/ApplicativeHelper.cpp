@@ -58,25 +58,39 @@ bool BetaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
   return false;
 }
 
-TermList WHNF::normalise(TermList t)
+TermList WHNFDeref::normalise(TermList t)
 {
-  CALL("WHNF::normalise");
+  CALL("WHNFDeref::normalise");
 
   // term transformer does not work at the top level...
   t = transformSubterm(t);
   return t.isLambdaTerm() ? transform(t) : t;
 }
 
-TermList WHNF::transformSubterm(TermList t)
+TermList WHNFDeref::transformSubterm(TermList t)
 {
-  CALL("WHNF::transformSubterm");
+  CALL("WHNFDeref::transformSubterm");
 
-  return BetaNormaliser().transformSubterm(t);
+  if(t.isLambdaTerm()) return t;
+
+  TermList head;
+  TermStack args;
+  ApplicativeHelper::getHeadAndArgs(t, head, args);
+  head = _sub->derefBound(head);
+
+  while(ApplicativeHelper::canHeadReduce(head, args)){
+    t = RedexReducer().reduce(head, args);
+    if(t.isLambdaTerm()) break;
+    ApplicativeHelper::getHeadAndArgs(t, head, args);    
+    head = _sub->derefBound(head);
+  }
+  
+  return t;
 }
 
-bool WHNF::exploreSubterms(TermList orig, TermList newTerm)
+bool WHNFDeref::exploreSubterms(TermList orig, TermList newTerm)
 {
-  CALL("WHNF::exploreSubterms");
+  CALL("WHNFDeref::exploreSubterms");
 
   return newTerm.isLambdaTerm() && newTerm.term()->hasRedex();
 }

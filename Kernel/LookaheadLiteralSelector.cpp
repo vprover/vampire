@@ -112,8 +112,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     {
       bool haveEqRes=false;
       if(lit->isNegative() && lit->isEquality()) {
-	RobSubstitution rs;
-	if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0)) {
+	RobSubstitutionTL rs;
+	if(rs.unify(*lit->nthArgument(0), *lit->nthArgument(1))) {
 	  haveEqRes=true;
 	  nextIt=pvi( dropElementType(getSingletonIterator(0)) );
 	}
