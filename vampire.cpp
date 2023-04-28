@@ -36,9 +36,6 @@
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
 
-#include "Lib/RCPtr.hpp"
-
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -50,8 +47,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-
-//#include "InstGen/IGAlgorithm.hpp"
 
 #include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"
@@ -509,33 +504,41 @@ void spiderMode()
       reportSpiderStatus('+');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
+      
     case Statistics::TIME_LIMIT:
       reportSpiderStatus('t');
+      break;
+      
     case Statistics::MEMORY_LIMIT:
       reportSpiderStatus('m');
+      break;
+      
     case Statistics::UNKNOWN:
     case Statistics::INAPPROPRIATE:
       reportSpiderStatus('u');
+      break;
+      
     case Statistics::REFUTATION_NOT_FOUND:
-      if(env.statistics->discardedNonRedundantClauses>0){
+      if(env.statistics->discardedNonRedundantClauses > 0){
         reportSpiderStatus('n');
       }
       else{
         reportSpiderStatus('i');
       }
       break;
+      
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
+      
     default:
       ASSERTION_VIOLATION;
     }
-    // env.statistics->print(env.out());
   } else {
 #if VZ3
-    if(z3_exception){
-      if(strcmp(z3_exception->msg(),"out of memory\n")){
+    if (z3_exception){
+      if (strcmp(z3_exception->msg(),"out of memory\n")){
         reportSpiderStatus('m');
       }
       else{ reportSpiderFail(); }

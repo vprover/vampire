@@ -99,7 +99,7 @@ private:
   Splitter& _parent;
 
   bool _solverIsSMT;
-  SATSolverSCP _solver;
+  ScopedPtr<SATSolver> _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
   ScopedPtr<SimpleCongruenceClosure> _dpModel;
@@ -138,7 +138,7 @@ private:
     ReductionRecord(Clause* clause) : clause(clause), 
         timestamp(clause->getReductionTimestamp()) {}
     Clause* clause;
-    unsigned timestamp;    
+    unsigned timestamp;
   };
 
 /**
@@ -153,7 +153,7 @@ private:
  * active - component currently true in the model
  *
  * Comment by Giles
- */   
+ */
   struct SplitRecord
   {
     SplitRecord(Clause* comp)
@@ -214,8 +214,9 @@ public:
   SAT2FO& satNaming() { return _sat2fo; }
 
   UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
-  static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
+  static bool getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle = false);
   Clause* reintroduceAvatarAssertions(Clause* cl);
+
 private:
   friend class SplittingBranchSelector;
   
@@ -254,6 +255,7 @@ private:
   float _flushQuotient;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
   Options::SplittingCongruenceClosure _congruenceClosure;
+  bool _shuffleComponents;
 #if VZ3
   bool hasSMTSolver;
 #endif

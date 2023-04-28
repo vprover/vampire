@@ -955,7 +955,8 @@ public:
    * Return the hash function of the top-level of a literal.
    * @since 30/03/2008 Flight Murcia-Manchester
    */
-  unsigned hash(bool flip = false) const
+  template<bool flip = false>
+  unsigned hash() const
   {
     CALL("Literal::hash");
     bool positive = (flip ^ isPositive());

@@ -225,13 +225,6 @@ void Problem::addTrivialPredicate(unsigned pred, bool assignment)
   ALWAYS(_trivialPredicates.insert(pred, assignment));
 }
 
-void Problem::addBDDVarMeaning(unsigned var, BDDMeaningSpec spec) {
-  CALL("Problem::addBDDVarMeaning");
-  ASS(!spec.first || spec.first->ground());
-
-  ALWAYS(_bddVarSpecs.insert(var, spec));
-}
-
 /**
  * Register a function that has been eliminated from the problem
  *

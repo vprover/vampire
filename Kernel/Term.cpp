@@ -148,7 +148,7 @@ VList* TermList::freeVariables() const
   VList* result = VList::empty();
   VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push(fvi.next());
+    stack.pushBack(fvi.next());
   }
   return result;
 } // TermList::freeVariables
@@ -639,7 +639,12 @@ vstring Term::headToString() const
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
     } else if (isSort()) {
-      name = static_cast<const AtomicSort *>(this)->typeConName();
+      const AtomicSort* asSort = static_cast<const AtomicSort *>(this);
+      if(env.options->showFOOL() && asSort->isBoolSort()){
+        name = "$bool";
+      } else {
+        name = asSort->typeConName();
+      }
     } else {
       name = functionName();
     }
@@ -1413,7 +1418,7 @@ VList* Term::freeVariables() const
   VList* result = VList::empty();
   VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push(fvi.next());
+    stack.pushBack(fvi.next());
   }
   return result;
 } // Term::freeVariables

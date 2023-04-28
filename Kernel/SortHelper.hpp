@@ -91,8 +91,7 @@ public:
   static bool areSortsValid(Term* t);
   static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
 private:
-  // It is important this function is private, because it only works in cooperation with tryGetVariableSort(unsigned var, Formula* f, unsigned& res);
-  static bool tryGetVariableSort(TermList var, Term* t, TermList& result);
+  static bool tryGetVariableSortTerm(TermList var, Term* t, TermList& result, bool recurseToSubformulas);
 };
 
 }

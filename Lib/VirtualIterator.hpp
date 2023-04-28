@@ -130,8 +130,7 @@ class VirtualIterator {
 public:
   CLASS_NAME(VirtualIterator);
   USE_ALLOCATOR(VirtualIterator);
-  DECLARE_PLACEMENT_NEW;
-  
+
   DECL_ELEMENT_TYPE(T);
 
   /** Return an empty iterator */

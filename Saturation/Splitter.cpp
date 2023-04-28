@@ -36,6 +36,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "SAT/SATInference.hpp"
 #include "SAT/MinimizingSolver.hpp"
@@ -704,6 +705,8 @@ void Splitter::init(SaturationAlgorithm* sa)
   _flushQuotient = opts.splittingFlushQuotient();
   _flushThreshold = sa->getGeneratedClauseCount() + _flushPeriod;
   _congruenceClosure = opts.splittingCongruenceClosure();
+  _shuffleComponents = opts.randomTraversals();
+
 #if VZ3
   hasSMTSolver = (opts.satSolver() == Options::SatSolver::Z3);
 #endif
@@ -1056,7 +1059,7 @@ vstring Splitter::splitsToString(SplitSet* splits)
  *
  * Comment by Giles. 
  */
-bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
+bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 {
   CALL("Splitter::getComponents");
   ASS_EQ(acc.size(), 0);
@@ -1080,7 +1083,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     while(vit.hasNext()) {
       unsigned master=varMasters.findOrInsert(vit.next().var(), i);
       if(master!=i) {
-  components.doUnion(master, i);
+        components.doUnion(master, i);
       }
     }
   }
@@ -1110,6 +1113,9 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc)
     }
   }
   ASS_EQ(acc.size(),compCnt);
+  if (shuffle) {
+    Shuffling::shuffleArray(acc.begin(),compCnt);
+  }
   return true;
 }
 
@@ -1157,7 +1163,7 @@ bool Splitter::doSplitting(Clause* cl)
   static Stack<LiteralStack> comps;
   comps.reset();
   // fills comps with components, returning if not splittable
-  if(!getComponents(cl, comps)) {
+  if(!getComponents(cl, comps, _shuffleComponents)) {
     return handleNonSplittable(cl);
   }
 

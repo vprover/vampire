@@ -111,8 +111,8 @@ public:
 
 private:
 
-  SATSolverSCP _inner;
-  SATSolverSCP _fallback;
+  ScopedPtr<SATSolver> _inner;
+  ScopedPtr<SATSolver> _fallback;
 
   bool _usingFallback;
 

@@ -161,7 +161,7 @@ Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
  *
  * The age of @c c is used, however the selected literals are not kept.
  *
- * BDDs and splitting history from @c c is also copied into the new clause.
+ * Splitting history from @c c is also copied into the new clause.
  */
 Clause* Clause::fromClause(Clause* c)
 {

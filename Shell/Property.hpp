@@ -127,9 +127,9 @@ public:
   static const uint64_t PR_REAL_LINEAR = 268435456ul; // 2^28
   /** Uses integer non-linear functions $product,$quotient,$remainder */
   static const uint64_t PR_INTEGER_NONLINEAR = 536870912ul; // 2^29
-  /** Uses integer non-linear functions $product,$quotient,$remainder */
+  /** Uses rational non-linear functions $product,$quotient,$remainder */
   static const uint64_t PR_RAT_NONLINEAR = 1073741824ul; // 2^30
-  /** Uses integer non-linear functions $product,$quotient,$remainder */
+  /** Uses real non-linear functions $product,$quotient,$remainder */
   static const uint64_t PR_REAL_NONLINEAR = 2147483648ul; // 2^31
   /** Uses number conversion functions $floor, $ceiling, $truncate, $round, $is_int, $is_rat, $to_int, $to_int, $to_rat, $to_real */
   static const uint64_t PR_NUMBER_CONVERSION = 4294967296ul; // 2^32
@@ -149,7 +149,7 @@ public:
   static const uint64_t PR_HAS_LET_IN = 549755813888ul; // 2^39
   /* has data type constructors */
   static const uint64_t PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
-  /* has co-algrebaic data type constructors */
+  /* has co-algebraic data type constructors */
   static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
 
  public:
