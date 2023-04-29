@@ -565,28 +565,39 @@ auto greturn(T t)  -> GuardedResult<T>
 }
 
 
+template<class T>
+class Slice {
+  T* _cont;
+  unsigned _size;
+public:
+  Slice(T* cont, unsigned size) : _cont(cont), _size(size) {}
+  auto asTuple() const -> decltype(auto)
+  { return std::tie(_cont, _size); }
+
+  auto size() const { return _size; }
+  T      & operator[](unsigned idx)       { ASS(idx < _size); return _cont[idx]; }
+  T const& operator[](unsigned idx) const { ASS(idx < _size); return _cont[idx]; }
+  auto indices() const { return range(0, size()); }
+};
+template<class T>
+Slice<T> slice(T* cont, unsigned size) { return Slice<T>(cont, size); }
+
 // : (GuardedResult a -> b) -> (GuardedResult a -> GuardedResult b)
 
 // flipGuarded: GuardedResult(Arg*) -> (GuardedResult Arg)*
 template<class T>
-auto flipGuarded(GuardedResult<T>* ts, unsigned cnt) -> GuardedResult<RStack<T>> {
+auto flipGuarded(Slice<GuardedResult<T>> orig) -> GuardedResult<RStack<T>> {
   // using Result = std::result_of_t<CreateTerm(unsigned, Arg*)>;
   GuardedResult<RStack<T>> out;
 
   Recycled<Stack<unsigned>> guardSelections;
-  guardSelections->loadFromIterator(range(0, cnt).map([](auto) { return 0; }));
-
-  // auto createTermFromIter = [&](auto iter) {
-  //   Recycled<Stack<ELEMENT_TYPE(decltype(iter))>> args;
-  //   args->loadFromIterator(iter);
-  //   return createTerm(cnt, args->begin());
-  // };
+  guardSelections->loadFromIterator(range(0, orig.size()).map([](auto) { return 0; }));
 
   auto incr = [&]() {
     unsigned i = 0;
     while (i < guardSelections->size()) {
       (*guardSelections)[i]++;
-      if ((*guardSelections)[i] >= ts[i]->size()) {
+      if ((*guardSelections)[i] >= orig[i]->size()) {
         (*guardSelections)[i] = 0;
         i++;
       } else {
@@ -598,16 +609,16 @@ auto flipGuarded(GuardedResult<T>* ts, unsigned cnt) -> GuardedResult<RStack<T>>
 
   do {
     auto chosen_arg_version = [&](auto arg_idx) -> pair<T, Guards>& {
-      auto& arg = *ts[arg_idx];
+      auto& arg = *orig[arg_idx];
       auto chosen_version_idx = (*guardSelections)[arg_idx];
       return arg[chosen_version_idx];
     };
     RStack<T> ts;
     ts->loadFromIterator(
-            range(0, cnt)
+            range(0, orig.size())
               .map([&](unsigned i) { return chosen_arg_version(i).first; }));
     Guards guards;
-    guards->loadFromIterator(range(0, cnt)
+    guards->loadFromIterator(range(0, orig.size())
               .flatMap([&](unsigned i) { return chosen_arg_version(i).second->iter(); }));
     out->push(make_pair(std::move(ts), std::move(guards)));
   } while (incr());
@@ -971,7 +982,7 @@ void InequalityNormalizer::realization(Problem& p)
         } else {
           auto f = orig.term()->functor();
           auto arity = orig.term()->arity();
-          GuardedResult<RStack<TermList>> args = flipGuarded(evalArgs, arity);
+          GuardedResult<RStack<TermList>> args = flipGuarded(slice(evalArgs, arity));
           // *itp: TermList* -> GuardedResult (TermList*)
           // gflatmap(*itp): GuardedResult(TermList*) -> GuardedResult (TermList*)
           auto itp = translateInterpretedFunction_(f);
