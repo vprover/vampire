@@ -34,8 +34,18 @@ using Inferences::PolynomialEvaluation;
 template<class T>
 using RStack = Recycled<Stack<T>>;
 
+template<class T, class... Ts>
+RStack<T> rStack(T v, Ts... vs) {
+  RStack<T> out;
+  out->pushMany(std::move(v), std::move(vs)...);
+  return out;
+}
+
 // number type to which integers are being translated to
 using R = RealTraits;
+
+std::ostream& operator<<(std::ostream& out, Literal* lit) 
+{ return out << *lit; }
 
 bool isInequality(LascaPredicate const& self) 
 {
@@ -234,49 +244,6 @@ Option<MaybeOverflow<AnyLascaLiteral>> InequalityNormalizer::renormalize(Literal
     || Option<MaybeOverflow<Out>>();
 }
 
-// Stack<std::pair<Literal*, unsigned>> LascaState::selectedLiteralsWithIdx(Clause* cl, bool strictlyMax)
-// {
-//   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
-//     .map([=](auto i) 
-//         { return make_pair((*cl)[i], i); })
-//     .template collect<Stack>();
-// }
-//
-//
-// Stack<Literal*> LascaState::selectedLiterals(Clause* cl, bool strictlyMax)
-// {
-//   // TODO use strictly max
-//   return iterTraits(cl->getSelectedLiteralIterator()).template collect<Stack>();
-// }
-//
-//
-// Stack<std::pair<Literal*, unsigned>> LascaState::maxLiteralsWithIdx(Clause* cl, bool strictlyMax)
-// {
-//   return maxElements([&](unsigned i) { return make_pair((*cl)[i], i); }, 
-//                      cl->size(),
-//                      [&](auto l, auto r) { return ordering->compare(l.first, r.first); },
-//                      strictlyMax);
-// }
-//
-//
-// Stack<Literal*> LascaState::maxLiterals(Clause* cl, bool strictlyMax)
-// {
-//   return maxElements([&](auto i) { return (*cl)[i]; }, 
-//                      cl->size(),
-//                      [&](auto l, auto r) { return ordering->compare(l, r); },
-//                      strictlyMax);
-// }
-//
-//
-// Stack<Literal*> LascaState::maxLiterals(Stack<Literal*> cl, bool strictlyMax)
-// {
-//   return maxElements([&](auto i) { return cl[i]; }, 
-//                      cl.size(),
-//                      [&](auto l, auto r) { return ordering->compare(l, r); },
-//                      strictlyMax);
-// }
-
-
 Option<AnyLascaLiteral> LascaState::renormalize(Literal* lit)
 {
   return this->normalizer.renormalize(lit)
@@ -337,165 +304,46 @@ SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, LascaState& sh
 
 std::shared_ptr<LascaState> LascaState::globalState = nullptr;
 
-Option<std::function<TermList(TermList*)>> translateInterpretedFunction(unsigned f) {
-  auto fn = [](auto x) { return some(std::function<TermList(TermList*)>(std::move(x))); };
-
-  auto sym = env.signature->getFunction(f);
-  if(sym->integerConstant()) {
-    return fn([sym](auto x) { return R::constantTl(typename R::ConstantType(sym->integerValue(), IntegerConstantType(1))); });
-  }
-
-  if(!theory->isInterpretedFunction(f))
-    return {};
-
-
-  auto remainder = [](auto quotient)
-  { return [quotient](TermList* ts) { return R::add(ts[0], R::minus(R::mul(ts[1], quotient(ts)))); }; };
-
-  auto quotientF = [](TermList* ts) { return R::toInt(R::div(ts[0], ts[1])); };
-  auto quotientE = [=](TermList* ts) { 
-    return TermList(Term::createITE(new AtomicFormula(R::greater(true, ts[1], R::zero())),
-          quotientF(ts),
-          R::minus(R::toInt(R::minus(R::div(ts[0], ts[1])))),
-          R::sort()));
-  };
-
-  switch(theory->interpretFunction(f)) {
-    case Interpretation::EQUAL: 
-
-    case Interpretation::INT_IS_INT: 
-    case Interpretation::INT_IS_RAT: 
-    case Interpretation::INT_IS_REAL: 
-    case Interpretation::INT_GREATER: 
-    case Interpretation::INT_GREATER_EQUAL: 
-    case Interpretation::INT_LESS: 
-    case Interpretation::INT_LESS_EQUAL: 
-    case Interpretation::INT_DIVIDES: 
-    case Interpretation::RAT_IS_INT:
-    case Interpretation::RAT_IS_RAT:
-    case Interpretation::RAT_IS_REAL:
-    case Interpretation::RAT_GREATER:
-    case Interpretation::RAT_GREATER_EQUAL:
-    case Interpretation::RAT_LESS:
-    case Interpretation::RAT_LESS_EQUAL:
-    case Interpretation::REAL_IS_INT:
-    case Interpretation::REAL_IS_RAT:
-    case Interpretation::REAL_IS_REAL:
-    case Interpretation::REAL_GREATER:
-    case Interpretation::REAL_GREATER_EQUAL:
-    case Interpretation::REAL_LESS:
-    case Interpretation::REAL_LESS_EQUAL:
-      ASSERTION_VIOLATION_REP("Not a function interpretation")
-
-      //numeric functions
-
-    case Interpretation::INT_SUCCESSOR:   return fn([](TermList* ts) { return R::add(ts[0], R::one()); });
-    case Interpretation::INT_UNARY_MINUS: return fn([](TermList* ts) { return R::minus(ts[0]); });
-    case Interpretation::INT_PLUS:        return fn([](TermList* ts) { return R::add(ts[0], ts[1]); });
-    case Interpretation::INT_MINUS:       return fn([](TermList* ts) { return R::add(ts[0], R::minus(ts[1])); });
-    case Interpretation::INT_MULTIPLY:    return fn([](TermList* ts) { return R::mul(ts[0], ts[1]); });
-
-    case Interpretation::INT_CEILING:
-    case Interpretation::INT_TRUNCATE:
-    case Interpretation::INT_ROUND: 
-                                          // TODO check differenc between RAT_TO_INT and RAT_FLOOR
-    case Interpretation::INT_TO_INT:
-    case Interpretation::INT_FLOOR:       return fn([](auto ts) { return ts[0]; });
-
-    case Interpretation::INT_QUOTIENT_F:  return fn(quotientF);
-    case Interpretation::INT_REMAINDER_F: return fn(remainder(quotientF));
-
-    case Interpretation::INT_QUOTIENT_E:  return fn(quotientE);
-    case Interpretation::INT_REMAINDER_E: return fn(remainder(quotientE));
-
-    case Interpretation::INT_QUOTIENT_T:
-    case Interpretation::INT_REMAINDER_T:
-    case Interpretation::INT_ABS:
-        ASSERTION_VIOLATION_REP("TODO: look up the semantics of this and implement a translation")
-        return {};
-
-    case Interpretation::RAT_UNARY_MINUS:
-    case Interpretation::RAT_PLUS:
-    case Interpretation::RAT_MINUS:
-    case Interpretation::RAT_MULTIPLY:
-    case Interpretation::RAT_QUOTIENT:
-    case Interpretation::RAT_QUOTIENT_E:
-    case Interpretation::RAT_QUOTIENT_T:
-    case Interpretation::RAT_QUOTIENT_F:
-    case Interpretation::RAT_REMAINDER_E:
-    case Interpretation::RAT_REMAINDER_T:
-    case Interpretation::RAT_REMAINDER_F:
-    case Interpretation::RAT_FLOOR:
-    case Interpretation::RAT_ROUND:
-    case Interpretation::REAL_UNARY_MINUS:
-    case Interpretation::REAL_PLUS:
-    case Interpretation::REAL_MINUS:
-    case Interpretation::REAL_MULTIPLY:
-    case Interpretation::REAL_QUOTIENT:
-    case Interpretation::REAL_QUOTIENT_E:
-    case Interpretation::REAL_QUOTIENT_T:
-    case Interpretation::REAL_QUOTIENT_F:
-    case Interpretation::REAL_REMAINDER_E:
-    case Interpretation::REAL_REMAINDER_T:
-    case Interpretation::REAL_REMAINDER_F:
-    case Interpretation::REAL_FLOOR:
-    case Interpretation::REAL_ROUND:
-    case Interpretation::RAT_TO_INT:
-    case Interpretation::RAT_TO_RAT:
-    case Interpretation::RAT_TO_REAL:
-    case Interpretation::REAL_TO_INT:
-    case Interpretation::REAL_TO_RAT:
-    case Interpretation::REAL_TO_REAL:
-        return {}; // rat and real functions
-
-    case Interpretation::INT_TO_RAT:
-    case Interpretation::INT_TO_REAL:
-        ASSERTION_VIOLATION_REP("TODO implement. needs to be guarded to be sound i think")
-        return {}; // rat and real functions
-
-      // array functions
-    case Interpretation::ARRAY_SELECT: 
-    // {
-    //     auto ty = env.signature->getFunction(f)->fnType();
-    //     if (ty->result() == IntTraits::sort() || ty->arg(1) == IntTraits::sort()) {
-    //
-    //     }
-    // }
-    case Interpretation::ARRAY_STORE:
-        ASSERTION_VIOLATION_REP("TODO integrate with arrays")
-        return {};
-
-    case Interpretation::INVALID_INTERPRETATION:
-    case Interpretation::ARRAY_BOOL_SELECT:
-        ASSERTION_VIOLATION_REP("not a function interpretation")
-        return {};
-
-    case Interpretation::REAL_TRUNCATE:
-    case Interpretation::RAT_TRUNCATE:
-        ASSERTION_VIOLATION_REP("TODO: translated to ite + floor")
-        return {};
-    case Interpretation::REAL_CEILING:
-    case Interpretation::RAT_CEILING:
-        ASSERTION_VIOLATION_REP("TODO: this should translate to -floor(-x)")
-        return {};
-    }
-}
-
 using Guards = Recycled<Stack<Literal*>>;
+
+template<class... Gs>
+auto guards(Gs... gs) { return rStack(std::move(gs)...); }
+
 template<class T> 
-using GuardedResult = Recycled<Stack<pair<T, Guards>>>;
+struct GuardedOption {
+  T value;
+  Guards guards;
+ 
+  friend std::ostream& operator<<(std::ostream& out, GuardedOption const& self)
+  { return out << self.value 
+               << " guard(" << outputInterleaved(" | ", 
+                     arrayIter(*self.guards).map([](auto g) -> Literal& { return *g; })) 
+               << ")"; }
+};
+
+template<class U>
+GuardedOption<U> guardedOption(U value, Guards guards) 
+{ return {std::move(value), std::move(guards)}; }
+
+
+template<class T> 
+struct GuardedOptions {
+  RStack<GuardedOption<T>> opts;
+
+  friend std::ostream& operator<<(std::ostream& out, GuardedOptions const& self)
+  { return out << outputInterleaved(" & ", self.opts->iter()); }
+};
+
+template<class T, class... Ts> 
+GuardedOptions<T> guardedOptions(GuardedOption<T> t, GuardedOption<Ts>... ts) 
+{ return GuardedOptions<T> { .opts = rStack(std::move(t), std::move(ts)...)}; }
 
 template<class T>
 struct _Unwrap;
 
-// template<template<class> class Cons, class T> 
-// struct _Unwrap<Cons<T>> {
-//   using type = T;
-// };
-
 
 template<class T> 
-struct _Unwrap<GuardedResult<T>> {
+struct _Unwrap<GuardedOptions<T>> {
   using type = T;
 };
 
@@ -508,14 +356,14 @@ struct _Unwrap<GuardedResult<T>> {
 template<class T> 
 using Unwrap = typename _Unwrap<T>::type;
 
-// gmap: (a -> b) -> GuardedResult a -> GuardedResult b
+// gmap: (a -> b) -> GuardedOptions a -> GuardedOptions b
 template<class F>
 auto gmap(F f) 
 {
    return [f = std::move(f)](auto arg) { 
-     GuardedResult<std::result_of_t<F(Unwrap<decltype(arg)>)>> out;
-     for (auto& x : *arg) {
-       out->push(make_pair(f(std::move(x.first)), std::move(x.second)));
+     GuardedOptions<std::result_of_t<F(Unwrap<decltype(arg)>)>> out;
+     for (auto& x : *arg.opts) {
+       out.opts->push(guardedOption(f(std::move(x.value)), std::move(x.guards)));
      }
      return out; 
    };
@@ -525,42 +373,52 @@ template<class T>
 T clone(T const& orig)
 { return T(orig); }
 
+
+// template<class T> 
+// T clone(T& orig)
+// { 
+//   T const& _orig = orig;
+//   return clone(_orig); 
+// }
+
+template<class T> 
+T* clone(T* const& orig)
+{ return orig; }
+
 template<class T> 
 RStack<T> clone(RStack<T> const& orig)
 {
   RStack<T> out;
-  out->loadFromIterator(iterTraits(orig->iter()).map(clone));
+  out->loadFromIterator(arrayIter(*orig).map([](T const& x) -> T { return clone(x); }));
   return out;
 }
 
-// gflatten: GuardedResult (GuardedResult a) -> GuardedResult a
+// gflatten: GuardedOptions (GuardedOptions a) -> GuardedOptions a
 template<class T>
-auto gflatten(GuardedResult<GuardedResult<T>> opts_of_opts) 
+auto gflatten(GuardedOptions<GuardedOptions<T>> in) 
 {
-  GuardedResult<T> out;
-  for (auto& opts : *opts_of_opts) {
-    auto& guards = opts.second;
-    for (auto& opt : *opts.first) {
-      auto gs = std::move(opts.second);
-      gs->loadFromIterator(guards->iter());
-      // decltype(opt.first) opt_copy;
-      // opt_copy->loadFromIterator(iterTraits(opt.first->iterFifo()));
-      out->push(make_pair(clone(opt.first), std::move(gs)));
+  GuardedOptions<T> out;
+  for (auto& opts : *in.opts) {
+    auto& outerGuards = opts.guards;
+    for (auto& opt : *opts.value.opts) {
+      auto gs = clone(outerGuards);
+      gs->loadFromIterator(opt.guards->iter());
+      out.opts->push(guardedOption(clone(opt.value), std::move(gs)));
     }
   }
   return out;
 }
-// gflatmap: (a -> GuardedResult b) -> GuardedResult a -> GuardedResult b
+// gflatmap: (a -> GuardedOptions b) -> GuardedOptions a -> GuardedOptions b
 template<class F>
 auto gflatmap(F f) 
 { return [f = std::move(f)](auto arg) { return gflatten(gmap(f)(std::move(arg))); }; }
 
-// greturn: a -> GuardedResult a
+// greturn: a -> GuardedOptions a
 template<class T>
-auto greturn(T t)  -> GuardedResult<T>
+auto greturn(T t)  -> GuardedOptions<T>
 { 
-  GuardedResult<T> out;
-  out->push(make_pair(std::move(t), Guards()));
+  GuardedOptions<T> out;
+  out.opts->push(guardedOption(std::move(t), Guards()));
   return out; 
 }
 
@@ -575,20 +433,28 @@ public:
   { return std::tie(_cont, _size); }
 
   auto size() const { return _size; }
+
   T      & operator[](unsigned idx)       { ASS(idx < _size); return _cont[idx]; }
   T const& operator[](unsigned idx) const { ASS(idx < _size); return _cont[idx]; }
+
   auto indices() const { return range(0, size()); }
+
+  auto iter() const { return indices().map([&](auto i) -> decltype(auto) { return (*this)[i]; }); }
+  auto iter()       { return indices().map([&](auto i) -> decltype(auto) { return (*this)[i]; }); }
+
+  friend std::ostream& operator<<(std::ostream& out, Slice const& self)
+  { return out << "[ " << outputInterleaved(", ", self.iter()) << " ]"; }
 };
 template<class T>
 Slice<T> slice(T* cont, unsigned size) { return Slice<T>(cont, size); }
 
-// : (GuardedResult a -> b) -> (GuardedResult a -> GuardedResult b)
+// : (GuardedOptions a -> b) -> (GuardedOptions a -> GuardedOptions b)
 
-// flipGuarded: GuardedResult(Arg*) -> (GuardedResult Arg)*
+// flipGuarded: GuardedOptions(Arg*) -> (GuardedOptions Arg)*
 template<class T>
-auto flipGuarded(Slice<GuardedResult<T>> orig) -> GuardedResult<RStack<T>> {
+auto flipGuarded(Slice<GuardedOptions<T>> orig) -> GuardedOptions<RStack<T>> {
   // using Result = std::result_of_t<CreateTerm(unsigned, Arg*)>;
-  GuardedResult<RStack<T>> out;
+  GuardedOptions<RStack<T>> out;
 
   Recycled<Stack<unsigned>> guardSelections;
   guardSelections->loadFromIterator(range(0, orig.size()).map([](auto) { return 0; }));
@@ -597,7 +463,7 @@ auto flipGuarded(Slice<GuardedResult<T>> orig) -> GuardedResult<RStack<T>> {
     unsigned i = 0;
     while (i < guardSelections->size()) {
       (*guardSelections)[i]++;
-      if ((*guardSelections)[i] >= orig[i]->size()) {
+      if ((*guardSelections)[i] >= orig[i].opts->size()) {
         (*guardSelections)[i] = 0;
         i++;
       } else {
@@ -608,82 +474,42 @@ auto flipGuarded(Slice<GuardedResult<T>> orig) -> GuardedResult<RStack<T>> {
   };
 
   do {
-    auto chosen_arg_version = [&](auto arg_idx) -> pair<T, Guards>& {
-      auto& arg = *orig[arg_idx];
+    auto chosen_arg_version = [&](auto arg_idx) -> GuardedOption<T>& {
+      auto& arg = *orig[arg_idx].opts;
       auto chosen_version_idx = (*guardSelections)[arg_idx];
       return arg[chosen_version_idx];
     };
     RStack<T> ts;
     ts->loadFromIterator(
             range(0, orig.size())
-              .map([&](unsigned i) { return chosen_arg_version(i).first; }));
+              .map([&](unsigned i) { return chosen_arg_version(i).value; }));
     Guards guards;
     guards->loadFromIterator(range(0, orig.size())
-              .flatMap([&](unsigned i) { return chosen_arg_version(i).second->iter(); }));
-    out->push(make_pair(std::move(ts), std::move(guards)));
+              .flatMap([&](unsigned i) { return chosen_arg_version(i).guards->iter(); }));
+    out.opts->push(guardedOption(std::move(ts), std::move(guards)));
   } while (incr());
 
   return out;
 }
 
 template<class CreateTerm, class Arg>
-GuardedResult<std::result_of_t<CreateTerm(unsigned, Arg*)>> liftGuarded(unsigned arity, GuardedResult<Arg>* ts, CreateTerm createTerm) {
-  using Result = std::result_of_t<CreateTerm(unsigned, Arg*)>;
-  GuardedResult<Result> out;
+GuardedOptions<std::result_of_t<CreateTerm(unsigned, Arg*)>> liftGuarded(unsigned arity, GuardedOptions<Arg>* ts, CreateTerm createTerm) {
+  return gmap([&](auto args) { return createTerm(arity, args->begin()); })(flipGuarded(slice(ts, arity)));
 
-  Recycled<Stack<unsigned>> guardSelections;
-  guardSelections->loadFromIterator(range(0, arity).map([](auto) { return 0; }));
-
-  auto createTermFromIter = [&](auto iter) {
-    Recycled<Stack<ELEMENT_TYPE(decltype(iter))>> args;
-    args->loadFromIterator(iter);
-    return createTerm(arity, args->begin());
-  };
-
-  auto incr = [&]() {
-    unsigned i = 0;
-    while (i < guardSelections->size()) {
-      (*guardSelections)[i]++;
-      if ((*guardSelections)[i] >= ts[i]->size()) {
-        (*guardSelections)[i] = 0;
-        i++;
-      } else {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  do {
-    auto chosen_arg_version = [&](auto arg_idx) -> pair<Arg, Guards>& {
-      auto& arg = *ts[arg_idx];
-      auto chosen_version_idx = (*guardSelections)[arg_idx];
-      return arg[chosen_version_idx];
-    };
-    auto term = createTermFromIter(
-            range(0, arity)
-              .map([&](unsigned i) { return chosen_arg_version(i).first; }));
-    Guards guards;
-    guards->loadFromIterator(range(0, arity)
-              .flatMap([&](unsigned i) { return chosen_arg_version(i).second->iter(); }));
-    out->push(make_pair(std::move(term), std::move(guards)));
-  } while (incr());
-
-  return out;
 }
 
-Option<std::function<GuardedResult<TermList>(TermList*)>> translateInterpretedFunction_(unsigned f) {
+Option<std::function<GuardedOptions<TermList>(TermList*)>> translateInterpretedFunction_(unsigned f) {
 
-  auto fng = [](auto _arity, auto f) { return some(std::function<GuardedResult<TermList>(TermList*)>(
-        [f = std::move(f)](TermList* args) -> GuardedResult<TermList> { return f(args); })); 
+  auto fng = [](auto _arity, auto f) { return some(std::function<GuardedOptions<TermList>(TermList*)>(
+        [f = std::move(f)](TermList* args) -> GuardedOptions<TermList> { return f(args); })); 
   };
 
 
-  auto fn = [](auto arity, auto f) { return some(std::function<GuardedResult<TermList>(TermList*)>(
-        [f = std::move(f)](TermList* args) -> GuardedResult<TermList> { 
+  auto fn = [](auto arity, auto f) { return some(std::function<GuardedOptions<TermList>(TermList*)>(
+        [f = std::move(f)](TermList* args) -> GuardedOptions<TermList> { 
           return greturn(f(args));
           // return liftGuarded(arity, args, [f = std::move(f)](auto _arity, auto x){ return f(x); });
-          // GuardedResult<TermList> options;
+          // GuardedOptions<TermList> options;
           // options->push(make_pair(f(args), Guards()));
           // return options; 
         })); 
@@ -705,35 +531,24 @@ Option<std::function<GuardedResult<TermList>(TermList*)>> translateInterpretedFu
   { return [_remainder, quotient](TermList* ts) { return _remainder(ts, quotient(ts)); }; };
 
 
-  auto remainderG = [_remainder](auto quotient /* TermList -> GuardedResult<TermList>
+  auto remainderG = [_remainder](auto quotient /* TermList -> GuardedOptions<TermList>
   */)
   { 
     // return fmap(remainderG)
-    return [_remainder, quotient](TermList* ts) -> GuardedResult<TermList> { 
+    return [_remainder, quotient](TermList* ts) -> GuardedOptions<TermList> { 
       return gmap([_remainder, ts](auto q){ return _remainder(ts, q); })(quotient(ts));;
    }; };
 
   auto quotientF = [](TermList* ts) { return R::toInt(R::div(ts[0], ts[1])); };
-  auto quotientE = [=](TermList* ts) -> GuardedResult<TermList> {
-    GuardedResult<TermList> out;
-    {
-      Guards gs;
-      auto t = quotientF(ts);
-      gs->init({
-            R::greater(false, ts[1], R::zero()),
-            // R::isInt(false, ts[1]),
-          });
-      out->push(make_pair(t, std::move(gs)));
-    }
-    {
-      Guards gs;
-      auto t = R::minus(R::toInt(R::minus(R::div(ts[0], ts[1]))));
-      gs->init({
-            R::less(false, ts[1], R::zero()),
-            // R::isInt(false, ts[1]),
-          });
-      out->push(make_pair(t, std::move(gs)));
-    }
+  auto quotientE = [=](TermList* ts) -> GuardedOptions<TermList> {
+    auto out = guardedOptions(
+         guardedOption(
+           quotientF(ts), 
+           guards(R::greater(false, ts[1], R::zero()))),
+         guardedOption(
+           R::minus(R::toInt(R::minus(R::div(ts[0], ts[1])))), 
+           guards(R::less(false, ts[1], R::zero())))
+        );
     return out;
   };
   switch(theory->interpretFunction(f)) {
@@ -960,7 +775,7 @@ Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigne
     }
 }
 
-// GuardedResult<TermList> liftGuarded(unsigned functor, unsigned arity, GuardedResult<TermList>* ts, unsigned i) {
+// GuardedOptions<TermList> liftGuarded(unsigned functor, unsigned arity, GuardedOptions<TermList>* ts, unsigned i) {
 //
 //   if (i == arity) {
 //
@@ -973,18 +788,16 @@ void InequalityNormalizer::realization(Problem& p)
   auto& realizedFs  = trans.first;
   auto& realizedPs  = trans.second;
 
-  auto translateTerm = [&](TermList t) -> GuardedResult<TermList> { 
-    return evalBottomUp<GuardedResult<TermList>>(t, [&](auto orig, auto* evalArgs) {
-        GuardedResult<TermList> out;
+  auto translateTerm = [&](TermList t) -> GuardedOptions<TermList> { 
+    return evalBottomUp<GuardedOptions<TermList>>(t, [&](auto orig, auto* evalArgs) {
+        GuardedOptions<TermList> out;
         if (orig.isVar()) {
-          out->push(make_pair(orig, Guards()));
+          out.opts->push(guardedOption(orig, Guards()));
           return out;
         } else {
           auto f = orig.term()->functor();
           auto arity = orig.term()->arity();
-          GuardedResult<RStack<TermList>> args = flipGuarded(slice(evalArgs, arity));
-          // *itp: TermList* -> GuardedResult (TermList*)
-          // gflatmap(*itp): GuardedResult(TermList*) -> GuardedResult (TermList*)
+          GuardedOptions<RStack<TermList>> args = flipGuarded(slice(evalArgs, arity));
           auto itp = translateInterpretedFunction_(f);
           if (itp) {
             return gflatmap([&](auto args) { return (*itp)(args->begin()); })(std::move(args));
@@ -996,27 +809,9 @@ void InequalityNormalizer::realization(Problem& p)
   };
 
 
-  // auto translateTermOld = [&](TermList t) -> GuardedResult<TermList> { 
-  //   return evalBottomUp<GuardedResult<TermList>>(t, [&](auto orig, auto* evalArgs) {
-  //       GuardedResult<TermList> out;
-  //       if (orig.isVar()) {
-  //         out->push(make_pair(orig, Guards()));
-  //         return out;
-  //       } else {
-  //         auto f = orig.term()->functor();
-  //         auto itp = translateInterpretedFunction(f);
-  //         return liftGuarded(orig.term()->arity(), evalArgs, 
-  //             [&](auto arity, TermList* args) {
-  //               return itp.isSome() ? (*itp)(args)
-  //                                   : TermList(Term::create(realizedFs[f], arity, args));
-  //             });
-  //       }
-  //   });
-  // };
-
-  auto translateLit = [&](Literal* lit) -> GuardedResult<Literal*> {
+  auto translateLit = [&](Literal* lit) -> GuardedOptions<Literal*> {
     auto p = lit->functor();
-    Recycled<Stack<GuardedResult<TermList>>> args;
+    Recycled<Stack<GuardedOptions<TermList>>> args;
     args->loadFromIterator(
         anyArgIter(lit)
           .map([&](TermList t) 
@@ -1072,11 +867,7 @@ void InequalityNormalizer::realization(Problem& p)
       ASS(c_->isClause());
       auto input =  static_cast<Clause*>(c_);
 
-      // return liftGuarded(, GuardedResult<TermList> *ts, CreateTerm createTerm);
-
-
-      // GuardedResult<Recycled<Stack<>>
-      Recycled<Stack<GuardedResult<Literal*>>> lits;
+      Recycled<Stack<GuardedOptions<Literal*>>> lits;
 
       
       for (auto l : iterTraits(input->iterLits())) {
@@ -1095,7 +886,7 @@ void InequalityNormalizer::realization(Problem& p)
 
       }
 
-      GuardedResult<Recycled<Stack<Literal*>>> clauses = liftGuarded(lits->size(), lits->begin(),
+      GuardedOptions<Recycled<Stack<Literal*>>> clauses = liftGuarded(lits->size(), lits->begin(),
           [](auto arity, auto args) {
             Recycled<Stack<Literal*>> ls;
             ls->loadFromIterator(range(0, arity).map([&](auto i) { return args[i]; }));
@@ -1103,11 +894,10 @@ void InequalityNormalizer::realization(Problem& p)
           });
 
       out->loadFromIterator(
-          iterTraits(clauses->iter())
-          .map([input](pair<Recycled<Stack<Literal*>>, 
-                            Recycled<Stack<Literal*>>>& cl) -> Unit* {
-              auto out = std::move(cl.first);
-              out->loadFromIterator(cl.second->iter());
+          iterTraits(clauses.opts->iter())
+          .map([input](GuardedOption<RStack<Literal*>>& cl) -> Unit* {
+              auto out = std::move(cl.value);
+              out->loadFromIterator(cl.guards->iter());
               return Clause::fromStack(*out, Inference(FormulaTransformation(InferenceRule::ALASCAI_REALIZATION, input)));
             })
           );
@@ -1123,11 +913,14 @@ void InequalityNormalizer::realization(Problem& p)
   p.units() = 
     /* isInt(x) -> toInt(x) == x */
         UnitList::cons(Clause::fromStack({ R::isInt(false, x), R::eq(true, x, R::toInt(x))}, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
+    // /* isInt(toInt(x)) */
+    //   , UnitList::cons(Clause::fromStack({ R::isInt(true, x) }, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
     /* 0 <= x - toInt(x) */
       , UnitList::cons(Clause::fromStack({ R::leq(true, R::zero(), R::add(x, R::minus(R::toInt(x)))) }, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
     /* x - toInt(x) < 1 */
       , UnitList::cons(Clause::fromStack({ R::less(true, R::add(x, R::minus(R::toInt(x))), R::one()) }, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
-      , p.units())))
+      , p.units())
+      )))
     ;
 
   for (auto origF : range(0, realizedFs.size())) {
@@ -1177,7 +970,7 @@ pair<Stack<unsigned>, Stack<unsigned>> InequalityNormalizer::tranlateSignature()
     { return iterArgs(o).any([&](auto a) { return a == ints; }); };
 
   for (auto f : range(0, env.signature->functions())) {
-    auto f_ = translateInterpretedFunction(f);
+    auto f_ = translateInterpretedFunction_(f);
     if (f_) {
       realizedFs.push(unsigned(-1)); // <- dummy. should never be accessed
     } else {
