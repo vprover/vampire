@@ -913,8 +913,8 @@ void InequalityNormalizer::realization(Problem& p)
   p.units() = 
     /* isInt(x) -> toInt(x) == x */
         UnitList::cons(Clause::fromStack({ R::isInt(false, x), R::eq(true, x, R::toInt(x))}, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
-    // /* isInt(toInt(x)) */
-    //   , UnitList::cons(Clause::fromStack({ R::isInt(true, x) }, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
+    /* isInt(toInt(x)) */
+      , UnitList::cons(Clause::fromStack({ R::isInt(true, x) }, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
     /* 0 <= x - toInt(x) */
       , UnitList::cons(Clause::fromStack({ R::leq(true, R::zero(), R::add(x, R::minus(R::toInt(x)))) }, Inference(TheoryAxiom(InferenceRule::THA_ALASCAI)))
     /* x - toInt(x) < 1 */
