@@ -24,9 +24,6 @@
 #include "Kernel/Problem.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include <initializer_list>
-#include <mach/port.h>
-// #include "Kernel/LaLpo.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Kernel {
