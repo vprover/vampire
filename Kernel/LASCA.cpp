@@ -670,6 +670,7 @@ Option<std::function<GuardedOptions<TermList>(TermList*)>> translateInterpretedF
         ASSERTION_VIOLATION_REP("TODO: this should translate to -floor(-x)")
         return {};
     }
+  ASSERTION_VIOLATION
 }
 Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigned f)
 {
@@ -773,6 +774,7 @@ Option<std::function<Literal*(TermList*)>> translateInterpretedPredicate(unsigne
       ASSERTION_VIOLATION_REP("not a predicate interpretation")
       return {};
     }
+  ASSERTION_VIOLATION
 }
 
 // GuardedOptions<TermList> liftGuarded(unsigned functor, unsigned arity, GuardedOptions<TermList>* ts, unsigned i) {
