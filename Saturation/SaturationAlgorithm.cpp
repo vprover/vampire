@@ -486,6 +486,9 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
   }
 
   if (env.options->showPureTheoryDescendants() && (cl->isPureTheoryDescendant() || cl->isTheoryAxiom())) {
+    if (cl->number() == 3067) {
+
+    }
     env.beginOutput();
     env.out() << "[SA] pure theory descendant: " << cl->toString() << std::endl;
     env.endOutput();
