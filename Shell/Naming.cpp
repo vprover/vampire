@@ -1275,7 +1275,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   }
   Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 
-  InferenceStore::instance()->recordIntroducedSymbol(definition, PRED,
+  InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::PRED,
       atom->functor());
 
   UnitList::push(definition, _defs);

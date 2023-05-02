@@ -488,9 +488,9 @@ struct SymbolComparator {
   SymbolComparator(SymbolType symType) : _symType(symType) {}
 
   Signature::Symbol* getSymbol(unsigned s) {
-    if(_symType == FUNC){
+    if(_symType == SymbolType::FUNC){
       return env.signature->getFunction(s);
-    } else if (_symType == PRED){
+    } else if (_symType == SymbolType::PRED){
       return env.signature->getPredicate(s);      
     } else {
       return env.signature->getTypeCon(s);            
@@ -785,7 +785,7 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
         precedence_file.close();
       }
     } else {
-      sortAuxBySymbolPrecedence(aux,opt,TYPE_CON);
+      sortAuxBySymbolPrecedence(aux,opt,SymbolType::TYPE_CON);
     }
   }
 
@@ -815,7 +815,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
         precedence_file.close();
       }
     } else {
-      sortAuxBySymbolPrecedence(aux,opt,FUNC);
+      sortAuxBySymbolPrecedence(aux,opt,SymbolType::FUNC);
     }
   }
 
@@ -843,7 +843,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
       precedence_file.close();
     }
   } else {
-    sortAuxBySymbolPrecedence(aux,opt,PRED);
+    sortAuxBySymbolPrecedence(aux,opt,SymbolType::PRED);
   }
 
   DArray<int> predicatePrecedences(nPredicates);

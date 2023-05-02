@@ -216,10 +216,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
 #if VHOL
   if(_appify){
-    InferenceStore::instance()->recordIntroducedSymbol(defCl,FUNC,fun);
+    InferenceStore::instance()->recordIntroducedSymbol(defCl,SymbolType::FUNC,fun);
   } else {
 #endif
-    InferenceStore::instance()->recordIntroducedSymbol(defCl,PRED,fun);
+    InferenceStore::instance()->recordIntroducedSymbol(defCl,SymbolType::PRED,fun);
 #if VHOL
   }
 #endif

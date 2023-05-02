@@ -689,10 +689,9 @@ protected:
     vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first == FUNC) {
+      if (sym.first == SymbolType::FUNC) {
         symsStr << env.signature->functionName(sym.second);
-      }
-      else if (sym.first == PRED) {
+      } else if (sym.first == SymbolType::PRED) {
         symsStr << env.signature->predicateName(sym.second);
       } else {
         symsStr << env.signature->typeConName(sym.second);        
@@ -851,14 +850,14 @@ protected:
     while(lits.hasNext()) {
       Literal* lit=lits.next();
       if (lit==nameLit) {
-	continue;
+        continue;
       }
       if (first) {
-	first=false;
+        first=false;
       }
       else {
-	multiple=true;
-	compStr+=" | ";
+        multiple=true;
+        compStr+=" | ";
       }
       compStr+=lit->toString();
 
@@ -879,7 +878,7 @@ protected:
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(PRED,nameLit->functor());
+    SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
