@@ -647,6 +647,11 @@ void Options::init()
     _lookup.insert(&_showNew);
     _showNew.tag(OptionTag::DEVELOPMENT);
 
+    _showPureTheoryDescendants = BoolOptionValue("show_pure","",false);
+    _showPureTheoryDescendants.description="Show pure theory descendants when they are generated.";
+    _lookup.insert(&_showPureTheoryDescendants);
+    _showPureTheoryDescendants.tag(OptionTag::DEVELOPMENT);
+
     _showSplitting = BoolOptionValue("show_splitting","",false);
     _showSplitting.description="Show updates within AVATAR";
     _lookup.insert(&_showSplitting);

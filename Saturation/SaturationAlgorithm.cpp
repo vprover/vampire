@@ -485,6 +485,12 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     _splitter->onNewClause(cl);
   }
 
+  if (env.options->showPureTheoryDescendants() && (cl->isPureTheoryDescendant() || cl->isTheoryAxiom())) {
+    env.beginOutput();
+    env.out() << "[SA] pure theory descendant: " << cl->toString() << std::endl;
+    env.endOutput();
+  }
+
   if (env.options->showNew()) {
     env.beginOutput();
     env.out() << "[SA] new: " << cl->toString() << std::endl;

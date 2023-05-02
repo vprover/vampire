@@ -2174,6 +2174,7 @@ public:
   bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
   bool showNew() const { return showAll() || _showNew.actualValue; }
+  bool showPureTheoryDescendants() const { return showAll() || _showPureTheoryDescendants.actualValue; }
   bool sineToAge() const { return _sineToAge.actualValue; }
   PredicateSineLevels sineToPredLevels() const { return _sineToPredLevels.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
@@ -2777,6 +2778,7 @@ private:
   BoolOptionValue _showDefinitions;
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;
+  BoolOptionValue _showPureTheoryDescendants;
   BoolOptionValue _sineToAge;
   ChoiceOptionValue<PredicateSineLevels> _sineToPredLevels;
   BoolOptionValue _showSplitting;
