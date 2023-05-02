@@ -559,7 +559,7 @@ public:
   }
 
   /** Return the weight. Applicable only to shared terms */
-  virtual unsigned weight() const
+  unsigned weight() const
   {
     ASS(shared());
     return _weight;
@@ -577,13 +577,6 @@ public:
     ASS(! shared());
     _args[0]._info.shared = 1u;
   } // markShared
-
-  /** Mark term as not literal */
-  void markNotLiteral()
-  {
-    ASS(! shared());
-    _args[0]._info.literal = 0u;
-  } // markNotLiteral
 
   /** Set term weight */
   void setWeight(unsigned w)
@@ -747,7 +740,7 @@ public:
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
 
-  // TODO(hzzv): cache this?
+  // TODO(hzzv): should these values be rather cached? Is the memory or time more critical?
   virtual bool computable() const;
   virtual bool computableOrVar() const;
 
@@ -1045,11 +1038,6 @@ public:
   }
 
   bool isAnswerLiteral() const;
-  virtual unsigned weight() const {
-    // TODO(hzzv): for answer literals with special terms:
-    // if (isAnswerLiteral()) return 0;
-    return Term::weight();
-  }
 
   vstring toString() const;
   const vstring& predicateName() const;

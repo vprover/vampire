@@ -804,6 +804,9 @@ Clause* Splitter::getComponentClause(SplitLevel name) const
 
 Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
   CALL("Splitter::reintroduceAvatarAssertions");
+
+  // This method can only be called when synthesizing programs
+  ASS(env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   Inference inf(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl));
   unsigned newLen = cl->length() + cl->splits()->size();
   Clause* newCl = new(newLen) Clause(newLen, inf);
@@ -816,7 +819,7 @@ Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
   while (sit.hasNext()) {
     SplitLevel nm = sit.next();
     Clause* compCl = getComponentClause(nm);
-    // TODO(hzzv): change this to allow non-unit components
+    // When synthesizing programs, all components are ground and hence unit
     ASS(compCl->length() == 1);
     (*newCl)[i++] = Literal::complementaryLiteral((*compCl)[0]);
   }
@@ -1131,9 +1134,10 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
-  // If this clause contains an answer literal or is not computable, don't split it
-  // TODO(hzzv): change the computability condition to only exclude uncomputable literals from splitting
-  if ((cl->getAnswerLiteral() != nullptr) || !cl->computable()) {
+  // When synthesizing programs:
+  // if this clause contains an answer literal or is not computable, don't split it
+  static bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  if (synthesis && (cl->hasAnswerLiteral() || !cl->computable())) {
     return false;
   }
   if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)

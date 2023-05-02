@@ -995,6 +995,7 @@ private:
    */ 
   DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
 
+  // Map from functions to predicates they represent in answer literal conditions used in synthesis
   DHMap<unsigned, unsigned> _synthesisFnToPred;
 
   //TODO Why are these here? They are not used anywhere. AYB

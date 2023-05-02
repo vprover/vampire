@@ -65,7 +65,6 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     return false;
   }
 
-  // TODO(hzzv): new, decide whether it's necessary:
   if (lit->isAnswerLiteral()) return false;
 
   bool okay = _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);

@@ -641,16 +641,11 @@ Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* the
   Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
   Stack<TermList> litArgs;
   Term* condTerm = Term::createFromLiteral(condition);
-  // TODO(hzzv): using special-term-ITEs:
-  //Literal* cond = qr.substitution->applyToQuery(queryLit);
   for (unsigned i = 0; i < thenLit->arity(); ++i) {
     TermList* ttl = thenLit->nthArgument(i);
     TermList* etl = elseLit->nthArgument(i);
-    // TODO(hzzv): maybe unify variables if they do not occur anywhere else in the clause?
     if (ttl == etl) litArgs.push(*ttl);
     else {
-      // TODO(hzzv): using special-term-ITEs:
-      //litArgs.push(TermList(Term::createITE(new Kernel::AtomicFormula(cond), *dtl, *ctl, predSym->predType()->arg(i))));
       litArgs.push(TermList(Term::createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
     }
   }

@@ -550,41 +550,7 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
 
   Clause* replacement = numOfReplacements ? *replacements : 0;
 
-  // TODO(hzzv): remove this once I'm sure that answer literals are not disappearing
-  //bool ansLitRemoved = false;
-  //if (cl->hasAnswerLiteral()) {
-  //  ansLitRemoved = true;
-  //  Literal* al = cl->getAnswerLiteral();
-  //  for (unsigned i = 0; i < numOfReplacements; ++i) {
-  //    if (replacements[i] && (replacements[i]->contains(al) || replacements[i]->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL)) {
-  //      ansLitRemoved = false;
-  //      break;
-  //    }
-  //  }
-  //  ClauseStack::Iterator pit(premStack);
-  //  while(pit.hasNext()){
-  //    Clause* premise = pit.next();
-  //    if (premise) {
-  //      bool containsAll = false;
-  //      if (premise->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL) {
-  //        containsAll = true;
-  //        for (unsigned i = 0; i < premise->length(); ++i) {
-  //          if (!cl->contains((*premise)[i])) {
-  //            containsAll = false;
-  //            break;
-  //          }
-  //        }
-  //      }
-  //      if (containsAll || premise->hasAnswerLiteral()) {
-  //        ansLitRemoved = false;
-  //        break;
-  //      }
-  //    }
-  //  }
-  //}
-
-  if (//ansLitRemoved ||
-      env.options->showReductions()) {
+  if (env.options->showReductions()) {
     env.beginOutput();
     env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
     for(unsigned i = 0; i < numOfReplacements; i++){

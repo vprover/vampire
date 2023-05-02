@@ -929,11 +929,11 @@ Term* Term::create(Term* t,TermList* args)
   return s;
 }
 
-/** Create a new complex term, copy from @b l its function symbol and
+/** Create a new complex term, with its top-level function symbol
+ *  created as a dummy symbol representing the predicate of @b l, and copy
  *  from the array @b args its arguments. Insert it into the sharing
  *  structure if all arguments are shared.
  */
-// TODO(hzzv): add a new fn symbol instead of abusing the predicate
 Term* Term::createFromLiteral(Literal* l)
 {
   CALL("Term::createFromLiteral");
@@ -947,6 +947,7 @@ Term* Term::createFromLiteral(Literal* l)
   if (l->isEquality()) fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
   bool added = false;
   unsigned fn = env.signature->addFunction(fnName, arity, added);
+  // Store the mapping between the function and predicate symbols
   env.signature->addSynthesisPair(fn, l->functor());
   if (added) {
     Signature::Symbol* sym = env.signature->getFunction(fn);
@@ -1225,7 +1226,7 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
 
 /**
  * Create a (condition ? thenBranch : elseBranch) expression
- * having a literal as the condition, and return the resulting term
+ * and return the resulting term
  */
 Term* Term::createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
 {
@@ -1811,8 +1812,7 @@ Term::Term(const Term& t) throw()
     _vars(0)
 {
   CALL("Term::Term/1");
-  // TODO new commented out:
-  //ASS(!isSpecial()); //we do not copy special terms
+  ASS(!isSpecial()); //we do not copy special terms
 
   _args[0] = t._args[0];
   _args[0]._info.shared = 0u;
@@ -1871,15 +1871,15 @@ bool Literal::computable() const {
   }
   return true;
 }
+
 bool Literal::computableOrVar() const {
   if (!env.signature->getPredicate(this->functor())->computable()) return false;
   for (unsigned i = 0; i < arity(); ++i) {
     const TermList* t = nthArgument(i);
-    if (!t->isTerm() || !t->term()->computableOrVar()) return false;
+    if (t->isTerm() && !t->term()->computableOrVar()) return false;
   }
   return true;
 }
-
 
 AtomicSort::AtomicSort()
 {

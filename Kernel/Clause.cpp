@@ -508,8 +508,7 @@ unsigned Clause::computeWeight() const
 
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    // TODO(hzzv): added answer literals to assertion:
-    ASS(_literals[i]->shared() || _literals[i]->isAnswerLiteral());
+    ASS(_literals[i]->shared());
     result += _literals[i]->weight();
   }
 
