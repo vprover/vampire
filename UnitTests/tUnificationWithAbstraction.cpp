@@ -100,8 +100,8 @@ void checkLiteralMatches(LiteralSubstitutionTree& index, Literal* lit, Stack<Lit
     // qr.substitution->numberOfConstraints();
 
     is.push(LiteralUnificationResultSpec {
-        .querySigma = qr.unifier->apply(lit, /* result */ QUERY_BANK),
-        .resultSigma = qr.unifier->apply(qr.literal, /* result */ RESULT_BANK),
+        .querySigma = qr.unifier->apply(lit, QUERY_BANK),
+        .resultSigma = qr.unifier->apply(qr.literal, RESULT_BANK),
         .constraints = *qr.unifier->getConstraints(),
     });
   }
@@ -133,8 +133,8 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Sta
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
-        .querySigma  = qr.unifier->apply(term, /* result */ QUERY_BANK) ,
-        .resultSigma = qr.unifier->apply(qr.term, /* result */ RESULT_BANK) ,
+        .querySigma  = qr.unifier->applyTo(term, QUERY_BANK) ,
+        .resultSigma = qr.unifier->applyTo(qr.term, RESULT_BANK) ,
         .constraints = *qr.unifier->getConstraints(),
     });
   }
@@ -784,8 +784,8 @@ TEST_FUN(higher_order2)
 
   DECL_CONST(a, srt)
   DECL_HOL_VAR(x, 0, arrow(srt, srt))
-  DECL_HOL_VAR(x2, 2, arrow(srt, arrow(srt, srt))) 
-  DECL_HOL_VAR(x3, 3, srt)
+  DECL_HOL_VAR(x2, 1, arrow(srt, arrow(srt, srt))) 
+  DECL_HOL_VAR(x3, 2, srt)
 
   index->insert(ap(x, a), 0, 0);
 
@@ -921,9 +921,12 @@ TEST_FUN(higher_order6)
   DECL_SORT(srt) 
 
   DECL_CONST(f, arrow(srt, arrow(srt, srt)))
-  DECL_HOL_VAR(x, 0, srt)
-  DECL_HOL_VAR(z, 1, srt)
-  DECL_HOL_VAR(y, 2, arrow(srt, srt))
+  DECL_HOL_VAR(x0, 0, arrow(srt, srt))
+  DECL_HOL_VAR(x1, 1, srt)
+
+  DECL_HOL_VAR(x, 10, srt)
+  DECL_HOL_VAR(z, 11, srt)
+  DECL_HOL_VAR(y, 12, arrow(srt, srt))
 
   auto t = ap(ap(f, x), x);
 
@@ -932,9 +935,9 @@ TEST_FUN(higher_order6)
   checkHigherOrderTermMatches(*index, ap(ap(f, ap(y,z)), z), Stack<TermUnificationResultSpec>{
 
     TermUnificationResultSpec 
-    { .querySigma  = ap(ap(f, ap(y,x)), x),
-      .resultSigma = ap(ap(f, x), x),
-      .constraints = { ap(y,x) != x  } }, 
+    { .querySigma  = ap(ap(f, ap(x0,x1)), x1),
+      .resultSigma = ap(ap(f, x1), x1),
+      .constraints = { ap(x0,x1) != x1  } }, 
 
   });
 }
@@ -976,8 +979,12 @@ TEST_FUN(higher_order8)
 
   DECL_CONST(a, srt)  
   DECL_CONST(g, arrow(srt,srt))  
-  DECL_HOL_VAR(x, 0, arrow(srt,srt))
-  DECL_HOL_VAR(z, 1, arrow(srt,srt))
+  DECL_HOL_VAR(x0, 0, arrow(srt,srt))
+  DECL_HOL_VAR(x1, 1, arrow(srt,srt))
+  DECL_HOL_VAR(x2, 2, arrow(srt,srt))
+
+  DECL_HOL_VAR(x, 10, arrow(srt,srt))
+  DECL_HOL_VAR(z, 11, arrow(srt,srt))
 
 
   index->insert(ap(x,a), 0, 0);
@@ -989,18 +996,18 @@ TEST_FUN(higher_order8)
 
     TermUnificationResultSpec 
     { .querySigma  = ap(g,a),
-      .resultSigma = ap(x,a),
-      .constraints = { ap(g,a) != ap(x,a)  } }, 
+      .resultSigma = ap(x2,a),
+      .constraints = { ap(g,a) != ap(x2,a)  } }, 
 
     TermUnificationResultSpec 
     { .querySigma  = ap(g,a),
-      .resultSigma = ap(z,a),
-      .constraints = { ap(g,a) != ap(z,a)  } },       
+      .resultSigma = ap(x1,a),
+      .constraints = { ap(g,a) != ap(x1,a)  } },       
 
     TermUnificationResultSpec 
     { .querySigma  = ap(g,a),
-      .resultSigma = ap(g,ap(x,a)), //really irritating variable renaming...
-      .constraints = { a != ap(x,a)  } }, 
+      .resultSigma = ap(g,ap(x0,a)), //really irritating variable renaming...
+      .constraints = { a != ap(x0,a)  } }, 
 
   });
 }

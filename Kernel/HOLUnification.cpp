@@ -35,8 +35,12 @@ SubstIterator HOLUnification::postprocess(RobSubstitutionTL* sub)
 {
   CALL("HOLUnification::postprocess");
  
+  // We could carry out a fix point iteration here
+  // but it is slighly involved and I am not sure that it is worth it.
+  // will leave for now.
+
   // TODO dummy implementation
-  return pvi(getSingletonIterator(sub));  
+  return pvi(getSingletonIterator(sub));
 }
 
 bool HOLUnification::associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
@@ -124,6 +128,9 @@ bool HOLUnification::unifyTreeTerms(TermList t1, TermList t2, bool splittable, R
 
   auto impl = [&]() -> bool {
 
+    ASS(t1.isSpecialVar());
+    t1 = sub->derefBound(t1);    
+
     if( (t1.isTerm() && t1.term()->isSort()) || 
         (t2.isTerm() && t2.term()->isSort()) ) {
       return sub->unify(t1,t2); // sorts can be unified by standard algo
@@ -133,6 +140,8 @@ bool HOLUnification::unifyTreeTerms(TermList t1, TermList t2, bool splittable, R
 
     // Node term and query term must have the same type. Hence we do not
     // check type of query. We can rely on the !splittable check 
+    // TODO, logic is a little off here. A node can be non-splittanle, but on
+    // apply a substitution to the term it can become splittable
     if(!t1.isVar() && (t1thead.isVar() || t1thead.isLambdaTerm() || !splittable)) {
       // create top level constraint
       sub->pushConstraint(UnificationConstraint(t1, t2));

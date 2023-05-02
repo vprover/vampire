@@ -53,9 +53,10 @@ public:
   static void getHeadAndArgs(Term* term, TermList& head, TermStack& args);
   static void getHeadAndArgs(const Term* term, TermList& head, TermStack& args);
   
-  // both functions below ONLY used in AppliArgsIT which is used in SKIKBO. Leaving for now in case need to 
-  // revive 
-//  static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
+
+  static void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
+// function below ONLY used in AppliArgsIT which is used in SKIKBO. Leaving for now in case need to 
+// revive 
 //  static void getHeadAndAllArgs(TermList term, TermList& head, TermStack& args); 
   
   static TermList lhsSort(TermList t);   

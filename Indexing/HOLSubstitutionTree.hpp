@@ -107,7 +107,7 @@ public:
   template<class Key>
   void handleImplHol (Key const& key, LeafData ld, bool doInsert)
   {
-    auto norm = Renaming::normalize(key);
+    auto norm = Renaming::normalize(key,VarBank::NORM_RESULT_BANK);
     Recycled<HOLBindingMap> bindings;
     setSort(key, ld);
     createHOLBindings(norm, /* reversed */ false,

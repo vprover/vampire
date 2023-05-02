@@ -163,7 +163,10 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubst
         return arrayIter(diff)
           .map([](auto& x) { return x; })
           .fold([](auto l, auto r) 
-            { return TermList(Term::create2(IntTraits::addF(), l, r)); }) //create non-shared? 
+            { 
+              TermList args[] = {l, r};
+              return TermList(Term::createNonShared(IntTraits::addF(), 2, args)); 
+            }) //create non-shared? 
           .unwrap(); };
     auto diffConstr = [&]() 
     { return UnificationConstraint(sum(diff1), sum(diff2)); };
@@ -359,8 +362,9 @@ bool AbstractingUnification::unify(TermList t1, TermList t2, bool& progress, Rob
           auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
           auto eq = [](UnificationConstraint<TermList,VarBank>& c, TermList const& lhs, TermList const& rhs) 
           { 
-            return (c.lhs() == lhs && c.rhs() == rhs) 
-                || (c.lhs() == rhs && c.rhs() == lhs); };
+            // equals instead of == because some of the terms could be non-shared
+            return (TermList::equals(c.lhs(),lhs) && TermList::equals(c.rhs(),rhs)) 
+                || (TermList::equals(c.lhs(),rhs) && TermList::equals(c.rhs(),lhs)); };
           if (progress 
               || conditions.constr().size() != 1 
               || conditions.unify().size() != 0

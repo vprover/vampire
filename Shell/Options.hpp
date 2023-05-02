@@ -2094,6 +2094,9 @@ public:
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   vstring printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
+#if VDEBUG
+  bool printVarBanks() const { return _printVarBanks.actualValue; }
+#endif 
 
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
@@ -2707,6 +2710,9 @@ private:
   BoolOptionValue _outputAxiomNames;
 
   StringOptionValue _printProofToFile;
+#if VDEBUG
+  BoolOptionValue _printVarBanks;
+#endif  
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;

@@ -77,6 +77,7 @@ struct TermSpec { // for backwards compatibility
 
   bool isVar() const { return trm.isVar(); }
   bool isSpecialVar() const { return trm.isSpecialVar(); }
+  bool isOrdinaryVar() const { return trm.isOrdinaryVar(); }
   bool isTerm() const { return trm.isTerm(); }
   bool isOutputVar() const { return isVar() && index == UNBOUND_INDEX; }
   bool onBank() const { return true; } // always on a bank
@@ -149,6 +150,7 @@ public:
   auto iter() const
   { return iterTraits(_cont.iter()); }
 
+  // only require these functions for termlists ...
   Recycled<Stack<Literal*>> literals(RobSubstitution& s);
 
   auto literalIter(RobSubstitution& s)
@@ -222,10 +224,11 @@ public:
   size_t getApplicationResultWeight(TermSpecOrList t, VarBankOrInt bank) const;
   TermList apply(TermSpecOrList t, VarBankOrInt bank) const;  
   
-  virtual TermSpecOrList getUnboundVar(unsigned var) const = 0;
+  virtual TermList apply(TermSpecOrList t) const = 0;
+  virtual TermSpecOrList getUnboundVar() const = 0;
   virtual TermSpecOrList getLitArg(Literal* lit, unsigned idx, VarBankOrInt bank) const = 0;
   virtual TermSpecOrList getLitSort(Literal* lit, VarBankOrInt bank) const = 0;
-   
+
   // functions are needed by so many other classes that it is 
   // easier to just make them public rather than adding other
   // classes as friends
@@ -329,6 +332,8 @@ private:
 
 class RobSubstitutionTL : public RobSubstitution<TermList, VarBank>
 {
+  friend class UnificationConstraint<TermList, VarBank>;
+
 public:
   SubstIterator matches(Literal* base, Literal* instance, bool complementary);
   SubstIterator unifiers(Literal* l1,  Literal* l2, bool complementary);
@@ -349,12 +354,18 @@ public:
   void bindSpecialVar(unsigned var, TermList t)
   {
     TermList vs(var, true);
+
     ASS(!_bank.find(vs));
     bind(vs, t);
   }
 
 private:
-  virtual TermList getUnboundVar(unsigned var) const override
+  /** This method should only be used when all variables of 
+    * t are on a bank different to DEFAULT_BANK */
+  virtual TermList apply(TermList t) const override 
+  { return RobSubstitution<TermList, VarBank>::apply(t, DEFAULT_BANK); }
+
+  virtual TermList getUnboundVar() const override
   { return TermList(_nextUnboundAvailable++, VarBank::OUTPUT_BANK); }  
 
   virtual TermList getLitArg(Literal* lit, unsigned idx, VarBank b) const override
@@ -369,6 +380,8 @@ private:
 // for backwards compatibility purposes
 class RobSubstitutionTS : public RobSubstitution<TermSpec, int>
 {
+  friend class UnificationConstraint<TermSpec, int>;
+
 public:
   bool unify(TermList t1, int idx1, TermList t2, int idx2); 
   bool match(TermList t1, int idx1, TermList t2, int idx2); 
@@ -383,7 +396,11 @@ public:
   { return RobSubstitution<TermSpec, int>::apply(TermSpec(t,index), index); } 
 
 private:
-  virtual TermSpec getUnboundVar(unsigned var) const override
+
+  virtual TermList apply(TermSpec t) const override 
+  { return RobSubstitution<TermSpec, int>::apply(t, t.index); }
+
+  virtual TermSpec getUnboundVar() const override
   { return TermSpec(_nextUnboundAvailable++, TermSpec::UNBOUND_INDEX); }
 
   virtual TermSpec getLitArg(Literal* lit, unsigned idx, int b) const override
@@ -409,7 +426,9 @@ struct AutoDerefTerm
   AutoDerefTerm(TermSpecOrList const& t, RobSubst const* s, VarBankOrInt b) 
     : subs(s)
     , bank(b) {  
-      term = t.isVar() && !t.onBank() ? 
+      CALL("AutoDerefTerm::AutoDerefTerm");
+
+      term = t.isOrdinaryVar() && !t.onBank() ? 
         s->derefBound(TermSpecOrList(t.var(), b)) : 
         s->derefBound(t);
     }

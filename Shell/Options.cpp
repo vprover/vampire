@@ -313,6 +313,13 @@ void Options::init()
     _lookup.insert(&_printProofToFile);
     _printProofToFile.tag(OptionTag::OUTPUT);
 
+#if VDEBUG
+    _printVarBanks = BoolOptionValue("print_var_banks","pvb",false);
+    _printVarBanks.description="print var bank after each variable. useful for debugging";
+    _lookup.insert(&_printVarBanks);
+    _printVarBanks.tag(OptionTag::OUTPUT);
+#endif
+
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
       "- free uses known information only\n" 
@@ -3409,6 +3416,9 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_encode);
     forbidden.insert(&_decode);
     forbidden.insert(&_ignoreMissing); // or maybe we do!
+#if VDEBUG    
+    forbidden.insert(&_printVarBanks);
+#endif
   }
 
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();

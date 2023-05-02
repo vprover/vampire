@@ -71,8 +71,9 @@ Recycled<Stack<Literal*>> UnificationConstraintStack<TermSpecOrList, VarBankOrIn
 template<class TermSpecOrList, class VarBankOrInt>
 Option<Literal*> UnificationConstraint<TermSpecOrList, VarBankOrInt>::toLiteral(RobSubstitution& s)
 { 
-  auto t1 = s.deref(_t1);
-  auto t2 = s.deref(_t2);
+  auto t1 = s.apply(_t1);
+  auto t2 = s.apply(_t2);
+
   return t1 == t2 
     ? Option<Literal*>()
     : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));
@@ -182,7 +183,7 @@ TermSpecOrList const& RobSubstitution<TermSpecOrList, VarBankOrInt>::deref(TermS
   for(;;) {
     auto binding = _bank.find(v);
     if(binding.isNone()) {
-      const_cast<RobSubstitution&>(*this).bind(v, getUnboundVar(_nextUnboundAvailable++));
+      const_cast<RobSubstitution&>(*this).bind(v, getUnboundVar());
       return _bank.get(v);
     } else if(binding->isOutputVar() || binding->isTerm()) {
       return binding.unwrap();
@@ -525,10 +526,11 @@ TermList RobSubstitution<TermSpecOrList,VarBankOrInt>::apply(TermSpecOrList trm,
 {
   CALL("RobSubstitution::apply(TermList...)");
 
-  // DBG(*this, ".apply(", TermSpec(trm, index), ")")
-  
+  //DBG(*this, ".apply(", trm, ")")
+
   auto out = evalBottomUp<TermList>(AutoDerefTerm<TermSpecOrList,VarBankOrInt>(trm, this, bank), 
       [&](auto& orig, TermList* args) -> TermList {
+        //cout << "orig " << orig << endl;
         TermList tout;
         if (orig.term.isVar()) {
           ASS(!orig.term.isOutputVar())

@@ -74,18 +74,34 @@ TermList WHNFDeref::transformSubterm(TermList t)
   if(t.isLambdaTerm()) return t;
 
   TermList head;
+  TermList sort;
   TermStack args;
-  ApplicativeHelper::getHeadAndArgs(t, head, args);
-  head = _sub->derefBound(head);
+  ApplicativeHelper::getHeadSortAndArgs(t, head, sort, args);
+  TermList newHead = _sub->derefBound(head);
 
-  while(ApplicativeHelper::canHeadReduce(head, args)){
+  // if the head is a bound variable, then 
+  // either it is bound to a lambda term creating a redex on dereferencing,
+  // or it is not. In the case, it isn't we need to track
+  // that the head has changed
+  bool headDereffed = newHead != head;
+
+  while(ApplicativeHelper::canHeadReduce(newHead, args)){
+    headDereffed = false;
     t = RedexReducer().reduce(head, args);
     if(t.isLambdaTerm()) break;
-    ApplicativeHelper::getHeadAndArgs(t, head, args);    
-    head = _sub->derefBound(head);
+    ApplicativeHelper::getHeadSortAndArgs(t, head, sort, args);    
+    newHead = _sub->derefBound(head);
+    headDereffed = newHead != head;
   }
   
-  return t;
+  if(!headDereffed){
+    return t;
+  } else if(!args.size()){
+    return newHead;
+  } else {
+    return ApplicativeHelper::app(sort, newHead, args);
+  }
+
 }
 
 bool WHNFDeref::exploreSubterms(TermList orig, TermList newTerm)
@@ -523,7 +539,7 @@ unsigned ApplicativeHelper::getArity(TermList sort)
       args.push(*term.term()->nthArgument(i));
     }
   }
-} 
+} */
 
 void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head, 
                                            TermList& headSort, TermStack& args)
@@ -532,23 +548,20 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
 
   if(!args.isEmpty()){ args.reset(); }
 
-  if(!term.isTerm()){
-    head = term;
-    return;
+  while(term.isLambdaTerm()){
+    term = term.lambdaBody();
   }
 
   while(term.isApplication()){
-    Term* t = term.term();   
-    args.push(*t->nthArgument(3)); 
-    term = *t->nthArgument(2);
-    if(!term.isApplication()){
-      headSort = AtomicSort::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
-      break;   
+    args.push(term.rhs()); 
+    TermList t = term.lhs();
+    if(!t.isApplication()){
+      headSort = AtomicSort::arrowSort(term.nthArg(0), term.nthArg(1));
     } 
+    term = t;
   }
   head = term;
-  
-}*/
+}
 
 void ApplicativeHelper::getArgSorts(TermList t, TermStack& sorts)
 {

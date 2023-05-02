@@ -93,8 +93,8 @@ enum ArgumentOrderVals {
 enum VarBank {
   DEFAULT_BANK=0,
   QUERY_BANK=1,
-  RESULT_BANK=2,
-  NORM_RESULT_BANK=3,
+  NORM_RESULT_BANK=2,
+  RESULT_BANK=3,
   FRESH_BANK=4,
   OUTPUT_BANK=5
 };
@@ -118,7 +118,7 @@ public:
     * AYB deprecated. Should NOT be using a TermList to store arbitrary data 
     * Kept for backwards compatibility */
   explicit TermList(size_t data)  {
-    _var.var = data;
+    _content = data;
   }
   /** creates a term list containing a pointer to a term */
   explicit TermList(Term* t) : _term(t) { ASS_EQ(tag(), REF); }
@@ -180,7 +180,7 @@ public:
   { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison
     * AYB depracated */
-  inline size_t content() const { return _var.var; }
+  inline size_t content() const { return _content; }
 
   /** default hash is to hash the content */
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
@@ -295,25 +295,8 @@ public:
 
   inline bool operator==(const TermList& t) const
   { 
-    if(isVar()){
-      return _var.tag  == t._var.tag &&
-             _var.var  == t._var.var &&
-             _var.bank == t._var.bank;
-    } else if(isTerm()){
-      return _term == t._term;
-    } else {
-      // I don't think we ever want to compare info,
-      // but hey why not
-      return _info.tag == t._info.tag &&
-             _info.polarity == t._info.polarity &&
-             _info.commutative == t._info.commutative &&
-             _info.shared == t._info.shared &&
-             _info.literal == t._info.literal &&
-             _info.sort == t._info.sort &&
-             _info.hasTermVar == t._info.hasTermVar &&
-             _info.order == t._info.order &&
-             _info.id    == t._info.id; //ignoring HOL data for now
-    }
+    // bit comparison
+    return _content == t._content;
   }
   inline bool operator!=(const TermList& t) const
   { return !(*this == t); }
@@ -324,6 +307,8 @@ private:
   vstring asArgsToString() const;
 
   union {
+    /** raw content to make it easy to carry out bit comparisons. DON'T USE */
+    size_t _content;
     /** reference to another term */
     Term* _term;
     /** variable */

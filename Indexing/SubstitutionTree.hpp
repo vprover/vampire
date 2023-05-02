@@ -648,7 +648,8 @@ public:
   template<class Key>
   void handleImpl(Key const& key, LeafData ld, bool doInsert)
   {
-    auto norm = Renaming::normalize(key, VarBank::RESULT_BANK);
+    CALL("SubstitutionTree::handleImpl");
+    auto norm = Renaming::normalize(key, NORM_RESULT_BANK);
     Recycled<BindingMap> bindings;
     setSort(key, ld);
     createBindings(norm, /* reversed */ false,
@@ -1212,6 +1213,11 @@ public:
     InstanceCntr _iterCntr;
   };
 
+  // currently, the iterator makes use of RobSubstitutionTL
+  // so tree unification cannot involve termspecs, only TermLists
+  // This has a minor performance drawback, so what should be done
+  // is to template this Iterator with a substitution to allow it to be
+  // use with either RobSubstitutionTL or RobSubstitutionTS (or any other substitution)
   template<class UnificationAlgorithm>
   class UnificationsIterator final
   : public IteratorCore<QueryResultIter>
@@ -1245,7 +1251,7 @@ public:
         return;
       }
 
-      query = ToBank(VarBank::QUERY_BANK).toBank(query);
+      query = ToBank(QUERY_BANK).toBank(query);
 
       parent->createBindings(query, reversed, 
           [&](unsigned var, TermList t) { _subst->bindSpecialVar(var, t); });
@@ -1311,7 +1317,7 @@ public:
         _subst->bdRecord(_clientBacktrackData);
         _clientBDRecording=true;
 
-        _subst->denormalize(normalizer,VarBank::NORM_RESULT_BANK,VarBank::RESULT_BANK);
+        _subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
       }
 
       // postprocess in the leaf
@@ -1322,7 +1328,7 @@ public:
       SubstIterator substs = _algo.postprocess(&*_subst);
       return pvi(iterTraits(substs).map([ld](RobSubstitutionTL* subst){  
           return QueryResult(ld, 
-            ResultSubstitution::fromSubstitution(subst, VarBank::QUERY_BANK, VarBank::RESULT_BANK));
+            ResultSubstitution::fromSubstitution(subst,QUERY_BANK,RESULT_BANK));
         }));
     }
 

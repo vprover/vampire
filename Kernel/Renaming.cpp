@@ -36,7 +36,8 @@ Literal* Renaming::apply(Literal* lit)
 {
   CALL("Renaming::apply(Literal*...)");
 
-  if(identity()) {
+  if((identity() && _bank == DEFAULT_BANK) || 
+     (lit->shared()  && lit->ground())) {
     return lit;
   }
   Applicator a(this);
@@ -47,7 +48,8 @@ Term* Renaming::apply(Term* trm)
 {
   CALL("Renaming::apply(Term*...)");
 
-  if(identity()) {
+  if((identity() && _bank == DEFAULT_BANK) || 
+     (trm->shared()  && trm->ground())) {
     return trm;
   }
   Applicator a(this);
@@ -58,7 +60,8 @@ TermList Renaming::apply(TermList trm)
 {
   CALL("Renaming::apply(TermList...)");
 
-  if(identity()) {
+  if((identity() && _bank == DEFAULT_BANK) || 
+     (trm.isTerm() && trm.term()->shared() && trm.term()->ground())) {   
     return trm;
   }
   Applicator a(this);
