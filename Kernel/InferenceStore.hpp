@@ -100,7 +100,7 @@ private:
   DHMap<Unit*, Literal*> _splittingNameLiterals;
 
 
-  /** first is true for function symbols, second is symbol number */
+  /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
   typedef pair<SymbolType,unsigned> SymbolId;  
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;

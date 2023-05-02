@@ -688,14 +688,15 @@ protected:
     vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first) {
-	symsStr << env.signature->functionName(sym.second);
-      }
-      else {
-	symsStr << env.signature->predicateName(sym.second);
+      if (sym.first == SymbolType::FUNC ) {
+        symsStr << env.signature->functionName(sym.second);
+      } else if (sym.first == SymbolType::PRED){
+        symsStr << env.signature->predicateName(sym.second);
+      } else {
+        symsStr << env.signature->typeConName(sym.second);       
       }
       if (symIt.hasNext()) {
-	symsStr << ',';
+        symsStr << ',';
       }
     }
     return getNewSymbols(origin, symsStr.str());
@@ -876,7 +877,7 @@ protected:
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(PRED,nameLit->functor());
+    SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))

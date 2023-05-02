@@ -104,9 +104,9 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
     auto symPair = _introducedSkolemSyms.pop();
 
     if(symPair.first){
-      InferenceStore::instance()->recordIntroducedSymbol(res,TYPE_CON,symPair.second);
+      InferenceStore::instance()->recordIntroducedSymbol(res,SymbolType::TYPE_CON,symPair.second);
     } else {
-      InferenceStore::instance()->recordIntroducedSymbol(res,FUNC,symPair.second);
+      InferenceStore::instance()->recordIntroducedSymbol(res,SymbolType::FUNC,symPair.second);
     }
 
     if(unit->derivedFromGoal()){

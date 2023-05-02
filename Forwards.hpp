@@ -135,7 +135,7 @@ enum Color {
   COLOR_INVALID = 3u
 };
 
-enum SymbolType{FUNC, PRED, TYPE_CON};
+enum class SymbolType{FUNC, PRED, TYPE_CON};
 
 };
 
