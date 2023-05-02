@@ -144,8 +144,9 @@ Term* TermTransformer::transform(Term* term)
         transform(SortHelper::getEqualityArgumentSort(lit)));
     }
     return create<Literal> (term, argLst, _sharedResult);
+  } else if (term->isSort()){
+    return create<AtomicSort>(term, argLst, _sharedResult);
   }
-
   return create<Term>(term, argLst, _sharedResult);
 }
 
