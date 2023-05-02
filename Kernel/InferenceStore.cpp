@@ -95,13 +95,13 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, bool func, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number)
 {
   CALL("InferenceStore::recordIntroducedSymbol");
 
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  pStack->push(SymbolId(func,number));
+  pStack->push(SymbolId(st,number));
 }
 
 /**
@@ -876,7 +876,7 @@ protected:
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(false,nameLit->functor());
+    SymbolId nameSymbol = SymbolId(PRED,nameLit->functor());
     vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))

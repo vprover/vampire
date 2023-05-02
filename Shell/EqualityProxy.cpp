@@ -338,7 +338,7 @@ unsigned EqualityProxy::getProxyPredicate()
 
   _defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
-  InferenceStore::instance()->recordIntroducedSymbol(_defUnit, false, newPred);
+  InferenceStore::instance()->recordIntroducedSymbol(_defUnit, PRED, newPred);
   _proxyPredicate = newPred;
   _addedPred = true;
   return newPred;
