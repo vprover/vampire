@@ -324,10 +324,11 @@ public:
   bool matchArgs(Term* base,int baseIndex, Term* instance, int instanceIndex);
 
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
+  bool isUnbound(VarSpec v) const;
+
+  [[deprecated("todo remove me")]]
   bool isUnbound(unsigned var, int index) const
-  {
-    return isUnbound(VarSpec(var,index));
-  }
+  { return isUnbound(VarSpec(var,index)); }
   void reset()
   {
     _bank.reset();
@@ -383,6 +384,9 @@ public:
 
   RobSubstitution(RobSubstitution&& obj) = default;
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
+  TermSpec const& derefBound(TermSpec const& v) const;
+  TermSpec const& derefIntroducingNewVariables(VarSpec v) const;
+  VarSpec root(VarSpec v) const;
 private:
   TermList apply(TermSpec);
   friend class TermSpec;
@@ -393,14 +397,10 @@ private:
   static const int UNBOUND_INDEX;
   static const int SPECIAL_INDEX;
 
-  bool isUnbound(VarSpec v) const;
-  TermSpec const& deref(VarSpec v) const;
-  TermSpec const& derefBound(TermSpec const& v) const;
 
   void addToConstraints(const VarSpec& v1, const VarSpec& v2);
   void bind(const VarSpec& v, TermSpec b);
   void bindVar(const VarSpec& var, const VarSpec& to);
-  VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
   bool unify(TermSpec t1, TermSpec t2);
   bool occurs(VarSpec const& vs, TermSpec const& ts);

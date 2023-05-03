@@ -291,7 +291,7 @@ TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
  * UNBOUND_INDEX. This effectively names unbound variables apart from
  * any variables in the range of bound variables.
  */
-TermSpec const& RobSubstitution::deref(VarSpec v) const
+TermSpec const& RobSubstitution::derefIntroducingNewVariables(VarSpec v) const
 {
   CALL("RobSubstitution::deref");
   for(;;) {
@@ -343,6 +343,7 @@ VarSpec RobSubstitution::root(VarSpec v) const
 bool RobSubstitution::occurs(VarSpec const& toFind_, TermSpec const& ts_)
 {
   VarSpec toFind = root(toFind_);
+  ASS_EQ(toFind, toFind_)
   TermSpec ts = derefBound(ts_).clone();
   if(ts.isVar()) {
     return false;
@@ -621,104 +622,18 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   CALL("RobSubstitution::apply(TermList...)");
   // DBG(*this, ".apply(", TermSpec(trm, index), ")")
   
-  auto out = evalBottomUp<TermList>(AutoDerefTermSpec(TermSpec(trm, index), this), 
+  return evalBottomUp<TermList>(AutoDerefTermSpec(TermSpec(trm, index), this), 
       [&](auto& orig, TermList* args) -> TermList {
         TermList tout;
         if (orig.term.isVar()) {
           ASS(!orig.term.isOutputVar())
-          tout = TermList::var(deref(orig.term.varSpec()).varSpec().var);
+          tout = TermList::var(derefIntroducingNewVariables(orig.term.varSpec()).varSpec().var);
         } else {
           tout = TermList(orig.term.isSort() ? AtomicSort::create(orig.term.functor(), orig.term.nAllArgs(), args)
                                               : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
         }
         return tout;
       });
-  return out;
-
-  // TODO check the use of nilVS & memorization
-  // static Stack<TermList*> toDo(8);
-  // static Stack<int> toDoIndex(8);
-  // static Stack<Term*> terms(8);
-  // static Stack<VarSpec> termRefVars(8);
-  // static Stack<TermList> args(8);
-  // static DHMap<VarSpec, TermList, VarSpec::Hash1, VarSpec::Hash2> known;
-  //
-  // //is inserted into termRefVars, if respective
-  // //term in terms isn't referenced by any variable
-  // const VarSpec nilVS(-1,0);
-  //
-  // toDo.push(&trm);
-  // toDoIndex.push(index);
-  //
-  // while(!toDo.isEmpty()) {
-  //   TermList* tt=toDo.pop();
-  //   index=toDoIndex.pop();
-  //   if(tt->isEmpty()) {
-  //     Term* orig=terms.pop();
-  //     //here we assume, that stack is an array with
-  //     //second topmost element as &top()-1, third at
-  //     //&top()-2, etc...
-  //     TermList* argLst=&args.top() - (orig->arity()-1);
-  //     args.truncate(args.length() - orig->arity());
-  //     TermList constructed;
-  //     if(orig->isSort()){
-  //       constructed.setTerm(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst));                
-  //     } else {
-  //       constructed.setTerm(Term::create(orig,argLst));        
-  //     }
-  //     args.push(constructed);
-  //
-  //     VarSpec ref=termRefVars.pop();
-  //     if(ref!=nilVS) {
-  //       ALWAYS(known.insert(ref,constructed));
-  //     }
-  //     continue;
-  //   } else {
-  //     //if tt==&trm, we're dealing with the top
-  //     //term, for which the next() is undefined
-  //     if(tt!=&trm) {
-  //       toDo.push(tt->next());
-  //       toDoIndex.push(index);
-  //     }
-  //   }
-  //
-  //   TermSpec ts(*tt,index);
-  //
-  //   VarSpec vs;
-  //   if(ts.isVar()) {
-  //     vs=root(ts.varSpec() );
-  //
-  //     TermList found;
-  //     if(known.find(vs, found)) {
-  //       args.push(found);
-  //       continue;
-  //     }
-  //
-  //     ts=deref(vs);
-  //     if(ts.isVar()) {
-  //       ASS(ts.isOutputVar());
-  //       args.push(ts.term);
-  //       continue;
-  //     }
-  //   } else {
-  //     vs=nilVS;
-  //   }
-  //   Term* t = ts.term.term();
-  //   if(t->shared() && t->ground()) {
-  //     args.push(TermList(t));
-  //     continue;
-  //   }
-  //   terms.push(t);
-  //   termRefVars.push(vs);
-  //
-  //   toDo.push(t->args());
-  //   toDoIndex.push(ts.index);
-  // }
-  // ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
-  // known.reset();
-  //
-  //
-  // return args.pop();
 }
 
 TermList RobSubstitution::apply(TermSpec t) 
