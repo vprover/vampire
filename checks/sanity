@@ -51,6 +51,10 @@ check_smtcomp_status() {
 # Some simple problems: fail early!
 check_szs_status Theorem Problems/PUZ/PUZ001+1.p
 
+# simple polymorphic problems
+check_szs_status Theorem Problems/PUZ/PUZ001+1.p
+check_szs_status Theorem Problems/LCL/LCL840_5.p
+
 # Unsat core problems
 check_smtcomp_status unsat --mode smtcomp ucore/test1.smt2
 check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.smt2
