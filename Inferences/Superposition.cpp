@@ -123,11 +123,6 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   CALL("Superposition::generateClauses");
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
-  //cout << "SUPERPOSITION with " << premise->toString() << endl;
-
-  //TODO probably shouldn't go here!
-  static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
