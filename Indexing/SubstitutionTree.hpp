@@ -71,140 +71,7 @@ using namespace Kernel;
 
 namespace Indexing {
 
-  namespace UnificationAlgorithms {
-    class RobUnification { 
-      Recycled<RobSubstitution> _subs;
-    public:
-      RobUnification() : _subs() {}
-      using Unifier = ResultSubstitutionSP; 
-
-      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-      {
-        CALL("SubstitutionTree::UnificationsIterator::associate");
-        TermList query(specialVar, /* special */ true);
-        return _subs->unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
-      }
-
-
-      Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
-
-      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
-      { _subs->bindSpecialVar(var, term, varBank); }
-
-      void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
-      void bdDone() { _subs->bdDone(); }
-
-      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
-      { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
-
-      TermList::Top getSpecialVarTop(unsigned svar) 
-      { return _subs->getSpecialVarTop(svar); }
-
-      bool usesUwa() const { return false; }
-    };
-
-    class UnificationWithAbstraction { 
-      AbstractingUnifier _unif;
-    public:
-      UnificationWithAbstraction(MismatchHandler handler) : _unif(AbstractingUnifier::empty(handler)) {}
-      using Unifier = AbstractingUnifier*;
-
-      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-      {
-        // CALL("SubstitutionTree::UnificationsIterator::associate");
-        TermList query(specialVar, /* special */ true);
-        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
-      }
-
-      Unifier unifier()
-      { return &_unif; }
-
-      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
-      { _unif.subs().bindSpecialVar(var, term, varBank); }
-
-      void bdRecord(BacktrackData& bd)
-      { _unif.subs().bdRecord(bd); }
-
-      void bdDone()
-      { _unif.subs().bdDone(); }
-
-      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
-      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
-
-      TermList::Top getSpecialVarTop(unsigned svar)
-      { return _unif.subs().getSpecialVarTop(svar); }
-
-      bool usesUwa() const
-      { return _unif.usesUwa(); }
-    };
-
-    class UnificationWithAbstractionWithPostprocessing 
-    { 
-      AbstractingUnifier _unif;
-      Option<bool> _fpRes;
-    public:
-      class NotFinalized { 
-        AbstractingUnifier* _unif; 
-        Option<bool>* _result;
-      public:
-        explicit NotFinalized(AbstractingUnifier* unif, Option<bool>* result) 
-          : _unif(unif)
-          , _result(result) 
-        { }
-
-        Option<AbstractingUnifier*> fixedPointIteration() 
-        {
-          if (_result->isNone()) {
-            *_result = some(bool(_unif->fixedPointIteration()));
-            if (_unif->isRecording()) {
-              _unif->bdGet().addClosure([res = _result]() { *res = {}; });
-            }
-          }
-          return someIf(**_result, [&](){ return _unif;  });
-        }
-
-        friend std::ostream& operator<<(std::ostream& out, NotFinalized const& self)
-        { return out << *self._unif << " (fixedPointIteration: " << *self._result << " )"; }
-      };
-
-      using Unifier = NotFinalized;
-
-      UnificationWithAbstractionWithPostprocessing(MismatchHandler handler) 
-        : _unif(AbstractingUnifier::empty(handler)) 
-        , _fpRes()
-      {}
-
-      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-      {
-        // CALL("SubstitutionTree::UnificationsIterator::associate");
-        TermList query(specialVar, /* special */ true);
-        return _unif.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
-      }
-
-      Unifier unifier()
-      { return NotFinalized(&_unif, &_fpRes); }
-
-      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
-      { _unif.subs().bindSpecialVar(var, term, varBank); }
-
-      void bdRecord(BacktrackData& bd)
-      { _unif.subs().bdRecord(bd); }
-
-      void bdDone()
-      { _unif.subs().bdDone(); }
-
-      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
-      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
-
-      TermList::Top getSpecialVarTop(unsigned svar)
-      { return _unif.subs().getSpecialVarTop(svar); }
-
-      bool usesUwa() const
-      { return _unif.usesUwa(); }
-    };
-  };
-
-
+  
 class SubstitutionTree;
 std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
@@ -1444,41 +1311,6 @@ public:
     }
 
   private:
-    // bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
-    // {
-    //   CALL("SubstitutionTree::UnificationsIterator::associate");
-    //   TermList query(specialVar, /* special */ true);
-    //   return _abstractingUnifier.unify(query, QUERY_BANK, node, NORM_RESULT_BANK);
-    // }
-
-    NodeIterator getNodeIterator(IntermediateNode* n)
-    {
-      CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
-
-      // TODO rename usesUwa to something more self explanatory
-      if (_algo.usesUwa()) {
-        return n->allChildren();
-      }
-
-      unsigned specVar=n->childVar;
-      // TermList qt = _abstractingUnifier.subs().getSpecialVarTop(specVar);
-      // TODO should this function really be part of algo?
-      auto top = _algo.getSpecialVarTop(specVar);
-      if(top.var()) {
-        return n->allChildren();
-      } else {
-        Node** match=n->childByTop(top, false);
-        if(match) {
-          return pvi( 
-            getConcatenatedIterator(
-         getSingletonIterator(match),
-         n->variableChildren() 
-           ));
-        } else {
-          return n->variableChildren();
-        }
-      }
-    }
 
     bool findNextLeaf()
     {
@@ -1540,6 +1372,7 @@ public:
         recording=true;
         _algo.bdRecord(bd);
         success = _algo.associate(_svStack->top(),n->term,bd);
+        
       }
       if(success) {
         if(n->isLeaf()) {
@@ -1548,7 +1381,8 @@ public:
         } else {
           IntermediateNode* inode=static_cast<IntermediateNode*>(n);
           _svStack->push(inode->childVar);
-          backtrackablePush(*_nodeIterators, getNodeIterator(inode), bd);
+          
+          backtrackablePush(*_nodeIterators, _algo.selectPotentiallyUnifiableChildren(inode), bd);
         }
       }
       if(recording) {
@@ -1583,6 +1417,146 @@ public:
 
   Cntr _iterCnt;
 }; // class SubstiutionTree
+
+namespace UnificationAlgorithms {
+    class RobUnification { 
+      Recycled<RobSubstitution> _subs;
+    public:
+      RobUnification() : _subs() {}
+      using Unifier = ResultSubstitutionSP; 
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      { return _subs->unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
+
+
+      Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _subs->bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+      void bdDone() { _subs->bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+
+      /** 
+       * Returns an iterator over all child nodes of n that should be attempted for unification.
+       * This is only an optimization. One could allways return n->allChildren(), but in the case 
+       * of syntactic unificaiton we can use SkipList (i.e. n->childByTop(...)) in order to skip 
+       * unnecessary unification attempts.
+       */
+      SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
+      {
+        unsigned specVar=n->childVar;
+        auto top = _subs->getSpecialVarTop(specVar);
+        if(top.var()) {
+          return n->allChildren();
+        } else {
+          SubstitutionTree::Node** match = n->childByTop(top, /* canCreate */ false);
+          if(match) {
+            return pvi(concatIters(
+                         getSingletonIterator(match),
+                         n->variableChildren()));
+          } else {
+            return n->variableChildren();
+          }
+        }
+      }
+    };
+
+    class UnificationWithAbstraction { 
+      AbstractingUnifier _unif;
+    public:
+      UnificationWithAbstraction(MismatchHandler handler) : _unif(AbstractingUnifier::empty(handler)) {}
+      using Unifier = AbstractingUnifier*;
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      { return _unif.unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
+
+      Unifier unifier()
+      { return &_unif; }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _unif.subs().bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd)
+      { _unif.subs().bdRecord(bd); }
+
+      void bdDone()
+      { _unif.subs().bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+      static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
+      {
+        // TODO we could optimize this potentially, to skip children with not matching uninterpreted symbols
+        return n->allChildren();
+      }
+    };
+
+    class UnificationWithAbstractionWithPostprocessing 
+    { 
+      AbstractingUnifier _unif;
+      Option<bool> _fpRes;
+    public:
+      class NotFinalized { 
+        AbstractingUnifier* _unif; 
+        Option<bool>* _result;
+      public:
+        explicit NotFinalized(AbstractingUnifier* unif, Option<bool>* result) 
+          : _unif(unif)
+          , _result(result) 
+        { }
+
+        Option<AbstractingUnifier*> fixedPointIteration() 
+        {
+          if (_result->isNone()) {
+            *_result = some(bool(_unif->fixedPointIteration()));
+            if (_unif->isRecording()) {
+              _unif->bdGet().addClosure([res = _result]() { *res = {}; });
+            }
+          }
+          return someIf(**_result, [&](){ return _unif;  });
+        }
+
+        friend std::ostream& operator<<(std::ostream& out, NotFinalized const& self)
+        { return out << *self._unif << " (fixedPointIteration: " << *self._result << " )"; }
+      };
+
+      using Unifier = NotFinalized;
+
+      UnificationWithAbstractionWithPostprocessing(MismatchHandler handler) 
+        : _unif(AbstractingUnifier::empty(handler)) 
+        , _fpRes()
+      {}
+
+      bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+      { return _unif.unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
+
+      Unifier unifier()
+      { return NotFinalized(&_unif, &_fpRes); }
+
+      void bindQuerySpecialVar(unsigned var, TermList term, unsigned varBank)
+      { _unif.subs().bindSpecialVar(var, term, varBank); }
+
+      void bdRecord(BacktrackData& bd)
+      { _unif.subs().bdRecord(bd); }
+
+      void bdDone()
+      { _unif.subs().bdDone(); }
+
+      void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+      { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+
+      static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
+      { return UnificationWithAbstraction::selectPotentiallyUnifiableChildren(n); }
+    };
+  };
+
 
 template<> 
 struct SubtitutionTreeConfig<Literal*> 
