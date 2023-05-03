@@ -1304,7 +1304,7 @@
             _algo.bdRecord(_clientBacktrackData);
             _clientBDRecording=true;
 
-            _algo.denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
+            _algo.denormalize(normalizer);
         }
 
         return queryResult(ld, _algo.unifier());
@@ -1437,7 +1437,7 @@
         void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
         void bdDone() { _subs->bdDone(); }
 
-        void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+        void denormalize(Renaming& norm)
         { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
 
@@ -1487,7 +1487,7 @@
         void bdDone()
         { _unif.subs().bdDone(); }
 
-        void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+        void denormalize(Renaming& norm)
         { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
         static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
@@ -1548,7 +1548,7 @@
         void bdDone()
         { _unif.subs().bdDone(); }
 
-        void denormalize(Renaming& norm, unsigned NORM_RESULT_BANK,unsigned RESULT_BANK)
+        void denormalize(Renaming& norm)
         { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
 
