@@ -105,11 +105,11 @@ private:
   { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
 
   auto nopostproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
+  { return getResultIterator<Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
 
   auto postproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  { return iterTraits(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-    .filterMap([](TQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
+  { return iterTraits(getResultIterator<Iterator<RetrievalAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
+    .filterMap([](TQueryRes<RetrievalAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
         { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
 
 public:
@@ -125,7 +125,7 @@ public:
                                : pvi(nopostproUwa(t, uwa)); }
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
+  { return pvi(getResultIterator<Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
 
 };
 

@@ -1208,17 +1208,31 @@
       InstanceCntr _iterCntr;
     };
 
-    template<class UnificationAlgorithm>
-    class UnificationsIterator final
+    /** * A generic iterator over a substitution tree that can be used to retrieve elements stored in the tree that match a certain retrieval condition R.
+     * The most simple retrieval condition would be `R(x) <=> x unifies with query`.
+     * Similarly we could have retrieval conditions that, find instances, generalizations, unification with 
+     * abstraction etc. 
+     * 
+     * The retrieval condition is computed by objects of the type RetrievalAlgorithm. All commonly used ones can be 
+     * found in Indexing::RetrievalAlgorithms, which also documents the interface of these objects. 
+     *
+     * Notes:
+     * - currently instantiation and generalization don't use this generic approach, but the optimized iterators
+     *   `Fast*Iterator`, which we hopefully can refactor away in the future without any loss in performance.
+     * - We do not use subtyping but parametric polymorphism for them, as subtyping polymorphsim would require us to 
+     *   have the same element type for all of them, which is not what we want.
+     */
+    template<class RetrievalAlgorithm>
+    class Iterator final
     {
     public:
-      UnificationsIterator(UnificationsIterator&&) = default;
-      UnificationsIterator& operator=(UnificationsIterator&&) = default;
-      using Unifier = typename UnificationAlgorithm::Unifier;
+      Iterator(Iterator&&) = default;
+      Iterator& operator=(Iterator&&) = default;
+      using Unifier = typename RetrievalAlgorithm::Unifier;
       DECL_ELEMENT_TYPE(QueryResult<Unifier>);
 
       template<class TermOrLit, class...AlgoArgs>
-      UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
+      Iterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
         : _algo(std::move(args)...)
         , _svStack()
         , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
@@ -1234,7 +1248,7 @@
 #endif
       {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
-        CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
+        CALL("SubstitutionTree::Iterator::Iterator");
 
         if(!root) {
           return;
@@ -1251,7 +1265,7 @@
       }
 
 
-      ~UnificationsIterator()
+      ~Iterator()
       {
         if(_clientBDRecording) {
           _algo.bdDone();
@@ -1266,7 +1280,7 @@
 
       bool hasNext()
       {
-        CALL("SubstitutionTree::UnificationsIterator::hasNext");
+        CALL("SubstitutionTree::Iterator::hasNext");
 
         if(_clientBDRecording) {
           _algo.bdDone();
@@ -1280,7 +1294,7 @@
 
       QueryResult<Unifier> next()
       {
-        CALL("SubstitutionTree::UnificationsIterator::next");
+        CALL("SubstitutionTree::Iterator::next");
 
         while(!_ldIterator.hasNext() && findNextLeaf()) {}
         ASS(_ldIterator.hasNext());
@@ -1314,7 +1328,7 @@
 
       bool findNextLeaf()
       {
-        CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
+        CALL("SubstitutionTree::Iterator::findNextLeaf");
 
         if(_nodeIterators->isEmpty()) {
           //There are no node iterators in the stack, so there's nowhere
@@ -1362,7 +1376,7 @@
 
       bool enter(Node* n, BacktrackData& bd)
       {
-        CALL("SubstitutionTree::UnificationsIterator::enter");
+        CALL("SubstitutionTree::Iterator::enter");
 
         bool success=true;
         bool recording=false;
@@ -1392,7 +1406,7 @@
       }
 
 
-      UnificationAlgorithm _algo;
+      RetrievalAlgorithm _algo;
       Recycled<VarStack> _svStack;
       bool _literalRetrieval;
       bool _retrieveSubstitution;
@@ -1418,7 +1432,7 @@
     Cntr _iterCnt;
   }; // class SubstiutionTree
 
-  namespace UnificationAlgorithms {
+  namespace RetrievalAlgorithms {
       class RobUnification { 
         Recycled<RobSubstitution> _subs;
       public:
@@ -1573,9 +1587,6 @@
     { return ld.term;  }
   };
 
-
-
-  using RobUnificationsIterator = SubstitutionTree::UnificationsIterator<UnificationAlgorithms::RobUnification>;
 
 
 } // namespace Indexing
