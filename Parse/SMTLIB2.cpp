@@ -1964,8 +1964,8 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp,bool isSort)
   ASS(sym.second != SymbolType::TYPECON || isSort);
 
   unsigned symbIdx = sym.first;
-  Signature::Symbol* symbol;
-  OperatorType* type;
+  Signature::Symbol* symbol = nullptr;
+  OperatorType* type = nullptr;
   switch (sym.second)
   {
   case SymbolType::FUNCTION: {
@@ -2950,8 +2950,8 @@ void SMTLIB2::colorSymbol(const vstring& name, Color color)
   DeclaredSymbol& s = _declaredSymbols.get(name);
 
   env.colorUsed = true;
-  
-  Signature::Symbol* sym;
+
+  Signature::Symbol* sym = nullptr;
   switch (s.second)
   {
   case SymbolType::FUNCTION: {
