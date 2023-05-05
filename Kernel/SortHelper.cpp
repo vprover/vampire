@@ -283,7 +283,7 @@ TermList SortHelper::getVariableSort(TermList var, Term* t)
   CALL("SortHelper::getVariableSort(TermList,Term*)");
 
   TermList res;
-  ALWAYS(tryGetVariableSort(var, t, res));
+  ALWAYS(tryGetVariableSortTerm(var, t, res, true));
   return res;
 }
 
@@ -316,7 +316,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
            return true;
          }
       }
-      if(tryGetVariableSort(varTerm, lit, res)){
+      if(tryGetVariableSortTerm(varTerm, lit, res, false)){
         return true;
       }
     }
@@ -328,7 +328,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
       }
       if(stt.isTerm()){
         Term* st = stt.term();
-        if(tryGetVariableSort(varTerm,st,res)){
+        if(tryGetVariableSortTerm(varTerm,st,res, false)){
           return true;
         } 
       }
@@ -815,10 +815,14 @@ void SortHelper::normaliseSort(TermStack qVars, TermList& sort)
  * sort and return true. Otherwise return false.
  * @since 04/05/2013 Manchester, new NonVariableIterator is used
  * @author Andrei Voronkov
+ *
+ * MS: Note that tryGetVariableSortTerm is typically called by tryGetVariableSort(unsigned,Formula*,unsigned&) which
+ *   traverses all subformulas, including those in special terms! If those invocations of tryGetVariableSortTerm
+ *   would again go after these subformulas, nested useless calls could arise.
  */
-bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
+bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result, bool recurseToSubformulas)
 {
-  CALL("SortHelper::tryGetVariableSort");
+  CALL("SortHelper::tryGetVariableSortTerm");
   ASS(var.isVar());
 
   NonVariableIterator sit(t0,true);
@@ -834,7 +838,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
           result = sym->fnType()->result();
           return true;
         }
-      } else if(tryGetVariableSort(var,binding.term(),result)){
+      } else if(tryGetVariableSortTerm(var,binding.term(),result,recurseToSubformulas)){
         return true;
       }
 
@@ -847,7 +851,12 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       continue;
     }
     if (t->isITE()) {
-      // if its in the condition, it is in a subformula to be iterated over by tryGetVariableSort(unsigned var, Formula* f, ...
+      if (recurseToSubformulas) {
+        Formula* f = t->getSpecialData()->getCondition();
+        if(tryGetVariableSort(var.var(), f, result)){
+          return true;
+        }
+      }
       ASS_EQ(t->arity(),2);
       if (*t->nthArgument(0) == var || *t->nthArgument(1) == var) {
         result = t->getSpecialData()->getSort();
@@ -855,7 +864,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       }
       continue;
     }
-    if(t->isFormula()){
+    if(t->isFormula() && recurseToSubformulas){
       Formula* f = t->getSpecialData()->getFormula();
       if(tryGetVariableSort(var.var(), f, result)){
         return true;
@@ -866,7 +875,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       TermList lambdaTerm = t->getSpecialData()->getLambdaExp();
 
       if(lambdaTerm.isTerm()){
-        if(tryGetVariableSort(var, lambdaTerm.term(),result)){
+        if(tryGetVariableSortTerm(var, lambdaTerm.term(),result,recurseToSubformulas)){
           return true;
         }
       } else {

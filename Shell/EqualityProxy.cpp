@@ -227,7 +227,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   for (unsigned i = 1; i < preds; i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
     unsigned arity = predSym->arity();
-    if (predSym->equalityProxy() || predSym->arity() == 0) {
+    if (predSym->equalityProxy() || predSym->answerPredicate() || predSym->arity() == 0) {
       continue;
     }
     getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType());
@@ -338,7 +338,7 @@ unsigned EqualityProxy::getProxyPredicate()
 
   _defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
-  InferenceStore::instance()->recordIntroducedSymbol(_defUnit, false, newPred);
+  InferenceStore::instance()->recordIntroducedSymbol(_defUnit, SymbolType::PRED, newPred);
   _proxyPredicate = newPred;
   _addedPred = true;
   return newPred;

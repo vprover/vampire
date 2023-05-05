@@ -122,7 +122,7 @@ bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
         continue;
       }
 
-      bool toplevelCheck = salg->getOptions().demodulationRedundancyCheck() &&
+      bool toplevelCheck = salg->getOptions().demodulationRedundancyCheck()!=Options::DemodulationRedunancyCheck::OFF &&
         lit->isEquality() && (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
       auto git = salg->getFunctionDefinitionHandler()->getGeneralizations(trm);
@@ -188,6 +188,7 @@ Clause *FnDefRewriting::perform(
     tgtTermS = subst->applyToBoundResult(tgtTerm);
   }
 
+  // update this to latest encompassment-considering version
   if (toplevelCheck) {
     Ordering& ordering = salg->getOrdering();
     TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);

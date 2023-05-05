@@ -65,7 +65,6 @@ unsigned TermAlgebraConstructor::discriminator()
   if (hasDiscriminator()) {
     return _discriminator;
   } else {
-    auto sym = env.signature->getFunction(functor());
     auto discr = env.signature->addFreshPredicate(numTypeArguments()+1, discriminatorName().c_str());
     env.signature->getPredicate(discr)->setType(OperatorType::getPredicateType({_type->result()},numTypeArguments()));
      _hasDiscriminator = true;

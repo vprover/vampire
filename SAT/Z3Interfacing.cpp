@@ -610,6 +610,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
     vstring typePostfix = "$";
     ta->getTypeSub(taSortT, typeSubst);
     for(unsigned i = 0; i < taSortT->arity(); i++) {
+      // MS: Is it OK not to use any separator here?
       typePostfix += taSortT->nthArgument(i)->toString();
     }
     Stack<Z3_constructor> ctors(ta->nConstructors());
