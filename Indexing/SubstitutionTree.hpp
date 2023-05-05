@@ -1385,7 +1385,7 @@
 
           recording=true;
           _algo.bdRecord(bd);
-          success = _algo.associate(_svStack->top(),n->term,bd);
+          success = _algo.associate(_svStack->top(),n->term);
           
         }
         if(success) {
@@ -1473,7 +1473,7 @@
          * terms. 
          * Matching them up again is done by the function denormalize.
          */
-        bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+        bool associate(unsigned specialVar, TermList node)
         { return _subs->unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
 
 
@@ -1522,7 +1522,7 @@
         UnificationWithAbstraction(MismatchHandler handler) : _unif(AbstractingUnifier::empty(handler)) {}
         using Unifier = AbstractingUnifier*;
 
-        bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+        bool associate(unsigned specialVar, TermList node)
         { return _unif.unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
 
         Unifier unifier()
@@ -1583,7 +1583,7 @@
           , _fpRes()
         {}
 
-        bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
+        bool associate(unsigned specialVar, TermList node)
         { return _unif.unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
 
         Unifier unifier()
