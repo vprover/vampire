@@ -410,7 +410,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             CollectTask newTask;
 
             newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            newTask.contextSort = sd->getSort();
 
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
@@ -430,30 +430,36 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
             Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
                                                     : env.signature->getFunction(sd->getFunctor());
-            unsigned position = 0;
             VList::Iterator vit(sd->getVariables());
-            while (vit.hasNext()) {
-              unsigned var = vit.next();
-              TermList sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
+            Substitution subst;
+            auto type = isPredicate ? symbol->predType() : symbol->fnType();
+            for (unsigned i = 0; i < type->arity(); i++) {
+              ASS(vit.hasNext());
+              auto var = vit.next();
+              TermList sort = AtomicSort::superSort();
+              if (i < type->numTypeArguments()) {
+                subst.bind(type->quantifiedVar(i).var(), TermList(var, false));
+              } else {
+                sort = SubstHelper::apply(type->arg(i),subst);
+              }
               if (!ignoreBound || !bound.get(var)) {
                 if (!map.insert(var, sort)) {
                   ASS_EQ(sort, map.get(var));
                 }
               }
-              position++;
             }
 
             CollectTask newTask;
 
             newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            newTask.contextSort = sd->getSort();
 
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
 
             newTask.ts = binding;
             if (!isPredicate) {
-              newTask.contextSort = symbol->fnType()->result();
+              newTask.contextSort = SubstHelper::apply(type->result(),subst);
             }
             todo.push(newTask);
 
@@ -463,14 +469,32 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           case Term::SF_LET_TUPLE: {
             TermList binding = sd->getBinding();
             Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
+            Substitution subst;
+            VList::Iterator vit(sd->getTupleSymbols());
+            auto type = symbol->fnType();
+            for (unsigned i = 0; i < type->arity(); i++) {
+              ASS(vit.hasNext());
+              auto var = vit.next();
+              TermList sort = AtomicSort::superSort();
+              if (i < type->numTypeArguments()) {
+                subst.bind(type->quantifiedVar(i).var(), TermList(var, false));
+              } else {
+                sort = SubstHelper::apply(type->arg(i),subst);
+              }
+              if (!ignoreBound || !bound.get(var)) {
+                if (!map.insert(var, sort)) {
+                  ASS_EQ(sort, map.get(var));
+                }
+              }
+            }
 
             CollectTask newTask;
             newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            newTask.contextSort = sd->getSort();
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
 
-            newTask.contextSort = symbol->fnType()->result();
+            newTask.contextSort = SubstHelper::apply(type->result(),subst);
             newTask.ts = binding;
             todo.push(newTask);
 
@@ -516,7 +540,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
               todo.push(newTask);
 
               newTask.ts = *term->nthArgument(i + 1);
-              newTask.contextSort = task.contextSort;
+              newTask.contextSort = sd->getSort();
               todo.push(newTask);
             }
             break;
@@ -668,7 +692,11 @@ void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
   CALL("SortHelper::collectVariableSorts(Term*,...)");
 
   CollectTask t;
-  t.fncTag = COLLECT_TERM;
+  if (term->isSpecial()) {
+    t.fncTag = COLLECT_SPECIALTERM;
+  } else {
+    t.fncTag = COLLECT_TERM;
+  }
   t.t = term;
 
   collectVariableSortsIter(t,map);

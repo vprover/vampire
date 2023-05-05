@@ -204,7 +204,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       ASS(tl.isTerm());
       Term* t = tl.term();
       if (InductionHelper::isInductionTermFunctor(t->functor()) &&
-          InductionHelper::isStructInductionFunctor(t->functor())) {
+          InductionHelper::isStructInductionTerm(t)) {
         if (adding) {
           _is->insert(TypedTermList(t), lit, c);
         } else {

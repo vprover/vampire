@@ -291,7 +291,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
-          sd->getSort()
+    applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
     );
     case Term::SF_LET:
       return Term::createLet(
