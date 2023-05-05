@@ -1955,14 +1955,13 @@ public:
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
   { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), std::move(f)))); }
 
-<<<<<<< HEAD
   auto flatten()
   { return iterTraits(getFlattenedIterator(std::move(_iter))); }
 
   template<class Pred>
   auto takeWhile(Pred p)
   { return iterTraits(TakeWhileIter<Iter, Pred>(std::move(_iter), std::move(p))); }
-=======
+
   auto unique()
   { 
     Map<OWN_ELEMENT_TYPE, std::tuple<>> found;
@@ -1982,10 +1981,6 @@ public:
     auto stack = collect<Stack>();
     return iterTraits(ownedArrayishIterator(std::move(stack)));
   }
-
-
-
->>>>>>> joe-substitution-tree-refactor
 
   /** 
    * returns the first minimal element wrt the function `less` 

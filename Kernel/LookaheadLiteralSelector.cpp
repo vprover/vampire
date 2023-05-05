@@ -153,7 +153,7 @@ private:
     TermUnificationRetriever(TermIndex* index) : _index(index) {}
     VirtualIterator<tuple<>> operator()(TypedTermList trm)
     {
-      return pvi( dropElementType(_index->getUnifications(trm),false)) );
+      return pvi(dropElementType(_index->getUnifications(trm, /* retrieveSubst */ false)));
     }
   private:
     TermIndex* _index;
