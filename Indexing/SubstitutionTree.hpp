@@ -1432,28 +1432,64 @@
     Cntr _iterCnt;
   }; // class SubstiutionTree
 
+  /* This namespace defines classes to be used as type parameter for SubstitutionTree::Iterator. 
+   * 
+   * They implement different retrieval operations, which determine which elements from the tree shall 
+   * be returned.  The most classic retrieval operations are retrieving all key terms that unify with 
+   * a query term, or that a generalization/instance of a query term.
+   *
+   * The only non-classic one implemented currently is UnificaitonWithAbstraction, but one could also think 
+   * of implementing finding variable variants, equal terms (modulo some theory), etc using the same interface.
+   *
+   * The interface all RetrievalAlgorithms must conform to is documented at the example of class RobUnification.
+   * Retrieval from a SubstitutionTree is preformed incrementally. We start first by inserting some query terms. 
+   * This is done by Algorithm::bindQuerySpecialVar.
+   *
+   */ 
   namespace RetrievalAlgorithms {
+
       class RobUnification { 
         Recycled<RobSubstitution> _subs;
       public:
         RobUnification() : _subs() {}
-        using Unifier = ResultSubstitutionSP; 
+        /** a witness that the returned term matches the retrieval condition 
+         * (could be a substitution, variable renaming, etc.) 
+         */
+        using Unifier = ResultSubstitutionSP;  
+        
+        /** before starting to retrieve terms from the tree we insert some query terms, which we are going to 
+         *  match the terms in the tree with. This is done using this function. */
+        void bindQuerySpecialVar(unsigned var, TermList term)
+        { _subs->bindSpecialVar(var, term, QUERY_BANK); }
 
+        /** we intrementally traverse the tree, and at every code we call this retrieval algorithm to check 
+         * whether it is okay to bind a new special variable to some term in the tree.
+         * This function returns true if the retrieval condition (like in this case unifyability) can still 
+         * be achieved, or false if not. Depending on that the iterator will backtrack or continue to traverse 
+         * deeper into the tree.
+         *
+         * On insert into a substitution tree the inserted terms are first normalized (the names of the variables)
+         * Therefore the namespace of the variables passed here is different from the ones of the actually inserted 
+         * terms. 
+         * Matching them up again is done by the function denormalize.
+         */
         bool associate(unsigned specialVar, TermList node, BacktrackData& bd)
         { return _subs->unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
 
 
-        Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
-
-        void bindQuerySpecialVar(unsigned var, TermList term)
-        { _subs->bindSpecialVar(var, term, QUERY_BANK); }
-
-        void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
-        void bdDone() { _subs->bdDone(); }
-
+        /** @see associate */
         void denormalize(Renaming& norm)
         { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
+        /** whenever we arrieve at a leave we return the currrent witness for the current leave term to unify
+         * with the query term. The unifier is queried using this function.  */
+        Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
+
+        /** same as in @Backtrackable */
+        void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+
+        /** same as in @Backtrackable */
+        void bdDone() { _subs->bdDone(); }
 
         /** 
          * Returns an iterator over all child nodes of n that should be attempted for unification.
