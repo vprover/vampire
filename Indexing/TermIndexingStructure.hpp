@@ -43,9 +43,9 @@ public:
 #if VDEBUG
   virtual void markTagged() = 0;
   virtual void output(std::ostream& output) const = 0;
-#endif
   friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self)
   { self.output(out); return out; }
+#endif // VDEBUG
 };
 
 
