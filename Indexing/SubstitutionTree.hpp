@@ -667,6 +667,7 @@ protected:
 
   /** Number of the next variable */
   int _nextVar;
+  Cntr _iterCnt;
 
   Node* _root;
 #if VDEBUG
@@ -1459,13 +1460,10 @@ public:
   };
 
 
-#if VDEBUG
 public:
   bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
-#endif
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
-  Cntr _iterCnt;
 }; // class SubstiutionTree
 
 template<> 

@@ -19,14 +19,17 @@
 #if VHOL
 
 #include "Forwards.hpp"
-#include "Lib/Backtrackable.hpp"
-#include "Lib/Recycled.hpp"
+
 #include "Term.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Kernel/RobSubstitution.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Backtrackable.hpp"
+#include "Lib/Recycled.hpp"
+
+#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
 
 namespace Kernel
@@ -39,7 +42,7 @@ namespace UnificationAlgorithms {
 
 class HOLUnification {
 
-  bool unifyTreeTerms(TermList t1, TermList t2, bool splittable, RobSubstitutionTL* sub);
+  bool unifyFirstOrderStructure(TermList t1, TermList t2, bool splittable, RobSubstitutionTL* sub);
 
   // TODO if we implement solid fragment, this will not work...
   enum OracleResult
@@ -52,6 +55,38 @@ class HOLUnification {
   OracleResult fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub);
 
   using UnificationConstraint = UnificationConstraint<TermList,VarBank>;
+
+  class HOLConstraint : public UnificationConstraint
+  {
+  private:
+    TermList _t1head;
+    TermList _t2head;
+  public:
+
+    HOLConstraint(){} // dummy constructor required for use in SkipList
+    HOLConstraint(TermList t1, TermList t2) : UnificationConstraint(t1,t2), 
+      _t1head(t1.head()), _t2head(t2.head()) {
+      ASS(!_t1head.isLambdaTerm() && !_t2head.isLambdaTerm()); // terms must be in whnf
+    }
+    CLASS_NAME(HOLConstraint)
+    USE_ALLOCATOR(HOLConstraint)
+
+    bool flexFlex()   const { return _t1head.isVar() && _t2head.isVar(); }
+    bool rigidRigid() const { return _t1head.isTerm() && _t2head.isTerm(); }
+    bool flexRigid()  const { return (_t1head.isVar() && !_t2head.isVar())  || (_t2head.isVar() && !_t1head.isVar()); }
+
+    TermList sort() const {
+      CALL("HOLConstraint::sort()");
+      ASS(lhs().isTerm() || rhs().isTerm());      
+      if(lhs().isTerm())
+      { return SortHelper::getResultSort(lhs().term()); }
+      return SortHelper::getResultSort(rhs().term());      
+    }
+
+    UnificationConstraint constraint() { return UnificationConstraint(lhs(),rhs()); }
+  };
+
+  class HigherOrderUnifiersIt;
 
 public:
   HOLUnification() { }

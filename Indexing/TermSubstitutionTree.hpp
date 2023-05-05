@@ -90,8 +90,9 @@ public:
 
 #if VDEBUG
   virtual void markTagged() override { _tree->markTagged();}
-  virtual void output(std::ostream& out) const final override { out << *this; }
 #endif
+
+  virtual void output(std::ostream& out) const final override { out << *this; }
 
 private:
   

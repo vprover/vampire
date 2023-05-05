@@ -53,8 +53,9 @@ public:
 
 #if VDEBUG
   virtual void markTagged(){ NOT_IMPLEMENTED; } 
-  virtual void output(std::ostream& out) const { out << "CodeTree"; }
 #endif
+
+  virtual void output(std::ostream& out) const { out << "CodeTree"; }
 
 private:
   class ResultIterator;

@@ -642,6 +642,23 @@ bool ApplicativeHelper::isBool(TermList t){
   return isTrue(t) || isFalse(t);
 }
 
+bool ApplicativeHelper::splittable(TermList t, bool topLevel){
+  CALL("ApplicativeHelper::splittable");
+
+  if(t.isVar()) return true;
+
+  ASS(!t.head().isLambdaTerm()); // assume t is in head normal form
+  if(t.isLambdaTerm() ||  t.head().isVar()) return false;
+
+  if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
+    auto sort = SortHelper::getResultSort(t.term());
+    if(sort.isArrowSort() || sort.isVar() || (sort.isBoolSort() && !topLevel)){
+      return false;
+    }
+  }
+  return true;
+}
+
 bool ApplicativeHelper::isTrue(TermList term){
   CALL("ApplicativeHelper::isTrue");
   return term.isTerm() && !term.term()->isSort() && env.signature->isFoolConstantSymbol(true, term.term()->functor());

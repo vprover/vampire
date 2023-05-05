@@ -264,8 +264,8 @@ start:
         toProcess.push(SubtermPair(l->nthArgument(0), true, r->nthArgument(0), true));
         toProcess.push(SubtermPair(l->nthArgument(1), true, r->nthArgument(1), true));
         toProcess.push(SubtermPair(l->nthArgument(2), true, r->nthArgument(2), true));
-        toProcess.push(SubtermPair(l->nthArgument(3), splittable((*l)[3]), 
-                                   r->nthArgument(3), splittable((*r)[3])));         
+        toProcess.push(SubtermPair(l->nthArgument(3), AH::splittable(lhs->nthArg(3)), 
+                                   r->nthArgument(3), AH::splittable(rhs->nthArg(3))));         
       } else {
         for (unsigned i = 0; i < l->arity(); i++) {
           toProcess.push(SubtermPair(l->nthArgument(i), true, r->nthArgument(i), true));       
@@ -373,7 +373,7 @@ void HOLSubstitutionTree::higherOrderRemove(HOLBindingMap& svBindings, LeafData 
         subterms.push(std::make_pair((*l)[0], Subterm((*r)[0], true)));
         subterms.push(std::make_pair((*l)[1], Subterm((*r)[1], true)));
         subterms.push(std::make_pair((*l)[2], Subterm((*r)[2], true)));
-        subterms.push(std::make_pair((*l)[3], Subterm((*r)[3], splittable((*r)[3]))));
+        subterms.push(std::make_pair((*l)[3], Subterm((*r)[3], AH::splittable((*r)[3]))));
       } else {
         ASS(l->arity() == r->arity());
         for (unsigned i = 0; i < l->arity(); i++) {

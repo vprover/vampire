@@ -2431,6 +2431,7 @@ public:
   HPrinting holPrinting() const { return _holPrinting.actualValue; }
   void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
   bool superposition() const {return _superposition.actualValue; }  
+  unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
 #endif
   // For unit testing
 
@@ -2873,6 +2874,7 @@ private:
   BoolOptionValue _lambdaFreeHol;
   BoolOptionValue _complexVarCondition;
   ChoiceOptionValue<HPrinting> _holPrinting;
+  UnsignedOptionValue _higherOrderUnifDepth;  
 #endif
 
 }; // class Options

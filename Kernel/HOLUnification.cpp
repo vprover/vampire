@@ -18,29 +18,170 @@
 #include "Kernel/HOLUnification.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
+#include "Lib/SkipList.hpp"
+
 namespace Kernel
 {
 
 namespace UnificationAlgorithms {
 
+class HOLUnification::HigherOrderUnifiersIt: public IteratorCore<RobSubstitutionTL*> {
+public:
+  HigherOrderUnifiersIt(RobSubstitutionTL* subst) :
+    _returnInitial(false),  _used(false), _subst(subst){
+    ASS(!_subst->bdIsRecording());
+    _subst->bdRecord(_initData);
+
+    // move constraints from to priority queue
+    // will be undone when hasNext() return false
+    while(!_subst->emptyConstraints()){
+      auto con = _subst->popConstraint();
+      TermList lhs = con.lhs();
+      TermList rhs = con.rhs();
+      lhs = lhs.whnfDeref(_subst);
+      rhs = rhs.whnfDeref(_subst);
+      auto higherOrderCon = HOLConstraint(lhs,rhs);
+      if(higherOrderCon.rigidRigid()){
+        // if one of the pairs is rigid rigid and is of functional sort
+        // don't do any higher-order unification. Instead let functional extensionality
+        // inferences such as ArgCong and NegExt do their thing
+        TermList sort = higherOrderCon.sort();
+        if(sort.isArrowSort() || sort.isOrdinaryVar()){
+          _returnInitial = true;
+          break;
+        }
+      }
+      addToUnifPairs(higherOrderCon,_initData);
+    }
+
+    _subst->bdDone();
+    if(_returnInitial){
+      _initData.backtrack();
+    }
+  }
+  
+  ~HigherOrderUnifiersIt() {
+    CALL("HOLUnification::HigherOrderUnifiersIt::~HigherOrderUnifiersIt");
+    ASS(_unifPairs.isEmpty());
+  }
+
+  bool hasNext() {
+    CALL("HOLUnification::HigherOrderUnifiersIt::hasNext");
+    
+    if(_returnInitial){
+      if(!_used){
+        _used = true;
+        return _used;
+      }
+      return false;
+    }
+
+    //dummy
+    return true;
+  }
+
+  RobSubstitutionTL* next() {
+    CALL("HOLUnification::HigherOrderUnifiersIt::next");
+
+    return _subst;
+  }
+
+  void addToUnifPairs(HOLConstraint con, BacktrackData& bd){
+    CALL("HigherOrderUnifiersIt::addToUnifPairs");
+
+    _unifPairs.insert(con);
+    bd.addClosure([&](){ _unifPairs.remove(con); });
+  }
+
+private:
+
+  class HOLCnstComp
+  {
+  public:
+    inline
+    static Comparison compare(const HOLConstraint& hc1, const HOLConstraint& hc2)
+    {
+      CALL("HOLUnification::HOLCnstComp::compare");
+
+      auto compareTerms = [](TermList t1, TermList t2){
+        if(t1.isVar()){
+          if(t2.isVar()){
+            return (t1.var() < t2.var()) ? LESS : (t1.var() > t2.var())? GREATER : EQUAL;
+          }
+          return LESS;
+        } else if(t2.isVar()){
+          return GREATER;
+        }
+        
+        unsigned id1 = t1.term()->getId();
+        unsigned id2 = t2.term()->getId();        
+
+        return (id1<id2)? LESS : (id1>id2)? GREATER : EQUAL;
+      };
+
+      if(hc1.rigidRigid() && !hc2.rigidRigid()){
+        return LESS;
+      } else if (hc2.rigidRigid() && !hc1.rigidRigid()){
+        return GREATER;
+      } else if (hc1.flexRigid() && hc2.flexFlex()){
+        return LESS;
+      } else if (hc2.flexRigid() && hc1.flexFlex()){
+        return GREATER;
+      } 
+     
+      auto res = compareTerms(hc1.lhs(), hc2.lhs());
+      if(res == EQUAL){
+        res = compareTerms(hc1.rhs(), hc2.rhs());
+      }
+      return res;
+    }
+  };
+
+  bool _returnInitial;
+  bool _used;
+  BacktrackData _initData;
+  SkipList<HOLConstraint,HOLCnstComp> _unifPairs;
+  RobSubstitutionTL* _subst;
+};
+
 SubstIterator HOLUnification::unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck)
 {
   CALL("HOLUnification::unifiers");
 
-  // TODO dummy implementation
-  return SubstIterator::getEmpty();
+  bool splittable = true;
+  if(!ApplicativeHelper::splittable(t1) || !ApplicativeHelper::splittable(t2)){
+    if(topLevelCheck) return SubstIterator::getEmpty();
+    splittable = false;
+  }
+
+  unifyFirstOrderStructure(t1,t2,splittable,sub);
+
+  unsigned depth = env.options->higherOrderUnifDepth();
+
+  if(!depth){
+    return pvi(getSingletonIterator(sub));
+  } else {
+    return vi(new HigherOrderUnifiersIt(sub));    
+  }
 }
 
 SubstIterator HOLUnification::postprocess(RobSubstitutionTL* sub)
 {
   CALL("HOLUnification::postprocess");
- 
+   
   // We could carry out a fix point iteration here
   // but it is slighly involved and I am not sure that it is worth it.
   // will leave for now.
 
-  // TODO dummy implementation
-  return pvi(getSingletonIterator(sub));
+  unsigned depth = env.options->higherOrderUnifDepth();
+  
+  if(!depth || sub->emptyConstraints()){
+    // if depth == 0, then we are unifying via dedicated inferences
+    // if there are no constraints, then first-order unification sufficed
+    return pvi(getSingletonIterator(sub));
+  } else {
+    return vi(new HigherOrderUnifiersIt(sub));    
+  }
 }
 
 bool HOLUnification::associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
@@ -48,12 +189,12 @@ bool HOLUnification::associate(unsigned specialVar, TermList node, bool splittab
   CALL("HOLUnification::associate");
 
   TermList query(specialVar, /* special */ true);
-  return unifyTreeTerms(query, node, splittable, sub);
+  return unifyFirstOrderStructure(query, node, splittable, sub);
 }
 
 
 // TODO consider adding a check for loose De Bruijn indices
-// see E prover code by petar /TERMS/cte_fixpoint_unif.c
+// see E prover code by Petar /TERMS/cte_fixpoint_unif.c
 #define DEBUG_FP_UNIFY(LVL, ...) if (LVL <= 1) DBG(__VA_ARGS__)
 HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub)
 {
@@ -117,9 +258,9 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermLis
 
 
 #define DEBUG_UNIFY(LVL, ...) if (LVL <= 2) DBG(__VA_ARGS__)
-bool HOLUnification::unifyTreeTerms(TermList t1, TermList t2, bool splittable, RobSubstitutionTL* sub)
+bool HOLUnification::unifyFirstOrderStructure(TermList t1, TermList t2, bool splittable, RobSubstitutionTL* sub)
 {
-  CALL("HOLUnification::unifyTreeTerms");
+  CALL("HOLUnification::unifyFirstOrderStructure");
 
   DEBUG_UNIFY(1, ".unify(", t1, ",", t2, (splittable ? "" : "{NS}"), ")")
   if(sub->sameTermContent(t1,t2)) {
@@ -136,13 +277,20 @@ bool HOLUnification::unifyTreeTerms(TermList t1, TermList t2, bool splittable, R
       return sub->unify(t1,t2); // sorts can be unified by standard algo
     }
 
-    TermList t1thead = sub->derefBound(t1.head());
+    TermList t1head = sub->derefBound(t1.head());
+    TermList t2head = sub->derefBound(t2.head());
+
+    ASS(!splittable || !t2.isVar())
+
+    bool t2NotSplittable = !splittable && 
+      (SortHelper::getResultSort(t2.term()).isArrowSort() || 
+       SortHelper::getResultSort(t2.term()).isOrdinaryVar() ||
+       t2head.isVar() ||
+       t2head.isLambdaTerm());
 
     // Node term and query term must have the same type. Hence we do not
-    // check type of query. We can rely on the !splittable check 
-    // TODO, logic is a little off here. A node can be non-splittanle, but on
-    // apply a substitution to the term it can become splittable
-    if(!t1.isVar() && (t1thead.isVar() || t1thead.isLambdaTerm() || !splittable)) {
+    // check type of query. We can rely on the t2NotSplittable check 
+    if(!t1.isVar() && (t1head.isVar() || t1head.isLambdaTerm() || t2NotSplittable)) {
       // create top level constraint
       sub->pushConstraint(UnificationConstraint(t1, t2));
       return true;

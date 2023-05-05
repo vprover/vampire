@@ -39,6 +39,9 @@ template<class TermSpecOrList, class VarBankOrInt>
 class RobSubstitution;
 
 struct TermSpec { // for backwards compatibility
+  static const int UNBOUND_INDEX;
+  static const int SPECIAL_INDEX;  
+  
   TermSpec() {}
   TermSpec(TermList t, int i) : trm(t), index(i) {}
   TermSpec(unsigned v, int i) : index(i) {
@@ -48,9 +51,6 @@ struct TermSpec { // for backwards compatibility
       trm = TermList(v, false); // standard variable
     }
   }
-  /*TermSpec(unsigned v, bool b) : trm(TermList(v, b)), index(SPECIAL_INDEX) {
-    ASS(b)
-  }*/
 
   auto asTuple() const -> decltype(auto) { return std::tie(trm, index); }
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
@@ -64,9 +64,6 @@ struct TermSpec { // for backwards compatibility
         (trm.term()->shared() && trm.term()->ground()) ||
          trm.term()->arity()==0 )));
   }
-
-  static const int UNBOUND_INDEX;
-  static const int SPECIAL_INDEX;  
 
   static bool equals(TermSpec t1, TermSpec t2){
     return t1.index == t2.index && TermList::equals(t1.trm, t2.trm);

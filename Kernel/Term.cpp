@@ -878,7 +878,10 @@ vstring Term::variableToString(TermList var)
   CALL("Term::variableToString");
   ASS(var.isVar());
 
-  bool outputBanks = env.options->printVarBanks();
+  bool outputBanks = false;
+#if VDEBUG
+  outputBanks = env.options->printVarBanks();
+#endif
 
   if (var.isOrdinaryVar()) {
     return (vstring)"X" + Int::toString(var.var()) + (outputBanks ?

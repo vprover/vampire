@@ -65,6 +65,11 @@ public:
   static void getArgSorts(TermList t, TermStack& sorts);
   static Signature::Proxy getProxy(const TermList& t);
 
+  // returns true if we can split (decompose) term
+  // during first-order unification without losing HOL
+  // unifiers. Return false otherwise
+  // Assumes that t is in head normal form
+  static bool splittable(TermList t, bool topLevel = false);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);

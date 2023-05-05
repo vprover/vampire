@@ -23,6 +23,7 @@
 #include "SubstitutionTree.hpp"
 
 #include "Kernel/Renaming.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 namespace Indexing {
 
@@ -77,23 +78,7 @@ private:
   };
 
   typedef DHMap<unsigned,Subterm,IdentityHash,DefaultHash> HOLBindingMap;
-
-  bool splittable(TermList t, bool topLevel = false){
-    CALL("HOLSubstitutionTree::splittable");
-
-    if(t.isVar()) return true;
-
-    if(t.isLambdaTerm() ||  t.head().isVar()) return false;
-
-    auto sort = SortHelper::getResultSort(t.term());
-
-    if(env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION){
-      if(sort.isArrowSort() || sort.isVar() || (sort.isBoolSort() && !topLevel)){
-        return false;
-      }
-    }
-    return true;
-  }
+  typedef ApplicativeHelper AH;
 
 public:
 
@@ -126,7 +111,7 @@ public:
   template<class BindingFunction>
   void createHOLBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
   {
-    bindSpecialVar(0, Subterm(term, splittable(term, true)));
+    bindSpecialVar(0, Subterm(term, AH::splittable(term, true)));
     bindSpecialVar(1, Subterm(term.sort(),true));
   }
 
@@ -140,11 +125,11 @@ public:
     TermList l1 = *lit->nthArgument(1);
 
     if (reversed) {
-      bindSpecialVar(1,Subterm(l0, splittable(l0, true)) );
-      bindSpecialVar(0,Subterm(l1, splittable(l1, true)) );
+      bindSpecialVar(1,Subterm(l0, AH::splittable(l0, true)) );
+      bindSpecialVar(0,Subterm(l1, AH::splittable(l1, true)) );
     } else {
-      bindSpecialVar(0,Subterm(l0, splittable(l0, true)) );
-      bindSpecialVar(1,Subterm(l1, splittable(l1, true)) );
+      bindSpecialVar(0,Subterm(l0, AH::splittable(l0, true)) );
+      bindSpecialVar(1,Subterm(l1, AH::splittable(l1, true)) );
     }
 
     auto sort = SortHelper::getEqualityArgumentSort(lit);
