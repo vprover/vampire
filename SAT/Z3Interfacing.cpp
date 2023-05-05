@@ -548,7 +548,7 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
       insert(_context.array_sort(index_sort,value_sort));
 
     } else if (env.signature->isTermAlgebraSort(s)) {
-      createTermAlgebra(*env.signature->getTermAlgebraOfSort(s));
+      createTermAlgebra(s);
 
     } else {
       auto sort = _context.uninterpreted_sort(_context.str_symbol(s.toString().c_str()));
@@ -567,32 +567,33 @@ vstring to_vstring(A const& a)
   return out.str();
 }
 
-void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
+void Z3Interfacing::createTermAlgebra(TermList sort)
 {
-  CALL("createTermAlgebra(TermAlgebra&)")
-  if (_createdTermAlgebras.contains(start.sort())) return;
+  CALL("createTermAlgebra(TermList)")
+  ASS(sort.isTerm() && sort.term()->isSort());
+  if (_createdTermAlgebras.contains(sort)) return;
 
-  Stack<TermAlgebra*> tas;        // <- stack of term algebra sorts
+  Stack<TermList> taSorts;        // <- stack of term algebra sorts
   Map<SortId, unsigned> recSorts; // <- mapping term algeba -> index
 
-  auto subsorts = start.subSorts();
+  auto subsorts = TermAlgebra::subSorts(sort);
   for (auto s : subsorts.iter()) {
     if (env.signature->isTermAlgebraSort(s)
         && !_createdTermAlgebras.contains(s)) {
-      auto ta = env.signature->getTermAlgebraOfSort(s);
-      auto idx = tas.size();
-      tas.push(ta);
+      auto idx = taSorts.size();
+      taSorts.push(s);
       recSorts.insert(s, idx);
     }
   }
 
-  auto new_string_symobl = [&](vstring const& str)
-  { return Z3_mk_string_symbol(_context, str.c_str()); };
+  auto new_string_symbol = [this](unsigned f, const vstring& typePostfix, bool pred = false)
+  { return Z3_mk_string_symbol(_context,
+    ((pred ? env.signature->getPredicate(f) : env.signature->getFunction(f))->name()+'_'+typePostfix).c_str()); };
 
   // create the data needed for Z3_mk_datatypes(...)
-  Stack<Stack<Z3_constructor>> ctorss(tas.size());
-  Stack<Z3_constructor_list> ctorss_z3(tas.size());
-  Stack<Z3_symbol> sortNames(tas.size());
+  Stack<Stack<Z3_constructor>> ctorss(taSorts.size());
+  Stack<Z3_constructor_list> ctorss_z3(taSorts.size());
+  Stack<Z3_symbol> sortNames(taSorts.size());
   // create the data needed to serialize the declare-datatypes to smtlib
   struct SerDtor { z3::symbol name; SortId sort; };
   struct SerCtor { z3::symbol name; Stack<SerDtor> dtors; };
@@ -600,21 +601,32 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
   Stack<SerDtype> toSerialize;
 
   DEBUG("creating constructors: ");
-  for (auto ta : tas) {
-    _createdTermAlgebras.insert(ta->sort());
+  for (auto taSort : taSorts) {
+    _createdTermAlgebras.insert(taSort);
+    ASS(taSort.isTerm());
+    auto taSortT = taSort.term();
+    auto ta = env.signature->getTermAlgebraOfSort(taSort);
+    Substitution typeSubst;
+    vstring typePostfix = "$";
+    ta->getTypeSub(taSortT, typeSubst);
+    for(unsigned i = 0; i < taSortT->arity(); i++) {
+      // MS: Is it OK not to use any separator here?
+      typePostfix += taSortT->nthArgument(i)->toString();
+    }
     Stack<Z3_constructor> ctors(ta->nConstructors());
     Stack<SerCtor> serCtors;
 
     for (auto cons : ta->iterCons()) {
       // data needed for the  Z3_mk_constructor call
       Stack<SerDtor> serDtors;
-      Stack<Z3_sort> argSorts(cons->arity());
-      Stack<unsigned> argSortRefs(cons->arity());
-      Stack<Z3_symbol> argNames(cons->arity());
+      auto consTermArity = cons->arity()-cons->numTypeArguments();
+      Stack<Z3_sort> argSorts(consTermArity);
+      Stack<unsigned> argSortRefs(consTermArity);
+      Stack<Z3_symbol> argNames(consTermArity);
 
-      auto i = 0;
-      for (auto argSort : cons->iterArgSorts()) {
-        auto dtorName = new_string_symobl(env.signature->getFunction(cons->functor())->name() + "_arg" + to_vstring(i++));
+      for (unsigned i = cons->numTypeArguments(); i < cons->arity(); i++) {
+        auto argSort = SubstHelper::apply(cons->argSort(i),typeSubst);
+        auto dtorName = new_string_symbol(cons->destructorFunctor(i-cons->numTypeArguments()),typePostfix);
         if (_out.isSome())
           serDtors.push(SerDtor {
               .name = z3::symbol(_context, dtorName),
@@ -634,16 +646,13 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
               });
       }
 
-      cons->createDiscriminator();
-      vstring discrName = cons->discriminatorName();
-
-      DEBUG("\t", ta->sort().toString(), "::", env.signature->getFunction(cons->functor())->name(), ": ", env.signature->getFunction(cons->functor())->fnType()->toString());
+      DEBUG("\t", taSort.toString(), "::", env.signature->getFunction(cons->functor())->name(), ": ");//, SubstHelper::apply(cons->sort(), typeSubst));
 
       Z3_symbol ctorName = Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str());
 
-      ASS_EQ(argSortRefs.size(), cons->arity())
-      ASS_EQ(   argSorts.size(), cons->arity())
-      ASS_EQ(   argNames.size(), cons->arity())
+      ASS_EQ(argSortRefs.size(), consTermArity);
+      ASS_EQ(   argSorts.size(), consTermArity);
+      ASS_EQ(   argNames.size(), consTermArity);
       if (_out.isSome())
         serCtors.push(SerCtor{
             .name = z3::symbol(_context, ctorName),
@@ -651,11 +660,11 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
         });
       ctors.push(Z3_mk_constructor(_context,
           ctorName,
-          Z3_mk_string_symbol(_context, discrName.c_str()),
-          cons->arity(),
-          cons->arity() == 0 ? nullptr : argNames.begin(),
-          cons->arity() == 0 ? nullptr : argSorts.begin(),
-          cons->arity() == 0 ? nullptr : argSortRefs.begin()
+          new_string_symbol(cons->discriminator(), typePostfix, true/*predicate*/),
+          consTermArity,
+          consTermArity == 0 ? nullptr : argNames.begin(),
+          consTermArity == 0 ? nullptr : argSorts.begin(),
+          consTermArity == 0 ? nullptr : argSortRefs.begin()
       ));
 
     }
@@ -664,38 +673,39 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
     ctorss.push(std::move(ctors));
     ASS_EQ(ctorss.top().size(), ta->nConstructors());
     ctorss_z3.push(Z3_mk_constructor_list(_context, ctorss.top().size(),  ctorss.top().begin()));
-    sortNames.push(Z3_mk_string_symbol(_context, ta->sort().toString().c_str()));
+    sortNames.push(Z3_mk_string_symbol(_context, taSort.toString().c_str()));
     if (_out.isSome())
       toSerialize.push(SerDtype {
-        .name = ta->sort(),
+        .name = taSort,
         .ctors = std::move(serCtors),
       });
   }
 
-  ASS_EQ(sortNames.size(), tas.size())
-  ASS_EQ(ctorss.size()   , tas.size())
-  ASS_EQ(ctorss_z3.size(), tas.size())
+  ASS_EQ(sortNames.size(), taSorts.size())
+  ASS_EQ(ctorss.size()   , taSorts.size())
+  ASS_EQ(ctorss_z3.size(), taSorts.size())
 
-  Array<Z3_sort> sorts(tas.size());
+  Array<Z3_sort> sorts(taSorts.size());
 
   // actually created the datatypes
-  Z3_mk_datatypes(_context, tas.size(), sortNames.begin(), sorts.begin(), ctorss_z3.begin());
+  Z3_mk_datatypes(_context, taSorts.size(), sortNames.begin(), sorts.begin(), ctorss_z3.begin());
 
   // register the `z3::func_decl`s created by `Z3_mk_datatypes` in indices to be queried when needed
   for (unsigned iSort = 0; iSort < sorts.size(); iSort++) {
-    _sorts.insert(tas[iSort]->sort(), z3::sort(_context, sorts[iSort]));
-    auto ta = tas[iSort];
+    _sorts.insert(taSorts[iSort], z3::sort(_context, sorts[iSort]));
+    auto ta = env.signature->getTermAlgebraOfSort(taSorts[iSort]);
     auto& ctors = ctorss[iSort];
     for (unsigned iCons = 0; iCons < ta->nConstructors(); iCons++) {
       auto ctor = ta->constructor(iCons);
+      auto ctorTermArity = ctor->arity()-ctor->numTypeArguments();
 
       Z3_func_decl constr_;
       Z3_func_decl discr_;
-      Array<Z3_func_decl> destr(ctor->arity());
+      Array<Z3_func_decl> destr(ctorTermArity);
 
       Z3_query_constructor(_context,
                            ctors[iCons],
-                           ctor->arity(),
+                           ctorTermArity,
                            &constr_,
                            &discr_,
                            destr.begin());
@@ -712,13 +722,14 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
         _toZ3.insert(discrId, discr);
         // _fromZ3.insert(discr, discrId);
       }
-      for (unsigned iDestr = 0; iDestr < ctor->arity(); iDestr++)  {
+      for (unsigned iDestr = 0; iDestr < ctorTermArity; iDestr++)  {
         auto dtor = z3::func_decl(_context, destr[iDestr]);
+
         // careful: datatypes can have boolean fields!
-        auto id = FuncOrPredId(
-          ctor->destructorFunctor(iDestr),
-          dtor.range().is_bool()
-        );
+        // NB: polymorphic destructors instantiated with booleans are still functions (?)
+        bool is_predicate = ctor->argSort(iDestr).isBoolSort();
+        auto id = FuncOrPredId(ctor->destructorFunctor(iDestr), is_predicate);
+
         _toZ3.insert(id, dtor);
         _fromZ3.insert(dtor, id);
       }
@@ -769,17 +780,15 @@ void Z3Interfacing::createTermAlgebra(TermAlgebra& start)
 
 }
 
-z3::func_decl const& Z3Interfacing::findConstructor(FuncId id_)
+z3::func_decl const& Z3Interfacing::findConstructor(Term* t)
 {
   CALL("Z3Interfacing::findConstructor(FuncId id)")
-  auto id = FuncOrPredId::monomorphicFunction(id_);
+  auto id = FuncOrPredId::monomorphicFunction(t->functor());
   auto f = _toZ3.tryGet(id);
   if (f.isSome()) {
     return f.unwrap();
   } else {
-    auto sym = env.signature->getFunction(id_);
-    auto domain = sym->fnType()->result();
-    createTermAlgebra(*env.signature->getTermAlgebraOfSort(domain));
+    createTermAlgebra(SortHelper::getResultSort(t));
     return _toZ3.get(id);
   }
 }
@@ -862,16 +871,17 @@ struct ToZ3Expr
         }
       }
     } else {
+      auto actualSort = SortHelper::getResultSort(trm);
       symb = env.signature->getFunction(trm->functor());
       OperatorType* ftype = symb->fnType();
       range_sort = ftype->result();
-      if (env.signature->isTermAlgebraSort(range_sort) &&  !self._createdTermAlgebras.contains(range_sort) ) {
-        self.createTermAlgebra(*env.signature->getTermAlgebraOfSort(range_sort));
+      if (env.signature->isTermAlgebraSort(actualSort) &&  !self._createdTermAlgebras.contains(actualSort) ) {
+        self.createTermAlgebra(actualSort);
       }
     }
 
     //if constant treat specially
-    if(trm->numTermArguments()==0) {
+    if(trm->arity() == 0) {
       if(symb->integerConstant()){
         IntegerConstantType value = symb->integerValue();
         return self._context.int_val(value.toInner());
@@ -891,7 +901,7 @@ struct ToZ3Expr
         return self._context.bool_val(false);
       }
       if(symb->termAlgebraCons()) {
-        auto ctor = self.findConstructor(trm->functor());
+        auto ctor = self.findConstructor(trm);
         return ctor();
       }
       // TODO do we really have overflownConstants ?? not in evaluation(s) at least
@@ -912,7 +922,7 @@ struct ToZ3Expr
       // If not value then create constant symbol
       return self.getConst(symb, self.getz3sort(range_sort));
     }
-    ASS(trm->numTermArguments()>0);
+    ASS_G(trm->arity(), 0);
 
     // Currently do not deal with all intepreted operations, should extend
     // - constants dealt with above
@@ -1096,7 +1106,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
       SortHelper::getTypeSub(functor.forSorts, typeSubst);
       namebuf += '$';
       for(unsigned i = 0; i < functor.forSorts->numTypeArguments(); i++)
-        namebuf += functor.forSorts->termArg(i).toString();
+        namebuf += functor.forSorts->typeArg(i).toString();
     }
 
     z3::sort_vector domain_sorts = z3::sort_vector(self._context);

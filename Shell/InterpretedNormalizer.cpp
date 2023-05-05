@@ -278,6 +278,12 @@ protected:
   {
     CALL("InterpretedNormalizer::NLiteralTransformer::transformSubterm");
 
+    // sorts can never contain interpreted functions
+    // this is a stopgap solution until PR that changes how termTransformer works
+    // is merged
+    // WARNING current implementation entails unecessary traversal of sort subterms
+    if(trm.isTerm() && trm.term()->isSort()) return trm;
+
   start:
     if(theory->isInterpretedFunction(trm)) {
       Interpretation itp = theory->interpretFunction(trm);
