@@ -2953,6 +2953,10 @@ void TPTP::term()
       switch (tok.tag) {
         case T_STRING:
           number = env.signature->addStringConstant(tok.content);
+          // "distinct_object"s are _always_ of sort $i, even in typed contexts
+          env.signature->getFunction(number)->setType(
+            OperatorType::getConstantsType(AtomicSort::defaultSort())
+          );
           break;
         case T_INT:
           number = addIntegerConstant(tok.content,_overflow,_isFof);
@@ -3598,6 +3602,7 @@ void TPTP::endType()
     break;
   case TT_QUANTIFIED:
     VList* vl = _varLists.pop();
+    _sortLists.pop();
     t = new QuantifiedType(t, vl);
     tt = _typeTags.pop();
     break;    

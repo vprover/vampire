@@ -93,7 +93,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi, lit)) );
+	       TermUnificationRetriever(bsi)) );
       break;
     }
     case 2:  //forward superposition
@@ -103,9 +103,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       getMappingIterator(EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
-           [](Term* t) { return TermList(t); }),
-	       TermUnificationRetriever(fsi, lit)) );
+	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
+	       TermUnificationRetriever(fsi)) );
       break;
     }
     case 3:  //equality resolution
@@ -151,15 +150,13 @@ private:
 
   struct TermUnificationRetriever
   {
-    TermUnificationRetriever(TermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
-    VirtualIterator<tuple<>> operator()(TermList trm)
+    TermUnificationRetriever(TermIndex* index) : _index(index) {}
+    VirtualIterator<tuple<>> operator()(TypedTermList trm)
     {
-      // TODO getting the sort of the term in this way is very inefficient
-      return pvi( dropElementType(_index->getUnifications(TypedTermList(trm, SortHelper::getTermSort(trm, _lit)),false)) );
+      return pvi( dropElementType(_index->getUnifications(trm),false)) );
     }
   private:
     TermIndex* _index;
-    Literal* _lit;
   };
 
   int stage;

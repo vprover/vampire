@@ -64,6 +64,22 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
   return (predicatePrecedence(p1) > predicatePrecedence(p2)) ? GREATER : LESS;
 } // LPO::comparePredicates()
 
+Ordering::Result LPO::comparePrecedences(Term* t1, Term* t2) const
+{
+  CALL("LPO::comparePrecedences");
+  if (t1->isSort() && t2->isSort()) {
+    return compareTypeConPrecedences(t1->functor(), t2->functor());
+  }
+  // type constuctor symbols are less than function symbols
+  if (t1->isSort()) {
+    return LESS;
+  }
+  if (t2->isSort()) {
+    return GREATER;
+  }
+  return compareFunctionPrecedences(t1->functor(), t2->functor());
+} // LPO::comparePrecedences
+
 Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
 {
   CALL("LPO::compare(TermList, TermList)");
@@ -90,7 +106,7 @@ Ordering::Result LPO::clpo(Term* t1, TermList tl2) const
   ASS(tl2.isTerm());
   Term* t2=tl2.term();
 
-  switch (compareFunctionPrecedences(t1->functor(), t2->functor())) {
+  switch (comparePrecedences(t1, t2)) {
   case EQUAL:
     return cLMA(t1, t2, t1->args(), t2->args(), t1->arity());
   case GREATER:
@@ -215,7 +231,7 @@ Ordering::Result LPO::lpo(TermList tl1, TermList tl2) const
   ASS(tl2.isTerm());
   Term* t2=tl2.term();
 
-  switch (compareFunctionPrecedences(t1->functor(), t2->functor())) {
+  switch (comparePrecedences(t1, t2)) {
   case EQUAL:
     return lexMAE(t1, t2, t1->args(), t2->args(), t1->arity());
   case GREATER:

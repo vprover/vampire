@@ -644,7 +644,12 @@ vstring Term::headToString() const
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
     } else if (isSort()) {
-      name = static_cast<const AtomicSort *>(this)->typeConName();
+      const AtomicSort* asSort = static_cast<const AtomicSort *>(this);
+      if(env.options->showFOOL() && asSort->isBoolSort()){
+        name = "$bool";
+      } else {
+        name = asSort->typeConName();
+      }
     } else {
       name = functionName();
     }

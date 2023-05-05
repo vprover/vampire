@@ -64,9 +64,9 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
+    auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-	    _tree->handle(TypedTermList(lhsi.next(), SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
+	    _tree->handle(lhsi.next(), lit, c, adding);
     }
   }
 }
@@ -126,16 +126,9 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("forward demodulation index maintenance");
 
   Literal* lit=(*c)[0];
-  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while (lhsi.hasNext()) {
-    auto lhs = lhsi.next();
-    TypedTermList tt(lhs, SortHelper::getTermSort(lhs, lit));
-    if (adding) {
-      _is->insert(tt, lit, c);
-    }
-    else {
-      _is->remove(tt, lit, c);
-    }
+    _is->handle(lhsi.next(), lit, c, adding);
   }
 }
 
@@ -196,7 +189,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       ASS(tl.isTerm());
       Term* t = tl.term();
       if (InductionHelper::isInductionTermFunctor(t->functor()) &&
-          InductionHelper::isStructInductionFunctor(t->functor())) {
+          InductionHelper::isStructInductionTerm(t)) {
         if (adding) {
           _is->insert(TypedTermList(t), lit, c);
         } else {
@@ -223,17 +216,9 @@ void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rvi=EqHelper::getRewritableVarsIterator(&unstableVars, lit,_ord);
+    auto rvi = EqHelper::getRewritableVarsIterator(&unstableVars, lit,_ord);
     while(rvi.hasNext()){
-      TermList var = rvi.next();
-      // AYB this is of course very inefficient, but as I expect this
-      // code to be disappearing soon not too bothered
-      TermList sort = SortHelper::getTermSort(var, lit);
-      if (adding) {
-        _is->insert(TypedTermList(var,sort), lit, c);
-      } else {
-        _is->remove(TypedTermList(var,sort), lit, c);
-      }
+      _is->handle(rvi.next(), lit, c, adding);
     }
   }
 }
@@ -245,18 +230,9 @@ void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator lhsi=EqHelper::getSubVarSupLHSIterator(lit, _ord);
+    auto lhsi = EqHelper::getSubVarSupLHSIterator(lit, _ord);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
-      // AYB this is of course very inefficient, but as I expect this
-      // code to be disappearing soon not too bothered
-      TermList sort = SortHelper::getTermSort(lhs, lit);      
-      if (adding) {
-        _is->insert(TypedTermList(lhs,sort), lit, c);
-      }
-      else {
-        _is->remove(TypedTermList(lhs,sort), lit, c);
-      }
+      _is->handle(lhsi.next(), lit, c, adding);
     }
   }
 }
@@ -409,113 +385,6 @@ void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
   CALL("SkolemisingFormulaIndex::insertFormula");
   _is->insert(TypedTermList(formula.term()), skolem);
 }
-
-/*void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
-{
-  CALL("HeuristicInstantiationIndex::insertInstantiation");
-  _is->insert(sort, instantiation);
-}
-
-void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("HeuristicInstantiationIndex::handleClause");
-
-  typedef ApplicativeHelper AH;
-
-  TermList freshVar(c->maxVar() + 1, false);
-  VList* boundVar = new VList(freshVar.var());
-
-  for (unsigned i=0; i<c->length(); i++) {
-    Literal* lit=(*c)[i];
-    TermList leftHead, rightHead, lhSort, rhSort;
-    static TermStack leftArgs;
-    static TermStack rightArgs;
-    AH::getHeadSortAndArgs(*lit->nthArgument(0), leftHead, lhSort, leftArgs);
-    AH::getHeadSortAndArgs(*lit->nthArgument(1), rightHead, rhSort, rightArgs);
-    if(leftHead.isTerm() && AH::getComb(leftHead) == Signature::NOT_COMB &&
-       AH::getProxy(leftHead) == Signature::NOT_PROXY &&
-      leftHead == rightHead &&
-      leftArgs.size() == rightArgs.size() &&
-      leftArgs.size())
-    {
-      TermList sort, boundVarSort, combTerm;
-      for(i = 0; i < leftArgs.size(); i++){
-        boundVarSort = AH::getNthArg(lhSort, leftArgs.size() - i);
-        SList* boundVarSortList = new SList(boundVarSort);
-
-        Literal* newLit = EqHelper::replace(lit, leftArgs[i], freshVar);
-        newLit->setPolarity(!newLit->polarity());
-        Term* eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
-        combTerm = LambdaElimination().elimLambda(lambdaTerm);
-        if(!_insertedInstantiations.contains(combTerm)){
-        cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
-        cout << "arg " + leftArgs[i].toString() << endl;
-        cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl;
-          _insertedInstantiations.insert(combTerm);
-          insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
-        }
-        //may be harmful performance wise, but otherwise these
-        //leak
-        //eqForm->destroy();
-        //lambdaTerm->destroy();
-
-        newLit = EqHelper::replace(lit, rightArgs[i], freshVar);
-        newLit->setPolarity(!newLit->polarity());
-        eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
-        combTerm = LambdaElimination().elimLambda(lambdaTerm);
-        if(!_insertedInstantiations.contains(combTerm)){
-        cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
-        cout << "arg " + rightArgs[i].toString() << endl;
-        cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl; 
-          _insertedInstantiations.insert(combTerm);
-          insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
-        }
-
-        //eqForm->destroy();
-        //lambdaTerm->destroy();
-
-        SList::destroy(boundVarSortList);
-      }
-    }
-  }
-
-  VList::destroy(boundVar);
-}
-
-void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
-                                         Literal* lit, Clause* cls)
-{
-  CALL("RenamingFormulaIndex::insertFormula");
-  _is->insert(formula, name, lit, cls);
-}
-
-void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("RenamingFormulaIndex::handleClause");
-
-  typedef ApplicativeHelper AH;
-
-  for (unsigned i=0; i<c->length(); i++) {
-    Literal* lit=(*c)[i];
-    NonVariableNonTypeIterator it(lit);
-    while (it.hasNext()) {
-      TermList trm = TermList(it.next());
-      Term* t = trm.term();
-      if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && 
-         AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){
-        if(adding){
-          env.signature->incrementFormulaCount(t);
-        } else {
-          env.signature->decrementFormulaCount(t);
-        }
-      }
-    }
-  }
-}*/
 
 
 } // namespace Indexing
