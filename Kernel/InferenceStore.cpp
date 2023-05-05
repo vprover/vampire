@@ -95,13 +95,13 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType type, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number)
 {
   CALL("InferenceStore::recordIntroducedSymbol");
 
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  pStack->push(SymbolId(type,number));
+  pStack->push(SymbolId(st,number));
 }
 
 /**
@@ -688,17 +688,15 @@ protected:
     vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first == SymbolType::FUN) {
-	symsStr << env.signature->functionName(sym.second);
-      }
-      else if (sym.first == SymbolType::PRED) {
-	symsStr << env.signature->predicateName(sym.second);
-      }
-      else {
-	symsStr << env.signature->typeConName(sym.second);
+      if (sym.first == SymbolType::FUNC ) {
+        symsStr << env.signature->functionName(sym.second);
+      } else if (sym.first == SymbolType::PRED){
+        symsStr << env.signature->predicateName(sym.second);
+      } else {
+        symsStr << env.signature->typeConName(sym.second);       
       }
       if (symIt.hasNext()) {
-	symsStr << ',';
+        symsStr << ',';
       }
     }
     return getNewSymbols(origin, symsStr.str());

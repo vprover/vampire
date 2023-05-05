@@ -162,7 +162,10 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
             keep.push(t);
           }
         });
-    if (nums <= 1) return false;
+    if (nums == 0 || (nums == 1 && acc != AbelianGroup::IDENTITY)) {
+      // only continue, if we updated acc more than once or at least saw a "_+0" somewhere
+      return false;
+    }
 
     if (acc != AbelianGroup::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
