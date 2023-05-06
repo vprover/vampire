@@ -141,9 +141,6 @@
     {
       std::swap(_nextVar, other._nextVar);
       std::swap(_root, other._root);
-#if VDEBUG
-      std::swap(_tag, other._tag);
-#endif
     }
 
     virtual ~SubstitutionTree();
@@ -664,14 +661,7 @@
     /** Number of the next variable */
     int _nextVar;
     Node* _root;
-#if VDEBUG
-    bool _tag;
-#endif
   public:
-#if VDEBUG
-    // Tags are used as a debug tool to turn debugging on for a particular instance
-    virtual void markTagged(){ _tag=true;}
-#endif
 
     class RenamingSubstitution 
     : public ResultSubstitution 
@@ -1243,9 +1233,6 @@
         , _bdStack()
         , _clientBDRecording(false)
         , _iterCntr(parent->_iterCnt)
-#if VDEBUG
-        , _tag(parent->_tag)
-#endif
       {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
         CALL("SubstitutionTree::Iterator::Iterator");
@@ -1417,16 +1404,11 @@
       bool _clientBDRecording;
       BacktrackData _clientBacktrackData;
       InstanceCntr _iterCntr;
-#if VDEBUG
-      bool _tag;
-#endif
     };
 
 
-#if VDEBUG
   public:
     bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
-#endif
     friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
     Cntr _iterCnt;

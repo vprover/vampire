@@ -81,7 +81,9 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
 {
   CALL("generalizeBottomUp")
   /* apply the selectedGen generalization */
+#if VDEBUG
   bool anyChange = false;
+#endif
   bool oneLess = false;
   bool allLessEq = true;
 
@@ -95,7 +97,9 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
               auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, j++)));
               auto res = evaluateBottomUp(norm, eval);
               if (res != norm) {
+#if VDEBUG
                 anyChange = true;
+#endif
                 DEBUG("generalized: ", norm, " -> ", res);
                 return res.denormalize();
               } else {
@@ -135,7 +139,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
     })
     .template collect<Stack>();
 
-  ASS (anyChange) 
+  ASS(anyChange) 
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION, cl));
   bool redundant = allLessEq && oneLess;
   env.statistics->asgCnt++;

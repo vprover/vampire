@@ -969,9 +969,6 @@ TEST_FUN(higher_order2)
   // reportTermMatches(index,ap(ap(f,b),a),srt);
 }
 
-static const int NORM_QUERY_BANK=2;
-// static const int NORM_RESULT_BANK=3;
-
 Option<TermUnificationResultSpec> runRobUnify(TypedTermList a, TypedTermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration) {
   // TODO parameter instead of opts
   auto au = AbstractingUnifier::unify(a, 0, b, 0, MismatchHandler(opt), fixedPointIteration);

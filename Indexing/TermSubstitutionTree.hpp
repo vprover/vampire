@@ -76,10 +76,7 @@ public:
   { return t.isVar() ? false : SubstitutionTree::generalizationExists(TypedTermList(t.term())); }
 
 
-#if VDEBUG
-  virtual void markTagged() override { SubstitutionTree::markTagged();}
   virtual void output(std::ostream& out) const final override { out << *this; }
-#endif
 
 private:
 

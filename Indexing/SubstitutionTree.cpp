@@ -53,9 +53,6 @@ using namespace Indexing;
 SubstitutionTree::SubstitutionTree()
   : _nextVar(0)
   , _root(nullptr)
-#if VDEBUG
-  , _tag(false)
-#endif
 {
   CALL("SubstitutionTree::SubstitutionTree");
 

@@ -44,10 +44,6 @@ public:
     return countIteratorElements(getUnifications(lit, complementary, false));
   }
 
-#if VDEBUG
-  virtual void markTagged() = 0;
-#endif
-
 };
 
 };

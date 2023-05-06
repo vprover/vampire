@@ -55,10 +55,6 @@ public:
   SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
-#if VDEBUG
-  virtual void markTagged() final override { }
-#endif
-
 private:
   static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
   static bool idxIsNegative(unsigned idx) { return idx % 2; }
