@@ -2136,6 +2136,19 @@ template<class Array>
 auto arrayIter(Array     && x) 
 { return iterTraits(ownedArrayishIterator(std::move(x))); }
 
+template<class Iter> 
+class BoxedIter {
+  unique_ptr<Iter> _inner;
+public: 
+  BoxedIter(Iter iter) : _inner(new Iter(std::move(iter))) {}
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  bool hasNext() const { return _inner->hasNext(); }
+  ELEMENT_TYPE(Iter) next() { return _inner->next(); }
+};
+
+template<class Iter> 
+auto boxedIter(Iter iter) { return iterTraits(BoxedIter<Iter>(std::move(iter))); }
+
 // template<class CreateIer>
 // class IterAsData {
 //   CreateIter _iter;

@@ -202,7 +202,7 @@
       CALL("SubstitutionTree::iterator");
       return iterTraits(
             someIf(_root != nullptr, 
-                [&]() { return I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...) ; })
+                [&]() { return boxedIter(I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)); })
             .intoIter())
           .flatten();
     }
@@ -894,6 +894,7 @@
     class FastGeneralizationsIterator
     {
     public:
+
       FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
       FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
       DECL_ELEMENT_TYPE(RSQueryResult);
@@ -951,6 +952,17 @@
       Recycled<Stack<unsigned>> _specVarNumbers;
       Recycled<Stack<NodeAlgorithm>> _nodeTypes;
       InstanceCntr _iterCntr;
+
+      // Recycled<tuple< 
+      //   Stack<void*> // _alternatives
+      // , Stack<unsigned> // _specVarNumbers
+      // , Stack<NodeAlgorithm> // _nodeTypes
+      // , Renaming // resultNormalizer
+      //   >> _recycledData;
+      // auto _alternatives()     -> decltype(auto) { return std::get<0>(*_recycledData); }
+      // auto _specVarNumbers()   -> decltype(auto) { return std::get<1>(*_recycledData); }
+      // auto _nodeTypes()        -> decltype(auto) { return std::get<2>(*_recycledData); }
+      // auto _resultNormalizer() -> decltype(auto) { return std::get<3>(*_recycledData); }
     };
 
 
