@@ -66,17 +66,4 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
       );
 }
 
-SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complementary)
-{
-  auto idx = complementary ? lit->header() : lit->complementaryHeader();
-  while (idx >= _trees.size()) {
-    _trees.push(SubstitutionTree());
-  }
-  return _trees[idx];
-}
-
-// template<class Iterator, class... Args>
-// SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
-
-
 } // namespace Indexing

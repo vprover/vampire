@@ -130,7 +130,14 @@ public:
 
 
 private:
-  SubstitutionTree& getTree(Literal* lit, bool complementary);
+  SubstitutionTree& getTree(Literal* lit, bool complementary)
+  {
+    auto idx = complementary ? lit->header() : lit->complementaryHeader();
+    while (idx >= _trees.size()) {
+      _trees.push(SubstitutionTree());
+    }
+    return _trees[idx];
+  }
 
   // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<AbstractingUnifier*>> r)
   // { return lQueryRes(r.data->literal, r.data->clause, *r.unif); }
