@@ -1213,7 +1213,7 @@ TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
   CALL("Signature::getTermAlgebraConstructor");
 
   if (getFunction(functor)->termAlgebraCons()) {
-    TermAlgebra *ta = _termAlgebras.get(getFunction(functor)->fnType()->result());
+    TermAlgebra *ta = _termAlgebras.get(getFunction(functor)->fnType()->result().term()->functor());
     if (ta) {
       for (unsigned i = 0; i < ta->nConstructors(); i++) {
         TermAlgebraConstructor *c = ta->constructor(i);
