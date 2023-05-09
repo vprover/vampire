@@ -52,7 +52,7 @@ class HOLUnification {
     OUT_OF_FRAGMENT=3
   };  
 
-  OracleResult fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub);
+  static OracleResult fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub);
 
   using UnificationConstraint = UnificationConstraint<TermList,VarBank>;
 
@@ -74,6 +74,9 @@ class HOLUnification {
     bool flexFlex()   const { return _t1head.isVar() && _t2head.isVar(); }
     bool rigidRigid() const { return _t1head.isTerm() && _t2head.isTerm(); }
     bool flexRigid()  const { return (_t1head.isVar() && !_t2head.isVar())  || (_t2head.isVar() && !_t1head.isVar()); }
+
+    TermList lhsHead() const { return _t1head; }
+    TermList rhsHead() const { return _t2head; }
 
     TermList sort() const {
       CALL("HOLConstraint::sort()");

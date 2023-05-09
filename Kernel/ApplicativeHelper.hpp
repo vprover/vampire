@@ -74,8 +74,15 @@ public:
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
   static bool canHeadReduce(const TermList& head, const TermStack& args);
-  static TermList createGeneralBinding(unsigned freshVar, TermList head, 
-    TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, bool surround = true);
+
+  static void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
+
+  static void getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings);
+  static void getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings, unsigned freshvar);  
+
+  static TermList createGeneralBinding(TermList head, TermStack& sorts);
+  static TermList createGeneralBinding(unsigned freshVar, TermList head, TermStack& sorts, bool surround = true);
+
   static TermList surroundWithLambdas(TermList t, TermStack& sorts);
   static TermList top();
   static TermList bottom();
@@ -86,6 +93,13 @@ public:
   static TermList equality(TermList sort);
   static TermList pi(TermList sort);
   static TermList sigma(TermList sort);
+
+private:
+
+  static void getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings, unsigned freshvar, bool useFreshBank);
+  // creates a general binding of the form head (FV1 db1 ... dbn) (FV2 db1 ... dbn) ...
+  // if surround is set to true, the general binding is surround by n lambdas
+  static TermList createGeneralBinding(unsigned freshVar, TermList head, TermStack& sorts, bool surround, bool useFreshBank);
 };
 
 // reduce a term to normal form

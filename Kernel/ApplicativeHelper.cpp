@@ -675,26 +675,139 @@ bool ApplicativeHelper::canHeadReduce(TermList const& head, TermStack const& arg
   return head.isLambdaTerm() && args.size();
 }
 
+void ApplicativeHelper::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
+{
+  CALL("ApplicativeHelper::normaliseLambdaPrefixes");
+
+  auto pruneAndExpand = [](TermList& s1, TermList& s2){
+    ASS(s1.isLambdaTerm() && !s2.isLambdaTerm());
+   
+    TermList sort = SortHelper::getResultSort(s1.term());
+    int n = 0;
+    while(s1.isLambdaTerm()){
+      s1 = s1.lambdaBody();
+      n++;
+    }
+   
+    s2 = TermShifter().shift(s2,n); // shift free indices up by n
+    for(unsigned i = 0; i < n; i++){
+      s2 = app(sort,s2,getDeBruijnIndex(n - 1 - i, sort.domain()));
+      sort = sort.result();
+    }
+  };
+
+  while(t1.isLambdaTerm() && t2.isLambdaTerm()){ 
+    t1 = t1.lambdaBody();
+    t2 = t2.lambdaBody();
+  }
+
+  if(t1.isLambdaTerm()){
+    pruneAndExpand(t1,t2);
+  } else if(t2.isLambdaTerm()){
+    pruneAndExpand(t2,t1);
+  }
+
+}
+
+
+void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings)
+{
+  CALL("ApplicativeHelper::getProjAndImitBindings/1");
+
+  getProjAndImitBindings(flexTerm,rigidTerm,bindings,0,false);
+}
+
+void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings, unsigned freshvar)  
+{
+  CALL("ApplicativeHelper::getProjAndImitBindings/2");
+
+  getProjAndImitBindings(flexTerm,rigidTerm,bindings,freshvar,true);  
+}
+
+void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings,
+  unsigned fVar, bool useFreshBank)
+{
+  CALL("ApplicativeHelper::getProjAndImitBindings/3");
+
+  ASS(bindings.isEmpty());
+
+  // since term is rigid, cannot be a variable
+  TermList sort = SortHelper::getResultSort(rigidTerm.term());
+  TermList headRigid = rigidTerm.head();
+  TermList headFlex;
+  TermStack argsFlex;
+  TermStack sortsFlex; //sorts of arguments of flex head
+
+  getHeadAndArgs(flexTerm, headFlex, argsFlex);
+  ASS(argsFlex.size()); // Flex side is not a variable
+  getArgSorts(flexTerm, sortsFlex);
+
+  // imitation
+  TermList pb = useFreshBank ?
+    createGeneralBinding(headRigid,sortsFlex) :  
+    createGeneralBinding(fVar,headRigid,sortsFlex);
+
+  bindings.push(pb);
+
+  // projections
+  for(unsigned i = 0; i < argsFlex.size(); i++){
+    // try and project each of the arguments of the flex head in turn
+    TermList arg = argsFlex[i];
+    TermList argSort = sortsFlex[i];
+    // sort wrong, cannot project this arg
+    if(argSort.finalResult() != sort) continue;
+    TermList head = arg.head();
+    // argument has a rigid head different to that of rhs. no point projecting
+    if(head.isTerm() &&  head.deBruijnIndex().isNone() &&  head != headRigid) continue;
+
+    TermList dbi = getDeBruijnIndex(i, sortsFlex[i]);
+
+    TermList pb = useFreshBank ?
+      createGeneralBinding(dbi,sortsFlex) :    
+      createGeneralBinding(fVar,dbi,sortsFlex);
+
+    bindings.push(pb);
+  }
+
+}
+
+TermList ApplicativeHelper::createGeneralBinding(TermList head, TermStack& sorts){
+  CALL("ApplicativeHelper::createGeneralBinding/1");
+
+  return createGeneralBinding(0,head,sorts,false,true);
+}
+
+TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList head, TermStack& sorts, bool surround)
+{
+  CALL("ApplicativeHelper::createGeneralBinding/2");
+
+  return createGeneralBinding(freshVar,head,sorts,surround,false);
+}
+
 TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList head, 
-  TermStack& argsFlex, TermStack& sortsFlex, TermStack& indices, bool surround){
-  CALL("ApplicativeHelper::createGeneralBinding");
-  ASS(head.isTerm());
-  ASS(argsFlex.size() == sortsFlex.size());
-  ASS(indices.size() == argsFlex.size());
+  TermStack& sorts, bool surround, bool useFreshBank){
+  CALL("ApplicativeHelper::createGeneralBinding/3");
+  ASS(head.isTerm()); // in the future may wish to reconsider this assertion
 
   TermStack args;
   TermStack argSorts;
+  TermStack indices;    
+
   TermList headSort = SortHelper::getResultSort(head.term());
   getArgSorts(headSort, argSorts);
 
+  for(int i = 0; i < sorts.size(); i++){
+    indices.push(getDeBruijnIndex(i, sorts[i]));
+  }
+
   while(!argSorts.isEmpty()){
-    TermList fVar(++freshVar, false);
-    TermList varSort = AtomicSort::arrowSort(sortsFlex, argSorts.pop());
+    TermList fVar(++freshVar, useFreshBank ? FRESH_BANK :  false);
+    TermList varSort = AtomicSort::arrowSort(sorts, argSorts.pop());
     args.push(app(varSort, fVar, indices));
   }
 
   TermList pb = app(head, args);
-  return surround ? surroundWithLambdas(pb, sortsFlex) : pb; 
+  return surround ? surroundWithLambdas(pb, sorts) : pb; 
 }
 
 TermList ApplicativeHelper::surroundWithLambdas(TermList t, TermStack& sorts)

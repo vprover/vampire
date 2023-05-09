@@ -159,17 +159,12 @@ struct PrimitiveInstantiation::ResultFn
     ASS(argsFlex.size()); // Flex side is not a variable
     AH::getArgSorts(flexTerm, sortsFlex);
 
-    TermStack deBruijnIndices;    
-    for(int i = 0; i < argsFlex.size(); i++){
-      deBruijnIndices.push(AH::getDeBruijnIndex(i, sortsFlex[i]));
-    }
-
     // if any amongst a1 ... an is of sort $o, project that 
     // argument to the top
     for(unsigned i =0; i < sortsFlex.size() && pragmatic; i++){
       if(sortsFlex[i].isBoolSort()){
         _subst.reset();
-        TermList gb = AH::surroundWithLambdas(deBruijnIndices[i], sortsFlex);
+        TermList gb = AH::surroundWithLambdas(AH::getDeBruijnIndex(i, sortsFlex[i]), sortsFlex);
         _subst.bind(headFlex.var(), gb);
         results.push(createRes());        
       }
@@ -182,8 +177,8 @@ struct PrimitiveInstantiation::ResultFn
         _subst.reset();
         IndexPair p = sameSortArgs[i];
   
-        TermList dbi = deBruijnIndices[p.first];
-        TermList dbj = deBruijnIndices[p.second];
+        TermList dbi = AH::getDeBruijnIndex(p.first, sortsFlex[p.first]);
+        TermList dbj = AH::getDeBruijnIndex(p.second, sortsFlex[p.second]);
 
         // creating term dbi = dbj
         TermList tm = AH::app2(AH::equality(sortsFlex[p.first]), dbi, dbj);
@@ -219,8 +214,8 @@ struct PrimitiveInstantiation::ResultFn
       unsigned fVar = _freshVar;
       
       bool surround = (!_heads[i].isEquals() || !include_not_eq);
-      TermList gb = AH::createGeneralBinding(fVar,_heads[i],argsFlex,sortsFlex,deBruijnIndices,surround);
-      gb = surround ? gb : AH::surroundWithLambdas(gb, sortsFlex);
+      TermList gb = AH::createGeneralBinding(fVar,_heads[i],sortsFlex,surround);
+      gb = surround ? gb : AH::surroundWithLambdas(gb, sortsFlex); // TODO looks dodgy
 
       _subst.bind(headFlex.var(), gb);
       results.push(createRes());

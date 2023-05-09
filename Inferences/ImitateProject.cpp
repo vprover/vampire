@@ -124,65 +124,37 @@ struct ImitateProject::ResultFn
       flexTerm = arg1;
       rigidTerm = arg0;
     }
+ 
+    TermStack bindings;
+    AH::getProjAndImitBindings(flexTerm,rigidTerm,bindings,_maxVar);
+    ASS(bindings.size()) // must have at least an imitation binding
 
-    // since term is rigid, cannot be a variable
-    TermList sort = SortHelper::getResultSort(rigidTerm.term());
-    ASS(!sort.isArrowSort());
-    TermList headFlex, headRigid;
-    TermStack argsFlex;
-    TermStack argsRigid;
-    TermStack sortsFlex; //sorts of arguments of flex head
-    TermStack sortsRigid;
+    // some inefficiency below as we iterate the term twice. Once in
+    // getProjAndImitBindings and again in the head() call below.
+    // However, it keeps the code cleaner, and I doubt that the penaly is high
+    TermList headFlex = flexTerm.head(); 
+    TermList imitpb = bindings[0];
 
-    AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
-    AH::getHeadAndArgs(rigidTerm, headRigid, argsRigid);
-    ASS(argsFlex.size()); // Flex side is not a variable
+    _subst.bind(headFlex.var(), imitpb);
+    Clause* res = createRes(InferenceRule::IMITATE);
 
-    AH::getArgSorts(flexTerm, sortsFlex);
-    AH::getArgSorts(rigidTerm, sortsRigid);  
-
-    TermStack deBruijnIndices;    
-    for(int i = 0; i < argsFlex.size(); i++){
-      // could get away with only creating these when we certainly need them
-      // but the logic becomes a lot more complicated
-      deBruijnIndices.push(AH::getDeBruijnIndex(i, sortsFlex[i]));
+    if(env.options->proofExtra()==Options::ProofExtra::FULL){
+      addProofExtraString(res, lit, headFlex, imitpb);
     }
 
-    { // imitation
-      unsigned fVar = _maxVar;
-
-      TermList pb = AH::createGeneralBinding(fVar,headRigid,argsFlex,sortsFlex,deBruijnIndices);
-
-      _subst.bind(headFlex.var(), pb);
-      Clause* res = createRes(InferenceRule::IMITATE);
-
-      if(env.options->proofExtra()==Options::ProofExtra::FULL){
-        addProofExtraString(res, lit, headFlex, pb);
-      }
-
-      results.push(res);
-    }
+    results.push(res);
 
     // projections
-    for(unsigned i = 0; i < argsFlex.size(); i++){
+    for(unsigned i = 1; i < bindings.size(); i++){
       // try and project each of the arguments of the flex head in turn
       _subst.reset();
-      TermList arg = argsFlex[i];
-      TermList argSort = sortsFlex[i];
-      // sort wrong, cannot project this arg
-      if(argSort.finalResult() != sort) continue;
-      TermList head = arg.head();
-      // argument has a rigid head different to that of rhs. no point projecting
-      if(head.isTerm() &&  head.deBruijnIndex().isNone() &&  head != headRigid) continue;
+      TermList projpb = bindings[i];
 
-      unsigned fVar = _maxVar;
-      TermList pb = AH::createGeneralBinding(fVar,deBruijnIndices[i],argsFlex,sortsFlex,deBruijnIndices);
-
-      _subst.bind(headFlex.var(), pb);
+      _subst.bind(headFlex.var(), projpb);
       Clause* res = createRes(InferenceRule::PROJECT);     
 
       if(env.options->proofExtra()==Options::ProofExtra::FULL){
-        addProofExtraString(res, lit, headFlex, pb, (int)(argsFlex.size() - i));
+        addProofExtraString(res, lit, headFlex, projpb, (int)(bindings.size() - i));
       }
 
       results.push(res);

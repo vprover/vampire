@@ -28,7 +28,7 @@ namespace UnificationAlgorithms {
 class HOLUnification::HigherOrderUnifiersIt: public IteratorCore<RobSubstitutionTL*> {
 public:
   HigherOrderUnifiersIt(RobSubstitutionTL* subst) :
-    _returnInitial(false),  _used(false), _subst(subst){
+    _returnInitial(false),  _used(false), _depth(0), _subst(subst){
     ASS(!_subst->bdIsRecording());
     _subst->bdRecord(_initData);
 
@@ -54,36 +54,188 @@ public:
       addToUnifPairs(higherOrderCon,_initData);
     }
 
+    if(solved()) // already in solved state, just return _subst
+      _returnInitial = true;
+
     _subst->bdDone();
     if(_returnInitial){
       _initData.backtrack();
+    } else {
+      BacktrackData bd;
+      _bdStack->push(bd);
     }
   }
   
   ~HigherOrderUnifiersIt() {
     CALL("HOLUnification::HigherOrderUnifiersIt::~HigherOrderUnifiersIt");
+    // remove initial unification pairs 
+    // and leave substitution in the state it was in before iterator started
+    _initData.backtrack(); 
     ASS(_unifPairs.isEmpty());
+  }
+
+  bool solved() {
+    CALL("HOLUnification::HigherOrderUnifiersIt::solved");
+
+    static unsigned depth = env.options->higherOrderUnifDepth();
+
+    SkipList<HOLConstraint,HOLCnstComp>::RefIterator it(_unifPairs);
+    return _depth == depth || !it.hasNext() || it.next().flexFlex();
+  }
+
+  bool backtrack() {
+    CALL("HOLUnification::HigherOrderUnifiersIt::backtrack");
+
+    bool success = false;
+    while(!_bdStack->isEmpty() && !success){
+      _depth--;
+      _bdStack->pop().backtrack();
+      // if there are alterntative bindings available stop bracktracking
+      success = !_bindings->top().isEmpty();
+    }
+    return success;
+  }
+
+  void applyBindingToPairs(){
+    CALL("HOLUnification::HigherOrderUnifiersIt::applyBindingToPairs");
+
+    Stack<HOLConstraint> temp;
+    while(!_unifPairs.isEmpty()){
+      HOLConstraint pair = popFromUnifPairs(_bdStack->top());
+      TermList lhs = pair.lhs();
+      TermList rhs = pair.rhs();
+      temp.push(HOLConstraint(lhs.whnfDeref(_subst), rhs.whnfDeref(_subst)));
+    }
+
+    while(!temp.isEmpty()){
+      addToUnifPairs(temp.pop(), _bdStack->top());
+    }
   }
 
   bool hasNext() {
     CALL("HOLUnification::HigherOrderUnifiersIt::hasNext");
     
-    if(_returnInitial){
-      if(!_used){
-        _used = true;
-        return _used;
-      }
+    if(_returnInitial && !_used){
+      _used = true;
+      return true;
+    } else if(_returnInitial){
       return false;
     }
 
-    //dummy
-    return true;
+    bool forward = !solved() || backtrack();
+    while(forward && !solved()){
+      auto con = popFromUnifPairs(_bdStack->top());
+
+      TermList lhs = con.lhs();
+      TermList rhs = con.rhs();
+      TermList lhsHead = con.lhsHead();
+      TermList rhsHead = con.rhsHead();
+ 
+      ASS(!lhsHead.isVar() || !rhsHead.isVar()); // otherwise we would be solved
+      
+      ApplicativeHelper::normaliseLambdaPrefixes(lhs,rhs);
+ 
+      if(lhsHead == rhsHead){
+        ASS(con.rigidRigid());
+        // TODO deal with sorts?
+
+        TermStack lhsArgs;
+        TermStack rhsArgs;
+        ApplicativeHelper::getHeadAndArgs(lhs, lhsHead, lhsArgs);
+        ApplicativeHelper::getHeadAndArgs(rhs, rhsHead, rhsArgs);
+        ASS(lhsArgs.size() == rhsArgs.size()); // size must be same due to normalisation of prefixes above
+
+        for(unsigned i = 0; i < lhsArgs.size(); i++){
+          auto t1 = lhsArgs[i].whnfDeref(_subst);
+          auto t2 = rhsArgs[i].whnfDeref(_subst);          
+          addToUnifPairs(HOLConstraint(t1,t2), _bdStack->top());
+        }
+
+      } else if(con.flexRigid()){
+        TermList flexTerm  = lhsHead.isVar() ? lhs : rhs;
+        TermList rigidTerm = lhsHead.isVar() ? rhs : lhs;        
+        TermList flexHead  = lhsHead.isVar() ? lhsHead : rhsHead;
+
+
+        if(_bdStack->size() != _bindings->size()){
+          ASS(_bindings->size() + 1 == _bdStack->size() );
+          // reached here not via a backtrack. Need to add new bindings to bindings
+
+          // oracle calls. no point calling oracles if we reach here via a backtracl
+          // they must have already failed
+          BacktrackData tempBD;
+          _subst->bdRecord(tempBD);
+          auto res = HOLUnification::fixpointUnify(flexTerm, rigidTerm, _subst);
+          _subst->bdDone();
+
+          if(res == OracleResult::OUT_OF_FRAGMENT){
+            tempBD.backtrack();
+            // TODO pattern oracle
+            // TODO solid oracle?
+          } else if (res == OracleResult::SUCCESS){
+            tempBD.commitTo(_bdStack->top());
+            tempBD.drop();
+            continue;
+          } else {
+            forward = backtrack();
+            continue;
+          }
+
+          TermStack projAndImitBindings;
+          ApplicativeHelper::getProjAndImitBindings(flexTerm, rigidTerm, projAndImitBindings);
+          backtrackablePush(*_bindings,projAndImitBindings,_bdStack->top());
+        }
+        
+        _depth++;
+        addToUnifPairs(con, _bdStack->top()); // add back to pairs with old data
+        BacktrackData bd;
+        _bdStack->push(bd); // reached a branch point 
+        con = popFromUnifPairs(_bdStack->top()); // remove from pairs on new data
+        
+        ASS(_bindings->top().size());
+        TermList binding = _bindings->top().pop(); 
+       
+        _subst->bdRecord(bd);        
+        _subst->bind(flexHead, binding);
+        _subst->bdDone();
+
+        applyBindingToPairs();
+
+      } else {
+        // clash
+        forward = backtrack();
+      }
+    }
+
+    return forward;
   }
 
   RobSubstitutionTL* next() {
     CALL("HOLUnification::HigherOrderUnifiersIt::next");
 
+    if(!_returnInitial){
+      // turn remaining unification pairs into standard constraints
+      // these can either be the flex-flex pairs, or if depth limit reached
+      // these can include other pairs as well
+      BacktrackData& bd = _bdStack->top();
+      _subst->bdRecord(bd);    
+      while(!_unifPairs.isEmpty()){
+        HOLConstraint con = popFromUnifPairs(bd);
+        UnificationConstraint c(con.lhs(), con.rhs());
+        _subst->pushConstraint(c);      
+      }
+      _subst->bdDone();
+    }
+
     return _subst;
+  }
+  
+  HOLConstraint popFromUnifPairs(BacktrackData& bd){
+    CALL("HigherOrderUnifiersIt::popFromUnifPairs");
+
+    auto con = _unifPairs.pop();
+    bd.addClosure([&](){ _unifPairs.insert(con); });
+    return con;
   }
 
   void addToUnifPairs(HOLConstraint con, BacktrackData& bd){
@@ -139,8 +291,11 @@ private:
 
   bool _returnInitial;
   bool _used;
+  unsigned _depth;
   BacktrackData _initData;
   SkipList<HOLConstraint,HOLCnstComp> _unifPairs;
+  Recycled<Stack<BacktrackData>> _bdStack;
+  Recycled<Stack<TermStack>> _bindings;
   RobSubstitutionTL* _subst;
 };
 
@@ -156,13 +311,7 @@ SubstIterator HOLUnification::unifiers(TermList t1, TermList t2, RobSubstitution
 
   unifyFirstOrderStructure(t1,t2,splittable,sub);
 
-  unsigned depth = env.options->higherOrderUnifDepth();
-
-  if(!depth){
-    return pvi(getSingletonIterator(sub));
-  } else {
-    return vi(new HigherOrderUnifiersIt(sub));    
-  }
+  return vi(new HigherOrderUnifiersIt(sub));    
 }
 
 SubstIterator HOLUnification::postprocess(RobSubstitutionTL* sub)
@@ -173,15 +322,7 @@ SubstIterator HOLUnification::postprocess(RobSubstitutionTL* sub)
   // but it is slighly involved and I am not sure that it is worth it.
   // will leave for now.
 
-  unsigned depth = env.options->higherOrderUnifDepth();
-  
-  if(!depth || sub->emptyConstraints()){
-    // if depth == 0, then we are unifying via dedicated inferences
-    // if there are no constraints, then first-order unification sufficed
-    return pvi(getSingletonIterator(sub));
-  } else {
-    return vi(new HigherOrderUnifiersIt(sub));    
-  }
+  return vi(new HigherOrderUnifiersIt(sub));    
 }
 
 bool HOLUnification::associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
@@ -199,7 +340,9 @@ bool HOLUnification::associate(unsigned specialVar, TermList node, bool splittab
 HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub)
 {
   CALL("HOLUnification::fixpointUnify");
-  ASS(var.isVar());
+
+  // TODO what about if it is an eta-expanded var? Is that possible here?
+  if(!var.isVar()) return OracleResult::OUT_OF_FRAGMENT;
 
   struct TermListFP {
     TermList t;
