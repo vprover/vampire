@@ -70,7 +70,6 @@ struct VarSpec
   };
 };
 
-// TODO get rid of this
 struct AtomicTermSpec {
   AtomicTermSpec() {}
   AtomicTermSpec(TermList t, int i) : term(t), index(i) {}
@@ -101,7 +100,27 @@ struct AtomicTermSpec {
    term.term()->arity()==0 ));
   }
 
+  friend std::ostream& operator<<(std::ostream& out, AtomicTermSpec const& self);
   AtomicTermSpec clone() const { return *this; }
+  bool isVar() const;
+  VarSpec varSpec() const;
+  bool isTerm() const;
+  bool isOutputVar() const;
+
+
+  unsigned nTypeArgs() const;
+  unsigned nTermArgs() const;
+  unsigned nAllArgs() const;
+
+  AtomicTermSpec termArg(unsigned i) const;
+  AtomicTermSpec typeArg(unsigned i) const;
+  AtomicTermSpec anyArg(unsigned i) const;
+
+  auto typeArgs() const { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
+  auto termArgs() const { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
+  auto allArgs() const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
+
+  unsigned functor() const;
 };
 
 class TermSpec;
@@ -150,6 +169,7 @@ class TermSpec
   TermSpec(Copro self) : _self(std::move(self)) {}
 public:
   TermSpec(TermSpec&&) = default;
+  TermSpec(AtomicTermSpec self) : TermSpec(Copro(self)) {}
   TermSpec& operator=(TermSpec&&) = default;
   AtomicTermSpec old() const { return _self.unwrap<AtomicTermSpec>(); }
   // TODO get rid of default constructor
@@ -161,6 +181,8 @@ public:
   IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(TermSpec);
   unsigned defaultHash() const;
   unsigned defaultHash2() const;
+
+  Option<AtomicTermSpec> asAtomic() const { return _self.as<AtomicTermSpec>().toOwned(); }
 
   template<class Deref>
   static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
@@ -231,7 +253,7 @@ public:
   TermSpec sort() const;
   bool isSort() const;
   VarSpec varSpec() const;
-  unsigned functor()   const;
+  unsigned functor() const;
 
   unsigned nTypeArgs() const;//{ return derefTerm().term()->numTypeArguments(); }
   unsigned nTermArgs() const;//{ return derefTerm().term()->numTermArguments(); }
@@ -390,6 +412,7 @@ public:
 private:
   TermList apply(TermSpec);
   friend class TermSpec;
+  friend struct AtomicTermSpec;
   RobSubstitution(const RobSubstitution& obj) = delete;
   RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
@@ -402,8 +425,8 @@ private:
   void bind(const VarSpec& v, TermSpec b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2);
-  bool occurs(VarSpec const& vs, TermSpec const& ts);
+  bool unify(AtomicTermSpec t1, AtomicTermSpec t2);
+  bool occurs(VarSpec const& vs, AtomicTermSpec const& ts);
 
   // VarSpec getVarSpec(TermList tl, int index) const
   // {
