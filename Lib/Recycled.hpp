@@ -26,10 +26,57 @@ namespace Lib
 {
 
 struct DefaultReset
-{ template<class T> void operator()(T& t) { t.reset(); } };
+{ 
+  template<class T> void operator()(T& t) { t.reset(); } 
+
+  template<unsigned i, unsigned sz, class Tup> 
+  struct __ResetTuple
+  {
+    static void apply(Tup& self)
+    {
+      std::get<i>(self).reset();
+      __ResetTuple<i + 1, sz, Tup>::apply(self);
+    }
+  };
+
+  template<unsigned i, class Tup> 
+  struct __ResetTuple<i, i, Tup>  {
+    static void apply(Tup& self)
+    { std::get<i>(self).reset(); }
+  };
+
+  void operator()(std::tuple<>& t) {}
+
+  template<class A, class... As>
+  void operator()(std::tuple<A, As...>& t) 
+  { __ResetTuple<0, std::tuple_size<std::tuple<A, As...>>::value - 1, std::tuple<A, As...>>::apply(t); }
+
+};
 
 struct DefaultKeepRecycled
-{ template<class T> bool operator()(T const& t) { return t.keepRecycled(); } };
+{ 
+  template<class T> bool operator()(T const& t) { return t.keepRecycled(); } 
+
+  template<unsigned i, unsigned sz, class Tup> 
+  struct __KeepRecycledTuple
+  {
+    static bool apply(Tup const& self)
+    { return std::get<i>(self).keepRecycled() 
+        || __KeepRecycledTuple<i + 1, sz, Tup>::apply(self); }
+  };
+
+  template<unsigned i, class Tup> 
+  struct __KeepRecycledTuple<i, i, Tup>  {
+    static bool apply(Tup const& self)
+    { return std::get<i>(self).keepRecycled(); }
+  };
+
+  bool operator()(std::tuple<> const& t) { return false; }
+
+  template<class A, class... As>
+  bool operator()(std::tuple<A, As...> const& t) 
+  { return __KeepRecycledTuple<0, std::tuple_size<std::tuple<A, As...>>::value - 1, std::tuple<A, As...>>::apply(t); }
+};
 
 struct NoReset
 { template<class T> void operator()(T& t) {  } };
