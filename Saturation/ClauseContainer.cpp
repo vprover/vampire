@@ -16,7 +16,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
-#include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"

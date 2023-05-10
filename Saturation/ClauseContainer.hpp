@@ -22,6 +22,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/Stack.hpp"
+#include "Kernel/Clause.hpp"
 #include "Lib/Set.hpp"
 
 #include "Lib/Allocator.hpp"

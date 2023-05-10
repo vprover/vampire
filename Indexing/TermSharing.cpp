@@ -82,29 +82,11 @@ void TermSharing::setPoly()
  * Insert a new term in the index and return the result.
  * @since 28/12/2007 Manchester
  */
-Term* TermSharing::insert(Term* t)
+void TermSharing::computeAndSetSharedData(Term* t)
 {
-
   CALL("TermSharing::insert(Term*)");
-  ASS(!t->isLiteral());
-  ASS(!t->isSpecial());
-  ASS(!t->isSort());
-
   TIME_TRACE(TimeTrace::TERM_SHARING);
 
-  // normalise commutative terms
-  if (t->commutative()) {
-    ASS(t->arity() == 2);
-
-    TermList* ts1 = t->args();
-    TermList* ts2 = ts1->next();
-    if (argNormGt(*ts1, *ts2)) {
-      swap(ts1->_content, ts2->_content);
-    }
-  }
-
-  Term* s = _terms.insert(t);
-  if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
@@ -202,11 +184,6 @@ Term* TermSharing::insert(Term* t)
     } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
-  }
-  else {
-    t->destroy();
-  }
-  return s;
 } // TermSharing::insert
 
 AtomicSort* TermSharing::insert(AtomicSort* sort)

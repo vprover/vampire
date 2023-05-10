@@ -908,24 +908,8 @@ Literal* Literal::complementaryLiteral(Literal* l)
  */
 Term* Term::create(Term* t,TermList* args)
 {
-  CALL("Term::create/2");
   ASS_EQ(t->getPreDataSize(), 0);
-
-  int arity = t->arity();
-  Term* s = new(arity) Term(*t);
-  bool share = true;
-  TermList* ss = s->args();
-  for (int i = 0;i < arity;i++) {
-    ASS(!args[i].isEmpty());
-    *ss-- = args[i];
-    if (!args[i].isSafe()) {
-      share = false;
-    }
-  }
-  if (share) {
-    s = env.sharing->insert(s);
-  }
-  return s;
+  return create(t->functor(), t->arity(), args);
 }
 
 /** Create a new complex term, and insert it into the sharing
@@ -936,26 +920,31 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
   CALL("Term::create/3");
   ASS_EQ(env.signature->functionArity(function), arity);
 
-  Term* s = new(arity) Term;
-  s->makeSymbol(function,arity);
+  bool share = range(0, arity).all([&](auto i) { return args[i].isSafe(); });
 
-  bool share = true;
-  TermList* ss = s->args();
-
-  const TermList* curArg = args;
-  const TermList* argStopper = args+arity;
-  while (curArg!=argStopper) {
-    *ss = *curArg;
-    --ss;
-    if (!curArg->isSafe()) {
-      share = false;
+  auto createTerm = [&]() {
+    Term* s = new(arity) Term;
+    s->makeSymbol(function,arity);
+    for (auto i : range(0, arity)) {
+      *s->nthArgument(i) = args[i];
     }
-    ++curArg;
-  }
+    return s;
+  };
+
   if (share) {
-    s = env.sharing->insert(s);
+    bool created = false;
+    auto shared = 
+      env.sharing->_terms.rawFindOrInsert(createTerm, 
+        Term::termHash(function, [&](auto i){ return args[i]; }, arity), 
+        [&](Term* t) { return t->functor() == function && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
+        created);
+    if (created) {
+      env.sharing->computeAndSetSharedData(shared);
+    }
+    return shared;
+  } else {
+    return createTerm();
   }
-  return s;
 }
 
 
@@ -1214,27 +1203,14 @@ Term* Term::cloneNonShared(Term* t)
 } // Term::cloneNonShared(const Term* t,Term* args)
 
 Term* Term::create1(unsigned fn, TermList arg)
-{
-  CALL("Term::create1");
-
-  return Term::create(fn, 1, &arg);
-}
+{ return Term::create(fn, { arg }); }
 
 Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
-{
-  CALL("Term::create2");
-
-  TermList args[] = {arg1, arg2};
-  return Term::create(fn, 2, args);
-}
+{ return Term::create(fn, {arg1, arg2}); }
 
 
 Term* Term::create(unsigned fn, std::initializer_list<TermList> args)
-{
-  CALL("Term::create/initializer_list");
-
-  return Term::create(fn, args.size(), args.begin());
-}
+{ return Term::create(fn, args.size(), args.begin()); }
 
 /**
  * Create singleton FOOL constants
@@ -1336,12 +1312,7 @@ TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
 }
 
 TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
-{
-  CALL("AtomicSort::tupleSort");
-  unsigned tuple = env.signature->getTupleConstructor(arity);
-  TermList sort = TermList(create(tuple, arity, sorts));
-  return sort;
-}
+{ return TermList(Term::create(env.signature->getTupleConstructor(arity), arity, sorts)); }
 
 
 /**

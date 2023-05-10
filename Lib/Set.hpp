@@ -173,53 +173,35 @@ public:
     return false;
   } // Set::contains
 
-  /**
-   * If a value equal to @b val is not contained in the set, insert @b val
-   * in the set.
-   * Return the value equal to @b val from the set.
-   * @since 29/09/2002 Manchester
-   * @since 09/12/2006 Manchester, reimplemented
-   */
-  inline Val insert(const Val val)
+  template<class Create, class CorrectVal>
+  Val& rawFindOrInsert(Create create, unsigned hashCode, CorrectVal cval, bool& inserted)
   {
-    CALL("Set::insert");
+    CALL("Set::rawFindOrInsert");
+    inserted = false;
 
+#if VDEBUG
+    unsigned origHash = hashCode;
+#endif
     if (_nonemptyCells >= _maxEntries) { // too many entries
       expand();
     }
 
-    unsigned code;
-    code = Hash::hash(val);
-
-    if (code < 2) {
-      code = 2;
+    if (hashCode < 2) {
+      hashCode = 2;
     }
 
-    return insert(val,code);
-  } // Set::insert
-
-  /**
-   * Insert a value with a given code in the set.
-   * The set must have a sufficient capacity
-   * @since 09/12/2006 Manchester, reimplemented
-   */
-  Val insert(const Val val,unsigned code)
-  {
-    CALL("Set::insert/2");
-
     Cell* found = 0;
-    Cell* cell = firstCellForCode(code);
+    Cell* cell = firstCellForCode(hashCode);
     while (! cell->empty()) {
       if (cell->deleted()) {
-	if (! found) {
-	  found = cell;
-	}
-	cell = nextCell(cell);
-	continue;
+        if (! found) {
+          found = cell;
+        }
+        cell = nextCell(cell);
+        continue;
       }
-      if (cell->code == code &&
-	  Hash::equals(cell->value,val)) {
-	return cell->value;
+      if (cell->code == hashCode && cval(cell->value)) {
+        return cell->value;
       }
       cell = nextCell(cell);
     }
@@ -230,10 +212,36 @@ public:
       _nonemptyCells++;
     }
     _size++;
-    cell->value = val;
-    cell->code = code;
+    cell->value = create();
+    cell->code = hashCode;
+    inserted = true;
+    ASS_EQ(Hash::hash(cell->value), origHash)
+    ASS(cval(cell->value))
     return cell->value;
   } // Set::insert
+
+  template<class Create, class CorrectVal>
+  Val& rawFindOrInsert(Create create, unsigned hashCode, CorrectVal cval)
+  { bool b; return rawFindOrInsert(std::move(create), hashCode, std::move(cval), b); }
+
+
+  /**
+   * If a value equal to @b val is not contained in the set, insert @b val
+   * in the set.
+   * Return the value equal to @b val from the set.
+   * @since 29/09/2002 Manchester
+   * @since 09/12/2006 Manchester, reimplemented
+   */
+  inline Val insert(const Val val)
+  { return insert(val,Hash::hash(val)); } 
+
+  /**
+   * Insert a value with a given code in the set.
+   * The set must have a sufficient capacity
+   * @since 09/12/2006 Manchester, reimplemented
+   */
+  Val insert(Val val, unsigned code)
+  { return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { return Hash::equals(v, val); }); } // Set::insert
 
   /** Insert all elements from @b it iterator in the set */
   template<class It>

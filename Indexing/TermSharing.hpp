@@ -37,7 +37,8 @@ public:
   ~TermSharing();
 
   // TODO we should probably inline the common path where a term already exists
-  Term* insert(Term*);
+  // not quite sure what that todo exactly meant but I think it should be resolved now (?)
+  void computeAndSetSharedData(Term*);
 
   AtomicSort* insert(AtomicSort*);
 
@@ -91,6 +92,7 @@ public:
   bool isWellSortednessCheckingDisabled() const { return _wellSortednessCheckingDisabled; }
 
 private:
+  friend class Kernel::Term;
   int sumRedLengths(TermStack& args);
   bool argNormGt(TermList t1, TermList t2);
 

@@ -2970,11 +2970,7 @@ void TPTP::term()
         default:
           ASSERTION_VIOLATION;
       }
-      Term *t = new(0) Term;
-      t->makeSymbol(number, 0);
-      t = env.sharing->insert(t);
-      TermList constant(t);
-      _termLists.push(constant);
+      _termLists.push(TermList(Term::createConstant(number)));
       return;
     }
 
@@ -3304,15 +3300,13 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
       fun = addUninterpretedConstant(name, _overflow, dummy);
     }
   }
-  Term* t = new(arity) Term;
-  t->makeSymbol(fun,arity);
+
   OperatorType* type = env.signature->getFunction(fun)->fnType();
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
+  for (unsigned i : range(0, arity)) {
     TermList sort = type->arg(i);
-    TermList ss = _termLists.pop();
+    TermList ss = _termLists[_termLists.size() - 1 - i];
     TermList ssSort = sortOf(ss);
-    if((unsigned)i < type->numTypeArguments()){
+    if(i < type->numTypeArguments()){
       if(ssSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
                    "is not $tType as mandated by TF1");
@@ -3326,13 +3320,10 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
                    "is not an instance of sort " + sort.toString());
       }
     }
-    *(t->nthArgument(i)) = ss;
-    safe = safe && ss.isSafe();
   }
-  if (safe) {
-    t = env.sharing->insert(t);
-  }
-  return TermList(t);
+  auto t = TermList(Term::create(fun, arity, arity == 0 ? nullptr : &_termLists[_termLists.size() - arity]));
+  _termLists.pop(arity);
+  return t;
 }
 
 /**

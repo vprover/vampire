@@ -282,22 +282,11 @@ Term* Rectify::rectify (Term* t)
     return rectifySpecialTerm(t);
   }
 
-  Term* s = new(t->arity()) Term(*t);
-  if (rectify(t->args(),s->args())) {
-    if(TermList::allShared(s->args())) {
-      if(t->isSort()){
-        return env.sharing->insert(static_cast<AtomicSort*>(s));
-      } else {
-        return env.sharing->insert(s);
-      }
-    }
-    else {
-      return s;
-    }
+  Recycled<Stack<TermList>> args;
+  for (auto a : anyArgIter(t)) {
+    args->push(rectify(a));
   }
-  // term not changed
-  s->destroy();
-  return t;
+  return Term::create(t, args->begin());
 } // Rectify::rectify (Term*)
 
 SList* Rectify::rectifySortList(SList* from, bool& modified)

@@ -34,6 +34,7 @@
 #include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
@@ -508,19 +509,29 @@ public:
   TermList* args()
   { return _args + _arity; }
 
+
+  template<class GetArg>
+  static unsigned termHash(unsigned functor, GetArg getArg, unsigned arity) {
+    CALL("Term::termHash");
+    
+    return DefaultHash::hashIter(
+        range(0, arity).map([&](auto i) { 
+          TermList t = getArg(i);
+          return DefaultHash::hashBytes(
+              reinterpret_cast<const unsigned char*>(&t),
+              sizeof(TermList)
+              );
+          }),
+        DefaultHash::hash(functor));
+  }
+
   /**
    * Return the hash function of the top-level of a complex term.
    * @pre The term must be non-variable
    * @since 28/12/2007 Manchester
    */
-  unsigned hash() const {
-    CALL("Term::hash");
-    return DefaultHash::hashBytes(
-      reinterpret_cast<const unsigned char*>(_args+1),
-      _arity*sizeof(TermList),
-      DefaultHash::hash(_functor)
-    );
-  }
+  unsigned hash() const 
+  { return termHash(_functor, [&](auto i) { return *nthArgument(i); }, _arity); }
 
   /** return the arity */
   unsigned arity() const

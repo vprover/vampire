@@ -238,6 +238,18 @@ public:
     return hash;
   }
 
+  template<class Iter>
+  static unsigned hashIter(
+      Iter iter,
+      unsigned hash = FNV32_OFFSET_BASIS
+      ) {
+    CALL("DefaultHash::hashIter");
+    while (iter.hasNext()) {
+      hash = (hash ^ iter.next()) * FNV32_PRIME;
+    }
+    return hash;
+  }
+
   /**
    * FNV-1a applied to a NUL-terminated C-style string
    */
