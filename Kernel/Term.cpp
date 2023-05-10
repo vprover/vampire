@@ -909,7 +909,9 @@ Literal* Literal::complementaryLiteral(Literal* l)
 Term* Term::create(Term* t,TermList* args)
 {
   ASS_EQ(t->getPreDataSize(), 0);
-  return create(t->functor(), t->arity(), args);
+  ASS(!t->isLiteral())
+  ASS(!t->isSort())
+  return Term::create(t->functor(), t->arity(), args);
 }
 
 /** Create a new complex term, and insert it into the sharing

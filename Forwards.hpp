@@ -190,5 +190,4 @@ class Options;
 class Property;
 class Statistics;
 }
-
 #endif /* __Forwards__ */

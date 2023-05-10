@@ -286,7 +286,13 @@ Term* Rectify::rectify (Term* t)
   for (auto a : anyArgIter(t)) {
     args->push(rectify(a));
   }
-  return Term::create(t, args->begin());
+  if (t->isSort()) {
+    return AtomicSort::create(static_cast<AtomicSort*>(t), args->begin());
+  } else if (t->isLiteral()) {
+    return Literal::create(static_cast<Literal*>(t), args->begin());
+  } else {
+    return Term::create(t, args->begin());
+  }
 } // Rectify::rectify (Term*)
 
 SList* Rectify::rectifySortList(SList* from, bool& modified)

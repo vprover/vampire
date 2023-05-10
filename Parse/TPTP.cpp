@@ -47,7 +47,6 @@ using namespace Parse;
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
-
 DHMap<unsigned, vstring> TPTP::_axiomNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -3277,6 +3276,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
   return new AtomicFormula(lit);
 } // createPredicateApplication
 
+
 /**
  * Creates a term that is a function application from
  * provided function symbol name and arity. If arity is greater than zero,
@@ -3304,7 +3304,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   OperatorType* type = env.signature->getFunction(fun)->fnType();
   for (unsigned i : range(0, arity)) {
     TermList sort = type->arg(i);
-    TermList ss = _termLists[_termLists.size() - 1 - i];
+    TermList ss = _termLists[_termLists.size() - arity + i];
     TermList ssSort = sortOf(ss);
     if(i < type->numTypeArguments()){
       if(ssSort != AtomicSort::superSort()){
