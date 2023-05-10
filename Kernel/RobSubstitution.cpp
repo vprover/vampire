@@ -373,13 +373,13 @@ bool RobSubstitution::occurs(VarSpec const& toFind_, AtomicTermSpec const& ts_)
 {
   VarSpec toFind = root(toFind_);
   ASS_EQ(toFind, toFind_)
-  TermSpec ts = derefBound(ts_).clone();
+  AtomicTermSpec ts = derefBound(ts_).asAtomic().unwrap();
   if(ts.isVar()) {
     return false;
   }
   typedef DHSet<VarSpec, VarSpec::Hash1, VarSpec::Hash2> EncounterStore;
   Recycled<EncounterStore> encountered;
-  Recycled<Stack<TermSpec>> todo;
+  Recycled<Stack<AtomicTermSpec>> todo;
   todo->push(std::move(ts));
 
   while (todo->isNonEmpty()){
@@ -393,7 +393,7 @@ bool RobSubstitution::occurs(VarSpec const& toFind_, AtomicTermSpec const& ts_)
         TermSpec dtvar = derefBound(TermSpec(tvar)).clone();
         if(!dtvar.isVar()) {
           encountered->insert(tvar);
-          todo->push(std::move(dtvar));
+          todo->push(dtvar.asAtomic().unwrap());
         }
       }
 

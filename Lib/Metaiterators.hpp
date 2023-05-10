@@ -2140,7 +2140,12 @@ template<class Iter>
 class BoxedIter {
   unique_ptr<Iter> _inner;
 public: 
-  BoxedIter(Iter iter) : _inner(new Iter(std::move(iter))) {}
+  BoxedIter(Iter iter) : _inner([&]() { BYPASSING_ALLOCATOR; return new Iter(std::move(iter)); }()) {}
+  template<class... Args>
+  BoxedIter(Args... args) : _inner([&]() { BYPASSING_ALLOCATOR; return make_unique<Iter>(std::forward<Args>(args)...); }()) {}
+  ~BoxedIter() { BYPASSING_ALLOCATOR; _inner = nullptr; }
+  BoxedIter(BoxedIter&&) = default;
+  BoxedIter& operator=(BoxedIter&&) = default;
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
   bool hasNext() const { return _inner->hasNext(); }
   ELEMENT_TYPE(Iter) next() { return _inner->next(); }
@@ -2148,6 +2153,8 @@ public:
 
 template<class Iter> 
 auto boxedIter(Iter iter) { return iterTraits(BoxedIter<Iter>(std::move(iter))); }
+template<class Iter, class... Args> 
+auto mkBoxedIter(Args... args) { return iterTraits(BoxedIter<Iter>(std::forward<Args>(args)...)); }
 
 // template<class CreateIer>
 // class IterAsData {
