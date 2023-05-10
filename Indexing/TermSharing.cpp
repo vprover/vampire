@@ -291,7 +291,6 @@ Literal* TermSharing::insert(Literal* t)
 
   TIME_TRACE(TimeTrace::TERM_SHARING);
 
-  bool reverseOrientation = false;
   if (t->commutative()) {
     ASS(t->arity() == 2);
 
@@ -299,7 +298,6 @@ Literal* TermSharing::insert(Literal* t)
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
       swap(ts1->_content, ts2->_content);
-      reverseOrientation = true;
     }
   }
 
@@ -357,11 +355,6 @@ Literal* TermSharing::insert(Literal* t)
   }
   else {
     t->destroy();
-  }
-  // overwrite current orientation with new
-  s->resetOrientation();
-  if (reverseOrientation) {
-    s->reverseOrientation();
   }
   return s;
 } // TermSharing::insert

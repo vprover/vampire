@@ -81,23 +81,18 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-#if DEBUG_PSBS
     TermIterator rsti;
     if(!env.options->combinatorySup()){
       rsti = EqHelper::getSubtermIterator(lit,_ord);
     } else {
       rsti = EqHelper::getFoSubtermIterator(lit,_ord);
     }
-#else
-    TermIterator rsti = EqHelper::getSubtermIterator2(lit,c,_ord);
-#endif
     while (rsti.hasNext()) {
-      auto st = rsti.next();
       if (adding) {
-        _is->insert(st, lit, c);
+        _is->insert(rsti.next(), lit, c);
       }
       else {
-        _is->remove(st, lit, c);
+        _is->remove(rsti.next(), lit, c);
       }
     }
   }

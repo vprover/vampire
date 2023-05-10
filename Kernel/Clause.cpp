@@ -37,7 +37,6 @@
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
-#include "RewritingPositionTree.hpp"
 
 #include <cmath>
 
@@ -74,8 +73,9 @@ Clause::Clause(unsigned length,const Inference& inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
+    _rewriteRules(),
+    _blockedTerms(),
     _numActiveSplits(0),
-    _rwState(),
     _auxTimestamp(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
@@ -356,28 +356,6 @@ vstring orderingToString(Literal* lit) {
   }
 }
 
-vstring positionToString(Literal* lit, pair<RewritingPositionTree*, RewritingPositionTree*>* p) {
-  if (!p) {
-    return "";
-  }
-  vstring res = "<";
-  if (p->first) {
-    res += p->first->toString();
-  } else {
-    res += "epsilon";
-  }
-  if (lit->isEquality()) {
-    res += ",";
-    if (p->second) {
-      res += p->second->toString();
-    } else {
-      res += "epsilon";
-    }
-  }
-  res += ">";
-  return res;
-}
-
 /**
  * Convert non-propositional part of the clause to vstring.
  */
@@ -392,14 +370,12 @@ vstring Clause::literalsOnlyToString() const
     result += _literals[0]->toString();
     // if(env.options->proofExtra()!=Options::ProofExtra::OFF){
       // result += " " + orderingToString(_literals[0]) + " ";
-      result += " " + positionToString(_literals[0], getRwState(_literals[0])) + " ";
     // }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
       // if(env.options->proofExtra()!=Options::ProofExtra::OFF){
         // result += " " + orderingToString(_literals[i]) + " ";
-        result += " " + positionToString(_literals[i], getRwState(_literals[i])) + " ";
       // }
     }
     return result;
@@ -496,6 +472,13 @@ vstring Clause::toString() const
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
   }
+
+  // result += "blocked terms: [ ";
+  // DHSet<TermList>::Iterator it(_blockedTerms);
+  // while (it.hasNext()) {
+  //   result += it.next().toString() + " ";
+  // }
+  // result += "]";
 
   return result;
 }
@@ -769,48 +752,6 @@ unsigned Clause::numPositiveLiterals()
   return count;
 }
 
-void Clause::setRwState(Literal* lit, RewritingPositionTree* t0, RewritingPositionTree* t1, bool reorient)
-{
-  CALL("Clause::setRwState");
-  if (!t0 && !t1) {
-    return;
-  }
-  if (reorient) {
-    ASS(lit->isEquality());
-    swap(t0,t1);
-  }
-#ifdef VDEBUG
-  if (lit->isEquality()) {
-    ASS_REP(!t0||t0->isValid(lit->termArg(0)),"Lit "+lit->toString()+" 0. arg state is not valid: " + t0->toString());
-    ASS_REP(!t1||t1->isValid(lit->termArg(1)),"Lit "+lit->toString()+" 1. arg state is not valid: " + t1->toString());
-  }
-#endif
-
-  // TODO merge values most efficiently when there are duplicate literals (e.g. from BR)
-  ALWAYS(_rwState.insert(lit, make_pair(t0,t1)));
-}
-
-pair<RewritingPositionTree*, RewritingPositionTree*>* Clause::getRwState(Literal* lit) const
-{
-  return const_cast<DHMap<Literal*, pair<RewritingPositionTree*, RewritingPositionTree*>>&>(_rwState).findPtr(lit);
-}
-
-void Clause::initRwStateFrom(Clause* cl, Literal* lit, Literal* newLit)
-{
-  CALL("Clause::initRwStateFrom");
-  auto kv = cl->getRwState(lit);
-  if (!kv) {
-    return;
-  }
-
-  auto t0 = RewritingPositionTree::create(kv->first);
-  auto t1 = RewritingPositionTree::create(kv->second);
-  if (lit != newLit && newLit->isOrientedReversed()) {
-    swap(t0,t1);
-  }
-  _rwState.insert(newLit, make_pair(t0,t1));
-}
-
 /**
  * Return index of @b lit in the clause
  *
@@ -848,6 +789,35 @@ unsigned Clause::getLiteralPosition(Literal* lit)
     }
     return static_cast<unsigned>(_literalPositions->get(lit));
   }
+}
+
+VirtualIterator<pair<TermList,TermList>> Clause::getRewriteRules()
+{
+  return _rewriteRules.items();
+}
+
+void Clause::addRewriteRule(TermList lhs, TermList rhs)
+{
+  _rewriteRules.insert(lhs,rhs);
+}
+
+void Clause::addBlockedTerm(TermList t)
+{
+  if (t.isVar()) {
+    cout << "helo" << endl;
+    return;
+  }
+  _blockedTerms.insert(t);
+}
+
+bool Clause::isBlockedTerm(TermList t) const
+{
+  return _blockedTerms.contains(t);
+}
+
+TermIterator Clause::getBlockedTerms() const
+{
+  return _blockedTerms.iterator();
 }
 
 /**

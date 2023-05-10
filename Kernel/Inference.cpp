@@ -701,6 +701,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "formulify";
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
+  case InferenceRule::DEMODULATION_BY_RULE:
+    return "demodulation by rule";
   case InferenceRule::SKOLEMIZE:
     return "skolemisation";
   case InferenceRule::RESOLUTION:
@@ -741,8 +743,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
-  case InferenceRule::FORBIDDEN_SUPERPOSITION:
-    return "forbidden superposition";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
   case InferenceRule::EQUALITY_FACTORING:

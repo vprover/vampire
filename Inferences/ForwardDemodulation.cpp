@@ -32,7 +32,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/RewritingPositionTree.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -222,7 +221,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
-        auto resLitR = resLit->isOrientedReversed();
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
           premises = pvi( getSingletonIterator(qr.clause));
@@ -232,23 +230,21 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Clause* res = new(cLen) Clause(cLen,
           SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
         (*res)[0]=resLit;
-        auto p = cl->getRwState(lit);
-        auto t0 = p ? p->first : nullptr;
-        auto t1 = p ? p->second : nullptr;
-        if (lit->isEquality()) {
-          t0 = RewritingPositionTree::createTruncated(t0,lit->termArg(0),trm);
-          t1 = RewritingPositionTree::createTruncated(t1,lit->termArg(1),trm);
-        } else {
-          t0 = RewritingPositionTree::createTruncated(t0,TermList(lit),trm);
+        auto rwIt = cl->getRewriteRules();
+        while (rwIt.hasNext()) {
+          auto kv = rwIt.next();
+          res->addRewriteRule(kv.first,kv.second);
         }
-        res->setRwState(resLit, t0, t1, resLitR);
+        auto rwBIt = cl->getBlockedTerms();
+        while (rwBIt.hasNext()) {
+          res->addBlockedTerm(rwBIt.next());
+        }
 
         unsigned next=1;
         for(unsigned i=0;i<cLen;i++) {
           Literal* curr=(*cl)[i];
           if(curr!=lit) {
             (*res)[next++] = curr;
-            res->initRwStateFrom(cl, curr, curr);
           }
         }
         ASS_EQ(next,cLen);

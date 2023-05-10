@@ -107,6 +107,8 @@ Statistics::Statistics()
     leibnizElims(0),
     booleanSimps(0),
     duplicateLiterals(0),
+    demodulationByRule(0),
+    skipped(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
     backwardSubsumptionResolution(0),
@@ -317,6 +319,8 @@ void Statistics::print(ostream& out)
       +booleanSimps
       );
   COND_OUT("Duplicate literals", duplicateLiterals);
+  COND_OUT("Demodulation by rule", demodulationByRule);
+  COND_OUT("Skipped", skipped);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
   COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);

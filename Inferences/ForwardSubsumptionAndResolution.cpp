@@ -172,7 +172,6 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
     ASS(curr != lit || !found);
     if (curr != lit || found) {
       (*res)[next++] = curr;
-      res->initRwStateFrom(cl, curr, curr);
     }
     else {
       found = true;
@@ -366,6 +365,24 @@ fin:
   while (cmStore.isNonEmpty()) {
     delete cmStore.pop();
   }
+  // if (/* !_subsumptionResolution &&  */result) {
+  //   cout << "subsumed " << *cl << endl;
+  //   auto rwcl1 = cl->getRewriteClauses();
+  //   while (rwcl1.hasNext()) {
+  //     auto rwcl = rwcl1.next();
+  //     cout << "                  " << *rwcl << endl;
+  //   }
+  //   cout << endl;
+  //   auto premise = premises.next();
+  //   cout << "by       " << *premise << endl;
+  //   auto rwcl2 = premise->getRewriteClauses();
+  //   while (rwcl2.hasNext()) {
+  //     auto rwcl = rwcl2.next();
+  //     cout << "                  " << *rwcl << endl;
+  //   }
+  //   cout << "----------" << endl << endl;
+  //   premises = pvi(getSingletonIterator(premise));
+  // }
   return result;
 }
 

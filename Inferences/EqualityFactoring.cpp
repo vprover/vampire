@@ -151,13 +151,6 @@ struct EqualityFactoring::ResultFn
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
 
     (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
-    // TODO when l = r \/ u = v \/ C is factored into l = r \/ r != v \/ C,
-    // the state of u gets lost, move it to l
-    auto sState = _cl->getRwState(sLit);
-    auto fState = _cl->getRwState(fLit);
-    auto sTree = sState ? (sLit->termArg(0) == sLHS ? sState->second : sState->first) : nullptr;
-    auto fTree = fState ? (fLit->termArg(0) == fLHS ? fState->second : fState->first) : nullptr;
-    res->setRwState((*res)[0], sTree, fTree, (*res)[0]->isOrientedReversed());
 
     Literal* sLitAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
@@ -181,7 +174,6 @@ struct EqualityFactoring::ResultFn
         }
 
         (*res)[next++] = currAfter;
-        res->initRwStateFrom(_cl, curr, currAfter);
       }
     }
     for(unsigned i=0;i<constraints.length();i++){

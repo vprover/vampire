@@ -1721,12 +1721,11 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(InferencingSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _symmetryBreakingSuperposition = BoolOptionValue("symmetry_breaking_superposition","sbs",false);
-    _symmetryBreakingSuperposition.description="Skip superpositions inferences already performed on an independent (parallel) branch.";
-    _lookup.insert(&_symmetryBreakingSuperposition);
-    _symmetryBreakingSuperposition.onlyUsefulWith(InferencingSaturationAlgorithm());
-    _symmetryBreakingSuperposition.reliesOn(_simultaneousSuperposition.is(equal(false)));
-    _symmetryBreakingSuperposition.tag(OptionTag::INFERENCES);
+    _diamondBreakingSuperposition = BoolOptionValue("diamond_breaking_superposition","dbs",false);
+    _diamondBreakingSuperposition.description="Skip superpositions detected to be done on a different rewrite branch.";
+    _lookup.insert(&_diamondBreakingSuperposition);
+    _diamondBreakingSuperposition.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _diamondBreakingSuperposition.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=

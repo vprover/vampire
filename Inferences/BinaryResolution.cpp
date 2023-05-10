@@ -27,6 +27,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -263,7 +264,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       }
       ASS(next < newLength);
       (*res)[next] = newLit;
-      res->initRwStateFrom(queryCl, curr, newLit);
       next++;
     }
   }
@@ -302,8 +302,32 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       }
 
       (*res)[next] = newLit;
-      res->initRwStateFrom(qr.clause, curr, newLit);
       next++;
+    }
+  }
+
+  if (opts.diamondBreakingSuperposition()) {
+    TIME_TRACE("diamond-breaking");
+    auto rwIt = queryCl->getRewriteRules();
+    while (rwIt.hasNext()) {
+      auto kv = rwIt.next();
+      res->addRewriteRule(
+        qr.substitution->applyToQuery(kv.first),
+        qr.substitution->applyToQuery(kv.second)
+      );
+    }
+    auto eqIt = qr.clause->getRewriteRules();
+    while (eqIt.hasNext()) {
+      auto kv = eqIt.next();
+      res->addRewriteRule(
+        qr.substitution->applyToResult(kv.first),
+        qr.substitution->applyToResult(kv.second)
+      );
+    }
+    NonVariableNonTypeIterator nvi(qr.substitution->applyToQuery(queryLit));
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      res->addBlockedTerm(st);
     }
   }
 

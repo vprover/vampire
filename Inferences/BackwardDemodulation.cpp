@@ -30,7 +30,6 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/RewritingPositionTree.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -211,7 +210,6 @@ struct BackwardDemodulation::ResultFn
     }
 
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
-    auto resLitR = resLit->isOrientedReversed();
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
       _removed->insert(qr.clause);
@@ -222,23 +220,21 @@ struct BackwardDemodulation::ResultFn
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
-    auto p = qr.clause->getRwState(qr.literal);
-    auto t0 = p ? p->first : nullptr;
-    auto t1 = p ? p->second : nullptr;
-    if (qr.literal->isEquality()) {
-      t0 = RewritingPositionTree::createTruncated(t0, *qr.literal->nthArgument(0),lhsS);
-      t1 = RewritingPositionTree::createTruncated(t1, *qr.literal->nthArgument(1),lhsS);
-    } else {
-      t0 = RewritingPositionTree::createTruncated(t0, TermList(qr.literal),lhsS);
+    auto rwIt = qr.clause->getRewriteRules();
+    while (rwIt.hasNext()) {
+      auto kv = rwIt.next();
+      res->addRewriteRule(kv.first,kv.second);
     }
-    res->setRwState(resLit, t0, t1, resLitR);
+    auto rwBIt = qr.clause->getBlockedTerms();
+    while (rwBIt.hasNext()) {
+      res->addBlockedTerm(rwBIt.next());
+    }
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
       if(curr!=qr.literal) {
         (*res)[next++] = curr;
-        res->initRwStateFrom(qr.clause, curr, curr);
       }
     }
     ASS_EQ(next,cLen);

@@ -228,7 +228,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Signature.o\
         Kernel/Unit.o\
         Kernel/InterpretedLiteralEvaluator.o\
-				Kernel/RewritingPositionTree.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
         Kernel/NumTraits.o
@@ -311,7 +310,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/TheoryInstAndSimp.o
+         Inferences/TheoryInstAndSimp.o\
+				 Inferences/RewritingByRule.o
 #         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/MinimizingSolver.o\

@@ -406,8 +406,16 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
       origIdx--;
       ASS_GE(origIdx,0);
     }
-    d->initRwStateFrom(c, (*c)[origIdx], (*c)[origIdx]);
     (*d)[newIdx] = (*c)[origIdx];
+  }
+  auto rwIt = c->getRewriteRules();
+  while (rwIt.hasNext()) {
+    auto kv = rwIt.next();
+    d->addRewriteRule(kv.first,kv.second);
+  }
+  auto rwBIt = c->getBlockedTerms();
+  while (rwBIt.hasNext()) {
+    d->addBlockedTerm(rwBIt.next());
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
@@ -531,7 +539,6 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
-    d->initRwStateFrom(c, (*d)[i], (*d)[i]);
   }
   env.statistics->trivialInequalities += found;
 

@@ -16,9 +16,7 @@
 
 #include "Shell/Options.hpp"
 
-#include "Clause.hpp"
 #include "Ordering.hpp"
-#include "RewritingPositionTree.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
 #include "ApplicativeHelper.hpp"
@@ -73,7 +71,6 @@ Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 {
   CALL("EqHelper::replace(Literal*,...)");
 
-  lit->resetOrientation();
   return static_cast<Literal*>(replace(static_cast<Term*>(lit), what, by));
 }
 
@@ -455,49 +452,6 @@ TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 	  getSingletonIterator(*lit->nthArgument(0)),
 	  getSingletonIterator(*lit->nthArgument(1))) );
 }
-
-TermIterator EqHelper::getSubtermIterator2(Literal* lit, Clause* cl, const Ordering& ord)
-{
-  CALL("EqHelper::getSubtermIterator2");
-  TIME_TRACE("new iterator");
-  auto kv = cl->getRwState(lit);
-  if (!kv) {
-    return getSubtermIterator(lit, ord);
-  }
-
-  auto res = TermIterator::getEmpty();
-  if (lit->isEquality()) {
-    switch(ord.getEqualityArgumentOrder(lit)) {
-    case Ordering::INCOMPARABLE: {
-      res = getUniquePersistentIterator(getConcatenatedIterator(
-        RewritingPositionTree::getSubtermIterator(kv->first, lit->termArg(0)),
-        RewritingPositionTree::getSubtermIterator(kv->second, lit->termArg(1))));
-      break;
-    }
-    // case Ordering::EQUAL: {
-    //   // let it fall through
-    // }
-    case Ordering::GREATER:
-    case Ordering::GREATER_EQ: {
-      res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->first, lit->termArg(0)));
-      break;
-    }
-    case Ordering::LESS:
-    case Ordering::LESS_EQ: {
-      res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->second, lit->termArg(1)));
-      break;
-    }
-#if VDEBUG
-    default:
-      ASSERTION_VIOLATION;
-#endif
-    }
-  } else {
-    res = getUniquePersistentIterator(RewritingPositionTree::getSubtermIterator(kv->first, TermList(lit)));
-  }
-  return res;
-}
-
 
 
 }

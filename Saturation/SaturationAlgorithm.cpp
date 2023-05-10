@@ -91,6 +91,7 @@
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
+#include "Inferences/RewritingByRule.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -818,6 +819,27 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   }
 
   Clause* cl=cl0;
+  if (!cl->getRewriteRules().hasNext()) {
+    auto it = cl->inference().iterator();
+    if (cl->inference().hasNext(it)) {
+      auto u = cl->inference().next(it);
+      if (u->isClause()) {
+        auto p = u->asClause();
+        if (p->getRewriteRules().hasNext()) {
+          static vmap<InferenceRule,unsigned> rules;
+          auto kv = rules.insert(make_pair(cl0->inference().rule(),1));
+          if (kv.second) {
+            cout << "inference not covered: " << ruleName(cl0->inference().rule()) << endl;
+          } else {
+            kv.first->second++;
+            if (kv.first->second % 1000 == 0) {
+              cout << "inference not covered: " << ruleName(cl0->inference().rule()) << " " << kv.first->second << endl;
+            }
+          }
+        }
+      }
+    }
+  }
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
@@ -1870,6 +1892,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
+  res->addFront(new DemodulationByRule());
   if(env.options->newTautologyDel()){
     res->addFront(new TautologyDeletionISE2());
   }

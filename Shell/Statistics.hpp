@@ -166,6 +166,8 @@ public:
   // Simplifying inferences
   /** number of duplicate literals deleted */
   unsigned duplicateLiterals;
+  unsigned demodulationByRule;
+  unsigned skipped;
   /** number of literals s |= s deleted */
   unsigned trivialInequalities;
   /** number of forward subsumption resolutions */

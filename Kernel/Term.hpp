@@ -737,22 +737,6 @@ public:
     ASS(isSpecial());
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
-
-  void reverseOrientation()
-  {
-    _orientation ^= 1;
-  }
-
-  void resetOrientation()
-  {
-    _orientation = 0;
-  }
-
-  bool isOrientedReversed()
-  {
-    return _orientation;
-  }
-
 protected:
   vstring headToString() const;
 
@@ -799,8 +783,6 @@ protected:
   unsigned _hasInterpretedConstants : 1;
   /** If true, the object is an equality literal between two variables */
   unsigned _isTwoVarEquality : 1;
-  /** If true, the literal has changed its orientation when inserted into term sharing */
-  unsigned _orientation : 1;
   /** Weight of the symbol */
   unsigned _weight;
   /** length of maximum reduction length */

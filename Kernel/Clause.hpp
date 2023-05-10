@@ -357,10 +357,11 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  void setRwState(Literal* lit, RewritingPositionTree* t0, RewritingPositionTree* t1, bool reorient);
-  pair<RewritingPositionTree*,RewritingPositionTree*>* getRwState(Literal* lit) const;
-  bool hasRwState() const { return !_rwState.isEmpty(); }
-  void initRwStateFrom(Clause* cl, Literal* lit, Literal* newLit);
+  VirtualIterator<pair<TermList,TermList>> getRewriteRules();
+  void addRewriteRule(TermList lhs, TermList rhs);
+  void addBlockedTerm(TermList t);
+  bool isBlockedTerm(TermList t) const;
+  TermIterator getBlockedTerms() const;
 
 protected:
   /** number of literals */
@@ -392,10 +393,10 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
+  DHMap<TermList,TermList> _rewriteRules;
+  DHSet<TermList> _blockedTerms;
 
   int _numActiveSplits;
-
-  DHMap<Literal*, pair<RewritingPositionTree*,RewritingPositionTree*>> _rwState;
 
   size_t _auxTimestamp;
   void* _auxData;

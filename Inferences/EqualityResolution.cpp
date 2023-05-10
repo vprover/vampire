@@ -154,7 +154,6 @@ struct EqualityResolution::ResultFn
           }
         }
 
-        res->initRwStateFrom(_cl, curr, currAfter);
         (*res)[next++] = currAfter;
       }
     }

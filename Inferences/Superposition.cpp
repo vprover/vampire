@@ -32,7 +32,6 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/RewritingPositionTree.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -107,23 +106,18 @@ private:
 
 struct Superposition::RewriteableSubtermsFn
 {
-  RewriteableSubtermsFn(Ordering& ord, Clause* cl) : _ord(ord), _cl(cl) {}
+  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
     CALL("Superposition::RewriteableSubtermsFn()");
-#if DEBUG_PSBS
     TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
                                                       EqHelper::getSubtermIterator(lit, _ord);
-#else
-    TermIterator it = EqHelper::getSubtermIterator2(lit, _cl, _ord);
-#endif
     return pvi( pushPairIntoRightIterator(lit, it) );
   }
 
 private:
   Ordering& _ord;
-  Clause* _cl;
 };
 
 struct Superposition::ApplicableRewritesFn
@@ -208,7 +202,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
   // a maximal side of an equality or of a non-equational literal
-  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering(),premise));
+  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering()));
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
@@ -397,6 +391,12 @@ Clause* Superposition::performSuperposition(
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
+  static bool dbs = getOptions().diamondBreakingSuperposition();
+  if (dbs && rwClause->isBlockedTerm(rwTerm)) {
+    // cout << "blocked " << rwTerm << " in " << *rwClause << endl;
+    env.statistics->skipped++;
+  }
+
   // cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
   //   cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
   //   // cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
@@ -452,23 +452,8 @@ Clause* Superposition::performSuperposition(
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
 
   unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
-#if DEBUG_PSBS
-  DHSet<TermList> excluded;
-  auto p = rwClause->getRwState(rwLit);
-  if (p) {
-    if (rwLit->isEquality()) {
-      RewritingPositionTree::getSubtermIterator(p->first, rwLit->termArg(0), excluded);
-      RewritingPositionTree::getSubtermIterator(p->second, rwLit->termArg(1), excluded);
-    } else {
-      RewritingPositionTree::getSubtermIterator(p->first, TermList(rwLit), excluded);
-    }
-  }
-  auto rule = excluded.contains(rwTerm) ? InferenceRule::FORBIDDEN_SUPERPOSITION : InferenceRule::SUPERPOSITION;
-#else
-  auto rule = InferenceRule::SUPERPOSITION;
-#endif
   //TODO update inference rule name AYB
-  Inference inf(GeneratingInference2(hasConstraints ? InferenceRule::CONSTRAINED_SUPERPOSITION : rule, rwClause, eqClause));
+  Inference inf(GeneratingInference2(hasConstraints ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
@@ -485,7 +470,6 @@ Clause* Superposition::performSuperposition(
 
   Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
-  bool rwLitSR = rwLitS->isOrientedReversed();
 
 #if VDEBUG
   if(!hasConstraints && !isTypeSub){
@@ -517,10 +501,8 @@ Clause* Superposition::performSuperposition(
   }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
-  auto tgtLitSR = tgtLitS->isOrientedReversed();
 
   static bool doSimS = getOptions().simulatenousSuperposition();
-  static bool psb = getOptions().symmetryBreakingSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
@@ -573,63 +555,6 @@ Clause* Superposition::performSuperposition(
     env.proofExtra->insert(res,extra);
   }
 
-  // calculate positions
-  if (psb) {
-    RewritingPositionTree* rhsState = nullptr;
-    auto eqP = eqClause->getRwState(eqLit);
-    if (eqP) {
-      if (eqLHS == eqLit->termArg(0)) {
-        rhsState = eqP->second;
-      } else {
-        rhsState = eqP->first;
-      }
-    }
-    RewritingPositionTree* t0 = nullptr;
-    RewritingPositionTree* t1 = nullptr;
-    auto origState = rwClause->getRwState(rwLit);
-    RewritingPositionTree* t0orig = origState ? (rwLitSR ? origState->second : origState->first) : nullptr;
-    RewritingPositionTree* t0new = t0orig;
-
-    RewritingPositionTree* t1orig = origState ? (rwLitSR ? origState->first : origState->second) : nullptr;
-    RewritingPositionTree* t1new = t1orig;
-    if (rwLitS->isEquality()) {
-      TermList arg0=*rwLitS->nthArgument(0);
-      TermList arg1=*rwLitS->nthArgument(1);
-      auto comp = ordering.getEqualityArgumentOrder(rwLitS);
-
-      if (arg0.containsSubterm(rwTermS) && (Ordering::isGorGEorE(comp) || comp == Ordering::Result::INCOMPARABLE)) {
-        if (RewritingPositionTree::isExcluded(t0new, arg0, rwTermS)) {
-          return nullptr;
-        }
-        t0 = RewritingPositionTree::createFromRewrite(t0new, arg0, rwTermS, rhsState);
-      } else if (origState) {
-        t0 = RewritingPositionTree::createTruncated(t0new, arg0, rwTermS);
-      }
-      if (arg1.containsSubterm(rwTermS) && (Ordering::isGorGEorE(Ordering::reverse(comp)) || comp == Ordering::Result::INCOMPARABLE)) {
-        if (RewritingPositionTree::isExcluded(t1new, arg1, rwTermS)) {
-          return nullptr;
-        }
-        t1 = RewritingPositionTree::createFromRewrite(t1new, arg1, rwTermS, rhsState);
-      } else if (origState) {
-        t1 = RewritingPositionTree::createTruncated(t1new, arg1, rwTermS);
-      }
-    } else {
-      if (RewritingPositionTree::isExcluded(t0new, TermList(rwLitS), rwTermS)) {
-        return nullptr;
-      }
-      t0 = RewritingPositionTree::createFromRewrite(t0new, TermList(rwLitS), rwTermS, rhsState);
-    }
-    if (t0orig != t0new || t1orig != t1new) {
-      if (!origState) {
-        rwClause->setRwState(rwLit, t0new, t1new, rwLitSR);
-      } else {
-        origState->first  = rwLitSR ? t1new : t0new;
-        origState->second = rwLitSR ? t0new : t1new;
-      }
-    }
-    res->setRwState(tgtLitS, t0, t1, tgtLitSR);
-  }
-
   (*res)[0] = tgtLitS;
   int next = 1;
   unsigned weight=tgtLitS->weight();
@@ -664,9 +589,6 @@ Clause* Superposition::performSuperposition(
       }
 
       (*res)[next++] = currAfter;
-      if (psb) {
-        res->initRwStateFrom(rwClause, curr, currAfter);
-      }
     }
   }
 
@@ -706,9 +628,6 @@ Clause* Superposition::performSuperposition(
         }
 
         (*res)[next++] = currAfter;
-        if (psb) {
-          res->initRwStateFrom(eqClause, curr, currAfter);
-        }
       }
     }
   }
@@ -736,6 +655,44 @@ Clause* Superposition::performSuperposition(
       (*res)[next] = constraint;
       next++;   
     }
+  }
+
+  if (dbs) {
+    TIME_TRACE("diamond-breaking");
+    auto rwIt = rwClause->getRewriteRules();
+    while (rwIt.hasNext()) {
+      auto kv = rwIt.next();
+      res->addRewriteRule(
+        subst->apply(kv.first, eqIsResult),
+        subst->apply(kv.second, eqIsResult)
+      );
+    }
+    auto rwBIt = rwClause->getBlockedTerms();
+    while (rwBIt.hasNext()) {
+      res->addBlockedTerm(subst->apply(rwBIt.next(), eqIsResult));
+    }
+    auto eqIt = eqClause->getRewriteRules();
+    while (eqIt.hasNext()) {
+      auto kv = eqIt.next();
+      TermList lhs = subst->apply(kv.first, !eqIsResult);
+      TermList rhs = subst->apply(kv.second, !eqIsResult);
+      if (!lhs.containsSubterm(eqLHSS)) {
+        res->addRewriteRule(lhs,rhs);
+      }
+    }
+    auto eqBIt = eqClause->getBlockedTerms();
+    while (eqBIt.hasNext()) {
+      res->addBlockedTerm(subst->apply(eqBIt.next(), !eqIsResult));
+    }
+    auto rwstit = RewriteableSubtermsFn(ordering)(rwLit);
+    while (rwstit.hasNext()) {
+      auto st = subst->apply(rwstit.next().second, eqIsResult);
+      if (ordering.compare(rwTermS, st)==Ordering::Result::GREATER) {
+        // cout << "adding blocked " << st << " for " << rwTermS << endl;
+        res->addBlockedTerm(st);
+      }
+    }
+    res->addRewriteRule(eqLHSS,tgtTermS);
   }
 
   if(isTypeSub){

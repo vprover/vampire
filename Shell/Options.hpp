@@ -2197,7 +2197,7 @@ public:
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
-  bool symmetryBreakingSuperposition() const { return _symmetryBreakingSuperposition.actualValue; }
+  bool diamondBreakingSuperposition() const { return _diamondBreakingSuperposition.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -2622,7 +2622,7 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
-  BoolOptionValue _symmetryBreakingSuperposition;
+  BoolOptionValue _diamondBreakingSuperposition;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
