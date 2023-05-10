@@ -662,7 +662,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
                                               : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
         }
         return tout;
-      });
+      }, this);
 }
 
 TermList RobSubstitution::apply(TermSpec t) 
@@ -677,7 +677,8 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
       { return orig.term.isVar() ? 1 
                                  : (1 + range(0, orig.term.nAllArgs())
                                            .map([&](auto i) { return sizes[i]; })
-                                           .sum()); });
+                                           .sum()); },
+                                 this);
 }
 
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
@@ -996,5 +997,5 @@ unsigned TermSpec::defaultHash2() const
 { return __hash([](auto const& x) { return DefaultHash2::hash(x); }, *this); }
 
 std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self)
-{ return out << self.term << "@" << *self.subs; }
+{ return out << self.term; }
 } // namespace Kernel

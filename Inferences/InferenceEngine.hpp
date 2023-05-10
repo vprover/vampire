@@ -373,6 +373,21 @@ private:
   ISList* _innersMany;
 };
 
+//class CompositeFSE
+//: public ForwardSimplificationEngine
+//{
+//public:
+//  CompositeFSE() : _inners(0) {}
+//  ~CompositeFSE();
+//  void addFront(ForwardSimplificationEngineSP fse);
+//  void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises);
+//  void attach(SaturationAlgorithm* salg);
+//  void detach();
+//private:
+//  typedef List<ForwardSimplificationEngineSP> FSList;
+//  FSList* _inners;
+//};
+
 class CompositeGIE
 : public GeneratingInferenceEngine
 {
@@ -381,13 +396,14 @@ public:
   USE_ALLOCATOR(CompositeGIE);
 
   CompositeGIE() : _inners(0) {}
-  virtual ~CompositeGIE() {}
+  virtual ~CompositeGIE();
   void addFront(GeneratingInferenceEngine* fse);
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 private:
-  Stack<unique_ptr<GeneratingInferenceEngine>> _inners;
+  typedef List<GeneratingInferenceEngine*> GIList;
+  GIList* _inners;
 };
 
 

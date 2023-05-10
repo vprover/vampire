@@ -275,12 +275,11 @@ public:
 struct AutoDerefTermSpec
 {
   TermSpec term;
-  RobSubstitution const* subs;
-  AutoDerefTermSpec clone() const { return { term.clone(), subs, }; }
-  AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s) 
+  AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s)
     : term(t.deref(s).clone())
-    , subs(s) { }
-  explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()), subs(other.subs) {}
+    { }
+  explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()) {}
+  AutoDerefTermSpec clone() const { return AutoDerefTermSpec(*this); }
   AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
   friend std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self);
 };
@@ -501,17 +500,17 @@ namespace Lib {
     Item _self;
     unsigned _arg;
 
-    BottomUpChildIter(Item const& self) : _self(Item(self)), _arg(0) {}
+    BottomUpChildIter(Item const& self, Kernel::RobSubstitution const* s) : _self(Item(self)), _arg(0) {}
  
     Item self() { return _self.clone(); }
 
-    Item next()
-    { return Kernel::AutoDerefTermSpec(_self.term.anyArg(_arg++), _self.subs); }
+    Item next(Kernel::RobSubstitution const* s)
+    { return Kernel::AutoDerefTermSpec(_self.term.anyArg(_arg++), s); }
 
-    bool hasNext()
+    bool hasNext(Kernel::RobSubstitution const* s)
     { return _self.term.isTerm() && _arg < _self.term.nAllArgs(); }
 
-    unsigned nChildren()
+    unsigned nChildren(Kernel::RobSubstitution const* s)
     { return _self.term.isVar() ? 0 : _self.term.nAllArgs(); }
   };
 

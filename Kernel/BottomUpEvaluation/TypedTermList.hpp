@@ -56,7 +56,7 @@ Kernel::Literal* evaluateLiteralBottomUp(Kernel::Literal* const& lit, EvalFn eva
   using namespace Kernel;
   Recycled<Stack<TermList>> args;
   for (unsigned i = 0; i < lit->arity(); i++) {
-    args->push(evaluateBottomUp(TypedTermList(*lit->nthArgument(i), SortHelper::getArgSort(lit, i)), evaluateStep, memo));
+    args->push(evaluateBottomUpWithMemo(TypedTermList(*lit->nthArgument(i), SortHelper::getArgSort(lit, i)), evaluateStep, memo));
   }
   return Literal::create(lit, args->begin());
 }

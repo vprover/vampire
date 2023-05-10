@@ -121,26 +121,85 @@ void CompositeISE::detach()
   ImmediateSimplificationEngine::detach();
 }
 
+
+//CompositeFSE::~CompositeFSE()
+//{
+//  _inners->destroy();
+//}
+//void CompositeFSE::addFront(ForwardSimplificationEngineSP fse)
+//{
+//  ASS_EQ(_salg,0);
+//  FSList::push(fse,_inners);
+//}
+//void CompositeFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
+//{
+//  keep=true;
+//  FSList* eit=_inners;
+//  if(!eit) {
+//    toAdd=ClauseIterator::getEmpty();
+//    return;
+//  }
+//  while(eit && keep) {
+//    eit->head()->perform(cl,keep,toAdd, premises);
+//    eit=eit->tail();
+//  }
+//}
+//void CompositeFSE::attach(SaturationAlgorithm* salg)
+//{
+//  ForwardSimplificationEngine::attach(salg);
+//  FSList* eit=_inners;
+//  while(eit) {
+//    eit->head()->attach(salg);
+//    eit=eit->tail();
+//  }
+//}
+//void CompositeFSE::detach()
+//{
+//  FSList* eit=_inners;
+//  while(eit) {
+//    eit->head()->detach();
+//    eit=eit->tail();
+//  }
+//  ForwardSimplificationEngine::detach();
+//}
+
+struct GeneratingFunctor
+{
+
+  GeneratingFunctor(Clause* cl) : cl(cl) {}
+  ClauseIterator operator() (GeneratingInferenceEngine* gie)
+  { return gie->generateClauses(cl); }
+  Clause* cl;
+};
+CompositeGIE::~CompositeGIE()
+{
+  GIList::destroyWithDeletion(_inners);
+}
 void CompositeGIE::addFront(GeneratingInferenceEngine* fse)
 {
   ASS_EQ(_salg,0);
-  _inners.push(unique_ptr<GeneratingInferenceEngine>(fse));
+  GIList::push(fse,_inners);
 }
-
 ClauseIterator CompositeGIE::generateClauses(Clause* premise)
-{ return pvi(arrayIter(_inners).flatMap([=](auto& engine) { return engine->generateClauses(premise); })); }
-
+{
+  return pvi( getFlattenedIterator(
+	  getMappingIterator(GIList::Iterator(_inners), GeneratingFunctor(premise))) );
+}
 void CompositeGIE::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  for (auto& engine : _inners) {
-    engine->attach(salg);
+  GIList* eit=_inners;
+  while(eit) {
+    eit->head()->attach(salg);
+    eit=eit->tail();
   }
 }
 void CompositeGIE::detach()
 {
-  for (auto& engine : _inners) {
-    engine->detach();
+  GIList* eit=_inners;
+  while(eit) {
+    eit->head()->detach();
+    eit=eit->tail();
   }
   GeneratingInferenceEngine::detach();
 }

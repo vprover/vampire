@@ -23,6 +23,7 @@
 
 #include "Kernel/MismatchHandler.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Reflection.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Comparison.hpp"
@@ -197,15 +198,9 @@
     using RSQueryResultIter = VirtualIterator<QueryResult<ResultSubstitutionSP>>;
     // TODO make const function
     template<class I, class TermOrLit, class... Args> 
-    auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
-    {
-      CALL("SubstitutionTree::iterator");
-      return iterTraits(
-            someIf(_root != nullptr, 
-                [&]() { return mkBoxedIter<I>(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...); })
-            .intoIter())
-          .flatten();
-    }
+    inline auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
+    { if (_root == nullptr) return VirtualIterator<ELEMENT_TYPE(I)>::getEmpty();
+      else                  return pvi(I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)); }
 
     class LDComparator
     {

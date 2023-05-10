@@ -991,7 +991,7 @@ public:
   {
     CALL("FlatteningIterator::hasNext");
     while (_current.isSome()) {
-      if (_current.unwrap().hasNext()) {
+      if (_current->hasNext()) {
         return true;
       } else {
         _current = _master.hasNext() 
@@ -2138,14 +2138,23 @@ auto arrayIter(Array     && x)
 
 template<class Iter> 
 class BoxedIter {
-  unique_ptr<Iter> _inner;
+  Iter* _inner;
+  // unique_ptr<Iter> _inner;
 public: 
   BoxedIter(Iter iter) : _inner([&]() { BYPASSING_ALLOCATOR; return new Iter(std::move(iter)); }()) {}
-  template<class... Args>
-  BoxedIter(Args... args) : _inner([&]() { BYPASSING_ALLOCATOR; return make_unique<Iter>(std::forward<Args>(args)...); }()) {}
-  ~BoxedIter() { BYPASSING_ALLOCATOR; _inner = nullptr; }
-  BoxedIter(BoxedIter&&) = default;
-  BoxedIter& operator=(BoxedIter&&) = default;
+  template<class... Args> BoxedIter(Args... args) : _inner(new Iter(std::forward<Args>(args)...)) {}
+  // template<class... Args> BoxedIter(Args... args) : _inner([&]() { BYPASSING_ALLOCATOR; return make_unique<Iter>(std::forward<Args>(args)...); }()) {}
+  ~BoxedIter() { if (_inner != nullptr) { BYPASSING_ALLOCATOR; delete _inner; _inner = nullptr; } }
+  // BoxedIter(BoxedIter&&) = default;
+  // BoxedIter& operator=(BoxedIter&&) = default;
+  BoxedIter(BoxedIter&& o) : _inner(o._inner) 
+  { o._inner = nullptr; }
+  BoxedIter& operator=(BoxedIter&& o) 
+  {
+    _inner = o._inner;
+    o._innner = nullptr;
+    return *this;
+  }
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
   bool hasNext() const { return _inner->hasNext(); }
   ELEMENT_TYPE(Iter) next() { return _inner->next(); }

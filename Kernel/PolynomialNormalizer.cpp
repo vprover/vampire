@@ -356,7 +356,7 @@ PolyNf normalizeTerm(TypedTermList t)
 
     }
   };
-  NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
+  NormalizationResult r = evaluateBottomUpWithMemo(t, Eval{}, memo);
   return std::move(r).apply(RenderPolyNf{});
 }
 
@@ -378,7 +378,7 @@ TermList PolyNf::denormalize() const
   };
 
   static Memo::Hashed<PolyNf, TermList, StlHash> memo;
-  return evaluateBottomUp(*this, Eval{}, memo);
+  return evaluateBottomUpWithMemo(*this, Eval{}, memo);
 }
 
 

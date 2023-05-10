@@ -92,7 +92,7 @@ TEST_FUN(example_02__compute_size) {
 
   /* actual evaluation */
   Memo::Hashed<TermList, unsigned> memo{};
-  auto size =  evaluateBottomUp(input, Eval{}, memo);
+  auto size =  evaluateBottomUpWithMemo(input, Eval{}, memo);
 
   ASS_EQ(size, 6)
 }

@@ -116,8 +116,8 @@ template<class A> BottomUpChildIter<A> bottomUpChildIter(A a)
  * 
  * The term to be evaluated will be traversed using a BottomUpChildIter<Arg>. 
  */
-template<class EvalFn, class Memo>
-typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep, Memo& memo) 
+template<class EvalFn, class Memo, class... Context>
+typename EvalFn::Result evaluateBottomUpWithMemo(typename EvalFn::Arg const& term, EvalFn evaluateStep, Memo& memo, Context... cs)
 {
   CALL("evaluateBottomUp(...)")
   using Result = typename EvalFn::Result;
@@ -130,17 +130,17 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
   Recycled<Stack<BottomUpChildIter<Arg>>> recState;
   Recycled<Stack<Result>> recResults;
 
-  recState->push(BottomUpChildIter<Arg>(term));
+  recState->push(BottomUpChildIter<Arg>(term, cs...));
 
   while (!recState->isEmpty()) {
-    if (recState->top().hasNext()) {
-      Arg t = recState->top().next();
+    if (recState->top().hasNext(cs...)) {
+      Arg t = recState->top().next(cs...);
 
       Option<Result> cached = memo.get(t);
       if (cached.isSome()) {
         recResults->push(std::move(cached).unwrap()); 
       } else {
-        recState->push(BottomUpChildIter<Arg>(t));
+        recState->push(BottomUpChildIter<Arg>(t, cs...));
       }
 
     } else { 
@@ -149,15 +149,15 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
       Result eval = memo.getOrInit(orig.self(), [&](){ 
             CALL("evaluateBottomUp(..)::closure@1")
             Result* argLst = NULL;
-            if (orig.nChildren() != 0) {
-              ASS_GE(recResults->size(), orig.nChildren());
-              argLst = static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren()]));
+            if (orig.nChildren(cs...) != 0) {
+              ASS_GE(recResults->size(), orig.nChildren(cs...));
+              argLst = static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren(cs...)]));
             }
             return evaluateStep(orig.self(), argLst);
           });
 
       DEBUG("evaluated: ", orig.self(), " -> ", eval);
-      recResults->pop(orig.nChildren());
+      recResults->pop(orig.nChildren(cs...));
       recResults->push(std::move(eval));
     }
   }
@@ -171,17 +171,17 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 }
 
 /** convenience wrapper for using evaluateBottomUp without a memo. */
-template<class EvalFn>
-typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep) 
+template<class EvalFn, class... Context>
+typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep, Context... cs) 
 {
   using namespace Memo;
   auto memo = None<typename EvalFn::Arg, typename EvalFn::Result>();
-  return evaluateBottomUp(term, evaluateStep, memo);
+  return evaluateBottomUpWithMemo(term, evaluateStep, memo, std::move(cs)...);
 }
 
 
-template<class R, class A, class F>
-R evalBottomUp(A const& term, F fun)
+template<class R, class A, class F, class... Context>
+R evalBottomUp(A const& term, F fun, Context ... cs)
 {
   struct Eval {
     using Result = R;
@@ -190,7 +190,7 @@ R evalBottomUp(A const& term, F fun)
     Result operator()(Arg const& a, Result* rs)
     { return fun(a,rs); }
   };
-  return evaluateBottomUp(term, Eval{fun});
+  return evaluateBottomUp(term, Eval{fun}, std::move(cs)...);
 }
 
 

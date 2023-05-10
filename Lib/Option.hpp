@@ -437,9 +437,9 @@ public:
   public:
     friend class Option;
     DECL_ELEMENT_TYPE(A);
-    bool hasNext() const { return _self.isSome(); }
-    bool hasNext()       { return _self.isSome(); }
-    A next() { return _self.take().unwrap(); }
+    inline bool hasNext() const { return _self.isSome(); }
+    inline bool hasNext()       { return _self.isSome(); }
+    inline A next() { return _self.take().unwrap(); }
   };
   
   Option<A const&> asRef() const { return someIf(isSome(), [&]() -> decltype(auto) { return unwrap(); }); }
