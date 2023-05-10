@@ -26,17 +26,36 @@ Clause* DemodulationByRule::simplify(Clause* c)
   CALL("DemodulationByRule::simplify");
 
   auto cLen = c->length();
+  auto& ord = _salg->getOrdering();
   for (unsigned i = 0; i < cLen; i++) {
     auto lit = (*c)[i];
     auto it = c->getRewriteRules();
     while (it.hasNext()) {
       auto kv = it.next();
       if (lit->containsSubterm(kv.first)) {
-        if (_salg->getOrdering().compare(kv.first,kv.second)!=Ordering::GREATER) {
+        if (ord.compare(kv.first,kv.second)!=Ordering::GREATER) {
           continue;
         }
         if (lit->isEquality() && (lit->termArg(0) == kv.first || lit->termArg(1) == kv.first)) {
           // TODO: perform demodulation redundancy check
+          auto other = lit->termArg(0) == kv.first ? lit->termArg(1) : lit->termArg(0);
+          Ordering::Result tord=ord.compare(kv.second, other);
+          if (tord !=Ordering::LESS && tord!=Ordering::LESS_EQ) {
+            bool isMax = true;
+            for (unsigned j = 0; j < cLen; j++) {
+              if (lit == (*c)[j]) {
+                continue;
+              }
+              if (ord.compare(lit, (*c)[j]) == Ordering::LESS) {
+                isMax=false;
+                break;
+              }
+            }
+            if(isMax) {
+              // cout << "rule " << kv.first << "->" << kv.second << ", cl: " << *c << endl;
+              continue;
+            }
+          }
         }
 
         Clause* res = new(cLen) Clause(cLen,

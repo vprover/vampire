@@ -793,16 +793,19 @@ unsigned Clause::getLiteralPosition(Literal* lit)
 
 VirtualIterator<pair<TermList,TermList>> Clause::getRewriteRules()
 {
+  TIME_TRACE("get rewrite rules");
   return _rewriteRules.items();
 }
 
 void Clause::addRewriteRule(TermList lhs, TermList rhs)
 {
+  TIME_TRACE("add rewrite rule");
   _rewriteRules.insert(lhs,rhs);
 }
 
 void Clause::addBlockedTerm(TermList t)
 {
+  TIME_TRACE("add blocked term");
   if (t.isVar()) {
     cout << "helo" << endl;
     return;
@@ -812,11 +815,13 @@ void Clause::addBlockedTerm(TermList t)
 
 bool Clause::isBlockedTerm(TermList t) const
 {
+  TIME_TRACE("is blocked term");
   return _blockedTerms.contains(t);
 }
 
 TermIterator Clause::getBlockedTerms() const
 {
+  TIME_TRACE("get blocked terms");
   return _blockedTerms.iterator();
 }
 

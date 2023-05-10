@@ -237,7 +237,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
     while (rit.hasNext()) {
       Clause *premise = rit.next().clause;
-      if (ColorHelper::compatible(cl->color(), premise->color())) {
+      if (ColorHelper::compatible(cl->color(), premise->color()) && !premise->getBlockedTerms().hasNext() && !premise->getRewriteRules().hasNext()) {
         premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
         result = true;
@@ -269,7 +269,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
           continue;
         }
 
-        if (MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0) && ColorHelper::compatible(cl->color(), mcl->color())) {
+        if (MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0) && ColorHelper::compatible(cl->color(), mcl->color())  && !mcl->getBlockedTerms().hasNext() && !mcl->getRewriteRules().hasNext()) {
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
           result = true;
@@ -290,11 +290,20 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
           Clause *mcl = rit.next().clause;
-          if (ColorHelper::compatible(cl->color(), mcl->color())) {
+          if (ColorHelper::compatible(cl->color(), mcl->color()) && !mcl->getBlockedTerms().hasNext() && !mcl->getRewriteRules().hasNext()) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(mcl));
             replacement = resolutionClause;
+            auto rwIt = cl->getRewriteRules();
+            while (rwIt.hasNext()) {
+              auto kv = rwIt.next();
+              resolutionClause->addRewriteRule(kv.first,kv.second);
+            }
+            auto rwBIt = cl->getBlockedTerms();
+            while (rwBIt.hasNext()) {
+              resolutionClause->addBlockedTerm(rwBIt.next());
+            }
             result = true;
             goto fin;
           }
@@ -307,11 +316,21 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
           ClauseMatches *cms = csit.next();
           for (unsigned li = 0; li < clen; li++) {
             Literal *resLit = (*cl)[li];
-            if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
+            if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())
+                && !cms->_cl->getBlockedTerms().hasNext() && !cms->_cl->getRewriteRules().hasNext()) {
               resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
               env.statistics->forwardSubsumptionResolution++;
               premises = pvi(getSingletonIterator(cms->_cl));
               replacement = resolutionClause;
+              auto rwIt = cl->getRewriteRules();
+              while (rwIt.hasNext()) {
+                auto kv = rwIt.next();
+                resolutionClause->addRewriteRule(kv.first,kv.second);
+              }
+              auto rwBIt = cl->getBlockedTerms();
+              while (rwBIt.hasNext()) {
+                resolutionClause->addBlockedTerm(rwBIt.next());
+              }
               result = true;
               goto fin;
             }
@@ -347,11 +366,21 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             cms->fillInMatches(&miniIndex);
           }
 
-          if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
+          if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())
+              && !cms->_cl->getBlockedTerms().hasNext() && !cms->_cl->getRewriteRules().hasNext()) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(cms->_cl));
             replacement = resolutionClause;
+            auto rwIt = cl->getRewriteRules();
+            while (rwIt.hasNext()) {
+              auto kv = rwIt.next();
+              resolutionClause->addRewriteRule(kv.first,kv.second);
+            }
+            auto rwBIt = cl->getBlockedTerms();
+            while (rwBIt.hasNext()) {
+              resolutionClause->addBlockedTerm(rwBIt.next());
+            }
             result = true;
             goto fin;
           }
