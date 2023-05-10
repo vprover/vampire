@@ -745,6 +745,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "superposition";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
+  case InferenceRule::SUPERPOSITION_BY_RULE:
+    return "superposition by rule";
   case InferenceRule::EQUALITY_FACTORING:
     return "equality factoring";
   case InferenceRule::EQUALITY_RESOLUTION:

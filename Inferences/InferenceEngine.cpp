@@ -408,7 +408,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
     (*d)[newIdx] = (*c)[origIdx];
   }
-  auto rwIt = c->getRewriteRules();
+  auto rwIt = c->getRewriteRules().items();
   while (rwIt.hasNext()) {
     auto kv = rwIt.next();
     d->addRewriteRule(kv.first,kv.second);
@@ -539,6 +539,15 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
+  }
+  auto rwIt = c->getRewriteRules().items();
+  while (rwIt.hasNext()) {
+    auto kv = rwIt.next();
+    d->addRewriteRule(kv.first,kv.second);
+  }
+  auto rwBIt = c->getBlockedTerms();
+  while (rwBIt.hasNext()) {
+    d->addBlockedTerm(rwBIt.next());
   }
   env.statistics->trivialInequalities += found;
 

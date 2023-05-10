@@ -220,7 +220,7 @@ struct BackwardDemodulation::ResultFn
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
-    auto rwIt = qr.clause->getRewriteRules();
+    auto rwIt = qr.clause->getRewriteRules().items();
     while (rwIt.hasNext()) {
       auto kv = rwIt.next();
       res->addRewriteRule(kv.first,kv.second);

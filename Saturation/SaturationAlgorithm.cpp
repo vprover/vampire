@@ -819,13 +819,13 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   }
 
   Clause* cl=cl0;
-  if (!cl->getRewriteRules().hasNext()) {
+  if (cl->getRewriteRules().isEmpty()) {
     auto it = cl->inference().iterator();
     if (cl->inference().hasNext(it)) {
       auto u = cl->inference().next(it);
       if (u->isClause()) {
         auto p = u->asClause();
-        if (p->getRewriteRules().hasNext()) {
+        if (!p->getRewriteRules().isEmpty()) {
           static vmap<InferenceRule,unsigned> rules;
           auto kv = rules.insert(make_pair(cl0->inference().rule(),1));
           if (kv.second) {
@@ -1585,6 +1585,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution());
     if(env.options->superposition()){
       gie->addFront(new Superposition());
+      if (env.options->diamondBreakingSuperposition()) {
+        gie->addFront(new SuperpositionByRule());
+      }
     }
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
@@ -1892,7 +1895,9 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
-  res->addFront(new DemodulationByRule());
+  if (env.options->diamondBreakingSuperposition()) {
+    res->addFront(new DemodulationByRule());
+  }
   if(env.options->newTautologyDel()){
     res->addFront(new TautologyDeletionISE2());
   }

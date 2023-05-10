@@ -308,7 +308,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   if (opts.diamondBreakingSuperposition()) {
     TIME_TRACE("diamond-breaking");
-    auto rwIt = queryCl->getRewriteRules();
+    auto rwIt = queryCl->getRewriteRules().items();
     while (rwIt.hasNext()) {
       auto kv = rwIt.next();
       res->addRewriteRule(
@@ -316,7 +316,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         qr.substitution->applyToQuery(kv.second)
       );
     }
-    auto eqIt = qr.clause->getRewriteRules();
+    auto eqIt = qr.clause->getRewriteRules().items();
     while (eqIt.hasNext()) {
       auto kv = eqIt.next();
       res->addRewriteRule(

@@ -108,6 +108,7 @@ Statistics::Statistics()
     booleanSimps(0),
     duplicateLiterals(0),
     demodulationByRule(0),
+    superpositionByRule(0),
     skipped(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -377,6 +378,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Factoring", factoring);
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);
+  COND_OUT("Superposition by rule", superpositionByRule);
   COND_OUT("Self superposition", selfSuperposition);
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);

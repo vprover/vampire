@@ -791,10 +791,10 @@ unsigned Clause::getLiteralPosition(Literal* lit)
   }
 }
 
-VirtualIterator<pair<TermList,TermList>> Clause::getRewriteRules()
+const DHMap<TermList,TermList>& Clause::getRewriteRules()
 {
   TIME_TRACE("get rewrite rules");
-  return _rewriteRules.items();
+  return _rewriteRules;
 }
 
 void Clause::addRewriteRule(TermList lhs, TermList rhs)

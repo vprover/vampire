@@ -21,6 +21,19 @@
 
 namespace Inferences {
 
+class SuperpositionByRule
+: public GeneratingInferenceEngine
+{
+public:
+  CLASS_NAME(SuperpositionByRule);
+  USE_ALLOCATOR(SuperpositionByRule);
+
+  ClauseIterator generateClauses(Clause* premise);
+
+private:
+  Indexing::TermIndexingStructure* _tis = nullptr;
+};
+
 class DemodulationByRule
 : public ImmediateSimplificationEngine
 {

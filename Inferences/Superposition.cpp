@@ -659,7 +659,7 @@ Clause* Superposition::performSuperposition(
 
   if (dbs) {
     TIME_TRACE("diamond-breaking");
-    auto rwIt = rwClause->getRewriteRules();
+    auto rwIt = rwClause->getRewriteRules().items();
     while (rwIt.hasNext()) {
       auto kv = rwIt.next();
       res->addRewriteRule(
@@ -671,7 +671,7 @@ Clause* Superposition::performSuperposition(
     while (rwBIt.hasNext()) {
       res->addBlockedTerm(subst->apply(rwBIt.next(), eqIsResult));
     }
-    auto eqIt = eqClause->getRewriteRules();
+    auto eqIt = eqClause->getRewriteRules().items();
     while (eqIt.hasNext()) {
       auto kv = eqIt.next();
       TermList lhs = subst->apply(kv.first, !eqIsResult);
@@ -692,6 +692,7 @@ Clause* Superposition::performSuperposition(
         res->addBlockedTerm(st);
       }
     }
+    res->addBlockedTerm(rwTermS);
     res->addRewriteRule(eqLHSS,tgtTermS);
   }
 

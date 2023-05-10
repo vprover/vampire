@@ -357,7 +357,7 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  VirtualIterator<pair<TermList,TermList>> getRewriteRules();
+  const DHMap<TermList,TermList>& getRewriteRules();
   void addRewriteRule(TermList lhs, TermList rhs);
   void addBlockedTerm(TermList t);
   bool isBlockedTerm(TermList t) const;

@@ -167,6 +167,7 @@ public:
   /** number of duplicate literals deleted */
   unsigned duplicateLiterals;
   unsigned demodulationByRule;
+  unsigned superpositionByRule;
   unsigned skipped;
   /** number of literals s |= s deleted */
   unsigned trivialInequalities;

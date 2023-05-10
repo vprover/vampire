@@ -281,6 +281,7 @@ enum class InferenceRule : unsigned char {
   SUPERPOSITION,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
+  SUPERPOSITION_BY_RULE,
   /** equality factoring inference */
   EQUALITY_FACTORING,
   /** equality resolution inference */
