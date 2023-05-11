@@ -54,7 +54,9 @@ struct ImitateProject::CanImitateAndProject
   bool operator()(Literal* l)
   { 
     ASS(l->isEquality());
-    return l->isFlexRigid() && !l->polarity() && !SortHelper::getEqualityArgumentSort(l).isArrowSort();
+    return l->isFlexRigid() && !l->polarity();
+    // TODO decide whether to keep check below (see NegExt)
+     /*&& !SortHelper::getEqualityArgumentSort(l).isArrowSort()*/;
   }
 };
 
@@ -131,7 +133,7 @@ struct ImitateProject::ResultFn
 
     // some inefficiency below as we iterate the term twice. Once in
     // getProjAndImitBindings and again in the head() call below.
-    // However, it keeps the code cleaner, and I doubt that the penaly is high
+    // However, it keeps the code cleaner, and I doubt that the penalty is high
     TermList headFlex = flexTerm.head(); 
     TermList imitpb = bindings[0];
 

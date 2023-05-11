@@ -90,6 +90,7 @@ enum ArgumentOrderVals {
   AO_INCOMPARABLE=6,
 };
 
+// TODO change to enum class
 enum VarBank {
   DEFAULT_BANK=0,
   QUERY_BANK=1,
@@ -1205,6 +1206,7 @@ public:
 #if VHOL
   bool isFlexFlex() const;
   bool isFlexRigid() const;
+  bool isRigidRigid() const;  
 #endif
 
   /** true if positive */

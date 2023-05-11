@@ -1767,7 +1767,7 @@ void Options::init()
     _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
     _lookup.insert(&_superposition);
 
-    _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",0);
+    _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
     _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projextions and imitations) that higher-order unification can descend to. Once limit is reached, remaining pairs are retunred as constraints.";
     _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
     _higherOrderUnifDepth.addHardConstraint(lessThan(5u));

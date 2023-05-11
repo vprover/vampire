@@ -472,6 +472,10 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, T
     ASS(!mismatch)
   }
 
+  if(mismatch) {
+    toDo.reset();
+  }
+
   bdDone();
 
   if(mismatch) {

@@ -2326,7 +2326,7 @@ bool Literal::isFlexRigid() const
   ASS(isEquality());
  
   auto check = [](TermList head1, TermList term1, TermList head2){
-    // only one side has a variable head, and that side isn't is a variable
+    // only one side has a variable head, and that side isn't a variable
     return head1.isVar() && !term1.isVar() && !head2.isVar();
   };   
 
@@ -2336,6 +2336,16 @@ bool Literal::isFlexRigid() const
   TermList rhsHead = rhs.head();
   
   return check(lhsHead, lhs, rhsHead) || check(rhsHead, rhs, lhsHead);
+}
+
+bool Literal::isRigidRigid() const
+{
+  CALL("Literal::isRigidRigid");
+  ASS(isEquality());
+ 
+  TermList lhs = *nthArgument(0);
+  TermList rhs = *nthArgument(1);
+  return !polarity() && lhs.head().isTerm() && rhs.head().isTerm();
 }
 
 #endif

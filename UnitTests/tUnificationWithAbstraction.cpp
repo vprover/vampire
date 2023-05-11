@@ -129,7 +129,7 @@ template<class F>
 void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
 {
   CALL("checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TermList term, Stack<TermUnificationResultSpec> expected, F unifFun)")
- 
+
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
@@ -786,15 +786,24 @@ TEST_FUN(higher_order2)
   DECL_HOL_VAR(x, 0, arrow(srt, srt))
   DECL_HOL_VAR(x2, 1, arrow(srt, arrow(srt, srt))) 
   DECL_HOL_VAR(x3, 2, srt)
+  DECL_HOL_VAR(z, 3, srt)
 
   index->insert(ap(x, a), 0, 0);
+
+  auto id     = toDBs(lam(z, z));
+  auto conFun = toDBs(lam(z, a));
 
   checkHigherOrderTermMatches(*index, a, Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
         { .querySigma  = a,
-          .resultSigma = ap(x,a),
-          .constraints = {a != ap(x,a) } }, 
+          .resultSigma = ap(id,a),
+          .constraints =  Stack<Literal*>{} }, 
+
+        TermUnificationResultSpec 
+        { .querySigma  = a,
+          .resultSigma = ap(conFun,a),
+          .constraints =  Stack<Literal*>{} }, 
 
       });
 
@@ -868,12 +877,6 @@ TEST_FUN(higher_order4)
   index->insert(t, 0, 0);
 
   checkHigherOrderTermMatches(*index, ap(ap(f, x), ap(x,a)), Stack<TermUnificationResultSpec>{
-
-        TermUnificationResultSpec 
-        { .querySigma  = ap(ap(f, g), ap(g,a)),
-          .resultSigma = ap(ap(f, g), a),
-          .constraints = { ap(g, a) != a  } }, 
-
       });
 }
 
@@ -899,11 +902,6 @@ TEST_FUN(higher_order5)
   index->insert(t, 0, 0);
 
   checkHigherOrderTermMatches(*index, ap(ap(f, x), ap(x,a)), Stack<TermUnificationResultSpec>{
-
-        TermUnificationResultSpec 
-        { .querySigma  = ap(ap(f, g), ap(g,a)),
-          .resultSigma = ap(ap(f, g), a),
-          .constraints = { ap(g, a) != a  } }, 
 
       });
 }
@@ -972,20 +970,26 @@ TEST_FUN(higher_order8)
 
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
+  env.options->set("print_var_banks", "true");  
   auto index = getTermIndex();
 
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt) 
 
   DECL_CONST(a, srt)  
-  DECL_CONST(g, arrow(srt,srt))  
-  DECL_HOL_VAR(x0, 0, arrow(srt,srt))
-  DECL_HOL_VAR(x1, 1, arrow(srt,srt))
-  DECL_HOL_VAR(x2, 2, arrow(srt,srt))
+  DECL_CONST(g, arrow(srt,srt)) 
 
   DECL_HOL_VAR(x, 10, arrow(srt,srt))
   DECL_HOL_VAR(z, 11, arrow(srt,srt))
 
+  DECL_HOL_VAR(z2, 12, srt)
+  DECL_HOL_VAR(z3, 13, srt)
+
+  auto id     = toDBs(lam(z2, z2));
+  auto conFun = toDBs(lam(z2, a));
+
+  auto b1     = toDBs(lam(z3, ap(g, ap(id, z3))));
+  auto b2     = toDBs(lam(z3, ap(g, ap(conFun, z3))));
 
   index->insert(ap(x,a), 0, 0);
   index->insert(ap(z,a), 0, 0);
@@ -996,18 +1000,33 @@ TEST_FUN(higher_order8)
 
     TermUnificationResultSpec 
     { .querySigma  = ap(g,a),
-      .resultSigma = ap(x2,a),
-      .constraints = { ap(g,a) != ap(x2,a)  } }, 
+      .resultSigma = ap(b1,a),
+      .constraints = Stack<Literal*>{ } }, 
 
     TermUnificationResultSpec 
     { .querySigma  = ap(g,a),
-      .resultSigma = ap(x1,a),
-      .constraints = { ap(g,a) != ap(x1,a)  } },       
+      .resultSigma = ap(b2,a),
+      .constraints = Stack<Literal*>{ } }, 
 
     TermUnificationResultSpec 
     { .querySigma  = ap(g,a),
-      .resultSigma = ap(g,ap(x0,a)), //really irritating variable renaming...
-      .constraints = { a != ap(x0,a)  } }, 
+      .resultSigma = ap(b1,a),
+      .constraints = Stack<Literal*>{ } }, 
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(g,a),
+      .resultSigma = ap(b2,a),
+      .constraints = Stack<Literal*>{ } }, 
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(g,a),
+      .resultSigma = ap(g,ap(id,a)), //really irritating variable renaming...
+      .constraints = Stack<Literal*>{ } }, 
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(g,a),
+      .resultSigma = ap(g,ap(conFun,a)), //really irritating variable renaming...
+      .constraints = Stack<Literal*>{ } }, 
 
   });
 }
@@ -1075,9 +1094,6 @@ TEST_FUN(higher_order8)
 }*/
 
 #endif
-
-static const int NORM_QUERY_BANK=2;
-// static const int NORM_RESULT_BANK=3;
 
 Option<TermUnificationResultSpec> runRobUnify(TermList a, TermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration) {
 

@@ -87,7 +87,7 @@ TermList WHNFDeref::transformSubterm(TermList t)
 
   while(ApplicativeHelper::canHeadReduce(newHead, args)){
     headDereffed = false;
-    t = RedexReducer().reduce(head, args);
+    t = RedexReducer().reduce(newHead, args);
     if(t.isLambdaTerm()) break;
     ApplicativeHelper::getHeadSortAndArgs(t, head, sort, args);    
     newHead = _sub->derefBound(head);
@@ -714,14 +714,14 @@ void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigid
 {
   CALL("ApplicativeHelper::getProjAndImitBindings/1");
 
-  getProjAndImitBindings(flexTerm,rigidTerm,bindings,0,false);
+  getProjAndImitBindings(flexTerm,rigidTerm,bindings,0,true);
 }
 
 void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings, unsigned freshvar)  
 {
   CALL("ApplicativeHelper::getProjAndImitBindings/2");
 
-  getProjAndImitBindings(flexTerm,rigidTerm,bindings,freshvar,true);  
+  getProjAndImitBindings(flexTerm,rigidTerm,bindings,freshvar,false);  
 }
 
 void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings,
@@ -774,7 +774,7 @@ void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigid
 TermList ApplicativeHelper::createGeneralBinding(TermList head, TermStack& sorts){
   CALL("ApplicativeHelper::createGeneralBinding/1");
 
-  return createGeneralBinding(0,head,sorts,false,true);
+  return createGeneralBinding(0,head,sorts,true,true);
 }
 
 TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList head, TermStack& sorts, bool surround)
@@ -801,7 +801,7 @@ TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList hea
   }
 
   while(!argSorts.isEmpty()){
-    TermList fVar(++freshVar, useFreshBank ? FRESH_BANK :  false);
+    TermList fVar = useFreshBank ? TermList(freshVar++, VarBank::FRESH_BANK) : TermList(++freshVar, false);
     TermList varSort = AtomicSort::arrowSort(sorts, argSorts.pop());
     args.push(app(varSort, fVar, indices));
   }

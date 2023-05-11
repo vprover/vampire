@@ -1580,7 +1580,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(prb.higherOrder()){
     gie->addFront(new ArgCong());
     gie->addFront(new NegativeExt());//TODO add option
-    gie->addFront(new ImitateProject());
+    if(!env.options->higherOrderUnifDepth()){
+      // only add when we are not carrying out higher-order unification
+      gie->addFront(new ImitateProject());
+    } 
   }
 
   if(prb.hasFOOL() &&

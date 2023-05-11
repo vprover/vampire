@@ -53,8 +53,8 @@ using namespace Saturation;
 
 struct NegativeExt::IsNegativeEqualityFn
 {
-  bool operator()(Literal* l)
-  { return l->isEquality() && !l->isPositive(); }
+  bool operator()(Literal* l) // TODO decide whether to keep final check (see ImitateProject)
+  { return l->isEquality() && !l->isPositive() && l->isRigidRigid(); }
 };
 
 struct NegativeExt::ResultFn

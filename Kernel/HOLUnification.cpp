@@ -29,10 +29,11 @@ class HOLUnification::HigherOrderUnifiersIt: public IteratorCore<RobSubstitution
 public:
   HigherOrderUnifiersIt(RobSubstitutionTL* subst) :
     _returnInitial(false),  _used(false), _depth(0), _subst(subst){
-    ASS(!_subst->bdIsRecording());
+    CALL("HOLUnification::HigherOrderUnifiersIt::HigherOrderUnifiersIt");
+
     _subst->bdRecord(_initData);
 
-    // move constraints from to priority queue
+    // move constraints from subst to priority queue
     // will be undone when hasNext() return false
     while(!_subst->emptyConstraints()){
       auto con = _subst->popConstraint();
@@ -63,24 +64,23 @@ public:
     } else {
       BacktrackData bd;
       _bdStack->push(bd);
+      _bindings->push(TermStack());
     }
   }
   
   ~HigherOrderUnifiersIt() {
     CALL("HOLUnification::HigherOrderUnifiersIt::~HigherOrderUnifiersIt");
-    // remove initial unification pairs 
-    // and leave substitution in the state it was in before iterator started
-    _initData.backtrack(); 
-    ASS(_unifPairs.isEmpty());
   }
+
+  friend std::ostream& operator<<(std::ostream& out, HigherOrderUnifiersIt const& self)
+  { return out << "Backtrack depth " << self._bdStack->size() << "\nBindings " << 
+            *self._bindings << "\nCurr subst " << *self._subst << "\nUnif pairs " << self._unifPairs; }
 
   bool solved() {
     CALL("HOLUnification::HigherOrderUnifiersIt::solved");
 
-    static unsigned depth = env.options->higherOrderUnifDepth();
-
     SkipList<HOLConstraint,HOLCnstComp>::RefIterator it(_unifPairs);
-    return _depth == depth || !it.hasNext() || it.next().flexFlex();
+    return !it.hasNext() || it.next().flexFlex();
   }
 
   bool backtrack() {
@@ -115,15 +115,26 @@ public:
   bool hasNext() {
     CALL("HOLUnification::HigherOrderUnifiersIt::hasNext");
     
-    if(_returnInitial && !_used){
-      _used = true;
-      return true;
-    } else if(_returnInitial){
-      return false;
-    }
+    static unsigned depth = env.options->higherOrderUnifDepth();
+
+    if(_returnInitial || (_depth == depth && !_used) || (solved() && !_used))
+    { return !_used; }
+
+    _used = false;
+ 
+    // the logic here is really convoluted and should be cleaned up
+    // the main complexity is due to the depth limit
+    // Once the limit is reached, we continue popping constraints until 
+    // we reach a flexRigid pair and then stop and return
+    // The next time we call hasNext, the system will be in a solved state
+    // if next() has been called in between, since next clears all unif 
+    // pairs. Hence a backtrack will take place
 
     bool forward = !solved() || backtrack();
     while(forward && !solved()){
+      if(_unifPairs.top().flexRigid() && _depth == depth)
+      { break; }
+
       auto con = popFromUnifPairs(_bdStack->top());
 
       TermList lhs = con.lhs();
@@ -156,9 +167,7 @@ public:
         TermList rigidTerm = lhsHead.isVar() ? rhs : lhs;        
         TermList flexHead  = lhsHead.isVar() ? lhsHead : rhsHead;
 
-
-        if(_bdStack->size() != _bindings->size()){
-          ASS(_bindings->size() + 1 == _bdStack->size() );
+        if(_bdStack->size() == _bindings->size()){
           // reached here not via a backtrack. Need to add new bindings to bindings
 
           // oracle calls. no point calling oracles if we reach here via a backtracl
@@ -190,12 +199,11 @@ public:
         addToUnifPairs(con, _bdStack->top()); // add back to pairs with old data
         BacktrackData bd;
         _bdStack->push(bd); // reached a branch point 
-        con = popFromUnifPairs(_bdStack->top()); // remove from pairs on new data
         
         ASS(_bindings->top().size());
         TermList binding = _bindings->top().pop(); 
        
-        _subst->bdRecord(bd);        
+        _subst->bdRecord(_bdStack->top());        
         _subst->bind(flexHead, binding);
         _subst->bdDone();
 
@@ -205,6 +213,13 @@ public:
         // clash
         forward = backtrack();
       }
+    }
+
+    if(!forward){
+      // remove initial unification pairs 
+      // and leave substitution in the state it was in before iterator started      
+      _initData.backtrack(); 
+      ASS(_unifPairs.isEmpty());
     }
 
     return forward;
@@ -226,7 +241,7 @@ public:
       }
       _subst->bdDone();
     }
-
+    _used = true;
     return _subst;
   }
   
@@ -234,7 +249,7 @@ public:
     CALL("HigherOrderUnifiersIt::popFromUnifPairs");
 
     auto con = _unifPairs.pop();
-    bd.addClosure([&](){ _unifPairs.insert(con); });
+    bd.addClosure([this, c = con](){ _unifPairs.insert(c); });
     return con;
   }
 
@@ -242,7 +257,7 @@ public:
     CALL("HigherOrderUnifiersIt::addToUnifPairs");
 
     _unifPairs.insert(con);
-    bd.addClosure([&](){ _unifPairs.remove(con); });
+    bd.addClosure([this, c = con ](){ _unifPairs.remove(c); });
   }
 
 private:
