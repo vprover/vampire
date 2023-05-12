@@ -348,8 +348,6 @@ bool HOLUnification::associate(unsigned specialVar, TermList node, bool splittab
   return unifyFirstOrderStructure(query, node, splittable, sub);
 }
 
-
-// TODO consider adding a check for loose De Bruijn indices
 // see E prover code by Petar /TERMS/cte_fixpoint_unif.c
 #define DEBUG_FP_UNIFY(LVL, ...) if (LVL <= 1) DBG(__VA_ARGS__)
 HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub)
@@ -362,6 +360,7 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermLis
   struct TermListFP {
     TermList t;
     bool underFlex;
+    unsigned depth;
   };
 
   bool tIsLambda = t.whnfDeref(sub).isLambdaTerm();
@@ -375,19 +374,26 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermLis
 
 
   Recycled<Stack<TermListFP>> todo;
-  todo->push(TermListFP { .t = t, .underFlex = false  });
+  todo->push(TermListFP { .t = t, .underFlex = false, .depth = 0,  });
 
   while (todo->isNonEmpty()){
     auto ts = todo->pop();
     auto term = ts.t.whnfDeref(sub);
+    unsigned d = ts.depth;
 
     // TODO consider adding an encountered store similar to first-order occurs check...
 
     TermList head;
     TermStack args;
 
+    while(term.isLambdaTerm()){
+      term = term.lambdaBody();
+      d++;
+    }
+
     ApplicativeHelper::getHeadAndArgs(term, head, args);
 
+    ASS(!head.isLambdaTerm());
     if (head.isVar()) {
       if(head == toFind) {
         if(ts.underFlex || (tIsLambda && args.size())){
@@ -396,16 +402,24 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermLis
           return OracleResult::FAILURE;          
         }
       }
-    } else if (head.isLambdaTerm()) {
-      ASS(!args.size()); // if we had args, term wouldnt be in whnf
-      todo->push(TermListFP { head.lambdaBody(), .underFlex = ts.underFlex} );      
     }
 
+    if(head.deBruijnIndex().isSome()){
+      unsigned index = head.deBruijnIndex().unwrap();
+      if(index >= d){
+        // contains a free index, cannot bind
+        if(ts.underFlex){
+          return OracleResult::OUT_OF_FRAGMENT;
+        } else {
+          return OracleResult::FAILURE;
+        }
+      }
+    }
 
     bool argsUnderFlex = head.isVar() ? true : ts.underFlex;
 
     for(unsigned i = 0; i < args.size(); i++){
-      todo->push(TermListFP { args[i], .underFlex = argsUnderFlex} );      
+      todo->push(TermListFP { args[i], .underFlex = argsUnderFlex, .depth = d, } );      
     }
   }
 

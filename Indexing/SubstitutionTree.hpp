@@ -1220,7 +1220,7 @@ public:
   // is to template this Iterator with a substitution to allow it to be
   // use with either RobSubstitutionTL or RobSubstitutionTS (or any other substitution)
   template<class UnificationAlgorithm>
-  class UnificationsIterator final
+  class TreeIterator final
   : public IteratorCore<QueryResultIter>
   {
   public:
@@ -1229,7 +1229,7 @@ public:
     DECL_ELEMENT_TYPE(QueryResultIter);
 
     template<class TermOrLit, class...AlgoArgs>
-    UnificationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
+    TreeIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
       : _subst()
       , _algo(std::move(args)...)
       , _svStack()
@@ -1246,11 +1246,13 @@ public:
 #endif
     {
 #define DEBUG_QUERY(...)  //DBG(__VA_ARGS__)
-      CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
+      CALL("SubstitutionTree::UnificationsIterator::TreeIterator");
 
       if(!root) {
         return;
       }
+
+      _algo.initSub(&*_subst);
 
       query = ToBank(QUERY_BANK).toBank(query);
 
@@ -1264,9 +1266,9 @@ public:
     }
 
 
-    ~UnificationsIterator()
+    ~TreeIterator()
     {
-      CALL("SubstitutionTree::UnificationsIterator::~UnificationsIterator");
+      CALL("SubstitutionTree::UnificationsIterator::~TreeIterator");
 
       if(_clientBDRecording) {
         _subst->bdDone();
@@ -1281,7 +1283,7 @@ public:
 
     bool hasNext()
     {
-      CALL("SubstitutionTree::UnificationsIterator::hasNext");
+      CALL("SubstitutionTree::TreeIterator::hasNext");
 
       if(_clientBDRecording) {
         _subst->bdDone();
@@ -1295,7 +1297,7 @@ public:
 
     QueryResultIter next()
     {
-      CALL("SubstitutionTree::UnificationsIterator::next");
+      CALL("SubstitutionTree::TreeIterator::next");
 
       while(!_ldIterator.hasNext() && findNextLeaf()) {}
       ASS(_ldIterator.hasNext());
@@ -1337,7 +1339,7 @@ public:
 
     NodeIterator getNodeIterator(IntermediateNode* n)
     {
-      CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
+      CALL("SubstitutionTree::TreeIterator::getNodeIterator");
 
       // TODO rename usesUwa to something more self explanatory
       if (_algo.usesUwa()) {
@@ -1366,7 +1368,7 @@ public:
 
     bool findNextLeaf()
     {
-      CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
+      CALL("SubstitutionTree::TreeIterator::findNextLeaf");
 
       if(_nodeIterators->isEmpty()) {
         //There are no node iterators in the stack, so there's nowhere
@@ -1414,7 +1416,7 @@ public:
 
     bool enter(Node* n, BacktrackData& bd)
     {
-      CALL("SubstitutionTree::UnificationsIterator::enter");
+      CALL("SubstitutionTree::TreeIterator::enter");
 
       bool success=true;
       bool recording=false;
@@ -1483,7 +1485,7 @@ struct SubtitutionTreeConfig<TermList>
 
 
 
-using RobUnificationsIterator = SubstitutionTree::UnificationsIterator<UnificationAlgorithms::RobUnification>;
+using RobUnificationsIterator = SubstitutionTree::TreeIterator<UnificationAlgorithms::RobUnification>;
 
 
 } // namespace Indexing

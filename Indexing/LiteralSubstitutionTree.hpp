@@ -38,7 +38,6 @@ class LiteralSubstitutionTree
   using Leaf = SubstitutionTree::Leaf;
   using AbstractingAlgo = UnificationAlgorithms::AbstractingUnification;
   using RobAlgo = UnificationAlgorithms::RobUnification;
-  using HOLAlgo = UnificationAlgorithms::HOLUnification;
 
 public:
   CLASS_NAME(LiteralSubstitutionTree);
@@ -91,12 +90,6 @@ private:
         ));
   }
 
-  //auto postproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  //{ return pvi(iterTraits(getResultIterator<SubstitutionTree::UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-  //  .filterMap([](LQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
-  //      { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return lQueryRes(r.literal, r.clause, unif); }); })); }
-
-
 public:
 
 
@@ -105,7 +98,7 @@ public:
     static auto uwa                 = env.options->unificationWithAbstraction();
     static bool fixedPointIteration = env.options->unificationWithAbstractionFixedPointIteration();
 
-    return getResultIterator<SubstitutionTree::UnificationsIterator<AbstractingAlgo>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa), fixedPointIteration);
+    return getResultIterator<SubstitutionTree::TreeIterator<AbstractingAlgo>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa), fixedPointIteration);
   }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)

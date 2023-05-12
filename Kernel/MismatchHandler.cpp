@@ -82,14 +82,14 @@ public:
   TermList next() {
     ASS(!_todo->isEmpty());
     auto t = _todo->pop();
-    auto* dt = &_subs->derefBound(t);
-    while (dt->isTerm() && dt->term()->functor() == _function) {
-      ASS_EQ(dt->term()->arity(), 2);
-      _todo->push(dt->term()->termArg(1));
-      t = dt->term()->termArg(0);
-      dt = &_subs->derefBound(t);
+    auto dt = _subs->derefBound(t);
+    while (dt.isTerm() && dt.term()->functor() == _function) {
+      ASS_EQ(dt.term()->arity(), 2);
+      _todo->push(dt.term()->termArg(1));
+      t = dt.term()->termArg(0);
+      dt = _subs->derefBound(t);
     }
-    return *dt;
+    return dt;
   }
 };
 

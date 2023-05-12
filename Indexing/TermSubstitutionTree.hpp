@@ -118,11 +118,6 @@ private:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline(*self.self._tree, self.indent); }
 
-  //auto postproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  //{ return iterTraits(getResultIterator<UnificationsIterator<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-  //  .filterMap([](TQueryRes<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
-  //      { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
-
 public:
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
@@ -135,18 +130,18 @@ public:
     static auto uwa                 = env.options->unificationWithAbstraction();
     static bool fixedPointIteration = env.options->unificationWithAbstractionFixedPointIteration();
 
-    return pvi(getResultIterator<SubstitutionTree::UnificationsIterator<AbstractingAlgo>>(t, true, MismatchHandler(uwa), fixedPointIteration));
+    return pvi(getResultIterator<SubstitutionTree::TreeIterator<AbstractingAlgo>>(t, true, MismatchHandler(uwa), fixedPointIteration));
   }
 
 #if VHOL
   TermQueryResultIterator getHOLUnifiers(TypedTermList t) final override
   {       
-    return pvi(getResultIterator<SubstitutionTree::UnificationsIterator<HOLAlgo>>(t, true));
+    return pvi(getResultIterator<SubstitutionTree::TreeIterator<HOLAlgo>>(t, true));
   }
 #endif
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<SubstitutionTree::UnificationsIterator<RobAlgo>>(t, retrieveSubstitutions)); }
+  { return pvi(getResultIterator<SubstitutionTree::TreeIterator<RobAlgo>>(t, retrieveSubstitutions)); }
 };
 
 };

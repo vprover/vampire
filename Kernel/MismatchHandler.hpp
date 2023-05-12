@@ -149,6 +149,8 @@ public:
     return pvi(getSingletonIterator(sub));
   }
 
+  void initSub(RobSubstitutionTL* sub) const { }
+
   bool usesUwa() const { return false; }
 };
 
@@ -174,6 +176,8 @@ public:
     TermList query(specialVar, /* special */ true);
     return unify(query, node, sub);
   }
+
+  void initSub(RobSubstitutionTL* sub) const { }
 
   bool usesUwa() const { return _uwa.mode() != Options::UnificationWithAbstraction::OFF; }
 };

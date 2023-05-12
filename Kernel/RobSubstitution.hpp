@@ -72,6 +72,7 @@ struct TermSpec { // for backwards compatibility
   TermList trm;
   int index;
 
+  int bank() const { return index; }
   bool isVar() const { return trm.isVar(); }
   bool isSpecialVar() const { return trm.isSpecialVar(); }
   bool isOrdinaryVar() const { return trm.isOrdinaryVar(); }
@@ -172,6 +173,8 @@ using namespace Lib;
 namespace UnificationAlgorithms {
   class AbstractingUnification;
   class HOLUnification;
+  class HOLInstantiation;
+  class HOLGeneralisation;
   class RobUnification;
 }
 
@@ -181,6 +184,8 @@ class RobSubstitution
 {
   friend class UnificationAlgorithms::AbstractingUnification;
   friend class UnificationAlgorithms::HOLUnification;
+  friend class UnificationAlgorithms::HOLInstantiation;
+  friend class UnificationAlgorithms::HOLGeneralisation;  
   friend class UnificationConstraint<TermSpecOrList, VarBankOrInt>;
 
   using Constraint = UnificationConstraint<TermSpecOrList,VarBankOrInt>; 
@@ -193,6 +198,21 @@ public:
   
   RobSubstitution() : _nextUnboundAvailable(0) {}
   virtual ~RobSubstitution() = default;
+
+  /* When a `RobSubstitution` is applied to a Term by default the variables in the resulting
+   * Term will be in a new variable index, that starts mapping the first occurring
+   * variable in the output to X0, the second one to X1, ....
+   * In some cases this behaviour should be changed. For example if we a variables sigma such that
+   * `(s)sigma = t` using `RobSubstitution::match` we want that the variables are not assigned to a new
+   * index but to the same one as `t`. Therefore this function lets you set the output index of the
+   * substitution.
+   *
+   * Be aware that this is not possible when:
+   * - applying the substitution to variables that are not in the output index, that were not bound in the
+   *   substitution (i.e. part of generalization operations, etc.)
+   * - computing unifications
+   */
+  void setOutputIndex(VarBankOrInt idx) { _outputIndex = idx; }
 
   bool unify(TermSpecOrList t1, TermSpecOrList t2);
   bool match(TermSpecOrList base, TermSpecOrList instance);
@@ -207,6 +227,7 @@ public:
     _bank.reset();
     _constr->reset();
     _nextUnboundAvailable=0;
+    // reset oupt index???
   }
   
   Recycled<LiteralStack> constraints(){ return _constr->literals(*this); }
@@ -225,12 +246,13 @@ public:
   virtual TermSpecOrList getUnboundVar() const = 0;
   virtual TermSpecOrList getLitArg(Literal* lit, unsigned idx, VarBankOrInt bank) const = 0;
   virtual TermSpecOrList getLitSort(Literal* lit, VarBankOrInt bank) const = 0;
+  virtual bool isDefault(VarBankOrInt bank) const = 0;
 
   // functions are needed by so many other classes that it is 
   // easier to just make them public rather than adding other
   // classes as friends
-  TermSpecOrList const& deref(TermSpecOrList v) const;
-  TermSpecOrList const& derefBound(TermSpecOrList const& v) const;
+  TermSpecOrList deref(TermSpecOrList v) const;
+  TermSpecOrList derefBound(TermSpecOrList const& v) const;
 
 #if VDEBUG
   /**
@@ -253,6 +275,8 @@ protected:
   Recycled<ConstraintStack> _constr;
   bool sameTermContent(TermSpecOrList t1, TermSpecOrList t2);
   void bind(const TermSpecOrList& v, TermSpecOrList b);
+
+  VarBankOrInt _outputIndex;
 
   template<class Fn>
   VirtualIterator<RobSubst*> getAssocIterator(RobSubst* subst,
@@ -332,6 +356,11 @@ class RobSubstitutionTL : public RobSubstitution<TermList, VarBank>
   friend class UnificationConstraint<TermList, VarBank>;
 
 public:
+
+  RobSubstitutionTL() {
+    _outputIndex = VarBank::OUTPUT_BANK;
+  }
+
   SubstIterator matches(Literal* base, Literal* instance, bool complementary);
   SubstIterator unifiers(Literal* l1,  Literal* l2, bool complementary);
 
@@ -371,6 +400,9 @@ private:
   virtual TermList getLitSort(Literal* lit, VarBank bank) const override
   { ASS(lit->isTwoVarEquality()); return lit->twoVarEqSort(); }
 
+  virtual bool isDefault(VarBank bank) const override
+  { return bank == VarBank::OUTPUT_BANK; }
+
   struct ToRobTermList;
 };
 
@@ -380,6 +412,11 @@ class RobSubstitutionTS : public RobSubstitution<TermSpec, int>
   friend class UnificationConstraint<TermSpec, int>;
 
 public:
+
+  RobSubstitutionTS() {
+    _outputIndex = TermSpec::UNBOUND_INDEX;
+  }
+
   bool unify(TermList t1, int idx1, TermList t2, int idx2); 
   bool match(TermList t1, int idx1, TermList t2, int idx2); 
 
@@ -405,6 +442,9 @@ private:
 
   virtual TermSpec getLitSort(Literal* lit, int b) const override
   { ASS(lit->isTwoVarEquality()); return TermSpec(lit->twoVarEqSort(),b); }
+
+  virtual bool isDefault(int bank) const override
+  { return bank == TermSpec::UNBOUND_INDEX; }
 
   struct ToRobTermSpec;
 };

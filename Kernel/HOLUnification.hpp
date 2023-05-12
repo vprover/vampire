@@ -98,6 +98,8 @@ public:
   SubstIterator unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck = false);
   SubstIterator postprocess(RobSubstitutionTL*);
 
+  void initSub(RobSubstitutionTL* sub) const { }
+
   // method used to decide whether to return all children of a node during tree
   // traversal or only the children with same top
   bool usesUwa() const { return false; }  

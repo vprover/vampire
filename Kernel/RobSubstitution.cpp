@@ -98,8 +98,14 @@ void RobSubstitution<TermSpecOrList, VarBankOrInt>::denormalize(const Renaming& 
     Renaming::Item itm=nit.next();
     TermSpecOrList normal(itm.second, normBank);
     TermSpecOrList denormalized(itm.first, denormBank);
-    ASS(!_bank.find(denormalized));
-    bind(denormalized,normal);
+
+    if (denormBank == _outputIndex) {
+      ASS(!_bank.find(normal));
+      bind(normal, denormalized);
+    } else {
+      ASS(!_bank.find(denormalized));
+      bind(denormalized,normal);
+    }
   }
 }
 
@@ -148,7 +154,7 @@ RobSubstitution<TermSpecOrList, VarBankOrInt>::getSpecialVarTop(unsigned special
  * to which @b t belongs.
  */
 template<class TermSpecOrList, class VarBankOrInt>
-TermSpecOrList const& RobSubstitution<TermSpecOrList, VarBankOrInt>::derefBound(TermSpecOrList const& t_) const
+TermSpecOrList RobSubstitution<TermSpecOrList, VarBankOrInt>::derefBound(TermSpecOrList const& t_) const
 {
   CALL("RobSubstitution::derefBound");
 
@@ -169,13 +175,16 @@ TermSpecOrList const& RobSubstitution<TermSpecOrList, VarBankOrInt>::derefBound(
 }
 
 /**
- * If @b v is a bound variable then return the term or root variable
- * it is bound to. Otherwise, return the next unbound variable in the
- * OUTPUT_BANK. This effectively names unbound variables apart from
- * any variables in the range of bound variables.
+ * If @b is bound return the root variable / term it is bound to.
+ * If _outputIndex == UNBOUND_INDEX (default behaviour), return the next
+ * unbound variable in the UNBOUND_INDEX. This effectively names unbound
+ * variables apart from any variables in the range of bound variables.
+ * If _outputIndex != UNBOUND_INDEX, (i.e. it has been set to something
+ * else using setOutputIndex), the root variable must be of the
+ * _outputIndex and is returned as is, otherwise we fail on an exception.
  */
 template<class TermSpecOrList, class VarBankOrInt>
-TermSpecOrList const& RobSubstitution<TermSpecOrList, VarBankOrInt>::deref(TermSpecOrList v) const
+TermSpecOrList RobSubstitution<TermSpecOrList, VarBankOrInt>::deref(TermSpecOrList v) const
 {
   CALL("RobSubstitution::deref");
   ASS(v.isVar());
@@ -183,9 +192,14 @@ TermSpecOrList const& RobSubstitution<TermSpecOrList, VarBankOrInt>::deref(TermS
   for(;;) {
     auto binding = _bank.find(v);
     if(binding.isNone()) {
-      const_cast<RobSubstitution&>(*this).bind(v, getUnboundVar());
-      return _bank.get(v);
-    } else if(binding->isOutputVar() || binding->isTerm()) {
+      if(isDefault(_outputIndex)){
+        const_cast<RobSubstitution&>(*this).bind(v, getUnboundVar());
+        return _bank.get(v);
+      } else {
+        ASS_REP(v.bank() == _outputIndex, "variable bound index different from _outputIndex. This probably means you either called the wrong operations (e.g. unify) after using setOutputIndex, or you are trying to apply the substitution to a variable that was not bound by this substitution (e.g. by calling RobSubstitution::match or so)")        
+        return v;
+      }
+    } else if(binding->isTerm() || binding->bank() == _outputIndex) {
       return binding.unwrap();
     }
     v = binding.unwrap();
@@ -216,7 +230,7 @@ TermSpecOrList RobSubstitution<TermSpecOrList, VarBankOrInt>::root(TermSpecOrLis
 
   for(;;) {
     auto binding = _bank.find(v);
-    if(binding.isNone() || binding->isOutputVar() || binding->isTerm()) {
+    if(binding.isNone() || binding->isTerm() || binding->bank() == _outputIndex) {
       return v;
     }
     v = binding.unwrap();
@@ -539,7 +553,7 @@ TermList RobSubstitution<TermSpecOrList,VarBankOrInt>::apply(TermSpecOrList trm,
         if (orig.term.isVar()) {
           ASS(!orig.term.isOutputVar())
           auto var = deref(orig.term);
-          ASS(var.isVar() && var.isOutputVar());
+          ASS(var.isVar() && var.bank() == _outputIndex);
           tout = TermList(var.var(), DEFAULT_BANK);
         } else {
           const Term* origT = orig.term.term();
