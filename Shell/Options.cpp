@@ -3448,6 +3448,11 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+  if (unificationWithAbstraction() != UnificationWithAbstraction::OFF) {
+    // can, depending on concrete UWA option and rules it is used in result in saturation, where using normal unification rules would still be applicable
+    return false;
+  }
+
   if (_showInterpolant.actualValue != InterpolantMode::OFF) {
     return false;
   }
