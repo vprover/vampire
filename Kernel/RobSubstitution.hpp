@@ -96,6 +96,7 @@ public:
    */
   size_t size() const {return _bank.size(); }
 #endif
+  vstring toStringByBank(int index) const;
 
   /** Specifies instance of a variable (i.e. (variable, variable bank) pair) */
   struct VarSpec

@@ -621,7 +621,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       if(orig->isSort()){
         constructed.setTerm(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst));                
       } else {
-        constructed.setTerm(Term::create(orig,argLst));        
+        constructed.setTerm(Term::create(orig,argLst));
       }
       args.push(constructed);
 
@@ -1060,6 +1060,27 @@ struct RobSubstitution::UnificationFn {
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 
+vstring RobSubstitution::toStringByBank(int index) const
+{
+  CALL("RobSubstitution::toStringByBank");
+  vstring res;
+  BankType::Iterator bit(_bank);
+  while(bit.hasNext()) {
+    VarSpec v;
+    TermSpec binding;
+    bit.next(v,binding);
+    TermList tl;
+    if (v.index != index) {
+      continue;
+    }
+    res+="X"+Int::toString(v.var)+" -> ";
+    tl.makeVar(v.var);
+    tl=apply(tl, v.index);
+    res+=tl.toString()+"\n";
+  }
+  return res;
+
+}
 
 #if VDEBUG
 vstring RobSubstitution::toString(bool deref) const

@@ -206,35 +206,36 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   unsigned next = 0;
   if(withConstraints){
-  for(unsigned i=0;i<constraints->size();i++){
-      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (*constraints)[i]; 
+    for(unsigned i=0;i<constraints->size();i++){
+        pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (*constraints)[i]; 
 
-#if VDEBUG
-      //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
-#endif
-  
-      TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
-      TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
+  #if VDEBUG
+        //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
+  #endif
 
-      TermList sort = SortHelper::getResultSort(rT.term()); 
+        TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
+        TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
 
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);
+        TermList sort = SortHelper::getResultSort(rT.term());
 
-      static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
-      if(uwa==Options::UnificationWithAbstraction::GROUND &&
-         !constraint->ground() &&
-         (!UnificationWithAbstractionConfig::isInterpreted(qT) && 
-          !UnificationWithAbstractionConfig::isInterpreted(rT))) {
+        Literal* constraint = Literal::createEquality(false,qT,rT,sort);
 
-        // the unification was between two uninterpreted things that were not ground 
-        res->destroy();
-        return 0;
-      }
+        static Options::UnificationWithAbstraction uwa = opts.unificationWithAbstraction();
+        if(uwa==Options::UnificationWithAbstraction::GROUND &&
+          !constraint->ground() &&
+          (!UnificationWithAbstractionConfig::isInterpreted(qT) &&
+            !UnificationWithAbstractionConfig::isInterpreted(rT))) {
 
-      (*res)[next] = constraint; 
-      next++;    
+          // the unification was between two uninterpreted things that were not ground
+          res->destroy();
+          return 0;
+        }
+
+        (*res)[next] = constraint;
+        next++;
+    }
   }
-  }
+  unsigned cidx = 0xffffffff; // start undef
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit) {
@@ -264,6 +265,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       ASS(next < newLength);
       (*res)[next] = newLit;
       next++;
+    } else {
+      cidx = i;
     }
   }
 
@@ -273,6 +276,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     qrLitAfter = qr.substitution->applyToResult(qr.literal);
   }
 
+  unsigned didx = 0xffffffff;
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*qr.clause)[i];
     if(curr!=qr.literal) {
@@ -302,17 +306,25 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
       (*res)[next] = newLit;
       next++;
+    } else {
+      didx = i;
     }
   }
 
   if(withConstraints){
     env.statistics->cResolution++;
   }
-  else{ 
+  else{
     env.statistics->resolution++;
   }
 
-  //cout << "RESULT " << res->toString() << endl;
+  RobSubstitution* rs = qr.substitution->tryGetRobSubstitution();
+  cout << "BINARY_RESOLUTION\n from\n  "
+    << queryCl->toString() << "\n   idx " << cidx << "\n   subst\n" <<
+    rs->toStringByBank(0) << "and\n  "
+    << qr.clause->toString() << "\n   idx " << didx << "\n   subst\n" <<
+    rs->toStringByBank(1) << "DERIVES\n  "
+    << res->toString() << endl << endl;
 
   return res;
 }
