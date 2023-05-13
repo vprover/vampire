@@ -1063,8 +1063,9 @@ struct RobSubstitution::UnificationFn {
 vstring RobSubstitution::toStringByBank(int index) const
 {
   CALL("RobSubstitution::toStringByBank");
-  vstring res;
+  vstring res = "{ ";
   BankType::Iterator bit(_bank);
+  bool first = true;
   while(bit.hasNext()) {
     VarSpec v;
     TermSpec binding;
@@ -1073,13 +1074,17 @@ vstring RobSubstitution::toStringByBank(int index) const
     if (v.index != index) {
       continue;
     }
+    if (first) {
+      first = false;
+    } else {
+      res+=", ";
+    }
     res+="X"+Int::toString(v.var)+" -> ";
     tl.makeVar(v.var);
     tl=apply(tl, v.index);
-    res+=tl.toString()+"\n";
+    res+=tl.toString();
   }
-  return res;
-
+  return res + " }";
 }
 
 #if VDEBUG

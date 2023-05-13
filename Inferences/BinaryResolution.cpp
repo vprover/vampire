@@ -320,10 +320,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   RobSubstitution* rs = qr.substitution->tryGetRobSubstitution();
   cout << "BINARY_RESOLUTION\n from\n  "
-    << queryCl->toString() << "\n   idx " << cidx << "\n   subst\n" <<
-    rs->toStringByBank(0) << "and\n  "
-    << qr.clause->toString() << "\n   idx " << didx << "\n   subst\n" <<
-    rs->toStringByBank(1) << "DERIVES\n  "
+    << queryCl->toString() << "\n   idx " << cidx << "\n   subst " <<
+    rs->toStringByBank(0) << "\nand\n  "
+    << qr.clause->toString() << "\n   idx " << didx << "\n   subst " <<
+    rs->toStringByBank(1) << "\nDERIVES\n  "
     << res->toString() << endl << endl;
 
   return res;
