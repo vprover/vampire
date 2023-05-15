@@ -175,10 +175,10 @@ public:
   class Top : public Coproduct<unsigned, unsigned> {
     Top(Coproduct<unsigned, unsigned> self) : Coproduct<unsigned, unsigned>(self) {}
   public:
-    static Top functor(unsigned f) { return Top(Coproduct::variant<0>(f)); }
-    static Top var    (unsigned v) { return Top(Coproduct::variant<1>(v)); }
-    Option<unsigned> functor() const { return as<0>().toOwned(); }
-    Option<unsigned> var()     const { return as<1>().toOwned(); }
+    static Top functor(unsigned f) { return Top(Coproduct::variant<1>(f)); }
+    static Top var    (unsigned v) { return Top(Coproduct::variant<0>(v)); }
+    Option<unsigned> functor() const { return as<1>().toOwned(); }
+    Option<unsigned> var()     const { return as<0>().toOwned(); }
   };
   Top top() const;
   static bool sameTop(TermList ss, TermList tt);

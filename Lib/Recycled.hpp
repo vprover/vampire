@@ -19,6 +19,7 @@
 #include "Stack.hpp"
 #include "DArray.hpp"
 #include <initializer_list>
+#include <memory>
 #include "Lib/Reflection.hpp"
 #include "Lib/Hash.hpp"
 
@@ -97,6 +98,16 @@ struct MaybeAlive
   T& operator* () { return  _self; }
   T* operator->() { return &_self; }
 };
+
+#define USE_PTRS 1
+
+
+#if USE_PTRS
+#define IF_USE_PTRS(l, r) l
+#else
+#define IF_USE_PTRS(l, r) r
+#endif
+
 /** A smart that lets you keep memory allocated, and reuse it.
  * Constructs an object of type T on the heap. When the Recycled<T> is destroyed,
  * the object is not returned, but the object is reset using Reset::operator(),
@@ -106,23 +117,32 @@ struct MaybeAlive
 template<class T, class Reset = DefaultReset, class Keep = DefaultKeepRecycled>
 class Recycled
 {
-  T _ptr;
+  using Self = IF_USE_PTRS(std::unique_ptr<T>,T);
+  Self _self;
   Reset _reset;
   Keep _keep;
 
-  static bool alive;
-  static Stack<T>& mem() {
-    static MaybeAlive<Stack<T>> mem(Stack<T>(), &alive);
+  static bool memAlive;
+  static Stack<Self>& mem() {
+    static MaybeAlive<Stack<Self>> mem(Stack<Self>(), &memAlive);
     return *mem;
   }
   Recycled(Recycled const&) = delete;
+  
+  T      & self()       { ASS(alive()) return IF_USE_PTRS(*, )_self; }
+  T const& self() const { ASS(alive()) return IF_USE_PTRS(*, )_self; }
+  struct EmptyConstructMarker {};
+
+  Recycled(Self self)  : _self(std::move(self)), _reset(), _keep() {}
 public:
 
   Recycled()
-    : _ptr(mem().isNonEmpty() ? mem().pop() : T())
-    , _reset()
-    , _keep()
+    : Recycled(mem().isNonEmpty() ? mem().pop() : IF_USE_PTRS(make_unique<T>(), T()))
   { }
+
+  template<class A, class... As>
+  Recycled(A a, As... as) : Recycled()
+  { self().init(a, as...); }
 
   template<class Clone>
   Recycled clone(Clone cloneFn) const
@@ -134,41 +154,34 @@ public:
     return c;
   }
 
+  bool alive() const { return IF_USE_PTRS(bool(_self), true); }
 
-  auto asTuple() const -> decltype(auto) { return std::tie(_ptr); }
+  auto asTuple() const -> decltype(auto) { return std::make_tuple(someIf(alive(), [this]() -> decltype(auto) { return self(); })); }
   IMPL_COMPARISONS_FROM_TUPLE(Recycled);
   IMPL_HASH_FROM_TUPLE(Recycled);
-
-  template<class A, class... As>
-  Recycled(A a, As... as)
-    : _ptr(mem().isNonEmpty() ? mem().pop() : T())
-    , _reset()
-  {
-    _ptr.init(a, as...);
-  }
 
   Recycled(Recycled&& other) = default;
   Recycled& operator=(Recycled&& other) = default;
 
   ~Recycled()
   {
-    if (_keep(_ptr) && alive) {
-      _reset(_ptr);
-      mem().push(std::move(_ptr));
+    if (IF_USE_PTRS(_self, true) && _keep(self()) && memAlive) {
+      _reset(self());
+      mem().push(std::move(_self));
     }
   }
 
-  T const& operator* () const { return  _ptr; }
-  T const* operator->() const { return &_ptr; }
-  T& operator* () { return  _ptr; }
-  T* operator->() { return &_ptr; }
+  T const& operator* () const { return  self(); }
+  T const* operator->() const { return &self(); }
+  T& operator* () { return  self(); }
+  T* operator->() { return &self(); }
 
   friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
-  { return out << self._ptr; }
+  { if (self.alive())return out << self.self(); else return out << "Recycled(NULL)"; }
 };
 
 template<class T, class Reset, class Keep>
-bool Recycled<T, Reset, Keep>::alive = true;
+bool Recycled<T, Reset, Keep>::memAlive = true;
 
 };
 

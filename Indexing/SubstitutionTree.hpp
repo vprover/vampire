@@ -543,19 +543,9 @@
       {
       public:
         static Comparison compare(TermList::Top t1, TermList::Top t2)
-        {
-          CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
-          if(t1.var()) {
-            if(t2.var()) {
-              return Int::compare(*t1.var(), *t2.var());
-            }
-            return LESS;
-          }
-          if(t2.var()) {
-            return GREATER;
-          }
-          return Int::compare(*t1.functor(), *t2.functor());
-        }
+        { return t1 == t2 ? Comparison::EQUAL 
+               : t1 < t2  ? Comparison::LESS
+               :            Comparison::GREATER; }
 
         static Comparison compare(Node* n1, Node* n2)
         { return compare(n1->term.top(), n2->term.top()); }
@@ -1255,7 +1245,7 @@
           _clientBDRecording=false;
           _clientBacktrackData.backtrack();
         }
-        // if (_bdStack) 
+        if (_bdStack.alive()) 
           while(_bdStack->isNonEmpty()) {
             _bdStack->pop().backtrack();
           }
