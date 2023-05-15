@@ -369,41 +369,69 @@ VarSpec RobSubstitution::root(VarSpec v) const
   }
 }
 
-bool RobSubstitution::occurs(VarSpec const& toFind_, AtomicTermSpec const& ts_)
+
+bool RobSubstitution::occurs(VarSpec const& toFind, AtomicTermSpec const& ts) 
 {
-  VarSpec toFind = root(toFind_);
-  ASS_EQ(toFind, toFind_)
-  AtomicTermSpec ts = derefBound(ts_).asAtomic().unwrap();
-  if(ts.isVar()) {
-    return false;
-  }
-  typedef DHSet<VarSpec, VarSpec::Hash1, VarSpec::Hash2> EncounterStore;
-  Recycled<EncounterStore> encountered;
-  Recycled<Stack<AtomicTermSpec>> todo;
-  todo->push(std::move(ts));
 
-  while (todo->isNonEmpty()){
-    auto ts = todo->pop();
-    if (ts.isVar()) {
-      VarSpec tvar = root(ts.varSpec());
-      if(tvar == toFind) {
-        return true;
+   Recycled<DHSet<AtomicTermSpec>> encountered;
+   Recycled<Stack<AtomicTermSpec>> todo;
+   todo->push(std::move(ts));
 
-      } else if(!encountered->find(tvar)) {
-        TermSpec dtvar = derefBound(TermSpec(tvar)).clone();
-        if(!dtvar.isVar()) {
-          encountered->insert(tvar);
-          todo->push(dtvar.asAtomic().unwrap());
-        }
-      }
+   while (todo->isNonEmpty()){
+     auto ts = todo->pop();
+     auto dt = derefBound(ts).asAtomic().unwrap();
+     if (!encountered->find(dt)) {
+       encountered->insert(dt);
+       if (dt.isVar()) {
+         if(dt.varSpec() == toFind) {
+           return true;
+         } else {
+           /* nothing to do */
+         }
+ 
+       } else {
+         todo->loadFromIterator(dt.allArgs());
+       }
+     }
+   }
 
-    } else {
-      todo->loadFromIterator(ts.allArgs());
-    }
-  }
-
-  return false;
+   return false;
 }
+// bool RobSubstitution::occurs(VarSpec const& toFind_, AtomicTermSpec const& ts_)
+// {
+//   VarSpec toFind = root(toFind_);
+//   ASS_EQ(toFind, toFind_)
+//   AtomicTermSpec ts = derefBound(ts_).asAtomic().unwrap();
+//   if(ts.isVar()) {
+//     return false;
+//   }
+//   typedef DHSet<VarSpec, VarSpec::Hash1, VarSpec::Hash2> EncounterStore;
+//   Recycled<EncounterStore> encountered;
+//   Recycled<Stack<AtomicTermSpec>> todo;
+//   todo->push(std::move(ts));
+//
+//   while (todo->isNonEmpty()){
+//     auto ts = todo->pop();
+//     if (ts.isVar()) {
+//       VarSpec tvar = root(ts.varSpec());
+//       if(tvar == toFind) {
+//         return true;
+//
+//       } else if(!encountered->find(tvar)) {
+//         TermSpec dtvar = derefBound(TermSpec(tvar)).clone();
+//         if(!dtvar.isVar()) {
+//           encountered->insert(tvar);
+//           todo->push(dtvar.asAtomic().unwrap());
+//         }
+//       }
+//
+//     } else {
+//       todo->loadFromIterator(ts.allArgs());
+//     }
+//   }
+//
+//   return false;
+// }
 
 bool RobSubstitution::unify(AtomicTermSpec s, AtomicTermSpec t)
 {
@@ -425,7 +453,10 @@ bool RobSubstitution::unify(AtomicTermSpec s, AtomicTermSpec t)
 
   // Save encountered unification pairs to avoid
   // recomputing their unification
-  Recycled<DHSet<pair<AtomicTermSpec, AtomicTermSpec>>> encountered;
+  static DHSet<pair<AtomicTermSpec, AtomicTermSpec>> encountered_;
+  auto encountered = &encountered_;
+  encountered->reset();
+  
 
   auto pushTodo = [&](auto pair) {
       // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
