@@ -659,41 +659,49 @@ Clause* Superposition::performSuperposition(
 
   if (dbs) {
     TIME_TRACE("diamond-breaking");
-    auto rwIt = rwClause->getRewriteRules().items();
-    while (rwIt.hasNext()) {
-      auto kv = rwIt.next();
-      res->addRewriteRule(
-        subst->apply(kv.first, eqIsResult),
-        subst->apply(kv.second, eqIsResult)
-      );
-    }
-    auto rwBIt = rwClause->getBlockedTerms();
-    while (rwBIt.hasNext()) {
-      res->addBlockedTerm(subst->apply(rwBIt.next(), eqIsResult));
-    }
-    auto eqIt = eqClause->getRewriteRules().items();
-    while (eqIt.hasNext()) {
-      auto kv = eqIt.next();
-      TermList lhs = subst->apply(kv.first, !eqIsResult);
-      TermList rhs = subst->apply(kv.second, !eqIsResult);
-      if (!lhs.containsSubterm(eqLHSS)) {
-        res->addRewriteRule(lhs,rhs);
+
+    {
+      TIME_TRACE("update blocked terms");
+      auto rwBIt = rwClause->getBlockedTerms().iterator();
+      while (rwBIt.hasNext()) {
+        res->addBlockedTerm(subst->apply(rwBIt.next(), eqIsResult));
       }
-    }
-    auto eqBIt = eqClause->getBlockedTerms();
-    while (eqBIt.hasNext()) {
-      res->addBlockedTerm(subst->apply(eqBIt.next(), !eqIsResult));
-    }
-    auto rwstit = RewriteableSubtermsFn(ordering)(rwLit);
-    while (rwstit.hasNext()) {
-      auto st = subst->apply(rwstit.next().second, eqIsResult);
-      if (ordering.compare(rwTermS, st)==Ordering::Result::GREATER) {
-        // cout << "adding blocked " << st << " for " << rwTermS << endl;
-        res->addBlockedTerm(st);
+      auto eqBIt = eqClause->getBlockedTerms().iterator();
+      while (eqBIt.hasNext()) {
+        res->addBlockedTerm(subst->apply(eqBIt.next(), !eqIsResult));
       }
+      auto rwstit = RewriteableSubtermsFn(ordering)(rwLit);
+      while (rwstit.hasNext()) {
+        auto st = subst->apply(rwstit.next().second, eqIsResult);
+        if (ordering.compare(rwTermS, st)==Ordering::Result::GREATER) {
+          // cout << "adding blocked " << st << " for " << rwTermS << endl;
+          res->addBlockedTerm(st);
+        }
+      }
+      res->addBlockedTerm(rwTermS);
     }
-    res->addBlockedTerm(rwTermS);
-    res->addRewriteRule(eqLHSS,tgtTermS);
+
+    {
+      TIME_TRACE("update rewrite rules");
+      auto rwIt = rwClause->getRewriteRules().items();
+      while (rwIt.hasNext()) {
+        auto kv = rwIt.next();
+        res->addRewriteRule(
+          subst->apply(kv.first, eqIsResult),
+          subst->apply(kv.second, eqIsResult)
+        );
+      }
+      auto eqIt = eqClause->getRewriteRules().items();
+      while (eqIt.hasNext()) {
+        auto kv = eqIt.next();
+        TermList lhs = subst->apply(kv.first, !eqIsResult);
+        TermList rhs = subst->apply(kv.second, !eqIsResult);
+        if (!lhs.containsSubterm(eqLHSS)) {
+          res->addRewriteRule(lhs,rhs);
+        }
+      }
+      res->addRewriteRule(eqLHSS,tgtTermS);
+    }
   }
 
   if(isTypeSub){

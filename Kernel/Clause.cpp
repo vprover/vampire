@@ -819,10 +819,10 @@ bool Clause::isBlockedTerm(TermList t) const
   return _blockedTerms.contains(t);
 }
 
-TermIterator Clause::getBlockedTerms() const
+const DHSet<TermList>& Clause::getBlockedTerms() const
 {
   TIME_TRACE("get blocked terms");
-  return _blockedTerms.iterator();
+  return _blockedTerms;
 }
 
 /**

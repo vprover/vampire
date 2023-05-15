@@ -225,7 +225,7 @@ struct BackwardDemodulation::ResultFn
       auto kv = rwIt.next();
       res->addRewriteRule(kv.first,kv.second);
     }
-    auto rwBIt = qr.clause->getBlockedTerms();
+    auto rwBIt = qr.clause->getBlockedTerms().iterator();
     while (rwBIt.hasNext()) {
       res->addBlockedTerm(rwBIt.next());
     }

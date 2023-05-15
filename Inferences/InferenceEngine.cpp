@@ -413,7 +413,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     auto kv = rwIt.next();
     d->addRewriteRule(kv.first,kv.second);
   }
-  auto rwBIt = c->getBlockedTerms();
+  auto rwBIt = c->getBlockedTerms().iterator();
   while (rwBIt.hasNext()) {
     d->addBlockedTerm(rwBIt.next());
   }
@@ -545,7 +545,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
     auto kv = rwIt.next();
     d->addRewriteRule(kv.first,kv.second);
   }
-  auto rwBIt = c->getBlockedTerms();
+  auto rwBIt = c->getBlockedTerms().iterator();
   while (rwBIt.hasNext()) {
     d->addBlockedTerm(rwBIt.next());
   }

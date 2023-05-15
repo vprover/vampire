@@ -235,7 +235,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           auto kv = rwIt.next();
           res->addRewriteRule(kv.first,kv.second);
         }
-        auto rwBIt = cl->getBlockedTerms();
+        auto rwBIt = cl->getBlockedTerms().iterator();
         while (rwBIt.hasNext()) {
           res->addBlockedTerm(rwBIt.next());
         }

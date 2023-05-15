@@ -361,7 +361,7 @@ public:
   void addRewriteRule(TermList lhs, TermList rhs);
   void addBlockedTerm(TermList t);
   bool isBlockedTerm(TermList t) const;
-  TermIterator getBlockedTerms() const;
+  const DHSet<TermList>& getBlockedTerms() const;
 
 protected:
   /** number of literals */

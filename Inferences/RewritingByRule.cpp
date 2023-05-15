@@ -26,7 +26,6 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
 {
   CALL("SuperpositionByRule::generateClauses");
 
-  auto cLen = c->length();
   auto& ord = _salg->getOrdering();
   const auto& rules = c->getRewriteRules();
   auto stats = env.statistics;
@@ -51,7 +50,7 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
       // TODO I think this unification is giving too many inferences,
       // what we need would be taking both the query and the result with
       // variables from the same bank, since we are rewriting by rules
-      // that contain variables from this clause. 
+      // that contain variables from this clause.
       return pvi(pushPairIntoRightIterator(kv, _tis->getUnifications(kv.second, true)));
     })
     .map([c,&rules,&ord,stats](pair<pair<Literal*, TermList>,TermQueryResult> arg) -> Clause* {
@@ -102,7 +101,7 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
           subst->apply(kv.second, 0)
         );
       }
-      auto rwBIt = c->getBlockedTerms();
+      auto rwBIt = c->getBlockedTerms().iterator();
       while (rwBIt.hasNext()) {
         res->addBlockedTerm(subst->apply(rwBIt.next(), 0));
       }
@@ -119,12 +118,14 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
       stats->superpositionByRule++;
       return res;
     })
-    .filter(NonzeroFn()));
+    .filter(NonzeroFn())
+    .timeTraced("superposition by rule"));
 }
 
 Clause* DemodulationByRule::simplify(Clause* c)
 {
   CALL("DemodulationByRule::simplify");
+  TIME_TRACE("demodulation by rule");
 
   auto cLen = c->length();
   auto& ord = _salg->getOrdering();
@@ -169,7 +170,7 @@ Clause* DemodulationByRule::simplify(Clause* c)
           auto kv = rwIt.next();
           res->addRewriteRule(kv.first,kv.second);
         }
-        auto rwBIt = c->getBlockedTerms();
+        auto rwBIt = c->getBlockedTerms().iterator();
         while (rwBIt.hasNext()) {
           res->addBlockedTerm(rwBIt.next());
         }
