@@ -43,7 +43,9 @@ namespace UnificationAlgorithms {
 class HOLInstantiation {
 public:
 
-  static bool match(TermList term, TermList instance, RobSubstitutionTL* sub);
+  using Constraint = UnificationConstraint<TermList,VarBank>;
+
+  static bool match(TermList base, TermList instance, RobSubstitutionTL* sub);
 
   void initSub(RobSubstitutionTL* sub) const { sub->setOutputIndex(VarBank::RESULT_BANK); }
 

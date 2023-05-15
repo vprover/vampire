@@ -58,7 +58,11 @@ void ForwardDemodulation<SubtermIterator>::attach(SaturationAlgorithm* salg)
   CALL("ForwardDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
+#if VHOL
+    env.property->higherOrder() ?
+      _salg->getIndexManager()->request(DEMODULATION_LHS_SUBST_TREE) :     
+#endif
+	    _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
   _preorderedOnly=getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
   _encompassing = getOptions().demodulationEncompassment();
@@ -69,7 +73,11 @@ void ForwardDemodulation<SubtermIterator>::detach()
 {
   CALL("ForwardDemodulation::detach");
   _index=0;
-  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
+#if VHOL
+  env.property->higherOrder() ?
+    _salg->getIndexManager()->release(DEMODULATION_LHS_SUBST_TREE) :     
+#endif  
+    _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   ForwardSimplificationEngine::detach();
 }
 
@@ -111,7 +119,13 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
         toplevelCheck &= lit->isPositive() && (cLen == 1);        
       }
 
-      TermQueryResultIterator git=_index->getGeneralizations(TypedTermList(trm.term()), true);
+      TermQueryResultIterator git=
+#if VHOL
+      env.property->higherOrder() ?
+        _index->getHOLGeneralizations(TypedTermList(trm.term())) :
+#endif
+        _index->getGeneralizations(TypedTermList(trm.term()), true);
+
       while(git.hasNext()) {
         TermQueryResult qr=git.next();
         ASS_EQ(qr.clause->length(),1);
@@ -120,22 +134,31 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
           continue;
         }
 
-        // to deal with polymorphic matching
-        // Ideally, we would like to extend the substitution 
-        // returned by the index to carry out the sort match.
-        // However, ForwardDemodulation uses a CodeTree as its
-        // indexing mechanism, and it is not clear how to extend
-        // the substitution returned by a code tree.
         static RobSubstitutionTS subst; 
         bool resultTermIsVar = qr.term.isVar();
-        if(resultTermIsVar){
-          TermList querySort = SortHelper::getTermSort(trm, lit);
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          subst.reset(); 
-          if(!subst.match(eqSort, 0, querySort, 1)){
-            continue;        
+#if VHOL
+        // in higher-order case, we use a substitution tree for
+        // index which does sort checking internally
+        if(!env.property->higherOrder()){
+#endif
+          // to deal with polymorphic matching
+          // Ideally, we would like to extend the substitution 
+          // returned by the index to carry out the sort match.
+          // However, ForwardDemodulation uses a CodeTree as its
+          // indexing mechanism, and it is not clear how to extend
+          // the substitution returned by a code tree.
+
+          if(resultTermIsVar){
+            TermList querySort = SortHelper::getTermSort(trm, lit);
+            TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+            subst.reset(); 
+            if(!subst.match(eqSort, 0, querySort, 1)){
+              continue;        
+            }
           }
+#if VHOL
         }
+#endif
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
         TermList rhsS;
@@ -144,6 +167,7 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
           //When we apply substitution to the rhs, we get a term, that is
           //a variant of the term we'd like to get, as new variables are
           //produced in the substitution application.
+          ASS(false); // we don't expect to reach here
           TermList lhsSBadVars = subs->applyToResult(qr.term);
           TermList rhsSBadVars = subs->applyToResult(rhs);
           Renaming rNorm, qNorm, qDenorm;
@@ -155,10 +179,16 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
         } else {
           rhsS = subs->applyToBoundResult(rhs);
         }
-        if(resultTermIsVar){
-          rhsS = subst.apply(rhsS, 0);
+#if VHOL
+        if(!env.property->higherOrder()){
+#endif        
+          if(resultTermIsVar){
+            rhsS = subst.apply(rhsS, 0);
+          }
+#if VHOL
         }
-
+#endif
+        
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
   #if VDEBUG

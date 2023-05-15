@@ -261,6 +261,7 @@ public:
   bool isImp() const;
   bool isEquals() const;
   bool isPlaceholder() const;
+  bool containsLooseIndex() const;
   Option<unsigned> deBruijnIndex() const;
   TermList lhs() const;
   TermList rhs() const;

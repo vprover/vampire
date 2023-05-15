@@ -75,7 +75,7 @@ void Term::destroy ()
 {
   CALL("Term::destroy");
   ASS(CHECK_LEAKS || ! shared());
-
+  
   size_t sz = sizeof(Term)+_arity*sizeof(TermList)+getPreDataSize();
   void* mem = this;
   mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)-getPreDataSize());
@@ -646,6 +646,36 @@ bool Term::isPlaceholder() const {
   CALL("Term::isPlaceholder");
   
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);    
+}
+
+bool TermList::containsLooseIndex() const {
+  CALL("TermList::containsLooseIndex()");
+
+  struct TermListWD {
+    TermList t;
+    unsigned depth;
+  };
+
+  Stack<TermListWD> toDo;
+  toDo.push( TermListWD { .t = *this, .depth = 0,  });
+
+  while(!toDo.isEmpty()){
+    auto item = toDo.pop();
+    unsigned dep = item.depth;
+    if(item.t.deBruijnIndex().isSome()){
+      unsigned idx = item.t.deBruijnIndex().unwrap();
+      if(idx >= dep)
+      { return true; }
+    }
+    if(item.t.isLambdaTerm()){
+      toDo.push(TermListWD { .t = item.t.lambdaBody(), .depth = dep + 1, } );
+    }
+    if(item.t.isApplication()){
+      toDo.push(TermListWD { .t = item.t.lhs(), .depth = dep, } );
+      toDo.push(TermListWD { .t = item.t.rhs(), .depth = dep, } );      
+    }
+  }
+  return false;
 }
 
 Option<unsigned> TermList::deBruijnIndex() const {

@@ -632,7 +632,7 @@ bool SubstitutionTree::LeafIterator::hasNext()
 
 void SubstitutionTree::Leaf::output(std::ostream& out, bool multiline, int indent) const 
 { 
-  out << this->term << 
+  out << this->term << " Leaf " << 
      (this->splittable() ? "" : " {NS}"); }
 
 void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multiline, int indent) const 

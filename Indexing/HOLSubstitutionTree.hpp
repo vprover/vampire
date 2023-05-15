@@ -31,8 +31,14 @@ namespace Indexing {
 class HOLSubstitutionTree
 : public SubstitutionTree
 {
+  using SplittableType = std::function<bool(TermList,bool)>;
 
 public:
+  CLASS_NAME(HOLSubstitutionTree);
+  USE_ALLOCATOR(HOLSubstitutionTree);
+
+  HOLSubstitutionTree(SplittableType f) : SubstitutionTree(), _splittable(f) {}
+
   class Subterm {
     TermList _subterm;
     bool _splittable;
@@ -80,6 +86,8 @@ private:
   typedef DHMap<unsigned,Subterm,IdentityHash,DefaultHash> HOLBindingMap;
   typedef ApplicativeHelper AH;
 
+  SplittableType _splittable;
+
 public:
 
 
@@ -111,7 +119,7 @@ public:
   template<class BindingFunction>
   void createHOLBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
   {
-    bindSpecialVar(0, Subterm(term, AH::splittable(term, true)));
+    bindSpecialVar(0, Subterm(term, _splittable(term, true)));
     bindSpecialVar(1, Subterm(term.sort(),true));
   }
 
@@ -125,11 +133,11 @@ public:
     TermList l1 = *lit->nthArgument(1);
 
     if (reversed) {
-      bindSpecialVar(1,Subterm(l0, AH::splittable(l0, true)) );
-      bindSpecialVar(0,Subterm(l1, AH::splittable(l1, true)) );
+      bindSpecialVar(1,Subterm(l0, _splittable(l0, true)) );
+      bindSpecialVar(0,Subterm(l1, _splittable(l1, true)) );
     } else {
-      bindSpecialVar(0,Subterm(l0, AH::splittable(l0, true)) );
-      bindSpecialVar(1,Subterm(l1, AH::splittable(l1, true)) );
+      bindSpecialVar(0,Subterm(l0, _splittable(l0, true)) );
+      bindSpecialVar(1,Subterm(l1, _splittable(l1, true)) );
     }
 
     auto sort = SortHelper::getEqualityArgumentSort(lit);

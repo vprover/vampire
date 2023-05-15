@@ -196,6 +196,9 @@ TermSpecOrList RobSubstitution<TermSpecOrList, VarBankOrInt>::deref(TermSpecOrLi
         const_cast<RobSubstitution&>(*this).bind(v, getUnboundVar());
         return _bank.get(v);
       } else {
+        cout << *this << endl;
+        cout << "v " << v << " index " << v.bank() << endl;
+        cout << "output bank " << _outputIndex << endl;
         ASS_REP(v.bank() == _outputIndex, "variable bound index different from _outputIndex. This probably means you either called the wrong operations (e.g. unify) after using setOutputIndex, or you are trying to apply the substitution to a variable that was not bound by this substitution (e.g. by calling RobSubstitution::match or so)")        
         return v;
       }
@@ -415,6 +418,7 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, T
 {
   CALL("RobSubstitution::match(TermSpec...)");
 
+#define DEBUG_MATCH(lvl, ...) if (lvl < 0) DBG("match: ", __VA_ARGS__)
   if(sameTermContent(base,instance)) {
     return true;
   }
@@ -434,13 +438,11 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, T
     auto x = toDo.pop();
     TermSpecOrList bt = x.lhs();
     TermSpecOrList it = x.rhs();
-    DEBUG_UNIFY(1, "next pair: ", tie(bt, it))
+    DEBUG_MATCH(1, "next pair: ", tie(bt, it))
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
 
-    if (sameTermContent(bt,it)) {
-
-    } else if(bt.isSpecialVar()) {
+    if(bt.isSpecialVar()) {
       auto binding = _bank.find(bt);
       if(binding) {
         bt = binding.unwrap();
@@ -474,7 +476,7 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, T
     } else if (it.isVar()) {
       mismatch=true;
       break;      
-    } else if (bt.isTerm() && it.isTerm() && bt.term()->functor() == it.term()->functor()) {
+    } else if (bt.term()->functor() == it.term()->functor()) {
       for (unsigned i = 0; i < bt.term()->arity(); i++) {
         toDo.push(Constraint(bt.nthArg(i), it.nthArg(i)));
       }

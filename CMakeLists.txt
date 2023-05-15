@@ -717,6 +717,7 @@ set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tHOLMatching.cpp    
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp

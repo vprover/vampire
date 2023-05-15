@@ -643,7 +643,7 @@ bool ApplicativeHelper::isBool(TermList t){
 }
 
 bool ApplicativeHelper::splittable(TermList t, bool topLevel){
-  CALL("ApplicativeHelper::splittable");
+  CALL("ApplicativeHelper::splittable1");
 
   if(t.isVar()) return true;
 

@@ -15,6 +15,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 #include "TermSubstitutionTree.hpp"
 
 #if VHOL
@@ -28,13 +29,27 @@ using namespace Lib;
 using namespace Kernel;
 
 
-TermSubstitutionTree::TermSubstitutionTree(bool extra)
-:  _extra(extra)
+TermSubstitutionTree::TermSubstitutionTree(SplittingAlgo algo)
 #if VHOL
-  ,_tree(env.property->higherOrder() ? new HOLSubstitutionTree() : new SubstitutionTree())
-#else
-  ,_tree(new SubstitutionTree())
+  : _extra(false)
 #endif
-{ }
+{ 
+  switch(algo){
+    case SplittingAlgo::NONE:
+      _tree.reset(new SubstitutionTree());
+      break;
+#if VHOL
+    case SplittingAlgo::HOL_UNIF:
+      _tree.reset(new HOLSubstitutionTree(ApplicativeHelper::splittable));
+      break;
+    case SplittingAlgo::HOL_MATCH:
+      _tree.reset(new HOLSubstitutionTree([](TermList t, bool b = false){     
+          return !t.isLambdaTerm();
+        } ));
+      break;      
+#endif
+  }
+
+}
 
 } // namespace  Indexing

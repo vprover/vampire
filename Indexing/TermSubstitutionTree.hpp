@@ -52,23 +52,15 @@ class TermSubstitutionTree
   using FastGeneralizationsIterator = SubstitutionTree::FastGeneralizationsIterator;  
 #if VHOL
   using HOLAlgo = UnificationAlgorithms::HOLUnification;
+  using HOLInstAlgo = UnificationAlgorithms::HOLInstantiation;
+  using HOLGenAlgo = UnificationAlgorithms::HOLGeneralisation;    
 #endif
 
 public:
   CLASS_NAME(TermSubstitutionTree);
   USE_ALLOCATOR(TermSubstitutionTree);
 
-  /*
-   * The extra flag is a higher-order concern. it is set to true when
-   * we require the term query result to include two terms, the result term
-   * and another.
-   *
-   * The main use case is to store a different term in the leaf to the one indexed
-   * in the tree. This is used for example in Skolemisation on the fly where we
-   * store Terms of type $o (formulas) in the tree, but in the leaf we store
-   * the skolem terms used to witness them (to facilitate the reuse of Skolems)
-   */
-  explicit TermSubstitutionTree(bool extra);
+  explicit TermSubstitutionTree(SplittingAlgo algo = SplittingAlgo::NONE);
 
   void handle(TypedTermList t, Literal* lit, Clause* cls, bool adding)
   { handleTerm(t, LeafData(cls, lit, t), adding); }
@@ -94,6 +86,10 @@ public:
 
   virtual void output(std::ostream& out) const final override { out << *this; }
 
+#if VHOL
+  void useExtra(){ _extra = true; }
+#endif
+
 private:
   
   void handleTerm(TypedTermList tt, LeafData ld, bool insert)
@@ -105,12 +101,26 @@ private:
     return iterTraits(_tree->iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
       .map([this](auto qr)
         { return tQueryRes(
-            _extra ? qr.data->extraTerm : qr.data->term,
+#if VHOL
+            _extra ? qr.data->extraTerm : 
+#endif
+            qr.data->term,
             qr.data->literal, qr.data->clause, std::move(qr.unif)); }) ;
   }
 
-  //higher-order concerns
+#if VHOL
+  /*
+   * The extra flag is a higher-order concern. it is set to true when
+   * we require the term query result to include two terms, the result term
+   * and another.
+   *
+   * The main use case is to store a different term in the leaf to the one indexed
+   * in the tree. This is used for example in Skolemisation on the fly where we
+   * store Terms of type $o (formulas) in the tree, but in the leaf we store
+   * the skolem terms used to witness them (to facilitate the reuse of Skolems)
+   */
   bool _extra;
+#endif
   unique_ptr<SubstitutionTree> _tree;
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
@@ -133,15 +143,19 @@ public:
     return pvi(getResultIterator<SubstitutionTree::TreeIterator<AbstractingAlgo>>(t, true, MismatchHandler(uwa), fixedPointIteration));
   }
 
-#if VHOL
-  TermQueryResultIterator getHOLUnifiers(TypedTermList t) final override
-  {       
-    return pvi(getResultIterator<SubstitutionTree::TreeIterator<HOLAlgo>>(t, true));
-  }
-#endif
-
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<SubstitutionTree::TreeIterator<RobAlgo>>(t, retrieveSubstitutions)); }
+
+#if VHOL
+  TermQueryResultIterator getHOLUnifiers(TypedTermList t) final override
+  { return pvi(getResultIterator<SubstitutionTree::TreeIterator<HOLAlgo>>(t, true)); }
+
+  TermQueryResultIterator getHOLInstances(TypedTermList t) final override
+  {  return pvi(getResultIterator<SubstitutionTree::TreeIterator<HOLInstAlgo>>(t, true)); }
+
+  TermQueryResultIterator getHOLGeneralizations(TypedTermList t) final override
+  {  return pvi(getResultIterator<SubstitutionTree::TreeIterator<HOLGenAlgo>>(t, true)); }    
+#endif  
 };
 
 };

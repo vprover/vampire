@@ -86,7 +86,12 @@ struct BackwardDemodulation<SubtermIt>::RewritableClausesFn
   VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
   {
     TermList sort = SortHelper::getTermSort(lhs, _lit);
-    return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(TypedTermList(lhs,sort), true)) );
+    return pvi( pushPairIntoRightIterator(lhs, 
+#if VHOL
+      env.property->higherOrder() ?
+        _index->getHOLInstances(TypedTermList(lhs,sort)) :
+#endif
+        _index->getInstances(TypedTermList(lhs,sort), true)) );
   }
 private:
   DemodulationSubtermIndex<SubtermIt>* _index;

@@ -38,8 +38,12 @@
 #include "Lib/Recycled.hpp"
 #include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
+#if VHOL
+  #include "Kernel/HOLUnification.hpp"
+  #include "Kernel/HOLMatching.hpp"
+#endif
+
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/HOLUnification.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -124,8 +128,6 @@ class SubstitutionTree
 {
 
 public:
-  static constexpr int QRS_QUERY_BANK = 0;
-  static constexpr int QRS_RESULT_BANK = 1;
   CLASS_NAME(SubstitutionTree);
   USE_ALLOCATOR(SubstitutionTree);
 
@@ -1301,7 +1303,7 @@ public:
 
       while(!_ldIterator.hasNext() && findNextLeaf()) {}
       ASS(_ldIterator.hasNext());
-
+ 
       ASS(!_clientBDRecording);
 
       auto ld = _ldIterator.next();

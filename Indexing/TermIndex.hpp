@@ -37,17 +37,22 @@ public:
   TermQueryResultIterator getUwa(TypedTermList t)
   { return _is->getUwa(t); }
 
-#if VHOL
-  TermQueryResultIterator getHOLUnifiers(TypedTermList t)
-  { return _is->getHOLUnifiers(t); }
-#endif
-
   TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
 
+#if VHOL
+  TermQueryResultIterator getHOLUnifiers(TypedTermList t)
+  { return _is->getHOLUnifiers(t); }
+
+  TermQueryResultIterator getHOLInstances(TypedTermList t)
+  { return _is->getHOLInstances(t); }
+
+  TermQueryResultIterator getHOLGeneralizations(TypedTermList t)
+  { return _is->getHOLGeneralizations(t); }    
+#endif
 
   friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
   { return out << *self._is; }

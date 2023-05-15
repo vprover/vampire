@@ -60,8 +60,13 @@ Clause* unit(Literal* lit)
 
 unique_ptr<TermSubstitutionTree> getTermIndex()
 { 
-  return std::make_unique<TermSubstitutionTree>(/* extra */ false);
+  return std::make_unique<TermSubstitutionTree>();
 }
+
+#if VHOL
+  unique_ptr<TermSubstitutionTree> getHOLTermIndex()
+  { return std::make_unique<TermSubstitutionTree>(SplittingAlgo::HOL_UNIF); }
+#endif
 
 auto getLiteralIndex()
 { return std::make_unique<LiteralSubstitutionTree>(); }
@@ -727,7 +732,7 @@ TEST_FUN(higher_order)
 
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
-  auto index = getTermIndex();
+  auto index = getHOLTermIndex();
 
   index->insert(ap(f,a), 0, 0);
 
@@ -777,7 +782,7 @@ TEST_FUN(higher_order2)
 
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
-  auto index = getTermIndex();
+  auto index = getHOLTermIndex();
 
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt) 
@@ -831,7 +836,7 @@ TEST_FUN(higher_order3)
 
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
-  auto index = getTermIndex();
+  auto index = getHOLTermIndex();
 
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt) 
@@ -861,7 +866,7 @@ TEST_FUN(higher_order4)
 
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
-  auto index = getTermIndex();
+  auto index = getHOLTermIndex();
 
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt) 
@@ -886,7 +891,7 @@ TEST_FUN(higher_order5)
 
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
-  auto index = getTermIndex();
+  auto index = getHOLTermIndex();
 
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt) 
@@ -913,7 +918,7 @@ TEST_FUN(higher_order6)
 
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
-  auto index = getTermIndex();
+  auto index = getHOLTermIndex();
 
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt) 
@@ -946,7 +951,7 @@ TEST_FUN(higher_order7)
 
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
-  auto index = getTermIndex();
+  auto index = getHOLTermIndex();
 
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt) 
@@ -971,7 +976,7 @@ TEST_FUN(higher_order8)
   env.options->set("pretty_hol_printing","pretty");
   env.options->set("func_ext", "abstraction");
   env.options->set("print_var_banks", "true");  
-  auto index = getTermIndex();
+  auto index = getHOLTermIndex();
 
   DECL_DEFAULT_SORT_VARS  
   DECL_SORT(srt) 

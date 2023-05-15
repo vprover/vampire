@@ -136,28 +136,46 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering());
+    res =
+#if VHOL
+      env.property->higherOrder() ?
+        new SuperpositionSubtermIndex(new TermSubstitutionTree(SplittingAlgo::HOL_UNIF), _alg->getOrdering()) :
+#endif  
+        new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = 
+#if VHOL
+      env.property->higherOrder() ?
+        new SuperpositionLHSIndex(new TermSubstitutionTree(SplittingAlgo::HOL_UNIF), _alg->getOrdering(), _alg->getOptions()) :
+#endif      
+        new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
 
 #if VHOL
-  case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(/* extra */ true));
+  case SKOLEMISING_FORMULA_INDEX: {
+    auto tis = new TermSubstitutionTree();
+    tis->useExtra();
+    res = new SkolemisingFormulaIndex(tis);
     isGenerating = false;
     break;
+  }
 #endif  
 
   case ACYCLICITY_INDEX:
-    res = new AcyclicityIndex(new TermSubstitutionTree( false));
+    res = new AcyclicityIndex(new TermSubstitutionTree());
     isGenerating = true;
     break;
     
   case DEMODULATION_SUBTERM_SUBST_TREE: {
-    auto tis=new TermSubstitutionTree(/* extra */ false);
+    auto tis=
+#if VHOL 
+      env.property->higherOrder() ?
+        new  TermSubstitutionTree(SplittingAlgo::HOL_MATCH) :
+#endif
+        new TermSubstitutionTree();
 #if VHOL
     if (env.property->higherOrder()) {
       res=new DemodulationSubtermIndex<FirstOrderSubtermIt>(tis);
@@ -177,7 +195,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
-    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = 
+#if VHOL 
+      env.property->higherOrder() ?
+        new DemodulationLHSIndex(new TermSubstitutionTree(SplittingAlgo::HOL_MATCH), _alg->getOrdering(), _alg->getOptions()) :
+#endif    
+        new DemodulationLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
@@ -212,12 +235,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree(/* extra */ false));
+    res = new InductionTermIndex(new TermSubstitutionTree());
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree(/* extra */ false));
+    res = new StructInductionTermIndex(new TermSubstitutionTree());
     isGenerating = true;
     break;
 

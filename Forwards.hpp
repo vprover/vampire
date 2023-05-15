@@ -154,6 +154,12 @@ class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 //typedef Lib::VirtualIterator<ResultSubstitutionSP> SubstSPIterator;
 
+enum class SplittingAlgo { NONE 
+#if VHOL
+  , HOL_UNIF, HOL_MATCH
+#endif
+                         };
+
 };
 
 namespace Saturation

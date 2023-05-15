@@ -35,11 +35,11 @@ LiteralIndex* comparisonIndex() {
 }
 
 TermIndex* intInductionIndex() {
-  return new InductionTermIndex(new TermSubstitutionTree(/* extra */ false));
+  return new InductionTermIndex(new TermSubstitutionTree());
 }
 
 TermIndex* structInductionIndex() {
-  return new StructInductionTermIndex(new TermSubstitutionTree(/* extra */ false));
+  return new StructInductionTermIndex(new TermSubstitutionTree());
 }
 
 Stack<Index*> getIndices() {

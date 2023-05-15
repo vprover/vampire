@@ -35,16 +35,20 @@ public:
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getUwa(TypedTermList t) = 0;
 
-#if VHOL
-  virtual TermQueryResultIterator getHOLUnifiers(TypedTermList t)
-    { NOT_IMPLEMENTED; }
-#endif
-  
   virtual TermQueryResultIterator getGeneralizations(TypedTermList t, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getInstances(TypedTermList t, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
+#if VHOL
+  virtual TermQueryResultIterator getHOLUnifiers(TypedTermList t)
+    { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getHOLInstances(TypedTermList t)
+    { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getHOLGeneralizations(TypedTermList t)
+    { NOT_IMPLEMENTED; }
+#endif
+  
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
 
 #if VDEBUG
