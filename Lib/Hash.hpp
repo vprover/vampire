@@ -272,7 +272,7 @@ public:
 
   template<typename T>
   static unsigned hash(Lib::Option<T> const& o) 
-  { return o.isSome() ? o->defaultHash()
+  { return o.isSome() ? Lib::DefaultHash::hash(*o)
                       : Lib::DefaultHash::hash(typeid(T).hash_code()); }
 };
 
@@ -348,7 +348,7 @@ public:
 
   template<typename T>
   static unsigned hash(Lib::Option<T> const& o) 
-  { return o.isSome() ? o->defaultHash2()
+  { return o.isSome() ? Lib::DefaultHash2::hash(*o)
                       : Lib::DefaultHash2::hash(typeid(T).hash_code()); }
 };
 
