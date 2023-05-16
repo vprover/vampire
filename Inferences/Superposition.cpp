@@ -673,6 +673,23 @@ Clause* Superposition::performSuperposition(
     ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
     rwPos = "("+rwPlace+")."+rwPos;
 
+    /*
+    * TODO: it is insufficient to use positionIn above.
+    * 1) there is not just one position in rwLit (actually rwLitS) where the rewriting happens,
+    *   it happens at all posiotions where possible
+    * 2) under the (current default) simulatenousSuperposition, we also try to rewrite in all other literals of rwClause
+    *
+    * I had a initial idea to look for all disagreement positions between
+    * tgtLitS and rwLitS
+    * (and later also do this for all other literals that come form rwClause),
+    * but we, after the rewrite, are not guaranteed (I think) that equational literals will end up under the "congruent" orientation in sharing:
+    * f(a)=f(b) rewritten by b = c can end up as
+    * f(c)=f(a) in the sharing. Not sure if there is an easy heuristic way to recover which orientation to use.
+    *
+    * So I propose to write a verbose version of EqHelper::replace which tracks and dumps all the positions where a replace happens to use here.
+    * This version need not even produce the term answer, only the positions (as vstrings).
+    */
+
     vstring eqClauseNum = Lib::Int::toString(eqClause->number());
     vstring rwClauseNum = Lib::Int::toString(rwClause->number());
 
