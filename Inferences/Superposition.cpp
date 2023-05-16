@@ -536,9 +536,11 @@ Clause* Superposition::performSuperposition(
     vstring eqClauseNum = Lib::Int::toString(eqClause->number());
     vstring rwClauseNum = Lib::Int::toString(rwClause->number());
 
+    RobSubstitution* rs = subst->tryGetRobSubstitution();
+
     vstring extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
-        eqPos+" in "+eqClauseNum+" and "+
-        rwPos+" in "+rwClauseNum;
+        eqPos+" in "+eqClauseNum+" via " + rs->toStringByBank(eqIsResult) + " and "+
+        rwPos+" in "+rwClauseNum+" via " + rs->toStringByBank(!eqIsResult);
 
     //cout << extra << endl;
     //NOT_IMPLEMENTED;
