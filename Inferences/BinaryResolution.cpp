@@ -318,13 +318,19 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     env.statistics->resolution++;
   }
 
-  RobSubstitution* rs = qr.substitution->tryGetRobSubstitution();
-  cout << "BINARY_RESOLUTION\n from\n  "
-    << queryCl->toString() << "\n   idx " << cidx << "\n   subst " <<
-    rs->toStringByBank(0) << "\nand\n  "
-    << qr.clause->toString() << "\n   idx " << didx << "\n   subst " <<
-    rs->toStringByBank(1) << "\nDERIVES\n  "
-    << res->toString() << endl << endl;
+  if(env.options->proofExtra()==Options::ProofExtra::FULL){
+    RobSubstitution* rs = qr.substitution->tryGetRobSubstitution();
+    vstring extra = 
+      Lib::Int::toString(queryCl->number()) + " on " + Lib::Int::toString(cidx)
+      + " via " + rs->toStringByBank(0) + ", " +
+      Lib::Int::toString(qr.clause->number()) + " on " + Lib::Int::toString(didx)
+      + " via " + rs->toStringByBank(1);
+
+    if (!env.proofExtra) {
+      env.proofExtra = new DHMap<const Unit*,vstring>();
+    }
+    env.proofExtra->insert(res,extra);
+  }
 
   return res;
 }
