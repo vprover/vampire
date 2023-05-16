@@ -510,52 +510,6 @@ Clause* Superposition::performSuperposition(
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf);
 
-  // If proof extra is on let's compute the positions we have performed
-  // superposition on 
-  if(env.options->proofExtra()==Options::ProofExtra::FULL){
-    /*
-    cout << "rwClause " << rwClause->toString() << endl;
-    cout << "eqClause " << eqClause->toString() << endl;
-    cout << "rwLit " << rwLit->toString() << endl;
-    cout << "eqLit " << eqLit->toString() << endl;
-    cout << "rwTerm " << rwTerm.toString() << endl;
-    cout << "eqLHS " << eqLHS.toString() << endl;
-     */
-    //cout << subst->toString() << endl;
-
-    // First find which literal it is in the clause, as selection has occured already
-    // this should remain the same...?
-    vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
-    vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
-
-    vstring eqPos = "("+eqPlace+").";
-    if (*eqLit->nthArgument(0) == eqLHS) {
-      eqPos += "1";
-    } else {
-      eqPos += "2";
-    }
-    vstring rwPos="_";
-    ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
-    rwPos = "("+rwPlace+")."+rwPos;
-
-    vstring eqClauseNum = Lib::Int::toString(eqClause->number());
-    vstring rwClauseNum = Lib::Int::toString(rwClause->number());
-
-    RobSubstitution* rs = subst->tryGetRobSubstitution();
-
-    vstring extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
-        eqPos+" in "+eqClauseNum+" via " + rs->toStringByBank(eqIsResult) + " and "+
-        rwPos+" in "+rwClauseNum+" via " + rs->toStringByBank(!eqIsResult);
-
-    //cout << extra << endl;
-    //NOT_IMPLEMENTED;
-
-    if (!env.proofExtra) {
-      env.proofExtra = new DHMap<const Unit*,vstring>();
-    }
-    env.proofExtra->insert(res,extra);
-  }
-
   (*res)[0] = tgtLitS;
   int next = 1;
   unsigned weight=tgtLitS->weight();
@@ -691,12 +645,51 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-/*
-  if(hasConstraints){ 
-    cout << "RETURNING " << res->toString() << endl;
+  // If proof extra is on let's compute the positions we have performed
+  // superposition on 
+  if(env.options->proofExtra()==Options::ProofExtra::FULL){
+    /*
+    cout << "rwClause " << rwClause->toString() << endl;
+    cout << "eqClause " << eqClause->toString() << endl;
+    cout << "rwLit " << rwLit->toString() << endl;
+    cout << "eqLit " << eqLit->toString() << endl;
+    cout << "rwTerm " << rwTerm.toString() << endl;
+    cout << "eqLHS " << eqLHS.toString() << endl;
+     */
+    //cout << subst->toString() << endl;
+
+    // First find which literal it is in the clause, as selection has occured already
+    // this should remain the same...?
+    vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
+    vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
+
+    vstring eqPos = "("+eqPlace+").";
+    if (*eqLit->nthArgument(0) == eqLHS) {
+      eqPos += "1";
+    } else {
+      eqPos += "2";
+    }
+    vstring rwPos="_";
+    ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
+    rwPos = "("+rwPlace+")."+rwPos;
+
+    vstring eqClauseNum = Lib::Int::toString(eqClause->number());
+    vstring rwClauseNum = Lib::Int::toString(rwClause->number());
+
+    RobSubstitution* rs = subst->tryGetRobSubstitution();
+
+    vstring extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
+        eqPos+" in "+eqClauseNum+" via " + rs->toStringByBank(eqIsResult) + " and "+
+        rwPos+" in "+rwClauseNum+" via " + rs->toStringByBank(!eqIsResult);
+
+    //cout << extra << endl;
     //NOT_IMPLEMENTED;
+
+    if (!env.proofExtra) {
+      env.proofExtra = new DHMap<const Unit*,vstring>();
+    }
+    env.proofExtra->insert(res,extra);
   }
-*/
-//  cout << "result " + res->toString() << endl;
+
   return res;
 }
