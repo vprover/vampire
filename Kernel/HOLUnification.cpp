@@ -508,7 +508,7 @@ bool HOLUnification::unifyFirstOrderStructure(TermList t1, TermList t2, bool spl
         if(res == OracleResult::OUT_OF_FRAGMENT)
           sub->pushConstraint(UnificationConstraint(dt2, dt1));
 
-      } else if(dt1.term()->functor() == dt2.term()->functor()) {
+      } else if(dt1.isTerm() && dt2.isTerm() && dt1.term()->functor() == dt2.term()->functor()) {
         
         if(dt1.isApplication()){
           ASS(dt2.isApplication());
