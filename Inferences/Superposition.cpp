@@ -375,6 +375,38 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   return true;
 }
 
+TermIterator getIterator(Literal* lit, Literal* litS, const Ordering& ord) {
+  if (lit->isEquality()) {
+    TermList sel;
+    switch(ord.getEqualityArgumentOrder(lit)) {
+    case Ordering::INCOMPARABLE: {
+      SubtermIterator si(litS);
+      return getUniquePersistentIteratorFromPtr(&si);
+    }
+    case Ordering::EQUAL:
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
+      sel=litS->termArg(0);
+      break;
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
+      sel=litS->termArg(1);
+      break;
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+    if (!sel.isTerm()) {
+      return TermIterator::getEmpty();
+    }
+    return getUniquePersistentIterator(vi(new NonVariableNonTypeIterator(sel.term(), true)));
+  }
+
+  SubtermIterator si(litS);
+  return getUniquePersistentIteratorFromPtr(&si);
+}
+
 /**
  * If superposition should be performed, return result of the superposition,
  * otherwise return 0.
@@ -658,49 +690,43 @@ Clause* Superposition::performSuperposition(
   }
 
   if (dbs) {
-    TIME_TRACE("diamond-breaking");
-
-    {
-      TIME_TRACE("update blocked terms");
-      auto rwBIt = rwClause->getBlockedTerms().iterator();
-      while (rwBIt.hasNext()) {
-        res->addBlockedTerm(subst->apply(rwBIt.next(), eqIsResult));
-      }
-      auto eqBIt = eqClause->getBlockedTerms().iterator();
-      while (eqBIt.hasNext()) {
-        res->addBlockedTerm(subst->apply(eqBIt.next(), !eqIsResult));
-      }
-      auto rwstit = RewriteableSubtermsFn(ordering)(rwLit);
-      while (rwstit.hasNext()) {
-        auto st = subst->apply(rwstit.next().second, eqIsResult);
-        if (ordering.compare(rwTermS, st)==Ordering::Result::GREATER) {
-          // cout << "adding blocked " << st << " for " << rwTermS << endl;
-          res->addBlockedTerm(st);
-        }
-      }
-      res->addBlockedTerm(rwTermS);
-    }
-
-    {
-      TIME_TRACE("update rewrite rules");
-      auto rwIt = rwClause->getRewriteRules().items();
-      while (rwIt.hasNext()) {
-        auto kv = rwIt.next();
+    TIME_TRACE("diamond-breaking-s");
+    iterTraits(rwClause->getRewriteRules().items())
+      .forEach([res,subst,eqIsResult](pair<TermList,TermList> kv) {
+        TIME_TRACE("diamond-breaking-inner1");
         res->addRewriteRule(
-          subst->apply(kv.first, eqIsResult),
-          subst->apply(kv.second, eqIsResult)
+          subst->apply(kv.first, !eqIsResult),
+          kv.second.isEmpty() ? kv.second : subst->apply(kv.second, !eqIsResult)
         );
-      }
-      auto eqIt = eqClause->getRewriteRules().items();
-      while (eqIt.hasNext()) {
-        auto kv = eqIt.next();
-        TermList lhs = subst->apply(kv.first, !eqIsResult);
-        TermList rhs = subst->apply(kv.second, !eqIsResult);
-        if (!lhs.containsSubterm(eqLHSS)) {
-          res->addRewriteRule(lhs,rhs);
+      });
+    iterTraits(eqClause->getRewriteRules().items())
+      .forEach([res,&ordering,subst,eqIsResult,rwTermS](pair<TermList,TermList> kv) {
+        TIME_TRACE("diamond-breaking-inner2");
+        TermList lhs = subst->apply(kv.first, eqIsResult);
+        // drop all restrictions that are greater than the term we are rewriting (with)
+        if (ordering.compare(lhs,rwTermS)==Ordering::Result::LESS) {
+          res->addRewriteRule(lhs,
+            kv.second.isEmpty() ? kv.second : subst->apply(kv.second, eqIsResult));
         }
+      });
+    {
+      TIME_TRACE("diamond-breaking-rule");
+      res->addRewriteRule(rwTermS,tgtTermS);
+      NonVariableNonTypeIterator nvi(rwTermS.term());
+      while (nvi.hasNext()) {
+        auto st = nvi.next();
+        res->addBlockedTerm(st);
       }
-      res->addRewriteRule(eqLHSS,tgtTermS);
+    }
+    auto rwstit = getIterator(rwLit,rwLitS,ordering);
+    while (rwstit.hasNext()) {
+      TIME_TRACE("diamond-breaking-inner3");
+      auto st = rwstit.next();
+      // add all terms from current side of equality that are smaller than the term we are rewriting
+      // TODO can terms from all other maximal sides of selected literals be added?
+      if (!res->isBlockedTerm(st) && ordering.compare(rwTermS, st)==Ordering::Result::GREATER) {
+        res->addBlockedTerm(st);
+      }
     }
   }
 

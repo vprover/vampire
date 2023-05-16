@@ -361,7 +361,6 @@ public:
   void addRewriteRule(TermList lhs, TermList rhs);
   void addBlockedTerm(TermList t);
   bool isBlockedTerm(TermList t) const;
-  const DHSet<TermList>& getBlockedTerms() const;
 
 protected:
   /** number of literals */
@@ -394,7 +393,6 @@ protected:
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
   DHMap<TermList,TermList> _rewriteRules;
-  DHSet<TermList> _blockedTerms;
 
   int _numActiveSplits;
 

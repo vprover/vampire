@@ -570,7 +570,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 Literal* RobSubstitution::apply(Literal* lit, int index) const
 {
   CALL("RobSubstitution::apply(Literal*...)");
-  TIME_TRACE("RobSubstitution::apply");
+  TIME_TRACE("RobSubstitution::apply(Literal*)");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -593,6 +593,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
 TermList RobSubstitution::apply(TermList trm, int index) const
 {
   CALL("RobSubstitution::apply(TermList...)");
+  TIME_TRACE("RobSubstitution::apply(TermList)");
 
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);

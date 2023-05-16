@@ -29,9 +29,6 @@ public:
   USE_ALLOCATOR(SuperpositionByRule);
 
   ClauseIterator generateClauses(Clause* premise);
-
-private:
-  Indexing::TermIndexingStructure* _tis = nullptr;
 };
 
 class DemodulationByRule

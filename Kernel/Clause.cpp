@@ -74,7 +74,6 @@ Clause::Clause(unsigned length,const Inference& inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _rewriteRules(),
-    _blockedTerms(),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
@@ -473,12 +472,20 @@ vstring Clause::toString() const
     result += vstring("}");
   }
 
-  // result += "blocked terms: [ ";
-  // DHSet<TermList>::Iterator it(_blockedTerms);
-  // while (it.hasNext()) {
-  //   result += it.next().toString() + " ";
-  // }
-  // result += "]";
+  result += " rules: [ ";
+  auto it = _rewriteRules.items();
+  while (it.hasNext()) {
+    auto kv = it.next();
+    if (kv.second.isEmpty()) {
+      result += "!" + kv.first.toString();
+    } else {
+      result += kv.first.toString() + " -> " + kv.second.toString();
+    }
+    if (it.hasNext()) {
+      result += ", ";
+    }
+  }
+  result += " ]";
 
   return result;
 }
@@ -800,29 +807,23 @@ const DHMap<TermList,TermList>& Clause::getRewriteRules()
 void Clause::addRewriteRule(TermList lhs, TermList rhs)
 {
   TIME_TRACE("add rewrite rule");
+  if (lhs.isVar()) {
+    return;
+  }
   _rewriteRules.insert(lhs,rhs);
 }
 
 void Clause::addBlockedTerm(TermList t)
 {
-  TIME_TRACE("add blocked term");
-  if (t.isVar()) {
-    cout << "helo" << endl;
-    return;
-  }
-  _blockedTerms.insert(t);
+  TermList empty;
+  empty.makeEmpty();
+  addRewriteRule(t, empty);
 }
 
 bool Clause::isBlockedTerm(TermList t) const
 {
   TIME_TRACE("is blocked term");
-  return _blockedTerms.contains(t);
-}
-
-const DHSet<TermList>& Clause::getBlockedTerms() const
-{
-  TIME_TRACE("get blocked terms");
-  return _blockedTerms;
+  return _rewriteRules.find(t);
 }
 
 /**

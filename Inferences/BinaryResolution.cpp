@@ -307,13 +307,13 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   if (opts.diamondBreakingSuperposition()) {
-    TIME_TRACE("diamond-breaking");
+    TIME_TRACE("diamond-breaking-br");
     auto rwIt = queryCl->getRewriteRules().items();
     while (rwIt.hasNext()) {
       auto kv = rwIt.next();
       res->addRewriteRule(
         qr.substitution->applyToQuery(kv.first),
-        qr.substitution->applyToQuery(kv.second)
+        kv.second.isEmpty() ? kv.second : qr.substitution->applyToQuery(kv.second)
       );
     }
     auto eqIt = qr.clause->getRewriteRules().items();
@@ -321,10 +321,13 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       auto kv = eqIt.next();
       res->addRewriteRule(
         qr.substitution->applyToResult(kv.first),
-        qr.substitution->applyToResult(kv.second)
+        kv.second.isEmpty() ? kv.second : qr.substitution->applyToResult(kv.second)
       );
     }
-    NonVariableNonTypeIterator nvi(qr.substitution->applyToQuery(queryLit));
+    if (!queryLitAfter) {
+      queryLitAfter = qr.substitution->applyToQuery(queryLit);
+    }
+    NonVariableNonTypeIterator nvi(queryLitAfter);
     while (nvi.hasNext()) {
       auto st = nvi.next();
       res->addBlockedTerm(st);

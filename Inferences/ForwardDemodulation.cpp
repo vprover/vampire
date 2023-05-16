@@ -230,14 +230,13 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Clause* res = new(cLen) Clause(cLen,
           SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
         (*res)[0]=resLit;
-        auto rwIt = cl->getRewriteRules().items();
-        while (rwIt.hasNext()) {
-          auto kv = rwIt.next();
-          res->addRewriteRule(kv.first,kv.second);
-        }
-        auto rwBIt = cl->getBlockedTerms().iterator();
-        while (rwBIt.hasNext()) {
-          res->addBlockedTerm(rwBIt.next());
+        {
+          TIME_TRACE("propagate");
+          auto rwIt = cl->getRewriteRules().items();
+          while (rwIt.hasNext()) {
+            auto kv = rwIt.next();
+            res->addRewriteRule(kv.first,kv.second);
+          }
         }
 
         unsigned next=1;

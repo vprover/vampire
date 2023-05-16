@@ -215,19 +215,11 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 
 bool blockedTermCheck(Clause* subsumed, Clause* subsumer) {
   TIME_TRACE("blockedTermCheck");
-  auto& srb = subsumer->getBlockedTerms();
   auto& srr = subsumer->getRewriteRules(); 
-  if (srb.size() > 0 || srr.size() > 0) {
+  if (srr.size() > 0) {
     return false;
   }
-  auto& sdb = subsumed->getBlockedTerms();
   auto& sdr = subsumed->getRewriteRules();
-  auto bit = srb.iterator();
-  while (bit.hasNext()) {
-    if (!sdb.contains(bit.next())) {
-      return false;
-    }
-  }
   auto rit = srr.items();
   while (rit.hasNext()) {
     auto kv = rit.next();
@@ -326,10 +318,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
               auto kv = rwIt.next();
               resolutionClause->addRewriteRule(kv.first,kv.second);
             }
-            auto rwBIt = cl->getBlockedTerms().iterator();
-            while (rwBIt.hasNext()) {
-              resolutionClause->addBlockedTerm(rwBIt.next());
-            }
             result = true;
             goto fin;
           }
@@ -351,10 +339,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
               while (rwIt.hasNext()) {
                 auto kv = rwIt.next();
                 resolutionClause->addRewriteRule(kv.first,kv.second);
-              }
-              auto rwBIt = cl->getBlockedTerms().iterator();
-              while (rwBIt.hasNext()) {
-                resolutionClause->addBlockedTerm(rwBIt.next());
               }
               result = true;
               goto fin;
@@ -400,10 +384,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             while (rwIt.hasNext()) {
               auto kv = rwIt.next();
               resolutionClause->addRewriteRule(kv.first,kv.second);
-            }
-            auto rwBIt = cl->getBlockedTerms().iterator();
-            while (rwBIt.hasNext()) {
-              resolutionClause->addBlockedTerm(rwBIt.next());
             }
             result = true;
             goto fin;

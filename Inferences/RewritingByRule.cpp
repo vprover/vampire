@@ -30,37 +30,28 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
   const auto& rules = c->getRewriteRules();
   auto stats = env.statistics;
 
-  if (_tis) {
-    delete _tis;
-  }
-  _tis = new TermSubstitutionTree();
-
-  iterTraits(rules.items())
-    .forEach([this](pair<TermList,TermList> kv) {
-      _tis->insert(kv.first, kv.second);
-    });
-
   return pvi(iterTraits(c->getSelectedLiteralIterator())
     .flatMap([&ord](Literal* lit) {
       TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, ord) :
                                                         EqHelper::getSubtermIterator(lit, ord);
-      return pvi( pushPairIntoRightIterator(lit, it) );
+      return pvi(pushPairIntoRightIterator(lit, it));
     })
-    .flatMap([this](pair<Literal*, TermList> kv) {
-      // TODO I think this unification is giving too many inferences,
-      // what we need would be taking both the query and the result with
-      // variables from the same bank, since we are rewriting by rules
-      // that contain variables from this clause.
-      return pvi(pushPairIntoRightIterator(kv, _tis->getUnifications(kv.second, true)));
+    .flatMap([&rules](pair<Literal*, TermList> kv) {
+      return pvi(pushPairIntoRightIterator(kv, rules.items()));
     })
-    .map([c,&rules,&ord,stats](pair<pair<Literal*, TermList>,TermQueryResult> arg) -> Clause* {
-      auto eqLHS = arg.second.term;
-      auto subst = arg.second.substitution;
-      auto tgtTerm = rules.get(eqLHS);
+    .map([c,&ord,stats](pair<pair<Literal*, TermList>,pair<TermList,TermList>> arg) -> Clause* {
+      auto rwTerm = arg.first.second;
+      auto eqLHS = arg.second.first;
+      auto tgtTerm = arg.second.second;
 
-      TermList eqLHSS = subst->apply(eqLHS, 1);
-      TermList tgtTermS = subst->apply(tgtTerm, 1);
-      Literal* rwLitS = subst->apply(arg.first.first, 0);
+      RobSubstitution subst;
+      if (tgtTerm.isEmpty() || !subst.unify(eqLHS,0,rwTerm,0)) {
+        return nullptr;
+      }
+      
+      TermList eqLHSS = subst.apply(eqLHS, 0);
+      TermList tgtTermS = subst.apply(tgtTerm, 0);
+      Literal* rwLitS = subst.apply(arg.first.first, 0);
 
       //check that we're not rewriting smaller subterm with larger
       if (Ordering::isGorGEorE(ord.compare(tgtTermS,eqLHSS))) {
@@ -85,7 +76,7 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
 
       Clause* res = new(c->length()) Clause(c->length(), GeneratingInference1(InferenceRule::SUPERPOSITION_BY_RULE, c));
       for (unsigned i = 0;i < c->length(); i++) {
-        Literal* currAfter = EqHelper::replace(subst->apply((*c)[i], 0),eqLHSS,tgtTermS);
+        Literal* currAfter = EqHelper::replace(subst.apply((*c)[i], 0),eqLHSS,tgtTermS);
         if(EqHelper::isEqTautology(currAfter)) {
           res->destroy();
           return nullptr;
@@ -93,17 +84,16 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
         (*res)[i] = currAfter;
       }
 
-      auto rwIt = c->getRewriteRules().items();
-      while (rwIt.hasNext()) {
-        auto kv = rwIt.next();
-        res->addRewriteRule(
-          subst->apply(kv.first, 0),
-          subst->apply(kv.second, 0)
-        );
-      }
-      auto rwBIt = c->getBlockedTerms().iterator();
-      while (rwBIt.hasNext()) {
-        res->addBlockedTerm(subst->apply(rwBIt.next(), 0));
+      {
+        TIME_TRACE("diamond-breaking-r");
+        auto rwIt = c->getRewriteRules().items();
+        while (rwIt.hasNext()) {
+          auto kv = rwIt.next();
+          res->addRewriteRule(
+            subst.apply(kv.first, 0),
+            kv.second.isEmpty() ? kv.second : subst.apply(kv.second, 0)
+          );
+        }
       }
       // auto rwstit = RewriteableSubtermsFn(ordering)(rwLit);
       // while (rwstit.hasNext()) {
@@ -116,6 +106,10 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
       res->addRewriteRule(eqLHSS,tgtTermS);
 
       stats->superpositionByRule++;
+
+      // cout << "superposition " << rwTerm << " in " << *c << endl
+      //      << "by rule       " << eqLHS << " -> " << tgtTerm << endl
+      //      << "result        " << *res << endl << endl;
       return res;
     })
     .filter(NonzeroFn())
@@ -134,49 +128,46 @@ Clause* DemodulationByRule::simplify(Clause* c)
     auto it = c->getRewriteRules().items();
     while (it.hasNext()) {
       auto kv = it.next();
-      if (lit->containsSubterm(kv.first)) {
-        if (ord.compare(kv.first,kv.second)!=Ordering::GREATER) {
-          continue;
-        }
-        if (lit->isEquality() && (lit->termArg(0) == kv.first || lit->termArg(1) == kv.first)) {
-          // TODO: perform demodulation redundancy check
-          auto other = lit->termArg(0) == kv.first ? lit->termArg(1) : lit->termArg(0);
-          Ordering::Result tord=ord.compare(kv.second, other);
-          if (tord !=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-            bool isMax = true;
-            for (unsigned j = 0; j < cLen; j++) {
-              if (lit == (*c)[j]) {
-                continue;
-              }
-              if (ord.compare(lit, (*c)[j]) == Ordering::LESS) {
-                isMax=false;
-                break;
-              }
-            }
-            if(isMax) {
-              // cout << "rule " << kv.first << "->" << kv.second << ", cl: " << *c << endl;
+      if (kv.second.isEmpty() || !lit->containsSubterm(kv.first)) {
+        continue;
+      }
+      if (ord.compare(kv.first,kv.second)!=Ordering::GREATER) {
+        continue;
+      }
+      if (lit->isEquality() && (lit->termArg(0) == kv.first || lit->termArg(1) == kv.first)) {
+        // TODO: perform demodulation redundancy check
+        auto other = lit->termArg(0) == kv.first ? lit->termArg(1) : lit->termArg(0);
+        Ordering::Result tord=ord.compare(kv.second, other);
+        if (tord !=Ordering::LESS && tord!=Ordering::LESS_EQ) {
+          bool isMax = true;
+          for (unsigned j = 0; j < cLen; j++) {
+            if (lit == (*c)[j]) {
               continue;
             }
+            if (ord.compare(lit, (*c)[j]) == Ordering::LESS) {
+              isMax=false;
+              break;
+            }
+          }
+          if(isMax) {
+            // cout << "rule " << kv.first << "->" << kv.second << ", cl: " << *c << endl;
+            continue;
           }
         }
-
-        Clause* res = new(cLen) Clause(cLen,
-          SimplifyingInference1(InferenceRule::DEMODULATION_BY_RULE, c));
-        for(unsigned j=0;j<cLen;j++) {
-          (*res)[j] = EqHelper::replace((*c)[j],kv.first,kv.second);
-        }
-        auto rwIt = c->getRewriteRules().items();
-        while (rwIt.hasNext()) {
-          auto kv = rwIt.next();
-          res->addRewriteRule(kv.first,kv.second);
-        }
-        auto rwBIt = c->getBlockedTerms().iterator();
-        while (rwBIt.hasNext()) {
-          res->addBlockedTerm(rwBIt.next());
-        }
-        env.statistics->demodulationByRule++;
-        return res;
       }
+
+      Clause* res = new(cLen) Clause(cLen,
+        SimplifyingInference1(InferenceRule::DEMODULATION_BY_RULE, c));
+      for(unsigned j=0;j<cLen;j++) {
+        (*res)[j] = EqHelper::replace((*c)[j],kv.first,kv.second);
+      }
+      auto rwIt = c->getRewriteRules().items();
+      while (rwIt.hasNext()) {
+        auto kv = rwIt.next();
+        res->addRewriteRule(kv.first,kv.second);
+      }
+      env.statistics->demodulationByRule++;
+      return res;
     }
   }
   return c;
