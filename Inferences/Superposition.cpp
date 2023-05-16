@@ -528,9 +528,14 @@ Clause* Superposition::performSuperposition(
     vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
     vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
+    vstring eqPos = "("+eqPlace+").";
+    if (*eqLit->nthArgument(0) == eqLHS) {
+      eqPos += "1";
+    } else {
+      eqPos += "2";
+    }
     vstring rwPos="_";
     ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
-    vstring eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
     vstring eqClauseNum = Lib::Int::toString(eqClause->number());
