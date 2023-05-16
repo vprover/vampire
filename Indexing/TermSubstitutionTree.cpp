@@ -44,7 +44,7 @@ TermSubstitutionTree::TermSubstitutionTree(SplittingAlgo algo)
       break;
     case SplittingAlgo::HOL_MATCH:
       _tree.reset(new HOLSubstitutionTree([](TermList t, bool b = false){     
-          return !t.isLambdaTerm();
+          return !t.isLambdaTerm() && !t.head().isVar();
         } ));
       break;      
 #endif

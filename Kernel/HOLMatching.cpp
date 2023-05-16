@@ -67,41 +67,77 @@ bool HOLInstantiation::match(TermList base, TermList instance, RobSubstitutionTL
       } else {
         sub->bind(it, bt);
       }  
-    } else {
-      ApplicativeHelper::normaliseLambdaPrefixes(bt,it);
-
-      if (bt.isVar()){
-        auto binding = sub->_bank.find(bt);
-        
-        if(binding) {
-          auto b = binding.unwrap();
-          if(!TermList::equals(b, it))
-          {
-            mismatch=true;
-            break;
-          }
-        } else {
-          if(it.containsLooseIndex()){
-            mismatch = true;
-            break;
-          }
-          sub->bind(bt, it);
-        }
-      } else if (it.isVar()) {
-        mismatch=true;
-        break;      
-      } else if (bt.term()->functor() == it.term()->functor()) {
-        for (unsigned i = 0; i < bt.term()->arity(); i++) {
-          toDo.push(Constraint(bt.nthArg(i), it.nthArg(i)));
+    } else if (bt.isVar()){
+      auto binding = sub->_bank.find(bt);
+      
+      if(binding) {
+        auto b = binding.unwrap();
+        if(!TermList::equals(b, it))
+        {
+          mismatch=true;
+          break;
         }
       } else {
-        mismatch = true;  
-        break;
+        if(it.containsLooseIndex()){
+          mismatch = true;
+          break;
+        }
+        sub->bind(bt, it);
       }
+    } else if (it.isVar()) {
+      mismatch=true;
+      break;      
+    } else if(it.term()->functor() == bt.term()->functor()) {
+
+      if(bt.isApplication()){
+        TermList head;
+        TermStack args;
+        ApplicativeHelper::getHeadAndArgs(bt, head, args);
+
+        bool modified = false;
+
+        while(head.isVar()){
+          auto binding = sub->_bank.find(head);
+          if(binding.isSome() && binding->isLambdaTerm()){
+            ASS(binding->term()->shared());
+            if(binding->term()->ground()){
+              modified = true;
+              bt = RedexReducer().reduce(*binding, args);
+            } else {
+              mismatch = true;
+              goto after_loop;
+            }
+
+          }
+          if(bt.isApplication()){
+            ApplicativeHelper::getHeadAndArgs(bt, head, args);
+          } else {
+            break;
+          }
+        }
+
+
+        if(modified){
+          toDo.push(Constraint(bt,it));
+          continue;
+        }
+
+      }
+
+
+      for (unsigned i = 0; i < bt.term()->arity(); i++) {
+        toDo.push(Constraint(bt.nthArg(i), it.nthArg(i)));
+      }
+    } else {
+      // head mismatch, can't match
+      mismatch = true;
+      break;
     }
 
     ASS(!mismatch)
   }
+
+after_loop:
 
   if(mismatch) {
     toDo.reset();
