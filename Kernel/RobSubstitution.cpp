@@ -595,8 +595,12 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   CALL("RobSubstitution::apply(TermList...)");
   TIME_TRACE("RobSubstitution::apply(TermList)");
 
-  static Stack<TermList*> toDo(8);
-  static Stack<int> toDoIndex(8);
+  struct Todo {
+    TermList *tl;
+    int index;
+  };
+
+  static Stack<Todo> toDo(8);
   static Stack<Term*> terms(8);
   static Stack<VarSpec> termRefVars(8);
   static Stack<TermList> args(8);
@@ -606,12 +610,11 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   //term in terms isn't referenced by any variable
   const VarSpec nilVS(-1,0);
 
-  toDo.push(&trm);
-  toDoIndex.push(index);
-
+  toDo.push({&trm, index});
   while(!toDo.isEmpty()) {
-    TermList* tt=toDo.pop();
-    index=toDoIndex.pop();
+    Todo next = toDo.pop();
+    TermList* tt=next.tl;
+    index=next.index;
     if(tt->isEmpty()) {
       Term* orig=terms.pop();
       //here we assume, that stack is an array with
@@ -621,9 +624,9 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       args.truncate(args.length() - orig->arity());
       TermList constructed;
       if(orig->isSort()){
-        constructed.setTerm(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst));                
+        constructed.setTerm(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst));
       } else {
-        constructed.setTerm(Term::create(orig,argLst));        
+        constructed.setTerm(Term::create(orig,argLst));
       }
       args.push(constructed);
 
@@ -635,10 +638,8 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     } else {
       //if tt==&trm, we're dealing with the top
       //term, for which the next() is undefined
-      if(tt!=&trm) {
-        toDo.push(tt->next());
-        toDoIndex.push(index);
-      }
+      if(tt!=&trm)
+        toDo.push({tt->next(), index});
     }
 
     TermSpec ts(*tt,index);
@@ -675,8 +676,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     terms.push(t);
     termRefVars.push(vs);
 
-    toDo.push(t->args());
-    toDoIndex.push(ts.index);
+    toDo.push({t->args(), ts.index});
   }
   ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
   known.reset();
