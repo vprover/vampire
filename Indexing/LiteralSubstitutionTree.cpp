@@ -14,6 +14,7 @@
 
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
+#include "Indexing/HOLSubstitutionTree.hpp"
 #include "Kernel/MismatchHandler.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -23,6 +24,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -31,8 +33,8 @@
 namespace Indexing
 {
 
-LiteralSubstitutionTree::LiteralSubstitutionTree()
-: _trees(env.signature->predicates() * 2)
+LiteralSubstitutionTree::LiteralSubstitutionTree(SplittingAlgo algo)
+: _algo(algo), _trees(env.signature->predicates() * 2)
 { }
 
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
@@ -44,12 +46,19 @@ SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit, 
 SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions); }
 
+#if VHOL
+  SLQueryResultIterator LiteralSubstitutionTree::getHOLInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
+  { return getResultIterator<SubstitutionTree::TreeIterator<HOLInstAlgo>>(lit, complementary, retrieveSubstitutions);  }
+
+  SLQueryResultIterator LiteralSubstitutionTree::getHOLGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
+  { return getResultIterator<SubstitutionTree::TreeIterator<HOLGenAlgo>>(lit, complementary, retrieveSubstitutions);  }
+#endif
 
 SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
 {
   CALL("LiteralSubstitutionTree::getVariants");
 
-  return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
+  return pvi(iterTraits(getTree(query, complementary)->getVariants(query, retrieveSubstitutions))
         .map([](auto qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.unif); }));
 }
 
@@ -60,17 +69,31 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
 
   return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-         .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
+         .flatMap([this](auto i) { return LeafIterator(_trees[i]); })
          .flatMap([](Leaf* l) { return l->allChildren(); })
          .map([](auto ld) { return SLQueryResult(ld->literal, ld->clause, ResultSubstitutionSP()); })
       );
 }
 
-SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complementary)
+SubstitutionTree* LiteralSubstitutionTree::getTree(Literal* lit, bool complementary)
 {
   auto idx = complementary ? lit->header() : lit->complementaryHeader();
   while (idx >= _trees.size()) {
-    _trees.push(SubstitutionTree());
+    switch(_algo){
+      case SplittingAlgo::NONE:
+        _trees.push(new SubstitutionTree());
+        break;
+  #if VHOL
+      case SplittingAlgo::HOL_UNIF:
+        _trees.push(new HOLSubstitutionTree(ApplicativeHelper::splittable));
+        break;
+      case SplittingAlgo::HOL_MATCH:
+        _trees.push(new HOLSubstitutionTree([](TermList t, bool b = false){     
+            return !t.isLambdaTerm();
+          } ));
+        break;      
+  #endif
+    }    
   }
   return _trees[idx];
 }

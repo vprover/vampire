@@ -38,22 +38,31 @@ class LiteralSubstitutionTree
   using Leaf = SubstitutionTree::Leaf;
   using AbstractingAlgo = UnificationAlgorithms::AbstractingUnification;
   using RobAlgo = UnificationAlgorithms::RobUnification;
+#if VHOL
+  using HOLInstAlgo = UnificationAlgorithms::HOLInstantiation;
+  using HOLGenAlgo = UnificationAlgorithms::HOLGeneralisation;  
+#endif
 
 public:
   CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
-  LiteralSubstitutionTree();
+  LiteralSubstitutionTree(SplittingAlgo algo = SplittingAlgo::NONE);
 
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
   void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
 
   SLQueryResultIterator getAll() final override;
   void handleLiteral(Literal* lit, Clause* cls, bool insert)
-  { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
+  { getTree(lit, /* complementary */ false)->handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
   SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   //TODO add getHOL required for subsumption
+
+#if VHOL
+  SLQueryResultIterator getHOLInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getHOLGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+#endif
 
   SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
   SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
@@ -74,7 +83,7 @@ private:
     CALL("LiteralSubstitutionTree::getResultIterator");
 
     auto iter = [=](bool reversed) 
-      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
+      { return iterTraits(getTree(lit, complementary)->template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
 
     auto filterResults = [=](auto it) { 
       return pvi(
@@ -106,7 +115,7 @@ public:
     int i = 0;
     out << "{ ";
     for (auto& t : self._trees) {
-      if (!t.isEmpty()) {
+      if (!t->isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
         if (idxIsNegative(i)) out << "~";
         out << *f << "(" << t << "), "; 
@@ -120,10 +129,10 @@ public:
     int i = 0;
     out << "{ " << endl;
     for (auto& t : self.self._trees) {
-      if (!t.isEmpty()) {
+      if (!t->isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
         OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
-        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(*t, self.indent + 1) << ")" << endl; 
       }
       i++;
     }
@@ -132,7 +141,7 @@ public:
 
 
 private:
-  SubstitutionTree& getTree(Literal* lit, bool complementary);
+  SubstitutionTree* getTree(Literal* lit, bool complementary);
 
   // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<AbstractingUnifier*>> r)
   // { return lQueryRes(r.data->literal, r.data->clause, *r.unif); }
@@ -140,8 +149,9 @@ private:
   // static auto createSLQueryResult(SubstitutionTree::QueryResult<Option<RobSubstitutionSP>> r)
   // { return SLQueryResult(r.data->literal, r.data->clause, ResultSubstitutionSP((ResultSubstitution*)&*r.unif.unwrapOrElse([](){return RobSubstitutionSP();}))); }
 
-
-  Stack<SubstitutionTree> _trees;
+  SplittingAlgo _algo;
+  // stack destructor will destroy trees
+  Stack<SubstitutionTree*> _trees;
 };
 
 };

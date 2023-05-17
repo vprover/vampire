@@ -1732,14 +1732,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (opt.forwardSubsumption()) {
-    if (opt.forwardSubsumptionResolution()) {
-      //res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
-    }
-    else {
-      //res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false));
-    }
+    //res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
+    bool withResolution = opt.forwardSubsumptionResolution();
+    res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(withResolution));
   }
   else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");

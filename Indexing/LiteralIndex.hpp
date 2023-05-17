@@ -47,6 +47,18 @@ public:
   SLQueryResultIterator getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 
+#if VHOL
+
+  SLQueryResultIterator getHOLInstances(Literal* lit, 
+    bool complementary, bool retrieveSubstitutions = true)
+  { return _is->getHOLInstances(lit, complementary, retrieveSubstitutions);  }
+
+  SLQueryResultIterator getHOLGeneralizations(Literal* lit, 
+    bool complementary, bool retrieveSubstitutions = true)
+  { return _is->getHOLGeneralizations(lit, complementary, retrieveSubstitutions);  }
+
+#endif
+
   size_t getUnificationCount(Literal* lit, bool complementary);
 
 

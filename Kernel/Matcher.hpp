@@ -242,19 +242,27 @@ private:
   bool matchReversedArgs(Literal* base, Literal* instance);
 
   typedef DHMap<unsigned,TermList> BindingMap;
+  /** MapBinder is currently the only higher-order safe binder */  
   struct MapBinder
   {
     MapBinder(Matcher& parent) : _parent(parent) {}
     bool bind(unsigned var, TermList term)
     {
+#if VHOL
+      if(env.property->higherOrder()){
+        if(term.isLambdaTerm() || term.containsLooseIndex()){
+          return false;
+        }
+      }
+#endif      
       TermList* aux;
       if(_map.getValuePtr(var,aux,term)) {
-	if(_parent.bdIsRecording()) {
-	  _parent.bdAdd(new BindingBacktrackObject(this,var));
-	}
-	return true;
+        if(_parent.bdIsRecording()) {
+          _parent.bdAdd(new BindingBacktrackObject(this,var));
+        }
+        return true;
       } else {
-	return *aux==term;
+        return *aux==term;
       }
     }
     void specVar(unsigned var, TermList term)
@@ -308,6 +316,10 @@ bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance, Binder& 
  * Matches two terms, using @b binder to store and check bindings
  * of base variables.
  *
+ * Function is safe for higher-order use if binder is higher-order safe.
+ * That is, binder never binds a variable to a term containing loose
+ * (unbound) indices.
+ * 
  * See MatchingUtils::match for a description of @b binder.
  */
 template<class Binder>
@@ -348,30 +360,30 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
       binder.specVar(it->var(), *bt);
     } else if(bt->isTerm()) {
       if(!it->isTerm()) {
-	return false;
+        return false;
       }
       Term* s = bt->term();
       Term* t = it->term();
       if(s->functor()!=t->functor()) {
-	return false;
+        return false;
       }
       if(bt->term()->shared() && it->term()->shared()) {
-	if(bt->term()->ground() && *bt!=*it) {
-	  return false;
-	}
-	if(s->weight() > t->weight()) {
-	  return false;
-	}
+        if(bt->term()->ground() && *bt!=*it) {
+          return false;
+        }
+        if(s->weight() > t->weight()) {
+          return false;
+        }
       }
       if(s->arity() > 0) {
-	bt = s->args();
-	it = t->args();
-	continue;
+        bt = s->args();
+        it = t->args();
+        continue;
       }
     } else {
       ASS(bt->isOrdinaryVar());
       if(!binder.bind(bt->var(), *it)) {
-	return false;
+        return false;
       }
     }
     if(subterms.isEmpty()) {

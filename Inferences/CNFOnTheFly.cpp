@@ -560,7 +560,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         ASS(term.isTerm());
         bool newTermCreated = false;
         if(index){
-          auto results = index->getGeneralizations(TypedTermList(term.term()), true);
+          auto results = index->getHOLGeneralizations(TypedTermList(term.term()));
           if(results.hasNext()){
             TermQueryResult tqr = results.next();
             TermList skolemTerm = tqr.term;

@@ -44,6 +44,15 @@ public:
   virtual SLQueryResultIterator getVariants(Literal* lit, bool complementary, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
+#if VHOL
+  virtual SLQueryResultIterator getHOLGeneralizations(Literal* lit, 
+    bool complementary, bool retrieveSubstitutions = true) 
+  { NOT_IMPLEMENTED; }
+  virtual SLQueryResultIterator getHOLInstances(Literal* lit, 
+    bool complementary, bool retrieveSubstitutions = true) 
+  { NOT_IMPLEMENTED; }
+#endif
+
   virtual size_t getUnificationCount(Literal* lit, bool complementary)
   {
     CALL("LiteralIndexingStructure::getUnificationCount");

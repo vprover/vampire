@@ -118,14 +118,28 @@ Index* IndexManager::create(IndexType t)
     res = new BinaryResolutionIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
-  case BACKWARD_SUBSUMPTION_SUBST_TREE:
-    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree());
+  case BACKWARD_SUBSUMPTION_SUBST_TREE: {
+    auto lst =  
+#if VHOL
+      env.property->higherOrder() ?
+        new LiteralSubstitutionTree(SplittingAlgo::HOL_MATCH) :
+#endif     
+        new LiteralSubstitutionTree();
+    res = new BackwardSubsumptionIndex(lst);
     isGenerating = false;
     break;
-  case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
+  }
+  case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE: {
+    auto lst =  
+#if VHOL
+      env.property->higherOrder() ?
+        new LiteralSubstitutionTree(SplittingAlgo::HOL_MATCH) :
+#endif     
+        new LiteralSubstitutionTree();    
+    res = new UnitClauseLiteralIndex(lst);
     isGenerating = false;
     break;
+  }
   case URR_UNIT_CLAUSE_SUBST_TREE:
     res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
@@ -156,7 +170,7 @@ Index* IndexManager::create(IndexType t)
 
 #if VHOL
   case SKOLEMISING_FORMULA_INDEX: {
-    auto tis = new TermSubstitutionTree();
+    auto tis = new TermSubstitutionTree(SplittingAlgo::HOL_MATCH);
     tis->useExtra();
     res = new SkolemisingFormulaIndex(tis);
     isGenerating = false;
@@ -173,7 +187,7 @@ Index* IndexManager::create(IndexType t)
     auto tis=
 #if VHOL 
       env.property->higherOrder() ?
-        new  TermSubstitutionTree(SplittingAlgo::HOL_MATCH) :
+        new TermSubstitutionTree(SplittingAlgo::HOL_MATCH) :
 #endif
         new TermSubstitutionTree();
 #if VHOL
@@ -204,20 +218,29 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case FW_SUBSUMPTION_CODE_TREE:
-    res = new CodeTreeSubsumptionIndex();
+  case FW_SUBSUMPTION_SUBST_TREE: {
+    auto lst =  
+#if VHOL
+      env.property->higherOrder() ?
+        new LiteralSubstitutionTree(SplittingAlgo::HOL_MATCH) :
+#endif     
+        new LiteralSubstitutionTree();    
+    res = new FwSubsSimplifyingLiteralIndex(lst);
     isGenerating = false;
     break;
+  }
 
-  case FW_SUBSUMPTION_SUBST_TREE:
-    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree());
+  case FSD_SUBST_TREE: {
+    auto lst =  
+#if VHOL
+      env.property->higherOrder() ?
+        new LiteralSubstitutionTree(SplittingAlgo::HOL_MATCH) :
+#endif     
+        new LiteralSubstitutionTree();    
+    res = new FSDLiteralIndex(lst);
     isGenerating = false;
     break;
-
-  case FSD_SUBST_TREE:
-    res = new FSDLiteralIndex(new LiteralSubstitutionTree());
-    isGenerating = false;
-    break;
+  }
 
   case REWRITE_RULE_SUBST_TREE:
     res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg->getOrdering());
