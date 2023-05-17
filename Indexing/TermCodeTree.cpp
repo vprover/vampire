@@ -169,7 +169,7 @@ void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
 
 void TermCodeTree::TermMatcher::reset()
 {
-  CALL("TermCodeTree::TermMatcher::deinit");
+  CALL("TermCodeTree::TermMatcher::reset");
   
   ft->destroy();
 #if VDEBUG
