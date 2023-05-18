@@ -22,10 +22,10 @@
 namespace Lib
 {
 
-struct DefaultReset 
+struct DefaultReset
 { template<class T> void operator()(T& t) { t.reset(); } };
 
-struct NoReset 
+struct NoReset
 { template<class T> void operator()(T& t) {  } };
 
 /** A smart pointer that lets you keep memory allocated, and reuse it.
@@ -40,14 +40,14 @@ struct NoReset
  * - extra indirection: Recycled<T> internally holds a pointer to T
  * - shares allocations of type T between all instances of Recycled<T>
  * - safer than static storage due to the Reset mechanism
- * - Recycled<T> is entrant, whereas static is not
+ * - Recycled<T> is reentrant, whereas static is not
  * - "leaks" memory, retaining the peak number of concurrently-live T objects
  * - implements move semantics where T may not
  * - "destruction" often very cheap because T is never destroyed
  *
  * To summarise:
  * 1. Use automatic storage unless you really have to do something else.
- * 2. If you have to, use Recycled<T> by preference to static for safety reasons.
+ * 2. If you must, use Recycled<T> by preference to static for safety reasons.
  * 3. If you really must and you are sure of correctness (reentrancy, reset logic),
  *    use static storage.
  */
