@@ -248,9 +248,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Signature.cpp
     Kernel/Unit.cpp
     Kernel/BottomUpEvaluation.hpp
-    Kernel/BottomUpEvaluation/TermList.hpp
-    Kernel/BottomUpEvaluation/TypedTermList.hpp
-    Kernel/BottomUpEvaluation/PolyNf.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/Clause.hpp
     Kernel/ClauseQueue.hpp

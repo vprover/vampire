@@ -26,7 +26,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermTransformer.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATLiteral.hpp"

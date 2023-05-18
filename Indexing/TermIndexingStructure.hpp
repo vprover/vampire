@@ -17,7 +17,6 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 namespace Indexing {
 
