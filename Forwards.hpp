@@ -135,6 +135,8 @@ enum Color {
   COLOR_INVALID = 3u
 };
 
+enum class SymbolType{FUNC, PRED, TYPE_CON};
+
 };
 
 namespace Indexing

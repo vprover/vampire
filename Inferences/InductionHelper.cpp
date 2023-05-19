@@ -96,11 +96,11 @@ TermQueryResultIterator InductionHelper::getGreater(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList inductionTerm) {
+TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   CALL("InductionHelper::getIndTQRsForInductionTerm");
 
   ASS(_inductionTermIndex);
-  return _inductionTermIndex->getUnifications(inductionTerm);
+  return _inductionTermIndex->getUnifications(TypedTermList(inductionTerm));
 }
 
 bool InductionHelper::isIntegerComparison(Clause* c) {
@@ -223,7 +223,7 @@ static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, Opti
   }
 }
 
-bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
+bool InductionHelper::isIntInductionTermListInLiteral(Term* tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
 
   // Term tl has to be an integer term.
@@ -237,8 +237,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   //   2: tl has only one occurrence in l
   //   3: tl does not occur in both arguments of l
   //   4: comparisons or equalities are not allowed
-  ASS(tl.isTerm());
-  unsigned f = tl.term()->functor();
+  unsigned f = tl->functor();
   if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort())
     return false;
 
@@ -251,25 +250,25 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
       return false;
     break;
   case TS::NO_SKOLEMS:
-    if(!containsSkolem(tl.term()))
+    if(!containsSkolem(tl))
       return false;
     break;
   }
 
   return (l->isEquality()
-    ? termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessEq())
+    ? termAndLiteralSatisfyStrictness(TermList(tl), l, env.options->integerInductionStrictnessEq())
     : !isIntegerComparisonLiteral(l) ||
-      termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessComp()));
+      termAndLiteralSatisfyStrictness(TermList(tl), l, env.options->integerInductionStrictnessComp()));
 }
 
-bool InductionHelper::isStructInductionFunctor(unsigned f) {
+bool InductionHelper::isStructInductionTerm(Term* t) {
   CALL("InductionHelper::isStructInductionFunctor");
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-  return (env.signature->isTermAlgebraSort(env.signature->getFunction(f)->fnType()->result()) &&
+  return (env.signature->isTermAlgebraSort(SortHelper::getResultSort(t)) &&
            // skip base constructors even if induction on complex terms is on:
-          ((complexTermsAllowed && env.signature->functionArity(f) != 0) ||
+          ((complexTermsAllowed && env.signature->functionArity(t->functor()) != 0) ||
            // otherwise skip all constructors:
-           !env.signature->getFunction(f)->termAlgebraCons())
+           !env.signature->getFunction(t->functor())->termAlgebraCons())
          );
 }
 

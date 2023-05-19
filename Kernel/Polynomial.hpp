@@ -38,9 +38,8 @@
 #include "Lib/Perfect.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include <type_traits>
-#include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -504,7 +503,7 @@ IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
 } // namespace Kernel
 
 // include needs to go here, since we need the specialization BottomUpChildIter<PolyNf> to declare Iter
-#include "Kernel/BottomUpEvaluation/PolyNf.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 namespace Kernel {
 

@@ -7,7 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-
 /** 
  * This file mainly defined the class Option, which can be thought of as a NULLable pointer, that is 
  * stack-allocated, with RAII semantics. 
@@ -184,7 +183,7 @@ class OptionBase<A const&> : public OptionBaseRef<A>
 {
 public:
   OptionBase() : OptionBaseRef<A>() {}
-  OptionBase(A const& item) : OptionBaseRef<A>(&item) {}
+  explicit OptionBase(A const& item) : OptionBaseRef<A>(&item) {}
   OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
@@ -193,7 +192,7 @@ class OptionBase<A&> : public OptionBaseRef<A>
 {
 public:
   OptionBase() : OptionBaseRef<A>() {}
-  OptionBase(A& item) : OptionBaseRef<A>(&item) {}
+  explicit OptionBase(A& item) : OptionBaseRef<A>(&item) {}
   OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
@@ -233,6 +232,25 @@ public:
 
   /** checks whether the option is empty */
   bool isNone() const { return !this->isSome(); }
+
+  operator bool() const { return isSome(); }
+
+  A const& operator*() const { return unwrap(); }
+  A      & operator*()       { return unwrap(); }
+
+  std::remove_reference_t<A> const* operator->() const { return &unwrap(); }
+  std::remove_reference_t<A>      * operator->()       { return &unwrap(); }
+
+  std::remove_reference_t<A>      * asPtr()       { return isSome() ? &unwrap() : nullptr; }
+  std::remove_reference_t<A> const* asPtr() const { return isSome() ? &unwrap() : nullptr; }
+
+
+  Option take() 
+  {
+    Option out;
+    swap(*this,out);
+    return out;
+  }
 
   /** 
    * returns the value held by this option if there is one, or calls the given function f without arguments, 
@@ -317,6 +335,12 @@ public:
   friend std::ostream& operator<<(std::ostream& out, Option const& self) 
   { return self.isSome() ?  out << self.unwrap() : out << "None"; }
 };
+
+template<class F> 
+auto someIf(bool condition, F create) -> Option<decltype(create())> 
+{ return condition ? Option<decltype(create())>(create()) 
+                   : Option<decltype(create())>(); }
+
 
 template<class T> Option<T> some(T const& t) { return Option<T>(          t ); }
 template<class T> Option<T> some(T      & t) { return Option<T>(          t ); }

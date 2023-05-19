@@ -157,7 +157,7 @@ namespace Inferences {
         _clause(clause)
     {
       if (lit->polarity() && sameConstructorsEquality(lit)) {
-        _type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        _index = lit->nthArgument(0)->term()->numTypeArguments();
         _length = lit->nthArgument(0)->term()->arity();
       } else {
         _length = 0;
@@ -177,7 +177,7 @@ namespace Inferences {
       Literal *l = Literal::createEquality(true,
                                            *_lit->nthArgument(0)->term()->nthArgument(_index),
                                            *_lit->nthArgument(1)->term()->nthArgument(_index),
-                                           _type->arg(_index));
+                                           SortHelper::getArgSort(_lit->nthArgument(0)->term(), _index));
       
       Clause * res = replaceLit(_clause, _lit, l, GeneratingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING, _clause));
       _index++;
@@ -193,7 +193,6 @@ namespace Inferences {
     unsigned int _index; // between 0 and _length
     Literal* _lit;
     Clause* _clause;
-    OperatorType* _type; // type of f
   };
 
   struct InjectivityGIE::SubtermEqualityFn
@@ -232,11 +231,10 @@ namespace Inferences {
       Literal *lit = (*c)[i];
       if (sameConstructorsEquality(lit) && lit->isPositive()) {
         if (lit->nthArgument(0)->term()->arity() == 1) {
-          OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
           Literal *newlit = Literal::createEquality(true,
                                                     *lit->nthArgument(0)->term()->nthArgument(0),
                                                     *lit->nthArgument(1)->term()->nthArgument(0),
-                                                    type->arg(0));
+                                                    SortHelper::getArgSort(lit->nthArgument(0)->term(), 0));
           Clause* res = replaceLit(c, lit, newlit, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
           env.statistics->taInjectivitySimplifications++;
           return res;
@@ -248,16 +246,18 @@ namespace Inferences {
     return c;
   }
 
-  bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i) {
+  bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i)
+  {
+    CALL("NegativeInjectivityISE::litCondition");
     Literal *lit = (*c)[i];
     if (sameConstructorsEquality(lit) && !lit->polarity()) {
+      unsigned numTypeArguments = lit->nthArgument(0)->term()->numTypeArguments();
       unsigned arity = lit->nthArgument(0)->term()->arity();
-      OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
-      for (unsigned j = 0; j < arity; j++) {
+      for (unsigned j = numTypeArguments; j < arity; j++) {
         Literal *l = Literal::createEquality(true,
                                              *lit->nthArgument(0)->term()->nthArgument(j),
                                              *lit->nthArgument(1)->term()->nthArgument(j),
-                                             type->arg(j));
+                                             SortHelper::getArgSort(lit->nthArgument(0)->term(),j));
         for (unsigned k = 0; k < c->length(); k++) {
           if (k != i) {
             if (_salg->getOrdering().compare((*c)[k], l) != Ordering::GREATER) {
@@ -282,26 +282,29 @@ namespace Inferences {
     for (int i = length - 1; i >= 0; i--) {
       if (litCondition(c, i)) {
         Literal *lit = (*c)[i];
-        OperatorType *type = env.signature->getFunction(lit->nthArgument(0)->term()->functor())->fnType();
+        TermList lhs = *lit->nthArgument(0);
+        ASS(lhs.isTerm());
         unsigned oldLength = c->length();
-        unsigned arity = lit->nthArgument(0)->term()->arity();
-        unsigned newLength = oldLength + arity - 1;
-        Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));
+        unsigned arity = lhs.term()->arity();
+        unsigned numTypeArgs = lhs.term()->numTypeArguments();
+        unsigned newLength = oldLength + arity - numTypeArgs - 1;
+
+        Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING, c));       
         Literal *newLit = Literal::createEquality(false,
-                                                  *lit->nthArgument(0)->term()->nthArgument(0),
-                                                  *lit->nthArgument(1)->term()->nthArgument(0),
-                                                  type->arg(0));
-        unsigned i = 0;
-        while ((*c)[i] != lit) { i++; }
+                                                  *lit->nthArgument(0)->term()->nthArgument(numTypeArgs),
+                                                  *lit->nthArgument(1)->term()->nthArgument(numTypeArgs),
+                                                  SortHelper::getArgSort(lhs.term(), numTypeArgs));
+        unsigned j = 0;
+        while ((*c)[j] != lit) { j++; }
         std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
-        (*res)[i] = newLit;
+        (*res)[j] = newLit;
         
-        for (unsigned i = 1; i < arity; i++) {
+        for (unsigned j = numTypeArgs+1; j < arity; j++) {
           newLit = Literal::createEquality(false,
-                                           *lit->nthArgument(0)->term()->nthArgument(i),
-                                           *lit->nthArgument(1)->term()->nthArgument(i),
-                                           type->arg(i));
-          (*res)[oldLength + i - 1] = newLit;
+                                           *lit->nthArgument(0)->term()->nthArgument(j),
+                                           *lit->nthArgument(1)->term()->nthArgument(j),
+                                            SortHelper::getArgSort(lhs.term(), j));
+          (*res)[oldLength + j - numTypeArgs - 1] = newLit;
         }
         env.statistics->taNegativeInjectivitySimplifications++;
 
