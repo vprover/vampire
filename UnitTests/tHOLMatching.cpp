@@ -170,6 +170,9 @@ struct IndTest {
   void run() {
     CALL("IndexTest::run")
 
+    env.property->forceHigherOrder();
+    // if printing causes a crash, set this to raw
+    // crash happens when attempting to print a loose De Bruijn index
     env.options->set("pretty_hol_printing","pretty");
  
     DECL_PRED(dummy, Stack<SortSugar>())
@@ -193,14 +196,16 @@ struct IndTest {
       DECL_DEFAULT_SORT_VARS                                                                        \
       DECL_HOL_VAR(x0, 0, srt)                                                                      \
       DECL_HOL_VAR(x1, 1, srt)                                                                      \
+      DECL_HOL_VAR(y0, 5, srt)                                                                      \
       DECL_HOL_VAR(x2, 2, arrow(srt,srt))                                                           \
       DECL_HOL_VAR(x3, 3, arrow(srt,srt))                                                           \
-      DECL_HOL_VAR(x4, 3, arrow(arrow(srt, srt),arrow(srt,srt)))                                    \
+      DECL_HOL_VAR(x4, 4, arrow(arrow(srt, srt),arrow(srt,srt)))                                    \
       DECL_CONST(a,srt)                                                                             \
       DECL_CONST(b,srt)                                                                             \
       DECL_CONST(f,arrow(srt,srt))                                                                  \
       DECL_CONST(g,arrow(srt,srt))                                                                  \
       DECL_CONST(h,arrow(arrow(srt, srt),arrow(srt,srt)))                                           \
+      DECL_CONST(k,arrow(srt,arrow(srt,srt)))                                                       \
     )                                                                                               \
  
 
@@ -210,7 +215,7 @@ struct IndTest {
        __VA_ARGS__.run();                                                                           \
   }                                                                                                 \
 
-RUN_TEST(hol_matching_inst_01,
+RUN_TEST(hol_matching_01,
     HOL_SUGAR,
     IndTest {
       .index = getIndexTerm(),
@@ -222,14 +227,14 @@ RUN_TEST(hol_matching_inst_01,
       .expected = { 
 
           TermMatchingResultSpec 
-          { .querySigma  = f,
+          { .querySigma  = toDeBrs(lam(x1, ap(f, x1))),
             .resultSigma = toDeBrs(lam(x1, ap(f, x1))) 
           } 
 
       },
     })
 
-RUN_TEST(hol_matching_inst_02,
+RUN_TEST(hol_matching_02,
     HOL_SUGAR,
     IndTest {
       .index = getIndexTerm(),
@@ -248,7 +253,7 @@ RUN_TEST(hol_matching_inst_02,
       },
     })
 
-RUN_TEST(hol_matching_inst_03,
+RUN_TEST(hol_matching_03,
     HOL_SUGAR,
     IndTest {
       .index = getIndexTerm(),
@@ -266,5 +271,80 @@ RUN_TEST(hol_matching_inst_03,
 
       },
     })
+
+RUN_TEST(hol_matching_04,
+    HOL_SUGAR,
+    IndTest {
+      .index = getIndexTerm(),
+      .insert = {
+        toDeBrs(lam(x0, lam(x1, x0))),
+      },
+      .query = toDeBrs(lam(x0, lam(x1, x0))),
+      .instantiation = false,
+      .expected = { 
+
+          TermMatchingResultSpec 
+          { .querySigma  = toDeBrs(lam(x0, lam(x1, x0))),
+            .resultSigma = toDeBrs(lam(x0, lam(x1, x0))) 
+          } 
+
+      },
+    })
+
+RUN_TEST(hol_matching_05,
+    HOL_SUGAR,
+    IndTest {
+      .index = getIndexTerm(),
+      .insert = {
+        toDeBrs(lam(x0, lam(x1, x0))),
+      },
+      .query = toDeBrs(lam(x0, lam(x1, x1))),
+      .instantiation = false,
+      .expected = Stack<TermMatchingResultSpec>{},
+    })
+
+RUN_TEST(hol_matching_06,
+    HOL_SUGAR,
+    IndTest {
+      .index = getIndexTerm(),
+      .insert = {
+        toDeBrs(lam(x0, lam(x1, x0))),
+      },
+      .query = toDeBrs(lam(x0, lam(x1, y0))),
+      .instantiation = true,
+      .expected = Stack<TermMatchingResultSpec>{},
+    })
+
+RUN_TEST(hol_matching_07,
+    HOL_SUGAR,
+    IndTest {
+      .index = getIndexTerm(),
+      .insert = {
+        ap(ap(k,a),b),
+        ap(ap(k,b),b),
+      },
+      .query = ap(ap(k,x0),x0),
+      .instantiation = true,
+      .expected = { 
+
+          TermMatchingResultSpec 
+          { .querySigma  = ap(ap(k,b),b),
+            .resultSigma = ap(ap(k,b),b)
+          } 
+
+      },    
+  })
+
+RUN_TEST(hol_matching_08,
+    HOL_SUGAR,
+    IndTest {
+      .index = getIndexTerm(),
+      .insert = {
+        ap(ap(k,a),b),
+      },
+      .query = ap(ap(k,ap(f, x0)),x0),
+      .instantiation = true,
+      .expected = Stack<TermMatchingResultSpec>{},    
+  })
 
 #endif

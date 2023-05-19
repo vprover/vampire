@@ -183,7 +183,7 @@ struct Choice::IsChoiceTerm
       static RobSubstitutionTL subst;
       subst.reset();
       return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
-             subst.match(sort,headSort));
+             subst.match(sort,headSort,VarBank::QUERY_BANK));
     }
     return false;
   }

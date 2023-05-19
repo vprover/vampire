@@ -2279,14 +2279,14 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
        ASS_REP(arg2.isVar(), arg2.toString());
        return createVariableEquality(polarity, arg1, arg2, sort);
      }
-     ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt2));
+     ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt2, VarBank::DEFAULT_BANK));
    }
    else {    
-    ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt1), sort.toString(), srt1.toString());
+    ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt1, VarBank::DEFAULT_BANK), sort.toString(), srt1.toString());
 #if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
        checkSortSubst.reset();
-       ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt2), sort.toString(), arg2.toString() + " :  " + srt2.toString());
+       ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, srt2, VarBank::DEFAULT_BANK), sort.toString(), arg2.toString() + " :  " + srt2.toString());
      }
 #endif
    }

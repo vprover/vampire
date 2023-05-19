@@ -78,6 +78,7 @@ struct TermSpec { // for backwards compatibility
   bool isOrdinaryVar() const { return trm.isOrdinaryVar(); }
   bool isTerm() const { return trm.isTerm(); }
   bool isOutputVar() const { return isVar() && index == UNBOUND_INDEX; }
+  bool containsLooseIndex() const { return trm.containsLooseIndex(); }
   bool onBank() const { return true; } // always on a bank
   unsigned var() const {  ASS(trm.isVar()); return trm.var(); }
   const Term* term() const { ASS(isTerm());  return trm.term(); }
@@ -215,7 +216,7 @@ public:
   void setOutputIndex(VarBankOrInt idx) { _outputIndex = idx; }
 
   bool unify(TermSpecOrList t1, TermSpecOrList t2);
-  bool match(TermSpecOrList base, TermSpecOrList instance);
+  bool match(TermSpecOrList base, TermSpecOrList instance, VarBankOrInt baseBank);
 
   void denormalize(const Renaming& normalizer, VarBankOrInt normBank, VarBankOrInt denormBank);
   bool isUnbound(unsigned var, VarBankOrInt bank) const
@@ -278,17 +279,11 @@ protected:
 
   VarBankOrInt _outputIndex;
 
-  template<class Fn>
   VirtualIterator<RobSubst*> getAssocIterator(RobSubst* subst,
     TermSpecOrList l1, TermSpecOrList s1, TermSpecOrList l2, TermSpecOrList s2, bool complementary);
 
-  template<class Fn>
   struct AssocContext;
-  template<class Fn>
   class AssocIterator;
-
-  struct MatchingFn;
-  struct UnificationFn;  
 
 private:
   RobSubstitution(const RobSubstitution& obj) = delete;
@@ -361,7 +356,6 @@ public:
     _outputIndex = VarBank::OUTPUT_BANK;
   }
 
-  SubstIterator matches(Literal* base, Literal* instance, bool complementary);
   SubstIterator unifiers(Literal* l1,  Literal* l2, bool complementary);
 
   Literal* apply(Literal* lit, VarBank bank) const 
@@ -420,7 +414,6 @@ public:
   bool unify(TermList t1, int idx1, TermList t2, int idx2); 
   bool match(TermList t1, int idx1, TermList t2, int idx2); 
 
-  SubstIteratorTS matches(Literal* base, int l1idx, Literal* instance, int l2idx, bool complementary);
   SubstIteratorTS unifiers(Literal* l1, int l1idx, Literal* l2, int l2idx, bool complementary);
   
   Literal* apply(Literal* lit, int index) const 

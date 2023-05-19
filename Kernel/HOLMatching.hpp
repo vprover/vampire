@@ -21,16 +21,9 @@
 #include "Forwards.hpp"
 
 #include "Term.hpp"
-#include "Lib/Hash.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Backtrackable.hpp"
-#include "Lib/Recycled.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Kernel/Signature.hpp"
+
 
 namespace Kernel
 {
@@ -40,12 +33,18 @@ using namespace Indexing;
 namespace UnificationAlgorithms {
 
 
+/** At the moment, the classes below don't contain much
+ *  logic and could easily be moved in HOLUnification.
+ *  However, I am keeping them as separate classes in case
+ *  I ever add pattern matching in the future which will probably require 
+ *  big changes */
 class HOLInstantiation {
 public:
 
   using Constraint = UnificationConstraint<TermList,VarBank>;
 
-  static bool match(TermList base, TermList instance, RobSubstitutionTL* sub);
+  static bool match(TermList base, TermList instance, RobSubstitutionTL* sub, VarBank baseBank)
+  { return sub->match(base, instance, baseBank); }
 
   void initSub(RobSubstitutionTL* sub) const { sub->setOutputIndex(VarBank::RESULT_BANK); }
 

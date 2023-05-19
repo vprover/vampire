@@ -307,7 +307,7 @@ bool RobSubstitutionTS::match(TermList t1, int idx1, TermList t2, int idx2)
 {
   CALL("RobSubstitution::match/1");
 
-  return RobSubstitution<TermSpec, int>::match(TermSpec(t1,idx1), TermSpec(t2,idx2));
+  return RobSubstitution<TermSpec, int>::match(TermSpec(t1,idx1), TermSpec(t2,idx2), idx1);
 }
 
 template<class TermSpecOrList, class VarBankOrInt>
@@ -414,14 +414,13 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::unify(TermSpecOrList t1, Ter
  * this behavior allows easy instance retrieval.)
  */
 template<class TermSpecOrList, class VarBankOrInt>
-bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, TermSpecOrList instance)
+bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, TermSpecOrList instance, VarBankOrInt baseBank)
 {
   CALL("RobSubstitution::match(TermSpec...)");
 
-#define DEBUG_MATCH(lvl, ...) if (lvl < 0) DBG("match: ", __VA_ARGS__)
-  if(sameTermContent(base,instance)) {
-    return true;
-  }
+#define DEBUG_MATCH(lvl, ...) if (lvl < 2) DBG("match: ", __VA_ARGS__)
+
+  if(sameTermContent(base,instance)) { return true; }
 
   bool mismatch=false;
   BacktrackData localBD;
@@ -431,7 +430,29 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, T
   ASS(toDo.isEmpty());
   toDo.push(Constraint(base, instance));
 
-  // add encountered store??
+  auto quickTests = [](TermList bt, TermList it){
+    if(bt.isTerm() && bt.term()->shared() && it.isTerm() && it.term()->shared()){
+      if(bt.term()->ground()){ return bt == it; }
+      return bt.term()->weight() <= it.term()->weight();
+    }
+    return true;
+  };
+
+  auto canBind = [&](TermSpecOrList t)
+  { return t.isVar() && t.bank() == baseBank; };
+
+  auto dealWithSpec = [&](TermSpecOrList spec, TermSpecOrList term, bool instance){
+    auto binding = _bank.find(spec);
+    if(binding) {
+      TermSpecOrList t = binding.unwrap();
+      toDo.push(instance ? Constraint(term,t) : Constraint(t,term));
+    } else {
+      bind(spec, term);
+    }  
+  };
+
+  auto canCompare = [](TermSpecOrList t)
+  { return !t.isSpecialVar() && (t.isVar() || t.term()->shared()); };
 
   // Iteratively resolve matching pairs in toDo
   while (toDo.isNonEmpty()) {
@@ -439,41 +460,44 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, T
     TermSpecOrList bt = x.lhs();
     TermSpecOrList it = x.rhs();
     DEBUG_MATCH(1, "next pair: ", tie(bt, it))
-    // If they have the same content then skip
-    // (note that sameTermContent is best-effort)
+
+    if(!quickTests(bt,it)){
+      DEBUG_MATCH(1, "Rejected by quick tests")
+      mismatch = true;
+      break;
+    }
 
     if(bt.isSpecialVar()) {
-      auto binding = _bank.find(bt);
-      if(binding) {
-        bt = binding.unwrap();
-        toDo.push(Constraint(bt,it));
-        continue;
-      } else {
-        bind(bt, it);
-      }  
+      dealWithSpec(bt, it, false);
     } else if(it.isSpecialVar()) {
-      auto binding = _bank.find(it);
-      if(binding) {
-        it = binding.unwrap();
-        toDo.push(Constraint(bt,it));
-        continue;
-      } else {
-        bind(it, bt);
-      }  
-    } else if (bt.isVar()) {
+      dealWithSpec(it, bt, true);
+    } else if(canBind(bt)) {
       auto binding = _bank.find(bt);
       
       if(binding) {
         auto b = binding.unwrap();
-        if(!TermSpecOrList::equals(b, it))
+        if(canCompare(b) && canCompare(it))
         {
-          mismatch=true;
-          break;
+          if(!TermSpecOrList::equals(b, it)){
+            mismatch=true;
+            break;
+          }
+        } else {
+          toDo.push(Constraint(b,it));
         }
       } else {
+#if VHOL
+        if(env.property->higherOrder()){
+          if(it.containsLooseIndex()){
+            mismatch=true;
+            break;            
+          }
+        }
+#endif        
         bind(bt, it);
       }
-    } else if (it.isVar()) {
+    } else if (it.isVar() || bt.isVar()) {
+      ASS(!canBind(it) && !canBind(bt));
       mismatch=true;
       break;      
     } else if (bt.term()->functor() == it.term()->functor()) {
@@ -612,46 +636,6 @@ struct RobSubstitutionTS::ToRobTermSpec
 };
 
 /**
- * Return iterator on matching substitutions of @b l1 and @b l2.
- *
- * For guides on use of the iterator, see the documentation of
- * RobSubstitution::AssocIterator.
- */
-SubstIterator RobSubstitutionTL::matches(Literal* base, Literal* instance, bool complementary)
-{
-  if( !Literal::headersMatch(base,instance,complementary) ) {
-    return SubstIterator::getEmpty();
-  } 
-
-  TermList s1 = base->isEquality()     ? SortHelper::getEqualityArgumentSort(base)     : TermList(0,false);
-  TermList s2 = instance->isEquality() ? SortHelper::getEqualityArgumentSort(instance) : TermList(0,false);
-
-  TermList t1 = TermList(base);
-  TermList t2 = TermList(instance);
-
-  auto it = RobSubstitution<TermList,VarBank>::getAssocIterator<MatchingFn>(this, t1 ,s1, t2, s2, complementary);
-
-  return pvi(getMappingIterator(it, ToRobTermList()));
-}
-
-SubstIteratorTS RobSubstitutionTS::matches(Literal* base, int idx1, Literal* instance, int idx2, bool complementary)
-{
-  if( !Literal::headersMatch(base,instance,complementary) ) {
-    return SubstIteratorTS::getEmpty();
-  } 
-
-  TermSpec s1(base->isEquality()     ? SortHelper::getEqualityArgumentSort(base)     : TermList(0,false), idx1);
-  TermSpec s2(instance->isEquality() ? SortHelper::getEqualityArgumentSort(instance) : TermList(0,false), idx2);
-
-  TermSpec t1(TermList(base), idx1);
-  TermSpec t2(TermList(instance), idx2);
-
-  auto it = RobSubstitution<TermSpec,int>::getAssocIterator<MatchingFn>(this, t1, s1, t2, s2, complementary);
-
-  return pvi(getMappingIterator(it, ToRobTermSpec()));  
-}
-
-/**
  * Return iterator on unifying substitutions of @b l1 and @b l2.
  *
  * For guides on use of the iterator, see the documentation of
@@ -670,7 +654,7 @@ SubstIterator RobSubstitutionTL::unifiers(Literal* l1, Literal* l2, bool complem
   TermList t1 = TermList(l1);
   TermList t2 = TermList(l2);
 
-  auto it = RobSubstitution<TermList,VarBank>::getAssocIterator<UnificationFn>(this, t1,s1,t2,s2, complementary);
+  auto it = RobSubstitution<TermList,VarBank>::getAssocIterator(this, t1,s1,t2,s2, complementary);
   
   return pvi(getMappingIterator(it, ToRobTermList()));
 }
@@ -687,26 +671,9 @@ SubstIteratorTS RobSubstitutionTS::unifiers(Literal* l1, int idx1, Literal* l2, 
   TermSpec t1(TermList(l1), idx1);
   TermSpec t2(TermList(l2), idx2);
 
-  auto it = RobSubstitution<TermSpec,int>::getAssocIterator<UnificationFn>(this, t1, s1, t2, s2, complementary);
+  auto it = RobSubstitution<TermSpec,int>::getAssocIterator(this, t1, s1, t2, s2, complementary);
 
   return pvi(getMappingIterator(it, ToRobTermSpec()));  
-}
-
-template<class TermSpecOrList, class VarBankOrInt>
-template<class Fn>
-VirtualIterator<RobSubstitution<TermSpecOrList,VarBankOrInt>*>
-RobSubstitution<TermSpecOrList,VarBankOrInt>::getAssocIterator(RobSubst* subst,
-	  TermSpecOrList l1, TermSpecOrList s1, TermSpecOrList l2, TermSpecOrList s2, bool complementary)
-{
-  CALL("RobSubstitution::getAssocIterator");
-
-  if( !l1.term()->commutative() ) {
-    return pvi( getContextualIterator(getSingletonIterator(subst),
-	    AssocContext<Fn>(l1, l2)) );
-  } else {
-    return vi(
-	    new AssocIterator<Fn>(subst, l1, s1, l2, s2));
-  }
 }
 
 template class UnificationConstraint<TermList,VarBank>;
@@ -719,7 +686,6 @@ template class RobSubstitution<TermList,VarBank>;
 template class RobSubstitution<TermSpec,int>;
 
 template<class TermSpecOrList, class VarBankOrInt>
-template<class Fn>
 struct RobSubstitution<TermSpecOrList,VarBankOrInt>::AssocContext
 {
   AssocContext(TermSpecOrList l1, TermSpecOrList l2)
@@ -727,7 +693,7 @@ struct RobSubstitution<TermSpecOrList,VarBankOrInt>::AssocContext
   bool enter(RobSubst* subst)
   {
     subst->bdRecord(_bdata);
-    bool res=Fn::associate(subst, _l1, _l2);
+    bool res=subst->unify(_l1, _l2);
     if(!res) {
       subst->bdDone();
       ASS(_bdata.isEmpty());
@@ -778,7 +744,6 @@ private:
  * [1] associate means either match or unify
  */
 template<class TermSpecOrList, class VarBankOrInt>
-template<class Fn>
 class RobSubstitution<TermSpecOrList,VarBankOrInt>::AssocIterator: public IteratorCore<RobSubst*> {
 public:
   AssocIterator(RobSubst* subst, 
@@ -816,7 +781,7 @@ public:
       backtrack(_bdataMain);
     } else if (_isEq) {
       _subst->bdRecord(_bdataEqAssoc);
-      if (!Fn::associate(_subst, _s1, _s2)) {
+      if (!_subst->unify(_s1, _s2)) {
         backtrack(_bdataEqAssoc); // this might not be necessary
         _state = FINISHED;
         return false;
@@ -827,7 +792,7 @@ public:
 
     switch (_state) {
     case NEXT_STRAIGHT:
-      if (Fn::associate(_subst, _l1, _l2)) {
+      if (_subst->unify(_l1, _l2)) {
         _state = NEXT_REVERSED;
         break;
       }
@@ -837,8 +802,8 @@ public:
       TermSpecOrList t12 = _l1.nthArg(1);
       TermSpecOrList t21 = _l2.nthArg(0);
       TermSpecOrList t22 = _l2.nthArg(1);
-      if (Fn::associate(_subst, t11, t22)) {
-        if (Fn::associate(_subst, t12, t21)) {
+      if (_subst->unify(t11, t22)) {
+        if (_subst->unify(t12, t21)) {
           _state = NEXT_CLEANUP;
           break;
         }
@@ -901,18 +866,20 @@ private:
 };
 
 template<class TermSpecOrList, class VarBankOrInt>
-struct RobSubstitution<TermSpecOrList,VarBankOrInt>::MatchingFn {
+VirtualIterator<RobSubstitution<TermSpecOrList,VarBankOrInt>*>
+RobSubstitution<TermSpecOrList,VarBankOrInt>::getAssocIterator(RobSubst* subst,
+    TermSpecOrList l1, TermSpecOrList s1, TermSpecOrList l2, TermSpecOrList s2, bool complementary)
+{
+  CALL("RobSubstitution::getAssocIterator");
 
-  static bool associate(RobSubst* subst, TermSpecOrList l1, TermSpecOrList l2)
-  { return subst->match(l1,l2); }
-};
-
-template<class TermSpecOrList, class VarBankOrInt>
-struct RobSubstitution<TermSpecOrList,VarBankOrInt>::UnificationFn {
-
-  static bool associate(RobSubst* subst, TermSpecOrList l1, TermSpecOrList l2)
-  { return subst->unify(l1,l2); }
-};
+  if( !l1.term()->commutative() ) {
+    return pvi( getContextualIterator(getSingletonIterator(subst),
+      AssocContext(l1, l2)) );
+  } else {
+    return vi(
+      new AssocIterator(subst, l1, s1, l2, s2));
+  }
+}
 
 
 } // namespace Kernel
