@@ -26,6 +26,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATLiteral.hpp"
@@ -296,32 +297,30 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
    clauses = ClauseList::concat(clauses,newAxioms);
 }
 
-class SortFunctionTransformer : public BottomUpTermTransformer
-{
+class SortFunctionTransformer {
 public:
-SortFunctionTransformer(Literal* lit, 
-                        DArray<bool> isM,
-                        DArray<unsigned> sf) : _lit(lit), _isM(isM), _sf(sf) {}
+  SortFunctionTransformer(DArray<bool> const &isM, DArray<unsigned> const &sf) : _isM(isM), _sf(sf) {}
 
-TermList transformSubterm(TermList trm){
-  CALL("SortFunctionTransformer::transformSubterm");
+  using Result = TermList;
+  using Arg = TypedTermList;
+  TermList operator()(TypedTermList origTerm, TermList *evalArgs)
+  {
+    CALL("SortFunctionTransformer::transformSubterm");
 
-  // cout << "transformSubterm " << trm.toString() << endl;
+    // cout << "transformSubterm " << trm.toString() << endl;
 
-  TermList srt = SortHelper::getTermSort(trm, _lit);
-  if(_isM[srt.term()->functor()]) return trm;
+    TermList srt = origTerm.sort();
+    TermList trm = origTerm.isVar() ? origTerm : TermList(Term::create(origTerm.term(), evalArgs));
+    if (_isM[srt.term()->functor()])
+      return trm;
 
-  unsigned f =  _sf[srt.term()->functor()];
+    unsigned f = _sf[srt.term()->functor()];
+    return TermList(Term::create1(f, trm));
+  }
 
-  return TermList(Term::create1(f,trm));
-}
-
-Literal* _lit;
-DArray<bool> _isM;
-DArray<unsigned> _sf;
-
+  DArray<bool> const &_isM;
+  DArray<unsigned> const &_sf;
 };
-
 
 void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
 {
@@ -372,9 +371,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
      bool changed = false;
      while(lit.hasNext()){
        Literal* l = lit.next();
-       SortFunctionTransformer transformer(l,isMonotonic,sortFunctions);
-       Literal* lnew = l;
-       if(l->arity()){ lnew = transformer.transform(l); }
+       Literal* lnew = l->arity() == 0 ? l : evaluateLiteralBottomUp(l, SortFunctionTransformer(isMonotonic,sortFunctions));
        if(l!=lnew) {
          changed=true;
          // cout << "before " << l->toString() << endl;

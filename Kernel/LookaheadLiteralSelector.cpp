@@ -150,7 +150,7 @@ private:
   struct TermUnificationRetriever
   {
     TermUnificationRetriever(TermIndex* index) : _index(index) {}
-    VirtualIterator<void> operator()(TermList trm)
+    VirtualIterator<void> operator()(TypedTermList trm)
     {
       return pvi( getStaticCastIterator<void>(_index->getUnifications(trm,false)) );
     }
