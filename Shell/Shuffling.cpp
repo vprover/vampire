@@ -210,7 +210,7 @@ void Shuffling::shuffleIter(Shufflable sh) {
 
           // can't naively shuffle variables in the polymorphic case
           // as we require type variables to come before term variable in the list
-          if(!env.property->hasPolymorphicSym()){ 
+          if(!env.hasPolymorphicSym){ 
             // can even shuffle the variables in the quantifier!
             if (fla->sorts()) { // need to shuffle sorts in sync with vars, if they are there
               shuffleTwoList(*fla->varsPtr(),*fla->sortsPtr());
