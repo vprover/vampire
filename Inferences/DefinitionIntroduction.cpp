@@ -155,8 +155,7 @@ void DefinitionIntroduction::process(Clause *cl) {
   for(unsigned i = 0; i < cl->length(); i++) {
     NonVariableNonTypeIterator it((*cl)[i]);
     while(it.hasNext()) {
-      TermList next = it.next();
-      Term *t = next.term();
+      Term *t = it.next();
       if(t->allArgumentsAreVariables() && t->getDistinctVars() == t->arity())
         continue;
 
