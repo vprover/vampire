@@ -13,7 +13,6 @@
  */
 
 #if VZ3
-#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -49,6 +48,8 @@
 #include "TheoryInstAndSimp.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
+
+#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 namespace Inferences
 {
@@ -208,7 +209,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   //check all (proper) subterms
   NonVariableNonTypeIterator nvi(lit);
   while( nvi.hasNext() ) {
-    Term* term = nvi.next().term();
+    Term* term = nvi.next();
 
     //we can stop if we found an uninterpreted function / constant
     if (isSupportedFunction(term)){

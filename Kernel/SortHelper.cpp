@@ -953,18 +953,6 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     TermList argSort = getResultSort(ta);
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
     if (instantiatedTypeSort != argSort) {
-/*
-#if VDEBUG
-      bool literal = t->isLiteral();
-      cout << "the " << (literal ? "literal" : "term") << " is " << t->toString() << endl;
-      cout << "the type of " << (literal ? "predicate " : "function ")
-           << (literal ? env.signature->getPredicate(t->functor()) : env.signature->getFunction(t->functor()))->name() + " is: " + type->toString() << endl;
-      //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
-      //cout << "function name 2 :" + t->functionName() << endl;
-      cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
-      ASSERTION_VIOLATION;
-#endif
-*/
       return false;
     }
   }
