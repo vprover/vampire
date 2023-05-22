@@ -22,11 +22,7 @@
 #include "MismatchHandler.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/DHMap.hpp"
-
-#if VDEBUG
-#include <iostream>
-#include "Lib/VString.hpp"
-#endif
+#include "Debug/Output.hpp"
 
 namespace Kernel
 {
@@ -135,14 +131,14 @@ public:
     /** struct containing first hash function for DHMap object storing variable banks */
     struct Hash1
     {
-     static unsigned hash(VarSpec& o) {
+     static unsigned hash(VarSpec const& o) {
        return HashUtils::combine(o.var, o.index);
      }
     };
     /** struct containing second hash function for DHMap object storing variable banks */
     struct Hash2
     {
-      static unsigned hash(VarSpec& o) {
+      static unsigned hash(VarSpec const& o) {
         return HashUtils::combine(o.index, o.var);
       }
     };
@@ -189,6 +185,9 @@ public:
 	   term.term()->arity()==0 ));
     }
 
+    TermSpec nthArg(unsigned i) const
+    { return TermSpec(*term.term()->nthArgument(i), index); }
+
     bool isVSpecialVar()
     {
       return term.isVSpecialVar();
@@ -200,6 +199,7 @@ public:
     }
     bool operator==(const TermSpec& o) const
     { return term==o.term && index==o.index; }
+    bool operator!=(const TermSpec& o) const { return !(*this == o); }
 
     /** term reference */
     TermList term;
@@ -211,7 +211,7 @@ public:
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
   {
-   static unsigned hash(TTPair& o)
+   static unsigned hash(TTPair const& o)
    {
      return IdentityHash::hash(o.first.term.content())^o.first.index ^
        ((IdentityHash::hash(o.second.term.content())^o.second.index)<<1);

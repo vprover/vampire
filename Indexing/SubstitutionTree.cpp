@@ -671,7 +671,7 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multilin
     if (multiline) {
       auto outp = [&](Node** x) { 
         out << endl; 
-        repeat(out, INDENT, indent + 1);
+        OutputMultiline<int>::outputIndent(out, indent + 1);
         out << "| ";
         (*x)->output(out, multiline, indent + 1);
       };
@@ -681,7 +681,7 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multilin
         outp(childIter.next());
       }
       out << endl; 
-      repeat(out, INDENT, indent);
+      OutputMultiline<int>::outputIndent(out, indent);
       out << "]";
 
     } else {
@@ -724,7 +724,7 @@ std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& se
 std::ostream& Indexing::operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self)
 {
   if (self.self._root) {
-    self.self._root->output(out, true, /* indent */ 0);
+    self.self._root->output(out, /* multiline */ true, /* indent */ 0);
   } else {
     out << "<empty tree>";
   }

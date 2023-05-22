@@ -15,6 +15,7 @@
 
 #include "RobSubstitution.hpp"
 
+#include "Forwards.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
@@ -265,7 +266,7 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
 bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 {
   vs=root(vs);
-  Stack<TermSpec> toDo(8);
+  Stack<TermSpec> todo(8);
   if(ts.isVSpecialVar()){
     Term* t = _funcSubtermMap->get(ts.term.var());
     ts = TermSpec(TermList(t), ts.index);
@@ -304,15 +305,15 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
             dtvar = TermSpec(TermList(t), dtvar.index);            
           }
           encountered.insert(tvar);
-          toDo.push(dtvar);
+          todo.push(dtvar);
         }
       }
     }
 
-    if(toDo.isEmpty()) {
+    if(todo.isEmpty()) {
       return false;
     }
-    ts=toDo.pop();
+    ts=todo.pop();
   }
 }
 
@@ -328,9 +329,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   BacktrackData localBD;
   bdRecord(localBD);
 
-  static Stack<TTPair> toDo(64);
+  static Stack<TTPair> todo(64);
   static Stack<TermList*> subterms(64);
-  ASS(toDo.isEmpty() && subterms.isEmpty());
+  ASS(todo.isEmpty() && subterms.isEmpty());
 
   // Save encountered unification pairs to avoid
   // recomputing their unification
@@ -339,7 +340,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
   EncStore encountered;
   encountered.reset();
 
-  // Iteratively resolve unification pairs in toDo
+  // Iteratively resolve unification pairs in todo
   // the current pair is always in t1 and t2 with their dereferenced
   // version in dt1 and dt2
   for(;;) {
@@ -372,11 +373,11 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     } else if(dt1.isVSpecialVar()){
       Term* t = _funcSubtermMap->get(dt1.term.var());
       t1 = TermSpec(TermList(t), dt1.index);
-      toDo.push(TTPair(t1, dt2));
+      todo.push(TTPair(t1, dt2));
     } else if(dt2.isVSpecialVar()){
       Term* t = _funcSubtermMap->get(dt2.term.var());
       t2 = TermSpec(TermList(t), dt2.index);
-      toDo.push(TTPair(dt1, t2));
+      todo.push(TTPair(dt1, t2));
     } else {
     // Case where both are terms
       TermList* ss=&dt1.term;
@@ -416,9 +417,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
               TTPair itm(tsss,tstt);
               if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
                  (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
-                toDo.push(itm);
+                todo.push(itm);
               } else if(!encountered.find(itm)) {
-                toDo.push(itm);
+                todo.push(itm);
                 encountered.insert(itm);
               }
             } else {
@@ -446,16 +447,16 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
       }
     }
 
-    if(toDo.isEmpty() || mismatch) {
+    if(todo.isEmpty() || mismatch) {
       break;
     }
-    t1=toDo.top().first;
-    t2=toDo.pop().second;
+    t1=todo.top().first;
+    t2=todo.pop().second;
   }
 
   if(mismatch) {
     subterms.reset();
-    toDo.reset();
+    todo.reset();
   }
 
   bdDone();
@@ -485,88 +486,96 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 {
   CALL("RobSubstitution::match(TermSpec...)");
 
-  if(base.sameTermContent(instance)) {
-    return true;
-  }
+#define DEBUG_MATCH(lvl, ...) if (lvl < 2) DBG("match: ", __VA_ARGS__)
+
+  if(base.sameTermContent(instance)) { return true; }
 
   bool mismatch=false;
   BacktrackData localBD;
   bdRecord(localBD);
 
-  static Stack<TermList*> subterms(64);
-  ASS(subterms.isEmpty());
+  Recycled<Stack<TTPair>> todo;
+  todo->push(TTPair(base, instance));
 
-  TermList* bt=&base.term;
-  TermList* it=&instance.term;
+  auto quickTests = [](TermList bt, TermList it){
+    if(bt.isTerm() && bt.term()->shared() && it.isTerm() && it.term()->shared()){
+      if(bt.term()->ground()){ return bt == it; }
+      return bt.term()->weight() <= it.term()->weight();
+    }
+    return true;
+  };
 
-  TermSpec binding1;
-  TermSpec binding2;
+  auto canBind = [&](TermSpec t)
+  { return t.isVar() && t.index == base.index; };
 
-  for (;;) {
-    TermSpec bts(*bt,base.index);
-    TermSpec its(*it,instance.index);
-
-    if (!bts.sameTermContent(its) && TermList::sameTopFunctor(bts.term,its.term)) {
-      Term* s = bts.term.term();
-      Term* t = its.term.term();
-      ASS(s->arity() > 0);
-
-      bt = s->args();
-      it = t->args();
+  auto dealWithSpec = [&](VarSpec spec, TermSpec term, bool instance){
+    auto binding = _bank.find(spec);
+    if(binding) {
+      TermSpec t = binding.unwrap();
+      todo->push(instance ? TTPair(term,t) : TTPair(t,term));
     } else {
-      if (! TermList::sameTopFunctor(bts.term,its.term)) {
-	if(bts.term.isSpecialVar()) {
-	  VarSpec bvs(bts.term.var(), SPECIAL_INDEX);
-	  if(_bank.find(bvs, binding1)) {
-	    ASS_EQ(binding1.index, base.index);
-	    bt=&binding1.term;
-	    continue;
-	  } else {
-	    bind(bvs,its);
-	  }
-	} else if(its.term.isSpecialVar()) {
-	  VarSpec ivs(its.term.var(), SPECIAL_INDEX);
-	  if(_bank.find(ivs, binding2)) {
-	    ASS_EQ(binding2.index, instance.index);
-	    it=&binding2.term;
-	    continue;
-	  } else {
-	    bind(ivs,bts);
-	  }
-	} else if(bts.term.isOrdinaryVar()) {
-	  VarSpec bvs(bts.term.var(), bts.index);
-	  if(_bank.find(bvs, binding1)) {
-	    ASS_EQ(binding1.index, instance.index);
-	    if(!TermList::equals(binding1.term, its.term))
-	    {
-	      mismatch=true;
-	      break;
-	    }
-	  } else {
-	    bind(bvs,its);
-	  }
-	} else {
-	  mismatch=true;
-	  break;
-	}
-      }
+      bind(spec, term);
+    }
+  };
 
-      if (subterms.isEmpty()) {
-	break;
+  auto canCompare = [](TermSpec t)
+  { return !t.term.isSpecialVar() && (t.isVar() || t.term.term()->shared()); };
+
+  // Iteratively resolve matching pairs in todo
+  while (todo->isNonEmpty()) {
+    auto x = todo->pop();
+    TermSpec bt = x.first;
+    TermSpec it = x.second;
+    DEBUG_MATCH(1, "next pair: ", tie(bt, it))
+
+    if(!quickTests(bt.term,it.term)){
+      DEBUG_MATCH(1, "Rejected by quick tests")
+      mismatch = true;
+      break;
+    }
+
+    if(bt.term.isSpecialVar()) {
+      dealWithSpec(getVarSpec(bt), it, /* instance */ false);
+    } else if(it.term.isSpecialVar()) {
+      dealWithSpec(getVarSpec(it), bt, /* instance */ true);
+    } else if(canBind(bt)) {
+      auto binding = _bank.find(getVarSpec(bt));
+
+      if(binding) {
+        auto b = binding.unwrap();
+        if(canCompare(b) && canCompare(it))
+        {
+          if(b != it){
+            mismatch=true;
+            break;
+          }
+        } else {
+          todo->push(TTPair(b,it));
+        }
+      } else {
+        bind(getVarSpec(bt), it);
       }
-      bt = subterms.pop();
-      it = subterms.pop();
+    } else if (it.isVar() || bt.isVar()) {
+      ASS(!canBind(it) && !canBind(bt));
+      mismatch=true;
+      break;
+    } else if (bt.term.term()->functor() == it.term.term()->functor()) {
+      for (unsigned i = 0; i < bt.term.term()->arity(); i++) {
+        todo->push(TTPair(bt.nthArg(i), it.nthArg(i)));
+      }
+    } else {
+      mismatch = true;
+      break;
     }
-    if (!bt->next()->isEmpty()) {
-      subterms.push(it->next());
-      subterms.push(bt->next());
-    }
+
+    ASS(!mismatch)
+  }
+
+  if(mismatch) {
+    todo->reset();
   }
 
   bdDone();
-
-  subterms.reset();
-
 
   if(mismatch) {
     localBD.backtrack();
@@ -579,6 +588,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 
   return !mismatch;
 }
+
 
 
 Literal* RobSubstitution::apply(Literal* lit, int index) const
@@ -608,8 +618,8 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 {
   CALL("RobSubstitution::apply(TermList...)");
 
-  static Stack<TermList*> toDo(8);
-  static Stack<int> toDoIndex(8);
+  static Stack<TermList*> todo(8);
+  static Stack<int> todoIndex(8);
   static Stack<Term*> terms(8);
   static Stack<VarSpec> termRefVars(8);
   static Stack<TermList> args(8);
@@ -619,12 +629,12 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   //term in terms isn't referenced by any variable
   const VarSpec nilVS(-1,0);
 
-  toDo.push(&trm);
-  toDoIndex.push(index);
+  todo.push(&trm);
+  todoIndex.push(index);
 
-  while(!toDo.isEmpty()) {
-    TermList* tt=toDo.pop();
-    index=toDoIndex.pop();
+  while(!todo.isEmpty()) {
+    TermList* tt=todo.pop();
+    index=todoIndex.pop();
     if(tt->isEmpty()) {
       Term* orig=terms.pop();
       //here we assume, that stack is an array with
@@ -649,8 +659,8 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       //if tt==&trm, we're dealing with the top
       //term, for which the next() is undefined
       if(tt!=&trm) {
-        toDo.push(tt->next());
-        toDoIndex.push(index);
+        todo.push(tt->next());
+        todoIndex.push(index);
       }
     }
 
@@ -688,10 +698,10 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     terms.push(t);
     termRefVars.push(vs);
 
-    toDo.push(t->args());
-    toDoIndex.push(ts.index);
+    todo.push(t->args());
+    todoIndex.push(ts.index);
   }
-  ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
+  ASS(todo.isEmpty() && todoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
   known.reset();
 
 
@@ -702,8 +712,8 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 {
   CALL("RobSubstitution::getApplicationResultWeight");
 
-  static Stack<TermList*> toDo(8);
-  static Stack<int> toDoIndex(8);
+  static Stack<TermList*> todo(8);
+  static Stack<int> todoIndex(8);
   static Stack<Term*> terms(8);
   static Stack<VarSpec> termRefVars(8);
   static Stack<size_t> argSizes(8);
@@ -715,12 +725,12 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
   //term in terms isn't referenced by any variable
   const VarSpec nilVS(-1,0);
 
-  toDo.push(&trm);
-  toDoIndex.push(index);
+  todo.push(&trm);
+  todoIndex.push(index);
 
-  while(!toDo.isEmpty()) {
-    TermList* tt=toDo.pop();
-    index=toDoIndex.pop();
+  while(!todo.isEmpty()) {
+    TermList* tt=todo.pop();
+    index=todoIndex.pop();
     if(tt->isEmpty()) {
       Term* orig=terms.pop();
       unsigned arity = orig->arity();
@@ -744,8 +754,8 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
       //if tt==&trm, we're dealing with the top
       //term, for which the next() is undefined
       if(tt!=&trm) {
-        toDo.push(tt->next());
-        toDoIndex.push(index);
+        todo.push(tt->next());
+        todoIndex.push(index);
       }
     }
 
@@ -783,10 +793,10 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
     terms.push(t);
     termRefVars.push(vs);
 
-    toDo.push(t->args());
-    toDoIndex.push(ts.index);
+    todo.push(t->args());
+    todoIndex.push(ts.index);
   }
-  ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && argSizes.length()==1);
+  ASS(todo.isEmpty() && todoIndex.isEmpty() && terms.isEmpty() && argSizes.length()==1);
   return argSizes.pop();
 }
 

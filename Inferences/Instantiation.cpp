@@ -235,7 +235,7 @@ public:
     CALL("Instantiation::AllSubstitutionsIterator");
     DHMap<unsigned,TermList> sortedVars;
     SortHelper::collectVariableSorts(cl,sortedVars);
-    VirtualIterator<std::pair<unsigned,TermList>> it = sortedVars.items();
+    auto it = sortedVars.items();
 
     while(it.hasNext()){
        std::pair<unsigned,TermList> item = it.next();
