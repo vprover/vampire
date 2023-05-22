@@ -486,7 +486,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 {
   CALL("RobSubstitution::match(TermSpec...)");
 
-#define DEBUG_MATCH(lvl, ...) if (lvl < 2) DBG("match: ", __VA_ARGS__)
+#define DEBUG_MATCH(lvl, ...) if (lvl < 0) DBG("match: ", __VA_ARGS__)
 
   if(base.sameTermContent(instance)) { return true; }
 
@@ -497,10 +497,22 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   Recycled<Stack<TTPair>> todo;
   todo->push(TTPair(base, instance));
 
-  auto quickTests = [](TermList bt, TermList it){
-    if(bt.isTerm() && bt.term()->shared() && it.isTerm() && it.term()->shared()){
-      if(bt.term()->ground()){ return bt == it; }
-      return bt.term()->weight() <= it.term()->weight();
+  auto weightCheck = [](TermSpec bt, TermSpec it){
+    auto weight = [](TermSpec t) -> Option<unsigned> {
+      if (t.term.isVar() && !t.isSpecialVar()) {
+        return someIf(!t.isSpecialVar(), [](){ return 1u; });
+      } else if (t.term.isTerm()) {
+        auto trm = t.term.term();
+        return someIf(trm->shared(), [&]() { return trm->weight(); });
+      } else {
+        return {};
+      }
+    };
+    auto wb = weight(bt);
+    auto wi = weight(it);
+    if(wb.isSome() && wi.isSome()){
+      // if(bt.term()->ground()){ return bt == it; }
+      return *wb <= *wi;
     }
     return true;
   };
@@ -509,6 +521,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   { return t.isVar() && t.index == base.index; };
 
   auto dealWithSpec = [&](VarSpec spec, TermSpec term, bool instance){
+    ASS(term.isSpecialVar())
     auto binding = _bank.find(spec);
     if(binding) {
       TermSpec t = binding.unwrap();
@@ -528,8 +541,10 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
     TermSpec it = x.second;
     DEBUG_MATCH(1, "next pair: ", tie(bt, it))
 
-    if(!quickTests(bt.term,it.term)){
-      DEBUG_MATCH(1, "Rejected by quick tests")
+    if (bt.sameTermContent(it)) continue;
+
+    if(!weightCheck(bt,it)){
+      DEBUG_MATCH(1, "Rejected by weight test")
       mismatch = true;
       break;
     }
@@ -538,7 +553,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
       dealWithSpec(getVarSpec(bt), it, /* instance */ false);
     } else if(it.term.isSpecialVar()) {
       dealWithSpec(getVarSpec(it), bt, /* instance */ true);
-    } else if(canBind(bt)) {
+    } else if(canBind(bt) && !bt.term.isSpecialVar()) {
       auto binding = _bank.find(getVarSpec(bt));
 
       if(binding) {
@@ -564,6 +579,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
         todo->push(TTPair(bt.nthArg(i), it.nthArg(i)));
       }
     } else {
+      ASS(!bt.isVar())
       mismatch = true;
       break;
     }

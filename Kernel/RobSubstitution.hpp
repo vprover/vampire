@@ -128,6 +128,9 @@ public:
     /** index of variable bank */
     int index;
 
+    bool isSpecialVar() const
+    { return index == SPECIAL_INDEX; }
+
     /** struct containing first hash function for DHMap object storing variable banks */
     struct Hash1
     {
@@ -187,6 +190,10 @@ public:
 
     TermSpec nthArg(unsigned i) const
     { return TermSpec(*term.term()->nthArgument(i), index); }
+
+    bool isSpecialVar()
+    { return term.isSpecialVar(); }
+
 
     bool isVSpecialVar()
     {
