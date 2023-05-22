@@ -47,7 +47,7 @@ Term* getPlaceholderForTerm(Term* t)
 {
   CALL("getPlaceholderForTerm");
   static DHMap<TermList,Term*> placeholders;
-  TermList srt = env.signature->getFunction(t->functor())->fnType()->result();
+  TermList srt = SortHelper::getResultSort(t);
   if(!placeholders.find(srt)){
     unsigned fresh = env.signature->addFreshFunction(0,(srt.toString() + "_placeholder").c_str());
     env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
@@ -414,7 +414,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         Term* ts = it.next();
         unsigned f = ts->functor(); 
         if(InductionHelper::isInductionTermFunctor(f)){
-          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionFunctor(f)){
+          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(ts)){
+
             ta_terms.insert(ts);
           }
           if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(ts, lit)){
@@ -1032,8 +1033,9 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
 {
   CALL("InductionClauseIterator::performStructInductionOne"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
-  TermList ta_sort = ta->sort();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  unsigned numTypeArgs = sort.term()->arity();
 
   FormulaList* formulas = FormulaList::empty();
 
@@ -1043,12 +1045,13 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
   for(unsigned i=0;i<ta->nConstructors();i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
-      Stack<TermList> argTerms;
-      Stack<TermList> ta_vars;
-      for(unsigned j=0;j<arity;j++){
+      TermStack argTerms(arity);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
+      TermStack ta_vars;
+      for(unsigned j=numTypeArgs;j<arity;j++){
         TermList x(var,false);
         var++;
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           ta_vars.push(x);
         }
         argTerms.push(x);
@@ -1057,7 +1060,7 @@ void InductionClauseIterator::performStructInductionOne(const InductionContext& 
       auto right = context.getFormulaWithSquashedSkolems(
         TermList(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin())), true, var);
       FormulaList* args = FormulaList::empty();
-      Stack<TermList>::Iterator tvit(ta_vars);
+      TermStack::Iterator tvit(ta_vars);
       while(tvit.hasNext()){
         auto hypVars = VList::empty();
         auto hyp = context.getFormulaWithSquashedSkolems(tvit.next(),true,var,&hypVars);
@@ -1091,8 +1094,9 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
 {
   CALL("InductionClauseIterator::performStructInductionTwo"); 
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
-  TermList ta_sort = ta->sort();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  unsigned numTypeArgs = sort.term()->arity();
 
   // make L[y]
   TermList y(0,false); 
@@ -1112,22 +1116,26 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
     if(con->recursive()){
   
       // First generate all argTerms and remember those that are of sort ta_sort 
-      Stack<TermList> argTerms;
-      Stack<TermList> taTerms; 
-      for(unsigned j=0;j<arity;j++){
-        unsigned dj = con->destructorFunctor(j);
-        TermList djy(Term::create1(dj,y));
+      TermStack argTerms(arity);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
+      TermStack taTerms;
+      for(unsigned j=numTypeArgs;j<arity;j++){
+        unsigned dj = con->destructorFunctor(j-numTypeArgs);
+        TermStack dargTerms(numTypeArgs+1);
+        dargTerms.loadFromIterator(Term::Iterator(sort.term()));
+        dargTerms.push(y);
+        TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         argTerms.push(djy);
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           taTerms.push(djy);
         }
       }
       ASS(taTerms.isNonEmpty());
       // create y = con1(...d1(y)...d2(y)...)
       TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
-      Literal* kneq = Literal::createEquality(true,y,coni,ta_sort);
+      Literal* kneq = Literal::createEquality(true,y,coni,con->rangeSort());
       FormulaList* And = FormulaList::empty(); 
-      Stack<TermList>::Iterator tit(taTerms);
+      TermStack::Iterator tit(taTerms);
       while(tit.hasNext()){
         TermList djy = tit.next();
         auto hypVars = VList::empty();
@@ -1172,8 +1180,9 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 {
   CALL("InductionClauseIterator::performStructInductionThree");
 
-  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(env.signature->getFunction(context._indTerm->functor())->fnType()->result());
-  TermList ta_sort = ta->sort();
+  TermList sort = SortHelper::getResultSort(context._indTerm);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+  unsigned numTypeArgs = sort.term()->arity();
 
   // make L[y]
   TermList x(0,false); 
@@ -1186,7 +1195,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
   // make smallerThanY
   unsigned sty = env.signature->addFreshPredicate(1,"smallerThan");
-  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType({ta_sort}));
+  env.signature->getPredicate(sty)->setType(OperatorType::getPredicateType({sort}));
 
   // make ( y = con_i(..dec(y)..) -> smaller(dec(y)))  for each constructor 
   FormulaList* conjunction = FormulaList::singleton(Ly);
@@ -1196,17 +1205,22 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
     if(con->recursive()){
       // First generate all argTerms and remember those that are of sort ta_sort 
-      Stack<TermList> argTerms;
-      Stack<TermList> taTerms; 
+      TermStack argTerms(arity);
+      argTerms.loadFromIterator(Term::Iterator(sort.term()));
+      TermStack taTerms;
       Stack<unsigned> ta_vars;
-      Stack<TermList> varTerms;
-      for(unsigned j=0;j<arity;j++){
-        unsigned dj = con->destructorFunctor(j);
-        TermList djy(Term::create1(dj,y));
+      TermStack varTerms(arity);
+      varTerms.loadFromIterator(Term::Iterator(sort.term()));
+      for(unsigned j=numTypeArgs;j<arity;j++){
+        unsigned dj = con->destructorFunctor(j-numTypeArgs);
+        TermStack dargTerms(numTypeArgs+1);
+        dargTerms.loadFromIterator(Term::Iterator(sort.term()));
+        dargTerms.push(y);
+        TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         argTerms.push(djy);
         TermList xj(vars,false);
         varTerms.push(xj);
-        if(con->argSort(j) == ta_sort){
+        if(con->argSort(j) == con->rangeSort()){
           taTerms.push(djy);
           ta_vars.push(vars);
         }
@@ -1214,7 +1228,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
       }
       // create y = con1(...d1(y)...d2(y)...)
       TermList coni(Term::create(con->functor(),(unsigned)argTerms.size(), argTerms.begin()));
-      Literal* kneq = Literal::createEquality(true,y,coni,ta_sort);
+      Literal* kneq = Literal::createEquality(true,y,coni,sort);
 
       // create smaller(cons(x1,..,xn))
       Formula* smaller_coni = new AtomicFormula(Literal::create1(sty,true,
@@ -1231,7 +1245,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 
       // now create a conjunction of smaller(d(y)) for each d
       FormulaList* And = FormulaList::empty(); 
-      Stack<TermList>::Iterator tit(taTerms);
+      TermStack::Iterator tit(taTerms);
       while(tit.hasNext()){
         Formula* f = new AtomicFormula(Literal::create1(sty,true,tit.next()));
         FormulaList::push(f,And);
