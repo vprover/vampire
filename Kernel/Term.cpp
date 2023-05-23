@@ -1184,13 +1184,14 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
     }
   };
 
-  auto findVar = [](int index, IndexVarStack& st){
+  auto findVar = [](int index, IndexVarStack& st, unsigned& var){
     for(unsigned i=0; i < st.size(); i++){
       if(st[i].first == index){
-        return st[i].second;
+        var = st[i].second;
+        return true;
       }
     }
-    ASSERTION_VIOLATION;
+    return false;
   };
 
   ASS(!isLiteral());
@@ -1256,8 +1257,12 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
     return res;
   }
   if(deBruijnIndex().isSome() && !db){
-    unsigned var = findVar(deBruijnIndex().unwrap(), st);
-    return (pretty ? "y" : "Y") + Int::toString(var);
+    unsigned var;
+    if(findVar(deBruijnIndex().unwrap(), st, var)){
+      return (pretty ? "y" : "Y") + Int::toString(var);
+    } else {
+      return "db" + Int::toString(deBruijnIndex().unwrap());
+    }
   }
 
   TermList head;
@@ -2355,17 +2360,13 @@ bool Literal::isFlexRigid() const
   CALL("Literal::isFlexRigid");
   ASS(isEquality());
  
-  auto check = [](TermList head1, TermList term1, TermList head2){
-    // only one side has a variable head, and that side isn't a variable
-    return head1.isVar() && !term1.isVar() && !head2.isVar();
-  };   
-
   TermList lhs = *nthArgument(0);
   TermList rhs = *nthArgument(1);
   TermList lhsHead = lhs.head();
   TermList rhsHead = rhs.head();
   
-  return check(lhsHead, lhs, rhsHead) || check(rhsHead, rhs, lhsHead);
+  return (lhsHead.isVar() && !rhsHead.isVar()) ||
+         (rhsHead.isVar() && !lhsHead.isVar());
 }
 
 bool Literal::isRigidRigid() const
@@ -2375,7 +2376,7 @@ bool Literal::isRigidRigid() const
  
   TermList lhs = *nthArgument(0);
   TermList rhs = *nthArgument(1);
-  return !polarity() && lhs.head().isTerm() && rhs.head().isTerm();
+  return lhs.head().isTerm() && rhs.head().isTerm();
 }
 
 #endif

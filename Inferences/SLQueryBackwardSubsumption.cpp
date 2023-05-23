@@ -115,7 +115,12 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   }
 
   if(clen==1) {
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
+    SLQueryResultIterator rit=
+#if VHOL
+    env.property->higherOrder() ?
+      _index->getHOLInstances( (*cl)[0], false, false) :
+#endif
+      _index->getInstances( (*cl)[0], false, false);
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),
@@ -157,7 +162,12 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
-  SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
+  SLQueryResultIterator rit=
+#if VHOL
+    env.property->higherOrder() ?
+      _index->getHOLInstances( (*cl)[lmIndex], false, false) :
+#endif
+      _index->getInstances( (*cl)[lmIndex], false, false);
   while(rit.hasNext()) {
     SLQueryResult qr=rit.next();
     Clause* icl=qr.clause;
@@ -180,9 +190,9 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
       //contain an existing literal header after the loop
       mustPred=0;
       for(unsigned bi=0;bi<clen;bi++) {
-	if(bi==lmIndex) {
-	  continue;
-	}
+        if(bi==lmIndex) {
+          continue;
+        }
         unsigned pred=(*cl)[bi]->header();
         if(pred>mustPred) {
           mustPred=pred;
@@ -193,11 +203,11 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     for(unsigned ii=0;ii<ilen;ii++) {
       Literal* l=(*icl)[ii];
       if(l==ilit) {
-	continue;
+        continue;
       }
       unsigned pred=l->header();
       if(pred==mustPred) {
-	haveMustPred=true;
+        haveMustPred=true;
       }
     }
     if(!haveMustPred) {
@@ -211,9 +221,9 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
       basePredsInit=true;
       basePreds.reset();
       for(unsigned bi=0;bi<clen;bi++) {
-	if(bi==lmIndex) {
-	  continue;
-	}
+        if(bi==lmIndex) {
+          continue;
+        }
         unsigned pred=(*cl)[bi]->header();
         basePreds.insert(pred);
       }
@@ -223,17 +233,17 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     for(unsigned ii=0;ii<ilen;ii++) {
       Literal* l=(*icl)[ii];
       if(l==ilit) {
-	continue;
+        continue;
       }
       unsigned pred=l->header();
       if(!basePreds.find(pred)) {
-	if(allowedMisses==0) {
-	  fail=true;
-	  break;
-	}
-	else {
-	  allowedMisses--;
-	}
+        if(allowedMisses==0) {
+          fail=true;
+          break;
+        }
+        else {
+          allowedMisses--;
+        }
       }
     }
     if(fail) {
@@ -247,15 +257,15 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     LiteralList::push(qr.literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-	if(bi==lmIndex && (*icl)[ii]==qr.literal) {
-	  continue;
-	}
-	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {
-	  LiteralList::push((*icl)[ii], matchedLits[bi]);
-	}
+        if(bi==lmIndex && (*icl)[ii]==qr.literal) {
+          continue;
+        }
+        if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {
+          LiteralList::push((*icl)[ii], matchedLits[bi]);
+        }
       }
       if(!matchedLits[bi]) {
-	goto match_fail;
+        goto match_fail;
       }
     }
 

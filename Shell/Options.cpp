@@ -1770,7 +1770,7 @@ void Options::init()
     _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
     _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projextions and imitations) that higher-order unification can descend to. Once limit is reached, remaining pairs are retunred as constraints.";
     _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
-    _higherOrderUnifDepth.addHardConstraint(lessThan(5u));
+    _higherOrderUnifDepth.addHardConstraint(lessThan(10u));
     _lookup.insert(&_higherOrderUnifDepth);
     _higherOrderUnifDepth.tag(OptionTag::HIGHER_ORDER);
 

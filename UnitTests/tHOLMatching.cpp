@@ -202,6 +202,7 @@ struct IndTest {
       DECL_HOL_VAR(x4, 4, arrow(arrow(srt, srt),arrow(srt,srt)))                                    \
       DECL_CONST(a,srt)                                                                             \
       DECL_CONST(b,srt)                                                                             \
+      DECL_CONST(c,srt)                                                                             \
       DECL_CONST(f,arrow(srt,srt))                                                                  \
       DECL_CONST(g,arrow(srt,srt))                                                                  \
       DECL_CONST(h,arrow(arrow(srt, srt),arrow(srt,srt)))                                           \
@@ -230,6 +231,32 @@ RUN_TEST(hol_matching_01,
           { .querySigma  = toDeBrs(lam(x1, ap(f, x1))),
             .resultSigma = toDeBrs(lam(x1, ap(f, x1))) 
           } 
+
+      },
+    })
+
+RUN_TEST(hol_matching_09,
+    HOL_SUGAR,
+    IndTest {
+      .index = getIndexTerm(),
+      .insert = {
+        ap(ap(k, ap(g, a) ), ap(g,a) ),
+        ap(ap(k, ap(g, c) ), ap(g,b) ),
+        ap(ap(k, x1 ), x1 ),
+      },
+      .query = ap(ap(k, x0 ), x0 ),
+      .instantiation = true,
+      .expected = { 
+
+          TermMatchingResultSpec 
+          { .querySigma  = ap(ap(k, ap(g, a) ), ap(g,a) ),
+            .resultSigma = ap(ap(k, ap(g, a) ), ap(g,a) )
+          } ,
+
+          TermMatchingResultSpec 
+          { .querySigma  = ap(ap(k, x1 ), x1 ),
+            .resultSigma = ap(ap(k, x1 ), x1 )
+          }           
 
       },
     })

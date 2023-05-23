@@ -788,10 +788,15 @@ TEST_FUN(higher_order2)
   DECL_SORT(srt) 
 
   DECL_CONST(a, srt)
-  DECL_HOL_VAR(x, 0, arrow(srt, srt))
-  DECL_HOL_VAR(x2, 1, arrow(srt, arrow(srt, srt))) 
-  DECL_HOL_VAR(x3, 2, srt)
+  DECL_HOL_VAR(x, 9, arrow(srt, srt))
+  DECL_HOL_VAR(x2, 10, arrow(srt, arrow(srt, srt))) 
+  DECL_HOL_VAR(x3, 11, srt)
   DECL_HOL_VAR(z, 3, srt)
+  DECL_HOL_VAR(x4, 0, srt)
+  DECL_HOL_VAR(x5, 1,  arrow(srt, srt))
+  DECL_HOL_VAR(x6, 2,  srt)
+  DECL_HOL_VAR(x7, 3, arrow(srt, arrow(srt, srt))) 
+  DECL_HOL_VAR(x8, 4, srt)
 
   index->insert(ap(x, a), 0, 0);
 
@@ -817,14 +822,14 @@ TEST_FUN(higher_order2)
   checkHigherOrderTermMatches(*index, x3, Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
-        { .querySigma  = ap(ap(x2, a), x3),
-          .resultSigma = ap(ap(x2, a), x3),
-          .constraints = Stack<Literal*>{} }, 
+        { .querySigma  = x6,
+          .resultSigma = ap(ap(x7, a), x8),
+          .constraints = {x6 != ap(ap(x7, a), x8)} }, 
 
         TermUnificationResultSpec 
-        { .querySigma  = ap(x,a),
-          .resultSigma = ap(x,a),
-          .constraints = Stack<Literal*>{ } }, 
+        { .querySigma  = x4,
+          .resultSigma = ap(x5,a),
+          .constraints = {x4 != ap(x5,a) } }, 
 
       });
 

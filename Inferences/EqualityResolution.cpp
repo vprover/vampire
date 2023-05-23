@@ -61,7 +61,8 @@ struct EqualityResolution::IsNegativeEqualityFn
 #if VHOL
         // no point trying to resolve two terms of functional sort
         // instead, let negExt grow both sides and then resolve...
-        && !SortHelper::getEqualityArgumentSort(l).isArrowSort();
+        // for first part of condition see comments in NegExt and ImitateProject
+        && (l->isFlexRigid() || !SortHelper::getEqualityArgumentSort(l).isArrowSort())
 #endif
     ; 
   }
@@ -91,15 +92,28 @@ struct EqualityResolution::ResultFn
     ASS(lit->isNegative());
 
     Recycled<RobSubstitutionTL> sub;
+    sub->reset();    
     Recycled<ClauseStack> results;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    auto substs = _algo.unifiers(arg0, arg1, &*sub, /* no top level constraints */ true);
+    bool check = true;
+#if VHOL
+    if(env.property->higherOrder()){
+      ASS(!lit->isFlexFlex()); // should never select flex flex literals
+      unsigned depth = env.options->higherOrderUnifDepth();
+      check = check && (depth == 0 || !lit->isFlexRigid());
+    }
+#endif
+
+    auto substs = _algo.unifiers(arg0, arg1, &*sub, /* no top level constraints */ check);
 
     while(substs.hasNext()){
       RobSubstitutionTL* sub = substs.next();
+
+      cout << "HERE" << endl;
+      cout << *sub << endl;
 
       auto constraints = sub->constraints();
       unsigned newLen=_cLen - 1 + constraints->length();

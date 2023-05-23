@@ -111,7 +111,7 @@ struct EqualityFactoring::ResultFn
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
     Recycled<RobSubstitutionTL> subst;
-    // TODO, do we need to reset?
+    subst->reset();
 
     if (!subst->unify(srt, SortHelper::getEqualityArgumentSort(fLit))) {
       return ClauseIterator::getEmpty();
@@ -202,10 +202,6 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 {
   CALL("EqualityFactoring::generateClauses");
 
-#if VHOL
-  static bool usingHOL = env.property->higherOrder();
-#endif
-
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
@@ -223,7 +219,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   Ordering& ord = _salg->getOrdering();
 
 #if VHOL
-  if(usingHOL){
+  if(env.property->higherOrder()){
     return pvi(getMapAndFlattenIterator(it4, ResultFn<HOLAlgo>(premise, afterCheck, ord)));
   }
 #endif

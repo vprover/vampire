@@ -42,7 +42,9 @@ namespace UnificationAlgorithms {
 
 class HOLUnification {
 
-  bool unifyFirstOrderStructure(TermList t1, TermList t2, bool splittable, RobSubstitutionTL* sub);
+  bool _funcExt;
+
+  bool unifyFirstOrderStructure(TermList t1, TermList t2, bool topLevelCon, RobSubstitutionTL* sub);
 
   // TODO if we implement solid fragment, this will not work...
   enum OracleResult
@@ -89,10 +91,17 @@ class HOLUnification {
     UnificationConstraint constraint() { return UnificationConstraint(lhs(),rhs()); }
   };
 
+  inline bool sortCheck(TermList sort, bool topLevel = false){
+    CALL("HOLUnification::sortCheck");
+    return
+      _funcExt &&
+      (sort.isOrdinaryVar() || sort.isArrowSort() || (sort.isBoolSort() && !topLevel));    
+  }
+
   class HigherOrderUnifiersIt;
 
 public:
-  HOLUnification() { }
+  HOLUnification() : _funcExt( env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) { }
 
   bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub);
   SubstIterator unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck = false);

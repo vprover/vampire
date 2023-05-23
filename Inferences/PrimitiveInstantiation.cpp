@@ -156,7 +156,6 @@ struct PrimitiveInstantiation::ResultFn
     TermStack sortsFlex; //sorts of arguments of flex head 
 
     AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
-    ASS(argsFlex.size()); // Flex side is not a variable
     AH::getArgSorts(flexTerm, sortsFlex);
 
     // if any amongst a1 ... an is of sort $o, project that 
@@ -211,7 +210,7 @@ struct PrimitiveInstantiation::ResultFn
     // bind head variable to all general bindings produced using heads in _heads
     for(unsigned i =0; i < _heads.size(); i++){
       _subst.reset();
-      unsigned fVar = _freshVar;
+      TermList fVar(_freshVar,false);
       
       bool surround = (!_heads[i].isEquals() || !include_not_eq);
       TermList gb = AH::createGeneralBinding(fVar,_heads[i],sortsFlex,surround);

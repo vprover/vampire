@@ -100,7 +100,7 @@ struct ImitateProject::ResultFn
 
 
   ResultFn(Clause* cl)
-      : _cl(cl), _cLen(cl->length()), _maxVar(cl->maxVar()) {}
+      : _cl(cl), _cLen(cl->length()), _maxVar(TermList(cl->maxVar(), false)) {}
   ClauseIterator operator() (Literal* lit)
   {
     CALL("ImitateProject::ResultFn::operator()");
@@ -128,23 +128,24 @@ struct ImitateProject::ResultFn
     }
  
     TermStack bindings;
-    AH::getProjAndImitBindings(flexTerm,rigidTerm,bindings,_maxVar);
-    ASS(bindings.size()) // must have at least an imitation binding
+    bool imitFound = AH::getProjAndImitBindings(flexTerm,rigidTerm,bindings,_maxVar);
 
     // some inefficiency below as we iterate the term twice. Once in
     // getProjAndImitBindings and again in the head() call below.
     // However, it keeps the code cleaner, and I doubt that the penalty is high
     TermList headFlex = flexTerm.head(); 
-    TermList imitpb = bindings[0];
+    if(imitFound){
+      TermList imitpb = bindings[0];
 
-    _subst.bind(headFlex.var(), imitpb);
-    Clause* res = createRes(InferenceRule::IMITATE);
+      _subst.bind(headFlex.var(), imitpb);
+      Clause* res = createRes(InferenceRule::IMITATE);
 
-    if(env.options->proofExtra()==Options::ProofExtra::FULL){
-      addProofExtraString(res, lit, headFlex, imitpb);
+      if(env.options->proofExtra()==Options::ProofExtra::FULL){
+        addProofExtraString(res, lit, headFlex, imitpb);
+      }
+
+      results.push(res);
     }
-
-    results.push(res);
 
     // projections
     for(unsigned i = 1; i < bindings.size(); i++){
@@ -169,7 +170,7 @@ private:
   Substitution _subst;
   Clause* _cl;
   unsigned _cLen;
-  unsigned _maxVar;
+  TermList _maxVar;
 };
 
 ClauseIterator ImitateProject::generateClauses(Clause* premise)

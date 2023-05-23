@@ -710,24 +710,10 @@ void ApplicativeHelper::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
 }
 
 
-void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings)
+bool ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings,
+  TermList& fVar)
 {
-  CALL("ApplicativeHelper::getProjAndImitBindings/1");
-
-  getProjAndImitBindings(flexTerm,rigidTerm,bindings,0,true);
-}
-
-void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings, unsigned freshvar)  
-{
-  CALL("ApplicativeHelper::getProjAndImitBindings/2");
-
-  getProjAndImitBindings(flexTerm,rigidTerm,bindings,freshvar,false);  
-}
-
-void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStack& bindings,
-  unsigned fVar, bool useFreshBank)
-{
-  CALL("ApplicativeHelper::getProjAndImitBindings/3");
+  CALL("ApplicativeHelper::getProjAndImitBindings");
 
   ASS(bindings.isEmpty());
 
@@ -739,15 +725,18 @@ void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigid
   TermStack sortsFlex; //sorts of arguments of flex head
 
   getHeadAndArgs(flexTerm, headFlex, argsFlex);
-  ASS(argsFlex.size()); // Flex side is not a variable
   getArgSorts(flexTerm, sortsFlex);
 
+  TermList pb;
+  TermList var = fVar;
+  bool imit = false;
   // imitation
-  TermList pb = useFreshBank ?
-    createGeneralBinding(headRigid,sortsFlex) :  
-    createGeneralBinding(fVar,headRigid,sortsFlex);
-
-  bindings.push(pb);
+  if(headRigid.deBruijnIndex().isNone()){ // cannot imitate a bound variable
+    imit = true;
+    pb = createGeneralBinding(var, headRigid, sortsFlex);
+    fVar = var.var() > fVar.var() ? var : fVar;  
+    bindings.push(pb);
+  }
 
   // projections
   for(unsigned i = 0; i < argsFlex.size(); i++){
@@ -762,36 +751,27 @@ void ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigid
 
     TermList dbi = getDeBruijnIndex(i, sortsFlex[i]);
 
-    TermList pb = useFreshBank ?
-      createGeneralBinding(dbi,sortsFlex) :    
-      createGeneralBinding(fVar,dbi,sortsFlex);
-
+    TermList pb = createGeneralBinding(fVar,dbi,sortsFlex);
+    fVar = var.var() > fVar.var() ? var : fVar;
     bindings.push(pb);
   }
 
+  return imit;
 }
 
-TermList ApplicativeHelper::createGeneralBinding(TermList head, TermStack& sorts){
-  CALL("ApplicativeHelper::createGeneralBinding/1");
-
-  return createGeneralBinding(0,head,sorts,true,true);
-}
-
-TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList head, TermStack& sorts, bool surround)
-{
-  CALL("ApplicativeHelper::createGeneralBinding/2");
-
-  return createGeneralBinding(freshVar,head,sorts,surround,false);
-}
-
-TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList head, 
-  TermStack& sorts, bool surround, bool useFreshBank){
+TermList ApplicativeHelper::createGeneralBinding(TermList& freshVar, TermList head, 
+  TermStack& sorts, bool surround){
   CALL("ApplicativeHelper::createGeneralBinding/3");
   ASS(head.isTerm()); // in the future may wish to reconsider this assertion
 
   TermStack args;
   TermStack argSorts;
   TermStack indices;    
+
+  auto getNextFreshVar = [&](){
+    freshVar = TermList(freshVar.var() + 1, freshVar.bank());
+    return freshVar; 
+  };
 
   TermList headSort = SortHelper::getResultSort(head.term());
   getArgSorts(headSort, argSorts);
@@ -801,9 +781,8 @@ TermList ApplicativeHelper::createGeneralBinding(unsigned freshVar, TermList hea
   }
 
   while(!argSorts.isEmpty()){
-    TermList fVar = useFreshBank ? TermList(freshVar++, VarBank::FRESH_BANK) : TermList(++freshVar, false);
     TermList varSort = AtomicSort::arrowSort(sorts, argSorts.pop());
-    args.push(app(varSort, fVar, indices));
+    args.push(app(varSort, getNextFreshVar(), indices));
   }
 
   TermList pb = app(head, args);

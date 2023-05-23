@@ -67,7 +67,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       }
 
       if(cl==qr.clause || cl==counterpart) {
-  continue;
+        continue;
       }
       
       Literal* rhs0 = (qr.literal==(*qr.clause)[0]) ? (*qr.clause)[1] : (*qr.clause)[0];
@@ -82,7 +82,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       Literal* rhsS = subs->applyToBoundResult(rhs);
 
       if(ordering.compare(lit, rhsS)!=Ordering::GREATER) {
-  continue;
+        continue;
       }
 
       Clause* premise=lit->isNegative() ? qr.clause : counterpart;
@@ -105,10 +105,10 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 
       unsigned next=1;
       for(unsigned i=0;i<clen;i++) {
-  Literal* curr=(*cl)[i];
-  if(curr!=lit) {
-    (*res)[next++] = curr;
-  }
+        Literal* curr=(*cl)[i];
+        if(curr!=lit) {
+          (*res)[next++] = curr;
+        }
       }
       ASS_EQ(next,clen);
 

@@ -228,7 +228,7 @@ public:
     _bank.reset();
     _constr->reset();
     _nextUnboundAvailable=0;
-    // reset oupt index???
+    resetOutputIndex();
   }
   
   Recycled<LiteralStack> constraints(){ return _constr->literals(*this); }
@@ -248,6 +248,7 @@ public:
   virtual TermSpecOrList getLitArg(Literal* lit, unsigned idx, VarBankOrInt bank) const = 0;
   virtual TermSpecOrList getLitSort(Literal* lit, VarBankOrInt bank) const = 0;
   virtual bool isDefault(VarBankOrInt bank) const = 0;
+  virtual void resetOutputIndex() = 0;
 
   // functions are needed by so many other classes that it is 
   // easier to just make them public rather than adding other
@@ -397,6 +398,9 @@ private:
   virtual bool isDefault(VarBank bank) const override
   { return bank == VarBank::OUTPUT_BANK; }
 
+  virtual void resetOutputIndex() override
+  { _outputIndex = VarBank::OUTPUT_BANK; }
+
   struct ToRobTermList;
 };
 
@@ -438,6 +442,9 @@ private:
 
   virtual bool isDefault(int bank) const override
   { return bank == TermSpec::UNBOUND_INDEX; }
+
+  virtual void resetOutputIndex() override
+  { _outputIndex = TermSpec::UNBOUND_INDEX; }
 
   struct ToRobTermSpec;
 };
