@@ -465,6 +465,19 @@ void Options::init()
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
     _functionDefinitionElimination.setRandomChoices({"all","none"});
 
+    _functionDefinitionIntroduction = UnsignedOptionValue(
+      "function_definition_introduction",
+      "fdi",
+      0
+    );
+    _functionDefinitionIntroduction.description =
+      "If non-zero, introduces function definitions with generalisation for repeated compound terms in the active set. "
+      "For example, if f(a, g(a)) and f(b, g(b)) occur frequently, we might define d(X) = f(X, g(X)). "
+      "The parameter value 'n' is a threshold: terms that occur more than n times have a definition created.";
+    _lookup.insert(&_functionDefinitionIntroduction);
+    _functionDefinitionIntroduction.tag(OptionTag::INFERENCES);
+    _functionDefinitionIntroduction.setRandomChoices({"0", "1", "2", "4", "8", "16", "32", "64"});
+
     _tweeGoalTransformation = ChoiceOptionValue<TweeGoalTransformation>("twee_goal_transformation",
        "tgt", TweeGoalTransformation::OFF, {"off","ground","full"});
     _tweeGoalTransformation.description =
@@ -507,6 +520,11 @@ void Options::init()
     _theoryFlattening.description = "Flatten clauses to separate theory and non-theory parts in the input. This is often quickly undone in proof search.";
     _lookup.insert(&_theoryFlattening);
     _theoryFlattening.tag(OptionTag::PREPROCESSING);
+
+    _ignoreUnrecognizedLogic = BoolOptionValue("ignore_unrecognized_logic","iul",false);
+    _ignoreUnrecognizedLogic.description = "Try proof search anyways, if vampire would throw an \"unrecognized logic\" error otherwise.";
+    _lookup.insert(&_ignoreUnrecognizedLogic);
+    _ignoreUnrecognizedLogic.tag(OptionTag::INPUT);
 
     _sineDepth = UnsignedOptionValue("sine_depth","sd",0);
     _sineDepth.description=

@@ -31,7 +31,6 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/TermList.hpp"
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"

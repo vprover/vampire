@@ -17,7 +17,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -199,14 +199,7 @@ class SubtermIterator
 public:
   SubtermIterator(const Term* term) : _used(false)
   {
-    Recycler::get(_stack);
-    _stack->reset();
-
     pushNext(term->args());
-  }
-  ~SubtermIterator()
-  {
-    Recycler::release(_stack);
   }
 
   bool hasNext();
@@ -226,10 +219,7 @@ public:
   void right();
 protected:
   SubtermIterator() : _used(false)
-  {
-    Recycler::get(_stack);
-    _stack->reset();
-  }
+  { }
 
   inline
   void pushNext(const TermList* t)
@@ -239,7 +229,7 @@ protected:
     }
   }
 
-  Stack<const TermList*>* _stack;
+  Recycled<Stack<const TermList*>> _stack;
   bool _used;
 };
 
@@ -365,15 +355,14 @@ private:
 
 
 class RewritableVarsIt
-  : public IteratorCore<TermList>
 {
 public: //includeSelf for compatibility
-  RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) : _stack(8)
+  DECL_ELEMENT_TYPE(TypedTermList);
+  RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) :  _next(), _stack(8)
   {
     CALL("RewritableVarsIt");
 
     _unstableVars = unstableVars;
-    _next.makeEmpty();
     if(t->isLiteral()){
       TermList t0 = *t->nthArgument(0);
       TermList t1 = *t->nthArgument(1);
@@ -392,15 +381,13 @@ public: //includeSelf for compatibility
   }
 
   bool hasNext();
-  TermList next(){
-    ASS(!_next.isEmpty());
-    ASS(_next.isVar());
-    TermList res = _next;
-    _next.makeEmpty();
-    return res;
+  TypedTermList next(){
+    ASS(_next.isSome());
+    ASS(_next->isVar());
+    return *_next.take();
   }
 private:
-  TermList _next;
+  Option<TypedTermList> _next;
   Stack<TermList> _stack;
   Stack<TermList> _sorts;
   DHSet<unsigned>* _unstableVars;
@@ -441,7 +428,7 @@ private:
 };
 
 class FirstOrderSubtermIt
-: public IteratorCore<TermList>
+: public IteratorCore<Term*>
 {
 public:
   FirstOrderSubtermIt(Term* term, bool includeSelf=false) 
@@ -462,7 +449,7 @@ public:
   }
 
   bool hasNext(){ return !_stack.isEmpty(); }
-  TermList next();
+  Term* next();
   void right();
 
 private:
@@ -665,7 +652,7 @@ private:
  *     another
  */
 class NonVariableNonTypeIterator
-  : public IteratorCore<TermList>
+  : public IteratorCore<Term*>
 {
 public:
   NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
@@ -686,7 +673,7 @@ public:
 
   /** true if there exists at least one subterm */
   bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
+  Term* next();
   void right();
 private:
   /** available non-variable subterms */
@@ -852,26 +839,35 @@ class LiteralArgIterator
   Literal* _lit;
   unsigned _idx;
 public:
-  DECL_ELEMENT_TYPE(TermList);
+  DECL_ELEMENT_TYPE(TypedTermList);
 
   LiteralArgIterator(Literal* lit) : _lit(lit), _idx(0) {}
 
   inline bool hasNext() const { return _idx < _lit->arity(); }
-  inline TermList next() { return *_lit->nthArgument(_idx++); }
+  inline TermList next() { return TypedTermList(*_lit->nthArgument(_idx), SortHelper::getArgSort(_lit, _idx)); _idx++; }
   unsigned size() const { return _lit->arity(); }
 };
 
+
+/** iterator over all term arguments of @code term */
 static const auto termArgIter = [](Term* term) 
   { return iterTraits(getRangeIterator<unsigned>(0, term->numTermArguments()))
       .map([=](auto i)
            { return term->termArg(i); }); };
 
+/** iterator over all type arguments of @code term */
 static const auto typeArgIter = [](Term* term) 
   { return iterTraits(getRangeIterator<unsigned>(0, term->numTypeArguments()))
       .map([=](auto i)
            { return term->typeArg(i); }); };
 
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIter = [](Term* term) 
+  { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
+      .map([=](auto i)
+           { return *term->nthArgument(i); }); };
 
-}
+
+} // namespace Kernel
 
 #endif // __TermIterators__

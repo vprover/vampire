@@ -685,6 +685,20 @@ public:
     Node* _cur;
   };
 
+  friend std::ostream& operator<<(std::ostream& out, SkipList const& self)
+  { 
+    PtrIterator iter(self);
+    out << "[";
+    if (iter.hasNext()) {
+      out << " " << *iter.next();
+      while (iter.hasNext()) {
+        out << ", " << *iter.next();
+      }
+    }
+    out << " ]";
+    return out; 
+  }
+
 
 }; // class SkipList
 

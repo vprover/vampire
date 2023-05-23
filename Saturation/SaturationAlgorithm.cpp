@@ -91,6 +91,7 @@
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
+#include "Inferences/DefinitionIntroduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1546,6 +1547,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
+
+  if(opt.functionDefinitionIntroduction())
+    gie->addFront(new DefinitionIntroduction);
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){

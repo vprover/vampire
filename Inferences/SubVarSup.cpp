@@ -83,11 +83,11 @@ void SubVarSup::detach()
 struct SubVarSup::RewritableResultsFn
 {
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
   {
     CALL("SubVarSup::RewritableResultsFn()");
 
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubstitutions */ true)) );
   }
 private:
   SubVarSupSubtermIndex* _index;
@@ -99,11 +99,10 @@ struct SubVarSup::RewriteableSubtermsFn
     prem->collectUnstableVars(_unstableVars);
   }
 
-  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, TypedTermList> > operator()(Literal* lit)
   {
     CALL("SubVarSup::RewriteableSubtermsFn()");
-    TermIterator it =  EqHelper::getRewritableVarsIterator(&_unstableVars, lit, _ord);
-    return pvi( pushPairIntoRightIterator(lit, it) );
+    return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableVarsIterator(&_unstableVars, lit, _ord)) );
   }
 
 private:
@@ -114,13 +113,11 @@ private:
 struct SubVarSup::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
   {
     CALL("SubVarSup::ApplicableRewritesFn()");
 
-    //get everything in the tree
-    //false means dont use substitution
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, false)) );
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubst */ false)) );
   }
 private:
   SubVarSupLHSIndex* _index;
@@ -240,7 +237,7 @@ Clause* SubVarSup::performSubVarSup(
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLitS, eqLHSS);
 
-  TermList varSort = SortHelper::getTermSort(rwTermS, rwLitS); 
+  auto varSort = SortHelper::getEqualityArgumentSort(eqLitS);
   TermList eqSort = SortHelper::getEqualityArgumentSort(eqLitS);
   
   TermList newEqLHS = ApplicativeHelper::createAppTerm(eqSort, varSort, freshVarS, eqLHSS);
