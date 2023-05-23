@@ -583,7 +583,7 @@ void Preprocess::naming(Problem& prb)
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* v = naming.apply(fu,defs);
     if (v != fu) {
-      ASS(defs || env.options->definitionReuse());
+      ASS(defs);
       us.insert(defs);
       us.replace(v);
     }

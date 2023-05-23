@@ -478,21 +478,6 @@ void Options::init()
     _functionDefinitionIntroduction.tag(OptionTag::INFERENCES);
     _functionDefinitionIntroduction.setRandomChoices({"0", "1", "2", "4", "8", "16", "32", "64"});
 
-    _skolemReuse = BoolOptionValue("skolem_reuse", "skr", false);
-    _skolemReuse.description =
-      "Attempt to reuse Skolem symbols.\n"
-      "Symbols are re-used if they represent identical formulae up to renaming.";
-    _skolemReuse.addProblemConstraint(hasFormulas());
-    _lookup.insert(&_skolemReuse);
-    _skolemReuse.tag(OptionTag::PREPROCESSING);
-
-    _definitionReuse = BoolOptionValue("definition_reuse", "dr", false);
-    _definitionReuse.description =
-      "Reuse definition symbols in a similar fashion to Skolem reuse.";
-    _lookup.insert(&_definitionReuse);
-    _definitionReuse.addProblemConstraint(hasFormulas());
-    _definitionReuse.tag(OptionTag::PREPROCESSING);
-
     _tweeGoalTransformation = ChoiceOptionValue<TweeGoalTransformation>("twee_goal_transformation",
        "tgt", TweeGoalTransformation::OFF, {"off","ground","full"});
     _tweeGoalTransformation.description =

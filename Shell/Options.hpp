@@ -2295,8 +2295,6 @@ public:
 
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   unsigned functionDefinitionIntroduction() const { return _functionDefinitionIntroduction.actualValue; }
-  bool skolemReuse() const { return _skolemReuse.actualValue; }
-  bool definitionReuse() const { return _definitionReuse.actualValue; }
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
@@ -2611,8 +2609,6 @@ private:
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;
-  BoolOptionValue _skolemReuse;
-  BoolOptionValue _definitionReuse;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
   
   BoolOptionValue _generalSplitting;
