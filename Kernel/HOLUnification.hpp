@@ -56,9 +56,9 @@ class HOLUnification {
 
   static OracleResult fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub);
 
-  using UnificationConstraint = UnificationConstraint<TermList,VarBank>;
+  using UnifConstraint = UnificationConstraint<TermList,VarBank>;
 
-  class HOLConstraint : public UnificationConstraint
+  class HOLConstraint : public UnifConstraint
   {
   private:
     TermList _t1head;
@@ -66,7 +66,7 @@ class HOLUnification {
   public:
 
     HOLConstraint(){} // dummy constructor required for use in SkipList
-    HOLConstraint(TermList t1, TermList t2) : UnificationConstraint(t1,t2), 
+    HOLConstraint(TermList t1, TermList t2) : UnifConstraint(t1,t2), 
       _t1head(t1.head()), _t2head(t2.head()) {
       ASS(!_t1head.isLambdaTerm() && !_t2head.isLambdaTerm()); // terms must be in whnf
     }
@@ -88,7 +88,7 @@ class HOLUnification {
       return SortHelper::getResultSort(rhs().term());      
     }
 
-    UnificationConstraint constraint() { return UnificationConstraint(lhs(),rhs()); }
+    UnifConstraint constraint() { return UnifConstraint(lhs(),rhs()); }
   };
 
   inline bool sortCheck(TermList sort, bool topLevel = false){

@@ -258,7 +258,7 @@ public:
       _subst->bdRecord(bd);    
       while(!_unifPairs.isEmpty()){
         HOLConstraint con = popFromUnifPairs(bd);
-        UnificationConstraint c(con.lhs(), con.rhs());
+        UnifConstraint c(con.lhs(), con.rhs());
         _subst->pushConstraint(c);      
       }
       _subst->bdDone();
@@ -519,17 +519,17 @@ bool HOLUnification::unifyFirstOrderStructure(TermList t1, TermList t2, bool top
     if(topLevelCon) {
       // create top level constraint
       DEBUG_UNIFY(1, "Adding top level constraint")
-      sub->pushConstraint(UnificationConstraint(t1, t2));
+      sub->pushConstraint(UnifConstraint(t1, t2));
       return true;
     }
 
 
-    Recycled<Stack<UnificationConstraint>> toDo;
-    toDo->push(UnificationConstraint(t1, t2));
+    Recycled<Stack<UnifConstraint>> toDo;
+    toDo->push(UnifConstraint(t1, t2));
     
     // Save encountered unification pairs to avoid
     // recomputing their unification
-    Recycled<DHSet<UnificationConstraint>> encountered;
+    Recycled<DHSet<UnifConstraint>> encountered;
 
     auto pushTodo = [&](auto pair) {
       if (!encountered->find(pair)) {
@@ -550,13 +550,13 @@ bool HOLUnification::unifyFirstOrderStructure(TermList t1, TermList t2, bool top
         auto res = fixpointUnify(dt1, dt2, sub);
         if(res == OracleResult::FAILURE) return false;
         if(res == OracleResult::OUT_OF_FRAGMENT)
-          sub->pushConstraint(UnificationConstraint(dt1, dt2));
+          sub->pushConstraint(UnifConstraint(dt1, dt2));
 
       } else if(dt2.isVar()) {
         auto res = fixpointUnify(dt2, dt1, sub);        
         if(res == OracleResult::FAILURE) return false;
         if(res == OracleResult::OUT_OF_FRAGMENT)
-          sub->pushConstraint(UnificationConstraint(dt2, dt1));
+          sub->pushConstraint(UnifConstraint(dt2, dt1));
 
       } else if(dt1.term()->functor() == dt2.term()->functor()) {
         
@@ -569,7 +569,7 @@ bool HOLUnification::unifyFirstOrderStructure(TermList t1, TermList t2, bool top
           TermList dt1t2head = sub->derefBound(dt1t2.head());
           TermList dt2t2head = sub->derefBound(dt2t2.head());          
 
-          pushTodo(UnificationConstraint(dt1.term()->termArg(0), dt2.term()->termArg(0)));
+          pushTodo(UnifConstraint(dt1.term()->termArg(0), dt2.term()->termArg(0)));
 
           // Not sure the logic below is right. Things get very complicated because
           // the sorts can be special variables. I think what we have below is an 
@@ -577,9 +577,9 @@ bool HOLUnification::unifyFirstOrderStructure(TermList t1, TermList t2, bool top
           if(!dt1t2.isVar() && !dt2t2.isVar() &&  // if either is a variable let fixpoint unification decide whether to create a constraint or to bind
              (sortCheck(dt1s1) || dt1t2head.isVar() || dt1t2head.isLambdaTerm() ||
               sortCheck(dt2s1) || dt2t2head.isVar() || dt2t2head.isLambdaTerm() )) {
-            sub->pushConstraint(UnificationConstraint(dt1t2, dt2t2));
+            sub->pushConstraint(UnifConstraint(dt1t2, dt2t2));
           } else {
-            pushTodo(UnificationConstraint(dt1t2, dt2t2));
+            pushTodo(UnifConstraint(dt1t2, dt2t2));
           }
         } else {
           for (unsigned i = 0; i < dt1.term()->arity(); i++) {
