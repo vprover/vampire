@@ -1041,6 +1041,62 @@ TEST_FUN(higher_order8)
   });
 }
 
+TEST_FUN(higher_order9)
+{
+  env.property->forceHigherOrder();
+
+  env.options->set("pretty_hol_printing","pretty");
+  env.options->set("func_ext", "abstraction");
+  env.options->set("print_var_banks", "true");  
+  env.options->set("hol_unif_depth", "9");    
+  auto index = getHOLTermIndex();
+
+  DECL_DEFAULT_SORT_VARS  
+  DECL_SORT(srt) 
+
+  DECL_CONST(a, srt)  
+  DECL_CONST(b, srt)  
+  DECL_CONST(g, arrow(srt,arrow(srt, srt))) 
+
+  DECL_HOL_VAR(x, 10, arrow(srt,arrow(srt, srt)))
+
+  DECL_HOL_VAR(x0, 0, srt)
+  DECL_HOL_VAR(x1, 1, srt)
+  DECL_HOL_VAR(x2, 2, srt)
+  DECL_HOL_VAR(x3, 3, srt)
+
+  index->insert(ap(ap(g,a),b), 0, 0);
+
+  auto b1     = toDBs(lam(x0, lam(x1, ap(ap(g,  ap(ap(lam(x2, lam(x3, x3)), x0), x1)  ),    ap(ap(lam(x2, lam(x3, x2)), x0), x1)    )  )));
+  auto b2     = toDBs(lam(x0, lam(x1, ap(ap(g,  ap(ap(lam(x2, lam(x3, a)), x0), x1)  ),    ap(ap(lam(x2, lam(x3, x2)), x0), x1)    )  )));
+  auto b3     = toDBs(lam(x0, lam(x1, ap(ap(g,  ap(ap(lam(x2, lam(x3, x3)), x0), x1)  ),    ap(ap(lam(x2, lam(x3, b)), x0), x1)    )  )));
+  auto b4     = toDBs(lam(x0, lam(x1, ap(ap(g,  ap(ap(lam(x2, lam(x3, a)), x0), x1)  ),    ap(ap(lam(x2, lam(x3, b)), x0), x1)    )  )));
+
+  checkHigherOrderTermMatches(*index, ap(ap(x,b),a), Stack<TermUnificationResultSpec>{
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(ap(b1,b),a),
+      .resultSigma = ap(ap(g,a),b),
+      .constraints = Stack<Literal*>{ } },
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(ap(b2,b),a),
+      .resultSigma = ap(ap(g,a),b),
+      .constraints = Stack<Literal*>{ } },
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(ap(b3,b),a),
+      .resultSigma = ap(ap(g,a),b),
+      .constraints = Stack<Literal*>{ } },
+
+    TermUnificationResultSpec 
+    { .querySigma  = ap(ap(b4,b),a),
+      .resultSigma = ap(ap(g,a),b),
+      .constraints = Stack<Literal*>{ } },      
+
+  });
+}
+
 // AYB not a real test, but if run with debugging info
 // in HOLSubstitutionTree, very useful for ensuring
 // that insertions and deletions are taking place correctly

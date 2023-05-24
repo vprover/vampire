@@ -249,7 +249,8 @@ public:
 
 #if VHOL  
   bool isApplication() const;
-  bool isLambdaTerm() const;  
+  bool isLambdaTerm() const; 
+  bool isEtaExpandedVar(TermList& var) const;
   bool isRedex();
   bool isNot() const;
   bool isSigma() const;

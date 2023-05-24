@@ -516,6 +516,12 @@ bool Term::isLambdaTerm() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);    
 }
 
+bool TermList::isEtaExpandedVar(TermList& var) const {
+  CALL("TermList::isEtaExpandedVar");
+
+  return ApplicativeHelper::isEtaExpandedVar(*this, var);
+}
+
 bool TermList::isRedex() { 
   CALL("TermList::isRedex");
   

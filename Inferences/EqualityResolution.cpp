@@ -112,7 +112,6 @@ struct EqualityResolution::ResultFn
     while(substs.hasNext()){
       RobSubstitutionTL* sub = substs.next();
 
-      cout << "HERE" << endl;
       cout << *sub << endl;
 
       auto constraints = sub->constraints();

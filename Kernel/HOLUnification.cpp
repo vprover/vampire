@@ -27,6 +27,9 @@ namespace UnificationAlgorithms {
 
 class HOLUnification::HigherOrderUnifiersIt: public IteratorCore<RobSubstitutionTL*> {
 public:
+
+  using AH = ApplicativeHelper;
+
   HigherOrderUnifiersIt(RobSubstitutionTL* subst, bool funcExt) :
     _returnInitial(false),  _used(false), _depth(0), 
     _freshVar(0, VarBank::FRESH_BANK), _subst(subst){
@@ -146,22 +149,27 @@ public:
       TermList rhsHead = con.rhsHead();
  
       ASS(!lhsHead.isVar() || !rhsHead.isVar()); // otherwise we would be solved
-      
-      ApplicativeHelper::normaliseLambdaPrefixes(lhs,rhs);
- 
+      ASS(lhs.isVar() || rhs.isVar() || SortHelper::getResultSort(lhs.term()) == SortHelper::getResultSort(rhs.term()));
+
+      AH::normaliseLambdaPrefixes(lhs,rhs);    
+
       if(lhsHead == rhsHead){
         ASS(con.rigidRigid());
         // TODO deal with sorts?
 
         TermStack lhsArgs;
         TermStack rhsArgs;
-        ApplicativeHelper::getHeadAndArgs(lhs, lhsHead, lhsArgs);
-        ApplicativeHelper::getHeadAndArgs(rhs, rhsHead, rhsArgs);
+        TermStack sorts;
+        AH::getLambdaPrefSorts(lhs,sorts);
+        AH::getHeadAndArgs(lhs, lhsHead, lhsArgs);
+        AH::getHeadAndArgs(rhs, rhsHead, rhsArgs);
         ASS(lhsArgs.size() == rhsArgs.size()); // size must be same due to normalisation of prefixes above
 
         for(unsigned i = 0; i < lhsArgs.size(); i++){
           auto t1 = lhsArgs[i].whnfDeref(_subst);
-          auto t2 = rhsArgs[i].whnfDeref(_subst);          
+          if(!t1.isVar())  t1 = AH::surroundWithLambdas(t1, sorts, /* traverse stack from top */ true);
+          auto t2 = rhsArgs[i].whnfDeref(_subst);   
+          if(!t2.isVar())  t2 = AH::surroundWithLambdas(t2, sorts, true);                 
           addToUnifPairs(HOLConstraint(t1,t2), _bdStack->top());
         }
 
@@ -187,7 +195,8 @@ public:
           } else if (res == OracleResult::SUCCESS){
             tempBD.commitTo(_bdStack->top());
             tempBD.drop();
-            continue;
+            applyBindingToPairs();
+            continue; // TODO apply new binding to pairs...???
           } else {
             forward = backtrack();
             continue;
@@ -197,7 +206,14 @@ public:
           BacktrackData& bd = _bdStack->top();
           bd.addClosure([this, fv = _freshVar](){ _freshVar = fv; });
 
-          ApplicativeHelper::getProjAndImitBindings(flexTerm, rigidTerm, projAndImitBindings, _freshVar);
+          AH::getProjAndImitBindings(flexTerm, rigidTerm, projAndImitBindings, _freshVar);
+      
+          if(projAndImitBindings.isEmpty()){
+            // no bindings for this pair of terms
+            forward = backtrack();
+            continue;
+          }
+
           backtrackablePush(*_bindings,projAndImitBindings,bd);
         }
         
@@ -209,8 +225,6 @@ public:
         ASS(_bindings->top().size());
         TermList binding = _bindings->top().pop(); 
        
-       cout << "binding " << flexHead << " -> " << binding << endl;
-
         _subst->bdRecord(_bdStack->top());        
         _subst->bind(flexHead, binding);
         _subst->bdDone();
@@ -406,8 +420,11 @@ HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermLis
 {
   CALL("HOLUnification::fixpointUnify");
 
-  // TODO what about if it is an eta-expanded var? Is that possible here?
-  if(!var.isVar()) return OracleResult::OUT_OF_FRAGMENT;
+  TermList v;
+  // var can be an eta expanded var due to the normalisation of lambda prefixes
+  // that takes place in iterator above
+  if(!var.isEtaExpandedVar(v)) return OracleResult::OUT_OF_FRAGMENT;
+  var = v; // set var to its eta-reduced variant
 
   struct TermListFP {
     TermList t;

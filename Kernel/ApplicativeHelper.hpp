@@ -41,6 +41,8 @@ public:
   static TermList lambda(TermList varSort, TermList termSort, TermList term);
   static TermList lambda(TermList varSort, TermList term); 
 
+  static TermList matrix(TermList t);
+
   static TermList getDeBruijnIndex(int index, TermList sort);
 
   static TermList placeholder(TermList sort);
@@ -62,6 +64,7 @@ public:
   static TermList lhsSort(TermList t);   
   static TermList rhsSort(TermList t);   
 
+  static void getLambdaPrefSorts(TermList t, TermStack& sorts);
   static void getArgSorts(TermList t, TermStack& sorts);
   static Signature::Proxy getProxy(const TermList& t);
 
@@ -74,6 +77,7 @@ public:
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
   static bool canHeadReduce(const TermList& head, const TermStack& args);
+  static bool isEtaExpandedVar(TermList t, TermList& var);
 
   static void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
 
@@ -82,7 +86,7 @@ public:
   // if surround is set to true, the general binding is surround by n lambdas
   static TermList createGeneralBinding(TermList& freshVar, TermList head, TermStack& sorts, bool surround = true);
 
-  static TermList surroundWithLambdas(TermList t, TermStack& sorts);
+  static TermList surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop = false);
   static TermList top();
   static TermList bottom();
   static TermList conj();

@@ -108,7 +108,7 @@ bool WHNFDeref::exploreSubterms(TermList orig, TermList newTerm)
 {
   CALL("WHNFDeref::exploreSubterms");
 
-  return newTerm.isLambdaTerm() && newTerm.term()->hasRedex();
+  return newTerm.isLambdaTerm();
 }
 
 TermList EtaNormaliser::normalise(TermList t)
@@ -192,9 +192,7 @@ bool EtaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
 {
   CALL("EtaNormaliser::exploreSubterms");
 
-  while(newTerm.isLambdaTerm()){
-    newTerm = newTerm.lambdaBody();
-  }
+  newTerm = ApplicativeHelper::matrix(newTerm);
   if(newTerm.isVar() || !newTerm.term()->hasLambda()) return false;
   return true;
 }
@@ -466,6 +464,16 @@ TermList ApplicativeHelper::lambda(TermList varSort, TermList term)
   return lambda(varSort, termSort, term);
 }
 
+TermList ApplicativeHelper::matrix(TermList t)
+{
+  CALL("ApplicativeHelper::matrix");
+
+  while(t.isLambdaTerm()){
+    t = t.lambdaBody();
+  }
+  return t;
+}
+
 
 TermList ApplicativeHelper::getDeBruijnIndex(int index, TermList sort)
 {
@@ -548,9 +556,7 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
 
   if(!args.isEmpty()){ args.reset(); }
 
-  while(term.isLambdaTerm()){
-    term = term.lambdaBody();
-  }
+  term = matrix(term);
 
   while(term.isApplication()){
     args.push(term.rhs()); 
@@ -563,6 +569,17 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
   head = term;
 }
 
+void ApplicativeHelper::getLambdaPrefSorts(TermList t, TermStack& sorts)
+{
+  CALL("ApplicativeHelper::getLambdaPrefSorts");
+  
+  while(t.isLambdaTerm()){
+    sorts.push(*t.term()->nthArgument(0));
+    t = t.lambdaBody();
+  }
+
+}
+
 void ApplicativeHelper::getArgSorts(TermList t, TermStack& sorts)
 {
   CALL("ApplicativeHelper::getArgSorts");
@@ -571,6 +588,8 @@ void ApplicativeHelper::getArgSorts(TermList t, TermStack& sorts)
     sorts.push(t.domain());
     t = t.result();    
   }
+
+  t = matrix(t);
 
   while(t.isApplication()){
     sorts.push(*t.term()->nthArgument(0));
@@ -585,9 +604,7 @@ void ApplicativeHelper::getHeadAndArgs(TermList term, TermList& head, TermStack&
 
   if(!args.isEmpty()){ args.reset(); }
 
-  while(term.isLambdaTerm()){
-    term = term.lambdaBody();
-  }
+  term = matrix(term);
 
   while(term.isApplication()){
     args.push(term.rhs()); 
@@ -675,38 +692,89 @@ bool ApplicativeHelper::canHeadReduce(TermList const& head, TermStack const& arg
   return head.isLambdaTerm() && args.size();
 }
 
+bool ApplicativeHelper::isEtaExpandedVar(TermList t, TermList& var){
+  CALL("ApplicativeHelper::isEtaExpandedVar");
+
+  // TODO code sharing with Eta reducer above
+  TermList body = t;
+  unsigned l = 0; // number of lambda binders
+  while(body.isLambdaTerm()){
+    l++;
+    body = body.lambdaBody();
+  }
+  
+  unsigned n = 0; // number of De bruijn indices at end of term 
+  while(body.isApplication()){
+    auto dbIndex = body.rhs().deBruijnIndex();
+    if(!dbIndex.isSome() || dbIndex.unwrap() != n)
+    { break; }
+    body = body.lhs();
+    n++;
+  }
+
+  var = body;
+  return n == l && var.isVar();
+}
+
+
 void ApplicativeHelper::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
 {
   CALL("ApplicativeHelper::normaliseLambdaPrefixes");
 
-  auto pruneAndExpand = [](TermList& s1, TermList& s2){
-    ASS(s1.isLambdaTerm() && !s2.isLambdaTerm());
-   
-    TermList sort = SortHelper::getResultSort(s1.term());
-    int n = 0;
-    while(s1.isLambdaTerm()){
-      s1 = s1.lambdaBody();
-      n++;
-    }
-   
-    s2 = TermShifter().shift(s2,n); // shift free indices up by n
-    for(unsigned i = 0; i < n; i++){
-      s2 = app(sort,s2,getDeBruijnIndex(n - 1 - i, sort.domain()));
+  if(t1.isVar() && t2.isVar()) return;
+  TermList nonVar = t1.isVar() ? t2 : t1;
+  TermList sort = SortHelper::getResultSort(nonVar.term());
+
+  auto etaExpand = [](TermList t, TermList sort, TermStack& sorts, unsigned n, unsigned m){
+    TermStack sorts1; // sorts of new prefix
+
+    for(int i = n - 1; i >= (int)m; i--){
+      ASS(sort.isArrowSort());
+      auto s = sort.domain();
+      auto dbIndex = getDeBruijnIndex((unsigned)i,s);
+      t = app(sort, t, dbIndex);
       sort = sort.result();
+      sorts1.push(s);
     }
+
+    while(!sorts.isEmpty()){
+      t = lambda(sorts.pop(), t);
+    }
+
+    while(!sorts1.isEmpty()){
+      t = lambda(sorts1.pop(), t);
+    }
+    return t;
   };
-
-  while(t1.isLambdaTerm() && t2.isLambdaTerm()){ 
-    t1 = t1.lambdaBody();
-    t2 = t2.lambdaBody();
+ 
+  unsigned m = 0;
+  unsigned n = 0;
+  TermList t1c = t1;
+  TermList t2c = t2;
+  TermList t1s = sort;
+  TermList t2s = sort;
+  TermStack prefSorts1;
+  TermStack prefSorts2;
+  
+  while(t1c.isLambdaTerm()){
+    t1c = t1c.lambdaBody();
+    prefSorts1.push(t1s.domain());
+    t1s = t1s.result();
+    m++;
   }
 
-  if(t1.isLambdaTerm()){
-    pruneAndExpand(t1,t2);
-  } else if(t2.isLambdaTerm()){
-    pruneAndExpand(t2,t1);
+  while(t2c.isLambdaTerm()){
+    t2c = t2c.lambdaBody();
+    prefSorts2.push(t2s.domain());
+    t2s = t2s.result();    
+    n++;
   }
 
+  if(m > n)
+    t2 = etaExpand(t2c, t2s, prefSorts2, m, n);
+
+  if(n > m)
+    t1 = etaExpand(t1c, t1s, prefSorts1, n, m);
 }
 
 
@@ -718,7 +786,7 @@ bool ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigid
   ASS(bindings.isEmpty());
 
   // since term is rigid, cannot be a variable
-  TermList sort = SortHelper::getResultSort(rigidTerm.term());
+  TermList sort = SortHelper::getResultSort(matrix(rigidTerm).term()).finalResult();
   TermList headRigid = rigidTerm.head();
   TermList headFlex;
   TermStack argsFlex;
@@ -789,13 +857,17 @@ TermList ApplicativeHelper::createGeneralBinding(TermList& freshVar, TermList he
   return surround ? surroundWithLambdas(pb, sorts) : pb; 
 }
 
-TermList ApplicativeHelper::surroundWithLambdas(TermList t, TermStack& sorts)
+TermList ApplicativeHelper::surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop)
 {
   CALL("ApplicativeHelper::surroundWithLambdas");
 
   ASS(t.isTerm());
-  for(int i = 0; i < sorts.size(); i++){
-    t = lambda(sorts[i], t);
+  if(!fromTop){ // TODO fromTop is very hacky. See if can merge these two into one loop
+    for(int i = 0; i < sorts.size(); i++)
+    { t = lambda(sorts[i], t); }
+  } else {
+    for(int i = sorts.size() - 1; i >= 0; i--)
+    { t = lambda(sorts[i], t); }    
   }
   return t;  
 }
