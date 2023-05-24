@@ -105,7 +105,7 @@ class UnificationConstraint
   TermSpecOrList _t2;
 
   using Constraint = UnificationConstraint<TermSpecOrList,VarBankOrInt>;  
-  using RobSubstitution = RobSubstitution<TermSpecOrList,VarBankOrInt>;
+  using RobSubst = RobSubstitution<TermSpecOrList,VarBankOrInt>;
 public:
   // TODO get rid of default constr
   UnificationConstraint() {}
@@ -122,7 +122,7 @@ public:
   : _t1(t1), _t2(t2)
   {}
 
-  Option<Literal*> toLiteral(RobSubstitution& s);
+  Option<Literal*> toLiteral(RobSubst& s);
 
   TermSpecOrList const& lhs() const { return _t1; }
   TermSpecOrList const& rhs() const { return _t2; }
@@ -136,7 +136,7 @@ template<class TermSpecOrList, class VarBankOrInt>
 class UnificationConstraintStack
 {
   using Constraint = UnificationConstraint<TermSpecOrList,VarBankOrInt>; 
-  using RobSubstitution = RobSubstitution<TermSpecOrList,VarBankOrInt>;
+  using RobSubst = RobSubstitution<TermSpecOrList,VarBankOrInt>;
 
   Stack<Constraint> _cont;
 public:
@@ -150,9 +150,9 @@ public:
   { return iterTraits(_cont.iter()); }
 
   // only require these functions for termlists ...
-  Recycled<Stack<Literal*>> literals(RobSubstitution& s);
+  Recycled<Stack<Literal*>> literals(RobSubst& s);
 
-  auto literalIter(RobSubstitution& s)
+  auto literalIter(RobSubst& s)
   { return iterTraits(_cont.iter())
               .filterMap([&](auto& c) { return c.toLiteral(s); }); }
 

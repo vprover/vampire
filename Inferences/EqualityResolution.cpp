@@ -112,8 +112,6 @@ struct EqualityResolution::ResultFn
     while(substs.hasNext()){
       RobSubstitutionTL* sub = substs.next();
 
-      cout << *sub << endl;
-
       auto constraints = sub->constraints();
       unsigned newLen=_cLen - 1 + constraints->length();
 

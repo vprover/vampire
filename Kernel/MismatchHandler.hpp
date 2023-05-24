@@ -40,11 +40,11 @@ public:
 
   MismatchHandler(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
 
-  using UnificationConstraint = UnificationConstraint<TermList,VarBank>;
+  using UnifConstraint = UnificationConstraint<TermList,VarBank>;
 
   struct EqualIf { 
-    Recycled<Stack<UnificationConstraint>> _unify; 
-    Recycled<Stack<UnificationConstraint>> _constr; 
+    Recycled<Stack<UnifConstraint>> _unify; 
+    Recycled<Stack<UnifConstraint>> _constr; 
 
     EqualIf() : _unify(), _constr() {}
 
@@ -59,9 +59,9 @@ public:
 
 
     template<class... As>
-    EqualIf constr(UnificationConstraint constr, As... constrs) &&
+    EqualIf constr(UnifConstraint constr, As... constrs) &&
     { 
-      unsigned constexpr len = TypeList::Size<TypeList::List<UnificationConstraint, As...>>::val;
+      unsigned constexpr len = TypeList::Size<TypeList::List<UnifConstraint, As...>>::val;
       _constr->reserve(len);
       __push(*_constr, std::move(constr), std::move(constrs)...);
       return std::move(*this); 
@@ -69,9 +69,9 @@ public:
 
 
     template<class... As>
-    EqualIf unify(UnificationConstraint unify, As... unifys) &&
+    EqualIf unify(UnifConstraint unify, As... unifys) &&
     { 
-      unsigned constexpr len = TypeList::Size<TypeList::List<UnificationConstraint, As...>>::val;
+      unsigned constexpr len = TypeList::Size<TypeList::List<UnifConstraint, As...>>::val;
       _unify->reserve(len);
       __push(*_unify, std::move(unify), std::move(unifys)...);
       return std::move(*this); 
@@ -80,10 +80,10 @@ public:
     friend std::ostream& operator<<(std::ostream& out, EqualIf const& self)
     { return out << "EqualIf(unify: " << self._unify << ", constr: " << self._constr <<  ")"; }
    private:
-    void __push(Stack<UnificationConstraint>& s)
+    void __push(Stack<UnifConstraint>& s)
     {  }
     template<class... As>
-    void __push(Stack<UnificationConstraint>& s, UnificationConstraint c, As... as)
+    void __push(Stack<UnifConstraint>& s, UnifConstraint c, As... as)
     { s.push(std::move(c)); __push(s, std::move(as)...); }
   };
 

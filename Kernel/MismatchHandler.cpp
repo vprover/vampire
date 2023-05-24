@@ -169,7 +169,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubst
             }) //create non-shared? 
           .unwrap(); };
     auto diffConstr = [&]() 
-    { return UnificationConstraint(sum(diff1), sum(diff2)); };
+    { return UnifConstraint(sum(diff1), sum(diff2)); };
 
     auto functors = [](auto& diff) 
     { return arrayIter(diff).map([](auto& f) { return f.term()->functor(); }); };
@@ -182,10 +182,10 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubst
       return some(AbstractionResult(NeverEqual{}));
 
     } else if (_mode == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
-      return some(AbstractionResult(EqualIf().unify(UnificationConstraint(diff1[0], sum(diff2)))));
+      return some(AbstractionResult(EqualIf().unify(UnifConstraint(diff1[0], sum(diff2)))));
 
     } else if (_mode == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
-      return some(AbstractionResult(EqualIf().unify(UnificationConstraint(diff2[0], sum(diff1)))));
+      return some(AbstractionResult(EqualIf().unify(UnifConstraint(diff2[0], sum(diff1)))));
 
     } else if (concatIters(arrayIter(diff1), arrayIter(diff2)).any([](auto& x) { return x.isVar(); })) {
       return some(AbstractionResult(EqualIf().constr(diffConstr())));
@@ -201,7 +201,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(RobSubst
     auto abs = canAbstract(t1, t2);
     DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
-        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2)));
+        return AbstractionResult(EqualIf().constr(UnifConstraint(t1, t2)));
     });
   }
 }

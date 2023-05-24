@@ -126,7 +126,7 @@ public:
 
     _used = false;
  
-    cout << *this << endl;
+    //cout << *this << endl;
 
     // the logic here is really convoluted and should be cleaned up
     // the main complexity is due to the depth limit
@@ -415,7 +415,7 @@ bool HOLUnification::associate(unsigned specialVar, TermList node, bool splittab
 }
 
 // see E prover code by Petar /TERMS/cte_fixpoint_unif.c
-#define DEBUG_FP_UNIFY(LVL, ...) if (LVL <= 1) DBG(__VA_ARGS__)
+#define DEBUG_FP_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 HOLUnification::OracleResult HOLUnification::fixpointUnify(TermList var, TermList t, RobSubstitutionTL* sub)
 {
   CALL("HOLUnification::fixpointUnify");

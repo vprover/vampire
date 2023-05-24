@@ -60,7 +60,7 @@ UnificationConstraintStack<TermSpecOrList, VarBankOrInt>::pop(Option<BacktrackDa
 }
 
 template<class TermSpecOrList, class VarBankOrInt>
-Recycled<Stack<Literal*>> UnificationConstraintStack<TermSpecOrList, VarBankOrInt>::literals(RobSubstitution& s)
+Recycled<Stack<Literal*>> UnificationConstraintStack<TermSpecOrList, VarBankOrInt>::literals(RobSubst& s)
 { 
   Recycled<Stack<Literal*>> out;
   out->reserve(_cont.size());
@@ -69,7 +69,7 @@ Recycled<Stack<Literal*>> UnificationConstraintStack<TermSpecOrList, VarBankOrIn
 }
 
 template<class TermSpecOrList, class VarBankOrInt>
-Option<Literal*> UnificationConstraint<TermSpecOrList, VarBankOrInt>::toLiteral(RobSubstitution& s)
+Option<Literal*> UnificationConstraint<TermSpecOrList, VarBankOrInt>::toLiteral(RobSubst& s)
 { 
   auto t1 = s.apply(_t1);
   auto t2 = s.apply(_t2);
@@ -418,7 +418,7 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::match(TermSpecOrList base, T
 {
   CALL("RobSubstitution::match(TermSpec...)");
 
-#define DEBUG_MATCH(lvl, ...) if (lvl < 2) DBG("match: ", __VA_ARGS__)
+#define DEBUG_MATCH(lvl, ...) if (lvl < 0) DBG("match: ", __VA_ARGS__)
 
   if(sameTermContent(base,instance)) { return true; }
 
