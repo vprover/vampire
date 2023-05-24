@@ -1376,6 +1376,10 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
         if (kv.second == AtomicSort::superSort()) {
           return;
         }
+        if (kv.second.isTerm() && kv.second.term()->ground()) {
+          // only interested in parametric variables
+          return;
+        }
         varSorts.push(kv.second);
         args.push(TermList(kv.first,false));
       });
