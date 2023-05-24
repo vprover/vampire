@@ -844,7 +844,7 @@ TermList ApplicativeHelper::createGeneralBinding(TermList& freshVar, TermList he
   TermList headSort = SortHelper::getResultSort(head.term());
   getArgSorts(headSort, argSorts);
 
-  for(int i = 0; i < sorts.size(); i++){
+  for(unsigned i = 0; i < sorts.size(); i++){
     indices.push(getDeBruijnIndex(i, sorts[i]));
   }
 
@@ -863,7 +863,7 @@ TermList ApplicativeHelper::surroundWithLambdas(TermList t, TermStack& sorts, bo
 
   ASS(t.isTerm());
   if(!fromTop){ // TODO fromTop is very hacky. See if can merge these two into one loop
-    for(int i = 0; i < sorts.size(); i++)
+    for(unsigned i = 0; i < sorts.size(); i++)
     { t = lambda(sorts[i], t); }
   } else {
     for(int i = sorts.size() - 1; i >= 0; i--)

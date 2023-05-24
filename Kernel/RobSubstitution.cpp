@@ -552,7 +552,7 @@ Literal* RobSubstitution<TermSpecOrList, VarBankOrInt>::apply(Literal* lit, VarB
     return lit;
   }
 
-  int arity = lit->arity();
+  unsigned arity = lit->arity();
   ts.ensure(arity);
   for (unsigned i = 0; i < arity; i++) {
     ts[i]=apply(getLitArg(lit,i,bank),bank);

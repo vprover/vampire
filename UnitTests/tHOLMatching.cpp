@@ -224,7 +224,6 @@ RUN_TEST(hol_matching_01,
         toDeBrs(lam(x1, ap(f, x1))),
       },
       .query = x2,
-      .instantiation = true,
       .expected = { 
 
           TermMatchingResultSpec 
@@ -233,6 +232,7 @@ RUN_TEST(hol_matching_01,
           } 
 
       },
+      .instantiation = true,
     })
 
 RUN_TEST(hol_matching_09,
@@ -245,7 +245,6 @@ RUN_TEST(hol_matching_09,
         ap(ap(k, x1 ), x1 ),
       },
       .query = ap(ap(k, x0 ), x0 ),
-      .instantiation = true,
       .expected = { 
 
           TermMatchingResultSpec 
@@ -259,6 +258,7 @@ RUN_TEST(hol_matching_09,
           }           
 
       },
+      .instantiation = true,
     })
 
 RUN_TEST(hol_matching_02,
@@ -269,7 +269,6 @@ RUN_TEST(hol_matching_02,
         ap(x2,a),
       },
       .query = ap(f,a),
-      .instantiation = false,
       .expected = { 
 
           TermMatchingResultSpec 
@@ -278,6 +277,7 @@ RUN_TEST(hol_matching_02,
           } 
 
       },
+      .instantiation = false,
     })
 
 RUN_TEST(hol_matching_03,
@@ -288,7 +288,6 @@ RUN_TEST(hol_matching_03,
         toDeBrs(ap(ap(x4,lam(x0,x0)), a)),
       },
       .query = toDeBrs(ap(ap(h,lam(x0,x0)), a)),
-      .instantiation = false,
       .expected = { 
 
           TermMatchingResultSpec 
@@ -297,6 +296,7 @@ RUN_TEST(hol_matching_03,
           } 
 
       },
+      .instantiation = false,
     })
 
 RUN_TEST(hol_matching_04,
@@ -307,7 +307,6 @@ RUN_TEST(hol_matching_04,
         toDeBrs(lam(x0, lam(x1, x0))),
       },
       .query = toDeBrs(lam(x0, lam(x1, x0))),
-      .instantiation = false,
       .expected = { 
 
           TermMatchingResultSpec 
@@ -316,6 +315,7 @@ RUN_TEST(hol_matching_04,
           } 
 
       },
+      .instantiation = false,
     })
 
 RUN_TEST(hol_matching_05,
@@ -326,8 +326,8 @@ RUN_TEST(hol_matching_05,
         toDeBrs(lam(x0, lam(x1, x0))),
       },
       .query = toDeBrs(lam(x0, lam(x1, x1))),
-      .instantiation = false,
       .expected = Stack<TermMatchingResultSpec>{},
+      .instantiation = false,
     })
 
 RUN_TEST(hol_matching_06,
@@ -338,8 +338,8 @@ RUN_TEST(hol_matching_06,
         toDeBrs(lam(x0, lam(x1, x0))),
       },
       .query = toDeBrs(lam(x0, lam(x1, y0))),
-      .instantiation = true,
       .expected = Stack<TermMatchingResultSpec>{},
+      .instantiation = true,
     })
 
 RUN_TEST(hol_matching_07,
@@ -351,7 +351,6 @@ RUN_TEST(hol_matching_07,
         ap(ap(k,b),b),
       },
       .query = ap(ap(k,x0),x0),
-      .instantiation = true,
       .expected = { 
 
           TermMatchingResultSpec 
@@ -360,6 +359,7 @@ RUN_TEST(hol_matching_07,
           } 
 
       },    
+      .instantiation = true,
   })
 
 RUN_TEST(hol_matching_08,
@@ -370,8 +370,8 @@ RUN_TEST(hol_matching_08,
         ap(ap(k,a),b),
       },
       .query = ap(ap(k,ap(f, x0)),x0),
-      .instantiation = true,
       .expected = Stack<TermMatchingResultSpec>{},    
+      .instantiation = true,
   })
 
 #endif
