@@ -277,6 +277,7 @@ void CLTBMode::loadIncludes()
   //ensure we scan the theory axioms for property here, so we don't need to
   //do it afterward in each problem
   _baseProblem->getProperty();
+  env.setMainProblem(_baseProblem.ptr());
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 } // CLTBMode::loadIncludes
 
