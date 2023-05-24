@@ -67,7 +67,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   // because of bad things the time limit is actually taken from env!
   int oldTimeLimit = env.options->timeLimitInDeciseconds();
-  Property* oldProperty = env.property;
+  Problem* inputProblem = env.getMainProblem();
+  env.setMainProblem(&prb);
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   env.options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);
@@ -86,7 +87,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   Timer::setLimitEnforcement(true);
   env.options->setTimeLimitInDeciseconds(oldTimeLimit);
-  env.property = oldProperty;
+  env.setMainProblem(inputProblem);
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
 

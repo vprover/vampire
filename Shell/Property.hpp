@@ -160,7 +160,6 @@ public:
   explicit Property();
   static Property* scan(UnitList*);
   void add(UnitList*);
-  ~Property();
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}

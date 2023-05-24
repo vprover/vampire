@@ -117,17 +117,6 @@ Property* Property::scan(UnitList* units)
 } // Property::scan
 
 /**
- * Destroy the property. If this property is used as env.property, set env.property to null.
- * @since 22/07/2011 Manchester
- */
-Property::~Property()
-{
-  CALL("Property::~Property");
-
-  ASS(this == env.property);
-}
-
-/**
  * Add units and modify an existing property.
  * @since 29/06/2002 Manchester
  */

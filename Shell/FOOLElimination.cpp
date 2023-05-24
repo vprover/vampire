@@ -212,8 +212,8 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() && 
-         (!env.property->higherOrder() || env.options->equalityToEquivalence())) { 
+      if (literal->isEquality() &&
+         (!env.getMainProblem()->isHigherOrder() || env.options->equalityToEquivalence())) {
         ASS_EQ(literal->arity(), 2);
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -768,8 +768,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
       case Term::SF_LAMBDA: {
-        // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in 
-        // the literature. 
+        // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in
+        // the literature.
         LambdaElimination le = LambdaElimination();
         termResult = le.elimLambda(term);
         break;

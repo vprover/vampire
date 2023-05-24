@@ -98,7 +98,6 @@ void Problem::initValues()
   _mayHaveInequalityResolvableWithDeletion = true;
   _mayHaveXEqualsY = true;
   _propertyValid = false;
-  _property = env.property;
 }
 
 /**
@@ -277,7 +276,6 @@ void Problem::refreshProperty() const
   }
   _propertyValid = true;
   _property = Property::scan(_units);
-  env.property = _property;
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
   readDetailsFromProperty();
@@ -303,6 +301,7 @@ void Problem::readDetailsFromProperty() const
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
   _hasBoolVar = _property->hasBoolVar();
   _higherOrder = _property->higherOrder();
+  _hasNonDefaultSorts = _property->hasNonDefaultSorts();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -474,12 +473,20 @@ bool Problem::quantifiesOverPolymorphicVar() const
   return _quantifiesOverPolymorphicVar.value();
 }
 
-bool Problem::higherOrder() const
+bool Problem::isHigherOrder() const
 {
   CALL("Problem::hasPolymorphicSym");
 
   if(!_higherOrder.known()) { refreshProperty(); }
   return _higherOrder.value();
+}
+
+bool Problem::hasNonDefaultSorts() const
+{
+  CALL("Problem::hasNonDefaultSorts");
+
+  if(!_hasNonDefaultSorts.known()) { refreshProperty(); }
+  return _hasNonDefaultSorts.value();
 }
 
 #if VDEBUG

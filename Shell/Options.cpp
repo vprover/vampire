@@ -3437,7 +3437,7 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
-  if(prb.higherOrder()){
+  if(prb.isHigherOrder()){
     //safer for competition
     return false;
   }
