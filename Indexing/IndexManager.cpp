@@ -150,21 +150,11 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res =
-#if VHOL
-      env.property->higherOrder() ?
-        new SuperpositionSubtermIndex(new TermSubstitutionTree(SplittingAlgo::HOL_UNIF), _alg->getOrdering()) :
-#endif  
-        new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = 
-#if VHOL
-      env.property->higherOrder() ?
-        new SuperpositionLHSIndex(new TermSubstitutionTree(SplittingAlgo::HOL_UNIF), _alg->getOrdering(), _alg->getOptions()) :
-#endif      
-        new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
 

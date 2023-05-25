@@ -92,8 +92,14 @@ public:
 
 private:
   
-  void handleTerm(TypedTermList tt, LeafData ld, bool insert)
-  { _tree->handle(tt, ld, insert); }
+  void handleTerm(TypedTermList tt, LeafData ld, bool insert){
+#if VHOL
+    if(env.property->higherOrder()){
+      // replace higher-order terms with placeholder constants
+      tt =  TypedTermList(ToPlaceholders().replace(tt), tt.sort());
+    }
+#endif
+    _tree->handle(tt, ld, insert); }
 
   template<class Iterator, class... Args>
   auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, Args... args)
@@ -148,7 +154,10 @@ public:
 
 #if VHOL
   TermQueryResultIterator getHOLUnifiers(TypedTermList t) final override
-  { return pvi(getResultIterator<SubstitutionTree::TreeIterator<HOLAlgo>>(t, true)); }
+  { 
+    TypedTermList tp = TypedTermList(ToPlaceholders().replace(t), t.sort());
+    return pvi(getResultIterator<SubstitutionTree::TreeIterator<HOLAlgo>>(tp, true, t));
+  }
 
   TermQueryResultIterator getHOLInstances(TypedTermList t) final override
   {  return pvi(getResultIterator<SubstitutionTree::TreeIterator<HOLInstAlgo>>(t, true)); }

@@ -408,9 +408,13 @@ public:
   struct IsPtrToVarNodeFn
   {
     bool operator()(Node** n)
-    {
+    {      
       // treat non-splittable nodes like variable nodes
-      return (*n)->term.isVar() || !(*n)->splittable();
+      return (*n)->term.isVar() || !(*n)->splittable()
+#if VHOL
+      || (*n)->term.isPlaceholder() // treat placeholders exactly like variables
+#endif      
+      ;
     }
   };
 
@@ -556,7 +560,16 @@ public:
         if(t2.var()) {
           return GREATER;
         }
-
+#if VHOL
+        if(env.property->higherOrder() && t1.functor() && t2.functor()){
+          // always put placeholder directly after variables in SkipList
+          // so that IsPtrToVarNodeFn return true for placehodlers as well
+          bool t1IsPlaceholder = env.signature->isPlaceholder(*t1.functor());
+          bool t2IsPlaceholder = env.signature->isPlaceholder(*t2.functor());
+          if(t1IsPlaceholder && !t2IsPlaceholder) return LESS;
+          if(t2IsPlaceholder && !t1IsPlaceholder) return GREATER;
+        }
+#endif        
         if(t1.id()) {
           if(t2.id()) {
             return Int::compare(*t1.id(), *t2.id());
@@ -627,7 +640,6 @@ public:
 
   void setSort(TypedTermList const& term, LeafData& ld)
   {
-    ASS(ld.term == term);
     ld.sort = term.sort();
   }
 
@@ -725,10 +737,19 @@ public:
 
     Query normQuery;
     if (retrieveSubstitutions) {
+      ASS(false);
+      // TODO this is not safe at the moment
+      // the use of embedded banks is causing issues here.
+      // Luckily, we only call this from one place currently ClauseVariantIndex
+      // which doesn't need to retrive the substittuio
       renaming->_query->normalizeVariables(query);
       normQuery = renaming->_query->apply(query);
     } else {
-      normQuery = Renaming::normalize(query);
+      // put onto norm result bank, so that terms
+      // f (x0 / 0) and f (x0 / 3) don't fail an == check for
+      // syntactic equality
+      // Long term need to bring back the TermSpec based 
+      normQuery = Renaming::normalize(query, NORM_RESULT_BANK);
     }
 
     Recycled<BindingMap> svBindings;
@@ -1330,7 +1351,7 @@ public:
       // the single unifier into an iterator
       // For UWA, if fixed point iteration has been chosen, this is carried out
       // For HOL, a set of HOL unifiers are returned
-      SubstIterator substs = _algo.postprocess(&*_subst);
+      SubstIterator substs = _algo.postprocess(&*_subst, ld->term, ld->sort);
       return pvi(iterTraits(substs).map([ld](RobSubstitutionTL* subst){  
           return QueryResult(ld, 
             ResultSubstitution::fromSubstitution(subst,QUERY_BANK,RESULT_BANK));
@@ -1352,7 +1373,7 @@ public:
       // TermList qt = _abstractingUnifier.subs().getSpecialVarTop(specVar);
       // TODO should this function really be part of algo?
       auto top = _subst->getSpecialVarTop(specVar);
-      if(top.var() || top.id()) {
+      if(top.var() || top.id() || env.signature->isPlaceholder(*top.functor())) {
         return n->allChildren();
       } else {
         Node** match=n->childByTop(top, false);
@@ -1426,7 +1447,7 @@ public:
         //n is proper node, not a root
         recording=true;
         _subst->bdRecord(bd);
-        success = _algo.associate(_svStack->top(),n->term,n->splittable(),&*_subst);
+        success = _algo.associate(_svStack->top(),n->term,&*_subst);
       }
       if(success) {
         if(n->isLeaf()) {

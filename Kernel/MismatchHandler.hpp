@@ -122,7 +122,7 @@ class RobUnification {
 public:
 
   // to be used for tree calls
-  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
+  bool associate(unsigned specialVar, TermList node, RobSubstitutionTL* sub)
   {
     CALL("RobUnification::associate");
     TermList query(specialVar, /* special */ true);
@@ -141,8 +141,8 @@ public:
   }
 
   // function is called when in the leaf of a substitution tree 
-  // during unification. t is the term stored in the leaf
-  SubstIterator postprocess(RobSubstitutionTL* sub){
+  // during unification. t is the term stored in the leaf, sort is its sort
+  SubstIterator postprocess(RobSubstitutionTL* sub, TermList t, TermList sort){
     CALL("RobUnification::postprocess");     
     
     // sub is a unifier of query and leaf term t, return it
@@ -167,9 +167,9 @@ public:
   bool unify(TermList l,  TermList r, bool& progress, RobSubstitutionTL* sub);
   bool fixedPointIteration(RobSubstitutionTL* sub);
   SubstIterator unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck = false);
-  SubstIterator postprocess(RobSubstitutionTL* sub);
+  SubstIterator postprocess(RobSubstitutionTL* sub, TermList t, TermList sort);
 
-  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
+  bool associate(unsigned specialVar, TermList node, RobSubstitutionTL* sub)
   {
     CALL("AbstractingUnification::associate");
     

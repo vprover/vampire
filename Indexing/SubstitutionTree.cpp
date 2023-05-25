@@ -471,9 +471,8 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
     }
     node=*child;
 
-
     TermList s = node->term;
-    ASS(TermList::sameTop(s,t));
+    ASS_REP2(TermList::sameTop(s,t), s, t);
 
     if(s==t) {
       continue;
@@ -492,27 +491,27 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
       TermList* tt = subterms.pop();
       ss = subterms.pop();
       if (tt->next()->isEmpty()) {
-	ASS(ss->next()->isEmpty());
+        ASS(ss->next()->isEmpty());
       }
       else {
-	subterms.push(ss->next());
-	subterms.push(tt->next());
+        subterms.push(ss->next());
+        subterms.push(tt->next());
       }
       if (*ss==*tt) {
-	continue;
+        continue;
       }
       if (ss->isSpecialVar()) {
-	svBindings.set(ss->var(),*tt);
-	continue;
+        svBindings.set(ss->var(),*tt);
+        continue;
       }
       if(ss->isVar() || tt->isVar() || ss->term()->functor()!=tt->term()->functor()) {
-	return 0;
+        return 0;
       }
       ss = ss->term()->args();
       if (! ss->isEmpty()) {
-	ASS(! tt->term()->args()->isEmpty());
-	subterms.push(ss);
-	subterms.push(tt->term()->args());
+        ASS(! tt->term()->args()->isEmpty());
+        subterms.push(ss);
+        subterms.push(tt->term()->args());
       }
     }
   }

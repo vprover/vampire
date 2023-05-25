@@ -242,7 +242,10 @@ start:
     // an == check on possibly non-shared terms,
     // but that is what existing code does
     if(*lhs == *rhs){
-    } else if(pair.lhsTop() == pair.rhsTop()){
+    } else if(!lhs->isVar() && !rhs->isVar() && pair.lhsTop() == pair.rhsTop()){
+      // we can have two vars which are not == but have the same top
+      // since the top() function does take into accoutn whether one variable is
+      // special. Might be worth changing this TODO
 
       // same top different content
       ASS(!lhs->isVar()        && !rhs->isVar());
@@ -264,8 +267,8 @@ start:
         toProcess.push(SubtermPair(l->nthArgument(0), true, r->nthArgument(0), true));
         toProcess.push(SubtermPair(l->nthArgument(1), true, r->nthArgument(1), true));
         toProcess.push(SubtermPair(l->nthArgument(2), true, r->nthArgument(2), true));
-        toProcess.push(SubtermPair(l->nthArgument(3), _splittable(lhs->nthArg(3), false), 
-                                   r->nthArgument(3), _splittable(rhs->nthArg(3), false)));         
+        toProcess.push(SubtermPair(l->nthArgument(3), _splittable(lhs->nthArg(3)), 
+                                   r->nthArgument(3), _splittable(rhs->nthArg(3))));         
       } else {
         for (unsigned i = 0; i < l->arity(); i++) {
           toProcess.push(SubtermPair(l->nthArgument(i), true, r->nthArgument(i), true));       
@@ -373,7 +376,7 @@ void HOLSubstitutionTree::higherOrderRemove(HOLBindingMap& svBindings, LeafData 
         subterms.push(std::make_pair((*l)[0], Subterm((*r)[0], true)));
         subterms.push(std::make_pair((*l)[1], Subterm((*r)[1], true)));
         subterms.push(std::make_pair((*l)[2], Subterm((*r)[2], true)));
-        subterms.push(std::make_pair((*l)[3], Subterm((*r)[3], _splittable((*r)[3], false))));
+        subterms.push(std::make_pair((*l)[3], Subterm((*r)[3], _splittable((*r)[3]))));
       } else {
         ASS(l->arity() == r->arity());
         for (unsigned i = 0; i < l->arity(); i++) {

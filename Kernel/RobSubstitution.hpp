@@ -269,6 +269,7 @@ public:
   RobSubstitution(RobSubstitution&& obj) = default;
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
 
+  VarBankOrInt outputBank() const { return _outputIndex; }
 
 protected:  
   typedef DHMap<TermSpecOrList,TermSpecOrList> BankType;  

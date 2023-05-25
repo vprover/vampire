@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file RobSubstitution.hpp
- * Defines class RobSubstitution.
+ * @file HOLUnification.hpp
+ * Defines class HOLUnification.
  *
  */
 
@@ -28,7 +28,7 @@
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"
 
-#include "Kernel/RobSubstitution.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
 
@@ -41,10 +41,14 @@ namespace UnificationAlgorithms {
 
 
 class HOLUnification {
-
+  // when this class is used for tree unification the field
+  // below holds the original query before higher-order subterms have
+  // been replaced by placeholders
+  TermList _origQuery;
+  TermList _origQuerySort;
   bool _funcExt;
 
-  bool unifyFirstOrderStructure(TermList t1, TermList t2, bool topLevelCon, RobSubstitutionTL* sub);
+  bool unifyWithPlaceholders(TermList t1, TermList t2, RobSubstitutionTL* sub);
 
   // TODO if we implement solid fragment, this will not work...
   enum OracleResult
@@ -101,11 +105,20 @@ class HOLUnification {
   class HigherOrderUnifiersIt;
 
 public:
-  HOLUnification() : _funcExt( env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) { }
 
-  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub);
+  HOLUnification() : _funcExt( env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
+  {}
+
+  HOLUnification(TypedTermList query) : 
+  _funcExt( env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) {
+    TypedTermList t = ToBank(QUERY_BANK).toBank(query);
+    _origQuery = t;
+    _origQuerySort = t.sort();
+  }
+
+  bool associate(unsigned specialVar, TermList node, RobSubstitutionTL* sub);
   SubstIterator unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck = false);
-  SubstIterator postprocess(RobSubstitutionTL*);
+  SubstIterator postprocess(RobSubstitutionTL*, TermList t, TermList sort);
 
   void initSub(RobSubstitutionTL* sub) const { }
 

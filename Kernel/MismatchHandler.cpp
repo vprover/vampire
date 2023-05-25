@@ -271,7 +271,7 @@ SubstIterator AbstractingUnification::unifiers(TermList t1, TermList t2, RobSubs
   return success ? pvi(getSingletonIterator(sub)) : SubstIterator::getEmpty();
 }
 
-SubstIterator AbstractingUnification::postprocess(RobSubstitutionTL* sub)
+SubstIterator AbstractingUnification::postprocess(RobSubstitutionTL* sub, TermList t, TermList sort)
 {
   CALL("AbstractingUnification::postprocess");
  

@@ -64,8 +64,9 @@ unique_ptr<TermSubstitutionTree> getTermIndex()
 }
 
 #if VHOL
+ // same as normal index now. should remove TODO
   unique_ptr<TermSubstitutionTree> getHOLTermIndex()
-  { return std::make_unique<TermSubstitutionTree>(SplittingAlgo::HOL_UNIF); }
+  { return std::make_unique<TermSubstitutionTree>(); }
 #endif
 
 auto getLiteralIndex()
@@ -794,9 +795,8 @@ TEST_FUN(higher_order2)
   DECL_HOL_VAR(z, 3, srt)
   DECL_HOL_VAR(x4, 0, srt)
   DECL_HOL_VAR(x5, 1,  arrow(srt, srt))
-  DECL_HOL_VAR(x6, 2,  srt)
-  DECL_HOL_VAR(x7, 3, arrow(srt, arrow(srt, srt))) 
-  DECL_HOL_VAR(x8, 4, srt)
+  DECL_HOL_VAR(x7, 1, arrow(srt, arrow(srt, srt))) 
+  DECL_HOL_VAR(x8, 2, srt)
 
   index->insert(ap(x, a), 0, 0);
 
@@ -822,9 +822,9 @@ TEST_FUN(higher_order2)
   checkHigherOrderTermMatches(*index, x3, Stack<TermUnificationResultSpec>{
 
         TermUnificationResultSpec 
-        { .querySigma  = x6,
+        { .querySigma  = x4,
           .resultSigma = ap(ap(x7, a), x8),
-          .constraints = {x6 != ap(ap(x7, a), x8)} }, 
+          .constraints = {x4 != ap(ap(x7, a), x8)} }, 
 
         TermUnificationResultSpec 
         { .querySigma  = x4,
@@ -860,7 +860,7 @@ TEST_FUN(higher_order3)
         TermUnificationResultSpec 
         { .querySigma  = ap(f,a),
           .resultSigma = toDBs(ap(f, lam(x, ap(a, x)))),
-          .constraints = Stack<Literal*>{ a != lamTerm  } }, 
+          .constraints = Stack<Literal*>{  } }, 
 
       });
 }

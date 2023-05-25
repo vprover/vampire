@@ -41,6 +41,8 @@ const int TermSpec::UNBOUND_INDEX=-1;
 template<class TermSpecOrList, class VarBankOrInt>
 void UnificationConstraintStack<TermSpecOrList, VarBankOrInt>::add(Constraint c, Option<BacktrackData&> bd)
 { 
+  CALL("UnificationConstraintStack::add");
+
   if (bd) {
     backtrackablePush(_cont, std::move(c), *bd); 
   } else {
@@ -52,6 +54,8 @@ template<class TermSpecOrList, class VarBankOrInt>
 UnificationConstraint<TermSpecOrList,VarBankOrInt> 
 UnificationConstraintStack<TermSpecOrList, VarBankOrInt>::pop(Option<BacktrackData&> bd)
 { 
+  CALL("UnificationConstraintStack::pop");
+
   auto old = _cont.pop();
   if (bd) {
     bd->addClosure([this, old = old.clone()]() mutable { _cont.push(std::move(old)); });
@@ -62,6 +66,8 @@ UnificationConstraintStack<TermSpecOrList, VarBankOrInt>::pop(Option<BacktrackDa
 template<class TermSpecOrList, class VarBankOrInt>
 Recycled<Stack<Literal*>> UnificationConstraintStack<TermSpecOrList, VarBankOrInt>::literals(RobSubst& s)
 { 
+  CALL("UnificationConstraintStack::literals");
+
   Recycled<Stack<Literal*>> out;
   out->reserve(_cont.size());
   out->loadFromIterator(literalIter(s));
@@ -71,6 +77,8 @@ Recycled<Stack<Literal*>> UnificationConstraintStack<TermSpecOrList, VarBankOrIn
 template<class TermSpecOrList, class VarBankOrInt>
 Option<Literal*> UnificationConstraint<TermSpecOrList, VarBankOrInt>::toLiteral(RobSubst& s)
 { 
+  CALL("UnificationConstraint::toLiteral");
+
   auto t1 = s.apply(_t1);
   auto t2 = s.apply(_t2);
 
@@ -196,9 +204,6 @@ TermSpecOrList RobSubstitution<TermSpecOrList, VarBankOrInt>::deref(TermSpecOrLi
         const_cast<RobSubstitution&>(*this).bind(v, getUnboundVar());
         return _bank.get(v);
       } else {
-        cout << *this << endl;
-        cout << "v " << v << " index " << v.bank() << endl;
-        cout << "output bank " << _outputIndex << endl;
         ASS_REP(v.bank() == _outputIndex, "variable bound index different from _outputIndex. This probably means you either called the wrong operations (e.g. unify) after using setOutputIndex, or you are trying to apply the substitution to a variable that was not bound by this substitution (e.g. by calling RobSubstitution::match or so)")        
         return v;
       }

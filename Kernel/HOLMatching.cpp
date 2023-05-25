@@ -23,7 +23,7 @@ namespace Kernel
 
 namespace UnificationAlgorithms {
 
-bool HOLInstantiation::associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
+bool HOLInstantiation::associate(unsigned specialVar, TermList node, RobSubstitutionTL* sub)
 {
   CALL("HOLInstantiation::associate");
 
@@ -31,7 +31,7 @@ bool HOLInstantiation::associate(unsigned specialVar, TermList node, bool splitt
   return match(query, node, sub, VarBank::QUERY_BANK);  
 }
 
-bool HOLGeneralisation::associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub)
+bool HOLGeneralisation::associate(unsigned specialVar, TermList node, RobSubstitutionTL* sub)
 {
   CALL("HOLGeneralisation::associate");
 

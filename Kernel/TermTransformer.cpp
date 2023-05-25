@@ -281,8 +281,12 @@ TypedTermList ToBank::toBank(TypedTermList term){
 
   TermList sort = term.sort();
   
-  return(TypedTermList(term.isVar() ? transformSubterm(term) : transform(term), 
-                       sort.isVar() ? transformSubterm(sort) : transform(sort)  )); 
+  if(term.isTerm()){
+    return TypedTermList(transform(term).term());
+  } else {
+    return TypedTermList(transformSubterm(term), 
+      sort.isVar() ? transformSubterm(sort) : transform(sort));
+  }
 }
 
 TermList ToBank::transformSubterm(TermList t) {

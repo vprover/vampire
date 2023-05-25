@@ -48,9 +48,9 @@ public:
 
   void initSub(RobSubstitutionTL* sub) const { sub->setOutputIndex(VarBank::RESULT_BANK); }
 
-  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub);
+  bool associate(unsigned specialVar, TermList node, RobSubstitutionTL* sub);
 
-  SubstIterator postprocess(RobSubstitutionTL* sub)
+  SubstIterator postprocess(RobSubstitutionTL* sub, TermList t, TermList sort)
   { return pvi(getSingletonIterator(sub)); }
 
   bool usesUwa() const { return false; }  
@@ -61,9 +61,9 @@ public:
 
   void initSub(RobSubstitutionTL* sub) const { sub->setOutputIndex(VarBank::QUERY_BANK); }
 
-  bool associate(unsigned specialVar, TermList node, bool splittable, RobSubstitutionTL* sub);
+  bool associate(unsigned specialVar, TermList node, RobSubstitutionTL* sub);
 
-  SubstIterator postprocess(RobSubstitutionTL* sub)
+  SubstIterator postprocess(RobSubstitutionTL* sub, TermList t, TermList sort)
   { return pvi(getSingletonIterator(sub)); }
 
   bool usesUwa() const { return false; }  

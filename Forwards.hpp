@@ -156,7 +156,7 @@ typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
 enum class SplittingAlgo { NONE 
 #if VHOL
-  , HOL_UNIF, HOL_MATCH
+  , HOL_MATCH
 #endif
                          };
 

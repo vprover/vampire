@@ -1523,8 +1523,8 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
     }
   }
   SplitSet* diff=unionAll->subtract(cl->splits());      
-        
-  ASS(allSplitLevelsActive(diff));
+  
+  ASS_REP2(allSplitLevelsActive(diff), cl->toString(), replacement->toString());
 
   if(diff->isEmpty()) {
     // unconditionally reduced
@@ -1612,7 +1612,7 @@ void Splitter::onNewClause(Clause* cl)
     cl->updateColor(color);
   }
 
-  ASS(allSplitLevelsActive(cl->splits()));  
+  ASS_REP(allSplitLevelsActive(cl->splits()), cl->toString() );  
 }
 
 /**

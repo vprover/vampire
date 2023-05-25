@@ -56,6 +56,8 @@ public:
 
   /** return iterator over constraints */
   virtual Recycled<LiteralStack> getConstraints() override { return _subst->constraints(); }
+  virtual bool isIdentityOnQueryWhenResultBound() override { return _subst->outputBank() == _queryBank;}
+  virtual bool isIdentityOnResultWhenQueryBound() override { return _subst->outputBank() == _resultBank;}
 
 private:
   RobSubstitutionTL* _subst;

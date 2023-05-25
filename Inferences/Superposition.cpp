@@ -400,7 +400,11 @@ Clause* Superposition::performSuperposition(
 
 #if VDEBUG
   if(!hasConstraints){
+#if VHOL
+    ASS_EQ(rwTermS.betaEtaNF(),eqLHSS.betaEtaNF());
+#else    
     ASS_EQ(rwTermS,eqLHSS);
+#endif
   }
 #endif
 

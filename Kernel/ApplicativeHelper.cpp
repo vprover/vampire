@@ -785,6 +785,29 @@ bool ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigid
 
   ASS(bindings.isEmpty());
 
+  // if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
+  // this function will fill stack with [i, tau, int]
+  // Very inelegant at the moment, need to rewrite TODO
+  auto getFlexHeadSorts = [](TermList flexTerm, TermStack& sorts, TermList rigidTermSort){
+    TermList matrixSort;
+    if(flexTerm.isVar()){
+      matrixSort = rigidTermSort;
+    } else {
+      matrixSort = SortHelper::getResultSort(flexTerm.term());
+      while(flexTerm.isLambdaTerm()){
+        matrixSort = *flexTerm.term()->nthArgument(1);
+        flexTerm = flexTerm.lambdaBody();
+      }
+    }
+
+    TermStack temp;
+    getArgSorts(matrixSort,temp);
+    while(!temp.isEmpty()){
+      sorts.push(temp.pop());
+    }
+    getArgSorts(flexTerm,sorts);
+  };
+
   // since term is rigid, cannot be a variable
   TermList sort = SortHelper::getResultSort(matrix(rigidTerm).term()).finalResult();
   TermList headRigid = rigidTerm.head();
@@ -793,7 +816,7 @@ bool ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigid
   TermStack sortsFlex; //sorts of arguments of flex head
 
   getHeadAndArgs(flexTerm, headFlex, argsFlex);
-  getArgSorts(flexTerm, sortsFlex);
+  getFlexHeadSorts(flexTerm, sortsFlex, SortHelper::getResultSort(rigidTerm.term()));
 
   TermList pb;
   TermList var = fVar;

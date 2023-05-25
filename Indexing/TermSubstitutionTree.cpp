@@ -39,11 +39,8 @@ TermSubstitutionTree::TermSubstitutionTree(SplittingAlgo algo)
       _tree.reset(new SubstitutionTree());
       break;
 #if VHOL
-    case SplittingAlgo::HOL_UNIF:
-      _tree.reset(new HOLSubstitutionTree(ApplicativeHelper::splittable));
-      break;
     case SplittingAlgo::HOL_MATCH:
-      _tree.reset(new HOLSubstitutionTree([](TermList t, bool b = false){     
+      _tree.reset(new HOLSubstitutionTree([](TermList t){     
           return !t.isLambdaTerm();
         } ));
       break;      
