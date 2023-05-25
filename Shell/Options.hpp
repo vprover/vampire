@@ -574,7 +574,8 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    PROPERTY = 4
+    PROPERTY = 4,
+    SMT2_PROOFCHECK = 5,
   };
 
   /** Values for --equality_proxy */
