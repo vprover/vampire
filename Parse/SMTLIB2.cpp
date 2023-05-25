@@ -1383,7 +1383,6 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
         varSorts.push(kv.second);
         args.push(TermList(kv.first,false));
       });
-    ASS(t.isTerm());
     SortHelper::normaliseArgSorts(typeVars,varSorts);
 
     TermList trm;
