@@ -25,14 +25,14 @@ namespace Kernel
 
 namespace UnificationAlgorithms {
 
-#define DEBUG_ITERATOR(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
+#define DEBUG_ITERATOR(LVL, ...) if (LVL <= 2) DBG(__VA_ARGS__)
 class HOLUnification::HigherOrderUnifiersIt: public IteratorCore<RobSubstitutionTL*> {
 public:
 
   using AH = ApplicativeHelper;
 
   HigherOrderUnifiersIt(TermList t1, TermList t2, RobSubstitutionTL* subst, bool funcExt) :
-    _used(false), _topLevel(true), _funcExt(funcExt), _depth(0), 
+    _used(false), _solved(false), _topLevel(true), _funcExt(funcExt), _depth(0), 
     _freshVar(0, VarBank::FRESH_BANK), _subst(subst){
     CALL("HOLUnification::HigherOrderUnifiersIt::HigherOrderUnifiersIt");
 
@@ -67,7 +67,9 @@ public:
 
     if(t1.isVar() && t2.isVar()){
       if(t1 == t2) return true;
+      _subst->bdRecord(_bdStack->top());          
       _subst->bind(t1, t2);
+      _subst->bdDone();
       return true;
     }
     return false;
@@ -107,8 +109,11 @@ public:
     
     static unsigned depth = env.options->higherOrderUnifDepth();
 
-    if(solved() && !_used)
+    if((_solved || solved()) && !_used) // the solved() check ensures that when we start with a flex-flex we return true straight away
     { return true; }
+
+    if(_subst->bdIsRecording())
+      _subst->bdDone();
 
     _used = false;
  
@@ -139,7 +144,7 @@ public:
       ASS(!lhsHead.isVar() || !rhsHead.isVar()); // otherwise we would be solved
       ASS(lhs.isVar() || rhs.isVar() || SortHelper::getResultSort(lhs.term()) == SortHelper::getResultSort(rhs.term()));
 
-      AH::normaliseLambdaPrefixes(lhs,rhs);    
+      AH::normaliseLambdaPrefixes(lhs,rhs);  
 
       if(lhs == rhs){ continue; }
 
@@ -240,6 +245,8 @@ public:
       _topLevel = false;
     }
 
+    if(forward) _solved = true;
+ 
     return forward;
   }
 
@@ -250,14 +257,24 @@ public:
     // these can either be the flex-flex pairs, or if depth limit reached
     // these can include other pairs as well
     BacktrackData& bd = _bdStack->top();
-    _subst->bdRecord(bd);    
+    if(!_subst->bdIsRecording()){
+      _subst->bdRecord(bd);   
+    } 
     while(!_unifPairs.isEmpty()){
+      ASS(_subst->bdIsRecording());
       HOLConstraint con = popFromUnifPairs(bd);
-      UnifConstraint c(con.lhs(), con.rhs());
-      _subst->pushConstraint(c);      
+      if(!trySolveTrivialPair(con.lhs(), con.rhs())){ // through head reduction a pair can become trivial
+        UnifConstraint c(con.lhs(), con.rhs());
+        _subst->pushConstraint(c);     
+      } 
     }
-    _subst->bdDone();
+    cout << "RETURNING" << endl;
+    cout << *this << endl;
+    // don't stop recording here
+    // instead, let RObSubstitution do its free variable renaming
+    // on top member of BdStack, so that it is undone by a call to bactrack()
     _used = true;
+    _solved = false;
     return _subst;
   }
   
@@ -321,6 +338,7 @@ private:
   };
 
   bool _used;
+  bool _solved;
   bool _topLevel;
   bool _funcExt;
   unsigned _depth;
