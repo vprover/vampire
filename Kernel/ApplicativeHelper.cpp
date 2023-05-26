@@ -725,10 +725,12 @@ void ApplicativeHelper::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
   TermList nonVar = t1.isVar() ? t2 : t1;
   TermList sort = SortHelper::getResultSort(nonVar.term());
 
-  auto etaExpand = [](TermList t, TermList sort, TermStack& sorts, unsigned n, unsigned m){
+  auto etaExpand = [](TermList t, TermList sort, TermStack& sorts, unsigned n){
     TermStack sorts1; // sorts of new prefix
 
-    for(int i = n - 1; i >= (int)m; i--){
+    TermShifter().shift(t,n); // lift loose indices by n
+
+    for(int i = n - 1; i >= 0; i--){ // append De Bruijn indices
       ASS(sort.isArrowSort());
       auto s = sort.domain();
       auto dbIndex = getDeBruijnIndex((unsigned)i,s);
@@ -737,13 +739,14 @@ void ApplicativeHelper::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
       sorts1.push(s);
     }
 
-    while(!sorts.isEmpty()){
+    while(!sorts1.isEmpty()){ // wrap in new lambdas
+      t = lambda(sorts1.pop(), t);
+    }
+
+    while(!sorts.isEmpty()){ // wrap in original lambdas
       t = lambda(sorts.pop(), t);
     }
 
-    while(!sorts1.isEmpty()){
-      t = lambda(sorts1.pop(), t);
-    }
     return t;
   };
  
@@ -771,10 +774,10 @@ void ApplicativeHelper::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
   }
 
   if(m > n)
-    t2 = etaExpand(t2c, t2s, prefSorts2, m, n);
+    t2 = etaExpand(t2c, t2s, prefSorts2, m - n);
 
   if(n > m)
-    t1 = etaExpand(t1c, t1s, prefSorts1, n, m);
+    t1 = etaExpand(t1c, t1s, prefSorts1, n - m);
 }
 
 

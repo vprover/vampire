@@ -183,7 +183,7 @@ bool TermList::isFreeVariable(unsigned var) const
 bool TermList::sameTop(TermList ss,TermList tt)
 {
   if (ss.isVar()) {
-    return tt.isVar() &&  ss.var()==tt.var();//ignoring bank, is this safe????
+    return ss == tt;
   }
   if (tt.isVar()) {
     return false;
