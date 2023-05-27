@@ -25,7 +25,7 @@ namespace Kernel
 
 namespace UnificationAlgorithms {
 
-#define DEBUG_ITERATOR(LVL, ...) if (LVL <= 2) DBG(__VA_ARGS__)
+#define DEBUG_ITERATOR(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 class HOLUnification::HigherOrderUnifiersIt: public IteratorCore<RobSubstitutionTL*> {
 public:
 
@@ -161,18 +161,20 @@ public:
         // TODO deal with sorts?
 
         TermStack lhsArgs;
+        TermStack argSorts;
         TermStack rhsArgs;
         TermStack sorts;
-        AH::getLambdaPrefSorts(lhs,sorts);
+        AH::getLambdaPrefSorts(lhs,sorts); // TODO could get matrix at the same time
+        AH::getArgSorts(lhs, argSorts);
         AH::getHeadAndArgs(lhs, lhsHead, lhsArgs);
         AH::getHeadAndArgs(rhs, rhsHead, rhsArgs);
         ASS(lhsArgs.size() == rhsArgs.size()); // size must be same due to normalisation of prefixes above
 
         for(unsigned i = 0; i < lhsArgs.size(); i++){
           auto t1 = lhsArgs[i].whnfDeref(_subst);
-          if(!t1.isVar()) t1 = AH::surroundWithLambdas(t1, sorts, /* traverse stack from top */ true);
+          t1 = AH::surroundWithLambdas(t1, sorts, argSorts[i], /* traverse stack from top */ true);
           auto t2 = rhsArgs[i].whnfDeref(_subst);   
-          if(!t2.isVar()) t2 = AH::surroundWithLambdas(t2, sorts, true);                 
+          t2 = AH::surroundWithLambdas(t2, sorts, argSorts[i], true);                 
           
           if(!trySolveTrivialPair(t1,t2)){
             addToUnifPairs(HOLConstraint(t1,t2), _bdStack->top());
@@ -268,8 +270,6 @@ public:
         _subst->pushConstraint(c);     
       } 
     }
-    cout << "RETURNING" << endl;
-    cout << *this << endl;
     // don't stop recording here
     // instead, let RObSubstitution do its free variable renaming
     // on top member of BdStack, so that it is undone by a call to bactrack()

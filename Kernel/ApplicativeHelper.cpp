@@ -885,15 +885,30 @@ TermList ApplicativeHelper::createGeneralBinding(TermList& freshVar, TermList he
 
 TermList ApplicativeHelper::surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop)
 {
-  CALL("ApplicativeHelper::surroundWithLambdas");
+  CALL("ApplicativeHelper::surroundWithLambdas/1");
 
   ASS(t.isTerm());
+  TermList sort = SortHelper::getResultSort(t.term());
+  return surroundWithLambdas(t, sorts, sort, fromTop);
+}
+
+
+TermList ApplicativeHelper::surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop)
+{
+  CALL("ApplicativeHelper::surroundWithLambdas/2");
+
   if(!fromTop){ // TODO fromTop is very hacky. See if can merge these two into one loop
     for(unsigned i = 0; i < sorts.size(); i++)
-    { t = lambda(sorts[i], t); }
+    { 
+      t = lambda(sorts[i], sort, t); 
+      sort = AtomicSort::arrowSort(sorts[i], sort);
+    }
   } else {
     for(int i = sorts.size() - 1; i >= 0; i--)
-    { t = lambda(sorts[i], t); }    
+    { 
+      t = lambda(sorts[i], sort, t);
+      sort = AtomicSort::arrowSort(sorts[i], sort);       
+    }    
   }
   return t;  
 }

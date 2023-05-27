@@ -87,6 +87,7 @@ public:
   static TermList createGeneralBinding(TermList& freshVar, TermList head, TermStack& sorts, bool surround = true);
 
   static TermList surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop = false);
+  static TermList surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop = false);
   static TermList top();
   static TermList bottom();
   static TermList conj();
