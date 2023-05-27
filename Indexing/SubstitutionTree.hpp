@@ -168,6 +168,13 @@ public:
     bool operator==(const LeafData& o)
     { return clause==o.clause && literal==o.literal && term==o.term; }
 
+    friend std::ostream& operator<<(std::ostream& out, LeafData const& self)
+    {  out << "term " << self.term << " : " << self.sort << "\n" << 
+              "literal " << self.literal->toString() << "\n" << 
+              "clause  " << self.clause->toString(); 
+      return out;
+    }
+
     Clause* clause;
     Literal* literal;
     TermList term;

@@ -36,15 +36,15 @@ public:
     _freshVar(0, VarBank::FRESH_BANK), _subst(subst){
     CALL("HOLUnification::HigherOrderUnifiersIt::HigherOrderUnifiersIt");
 
+    BacktrackData bd;
+    _bdStack->push(bd);
+    _bindings->push(TermStack());
+
     if(!trySolveTrivialPair(t1,t2)){
       _unifPairs.insert(HOLConstraint(t1,t2));
     }
 
     DEBUG_ITERATOR(1, "starting iterator with\n ", *this)
-
-    BacktrackData bd;
-    _bdStack->push(bd);
-    _bindings->push(TermStack());
   }
   
   ~HigherOrderUnifiersIt() {

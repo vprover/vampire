@@ -214,7 +214,7 @@ public:
   }
   /** make the term empty (so that isEmpty() returns true) */
   inline void makeEmpty()
-  { _var.tag = FUN; }
+  { _content = FUN; }
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; ASS_EQ(tag(), REF); }
