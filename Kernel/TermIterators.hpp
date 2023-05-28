@@ -359,8 +359,8 @@ class FirstOrderSubtermIt
 : public IteratorCore<Term*>
 {
 public:
-  FirstOrderSubtermIt(Term* term, bool includeSelf=false) 
-  : _stack(8), _added(0)
+  FirstOrderSubtermIt(Term* term, bool includeSelf=false, bool goInsideLambdas=false) 
+  : _stack(8), _added(0), _goInsideLambdas(goInsideLambdas)
   {
     CALL("FirstOrderSubtermIt::FirstOrderSubtermIt");
     
@@ -384,6 +384,14 @@ public:
 private:
   Stack<Term*> _stack;
   int _added;
+  bool _goInsideLambdas;
+};
+
+class DemodulationSubtermIt
+: public FirstOrderSubtermIt
+{
+public:
+  DemodulationSubtermIt(Term* t) : FirstOrderSubtermIt(t, false, true) {}
 };
 
 /*

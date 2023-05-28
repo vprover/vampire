@@ -273,7 +273,7 @@ void BackwardDemodulation<SubtermIt>::perform(Clause* cl,
 }
 
 #if VHOL
-template class BackwardDemodulation<FirstOrderSubtermIt>;
+template class BackwardDemodulation<DemodulationSubtermIt>;
 #endif
 template class BackwardDemodulation<NonVariableNonTypeIterator>;
 

@@ -284,7 +284,7 @@ bool ForwardDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacem
 }
 
 #if VHOL
-template class ForwardDemodulation<FirstOrderSubtermIt>;
+template class ForwardDemodulation<DemodulationSubtermIt>;
 #endif
 template class ForwardDemodulation<NonVariableNonTypeIterator>;
 

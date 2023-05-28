@@ -117,7 +117,7 @@ void DemodulationSubtermIndex<SubtermIterator>::handleClause(Clause* c, bool add
 }
 
 #if VHOL
-template class DemodulationSubtermIndex<FirstOrderSubtermIt>;
+template class DemodulationSubtermIndex<DemodulationSubtermIt>;
 #endif
 template class DemodulationSubtermIndex<NonVariableNonTypeIterator>;
 

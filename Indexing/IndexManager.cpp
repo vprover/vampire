@@ -182,7 +182,7 @@ Index* IndexManager::create(IndexType t)
         new TermSubstitutionTree();
 #if VHOL
     if (env.property->higherOrder()) {
-      res=new DemodulationSubtermIndex<FirstOrderSubtermIt>(tis);
+      res=new DemodulationSubtermIndex<DemodulationSubtermIt>(tis);
     } else {
 #endif
       res=new DemodulationSubtermIndex<NonVariableNonTypeIterator>(tis);

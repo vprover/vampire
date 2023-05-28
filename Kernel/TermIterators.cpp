@@ -254,12 +254,14 @@ Term* FirstOrderSubtermIt::next()
   TermList head;
   args.reset();
   Term* t = _stack.pop();
-  AH::getHeadAndArgs(t, head, args);
-  if(!head.isLambdaTerm()){
-    for(unsigned i = 0; i < args.size(); i++){
-      if(!args[i].isVar()){
-        _added++;
-        _stack.push(args[i].term());
+  if(!t->isLambdaTerm() || _goInsideLambdas){
+    AH::getHeadAndArgs(t, head, args);
+    if(!head.isLambdaTerm()){
+      for(unsigned i = 0; i < args.size(); i++){
+        if(!args[i].isVar() && !args[i].containsLooseIndex()){
+          _added++;
+          _stack.push(args[i].term());
+        }
       }
     }
   }
