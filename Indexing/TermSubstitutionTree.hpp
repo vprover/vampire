@@ -94,9 +94,9 @@ private:
   
   void handleTerm(TypedTermList tt, LeafData ld, bool insert){
 #if VHOL
-    if(env.property->higherOrder()){
+    if(env.property->higherOrder() && _algo == SplittingAlgo::HOL_UNIF){
       // replace higher-order terms with placeholder constants
-      tt =  TypedTermList(ToPlaceholders().replace(tt), tt.sort());
+      tt = TypedTermList(ToPlaceholders().replace(tt), tt.sort());
     }
 #endif
     _tree->handle(tt, ld, insert); }
@@ -127,6 +127,7 @@ private:
    */
   bool _extra;
 #endif
+  SplittingAlgo _algo;
   unique_ptr<SubstitutionTree> _tree;
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)

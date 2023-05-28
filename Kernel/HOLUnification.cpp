@@ -70,6 +70,7 @@ public:
       _subst->bdRecord(_bdStack->top());          
       _subst->bind(t1, t2);
       _subst->bdDone();
+      applyBindingToPairs();
       return true;
     }
     return false;

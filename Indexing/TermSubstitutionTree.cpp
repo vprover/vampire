@@ -31,7 +31,7 @@ using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(SplittingAlgo algo)
 #if VHOL
-  : _extra(false)
+  : _algo(algo), _extra(false)
 #endif
 { 
   switch(algo){
@@ -39,6 +39,8 @@ TermSubstitutionTree::TermSubstitutionTree(SplittingAlgo algo)
       _tree.reset(new SubstitutionTree());
       break;
 #if VHOL
+    case SplittingAlgo::HOL_UNIF:
+      break;
     case SplittingAlgo::HOL_MATCH:
       _tree.reset(new HOLSubstitutionTree([](TermList t){     
           return !t.isLambdaTerm();

@@ -84,6 +84,8 @@ SubstitutionTree* LiteralSubstitutionTree::getTree(Literal* lit, bool complement
         _trees.push(new SubstitutionTree());
         break;
   #if VHOL
+      case SplittingAlgo::HOL_UNIF:
+        break;
       case SplittingAlgo::HOL_MATCH:
         _trees.push(new HOLSubstitutionTree([](TermList t){     
             return !t.isLambdaTerm();
