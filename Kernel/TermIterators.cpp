@@ -258,6 +258,11 @@ Term* FirstOrderSubtermIt::next()
     AH::getHeadAndArgs(t, head, args);
     if(!head.isLambdaTerm()){
       for(unsigned i = 0; i < args.size(); i++){
+        // TODO logic below is wrong 
+        // (not as complete as possible, but not unsound)
+        // A term that contains loose indices may still
+        // have subterms that don't have loose indices
+        // Moreover, we do not explore the body of a lambda currently
         if(!args[i].isVar() && !args[i].containsLooseIndex()){
           _added++;
           _stack.push(args[i].term());
@@ -288,8 +293,14 @@ bool BooleanSubtermIt::hasNext()
   TermList head;
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
+    if(t->isLambdaTerm()) {
+      // Beware of the loose indices!
+      // We could strengthen the iterator by returning subterms
+      // underneath lambdas that don't contain loose indices
+      continue;
+    }
     AH::getHeadAndArgs(t, head, args);
-    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !AH::isBool(head)){
+    if(SortHelper::getResultSort(t).isBoolSort() && !AH::isBool(head)){
       _next = TermList(t);
       _used = false;
     }

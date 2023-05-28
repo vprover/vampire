@@ -79,6 +79,7 @@ private:
 class SubtermReplacer : public TermTransformer {
 public:
   SubtermReplacer(TermList what, TermList by) : _what(what), _by(by) {
+    ASS(what.isVar() || by.isVar() || SortHelper::getResultSort(what.term()) == SortHelper::getResultSort(by.term()));
     dontTransformSorts();
   }
       
