@@ -1715,7 +1715,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     case Options::Demodulation::PREORDERED:
 #if VHOL    
       if(prb.higherOrder()){
-        res->addForwardSimplifierToFront(new ForwardDemodulation<FirstOrderSubtermIt>());
+        res->addForwardSimplifierToFront(new ForwardDemodulation<DemodulationSubtermIt>());
       } else {
 #endif
         res->addForwardSimplifierToFront(new ForwardDemodulation<NonVariableNonTypeIterator>());
@@ -1747,7 +1747,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     case Options::Demodulation::PREORDERED:
 #if VHOL
       if(prb.higherOrder()){
-        res->addBackwardSimplifierToFront(new BackwardDemodulation<FirstOrderSubtermIt>());
+        res->addBackwardSimplifierToFront(new BackwardDemodulation<DemodulationSubtermIt>());
       } else {
 #endif
         res->addBackwardSimplifierToFront(new BackwardDemodulation<NonVariableNonTypeIterator>());        
