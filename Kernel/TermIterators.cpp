@@ -264,6 +264,9 @@ Term* FirstOrderSubtermIt::next()
         // have subterms that don't have loose indices
         // Moreover, we do not explore the body of a lambda currently
         if(!args[i].isVar() && !args[i].containsLooseIndex()){
+          // demodulating a term that contains a loose index
+          // is sound, but it may not maintain completeness
+          // depending on the ordering
           _added++;
           _stack.push(args[i].term());
         }

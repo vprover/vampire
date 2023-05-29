@@ -86,6 +86,8 @@ struct PrimitiveInstantiation::ResultFn
       case Options::PISet::NOT:
         _heads.push(AH::neg());
         break;
+      // Equality and Pi and Sigma introduce polymorphism
+      // into monomorphic problem...
       case Options::PISet::NOT_EQ_NOT_EQ:
         _heads.push(AH::neg());
         _heads.push(AH::equality(sortVar));
@@ -158,6 +160,11 @@ struct PrimitiveInstantiation::ResultFn
     AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
     AH::getArgSorts(flexTerm, sortsFlex);
 
+    if(!argsFlex.size()){
+      // TODO do we really want to do this?
+      return ClauseIterator::getEmpty();
+    }
+
     // if any amongst a1 ... an is of sort $o, project that 
     // argument to the top
     for(unsigned i =0; i < sortsFlex.size() && pragmatic; i++){
@@ -213,10 +220,10 @@ struct PrimitiveInstantiation::ResultFn
       TermList fVar(_freshVar,false);
       
       bool surround = (!_heads[i].isEquals() || !include_not_eq);
-      TermList gb = AH::createGeneralBinding(fVar,_heads[i],sortsFlex,surround);
-      gb = surround ? gb : AH::surroundWithLambdas(gb, sortsFlex); // TODO looks dodgy
+      TermList gb  = AH::createGeneralBinding(fVar,_heads[i],sortsFlex,surround);
+      TermList gb2 = surround ? gb : AH::surroundWithLambdas(gb, sortsFlex);
 
-      _subst.bind(headFlex.var(), gb);
+      _subst.bind(headFlex.var(), gb2);
       results.push(createRes());
 
       if(!surround){

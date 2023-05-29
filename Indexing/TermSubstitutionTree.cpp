@@ -31,7 +31,7 @@ using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(SplittingAlgo algo)
 #if VHOL
-  : _algo(algo), _extra(false)
+  : _extra(false), _algo(algo) 
 #endif
 { 
   switch(algo){

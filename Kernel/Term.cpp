@@ -543,7 +543,7 @@ bool TermList::isNot() const {
 bool Term::isNot() const {
   CALL("Term::isNot");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::NOT;  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == Signature::NOT;  
 }
 
 bool TermList::isSigma() const { 
@@ -555,7 +555,7 @@ bool TermList::isSigma() const {
 bool Term::isSigma() const {
   CALL("Term::isSigma");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::SIGMA;  
+  return !isSort() && !isLiteral() && !isSpecial()  && env.signature->getFunction(_functor)->proxy() == Signature::SIGMA;  
 }
 
 bool TermList::isPi() const { 
@@ -567,7 +567,7 @@ bool TermList::isPi() const {
 bool Term::isPi() const {
   CALL("Term::isPi");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::PI;  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == Signature::PI;  
 }
 
 bool TermList::isIff() const { 
@@ -579,7 +579,7 @@ bool TermList::isIff() const {
 bool Term::isIff() const {
   CALL("Term::isIff");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::IFF;  
+  return !isSort() && !isLiteral() && !isSpecial()  && env.signature->getFunction(_functor)->proxy() == Signature::IFF;  
 }
 
 bool TermList::isAnd() const { 
@@ -591,7 +591,7 @@ bool TermList::isAnd() const {
 bool Term::isAnd() const {
   CALL("Term::isAnd");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::AND;  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == Signature::AND;  
 }
 
 bool TermList::isOr() const { 
@@ -603,7 +603,7 @@ bool TermList::isOr() const {
 bool Term::isOr() const {
   CALL("Term::isOr");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::OR;  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == Signature::OR;  
 }
 
 bool TermList::isXOr() const { 
@@ -615,7 +615,7 @@ bool TermList::isXOr() const {
 bool Term::isXOr() const {
   CALL("Term::isXOr");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::XOR;  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == Signature::XOR;  
 }
 
 bool TermList::isImp() const { 
@@ -627,7 +627,7 @@ bool TermList::isImp() const {
 bool Term::isImp() const {
   CALL("Term::isImp");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::IMP;  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == Signature::IMP;  
 }
 
 bool TermList::isEquals() const { 
@@ -639,7 +639,7 @@ bool TermList::isEquals() const {
 bool Term::isEquals() const {
   CALL("Term::isEquals");
 
-  return !isSort() && env.signature->getFunction(_functor)->proxy() == Signature::EQUALS;  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == Signature::EQUALS;  
 }
 
 bool TermList::isPlaceholder() const {
@@ -691,7 +691,7 @@ Option<unsigned> TermList::deBruijnIndex() const {
 
 Option<unsigned> Term::deBruijnIndex() const {
   CALL("Term::deBruijnIndex");
-  return isSort() || isLiteral() ? Option<unsigned>() : env.signature->getFunction(_functor)->dbIndex();  
+  return isSort() || isLiteral() || isSpecial() ? Option<unsigned>() : env.signature->getFunction(_functor)->dbIndex();  
 }
 
 #endif

@@ -141,9 +141,11 @@ public:
       TermList rhs = con.rhs();
       TermList lhsHead = con.lhsHead();
       TermList rhsHead = con.rhsHead();
- 
+
       ASS(!lhsHead.isVar() || !rhsHead.isVar()); // otherwise we would be solved
-      ASS(lhs.isVar() || rhs.isVar() || SortHelper::getResultSort(lhs.term()) == SortHelper::getResultSort(rhs.term()));
+      // Check below may not hold true in the polymorphic case 
+      // unless we eagerly apply the type substitution
+      //ASS(lhs.isVar() || rhs.isVar() || SortHelper::getResultSort(lhs.term()) == SortHelper::getResultSort(rhs.term()));
 
       AH::normaliseLambdaPrefixes(lhs,rhs);  
 
@@ -391,7 +393,7 @@ SubstIterator HOLUnification::postprocess(RobSubstitutionTL* sub, TermList t, Te
 
   // this unification must pass, otherwise we wouldn't have reached a leaf  
   // however, we are forced to recompute it here with the new substitution (not ideal)
-  ALWAYS(sub->unify(_origQuerySort,res.sort())); 
+  ALWAYS(subst.unify(_origQuerySort,res.sort()));
   return unifiers(_origQuery, res, &subst, false);    
 }
 
