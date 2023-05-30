@@ -156,6 +156,11 @@ public:
 
       AH::normaliseLambdaPrefixes(lhs,rhs); 
 
+      // normalising can change the head of a term if it is a De Bruijn index
+      // TODO only recompute head if it has changed above...
+      lhsHead = lhs.head();
+      rhsHead = rhs.head();
+
       if(lhs == rhs){ continue; }
 
       if(con.rigidRigid()){
@@ -168,6 +173,7 @@ public:
 
       if(con.rigidRigid() && lhsHead.term()->functor() == rhsHead.term()->functor()){
         // unify type
+        bool success = true;
         for(unsigned j = 0; j < lhsHead.term()->arity(); j++){
           BacktrackData tempBD;
           _subst->bdRecord(tempBD);
@@ -176,11 +182,15 @@ public:
           if(!success){
             tempBD.backtrack();
             forward = backtrack();
-            continue;
+            break;
           } else {
             tempBD.commitTo(_bdStack->top());
             tempBD.drop();
           }
+        }
+
+        if(!success){
+          continue;
         }
 
         TermStack lhsArgs;
@@ -293,6 +303,7 @@ public:
         _subst->pushConstraint(c);     
       } 
     }
+  
     // don't stop recording here
     // instead, let RObSubstitution do its free variable renaming
     // on top member of BdStack, so that it is undone by a call to bactrack()

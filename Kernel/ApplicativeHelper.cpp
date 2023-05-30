@@ -876,18 +876,21 @@ bool ApplicativeHelper::getProjAndImitBindings(TermList flexTerm, TermList rigid
     bindings.push(pb);
   }
 
+  ASS(sortsFlex.size() >= argsFlex.size());
+  unsigned diff = sortsFlex.size() - argsFlex.size();
+
   // projections
   for(unsigned i = 0; i < argsFlex.size(); i++){
     // try and project each of the arguments of the flex head in turn
     TermList arg = argsFlex[i];
-    TermList argSort = sortsFlex[i];
+    TermList argSort = sortsFlex[i + diff];
     // sort wrong, cannot project this arg
     if(argSort.finalResult() != sort) continue;
     TermList head = arg.head();
     // argument has a rigid head different to that of rhs. no point projecting
     if(head.isTerm() &&  head.deBruijnIndex().isNone() &&  head != headRigid) continue;
 
-    TermList dbi = getDeBruijnIndex(i, sortsFlex[i]);
+    TermList dbi = getDeBruijnIndex(i + diff, sortsFlex[i + diff]);
 
     TermList pb = createGeneralBinding(fVar,dbi,sortsFlex);
     fVar = var.var() > fVar.var() ? var : fVar;
