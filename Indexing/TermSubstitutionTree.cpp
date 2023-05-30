@@ -40,6 +40,7 @@ TermSubstitutionTree::TermSubstitutionTree(SplittingAlgo algo)
       break;
 #if VHOL
     case SplittingAlgo::HOL_UNIF:
+      _tree.reset(new SubstitutionTree());
       break;
     case SplittingAlgo::HOL_MATCH:
       _tree.reset(new HOLSubstitutionTree([](TermList t){     

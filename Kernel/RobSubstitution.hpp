@@ -101,6 +101,7 @@ struct TermSpec { // for backwards compatibility
 template<class TermSpecOrList, class VarBankOrInt>
 class UnificationConstraint
 {
+protected:  
   TermSpecOrList _t1;
   TermSpecOrList _t2;
 

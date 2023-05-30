@@ -64,7 +64,7 @@ public:
   static TermList lhsSort(TermList t);   
   static TermList rhsSort(TermList t);   
 
-  static void getLambdaPrefSorts(TermList t, TermStack& sorts);
+  static void getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts);
   static void getArgSorts(TermList t, TermStack& sorts);
   static Signature::Proxy getProxy(const TermList& t);
 
@@ -120,20 +120,15 @@ public:
 // reduce to eta short form
 // normalises top down carrying out parallel eta reductions
 // for terms such as ^^^.f 2 1 0
-class EtaNormaliser : public TermTransformer
+// WARNING Recursing lurks here (even during proof search!)
+// This is BAD! However, an  (efficient) iterative implementation is tricky, so 
+// I am leaving for now.
+class EtaNormaliser 
 {
 public:
 
-  EtaNormaliser() {
-    dontTransformSorts();
-  }  
   TermList normalise(TermList t);
-  TermList transformSubterm(TermList t) override;
-  bool exploreSubterms(TermList orig, TermList newTerm) override;
-
-private:
-  bool _ignoring;
-  TermList _awaiting;
+  TermList transformSubterm(TermList t);
 };
 
 // similar to BetaNormaliser, but places a term in WHNF instead

@@ -66,7 +66,7 @@ unique_ptr<TermSubstitutionTree> getTermIndex()
 #if VHOL
  // same as normal index now. should remove TODO
   unique_ptr<TermSubstitutionTree> getHOLTermIndex()
-  { return std::make_unique<TermSubstitutionTree>(); }
+  { return std::make_unique<TermSubstitutionTree>(SplittingAlgo::HOL_UNIF); }
 #endif
 
 auto getLiteralIndex()
@@ -1002,10 +1002,12 @@ TEST_FUN(higher_order8)
   auto b2     = toDBs(lam(z3, ap(g, ap(conFun, z3))));
 
   index->insert(ap(x,a), 0, 0);
+
   index->insert(ap(z,a), 0, 0);
   index->insert(ap(g,ap(z, a)), 0, 0);
 
-
+  cout << *index << endl;
+ 
   checkHigherOrderTermMatches(*index, ap(g,a), Stack<TermUnificationResultSpec>{
 
     TermUnificationResultSpec 

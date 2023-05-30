@@ -98,7 +98,7 @@ public:
     return success;
   }
 
-  void applyBindingToPairs(){
+  void applyBindingToPairs(bool sort = false){
     CALL("HOLUnification::HigherOrderUnifiersIt::applyBindingToPairs");
 
     Stack<HOLConstraint> temp;
@@ -106,7 +106,11 @@ public:
       HOLConstraint pair = popFromUnifPairs(_bdStack->top());
       TermList lhs = pair.lhs();
       TermList rhs = pair.rhs();
-      temp.push(HOLConstraint(lhs.whnfDeref(_subst), rhs.whnfDeref(_subst)));
+      if(sort){
+        temp.push(HOLConstraint(SortDeref(_subst).deref(lhs), SortDeref(_subst).deref(rhs)));
+      } else {
+        temp.push(HOLConstraint(lhs.whnfDeref(_subst), rhs.whnfDeref(_subst)));
+      }
     }
 
     while(!temp.isEmpty()){
@@ -174,18 +178,22 @@ public:
       if(con.rigidRigid() && lhsHead.term()->functor() == rhsHead.term()->functor()){
         // unify type
         bool success = true;
+        bool workDone = false;
         for(unsigned j = 0; j < lhsHead.term()->arity(); j++){
-          BacktrackData tempBD;
-          _subst->bdRecord(tempBD);
-          bool success = _subst->unify(lhsHead.nthArg(j), rhsHead.nthArg(j));
-          _subst->bdDone();          
-          if(!success){
-            tempBD.backtrack();
-            forward = backtrack();
-            break;
-          } else {
-            tempBD.commitTo(_bdStack->top());
-            tempBD.drop();
+          if(lhsHead.nthArg(j) != rhsHead.nthArg(j)){
+            workDone = true;
+            BacktrackData tempBD;
+            _subst->bdRecord(tempBD);
+            success = _subst->unify(lhsHead.nthArg(j), rhsHead.nthArg(j));
+            _subst->bdDone();          
+            if(!success){
+              tempBD.backtrack();
+              forward = backtrack();
+              break;
+            } else {
+              tempBD.commitTo(_bdStack->top());
+              tempBD.drop();
+            }
           }
         }
 
@@ -193,20 +201,29 @@ public:
           continue;
         }
 
+        if(workDone){
+          // we never reach here in the monomorphic case as workDone should always be false
+          applyBindingToPairs(true);
+        }
+
+        lhs = applyTypeSub(lhs);
+        rhs = applyTypeSub(rhs);
+
         TermStack lhsArgs;
         TermStack argSorts;
         TermStack rhsArgs;
         TermStack sorts;
-        AH::getLambdaPrefSorts(lhs,sorts); // TODO could get matrix at the same time
-        AH::getArgSorts(lhs, argSorts);
-        AH::getHeadAndArgs(lhs, lhsHead, lhsArgs);
+        TermList matrix;
+        AH::getMatrixAndPrefSorts(lhs, matrix, sorts);
+        AH::getArgSorts(matrix, argSorts);
+        AH::getHeadAndArgs(matrix, lhsHead, lhsArgs); // TODO combine this line and above into a single function call for efficiencys
         AH::getHeadAndArgs(rhs, rhsHead, rhsArgs);
         ASS(lhsArgs.size() == rhsArgs.size()); // size must be same due to normalisation of prefixes above
 
         for(unsigned i = 0; i < lhsArgs.size(); i++){
-          auto t1 = applyTypeSub(lhsArgs[i]).whnfDeref(_subst);
+          auto t1 = lhsArgs[i].whnfDeref(_subst);
           t1 = AH::surroundWithLambdas(t1, sorts, argSorts[i], /* traverse stack from top */ true);
-          auto t2 = applyTypeSub(rhsArgs[i]).whnfDeref(_subst);   
+          auto t2 = rhsArgs[i].whnfDeref(_subst);   
           t2 = AH::surroundWithLambdas(t2, sorts, argSorts[i], true);                 
           
           if(!trySolveTrivialPair(t1,t2)){
@@ -299,8 +316,7 @@ public:
       ASS(_subst->bdIsRecording());
       HOLConstraint con = popFromUnifPairs(bd);
       if(!trySolveTrivialPair(con.lhs(), con.rhs())){ // through head reduction a pair can become trivial
-        UnifConstraint c(con.lhs(), con.rhs());
-        _subst->pushConstraint(c);     
+        _subst->pushConstraint(con.constraint());     
       } 
     }
   

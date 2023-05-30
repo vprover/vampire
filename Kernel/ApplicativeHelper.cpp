@@ -78,7 +78,8 @@ TermList WHNFDeref::transformSubterm(TermList t)
   TermStack args;
   ApplicativeHelper::getHeadSortAndArgs(t, head, sort, args);
   TermList newHead = _sub->derefBound(head);
-
+  newHead = SortDeref(_sub).deref(newHead);
+ 
   // if the head is a bound variable, then 
   // either it is bound to a lambda term creating a redex on dereferencing,
   // or it is not. In the case, it isn't we need to track
@@ -91,6 +92,7 @@ TermList WHNFDeref::transformSubterm(TermList t)
     if(t.isLambdaTerm()) break;
     ApplicativeHelper::getHeadSortAndArgs(t, head, sort, args);    
     newHead = _sub->derefBound(head);
+    newHead = SortDeref(_sub).deref(newHead);
     headDereffed = newHead != head;
   }
   
@@ -115,9 +117,47 @@ TermList EtaNormaliser::normalise(TermList t)
 {
   CALL("EtaNormaliser::normalise");
 
-  _ignoring = false;
-  t = transformSubterm(t);
-  return transform(t);
+  using AH = ApplicativeHelper;
+
+  if(t.isVar() || !t.term()->hasLambda()){
+    return t;
+  }
+
+  if(t.isLambdaTerm()){
+    TermStack lambdaSorts;
+    TermList matrix;
+    AH::getMatrixAndPrefSorts(t, matrix, lambdaSorts); 
+    
+    if(matrix.isVar()) return t; // ^^^^^^X can't eta reduce this
+    
+    TermList matrixSort = SortHelper::getResultSort(matrix.term());
+    TermList reduced = normalise(matrix);
+    if(reduced != matrix){
+      t = AH::surroundWithLambdas(reduced, lambdaSorts, matrixSort, true);
+    }
+    
+    return transformSubterm(t);
+  }
+
+  // t is not a lambda term
+
+  TermList head;
+  TermList headSort;
+  TermStack args;
+  TermStack argsModified;
+  AH::getHeadSortAndArgs(t, head, headSort, args);
+
+  bool changed = false;
+  for(unsigned j = 0; j < args.size(); j++){
+    argsModified.push(normalise(args[j]));
+    changed = changed || (argsModified[j] != args[j]);
+  }
+
+  if(!changed) return t;
+  TermList res = AH::app(headSort,head,argsModified);
+  
+
+  return res;
 }
 
 // uses algorithm for eta-reduction that can be found here:
@@ -126,9 +166,6 @@ TermList EtaNormaliser::normalise(TermList t)
 TermList EtaNormaliser::transformSubterm(TermList t)
 {
   CALL("EtaNormaliser::transformSubterm");
-
-  if(_ignoring && t != _awaiting) return t;
-  if(_ignoring && t == _awaiting) _ignoring = false;
 
   TermList body = t;
   unsigned l = 0; // number of lambda binders
@@ -156,12 +193,6 @@ TermList EtaNormaliser::transformSubterm(TermList t)
   unsigned k = std::min(l, std::min(n, j));
 
   if(!k){
-    // only start awaiting if we are going to explore the 
-    // subterm ...
-    if(!newBody.isVar() && newBody.term()->hasLambda()){
-      _ignoring = true;
-      _awaiting = newBody;
-    }
     return t;
   }
 
@@ -180,21 +211,8 @@ TermList EtaNormaliser::transformSubterm(TermList t)
     return newBody;
   }
 
-  if(!newBody.isVar() && newBody.term()->hasLambda()){
-    _ignoring = true;
-    _awaiting = newBody;
-  }
-
-  return SubtermReplacer(body, newBody).transform(t);
-}
-
-bool EtaNormaliser::exploreSubterms(TermList orig, TermList newTerm)
-{
-  CALL("EtaNormaliser::exploreSubterms");
-
-  newTerm = ApplicativeHelper::matrix(newTerm);
-  if(newTerm.isVar() || !newTerm.term()->hasLambda()) return false;
-  return true;
+  TermList res = SubtermReplacer(body, newBody).transform(t);
+  return res;
 }
 
 TermList RedexReducer::reduce(TermList head, TermStack& args)
@@ -613,7 +631,7 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
   head = term;
 }
 
-void ApplicativeHelper::getLambdaPrefSorts(TermList t, TermStack& sorts)
+void ApplicativeHelper::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts)
 {
   CALL("ApplicativeHelper::getLambdaPrefSorts");
   
@@ -621,7 +639,7 @@ void ApplicativeHelper::getLambdaPrefSorts(TermList t, TermStack& sorts)
     sorts.push(*t.term()->nthArgument(0));
     t = t.lambdaBody();
   }
-
+  matrix = t;
 }
 
 void ApplicativeHelper::getArgSorts(TermList t, TermStack& sorts)

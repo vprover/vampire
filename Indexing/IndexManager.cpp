@@ -149,15 +149,28 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
-  case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
+  case SUPERPOSITION_SUBTERM_SUBST_TREE:{
+    auto tst = 
+#if VHOL
+      env.property->higherOrder() ?
+        new TermSubstitutionTree(SplittingAlgo::HOL_UNIF) :
+#endif     
+        new TermSubstitutionTree();
+    res = new SuperpositionSubtermIndex(tst, _alg->getOrdering());
     isGenerating = true;
     break;
-  case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+  }
+  case SUPERPOSITION_LHS_SUBST_TREE: {
+    auto tst =
+#if VHOL
+      env.property->higherOrder() ?
+        new TermSubstitutionTree(SplittingAlgo::HOL_UNIF) :
+#endif     
+        new TermSubstitutionTree();    
+    res = new SuperpositionLHSIndex(tst, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-
+  }
 #if VHOL
   case SKOLEMISING_FORMULA_INDEX: {
     auto tis = new TermSubstitutionTree(SplittingAlgo::HOL_MATCH);

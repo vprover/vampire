@@ -197,7 +197,26 @@ TEST_FUN(eta_reduction05) {
   ASS_EQ(reduced, tdb);
 }
 
-TEST_FUN(eta_reduction06) {            
+TEST_FUN(eta_reduction06) {     
+  env.property->forceHigherOrder();
+  env.options->set("pretty_hol_printing","pretty");
+
+  DECL_SORT(srt)
+  DECL_HOL_VAR(x, 0, arrow(srt,srt))
+  DECL_HOL_VAR(y, 1, srt)  
+  // TODO wierd stuff below...      
+  DECL_CONST(f, arrow(arrow(srt,srt),srt)) 
+
+  EtaNormaliser en;
+  auto t = lam(x, ap(f, lam(y, ap(x,y))));
+  auto tdb = toDeBruijnIndices(t);
+
+  auto reduced = en.normalise( tdb );
+
+  ASS_EQ(reduced, f.sugaredExpr());
+}
+
+TEST_FUN(eta_reduction07) {            
   DECL_SORT(srt)
   DECL_HOL_VAR(x, 0, srt)
   DECL_HOL_VAR(y, 1, srt)  

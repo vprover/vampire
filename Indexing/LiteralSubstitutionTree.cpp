@@ -85,6 +85,7 @@ SubstitutionTree* LiteralSubstitutionTree::getTree(Literal* lit, bool complement
         break;
   #if VHOL
       case SplittingAlgo::HOL_UNIF:
+        ASSERTION_VIOLATION; // currently we don't expect any literal index to use higher-order unif
         break;
       case SplittingAlgo::HOL_MATCH:
         _trees.push(new HOLSubstitutionTree([](TermList t){     
