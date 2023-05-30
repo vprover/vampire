@@ -121,7 +121,7 @@ Term* TermSharing::insert(Term* t)
    if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
-    bool hasTermVar = false;
+    bool hasSortVar = false;
     bool hasInterpretedConstants=t->arity()==0 && 
          env.signature->getFunction(t->functor())->interpreted();
 #if VHOL
@@ -136,8 +136,8 @@ Term* TermSharing::insert(Term* t)
       TermList* tt = t->nthArgument(i);
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
-        if(i >= typeArity){
-          hasTermVar = true;
+        if(i < typeArity){
+          hasSortVar = true;
         }
         vars++;
         weight += 1;
@@ -150,7 +150,7 @@ Term* TermSharing::insert(Term* t)
   
         vars += r->numVarOccs();
         weight += r->weight();
-        hasTermVar |= r->hasTermVar();
+        hasSortVar |= r->hasSortVar();
 #if VHOL                
         hasDBIndex              = hasDBIndex              ? true : r->hasDBIndex();
         hasRedex                = hasRedex                ? true : r->hasRedex();
@@ -166,7 +166,7 @@ Term* TermSharing::insert(Term* t)
     t->setId(_totalTerms);
     t->setNumVarOccs(vars);
     t->setWeight(weight);
-    t->setHasTermVar(hasTermVar);
+    t->setHasSortVar(hasSortVar);
 
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
@@ -185,9 +185,9 @@ Term* TermSharing::insert(Term* t)
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
     ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
-    if (!_poly && !SortHelper::areImmediateSortsValidMono(t) && !_wellSortednessCheckingDisabled){
+    if (!_wellSortednessCheckingDisabled && !_poly && !SortHelper::areImmediateSortsValidMono(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");
-    } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
+    } else if (!_wellSortednessCheckingDisabled && _poly && !SortHelper::areImmediateSortsValidPoly(t)){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
   }
@@ -214,10 +214,12 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
     }    
     unsigned weight = 1;
     unsigned vars = 0;
+    bool hasSortVar = false;
 
     for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
+        hasSortVar = true;
         vars++;
         weight += 1;
       }
@@ -235,6 +237,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
     sort->setId(_totalSorts);
     sort->setNumVarOccs(vars);
     sort->setWeight(weight);
+    sort->setHasSortVar(hasSortVar);
       
     _totalSorts++;
 

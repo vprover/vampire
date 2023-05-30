@@ -103,6 +103,7 @@ class HOLUnification {
   }
 
   class HigherOrderUnifiersIt;
+  class HigherOrderUnifiersItWrapper;
 
 public:
 

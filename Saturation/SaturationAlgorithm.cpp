@@ -1619,13 +1619,31 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
-    gie->addFront(new URResolution());
+#if VHOL
+    if(env.property->higherOrder()){
+      // TODO how to output error properly?
+      // Should we be outputing an error or just dying?
+      cout << "WARNING: unit resulting resolution is not compatible with higher-order. Ignoring request" << endl;
+    } else {
+#endif
+      gie->addFront(new URResolution());
+#if VHOL
+    }
+#endif  
   }
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
   }
   if (opt.FOOLParamodulation()) {
+#if VHOL
+    if(env.property->higherOrder()){
+      cout << "WARNING: FOOL paramodulation is not compatible with higher-order. Try using Cases or CasesSimp instead. Ignoring request" << endl;
+    } else {
+#endif
     gie->addFront(new FOOLParamodulation());
+#if VHOL
+    }
+#endif    
   }
 
   /*if (opt.injectivityReasoning()) {
@@ -1693,7 +1711,17 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->addForwardSimplifierToFront(new InnerRewriting());
   }
   if (opt.hyperSuperposition()) {
-    res->addForwardSimplifierToFront(new HyperSuperposition());
+#if VHOL
+    if(env.property->higherOrder()){
+      // TODO how to output error properly?
+      // Should we be outputing an error or just dying?
+      cout << "WARNING: hyper superposition is not compatible with higher-order. Ignoring request" << endl;
+    } else {
+#endif    
+      res->addForwardSimplifierToFront(new HyperSuperposition());
+#if VHOL
+    }
+#endif    
   }
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption(opt));

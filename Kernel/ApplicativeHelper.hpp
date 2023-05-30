@@ -198,6 +198,24 @@ private:
   int _minFreeIndex;
 };
 
+class SortDeref : public TermTransformer
+{
+public:
+  SortDeref(RobSubstitutionTL* sub) : _sub(sub) {}
+
+  TermList deref(TermList term);
+  TermList transformSubterm(TermList t) override; 
+  void onTermEntry(Term* t) override;
+  void onTermExit(Term* t) override;  
+  bool exploreSubterms(TermList orig, TermList newTerm) override;
+
+private:
+  RobSubstitutionTL* _sub;
+  Stack<unsigned> _typeArities;
+  Stack<unsigned> _positions;
+};
+
+
 // replaces higher-order subterms (subterms with variable heads e.g., X a b &
 // lambda terms) with a special polymorphic constant we call a "placeholder".
 // Depending on the mode functional and Boolean subterms may also be replaced

@@ -41,12 +41,10 @@ class TermTransformer {
 public:
   TermTransformer() : 
     _sharedResult(true), 
-    _dontTransformSorts(false),
-    _onlyTransformSorts(false) {}
+    _dontTransformSorts(false) {}
 
   void createNonShared(){ _sharedResult = false; }
   void dontTransformSorts(){ _dontTransformSorts = true; }
-  void onltTransformSorts(){ _onlyTransformSorts = true; }
 
   virtual ~TermTransformer() {}
   Term* transform(Term* term);
@@ -68,7 +66,6 @@ protected:
   virtual Formula* transform(Formula* f);
   bool _sharedResult;
   bool _dontTransformSorts;
-  bool _onlyTransformSorts;  
 
 private:
   template<class T>

@@ -160,10 +160,10 @@ struct PrimitiveInstantiation::ResultFn
     AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
     AH::getArgSorts(flexTerm, sortsFlex);
 
-    if(!argsFlex.size()){
+    /*if(!argsFlex.size()){
       // TODO do we really want to do this?
       return ClauseIterator::getEmpty();
-    }
+    }*/
 
     // if any amongst a1 ... an is of sort $o, project that 
     // argument to the top

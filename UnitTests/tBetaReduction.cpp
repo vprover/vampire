@@ -260,8 +260,10 @@ TEST_FUN(fo_subterm_rep1) {
   DECL_ARROW_SORT(fSrt, {gSrt, srt, srt}) 
   DECL_HOL_VAR(y, 1, gSrt) 
   DECL_HOL_VAR(x, 2, srt)         
+  DECL_HOL_VAR(z, 3, arrow(arrow(srt,srt), srt))         
   DECL_CONST(f, fSrt)     
   DECL_CONST(g, gSrt)     
+  DECL_CONST(a, arrow(srt,srt))     
 
   env.options->setHolPrinting(Options::HPrinting::PRETTY);
   env.property->forceHigherOrder();
@@ -270,9 +272,11 @@ TEST_FUN(fo_subterm_rep1) {
   auto t = ap(ap(f,g), ap(y, x));
 
   auto replaced = sr.replace( t );
+  auto replaced2 = sr.replace ( ap(z, a));
 
   cout << t << endl;
   cout << replaced << endl;
+  cout << replaced2 << endl;  
 }
 
 #endif

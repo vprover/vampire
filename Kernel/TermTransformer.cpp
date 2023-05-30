@@ -87,9 +87,7 @@ Term* TermTransformer::transform(Term* term)
 
     // We still transform sort and term variables ...
     // It is difficult to avoid this though
-    if(tl.isTerm() && 
-      (( tl.term()->isSort() && _dontTransformSorts) || 
-       (!tl.term()->isSort() && _onlyTransformSorts))){
+    if(tl.isTerm() && tl.term()->isSort() && _dontTransformSorts){
       args.push(tl);
       continue;      
     }

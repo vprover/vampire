@@ -18,6 +18,8 @@
 #include "Kernel/HOLUnification.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
+#include "Indexing/TermSharing.hpp"
+
 #include "Lib/SkipList.hpp"
 
 namespace Kernel
@@ -31,6 +33,13 @@ public:
 
   using AH = ApplicativeHelper;
 
+  TermList applyTypeSub(TermList t){
+    CALL("HOLUnification::HigherOrderUnifiersIt::applyTypeSub");
+
+    // in the monomorphic case, should be cheap
+    return SortDeref(_subst).deref(t);
+  }
+
   HigherOrderUnifiersIt(TermList t1, TermList t2, RobSubstitutionTL* subst, bool funcExt) :
     _used(false), _solved(false), _topLevel(true), _funcExt(funcExt), _depth(0), 
     _freshVar(0, VarBank::FRESH_BANK), _subst(subst){
@@ -41,7 +50,7 @@ public:
     _bindings->push(TermStack());
 
     if(!trySolveTrivialPair(t1,t2)){
-      _unifPairs.insert(HOLConstraint(t1,t2));
+      _unifPairs.insert(HOLConstraint(applyTypeSub(t1),applyTypeSub(t2)));
     }
 
     DEBUG_ITERATOR(1, "starting iterator with\n ", *this)
@@ -134,7 +143,7 @@ public:
       { break; }
  
       auto con = popFromUnifPairs(_bdStack->top());
-
+      
       DEBUG_ITERATOR(2, "Next pair\n ", con)
 
       TermList lhs = con.lhs();
@@ -143,11 +152,9 @@ public:
       TermList rhsHead = con.rhsHead();
 
       ASS(!lhsHead.isVar() || !rhsHead.isVar()); // otherwise we would be solved
-      // Check below may not hold true in the polymorphic case 
-      // unless we eagerly apply the type substitution
-      //ASS(lhs.isVar() || rhs.isVar() || SortHelper::getResultSort(lhs.term()) == SortHelper::getResultSort(rhs.term()));
+      ASS(lhs.isVar() || rhs.isVar() || SortHelper::getResultSort(lhs.term()) == SortHelper::getResultSort(rhs.term()));
 
-      AH::normaliseLambdaPrefixes(lhs,rhs);  
+      AH::normaliseLambdaPrefixes(lhs,rhs); 
 
       if(lhs == rhs){ continue; }
 
@@ -159,9 +166,22 @@ public:
         }
       }
 
-      if(lhsHead == rhsHead){
-        ASS(con.rigidRigid());
-        // TODO deal with sorts?
+      if(con.rigidRigid() && lhsHead.term()->functor() == rhsHead.term()->functor()){
+        // unify type
+        for(unsigned j = 0; j < lhsHead.term()->arity(); j++){
+          BacktrackData tempBD;
+          _subst->bdRecord(tempBD);
+          bool success = _subst->unify(lhsHead.nthArg(j), rhsHead.nthArg(j));
+          _subst->bdDone();          
+          if(!success){
+            tempBD.backtrack();
+            forward = backtrack();
+            continue;
+          } else {
+            tempBD.commitTo(_bdStack->top());
+            tempBD.drop();
+          }
+        }
 
         TermStack lhsArgs;
         TermStack argSorts;
@@ -174,9 +194,9 @@ public:
         ASS(lhsArgs.size() == rhsArgs.size()); // size must be same due to normalisation of prefixes above
 
         for(unsigned i = 0; i < lhsArgs.size(); i++){
-          auto t1 = lhsArgs[i].whnfDeref(_subst);
+          auto t1 = applyTypeSub(lhsArgs[i]).whnfDeref(_subst);
           t1 = AH::surroundWithLambdas(t1, sorts, argSorts[i], /* traverse stack from top */ true);
-          auto t2 = rhsArgs[i].whnfDeref(_subst);   
+          auto t2 = applyTypeSub(rhsArgs[i]).whnfDeref(_subst);   
           t2 = AH::surroundWithLambdas(t2, sorts, argSorts[i], true);                 
           
           if(!trySolveTrivialPair(t1,t2)){
@@ -200,7 +220,7 @@ public:
           _subst->bdDone();
 
           if(res == OracleResult::OUT_OF_FRAGMENT){
-            tempBD.backtrack();
+            tempBD.backtrack(); // don't think we need this, as we won't have bound anyhting...
             // TODO pattern oracle
             // TODO solid oracle?
           } else if (res == OracleResult::SUCCESS){
@@ -352,6 +372,24 @@ private:
   RobSubstitutionTL* _subst;
 };
 
+class HOLUnification::HigherOrderUnifiersItWrapper: public IteratorCore<RobSubstitutionTL*> {
+public:
+  HigherOrderUnifiersItWrapper(TermList t1, TermList s1, TermList t2, TermList s2, bool funcExt) : _subst()
+  {
+    // this unification must pass, otherwise we wouldn't have reached a leaf  
+    // however, we are forced to recompute it here with the new substitution (not ideal)    
+    ALWAYS(_subst->unify(s1,s2));
+    _inner = vi(new HigherOrderUnifiersIt(t1, t2, &*_subst, funcExt));
+  }
+
+  bool hasNext() { return _inner.hasNext(); }
+  RobSubstitutionTL* next() { return _inner.next(); }
+
+private:
+  SubstIterator _inner;
+  Recycled<RobSubstitutionTL> _subst;
+};
+
 SubstIterator HOLUnification::unifiers(TermList t1, TermList t2, RobSubstitutionTL* sub, bool topLevelCheck)
 {
   CALL("HOLUnification::unifiers");
@@ -386,15 +424,9 @@ SubstIterator HOLUnification::postprocess(RobSubstitutionTL* sub, TermList t, Te
   // ignore the sub that has been passed in, since
   // that contains substitutions formed during tree traversal which
   // are not helpful here (but cannot be erased either!)
-  static RobSubstitutionTL subst;
-  subst.reset();
-
   TypedTermList res = ToBank(RESULT_BANK).toBank(TypedTermList(t,sort));
 
-  // this unification must pass, otherwise we wouldn't have reached a leaf  
-  // however, we are forced to recompute it here with the new substitution (not ideal)
-  ALWAYS(subst.unify(_origQuerySort,res.sort()));
-  return unifiers(_origQuery, res, &subst, false);    
+  return vi(new HigherOrderUnifiersItWrapper(_origQuery, _origQuerySort, res, res.sort(), _funcExt));    
 }
 
 bool HOLUnification::associate(unsigned specialVar, TermList node, RobSubstitutionTL* sub)

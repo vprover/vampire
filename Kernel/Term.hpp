@@ -348,7 +348,7 @@ private:
       /** true if atomic sort */
       unsigned sort : 1;
       /** true if term contains at least one term var */
-      unsigned hasTermVar : 1;
+      unsigned hasSortVar : 1;
   #if VHOL
       /** true if the term contains a De Bruijn index */
       unsigned hasDBIndex : 1;
@@ -675,10 +675,10 @@ public:
 
   /** True if the term contains a term variable (type variables don't count)
    *  Only applicable to shared terms */
-  bool hasTermVar() const
+  bool hasSortVar() const
   {
     ASS(_args[0]._info.shared);
-    return _args[0]._info.hasTermVar;
+    return _args[0]._info.hasSortVar;
   } // ground
 
   /** True if the term is shared */
@@ -758,11 +758,11 @@ public:
     _vars = v;
   } // setVars
 
-  void setHasTermVar(bool b)
+  void setHasSortVar(bool b)
   {
     CALL("setHasTermVar");
-    ASS(shared() && !isSort());
-    _args[0]._info.hasTermVar = b;
+    ASS(shared());
+    _args[0]._info.hasSortVar = b;
   }
 
   /** Return the number of variable _occurrences_ */

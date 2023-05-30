@@ -315,6 +315,50 @@ bool TermShifter::exploreSubterms(TermList orig, TermList newTerm)
   return false;
 }
 
+TermList SortDeref::deref(TermList term)
+{
+  CALL("SortDeref::deref");
+
+  // assume term var here
+  if(term.isVar() || !term.term()->hasSortVar()) return term;
+  return transform(term);
+}
+
+TermList SortDeref::transformSubterm(TermList t)
+{
+  CALL("ortDeref::transformSubterm");
+
+  if(t.isVar() && _positions.top() < _typeArities.top()){
+    t = _sub->derefBound(t);
+  }
+  unsigned pos = _positions.pop();
+  _positions.push(pos + 1);
+  return t;
+}
+
+void SortDeref::onTermEntry(Term* t){
+  CALL("SortDeref::onTermEntry");
+
+  _typeArities.push(t->isSort() ? t->arity() : t->numTypeArguments());
+  _positions.push(0);
+}
+
+void SortDeref::onTermExit(Term* t){
+  CALL("ortDeref::onTermExit");
+
+  _typeArities.pop();
+  _positions.pop();
+} 
+
+bool SortDeref::exploreSubterms(TermList orig, TermList newTerm)
+{
+  CALL("SortDeref::exploreSubterms");
+
+  ASS(newTerm.isTerm());
+
+  return newTerm.term()->hasSortVar();
+}
+
 TermList ToPlaceholders::replace(TermList term)
 {
   CALL("ToPlaceholders::replace");
