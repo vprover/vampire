@@ -231,6 +231,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
   
         vars += r->numVarOccs();
         weight += r->weight();
+        hasSortVar |= r->hasSortVar();        
       }
     }
     sort->markShared();
