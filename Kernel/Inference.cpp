@@ -282,9 +282,9 @@ vstring Inference::toString() const
   if(env.options->addProxyAxioms()){
    result += ", pad: " + Int::toString(_proxyAxiomsDescendant);
   }  
-  if(env.options->prioritiseClausesProducedByLongReduction()){
+  /*if(env.options->prioritiseClausesProducedByLongReduction()){
     result += ", redLen " + Int::toString(_reductions);
-  }
+  }*/
 #endif
   result += ", sl: " + Int::toString(_sineLevel);
   result += ", age: " + Int::toString(_age);

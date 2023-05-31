@@ -964,8 +964,8 @@ private:
    **/
   unsigned char _sineLevel : 8; // updated as the minimum from parents to children
 
-  // AYB TODO
-  /** number of weak reductions in the history of this clause */
+  // AYB TODO currently unused
+  /** number of beta reductions in the history of this clause */
   unsigned _reductions : 30;
 
   // aligned to 64 bits
