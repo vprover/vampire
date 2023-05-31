@@ -1148,7 +1148,9 @@ void TheoryAxioms::applyFOOL() {
   // Do not add the finite domain axiom if --fool_paradomulation on
   if (env.options->FOOLParamodulation() 
 #if VHOL
-    || env.options->cases() || env.options->casesSimp()
+    || env.options->cases() || env.options->casesSimp() || env.property->higherOrder()
+       // never want to add these axioms in higher-order. Either deal with Bools using
+       // cases or using unification with abstraction
 #endif
     ) {
     return;

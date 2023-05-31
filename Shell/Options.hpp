@@ -2415,9 +2415,9 @@ public:
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
   // TODO doesn't do anyhting currently
-  bool pragmatic() const { return _pragmatic.actualValue; }
+  // bool pragmatic() const { return _pragmatic.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
-  bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
+  // bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
@@ -2429,7 +2429,7 @@ public:
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   // TODO doesn't do anyhting currently  
-  bool complexVarCondition() const { return _complexVarCondition.actualValue; }
+  // bool complexVarCondition() const { return _complexVarCondition.actualValue; }
   HPrinting holPrinting() const { return _holPrinting.actualValue; }
   void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
   bool superposition() const {return _superposition.actualValue; }  
@@ -2860,9 +2860,9 @@ private:
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
-  BoolOptionValue _pragmatic;
+  // BoolOptionValue _pragmatic;
   BoolOptionValue _choiceReasoning;
-  BoolOptionValue _priortyToLongReducts;
+  // BoolOptionValue _priortyToLongReducts;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
   ChoiceOptionValue<PISet> _piSet;
@@ -2874,7 +2874,7 @@ private:
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _lambdaFreeHol;
-  BoolOptionValue _complexVarCondition;
+  // BoolOptionValue _complexVarCondition;
   ChoiceOptionValue<HPrinting> _holPrinting;
   UnsignedOptionValue _higherOrderUnifDepth;  
 #endif

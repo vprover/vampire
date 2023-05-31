@@ -1793,7 +1793,7 @@ void Options::init()
     _choiceReasoning.onlyUsefulWith(_choiceAxiom.is(equal(false))); //no point having two together
     _choiceReasoning.tag(OptionTag::HIGHER_ORDER);
 
-    _priortyToLongReducts = BoolOptionValue("priority_to_long_reducts","ptlr",false);
+    /*_priortyToLongReducts = BoolOptionValue("priority_to_long_reducts","ptlr",false);
     _priortyToLongReducts.description="give priority to clauses produced by lengthy reductions";
     _lookup.insert(&_priortyToLongReducts);
     _priortyToLongReducts.addProblemConstraint(hasHigherOrder());        
@@ -1803,13 +1803,13 @@ void Options::init()
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
     _lookup.insert(&_injectivity);
     _injectivity.addProblemConstraint(hasHigherOrder());            
-    _injectivity.tag(OptionTag::HIGHER_ORDER);
+    _injectivity.tag(OptionTag::HIGHER_ORDER);*/
 
-    _pragmatic = BoolOptionValue("pragmatic","prag",false);
+    /*_pragmatic = BoolOptionValue("pragmatic","prag",false);
     _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
     _lookup.insert(&_pragmatic);
     _pragmatic.addProblemConstraint(hasHigherOrder());
-    _pragmatic.tag(OptionTag::HIGHER_ORDER);
+    _pragmatic.tag(OptionTag::HIGHER_ORDER);*/
 
     // TODO we have two ways of enabling function extensionality abstraction atm:
     // this option, and `-uwa`. 
@@ -1906,20 +1906,20 @@ void Options::init()
     _lambdaFreeHol.addProblemConstraint(hasHigherOrder());    
     _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
 
-    _complexVarCondition = BoolOptionValue("complex_var_cond","cvc",false);
+    /*_complexVarCondition = BoolOptionValue("complex_var_cond","cvc",false);
     _complexVarCondition.description=
     "Use the more complex variable condition provided in the SKIKBO paper.\n"
     "More terms are comparable with this ordering, but it has worst case"
     "exponential complexity";
     _lookup.insert(&_complexVarCondition);
-    _complexVarCondition.tag(OptionTag::HIGHER_ORDER);
+    _complexVarCondition.tag(OptionTag::HIGHER_ORDER);*/
 
     _holPrinting = ChoiceOptionValue<HPrinting>("pretty_hol_printing","php",HPrinting::TPTP,
                                                             {"raw","db","pretty","tptp"});
     _holPrinting.description=
     "Various methods of printing higher-order terms: \n"
     " -raw : prints the internal representation of terms \n"
-    " -pretty : converts internal representation to somethign resemblign textbook notation \n"
+    " -pretty : converts internal representation to something resembling textbook notation \n"
     " -tptp : matches tptp standards \n"
     " -db : same as tptp, except that De Bruijn indices printed instead of named variables";
     _lookup.insert(&_holPrinting);
