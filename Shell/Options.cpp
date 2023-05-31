@@ -3474,6 +3474,13 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+#if VHOL
+  if(prb.hasFOOL() && _casesSimp.actualValue){
+    // casesSimp is not complete 
+    return false;
+  }
+#endif
+
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
