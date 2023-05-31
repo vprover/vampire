@@ -515,7 +515,7 @@ struct InductionContextFn
       }
       auto indTerm = arg.first[0];
       // check for complex term and non-equality
-      if (_lit->isEquality() || !indTerm->arity()) {
+      if (_lit->isEquality()/*  || !indTerm->arity() */) {
         return res;
       }
       while (arg.second.hasNext()) {
@@ -776,9 +776,9 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       // generate formulas and add them to index if not done already
       if (_formulaIndex.findOrInsert(ctx, e)) {
         if (ctx._indTerms.size() == 1) {
-          if(one){
+          // if(one){
             performStructInductionOne(ctx,e);
-          }
+          // }
           if(two){
             performStructInductionTwo(ctx,e);
           }
