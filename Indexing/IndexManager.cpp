@@ -246,7 +246,12 @@ Index* IndexManager::create(IndexType t)
   }
 
   case REWRITE_RULE_SUBST_TREE:
-    res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg->getOrdering());
+    res = 
+#if VHOL
+      env.property->higherOrder() ?
+        new RewriteRuleIndex(new LiteralSubstitutionTree(SplittingAlgo::HOL_MATCH), _alg->getOrdering()) :
+#endif
+        new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg->getOrdering());
     isGenerating = false;
     break;
 

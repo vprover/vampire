@@ -54,6 +54,12 @@ struct FastCondensation::CondensationBinder
       return term.isVar() && var==term.var();
     }
 
+#if VHOL
+    if(env.property->higherOrder() && term.containsLooseIndex()){
+      return false;
+    }
+#endif
+
     TermList* binding;
     if(bindings.getValuePtr(var,binding,term)) {
       return true;

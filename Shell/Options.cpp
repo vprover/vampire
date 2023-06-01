@@ -1770,7 +1770,7 @@ void Options::init()
     _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
     _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projextions and imitations) that higher-order unification can descend to. Once limit is reached, remaining pairs are retunred as constraints.";
     _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
-    _higherOrderUnifDepth.addHardConstraint(lessThan(10u));
+    _higherOrderUnifDepth.addHardConstraint(lessThan(100u));
     _lookup.insert(&_higherOrderUnifDepth);
     _higherOrderUnifDepth.tag(OptionTag::HIGHER_ORDER);
 
@@ -1803,9 +1803,9 @@ void Options::init()
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
     _lookup.insert(&_injectivity);
     _injectivity.addProblemConstraint(hasHigherOrder());            
-    _injectivity.tag(OptionTag::HIGHER_ORDER);*/
+    _injectivity.tag(OptionTag::HIGHER_ORDER);
 
-    /*_pragmatic = BoolOptionValue("pragmatic","prag",false);
+    _pragmatic = BoolOptionValue("pragmatic","prag",false);
     _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
     _lookup.insert(&_pragmatic);
     _pragmatic.addProblemConstraint(hasHigherOrder());

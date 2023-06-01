@@ -2413,7 +2413,7 @@ public:
 #if VHOL
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
-  bool injectivityReasoning() const { return _injectivity.actualValue; }
+  // bool injectivityReasoning() const { return _injectivity.actualValue; }
   // TODO doesn't do anyhting currently
   // bool pragmatic() const { return _pragmatic.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
@@ -2859,7 +2859,7 @@ private:
   //Higher-order options
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _choiceAxiom;
-  BoolOptionValue _injectivity;
+  // BoolOptionValue _injectivity;
   // BoolOptionValue _pragmatic;
   BoolOptionValue _choiceReasoning;
   // BoolOptionValue _priortyToLongReducts;

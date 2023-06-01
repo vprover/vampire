@@ -82,7 +82,7 @@ struct Choice::AxiomsIterator
   {
     CALL("Choice::AxiomsIterator");
     ASS(term.isApplication());
-
+  
     _set = term.rhs(); 
     _headSort = AH::lhsSort(term);
     _resultSort = SortHelper::getResultSort(term.term());
@@ -170,6 +170,7 @@ struct Choice::IsChoiceTerm
 {
   bool operator()(Term* t)
   { 
+    if(t->isLambdaTerm()) return false;
     TermStack args;
     TermList head;
     ApplicativeHelper::getHeadAndArgs(t, head, args);
@@ -205,9 +206,9 @@ struct Choice::SubtermsFn
 
 ClauseIterator Choice::generateClauses(Clause* premise)
 {
-  CALL("PrimitiveInstantiation::generateClauses");
+  CALL("Choice::generateClauses");
 
-  //cout << "Choice with " << premise->toString() << endl;
+  // cout << "Choice with " << premise->toString() << endl;
   
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();

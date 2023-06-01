@@ -250,6 +250,18 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::occurs(TermSpecOrList const&
 {
   ASS(toFind_.isVar());
 
+#if VHOL
+  // we don't need to dereference any bound variables
+  // since we should never be binding a variable to a term that contains a loose index
+  if(env.property->higherOrder()){
+    // should never reach here from a tree
+    // currently we only reach this point by a call to unifiers 
+    // from condensation
+    ASS(ts_.isVar() || ts_.term()->shared()) 
+    if(ts_.containsLooseIndex()) return false;
+  }
+#endif
+
   TermSpecOrList toFind = root(toFind_);
   TermSpecOrList ts     = derefBound(ts_);
   if(ts.isVar()) {
