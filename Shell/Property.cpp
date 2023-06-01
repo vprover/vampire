@@ -227,7 +227,7 @@ void Property::scan(Unit* unit)
   }
   if (! hasProp(PR_HAS_FUNCTION_DEFINITIONS)) {
     FunctionDefinition::Def* def =
-      FunctionDefinition::isFunctionDefinition(*unit);
+      FunctionDefinition::isFunctionDefinition(*unit,/*in the old, first-order sense*/false);
     if (def) {
       addProp(PR_HAS_FUNCTION_DEFINITIONS);
       FunctionDefinition::deleteDef(def);

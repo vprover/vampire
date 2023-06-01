@@ -318,10 +318,10 @@ void Preprocess::preprocess(Problem& prb)
 
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
-      fd.removeAllDefinitions(prb);
+      fd.removeAllDefinitions(prb,env.getMainProblem()->isHigherOrder());
     }
     else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb);
+      FunctionDefinition::removeUnusedDefinitions(prb,env.getMainProblem()->isHigherOrder());
     }
   }
 
