@@ -318,7 +318,7 @@ bool ChoiceDefinitionISE::isOfFormXY(Literal* lit, TermList& x){
 
   TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
   
-  ASS(!term.isLambdaTerm());
+  if(term.isLambdaTerm()){ return false; }
 
   TermStack args;
   ApplicativeHelper::getHeadAndArgs(term, x, args);
@@ -330,7 +330,7 @@ bool ChoiceDefinitionISE::isOfFormXfX(Literal* lit, TermList x, TermList& f){
   
   TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
   
-  ASS(!term.isLambdaTerm());
+  if(term.isLambdaTerm()){ return false; }
 
   TermStack args;
   TermList head;

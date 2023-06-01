@@ -52,7 +52,7 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 {
   CALL("Choice::createChoiceAxiom");
 
-  TermList setSort = SortHelper::getResultSort(op.term()).result();
+  TermList setSort = SortHelper::getResultSort(op.term()).domain();
 
   unsigned max = 0;
   FormulaVarIterator fvi(&set);
@@ -84,9 +84,9 @@ struct Choice::AxiomsIterator
     ASS(term.isApplication());
   
     _set = term.rhs(); 
+
     _headSort = AH::lhsSort(term);
     _resultSort = SortHelper::getResultSort(term.term());
-    //cout << "the result sort is " + _resultSort.toString() << endl;
 
     DHSet<unsigned>* ops = env.signature->getChoiceOperators();
     DHSet<unsigned>::Iterator opsIt(*ops);
@@ -208,7 +208,7 @@ ClauseIterator Choice::generateClauses(Clause* premise)
 {
   CALL("Choice::generateClauses");
 
-  // cout << "Choice with " << premise->toString() << endl;
+  cout << "Choice with " << premise->toString() << endl;
   
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();
