@@ -250,18 +250,6 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::occurs(TermSpecOrList const&
 {
   ASS(toFind_.isVar());
 
-#if VHOL
-  // we don't need to dereference any bound variables
-  // since we should never be binding a variable to a term that contains a loose index
-  if(env.property->higherOrder()){
-    // should never reach here from a tree
-    // currently we only reach this point by a call to unifiers 
-    // from condensation
-    ASS(ts_.isVar() || ts_.term()->shared()) 
-    if(ts_.containsLooseIndex()) return false;
-  }
-#endif
-
   TermSpecOrList toFind = root(toFind_);
   TermSpecOrList ts     = derefBound(ts_);
   if(ts.isVar()) {
@@ -350,6 +338,21 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::unify(TermSpecOrList t1, Ter
   // recomputing their unification
   Recycled<DHSet<Constraint>> encountered;
 
+#if VHOL
+  auto containsLooseIndex = [](TermList t){
+    if(env.property->higherOrder()){
+      // should never reach here from a tree
+      // currently we only reach this point by a call to unifiers 
+      // from condensation
+      ASS(t.isVar() || t.term()->shared())
+      // we don't need to dereference any bound variables
+      // since we should never be binding a variable to a term that contains a loose index     
+      return t.containsLooseIndex();
+    }
+    return false;
+  };
+#endif
+
   auto pushTodo = [&](auto pair) {
       // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
       // in order to safe memory we do ot do this for variables.
@@ -381,10 +384,18 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::unify(TermSpecOrList t1, Ter
     // Deal with the case where eithe rare variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
-    } else if(dt1.isVar() && !occurs(dt1, dt2)) {
+    } else if(dt1.isVar() && !occurs(dt1, dt2) 
+#if VHOL
+                          && !containsLooseIndex(dt2)
+#endif
+      ) {
       bind(dt1, dt2);
 
-    } else if(dt2.isVar() && !occurs(dt2, dt1)) {
+    } else if(dt2.isVar() && !occurs(dt2, dt1)
+#if VHOL
+                          && !containsLooseIndex(dt1)
+#endif
+      ) {
       bind(dt2, dt1);
 
     } else if(dt1.isTerm() && dt2.isTerm() 
