@@ -1841,7 +1841,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
 
 #if VHOL
-  if(env.options->choiceReasoning() && prb.higherOrder()){
+  if(prb.higherOrder() && env.options->choiceReasoning()){
     res->addFront(new ChoiceDefinitionISE());
   }
 
@@ -1859,7 +1859,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFrontMany(new CasesSimp());
   }
 
-  if(env.options->newTautologyDel()){
+  if(prb.higherOrder() && env.options->newTautologyDel()){
     res->addFront(new TautologyDeletionISE2());
   }  
 

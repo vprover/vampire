@@ -1380,7 +1380,11 @@ public:
       // TermList qt = _abstractingUnifier.subs().getSpecialVarTop(specVar);
       // TODO should this function really be part of algo?
       auto top = _subst->getSpecialVarTop(specVar);
-      if(top.var() || top.id() || env.signature->isPlaceholder(*top.functor())) {
+      if(top.var() || top.id()
+#if VHOL
+       || env.signature->isPlaceholder(*top.functor())
+#endif
+       ) {
         return n->allChildren();
       } else {
         Node** match=n->childByTop(top, false);

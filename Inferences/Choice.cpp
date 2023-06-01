@@ -207,8 +207,6 @@ struct Choice::SubtermsFn
 ClauseIterator Choice::generateClauses(Clause* premise)
 {
   CALL("Choice::generateClauses");
-
-  cout << "Choice with " << premise->toString() << endl;
   
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();

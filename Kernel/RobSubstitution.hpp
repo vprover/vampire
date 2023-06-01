@@ -78,7 +78,9 @@ struct TermSpec { // for backwards compatibility
   bool isOrdinaryVar() const { return trm.isOrdinaryVar(); }
   bool isTerm() const { return trm.isTerm(); }
   bool isOutputVar() const { return isVar() && index == UNBOUND_INDEX; }
+#if VHOL
   bool containsLooseIndex() const { return trm.containsLooseIndex(); }
+#endif
   bool onBank() const { return true; } // always on a bank
   unsigned var() const {  ASS(trm.isVar()); return trm.var(); }
   const Term* term() const { ASS(isTerm());  return trm.term(); }
