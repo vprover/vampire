@@ -1899,6 +1899,18 @@ void Options::init()
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
 
+    _positiveExt = BoolOptionValue("pos_ext","pe",false);
+    _positiveExt.description=
+    "Enables the following inference\n"
+        "C \\/ t X = s X \n"
+        "----------------\n"
+        "  C \\/ t = s   \n"
+        "where X doesn't occur in t,s or C";
+    _lookup.insert(&_positiveExt);
+    _positiveExt.addProblemConstraint(hasHigherOrder());   
+    _positiveExt.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::AXIOM)));
+    _positiveExt.tag(OptionTag::HIGHER_ORDER);
+
     _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
     _lambdaFreeHol.description=
     "Reason about lambda-free hol. See paper by Vukmirovic et al.";

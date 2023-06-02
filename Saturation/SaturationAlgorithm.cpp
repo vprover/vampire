@@ -86,6 +86,7 @@
 //#include "Inferences/Injectivity.hpp"
 #include "Inferences/BetaEtaISE.hpp"
 #include "Inferences/FlexFlexSimplify.hpp"
+#include "Inferences/PositiveExt.hpp"
 #endif
 
 #include "Inferences/URResolution.hpp"
@@ -1584,21 +1585,21 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       // only add when we are not carrying out higher-order unification
       gie->addFront(new ImitateProject());
     } 
-  }
-
-  if(prb.hasFOOL() &&
-    prb.higherOrder() && env.options->booleanEqTrick()){
-    gie->addFront(new BoolEqToDiseq());
+    if(env.options->positiveExtensionality()){
+      gie->addFront(new PositiveExt());
+    }
+    if(prb.hasFOOL() && env.options->booleanEqTrick()){
+      gie->addFront(new BoolEqToDiseq());
+    }
+    if(env.options->choiceReasoning()){
+      gie->addFront(new Choice());
+    }
   }
 
   if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
      prb.higherOrder() && !opt.lambdaFreeHol()){
     gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     gie->addFront(new ElimLeibniz());
-  }
-
-  if(env.options->choiceReasoning()){
-    gie->addFront(new Choice());
   }
 
   if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {

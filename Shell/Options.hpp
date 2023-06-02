@@ -2427,6 +2427,7 @@ public:
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
+  bool positiveExtensionality() const { return _positiveExt.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   // TODO doesn't do anyhting currently  
   // bool complexVarCondition() const { return _complexVarCondition.actualValue; }
@@ -2873,6 +2874,7 @@ private:
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
+  BoolOptionValue _positiveExt;
   BoolOptionValue _lambdaFreeHol;
   // BoolOptionValue _complexVarCondition;
   ChoiceOptionValue<HPrinting> _holPrinting;
