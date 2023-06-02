@@ -775,6 +775,7 @@ public:
 private:
     // helper function of trySamplingStrategy
     void strategySamplingAssign(vstring optname, vstring value, DHMap<vstring,vstring>& fakes);
+    vstring strategySamplingLookup(vstring optname, DHMap<vstring,vstring>& fakes);
 
     /**
      * These store the names of the choices for an option.
