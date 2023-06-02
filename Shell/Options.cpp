@@ -2233,9 +2233,9 @@ void Options::init()
                                                             "scramble","frequency","unary_frequency","const_frequency",
                                                             "reverse_frequency", "weighted_frequency","reverse_weighted_frequency"});
     _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols.\n"
-                                  "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurence orders symbols by the order they appear in the problem. "
+                                  "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurrence orders symbols by the order they appear in the problem. "
                                   "Then we have a few precedence generating schemes adopted from E: frequency - sort by frequency making rare symbols large, reverse does the opposite, "
-                                  "(For the weighted versions, each symbol occurence counts as many times as is the length of the clause in which it occurs.) "
+                                  "(For the weighted versions, each symbol occurrence counts as many times as is the length of the clause in which it occurs.) "
                                   "unary_first is like arity, except that unary symbols are maximal (and ties are broken by frequency), "
                                   "unary_frequency is like frequency, except that unary symbols are maximal, "
                                   "const_max makes constants the largest, then falls back to arity, "
@@ -2244,7 +2244,7 @@ void Options::init()
     _lookup.insert(&_symbolPrecedence);
     _symbolPrecedence.onlyUsefulWith(ProperSaturationAlgorithm());
     _symbolPrecedence.tag(OptionTag::SATURATION);
-    _symbolPrecedence.setRandomChoices({"arity","occurence","reverse_arity","frequency"});
+    _symbolPrecedence.setRandomChoices({"arity","occurrence","reverse_arity","frequency"});
 
     _introducedSymbolPrecedence = ChoiceOptionValue<IntroducedSymbolPrecedence>("introduced_symbol_precedence","isp",
                                                                                 IntroducedSymbolPrecedence::TOP,
