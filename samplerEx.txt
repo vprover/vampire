@@ -1,4 +1,32 @@
-# hash as the very first character signifies a full line comment
+# PREPROCESSING
+
+# blocked_clause_elimination
+> bce ~cat off:5,on:1
+
+# equality_proxy
+> $ep ~cat N:7,Y:1 
+$ep=Y > ep ~cat RST:2,R:3,RSTC:2,RS:3
+# mono_ep
+$ep=Y > mep ~cat on:10,off:1
+
+# equality_resolution_with_deletion
+> erd ~cat on:10,off:1
+
+# function_definition_elimination
+> fde ~cat all:5,none:1,unused:1
+
+# general_splitting
+> gsp ~cat off:8,on:1
+
+# inline_let -- this is probably irrelevant on TPTP anyway
+> ile ~cat off:10,on:1
+
+# naming
+> $nm ~cat Z:1,NZ:5 
+$nm=Z > nm ~cat 0:1
+$nm=NZ > nm ~sgd 0.07,2
+
+# SATURATION
 
 # saturation algorithm
 > sa     ~cat lrs:600,discount:572,otter:236
@@ -16,11 +44,29 @@ $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-
 # superposition (don't turn this off at home!)
 > sup ~cat on:100,off:1
 
+# simultaneous_superposition
+sup=on > sims ~cat on:50,off:1
+
+# superposition_from_variables
+sup=on > sfv ~cat on:38,off:1
+
+
+
+
+# inner_rewriting
+> irw ~cat off:165,on:6
+
+# unit_resulting_resolution (TODO: out for Ahmed for now)
+# > urr ~cat off:1200,ec_only:162,on:340
+
 # ORDERING
 
+# term_ordering
 > to ~cat kbo:13,lpo:4
 
+# symbol_precendence
 > sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
+# symbol_precedence_boost
 > spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
 
 to=kbo > kmz ~cat off:200,on:1
@@ -32,6 +78,30 @@ to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv
 
 > av ~cat on:15,off:4
 
+
+
+
+
+
+
+
+
+
+# TODO: consider enabling this for vampire_z3 compiles!
+# av=on > sas ~cat minisat:10,z3:1
+
+# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+
+> gs ~cat off:5,on:1
+
+# global_subsumption_explicit_minim
+gs=on > gsem ~cat randomized:50,on:5,off:17
+
+# global_subsumption_sat_solver_power
+gs=on > gsssp ~cat propagation_only:20,full:1
+
+# global_subsumption_avatar_assumptions
+gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 
 

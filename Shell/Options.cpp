@@ -3425,6 +3425,23 @@ void Options::trySamplingStrategy()
       strategySamplingAssign(optname,Int::toString(numer)+pieces[2]+Int::toString(denom),fakes);
 
       pieces.reset();
+    } else if (sampler == "~sgd") {
+      StringUtils::splitStr(args.c_str(),',',pieces);
+      StringUtils::dropEmpty(pieces);
+
+      if (pieces.size() != 2) {
+        USER_ERROR("Sampling file parse error -- ~sgd sampler expect exatly two comma-separated arguments but got: "+args);
+      }
+      double prob;
+      int offset;
+      if (!Int::stringToDouble(pieces[0].c_str(),prob) || !Int::stringToInt(pieces[1].c_str(),offset)) {
+        USER_ERROR("Sampling file parse error -- can't convert one of ~sgd sampler arguments to numbers: "+args);
+      }
+      std::geometric_distribution<int> dis(prob);
+      int nval = offset+dis(rng);
+      strategySamplingAssign(optname,Int::toString(nval),fakes);
+
+      pieces.reset();
     } else {
       USER_ERROR("Sampling file parse error -- unrecognized sampler: " + sampler);
     }
