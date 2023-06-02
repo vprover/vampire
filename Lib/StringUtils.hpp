@@ -32,6 +32,7 @@ public:
   static bool isPositiveDecimal(vstring str);
 
   static void splitStr(const char* str, char delimiter, Stack<vstring>& strings);
+  static void dropEmpty(Stack<vstring>& strings);
   static bool readEquality(const char* str, char eqChar, vstring& lhs, vstring& rhs);
   static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<vstring,vstring>& pairs);
   template<class A>
