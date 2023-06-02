@@ -144,7 +144,6 @@ void StringUtils::splitStr(const char* str, char delimiter, Stack<vstring>& stri
 
 void StringUtils::dropEmpty(Stack<vstring>& strings)
 {
-  CALL("StringUtils::dropEmpty");
   unsigned i = 0;
   for (unsigned j = 0; j < strings.size(); j++) {
     if (strings[j].size() > 0) {

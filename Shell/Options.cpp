@@ -1538,7 +1538,7 @@ void Options::init()
     _binaryResolution.setRandomChoices({"on","off"});
 
     _superposition = BoolOptionValue("superposition","sup",true);
-    _superposition.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _superposition.onlyUsefulWith(ProperSaturationAlgorithm());
     _superposition.tag(OptionTag::INFERENCES);
     _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
     _lookup.insert(&_superposition);
@@ -2115,8 +2115,8 @@ void Options::init()
       ,"z3"
 #endif
     });
-    _satSolver.description=
-    "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount, lrs or otter and for global subsumption.";
+    _satSolver.description= "Select the SAT solver to be used throughout the solver."
+      " This will be used in AVATAR (for splitting) when the saturation algorithm is discount, lrs or otter.";
     _lookup.insert(&_satSolver);
     // in principle, global subsumption also depends on the SAT solver choice, however,
     // 1) currently, it doesn't actually support Z3
@@ -3086,8 +3086,6 @@ void Options::randomizeStrategy(Property* prop)
 
 void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstring,vstring>& fakes)
 {
-  CALL("Options::strategySamplingAssign");
-
   // dollar sign signifies fake options
   if (optname[0] == '$') {
     fakes.set(optname,value);
@@ -3106,8 +3104,6 @@ void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstri
 
 vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>& fakes)
 {
-  CALL("Options::strategySamplingLookup");
-
   if (optname[0] == '$') {
     vstring* foundVal = fakes.findPtr(optname);
     if (!foundVal) {
@@ -3127,7 +3123,6 @@ vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>&
 
 void Options::trySamplingStrategy()
 {
-  CALL("Options::trySamplingStrategy");
   if(_sampleStrategy.actualValue=="") return;
 
   BYPASSING_ALLOCATOR;
