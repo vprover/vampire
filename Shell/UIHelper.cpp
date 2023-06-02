@@ -339,15 +339,15 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   }
   if (inputFile!="") {
     BYPASSING_ALLOCATOR;
-    
+
     delete static_cast<ifstream*>(input);
     input=0;
   }
 
   Problem* res = new Problem(units);
   res->setSMTLIBLogic(smtLibLogic);
-
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  env.setMainProblem(res);
   return res;
 }
 
@@ -637,7 +637,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.property->higherOrder() ? "thf(" : "tff(")
+    out << (env.getMainProblem()->isHigherOrder() ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
         << symName << ": ";

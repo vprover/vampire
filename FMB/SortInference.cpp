@@ -68,7 +68,7 @@ void SortInference::doInference()
     }
 
     for(unsigned s=0;s<env.signature->typeCons();s++){
-      if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
+      if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
         if(_assumeMonotonic){
           _sig->distinctToVampire.get(dsorts)->push(s);
           Stack<unsigned>* stack = new Stack<unsigned>();
@@ -77,7 +77,7 @@ void SortInference::doInference()
           _sig->vampireToDistinctParent.insert(s,dsorts);
         }
         else{
-          unsigned dsort = dsorts++; 
+          unsigned dsort = dsorts++;
           Stack<unsigned>* stack = new Stack<unsigned>();
           stack->push(s);
           _sig->distinctToVampire.insert(dsort,stack);
@@ -123,7 +123,7 @@ void SortInference::doInference()
 
     // we need at least one constant for symmetry breaking
     for(unsigned s=0;s<env.signature->typeCons();s++){
-      if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
+      if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
           unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
@@ -191,7 +191,7 @@ void SortInference::doInference()
       if(_assumeMonotonic){ cout << "Assuming all sorts monotonic due to translation" << endl; }
     }
     for(unsigned s=0;s<env.signature->typeCons();s++){
-      if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
+      if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
         bool monotonic = _assumeMonotonic;
         if(!monotonic){
           Monotonicity m(_clauses,s);
@@ -778,7 +778,7 @@ void SortInference::doInference()
   }
 
   for(unsigned s=0;s<env.signature->typeCons();s++){
-    if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
+    if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
       // if sort is not here then it does not appear in signature (check)
       if(!_sig->vampireToDistinct.find(s)){ continue; }
 

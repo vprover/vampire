@@ -139,11 +139,11 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (prb.hasFOOL() || prb.higherOrder()) {
+  if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.higherOrder()) {
+    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.isHigherOrder()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
   
@@ -271,14 +271,14 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.mayHaveFormulas() && _options.newCNF() && 
-     !prb.hasPolymorphicSym() && !prb.higherOrder()) {
+     !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
     if (env.options->showPreprocessing())
       env.out() << "newCnf" << std::endl;
 
     newCnf(prb);
   } else {
     if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
-      ASS(prb.hasPolymorphicSym() || prb.higherOrder());
+      ASS(prb.hasPolymorphicSym() || prb.isHigherOrder());
       if (outputAllowed()) {
         env.beginOutput();
         addCommentSignForSZS(env.out());
@@ -318,10 +318,10 @@ void Preprocess::preprocess(Problem& prb)
 
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
-      fd.removeAllDefinitions(prb);
+      fd.removeAllDefinitions(prb,env.getMainProblem()->isHigherOrder());
     }
     else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb);
+      FunctionDefinition::removeUnusedDefinitions(prb,env.getMainProblem()->isHigherOrder());
     }
   }
 
@@ -363,7 +363,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (_options.generalSplitting()) {
-     if (prb.higherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
+     if (prb.isHigherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {
          env.beginOutput();
          addCommentSignForSZS(env.out());
@@ -389,7 +389,7 @@ void Preprocess::preprocess(Problem& prb)
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
    }
 
-   if (!prb.higherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
+   if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
@@ -506,7 +506,7 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || prb.higherOrder() || prb.hasPolymorphicSym()) {
+    if (!_options.newCNF() || prb.isHigherOrder() || prb.hasPolymorphicSym()) {
       // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
       fu = SimplifyFalseTrue::simplify(fu);
     }
@@ -573,7 +573,7 @@ void Preprocess::naming(Problem& prb)
   env.statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
   //TODO fix the below
-  Naming naming(_options.naming(),false, prb.higherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
+  Naming naming(_options.naming(),false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
@@ -703,7 +703,7 @@ void Preprocess::preprocess3 (Problem& prb)
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    Unit* v = preprocess3(u, prb.higherOrder());
+    Unit* v = preprocess3(u, prb.isHigherOrder());
     if (u!=v) {
       us.replace(v);
       modified = true;
