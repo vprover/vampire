@@ -10,3 +10,17 @@ $s_pos=N > s ~cat -0:11,-1:31,-2:52,-3:21,-4:22,-10:628,-11:131,-20:11,-21:66,-2
 
 # age/weight ratio
 > awr ~u2r -10,4,:
+
+# INFERENCES
+
+# superposition (don't turn this off at home!)
+> sup ~cat on:1700,off:1
+
+# ORDERING
+
+
+# TODO - make this conditional on KBO!
+
+> kmz ~cat on:1,off:200
+> kws ~cat const:1659,inv_arity_squared:6,precedence:28,arity_squared:1,inv_arity:5,inv_frequency:8,frequency:2
+
