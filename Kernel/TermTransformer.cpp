@@ -409,7 +409,12 @@ Term* BottomUpTermTransformer::transform(Term* term)
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst=&args.top() - (term->arity() - 1);
+#if VDEBUG
+  // don't touch args.top() in DEBUG mode if there are actually no arguments (empty stacks don't like it)
+  TermList* argLst= args.size() ? &args.top() - (term->arity() - 1) : nullptr;
+#else // in release, it's fine too, because Literal::create won't touch the pointer in the zero arity case
+  TermList* argLst=               &args.top() - (term->arity() - 1);
+#endif
   if (term->isLiteral()) {
     return Literal::create(static_cast<Literal*>(term), argLst);
   } else {
