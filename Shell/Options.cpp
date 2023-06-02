@@ -3258,6 +3258,27 @@ void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstri
   }
 }
 
+vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>& fakes)
+{
+  CALL("Options::strategySamplingLookup");
+
+  if (optname[0] == '$') {
+    vstring* foundVal = fakes.findPtr(optname);
+    if (!foundVal) {
+      USER_ERROR("Sampling file processing error -- unassigned fake option: " + optname);
+    }
+    return *foundVal;
+  }
+
+  AbstractOptionValue* opt = getOptionValueByName(optname);
+  if (opt) {
+    return opt->getStringOfActual();
+  } else {
+    USER_ERROR("Sampling file processing error -- unknown option to look up: " + optname);
+  }
+  return "";
+}
+
 void Options::trySamplingStrategy()
 {
   CALL("Options::trySamplingStrategy");
@@ -3308,8 +3329,8 @@ void Options::trySamplingStrategy()
         if (pair.size() != 2) {
           USER_ERROR("Sampling file parse error -- invalid equation: "+equation);
         }
-        vstring* foundVal = fakes.findPtr(pair[0]);
-        if (!foundVal || *foundVal != pair[1]) {
+        vstring storedVal = strategySamplingLookup(pair[0],fakes);
+        if (storedVal != pair[1]) {
           fireRule = false;
           break;
         }

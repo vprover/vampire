@@ -1,12 +1,12 @@
 # hash as the very first character signifies a full line comment
 
 # saturation algorithm
-> sa     ~cat lrs:864,discount:572,otter:236
+> sa     ~cat lrs:600,discount:572,otter:236
 
 # literal selection
 > $s_pos ~cat Y:4,N:1
-$s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:628,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
-$s_pos=N > s ~cat -0:11,-1:31,-2:52,-3:21,-4:22,-10:628,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
+$s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
+$s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
 
 # age/weight ratio
 > awr ~u2r -10,4,:
@@ -14,13 +14,27 @@ $s_pos=N > s ~cat -0:11,-1:31,-2:52,-3:21,-4:22,-10:628,-11:131,-20:11,-21:66,-2
 # INFERENCES
 
 # superposition (don't turn this off at home!)
-> sup ~cat on:1700,off:1
+> sup ~cat on:100,off:1
 
 # ORDERING
 
+> to ~cat kbo:13,lpo:4
 
-# TODO - make this conditional on KBO!
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
+> spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
 
-> kmz ~cat on:1,off:200
-> kws ~cat const:1659,inv_arity_squared:6,precedence:28,arity_squared:1,inv_arity:5,inv_frequency:8,frequency:2
+to=kbo > kmz ~cat off:200,on:1
+to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv_arity:5,inv_frequency:8,frequency:2
 
+> s2pl ~cat off:50,on:2,no:3
+
+# SPLIT QUEUES
+
+
+
+
+
+
+# MISC
+
+> uhcvi ~cat off:1,on:1
