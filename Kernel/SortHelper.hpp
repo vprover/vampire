@@ -37,7 +37,7 @@ private:
   };
 
   struct CollectTask {
-    CollectTask() {}
+    CollectTask(CollectWhat what) : fncTag(what) {}
     CollectWhat fncTag;
     union {
       TermList ts;

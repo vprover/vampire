@@ -1673,7 +1673,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
-    SATSolver::Status satResult;
+    SATSolver::Status satResult = SATSolver::UNKNOWN;
     {
       if (_opt.randomTraversals()) {
         TIME_TRACE(TimeTrace::SHUFFLING);
@@ -1683,7 +1683,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
       _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
 
-      satResult = SATSolver::UNKNOWN;
       env.statistics->phase = Statistics::FMB_SOLVING;
 
       static SATLiteralStack assumptions(_distinctSortSizes.size());
