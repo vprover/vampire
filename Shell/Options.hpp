@@ -2105,6 +2105,7 @@ public:
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
   vstring scheduleFile() const { return _scheduleFile.actualValue; }
+  bool randomizeSchedule() const {  return _randomizeSchedule.actualValue; }
   unsigned multicore() const { return _multicore.actualValue; }
   void setMulticore(unsigned newVal) { _multicore.actualValue = newVal; }
   float slowness() const {return _slowness.actualValue; }
@@ -2686,6 +2687,7 @@ private:
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
   StringOptionValue _scheduleFile;
+  BoolOptionValue _randomizeSchedule;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
   BoolOptionValue _randomizSeedForPortfolioWorkers;

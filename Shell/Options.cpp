@@ -171,6 +171,12 @@ void Options::init()
     _lookup.insert(&_scheduleFile);
     _scheduleFile.onlyUsefulWith(_schedule.is(equal(Schedule::FILE)));
 
+    _randomizeSchedule = BoolOptionValue("rand_sched","rs",false);
+    _randomizeSchedule.description="Randomly reorders the selected schedule";
+    _lookup.insert(&_randomizeSchedule);
+    //TODO: add back in if this code leaves branch
+
+
     _multicore = UnsignedOptionValue("cores","",1);
     _multicore.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum";
     _lookup.insert(&_multicore);
