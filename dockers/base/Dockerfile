@@ -7,7 +7,7 @@ RUN apt-get update \
 
 #  Build Vampire
 WORKDIR /home
-RUN git clone https://github.com/vprover/vampire --branch smtcomp22 --single-branch
+RUN git clone https://github.com/vprover/vampire --branch smtcomp23 --single-branch
 WORKDIR /home/vampire
 RUN git submodule update --init z3
 WORKDIR /home/vampire/z3/build

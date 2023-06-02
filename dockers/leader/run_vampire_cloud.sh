@@ -35,7 +35,7 @@ log "main IP: $ip"
 # In this setup we don't need to know who the children are
 
 # Run vampire in the background whilst checking if we have a result
-/competition/vampire --mode smtcomp --ignore_missing on --bad_option off --cores 0 $PROBLEM &> $OUT/result_${ip} & 
+/competition/vampire --mode smtcomp --ignore_missing on --bad_option off --cores 0 -t 0 $PROBLEM &> $OUT/result_${ip} & 
 
 # We should be terminated after 20 minutes but let's count down from 30 minutes just in case 
 counter=1500

@@ -61,8 +61,14 @@ class Runner:
                 f.write('\n')
             return hostfile_path
 
+    # Updating to reflect change in input.json format 
+    # See https://github.com/aws-samples/aws-batch-comp-infrastructure-sample/blob/mainline/README-changes.md
+    # - Assuming that formula_language is SMT2
+    # - Vampire is going to be lazy and ignore timeout_seconds and just assume it has forever
+    # - TODO: we could use solver_argument_list to do something fun here but let's just keep
+    #         the randomization setup we have from 2022
     def get_command(self, input_json):
-        problem_path = input_json.get("problem_path")
+        problem_path = input_json.get("formula_file")
         worker_node_ips = input_json.get("worker_node_ips", [])
         self.logger.info("Number of workers is %s", str(len(worker_node_ips)))
         # We always have one worker, the leader
@@ -89,14 +95,13 @@ class SMTParser:
             raw_logs = f.read()
             logger.info("Logs: %s",str(raw_logs))
             if "unsat" in raw_logs:
-                return "UNSATISFIABLE"
+                return 20 
             elif "sat" in raw_logs:
-                return "SATISFIABLE"
-            elif "unknown" in raw_logs:
-                return "UNKNOWN"
+                return 10 
             else:
-                return "UNKNOWN"
+                return 0 
 
+# Updating output.json see https://github.com/aws-samples/aws-batch-comp-infrastructure-sample/blob/mainline/README-changes.md
 if __name__ == "__main__":
     request_directory = sys.argv[1]
     runner = Runner(request_directory)
@@ -108,8 +113,7 @@ if __name__ == "__main__":
     result = SMTParser.get_result(output["stdout"])
     logging.info(f"RESULT: {result}")
     solver_output = {
-        "return_code": output["return_code"],
-        "result": result,
+        "return_code": result,
         "artifacts": {
             "stdout_path": output["stdout"],
             "stderr_path": output["stderr"]

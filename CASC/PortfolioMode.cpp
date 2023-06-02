@@ -284,6 +284,10 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
     USER_ERROR("The schedule is empty.");
   }
 
+  if(env.options->randomizeSchedule()){
+     Shuffling().shuffleArray(schedule, schedule.length());
+  }  
+
   return runScheduleAndRecoverProof(std::move(schedule));
 };
 
