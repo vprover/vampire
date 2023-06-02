@@ -415,7 +415,7 @@ TermList FOOLElimination::process(TermList terms) {
  */
 Formula* FOOLElimination::processAsFormula(TermList terms) {
   CALL("FOOLElimination::processAsFormula(TermList terms)");
-  Formula* formula;
+  Formula* formula = nullptr;
   TermList dummy;
   process(terms, FORMULA_CONTEXT, dummy, formula);
   return formula;
@@ -542,7 +542,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build g(Y1,...,Ym,X1, ..., Xn)
         TermList freshFunctionApplication;
-        Formula* freshPredicateApplication;
+        Formula* freshPredicateApplication = nullptr;
         buildApplication(freshSymbol, context, allVars, freshFunctionApplication, freshPredicateApplication);
 
         
@@ -659,12 +659,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // process the body of the function
         TermList processedBody;
-        Formula* processedBodyFormula;
+        Formula* processedBodyFormula = nullptr;
         process(binding, bindingContext, processedBody, processedBodyFormula);
 
         // g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
         TermList freshFunctionApplication;
-        Formula* freshPredicateApplication;
+        Formula* freshPredicateApplication = nullptr;
         buildApplication(freshSymbol, bindingContext, allVars, freshFunctionApplication, freshPredicateApplication);
 
         Term* freshApplication = bindingContext == FORMULA_CONTEXT ? freshPredicateApplication->literal() : 
@@ -790,7 +790,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          */
 
         TermList matchedTerm;
-        Formula *matchedFormula;
+        Formula *matchedFormula = nullptr;
         Context matchedContext = term->nthArgument(0)->isTerm() && term->nthArgument(0)->term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
         process(*term->nthArgument(0), matchedContext, matchedTerm, matchedFormula);
 
@@ -806,19 +806,19 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build g(X1, ..., Xn)
         TermList freshFunctionApplication;
-        Formula *freshPredicateApplication;
+        Formula *freshPredicateApplication = nullptr;
         buildApplication(freshSymbol, context, allVars, freshFunctionApplication, freshPredicateApplication);
 
         for (unsigned int i = 1; i < term->arity(); i += 2) {
           TermList patternTerm;
-          Formula *patternFormula;
+          Formula *patternFormula = nullptr;
           process(*term->nthArgument(i), matchedContext, patternTerm, patternFormula);
           // build v = pi
           Formula *head = buildEq(matchedContext, matchedFormula, patternFormula,
                                   matchedTerm, patternTerm, sd->getMatchedSort());
 
           TermList bodyTerm;
-          Formula *bodyFormula;
+          Formula *bodyFormula = nullptr;
           process(*term->nthArgument(i + 1), context, bodyTerm, bodyFormula);
           // build g(X1, ..., Xn) == bi
           Formula *body = buildEq(context, freshPredicateApplication, bodyFormula,
@@ -843,10 +843,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-#if VDEBUG
       default:
         ASSERTION_VIOLATION;
-#endif
     }
 
     if (env.options->showPreprocessing()) {
@@ -909,7 +907,7 @@ TermList FOOLElimination::process(Term* term) {
 Formula* FOOLElimination::processAsFormula(Term* term) {
   CALL("FOOLElimination::processAsFormula(Term* term)");
 
-  Formula* formula;
+  Formula* formula = nullptr;
   TermList dummy;
 
   process(term, FORMULA_CONTEXT, dummy, formula);
