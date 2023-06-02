@@ -21,6 +21,8 @@
 
 // Visual does not know the round function
 #include <cmath>
+#include <fstream>
+#include <random>
 
 #include "Forwards.hpp"
 
@@ -221,6 +223,13 @@ void Options::init()
     _lookup.insert(&_randomStrategy);
     _randomStrategy.reliesOn(Or(_mode.is(equal(Mode::VAMPIRE)),_mode.is(equal(Mode::RANDOM_STRATEGY))));
     _randomStrategy.tag(OptionTag::DEVELOPMENT);
+
+    _sampleStrategy = StringOptionValue("sample_strategy","","");
+    _sampleStrategy.description = "Specify a path to a filename (of homemade format) describing how to sample a random strategy (incompatible with the --random_strategy way).";
+    _lookup.insert(&_sampleStrategy);
+    _sampleStrategy.reliesOn(_mode.is(equal(Mode::VAMPIRE)));
+    _sampleStrategy.setExperimental();
+    _sampleStrategy.tag(OptionTag::DEVELOPMENT);
 
     _forbiddenOptions = StringOptionValue("forbidden_options","","");
     _forbiddenOptions.description=
@@ -3224,6 +3233,186 @@ void Options::randomizeStrategy(Property* prop)
   if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
 }
 
+void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstring,vstring>& fakes)
+{
+  CALL("Options::strategySamplingAssign");
+
+  // dollar sign signifies fake options
+  if (optname[0] == '$') {
+    fakes.set(optname,value);
+    return;
+  }
+
+  AbstractOptionValue* opt = getOptionValueByName(optname);
+  if (opt) {
+    if (!opt->set(value)) {
+      USER_ERROR("Sampling file processing error -- unknown option value: " + value + " for option " + optname);
+    }
+  } else {
+    USER_ERROR("Sampling file processing error -- unknown option: " + optname);
+  }
+}
+
+void Options::trySamplingStrategy()
+{
+  CALL("Options::trySamplingStrategy");
+  if(_sampleStrategy.actualValue=="") return;
+
+  BYPASSING_ALLOCATOR;
+
+  std::ifstream input(_sampleStrategy.actualValue.c_str());
+
+  if (input.fail()) {
+    USER_ERROR("Cannot open sampler file: "+_sampleStrategy.actualValue);
+  }
+
+  // our local randomizing engine (randomly seeded)
+  std::mt19937 rng((std::random_device())());
+  // map of local variables (fake options)
+  DHMap<vstring,vstring> fakes;
+
+  vstring line; // parsed lines
+  Stack<vstring> pieces; // temp stack used for splitting
+  while (std::getline(input, line))
+  {
+    if (line.length() == 0 || line[0] == '#') { // empty lines and comments (starting with # as the first! character)
+      continue;
+    }
+
+    StringUtils::splitStr(line.c_str(),'>',pieces);
+    if (pieces.size() != 2) {
+      USER_ERROR("Sampling file parse error -- each rule must contain exactly one >. Here: "+line);
+    }
+
+    vstring cond = pieces[0];
+    vstring body = pieces[1];
+    pieces.reset();
+
+    // evaluate condition, if false, will skip the rest
+    bool fireRule = true;
+    {
+      StringUtils::splitStr(cond.c_str(),' ',pieces);
+      StringUtils::dropEmpty(pieces);
+
+      Stack<vstring> pair;
+      Stack<vstring>::BottomFirstIterator it(pieces);
+      while(it.hasNext()) {
+        vstring equation = it.next();
+        StringUtils::splitStr(equation.c_str(),'=',pair);
+        StringUtils::dropEmpty(pair);
+        if (pair.size() != 2) {
+          USER_ERROR("Sampling file parse error -- invalid equation: "+equation);
+        }
+        vstring* foundVal = fakes.findPtr(pair[0]);
+        if (!foundVal || *foundVal != pair[1]) {
+          fireRule = false;
+          break;
+        }
+        pair.reset();
+      }
+
+      pieces.reset();
+    }
+
+    if (!fireRule) {
+      continue;
+    }
+
+    // now it's time to read the body
+    // cout << "fire: " << body << endl;
+
+    StringUtils::splitStr(body.c_str(),' ',pieces);
+    StringUtils::dropEmpty(pieces);
+    if (pieces.size() != 3) {
+      USER_ERROR("Sampling file parse error -- rule body must consist of three space-separated parts. Here: "+body);
+    }
+
+    vstring optname = pieces[0];
+    vstring sampler = pieces[1];
+    vstring args = pieces[2];
+    pieces.reset();
+
+    if (sampler == "~cat") { // categorical sampling
+      StringUtils::splitStr(args.c_str(),',',pieces);
+
+      unsigned total = 0;
+      Stack<std::pair<unsigned,vstring>> mulvals;
+
+      // parse the mulvals
+      {
+        Stack<vstring> pair;
+        Stack<vstring>::BottomFirstIterator it(pieces);
+        while(it.hasNext()) {
+          vstring mulval = it.next();
+          StringUtils::splitStr(mulval.c_str(),':',pair);
+          StringUtils::dropEmpty(pair);
+          if (pair.size() != 2) {
+            USER_ERROR("Sampling file parse error -- invalid mulval: "+mulval);
+          }
+
+          int multiplicity = 0;
+          if (!Int::stringToInt(pair[1],multiplicity) || multiplicity <= 0) {
+            USER_ERROR("Sampling file parse error -- invalid multiplicity in mulval: "+mulval);
+          }
+          total += multiplicity;
+          mulvals.push(std::make_pair(multiplicity,pair[0]));
+          pair.reset();
+        }
+        pieces.reset();
+      }
+
+      // actual sampling
+      vstring value;
+      int sample = std::uniform_int_distribution<int>(1,total)(rng);
+      Stack<std::pair<unsigned,vstring>>::BottomFirstIterator it(mulvals);
+      while (it.hasNext()) {
+        auto mulval = it.next();
+        if (sample <= mulval.first) {
+          value = mulval.second;
+          break;
+        }
+        sample -= mulval.first;
+      }
+      ASS_NEQ(value,"");
+
+      strategySamplingAssign(optname,value,fakes);
+    } else if (sampler == "~u2r") {
+      StringUtils::splitStr(args.c_str(),',',pieces);
+      StringUtils::dropEmpty(pieces);
+
+      if (pieces.size() != 3) {
+        USER_ERROR("Sampling file parse error -- ~u2r sampler expect exatly three comma-separated arguments but got: "+args);
+      }
+      if (pieces[2].length() != 1) {
+        USER_ERROR("Sampling file parse error -- the third argument of the ~u2r sampler needs to be a single character and not: "+pieces[2]);
+      }
+      float low,high;
+      if (!Int::stringToFloat(pieces[0].c_str(),low) || !Int::stringToFloat(pieces[1].c_str(),high)) {
+        USER_ERROR("Sampling file parse error -- can't convert one of ~u2r sampler arguments to float: "+args);
+      }
+      std::uniform_real_distribution<float> dis(low,high);
+      float raw = dis(rng);
+      float exped = powf(2.0,raw);
+      unsigned denom = 1 << 20;
+      unsigned numer = exped*denom;
+      strategySamplingAssign(optname,Int::toString(numer)+pieces[2]+Int::toString(denom),fakes);
+
+      pieces.reset();
+    } else {
+      USER_ERROR("Sampling file parse error -- unrecognized sampler: " + sampler);
+    }
+
+    /*
+    Stack<vstring>::BottomFirstIterator it(pieces);
+    while(it.hasNext()) {
+      cout << "tok:" << it.next() << endl;
+    }
+    */
+  }
+
+  cout << "Random strategy: " + generateEncodedOptions() << endl;
+}
+
 /**
  * Assign option values as encoded in the option vstring if assign=true, otherwise check that
  * the option values are not currently set to those values.
@@ -3447,6 +3636,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_randomStrategy);
     forbidden.insert(&_encode);
     forbidden.insert(&_decode);
+    forbidden.insert(&_sampleStrategy);
     forbidden.insert(&_ignoreMissing); // or maybe we do!
 #if VDEBUG    
     forbidden.insert(&_printVarBanks);
