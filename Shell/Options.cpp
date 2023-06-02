@@ -2912,6 +2912,7 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   case -1004:
   case -1010:
   case -1011: // almost same as 1011 (but factoring will be on negative and not positive literals)
+  case -1666:
     actualValue = sel;
     return true;
   default:
