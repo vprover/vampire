@@ -2235,7 +2235,8 @@ void Options::init()
 #endif
     });
     _satSolver.description=
-    "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter and in instance generation for selection and global subsumption.";
+    "Select the SAT solver to be used throughout the solver. This will be used in AVATAR (for splitting) when the saturation algorithm is discount,lrs or otter."
+     " (For instance generation for selection and global subsumption, we currently only use minisat.)";
     _lookup.insert(&_satSolver);
     // in principle, global_subsumption and instgen also depend on the SAT solver choice, however,
     // 1) currently, neither is actually supporting Z3

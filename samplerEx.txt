@@ -28,6 +28,14 @@ to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv
 
 > s2pl ~cat off:50,on:2,no:3
 
+# AVATAR
+
+> av ~cat on:15,off:4
+
+
+
+
+
 # SPLIT QUEUES
 
 
