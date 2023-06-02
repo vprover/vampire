@@ -1773,6 +1773,8 @@ void Options::init()
 
 #if VHOL
     _superposition = BoolOptionValue("superposition","sup",true);
+    _superposition.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _superposition.tag(OptionTag::INFERENCES);
     _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
     _lookup.insert(&_superposition);
 
