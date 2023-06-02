@@ -2259,11 +2259,13 @@ void Options::init()
     _kboWeightGenerationScheme.description = "Weight generation schemes from KBO inspired by E. This gets overridden by the function_weights option if used.";
     _kboWeightGenerationScheme.setExperimental();
     _kboWeightGenerationScheme.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboWeightGenerationScheme.tag(OptionTag::SATURATION);
     _lookup.insert(&_kboWeightGenerationScheme);
 
     _kboMaxZero = BoolOptionValue("kbo_max_zero","kmz",false);
     _kboMaxZero.setExperimental();
     _kboMaxZero.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboMaxZero.tag(OptionTag::SATURATION);
     _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
 
@@ -2273,6 +2275,7 @@ void Options::init()
     _kboAdmissabilityCheck.description = "Choose to emit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.";
     _kboAdmissabilityCheck.setExperimental();
     _kboAdmissabilityCheck.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboAdmissabilityCheck.tag(OptionTag::SATURATION);
     _lookup.insert(&_kboAdmissabilityCheck);
 
 
