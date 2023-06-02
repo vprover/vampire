@@ -86,7 +86,7 @@ struct PositiveExt::ResultFn
           }
 
           if(!occursInC){
-            TermList sort = *lhs.term()->nthArgument(0);
+            TermList sort = ApplicativeHelper::lhsSort(lhs);
             // f = g
             Literal* newLit = Literal::createEquality(true, left1, left2, sort);
 
