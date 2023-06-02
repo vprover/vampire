@@ -151,7 +151,9 @@ public:
     // This dual usage is required as the property object is created during
     // the preprocessing stage. This means that in vampire.cpp we call this twice
     void randomizeStrategy(Property* prop);
-    
+
+    void trySamplingStrategy();
+
     /**
      * Return the problem name
      *
@@ -771,7 +773,9 @@ public:
     //
     // The details are explained in comments below
 private:
-    
+    // helper function of trySamplingStrategy
+    void strategySamplingAssign(vstring optname, vstring value, DHMap<vstring,vstring>& fakes);
+
     /**
      * These store the names of the choices for an option.
      * They can be declared using initializer lists i.e. {"on","off","half_on"}
@@ -2674,6 +2678,8 @@ private:
 
   UnsignedOptionValue _randomSeed;
   UnsignedOptionValue _randomStrategySeed;
+
+  StringOptionValue _sampleStrategy;
 
   IntOptionValue _activationLimit;
 
