@@ -1,0 +1,10 @@
+#!/bin/bash
+source AWS
+cd $INFRASTRUCTURE
+WORKERS=0
+if [ $# -eq 1 ]
+then
+	WORKERS=$1
+fi
+./ecs-config setup --workers $WORKERS 
+

@@ -1,0 +1,4 @@
+source AWS
+cd $INFRASTRUCTURE 
+./ecr-push --leader vampire:leader
+./ecr-push --worker vampire:worker

@@ -1,0 +1,7 @@
+Look at the all script to work out the order in which to run things
+
+The all script takes the number of workers as input, 0 means parallel setup, >0 means cloud setup
+
+IMPORTANT: The AWS file needs to be filled in with your account id, which matches what you have in your ~/.aws/credentials (or you set some other way)
+
+You may also want to update where you put https://github.com/aws-samples/aws-batch-comp-infrastructure-sample

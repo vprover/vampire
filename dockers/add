@@ -1,0 +1,3 @@
+#!/bin/bash
+source AWS
+aws s3 cp $1 "s3://$ACCOUNT-us-east-1-comp23"

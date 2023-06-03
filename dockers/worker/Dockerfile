@@ -1,9 +1,9 @@
 ################### Use Vampire
-FROM vampire-base AS builder
+FROM vampire:common AS builder
 USER root
 
 ################### Extract Vampire in run stage
-FROM satcomp-base:worker AS vampire_liaison
+FROM satcomp-infrastructure:worker AS vampire_liaison
 
 #  Install required softwares
 USER root

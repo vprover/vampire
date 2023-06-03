@@ -1,0 +1,7 @@
+#!/bin/sh
+cd common
+docker build -t vampire:common .
+cd ../leader
+docker build -t vampire:leader .
+cd ../worker
+docker build -t vampire:worker .

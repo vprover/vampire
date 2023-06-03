@@ -1,0 +1,4 @@
+#!/bin/bash
+export ACCOUNT=<Add Account Number here>
+export INFRASTRUCTURE=~/aws-batch-comp-infrastructure-sample/infrastructure
+export DOCKERS=~/aws-batch-comp-infrastructure-sample/docker/satcomp-images

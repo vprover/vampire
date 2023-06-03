@@ -1,0 +1,17 @@
+#!/bin/bash
+source AWS
+cd $INFRASTRUCTURE
+WORKERS=0
+if [ $# -eq 1 ]
+then
+	WORKERS=$1
+fi
+PROBLEMS=(
+"s3://$ACCOUNT-us-east-1-comp23/sample1.smt2"
+"s3://$ACCOUNT-us-east-1-comp23/sample2.smt2"
+)
+for p in "${PROBLEMS[@]}" 
+do
+	echo "Send $p"
+	./send_message --location $p --workers $WORKERS
+done

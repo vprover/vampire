@@ -1,5 +1,5 @@
 ################### Build Vampire 
-FROM satcomp-common-base-image
+FROM satcomp-infrastructure:common
 USER root
 #  Install required softwares
 RUN apt-get update \

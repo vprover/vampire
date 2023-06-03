@@ -1,0 +1,21 @@
+#!/bin/bash
+source AWS
+# By default this will run in parallel mode but if you supply a number of
+# workers it will run in cloud mode
+WORKERS=0
+if [ $# -eq 1 ]
+then
+        WORKERS=$1
+fi
+
+./docker_login
+./setup $WORKERS
+./build
+./push
+docker images
+./add problems/sample1
+./add problems/sample2
+./list
+./start_cluster $WORKERS 
+./send_messages $WORKERS
+./stop_cluster
