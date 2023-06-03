@@ -4,10 +4,9 @@
 > bce ~cat off:5,on:1
 
 # equality_proxy
-> $ep ~cat N:7,Y:1 
-$ep=Y > ep ~cat RST:2,R:3,RSTC:2,RS:3
+> ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
 # mono_ep
-$ep=Y > mep ~cat on:10,off:1
+ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
 > erd ~cat on:10,off:1
@@ -39,17 +38,16 @@ $nm=NZ > nm ~sgd 0.07,2
 > sos ~cat off:80,on:17,all:10
 
 # sine_selection
-> $ss ~cat OFF:1182,ON:527
-$ss=ON > ss ~cat included:135,axioms:392
+> ss ~cat off:1182,included:135,axioms:392
 
 # sine_depth
-$ss=ON > sd ~cat 0:45,1:13,2:12,3:5,4:4,5:4,7:3,10:2,12:1,15:1
+ss!=off > sd ~cat 0:45,1:13,2:12,3:5,4:4,5:4,7:3,10:2,12:1,15:1
 
 # sine_generality_threshold
-$ss=ON > sgt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
+ss!=off > sgt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
 
 # sine_tolerance
-$ss=ON > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
+ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
 
 # unused_predicate_definition_removal
 > updr ~cat on:16,off:1
@@ -103,9 +101,16 @@ to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv
 > s2pl ~cat off:50,on:2,no:3
 
 # AVATAR
-
 > av ~cat on:15,off:4
 
+# avatar_add_complementary
+av=on > aac ~cat none:147,ground:600
+
+# avatar_buffered_solver
+av=on > abs ~cat on:63,off:300
+
+# avatar_congruence_closure
+av=on > acc ~cat off:600,model:24,on:58
 
 
 
@@ -114,6 +119,11 @@ to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv
 
 
 
+# nonliterals_in_clause_weight
+av=on > nicw ~cat off:600,on:76
+
+# split_at_activation
+av=on > sac ~cat off:3,on:1
 
 # TODO: consider enabling this for vampire_z3 compiles!
 # av=on > sas ~cat minisat:10,z3:1

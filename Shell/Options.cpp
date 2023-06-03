@@ -3172,8 +3172,14 @@ void Options::trySamplingStrategy()
         if (pair.size() != 2) {
           USER_ERROR("Sampling file parse error -- invalid equation: "+equation);
         }
-        vstring storedVal = strategySamplingLookup(pair[0],fakes);
-        if (storedVal != pair[1]) {
+        bool negated = false;
+        vstring optName = pair[0];
+        if (optName.back() == '!') {
+          negated = true;
+          optName.pop_back();
+        }
+        vstring storedVal = strategySamplingLookup(optName,fakes);
+        if ((storedVal != pair[1]) != negated) {
           fireRule = false;
           break;
         }
