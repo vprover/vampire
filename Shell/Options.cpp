@@ -576,13 +576,14 @@ void Options::init()
     _sineSelection.setRandomChoices(atomsMoreThan(1000),{"axioms","off","off","off","off","off","off","off"});
 
     _sineTolerance = FloatOptionValue("sine_tolerance","st",1.0);
-    _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')";
+    _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')."
+    " Has special value of -1.0, but otherwise must be greater or equal 1.0.";
     _lookup.insert(&_sineTolerance);
     _sineTolerance.tag(OptionTag::PREPROCESSING);
-    _sineTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f) ));
+    _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
-    _sineTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+    _sineTolerance.setRandomChoices({"-1.0","1.0","1.2","1.5","2.0","3.0","5.0"});
 
     _naming = IntOptionValue("naming","nm",8);
     _naming.description="Introduce names for subformulas. Given a subformula F(x1,..,xk) of formula G a new predicate symbol is introduced as a name for F(x1,..,xk) by adding the axiom n(x1,..,xk) <=> F(x1,..,xk) and replacing F(x1,..,xk) with n(x1,..,xk) in G. The value indicates how many times a subformula must be used before it is named.";
@@ -1117,16 +1118,17 @@ void Options::init()
 
     // Like generality threshold for SiNE, except used by the sine2age trick
     _sineToAgeTolerance = FloatOptionValue("sine_to_age_tolerance","s2at",1.0);
-    _sineToAgeTolerance.description = "Like sine_tolerance but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection.";
+    _sineToAgeTolerance.description = "Like sine_tolerance but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection."
+    " Has special value of -1.0, but otherwise must be greater or equal 1.0.";
     _lookup.insert(&_sineToAgeTolerance);
     _sineToAgeTolerance.tag(OptionTag::SATURATION);
-    _sineToAgeTolerance.addConstraint(Or(equal(0.0f),greaterThanEq(1.0f)));
+    _sineToAgeTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineToAgeTolerance.onlyUsefulWith(Or(
       _sineToAge.is(equal(true)),
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
-    _sineToAgeTolerance.setRandomChoices({"1.0","1.2","1.5","2.0","3.0","5.0"});
+    _sineToAgeTolerance.setRandomChoices({"-1.0","1.0","1.2","1.5","2.0","3.0","5.0"});
 
     _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
     _lrsFirstTimeCheck.description=
