@@ -50,9 +50,7 @@ const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
 FOOLElimination::FOOLElimination() : 
   _defs(0), 
-#if VHOL
   _higherOrder(0), 
-#endif
   _polymorphic(0) {}
 
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
@@ -117,7 +115,6 @@ void FOOLElimination::apply(UnitList*& units) {
   while(us.hasNext()) {
     Unit* unit = us.next();
     if(unit->isClause()) {
-      cout << "unit " << unit->toString() << endl;
       Clause* clause = static_cast<Clause*>(unit);
       for (unsigned i = 0; i < clause->length(); i++) {
         // we do not allow special terms in clauses so we check that all clause literals
