@@ -63,7 +63,7 @@ $s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,
 $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
 
 # age/weight ratio
-> awr ~u2r -10,4,:
+> awr ~u2r -10;4;:
 
 # INFERENCES
 
@@ -158,6 +158,14 @@ av=on > sac ~cat off:3,on:1
 # avatar_split_queue
 av=on > avsq ~cat off:5,on:1
 
+# avatar_split_queue_layered_arrangement
+avsq=on > avsql ~cat off:4,on:1
+
+# avatar_split_queue_cutoffs
+avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+
+# avatar_split_queue_ratios
+avsq=on > avsqr ~u2r -5;3;,
 
 # GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
 
