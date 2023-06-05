@@ -164,6 +164,7 @@ void Options::init()
          "smtcomp_2018",
          "rapid",
          "rapid_main_task",
+         "rapid_chain_task",
          "rapid_induction",
          "snake_tptp_uns",
          "snake_tptp_sat",
@@ -1870,6 +1871,21 @@ void Options::init()
     _inequalityResolution.setExperimental();
     _lookup.insert(&_inequalityResolution);
 
+    _groundImmediateSimp = BoolOptionValue("ground_immediate_simp", "gis", false);
+    _groundImmediateSimp.description =
+      "Uses Z3 and unit clauses to simplify away literals."
+      "If unit clauses c1,...,cn -> ~l,  then clause l \\/ C can be somplified to C";
+    _groundImmediateSimp.tag(OptionTag::INFERENCES);
+    _groundImmediateSimp.setExperimental();
+    _lookup.insert(&_groundImmediateSimp);
+
+    _groundImmediateSimpOnlyNonEquality = BoolOptionValue("gis_no_equality", "gisne", false);
+    _groundImmediateSimpOnlyNonEquality.description =
+      "Only consider non-equality literals for adding to Z3";
+    _groundImmediateSimpOnlyNonEquality.tag(OptionTag::INFERENCES);
+    _groundImmediateSimpOnlyNonEquality.setExperimental();
+    _groundImmediateSimpOnlyNonEquality.addHardConstraint(If(equal(true)).then(_groundImmediateSimp.is(equal(true))));    
+    _lookup.insert(&_groundImmediateSimpOnlyNonEquality);
 
 //*********************** Higher-order  ***********************
 

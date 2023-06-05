@@ -134,6 +134,7 @@ public:
 
   virtual unsigned sizeEstimate() const = 0;
 
+  virtual void print(){};
   /*
    * LRS specific methods for computation of Limits
    */

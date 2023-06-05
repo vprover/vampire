@@ -195,7 +195,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   fu = Rectify::rectify(fu);
 
   //if(!inductionIsLimit){
-  //  cout << "FU: " << fu->toString() << endl;
+    cout << "FU: " << fu->toString() << endl;
   //}
 
   ClauseStack clausifiedHyps;
@@ -233,13 +233,14 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
           resolved = true;
         }
       }
-      //cout << "ADDING " + cls->toString() << endl;
+      cout << "ADDING " + cls->toString() << endl;
       conclusions.push(cls);    
     }
   } else {
     disjuncts.reset();
     while(!clausifiedHyps.isEmpty()){
       Clause* cls = clausifiedHyps.pop();
+      cout << "ADDING " + cls->toString() << endl;
       conclusions.push(cls);
     }
   }
@@ -284,7 +285,7 @@ void MultiClauseNatInduction::getFinalLoopIters(Clause* c,
 
 void MultiClauseNatInduction::getNonFinalLoopIters(Clause* c, TermStack& iterations)
 {
-  CALL("MultiClauseNatInduction::tryGetFinalLoopCount");
+  CALL("MultiClauseNatInduction::getNonFinalLoopIters");
 
   static DHSet<TermList> iterationsSeen;
   iterationsSeen.reset();
@@ -307,6 +308,35 @@ void MultiClauseNatInduction::getNonFinalLoopIters(Clause* c, TermStack& iterati
       }
     }    
   }
+
+}
+
+void MultiClauseNatInduction::getNonFinalLoopIters2(Literal* lit, TermStrStack& iterations)
+{
+  CALL("MultiClauseNatInduction::getNonFinalLoopIters2");
+
+  static DHMap<TermList,unsigned> iterationsSeen;
+  iterationsSeen.reset();
+
+  SubtermIterator sit(lit);
+  while (sit.hasNext()) {  
+    TermList tl = sit.next();
+    if(RapidHelper::isTimePoint(tl) && tl.term()->arity() == 1){ // doesn't work for nested loops
+      unsigned* occs = iterationsSeen.findPtr(tl);
+      if(occs){
+        (*occs)++;
+        if(*occs >= 0){ // arbitrary bound 2 here
+          TermList it = *tl.term()->nthArgument(0); 
+          // TODO make exclusive to Skolems?
+          //if(it.isTerm() && env.signature->getFunction(it.term()->functor())->skolem())
+          vstring tpName = env.signature->getFunction(tl.term()->functor())->name();          
+          iterations.push(std::make_pair(it, tpName));
+        }
+      } else {
+        iterationsSeen.insert(tl,0);
+      }
+    }
+  }    
 
 }
 
@@ -339,40 +369,60 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
   bool allGround = ground(premise);
   ClauseStack results;
 
+  if(premise->derivedFromGoal() &&
+     !(premise->inference().distanceFromGoal() > MAX_DIS)){
 
-  static TermStack iterations;
-  iterations.reset();
-  if(allLoopCounts && premise->length() == 1 && allGround){
- 
-    Literal* lit = (*premise)[0];
-    vstring tpName;
-    if(RapidHelper::isSuitableForInduction(lit, tpName)){    
+    if(allLoopCounts && premise->length() == 1 && allGround){
+      static TermStrStack iters;
 
-      unsigned nlFun;
-      ALWAYS(env.signature->tryGetFunctionNumber("n" + tpName, 0, nlFun));
-      TermList limit = TermList(Term::createConstant(nlFun));  
+      cout << premise->toString() << endl;
 
-      getNonFinalLoopIters(premise, iterations);
-      while(!iterations.isEmpty()){
-        TermList iter = iterations.pop();
-        // an arbitrary variable to ensure that we do not create 
-        // the same induction formula twice.       
-        TermList zeroVar = TermList(0, false);
-        Literal* skReplacedByZero = EqHelper::replace(lit, iter, zeroVar);
+      Literal* lit = (*premise)[0];
 
-        if(_premisesUsed.insert(skReplacedByZero)){
-          static ClauseStack premises;
-          premises.reset();
-          premises.push(premise);
+  //    vstring tpName;
+  //    if(RapidHelper::isSuitableForInduction(lit, tpName)){    
+  // TODO keep both versions (or find a middle line)
 
-          createConclusions(premises, iter, limit, results, false, true);
+      getNonFinalLoopIters2(lit, iters);
+
+
+      while(!iters.isEmpty()){
+        auto it = iters.pop();
+        auto tpName = it.second;
+        auto iter   = it.first;
+
+        
+
+        unsigned nlFun;
+        // WARNING below is very limiting...
+        if(env.signature->tryGetFunctionNumber("n" + tpName, 0, nlFun)){
+          TermList limit = TermList(Term::createConstant(nlFun));  
+
+          // an arbitrary variable to ensure that we do not create 
+          // the same induction formula twice.       
+          TermList zeroVar = TermList(0, false);
+          Literal* replacedByZero = EqHelper::replace(lit, iter, zeroVar);
+
+          if(_premisesUsed.insert(replacedByZero)){
+            static ClauseStack premises;
+            premises.reset();
+            premises.push(premise);
+            
+            cout << "prem " <<  premise << endl;
+            cout << "iter " << iter << endl;
+            createConclusions(premises, iter, limit, results, false, true);
+          }
         }
       }
 
-      iterations.reset();
+      iters.reset();
     }
+ 
   }
-   
+
+  static TermStack iterations;
+  iterations.reset();
+
   unsigned numberOfIters = 0;
   getFinalLoopIters(premise, iterations, numberOfIters);
 

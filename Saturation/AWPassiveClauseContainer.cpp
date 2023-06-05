@@ -377,7 +377,7 @@ after_manual:
   static bool one_iteration_at_a_time = false;
 
   Clause* cl;
-  
+
   bool selByWeight = _opt.randomAWR() ? 
     // we respect the ratio, but choose probabilistically
     (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio) : 
@@ -387,14 +387,14 @@ after_manual:
   if (selByWeight) {
     _balance -= _ageRatio;
     cl = _weightQueue.pop();
-    //if(one_iteration_at_a_time)
-      //cout << "[SG] given clause by weight: " << cl->toString() << endl;         
+//    if(one_iteration_at_a_time)
+//      cout << "[SG] given clause by weight: " << endl;         
     _ageQueue.remove(cl);
   } else {
     _balance += _weightRatio;
     cl = _ageQueue.pop();
-    //if(one_iteration_at_a_time)
-      //cout << "[SG] given clause by age: "  << cl->toString() << endl;     
+//    if(one_iteration_at_a_time)
+//      cout << "[SG] given clause by age: " << endl;     
     _weightQueue.remove(cl);
   }
 
@@ -413,6 +413,25 @@ after_manual:
 
   return cl;
 } // AWPassiveClauseContainer::popSelected
+
+void AWPassiveClauseContainer::print() {
+  CALL("AWPassiveClauseContainer::print");
+
+  
+  ClauseQueue::Iterator it1(_ageQueue);
+  ClauseQueue::Iterator it2(_weightQueue);
+
+  cout << "Age Queue" << endl;
+  while(it1.hasNext()){
+    cout << it1.next()->number() << " ";
+  }
+
+  cout << "Weight Queue" << endl;
+  while(it2.hasNext()){
+    cout << it2.next()->number() << " ";
+  }
+
+}
 
 void AWPassiveClauseContainer::onLimitsUpdated()
 {
@@ -441,7 +460,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
 
 #if OUTPUT_LRS_DETAILS
   if (toRemove.isNonEmpty()) {
-    cout<<toRemove.size()<<" passive deleted, "<< (size()-toRemove.size()) <<" remains\n";
+    cout<<toRemove.size()<<" passive deleted, "<< (sizeEstimate()-toRemove.size()) <<" remains\n";
   }
 #endif
 

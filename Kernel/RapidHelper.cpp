@@ -418,7 +418,8 @@ bool RapidHelper::isSubLiteral(Literal* l, TermList& itVar) {
 
   auto natTA = env.signature->getNat();
 
-  if(l->functor() == natTA->getLessPredicate()){
+  if(l->functor() == 
+    (natTA ? natTA->getLessPredicate() : number::lessF() )){
     if(!l->polarity()){
 
       TermList t1 = *l->nthArgument(0);
@@ -461,7 +462,7 @@ bool RapidHelper::isStrongDensityClause(Clause* c, unsigned& litPos,
 
 bool RapidHelper::isArrayAccessClause(Clause* c, unsigned& litPos, 
   unsigned& termPos, TermStack& arrayAccessesRHS) {
-  CALL("RapidHelper::isStrongDensityClause");
+  CALL("RapidHelper::isArrayAccessClause");
 
   if(c->length() != 2){
     return false;

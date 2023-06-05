@@ -1309,13 +1309,13 @@ Term* Term::create(unsigned fn, std::initializer_list<TermList> args)
  */ 
 Term* Term::foolTrue(){
   CALL("Term::foolTrue");
-  static Term* _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));
+  Term* _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));
   return _foolTrue;
 }
 
 Term* Term::foolFalse(){
   CALL("Term::foolFalse");
-  static Term* _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));
+  Term* _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));
   return _foolFalse;
 }
 
@@ -1325,43 +1325,43 @@ Term* Term::foolFalse(){
  */
 TermList AtomicSort::superSort(){
   CALL("AtomicSort::superSort");
-  static AtomicSort* _super = createNonSharedConstant(0);
+  AtomicSort* _super = createNonSharedConstant(0);
   return TermList(_super);
 }
 
 TermList AtomicSort::defaultSort(){
   CALL("AtomicSort::defaultSort");
-  static AtomicSort* _default = createConstant(env.signature->getDefaultSort());
+  AtomicSort* _default = createConstant(env.signature->getDefaultSort());
   return TermList(_default); 
 }
   
 TermList AtomicSort::boolSort(){
   CALL("AtomicSort::boolSort");
-  static AtomicSort* _bool = createConstant(env.signature->getBoolSort()); 
+  AtomicSort* _bool = createConstant(env.signature->getBoolSort()); 
   return TermList(_bool); 
 }
 
 TermList AtomicSort::intSort(){
   CALL("AtomicSort::intSort()");
-  static AtomicSort* _int = createConstant(env.signature->getIntSort()); 
+  AtomicSort* _int = createConstant(env.signature->getIntSort()); 
   return TermList(_int); 
 }
  
 TermList AtomicSort::realSort(){
   CALL("AtomicSort::realSort()");
-  static AtomicSort* _real = createConstant(env.signature->getRealSort()); 
+  AtomicSort* _real = createConstant(env.signature->getRealSort()); 
   return TermList(_real); 
 }
 
 TermList AtomicSort::rationalSort(){
   CALL("AtomicSort::rationalSort()");
-  static AtomicSort* _rat = createConstant(env.signature->getRatSort());
+  AtomicSort* _rat = createConstant(env.signature->getRatSort());
   return TermList(_rat); 
 }
 
 TermList AtomicSort::timeSort(){
   CALL("AtomicSort::timeSort()");
-  static AtomicSort* _time = createConstant(env.signature->getTimeSort()); 
+  AtomicSort* _time = createConstant(env.signature->getTimeSort()); 
   return TermList(_time); 
 }
 

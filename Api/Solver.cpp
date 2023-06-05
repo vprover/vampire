@@ -36,6 +36,7 @@
 #include "CASC/PortfolioMode.hpp"
 
 #include "Parse/TPTP.hpp"
+#include "Parse/SMTLIB2.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -156,26 +157,6 @@ namespace Vampire
 
     preprocessed = false;
     prob.removeAllFormulas();
-  }
-
-  void Solver::resetVariables(){
-    CALL("Solver::resetVariables");
-
-    fb.resetVariables();
-  }
-
-  void Solver::declareQuantifiedVars(
-    const std::vector<std::string>& names,
-    const std::vector<Sort>& sorts){
-    CALL("Solver::declareQuantifiedVars");
-
-    fb.declareQuantifiedVars(names,sorts);    
-  }
-
-  void Solver::popQuantVars(){
-    CALL("Solver::popQuantVars");
-
-    fb.popQuantVars();
   }
 
   void Solver::setSaturationAlgorithm(const string& satAlgorithm)
@@ -343,6 +324,14 @@ namespace Vampire
     ProgramStruct* ps = new ProgramStruct(structSort, fieldStack.size(), fieldStack.begin(), sym);
 
     env.signature->addStruct(ps);  
+  }
+
+  void Solver::declareNat(){
+    CALL("Solver::declareNat");
+
+    // horrible hack
+    Parse::SMTLIB2 parser(*env.options);
+    parser.readDeclareNat("Nat", "zero", "s", "p", "Suc");
   }
 
   Sort Solver::defaultSort()

@@ -277,6 +277,9 @@ public:
   /** declare a struct within Vampire's signature. Used for Rapid problems */
   void declareStruct(const std::string& strucName, const std::string& nullName, std::vector<Field>& fields);
 
+  /** declare nat term algebra */
+  void declareNat();
+
   /** Attempt to derive a contradiction from the currently asserted set of
    *  formulas.
    *  Notes on usage:

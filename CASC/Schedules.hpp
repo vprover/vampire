@@ -42,7 +42,10 @@ public:
 
   static void getRapidSchedule(const Shell::Property& property, Schedule& quick);
   static void getRapidMainTaskSchedule(const Shell::Property& property, Schedule& quick);
+  static void getRapidChainTaskSchedule(const Shell::Property& property, Schedule& quick);
+
   static void getRapidInductionSchedule(const Shell::Property& property, Schedule& quick);  
+
   static void getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);

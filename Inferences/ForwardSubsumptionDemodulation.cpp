@@ -499,67 +499,76 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               // 3. L is lΘ = t, but t is larger that rΘ.
               // If all these checks fail, we try to find a literal M in D such that lΘ=rΘ < M.
               if (!_allowIncompleteness) {
+                bool equalitySmaller = env.options->literalComparisonMode() != Shell::Options::LiteralComparisonMode::ALL_SAME;
+                bool skipChecks = false;
+
                 if (!dlit->isEquality()) {
-                  // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
-                  ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
-                  goto isRedundant;
+                  if(equalitySmaller){
+                    // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
+                    ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
+                    goto isRedundant;
+                  } else {
+                    skipChecks = true;
+                  }
                 }
-                if (lhsS != *dlit->nthArgument(0) && lhsS != *dlit->nthArgument(1)) {
+                if (!skipChecks && lhsS != *dlit->nthArgument(0) && lhsS != *dlit->nthArgument(1)) {
                   // lhsS appears as argument to some function, e.g. f(lhsS) = t
                   // from subterm property of simplification ordering we know that lhsS < f(lhsS) and thus eqLitS < dlit
                   ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
-                // Now we are in the following situation:
-                //
-                //      eqLit              dlit
-                //    vvvvvvvvv          vvvvvvvvv
-                //    lhs = rhs \/ C     lhsS ?= t \/ CΘ \/ D
-                //   ------------------------------------------
-                //             rhsS ?= t \/ CΘ \/ D
-                //
-                //  where "?=" is either "=" or "≠".
-                TermList t = EqHelper::getOtherEqualitySide(dlit, lhsS);
-                if (t == rhsS) {
-                  ASS(eqLit->isPositive());
-                  if (dlit->isPositive()) {
-                    // in this case, eqLitS == dlit; and forward subsumption should have deleted the right premise already
-                    // Here, we have subsumption
-                    ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
-#if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-                    if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
-                      ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, binder, cl, ordering));
+                if(!skipChecks){
+                  // Now we are in the following situation:
+                  //
+                  //      eqLit              dlit
+                  //    vvvvvvvvv          vvvvvvvvv
+                  //    lhs = rhs \/ C     lhsS ?= t \/ CΘ \/ D
+                  //   ------------------------------------------
+                  //             rhsS ?= t \/ CΘ \/ D
+                  //
+                  //  where "?=" is either "=" or "≠".
+                  TermList t = EqHelper::getOtherEqualitySide(dlit, lhsS);
+                  if (t == rhsS) {
+                    ASS(eqLit->isPositive());
+                    if (dlit->isPositive()) {
+                      // in this case, eqLitS == dlit; and forward subsumption should have deleted the right premise already
+                      // Here, we have subsumption
+                      ASS_EQ(binder.applyTo(eqLit), dlit);  // eqLitS == dlit
+  #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
+                      if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+                        ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, binder, cl, ordering));
+                      }
+  #endif
+                      ASS(replacement == nullptr);
+                      premises = pvi(getSingletonIterator(mcl));
+                      env.statistics->forwardSubsumed++;
+                      return true;
+                    } else {
+                      // Here, we have subsumption resolution
+                      ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
+                      ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
+                      ASS(SDHelper::checkForSubsumptionResolution(cl, SDClauseMatches{mcl,cl_miniIndex}, dlit));
+                      replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl);
+  #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
+                      if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+                        // Note that mclθ < cl does not always hold here,
+                        // but we don't need it to ensure redundancy of cl
+                        // because cl is already entailed by replacement alone
+                        ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));
+                      }
+  #endif
+                      premises = pvi(getSingletonIterator(mcl));
+                      env.statistics->forwardSubsumptionResolution++;
+                      return true;
                     }
-#endif
-                    ASS(replacement == nullptr);
-                    premises = pvi(getSingletonIterator(mcl));
-                    env.statistics->forwardSubsumed++;
-                    return true;
-                  } else {
-                    // Here, we have subsumption resolution
-                    ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
-                    ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
-                    ASS(SDHelper::checkForSubsumptionResolution(cl, SDClauseMatches{mcl,cl_miniIndex}, dlit));
-                    replacement = SDHelper::generateSubsumptionResolutionClause(cl, dlit, mcl);
-#if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-                    if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
-                      // Note that mclθ < cl does not always hold here,
-                      // but we don't need it to ensure redundancy of cl
-                      // because cl is already entailed by replacement alone
-                      ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));
-                    }
-#endif
-                    premises = pvi(getSingletonIterator(mcl));
-                    env.statistics->forwardSubsumptionResolution++;
-                    return true;
                   }
-                }
-                Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
-                ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
-                if (r_cmp_t == Ordering::LESS) {
-                  // rhsS < t implies eqLitS < dlit
-                  ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
-                  goto isRedundant;
+                  Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
+                  ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
+                  if (r_cmp_t == Ordering::LESS) {
+                    // rhsS < t implies eqLitS < dlit
+                    ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
+                    goto isRedundant;
+                  }
                 }
                 // We could not show redundancy with dlit alone,
                 // so now we have to look at the other literals of cl

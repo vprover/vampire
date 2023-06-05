@@ -426,6 +426,7 @@ public:
     SMTCOMP_2018, 
     RAPID,
     RAPID_MAIN_TASK,
+    RAPID_CHAIN_TASK,
     RAPID_INDUCTION,
     SNAKE_TPTP_UNS,
     SNAKE_TPTP_SAT,
@@ -2336,6 +2337,8 @@ public:
   bool definitionReuse() const { return _definitionReuse.actualValue; }
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool inequalityResolution() const { return _inequalityResolution.actualValue; }
+  bool groundReasoning() const { return _groundImmediateSimp.actualValue; }
+  bool groundReasoningNoEquality() const { return _groundImmediateSimpOnlyNonEquality.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2685,6 +2688,8 @@ private:
   BoolOptionValue _definitionReuse;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
   BoolOptionValue _inequalityResolution;
+  BoolOptionValue _groundImmediateSimp;
+  BoolOptionValue _groundImmediateSimpOnlyNonEquality;
   
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;

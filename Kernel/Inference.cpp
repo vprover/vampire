@@ -923,6 +923,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "backward inequality resolution";    
   case InferenceRule::INEQUALITY_SIMP:
     return "inequality simplification";
+  case InferenceRule::GROUND_THEORY_SIMP:
+    return "ground theory simplification";
   case InferenceRule::EQ_TO_INEQ:
     return "equality to inequality";
   case InferenceRule::INEQUALITY_CHAINING:

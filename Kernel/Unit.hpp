@@ -145,6 +145,8 @@ public:
   void assertValid();
 
   static void resetFirstNonPreprocessNumber(){ _firstNonPreprocessingNumber = 0; }
+  static void resetLastNumber(){ _lastNumber = 0; }
+
   static void onPreprocessingEnd();
   static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
   static unsigned getLastParsingNumber(){ return _lastParsingNumber;}

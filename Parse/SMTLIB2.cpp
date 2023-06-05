@@ -166,10 +166,11 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     bool chainFunDeclared = ibRdr.tryAcceptAtom("declare-chain-func");
     bool nullPtrDeclared = ibRdr.tryAcceptAtom("declare-null");    
     bool objArrayDeclared = ibRdr.tryAcceptAtom("declare-object-array");
+    bool mainEndDeclared = ibRdr.tryAcceptAtom("declare-main-end");
 
     if(timePointDeclared || lemmaPredicateDeclared || constVarDeclared ||
        finalLoopCountDeclared || programVarDeclared || mallocFunDeclared ||
-       chainFunDeclared || nullPtrDeclared || objArrayDeclared){
+       chainFunDeclared || nullPtrDeclared || objArrayDeclared || mainEndDeclared){
       vstring name = ibRdr.readAtom();
       LExprList* iSorts;
       if(!ibRdr.tryReadList(iSorts)){
@@ -196,6 +197,8 @@ void SMTLIB2::readBenchmark(LExprList* bench)
         rsym = RapidSymbol::RAP_NULL_PTR;                  
       } else if(objArrayDeclared){
         rsym = RapidSymbol::RAP_OBJ_ARRAY;        
+      } else if(mainEndDeclared){
+        rsym = RapidSymbol::RAP_MAIN_END;
       }
 
       readDeclareFun(name,iSorts,oSort, rsym);
@@ -1354,15 +1357,17 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
 void SMTLIB2::readDeclareNat(const vstring& nat, const vstring& zero, const vstring& succ, const vstring& pred, const vstring& less)
 {
+  CALL("SMTLIB2::readDeclareNat");
+
   _declaredSorts.insert(nat, 0);
 
   bool added = false;
   // TODO: why addUninterpretedConstant? shouldn't it be interpreted?
-  unsigned natSortCon = TPTP::addUninterpretedConstant(nat + "()",_overflow,added);
+  unsigned natSortCon =  env.signature->addTypeCon(nat + "()",0,added);
   ASS(added);
 
   OperatorType* ot = OperatorType::getConstantsType(AtomicSort::superSort());
-  env.signature->getFunction(natSortCon)->setType(ot);
+  env.signature->getTypeCon(natSortCon)->setType(ot);
   
   TermList natSort = TermList(AtomicSort::createConstant(natSortCon));
 
@@ -1377,6 +1382,7 @@ void SMTLIB2::readDeclareNat(const vstring& nat, const vstring& zero, const vstr
   destructorNamesSucc.push(pred);
   TermStack destructorArgSortsSucc;
   destructorArgSortsSucc.push(natSort);
+
   auto succConstructor = buildTermAlgebraConstructor(succ, natSort, destructorNamesSucc, destructorArgSortsSucc);
   constructors.push(succConstructor);
 
@@ -2248,6 +2254,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp)
     TermList arg;
     if (_results.isEmpty() || _results.top().isSeparator() ||
         _results.pop().asTerm(arg) != sort) {
+    
       complainAboutArgShortageOrWrongSorts("user defined symbol",exp);
     }
 

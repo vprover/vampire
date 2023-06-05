@@ -97,6 +97,7 @@
 #include "Inferences/BackwardInequalityResolution.hpp"
 #include "Inferences/ForwardInequalityResolution.hpp"
 #include "Inferences/InequalityISE.hpp"
+#include "Inferences/GroundReasoningISE.hpp"
 #include "Inferences/EqualityToInequality.hpp"
 #include "Inferences/UnitInequalityChaining.hpp"
 #include "Inferences/PointerChaining.hpp"
@@ -958,7 +959,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   env.statistics->generatedClauses++;
 
   env.checkTimeSometime<64>();
-
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
@@ -1907,6 +1907,9 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
 
     // TODO add an option?
     res->addFront(new InequalityISE());
+    if(env.options->groundReasoning()){
+      res->addFront(new GroundReasoningISE());
+    }
 
     switch (env.options->evaluationMode()) {
       case Options::EvaluationMode::SIMPLE: 

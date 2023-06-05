@@ -958,10 +958,14 @@ bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& 
   auto sym = env.signature->getFunction(functor);
   bool gsh = env.options->goalSkolemsHighWeight();
   bool tpIncreaseInWeight = env.options->timePointsIncreaseInWeight();
+  
+  auto natTa = env.signature->getNat();
 
   if (gsh && sym->skolem() && sym->inGoal())     
      { weight = _bigRapidWeight; return true; }
-  //if (sym->constantProgramVar()) { weight = _bigRapidWeight; return true; }
+  if (sym->mainEnd()) { weight = _bigRapidWeight; return true; }
+  if (natTa && functor == natTa->getSuccConstructor()->functor())
+  { weight = _bigRapidWeight; return true; }
   //if (sym->finalLoopCount()) { weight = _bigRapidWeight; return true; }
   // sometime helpful, sometimes not..
   if (sym->timePoint() && tpIncreaseInWeight) { weight = functor * 2; return true; }  

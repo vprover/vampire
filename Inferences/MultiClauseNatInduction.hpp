@@ -56,10 +56,13 @@ public:
   ClauseIterator generateClauses(Clause* premise);
   
 private:
+  typedef Stack<pair<TermList,vstring>> TermStrStack;
+
   void createConclusions(ClauseStack& premises, TermList inductionTerm, TermList limit, 
   	ClauseStack& concs,  bool multiLiterals, bool allGround);
   void getFinalLoopIters(Clause* c, TermStack& iterations, unsigned& numberOfIters);
   void getNonFinalLoopIters(Clause* c, TermStack& iterations);
+  void getNonFinalLoopIters2(Literal* lit, TermStrStack& iterations);  
   bool alreadyAddedAxiom(vset<unsigned>& premises);
 
   bool ground(Clause* c);

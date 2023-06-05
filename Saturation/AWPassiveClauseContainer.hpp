@@ -85,6 +85,8 @@ public:
 
   static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 
+  void print() override;
+
 private:
   /** The age queue, empty if _ageRatio=0 */
   AgeQueue _ageQueue;

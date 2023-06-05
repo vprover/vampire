@@ -424,6 +424,9 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   case Options::Schedule::RAPID_MAIN_TASK:
     Schedules::getRapidMainTaskSchedule(prop,quick);
     break;
+  case Options::Schedule::RAPID_CHAIN_TASK:
+    Schedules::getRapidChainTaskSchedule(prop,quick);
+    break;    
   case Options::Schedule::INDUCTION:
     Schedules::getInductionSchedule(prop,quick,fallback);
     break;

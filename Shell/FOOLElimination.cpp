@@ -48,7 +48,12 @@ const char* FOOLElimination::LET_PREFIX  = "lG";
 const char* FOOLElimination::BOOL_PREFIX = "bG";
 const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
-FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0), _polymorphic(0) {}
+FOOLElimination::FOOLElimination() : 
+  _defs(0), 
+#if VHOL
+  _higherOrder(0), 
+#endif
+  _polymorphic(0) {}
 
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
   CALL("FOOLElimination::needsElimination");
@@ -112,6 +117,7 @@ void FOOLElimination::apply(UnitList*& units) {
   while(us.hasNext()) {
     Unit* unit = us.next();
     if(unit->isClause()) {
+      cout << "unit " << unit->toString() << endl;
       Clause* clause = static_cast<Clause*>(unit);
       for (unsigned i = 0; i < clause->length(); i++) {
         // we do not allow special terms in clauses so we check that all clause literals
@@ -178,7 +184,7 @@ Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
   if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-     !_polymorphic){
+     !_polymorphic){ // TODO why the !_polymorphic check here? What do we do for poly input?
     LambdaElimination le = LambdaElimination();
     TermList proxifiedFormula = le.elimLambda(formula);
     Formula* processedFormula = toEquality(proxifiedFormula);

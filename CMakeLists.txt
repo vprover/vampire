@@ -442,6 +442,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardInequalityResolution.cpp
     Inferences/ForwardInequalityResolution.cpp  
     Inferences/InequalityISE.cpp  
+    Inferences/GroundReasoningISE.cpp
     Inferences/EqualityToInequality.cpp    
     Inferences/UnitInequalityChaining.cpp
     Inferences/PointerChaining.cpp   
@@ -494,6 +495,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardInequalityResolution.hpp
     Inferences/ForwardInequalityResolution.hpp   
     Inferences/InequalityISE.hpp   
+    Inferences/GroundReasoningISE.hpp
     Inferences/EqualityToInequality.hpp 
     Inferences/UnitInequalityChaining.hpp
     Inferences/PointerChaining.hpp       

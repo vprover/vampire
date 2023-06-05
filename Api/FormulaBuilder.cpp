@@ -310,31 +310,6 @@ void FormulaBuilder::reset(){
   _aux.resetCore();
 }
 
-void FormulaBuilder::resetVariables(){
-  CALL("FormulaBuilder::resetVariables");
-
-  _aux->resetVariables();
-}
-
-void FormulaBuilder::declareQuantifiedVars(
-  const std::vector<std::string>& names,
-  const std::vector<Sort>& sorts){
-  CALL("FormulaBuilder::declareQuantifiedVars");
-
-  std::vector<vstring> vnames;
-  for(auto& name : names){
-    vnames.push_back(StringUtils::copy2vstr(name));
-  }
-
-  _aux->declareQuantifiedVars(vnames,sorts);
-}
-
-void FormulaBuilder::popQuantVars(){
-  CALL("FormulaBuilder::popQuantVars");
-
-  _aux->popQuantVars();
-}
-
 Symbol interpretedSymbol(Kernel::Theory::Interpretation interp, ApiHelper& aux)
 {
   CALL("interpretedPredicate");

@@ -63,6 +63,9 @@ public:
     return _statusStr;
   }
 
+  // public so that Api can call
+  void readDeclareNat(const vstring& nat, const vstring& zero, const vstring& succ, const vstring& pred, const vstring& less);
+
 private:
 
   static const char * s_smtlibLogicNameStrings[];
@@ -292,8 +295,6 @@ private:
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
-
-  void readDeclareNat(const vstring& nat, const vstring& zero, const vstring& succ, const vstring& pred, const vstring& less);
 
   StructField* buildStructField(TermList structSort, vstring fieldName, TermList fieldSort, 
     vstring chainName, vstring suppPredName);
