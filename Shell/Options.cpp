@@ -1158,8 +1158,8 @@ void Options::init()
     _lrsEstimateCorrectionCoef.tag(OptionTag::SATURATION);
     _lrsEstimateCorrectionCoef.addConstraint(greaterThan(0.0f));
     _lrsEstimateCorrectionCoef.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
-    _lrsEstimateCorrectionCoef.setRandomChoices({"1.0","1.1","1.2","0.9","0.8"});    
-    
+    _lrsEstimateCorrectionCoef.setRandomChoices({"1.0","1.1","1.2","0.9","0.8"});
+
   //*********************** Inferences  ***********************
 
 #if VZ3
@@ -3416,7 +3416,7 @@ void Options::trySamplingStrategy()
       StringUtils::dropEmpty(pieces);
 
       if (pieces.size() != 3) {
-        USER_ERROR("Sampling file parse error -- ~u2r sampler expect exatly three simecolon-separated arguments but got: "+args);
+        USER_ERROR("Sampling file parse error -- ~u2r sampler expects exatly three simecolon-separated arguments but got: "+args);
       }
       if (pieces[2].length() != 1) {
         USER_ERROR("Sampling file parse error -- the third argument of the ~u2r sampler needs to be a single character and not: "+pieces[2]);
@@ -3438,7 +3438,7 @@ void Options::trySamplingStrategy()
       StringUtils::dropEmpty(pieces);
 
       if (pieces.size() != 2) {
-        USER_ERROR("Sampling file parse error -- ~sgd sampler expect exatly two comma-separated arguments but got: "+args);
+        USER_ERROR("Sampling file parse error -- ~sgd sampler expects exatly two comma-separated arguments but got: "+args);
       }
       double prob;
       int offset;
@@ -3455,7 +3455,7 @@ void Options::trySamplingStrategy()
       StringUtils::dropEmpty(pieces);
 
       if (pieces.size() != 2) {
-        USER_ERROR("Sampling file parse error -- ~uf sampler expect exatly two comma-separated arguments but got: "+args);
+        USER_ERROR("Sampling file parse error -- ~uf sampler expects exatly two comma-separated arguments but got: "+args);
       }
       float low,high;
       if (!Int::stringToFloat(pieces[0].c_str(),low) || !Int::stringToFloat(pieces[1].c_str(),high)) {
@@ -3463,6 +3463,22 @@ void Options::trySamplingStrategy()
       }
       std::uniform_real_distribution<float> dis(low,high);
       float raw = dis(rng);
+      strategySamplingAssign(optname,Int::toString(raw),fakes);
+
+      pieces.reset();
+    } else if (sampler == "~ui") {
+      StringUtils::splitStr(args.c_str(),',',pieces);
+      StringUtils::dropEmpty(pieces);
+
+      if (pieces.size() != 2) {
+        USER_ERROR("Sampling file parse error -- ~ui sampler expects exatly two comma-separated arguments but got: "+args);
+      }
+      int low,high;
+      if (!Int::stringToInt(pieces[0].c_str(),low) || !Int::stringToInt(pieces[1].c_str(),high)) {
+        USER_ERROR("Sampling file parse error -- can't convert one of ~ui sampler arguments to integer: "+args);
+      }
+      std::uniform_int_distribution<int> dis(low,high);
+      int raw = dis(rng);
       strategySamplingAssign(optname,Int::toString(raw),fakes);
 
       pieces.reset();
