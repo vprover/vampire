@@ -59,6 +59,12 @@ FOOLElimination::FOOLElimination() : _defs(0),
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
   CALL("FOOLElimination::needsElimination");
 
+#if VHOL
+  // process everything into a big proxified term
+  if(env.property->higherOrder() && env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER)
+  { return true; }
+#endif
+
   /**
    * Be careful with the difference between FOOLElimination::needsElimination
    * and Property::_hasFOOL!
@@ -186,8 +192,8 @@ Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
 
 #if VHOL
-  if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-     !_polymorphic){
+  if(env.property->higherOrder() && env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+     !_polymorphic){ // why the !_polymorphic check? It is a varry over from old implementation, do we still need it???
     TermList proxifiedFormula = LambdaConversion().convertLambda(formula);
     Formula* processedFormula = toEquality(proxifiedFormula);
 

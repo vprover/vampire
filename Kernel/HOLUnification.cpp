@@ -215,8 +215,7 @@ public:
         TermStack sorts;
         TermList matrix;
         AH::getMatrixAndPrefSorts(lhs, matrix, sorts);
-        AH::getArgSorts(matrix, argSorts);
-        AH::getHeadAndArgs(matrix, lhsHead, lhsArgs); // TODO combine this line and above into a single function call for efficiencys
+        AH::getHeadArgsAndArgSorts(matrix, lhsHead, lhsArgs, argSorts);
         AH::getHeadAndArgs(rhs, rhsHead, rhsArgs);
         ASS(lhsArgs.size() == rhsArgs.size()); // size must be same due to normalisation of prefixes above
 

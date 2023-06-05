@@ -180,6 +180,35 @@ public:
   {}
   void insertFormula(TermList formula, TermList skolem);
 };
+
+class BoolInstFormulaIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(BoolInstFormulaIndex);
+  USE_ALLOCATOR(BoolInstFormulaIndex);
+
+  BoolInstFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
+  {}
+  void insertFormula(TermList sort, TermList formula, Literal* lit, Clause* c);  
+};
+
+class BoolInstInstantiationIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(BoolInstInstantiationIndex);
+  USE_ALLOCATOR(BoolInstInstantiationIndex);
+
+  BoolInstInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
+  {}
+protected:
+  void insertInstantiation(TermList sort, TermList instantiation);
+  void handleClause(Clause* c, bool adding);
+private:
+  Set<TermList> _insertedInstantiations;  
+};
+
 #endif
 
 /*class HeuristicInstantiationIndex

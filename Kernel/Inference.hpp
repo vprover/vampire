@@ -330,6 +330,7 @@ enum class InferenceRule : unsigned char {
 
   HOL_EQUALITY_ELIMINATION,
 
+  BOOL_INSTANTIATION,
 #endif
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating

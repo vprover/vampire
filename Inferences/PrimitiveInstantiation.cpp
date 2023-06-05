@@ -157,8 +157,8 @@ struct PrimitiveInstantiation::ResultFn
     TermStack argsFlex;
     TermStack sortsFlex; //sorts of arguments of flex head 
 
-    AH::getHeadAndArgs(flexTerm, headFlex, argsFlex);
-    AH::getArgSorts(flexTerm, sortsFlex);
+    AH::getHeadArgsAndArgSorts(flexTerm, headFlex, argsFlex, sortsFlex);
+    ASS(argsFlex.size() == sortsFlex.size());
 
     if(!argsFlex.size()){
       // TODO do we really want to do this?

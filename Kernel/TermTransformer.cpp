@@ -14,6 +14,7 @@
 
 #include "SortHelper.hpp"
 #include "Term.hpp"
+#include "ApplicativeHelper.hpp"
 
 #include "TermTransformer.hpp"
 #include "FormulaTransformer.hpp"
@@ -269,10 +270,33 @@ TermList SubtermReplacer::transformSubterm(TermList t)
 {
   CALL("SubtermReplacer::transformSubterm");
 
-  if(t == _what) return _by;
+  if(t == _what){ 
+#if VHOL
+    if(_liftFreeIndices)
+    { return TermShifter().shift(_by, _shiftBy); }
+#endif
+    return _by;
+  }
   return t;
 }
 
+#if VHOL
+
+void SubtermReplacer::onTermEntry(Term* t)
+{
+  CALL("SubtermReplacer::onTermEntry");
+
+  if(t->isLambdaTerm()) _shiftBy++;
+}
+
+void SubtermReplacer::onTermExit(Term* t)
+{
+  CALL("SubtermReplacer::onTermExit");
+
+  if(t->isLambdaTerm()) _shiftBy--;
+}
+
+#endif
 
 TypedTermList ToBank::toBank(TypedTermList term){
   CALL("ToBank::toBank");

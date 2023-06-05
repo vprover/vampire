@@ -631,6 +631,23 @@ void ApplicativeHelper::getHeadSortAndArgs(TermList term, TermList& head,
   head = term;
 }
 
+void ApplicativeHelper::getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts)
+{
+  CALL("ApplicativeHelper::getHeadArgsAndArgSorts");
+
+  if(!args.isEmpty()){ args.reset(); }
+  if(!argSorts.isEmpty()){ argSorts.reset(); }
+
+  t = matrix(t);
+
+  while(t.isApplication()){
+    args.push(t.rhs()); 
+    argSorts.push(rhsSort(t));
+    t = t.lhs();
+  }
+  head = t;  
+}
+
 void ApplicativeHelper::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts)
 {
   CALL("ApplicativeHelper::getLambdaPrefSorts");
@@ -714,6 +731,51 @@ Signature::Proxy ApplicativeHelper::getProxy(const TermList& t)
     return Signature::NOT_PROXY;
   }
   return env.signature->getFunction(t.term()->functor())->proxy();
+}
+
+void ApplicativeHelper::getAbstractionTerms(Literal* lit, TermStack& terms)
+{
+  CALL("ApplicativeHelper::getAbstractionTerms");
+
+  ASS(lit->isEquality());
+
+  TermList lhs = *lit->nthArgument(0);
+  TermList rhs = *lit->nthArgument(1);
+  TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
+
+
+  auto dealWithArg = [&](TermList arg, TermList argSort, TermStack& terms){
+    if(!arg.containsLooseIndex()){
+      TermList db = getDeBruijnIndex(0,argSort);
+      SubtermReplacer st(arg,db,true);
+      TermList lhsReplaced = st.transform(lhs);
+      TermList rhsReplaced = st.transform(rhs);
+      TermList eq = app2(equality(eqSort), lhsReplaced, rhsReplaced);
+      eq = lit->polarity() ? app(neg(),eq) : eq; // reverse the polarity of the literal
+      terms.push(lambda(argSort,eq));
+    }
+  };
+
+  TermList lhsHead, rhsHead;
+  TermList lhsMatrix, rhsMatrix;
+  static TermStack lhsArgs;
+  static TermStack lhsArgSorts;
+  static TermStack rhsArgs;
+  static TermStack rhsArgSorts;
+
+
+  getHeadArgsAndArgSorts(lhs, lhsHead, lhsArgs, lhsArgSorts);
+  getHeadArgsAndArgSorts(rhs, rhsHead, rhsArgs, rhsArgSorts);
+  if(lhsHead.isTerm() && lhsHead.deBruijnIndex().isNone() && lhsHead == rhsHead)
+  {
+    for(unsigned i = 0; i < lhsArgs.size(); i++){
+      dealWithArg(lhsArgs[i], lhsArgSorts[i], terms);
+    }
+
+    for(unsigned i = 0; i < rhsArgs.size(); i++){
+      dealWithArg(rhsArgs[i], rhsArgSorts[i], terms);
+    }
+  }
 }
 
 bool ApplicativeHelper::isBool(TermList t){

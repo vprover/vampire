@@ -89,7 +89,10 @@ void Term::destroyNonShared()
 {
   CALL("Term::destroyNonShared");
 
-  if (shared()) {
+  // TODO currently we insert superSort into 
+  // substitution trees in a few specialised places
+  // Omce we get rid of this can remove the isSuper check
+  if (shared() || isSuper()) {
     return;
   }
   TermList selfRef;

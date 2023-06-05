@@ -970,6 +970,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "imitate";
   case InferenceRule::PROJECT:
     return "project";
+  case InferenceRule::BOOL_INSTANTIATION:
+    return "boolean instantiation";
   /* these cases are no actual inference rules but only markeres to separatea groups of rules */    
   case InferenceRule::PROXY_AXIOM:
 #endif

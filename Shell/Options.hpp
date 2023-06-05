@@ -740,8 +740,7 @@ public:
     LAZY_SIMP = 2,
     LAZY_SIMP_NOT_GEN = 3,
     LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 4,
-    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5,
-    OFF = 6
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5
   };
 
   enum class PISet : unsigned int {
@@ -754,6 +753,12 @@ public:
     OR = 6,
     EQUALS = 7,
     PI_SIGMA = 8
+  };
+
+  enum class BoolInstantiation : unsigned int {
+    OFF = 0,
+    ABSTRACTION = 1,
+    ABS_AND_SUBTERM = 2
   };
 
   enum class HPrinting : unsigned int {
@@ -2428,6 +2433,7 @@ public:
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool positiveExtensionality() const { return _positiveExt.actualValue; }
+  BoolInstantiation booleanInstantiation() const { return _boolInstantiation.actualValue; }
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   // TODO doesn't do anyhting currently  
   // bool complexVarCondition() const { return _complexVarCondition.actualValue; }
@@ -2875,6 +2881,7 @@ private:
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _positiveExt;
+  ChoiceOptionValue<BoolInstantiation> _boolInstantiation;
   BoolOptionValue _lambdaFreeHol;
   // BoolOptionValue _complexVarCondition;
   ChoiceOptionValue<HPrinting> _holPrinting;

@@ -87,6 +87,7 @@
 #include "Inferences/BetaEtaISE.hpp"
 #include "Inferences/FlexFlexSimplify.hpp"
 #include "Inferences/PositiveExt.hpp"
+#include "Inferences/BoolInstantiation.hpp"
 #endif
 
 #include "Inferences/URResolution.hpp"
@@ -1594,6 +1595,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(env.options->choiceReasoning()){
       gie->addFront(new Choice());
     }
+    if(env.options->booleanInstantiation() != Options::BoolInstantiation::OFF){
+      gie->addFront(new BoolInstantiation());
+    }
   }
 
   if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
@@ -1607,9 +1611,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
+      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){ // TODO why the last condition????
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
       gie->addFront(new LazyClausificationGIE());
     }
   }    
@@ -1700,8 +1703,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #if VHOL
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
       res->addSimplifierToFront(new LazyClausification());
     }
   }  

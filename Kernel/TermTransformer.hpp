@@ -75,16 +75,36 @@ private:
 
 class SubtermReplacer : public TermTransformer {
 public:
-  SubtermReplacer(TermList what, TermList by) : _what(what), _by(by) {
+  SubtermReplacer(TermList what, TermList by
+#if VHOL
+    , bool liftFree = false
+#endif
+    ) : 
+    _what(what), 
+    _by(by),
+#if VHOL
+    _liftFreeIndices(liftFree),
+    _shiftBy(0)
+#endif
+  {
     ASS(what.isVar() || by.isVar() || SortHelper::getResultSort(what.term()) == SortHelper::getResultSort(by.term()));
     dontTransformSorts();
   }
       
   TermList transformSubterm(TermList t) override; 
 
+#if VHOL
+  void onTermEntry(Term* t) override;
+  void onTermExit(Term* t) override; 
+#endif
+
 private:
   TermList _what;
   TermList _by;
+#if VHOL
+  bool _liftFreeIndices; // true if need to lift free indices in _what
+  int _shiftBy; // the amount to shift a free index by
+#endif
 };
 
 class ToBank : public TermTransformer

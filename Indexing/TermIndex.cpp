@@ -226,83 +226,59 @@ void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
   _is->insert(TypedTermList(formula.term()), skolem);
 }
 
-#endif
-
-/*void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
+void BoolInstFormulaIndex::insertFormula(TermList sort, TermList formula, Literal* lit, Clause* c)
 {
-  CALL("HeuristicInstantiationIndex::insertInstantiation");
-  _is->insert(sort, instantiation);
+  CALL("BoolInstFormulaIndex::insertFormula");
+  _is->insert(TypedTermList(sort, AtomicSort::superSort()), formula, lit, c);
 }
 
-void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
+void BoolInstInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
 {
-  CALL("HeuristicInstantiationIndex::handleClause");
+  CALL("BoolInstInstantiationIndex::insertInstantiation");
+  _is->insert(TypedTermList(sort, AtomicSort::superSort()), instantiation);
+}
+
+void BoolInstInstantiationIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("BoolInstInstantiationIndex::handleClause");
+
+  // TODO only consider derivations shorter than some length???
+  // we never remove instantiations, only add new ones
+  if(!c->derivedFromGoal() || !adding) return;
 
   typedef ApplicativeHelper AH;
 
-  TermList freshVar(c->maxVar() + 1, false);
-  VList* boundVar = new VList(freshVar.var());
-
   for (unsigned i=0; i<c->length(); i++) {
     Literal* lit=(*c)[i];
-    TermList leftHead, rightHead, lhSort, rhSort;
-    static TermStack leftArgs;
-    static TermStack rightArgs;
-    AH::getHeadSortAndArgs(*lit->nthArgument(0), leftHead, lhSort, leftArgs);
-    AH::getHeadSortAndArgs(*lit->nthArgument(1), rightHead, rhSort, rightArgs);
-    if(leftHead.isTerm() && AH::getComb(leftHead) == Signature::NOT_COMB &&
-       AH::getProxy(leftHead) == Signature::NOT_PROXY &&
-      leftHead == rightHead &&
-      leftArgs.size() == rightArgs.size() &&
-      leftArgs.size())
-    {
-      TermList sort, boundVarSort, combTerm;
-      for(i = 0; i < leftArgs.size(); i++){
-        boundVarSort = AH::getNthArg(lhSort, leftArgs.size() - i);
-        SList* boundVarSortList = new SList(boundVarSort);
 
-        Literal* newLit = EqHelper::replace(lit, leftArgs[i], freshVar);
-        newLit->setPolarity(!newLit->polarity());
-        Term* eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
-        combTerm = LambdaElimination().elimLambda(lambdaTerm);
-        if(!_insertedInstantiations.contains(combTerm)){
-        cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
-        cout << "arg " + leftArgs[i].toString() << endl;
-        cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl;
-          _insertedInstantiations.insert(combTerm);
-          insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
+    TermStack abstractionTerms;
+    AH::getAbstractionTerms(lit, abstractionTerms);
+    while(!abstractionTerms.isEmpty()){
+      TermList inst = abstractionTerms.pop();
+      if(!_insertedInstantiations.contains(inst)){
+        _insertedInstantiations.insert(inst);
+        insertInstantiation(SortHelper::getResultSort(inst.term()),inst);
+      }       
+    }
+
+    if(env.options->booleanInstantiation() == Options::BoolInstantiation::ABS_AND_SUBTERM){
+      NonVariableNonTypeIterator it(lit);
+      while(it.hasNext()){
+        Term* term = it.next();
+        TermList sort = SortHelper::getResultSort(term);
+        TermList t = TermList(term);
+        // t : sigma -> o for some sigma
+        if(!t.containsLooseIndex() && sort.isArrowSort() && sort.result().isBoolSort()){
+          if(!_insertedInstantiations.contains(t)){
+            _insertedInstantiations.insert(t);
+            insertInstantiation(sort,t);
+          }   
         }
-        //may be harmful performance wise, but otherwise these
-        //leak
-        //eqForm->destroy();
-        //lambdaTerm->destroy();
-
-        newLit = EqHelper::replace(lit, rightArgs[i], freshVar);
-        newLit->setPolarity(!newLit->polarity());
-        eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
-        combTerm = LambdaElimination().elimLambda(lambdaTerm);
-        if(!_insertedInstantiations.contains(combTerm)){
-        cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
-        cout << "arg " + rightArgs[i].toString() << endl;
-        cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl; 
-          _insertedInstantiations.insert(combTerm);
-          insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
-        }
-
-        //eqForm->destroy();
-        //lambdaTerm->destroy();
-
-        SList::destroy(boundVarSortList);
       }
     }
   }
+}
 
-  VList::destroy(boundVar);
-}*/
-
+#endif
 
 } // namespace Indexing

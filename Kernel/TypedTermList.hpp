@@ -24,7 +24,9 @@ public:
 
   TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) 
   { 
-    ASS_NEQ(sort, AtomicSort::superSort());
+    // TODO we have some use cases where we want to enter a sort
+    // with sort SuperSort(). See BoolInstantiation
+    // ASS_NEQ(sort, AtomicSort::superSort());
     ASS(!sort.isEmpty())
   }
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}

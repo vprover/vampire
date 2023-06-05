@@ -1827,11 +1827,11 @@ void Options::init()
                                                                           "lazy_simp",
                                                                           "lazy_not_gen",
                                                                           "lazy_not_gen_be_off",
-                                                                          "lazy_not_be_gen",
-                                                                          "off"});
+                                                                          "lazy_not_be_gen"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
-    _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());    
+    _clausificationOnTheFly.addProblemConstraint(hasHigherOrder()); 
+    _clausificationOnTheFly.onlyUsefulWith(_addProxyAxioms.is(equal(false)));     
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
     _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::PRAGMATIC,
@@ -1910,6 +1910,18 @@ void Options::init()
     _positiveExt.addProblemConstraint(hasHigherOrder());   
     _positiveExt.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::AXIOM)));
     _positiveExt.tag(OptionTag::HIGHER_ORDER);
+
+
+
+    _boolInstantiation = ChoiceOptionValue<BoolInstantiation>("bool_inst","bi",BoolInstantiation::OFF,
+                                                                        {"off", "abs", "abs_sub"});
+    _boolInstantiation.description=
+    "Enables heuristic instantiation of higher-order variables with Bool return type.\n"
+    " -abs attempt to instantiate such variables with abstractions of literals coming from conjeture.\n"
+    " -abs_sub same as above, but also subterms of clauses derived from conjecture";
+    _lookup.insert(&_boolInstantiation);
+    _boolInstantiation.addProblemConstraint(hasHigherOrder());   
+    _boolInstantiation.tag(OptionTag::HIGHER_ORDER);
 
     _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
     _lambdaFreeHol.description=
