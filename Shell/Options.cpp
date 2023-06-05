@@ -2201,7 +2201,7 @@ void Options::init()
         "but not introducing new splits anymore. This fights the theoretical possibility of AVATAR's dynamic incompletness.)";
     _lookup.insert(&_splittingAvatimer);
     _splittingAvatimer.tag(OptionTag::AVATAR);
-    _splittingAvatimer.addConstraint(greaterThan(0.0f)); //if you want to stop splitting right-away, just turn AVATAR off
+    _splittingAvatimer.addConstraint(greaterThanEq(0.0f)); //if you want to stop splitting right-away, just turn AVATAR off
     _splittingAvatimer.addConstraint(smallerThanEq(1.0f));
     _splittingAvatimer.onlyUsefulWith(_splitting.is(equal(true)));
     _splittingAvatimer.setRandomChoices({"0.0","0.5","0.7","0.9"});
@@ -3448,6 +3448,22 @@ void Options::trySamplingStrategy()
       std::geometric_distribution<int> dis(prob);
       int nval = offset+dis(rng);
       strategySamplingAssign(optname,Int::toString(nval),fakes);
+
+      pieces.reset();
+    } else if (sampler == "~uf") {
+      StringUtils::splitStr(args.c_str(),',',pieces);
+      StringUtils::dropEmpty(pieces);
+
+      if (pieces.size() != 2) {
+        USER_ERROR("Sampling file parse error -- ~uf sampler expect exatly two comma-separated arguments but got: "+args);
+      }
+      float low,high;
+      if (!Int::stringToFloat(pieces[0].c_str(),low) || !Int::stringToFloat(pieces[1].c_str(),high)) {
+        USER_ERROR("Sampling file parse error -- can't convert one of ~uf sampler arguments to float: "+args);
+      }
+      std::uniform_real_distribution<float> dis(low,high);
+      float raw = dis(rng);
+      strategySamplingAssign(optname,Int::toString(raw),fakes);
 
       pieces.reset();
     } else {
