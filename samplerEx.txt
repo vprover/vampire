@@ -112,11 +112,36 @@ av=on > abs ~cat on:63,off:300
 # avatar_congruence_closure
 av=on > acc ~cat off:600,model:24,on:58
 
+# cc_unsat_cores
+acc!=off > ccuc ~cat first:1,small_ones:1,all:3
+
+# avatar_minimize_model
+av=on  acc=model > amm ~cat all:600,off:69
+av=on acc!=model > amm ~cat all:600,sco:32,off:69
+
+# avatar_eager_removal
+av=on amm=all > aer ~cat on:300,off:1
+
+# avatar_delete_deactivated
+av=on > add ~cat on:300,large:55,off:8
+
+# avatar_fast_restart
+av=on > afr ~cat off:10,on:1
+
+# avatar_literal_polarity_advice
+av=on > alpa ~cat none:300,false:13,true:6,random:4
+
+# avatar_nonsplittable_components
+av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
+
+# avatar_turn_off_time_frac
+av=on > atotf ~cat 1.0:10,0.5:1
+# careful that 1.0 becomes "1" by the ->toFloat->toStr internal transformation
+atotf!=1 > atotf ~uf 0.0,0.5
 
 
 
-
-
+# avatar_flush_quotient
 
 
 # nonliterals_in_clause_weight
