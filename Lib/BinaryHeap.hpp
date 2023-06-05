@@ -321,7 +321,7 @@ private:
   {
     ASS(_capacity==_size);
 
-    unsigned oldCapacity=_capacity;
+    //unsigned oldCapacity=_capacity;
     T* oldData=_data;
 
     _capacity= _capacity ? _capacity*2 : 4;

@@ -110,6 +110,7 @@ void Assertion::checkType(const char* file, int line, const void* ptr, const cha
     std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();
+  return;
 } // Assertion::violated
 
 /**

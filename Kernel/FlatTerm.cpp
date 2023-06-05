@@ -50,7 +50,7 @@ void FlatTerm::destroy()
   ASS_GE(_length,1);
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(Entry);
+  //size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(Entry);
 
   DEALLOC_KNOWN(this, size,"FlatTerm");
 }

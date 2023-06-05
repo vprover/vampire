@@ -19,6 +19,98 @@
 #ifndef __Allocator__
 #define __Allocator__
 
+#include <cstdlib>
+
+#include "Debug/Assertion.hpp"
+#include "Debug/Tracer.hpp"
+
+#define BYPASSING_ALLOCATOR
+#define START_CHECKING_FOR_ALLOCATOR_BYPASSES
+#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
+
+#define CLASS_NAME(className)
+#define USE_ALLOCATOR(className)
+#define USE_ALLOCATOR_ARRAY
+#define USE_ALLOCATOR_UNK
+
+#define ALLOC_KNOWN(size, className) malloc(size)
+#define DEALLOC_KNOWN(obj, size, className) free(obj)
+#define ALLOC_UNKNOWN(size, className) malloc(size)
+#define REALLOC_UNKNOWN(ptr, size, className) realloc(ptr, size)
+#define DEALLOC_UNKNOWN(obj, className) free(obj)
+
+#define USE_PRECISE_CLASS_NAMES 0
+
+/**
+ * Deletion of incomplete class types causes memory leaks. Using this
+ * causes compile error when deleting incomplete classes.
+ *
+ * (see http://www.boost.org/doc/libs/1_36_0/libs/utility/checked_delete.html )
+ */
+template<class T> void checked_delete(T * x)
+{
+    // intentionally complex - simplification causes regressions
+    typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
+    (void) sizeof(type_must_be_complete);
+    delete x;
+}
+
+/**
+ * Initialise an array of objects of type @b T that has length @b length
+ * starting at @b placement, and return a pointer to its first element
+ * (whose value is equal to @b placement). This function is required when
+ * we use an allocated piece of memory an array of elements of type @b T -
+ * in this case we also have to initialise every array cell by applying
+ * the constructor of T.
+ * @author Krystof Hoder
+ * @author Andrei Voronkov (documentation)
+ */
+template<typename T>
+T* array_new(void* placement, size_t length)
+{
+  ASS_NEQ(placement,0);
+  ASS_G(length,0);
+
+  T* res=static_cast<T*>(placement);
+  T* p=res;
+  while(length--) {
+    ::new(static_cast<void*>(p++)) T();
+  }
+  return res;
+} // array_new
+
+/**
+ * Apply the destructor of T to each element of the array @b array of objects
+ * of type @b T and that has length @b length.
+ * @see array_new() for more information.
+ * @author Krystof Hoder
+ * @author Andrei Voronkov (documentation)
+ */
+template<typename T>
+void array_delete(T* array, size_t length)
+{
+  ASS_NEQ(array,0);
+  ASS_G(length,0);
+
+  array+=length;
+  while(length--) {
+    (--array)->~T();
+  }
+}
+
+class Allocator {
+public:
+  static void setMemoryLimit(size_t limit) { _memoryLimit = limit; }
+  static size_t getMemoryLimit() { return _memoryLimit; }
+  static size_t getUsedMemory() { return 0; }
+  static void reportUsageByClasses() {}
+
+private:
+  static size_t _memoryLimit;
+};
+
+#if 0
+
 #include <cstddef>
 
 #include "Debug/Assertion.hpp"
@@ -476,3 +568,5 @@ std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
 #undef ALLOC_SIZE_ATTR
 
 #endif // __Allocator__
+
+#endif
