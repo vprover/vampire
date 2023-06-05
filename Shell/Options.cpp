@@ -3412,11 +3412,11 @@ void Options::trySamplingStrategy()
 
       strategySamplingAssign(optname,value,fakes);
     } else if (sampler == "~u2r") {
-      StringUtils::splitStr(args.c_str(),',',pieces);
+      StringUtils::splitStr(args.c_str(),';',pieces);
       StringUtils::dropEmpty(pieces);
 
       if (pieces.size() != 3) {
-        USER_ERROR("Sampling file parse error -- ~u2r sampler expect exatly three comma-separated arguments but got: "+args);
+        USER_ERROR("Sampling file parse error -- ~u2r sampler expect exatly three simecolon-separated arguments but got: "+args);
       }
       if (pieces[2].length() != 1) {
         USER_ERROR("Sampling file parse error -- the third argument of the ~u2r sampler needs to be a single character and not: "+pieces[2]);
