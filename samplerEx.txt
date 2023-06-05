@@ -3,10 +3,10 @@
 # blocked_clause_elimination
 > bce ~cat off:5,on:1
 
-# equality_proxy
-> ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
+# equality_proxy (no ep for Ahmed)
+#> ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
 # mono_ep
-ep!=off > mep ~cat on:10,off:1
+# ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
 > erd ~cat on:10,off:1
@@ -127,7 +127,8 @@ sup=on > sfv ~cat on:38,off:1
 > fs ~cat on:500,off:31
 
 # forward_subsumption_resolution
-fs=on > fsr ~cat on:500,off:193
+fs=off > fsr ~cat off:1
+fs=on  > fsr ~cat on:500,off:193
 
 # forward_subsumption_demodulation
 > fsd ~cat off:500,on:90
@@ -366,7 +367,7 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 > ntd ~cat off:1,on:1
 
 # pos_ext
-> pe ~cat off:1,on:1
+func_ext!=axiom > pe ~cat off:1,on:1
 
 # prim_inst_set
 > piset ~cat all:1,all_but_not_eq:1,not:1,small_set:1,pragmatic:1,and:1,or:1,equals:1,pi_sigma:1
