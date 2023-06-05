@@ -2192,7 +2192,7 @@ void Options::init()
     _lookup.insert(&_splittingFlushQuotient);
     _splittingFlushQuotient.tag(OptionTag::AVATAR);
     _splittingFlushQuotient.addConstraint(greaterThanEq(1.0f));
-    _splittingFlushQuotient.onlyUsefulWith(_splitting.is(equal(true)));
+    _splittingFlushQuotient.onlyUsefulWith(_splittingFlushPeriod.is(notEqual((unsigned)0)));
     _splittingFlushQuotient.setRandomChoices({"1.0","1.1","1.2","1.4","2.0"});
 
     _splittingAvatimer = FloatOptionValue("avatar_turn_off_time_frac","atotf",1.0);
