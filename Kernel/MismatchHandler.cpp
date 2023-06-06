@@ -489,9 +489,11 @@ bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec 
         todo->loadFromIterator(dt.termArgs());
       }
     } else if (dt.isVar() && v == dt.varSpec()) {
+      DEBUG_UWA(2, "uncancellableOccursChec", std::tie(v, t), " = true")
       return true;
     }
   }
+  DEBUG_UWA(2, "uncancellableOccursChec", std::tie(v, t), " = false")
   return false;
 }
 

@@ -411,5 +411,6 @@ TEST_GENERATION(tricky_uwa_03,
 
 TEST_GENERATION(tricky_uwa_04,
     Generation::SymmetricTest()
+      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_MAIN)))
       .inputs  ({        clause({  f(x) + f(g(x + z, x + y)) > 0  }) })
       .expected(exactly( clause({  2 * f(x) > 0, x != g(x + z, x + y)  }) )))
