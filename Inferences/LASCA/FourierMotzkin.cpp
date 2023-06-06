@@ -189,50 +189,50 @@ Option<Clause*> FourierMotzkin::applyRule(
     //     "s₁, s₂ are not variables",
     //     !lhs.monom().isVar() && !rhs.monom().isVar())
 
-    auto L1σ = sigma(lhs.literal(), lhsVarBank);
+    auto L1_sigma = sigma(lhs.literal(), lhsVarBank);
     check_side_condition( 
         "(+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ",
         lhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = sigma(L, lhsVarBank);
-             out.push(Lσ);
-             return _shared->notLeq(L1σ, Lσ);
+             auto L_sigma = sigma(L, lhsVarBank);
+             out.push(L_sigma);
+             return _shared->notLeq(L1_sigma, L_sigma);
            }));
 
 
-    auto L2σ = sigma(rhs.literal(), rhsVarBank);
+    auto L2_sigma = sigma(rhs.literal(), rhsVarBank);
     check_side_condition(
         "(-k s₂ + t₂ >₂ 0)σ /≺ C₂σ",
         rhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = sigma(L, rhsVarBank);
-             out.push(Lσ);
-             return _shared->notLess(L2σ, Lσ);
+             auto L_sigma = sigma(L, rhsVarBank);
+             out.push(L_sigma);
+             return _shared->notLess(L2_sigma, L_sigma);
            }));
 
 
-    auto s1σ = sigma(lhs.monom(), lhsVarBank);
-    auto s2σ = sigma(rhs.monom(), rhsVarBank);
-    // ASS_REP(_shared->equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
-    Stack<TermList> t1σ(rhs.nContextTerms());
-    Stack<TermList> t2σ(lhs.nContextTerms());
+    auto s1_sigma = sigma(lhs.monom(), lhsVarBank);
+    auto s2_sigma = sigma(rhs.monom(), rhsVarBank);
+    // ASS_REP(_shared->equivalent(s_sigma.term(), s2_sigma().term()), make_pair(s_sigma, s2_sigma()))
+    Stack<TermList> t1_sigma(rhs.nContextTerms());
+    Stack<TermList> t2_sigma(lhs.nContextTerms());
 
     check_side_condition(
         "s₁σ /⪯ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = sigma(ti.factors->denormalize(), lhsVarBank);
-             t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLeq(s1σ, tiσ);
+             auto ti_sigma = sigma(ti.factors->denormalize(), lhsVarBank);
+             t1_sigma.push(NumTraits::mulSimpl(ti.numeral, ti_sigma));
+             return _shared->notLeq(s1_sigma, ti_sigma);
            }))
 
     check_side_condition(
         "s₂σ /⪯ t₂σ ",
         rhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = sigma(ti.factors->denormalize(), rhsVarBank);
-             t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLeq(s2σ, tiσ);
+             auto ti_sigma = sigma(ti.factors->denormalize(), rhsVarBank);
+             t2_sigma.push(NumTraits::mulSimpl(ti.numeral, ti_sigma));
+             return _shared->notLeq(s2_sigma, ti_sigma);
            }))
 
     // DEBUG_FM(1, "(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)
@@ -250,8 +250,8 @@ Option<Clause*> FourierMotzkin::applyRule(
            : NumTraits::add(l, r); };
 
     auto resolventTerm // -> (k t₁ + j t₂)σ
-        = add( NumTraits::mulSimpl(k, NumTraits::sum(t1σ.iterFifo())),
-               NumTraits::mulSimpl(j, NumTraits::sum(t2σ.iterFifo())));
+        = add( NumTraits::mulSimpl(k, NumTraits::sum(t1_sigma.iterFifo())),
+               NumTraits::mulSimpl(j, NumTraits::sum(t2_sigma.iterFifo())));
 
     if (std::is_same<IntTraits, NumTraits>::value) {
       resolventTerm = add(resolventTerm, NumTraits::constantTl(-1));

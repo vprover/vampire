@@ -84,9 +84,9 @@ Option<Clause*> IsIntFactoring::applyRule(NumTraits,
   CHECK_CONDITION("s1σ /⪯ terms(t1)σ",
       l1.contextTerms<NumTraits>() 
         .all([&](auto ki_ti) {
-          auto tiσ = sigma(ki_ti.factors->denormalize());
-          t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-          return _shared->notLeq(s1_sigma, tiσ);
+          auto ti_sigma = sigma(ki_ti.factors->denormalize());
+          t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, ti_sigma));
+          return _shared->notLeq(s1_sigma, ti_sigma);
         }));
 
   auto s2_sigma = sigma(s2);
@@ -94,9 +94,9 @@ Option<Clause*> IsIntFactoring::applyRule(NumTraits,
   CHECK_CONDITION("s2σ /⪯ terms(t2)σ",
       l2.contextTerms<NumTraits>() 
         .all([&](auto ki_ti) {
-          auto tiσ = sigma(ki_ti.factors->denormalize());
-          t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-          return _shared->notLeq(s2_sigma, tiσ);
+          auto ti_sigma = sigma(ki_ti.factors->denormalize());
+          t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, ti_sigma));
+          return _shared->notLeq(s2_sigma, ti_sigma);
         }));
 
                                   //
@@ -115,15 +115,15 @@ Option<Clause*> IsIntFactoring::applyRule(NumTraits,
   // •    isInt(j s1 + t1)σ /≺ (isInt(k s2 + t2) \/ C)σ <- cond1
   //   or isInt(k s2 + t2)σ /≺ (isInt(j s1 + t1) \/ C)σ <- cond2
 
-  auto L1σ = sigma(l1.literal()); // <- isInt(j s1 + t1)σ
-  auto L2σ = sigma(l2.literal()); // <- isInt(k s2 + t2)σ
-  auto cond1 = concatIters(concl.iterCloned(), getSingletonIterator(L2σ))
-    .all([&](auto Lσ) 
-        { return  _shared->notLess(L1σ, Lσ); });
+  auto L1_sigma = sigma(l1.literal()); // <- isInt(j s1 + t1)σ
+  auto L2_sigma = sigma(l2.literal()); // <- isInt(k s2 + t2)σ
+  auto cond1 = concatIters(concl.iterCloned(), getSingletonIterator(L2_sigma))
+    .all([&](auto L_sigma) 
+        { return  _shared->notLess(L1_sigma, L_sigma); });
 
-  auto cond2 = concatIters(concl.iterCloned(), getSingletonIterator(L1σ))
-    .all([&](auto Lσ) 
-        { return  _shared->notLess(L2σ, Lσ); });
+  auto cond2 = concatIters(concl.iterCloned(), getSingletonIterator(L1_sigma))
+    .all([&](auto L_sigma) 
+        { return  _shared->notLess(L2_sigma, L_sigma); });
 
   CHECK_CONDITION(
       "isInt(j s1 + t1)σ /≺ (isInt(k s2 + t2) \\/ C)σ or isInt(k s2 + t2)σ /≺ (isInt(j s1 + t1) \\/ C)σ",
@@ -133,7 +133,7 @@ Option<Clause*> IsIntFactoring::applyRule(NumTraits,
   concl.loadFromIterator(cnst->iterFifo());
 
   // adding `isInt(js1 + t1) σ`
-  concl.push(L1σ);
+  concl.push(L1_sigma);
 
   auto pivotSum = 
   //   ^^^^^^^^--> `(t2 - (k/j) t1)σ`

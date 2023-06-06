@@ -131,54 +131,54 @@ Option<Clause*> Superposition::applyRule(
         ).isSome()
       )
 
-  auto L1σ = sigma(lhs.literal(), lhsVarBank);
+  auto L1_sigma = sigma(lhs.literal(), lhsVarBank);
   check_side_condition(
         "(s1 ≈ t)σ /⪯ C1σ",
         lhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = sigma(L, lhsVarBank);
-             concl.push(Lσ);
-             return _shared->notLeq(L1σ, Lσ);
+             auto L_sigma = sigma(L, lhsVarBank);
+             concl.push(L_sigma);
+             return _shared->notLeq(L1_sigma, L_sigma);
            }))
 
   // •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
   //   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
-  auto L2σ = sigma(rhs.literal(), rhsVarBank);
+  auto L2_sigma = sigma(rhs.literal(), rhsVarBank);
   bool inLitPlus = rhs.inLitPlus();
   check_side_condition(
       inLitPlus ? "L[s2]σ /⪯ C2σ"
                 : "L[s2]σ /≺ C2σ",
         rhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = sigma(L, rhsVarBank);
-             concl.push(Lσ);
-             return inLitPlus ? _shared->notLeq(L2σ, Lσ)
-                              : _shared->notLess(L2σ, Lσ);
+             auto L_sigma = sigma(L, rhsVarBank);
+             concl.push(L_sigma);
+             return inLitPlus ? _shared->notLeq(L2_sigma, L_sigma)
+                              : _shared->notLess(L2_sigma, L_sigma);
            }));
 
-  auto s2σ = sigma(s2, rhsVarBank);
+  auto s2_sigma = sigma(s2, rhsVarBank);
 
   check_side_condition(
       "s2σ ⊴ ti ∈ active(L[s2]σ)", 
-      _shared->activePositions(L2σ)
+      _shared->activePositions(L2_sigma)
         .any([&](auto ti) 
-             { return _shared->subtermEq(s2σ, ti); }))
+             { return _shared->subtermEq(s2_sigma, ti); }))
 
   check_side_condition(
       "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well
-      _shared->notLeq(L2σ, L1σ))
+      _shared->notLeq(L2_sigma, L1_sigma))
 
 
-  auto s1σ = sigma(lhs.biggerSide() , lhsVarBank);
-  auto tσ  = sigma(lhs.smallerSide(), lhsVarBank);
+  auto s1_sigma = sigma(lhs.biggerSide() , lhsVarBank);
+  auto t_sigma  = sigma(lhs.smallerSide(), lhsVarBank);
   check_side_condition(
       "s1σ /⪯ tσ",
-      _shared->notLeq(s1σ, tσ))
+      _shared->notLeq(s1_sigma, t_sigma))
 
 
-  auto resolvent = EqHelper::replace(L2σ, s2σ, tσ);
+  auto resolvent = EqHelper::replace(L2_sigma, s2_sigma, t_sigma);
   //   ^^^^^^^^^--> L[t]σ
-  DEBUG(1, "replacing: ", *L2σ, " [ ", s2σ, " -> ", tσ, " ] ==> ", *resolvent);
+  DEBUG(1, "replacing: ", *L2_sigma, " [ ", s2_sigma, " -> ", t_sigma, " ] ==> ", *resolvent);
   concl.push(resolvent);
 
   // adding Cnst

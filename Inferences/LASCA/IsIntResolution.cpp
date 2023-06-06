@@ -171,50 +171,50 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
         "symmetry breaking",
         (rhs.symbol() != LascaPredicate::IS_INT_POS || !(j / k).isInt() || lhs < rhs))
 
-    auto L1σ = sigma.apply(lhs.literal(), lhsVarBank);
+    auto L1_sigma = sigma.apply(lhs.literal(), lhsVarBank);
     check_side_condition( 
         "isInt(j s₁ + t₁)σ /⪯ C₁σ",
         lhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = sigma.apply(L, lhsVarBank);
-             out.push(Lσ);
-             return _shared->notLeq(L1σ, Lσ);
+             auto L_sigma = sigma.apply(L, lhsVarBank);
+             out.push(L_sigma);
+             return _shared->notLeq(L1_sigma, L_sigma);
            }));
 
 
-    auto L2σ = sigma.apply(rhs.literal(), rhsVarBank);
+    auto L2_sigma = sigma.apply(rhs.literal(), rhsVarBank);
     check_side_condition(
         "(~)isInt(k s₂ + t₂)σ /≺ C₂σ",
         rhs.contextLiterals()
            .all([&](auto L) {
-             auto Lσ = sigma.apply(L, rhsVarBank);
-             out.push(Lσ);
-             return _shared->notLess(L2σ, Lσ);
+             auto L_sigma = sigma.apply(L, rhsVarBank);
+             out.push(L_sigma);
+             return _shared->notLess(L2_sigma, L_sigma);
            }));
 
 
-    auto s1σ = sigma.apply(lhs.monom(), lhsVarBank);
-    auto s2σ = sigma.apply(rhs.monom(), rhsVarBank);
-    // ASS_REP(_shared->equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
-    Stack<TermList> t1σ(rhs.nContextTerms());
-    Stack<TermList> t2σ(lhs.nContextTerms());
+    auto s1_sigma = sigma.apply(lhs.monom(), lhsVarBank);
+    auto s2_sigma = sigma.apply(rhs.monom(), rhsVarBank);
+    // ASS_REP(_shared->equivalent(s_sigma.term(), s2_sigma().term()), make_pair(s_sigma, s2_sigma()))
+    Stack<TermList> t1_sigma(rhs.nContextTerms());
+    Stack<TermList> t2_sigma(lhs.nContextTerms());
 
     check_side_condition(
         "s₁σ /⪯ t₁σ",
         lhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = sigma.apply(ti.factors->denormalize(), lhsVarBank);
-             t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLeq(s1σ, tiσ);
+             auto ti_sigma = sigma.apply(ti.factors->denormalize(), lhsVarBank);
+             t1_sigma.push(NumTraits::mulSimpl(ti.numeral, ti_sigma));
+             return _shared->notLeq(s1_sigma, ti_sigma);
            }))
 
     check_side_condition(
         "s₂σ /⪯ t₂σ ",
         rhs.contextTerms<NumTraits>()
            .all([&](auto ti) {
-             auto tiσ = sigma.apply(ti.factors->denormalize(), rhsVarBank);
-             t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLeq(s2σ, tiσ);
+             auto ti_sigma = sigma.apply(ti.factors->denormalize(), rhsVarBank);
+             t2_sigma.push(NumTraits::mulSimpl(ti.numeral, ti_sigma));
+             return _shared->notLeq(s2_sigma, ti_sigma);
            }))
 
     auto add = [](auto l, auto r) {
@@ -223,8 +223,8 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
            : NumTraits::add(l, r); };
 
     auto resolventTerm // -> (t₂ - (k / j) t₁)σ
-        = add( NumTraits::sum(t2σ.iterFifo()),
-               NumTraits::mulSimpl(-(k / j), NumTraits::sum(t1σ.iterFifo())));
+        = add( NumTraits::sum(t2_sigma.iterFifo()),
+               NumTraits::mulSimpl(-(k / j), NumTraits::sum(t1_sigma.iterFifo())));
 
     // (k t₁ + j t₂ > 0)σ
     out.push(LascaPredicateCreateLiteral<NumTraits>(rhs.symbol(), resolventTerm));

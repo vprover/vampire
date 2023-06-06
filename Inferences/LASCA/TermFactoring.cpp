@@ -199,8 +199,8 @@ Option<Clause*> TermFactoring::applyRule(
           .filter([&](auto i) { return i != sel1.termIdx() && i != sel2.termIdx(); })
           .map([&](auto i) {
             auto ki_ti = sel1.ircLiteral<NumTraits>().term().summandAt(i);
-            auto tiσ = sigma(ki_ti.factors->denormalize());
-            return NumTraits::mulSimpl(ki_ti.numeral, tiσ);
+            auto ti_sigma = sigma(ki_ti.factors->denormalize());
+            return NumTraits::mulSimpl(ki_ti.numeral, ti_sigma);
           });
 
   auto resSum = NumTraits::sum(concatIters(getSingletonIterator(resTerm), t_sigma));

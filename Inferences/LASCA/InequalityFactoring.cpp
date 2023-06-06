@@ -94,9 +94,9 @@ Option<Clause*> InequalityFactoring::applyRule(
   CHECK_CONDITION("s1σ /⪯ terms(t1)σ",
       l1.contextTerms<NumTraits>() 
         .all([&](auto ki_ti) {
-          auto tiσ = sigma(ki_ti.factors->denormalize());
-          t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-          return _shared->notLeq(s1_sigma, tiσ);
+          auto ti_sigma = sigma(ki_ti.factors->denormalize());
+          t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, ti_sigma));
+          return _shared->notLeq(s1_sigma, ti_sigma);
         }));
 
   auto s2_sigma = sigma(s2);
@@ -104,9 +104,9 @@ Option<Clause*> InequalityFactoring::applyRule(
   CHECK_CONDITION("s2σ /⪯ terms(t2)σ",
       l2.contextTerms<NumTraits>() 
         .all([&](auto ki_ti) {
-          auto tiσ = sigma(ki_ti.factors->denormalize());
-          t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-          return _shared->notLeq(s2_sigma, tiσ);
+          auto ti_sigma = sigma(ki_ti.factors->denormalize());
+          t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, ti_sigma));
+          return _shared->notLeq(s2_sigma, ti_sigma);
         }));
 
                                   //
@@ -125,15 +125,15 @@ Option<Clause*> InequalityFactoring::applyRule(
   // •    (j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \/ C)σ <- cond1
   //   or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \/ C)σ <- cond2
 
-  auto L1σ = sigma(l1.literal()); // <- (j s1 + t1 >1 0)σ
-  auto L2σ = sigma(l2.literal()); // <- (j s1 + t1 >1 0)σ
-  auto cond1 = concatIters(concl.iterCloned(), getSingletonIterator(L2σ))
-    .all([&](auto Lσ) 
-        { return  _shared->notLess(L1σ, Lσ); });
+  auto L1_sigma = sigma(l1.literal()); // <- (j s1 + t1 >1 0)σ
+  auto L2_sigma = sigma(l2.literal()); // <- (j s1 + t1 >1 0)σ
+  auto cond1 = concatIters(concl.iterCloned(), getSingletonIterator(L2_sigma))
+    .all([&](auto L_sigma) 
+        { return  _shared->notLess(L1_sigma, L_sigma); });
 
-  auto cond2 = concatIters(concl.iterCloned(), getSingletonIterator(L1σ))
-    .all([&](auto Lσ) 
-        { return  _shared->notLess(L2σ, Lσ); });
+  auto cond2 = concatIters(concl.iterCloned(), getSingletonIterator(L1_sigma))
+    .all([&](auto L_sigma) 
+        { return  _shared->notLess(L2_sigma, L_sigma); });
 
   CHECK_CONDITION(
       "(j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \\/ C)σ or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \\/ C)σ",
@@ -143,7 +143,7 @@ Option<Clause*> InequalityFactoring::applyRule(
   concl.loadFromIterator(cnst->iterFifo());
 
   // adding `(±ks2 + t2 <> 0) σ`
-  concl.push(L2σ);
+  concl.push(L2_sigma);
 
   auto pivotSum = 
   //   ^^^^^^^^--> `(k t1 − j t2)σ`

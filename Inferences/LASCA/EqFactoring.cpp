@@ -109,26 +109,26 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
                       + cnst->size()); // <- Cnstσ
 
-  auto L2σ = sigma(l2.literal());
+  auto L2_sigma = sigma(l2.literal());
   check_side_condition(
         "(s2 ≈ t2)σ /< (s1 ≈ t1 \\/ C)σ",
         l2.contextLiterals()
           .all([&](auto L) {
-             auto Lσ = sigma(L);
-             concl.push(Lσ);
-             return _shared->notLess(L2σ, Lσ);
+             auto L_sigma = sigma(L);
+             concl.push(L_sigma);
+             return _shared->notLess(L2_sigma, L_sigma);
            }))
 
-  auto s1σ = sigma(s1);
-  auto s2σ = sigma(s2);
-  auto t1σ = sigma(t1);
-  auto t2σ = sigma(t2);
+  auto s1_sigma = sigma(s1);
+  auto s2_sigma = sigma(s2);
+  auto t1_sigma = sigma(t1);
+  auto t2_sigma = sigma(t2);
 
-  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ, t1σ))
-  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ, t1σ))
+  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1_sigma, t1_sigma))
+  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2_sigma, t1_sigma))
 
 
-  auto res = Literal::createEquality(false, t1σ, t2σ, srt);
+  auto res = Literal::createEquality(false, t1_sigma, t2_sigma, srt);
   concl.push(res);
 
   // adding Cnst
