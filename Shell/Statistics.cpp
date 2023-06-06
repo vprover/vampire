@@ -528,6 +528,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Unused predicate definition removal";
   case BLOCKED_CLAUSE_ELIMINATION:
     return "Blocked clause elimination";
+  case TWEE:
+    return "Twee Goal Transformation";
   case PREPROCESS_2:
     return "Preprocessing 2";
   case NEW_CNF:
