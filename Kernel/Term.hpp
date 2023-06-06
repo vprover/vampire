@@ -547,6 +547,16 @@ public:
   void destroyNonShared();
   Term* apply(Substitution& subst);
 
+  /** True iff all immediate arguments are variables */
+  bool allArgumentsAreVariables() const
+  {
+    for(unsigned i = 0; i < arity(); i++)
+      if(!nthArgument(i)->isVar())
+        return false;
+
+    return true;
+  }
+
   /** True if the term is ground. Only applicable to shared terms */
   bool ground() const
   {

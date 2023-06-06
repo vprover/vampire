@@ -263,6 +263,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
          Inferences/DistinctEqualitySimplifier.o\
+         Inferences/DefinitionIntroduction.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
          Inferences/ExtensionalityResolution.o\
@@ -341,7 +342,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
-         Shell/NameReuse.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\

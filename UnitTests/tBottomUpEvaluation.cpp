@@ -11,7 +11,6 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/TermList.hpp"
 #include "Kernel/Term.hpp"
 
 using namespace Kernel;

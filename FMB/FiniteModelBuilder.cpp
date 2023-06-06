@@ -92,7 +92,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       || prop.hasProp(Property::PR_HAS_REALS)
       || prop.hasProp(Property::PR_HAS_RATS)
       || prop.knownInfiniteDomain() || // recursive data type provably infinite --> don't bother model building
-      env.property->hasInterpretedOperations()) {
+      env.getMainProblem()->hasInterpretedOperations()) {
 
       if(outputAllowed()) {
         env.beginOutput();
@@ -689,7 +689,7 @@ void FiniteModelBuilder::init()
 
 
     for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
-      bool epr = env.property->category()==Property::EPR
+      bool epr = env.getMainProblem()->getProperty()->category()==Property::EPR
                  // if we have no functions we are epr in this sort
                  || dFunctions[s]==0; 
       if(epr){
@@ -706,7 +706,7 @@ void FiniteModelBuilder::init()
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
     for(unsigned s=0;s<env.signature->typeCons();s++){
-      if((env.property->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
+      if((env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
         if(dmembers->size() > 1){ 
@@ -1673,7 +1673,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
-    SATSolver::Status satResult;
+    SATSolver::Status satResult = SATSolver::UNKNOWN;
     {
       if (_opt.randomTraversals()) {
         TIME_TRACE(TimeTrace::SHUFFLING);
@@ -1683,7 +1683,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
       _solver->addClausesIter(pvi(SATClauseStack::ConstIterator(_clausesToBeAdded)));
 
-      satResult = SATSolver::UNKNOWN;
       env.statistics->phase = Statistics::FMB_SOLVING;
 
       static SATLiteralStack assumptions(_distinctSortSizes.size());
@@ -1748,8 +1747,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
       return MainLoopResult(Statistics::SATISFIABLE);
     }
 
-    static unsigned numberOfSatCalls = 0;
-    numberOfSatCalls++;
     unsigned clauseSetSize = _clausesToBeAdded.size();
     unsigned weight = clauseSetSize;
 

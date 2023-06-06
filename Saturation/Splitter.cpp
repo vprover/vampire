@@ -610,7 +610,6 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
 
-  unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
 
@@ -625,20 +624,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     }
 
     updateSelection(i, asgn, addedComps, removedComps);
-    
-    if (asgn != SATSolver::DONT_CARE) {
-      _usedcnt++;
-    }
   }
-  /*
-  if(maxSatVar>=1){
-    int percent = (_usedcnt *100) / maxSatVar;
-    RSTAT_MCTR_INC("minimise_model_percent",percent);
-  }
-  
-  RSTAT_CTR_INC_MANY("ssat_usual_activations", addedComps.size());
-  RSTAT_CTR_INC_MANY("ssat_usual_deactivations", removedComps.size());
-  */
 }
 
 //////////////
@@ -1735,18 +1721,15 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     } else {
       // children were kept, so we just put them back
       RCClauseStack::Iterator chit(sr->children);
-      unsigned reactivated_cnt = 0;
       while (chit.hasNext()) {
         Clause* cl = chit.next();
         cl->incNumActiveSplits();
         if (cl->getNumActiveSplits() == (int)cl->splits()->size()) {
-          reactivated_cnt++;
           _sa->addNewClause(cl);
           //check that restored clause does not depend on inactive splits
           ASS(allSplitLevelsActive(cl->splits()));
         }
       }
-      // RSTAT_MCTR_INC("reactivated clauses",reactivated_cnt);
     }
   }
 }

@@ -259,16 +259,21 @@ void ClauseCodeTree::remove(Clause* cl)
   firstsInBlocks->push(op);
   unsigned depth=0;
   for(;;) {
-    rlms->push(Recycled<RemovingLiteralMatcher, NoReset>());
-    RemovingLiteralMatcher* rlm = &*rlms->top();
-    rlm->init(op, lInfos.array(), lInfos.size(), this, &*firstsInBlocks);
+    RemovingLiteralMatcher* rlm = 0;
+    {
+      Recycled<RemovingLiteralMatcher, NoReset> rrlm; // take rlm out of recycling
+      rlm = &*rrlm; // get the actual content (also to use after this initialization block)
+      rlm->init(op, lInfos.array(), lInfos.size(), this, &*firstsInBlocks); // init it
+      rlms->push(std::move(rrlm)); // store it in rlms (along with the obligation to return to recycling when no longer used)
+    }
 
   iteration_restart:
     if(!rlm->next()) {
       if(depth==0) {
-	ASSERTION_VIOLATION;
-	INVALID_OPERATION("clause to be removed was not found");
+        ASSERTION_VIOLATION;
+        INVALID_OPERATION("clause to be removed was not found");
       }
+      rlms->pop();
       depth--;
       rlm = &*rlms->top();
       goto iteration_restart;
@@ -287,8 +292,8 @@ void ClauseCodeTree::remove(Clause* cl)
     op++;
     if(depth==clen-1) {
       if(removeOneOfAlternatives(op, cl, &*firstsInBlocks)) {
-	//successfully removed
-	break;
+        //successfully removed
+        break;
       }
       goto iteration_restart;
     }
@@ -560,6 +565,7 @@ void ClauseCodeTree::ClauseMatcher::reset()
   for(unsigned i=0;i<liCnt;i++) {
     lInfos[i].dispose();
   }
+  lms.reset();
 
 #if VDEBUG
   ASS_EQ(tree->_clauseMatcherCounter,1);
@@ -579,7 +585,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
   }
 
   for(;;) {
-    Recycled<LiteralMatcher, NoReset>& lm = lms.top();
+    LiteralMatcher* lm = &*lms.top();
 
     //get next literal from the literal matcher
     bool found=lm->next();
@@ -733,7 +739,7 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
   lms.pop();
 
   if(lms.isNonEmpty()) {
-    Recycled<LiteralMatcher, NoReset>& prevLM = lms.top();
+    LiteralMatcher* prevLM = &*lms.top();
     ILStruct* ils=prevLM->op->getILS();
     ASS_EQ(ils->timestamp,tree->_curTimeStamp);
     ASS(ils->visited);
@@ -790,7 +796,7 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
 
   bool newMatches=false;
   for(int i=clen-1;i>=0;i--) {
-    Recycled<LiteralMatcher, NoReset>& lm = lms[i];
+    LiteralMatcher* lm = &*lms[i];
     if(lm->eagerlyMatched()) {
       break;
     }

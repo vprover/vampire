@@ -60,7 +60,7 @@ Shell::Options::UnificationWithAbstraction MismatchHandler::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
     return env.options->unificationWithAbstraction();
-  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
     return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
@@ -70,7 +70,7 @@ Shell::Options::UnificationWithAbstraction MismatchHandler::create()
 
 Shell::Options::UnificationWithAbstraction MismatchHandler::createOnlyHigherOrder()
 {
-  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) { 
     // TODO  ask ahmed: are this the corret options for higher order abstraction
     return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {

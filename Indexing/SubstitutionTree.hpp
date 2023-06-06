@@ -37,7 +37,6 @@
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
 #include "Lib/Recycled.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Renaming.hpp"

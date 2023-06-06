@@ -784,7 +784,7 @@ vstring Literal::toString() const
     }
 
     vstring res = s + lhs->next()->toString();
-    if (env.property->higherOrder() || 
+    if (env.getMainProblem()->isHigherOrder() || 
        (SortHelper::getEqualityArgumentSort(this) == AtomicSort::boolSort())){
       res = "("+res+")";
     }

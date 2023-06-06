@@ -39,8 +39,6 @@
 // in principle we also need is_lock_free() to avoid deadlock as well
 // not sure it's worth assertion-failing over
 std::atomic<int> timer_sigalrm_counter{-1};
-std::atomic<unsigned> protectingTimeout{0};
-std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
 std::atomic<bool> Timer::s_limitEnforcement{true};
 
 // TODO probably these should also be atomics, but not sure
@@ -61,7 +59,7 @@ unsigned Timer::elapsedMegaInstructions() {
 #endif
 }
 
-[[noreturn]] void limitReached(unsigned char whichLimit)
+[[noreturn]] void Timer::limitReached(unsigned char whichLimit)
 {
   using namespace Shell;
 
@@ -119,10 +117,10 @@ timer_sigalrm_handler (int sig)
   timer_sigalrm_counter++;
 
   if(Timer::s_limitEnforcement && env.timeLimitReached()) {
-    if (protectingTimeout) {
-      callLimitReachedLater = 1; // 1 for a time limit
+    if (TimeoutProtector::protectingTimeout) {
+      TimeoutProtector::callLimitReachedLater = 1; // 1 for a time limit
     } else {
-      limitReached(1); // 1 for a time limit
+      Timer::limitReached(1); // 1 for a time limit
     }
   }
 
@@ -132,13 +130,13 @@ timer_sigalrm_handler (int sig)
       // we could also decide not to guard this read by env.options->instructionLimit(),
       // to get info about instructions burned even when not instruction limiting
       read(perf_fd, &last_instruction_count_read, sizeof(long long));
-      
+
       if (last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
         Timer::setLimitEnforcement(false);
-        if (protectingTimeout) {
-          callLimitReachedLater = 2; // 2 for an instr limit
+        if (TimeoutProtector::protectingTimeout) {
+          TimeoutProtector::callLimitReachedLater = 2; // 2 for an instr limit
         } else {
-          limitReached(2); // 2 for an instr limit
+          Timer::limitReached(2); // 2 for an instr limit
         }
       }
     } else if (perf_fd == -1 && error_to_report) {
@@ -382,15 +380,4 @@ Timer* Timer::instance()
 
 }
 
-TimeoutProtector::TimeoutProtector() {
-  protectingTimeout++;
-}
-
-TimeoutProtector::~TimeoutProtector() {
-  protectingTimeout--;
-  if (!protectingTimeout && callLimitReachedLater) {
-    unsigned howToCall = callLimitReachedLater;
-    callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
-    limitReached(howToCall);
-  }
-}
+volatile std::sig_atomic_t TimeoutProtector::protectingTimeout = 0, TimeoutProtector::callLimitReachedLater = 0;

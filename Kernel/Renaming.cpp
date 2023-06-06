@@ -123,7 +123,7 @@ void Renaming::makeInverse(const Renaming& orig)
 
 TypedTermList Renaming::normalize(TypedTermList l)
 {
-  CALL("Renaming::normalize(Literal*)");
+  CALL("Renaming::normalize(TypedTermList)");
   if (l.isTerm()) {
     return TypedTermList(normalize(l.term()));
   } else {

@@ -248,9 +248,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Signature.cpp
     Kernel/Unit.cpp
     Kernel/BottomUpEvaluation.hpp
-    Kernel/BottomUpEvaluation/TermList.hpp
-    Kernel/BottomUpEvaluation/TypedTermList.hpp
-    Kernel/BottomUpEvaluation/PolyNf.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/Clause.hpp
     Kernel/ClauseQueue.hpp
@@ -426,6 +423,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
+    Inferences/DefinitionIntroduction.cpp
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
@@ -461,6 +459,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp
     Inferences/URResolution.hpp
+    Inferences/DefinitionIntroduction.hpp
     Inferences/TheoryInstAndSimp.hpp
     Inferences/TheoryInstAndSimp.cpp  # this is theory instantiation
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -547,7 +546,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
-    Shell/NameReuse.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
@@ -601,7 +599,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
-    Shell/NameReuse.hpp
     Shell/DistinctProcessor.hpp
     Shell/DistinctGroupExpansion.hpp
     Shell/EqResWithDeletion.hpp

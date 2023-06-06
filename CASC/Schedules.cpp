@@ -1846,6 +1846,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs+1011_3_add=large:afp=1000:afq=1.1:anc=none:cond=on:fsr=off:ile=on:irw=on:lma=on:nm=64:newcnf=on:nwc=1:nicw=on:sas=z3:stl=30:sos=all:sac=on_182");
     break;
 
+  case SMT_ANIA: // a newcomer ANIA, let's put it next to ALL
   case SMT_ALL: // Add ALL here as we don't currently have a  schedule for it and  this is better than just using fallback
   case SMT_AUFLIA:
   case SMT_AUFNIA:
