@@ -742,7 +742,8 @@ public:
     LAZY_SIMP = 2,
     LAZY_SIMP_NOT_GEN = 3,
     LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 4,
-    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5,
+    OFF = 6
   };
 
   enum class PISet : unsigned int {
@@ -2439,7 +2440,8 @@ public:
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool positiveExtensionality() const { return _positiveExt.actualValue; }
   BoolInstantiation booleanInstantiation() const { return _boolInstantiation.actualValue; }
-  bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
+  // bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
+  bool iffXorRewriter() const { return _iffXorRewriter.actualValue; }
   // TODO doesn't do anyhting currently  
   // bool complexVarCondition() const { return _complexVarCondition.actualValue; }
   HPrinting holPrinting() const { return _holPrinting.actualValue; }
@@ -2890,6 +2892,7 @@ private:
   BoolOptionValue _positiveExt;
   ChoiceOptionValue<BoolInstantiation> _boolInstantiation;
   BoolOptionValue _lambdaFreeHol;
+  BoolOptionValue _iffXorRewriter;
   // BoolOptionValue _complexVarCondition;
   ChoiceOptionValue<HPrinting> _holPrinting;
   UnsignedOptionValue _higherOrderUnifDepth;  

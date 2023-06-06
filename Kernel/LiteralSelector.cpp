@@ -111,6 +111,13 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
 
   int absNum = abs(selectorNumber);
 
+#if VHOL
+   if(env.property->higherOrder() && (absNum == 11 || absNum == 1011)){
+     cout << "WARNING: Look ahead literal selection is not currently compatible with higher-order. Ignoring request to use" << endl;
+     absNum = 10; // set to some arbitrary hopefully good value
+   }
+#endif
+
   LiteralSelector* res;
   switch(absNum) {
   case 0: res = new TotalLiteralSelector(ordering, options); break;

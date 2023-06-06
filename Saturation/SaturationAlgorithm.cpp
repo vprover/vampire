@@ -1600,8 +1600,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
-     prb.higherOrder() && !opt.lambdaFreeHol()){
+  if(opt.complexBooleanReasoning() && prb.hasBoolVar() && prb.higherOrder()){
     gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     gie->addFront(new ElimLeibniz());
   }
@@ -1612,7 +1611,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){ // TODO why the last condition????
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER && 
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       gie->addFront(new LazyClausificationGIE());
     }
   }    
@@ -1703,7 +1703,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #if VHOL
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
-    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront(new LazyClausification());
     }
   }  
@@ -1737,7 +1738,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(false));
+#if VHOL    
+      if(prb.higherOrder()){
+        res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation<DemodulationSubtermIt>(false));
+      } else {
+#endif
+        res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation<NonVariableNonTypeIterator>(false));
+#if VHOL
+     }
+#endif    
     }
   }
   if (prb.hasEquality()) {
@@ -1795,7 +1804,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
+#if VHOL
+      if(prb.higherOrder()){
+        res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation<DemodulationSubtermIt>());
+      } else {
+#endif    
+        res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation<NonVariableNonTypeIterator>());
+#if VHOL
+      }
+#endif      
   }
   if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
     bool byUnitsOnly=opt.backwardSubsumption()==Options::Subsumption::UNIT_ONLY;
@@ -1850,9 +1867,11 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
       prb.higherOrder() && !env.options->addProxyAxioms()){
+
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       res->addFrontMany(new EagerClausificationISE());
-    } else {
+    }
+    if(env.options->iffXorRewriter()){
       res->addFront(new IFFXORRewriterISE());
     }
     res->addFront(new BoolSimp());

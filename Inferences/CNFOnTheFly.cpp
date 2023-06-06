@@ -203,7 +203,9 @@ ClauseIterator produceClauses(Clause* c, bool generating,
          (prox == Signature::SIGMA && !positive)){
         rule = convert(Signature::PI);
         newTerm = piRemoval(args[0], c, srt);
-        if(boolInstFormIndex){
+        // the isVar() check is defensive programming
+        // It shouldn't occur in normal running
+        if(boolInstFormIndex && !args[0].isVar()){
           ASS(boolInstInstIndex);
           auto instances = boolInstInstIndex->getUnifications(TypedTermList(srt.domain(),AtomicSort::superSort()), true);
           while(instances.hasNext()){
@@ -490,7 +492,6 @@ void LazyClausification::detach()
 
   _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
   if(env.options->booleanInstantiation() != Options::BoolInstantiation::OFF){
-    cout << "RELEASING 2" << endl;
     _salg->getIndexManager()->release(BOOL_INST_FORMULA_INDEX);
     _salg->getIndexManager()->release(BOOL_INST_INSTANTIATION_INDEX);
   }   

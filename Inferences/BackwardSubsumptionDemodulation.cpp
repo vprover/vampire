@@ -56,13 +56,14 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation()
+template <class SubtermIterator>
+BackwardSubsumptionDemodulation<SubtermIterator>::BackwardSubsumptionDemodulation()
   : _preorderedOnly{false}
   , _allowIncompleteness{false}
 { }
 
-
-void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
+template <class SubtermIterator>
+void BackwardSubsumptionDemodulation<SubtermIterator>::attach(SaturationAlgorithm* salg)
 {
   CALL("BackwardSubsumptionDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
@@ -70,8 +71,8 @@ void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
 }
 
-
-void BackwardSubsumptionDemodulation::detach()
+template <class SubtermIterator>
+void BackwardSubsumptionDemodulation<SubtermIterator>::detach()
 {
   CALL("BackwardSubsumptionDemodulation::detach");
   _index.release();
@@ -111,8 +112,8 @@ STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
   return STLIterator<Iterator>(begin, end);
 }
 
-
-void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
+template <class SubtermIterator>
+void BackwardSubsumptionDemodulation<SubtermIterator>::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
   CALL("BackwardSubsumptionDemodulation::perform");
   ASSERT_VALID(*sideCl);
@@ -171,7 +172,8 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
 }  // perform
 
 
-void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications)
+template <class SubtermIterator>
+void BackwardSubsumptionDemodulation<SubtermIterator>::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications)
 {
   //   sideCl
   // vvvvvvvvvv
@@ -300,7 +302,8 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 
 /// Handles the matching part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications)
+template <class SubtermIterator>
+bool BackwardSubsumptionDemodulation<SubtermIterator>::simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications)
 {
     static vvector<LiteralList*> alts;
 
@@ -394,7 +397,8 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
 
 /// Handles the rewriting part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
+template <class SubtermIterator>
+bool BackwardSubsumptionDemodulation<SubtermIterator>::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
 {
   Ordering const& ordering = _salg->getOrdering();
 
@@ -493,12 +497,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
       continue;
     }
 
-    // TODO higher-order support not yet implemented; see forward demodulation
-    //      (maybe it's enough to just use the different iterator)
-#if VHOL
-    ASS(!env.property->higherOrder());
-#endif
-    NonVariableNonTypeIterator nvi(dlit);
+    SubtermIterator nvi(dlit);
     while (nvi.hasNext()) {
       TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -721,5 +720,11 @@ isRedundant:
   return false;
 }  // rewriteCandidate
 
+#if VHOL
+template class BackwardSubsumptionDemodulation<DemodulationSubtermIt>;
+#endif
+template class BackwardSubsumptionDemodulation<NonVariableNonTypeIterator>;
 
 }
+
+

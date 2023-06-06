@@ -60,7 +60,6 @@ void BoolInstantiation::detach()
   CALL("BoolInstantiation::detach");
 
   _boolInstFormIndex = 0;
-  cout << "RELEASING" << endl;
   _salg->getIndexManager()->release(BOOL_INST_FORMULA_INDEX); 
   GeneratingInferenceEngine::detach();
 }

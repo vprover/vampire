@@ -45,6 +45,7 @@ using namespace Kernel;
  *
  * This class implements the backward direction.
  */
+template <class SubtermIterator>
 class BackwardSubsumptionDemodulation
   : public BackwardSimplificationEngine
 {

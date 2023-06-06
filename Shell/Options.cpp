@@ -512,6 +512,7 @@ void Options::init()
       "`full` is a generalization, where also non-ground subterms are considered.";
     _tweeGoalTransformation.tag(OptionTag::PREPROCESSING);
     _tweeGoalTransformation.setExperimental();
+    _tweeGoalTransformation.addProblemConstraint(onlyFirstOrder());
     _lookup.insert(&_tweeGoalTransformation);
 
     _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
@@ -1840,11 +1841,12 @@ void Options::init()
                                                                           "lazy_simp",
                                                                           "lazy_not_gen",
                                                                           "lazy_not_gen_be_off",
-                                                                          "lazy_not_be_gen"});
+                                                                          "lazy_not_be_gen",
+                                                                          "off"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder()); 
-    _clausificationOnTheFly.onlyUsefulWith(_addProxyAxioms.is(equal(false)));     
+    _clausificationOnTheFly.addHardConstraint(If(notEqual(CNFOnTheFly::OFF)).then(_addProxyAxioms.is(equal(false))));     
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
     _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::PRAGMATIC,
@@ -1933,15 +1935,24 @@ void Options::init()
     " -abs attempt to instantiate such variables with abstractions of literals coming from conjeture.\n"
     " -abs_sub same as above, but also subterms of clauses derived from conjecture";
     _lookup.insert(&_boolInstantiation);
-    _boolInstantiation.addProblemConstraint(hasHigherOrder());   
+    _boolInstantiation.addProblemConstraint(hasHigherOrder()); 
+    _boolInstantiation.addHardConstraint(If(notEqual(BoolInstantiation::OFF)).then(_clausificationOnTheFly.is(notEqual(CNFOnTheFly::OFF)))); 
     _boolInstantiation.tag(OptionTag::HIGHER_ORDER);
 
-    _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
+    /*_lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
     _lambdaFreeHol.description=
     "Reason about lambda-free hol. See paper by Vukmirovic et al.";
     _lookup.insert(&_lambdaFreeHol);
     _lambdaFreeHol.addProblemConstraint(hasHigherOrder());    
-    _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
+    _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);*/
+
+    _iffXorRewriter = BoolOptionValue("iff_xor_rewriter","ixr",true);
+    _iffXorRewriter.description=
+    "Rewrites p <=> q = $true to p <=> q and the like. It does this as an immediate simplification.";
+    _lookup.insert(&_iffXorRewriter);
+    _iffXorRewriter.addProblemConstraint(hasHigherOrder());    
+    _iffXorRewriter.tag(OptionTag::HIGHER_ORDER);
+  
 
     /*_complexVarCondition = BoolOptionValue("complex_var_cond","cvc",false);
     _complexVarCondition.description=

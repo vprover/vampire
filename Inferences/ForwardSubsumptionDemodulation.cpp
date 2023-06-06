@@ -43,7 +43,8 @@ using namespace Inferences;
 using namespace Saturation;
 
 
-void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
+template <class SubtermIterator>
+void ForwardSubsumptionDemodulation<SubtermIterator>::attach(SaturationAlgorithm* salg)
 {
   CALL("ForwardSubsumptionDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
@@ -58,16 +59,16 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   }
 }
 
-
-void ForwardSubsumptionDemodulation::detach()
+template <class SubtermIterator>
+void ForwardSubsumptionDemodulation<SubtermIterator>::detach()
 {
   CALL("ForwardSubsumptionDemodulation::detach");
   _index.release();
   ForwardSimplificationEngine::detach();
 }
 
-
-bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template <class SubtermIterator>
+bool ForwardSubsumptionDemodulation<SubtermIterator>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   CALL("ForwardSubsumptionDemodulation::perform");
 
@@ -415,12 +416,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             continue;
           }
 
-          // TODO higher-order support not yet implemented; see forward demodulation
-          //      (maybe it's enough to just use the different iterator)
-#if VHOL
-          ASS(!env.property->higherOrder());
-#endif
-          NonVariableNonTypeIterator nvi(dlit);
+          SubtermIterator nvi(dlit);
           while (nvi.hasNext()) {
             TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -688,4 +684,12 @@ isRedundant:
   }  // for (li)
 
   return false;
+}
+
+namespace Inferences
+{
+#if VHOL
+  template class ForwardSubsumptionDemodulation<DemodulationSubtermIt>;
+#endif
+  template class ForwardSubsumptionDemodulation<NonVariableNonTypeIterator>;
 }

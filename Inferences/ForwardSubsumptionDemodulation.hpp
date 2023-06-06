@@ -44,6 +44,7 @@ using namespace Saturation;
  *
  * This class implements the forward direction.
  */
+template <class SubtermIterator>
 class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {

@@ -148,7 +148,12 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     }
     break;
   case Options::TermOrdering::LPO:
-    out = new LPO(prb, opt);
+    if(prb.hasPolymorphicSym()){
+      cout << "WARNING: LPO is currently not compatible with polymorphic problems. Ignoring request to use LPO." << endl;
+      out = new KBO(prb, opt);      
+    } else {
+      out = new LPO(prb, opt);
+    }
     break;
   default:
     ASSERTION_VIOLATION;
