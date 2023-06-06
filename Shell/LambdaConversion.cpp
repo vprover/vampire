@@ -286,8 +286,8 @@ void LambdaConversion::addChoiceAxiom(Problem& prb)
   TermList pchoiceT = AH::app(alpha, boolS, p, choiceTApplied);
 
   Clause* choiceAx = new(2) Clause(2, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
-  (*choiceAx)[0] = Literal::createEquality(true, px, TermList(Term::foolFalse()), boolS);
-  (*choiceAx)[1] = Literal::createEquality(true, pchoiceT, TermList(Term::foolTrue()), boolS);
+  (*choiceAx)[0] = Literal::createEquality(true, px, AH::bottom(), boolS);
+  (*choiceAx)[1] = Literal::createEquality(true, pchoiceT, AH::top(), boolS);
   UnitList::push(choiceAx, prb.units());
 
 

@@ -913,7 +913,7 @@ unsigned Signature::addNameFunction(unsigned arity)
 {
   CALL("Signature::addNameFunction");
   return addFreshFunction(arity,"sP");
-} // addNamePredicate
+} // addNameFunction
 
 
 /**
