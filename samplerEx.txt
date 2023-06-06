@@ -21,7 +21,7 @@
 > ile ~cat off:10,on:1
 
 # naming
-> $nm ~cat Z:1,NZ:5 
+> $nm ~cat Z:1,NZ:5
 $nm=Z > nm ~cat 0:1
 $nm=NZ > nm ~sgd 0.07,2
 
@@ -346,7 +346,7 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 > chr ~cat off:1,on:1
 
 # cnf_on_the_fly
-> cnfonf ~cat eager:1,lazy_gen:1,lazy_simp:1,lazy_not_gen:1,lazy_not_gen_be_off:1,lazy_not_be_gen:1
+apa=off > cnfonf ~cat eager:1,lazy_gen:1,lazy_simp:1,lazy_not_gen:1,lazy_not_gen_be_off:1,lazy_not_be_gen:1
 
 # complex_bool_reasoning
 > cbe ~cat off:1,on:1
