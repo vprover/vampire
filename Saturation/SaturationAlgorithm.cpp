@@ -1625,9 +1625,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
 #if VHOL
     if(env.property->higherOrder()){
-      // TODO how to output error properly?
-      // Should we be outputing an error or just dying?
-      cout << "WARNING: unit resulting resolution is not compatible with higher-order. Ignoring request" << endl;
+      // TODO Should we be outputing an error or just dying?
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: unit resulting resolution is not compatible with higher-order. Ignoring request." << endl;
+        env.endOutput();
+      }            
     } else {
 #endif
       gie->addFront(new URResolution());
@@ -1641,10 +1645,15 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.FOOLParamodulation()) {
 #if VHOL
     if(env.property->higherOrder()){
-      cout << "WARNING: FOOL paramodulation is not compatible with higher-order. Try using Cases or CasesSimp instead. Ignoring request" << endl;
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: FOOL paramodulation is not compatible with higher-order. Try using Cases or CasesSimp instead. Ignoring request." << endl;
+        env.endOutput();
+      } 
     } else {
 #endif
-    gie->addFront(new FOOLParamodulation());
+      gie->addFront(new FOOLParamodulation());
 #if VHOL
     }
 #endif    
@@ -1719,7 +1728,12 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(env.property->higherOrder()){
       // TODO how to output error properly?
       // Should we be outputing an error or just dying?
-      cout << "WARNING: hyper superposition is not compatible with higher-order. Ignoring request" << endl;
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+         env.out() << "WARNING: hyper superposition is not compatible with higher-order. Ignoring request" << endl;
+        env.endOutput();
+      }      
     } else {
 #endif    
       res->addForwardSimplifierToFront(new HyperSuperposition());

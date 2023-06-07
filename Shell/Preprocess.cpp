@@ -170,7 +170,12 @@ prb.getProperty();
 #if VHOL    
   if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
     if(!env.property->higherOrder()){
-      env.out() << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
+        env.endOutput();
+      }
     } else {
       LambdaConversion::addFunctionExtensionalityAxiom(prb);
     }
@@ -178,14 +183,28 @@ prb.getProperty();
 
   if(env.options->choiceAxiom()){
     if(!env.property->higherOrder()){
-      env.out() << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
+        env.endOutput();
+      }      
     } else {    
       LambdaConversion::addChoiceAxiom(prb);    
     }
   }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){    
-    LambdaConversion::addProxyAxioms(prb);
+  if (env.options->addProxyAxioms()){ 
+    if(!env.property->higherOrder()){
+      if (outputAllowed()) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "WARNING: ignoring request to add logical proxy axioms as problem is first-order" << std::endl;
+        env.endOutput();
+      }      
+    } else {       
+      LambdaConversion::addProxyAxioms(prb);
+    }
   }
 #endif
   
