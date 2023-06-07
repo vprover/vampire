@@ -30,6 +30,7 @@ public:
   virtual void remove(TypedTermList t, Literal* lit, Clause* cls) = 0;
   virtual void insert(TypedTermList t, TermList trm){ NOT_IMPLEMENTED; }
   virtual void insert(TypedTermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
+  virtual void remove(TypedTermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
   virtual TermQueryResultIterator getUnifications(TypedTermList t, 
     bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }

@@ -218,7 +218,17 @@ public:
    */
   void setOutputIndex(VarBankOrInt idx) { _outputIndex = idx; }
 
-  bool unify(TermSpecOrList t1, TermSpecOrList t2);
+  // TODO, in the future create a separate function for applicative FOL unification. Will be cleaner
+  /* 
+   * In the higher-order case, in some instances we want to carry out first-order applicative unification
+   * This the same as first-order unification, but we need an added check to ensure that we never bind a variable
+   * to a term that contains a loose index. To use this form of unification, the flag applicativeUnify is added.
+   */
+  bool unify(TermSpecOrList t1, TermSpecOrList t2,
+#if VHOL
+    bool applicativeUnify = false
+#endif
+  );
   bool match(TermSpecOrList base, TermSpecOrList instance, VarBankOrInt baseBank);
 
   void denormalize(const Renaming& normalizer, VarBankOrInt normBank, VarBankOrInt denormBank);

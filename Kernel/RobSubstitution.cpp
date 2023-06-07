@@ -316,7 +316,11 @@ bool RobSubstitutionTS::match(TermList t1, int idx1, TermList t2, int idx2)
 }
 
 template<class TermSpecOrList, class VarBankOrInt>
-bool RobSubstitution<TermSpecOrList, VarBankOrInt>::unify(TermSpecOrList t1, TermSpecOrList t2)
+bool RobSubstitution<TermSpecOrList, VarBankOrInt>::unify(TermSpecOrList t1, TermSpecOrList t2,
+#if VHOL
+    bool applicativeUnify
+#endif  
+     )
 {
   CALL("RobSubstitution::unify/2");
 #define DEBUG_UNIFY(lvl, ...) if (lvl < 0) DBG("unify: ", __VA_ARGS__)
@@ -386,14 +390,14 @@ bool RobSubstitution<TermSpecOrList, VarBankOrInt>::unify(TermSpecOrList t1, Ter
     // cannot be currently bound as we already dereferenced
     } else if(dt1.isVar() && !occurs(dt1, dt2) 
 #if VHOL
-                          && !containsLooseIndex(dt2)
+                          && (!applicativeUnify || !containsLooseIndex(dt2))
 #endif
       ) {
       bind(dt1, dt2);
 
     } else if(dt2.isVar() && !occurs(dt2, dt1)
 #if VHOL
-                          && !containsLooseIndex(dt1)
+                          && (!applicativeUnify || !containsLooseIndex(dt1))
 #endif
       ) {
       bind(dt2, dt1);
@@ -598,7 +602,7 @@ TermList RobSubstitution<TermSpecOrList,VarBankOrInt>::apply(TermSpecOrList trm,
 {
   CALL("RobSubstitution::apply(TermList...)");
 
-  //DBG(*this, ".apply(", trm, ")")
+  //DBG(*this, ".apply(", trm, " " , bank ,  ")")
 
   auto out = evalBottomUp<TermList>(AutoDerefTerm<TermSpecOrList,VarBankOrInt>(trm, this, bank), 
       [&](auto& orig, TermList* args) -> TermList {
@@ -820,7 +824,7 @@ public:
 
     switch (_state) {
     case NEXT_STRAIGHT:
-      if (_subst->unify(_l1, _l2)) {
+      if (_subst->unify(_l1, _l2, true)) {
         _state = NEXT_REVERSED;
         break;
       }
@@ -830,8 +834,8 @@ public:
       TermSpecOrList t12 = _l1.nthArg(1);
       TermSpecOrList t21 = _l2.nthArg(0);
       TermSpecOrList t22 = _l2.nthArg(1);
-      if (_subst->unify(t11, t22)) {
-        if (_subst->unify(t12, t21)) {
+      if (_subst->unify(t11, t22, true)) {
+        if (_subst->unify(t12, t21, true)) {
           _state = NEXT_CLEANUP;
           break;
         }

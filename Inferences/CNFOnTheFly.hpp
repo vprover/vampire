@@ -74,7 +74,6 @@ public:
 
 private:
   SkolemisingFormulaIndex* _formulaIndex;
-  BoolInstFormulaIndex* _boolInstFormIndex;
   BoolInstInstantiationIndex* _boolInstInstIndex; 
 };
 
@@ -97,7 +96,6 @@ public:
 
 private:
   SkolemisingFormulaIndex* _formulaIndex;
-  BoolInstFormulaIndex* _boolInstFormIndex;
   BoolInstInstantiationIndex* _boolInstInstIndex;
 };
 

@@ -252,6 +252,7 @@ Signature::Signature ():
     _arrowCon(UINT_MAX),
     _appFun(UINT_MAX),
     _lamFun(UINT_MAX),
+    _choiceFun(UINT_MAX),
     _placeholderFun(UINT_MAX),
 #endif
     _termAlgebras()
@@ -786,6 +787,7 @@ unsigned Signature::getChoice(){
   bool added = false;
   unsigned choice = addFunction("vEPSILON",1, added);      
   if(added){
+    _choiceFun = choice;
     TermList alpha = TermList(0, false);
     TermList bs = AtomicSort::boolSort();
     TermList alphaBs = AtomicSort::arrowSort(alpha, bs);

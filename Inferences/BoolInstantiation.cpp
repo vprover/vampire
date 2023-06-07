@@ -113,8 +113,8 @@ ClauseIterator BoolInstantiation::generateClauses(Clause* premise)
       auto it = _boolInstFormIndex->getUnifications(TypedTermList(sort, AtomicSort::superSort()), true);
       while(it.hasNext()){
         TermQueryResult tqr = it.next();
-        TermList form  = tqr.unifier->apply(tqr.term, RESULT_BANK);
-        TermList instS = tqr.unifier->apply(inst, QUERY_BANK); 
+        TermList form  = tqr.unifier->apply(tqr.term, 1);
+        TermList instS = tqr.unifier->apply(inst, 0); 
 
         Literal* l       = tqr.literal;
         TermList lhs     = *lit->nthArgument(0);
@@ -136,7 +136,7 @@ ClauseIterator BoolInstantiation::generateClauses(Clause* premise)
         for(unsigned i=0;i<clen;i++) {
           Literal* curr=(*c)[i];
           if(curr!=l) {
-            Literal* currAfter = tqr.unifier->apply(curr, RESULT_BANK);
+            Literal* currAfter = tqr.unifier->apply(curr, 0);
             (*res)[next++] = currAfter;
           }
         }

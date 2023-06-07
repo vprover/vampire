@@ -741,9 +741,10 @@ public:
     LAZY_GEN = 1,
     LAZY_SIMP = 2,
     LAZY_SIMP_NOT_GEN = 3,
-    LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 4,
-    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5,
-    OFF = 6
+    LAZY_SIMP_PI_SIGMA_GEN = 4,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 5,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 6,
+    OFF = 7
   };
 
   enum class PISet : unsigned int {

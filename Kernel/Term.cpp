@@ -657,6 +657,18 @@ bool Term::isPlaceholder() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);    
 }
 
+bool TermList::isChoice() const {
+  CALL("TermList::isChoice");
+
+   return !isVar() && term()->isChoice(); 
+}
+
+bool Term::isChoice() const {
+  CALL("Term::isChoice");
+  
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);    
+}
+
 bool TermList::containsLooseIndex() const {
   CALL("TermList::containsLooseIndex()");
 
@@ -1289,8 +1301,9 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
   else if(head.isAnd()){ headStr = pretty ? "∧" : "&"; }
   else if(head.isOr()){ headStr = pretty ? "∨" : "|"; }
   else if(head.isXOr()){ headStr = pretty ? "⊕" : "<~>"; }  
-  else if(head.isImp()){ headStr = pretty ? "⇒" : "=>"; }    
-  else if(head.isIff() || head.isEquals()){ headStr = pretty ? "≈" : "="; }
+  else if(head.isImp()){ headStr = pretty ? "⇒" : "=>"; }   
+  else if(head.isChoice()){ headStr = pretty ? "ε" : "@@+"; } 
+  else if(head.isIff() || head.isEquals()){ headStr = pretty ? "≈" : "="; } // @=???
   else if(ApplicativeHelper::isTrue(head)){ headStr = pretty ? "⊤" : "$true"; }
   else if(ApplicativeHelper::isFalse(head)){ headStr = pretty ? "⊥" : "$false"; }  
   else { 

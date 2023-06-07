@@ -50,17 +50,19 @@ using namespace Parse;
 
 DHMap<unsigned, vstring> TPTP::_axiomNames;
 
-//Numbers chosen to avoid clashing with connectives.
-//Unlikely to ever have 100 connectives, so this should be ok.
-const int TPTP::HOL_CONSTANTS_LOWER_BOUND = 99u;
-/** operator lambda */
-const int TPTP::LAMBDA = 100u;
-/** application of any number of terms */
-const int TPTP::APP = 101u;
-/** Pi function for universal quantification */
-const int TPTP::PI = 102u;
-/** Sigma function for existential quantification */
-const int TPTP::SIGMA = 103u;
+#if VHOL
+  //Numbers chosen to avoid clashing with connectives.
+  //Unlikely to ever have 100 connectives, so this should be ok.
+  const int TPTP::HOL_CONSTANTS_LOWER_BOUND = 99u;
+  /** operator lambda */
+  const int TPTP::LAMBDA = 100u;
+  /** application of any number of terms */
+  const int TPTP::APP = 101u;
+  /** Pi function for universal quantification */
+  const int TPTP::PI = 102u;
+  /** Sigma function for existential quantification */
+  const int TPTP::SIGMA = 103u;
+#endif
 
 /**
  * Create a parser, parse the input and return the parsed list of units.

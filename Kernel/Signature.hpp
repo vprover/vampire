@@ -649,6 +649,10 @@ class Signature
     return (fun == _lamFun && _lamFun != UINT_MAX);
   }
 
+  bool isChoiceFun(unsigned fun) const{
+    return (fun == _choiceFun && _choiceFun != UINT_MAX);
+  }
+
   bool isPlaceholder(unsigned fun) const{
     return (fun == _placeholderFun && _placeholderFun != UINT_MAX);
   }
@@ -937,6 +941,7 @@ private:
   unsigned _arrowCon;
   unsigned _appFun;
   unsigned _lamFun;
+  unsigned _choiceFun;
   unsigned _placeholderFun;
 #endif
 

@@ -262,6 +262,7 @@ public:
   bool isImp() const;
   bool isEquals() const;
   bool isPlaceholder() const;
+  bool isChoice() const;
   bool containsLooseIndex() const;
   Option<unsigned> deBruijnIndex() const;
   TermList lhs() const;
@@ -818,6 +819,7 @@ public:
   bool isImp() const;  
   bool isEquals() const;  
   bool isPlaceholder() const;
+  bool isChoice() const;
   /** true if term is a sort which is a arrow sort */
   bool isArrowSort() const;
 

@@ -190,7 +190,9 @@ public:
 
   BoolInstFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
   {}
-  void insertFormula(TermList sort, TermList formula, Literal* lit, Clause* c);  
+
+protected:
+  void handleClause(Clause* c, bool adding);
 };
 
 class BoolInstInstantiationIndex

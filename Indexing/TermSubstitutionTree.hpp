@@ -77,6 +77,9 @@ public:
   void insert(TypedTermList t, TermList trm, Literal* lit, Clause* cls) override 
   { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ true); }
 
+  void remove(TypedTermList t, TermList trm, Literal* lit, Clause* cls) override 
+  { handleTerm(t, LeafData(cls, lit, t, trm), /* insert */ false); }
+
   bool generalizationExists(TermList t) override
   { return t.isVar() ? false : _tree->generalizationExists(TypedTermList(t.term())); }
 

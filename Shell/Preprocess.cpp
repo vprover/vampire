@@ -165,20 +165,26 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+prb.getProperty();
+
 #if VHOL    
   if(env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
-    LambdaConversion::addFunctionExtensionalityAxiom(prb);
+    if(!env.property->higherOrder()){
+      env.out() << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
+    } else {
+      LambdaConversion::addFunctionExtensionalityAxiom(prb);
+    }
   }
 
   if(env.options->choiceAxiom()){
-    LambdaConversion::addChoiceAxiom(prb);    
+    if(!env.property->higherOrder()){
+      env.out() << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
+    } else {    
+      LambdaConversion::addChoiceAxiom(prb);    
+    }
   }
-#endif
 
-  prb.getProperty();
-
-#if VHOL    
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
+  if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){    
     LambdaConversion::addProxyAxioms(prb);
   }
 #endif

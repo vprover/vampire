@@ -1840,6 +1840,7 @@ void Options::init()
                                                                           "lazy_gen",
                                                                           "lazy_simp",
                                                                           "lazy_not_gen",
+                                                                          "lazy_pi_sigma_gen",
                                                                           "lazy_not_gen_be_off",
                                                                           "lazy_not_be_gen",
                                                                           "off"});

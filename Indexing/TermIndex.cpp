@@ -226,10 +226,51 @@ void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
   _is->insert(TypedTermList(formula.term()), skolem);
 }
 
-void BoolInstFormulaIndex::insertFormula(TermList sort, TermList formula, Literal* lit, Clause* c)
+void BoolInstFormulaIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("BoolInstFormulaIndex::insertFormula");
-  _is->insert(TypedTermList(sort, AtomicSort::superSort()), formula, lit, c);
+  CALL("BoolInstFormulaIndex::handleClause");
+
+  typedef ApplicativeHelper AH;
+
+  static TermStack args;
+  static TermStack argSorts;
+  TermList head;
+
+  for(unsigned i = 0; i < c->length(); i++){
+    Literal* lit = (*c)[i];
+
+    TermList lhs = *lit->nthArgument(0);
+    TermList rhs = *lit->nthArgument(1);
+    TermList term;
+    TermList boolVal;
+    if(AH::isBool(lhs)){
+      boolVal = lhs;
+      term = rhs;
+    } else if(AH::isBool(rhs)){
+      boolVal = rhs;
+      term = lhs;
+    } else {
+      continue;
+    }
+
+    bool positive = AH::isTrue(boolVal) == lit->polarity();
+
+    AH::getHeadArgsAndArgSorts(term, head, args, argSorts);
+    Signature::Proxy prox = AH::getProxy(head);
+    if((prox == Signature::PI && positive) || (prox == Signature::SIGMA && !positive)){
+      ASS(args.size() == 1);
+      TermList form = args[0];
+      TermList sort = argSorts[0];
+      ASS(sort.isArrowSort());
+      if (adding) {
+        _is->insert(TypedTermList(sort.domain(), AtomicSort::superSort()), form, lit, c);
+      } else {
+        _is->remove(TypedTermList(sort.domain(), AtomicSort::superSort()), form, lit, c);
+      }      
+    }
+
+  }
+
 }
 
 void BoolInstInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
