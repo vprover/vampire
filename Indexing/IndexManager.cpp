@@ -179,23 +179,6 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
   }
-  
-  case BOOL_INST_INSTANTIATION_INDEX: {
-    auto tis = new TermSubstitutionTree();
-    tis->useExtra();
-    res = new BoolInstInstantiationIndex(tis);
-    isGenerating = true; 
-    break;    
-  }
-
-  case BOOL_INST_FORMULA_INDEX: {
-    auto tis = new TermSubstitutionTree();
-    tis->useExtra();
-    res = new BoolInstFormulaIndex(tis);
-    isGenerating = true; 
-    break;    
-  }
-
 #endif  
 
   case ACYCLICITY_INDEX:

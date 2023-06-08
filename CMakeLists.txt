@@ -328,8 +328,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/BoolEqToDiseq.cpp
     Inferences/PrimitiveInstantiation.cpp
     Inferences/PrimitiveInstantiation.hpp
-    Inferences/BoolInstantiation.cpp
-    Inferences/BoolInstantiation.hpp
     Inferences/ElimLeibniz.cpp
     Inferences/ElimLeibniz.hpp
     Inferences/Choice.cpp

@@ -759,12 +759,6 @@ public:
     PI_SIGMA = 8
   };
 
-  enum class BoolInstantiation : unsigned int {
-    OFF = 0,
-    ABSTRACTION = 1,
-    ABS_AND_SUBTERM = 2
-  };
-
   enum class HPrinting : unsigned int {
     RAW = 0,
     DB_INDICES = 1,
@@ -2440,7 +2434,6 @@ public:
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool positiveExtensionality() const { return _positiveExt.actualValue; }
-  BoolInstantiation booleanInstantiation() const { return _boolInstantiation.actualValue; }
   // bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   bool iffXorRewriter() const { return _iffXorRewriter.actualValue; }
   // TODO doesn't do anyhting currently  
@@ -2891,7 +2884,6 @@ private:
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _positiveExt;
-  ChoiceOptionValue<BoolInstantiation> _boolInstantiation;
   BoolOptionValue _lambdaFreeHol;
   BoolOptionValue _iffXorRewriter;
   // BoolOptionValue _complexVarCondition;

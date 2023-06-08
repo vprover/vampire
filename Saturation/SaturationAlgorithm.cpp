@@ -87,7 +87,6 @@
 #include "Inferences/BetaEtaISE.hpp"
 #include "Inferences/FlexFlexSimplify.hpp"
 #include "Inferences/PositiveExt.hpp"
-#include "Inferences/BoolInstantiation.hpp"
 #endif
 
 #include "Inferences/URResolution.hpp"
@@ -1594,9 +1593,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     if(env.options->choiceReasoning()){
       gie->addFront(new Choice());
-    }
-    if(env.options->booleanInstantiation() != Options::BoolInstantiation::OFF){
-      gie->addFront(new BoolInstantiation());
     }
   }
 

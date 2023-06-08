@@ -74,7 +74,6 @@ public:
 
 private:
   SkolemisingFormulaIndex* _formulaIndex;
-  BoolInstInstantiationIndex* _boolInstInstIndex; 
 };
 
 class LazyClausificationGIE
@@ -96,7 +95,6 @@ public:
 
 private:
   SkolemisingFormulaIndex* _formulaIndex;
-  BoolInstInstantiationIndex* _boolInstInstIndex;
 };
 
 

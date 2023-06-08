@@ -42,14 +42,12 @@ static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
 static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
 static InferenceRule convert(Signature::Proxy cnst);
 static ClauseIterator produceClauses(Clause* c, bool generating, 
-  SkolemisingFormulaIndex* index = 0,
-  BoolInstInstantiationIndex* boolInstInstIndex = 0);
+  SkolemisingFormulaIndex* index = 0);
 
 typedef ApplicativeHelper AH;
 
 ClauseIterator produceClauses(Clause* c, bool generating, 
-  SkolemisingFormulaIndex* index, 
-  BoolInstInstantiationIndex* boolInstInstIndex)
+  SkolemisingFormulaIndex* index)
 {
   CALL("CNFOnTheFly::produceClauses");
 
@@ -220,34 +218,6 @@ ClauseIterator produceClauses(Clause* c, bool generating,
       if((prox == Signature::PI && positive) || (prox == Signature::SIGMA && !positive)){
         rule = convert(Signature::PI);
         newTerm = piRemoval(args[0], c, srt);
-        // the isVar() check is defensive programming
-        // It shouldn't occur in normal running
-        if(boolInstInstIndex && !args[0].isVar()){
-          auto instances = boolInstInstIndex->getUnifications(TypedTermList(srt.domain(),AtomicSort::superSort()), true);
-          while(instances.hasNext()){
-            TermQueryResult tqr = instances.next();
-
-            TermList inst = tqr.unifier->apply(tqr.term, 1);
-            TermList form = tqr.unifier->apply(args[0], 0);
-            form          = AH::app(form, inst);
-            Literal* l1   = Literal::createEquality(true, form, rhs, boolSort);
-
-            unsigned clen   = c->length();
-          
-             // cant use replaceLits, as we need to apply the type unifier
-            Clause* res = new(clen) Clause(clen, GeneratingInference1(InferenceRule::BOOL_INSTANTIATION, c));
-            (*res)[0] = l1;
-            unsigned next = 1;
-            for(unsigned i=0;i<clen;i++) {
-              Literal* curr=(*c)[i];
-              if(curr!=lit) {
-                Literal* currAfter = tqr.unifier->apply(curr, 0);
-                (*res)[next++] = currAfter;
-              }
-            }
-            resultStack.push(res);            
-          }
-        }
       } else {
         ASS(term.isTerm());
         bool newTermCreated = false;
@@ -450,13 +420,6 @@ void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
     _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
-
-  _boolInstInstIndex = 0;
-
-  if(env.options->booleanInstantiation() != Options::BoolInstantiation::OFF){
-    _boolInstInstIndex=static_cast<BoolInstInstantiationIndex*> (
-      _salg->getIndexManager()->request(BOOL_INST_INSTANTIATION_INDEX) ); 
-  } 
 }
 
 void LazyClausificationGIE::detach()
@@ -464,12 +427,8 @@ void LazyClausificationGIE::detach()
   CALL("LazyClausificationGIE::detach");
 
   _formulaIndex=0;
-  _boolInstInstIndex = 0;
 
-  _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
-  if(env.options->booleanInstantiation() != Options::BoolInstantiation::OFF){
-    _salg->getIndexManager()->release(BOOL_INST_INSTANTIATION_INDEX);
-  }   
+  _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX); 
   GeneratingInferenceEngine::detach();
 }
 
@@ -480,13 +439,6 @@ void LazyClausification::attach(SaturationAlgorithm* salg)
   SimplificationEngine::attach(salg);
   _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
    _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
-
-  _boolInstInstIndex = 0;
-
-  if(env.options->booleanInstantiation() != Options::BoolInstantiation::OFF){
-    _boolInstInstIndex=static_cast<BoolInstInstantiationIndex*> (
-      _salg->getIndexManager()->request(BOOL_INST_INSTANTIATION_INDEX) ); 
-  }   
 }
 
 void LazyClausification::detach()
@@ -494,12 +446,8 @@ void LazyClausification::detach()
   CALL("LazyClausification::detach");
 
   _formulaIndex=0;
-  _boolInstInstIndex = 0;
 
   _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
-  if(env.options->booleanInstantiation() != Options::BoolInstantiation::OFF){
-    _salg->getIndexManager()->release(BOOL_INST_INSTANTIATION_INDEX);
-  }   
   SimplificationEngine::detach();
 }
 
@@ -514,14 +462,14 @@ ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
   CALL("LazyClausificationGIE::simplifyMany");
 
-  return produceClauses(c, true, _formulaIndex, _boolInstInstIndex);
+  return produceClauses(c, true, _formulaIndex);
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
   CALL("LazyClausification::perform");
 
-  return produceClauses(c, false, _formulaIndex, _boolInstInstIndex);
+  return produceClauses(c, false, _formulaIndex);
 }
 
 
