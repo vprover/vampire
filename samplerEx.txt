@@ -88,7 +88,7 @@ lecc!=1 > lecc ~uf 0.5,2.0
 > awrs ~cat constant:8,decay:1,converge:1
 
 # age_weight_ratio_shape_frequency
-awrs!=constant > awrsf ~ui 0,500
+awrs!=constant > awrsf ~ui 1,500
 
 # nongoal_weight_coefficient
 > nwc ~cat 1:2,2:1
@@ -346,8 +346,8 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 apa=on  > cnfonf ~cat off:1
 apa=off > cnfonf ~cat eager:1,lazy_gen:1,lazy_simp:1,lazy_not_gen:1,lazy_not_gen_be_off:1,lazy_not_be_gen:1,lazy_pi_sigma_gen:1,off:1
 
-# bool_inst
-cnfonf!=off > bi ~cat off:1,abs:1,abs_sub:1
+# bool_inst (disable for now)
+# cnfonf!=off > bi ~cat off:1,abs:1,abs_sub:1
 
 # complex_bool_reasoning
 > cbe ~cat off:1,on:1
