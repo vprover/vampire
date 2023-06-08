@@ -14,8 +14,8 @@
 # function_definition_elimination
 > fde ~cat all:5,none:1,unused:1
 
-# general_splitting
-> gsp ~cat off:8,on:1
+# general_splitting (no gsp for Ahmed)
+# > gsp ~cat off:8,on:1
 
 # inline_let -- this is probably irrelevant on TPTP anyway
 > ile ~cat off:10,on:1
@@ -59,7 +59,7 @@ ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:
 
 # literal selection #(kicked out looakead selections: 11:131,-11:131,1011:357,-1011:357, not compatible with HO)
 > $s_pos ~cat Y:4,N:1
-$s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
+$s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1666:50
 $s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1666:50
 
 # lookahaed_delay
@@ -340,7 +340,7 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 > cha ~cat off:1,on:1
 
 # choice_reasoning
-> chr ~cat off:1,on:1
+cha=off > chr ~cat off:1,on:1
 
 # cnf_on_the_fly
 apa=on  > cnfonf ~cat off:1
