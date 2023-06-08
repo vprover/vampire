@@ -99,12 +99,9 @@ private:
 Ordering::Result KBO::State::result(Term* t1, Term* t2)
 {
   CALL("KBO::State::result")
-  Result res;
-      cout << "HERE with " << t1->toString() << endl;
-      cout << "HERE with " << t2->toString() << endl;   
+  Result res;  
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
-    cout << "HERE1 " << _weightDiff << endl;
   } else if(t1->functor()!=t2->functor()) {
     if(t1->isLiteral()) {
       int prec1, prec2;
@@ -205,8 +202,6 @@ void KBO::State::traverse(TermList tl,int coef)
 
   Term* t=tl.term();
   ASSERT_VALID(*t);
-
-  cout << tl << "   " << _kbo.symbolWeight(t) << endl;
 
   _weightDiff+=_kbo.symbolWeight(t)*coef;
 
