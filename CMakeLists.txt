@@ -578,6 +578,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/ConditionalRedundancyHandler.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
+    Shell/Dedukti.hpp
+    Shell/Dedukti.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
