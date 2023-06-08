@@ -1,7 +1,7 @@
 # PREPROCESSING
 
-# blocked_clause_elimination
-> bce ~cat off:5,on:1
+# blocked_clause_elimination (preferring to skip for HO)
+# > bce ~cat off:5,on:1
 
 # equality_proxy (no ep for Ahmed)
 #> ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
@@ -334,7 +334,7 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 > c ~cat off:1,on:1
 
 # cases_simp
-> cs ~cat off:1,on:1
+cases_simp=off > cs ~cat off:1,on:1
 
 # choice_ax
 > cha ~cat off:1,on:1
