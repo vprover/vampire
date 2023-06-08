@@ -543,6 +543,10 @@ class Signature
     _choiceSymbols.insert(fun);
   }
 
+  void addInstantiation(TermList inst){
+    _instantiations.insert(inst);
+  }
+
   bool isChoiceOperator(unsigned fun){
     return _choiceSymbols.contains(fun);
   }
@@ -550,6 +554,10 @@ class Signature
   DHSet<unsigned>* getChoiceOperators(){
     return &_choiceSymbols;
   }
+
+  DHSet<TermList>* getInstantiations(){
+    return &_instantiations;
+  }  
 #endif
 
   /** return the number of functions */
@@ -886,7 +894,9 @@ private:
   Stack<Symbol*> _typeCons;
 
 #if VHOL
+  // TODO these two don't belong in the signature
   DHSet<unsigned> _choiceSymbols;
+  DHSet<TermList> _instantiations;
 #endif
   /**
    * Map from vstring "name_arity" to their numbers

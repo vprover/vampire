@@ -53,6 +53,10 @@ private:
   void preprocess3(Problem& prb);
   void clausify(Problem& prb);
 
+#if VHOL
+  void findAbstractions(UnitList*& units);
+#endif
+  
   void newCnf(Problem& prb);
 
   /** Options used in the normalisation */

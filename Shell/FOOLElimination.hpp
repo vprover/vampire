@@ -62,7 +62,10 @@ private:
   /** Process a given part of the unit */
   FormulaList* process(FormulaList* fs);
   Formula* process(Formula* f);
-
+#if VHOL
+  Formula* convertToProxified(Formula* f);
+#endif 
+  
   // A context in one of two possible values, so we model it with bool constants
   typedef bool Context;
   static const Context TERM_CONTEXT = true;

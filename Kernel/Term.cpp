@@ -1262,7 +1262,9 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
   if(isLambdaTerm()){
     unsigned v = st.size() ? st.top().second + 1 : 0;
     vstring bvar = (pretty ? "y" : "Y") + Int::toString(v);
-    bvar = !pretty ? "[" + bvar + " : " + termToStr(*nthArgument(0),true,st) + "]" : bvar;
+    bvar = pretty ? 
+      bvar + " : " + termToStr(*nthArgument(0),true,st) : 
+      "[" + bvar + " : " + termToStr(*nthArgument(0),true,st) + "]";
     bvar = db ? "" : bvar;
 
     IndexVarStack newSt(st);
@@ -1313,7 +1315,8 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
     }
   }
 
-  if(head.isTerm() && !head.isEquals() && !head.isLambdaTerm() && head.term()->arity()){
+  if(head.isTerm() && !head.isEquals() && head.deBruijnIndex().isNone() && 
+    !head.isLambdaTerm() && head.term()->arity()){
     Term* t = head.term();
     if(pretty) headStr += "⟨";
     for(unsigned i = 0; i < t->arity(); i++){

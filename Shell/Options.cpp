@@ -1782,6 +1782,15 @@ void Options::init()
     _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
     _lookup.insert(&_superposition);
 
+
+    _heuristicInstantiation = BoolOptionValue("heur_inst","hi",false);
+    _heuristicInstantiation.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _heuristicInstantiation.addProblemConstraint(hasHigherOrder());   
+    _heuristicInstantiation.addHardConstraint(If(notEqual(false)).then(_clausificationOnTheFly.is(equal(CNFOnTheFly::CONJ_EAGER)))); 
+    _heuristicInstantiation.description= "Heuristically instantiates universally quantified variables with abstractions of literals from negated conjecture";
+    _lookup.insert(&_heuristicInstantiation);
+    _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
+
     _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
     _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projextions and imitations) that higher-order unification can descend to. Once limit is reached, remaining pairs are retunred as constraints.";
     _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
@@ -1818,13 +1827,13 @@ void Options::init()
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
     _lookup.insert(&_injectivity);
     _injectivity.addProblemConstraint(hasHigherOrder());            
-    _injectivity.tag(OptionTag::HIGHER_ORDER);
+    _injectivity.tag(OptionTag::HIGHER_ORDER);*/
 
     _pragmatic = BoolOptionValue("pragmatic","prag",false);
     _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
     _lookup.insert(&_pragmatic);
     _pragmatic.addProblemConstraint(hasHigherOrder());
-    _pragmatic.tag(OptionTag::HIGHER_ORDER);*/
+    _pragmatic.tag(OptionTag::HIGHER_ORDER);
 
     // TODO we have two ways of enabling function extensionality abstraction atm:
     // this option, and `-uwa`. 
@@ -1844,6 +1853,7 @@ void Options::init()
                                                                           "lazy_pi_sigma_gen",
                                                                           "lazy_not_gen_be_off",
                                                                           "lazy_not_be_gen",
+                                                                          "conj_eager",
                                                                           "off"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);

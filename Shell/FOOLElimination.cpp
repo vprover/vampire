@@ -60,9 +60,21 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit) {
   CALL("FOOLElimination::needsElimination");
 
 #if VHOL
-  // process everything into a big proxified term
-  if(env.property->higherOrder() && env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER)
-  { return true; }
+  if(env.property->higherOrder())
+  { 
+    switch(env.options->cnfOnTheFly()){
+      case Options::CNFOnTheFly::EAGER:
+        break;
+      case Options::CNFOnTheFly::CONJ_EAGER:
+        if(unit->inputType() != UnitInputType::NEGATED_CONJECTURE && 
+           unit->inputType() != UnitInputType::CONJECTURE){
+          return true; 
+        }
+        break;
+      default:
+        return true;        
+    }
+  }
 #endif
 
   /**
@@ -165,7 +177,27 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   SortHelper::collectVariableSorts(formula, _varSorts);
 
-  Formula* processedFormula = process(formula);
+#if VHOL
+  bool isConjecture = 
+    unit->inputType() == UnitInputType::NEGATED_CONJECTURE ||
+    unit->inputType() == UnitInputType::CONJECTURE;
+
+  // The old implementation (combinator implementation) had a check !_polymorhpic
+  // I've removed it here, but if we start seeing issues on polymorphic problems, that
+  // is one place to check immediately
+  bool proxify = env.property->higherOrder() && 
+    env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+    env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF   &&
+   (env.options->cnfOnTheFly() != Options::CNFOnTheFly::CONJ_EAGER || !isConjecture);
+#endif
+
+  Formula* processedFormula = 
+#if VHOL
+  proxify ?
+    convertToProxified(formula) : 
+#endif 
+    process(formula);
+
   if (formula == processedFormula) {
     return rectifiedUnit;
   }
@@ -188,22 +220,39 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   return processedUnit;
 }
 
+#if VHOL
+Formula* FOOLElimination::convertToProxified(Formula* formula)
+{
+  CALL("FOOLElimination::convertToProxified");
+
+  LambdaConversion lc;
+
+  Formula* processedFormula;
+  if(formula->connective() == LITERAL){
+    // don't proxify the equality itself, as this blocks definition rewriting
+    // which really harms performance
+    Literal* literal = formula->literal();
+    TermList lhs = *literal->nthArgument(0);
+    TermList rhs = *literal->nthArgument(1);
+    lhs = lc.convertLambda(lhs);
+    rhs = lc.convertLambda(rhs);
+    literal = Literal::createEquality(literal->polarity(), lhs, rhs, SortHelper::getEqualityArgumentSort(literal));
+    processedFormula = new AtomicFormula(literal);
+  } else {
+    TermList proxifiedFormula = lc.convertLambda(formula);
+    processedFormula = toEquality(proxifiedFormula);
+  }
+
+  if (env.options->showPreprocessing()) {
+    reportProcessed(formula->toString(), processedFormula->toString());
+  }
+
+  return processedFormula;
+}
+#endif
+
 Formula* FOOLElimination::process(Formula* formula) {
   CALL("FOOLElimination::process(Formula*)");
-
-#if VHOL
-  if(env.property->higherOrder() && env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-     !_polymorphic){ // why the !_polymorphic check? It is a varry over from old implementation, do we still need it???
-    TermList proxifiedFormula = LambdaConversion().convertLambda(formula);
-    Formula* processedFormula = toEquality(proxifiedFormula);
-
-    if (env.options->showPreprocessing()) {
-      reportProcessed(formula->toString(), processedFormula->toString());
-    }
-
-    return processedFormula;
-  }
-#endif
 
   switch (formula->connective()) {
     case LITERAL: {

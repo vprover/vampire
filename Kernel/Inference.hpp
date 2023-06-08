@@ -330,6 +330,7 @@ enum class InferenceRule : unsigned char {
 
   HOL_EQUALITY_ELIMINATION,
 
+  // TODO change to HEURISTIC_...
   BOOL_INSTANTIATION,
 #endif
   /** the last generating inference marker --

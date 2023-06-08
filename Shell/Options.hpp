@@ -744,7 +744,8 @@ public:
     LAZY_SIMP_PI_SIGMA_GEN = 4,
     LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 5,
     LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 6,
-    OFF = 7
+    CONJ_EAGER = 7,
+    OFF = 8
   };
 
   enum class PISet : unsigned int {
@@ -2420,8 +2421,7 @@ public:
   bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   // bool injectivityReasoning() const { return _injectivity.actualValue; }
-  // TODO doesn't do anyhting currently
-  // bool pragmatic() const { return _pragmatic.actualValue; }
+  bool pragmatic() const { return _pragmatic.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   // bool prioritiseClausesProducedByLongReduction() const { return _priortyToLongReducts.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
@@ -2441,6 +2441,7 @@ public:
   HPrinting holPrinting() const { return _holPrinting.actualValue; }
   void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
   bool superposition() const {return _superposition.actualValue; }  
+  bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
 #endif
   // For unit testing
@@ -2870,7 +2871,7 @@ private:
   BoolOptionValue _addProxyAxioms;
   BoolOptionValue _choiceAxiom;
   // BoolOptionValue _injectivity;
-  // BoolOptionValue _pragmatic;
+  BoolOptionValue _pragmatic;
   BoolOptionValue _choiceReasoning;
   // BoolOptionValue _priortyToLongReducts;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
@@ -2880,6 +2881,7 @@ private:
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _superposition;
+  BoolOptionValue _heuristicInstantiation;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;

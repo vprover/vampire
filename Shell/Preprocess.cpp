@@ -51,6 +51,7 @@
 #include "FOOLElimination.hpp"
 #if VHOL    
 #include "LambdaConversion.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
 #endif
 #include "TheoryAxioms.hpp"
 #include "TheoryFlattening.hpp"
@@ -431,7 +432,10 @@ prb.getProperty();
    if(env.options->tweeGoalTransformation() != Options::TweeGoalTransformation::OFF) {
 #if VHOL
      if(prb.higherOrder()){
-       env.out() << "WARNING: twee goal transformation is currently not compatible with higher-order. Ignoring request to use." << std::endl;
+       env.beginOutput();
+       addCommentSignForSZS(env.out());
+       env.out() << "WARNING: twee goal transformation is currently not compatible with higher-order. Ignoring request to use." << endl;
+       env.endOutput();      
      } else {
 #endif
      env.statistics->phase = Statistics::TWEE;
@@ -444,6 +448,12 @@ prb.getProperty();
      }
 #endif
    }
+
+#if VHOL
+    if(env.property->higherOrder() && env.options->heuristicInstantiation()){
+      findAbstractions(prb.units());
+    }
+#endif
 
    if (
 #if VHOL
@@ -483,12 +493,23 @@ prb.getProperty();
    }
 
    if (_options.blockedClauseElimination()) {
-     env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
-     if(env.options->showPreprocessing())
-       env.out() << "blocked clause elimination" << std::endl;
+#if VHOL
+     if(prb.higherOrder()){
+       env.beginOutput();
+       addCommentSignForSZS(env.out());
+       env.out() << "WARNING: blocked clause elimination is currently not compatible with higher-order. Ignoring request to use." << endl;
+       env.endOutput();      
+     } else {
+#endif
+      env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
+      if(env.options->showPreprocessing())
+        env.out() << "blocked clause elimination" << std::endl;
 
-     BlockedClauseElimination bce;
-     bce.apply(prb);
+      BlockedClauseElimination bce;
+      bce.apply(prb);
+#if VHOL
+     }
+#endif      
    }
 
    if (_options.shuffleInput()) {
@@ -527,6 +548,31 @@ prb.getProperty();
      env.endOutput();
    }
 } // Preprocess::preprocess ()
+
+#if VHOL
+void Preprocess::findAbstractions(UnitList*& units){
+  CALL("Preprocess::findAbstractions");
+
+  UnitList::RefIterator uit(units);
+  while (uit.hasNext()) {
+    Unit* &u = uit.next();
+    if (!u->derivedFromGoal())
+      continue;
+    
+    ASS(u->isClause());
+    Clause* c = u->asClause();
+
+    for(unsigned i = 0; i < c->length(); i++){
+      Literal* lit = (*c)[i];
+      TermStack abstractionTerms;
+      ApplicativeHelper::getAbstractionTerms(lit, abstractionTerms);
+      while(!abstractionTerms.isEmpty()){   
+        env.signature->addInstantiation(abstractionTerms.pop());
+      }    
+    }
+  }
+}
+#endif
 
 
 /**

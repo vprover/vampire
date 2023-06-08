@@ -971,7 +971,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::PROJECT:
     return "project";
   case InferenceRule::BOOL_INSTANTIATION:
-    return "boolean instantiation";
+    return "heuristic instantiation";
   /* these cases are no actual inference rules but only markeres to separatea groups of rules */    
   case InferenceRule::PROXY_AXIOM:
 #endif

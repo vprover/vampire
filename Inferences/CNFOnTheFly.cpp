@@ -52,7 +52,8 @@ ClauseIterator produceClauses(Clause* c, bool generating,
   CALL("CNFOnTheFly::produceClauses");
 
   static bool eager = env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
-  static bool simp = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP;
+  static bool instantiations = env.options->cnfOnTheFly() == Options::CNFOnTheFly::CONJ_EAGER;
+  static bool simp = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP || instantiations;
   static bool gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
   static bool simp_except_pi_sigma_gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_PI_SIGMA_GEN;
   static bool simp_except_not_be_off = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF;
@@ -218,6 +219,42 @@ ClauseIterator produceClauses(Clause* c, bool generating,
       if((prox == Signature::PI && positive) || (prox == Signature::SIGMA && !positive)){
         rule = convert(Signature::PI);
         newTerm = piRemoval(args[0], c, srt);
+        if(instantiations && !args[0].isVar()){
+          DHSet<TermList>* insts = env.signature->getInstantiations();
+          DHSet<TermList>::Iterator it(*insts);
+          while(it.hasNext()){
+            TermList t = it.next();
+            ASS(t.isTerm());
+            static RobSubstitutionTS subst;
+            subst.reset();
+
+            TermList tSort = SortHelper::getResultSort(t.term());
+            TermList aSort = srt.domain();
+
+            if(subst.unify(tSort,0,aSort,1)){
+              TermList tS    = subst.apply(t, 0);
+              TermList argS  = subst.apply(args[0],1); 
+
+              TermList app   = AH::app(argS, tS);
+              Literal* l1   = Literal::createEquality(true, app, rhs, boolSort);
+
+              unsigned clen   = c->length();
+
+               // cant use replaceLits, as we need to apply the type unifier
+              Clause* res = new(clen) Clause(clen, GeneratingInference1(InferenceRule::BOOL_INSTANTIATION, c));
+              (*res)[0] = l1;
+              unsigned next = 1;
+              for(unsigned i=0;i<clen;i++) {
+                Literal* curr=(*c)[i];
+                if(curr!=lit) {
+                  Literal* currAfter = subst.apply(curr, 1);
+                  (*res)[next++] = currAfter;
+                }
+              }
+              resultStack.push(res);
+            }
+          }
+        }
       } else {
         ASS(term.isTerm());
         bool newTermCreated = false;

@@ -144,7 +144,16 @@ public:
     bool forward = !solved() || backtrack();
     while(forward && !solved()){
       if(_unifPairs.top().flexRigid() && _depth == depth)
-      { break; }
+      { 
+        // if we are in pragmatic mode, when we hit the depth we backtrack
+        // In standard mode we return a unifier with constraints
+        if(env.options->pragmatic()){
+          forward = backtrack();
+          continue; 
+        } else {
+          break; 
+        }
+      }
  
       auto con = popFromUnifPairs(_bdStack->top());
       
