@@ -3238,7 +3238,7 @@ void Options::trySamplingStrategy()
 
       // actual sampling
       vstring value;
-      int sample = std::uniform_int_distribution<int>(1,total)(rng);
+      unsigned sample = std::uniform_int_distribution<unsigned>(1,total)(rng);
       Stack<std::pair<unsigned,vstring>>::BottomFirstIterator it(mulvals);
       while (it.hasNext()) {
         auto mulval = it.next();
