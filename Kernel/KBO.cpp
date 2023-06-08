@@ -100,8 +100,11 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
 {
   CALL("KBO::State::result")
   Result res;
+      cout << "HERE with " << t1->toString() << endl;
+      cout << "HERE with " << t2->toString() << endl;   
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
+    cout << "HERE1 " << _weightDiff << endl;
   } else if(t1->functor()!=t2->functor()) {
     if(t1->isLiteral()) {
       int prec1, prec2;
@@ -113,7 +116,7 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
       ASS(t2->isSort()); //should only compare sorts with sorts
       res=_kbo.compareTypeConPrecedences(t1->functor(), t2->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
-    } else {
+    } else {     
       res=_kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
@@ -202,6 +205,8 @@ void KBO::State::traverse(TermList tl,int coef)
 
   Term* t=tl.term();
   ASSERT_VALID(*t);
+
+  cout << tl << "   " << _kbo.symbolWeight(t) << endl;
 
   _weightDiff+=_kbo.symbolWeight(t)*coef;
 
@@ -956,6 +961,12 @@ bool KboSpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& 
 bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {
   auto sym = env.signature->getFunction(functor);
+  if (env.signature->isFoolConstantSymbol(true, functor)  || 
+      env.signature->isFoolConstantSymbol(false, functor)){
+    // Bool symbols must have minimum weight to esnure that they are smaller than other
+    // terms  
+    weight = _variableWeight; return true;
+  }
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }

@@ -56,7 +56,7 @@ void InequalitySplitting::perform(Problem& prb)
   CALL("InequalitySplitting::perform");
 
 #if VHOL
-  _appify = prb.hasApp();
+  _appify = prb.higherOrder();
 #endif
   if(perform(prb.units())) {
     prb.invalidateByRemoval();
