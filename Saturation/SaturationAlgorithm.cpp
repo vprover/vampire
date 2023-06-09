@@ -531,6 +531,9 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, u
       onParenthood(replacement, premStack.pop());
     }
   }
+
+  if(!replacement && env.options->proof() == Options::Proof::DEDUKTI)
+    Dedukti::unregisterUnit(cl);
 }
 
 void SaturationAlgorithm::onNonRedundantClause(Clause* c)
