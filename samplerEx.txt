@@ -380,4 +380,4 @@ func_ext!=axiom > pe ~cat off:1,on:1
 > piset ~cat all:1,all_but_not_eq:1,not:1,small_set:1,pragmatic:1,and:1,or:1,equals:1,pi_sigma:1
 
 # pragmatic
-> prag ~cat off:1,on:1
+hud!=0 > prag ~cat off:1,on:1
