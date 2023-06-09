@@ -58,6 +58,7 @@ public:
   
   ~HigherOrderUnifiersIt() {
     CALL("HOLUnification::HigherOrderUnifiersIt::~HigherOrderUnifiersIt");
+
   }
 
   friend std::ostream& operator<<(std::ostream& out, HigherOrderUnifiersIt const& self)
@@ -147,7 +148,7 @@ public:
       { 
         // if we are in pragmatic mode, when we hit the depth we backtrack
         // In standard mode we return a unifier with constraints
-        if(env.options->pragmatic()){
+        if(env.options->pragmatic() && depth){
           forward = backtrack();
           continue; 
         } else {

@@ -156,6 +156,12 @@ struct EqualityResolution::ResultFn
 
       env.statistics->equalityResolution++;
       results->push(res);
+      // would like to do the below, but exiting higher-order iterator early causes
+      // some issue which I haven;t tracked at the moment. TODO
+      //if(res->isEmpty()){
+        // derived the empty clause, no need to continue with loop
+        //break;
+      //}
     }
     return pvi(getUniquePersistentIterator(ClauseStack::Iterator(*results)));
   }

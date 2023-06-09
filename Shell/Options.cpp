@@ -1833,6 +1833,7 @@ void Options::init()
     _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";
     _lookup.insert(&_pragmatic);
     _pragmatic.addProblemConstraint(hasHigherOrder());
+    _pragmatic.addHardConstraint(If(equal(true)).then(_higherOrderUnifDepth.is(notEqual(0u))));
     _pragmatic.tag(OptionTag::HIGHER_ORDER);
 
     // TODO we have two ways of enabling function extensionality abstraction atm:
