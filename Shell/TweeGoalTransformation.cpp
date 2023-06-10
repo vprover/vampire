@@ -66,6 +66,8 @@ class Definizator : public BottomUpTermTransformer {
     bool _groundOnly;
 
     unsigned _typeArity;
+    TermStack _typeVars;
+    TermStack _termVars;
     TermStack _allVars; // including typeVars, which will come first, then termVars
     TermStack _termVarSorts;
 
@@ -78,8 +80,8 @@ class Definizator : public BottomUpTermTransformer {
       varSeen.reset();
       _typeArity = 0;
       _allVars.reset();
-      static TermStack termVars;
-      termVars.reset();
+      _typeVars.reset();
+      _termVars.reset();
       _termVarSorts.reset();
 
       // fake scanVars cheaply
@@ -94,15 +96,21 @@ class Definizator : public BottomUpTermTransformer {
           if(s == AtomicSort::superSort()) {
             _allVars.push(TermList(v,false));
           } else {
-            termVars.push(TermList(v,false));
+            _termVars.push(TermList(v,false));
             _termVarSorts.push(varAndSort.second);
           }
         }
       }
       _typeArity = _allVars.size(); // allVars only collected typeVars until now
-      for(unsigned i = 0; i < termVars.size(); i++){
-        _allVars.push(termVars[i]);
+      for(unsigned i = 0; i < _termVars.size()
+#if VHOL
+        && !env.property->higherOrder()
+#endif
+        ; i++){
+        _allVars.push(_termVars[i]);
       }
+
+      SortHelper::normaliseArgSorts(_typeVars, _termVarSorts);
 
       ASS_EQ(_typeArity+_termVarSorts.size(), _allVars.size())
     }
@@ -113,8 +121,14 @@ class Definizator : public BottomUpTermTransformer {
 
       // cout << "tf: " << trm.toString() << endl;
       if (trm.isVar()) return trm;
+
       Term* t = trm.term();
       if (t->isSort() || t->arity() == 0 || (!t->ground() && _groundOnly)) return trm;
+
+#if VHOL
+      if (env.property->higherOrder() && trm.containsLooseIndex())
+      { return trm; }
+#endif
 
       Term* key = t;
       if (!t->ground()) {
@@ -129,6 +143,8 @@ class Definizator : public BottomUpTermTransformer {
       TermList res;
       if (!_cache.find(key,symAndDef)) {
         TermList outSort = SortHelper::getResultSort(t);
+        SortHelper::normaliseSort(_typeVars, outSort);
+
         unsigned newSym;
         Clause* newDef;
         scanVars(t);
@@ -137,17 +153,30 @@ class Definizator : public BottomUpTermTransformer {
         // (whether we will also demodulate in this direction may depend on the ordering, but with a constant-weight KBO we will)
         if (t->weight() > _allVars.size()+1) {
           // this is always true in the ground case (where t->weight()>=2 and _allVars.size() == 0)
+#if VHOL
+          if(!env.property->higherOrder()){
+#endif
+            newSym = env.signature->addFreshFunction(_allVars.size(), "sF");
+            OperatorType* type = OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),outSort,_typeArity);
+            env.signature->getFunction(newSym)->setType(type);
 
-          newSym = env.signature->addFreshFunction(_allVars.size(), "sF");
-          OperatorType* type = OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),outSort,_typeArity);
-          env.signature->getFunction(newSym)->setType(type);
+            // res is used both to replace here, but also in the new definition
+            res = TermList(Term::create(newSym,_allVars.size(),_allVars.begin()));
+#if VHOL           
+          } else {
+            newSym = env.signature->addFreshFunction(_typeVars.size(), "sF");
+            TermList sort = AtomicSort::arrowSort(_termVarSorts, outSort);
+            Signature::Symbol* sym = env.signature->getFunction(newSym);
+            sym->setType(OperatorType::getConstantsType(sort, _typeVars.size())); 
 
-          // res is used both to replace here, but also in the new definition
-          res = TermList(Term::create(newSym,_allVars.size(),_allVars.begin()));
+            TermList head = TermList(Term::create(newSym, _typeVars.size(), _typeVars.begin()));
+            res= ApplicativeHelper::app(head, _termVars);
+          }
+#endif
 
           // (we don't care the definition is not rectified, as long as it's correct)
           // it is correct, because the lhs below is t and not key
-          Literal* equation = Literal::createEquality(true, TermList(t), res, outSort);
+          Literal* equation = Literal::createEquality(true, TermList(t), res, SortHelper::getResultSort(res.term()));
           Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
           newDef = new (1) Clause(1, inference);
           newDef->literals()[0] = equation;
