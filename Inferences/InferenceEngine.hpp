@@ -438,6 +438,7 @@ public:
   Clause* simplify(Clause* cl);
 
   bool isPositive(Literal* lit);
+  bool isNegative(Literal* lit);
  
   bool isOfFormXY(Literal* lit,  TermList& x);
   bool isOfFormXfX(Literal* lit, TermList x, TermList& f);

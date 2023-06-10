@@ -282,15 +282,16 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
   
   TermList x, f;
 
-  if(!isPositive(lit1) && isOfFormXY(lit1, x) &&
+  if( isNegative(lit1) && isOfFormXY(lit1, x) &&
       isPositive(lit2) && isOfFormXfX(lit2, x, f)){
     unsigned fun = f.term()->functor();
     env.signature->addChoiceOperator(fun);
     return 0;
   } else 
-  if(!isPositive(lit2) && isOfFormXY(lit2, x) && 
+  if( isNegative(lit2) && isOfFormXY(lit2, x) && 
       isPositive(lit1) && isOfFormXfX(lit1, x, f)) {
     unsigned fun = f.term()->functor();
+
     env.signature->addChoiceOperator(fun);
     return 0;
   }
@@ -304,11 +305,29 @@ bool ChoiceDefinitionISE::isPositive(Literal* lit) {
   TermList rhs = *lit->nthArgument(1);
   if(!AH::isBool(lhs) && !AH::isBool(rhs)){ return false; }
   if(AH::isBool(lhs) && AH::isBool(rhs)){ return false; }
+
   if(AH::isBool(lhs)){ 
     return lit->polarity() == AH::isTrue(lhs);
   }
   if(AH::isBool(rhs)){ 
     return lit->polarity() == AH::isTrue(rhs);
+  }
+  return false;
+};
+
+bool ChoiceDefinitionISE::isNegative(Literal* lit) {
+  CALL("ChoiceDefinitionISE::isPositive");
+
+  TermList lhs = *lit->nthArgument(0);
+  TermList rhs = *lit->nthArgument(1);
+  if(!AH::isBool(lhs) && !AH::isBool(rhs)){ return false; }
+  if(AH::isBool(lhs) && AH::isBool(rhs)){ return false; }
+  
+  if(AH::isBool(lhs)){ 
+    return lit->polarity() != AH::isTrue(lhs);
+  }
+  if(AH::isBool(rhs)){ 
+    return lit->polarity() != AH::isTrue(rhs);
   }
   return false;
 };
