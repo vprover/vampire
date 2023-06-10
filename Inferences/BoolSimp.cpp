@@ -38,6 +38,7 @@ Clause* BoolSimp::simplify(Clause* premise) {
 
   while (literalPosition < cLen) {
     Literal *literal = (*premise)[literalPosition];
+    // Below should be safe. We can bool simplify a term that contains free indices
     NonVariableNonTypeIterator nvi(literal);
 
     while (nvi.hasNext()) {

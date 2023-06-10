@@ -70,8 +70,8 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 
   Clause* axiom = new(2) Clause(2, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM));
 
-  (*axiom)[0] = Literal::createEquality(true, t1, AH::bottom(), AtomicSort::boolSort());;
-  (*axiom)[1] = Literal::createEquality(true, t2, AH::top(), AtomicSort::boolSort());;
+  (*axiom)[0] = Literal::createEquality(true, t1, AH::bottom(), AtomicSort::boolSort());
+  (*axiom)[1] = Literal::createEquality(true, t2, AH::top(), AtomicSort::boolSort());
 
   return axiom;
 }
@@ -174,7 +174,7 @@ struct Choice::IsChoiceTerm
     TermStack args;
     TermList head;
     ApplicativeHelper::getHeadAndArgs(t, head, args);
-    if(args.size() == 1){
+    if(args.size() == 1 && !args[0].isVar() && !args[0].containsLooseIndex()){
       TermList headSort = AH::lhsSort(TermList(t));
 
       TermList tv = TermList(0, VarBank::QUERY_BANK); // put on QUERY_BANK to separate in from variables in headSort

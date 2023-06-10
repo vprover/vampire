@@ -187,6 +187,9 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
       }
     }
     for(unsigned i=0;i<clen;i++) {
+      // TODO is the use below and the one below that safe for higher-order?
+      // I think so, but if we notice unsoundness (leaking bound variables!)
+      // check this again.
       NonVariableNonTypeIterator nvit((*cl)[i]);
       while(nvit.hasNext()) {
         unsigned fn=nvit.next()->functor();
