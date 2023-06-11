@@ -111,8 +111,6 @@ class Definizator : public BottomUpTermTransformer {
       }
 
       SortHelper::normaliseArgSorts(_typeVars, _termVarSorts);
-
-      ASS_EQ(_typeArity+_termVarSorts.size(), _allVars.size())
     }
 
   protected:
