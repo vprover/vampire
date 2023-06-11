@@ -324,8 +324,11 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 # HIGHER ORDER STUFF
 
+# complex_bool_reasoning
+> cbe ~cat off:1,on:1
+
 # add_proxy_axioms
-> apa ~cat off:1,on:1
+cbe=off > apa ~cat off:1,on:1
 
 # bool_eq_trick
 > bet ~cat off:1,on:1
@@ -351,9 +354,6 @@ cnfonf=conj_eager > hi ~cat off:1,on:1
 
 # bool_inst (disable for now)
 # cnfonf!=off > bi ~cat off:1,abs:1,abs_sub:1
-
-# complex_bool_reasoning
-apa=off > cbe ~cat off:1,on:1
 
 # equality_to_equiv
 > e2e ~cat off:1,on:1
