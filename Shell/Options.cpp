@@ -512,7 +512,6 @@ void Options::init()
       "`full` is a generalization, where also non-ground subterms are considered.";
     _tweeGoalTransformation.tag(OptionTag::PREPROCESSING);
     _tweeGoalTransformation.setExperimental();
-    _tweeGoalTransformation.addProblemConstraint(onlyFirstOrder());
     _lookup.insert(&_tweeGoalTransformation);
 
     _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
@@ -1791,6 +1790,14 @@ void Options::init()
     _lookup.insert(&_heuristicInstantiation);
     _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
 
+
+    _applicativeUnify = BoolOptionValue("applicative_unif","au",false);
+    _applicativeUnify.onlyUsefulWith(InferencingSaturationAlgorithm());
+    _applicativeUnify.addProblemConstraint(hasHigherOrder());   
+    _applicativeUnify.description= "Carries out first-order applicative unification instead of higher-order unification";
+    _lookup.insert(&_applicativeUnify);
+    _applicativeUnify.tag(OptionTag::HIGHER_ORDER);
+
     _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
     _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projextions and imitations) that higher-order unification can descend to. Once limit is reached, remaining pairs are retunred as constraints.";
     _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
@@ -1889,6 +1896,7 @@ void Options::init()
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
     _complexBooleanReasoning.description=
     "Switches on primitive instantiation and elimination of leibniz equality";
+    _complexBooleanReasoning.addConstraint(If(equal(true)).then(_addProxyAxioms.is(equal(false))));
     _lookup.insert(&_complexBooleanReasoning);
     _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
     _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
