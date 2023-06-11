@@ -328,7 +328,7 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 > cbe ~cat off:1,on:1
 
 # add_proxy_axioms
-cbe=off > apa ~cat off:1,on:1
+> apa ~cat off:1,on:1
 
 # bool_eq_trick
 > bet ~cat off:1,on:1
