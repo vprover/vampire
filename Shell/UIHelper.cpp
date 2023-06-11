@@ -100,7 +100,7 @@ void reportSpiderStatus(char status)
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
     << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
-    << commitNumber << ':' << z3Version << "\n";
+    << commitNumber << ':' << z3Version << endl;
   env.endOutput();
 #endif
 }
