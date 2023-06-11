@@ -164,7 +164,7 @@ bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
 > etr ~cat off:500,on:30
 
 # extensionality_resolution
-> er ~cat off:500,known:25,filter:26
+ins=0 > er ~cat off:500,known:25,filter:26
 
 # fool_paramodulation (TODO: out for Ahmed for now)
 # > foolp ~cat off:10,on:1
@@ -353,7 +353,7 @@ cnfonf=conj_eager > hi ~cat off:1,on:1
 # cnfonf!=off > bi ~cat off:1,abs:1,abs_sub:1
 
 # complex_bool_reasoning
-> cbe ~cat off:1,on:1
+apa=off > cbe ~cat off:1,on:1
 
 # equality_to_equiv
 > e2e ~cat off:1,on:1
@@ -362,7 +362,7 @@ cnfonf=conj_eager > hi ~cat off:1,on:1
 > fe ~cat off:1,axiom:1,abstraction:1
 
 # hol_unif_depth
-> hud ~ui 0,10
+> hud ~ui 0,15
 
 # lam_free_hol
 # > lfh ~cat off:1,on:1
