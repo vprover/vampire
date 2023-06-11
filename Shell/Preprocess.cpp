@@ -430,23 +430,12 @@ prb.getProperty();
    }
 
    if(env.options->tweeGoalTransformation() != Options::TweeGoalTransformation::OFF) {
-#if VHOL
-     if(prb.higherOrder()){
-       env.beginOutput();
-       addCommentSignForSZS(env.out());
-       env.out() << "WARNING: twee goal transformation is currently not compatible with higher-order. Ignoring request to use." << endl;
-       env.endOutput();      
-     } else {
-#endif
      env.statistics->phase = Statistics::TWEE;
      if(env.options->showPreprocessing())
        env.out() << "twee goal transformation" << std::endl;
 
      TweeGoalTransformation twee;
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
-#if VHOL
-     }
-#endif
    }
 
 #if VHOL
