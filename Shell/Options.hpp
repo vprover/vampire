@@ -2442,6 +2442,7 @@ public:
   void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
   bool superposition() const {return _superposition.actualValue; }  
   bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
+  bool applicativeUnify() const { return _applicativeUnify.actualValue; }
   unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
 #endif
   // For unit testing
@@ -2882,6 +2883,7 @@ private:
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _superposition;
   BoolOptionValue _heuristicInstantiation;
+  BoolOptionValue _applicativeUnify;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
