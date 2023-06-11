@@ -401,7 +401,7 @@ public:
    * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
   template <class B> inline Option<B REF> as() REF                                                            \
-  { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
+  { return is<B>() ? Option<B REF>(unwrap<B>()) : Option<B REF>();  }                                         \
                                                                                                               \
   /**                                                                                                         \
    * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\

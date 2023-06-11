@@ -93,10 +93,10 @@ struct Preprocess
             [&](AnyNumber<MonomSet> old_) 
             { 
               auto old = old_.downcast<NumTraits>().unwrap();
-              auto result = move(old).intersect(move(gen));
-              return AnyNumber<MonomSet>(move(result)); 
+              auto result = std::move(old).intersect(std::move(gen));
+              return AnyNumber<MonomSet>(std::move(result));
             },
-            [&]() { return AnyNumber<MonomSet>(move(gen)); });
+            [&]() { return AnyNumber<MonomSet>(std::move(gen)); });
       } else {
         for (auto factor : monom.factors->iter()) {
            if (factor.term.template is<Variable>()) {

@@ -257,12 +257,12 @@ void RewritingPositionTree::buildTree(Node*& oldRoot, Node*& newRoot, Term* term
   }
 }
 
-TermIterator RewritingPositionTree::getSubtermIterator(RewritingPositionTree* old, TermList term)
+VirtualIterator<Term*> RewritingPositionTree::getSubtermIterator(RewritingPositionTree* old, TermList term)
 {
   CALL("static RewritingPositionTree::getSubtermIterator");
   TIME_TRACE("rewriting position tree maintenance");
   if (term.isVar()) {
-    return TermIterator::getEmpty();
+    return VirtualIterator<Term*>::getEmpty();
   }
 
   if (!old) {
@@ -275,16 +275,16 @@ TermIterator RewritingPositionTree::getSubtermIterator(RewritingPositionTree* ol
   return old->getSubtermIterator(term.term());
 }
 
-TermIterator RewritingPositionTree::getSubtermIterator(Term* term)
+VirtualIterator<Term*> RewritingPositionTree::getSubtermIterator(Term* term)
 {
   CALL("RewritingPositionTree::getSubtermIterator");
   // add term itself if not literal
   auto res = term->isLiteral()
-    ? TermIterator::getEmpty()
-    : pvi(getSingletonIterator(TermList(term)));
+    ? VirtualIterator<Term*>::getEmpty()
+    : pvi(getSingletonIterator(term));
   auto curr = term;
   auto currN = _root;
-  DHSet<TermList> excluded;
+  DHSet<Term*> excluded;
   ASS(_active);
 
   while (currN) {
@@ -322,8 +322,8 @@ TermIterator RewritingPositionTree::getSubtermIterator(Term* term)
     if (next.isVar()) {
       break;
     }
-    res = pvi(getConcatenatedIterator(res, getSingletonIterator(next)));
     curr = next.term();
+    res = pvi(getConcatenatedIterator(res, getSingletonIterator(curr)));
     auto nextN = currN->indices.findPtr(index);
     if (!nextN) {
       break;
@@ -333,7 +333,7 @@ TermIterator RewritingPositionTree::getSubtermIterator(Term* term)
   res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(curr, false))));
 
   return pvi(iterTraits(res)
-    .filter([excluded = std::move(excluded)](TermList t) {
+    .filter([excluded = std::move(excluded)](Term* t) {
       return !excluded.contains(t);
     }));
 }

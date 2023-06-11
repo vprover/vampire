@@ -67,7 +67,7 @@ public:
   static RewritingPositionTree* create(RewritingPositionTree* other);
   static RewritingPositionTree* createFromRewrite(RewritingPositionTree*& old, TermList term, TermList rwTerm, RewritingPositionTree* rhs);
   static RewritingPositionTree* createTruncated(RewritingPositionTree* old, TermList term, TermList rwTerm);
-  static TermIterator getSubtermIterator(RewritingPositionTree* tree, TermList term);
+  static VirtualIterator<Term*> getSubtermIterator(RewritingPositionTree* tree, TermList term);
   static bool isExcluded(RewritingPositionTree* tree, TermList term, TermList rwTerm);
   static void activate(RewritingPositionTree* tree, TermList term);
 
@@ -78,7 +78,7 @@ private:
   RewritingPositionTree* create();
   RewritingPositionTree* createTruncated(Term* term, Term* rwTerm);
   RewritingPositionTree* createFromRewrite(Term* term, Term* rwTerm, const Path& rhsPath);
-  TermIterator getSubtermIterator(Term* term);
+  VirtualIterator<Term*> getSubtermIterator(Term* term);
   bool isExcluded(Term* term, Term* rwTerm);
   void activate(Term* term);
   static void buildTree(Node*& oldRoot, Node*& newRoot, Term* term, Term* rwTerm);

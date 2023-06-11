@@ -261,14 +261,19 @@ protected:
   {
     CALL("CompleteBestLiteralSelector::canBeSelected");
 
-    FirstOrderSubtermIt fsi(lit);
-
-    while(fsi.hasNext()){
-      TermList t = fsi.next();
-      if(t.isVar() && maxTermHeads->contains(t.var())){
-        return false;
-      }
-    }
+    // TODO: 
+    // - fsi always returns terms only.therefore the whole implementation would always return true anyways, so we can comment out this code.
+    // - this was discovered during a refactoring. Why was this function here in the first place? 
+    // it is definitely dead/unnecessary code at the time of refactoring
+    //
+    // FirstOrderSubtermIt fsi(lit);
+    //
+    // while(fsi.hasNext()){
+    //   TermList t = TermList(fsi.next());
+    //   if(t.isVar() && maxTermHeads->contains(t.var())){
+    //     return false;
+    //   }
+    // }
     return true;
   }
 

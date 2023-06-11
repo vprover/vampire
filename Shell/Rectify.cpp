@@ -16,7 +16,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -127,10 +127,6 @@ Rectify::Renaming::~Renaming ()
     VarUsageTrackingList::destroy(_array[i]);
     _array[i] = 0;
   }
-
-  if(_used) {
-    Recycler::release(_used);
-  }
 } // Renaming::~Renaming
 
 
@@ -150,10 +146,11 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     Formula* c = rectify(sd->getCondition());
     TermList th = rectify(*t->nthArgument(0));
     TermList el = rectify(*t->nthArgument(1));
-    if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1)) {
+    TermList sort = rectify(sd->getSort());
+    if(c==sd->getCondition() && th==*t->nthArgument(0) && el==*t->nthArgument(1) && sort==sd->getSort()) {
 	return t;
     }
-    return Term::createITE(c, th, el, sd->getSort());
+    return Term::createITE(c, th, el, sort);
   }
   case Term::SF_LET:
   {
@@ -175,10 +172,12 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     ASS_EQ(VList::length(variables),VList::length(sd->getVariables()));
 
     TermList contents = rectify(*t->nthArgument(0));
-    if (sd->getVariables() == variables && binding == sd->getBinding() && contents == *t->nthArgument(0)) {
+    TermList sort = rectify(sd->getSort());
+    if (sd->getVariables() == variables && binding == sd->getBinding() && 
+        contents == *t->nthArgument(0) && sort == sd->getSort()) {
       return t;
     }
-    return Term::createLet(sd->getFunctor(), variables, binding, contents, sd->getSort());
+    return Term::createLet(sd->getFunctor(), variables, binding, contents, sort);
   }
   case Term::SF_LET_TUPLE:
   {
@@ -186,11 +185,12 @@ Term* Rectify::rectifySpecialTerm(Term* t)
 
     TermList binding = rectify(sd->getBinding());
     TermList contents = rectify(*t->nthArgument(0));
+    TermList sort = rectify(sd->getSort());
 
-    if (binding == sd->getBinding() && contents == *t->nthArgument(0)) {
+    if (binding == sd->getBinding() && contents == *t->nthArgument(0) && sort == sd->getSort()) {
       return t;
     }
-    return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sd->getSort());
+    return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sort);
   } 
   case Term::SF_FORMULA:
   {
@@ -251,11 +251,13 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       terms[i] = rectify(*t->nthArgument(i));
       unchanged = unchanged && (terms[i] == *t->nthArgument(i));
     }
+    auto sort = rectify(sd->getSort());
+    auto matchedSort = rectify(sd->getMatchedSort());
 
-    if (unchanged) {
+    if (unchanged && sort == sd->getSort() && matchedSort == sd->getMatchedSort()) {
       return t;
     }
-    return Term::createMatch(sd->getSort(), sd->getMatchedSort(), t->arity(), terms.begin());
+    return Term::createMatch(sort, matchedSort, t->arity(), terms.begin());
   }
   default:
     ASSERTION_VIOLATION;
@@ -550,10 +552,6 @@ unsigned Rectify::Renaming::bind (unsigned var)
   unsigned result;
 
   if(VarManager::varNamePreserving()) {
-    if(!_used) {
-      Recycler::get(_used);
-      _used->reset();
-    }
     if(_used->insert(var)) {
       result=var;
     }
@@ -659,9 +657,7 @@ FormulaList* Rectify::rectify (FormulaList* fs)
 {
   CALL ("Rectify::rectify (FormulaList*)");
 
-  Stack<FormulaList*>* els;
-  Recycler::get(els);
-  els->reset();
+  Recycled<Stack<FormulaList*>> els;
 
   FormulaList* el = fs;
   while(el) {
@@ -687,21 +683,7 @@ FormulaList* Rectify::rectify (FormulaList* fs)
     }
   }
 
-  Recycler::release(els);
   return res;
-
-//  if (fs->isEmpty()) {
-//    return fs;
-//  }
-//  Formula* f = fs->head();
-//  FormulaList* tail = fs->tail();
-//  Formula* g = rectify(f);
-//  FormulaList* gs = rectify(tail);
-//
-//  if (f == g && tail == gs) {
-//    return fs;
-//  }
-//  return new FormulaList(g,gs);
 } // Rectify::rectify(FormulaList*)
 
 /**

@@ -274,10 +274,16 @@ public:
     GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
+  enum class DemodulationRedunancyCheck : unsigned int {
+    OFF,
+    ENCOMPASS,
+    ON
+  };
+
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
     OFF, // none of them
-    CHEAP 
+    CHEAP
   };
 
   enum class ProofExtra : unsigned int {
@@ -2201,8 +2207,7 @@ public:
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
-  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
-  bool demodulationEncompassment() const { return _demodulationEncompassment.actualValue; }
+  DemodulationRedunancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -2290,8 +2295,7 @@ public:
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
-  bool skolemReuse() const { return _skolemReuse.actualValue; }
-  bool definitionReuse() const { return _definitionReuse.actualValue; }
+  unsigned functionDefinitionIntroduction() const { return _functionDefinitionIntroduction.actualValue; }
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
@@ -2332,6 +2336,7 @@ public:
 
   Instantiation instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
+  bool ignoreUnrecognizedLogic() const { return _ignoreUnrecognizedLogic.actualValue; }
 
   Induction induction() const { return _induction.actualValue; }
   StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
@@ -2566,8 +2571,7 @@ private:
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
 
-  BoolOptionValue _demodulationRedundancyCheck;
-  BoolOptionValue _demodulationEncompassment;
+  ChoiceOptionValue<DemodulationRedunancyCheck> _demodulationRedundancyCheck;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
@@ -2605,8 +2609,7 @@ private:
   BoolOptionValue _forwardSubsumptionDemodulation;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
-  BoolOptionValue _skolemReuse;
-  BoolOptionValue _definitionReuse;
+  UnsignedOptionValue _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
   
   BoolOptionValue _generalSplitting;
@@ -2803,6 +2806,7 @@ private:
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;
+  BoolOptionValue _ignoreUnrecognizedLogic;
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;

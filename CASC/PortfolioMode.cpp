@@ -155,7 +155,7 @@ bool PortfolioMode::searchForProof()
     } 
 
     //TheoryFinder cannot cope with polymorphic input
-    if(!env.property->hasPolymorphicSym()){
+    if(!env.getMainProblem()->hasPolymorphicSym()){
       TheoryFinder(_prb->units(),property).search();
     }
   }

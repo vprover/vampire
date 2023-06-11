@@ -891,9 +891,12 @@ class Signature
   unsigned formulaCount(Term* t);
 
 
-  bool isTermAlgebraSort(TermList sort) { return _termAlgebras.find(sort); }
-  Shell::TermAlgebra *getTermAlgebraOfSort(TermList sort) { return _termAlgebras.get(sort); }
-  void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort(), ta); }
+  bool isTermAlgebraSort(TermList sort) { return sort.isTerm() && _termAlgebras.find(sort.term()->functor()); }
+  Shell::TermAlgebra *getTermAlgebraOfSort(TermList sort) {
+    ASS(sort.isTerm() && sort.term()->isSort());
+    return _termAlgebras.get(sort.term()->functor());
+  }
+  void addTermAlgebra(Shell::TermAlgebra *ta) { _termAlgebras.insert(ta->sort().term()->functor(), ta); }
   VirtualIterator<Shell::TermAlgebra*> termAlgebrasIterator() const { return _termAlgebras.range(); }
   Shell::TermAlgebraConstructor* getTermAlgebraConstructor(unsigned functor);
 
@@ -975,9 +978,12 @@ private:
   unsigned _appFun;
 
   /**
-   * Map from sorts to the associated term algebra, if applicable for the sort
+   * Map from type constructor functor to the associated term algebra, if applicable for the sort.
+   * If the term algebra is polymorphic, it contains the general type, ctors, dtors, etc.
+   * For a term algebra instance, this map gives the general term algebra based on the top-level
+   * functor of its sort, the ctors and dtors still have to be instantiated to the right instances.
    */ 
-  DHMap<TermList, Shell::TermAlgebra*> _termAlgebras;
+  DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
 
   //TODO Why are these here? They are not used anywhere. AYB
   //void defineOptionTermAlgebra(unsigned optionSort);

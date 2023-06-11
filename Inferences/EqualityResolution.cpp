@@ -78,7 +78,7 @@ struct EqualityResolution::ResultFn
     static Options::FunctionExtensionality ext = env.options->functionExtensionality();
     bool use_uwa_handler = uwa != Options::UnificationWithAbstraction::OFF;
     bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) &&
-                          env.property->higherOrder();
+                          env.getMainProblem()->isHigherOrder();
 
     if(use_ho_handler){
       TermList sort = SortHelper::getEqualityArgumentSort(lit);

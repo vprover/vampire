@@ -39,15 +39,7 @@ typedef ApplicativeHelper AH;
  * @since 29/12/2007 Manchester
  */
 TermSharing::TermSharing()
-  : _totalTerms(0),
-    _totalSorts(0),
-    // _groundTerms(0), //MS: unused
-    _totalLiterals(0),
-    // _groundLiterals(0), //MS: unused
-    _literalInsertions(0),
-    _sortInsertions(0),
-    _termInsertions(0),
-    _poly(1),
+  : _poly(true),
     _wellSortednessCheckingDisabled(false)
 {
   CALL("TermSharing::TermSharing");
@@ -82,7 +74,7 @@ void TermSharing::setPoly()
   CALL("TermSharing::setPoly()");
 
   //combinatory superposiiton can introduce polymorphism into a monomorphic problem
-  _poly = env.property->higherOrder() || env.property->hasPolymorphicSym() ||
+  _poly = env.getMainProblem()->isHigherOrder() || env.getMainProblem()->hasPolymorphicSym() ||
     (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
 }
 
@@ -111,9 +103,8 @@ Term* TermSharing::insert(Term* t)
     }
   }
 
-  _termInsertions++;
   Term* s = _terms.insert(t);
-   if (s == t) {
+  if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
@@ -191,7 +182,7 @@ Term* TermSharing::insert(Term* t)
       }
     }
     t->markShared();
-    t->setId(_totalTerms);
+    t->setId(_terms.size());
     t->setNumVarOccs(vars);
     t->setWeight(weight);
     t->setHasTermVar(hasTermVar);
@@ -200,9 +191,8 @@ Term* TermSharing::insert(Term* t)
       color = static_cast<Color>(color | fcolor);
       t->setColor(color);
     }
-      
+
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
-    _totalTerms++;
 
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
@@ -228,7 +218,6 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
 
   TIME_TRACE("sort sharing");
 
-  _sortInsertions++;
   AtomicSort* s = _sorts.insert(sort);
   if (s == sort) {
     if(sort->isArraySort()){
@@ -254,11 +243,9 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
       }
     }
     sort->markShared();
-    sort->setId(_totalSorts);
+    sort->setId(_sorts.size());
     sort->setNumVarOccs(vars);
     sort->setWeight(weight);
-      
-    _totalSorts++;
 
     ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
     if (!SortHelper::allTopLevelArgsAreSorts(sort)){
@@ -303,7 +290,6 @@ Literal* TermSharing::insert(Literal* t)
     }
   }
 
-  _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
     unsigned weight = 1;
@@ -337,7 +323,7 @@ Literal* TermSharing::insert(Literal* t)
       }
     }
     t->markShared();
-    t->setId(_totalLiterals);
+    t->setId(_literals.size());
     t->setNumVarOccs(vars);
     t->setWeight(weight);
     if (env.colorUsed) {
@@ -346,7 +332,6 @@ Literal* TermSharing::insert(Literal* t)
       t->setColor(color);
     }
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
-    _totalLiterals++;
 
     ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
     if (!_poly && !SortHelper::areImmediateSortsValidMono(t) && !_wellSortednessCheckingDisabled){
@@ -392,11 +377,10 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   t->markTwoVarEquality();
   t->setTwoVarEqSort(sort);
 
-  _literalInsertions++;
   Literal* s = _literals.insert(t);
   if (s == t) {
     t->markShared();
-    t->setId(_totalLiterals);
+    t->setId(_literals.size());
     // 3 since we have two variables and the equality symbol itself.
     // Additionally, we need sort.weight() in the polymorphic case since
     // the sort may contain variables and Vampire assumes the invariant
@@ -412,49 +396,12 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
       t->setColor(COLOR_TRANSPARENT);
     }
     t->setInterpretedConstantsPresence(false);
-    _totalLiterals++;
   }
   else {
     t->destroy();
   }
   return s;
 } // TermSharing::insertVariableEquality
-
-/**
- * Insert a new term and all its unshared subterms
- * in the index, and return the result.
- */
-Term* TermSharing::insertRecurrently(Term* t)
-{
-  CALL("TermSharing::insert");
-
-  TIME_TRACE(TimeTrace::TERM_SHARING);
-
-  TermList tRef;
-  tRef.setTerm(t);
-
-  TermList* ts=&tRef;
-  static Stack<TermList*> stack(4);
-  static Stack<TermList*> insertingStack(8);
-  for(;;) {
-    if(ts->isTerm() && !ts->term()->shared()) {
-      stack.push(ts->term()->args());
-      insertingStack.push(ts);
-    }
-    if(stack.isEmpty()) {
-      break;
-    }
-    ts=stack.pop();
-    if(!ts->next()->isEmpty()) {
-      stack.push(ts->next());
-    }
-  }
-  while(!insertingStack.isEmpty()) {
-    ts=insertingStack.pop();
-    ts->setTerm(insert(ts->term()));
-  }
-  return tRef.term();
-}
 
 /**
  * If the sharing structure contains a literal opposite to @b l, return it.
@@ -543,7 +490,8 @@ bool TermSharing::equals(const Term* s,const Term* t)
 /**
  * True if the two literals are equal (or equal except polarity if @c opposite is true)
  */
-bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
+template<bool opposite>
+bool TermSharing::equals(const Literal* l1, const Literal* l2)
 {
   CALL("TermSharing::equals(Literal*,Literal*)");
 
@@ -556,8 +504,5 @@ bool TermSharing::equals(const Literal* l1, const Literal* l2, bool opposite)
     return false;
   }
 
-  return equals(static_cast<const Term*>(l1),
-		static_cast<const Term*>(l2));
+  return equals(static_cast<const Term*>(l1), static_cast<const Term*>(l2));
 }
-
-

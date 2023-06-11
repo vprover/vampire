@@ -59,8 +59,9 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
-  _preorderedOnly=getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
-  _encompassing = getOptions().demodulationEncompassment();
+  _preorderedOnly = getOptions().forwardDemodulation()== Options::Demodulation::PREORDERED;
+  _redundancyCheck = getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
+  _encompassing = getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
 }
 
 void ForwardDemodulation::detach()
@@ -93,7 +94,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);
     while(it.hasNext()) {
-      TermList trm=it.next();
+      TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -103,14 +104,13 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
-      TermList querySort = SortHelper::getTermSort(trm, lit);
 
-      bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&           
-	         (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
+      bool toplevelCheck = _redundancyCheck &&
+        lit->isEquality() && (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
       // encompassing demodulation is always fine into negative literals or into non-units
       if (_encompassing) {
-        toplevelCheck &= lit->isPositive() && (cLen == 1);        
+        toplevelCheck &= lit->isPositive() && (cLen == 1);
       }
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
@@ -123,18 +123,19 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         // to deal with polymorphic matching
-        // Ideally, we would like to extend the substitution 
+        // Ideally, we would like to extend the substitution
         // returned by the index to carry out the sort match.
         // However, ForwardDemodulation uses a CodeTree as its
         // indexing mechanism, and it is not clear how to extend
         // the substitution returned by a code tree.
-        static RobSubstitution subst; 
+        static RobSubstitution subst;
         bool resultTermIsVar = qr.term.isVar();
         if(resultTermIsVar){
+          TermList querySort = trm.sort();
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          subst.reset(); 
+          subst.reset();
           if(!subst.match(eqSort, 0, querySort, 1)){
-            continue;        
+            continue;
           }
         }
 
@@ -176,12 +177,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
-        if (toplevelCheck && _encompassing) { 
-          // this will only run at most once; 
-          // could have been factored out of the getGeneralizations loop, 
+        if (toplevelCheck && _encompassing) {
+          // this will only run at most once;
+          // could have been factored out of the getGeneralizations loop,
           // but then it would run exactly once there
           Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
-          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) || 
+          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
               (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
             toplevelCheck = false;
           }

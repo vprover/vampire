@@ -120,12 +120,15 @@ struct PrimitiveInstantiation::ApplicableRewritesFn
     TermList lhs = *l->nthArgument(0);
     TermList rhs = *l->nthArgument(1);
    
+    TypedTermList lhst(lhs, SortHelper::getEqualityArgumentSort(l));
+    TypedTermList rhst(rhs, SortHelper::getEqualityArgumentSort(l));
+
     TermStack args;
     TermList head;
 
     ApplicativeHelper::getHeadAndArgs(lhs, head, args);
      
-    return pvi(_index->getUnifications((head.isVar() ? lhs : rhs)));
+    return pvi(_index->getUnifications((head.isVar() ? lhst : rhst)));
   }
 private:
   PrimitiveInstantiationIndex* _index;

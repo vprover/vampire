@@ -78,7 +78,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
+  VirtualIterator<pair<TypedTermList,TermQueryResult> > operator() (TypedTermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -92,14 +92,16 @@ struct BackwardDemodulation::ResultFn
   typedef DHMultiset<Clause*> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent)
-  : _cl(cl), _parent(parent), _ordering(parent._salg->getOrdering())
+  : _cl(cl), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
-    _encompassing = parent.getOptions().demodulationEncompassment();
+    _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
+    _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
   }
+
   /**
    * Return pair of clauses. First clause is being replaced,
    * and the second is the clause, that replaces it. If no
@@ -124,27 +126,11 @@ struct BackwardDemodulation::ResultFn
 
     TermList lhs=arg.first;
 
-    TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-
-    /* The following check replaces the original:
-      "if(qrSort!=_eqSort) {
-         return BwSimplificationRecord(0);
-      }"
-      from the monomorphic setting */
-    if(lhs.isVar()){
-      //when finding instances of a variable, RobSubstitution is used
-      //view Indexing::TermSubstitutionTree::getInstances
-      RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
-      ASS(sub)
-      //rather than 0 and 1, we should use the constants delared in
-      //substitution tree
-      if(!sub->match(_eqSort, 0, qrSort, 1)){
-        return BwSimplificationRecord(0);        
-      }
-    }
+    // AYB there used to be a check here to ensure that the sorts
+    // matched. This is no longer necessary, as sort matching / unification
+    // is handled directly within the tree
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-
     TermList lhsS=qr.term;
     TermList rhsS;
 
@@ -170,8 +156,7 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(_parent.getOptions().demodulationRedundancyCheck() && qr.literal->isEquality() &&
-      (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) && 
+    if(_redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
       // encompassment has issues only with positive units
       (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1))) {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
@@ -253,9 +238,9 @@ private:
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
 
+  bool _redundancyCheck;
   bool _encompassing;
 
-  BackwardDemodulation& _parent;
   Ordering& _ordering;
 };
 
