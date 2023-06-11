@@ -273,7 +273,7 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
 {
   CALL("ChoiceDefinitionISE::simplify");
 
-  if (c->length() != 2) {
+  if (c->length() != 2 || !c->noSplits()) {
     return c;
   }
 
