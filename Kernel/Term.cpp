@@ -677,11 +677,21 @@ bool TermList::containsLooseIndex() const {
     unsigned depth;
   };
 
+  auto needToCheck = [](TermList t){
+    if(t.isVar() || !t.term()->hasDBIndex()) return false;
+    return true;
+  };
+
   Stack<TermListWD> toDo;
   toDo.push( TermListWD { .t = *this, .depth = 0,  });
 
   while(!toDo.isEmpty()){
     auto item = toDo.pop();
+    
+    if(!needToCheck(iterm.t)){
+      continue;
+    }
+
     unsigned dep = item.depth;
     if(item.t.deBruijnIndex().isSome()){
       unsigned idx = item.t.deBruijnIndex().unwrap();
