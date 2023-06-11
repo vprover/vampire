@@ -143,11 +143,12 @@ class Definizator : public BottomUpTermTransformer {
       TermList res;
       if (!_cache.find(key,symAndDef)) {
         TermList outSort = SortHelper::getResultSort(t);
-        SortHelper::normaliseSort(_typeVars, outSort);
-
         unsigned newSym;
         Clause* newDef;
         scanVars(t);
+
+        SortHelper::normaliseSort(_typeVars, outSort);
+
 
         // will the definition folding decrease term weight?
         // (whether we will also demodulate in this direction may depend on the ordering, but with a constant-weight KBO we will)
@@ -203,7 +204,17 @@ class Definizator : public BottomUpTermTransformer {
         }
 
         scanVars(t);
-        res = TermList(Term::create(symAndDef.first,_allVars.size(),_allVars.begin()));
+#if VHOL
+        if(!env.property->higherOrder()){
+#endif
+          res = TermList(Term::create(symAndDef.first,_allVars.size(),_allVars.begin()));
+#if VHOL           
+        } else {
+          TermList head = TermList(Term::create(symAndDef.first, _typeVars.size(), _typeVars.begin()));
+          res= ApplicativeHelper::app(head, _termVars);
+        }
+#endif
+
       }
       // record as a new premise
       UnitList::push(symAndDef.second,premises);
