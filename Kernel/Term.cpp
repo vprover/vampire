@@ -678,7 +678,7 @@ bool TermList::containsLooseIndex() const {
   };
 
   auto needToCheck = [](TermList t){
-    if(t.isVar() || !t.term()->hasDBIndex()) return false;
+    if(t.isVar() || (t.term()->shared() && !t.term()->hasDBIndex())) return false;
     return true;
   };
 
@@ -688,7 +688,7 @@ bool TermList::containsLooseIndex() const {
   while(!toDo.isEmpty()){
     auto item = toDo.pop();
     
-    if(!needToCheck(iterm.t)){
+    if(!needToCheck(item.t)){
       continue;
     }
 
