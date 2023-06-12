@@ -433,7 +433,7 @@ void Options::init()
     "where s (or conversely t) is ground and has weight greater or equal than w "
     "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.";
-    _inequalitySplitting.addProblemConstraint(hasEquality());
+    // _inequalitySplitting.addProblemConstraint(hasEquality()); // in HO varions axioms may add equality on which we can possibly split
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
 
