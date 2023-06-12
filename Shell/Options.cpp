@@ -3449,6 +3449,11 @@ void Options::trySamplingStrategy()
       float exped = powf(2.0,raw);
       unsigned denom = 1 << 20;
       unsigned numer = exped*denom;
+      // don't generate factions in non-base form
+      while (numer % 2 == 0 && denom % 2 == 0) {
+        numer /= 2;
+        denom /= 2;
+      }
       strategySamplingAssign(optname,Int::toString(numer)+pieces[2]+Int::toString(denom),fakes);
 
       pieces.reset();
