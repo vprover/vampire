@@ -167,7 +167,7 @@ bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
 > etr ~cat off:500,on:30
 
 # extensionality_resolution
-> er ~cat off:500,known:25,filter:26
+ins=0 > er ~cat off:500,known:25,filter:26
 
 # fool_paramodulation
 > foolp ~cat off:10,on:1
