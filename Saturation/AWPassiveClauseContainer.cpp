@@ -83,6 +83,13 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
     }
   }
   
+  if(_manual){
+    std::ofstream file("manual_selections.txt", std::ios::trunc);
+    
+    if (file.is_open()) {
+      file.close();
+    }
+  }
 
   if(_opt.ageWeightRatioShape() == Options::AgeWeightRatioShape::CONVERGE) {
     _ageRatio = 1;
@@ -336,6 +343,17 @@ Clause* AWPassiveClauseContainer::popSelected()
           it.reset();
         }
       }
+
+      if(_manual){
+        std::ofstream file("manual_selections.txt", std::ios::out | std::ios::app);
+        
+        if (file.is_open()) {
+          file << Int::toString(selectedId) + "\n";
+          file.close();
+        }
+      }
+ 
+
     }
 
     _ageQueue.remove(c);

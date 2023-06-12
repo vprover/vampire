@@ -251,6 +251,14 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
             std::cout << "User error: No literal with id " << id << "!\n";
           }
         }
+
+        std::ofstream file("manual_selections.txt", std::ios::out | std::ios::app);
+        
+        if (file.is_open()) {
+          file << Int::toString(selectedId) + "\n";
+          file.close();
+        }
+        
       }
     }
    

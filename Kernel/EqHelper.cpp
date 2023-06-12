@@ -239,6 +239,11 @@ TermIterator EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering
   CALL("EqHelper::getRewritableSubtermIterator");
 
   if (lit->isEquality()) {
+    if(env.options->unorderedParamodulation()){
+      SubtermIterator si(lit);
+      return getUniquePersistentIteratorFromPtr(&si);
+    }
+
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE: {
@@ -347,12 +352,30 @@ TermIterator EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering&
           std::cout << "User error: " << id << " is not 0 or 1!\n";
         }
       }
+
+      std::ofstream file("manual_selections.txt", std::ios::out | std::ios::app);
+      
+      if (file.is_open()) {
+        file << Int::toString(selectedId) + "\n";
+        file.close();
+      }
+
     }
 
     if(selectedId == 0){
       return pvi( getSingletonIterator(*lit->nthArgument(0)) );
     }
     return pvi( getSingletonIterator(*lit->nthArgument(1)) );
+  }
+
+  if(opt.unorderedParamodulation()){
+    if (lit->isEquality() && lit->isPositive()) {
+      return pvi( getConcatenatedIterator(
+          getSingletonIterator(*lit->nthArgument(0)),
+          getSingletonIterator(*lit->nthArgument(1))) );
+    } else {
+      return TermIterator::getEmpty();
+    }
   }
 
   if (opt.superpositionFromVariables()) {

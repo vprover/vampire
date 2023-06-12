@@ -2411,6 +2411,7 @@ public:
   bool eqToIneq() const { return _eqToIneq.actualValue; }
   bool inequalityChaining() const { return _inequalityChaining.actualValue; }
   PointerChaining pointerChaining() const { return _pointerChaining.actualValue; }
+  bool unorderedParamodulation() const { return _unorderedParamodulation.actualValue; }
   ChainLengthReasoning chainLengthReasoning() const { return _chainLengthReasoning.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
@@ -2936,6 +2937,7 @@ private:
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
  
   StringOptionValue _selectionChoiceFile;  
+  BoolOptionValue _unorderedParamodulation;
 
   //Higher-order options
   BoolOptionValue _addCombAxioms;

@@ -1503,6 +1503,11 @@ void Options::init()
     _chainLengthReasoning.tag(OptionTag::INFERENCES);
     _lookup.insert(&_chainLengthReasoning);
 
+    _unorderedParamodulation = BoolOptionValue("unordered_paramod","up",false);
+    _unorderedParamodulation.description = "rewrite with both sides of an equality regardless of the ordering";
+    _unorderedParamodulation.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_unorderedParamodulation);
+
     OptionChoiceValues integerInductionLiteralStrictnessValues {
       "none",
       "toplevel_not_in_other",
@@ -2556,7 +2561,7 @@ void Options::init()
     _selectionChoiceFile.setExperimental();
     _selectionChoiceFile.onlyUsefulWith(_manualClauseSelection.is(equal(true)));    
     _lookup.insert(&_selectionChoiceFile);
-
+ 
 
     _colorUnblocking = BoolOptionValue("color_unblocking","",false);
     _colorUnblocking.description="";

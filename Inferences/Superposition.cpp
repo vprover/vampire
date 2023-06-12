@@ -467,7 +467,8 @@ Clause* Superposition::performSuperposition(
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
-  if(!env.options->useManualSupLhsSelection() && !RapidHelper::forceOrder(tgtTermS,rwTermS)){
+  if(!env.options->unorderedParamodulation() && !env.options->useManualSupLhsSelection() && 
+     !RapidHelper::forceOrder(tgtTermS,rwTermS)){
     //check that we're not rewriting smaller subterm with larger
     if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
       return 0;

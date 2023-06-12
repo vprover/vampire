@@ -64,7 +64,8 @@ Clause* GroundReasoningISE::simplify(Clause* c)
   }
 
   // create SAT clause and add to solver
-  if(c->length() == 1 && (*c)[0]->ground()){
+  // noSplits condition is for soundness
+  if(c->length() == 1 && (*c)[0]->ground() && c->noSplits()){
     Literal* lit = (*c)[0];
     Signature::Symbol* sym = env.signature->getPredicate(lit->functor());
     if((lit->functor() != 0 && sym->interpreted()) || !interpNoEquality){
