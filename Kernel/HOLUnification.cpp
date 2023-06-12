@@ -410,18 +410,35 @@ private:
 
 class HOLUnification::HigherOrderUnifiersItWrapper: public IteratorCore<RobSubstitutionTL*> {
 public:
-  HigherOrderUnifiersItWrapper(TermList t1, TermList s1, TermList t2, TermList s2, bool funcExt) : _subst()
+  HigherOrderUnifiersItWrapper(TermList t1, TermList s1, TermList t2, TermList s2, bool funcExt) : 
+    _appUnif(env.options->applicativeUnify()),  _subst()
   {
     // this unification must pass, otherwise we wouldn't have reached a leaf  
     // however, we are forced to recompute it here with the new substitution (not ideal)    
     ALWAYS(_subst->unify(s1,s2));
-    _inner = vi(new HigherOrderUnifiersIt(t1, t2, &*_subst, funcExt));
+    if(_appUnif){
+      _success = _subst->unify(t1, t2, true);
+    } else {  
+      _inner = vi(new HigherOrderUnifiersIt(t1, t2, &*_subst, funcExt));
+    }
   }
 
-  bool hasNext() { return _inner.hasNext(); }
-  RobSubstitutionTL* next() { return _inner.next(); }
+  bool hasNext() { 
+    if(_appUnif){
+      bool suc = _success;
+      _success = false; 
+      return suc; 
+    }
+    return _inner.hasNext(); 
+  }
+  RobSubstitutionTL* next() {
+    if(_appUnif){ return &*_subst; } 
+    return _inner.next(); 
+  }
 
 private:
+  bool _appUnif;
+  bool _success;
   SubstIterator _inner;
   Recycled<RobSubstitutionTL> _subst;
 };
@@ -430,6 +447,11 @@ SubstIterator HOLUnification::unifiers(TermList t1, TermList t2, RobSubstitution
 {
   CALL("HOLUnification::unifiers");
 
+  if(env.options->applicativeUnify()){
+    if(sub->unify(t1,t2,true))
+    { return pvi(getSingletonIterator(sub)); }
+    return SubstIterator::getEmpty();
+  }
 
   if(sub->sameTermContent(t1,t2)) return pvi(getSingletonIterator(sub));
 

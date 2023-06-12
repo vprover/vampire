@@ -90,14 +90,15 @@ class Definizator : public BottomUpTermTransformer {
       VariableWithSortIterator it(t);
       while (it.hasNext()) {
         auto varAndSort = it.next();
-        unsigned v = varAndSort.first.var();
+        TermList v = varAndSort.first;
         TermList s = varAndSort.second;
-        if (varSeen.insert(v)) {
+        if (varSeen.insert(v.var())) {
           if(s == AtomicSort::superSort()) {
-            _allVars.push(TermList(v,false));
+            _allVars.push(v);
+            _typeVars.push(v);
           } else {
-            _termVars.push(TermList(v,false));
-            _termVarSorts.push(varAndSort.second);
+            _termVars.push(v);
+            _termVarSorts.push(s);
           }
         }
       }
