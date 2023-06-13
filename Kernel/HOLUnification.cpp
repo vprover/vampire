@@ -424,15 +424,14 @@ public:
   }
 
   bool hasNext() { 
-    if(_appUnif){
-      bool suc = _success;
-      _success = false; 
-      return suc; 
-    }
+    if(_appUnif){ return _success; }
     return _inner.hasNext(); 
   }
   RobSubstitutionTL* next() {
-    if(_appUnif){ return &*_subst; } 
+    if(_appUnif){ 
+      _success = false;
+      return &*_subst; 
+    } 
     return _inner.next(); 
   }
 
