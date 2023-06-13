@@ -79,14 +79,14 @@ void reportSpiderFail()
 void reportSpiderStatus(char status)
 {
 #if VZ3
-  if (spiderOutputDone) {
+  if (UIHelper::spiderOutputDone) {
     return;
   }
   if (Lib::env.options && Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
     return;
   }
 
-  spiderOutputDone = true;
+  UIHelper::spiderOutputDone = true;
 
   // compute Vampire Z3 version and commit
   vstring version = VERSION_STRING;
