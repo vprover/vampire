@@ -32,7 +32,7 @@ $nm=NZ > nm ~sgd 0.07,2
 > rp ~cat off:3,on:1
 
 # twee_goal_transformation (not currently with HO)
-# > tgt ~cat off:10,ground:6,full:5
+> tgt ~cat off:10,ground:6,full:5
 
 # set_of_support
 > sos ~cat off:80,on:17,all:10
