@@ -423,6 +423,7 @@ public:
     SMTCOMP_2018,
     SNAKE_TPTP_UNS,
     SNAKE_TPTP_SAT,
+    SNAKE_TPTP_HOL,
     STRUCT_INDUCTION
   };
 

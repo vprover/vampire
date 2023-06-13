@@ -270,12 +270,11 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
     schedule.loadFromIterator(main.iterFifo());
     addScheduleExtra(main,schedule,"rp=on:de=on"); // random polarities, demodulation encompassment
-    
   } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_SAT) {
     ASS(fallback.isEmpty());
 
     schedule.loadFromIterator(main.iterFifo());
-    addScheduleExtra(main,schedule,"rp=on:fmbksg=on:de=on"); // random polarities, demodulation encompassment for saturation, fmbksg for the fmb's    
+    addScheduleExtra(main,schedule,"rp=on:fmbksg=on:de=on"); // random polarities, demodulation encompassment for saturation, fmbksg for the fmb's
   } else {
     // all other schedules just get loaded plain
 
@@ -370,6 +369,9 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     break;
   case Options::Schedule::SNAKE_TPTP_SAT:
     Schedules::getSnakeTptpSatSchedule(prop,quick);
+    break;
+  case Options::Schedule::SNAKE_TPTP_HOL:
+    Schedules::getSnakeTptpHolSchedule(prop,quick);
     break;
 
   case Options::Schedule::CASC_2019:

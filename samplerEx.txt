@@ -381,3 +381,6 @@ func_ext!=axiom > pe ~cat off:1,on:1
 
 # pragmatic
 hud!=0 > prag ~cat off:1,on:1
+
+# applicative_unif
+> au ~cat off:1,on:1
