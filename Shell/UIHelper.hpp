@@ -78,6 +78,11 @@ private:
 
   static bool s_haveConjecture;
   static bool s_proofHasConjecture;
+
+  /** To avoid duplicate Spider outputs, which are are hard to control 
+   *  in presence of exceptions */
+  static bool spiderOutputDone;
+
 #if VDEBUG
   static bool _inputHasBeenRead;
 #endif
