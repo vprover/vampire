@@ -1794,7 +1794,7 @@ void Options::init()
     _applicativeUnify = BoolOptionValue("applicative_unif","au",false);
     _applicativeUnify.onlyUsefulWith(InferencingSaturationAlgorithm());
     _applicativeUnify.addProblemConstraint(hasHigherOrder());   
-    _applicativeUnify.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::ABSTRACTION)));
+    // _applicativeUnify.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::ABSTRACTION))); // not good for minimizer: defaulting fe to abstraction would trigger turning off au, which will not be the same
     _applicativeUnify.description= "Carries out first-order applicative unification instead of higher-order unification";
     _lookup.insert(&_applicativeUnify);
     _applicativeUnify.tag(OptionTag::HIGHER_ORDER);
