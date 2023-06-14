@@ -330,9 +330,16 @@ void Options::init()
     _printVarBanks.tag(OptionTag::OUTPUT);
 #endif
 
-    _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
+    _printDefaultSorts = BoolOptionValue("print_def_sorts","pds",false);
+    _printDefaultSorts.description="Output variable sort in quantifier list, even if sort is default ($i)\n"
+                                   "Useful as some of Geoff's proof tools don't work with implicit sorts";
+    _lookup.insert(&_printDefaultSorts);
+    _printDefaultSorts.tag(OptionTag::OUTPUT);   
+
+    _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free", "unifier", "full"});
     _proofExtra.description="Add extra detail to proofs:\n "
       "- free uses known information only\n" 
+      "- unifier records the actual unifer used in superposition\n"
       "- full may perform expensive operations to acheive this so may"
       " significantly impact on performance.\n"
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases";

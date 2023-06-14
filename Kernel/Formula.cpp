@@ -185,6 +185,7 @@ vstring Formula::toString () const
         SList::Iterator ss(f->sorts());
         bool hasSorts = f->sorts();
         bool first=true;
+        bool printDefs = env.options->printDefaultSorts();
         while (vs.hasNext()) {
           int var = vs.next();
           if (!first) {
@@ -195,10 +196,10 @@ vstring Formula::toString () const
           if (hasSorts) {
             ASS(ss.hasNext());
             t = ss.next();
-            if (t != AtomicSort::defaultSort()) {
+            if (t != AtomicSort::defaultSort() || printDefs) {
               res += " : " + t.toString();
             }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != AtomicSort::defaultSort()) {
+          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && (t != AtomicSort::defaultSort() || printDefs)) {
             res += " : " + t.toString();
           }
           first = false;
@@ -213,6 +214,11 @@ vstring Formula::toString () const
 
     case BOOL_TERM: {
       vstring term = f->getBooleanTerm().toString();
+#if VHOL
+      if(env.property->higherOrder() && f->getBooleanTerm().isApplication()){
+        term = "(" + term + ")";
+      }
+#endif
       res += env.options->showFOOL() ? "$formula{" + term + "}" : term;
 
       continue;

@@ -485,6 +485,20 @@ Clause* Superposition::performSuperposition(
     }
     env.proofExtra->insert(res,extra);
   }
+
+  // Commenting this out to avoid disturbing Snake schedule just before
+  // CASC 2023. After competition can uncomment below in order to be able
+  // to collect unifier information
+  /*if(env.options->proofExtra() == Options::ProofExtra::UNIFIER){
+    vstringstream ss;
+    ss << *subst;
+    vstring unifStr = ss.str();
+    unifStr = " unifier: \n" + unifStr;
+    if (!env.proofExtra) {
+      env.proofExtra = new DHMap<const Unit*,vstring>();
+    }    
+    env.proofExtra->insert(res,unifStr);
+  }*/
   
   (*res)[0] = tgtLitS;
   int next = 1;

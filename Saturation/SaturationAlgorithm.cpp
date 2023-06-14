@@ -1563,7 +1563,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(res->_instantiation);
   }
 
-  if (prb.hasEquality()) {
+  if (prb.hasEquality() || opt.FOOLParamodulation()
+#if VHOL // cases and foolParamodulation can introduce equality into a problem which has none
+  ||  opt.cases()
+#endif
+    ) {
     gie->addFront(new EqualityFactoring());
     gie->addFront(new EqualityResolution());
 #if VHOL
@@ -1601,7 +1605,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ElimLeibniz());
   }
 
-  if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
+  if (opt.cases() && prb.hasFOOL()) {
     gie->addFront(new Cases());
   }
 

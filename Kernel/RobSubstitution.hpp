@@ -224,9 +224,9 @@ public:
    * This the same as first-order unification, but we need an added check to ensure that we never bind a variable
    * to a term that contains a loose index. To use this form of unification, the flag applicativeUnify is added.
    */
-  bool unify(TermSpecOrList t1, TermSpecOrList t2,
+  bool unify(TermSpecOrList t1, TermSpecOrList t2
 #if VHOL
-    bool applicativeUnify = false
+    , bool applicativeUnify = false
 #endif
   );
   bool match(TermSpecOrList base, TermSpecOrList instance, VarBankOrInt baseBank);

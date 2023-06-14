@@ -1130,7 +1130,7 @@ vstring TermList::toString() const
   }
 
 #if VHOL
-  if(env.options->holPrinting() == Options::HPrinting::PRETTY){
+  if(env.property->higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY){
     if(ApplicativeHelper::isTrue(*this)){
       return "⊤";
     }
@@ -1294,6 +1294,7 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
     if(findVar(deBruijnIndex().unwrap(), st, var)){
       return (pretty ? "y" : "Y") + Int::toString(var);
     } else {
+      // loose bound index
       return "db" + Int::toString(deBruijnIndex().unwrap());
     }
   }
@@ -1367,6 +1368,14 @@ vstring Literal::toString() const
   if (isEquality()) {
     const TermList* lhs = args();
     vstring s = lhs->toString();
+
+#if VHOL
+    if(env.property->higherOrder() && env.options->holPrinting() != Options::HPrinting::RAW &&
+       lhs->isApplication()){
+      s = "(" + s + ")";
+    }
+#endif
+
     vstring eqSym = isPositive() ? " = " : " != ";
 #if VHOL
     if(env.options->holPrinting() == Options::HPrinting::PRETTY){
@@ -1375,7 +1384,16 @@ vstring Literal::toString() const
 #endif    
     s += eqSym;
 
-    vstring res = s + lhs->next()->toString();
+    vstring rhs = lhs->next()->toString();
+
+#if VHOL
+    if(env.property->higherOrder() && env.options->holPrinting() != Options::HPrinting::RAW &&
+       lhs->next()->isApplication()){
+      rhs = "(" + rhs + ")";
+    }
+#endif
+
+    vstring res = s + rhs;
     if (
 #if VHOL
        env.property->higherOrder() ||

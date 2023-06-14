@@ -287,6 +287,7 @@ public:
   enum class ProofExtra : unsigned int {
     OFF,
     FREE,
+    UNIFIER,
     FULL
   };
   enum class FMBWidgetOrders : unsigned int {
@@ -2105,6 +2106,7 @@ public:
 #if VDEBUG
   bool printVarBanks() const { return _printVarBanks.actualValue; }
 #endif 
+  bool printDefaultSorts() const { return _printDefaultSorts.actualValue; }
 
   bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
@@ -2727,6 +2729,7 @@ private:
 #if VDEBUG
   BoolOptionValue _printVarBanks;
 #endif  
+  BoolOptionValue _printDefaultSorts;
   BoolOptionValue _printClausifierPremises;
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
