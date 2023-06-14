@@ -1814,6 +1814,15 @@ void Options::init()
     _lookup.insert(&_higherOrderUnifDepth);
     _higherOrderUnifDepth.tag(OptionTag::HIGHER_ORDER);
 
+    _takeNUnifiersOnly = UnsignedOptionValue("take_n_unifiers","tnu",0);
+    _takeNUnifiersOnly.description = "Only take the first n unifiers returned by the higher-order unification iterator. 0 means don't use this option";
+    _takeNUnifiersOnly.addProblemConstraint(hasHigherOrder());
+    _takeNUnifiersOnly.addHardConstraint(If(notEqual(0u)).then(_applicativeUnify.is(equal(false))));
+    _takeNUnifiersOnly.addHardConstraint(lessThan(10u));
+    _takeNUnifiersOnly.addHardConstraint(greaterThan(0u));
+    _lookup.insert(&_takeNUnifiersOnly);
+    _takeNUnifiersOnly.tag(OptionTag::HIGHER_ORDER);
+
     _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
     _addProxyAxioms.description="Add logical proxy axioms";
     _lookup.insert(&_addProxyAxioms);

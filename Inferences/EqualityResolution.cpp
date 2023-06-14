@@ -157,7 +157,8 @@ struct EqualityResolution::ResultFn
       env.statistics->equalityResolution++;
       results->push(res);
       // would like to do the below, but exiting higher-order iterator early causes
-      // some issue which I haven;t tracked at the moment. TODO
+      // some issue wrelating to celeting the underlying Substitution whilst it is still
+      // recording. TODO fix this and add code back in
       //if(res->isEmpty()){
         // derived the empty clause, no need to continue with loop
         //break;

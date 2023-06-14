@@ -42,7 +42,7 @@ public:
 
   HigherOrderUnifiersIt(TermList t1, TermList t2, RobSubstitutionTL* subst, bool funcExt) :
     _used(false), _solved(false), _topLevel(true), _funcExt(funcExt), _depth(0), 
-    _freshVar(0, VarBank::FRESH_BANK), _subst(subst){
+    _unifiersReturned(0), _freshVar(0, VarBank::FRESH_BANK), _subst(subst){
     CALL("HOLUnification::HigherOrderUnifiersIt::HigherOrderUnifiersIt");
 
     BacktrackData bd;
@@ -122,13 +122,18 @@ public:
   bool hasNext() {
     CALL("HOLUnification::HigherOrderUnifiersIt::hasNext");
     
-    static unsigned depth = env.options->higherOrderUnifDepth();
-
-    if((_solved || solved()) && !_used) // the solved() check ensures that when we start with a flex-flex we return true straight away
-    { return true; }
+    static unsigned maxUnifiers = env.options->takeNUnifiersOnly();    
+    static unsigned depth       = env.options->higherOrderUnifDepth();
 
     if(_subst->bdIsRecording())
       _subst->bdDone();
+
+    if(maxUnifiers && _unifiersReturned == maxUnifiers){
+      return false;
+    }
+
+    if((_solved || solved()) && !_used) // the solved() check ensures that when we start with a flex-flex we return true straight away
+    { return true; }
 
     _used = false;
  
@@ -332,6 +337,7 @@ public:
     // don't stop recording here
     // instead, let RObSubstitution do its free variable renaming
     // on top member of BdStack, so that it is undone by a call to bactrack()
+    _unifiersReturned++;
     _used = true;
     _solved = false;
     return _subst;
@@ -401,6 +407,7 @@ private:
   bool _topLevel;
   bool _funcExt;
   unsigned _depth;
+  unsigned _unifiersReturned;
   SkipList<HOLConstraint,HOLCnstComp> _unifPairs;
   Recycled<Stack<BacktrackData>> _bdStack;
   Recycled<Stack<TermStack>> _bindings;

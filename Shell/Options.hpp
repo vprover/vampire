@@ -2447,6 +2447,7 @@ public:
   bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   bool applicativeUnify() const { return _applicativeUnify.actualValue; }
   unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
+  unsigned takeNUnifiersOnly() const { return _takeNUnifiersOnly.actualValue; }
 #endif
   // For unit testing
 
@@ -2897,6 +2898,7 @@ private:
   // BoolOptionValue _complexVarCondition;
   ChoiceOptionValue<HPrinting> _holPrinting;
   UnsignedOptionValue _higherOrderUnifDepth;  
+  UnsignedOptionValue _takeNUnifiersOnly;
 #endif
 
 }; // class Options
