@@ -1819,7 +1819,6 @@ void Options::init()
     _takeNUnifiersOnly.addProblemConstraint(hasHigherOrder());
     _takeNUnifiersOnly.addHardConstraint(If(notEqual(0u)).then(_applicativeUnify.is(equal(false))));
     _takeNUnifiersOnly.addHardConstraint(lessThan(10u));
-    _takeNUnifiersOnly.addHardConstraint(greaterThan(0u));
     _lookup.insert(&_takeNUnifiersOnly);
     _takeNUnifiersOnly.tag(OptionTag::HIGHER_ORDER);
 
