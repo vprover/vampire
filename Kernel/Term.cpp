@@ -1305,7 +1305,7 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
   bool hasArgs = args.size();
 
   vstring headStr;
-  if(head.isVar() || (head.deBruijnIndex().isSome() && !db) || head.isLambdaTerm()){ 
+  if(head.isVar() || (head.deBruijnIndex().isSome() && !db) || head.isLambdaTerm() || head.term()->isSpecial()){ 
     headStr = termToStr(head,false,st);
   }
   else if(head.isNot()){ headStr = pretty ? "¬" : "~"; }
@@ -1319,7 +1319,7 @@ vstring Term::toString(bool topLevel, IndexVarStack& st) const
   else if(head.isIff() || head.isEquals()){ headStr = pretty ? "≈" : "="; } // @=???
   else if(ApplicativeHelper::isTrue(head)){ headStr = pretty ? "⊤" : "$true"; }
   else if(ApplicativeHelper::isFalse(head)){ headStr = pretty ? "⊥" : "$false"; }  
-  else { 
+  else {
     headStr = head.term()->functionName();
     if(head.deBruijnIndex().isSome()){
       headStr = headStr + "_" + Int::toString(head.deBruijnIndex().unwrap());
