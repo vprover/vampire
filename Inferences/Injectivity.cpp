@@ -71,6 +71,12 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   ApplicativeHelper::getHeadAndArgs(lhsM, headLhs, argsLhs);
   ApplicativeHelper::getHeadAndArgs(rhsM, headRhs, argsRhs);
 
+  if(headLhs != headRhs || headLhs.isVar())
+  { return ClauseIterator::getEmpty(); }
+  // assertion below holds, since lhsM and rhsM have same types and neither is a lambda term
+  ASS(argsLhs.size() == argsRhs.size());
+
+
   // TODO inelegant stuff here
   // THe reason we get the sorts from the type instead of using getHeadArgsAndSorts
   // is become we want the original non-instantiated sorts...
@@ -79,11 +85,6 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
     argSorts.push(headLhsSort.domain());
     headLhsSort = headLhsSort.result();
   }
-
-  if(headLhs != headRhs || headLhs.isVar())
-  { return ClauseIterator::getEmpty(); }
-  // assertion below holds, since lhsM and rhsM have same types and neither is a lambda term
-  ASS(argsLhs.size() == argsRhs.size());
 
   bool differingArgFound = false;
   termArgs.push(lhsM);
