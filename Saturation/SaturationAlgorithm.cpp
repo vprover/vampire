@@ -83,7 +83,7 @@
 #include "Inferences/Cases.hpp"
 #include "Inferences/ImitateProject.hpp"
 #include "Inferences/BoolEqToDiseq.hpp"
-//#include "Inferences/Injectivity.hpp"
+#include "Inferences/Injectivity.hpp"
 #include "Inferences/BetaEtaISE.hpp"
 #include "Inferences/FlexFlexSimplify.hpp"
 #include "Inferences/PositiveExt.hpp"
@@ -1616,6 +1616,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new LazyClausificationGIE());
     }
   }    
+
+  if (prb.higherOrder() && opt.injectivityReasoning()) {
+    gie->addFront(new Injectivity());
+  }
 #endif
 
   gie->addFront(new Factoring());
@@ -1659,9 +1663,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif    
   }
 
-  /*if (opt.injectivityReasoning()) {
-    gie->addFront(new Injectivity());
-  }*/
   if(prb.hasEquality() && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
       gie->addFront(new AcyclicityGIE());

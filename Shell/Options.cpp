@@ -1845,13 +1845,13 @@ void Options::init()
     _priortyToLongReducts.description="give priority to clauses produced by lengthy reductions";
     _lookup.insert(&_priortyToLongReducts);
     _priortyToLongReducts.addProblemConstraint(hasHigherOrder());        
-    _priortyToLongReducts.tag(OptionTag::HIGHER_ORDER);
+    _priortyToLongReducts.tag(OptionTag::HIGHER_ORDER);*/
 
     _injectivity = BoolOptionValue("injectivity","inj",false);
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
     _lookup.insert(&_injectivity);
     _injectivity.addProblemConstraint(hasHigherOrder());            
-    _injectivity.tag(OptionTag::HIGHER_ORDER);*/
+    _injectivity.tag(OptionTag::HIGHER_ORDER);
 
     _pragmatic = BoolOptionValue("pragmatic","prag",false);
     _pragmatic.description="Modifes various parameters to help Vampire solve 'hard' higher-order";

@@ -332,8 +332,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/ElimLeibniz.hpp
     Inferences/Choice.cpp
     Inferences/Choice.hpp
-#    Inferences/Injectivity.hpp
-#    Inferences/Injectivity.cpp
+    Inferences/Injectivity.hpp
+    Inferences/Injectivity.cpp
     Inferences/BoolSimp.hpp
     Inferences/BoolSimp.cpp
     Inferences/CasesSimp.cpp
