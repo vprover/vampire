@@ -264,6 +264,9 @@ public:
   bool isPlaceholder() const;
   bool isChoice() const;
   bool containsLooseIndex() const;
+  // used in clause selection
+  // nuber of applued variables and lambdas in the term
+  unsigned numOfAppVarsAndLambdas() const;  
   Option<unsigned> deBruijnIndex() const;
   TermList lhs() const;
   TermList rhs() const;
@@ -1211,6 +1214,7 @@ public:
   bool isFlexFlex() const;
   bool isFlexRigid() const;
   bool isRigidRigid() const;  
+  unsigned numOfAppVarsAndLambdas() const;
 #endif
 
   /** true if positive */

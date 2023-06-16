@@ -709,6 +709,33 @@ bool TermList::containsLooseIndex() const {
   return false;
 }
 
+unsigned TermList::numOfAppVarsAndLambdas() const {
+  CALL("TermList::numOfAppVarsAndLambdas");
+
+  unsigned res = 0;
+  TermStack toDo;
+  toDo.push(*this);
+
+  while(!toDo.isEmpty()){
+    TermList t = toDo.pop();
+    if(t.isLambdaTerm()){
+      res++;
+      toDo.push(t.lambdaBody());
+    }
+    if(t.isApplication()){
+      TermList head;
+      TermStack args;
+      ApplicativeHelper::getHeadAndArgs(t, head, args);
+      ASS(!head.isLambdaTerm()); // should be beta-reduced
+      if(head.isVar()) res++;
+      while(!args.isEmpty()){
+        toDo.push(args.pop());
+      }
+    }
+  }
+  return res;
+}
+
 Option<unsigned> TermList::deBruijnIndex() const {
   CALL("TermList::deBruijnIndex");
   return isVar() ? Option<unsigned>() : term()->deBruijnIndex();  
@@ -2430,6 +2457,16 @@ bool Literal::isRigidRigid() const
   TermList lhs = *nthArgument(0);
   TermList rhs = *nthArgument(1);
   return lhs.head().isTerm() && rhs.head().isTerm();
+}
+
+unsigned Literal::numOfAppVarsAndLambdas() const 
+{
+  CALL("Literal::numOfAppVarsAndLambdas");
+  ASS(isEquality());
+
+  TermList lhs = *nthArgument(0);
+  TermList rhs = *nthArgument(1);
+  return lhs.numOfAppVarsAndLambdas() + rhs.numOfAppVarsAndLambdas();
 }
 
 #endif

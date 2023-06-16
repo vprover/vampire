@@ -2273,6 +2273,14 @@ public:
   Lib::vvector<float> theorySplitQueueCutoffs() const;
   int theorySplitQueueExpectedRatioDenom() const { return _theorySplitQueueExpectedRatioDenom.actualValue; }
   bool theorySplitQueueLayeredArrangement() const { return _theorySplitQueueLayeredArrangement.actualValue; }
+
+#if VHOL
+  bool hoFeaturesSplitQueues() const { return _hoFeaturesSplitQueues.actualValue; }
+  Lib::vvector<int> hoFeaturesSplitQueueRatios() const;
+  Lib::vvector<float> hoFeaturesSplitQueueCutoffs() const;
+  bool hoFeaturesSplitQueueLayeredArrangement() const { return _hoFeaturesSplitQueueLayeredArrangement.actualValue; }
+#endif  
+
   bool useAvatarSplitQueues() const { return _useAvatarSplitQueues.actualValue; }
   Lib::vvector<int> avatarSplitQueueRatios() const;
   Lib::vvector<float> avatarSplitQueueCutoffs() const;
@@ -2567,6 +2575,12 @@ private:
   StringOptionValue _theorySplitQueueCutoffs;
   IntOptionValue _theorySplitQueueExpectedRatioDenom;
   BoolOptionValue _theorySplitQueueLayeredArrangement;
+#if VHOL
+  BoolOptionValue _hoFeaturesSplitQueues;
+  StringOptionValue _hoFeaturesSplitQueueRatios;
+  StringOptionValue _hoFeaturesSplitQueueCutoffs;
+  BoolOptionValue _hoFeaturesSplitQueueLayeredArrangement;
+#endif
   BoolOptionValue _useAvatarSplitQueues;
   StringOptionValue _avatarSplitQueueRatios;
   StringOptionValue _avatarSplitQueueCutoffs;

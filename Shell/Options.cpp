@@ -1010,6 +1010,35 @@ void Options::init()
     _theorySplitQueueLayeredArrangement.onlyUsefulWith(_useTheorySplitQueues.is(equal(true)));
     _theorySplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
+#if VHOL
+
+    _hoFeaturesSplitQueues = BoolOptionValue("ho_feature_split_queue","hfsq",false);
+    _hoFeaturesSplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of higher-order featues)";
+    _hoFeaturesSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with theories...)
+    _hoFeaturesSplitQueues.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoFeaturesSplitQueues);
+    _hoFeaturesSplitQueues.tag(OptionTag::SATURATION);
+
+    _hoFeaturesSplitQueueCutoffs = StringOptionValue("ho_feature_split_queue_cutoffs", "hfsqc", "0");
+    _hoFeaturesSplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).";
+    _lookup.insert(&_hoFeaturesSplitQueueCutoffs);
+    _hoFeaturesSplitQueueCutoffs.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
+    _hoFeaturesSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _hoFeaturesSplitQueueRatios = StringOptionValue("ho_features_split_queue_ratios", "hfsqr", "1,1");
+    _hoFeaturesSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_hoFeaturesSplitQueueRatios);
+    _hoFeaturesSplitQueueRatios.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
+    _hoFeaturesSplitQueueRatios.tag(OptionTag::AVATAR);
+
+    _hoFeaturesSplitQueueLayeredArrangement = BoolOptionValue("ho_features_split_queue_layered_arrangement","hfsql",true);
+    _hoFeaturesSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_hoFeaturesSplitQueueLayeredArrangement);
+    _hoFeaturesSplitQueueLayeredArrangement.onlyUsefulWith(_useTheorySplitQueues.is(equal(true)));
+    _hoFeaturesSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
+#endif
+
     _useAvatarSplitQueues = BoolOptionValue("avatar_split_queue","avsq",false);
     _useAvatarSplitQueues.description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)";
     _lookup.insert(&_useAvatarSplitQueues);
@@ -4024,6 +4053,49 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
 
   return cutoffs;
 }
+
+#if VHOL
+
+Lib::vvector<int> Options::hoFeaturesSplitQueueRatios() const
+{
+  CALL("Options::hoFeaturesSplitQueueRatios");
+  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_hoFeaturesSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-hfsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-hfsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+Lib::vvector<float> Options::hoFeaturesSplitQueueCutoffs() const
+{
+  CALL("Options::hoFeaturesSplitQueueCutoffs");
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_hoFeaturesSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-hfsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+#endif
 
 Lib::vvector<int> Options::avatarSplitQueueRatios() const
 {

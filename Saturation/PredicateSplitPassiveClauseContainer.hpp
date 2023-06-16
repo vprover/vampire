@@ -100,6 +100,18 @@ private:
   float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
 };
 
+#if VHOL
+class HoFeaturesMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
+{
+public:
+  HoFeaturesMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
+
+private:
+  float evaluateFeature(Clause* cl) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
+};
+#endif
+
 class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
