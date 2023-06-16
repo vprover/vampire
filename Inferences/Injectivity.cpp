@@ -61,14 +61,24 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   TermList rhsS = *(sideLit->nthArgument(1));
 
   static TermStack argsLhs;//No need to reset because getHeadAndArgs resets
-  static TermStack argSorts;
-  static TermStack argsRhs;
+  static TermStack argsRhs;  
   TermStack termArgs;
+
+  TermStack argSorts; // sorts of argsLhs and argsRhs (not instantiated!)
   TermStack termArgSorts;
   TermList headLhs, headRhs, differingArg, differingArgSort;
 
-  ApplicativeHelper::getHeadArgsAndArgSorts(lhsM, headLhs, argsLhs, argSorts);
-  ApplicativeHelper::getHeadAndArgs        (rhsM, headRhs, argsRhs);
+  ApplicativeHelper::getHeadAndArgs(lhsM, headLhs, argsLhs);
+  ApplicativeHelper::getHeadAndArgs(rhsM, headRhs, argsRhs);
+
+  // TODO inelegant stuff here
+  // THe reason we get the sorts from the type instead of using getHeadArgsAndSorts
+  // is become we want the original non-instantiated sorts...
+  TermList headLhsSort = env.signature->getFunction(headLhs.term()->functor())->fnType()->result();
+  for(unsigned i = 0; i < argsLhs.size(); i++){
+    argSorts.push(headLhsSort.domain());
+    headLhsSort = headLhsSort.result();
+  }
 
   if(headLhs != headRhs || headLhs.isVar())
   { return ClauseIterator::getEmpty(); }
@@ -77,11 +87,12 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
 
   bool differingArgFound = false;
   termArgs.push(lhsM);
-  termArgSorts.push(SortHelper::getResultSort(lhsM.term()));
+  termArgSorts.push(headLhsSort);
+  int idx = argSorts.size() - 1;
   while(!argsLhs.isEmpty()){
     TermList argLhs = argsLhs.pop();
     TermList argRhs = argsRhs.pop();
-    TermList sort   = argSorts.pop();
+    TermList sort   = argSorts[idx];
     if(!argLhs.isVar() || !argRhs.isVar()){
       return ClauseIterator::getEmpty();
     }
@@ -101,6 +112,7 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
       termArgs.push(argLhs);
       termArgSorts.push(sort);
     }
+    idx--;
   }
 
   //at this point, we know the clause is of the form f x1 y x2... != f x1 z x2 ... \/ x = y 
@@ -130,6 +142,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, TermLi
 
   OperatorType* invFuncType = OperatorType::getConstantsType(invFunSort, oldhead.term()->arity());
   Signature::Symbol* invFunc = env.signature->getFunction(iFunc);
+
   invFunc->setType(invFuncType);
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));
 
