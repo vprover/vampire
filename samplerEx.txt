@@ -387,3 +387,12 @@ hud!=0 > prag ~cat off:1,on:1
 
 # take_n_unifiers
 au=off > tnu ~ui 0,9
+
+# injectivity
+> inj ~cat off:4,off:1
+
+# higher order split queue
+> hfsq ~cat off:3,on:1
+hfsq=on > hfsql ~cat off:4,on:1
+hfsq=on > hfsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+hfsq=on > hfsqr ~u2r -5;3;,
