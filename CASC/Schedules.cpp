@@ -3103,44 +3103,77 @@ void Schedules::getIntegerInductionSchedule(const Shell::Property& property, Sch
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
+// insertionsort/mset/conjecture:       lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+// insertionsort/mset/lemma1:           lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+//
+// insertionsort/sortedness/conjecture: lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+// insertionsort/sortedness/lemma1:     lrs+1002_1_aac=none:anc=all:sac=on:ind=struct:thsq=on:to=lpo:nui=on:drc=encompass:sik=recursion:urr=on_89
+//
+// mergesort/mset/conjecture:           lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// mergesort/mset/lemma1:               ???
+// mergesort/mset/lemma2:               lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// mergesort/mset/lemma3:               lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+//
+// mergesort/sortedness/conjecture:     lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// mergesort/sortedness/lemma1:         ???
+// mergesort/sortedness/lemma2:         lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on_89
+//
+// quicksort/mset/conjecture:           lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+// quicksort/mset/lemma1:               lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence_89
+// quicksort/mset/lemma2:               lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+//
+// quicksort/sortedness/conjecture:     lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// quicksort/sortedness/lemma1:         lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on_89
+// quicksort/sortedness/lemma2:         lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence_89
+// quicksort/sortedness/lemma3:         lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence:indao=on_100
+// quicksort/sortedness/lemma4:         lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on:indao=on_89
+// quicksort/sortedness/lemma5:         lrs+10_1_ind=struct:sos=theory:sstl=1:urr=on:nui=on:indao=on:sik=recursion:drc=encompass_89
+// quicksort/sortedness/lemma6:         lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on:indao=on_89
+// quicksort/sortedness/lemma7:         lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence:indao=on:nui=on_89
+
 void Schedules::getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
   // Empirically sorted (order somewhat guessed)
-  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1_89");
-  quick.push("dis+1002_1_aac=none:anc=all:ind=struct:sos=theory:sac=on:sstl=1:to=lpo_30");
-  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:to=lpo_89");
-  quick.push("lrs+10_1_av=off:br=off:ind=struct:urr=on_89");
-  quick.push("lrs+10_1_drc=off:ind=struct_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_ind=struct_89");
-  // The rest
-  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indoct=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indoct=on:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indoct=on_89");
-  quick.push("lrs+10_1_ind=struct:indoct=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_ind=struct:indoct=on_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:sos=theory:sstl=1:to=lpo_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:to=lpo_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_drc=off:ind=struct:indgen=on:indoct=on_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on:sos=theory:sstl=1_89");
-  quick.push("lrs+10_1_ind=struct:indgen=on:indoct=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=off:indoct=off:indao=on:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=off:indoct=off:indao=on:urr=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=off:indoct=off:indao=off:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=off:indoct=off:indao=off:urr=on_89");
 
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=off:indoct=on:indao=on:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=off:indoct=on:indao=on:urr=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=off:indoct=on:indao=off:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=off:indoct=on:indao=off:urr=on_89");
+
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=on:indoct=off:indao=on:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=on:indoct=off:indao=on:urr=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=on:indoct=off:indao=off:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=on:indoct=off:indao=off:urr=on_89");
+
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=on:indoct=on:indao=on:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=on:indoct=on:indao=on:urr=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=on:indoct=on:indao=off:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=recursion:nui=on:indoct=on:indao=off:urr=on_89");
+
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=off:indoct=off:indao=on:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=off:indoct=off:indao=on:urr=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=off:indoct=off:indao=off:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=off:indoct=off:indao=off:urr=on_89");
+
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=off:indoct=on:indao=on:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=off:indoct=on:indao=on:urr=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=off:indoct=on:indao=off:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=off:indoct=on:indao=off:urr=on_89");
+
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=on:indoct=off:indao=on:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=on:indoct=off:indao=on:urr=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=on:indoct=off:indao=off:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=on:indoct=off:indao=off:urr=on_89");
+
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=on:indoct=on:indao=on:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=on:indoct=on:indao=on:urr=on_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=on:indoct=on:indao=off:urr=off_89");
+  quick.push("lrs+10_1_ind=struct:sos=theory:sstl=1:drc=encompass:sp=occurrence:to=lpo:sik=one:nui=on:indoct=on:indao=off:urr=on_89");
+
+  quick.push("lrs+1002_1_aac=none:anc=all:sac=on:ind=struct:thsq=on:to=lpo:nui=on:drc=encompass:sik=recursion:urr=on_89");
   fallback.push("lrs+10_1__50");
 }
 
