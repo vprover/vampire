@@ -254,7 +254,9 @@ Option<NormalizationResult> normalizeDiv(NormalizationResult& lhs, Normalization
   using Numeral = typename NumTraits::ConstantType;
 
   auto num = rhs.apply(TryNumeral<NumTraits>{});
-  if (num.isSome() && num.unwrap() != Numeral(0)) {
+  if (num.isSome() &&
+      num.unwrap() != Numeral(0) && // don't divide by zero
+      num.unwrap() != Numeral(numeric_limits<int>::min())) { // also don't divide by min_int, it also can't be inverted in a reasonable way!
     auto inv = wrapNumeral(Numeral(1) / num.unwrap());
     return Option<NormalizationResult>(normalizeMul<NumTraits>(inv, lhs)); 
   } else {

@@ -72,12 +72,18 @@ public:
 
   static void setExpectingSat(){ s_expecting_sat=true; }
   static void setExpectingUnsat(){ s_expecting_unsat=true; }
+
+  /** To avoid duplicate Spider outputs, which are are hard to control 
+   *  in presence of exceptions */
+  static bool spiderOutputDone;
+
 private:
   static bool s_expecting_sat;
   static bool s_expecting_unsat;
 
   static bool s_haveConjecture;
   static bool s_proofHasConjecture;
+
 #if VDEBUG
   static bool _inputHasBeenRead;
 #endif
