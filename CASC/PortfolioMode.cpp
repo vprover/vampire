@@ -373,6 +373,10 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   case Options::Schedule::SNAKE_TPTP_HOL:
     Schedules::getSnakeTptpHolSchedule(prop,quick);
     break;
+  case Options::Schedule::SNAKE_SLH:
+    Schedules::getSnakeSlhSchedule(prop,quick);
+    break;
+
 
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
