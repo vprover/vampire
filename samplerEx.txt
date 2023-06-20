@@ -389,7 +389,7 @@ hud!=0 > prag ~cat off:1,on:1
 au=off > tnu ~ui 0,9
 
 # injectivity
-> inj ~cat off:4,off:1
+> inj ~cat off:4,on:1
 
 # higher order split queue
 > hfsq ~cat off:3,on:1
