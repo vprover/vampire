@@ -1035,7 +1035,7 @@ void Options::init()
     _hoFeaturesSplitQueueLayeredArrangement = BoolOptionValue("ho_features_split_queue_layered_arrangement","hfsql",true);
     _hoFeaturesSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
     _lookup.insert(&_hoFeaturesSplitQueueLayeredArrangement);
-    _hoFeaturesSplitQueueLayeredArrangement.onlyUsefulWith(_useTheorySplitQueues.is(equal(true)));
+    _hoFeaturesSplitQueueLayeredArrangement.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
     _hoFeaturesSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
 #endif
