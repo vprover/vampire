@@ -13,8 +13,8 @@ fi
 ./build
 ./push
 docker images
-./add problems/sample1
-./add problems/sample2
+./add problems/sample1.smt2
+./add problems/sample2.smt2
 ./list
 ./start_cluster $WORKERS 
 ./send_messages $WORKERS

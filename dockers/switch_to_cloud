@@ -1,0 +1,4 @@
+#!/bin/bash
+source AWS
+cd $INFRASTRUCTURE
+/update-solver-infrastructure --solver-type cloud
