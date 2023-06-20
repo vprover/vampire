@@ -426,6 +426,7 @@ public:
     SNAKE_TPTP_SAT,
     SNAKE_TPTP_HOL,
     SNAKE_SLH,
+    SNAKE_SLH2,
     STRUCT_INDUCTION
   };
 

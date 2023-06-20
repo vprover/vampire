@@ -172,6 +172,7 @@ void Options::init()
          "snake_tptp_sat",
          "snake_tptp_hol",
          "snake_slh",
+         "snake_slh2",
          "struct_induction"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
