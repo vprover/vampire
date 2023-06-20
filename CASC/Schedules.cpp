@@ -5130,3 +5130,63 @@ void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedul
   // Improves by expected 0.4363593202030057 probs costing 1274359 Mi
   // Overall score 2081.1804482430707 probs on average / budget 9091993 Mi
 }
+
+void Schedules::getCascSat2023Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  Property::Category cat = property.category();
+
+  switch (cat) {
+  case Property::FEQ:
+  case Property::NEQ:
+  case Property::HEQ:
+  case Property::PEQ:
+  case Property::UEQ:
+    // total time: 3267
+    quick.push("fmb+10_1_fmbas=expand:fmbsr=1.1:gsp=on:nm=4_215");
+    quick.push("fmb+10_1_fmbas=off:fmbdsb=on:fmbes=smt:fde=none:nm=16_270");
+    quick.push("fmb+10_1_bce=on:fmbdsb=on:fmbes=contour:fmbswr=3:fde=none:nm=0_415");
+    quick.push("fmb+10_1_bce=on:fmbas=function:fmbsr=1.2:fde=unused:nm=0_443");
+    quick.push("ott-10_8_av=off:bd=preordered:bs=on:fsd=off:fsr=off:fde=unused:irw=on:lcm=predicate:lma=on:nm=4:nwc=1.7:sp=frequency_273");
+    quick.push("ott-11_2:5_fsd=off:fde=none:nm=4:nwc=5.0:sims=off:sp=reverse_weighted_frequency_192");
+    quick.push("ott+10_10:1_add=off:afr=on:amm=off:anc=all:bd=off:bs=on:fsr=off:irw=on:lma=on:msp=off:nm=4:nwc=4.0:sac=on:sp=reverse_frequency_278");
+    quick.push("ott+1_64_av=off:bd=off:bce=on:fsd=off:fde=unused:gsp=on:irw=on:lcm=predicate:lma=on:nm=2:nwc=1.1:sims=off:urr=on_260");
+    quick.push("ott-11_10:1_aac=none:add=off:afr=on:amm=off:anc=all_dependent:bd=off:fsd=off:fde=none:gsp=on:irw=on:lma=on:nm=64:nwc=1.2:nicw=on:sas=z3:sp=occurrence_97");
+    quick.push("dis+2_11_add=large:afr=on:amm=off:bd=off:bce=on:fsd=off:fde=none:gs=on:gsaa=full_model:gsem=off:irw=on:msp=off:nm=4:nwc=1.3:sas=z3:sims=off:sac=on:sp=reverse_arity_298");
+    quick.push("ott+1_9_av=off:bd=off:bs=on:gsp=on:lcm=predicate:nm=4:sp=weighted_frequency:urr=on_200");
+    quick.push("dis-3_1_acc=on:anc=none:bd=preordered:fsd=off:fsr=off:fde=none:gs=on:gsem=on:lcm=predicate:lma=on:msp=off:nm=4:nicw=on:sims=off:sp=weighted_frequency:urr=ec_only_94");
+    quick.push("dis-3_6_add=off:afr=on:amm=off:anc=none:bd=off:bs=on:bsr=on:bce=on:fsd=off:fde=none:gsp=on:gs=on:gsaa=full_model:gsem=off:sims=off:sac=on:sp=reverse_frequency_47");
+    quick.push("ott+4_64_acc=on:anc=none:bs=on:bsr=on:fsd=off:gs=on:gsem=off:irw=on:msp=off:nwc=2.5:nicw=on:sims=off_185");
+    break;
+    
+  case Property::HNE:
+  case Property::NNE:
+  case Property::FNE:
+  case Property::EPR:
+    // total time: 1384
+    quick.push("dis+11_4:5_nm=4_113");
+    quick.push("fmb+10_1_bce=on:fmbas=expand:fmbksg=on:fmbsr=1.3_298");
+    quick.push("fmb+10_1_fmbas=off:fmbes=smt:fmbsr=2.0:nm=64_215");
+    quick.push("fmb+10_1_bce=on:fmbas=expand:fmbksg=on:fmbsr=1.3:gsp=on:nm=4_302");
+    quick.push("dis+1_20_av=off:lcm=predicate:nm=2:nwc=2.0_207");
+    quick.push("dis-2_2:3_amm=sco:anc=none:bce=on:fsr=off:gsp=on:nm=16:nwc=1.2:nicw=on:sac=on:sp=weighted_frequency_249");
+    break;
+  } 
+} // getCascSat2023Schedule
+
+void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  Property::Category cat = property.category();
+
+  switch (cat) {
+  case Property::FEQ:
+  case Property::NEQ:
+  case Property::HEQ:
+  case Property::PEQ:
+  case Property::UEQ:
+  case Property::HNE:
+  case Property::NNE:
+  case Property::FNE:
+  case Property::EPR:
+    break;
+  }
+} // getCasc2023Schedule
