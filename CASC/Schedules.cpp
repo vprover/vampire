@@ -5164,41 +5164,42 @@ void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, S
 
   if (property.hasNumerals()) { // slowness 2.0
     // total time: 4971
-    quick.push("lrs+2_32_add=large:amm=off:bd=off:bs=unit_only:drc=off:flr=on:fsd=off:fde=none:nm=0:nwc=1.1:sos=theory:sp=reverse_arity:tgt=ground:stl=90.0_1034");
+    quick.push("lrs+2_32_add=large:amm=off:bd=off:bs=unit_only:drc=off:flr=on:fsd=off:fde=none:nm=0:nwc=1.1:sos=theory:sp=reverse_arity:tgt=ground:stl=180_1034");
     quick.push("dis-1010_2:3_canc=force:fsd=off:fde=unused:gs=on:gsem=on:nm=0:nwc=1.3:sas=z3:tha=off:thf=on:uwa=ground_572");
     quick.push("dis-10_20_canc=force:fsd=off:gs=on:gsem=off:nm=0:sas=z3:sac=on:tha=off:thi=strong:tgt=ground_476");
     quick.push("dis-11_10:1_canc=force:fsd=off:nwc=1.5:sas=z3:tha=off:uwa=all_472");
-    quick.push("lrs+1010_2:1_amm=off:bs=on:bsr=on:canc=force:fsd=off:fsr=off:gs=on:gsaa=full_model:gsem=on:nm=0:nwc=1.3:sas=z3:sac=on:tha=off:thi=overlap:tgt=ground:uwa=ground:stl=30.0_408");
+    quick.push("lrs+1010_2:1_amm=off:bs=on:bsr=on:canc=force:fsd=off:fsr=off:gs=on:gsaa=full_model:gsem=on:nm=0:nwc=1.3:sas=z3:sac=on:tha=off:thi=overlap:tgt=ground:uwa=ground:stl=60_408");
     quick.push("ott+10_1024_av=off:bd=preordered:br=off:ep=RSTC:fsr=off:fde=none:nm=2:urr=on_318");
-    quick.push("lrs-1010_3_av=off:br=off:drc=off:er=known:fsd=off:fde=unused:nm=4:nwc=3.0:sp=scramble:urr=on:stl=90.0_280");
-    quick.push("lrs-1003_28_aac=none:amm=sco:anc=none:bd=preordered:bs=on:bsr=on:drc=off:fsr=off:gsp=on:gs=on:gsaa=from_current:inw=on:nwc=1.5:sas=z3:sos=all:sac=on:sp=frequency:tha=off:uwa=all:stl=90.0_226");
-    quick.push("lrs+1_15_bd=off:fsd=off:fde=unused:lcm=predicate:lma=on:nm=4:nwc=1.5:sos=all:sac=on:sp=occurrence:stl=30.0_160");
-    quick.push("lrs+1011_2:1_aac=none:add=off:bs=on:bsr=on:canc=cautious:fsd=off:fsr=off:fde=none:nm=2:nwc=1.7:nicw=on:sas=z3:sp=reverse_frequency:tha=some:thf=on:thi=full:tgt=full:uwa=all:stl=30.0_136");
+    quick.push("lrs-1010_3_av=off:br=off:drc=off:er=known:fsd=off:fde=unused:nm=4:nwc=3.0:sp=scramble:urr=on:stl=180_280");
+    quick.push("lrs-1003_28_aac=none:amm=sco:anc=none:bd=preordered:bs=on:bsr=on:drc=off:fsr=off:gsp=on:gs=on:gsaa=from_current:inw=on:nwc=1.5:sas=z3:sos=all:sac=on:sp=frequency:tha=off:uwa=all:stl=180_226");
+    quick.push("lrs+1_15_bd=off:fsd=off:fde=unused:lcm=predicate:lma=on:nm=4:nwc=1.5:sos=all:sac=on:sp=occurrence:stl=60_160");
+    quick.push("lrs+1011_2:1_aac=none:add=off:bs=on:bsr=on:canc=cautious:fsd=off:fsr=off:fde=none:nm=2:nwc=1.7:nicw=on:sas=z3:sp=reverse_frequency:tha=some:thf=on:thi=full:tgt=full:uwa=all:stl=60_136");
     quick.push("dis+1004_2:1_aac=none:drc=off:ep=RS:fsd=off:fde=none:gsp=on:gs=on:gsem=off:lcm=predicate:nm=2:nwc=1.2:sims=off:sos=all:sp=scramble_122");
     quick.push("dis+1004_9:1_acc=on:amm=sco:bsr=on:bce=on:drc=off:flr=on:irw=on:lma=on:msp=off:nwc=4.0:sac=on:sp=weighted_frequency_114");
-    quick.push("lrs+1011_2_av=off:canc=force:drc=off:nm=4:tgt=ground:stl=30.0_102");
+    quick.push("lrs+1011_2_av=off:canc=force:drc=off:nm=4:tgt=ground:stl=60_102");
     quick.push("dis-1010_5:1_add=off:bce=on:canc=cautious:cond=fast:er=known:fsd=off:fsr=off:fde=none:inw=on:lma=on:msp=off:nwc=1.5:sas=z3:sp=reverse_frequency:tha=off:thf=on:thi=overlap:tgt=ground:urr=ec_only_90");
     quick.push("ott-1003_8:1_add=large:afr=on:amm=off:anc=all:bsr=on:flr=on:fsr=off:gs=on:lcm=predicate:nm=0:nwc=1.2:sas=z3:sos=theory:sp=scramble:thf=on:thi=strong:uwa=ground_78");
     quick.push("ott+1_10:1_amm=sco:canc=force:fsd=off:fsr=off:fde=unused:inw=on:lma=on:nm=0:nwc=1.7:sas=z3:tha=some:thi=strong:tgt=ground_58");
-    quick.push("lrs+1011_4:1_canc=force:fsd=off:nwc=1.5:sas=z3:tgt=ground:stl=30.0_48");
+    quick.push("lrs+1011_4:1_canc=force:fsd=off:nwc=1.5:sas=z3:tgt=ground:stl=60_48");
     quick.push("dis+10_10:1_amm=off:bd=off:canc=cautious:fsd=off:fde=unused:sas=z3:sos=all:tha=off:uwa=interpreted_only_46");
     quick.push("ott+1002_5:1_add=off:afr=on:amm=off:bd=off:bs=unit_only:bsr=on:canc=cautious:cond=on:drc=off:fsd=off:fde=unused:irw=on:nm=64:nwc=1.5:sas=z3:sims=off:sac=on:tha=off:thi=all:uwa=all:urr=on_40");
-    quick.push("lrs+11_4:1_bs=on:canc=force:drc=off:fsd=off:fsr=off:fde=unused:nwc=1.5:sas=z3:sos=theory:sac=on:sp=reverse_frequency:thf=on:thi=strong:uwa=interpreted_only:stl=30.0_30");
+    quick.push("lrs+11_4:1_bs=on:canc=force:drc=off:fsd=off:fsr=off:fde=unused:nwc=1.5:sas=z3:sos=theory:sac=on:sp=reverse_frequency:thf=on:thi=strong:uwa=interpreted_only:stl=60_30");
     quick.push("dis-11_4:5_add=off:bsr=on:canc=cautious:fsd=off:fsr=off:gs=on:nm=16:nwc=1.3:sas=z3:sos=on:sac=on:tgt=ground:uwa=interpreted_only:urr=ec_only_30");
     quick.push("ott-3_5:1_aac=none:amm=off:anc=all:bd=off:br=off:cond=on:er=known:lcm=reverse:nm=16:nwc=4.0:sims=off:sac=on:urr=on_26");
-    quick.push("lrs+1_8:1_bd=off:bce=on:canc=force:fsd=off:fsr=off:gs=on:gsem=off:msp=off:nm=64:nwc=1.3:sas=z3:sims=off:sp=scramble:tha=off:tgt=full:urr=ec_only:stl=30.0_16");
-    quick.push("lrs-1002_1_afr=on:drc=off:er=known:flr=on:fsd=off:gs=on:gsem=on:inw=on:irw=on:lcm=predicate:nwc=3.0:sas=z3:sac=on:sp=frequency:tha=off:stl=30.0_16");
+    quick.push("lrs+1_8:1_bd=off:bce=on:canc=force:fsd=off:fsr=off:gs=on:gsem=off:msp=off:nm=64:nwc=1.3:sas=z3:sims=off:sp=scramble:tha=off:tgt=full:urr=ec_only:stl=60_16");
+    quick.push("lrs-1002_1_afr=on:drc=off:er=known:flr=on:fsd=off:gs=on:gsem=on:inw=on:irw=on:lcm=predicate:nwc=3.0:sas=z3:sac=on:sp=frequency:tha=off:stl=60_16");
     quick.push("dis+2_4:3_afr=on:anc=none:canc=force:fsd=off:nm=2:nwc=10.0:sas=z3:sos=theory:sac=on:sp=scramble:tha=off_12");
-    quick.push("lrs+1002_3:1_canc=force:drc=off:fsd=off:fde=unused:gs=on:gsem=off:irw=on:nm=0:nwc=2.0:sas=z3:sos=all:tha=off:thi=full:stl=30.0_10");
-    quick.push("lrs-10_6_aac=none:bs=on:canc=force:fsd=off:fde=none:gs=on:gsem=on:nwc=1.5:sas=z3:tha=off:tgt=ground:stl=30.0_8");
+    quick.push("lrs+1002_3:1_canc=force:drc=off:fsd=off:fde=unused:gs=on:gsem=off:irw=on:nm=0:nwc=2.0:sas=z3:sos=all:tha=off:thi=full:stl=60_10");
+    quick.push("lrs-10_6_aac=none:bs=on:canc=force:fsd=off:fde=none:gs=on:gsem=on:nwc=1.5:sas=z3:tha=off:tgt=ground:stl=60_8");
     quick.push("dis+1002_64_aac=none:canc=force:fsd=off:nm=4:sas=z3:sos=on:tha=off_8");
-    quick.push("lrs+1002_9:1_anc=all:br=off:canc=force:drc=off:fsd=off:fde=unused:gsp=on:nwc=1.1:sas=z3:sac=on:thi=all:urr=on:stl=30.0_8");
-    quick.push("lrs+11_4:5_bs=on:canc=cautious:fsd=off:fsr=off:gs=on:gsem=off:nm=4:sas=z3:tha=some:thf=on:thi=strong:tgt=ground:urr=on:stl=30.0_6");
-    quick.push("lrs+4_2:3_flr=on:nm=4:nwc=10.0:sas=z3:sac=on:sp=reverse_frequency:tgt=ground:stl=30.0_6");
-    quick.push("lrs-4_4_canc=force:drc=off:fsd=off:fsr=off:fde=none:inw=on:nm=2:nicw=on:sas=z3:sos=on:sac=on:tha=off:thf=on:uwa=all:stl=30.0_5");
-    quick.push("lrs+11_10_afr=on:canc=force:drc=off:flr=on:fsd=off:nm=4:sas=z3:sims=off:tha=off:thi=new:uwa=one_side_constant:stl=30.0_4");
+    quick.push("lrs+1002_9:1_anc=all:br=off:canc=force:drc=off:fsd=off:fde=unused:gsp=on:nwc=1.1:sas=z3:sac=on:thi=all:urr=on:stl=60_8");
+    quick.push("lrs+11_4:5_bs=on:canc=cautious:fsd=off:fsr=off:gs=on:gsem=off:nm=4:sas=z3:tha=some:thf=on:thi=strong:tgt=ground:urr=on:stl=60_6");
+    quick.push("lrs+4_2:3_flr=on:nm=4:nwc=10.0:sas=z3:sac=on:sp=reverse_frequency:tgt=ground:stl=60_6");
+    quick.push("lrs-4_4_canc=force:drc=off:fsd=off:fsr=off:fde=none:inw=on:nm=2:nicw=on:sas=z3:sos=on:sac=on:tha=off:thf=on:uwa=all:stl=60_5");
+    quick.push("lrs+11_10_afr=on:canc=force:drc=off:flr=on:fsd=off:nm=4:sas=z3:sims=off:tha=off:thi=new:uwa=one_side_constant:stl=60_4");
     quick.push("dis+10_3_canc=force:drc=off:ep=RSTC:fsd=off:fde=none:nm=4:sas=z3:sp=weighted_frequency:tha=off:urr=on_3");
-    quick.push("dis+1_5:4_add=off:bs=on:bce=on:canc=cautious:gsp=on:gs=on:nm=4:nwc=2.5:sas=z3:sims=off:sos=all:sp=frequency:tha=some:thf=on:tgt=ground:uwa=one_side_interpreted_3");    return;
+    quick.push("dis+1_5:4_add=off:bs=on:bce=on:canc=cautious:gsp=on:gs=on:nm=4:nwc=2.5:sas=z3:sims=off:sos=all:sp=frequency:tha=some:thf=on:tgt=ground:uwa=one_side_interpreted_3");
+    return;
   }
 
   switch (cat) {
