@@ -5491,58 +5491,59 @@ void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, S
   case Property::EPR:
     break;
 
-  case Property::UEQ:
+  case Property::UEQ: // slowness 1.5
     if (props != 0) {
-      // total time: 5914
-      quick.push("dis+10_2_av=off:bd=preordered:drc=off:nwc=1.2:sims=off:sp=reverse_frequency:to=lpo:tgt=ground_835");
-      quick.push("dis+10_40_av=off:bd=preordered:drc=off:nwc=1.3:sp=scramble:tgt=ground_798");
-      quick.push("lrs+10_64_av=off:drc=off:nwc=1.1:sims=off:stl=60.0_600");
-      quick.push("lrs+10_4_av=off:bd=preordered:drc=off:nwc=1.3:sims=off:sp=weighted_frequency:tgt=ground:stl=60.0_520");
-      quick.push("ott+10_20_av=off:drc=off:fde=none:sp=occurrence:tgt=ground_483");
-      quick.push("ott+10_32_av=off:drc=off:fde=none:nwc=5.0:sp=reverse_weighted_frequency:tgt=full_394");
-      quick.push("lrs+10_10_av=off:bd=off:fde=unused:nwc=4.0:sims=off:sp=occurrence:to=lpo:stl=60.0_369");
-      quick.push("ott+10_64_av=off:bd=preordered:drc=off:fde=unused:sims=off:sp=reverse_arity:tgt=ground_339");
-      quick.push("dis+10_5:4_av=off:bd=off:drc=off:fde=unused:nwc=1.5:sims=off:to=lpo:tgt=ground_318");
-      quick.push("dis+10_50_av=off:sims=off:sp=weighted_frequency:tgt=full_232");
-      quick.push("lrs+10_7_av=off:bd=preordered:drc=off:fde=none:nwc=2.5:sp=reverse_arity:to=lpo:stl=90.0_231");
-      quick.push("lrs+10_28_av=off:drc=off:nwc=1.2:sims=off:sp=scramble:tgt=ground:stl=60.0_211");
-      quick.push("ott+10_5_av=off:bd=preordered:drc=off:fde=unused:nwc=2.5:sp=occurrence:to=lpo:tgt=ground_153");
-      quick.push("dis+10_5_av=off:drc=off:sos=all:to=lpo:tgt=ground_150");
-      quick.push("lrs+10_13_av=off:drc=off:fde=none:sims=off:tgt=ground:stl=30.0_129");
-      quick.push("lrs+10_8:1_av=off:bd=preordered:drc=off:nwc=10.0:to=lpo:stl=30.0_93");
-      quick.push("lrs+10_4:5_av=off:bd=preordered:drc=off:fde=unused:nwc=10.0:sims=off:sp=reverse_arity:tgt=ground:stl=30.0_46");
-      quick.push("lrs+10_7_av=off:drc=off:fde=unused:nwc=5.0:sp=occurrence:to=lpo:stl=30.0_13");
+      // total time: 7597, slowness 1.58
+      quick.push("lrs+10_2:5_av=off:bd=preordered:drc=off:fde=none:nwc=1.3:sims=off:sp=reverse_frequency:stl=90.0_1373");
+      quick.push("dis+10_2_av=off:bd=preordered:drc=off:nwc=1.2:sims=off:sp=reverse_frequency:to=lpo:tgt=ground_880");
+      quick.push("dis+10_40_av=off:bd=preordered:drc=off:nwc=1.3:sp=scramble:tgt=ground_840");
+      quick.push("lrs+10_64_av=off:drc=off:nwc=1.1:sims=off:stl=60.0_632");
+      quick.push("lrs+10_4_av=off:bd=preordered:drc=off:nwc=1.3:sims=off:sp=weighted_frequency:tgt=ground:stl=60.0_548");
+      quick.push("ott+10_20_av=off:drc=off:fde=none:sp=occurrence:tgt=ground_508");
+      quick.push("ott+10_32_av=off:drc=off:fde=none:nwc=5.0:sp=reverse_weighted_frequency:tgt=full_415");
+      quick.push("lrs+10_10_av=off:bd=off:fde=unused:nwc=4.0:sims=off:sp=occurrence:to=lpo:stl=60.0_388");
+      quick.push("ott+10_64_av=off:bd=preordered:drc=off:fde=unused:sims=off:sp=reverse_arity:tgt=ground_357");
+      quick.push("dis+10_5:4_av=off:bd=off:drc=off:fde=unused:nwc=1.5:sims=off:to=lpo:tgt=ground_334");
+      quick.push("dis+10_50_av=off:sims=off:sp=weighted_frequency:tgt=full_244");
+      quick.push("lrs+10_7_av=off:bd=preordered:drc=off:fde=none:nwc=2.5:sp=reverse_arity:to=lpo:stl=90.0_243");
+      quick.push("lrs+10_28_av=off:drc=off:nwc=1.2:sims=off:sp=scramble:tgt=ground:stl=60.0_222");
+      quick.push("ott+10_5_av=off:bd=preordered:drc=off:fde=unused:nwc=2.5:sp=occurrence:to=lpo:tgt=ground_161");
+      quick.push("dis+10_5_av=off:drc=off:sos=all:to=lpo:tgt=ground_158");
+      quick.push("lrs+10_13_av=off:drc=off:fde=none:sims=off:tgt=ground:stl=30.0_135");
+      quick.push("lrs+10_8:1_av=off:bd=preordered:drc=off:nwc=10.0:to=lpo:stl=30.0_97");
+      quick.push("lrs+10_4:5_av=off:bd=preordered:drc=off:fde=unused:nwc=10.0:sims=off:sp=reverse_arity:tgt=ground:stl=30.0_48");
+      quick.push("lrs+10_7_av=off:drc=off:fde=unused:nwc=5.0:sp=occurrence:to=lpo:stl=30.0_14");
     }
-    else if (atoms <= 10) {
-      // total time: 6410
-      quick.push("ott+10_16_av=off:drc=off:fde=none:nwc=1.7:sp=weighted_frequency_1170");
-      quick.push("lrs+10_15_av=off:bd=preordered:drc=off:nwc=1.1:sp=reverse_frequency:tgt=ground:stl=90.0_1047");
-      quick.push("dis+10_6_av=off:bd=off:drc=off:fde=none:nwc=1.2:sims=off:tgt=full_699");
-      quick.push("ott+10_5:4_av=off:bd=off:drc=off:fde=unused:sims=off_541");
-      quick.push("lrs+10_4:3_av=off:bd=preordered:drc=off:fde=unused:nwc=1.7:sp=weighted_frequency:to=lpo:tgt=ground:stl=60.0_495");
-      quick.push("ott+10_2:7_av=off:bd=preordered:drc=off:fde=unused:nwc=1.1:sims=off_436");
-      quick.push("ott+10_4:1_av=off:drc=off:sos=on:tgt=ground_423");
-      quick.push("lrs+10_16_av=off:drc=off:nwc=1.5:sp=scramble:tgt=ground:stl=60.0_358");
-      quick.push("ott+10_4:5_av=off:bd=preordered:drc=off:fde=unused:nwc=1.3:sims=off:sp=scramble:tgt=ground_340");
-      quick.push("lrs+10_2:1_av=off:bd=off:drc=off:fde=none:sims=off:sp=reverse_weighted_frequency:to=lpo:tgt=ground:stl=60.0_261");
-      quick.push("lrs+10_2:5_av=off:bd=preordered:drc=off:fde=none:nwc=1.3:sims=off:sp=reverse_frequency:stl=90.0_201");
-      quick.push("lrs+10_64_av=off:bd=off:drc=off:sims=off:sp=weighted_frequency:tgt=ground:stl=30.0_171");
-      quick.push("dis+10_50_av=off:bd=preordered:drc=off:fde=unused:nwc=1.5:sims=off:sp=reverse_weighted_frequency:to=lpo_171");
-      quick.push("lrs+10_3:2_av=off:drc=off:fde=unused:sp=scramble:to=lpo:tgt=ground:stl=30.0_73");
-      quick.push("lrs+10_2:5_av=off:bd=preordered:drc=off:sims=off:sp=scramble:to=lpo:tgt=ground:stl=30.0_16");
+    else if (atoms <= 10) { // slowness 1.7
+      // total time: 7259
+      quick.push("ott+10_16_av=off:drc=off:fde=none:nwc=1.7:sp=weighted_frequency_1200");
+      quick.push("lrs+10_15_av=off:bd=preordered:drc=off:nwc=1.1:sp=reverse_frequency:tgt=ground:stl=90.0_1200");
+      quick.push("dis+10_6_av=off:bd=off:drc=off:fde=none:nwc=1.2:sims=off:tgt=full_792");
+      quick.push("ott+10_5:4_av=off:bd=off:drc=off:fde=unused:sims=off_613");
+      quick.push("lrs+10_4:3_av=off:bd=preordered:drc=off:fde=unused:nwc=1.7:sp=weighted_frequency:to=lpo:tgt=ground:stl=60.0_561");
+      quick.push("ott+10_2:7_av=off:bd=preordered:drc=off:fde=unused:nwc=1.1:sims=off_494");
+      quick.push("ott+10_4:1_av=off:drc=off:sos=on:tgt=ground_479");
+      quick.push("lrs+10_16_av=off:drc=off:nwc=1.5:sp=scramble:tgt=ground:stl=60.0_406");
+      quick.push("ott+10_4:5_av=off:bd=preordered:drc=off:fde=unused:nwc=1.3:sims=off:sp=scramble:tgt=ground_385");
+      quick.push("lrs+10_2:1_av=off:bd=off:drc=off:fde=none:sims=off:sp=reverse_weighted_frequency:to=lpo:tgt=ground:stl=60.0_295");
+      quick.push("lrs+10_2:5_av=off:bd=preordered:drc=off:fde=none:nwc=1.3:sims=off:sp=reverse_frequency:stl=90.0_227");
+      quick.push("lrs+10_64_av=off:bd=off:drc=off:sims=off:sp=weighted_frequency:tgt=ground:stl=30.0_193");
+      quick.push("dis+10_50_av=off:bd=preordered:drc=off:fde=unused:nwc=1.5:sims=off:sp=reverse_weighted_frequency:to=lpo_193");
+      quick.push("lrs+10_3:2_av=off:drc=off:fde=unused:sp=scramble:to=lpo:tgt=ground:stl=30.0_83");
+      quick.push("lrs+10_2:5_av=off:bd=preordered:drc=off:sims=off:sp=scramble:to=lpo:tgt=ground:stl=30.0_18");
       quick.push("lrs+10_20_av=off:bd=off:drc=off:sp=reverse_weighted_frequency:tgt=ground:stl=30.0_8");
     }
     else {
-      // total time: 5049
-      quick.push("lrs+10_6_av=off:drc=off:fde=unused:nwc=2.5:sims=off:sp=reverse_frequency:stl=90.0_1044");
-      quick.push("ott+10_14_av=off:bd=preordered:drc=off:sp=weighted_frequency_975");
-      quick.push("ott+10_11_av=off:bd=off:drc=off:fde=none:nwc=1.2:to=lpo:tgt=ground_958");
-      quick.push("ott+10_32_av=off:drc=off:fde=none:nwc=5.0:sp=reverse_weighted_frequency:tgt=full_922");
-      quick.push("ott+10_4_av=off:drc=off:fde=none:nwc=1.2:sims=off:to=lpo:tgt=ground_433");
-      quick.push("dis+10_7_av=off:drc=off:nwc=1.5:sims=off:sp=scramble:tgt=ground_346");
-      quick.push("lrs+10_50_av=off:bd=off:drc=off:sp=reverse_arity:tgt=ground:stl=30.0_258");
-      quick.push("dis+10_5_av=off:drc=off:sos=all:to=lpo:tgt=ground_69");
-      quick.push("dis+10_2_av=off:bd=preordered:drc=off:nwc=1.2:sims=off:sp=reverse_frequency:to=lpo:tgt=ground_37");
+      // total time: 6057, slowness 1.8
+      quick.push("lrs+10_6_av=off:drc=off:fde=unused:nwc=2.5:sims=off:sp=reverse_frequency:stl=90.0_1252");
+      quick.push("ott+10_14_av=off:bd=preordered:drc=off:sp=weighted_frequency_1170");
+      quick.push("ott+10_11_av=off:bd=off:drc=off:fde=none:nwc=1.2:to=lpo:tgt=ground_1150");
+      quick.push("ott+10_32_av=off:drc=off:fde=none:nwc=5.0:sp=reverse_weighted_frequency:tgt=full_1107");
+      quick.push("ott+10_4_av=off:drc=off:fde=none:nwc=1.2:sims=off:to=lpo:tgt=ground_520");
+      quick.push("dis+10_7_av=off:drc=off:nwc=1.5:sims=off:sp=scramble:tgt=ground_415");
+      quick.push("lrs+10_50_av=off:bd=off:drc=off:sp=reverse_arity:tgt=ground:stl=30.0_309");
+      quick.push("dis+10_5_av=off:drc=off:sos=all:to=lpo:tgt=ground_82");
+      quick.push("dis+10_2_av=off:bd=preordered:drc=off:nwc=1.2:sims=off:sp=reverse_frequency:to=lpo:tgt=ground_45");
       quick.push("lrs+10_5_av=off:drc=off:fde=none:nwc=1.1:sp=scramble:to=lpo:tgt=ground:stl=30.0_7");
     }
     break;
