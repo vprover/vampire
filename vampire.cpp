@@ -478,6 +478,9 @@ void spiderMode()
   CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
+  env.options->setNormalize(true);
+  Timer::ensureTimerInitialized();
+
   Exception* exception = 0;
 #if VZ3
   z3::exception* z3_exception = 0;
