@@ -479,7 +479,9 @@ void spiderMode()
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
+  // to start counting instructions
   Timer::ensureTimerInitialized();
+  env.options->setInstructionLimit(-1);
 
   Exception* exception = 0;
 #if VZ3
