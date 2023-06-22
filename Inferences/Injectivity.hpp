@@ -15,6 +15,8 @@
 #ifndef __Injectivity__
 #define __Injectivity__
 
+#if VHOL
+
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
@@ -32,5 +34,7 @@ class Injectivity : public GeneratingInferenceEngine {
 };
 
 }
+
+#endif
 
 #endif

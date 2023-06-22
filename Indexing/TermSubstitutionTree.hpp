@@ -108,7 +108,11 @@ private:
   auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, Args... args)
   {
     return iterTraits(_tree->iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
-      .map([this](auto qr)
+      .map([
+#if VHOL
+        this
+#endif
+        ](auto qr)
         { return tQueryRes(
 #if VHOL
             _extra ? qr.data->extraTerm : 

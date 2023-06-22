@@ -719,15 +719,14 @@ int main(int argc, char* argv[])
 #if VHOL
     case Options::Mode::CASC_HOL: {
       env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-      env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
+      env.options->setSchedule(Options::Schedule::SNAKE_TPTP_HOL);
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
-      //env.options->setMulticore(0); // use all available cores
+      env.options->setMulticore(0); // use all available cores
       env.options->setOutputAxiomNames(true);
+      // normalise?
+      // switch of seed randomisation?
 
-      //unsigned int nthreads = std::thread::hardware_concurrency();
-      //float slowness = 1.00 + (0.04 * nthreads);
- 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }

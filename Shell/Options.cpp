@@ -154,10 +154,7 @@ void Options::init()
         {"casc",
          "casc_2019",
          "casc_sat",
-         "casc_sat_2019",
-#if VHOL                                             
-         "casc_hol_2020",
-#endif         
+         "casc_sat_2019",     
          "file",
          "induction",
          "integer_induction",
@@ -170,9 +167,11 @@ void Options::init()
          "smtcomp_2018",
          "snake_tptp_uns",
          "snake_tptp_sat",
+#if VHOL
          "snake_tptp_hol",
          "snake_slh",
          "snake_slh2",
+#endif
          "struct_induction"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);

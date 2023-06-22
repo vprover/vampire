@@ -409,9 +409,6 @@ public:
     CASC_2019,
     CASC_SAT,
     CASC_SAT_2019,
-#if VHOL    
-    CASC_HOL_2020,
-#endif
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
@@ -424,9 +421,11 @@ public:
     SMTCOMP_2018,
     SNAKE_TPTP_UNS,
     SNAKE_TPTP_SAT,
+#if VHOL
     SNAKE_TPTP_HOL,
     SNAKE_SLH,
     SNAKE_SLH2,
+#endif
     STRUCT_INDUCTION
   };
 

@@ -13,17 +13,19 @@
  * creates a Skolem to act as left-inverse funcion
  */
 
+#if VHOL
+
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "Injectivity.hpp"
 
@@ -116,6 +118,8 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
     idx--;
   }
 
+  env.statistics->injectiveFunInverses++;
+
   //at this point, we know the clause is of the form f x1 y x2... != f x1 z x2 ... \/ x = y 
   TermList newLhs = createNewLhs(headLhs, termArgs, AtomicSort::arrowSort(termArgSorts, differingArgSort));
   Literal* lit = Literal::createEquality(true, newLhs, differingArg, differingArgSort);
@@ -152,3 +156,5 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, TermLi
 
 
 }
+
+#endif

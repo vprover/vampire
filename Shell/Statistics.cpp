@@ -104,6 +104,8 @@ Statistics::Statistics()
     proxyEliminations(0),
     leibnizElims(0),
     booleanSimps(0),
+    injectiveFunInverses(0),
+    boolEqTricks(0),
 #endif
     duplicateLiterals(0),
     trivialInequalities(0),
@@ -373,7 +375,7 @@ void Statistics::print(ostream& out)
       backwardExtensionalityResolution+
 #if VHOL
       argumentCongruence+leibnizElims+negativeExtensionality+
-      +primitiveInstantiations+choiceInstances+positiveExtensionality+
+      +primitiveInstantiations+choiceInstances+positiveExtensionality+injectiveFunInverses+boolEqTricks+
 #endif
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication);
   COND_OUT("Binary resolution", resolution);
@@ -424,9 +426,11 @@ void Statistics::print(ostream& out)
   COND_OUT("Argument congruence", argumentCongruence);
   COND_OUT("Negative extensionality", negativeExtensionality);
   COND_OUT("Positive extensionality", positiveExtensionality);
-  COND_OUT("Primitive substitutions", primitiveInstantiations);
-  COND_OUT("Elimination of Leibniz equalities", leibnizElims);
-  COND_OUT("Choice axiom instances creatded", choiceInstances);
+  COND_OUT("Primitive substitution", primitiveInstantiations);
+  COND_OUT("Elimination of Leibniz equality", leibnizElims);
+  COND_OUT("Inverse function postulation", injectiveFunInverses);
+  COND_OUT("Boolean equality to disequality", boolEqTricks);
+  COND_OUT("Choice axiom instance", choiceInstances);
 #endif
   SEPARATOR;
 

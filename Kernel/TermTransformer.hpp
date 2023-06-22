@@ -80,11 +80,11 @@ public:
     , bool liftFree = false
 #endif
     ) : 
-    _what(what), 
-    _by(by),
+      _what(what) 
+    , _by(by)
 #if VHOL
-    _liftFreeIndices(liftFree),
-    _shiftBy(0)
+    , _liftFreeIndices(liftFree)
+    , _shiftBy(0)
 #endif
   {
     ASS(what.isVar() || by.isVar() || SortHelper::getResultSort(what.term()) == SortHelper::getResultSort(by.term()));

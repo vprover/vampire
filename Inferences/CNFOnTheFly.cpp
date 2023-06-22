@@ -307,6 +307,8 @@ Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool inc
   Clause* res = new(length) Clause(length, NonspecificInference1(r, c));
   res->setAge(incAge? c->age() + 1 : c->age());
 
+  env.statistics->proxyEliminations++;
+
   unsigned i = 0;
   while ((*c)[i] != a) { i++; }
   std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));

@@ -316,9 +316,9 @@ bool RobSubstitutionTS::match(TermList t1, int idx1, TermList t2, int idx2)
 }
 
 template<class TermSpecOrList, class VarBankOrInt>
-bool RobSubstitution<TermSpecOrList, VarBankOrInt>::unify(TermSpecOrList t1, TermSpecOrList t2,
+bool RobSubstitution<TermSpecOrList, VarBankOrInt>::unify(TermSpecOrList t1, TermSpecOrList t2
 #if VHOL
-    bool applicativeUnify
+    , bool applicativeUnify
 #endif  
      )
 {
@@ -824,7 +824,11 @@ public:
 
     switch (_state) {
     case NEXT_STRAIGHT:
-      if (_subst->unify(_l1, _l2, true)) {
+      if (_subst->unify(_l1, _l2 
+#if VHOL
+        , true // check for loose indices when binding
+#endif
+      )) {
         _state = NEXT_REVERSED;
         break;
       }
@@ -834,8 +838,16 @@ public:
       TermSpecOrList t12 = _l1.nthArg(1);
       TermSpecOrList t21 = _l2.nthArg(0);
       TermSpecOrList t22 = _l2.nthArg(1);
-      if (_subst->unify(t11, t22, true)) {
-        if (_subst->unify(t12, t21, true)) {
+      if (_subst->unify(t11, t22
+#if VHOL
+        , true
+#endif
+      )) {
+        if (_subst->unify(t12, t21
+#if VHOL          
+          , true
+#endif
+        )) {
           _state = NEXT_CLEANUP;
           break;
         }

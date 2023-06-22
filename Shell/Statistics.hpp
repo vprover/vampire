@@ -160,6 +160,8 @@ public:
   unsigned proxyEliminations;
   unsigned leibnizElims;
   unsigned booleanSimps;
+  unsigned injectiveFunInverses;
+  unsigned boolEqTricks;
 #endif
 
   // Simplifying inferences

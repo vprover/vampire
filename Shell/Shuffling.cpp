@@ -289,11 +289,13 @@ void Shuffling::shuffleIter(Shufflable sh) {
                 goto tl_updated;
                 break; // I know, unreachable;
 
+#if VHOL
               case Term::SF_LAMBDA:
                 tl = TermList(sd->getLambdaExp());
                 goto tl_updated;
                 break; // I know, unreachable;                
-
+#endif
+                
               default:
                 ASSERTION_VIOLATION_REP(tl.toString());
             }

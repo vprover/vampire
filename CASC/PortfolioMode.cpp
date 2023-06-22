@@ -370,6 +370,8 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   case Options::Schedule::SNAKE_TPTP_SAT:
     Schedules::getSnakeTptpSatSchedule(prop,quick);
     break;
+
+#if VHOL    
   case Options::Schedule::SNAKE_TPTP_HOL:
     Schedules::getSnakeTptpHolSchedule(prop,quick);
     break;
@@ -379,6 +381,7 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   case Options::Schedule::SNAKE_SLH2:
     Schedules::getSnakeSlh2Schedule(prop,quick);
     break;
+#endif
 
   case Options::Schedule::CASC_2019:
   case Options::Schedule::CASC:
@@ -390,11 +393,6 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
 
-#if VHOL
-  case Options::Schedule::CASC_HOL_2020:
-    Schedules::getHigherOrderSchedule2020(quick,fallback);
-    break;
-#endif
 
   case Options::Schedule::SMTCOMP:
   case Options::Schedule::SMTCOMP_2018:

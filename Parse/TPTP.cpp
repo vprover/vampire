@@ -4511,7 +4511,9 @@ TermList TPTP::readSort()
  */
 bool TPTP::higherPrecedence(int c1,int c2)
 {
+#if VHOL
   if (c1 == APP) return true;
+#endif
   if (c1 == c2) return false;
   if (c1 == -1) return false;
   if (c2 == IFF) return true;
