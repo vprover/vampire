@@ -480,8 +480,10 @@ void spiderMode()
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
   // to start counting instructions
+#ifdef __linux__
   Timer::ensureTimerInitialized();
   env.options->setInstructionLimit(-1);
+#endif
 
   Exception* exception = 0;
 #if VZ3
