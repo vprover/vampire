@@ -863,8 +863,7 @@ struct ToZ3Expr
       }
     } else {
       symb = env.signature->getFunction(trm->functor());
-      OperatorType* ftype = symb->fnType();
-      range_sort = ftype->result();
+      range_sort = SortHelper::getResultSort(trm);
       if (env.signature->isTermAlgebraSort(range_sort) &&  !self._createdTermAlgebras.contains(range_sort) ) {
         self.createTermAlgebra(*env.signature->getTermAlgebraOfSort(range_sort));
       }
@@ -910,7 +909,7 @@ struct ToZ3Expr
       }
 
       // If not value then create constant symbol
-      return self.getConst(symb, self.getz3sort(range_sort));
+      return self.getConst(symb, self.getz3sort(range_sort), range_sort);
     }
     ASS(trm->numTermArguments()>0);
 
@@ -1069,6 +1068,7 @@ struct ToZ3Expr
 
     // uninterpretd function
     auto f = self.z3Function(Z3Interfacing::FuncOrPredId(trm));
+    
     return f(f.arity(), args);
   }
 };
@@ -1221,11 +1221,11 @@ z3::expr Z3Interfacing::getNamingConstantFor(TermList toName, z3::sort sort)
   });
 }
 
-z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort)
+z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort, TermList vsrt)
 {
-  return _constantNames.getOrInit(symb, [&]() {
+  vstring name("c" + symb->name()  + (symb->arity() ? ("$" + vsrt.toString()) : ""));
+  return _constantNames.getOrInit(name, [&]() {
     // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
-    vstring name("c" + symb->name());
     outputln("(declare-fun ", name, " () ", sort, ")");
     return _context.constant(name.c_str(), sort);
   });
