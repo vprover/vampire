@@ -254,13 +254,13 @@ private:
   Option<std::ofstream> _out;
   Map<unsigned, z3::expr> _varNames;
   Map<TermList, z3::expr> _termIndexedConstants;
-  Map<Signature::Symbol*, z3::expr> _constantNames;
+  Map<vstring, z3::expr> _constantNames;
 
   bool     isNamedExpr(unsigned var) const;
   z3::expr getNameExpr(unsigned var);
 
   z3::expr getNamingConstantFor(TermList name, z3::sort sort);
-  z3::expr getConst(Signature::Symbol* symb, z3::sort srt);
+  z3::expr getConst(Signature::Symbol* symb, z3::sort srt, TermList vsrt);
 
                                  void __output(std::ostream& out               ) {                                 }
   template<class A, class... As> void __output(std::ostream& out, A a, As... as) { out << a; __output(out, as...); }

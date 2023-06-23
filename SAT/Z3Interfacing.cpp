@@ -854,10 +854,10 @@ struct ToZ3Expr
     bool isLit = trm->isLiteral();
 
     Signature::Symbol* symb;
-    SortId range_sort;
+    SortId rangeSort;
     if (isLit) {
       symb = env.signature->getPredicate(trm->functor());
-      range_sort = AtomicSort::boolSort();
+      rangeSort = AtomicSort::boolSort();
       // check for equality
       if( trm->functor()==0 || symb->equalityProxy()){
         ASS(trm->numTermArguments()==2);
@@ -870,12 +870,10 @@ struct ToZ3Expr
         }
       }
     } else {
-      auto actualSort = SortHelper::getResultSort(trm);
       symb = env.signature->getFunction(trm->functor());
-      OperatorType* ftype = symb->fnType();
-      range_sort = ftype->result();
-      if (env.signature->isTermAlgebraSort(actualSort) &&  !self._createdTermAlgebras.contains(actualSort) ) {
-        self.createTermAlgebra(actualSort);
+      rangeSort = SortHelper::getResultSort(trm);
+      if (env.signature->isTermAlgebraSort(rangeSort) &&  !self._createdTermAlgebras.contains(rangeSort) ) {
+        self.createTermAlgebra(rangeSort);
       }
     }
 
@@ -919,7 +917,7 @@ struct ToZ3Expr
       }
 
       // If not value then create constant symbol
-      return self.getConst(symb, self.getz3sort(range_sort));
+      return self.getConst(symb, self.getz3sort(rangeSort), rangeSort);
     }
     ASS_G(trm->arity(), 0);
 
@@ -1230,11 +1228,11 @@ z3::expr Z3Interfacing::getNamingConstantFor(TermList toName, z3::sort sort)
   });
 }
 
-z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort)
+z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort, TermList vsrt)
 {
-  return _constantNames.getOrInit(symb, [&]() {
+  vstring name("c" + symb->name()  + (symb->arity() ? ("$" + vsrt.toString()) : ""));
+  return _constantNames.getOrInit(name, [&]() {
     // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
-    vstring name("c" + symb->name());
     outputln("(declare-fun ", name, " () ", sort, ")");
     return _context.constant(name.c_str(), sort);
   });
