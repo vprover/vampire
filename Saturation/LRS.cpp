@@ -110,12 +110,14 @@ long long LRS::estimatedReachableCount()
   float correction_coef = _opt.lrsEstimateCorrectionCoef();
   int firstCheck=_opt.lrsFirstTimeCheck(); // (in percent)!
 
-  unsigned opt_instruction_limit = 0; // (in mega-instructions)
+  long int opt_instruction_limit = 0; // (in mega-instructions)
 #ifdef __linux__
-  opt_instruction_limit = _opt.instructionLimit();
+  opt_instruction_limit = _opt.simulatedInstructionLimit()
+    ? _opt.simulatedInstructionLimit()
+    : _opt.instructionLimit();
 #endif
 
-  unsigned instrsBurned = env.timer->elapsedMegaInstructions();
+  long int instrsBurned = env.timer->elapsedMegaInstructions();
 
   long long result = -1;
 
@@ -140,7 +142,7 @@ long long LRS::estimatedReachableCount()
       timeLeft=opt_timeLimitDeci*100 - currTime;
     }
 
-    long long instrsLeft = opt_instruction_limit - instrsBurned;
+    long int instrsLeft = opt_instruction_limit - instrsBurned;
 
     // note that result is -1 here already
 

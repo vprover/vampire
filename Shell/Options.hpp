@@ -2242,6 +2242,8 @@ public:
 #ifdef __linux__
   unsigned instructionLimit() const { return _instructionLimit.actualValue; }
   void setInstructionLimit(unsigned newVal) { _instructionLimit.actualValue = newVal; }
+  unsigned simulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
+  unsigned setSimulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
   bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
@@ -2680,7 +2682,8 @@ private:
   StringOptionValue _ltbDirectory;
 
 #ifdef __linux__
-  UnsignedOptionValue _instructionLimit; 
+  UnsignedOptionValue _instructionLimit;
+  UnsignedOptionValue _simulatedInstructionLimit;
   BoolOptionValue _parsingDoesNotCount;
 #endif
 

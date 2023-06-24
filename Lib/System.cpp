@@ -104,6 +104,7 @@ void handleSignal (int sigNum)
   switch (sigNum)
     {
     case SIGTERM:
+
 # ifndef _MSC_VER
     case SIGQUIT:
       if (handled) {
@@ -139,6 +140,7 @@ void handleSignal (int sigNum)
 	return;
       }
       haveSigInt=true;
+      System::terminateImmediately(VAMP_RESULT_STATUS_SIGINT);
 //      exit(0);
 //      return;
 

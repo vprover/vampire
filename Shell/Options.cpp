@@ -93,6 +93,13 @@ void Options::init()
   _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
   _lookup.insert(&_instructionLimit);
 
+  _simulatedInstructionLimit = UnsignedOptionValue("simulated_instruction_limit","sil",0);
+  _simulatedInstructionLimit.description=
+    "Instruction limit (in millions) of executed instructions for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual instruction limit is used)";
+  _simulatedInstructionLimit.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+  _lookup.insert(&_simulatedInstructionLimit);
+  _simulatedInstructionLimit.tag(OptionTag::LRS);
+
   _parsingDoesNotCount = BoolOptionValue("parsing_does_not_count","",false);
   _parsingDoesNotCount.description= "Extend the instruction limit by the amount of instructions it took to parse the input problem.";
   _lookup.insert(&_parsingDoesNotCount);

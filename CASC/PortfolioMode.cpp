@@ -491,7 +491,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   // kill all running processes first
   decltype(processes)::Iterator killIt(processes);
   while(killIt.hasNext())
-    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGKILL);
+    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGINT);
 
   return success;
 }
