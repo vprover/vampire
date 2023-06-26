@@ -1,3 +1,4 @@
+#!/bin/bash
 source AWS
 cd $INFRASTRUCTURE 
 ./ecr-push --leader vampire:leader

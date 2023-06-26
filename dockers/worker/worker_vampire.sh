@@ -16,23 +16,21 @@ availablecores=$(nproc)
 #MAIN_IP=$(jq .nodeIp competition/leader_node_status.json)
 #echo "Try send ready to ${MAIN_IP}"
 
-# We assume that leader is going to create a file called pp containing the problem path
-PROBLEM="none"
+# We assume that leader is going to place the problem in /tmp/problem 
 ls /tmp
-while [ ! -f /tmp/pp ] 
+while [ ! -f /tmp/problem ] 
 do
   sleep 1
 done
 
-PROBLEM=$(head -n 1 /tmp/pp)
-echo "problem path $PROBLEM found"
+echo "problem found"
 
 
-OUT=$(head -1 /tmp/pp | rev | cut -d"/" -f2- | rev)
+OUT=$(head -1 /tmp/problem_name)
 # Let's tell the leader that we're ready
 echo "I am ${ip} and ready" | cat > $OUT/ready_${ip}
 
-log "I am a child node -> $ip:$availablecores, reporting to the master node -> ${MAIN_IP}, solving $PROBLEM"
+log "I am a child node -> $ip:$availablecores, reporting to the master node -> ${MAIN_IP}, solving $OUT"
 
 # In this setup the main node doesn't care who I am
 
@@ -42,7 +40,7 @@ IFS=. read -r a b c d <<< "$ip"
 rand="$((a * 256 ** 3 + b * 256 ** 2 + c * 256 + d))"
 echo "Using random number $rand"
 
-competition/vampire --mode smtcomp --ignore_missing on --bad_option off --cores 0 -si on -rs on --random_seed $rand $PROBLEM > /tmp/result_${ip}
+competition/vampire --mode smtcomp --ignore_missing on --bad_option off --cores 0 -si on -rs on --random_seed $rand /tmp/problem > /tmp/result_${ip}
 
 cat < /tmp/result_${ip}
 

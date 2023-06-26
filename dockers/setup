@@ -2,10 +2,10 @@
 source AWS
 cd $DOCKERS
 sh build_satcomp_images.sh
-cd $INFRASTRUCTRE
 TYPE="parallel"
-if [ $# -eq 1 ] && [ $1 -neq 0 ]
+if [ $# -eq 1 ] && [ $1 -ne 0 ]
 then
         TYPE="cloud"
 fi
-sh create-solver-infrastrcture --solver-type $TYPE 
+cd $INFRASTRUCTURE
+./create-solver-infrastructure --solver-type $TYPE
