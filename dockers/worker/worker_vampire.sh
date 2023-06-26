@@ -48,7 +48,8 @@ echo "Sending result, should only get here if have a solution as run_vampire_wor
 cp /tmp/result_${ip} $OUT
 ls $OUT
 
-rm /tmp/pp
+rm /tmp/problem_name
+rm /tmp/problem
 rm /tmp/result*
 
 log "done! goodbye"
