@@ -40,20 +40,19 @@ public:
   TermQueryResultIterator getLess(Term* t);
   TermQueryResultIterator getGreater(Term* t);
 
-  TermQueryResultIterator getTQRsForInductionTerm(TermList inductionTerm);
+  TermQueryResultIterator getTQRsForInductionTerm(Term* inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();
   static bool isIntInductionOneOn();
   static bool isIntInductionTwoOn();
   static bool isInductionForFiniteIntervalsOn();
-  static bool isInductionForInfiniteIntervalsOn();
-  static bool isStructInductionOn();
+  static bool isInductionForInfiniteIntervalsOn(); static bool isStructInductionOn();
   static bool isNonUnitStructInductionOn();
   static bool isInductionClause(Clause* c);
   static bool isInductionLiteral(Literal* l);
   static bool isInductionTermFunctor(unsigned f);
-  static bool isIntInductionTermListInLiteral(TermList& tl, Literal* l);
+  static bool isIntInductionTermListInLiteral(Term* tl, Literal* l);
   static bool isStructInductionTerm(Term* t);
 
 private:

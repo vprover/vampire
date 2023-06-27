@@ -110,7 +110,8 @@ public:
   bool hasAppliedVar() const;
   bool hasPolymorphicSym() const;
   bool quantifiesOverPolymorphicVar() const;
-  bool higherOrder() const;
+  bool isHigherOrder() const;
+  bool hasNonDefaultSorts() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -137,7 +138,7 @@ public:
     invalidateProperty();
     _hasFOOL = true;
   }
-  
+
   void reportFormulasAdded()
   {
     invalidateProperty();
@@ -216,8 +217,9 @@ private:
   mutable MaybeBool _hasLogicalProxy;
   mutable MaybeBool _hasPolymorphicSym;
   mutable MaybeBool _quantifiesOverPolymorphicVar;
-  mutable MaybeBool _hasBoolVar; 
-  mutable MaybeBool _higherOrder; 
+  mutable MaybeBool _hasBoolVar;
+  mutable MaybeBool _higherOrder;
+  mutable MaybeBool _hasNonDefaultSorts;
 
   SMTLIBLogic _smtlibLogic;
 

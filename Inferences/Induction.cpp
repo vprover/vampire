@@ -436,15 +436,15 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 
       NonVariableNonTypeIterator it(lit);
       while(it.hasNext()){
-        TermList ts = it.next();
-        auto t = ts.term();
+        Term* ts = it.next();
+        unsigned f = ts->functor(); 
+        if(InductionHelper::isInductionTermFunctor(f)){
+          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(ts)){
 
-        if(InductionHelper::isInductionTermFunctor(t->functor())){
-          if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(t)){
-            ta_terms.insert(t);
+            ta_terms.insert(ts);
           }
           if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(ts, lit)){
-            int_terms.insert(t);
+            int_terms.insert(ts);
           }
         }
       }
@@ -506,7 +506,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(Set<Term*>::Iterator(ta_terms))
         .map([this](Term* arg) {
-          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TermList(arg), true));
+          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), true));
         }));
     }
     // put clauses from queries into contexts alongside with the given clause and induction term
@@ -586,7 +586,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
     auto bound = *lit->nthArgument(positive ? 1-i : i);
 
     auto bound2 = iterTraits(i ? _helper.getGreater(indt) : _helper.getLess(indt)).collect<Stack>();
-    auto it = iterTraits(_helper.getTQRsForInductionTerm(indtl))
+    auto it = iterTraits(_helper.getTQRsForInductionTerm(indt))
       .filter([&premise](const TermQueryResult& tqr) {
         return tqr.clause != premise;
       })

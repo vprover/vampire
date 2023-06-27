@@ -131,7 +131,7 @@ void InductionPostponement::updateIndices(InductionFormulaKey* key, bool adding)
       NonVariableNonTypeIterator it(tlit);
       while (it.hasNext()) {
         auto t = it.next();
-        if (!t.containsSubterm(VAR) || !done.insert(t.term())) {
+        if (!t->containsSubterm(VAR) || !done.insert(t)) {
           it.right();
           continue;
         }
@@ -237,8 +237,11 @@ void InductionPostponement::checkForPostponedInductions(Literal* lit, Clause* cl
   if (lit->isEquality()) {
     if (lit->isPositive()) {
       for (unsigned j=0; j<2; j++) {
-        auto lhs = *lit->nthArgument(j);
-        auto qrit = _postponedTermIndex.getUnifications(lhs,true);
+        auto lhs = lit->termArg(j);
+        if (lhs.isVar()) {
+          continue;
+        }
+        auto qrit = _postponedTermIndex.getUnifications(TypedTermList(lhs.term()),true,false);
         while (qrit.hasNext()) {
           auto qr = qrit.next();
           ASS(qr.clause);
@@ -367,12 +370,12 @@ Clause* InductionPostponement::findActivatingClauseForIndex(const InductionConte
     NonVariableNonTypeIterator nvi(litMaster);
     while (!activating && nvi.hasNext()) {
       auto master = nvi.next();
-      if (!master.containsSubterm(VAR)) {
+      if (!master->containsSubterm(VAR)) {
         nvi.right();
         continue;
       }
       auto ctor = SubstHelper::apply(master, ctorSubst);
-      if (!tried.insert(ctor.term())) {
+      if (!tried.insert(ctor)) {
         nvi.right();
         continue;
       }
@@ -381,7 +384,7 @@ Clause* InductionPostponement::findActivatingClauseForIndex(const InductionConte
       while (uit.hasNext()) {
         auto qr = uit.next();
         subst.reset();
-        ALWAYS(subst.unify(master, 0, qr.term, 1));
+        ALWAYS(subst.unify(TermList(master), 0, qr.term, 1));
         auto tt = subst.apply(VAR, 0);
         if (isPureCtorTerm(tt)) {
           activating = qr.clause;

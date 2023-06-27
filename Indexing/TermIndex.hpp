@@ -19,6 +19,7 @@
 #include "Index.hpp"
 
 #include "TermIndexingStructure.hpp"
+#include "TermSubstitutionTree.hpp"
 #include "Lib/Set.hpp"
 
 namespace Indexing {
@@ -32,16 +33,9 @@ public:
 
   virtual ~TermIndex();
 
-  TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions = true);
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions = true);
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions = true);
-  TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions = true);
-  TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions = true);
+  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true, bool withConstraints = false);
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
+  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true);
 
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
@@ -71,13 +65,14 @@ public:
   CLASS_NAME(SuperpositionLHSIndex);
   USE_ALLOCATOR(SuperpositionLHSIndex);
 
-  SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  SuperpositionLHSIndex(TermSubstitutionTree* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
+  TermSubstitutionTree* _tree;
 };
 
 class InductionPostponementLHSIndex
@@ -255,7 +250,7 @@ public:
   void insertFormula(TermList formula, TermList skolem);
 };
 
-class HeuristicInstantiationIndex
+/*class HeuristicInstantiationIndex
 : public TermIndex
 {
 public:
@@ -283,7 +278,7 @@ public:
   void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
 protected:
   void handleClause(Clause* c, bool adding);
-};
+};*/
 
 };
 #endif /* __TermIndex__ */

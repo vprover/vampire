@@ -87,7 +87,6 @@ public:
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
 #if VDEBUG
-  vstring toString(bool deref=false) const;
   /**
    * Return number of bindings stored in the substitution.
    *
@@ -110,9 +109,7 @@ public:
     bool operator!=(const VarSpec& o) const
     { return !(*this==o); }
 
-#if VDEBUG
-    vstring toString() const;
-#endif
+    friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
 
     /** number of variable */
     unsigned var;
@@ -187,9 +184,6 @@ public:
     }
     bool operator==(const TermSpec& o) const
     { return term==o.term && index==o.index; }
-#if VDEBUG
-    vstring toString() const;
-#endif
 
     /** term reference */
     TermList term;
@@ -197,7 +191,7 @@ public:
     int index;
   };
   typedef pair<TermSpec,TermSpec> TTPair;
-
+ 
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
   {
@@ -208,11 +202,24 @@ public:
    }
   };
 
+  friend std::ostream& operator<<(std::ostream& out, TermSpec const& self)
+  { return out << self.term << "/" << self.index; }
+
+  friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
+  {
+    if(self.index == SPECIAL_INDEX) {
+      return out << "S" << self.var;
+    } else {
+      return out << "X" << self.var << "/" << self.index;
+    }
+  }
+
+
+  RobSubstitution(RobSubstitution&& obj) = default;
+  RobSubstitution& operator=(RobSubstitution&& obj) = default;
 private:
-  /** Copy constructor is private and without a body, because we don't want any. */
-  RobSubstitution(const RobSubstitution& obj);
-  /** operator= is private and without a body, because we don't want any. */
-  RobSubstitution& operator=(const RobSubstitution& obj);
+  RobSubstitution(const RobSubstitution& obj) = delete;
+  RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
 
   static const int SPECIAL_INDEX;
@@ -250,6 +257,9 @@ private:
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
 
+  friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
+  { return out << self._bank; }
+
   class BindingBacktrackObject
   : public BacktrackObject
   {
@@ -269,12 +279,8 @@ private:
 	_subst->_bank.set(_var,_term);
       }
     }
-#if VDEBUG
-    vstring toString() const
-    {
-      return "(ROB backtrack object for "+ _var.toString() +")";
-    }
-#endif
+    friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
+    { return out << "(ROB backtrack object for " << self._var << ")"; }
     CLASS_NAME(RobSubstitution::BindingBacktrackObject);
     USE_ALLOCATOR(BindingBacktrackObject);
   private:
@@ -296,14 +302,6 @@ private:
   struct UnificationFn;
 
 };
-
-#if VDEBUG
-
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs );
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec vs );
-
-#endif
-
 
 };
 

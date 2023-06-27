@@ -155,7 +155,9 @@ void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
 // This test demonstrates the current issue. The constraints produced depend on
 TEST_FUN(current_issue)
 {
-  env.options->setUWA(Options::UnificationWithAbstraction::ALL); 
+  Problem p;
+  env.setMainProblem(&p);
+  env.options->setUWA(Options::UnificationWithAbstraction::ALL);
 
   LiteralIndexingStructure* index = getBasicIndex();
 
@@ -227,6 +229,8 @@ void reportRobUnify(TermList a, TermList b)
 
 TEST_FUN(using_robsub)
 {
+  Problem p;
+  env.setMainProblem(&p);
   env.options->setUWA(Options::UnificationWithAbstraction::ALL);
 
   TermList b_plus_two = int_plus(int_constant("b"),number("2"));
@@ -241,6 +245,8 @@ TEST_FUN(using_robsub)
 
 TEST_FUN(complex_case)
 {
+  Problem p;
+  env.setMainProblem(&p);
   env.options->setUWA(Options::UnificationWithAbstraction::ALL);
 
   // The complex case is where we have a variable that needs to be instantiated elsewhere

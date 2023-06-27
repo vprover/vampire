@@ -103,11 +103,12 @@ Index* IndexManager::create(IndexType t)
   Index* res;
   LiteralIndexingStructure* is;
   TermIndexingStructure* tis;
+  TermSubstitutionTree* tst;
 
   bool isGenerating;
   static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                    env.property->higherOrder();
+                    env.getMainProblem()->isHigherOrder();
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
@@ -142,8 +143,8 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    tst=new TermSubstitutionTree(useConstraints, extByAbs);
+    res=new SuperpositionLHSIndex(tst, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     

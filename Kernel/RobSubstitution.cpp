@@ -412,7 +412,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
               // mechanism used by higher-order logic to pruduce constraints.
               // until then the first condition ensures that the handler is never called
               // incorrectly. HOL also uses a handler, but it shouldn't be called here.
-              if(env.property->higherOrder() || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
+              if(env.getMainProblem()->isHigherOrder() || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
                 mismatch=true;
                 break;
               }
@@ -586,6 +586,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
     TermList sort = apply(lit->twoVarEqSort(),index);
     return Literal::createEquality(lit->polarity(), ts[0], ts[1], sort);
   }
+
   return Literal::create(lit,ts.array());
 }
 
@@ -1060,59 +1061,4 @@ struct RobSubstitution::UnificationFn {
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 
-
-#if VDEBUG
-vstring RobSubstitution::toString(bool deref) const
-{
-  CALL("RobSubstitution::toString");
-  vstring res;
-  BankType::Iterator bit(_bank);
-  while(bit.hasNext()) {
-    VarSpec v;
-    TermSpec binding;
-    bit.next(v,binding);
-    TermList tl;
-    if(v.index==SPECIAL_INDEX) {
-      res+="S"+Int::toString(v.var)+" -> ";
-      tl.makeSpecialVar(v.var);
-    } else {
-      res+="X"+Int::toString(v.var)+"/"+Int::toString(v.index)+ " -> ";
-      tl.makeVar(v.var);
-    }
-    if(deref) {
-      tl=apply(tl, v.index);
-      res+=tl.toString()+"\n";
-    } else {
-      res+=binding.term.toString()+"/"+Int::toString(binding.index)+"\n";
-    }
-
-  }
-  return res;
-}
-
-vstring RobSubstitution::VarSpec::toString() const
-{
-  if(index==SPECIAL_INDEX) {
-    return "S"+Int::toString(var);
-  } else {
-    return "X"+Int::toString(var)+"/"+Int::toString(index);
-  }
-}
-
-vstring RobSubstitution::TermSpec::toString() const
-{
-  return term.toString()+"/"+Int::toString(index);
-}
-
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs )
-{
-  return out<<vs.toString();
-}
-
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec ts )
-{
-  return out<<ts.toString();
-}
-
-#endif
 }

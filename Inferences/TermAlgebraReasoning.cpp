@@ -368,7 +368,6 @@ namespace Inferences {
 
       premises.reset(qres->premises);
       unsigned i = 0;
-      unsigned maxVar = 0;
 
       while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {              
         Literal *l = literals.next();
@@ -382,8 +381,6 @@ namespace Inferences {
             (*res)[i++] = (*c)[j];
           }
         }
-
-        maxVar++;
       }
       ASS (!literals.hasNext());
       ASS (!premises.hasNext());

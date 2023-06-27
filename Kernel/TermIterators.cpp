@@ -243,7 +243,7 @@ bool TopLevelVarIterator::hasNext()
 
 }
 
-TermList FirstOrderSubtermIt::next()
+Term* FirstOrderSubtermIt::next()
 {
   CALL("FirstOrderSubtermIt::next");
 
@@ -261,7 +261,7 @@ TermList FirstOrderSubtermIt::next()
       }
     }
   }
-  return TermList(t);
+  return t;
 }
 
 void FirstOrderSubtermIt::right()
@@ -338,7 +338,7 @@ bool RewritableVarsIt::hasNext()
 {
   CALL("RewritableVarsIt::hasNext");
 
-  if(!_next.isEmpty()){ return true; }
+  if(_next.isSome()){ return true; }
 
   static TermStack args;
   TermList head;
@@ -349,7 +349,7 @@ bool RewritableVarsIt::hasNext()
     AH::getHeadSortAndArgs(t, head, headSort, args);
     if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var()) 
        && (s.isVar() || s.isArrowSort())){
-      _next = head;
+      _next = some(TypedTermList(head, headSort));
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
       unsigned count = 1;
@@ -358,7 +358,7 @@ bool RewritableVarsIt::hasNext()
         _stack.push(args.pop());
       }
     }
-    if(!_next.isEmpty()){ return true; }
+    if(_next.isSome()){ return true; }
   }
   return false;
 }
@@ -463,7 +463,7 @@ void NonVariableIterator::right()
  * @since 20/06/2019 Manchester
  * @author Ahmed Bhayat
  */
-TermList NonVariableNonTypeIterator::next()
+Term* NonVariableNonTypeIterator::next()
 {
   CALL("NonVariableNonTypeIterator::next");
 
@@ -478,7 +478,7 @@ TermList NonVariableNonTypeIterator::next()
   }
   unsigned taArity; 
   unsigned arity;
-  
+
   if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
     taArity = 0;
     arity = 2;
@@ -494,7 +494,7 @@ TermList NonVariableNonTypeIterator::next()
       _added++;
     }
   }
-  return TermList(t);
+  return t;
 }
 
 /**
