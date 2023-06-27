@@ -108,7 +108,6 @@ public:
 
   ~OptionBase() 
   { 
-    CALL("~OptionBase") 
     if (isSome()) { 
       unwrap().~A(); 
     }
@@ -119,7 +118,6 @@ public:
     : _isSome(true)                                                                                 \
       , _elem()                                                                                     \
   {                                                                                                 \
-    CALL("Option(A " #REF ")")                                                                      \
     _elem.init(move_if_value<A>(content));                                                          \
   }                                                                                                 \
                                                                                                     \
@@ -131,7 +129,6 @@ public:
                                                                                                     \
   OptionBase(OptionBase REF a) : _isSome(a._isSome)                                                 \
   {                                                                                                 \
-    CALL("OptionBase(OptionBase " #REF ")");                                                        \
     if (isSome()) {                                                                                 \
       _elem.init(MV(a).unwrap());                                                                   \
     }                                                                                               \
@@ -143,7 +140,6 @@ public:
 
   OptionBase& operator=(OptionBase&& other)
   {
-    CALL("OptionBase& operator=(OptionBase&&)");
     if (_isSome) {
       unwrap().~A();
     }
@@ -156,7 +152,6 @@ public:
 
   OptionBase& operator=(OptionBase const& other)
   {
-    CALL("OptionBase& operator=(OptionBase const&)");
     if (_isSome) {
       unwrap().~A();
     }
