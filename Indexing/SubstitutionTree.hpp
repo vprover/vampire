@@ -1465,9 +1465,12 @@
          * unnecessary unification attempts.
          */
         SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
+        { return selectPotentiallyUnifiableChildren(n, *_subs); }
+
+        static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n, RobSubstitution& subs)
         {
           unsigned specVar=n->childVar;
-          auto top = _subs->getSpecialVarTop(specVar);
+          auto top = subs.getSpecialVarTop(specVar);
           if(top.var()) {
             return n->allChildren();
           } else {
@@ -1481,6 +1484,7 @@
             }
           }
         }
+
       };
 
       class UnificationWithAbstraction { 
@@ -1507,11 +1511,18 @@
         void denormalize(Renaming& norm)
         { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
-        static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
+        static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n, AbstractingUnifier& unif)
         {
-          // TODO we could optimize this potentially, to skip children with not matching uninterpreted symbols
-          return n->allChildren();
+          if (unif.usesUwa()) {
+            // TODO we could optimize this potentially, to skip children with not matching uninterpreted symbols
+            return n->allChildren();
+          } else {
+            return RobUnification::selectPotentiallyUnifiableChildren(n, unif.subs());
+          }
         }
+
+        SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
+        { return selectPotentiallyUnifiableChildren(n, _unif); }
       };
 
       class UnificationWithAbstractionWithPostprocessing 
@@ -1569,8 +1580,8 @@
         { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
 
-        static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
-        { return UnificationWithAbstraction::selectPotentiallyUnifiableChildren(n); }
+        SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
+        { return UnificationWithAbstraction::selectPotentiallyUnifiableChildren(n, _unif); }
       };
     };
 
