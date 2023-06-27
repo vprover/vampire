@@ -1511,11 +1511,28 @@
         void denormalize(Renaming& norm)
         { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
+        // TODO document
         static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n, AbstractingUnifier& unif)
         {
           if (unif.usesUwa()) {
-            // TODO we could optimize this potentially, to skip children with not matching uninterpreted symbols
-            return n->allChildren();
+            unsigned specVar = n->childVar;
+            auto top = unif.subs().getSpecialVarTop(specVar);
+
+            if(top.var()) {
+              return n->allChildren();
+            } else {
+              auto syms = unif.unifiableSymbols(top.functor());
+              if (syms) {
+                return pvi(concatIters(
+                      arrayIter(std::move(*syms))
+                        .map   ([=](auto f) { return n->childByTop(top, /* canCreate */ false); })
+                        .filter([ ](auto n) { return n != nullptr; }),
+                      n->variableChildren()
+                      ));
+              } else {
+                return n->allChildren();
+              }
+            }
           } else {
             return RobUnification::selectPotentiallyUnifiableChildren(n, unif.subs());
           }

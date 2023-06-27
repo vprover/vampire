@@ -324,6 +324,24 @@ bool AbstractingUnifier::fixedPointIteration()
   return true;
 }
 
+Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(unsigned f)
+{
+  auto anything = []() -> Option<Recycled<Stack<unsigned>>> { return {}; };
+  auto nothing  = []() -> Option<Recycled<Stack<unsigned>>> { return some(recycledStack<unsigned>()); };
+  switch (_uwa._mode) {
+    case Options::UnificationWithAbstraction::OFF: return some(recycledStack(f));
+    case Options::UnificationWithAbstraction::INTERP_ONLY: return theory->isInterpretedFunction(f) ? anything() : some(recycledStack(f));
+    case Options::UnificationWithAbstraction::ONE_INTERP: return anything();
+    case Options::UnificationWithAbstraction::CONSTANT: return theory->isInterpretedConstant(f) ? anything() : nothing();
+    case Options::UnificationWithAbstraction::ALL: return anything();
+    case Options::UnificationWithAbstraction::GROUND: anything();
+    case Options::UnificationWithAbstraction::FUNC_EXT: anything();
+    case Options::UnificationWithAbstraction::AC1: return some(recycledStack(f));
+    case Options::UnificationWithAbstraction::AC2: return some(recycledStack(f));
+  }
+  ASSERTION_VIOLATION
+}
+
 bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, unsigned bank2)
 {
   if (_uwa._mode == Shell::Options::UnificationWithAbstraction::OFF) 
