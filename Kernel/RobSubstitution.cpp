@@ -658,6 +658,7 @@ Stack<Literal*> RobSubstitution::apply(Stack<Literal*> cl, int index) const
 Literal* RobSubstitution::apply(Literal* lit, int index) const
 {
   CALL("RobSubstitution::apply(Literal*...)");
+  TIME_TRACE("RobSubstitution::apply(Literal*,int)");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -681,7 +682,9 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
 TermList RobSubstitution::apply(TermList trm, int index) const
 {
   CALL("RobSubstitution::apply(TermList...)");
+  TIME_TRACE("RobSubstitution::apply(TermList,int)");
   // DBG(*this, ".apply(", TermSpec(trm, index), ")")
+  // if (trm.ground()) return trm;
   
 
   return evalBottomUpWithMemo<TermList>(AutoDerefTermSpec(TermSpec(trm, index), this), 
@@ -690,12 +693,16 @@ TermList RobSubstitution::apply(TermList trm, int index) const
         if (orig.term.isVar()) {
           ASS(!orig.term.isOutputVar())
           tout = TermList::var(derefIntroducingNewVariables(orig.term.varSpec()).varSpec().var);
+
+        } else if (orig.term.definitelyGround()) {
+          return orig.term.unwrapGround();
+
         } else {
           tout = TermList(orig.term.isSort() ? AtomicSort::create(orig.term.functor(), orig.term.nAllArgs(), args)
-                                              : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
+                                             : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
         }
         return tout;
-      }, _applyMemo, /* context */ this);
+      }, _applyMemo, AutoDerefTermSpecContext { .subs = this, .recurseOnGround = false, });
 }
 
 TermList RobSubstitution::apply(TermSpec t) 
@@ -707,11 +714,12 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 
   return evalBottomUp<size_t>(AutoDerefTermSpec(TermSpec(trm, index), this), 
       [](auto& orig, size_t* sizes) 
-      { return orig.term.isVar() ? 1 
-                                 : (1 + range(0, orig.term.nAllArgs())
-                                           .map([&](auto i) { return sizes[i]; })
-                                           .sum()); },
-                                 this);
+      { return orig.term.isVar()            ? 1 
+             : orig.term.definitelyGround() ? orig.term.groundWeight()
+                                            : (1 + range(0, orig.term.nAllArgs())
+                                                      .map([&](auto i) { return sizes[i]; })
+                                                      .sum()); },
+                                 AutoDerefTermSpecContext { .subs = this, .recurseOnGround = false, });
 }
 
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const

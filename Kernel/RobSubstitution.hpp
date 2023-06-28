@@ -184,6 +184,16 @@ public:
 
   Option<AtomicTermSpec> asAtomic() const { return _self.as<AtomicTermSpec>().toOwned(); }
 
+  TermList unwrapGround() const
+  { return _self.match(
+      [](CompositeTermSpec const& t) { return TermList(Term::createFromIter(t.functor, t.argsIter().map([](auto& arg) { return arg.unwrapGround(); }))); },
+      [](AtomicTermSpec const& t) { ASS(t.term.ground()); return t.term; }); }
+
+  unsigned groundWeight() const
+  { return _self.match(
+      [](CompositeTermSpec const& t) { return 1 + t.argsIter().map([](auto& arg) { return arg.groundWeight(); }).sum(); },
+      [](AtomicTermSpec const& t) { ASS(t.term.ground()); return t.term.weight(); }); }
+
   template<class Deref>
   static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
     Recycled<Stack<pair<TermSpec, TermSpec>>> todo;
@@ -283,6 +293,12 @@ struct AutoDerefTermSpec
   AutoDerefTermSpec clone() const { return AutoDerefTermSpec(*this); }
   AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
   friend std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self);
+};
+
+struct AutoDerefTermSpecContext 
+{
+  RobSubstitution const* subs;
+  bool recurseOnGround;
 };
 
 // memo for AutoDerefTermSpec that will only memorize AtomicTermSpec but not CompositeTermSpec 
@@ -539,18 +555,23 @@ namespace Lib {
     Item _self;
     unsigned _arg;
 
-    BottomUpChildIter(Item const& self, Kernel::RobSubstitution const* s) : _self(Item(self)), _arg(0) {}
+    BottomUpChildIter(Item const& self, Kernel::AutoDerefTermSpecContext c) : _self(Item(self)), _arg(0) {}
  
     Item self() { return _self.clone(); }
 
-    Item next(Kernel::RobSubstitution const* s)
-    { return Kernel::AutoDerefTermSpec(_self.term.anyArg(_arg++), s); }
+    Item next(Kernel::AutoDerefTermSpecContext c)
+    { return Kernel::AutoDerefTermSpec(_self.term.anyArg(_arg++), c.subs); }
 
-    bool hasNext(Kernel::RobSubstitution const* s)
-    { return _self.term.isTerm() && _arg < _self.term.nAllArgs(); }
+    bool hasNext(Kernel::AutoDerefTermSpecContext c)
+    { return _self.term.isTerm() && (c.recurseOnGround 
+          ? _arg < _self.term.nAllArgs()
+          : (_self.term.definitelyGround() ? false 
+                                           : _arg < _self.term.nAllArgs())); }
 
-    unsigned nChildren(Kernel::RobSubstitution const* s)
-    { return _self.term.isVar() ? 0 : _self.term.nAllArgs(); }
+    unsigned nChildren(Kernel::AutoDerefTermSpecContext c)
+    { return _self.term.isVar() ? 0 
+             : (c.recurseOnGround ? _self.term.nAllArgs()
+                                  : (_self.term.definitelyGround() ? 0 : _self.term.nAllArgs())); }
   };
 
 } // namespace Lib
