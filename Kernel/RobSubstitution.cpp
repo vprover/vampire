@@ -347,6 +347,7 @@ void RobSubstitution::bind(const VarSpec& v, TermSpec b)
     bdAdd(new BindingBacktrackObject(this, v));
   }
   _bank.set(v,std::move(b));
+  _applyMemo.reset();
 }
 
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
@@ -575,7 +576,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
       if (! TermList::sameTopFunctor(bts.old().term,its.old().term)) {
 	if(bts.old().term.isSpecialVar()) {
 	  VarSpec bvs(bts.old().term.var(), SPECIAL_INDEX);
-          auto binding = _bank.find(bvs);
+	  auto binding = _bank.find(bvs);
 	  if(binding) {
             binding1 = binding->old();
 	    ASS_EQ(binding1.index, base.old().index);
@@ -586,7 +587,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	  }
 	} else if(its.old().term.isSpecialVar()) {
 	  VarSpec ivs(its.old().term.var(), SPECIAL_INDEX);
-          auto binding = _bank.find(ivs);
+	  auto binding = _bank.find(ivs);
 	  if(binding) {
             binding2 = binding->old();
 	    ASS_EQ(binding2.index, instance.old().index);
@@ -597,7 +598,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	  }
 	} else if(bts.old().term.isOrdinaryVar()) {
 	  VarSpec bvs(bts.old().term.var(), bts.old().index);
-          auto binding = _bank.find(bvs);
+	  auto binding = _bank.find(bvs);
 	  if(binding) {
             binding1 = binding->old();
 	    ASS_EQ(binding1.index, instance.old().index);
@@ -682,7 +683,8 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   CALL("RobSubstitution::apply(TermList...)");
   // DBG(*this, ".apply(", TermSpec(trm, index), ")")
   
-  return evalBottomUp<TermList>(AutoDerefTermSpec(TermSpec(trm, index), this), 
+
+  return evalBottomUpWithMemo<TermList>(AutoDerefTermSpec(TermSpec(trm, index), this), 
       [&](auto& orig, TermList* args) -> TermList {
         TermList tout;
         if (orig.term.isVar()) {
@@ -693,7 +695,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
                                               : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
         }
         return tout;
-      }, this);
+      }, _applyMemo, /* context */ this);
 }
 
 TermList RobSubstitution::apply(TermSpec t) 

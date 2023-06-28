@@ -17,6 +17,7 @@
 #define __RobSubstitution__
 
 #include "Forwards.hpp"
+#include "Kernel/Polynomial.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"
 #include "Term.hpp"
@@ -42,17 +43,16 @@ struct VarSpec
   /** Create a new VarSpec struct */
   VarSpec(unsigned var, int index) : var(var), index(index) {}
 
-  bool operator==(const VarSpec& o) const
-  { return var==o.var && index==o.index; }
-  bool operator!=(const VarSpec& o) const
-  { return !(*this==o); }
-
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
 
   /** number of variable */
   unsigned var;
   /** index of variable bank */
   int index;
+
+  auto asTuple() const { return std::tie(var, index); }
+  IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
+  IMPL_HASH_FROM_TUPLE(VarSpec)
 
   /** struct containing first hash function for DHMap object storing variable banks */
   struct Hash1
@@ -278,12 +278,50 @@ struct AutoDerefTermSpec
   AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s)
     : term(t.deref(s).clone())
     { }
+
   explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()) {}
   AutoDerefTermSpec clone() const { return AutoDerefTermSpec(*this); }
   AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
   friend std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self);
 };
 
+// memo for AutoDerefTermSpec that will only memorize AtomicTermSpec but not CompositeTermSpec 
+template<class Result>
+class OnlyMemorizeAtomic {
+  Map<AtomicTermSpec, Result> _memo;
+public:
+  OnlyMemorizeAtomic(OnlyMemorizeAtomic &&) = default;
+  OnlyMemorizeAtomic& operator=(OnlyMemorizeAtomic &&) = default;
+  OnlyMemorizeAtomic() : _memo() {}
+
+  Option<Result> get(AutoDerefTermSpec const& arg)
+  { return arg.term.asAtomic().isSome() 
+       ? _memo.tryGet(*arg.term.asAtomic()).toOwned()
+       : Option<Result>(); }
+
+  template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
+  { return orig.term.asAtomic().isSome() ? _memo.getOrInit(*orig.term.asAtomic(), init)
+                                           : init(); }
+  void reset() { _memo.reset(); }
+};
+template<class Result>
+class OnlyMemorizeVars {
+  Map<VarSpec, Result> _memo;
+public:
+  OnlyMemorizeVars(OnlyMemorizeVars &&) = default;
+  OnlyMemorizeVars& operator=(OnlyMemorizeVars &&) = default;
+  OnlyMemorizeVars() : _memo() {}
+
+  Option<Result> get(AutoDerefTermSpec const& arg)
+  { return arg.term.isVar()
+       ? _memo.tryGet(arg.term.varSpec()).toOwned()
+       : Option<Result>(); }
+
+  template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
+  { return orig.term.isVar() ? _memo.getOrInit(orig.term.varSpec(), init)
+                             : init(); }
+  void reset() { _memo.reset(); }
+};
 class UnificationConstraint
 {
   TermSpec _t1;
@@ -328,6 +366,11 @@ class RobSubstitution
 {
   friend class AbstractingUnifier;
   friend class UnificationConstraint;
+ 
+  DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> _bank;
+  mutable unsigned _nextUnboundAvailable;
+  mutable OnlyMemorizeVars<TermList> _applyMemo;
+
 public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
@@ -354,6 +397,7 @@ public:
   {
     _bank.reset();
     _nextUnboundAvailable=0;
+    _applyMemo.reset();
   }
   bool keepRecycled() const { return _bank.keepRecycled(); }
 
@@ -434,12 +478,6 @@ private:
   //   index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
   //   return VarSpec(tl.var(), index);
   // }
-
-  typedef DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> BankType;
-
-  BankType _bank;
-  mutable unsigned _nextUnboundAvailable;
-
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
   { return out << self._bank; }
 
@@ -462,6 +500,7 @@ private:
       } else {
 	      _subst->_bank.set(_var,std::move(*_term));
       }
+      _subst->_applyMemo.reset();
     }
     friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
     { return out << "(ROB backtrack object for " << self._var << ")"; }

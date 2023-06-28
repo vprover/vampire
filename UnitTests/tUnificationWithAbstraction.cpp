@@ -977,7 +977,7 @@ Option<TermUnificationResultSpec> runRobUnify(TypedTermList a, TypedTermList b, 
     return some(TermUnificationResultSpec { 
      .querySigma  = au->subs().apply(a, 0), 
      .resultSigma = au->subs().apply(b, 0), 
-     .constraints = *au->constraintLiterals(),
+     .constraints = *au->computeConstraintLiterals(),
     });
 
   } else {

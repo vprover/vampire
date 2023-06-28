@@ -57,14 +57,7 @@ namespace Memo {
     { return _memo.getOrInit(Arg(orig), init); }
 
     Option<Result> get(const Arg& orig)
-    {
-      auto out = _memo.getPtr(orig);
-      if (out) {
-        return Option<Result>(*out);
-      } else {
-        return Option<Result>();
-      }
-    }
+    { return _memo.tryGet(orig).toOwned(); }
   };
 
 } // namespace Memo
@@ -380,8 +373,8 @@ struct BottomUpChildIter<Kernel::PolyNf>
   { return out << self._self; }
 };
 
-template<class R, class A, class F, class... Context>
-R evalBottomUp(A const& term, F fun, Context ... cs)
+template<class R, class A, class F, class Memo, class... Context>
+R evalBottomUpWithMemo(A const& term, F fun, Memo& memo, Context ... cs)
 {
   struct Eval {
     using Result = R;
@@ -390,7 +383,14 @@ R evalBottomUp(A const& term, F fun, Context ... cs)
     Result operator()(Arg const& a, Result* rs)
     { return fun(a,rs); }
   };
-  return evaluateBottomUp(term, Eval{fun}, std::move(cs)...);
+  return evaluateBottomUpWithMemo(term, Eval{fun}, memo, std::move(cs)...);
+}
+
+template<class R, class A, class F, class... Context>
+R evalBottomUp(A const& term, F fun, Context ... cs)
+{
+  Memo::None<A, R> memo;
+  return evalBottomUpWithMemo<R>(term, std::move(fun), memo, std::move(cs)...);
 }
 
 

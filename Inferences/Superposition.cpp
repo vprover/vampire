@@ -327,10 +327,8 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  auto constraints = unifier->constraintLiterals();
+  auto nConstraints = unifier->nConstraintLiterals();
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
-  // auto constraints = rawConstraints ? rawConstraints->literals(*subst->tryGetRobSubstitution()) : Recycled<Stack<Literal*>>();
-  bool hasConstraints = !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
 
@@ -356,7 +354,7 @@ Clause* Superposition::performSuperposition(
 
   unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
   //TODO update inference rule name AYB
-  Inference inf(GeneratingInference2(hasConstraints ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
+  Inference inf(GeneratingInference2(nConstraints == 0 ? InferenceRule::SUPERPOSITION : InferenceRule::CONSTRAINED_SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
@@ -375,7 +373,7 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(!hasConstraints){
+  if(nConstraints == 0){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
@@ -412,7 +410,7 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength+eqLength-1+constraints->size();
+  unsigned newLength = rwLength + eqLength - 1 + nConstraints;
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -535,8 +533,11 @@ Clause* Superposition::performSuperposition(
     }
   }
 
+  {
+  auto constraints = unifier->computeConstraintLiterals();
   for(auto c : *constraints){
     (*res)[next++] = c;
+  }
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
@@ -548,7 +549,7 @@ Clause* Superposition::performSuperposition(
   }
 
   //TODO update AYB
-  if(!hasConstraints){
+  if(nConstraints == 0){
     if(rwClause==eqClause) {
       env.statistics->selfSuperposition++;
     } else if(eqIsResult) {

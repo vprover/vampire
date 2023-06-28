@@ -102,8 +102,10 @@ struct BinaryResolution::ResultFn
     Literal* resLit = arg.first;
 
     auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
-    auto constraints = qr.unifier->constraintLiterals();
-    return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, *constraints, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+    return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, 
+        [&](){ return qr.unifier->computeConstraintLiterals(); }, 
+        qr.unifier->nConstraintLiterals(),
+        _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
   }
 private:
   Clause* _cl;
@@ -118,8 +120,9 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
+template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, Stack<Literal*> const& constraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+                                ResultSubstitutionSP subs, ComputeConstraints computeConstraints, unsigned nConstraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
@@ -153,8 +156,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
               resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
-  Inference inf(GeneratingInference2(constraints.isNonEmpty() ?
-      InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, resultCl));
+  Inference inf(GeneratingInference2(nConstraints == 0 ?  InferenceRule::RESOLUTION : InferenceRule::CONSTRAINED_RESOLUTION, queryCl, resultCl));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
@@ -179,7 +181,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  unsigned newLength = clength+dlength-2+constraints.size();
+  unsigned newLength = clength + dlength - 2 + nConstraints;
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -191,7 +193,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   unsigned next = 0;
-  for(Literal* c : constraints){
+  Recycled<Stack<Literal*>> constraints = computeConstraints();
+  for(Literal* c : *constraints){
       (*res)[next++] = c; 
   }
   for(unsigned i=0;i<clength;i++) {
@@ -264,7 +267,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if(constraints.isNonEmpty()){
+  if(nConstraints != 0){
     env.statistics->cResolution++;
   }
   else{ 
@@ -273,6 +276,15 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   return res;
 }
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
+                                ResultSubstitutionSP subs, const Options& opts)
+{
+  return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs, 
+      /* computeConstraints */ []() { return recycledStack<Literal*>(); },
+      /* nConstraints */ 0,
+      opts);
+}
+
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
