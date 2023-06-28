@@ -41,11 +41,7 @@ public:
   void computeAndSetSharedTermData(Term*);
   void computeAndSetSharedSortData(AtomicSort*);
   void computeAndSetSharedLiteralData(Literal*);
-
-  // AtomicSort* insert(AtomicSort*);
-
-  // Literal* insert(Literal*);
-  Literal* insertVariableEquality(Literal* lit,TermList sort);
+  void computeAndSetSharedVarEqData(Literal*, TermList eqSort);
 
   Literal* tryGetOpposite(Literal* l);
 

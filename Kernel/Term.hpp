@@ -1020,10 +1020,10 @@ public:
           DefaultHash::hash(twoVarEqSort),
           getArg(0).defaultHash() ^ getArg(1).defaultHash());
     } else {
+      ASS(twoVarEqSort.isNone())
       return HashUtils::combine(
           DefaultHash::hash(polarity),
-          Term::termHash(functor, getArg, arity),
-          DefaultHash::hash(twoVarEqSort));
+          Term::termHash(functor, getArg, arity));
     }
   }
 
@@ -1104,7 +1104,7 @@ public:
 
 private:
   template<class GetArg>
-  static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg args);
+  static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg args, Option<TermList> twoVarEqSort = Option<TermList>());
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, TermList variableSort);
 
 }; // class Literal

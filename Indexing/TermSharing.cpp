@@ -278,6 +278,7 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
         weight += r->weight();
 
         if(t->isEquality()){
+          // TODO we're adding the weight of the sort twice here if we have an equality where both sides are terms. do we really want that?
           TermList sort = SortHelper::getResultSort(r);
           weight += sort.weight() - 1;
         }
@@ -314,7 +315,7 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
  * Insert a new literal in the index and return the result.
  * @since 28/12/2007 Manchester
  */
-Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
+void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
 {
   CALL("TermSharing::insertVariableEquality");
   ASS(t->isLiteral());
@@ -336,8 +337,6 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   t->markTwoVarEquality();
   t->setTwoVarEqSort(sort);
 
-  Literal* s = _literals.insert(t);
-  if (s == t) {
     t->markShared();
     t->setId(_literals.size());
     // 3 since we have two variables and the equality symbol itself.
@@ -355,11 +354,6 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
       t->setColor(COLOR_TRANSPARENT);
     }
     t->setInterpretedConstantsPresence(false);
-  }
-  else {
-    t->destroy();
-  }
-  return s;
 } // TermSharing::insertVariableEquality
 
 /**

@@ -1539,34 +1539,40 @@ bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
  *  structure if all arguments are shared.
  */
 template<class GetArg>
-Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg getArg)
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg getArg, Option<TermList> twoVarEqSort)
 {
   CALL("Literal::create/4");
-  ASS(predicate != 0 || !getArg(0).isVar() || !getArg(1).isVar())
-  // ASS_G(predicate, 0); //equality is to be created by createEquality
+  ASS(!twoVarEqSort || (predicate == 0 && arity == 2 && getArg(0).isVar() && getArg(1).isVar()))
   ASS_EQ(env.signature->predicateArity(predicate), arity);
 
 
   auto allocLiteral = [&]() {
     Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
-    // s->makeSymbol(predicate,arity);
     for (auto i : range(0, arity)) {
       *l->nthArgument(i) = getArg(i);
+    }
+    if (twoVarEqSort) {
+      l->markTwoVarEquality();
+      l->setTwoVarEqSort(*twoVarEqSort);
     }
     return l;
   };
 
+  // DBG(polarity ? " " : "~", *env.signature->getPredicate(predicate), "(", outputInterleaved(", ", range(0, arity).map([&](auto i) { return getArg(i); })), ")" )
 
   bool share = range(0, arity).all([&](auto i) { return getArg(i).isSafe(); });
   if (share) {
     bool created = false;
     auto shared = 
       env.sharing->_literals.rawFindOrInsert(allocLiteral, 
-        Literal::literalHash(predicate, polarity, getArg, arity, /* twoVarEqSort */ Option<TermList>(), commutative), 
-        [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, getArg, arity, Option<TermList>(), commutative); },
+        Literal::literalHash(predicate, polarity, getArg, arity, twoVarEqSort, commutative), 
+        [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, getArg, arity, twoVarEqSort, commutative); },
         created);
     if (created) {
-      env.sharing->computeAndSetSharedLiteralData(shared);
+      if (twoVarEqSort) 
+        env.sharing->computeAndSetSharedVarEqData(shared, *twoVarEqSort);
+      else 
+        env.sharing->computeAndSetSharedLiteralData(shared);
     }
     return shared;
   } else {
@@ -1650,16 +1656,8 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
  * Create a literal that is equality between two variables.
  */
 Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList arg2, TermList variableSort)
-{
-  CALL("Literal::createVariableEquality");
-  ASS(arg1.isVar());
-  ASS(arg2.isVar());
-
-  Literal* lit=new(2) Literal(0,2,polarity,true);
-  *lit->nthArgument(0)=arg1;
-  *lit->nthArgument(1)=arg2;
-  lit = env.sharing->insertVariableEquality(lit, variableSort);
-  return lit;
+{ 
+  return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, /* commutative */ true, [&](auto i) { return i == 0 ? arg1 : arg2; }, some(variableSort));
 }
 
 Literal* Literal::create(unsigned predicate, bool polarity, std::initializer_list<TermList> args, bool commutative)
