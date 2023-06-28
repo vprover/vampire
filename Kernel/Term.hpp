@@ -968,14 +968,13 @@ public:
   /** set polarity to true or false */
   void setPolarity(bool positive)
   { _args[0]._info.polarity = positive ? 1 : 0; }
-  static Literal* create(unsigned predicate, unsigned arity, bool polarity,
-	  bool commutative, const TermList* args);
+  static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args);
+  static Literal* create(unsigned predicate, bool polarity, std::initializer_list<TermList>, bool commutative = false);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
-  static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
   /**
    * Return the hash function of the top-level of a literal.
@@ -984,21 +983,45 @@ public:
   template<bool flip = false>
   unsigned hash() const
   {
-    CALL("Literal::hash");
-    bool positive = (flip ^ isPositive());
-    unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
-    if (isTwoVarEquality()) {
-      hash = HashUtils::combine(
-        DefaultHash::hash(twoVarEqSort()),
-        hash
-      );
-    }
-    return DefaultHash::hashBytes(
-      reinterpret_cast<const unsigned char*>(_args+1),
-      _arity*sizeof(TermList),
-      hash
-    );
+    return Literal::literalHash(functor(), polarity() ^ flip, 
+        [&](auto i){ return *nthArgument(i); }, arity(),
+        someIf(isTwoVarEquality(), [&](){ return twoVarEqSort(); }));
+    // CALL("Literal::hash");
+    // bool positive = (flip ^ isPositive());
+    // unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
+    // if (isTwoVarEquality()) {
+    //   hash = HashUtils::combine(
+    //     DefaultHash::hash(twoVarEqSort()),
+    //     hash
+    //   );
+    // }
+    // return DefaultHash::hashBytes(
+    //   reinterpret_cast<const unsigned char*>(_args+1),
+    //   _arity*sizeof(TermList),
+    //   hash
+    // );
   }
+
+  template<class GetArg>
+  static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort) {
+    CALL("Term::termHash");
+    return HashUtils::combine(
+        DefaultHash::hash(polarity),
+        Term::termHash(functor, getArg, arity),
+        DefaultHash::hash(twoVarEqSort));
+    
+    // return DefaultHash::hashIter(
+    //     range(0, arity).map([&](auto i) { 
+    //       TermList t = getArg(i);
+    //       return DefaultHash::hashBytes(
+    //           reinterpret_cast<const unsigned char*>(&t),
+    //           sizeof(TermList)
+    //           );
+    //       }),
+    //     DefaultHash::hash(functor));
+  }
+
+
 
   static Literal* complementaryLiteral(Literal* l);
   /** If l is positive, return l; otherwise return its complementary literal. */
@@ -1074,6 +1097,8 @@ public:
   const vstring& predicateName() const;
 
 private:
+  template<class GetArg>
+  static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg args);
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, TermList variableSort);
 
 }; // class Literal

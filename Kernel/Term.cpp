@@ -924,7 +924,7 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
 
   bool share = range(0, arity).all([&](auto i) { return args[i].isSafe(); });
 
-  auto createTerm = [&]() {
+  auto allocTerm = [&]() {
     Term* s = new(arity) Term;
     s->makeSymbol(function,arity);
     for (auto i : range(0, arity)) {
@@ -936,16 +936,16 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
   if (share) {
     bool created = false;
     auto shared = 
-      env.sharing->_terms.rawFindOrInsert(createTerm, 
+      env.sharing->_terms.rawFindOrInsert(allocTerm, 
         Term::termHash(function, [&](auto i){ return args[i]; }, arity), 
         [&](Term* t) { return t->functor() == function && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
         created);
     if (created) {
-      env.sharing->computeAndSetSharedData(shared);
+      env.sharing->computeAndSetSharedTermData(shared);
     }
     return shared;
   } else {
-    return createTerm();
+    return allocTerm();
   }
 }
 
@@ -1447,29 +1447,35 @@ bool Term::isSuper() const {
  */
 AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList* args)
 {
-  CALL("AtomicSort::create");
-
+  CALL("AtomicSort::create/3");
   ASS_EQ(env.signature->typeConArity(typeCon), arity);
 
-  AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
+  bool share = range(0, arity).all([&](auto i) { return args[i].isSafe(); });
 
-  bool share = true;
-  TermList* ss = s->args();
-
-  const TermList* curArg = args;
-  const TermList* argStopper = args+arity;
-  while (curArg!=argStopper) {
-    *ss = *curArg;
-    --ss;
-    if (!curArg->isSafe()) {
-      share = false;
+  auto allocTerm = [&]() {
+    AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
+    s->makeSymbol(typeCon,arity);
+    for (auto i : range(0, arity)) {
+      *s->nthArgument(i) = args[i];
     }
-    ++curArg;
-  }
+    return s;
+  };
+
   if (share) {
-    s = env.sharing->insert(s);
+    bool created = false;
+    auto shared = 
+      env.sharing->_sorts.rawFindOrInsert(allocTerm, 
+        Term::termHash(typeCon, [&](auto i){ return args[i]; }, arity), 
+        [&](AtomicSort* t) { return t->functor() == typeCon && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
+        created
+        );
+    if (created) {
+      env.sharing->computeAndSetSharedSortData(shared);
+    }
+    return shared;
+  } else {
+    return allocTerm();
   }
-  return s;
 }
 
 /** Create a new complex sort, copy from @b sort its function symbol and
@@ -1480,22 +1486,7 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
 AtomicSort* AtomicSort::create(AtomicSort const* sort,TermList* args)
 {
   CALL("AtomicSort::create/2");
-
-  int arity = sort->arity();
-  AtomicSort* s = new(arity) AtomicSort(*sort);
-  bool share = true;
-  TermList* ss = s->args();
-  for (int i = 0;i < arity;i++) {
-    ASS(!args[i].isEmpty());
-    *ss-- = args[i];
-    if (!args[i].isSafe()) {
-      share = false;
-    }
-  }
-  if (share) {
-    s = env.sharing->insert(s);
-  }
-  return s;
+  return AtomicSort::create(sort->functor(), sort->arity(), args);
 }
 
 
@@ -1545,29 +1536,44 @@ bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 /** Create a new literal, and insert it into the sharing
  *  structure if all arguments are shared.
  */
-Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, const TermList* args)
+template<class GetArg>
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg getArg)
 {
   CALL("Literal::create/4");
-  ASS_G(predicate, 0); //equality is to be created by createEquality
+  // ASS_G(predicate, 0); //equality is to be created by createEquality
   ASS_EQ(env.signature->predicateArity(predicate), arity);
 
 
-  Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
-
-  bool share = true;
-  TermList* ss = l->args();
-  for (unsigned i = 0;i < arity;i++) {
-    *ss-- = args[i];
-    if (!args[i].isSafe()) {
-      share = false;
+  auto allocLiteral = [&]() {
+    Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
+    // s->makeSymbol(predicate,arity);
+    for (auto i : range(0, arity)) {
+      *l->nthArgument(i) = getArg(i);
     }
-  }
+    return l;
+  };
+
+
+
+  bool share = range(0, arity).all([&](auto i) { return getArg(i).isSafe(); });
   if (share) {
-    l = env.sharing->insert(l);
+    bool created = false;
+    auto shared = 
+      env.sharing->_literals.rawFindOrInsert(allocLiteral, 
+        Literal::literalHash(predicate, polarity, getArg, arity, /* twoVarEqSort */ Option<TermList>()), 
+        [&](Term* t) { return t->functor() == predicate && range(0, arity).all([&](auto i) { return getArg(i) == *t->nthArgument(i); }); },
+        created);
+    if (created) {
+      env.sharing->computeAndSetSharedLiteralData(shared);
+    }
+    return shared;
+  } else {
+    return allocLiteral();
   }
-  return l;
 }
 
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args)
+{ return create(predicate, arity, polarity, commutative, [&](auto i) { return args[i]; }); }
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  its arguments, and set its polarity to @b polarity. Insert it
@@ -1579,28 +1585,9 @@ Literal* Literal::create(Literal* l,bool polarity)
   CALL("Literal::create(Literal*,bool)");
   ASS_EQ(l->getPreDataSize(), 0);
 
-  if (l->isEquality()) {
-    return createEquality(polarity, *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l));
-  }
-
-  int arity = l->arity();
-  Literal* m = new(arity) Literal(*l);
-  m->setPolarity(polarity);
-
-  TermList* ts = m->args();
-  TermList* ss = l->args();
-  while (ss->isNonEmpty()) {
-    *ts-- = *ss--;
-  }
-  if (l->shared()) {
-    if (l->isTwoVarEquality()) {
-      m = env.sharing->insertVariableEquality(m, l->twoVarEqSort());
-    }
-    else {
-      m = env.sharing->insert(m);
-    }
-  }
-  return m;
+  return l->isEquality()
+    ? Literal::createEquality(l->polarity(), *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l))
+    : Literal::create(l->functor(), l->arity(), l->polarity(), l->commutative(), [&](auto i) { return *l->nthArgument(i); });
 } // Literal::create
 
 /** Create a new literal, copy from @b l its predicate symbol and
@@ -1610,28 +1597,9 @@ Literal* Literal::create(Literal* l,bool polarity)
  */
 Literal* Literal::create(Literal* l,TermList* args)
 {
-  CALL("Literal::create(Literal*,TermList*)");
-  ASS_EQ(l->getPreDataSize(), 0);
-
-  if (l->isEquality()) {
-    return createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l));
-  }
-
-  int arity = l->arity();
-  Literal* m = new(arity) Literal(*l);
-
-  bool share = true;
-  TermList* ts = m->args();
-  for (int i = 0;i < arity;i++) {
-    *ts-- = args[i];
-    if (!args[i].isSafe()) {
-      share = false;
-    }
-  }
-  if (share) {
-    m = env.sharing->insert(m);
-  }
-  return m;
+  return l->isEquality()
+    ? Literal::createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l))
+    : Literal::create(l->functor(), l->arity(), l->polarity(), l->commutative(), [&](auto i) { return args[i]; });
 } // Literal::create
 
 
@@ -1671,13 +1639,9 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
      }
 #endif
    }
-   Literal* lit=new(2) Literal(0,2,polarity,true);
-   *lit->nthArgument(0)=arg1;
-   *lit->nthArgument(1)=arg2;
-   if (arg1.isSafe() && arg2.isSafe()) {
-     lit = env.sharing->insert(lit);
-   }
-   return lit;
+
+   return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, /* commutative */ true, 
+       [&](auto i) { ASS_L(i, 2); return i == 0 ? arg1 : arg2; });
 }
 
 /**
@@ -1696,30 +1660,15 @@ Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList
   return lit;
 }
 
-Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
+Literal* Literal::create(unsigned predicate, bool polarity, std::initializer_list<TermList> args, bool commutative)
 {
-  CALL("Literal::create1");
-
-  return Literal::create(predicate, 1, polarity, false, &arg);
+  return Literal::create(predicate, args.size(), polarity, commutative, [&](auto i) { return args.begin()[i]; });
 }
+Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
+{ return Literal::create(predicate, polarity, { arg }); }
 
 Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2)
-{
-  CALL("Literal::create2");
-  ASS_NEQ(predicate, 0);
-
-  TermList args[] = {arg1, arg2};
-  return Literal::create(predicate, 2, polarity, false, args);
-}
-
-Literal* Literal::create(unsigned pred, bool polarity, std::initializer_list<TermList> args)
-{
-  CALL("Term::create/initializer_list");
-
-  return Literal::create(pred, args.size(), polarity, false, args.begin());
-}
-
-
+{ return Literal::create(predicate, polarity, { arg1, arg2 }); }
 
 /** create a new term and copy from t the relevant part of t's content */
 Term::Term(const Term& t) throw()

@@ -79,10 +79,11 @@ void TermSharing::setPoly()
 }
 
 /**
+ * TODO update documentation
  * Insert a new term in the index and return the result.
  * @since 28/12/2007 Manchester
  */
-void TermSharing::computeAndSetSharedData(Term* t)
+void TermSharing::computeAndSetSharedTermData(Term* t)
 {
   CALL("TermSharing::insert(Term*)");
   TIME_TRACE(TimeTrace::TERM_SHARING);
@@ -186,20 +187,19 @@ void TermSharing::computeAndSetSharedData(Term* t)
     }
 } // TermSharing::insert
 
-AtomicSort* TermSharing::insert(AtomicSort* sort)
+ // TODO update documentation
+void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
 {
-  CALL("TermSharing::insert(AtomicSort*)");
+  CALL("TermSharing::computeAndSetSharedSortData(AtomicSort*)");
   ASS(!sort->isLiteral());
   ASS(!sort->isSpecial());
   ASS(sort->isSort());
 
   TIME_TRACE("sort sharing");
 
-  AtomicSort* s = _sorts.insert(sort);
-  if (s == sort) {
     if(sort->isArraySort()){
       _arraySorts.insert(TermList(sort));
-    }    
+    }
     unsigned weight = 1;
     unsigned vars = 0;
 
@@ -228,14 +228,10 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
     if (!SortHelper::allTopLevelArgsAreSorts(sort)){
       USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
     }
-  }
-  else {
-    sort->destroy();
-  }
-  return s;
 } // TermSharing::insert
 
 /**
+ * TODO update documentation
  * Insert a new literal in the index and return the result.
  *
  * Equalities between two variables cannot be inserted using this
@@ -243,7 +239,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
  *
  * @since 28/12/2007 Manchester
  */
-Literal* TermSharing::insert(Literal* t)
+void TermSharing::computeAndSetSharedLiteralData(Literal* t)
 {
   CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
@@ -265,8 +261,6 @@ Literal* TermSharing::insert(Literal* t)
     }
   }
 
-  Literal* s = _literals.insert(t);
-  if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;
@@ -314,11 +308,6 @@ Literal* TermSharing::insert(Literal* t)
     } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
-  }
-  else {
-    t->destroy();
-  }
-  return s;
 } // TermSharing::insert
 
 /**

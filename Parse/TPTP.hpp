@@ -541,6 +541,9 @@ private:
     return tf;
   }
 
+  TermList* nLastTermLists(unsigned n) 
+  { return n == 0 ? nullptr : &_termLists[_termLists.size() - n]; }
+
   /** true if the input contains a conjecture */
   bool _containsConjecture;
   /** Allowed names of formulas.

@@ -38,11 +38,13 @@ public:
 
   // TODO we should probably inline the common path where a term already exists
   // not quite sure what that todo exactly meant but I think it should be resolved now (?)
-  void computeAndSetSharedData(Term*);
+  void computeAndSetSharedTermData(Term*);
+  void computeAndSetSharedSortData(AtomicSort*);
+  void computeAndSetSharedLiteralData(Literal*);
 
-  AtomicSort* insert(AtomicSort*);
+  // AtomicSort* insert(AtomicSort*);
 
-  Literal* insert(Literal*);
+  // Literal* insert(Literal*);
   Literal* insertVariableEquality(Literal* lit,TermList sort);
 
   Literal* tryGetOpposite(Literal* l);
@@ -93,6 +95,8 @@ public:
 
 private:
   friend class Kernel::Term;
+  friend class Kernel::Literal;
+  friend class Kernel::AtomicSort;
   int sumRedLengths(TermStack& args);
   bool argNormGt(TermList t1, TermList t2);
 

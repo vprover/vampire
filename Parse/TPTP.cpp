@@ -3246,34 +3246,30 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     }
   }
   // not equality or distinct
-  Literal* lit = new(arity) Literal(pred,arity,true,false);
+  // Literal* lit = new(arity) Literal(pred,arity, /* polarity */ true, /* commutative */ false);
+  auto args = nLastTermLists(arity);
   OperatorType* type = env.signature->getPredicate(pred)->predType();
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
+  for (auto i : range(0, arity)) {
     TermList sort = type->arg(i);
-    TermList ts = _termLists.pop();
+    TermList ts = args[i];
     TermList tsSort = sortOf(ts);
-    if((unsigned)i < type->numTypeArguments()){
+    if(i < type->numTypeArguments()){
       if(tsSort != AtomicSort::superSort()){
-        USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
-                   "is not $ttype as mandated by TF1");
+        USER_ERROR("The sort ", tsSort, " of type argument ", ts, " is not $ttype as mandated by TF1");
       }
     } else {
-      static RobSubstitution subst;
-      subst.reset();
-      if(!subst.match(sort, 0, tsSort, 1)) {
-        USER_ERROR("Failed to create predicate application for " + name + " of type " + type->toString() + "\n" +
-                   "The sort " + tsSort.toString() + " of the intended term argument " + ts.toString() + " (at index " + Int::toString(i) +") "
-                   "is not an instance of sort " + sort.toString());
+      Recycled<RobSubstitution> subst;
+      subst->reset();
+      if(!subst->match(sort, 0, tsSort, 1)) {
+        USER_ERROR("Failed to create predicate application for ", name, " of type ", type, "\n",
+                   "The sort ", tsSort, " of the intended term argument ", ts, " (at index ", i, ") "
+                   "is not an instance of sort ", sort);
       }
     }
-    safe = safe && ts.isSafe();
-    *(lit->nthArgument(i)) = ts;
   }
-  if (safe) {
-    lit = env.sharing->insert(lit);
-  }
-  return new AtomicFormula(lit);
+  auto out = new AtomicFormula(Literal::create(pred, arity, /* polarity */ true, /* commutative */ false, args));
+  _termLists.pop(arity);
+  return out;
 } // createPredicateApplication
 
 
@@ -3302,9 +3298,10 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
   }
 
   OperatorType* type = env.signature->getFunction(fun)->fnType();
+  auto args = nLastTermLists(arity);
   for (unsigned i : range(0, arity)) {
     TermList sort = type->arg(i);
-    TermList ss = _termLists[_termLists.size() - arity + i];
+    TermList ss = args[i];
     TermList ssSort = sortOf(ss);
     if(i < type->numTypeArguments()){
       if(ssSort != AtomicSort::superSort()){
@@ -3321,7 +3318,7 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
       }
     }
   }
-  auto t = TermList(Term::create(fun, arity, arity == 0 ? nullptr : &_termLists[_termLists.size() - arity]));
+  auto t = TermList(Term::create(fun, arity, args));
   _termLists.pop(arity);
   return t;
 }
@@ -3341,23 +3338,17 @@ TermList TPTP::createTypeConApplication(vstring name, unsigned arity)
   //TODO not checking for overflown constant. Is that OK?
   //seems to be done this way for predicates as well.
   unsigned typeCon = env.signature->addTypeCon(name,arity,dummy);
-  AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
 
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
-    TermList ss = _termLists.pop();
-    TermList ssSort = sortOf(ss);
-    if(ssSort != AtomicSort::superSort()){
-        USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
-                   "is not $tType as mandated by TF1");
-    }
-    *(s->nthArgument(i)) = ss;
-    safe = safe && ss.isSafe();
+  auto args = nLastTermLists(arity);
+  for (auto i : range(0, arity)) {
+    auto term = args[i];
+    auto sort = sortOf(term);
+    if (sort != AtomicSort::superSort()) 
+        USER_ERROR("The sort ", sort, " of type argument ", term, " is not $tType as mandated by TF1");
   }
-  if (safe) {
-    s = env.sharing->insert(s);
-  }
-  return TermList(s);
+  auto s = TermList(AtomicSort::create(typeCon, arity, args));
+  _termLists.pop(arity);
+  return s;
 }
 
 /**
@@ -3740,13 +3731,12 @@ void TPTP::endFof()
       unsigned arity = VList::length(g->vars());
       unsigned pred = env.signature->addPredicate("$$answer",arity);
       env.signature->getPredicate(pred)->markAnswerPredicate();
-      Literal* a = new(arity) Literal(pred,arity,true,false);
+      Recycled<Stack<TermList>> args;
       VList::Iterator vs(g->vars());
-      int i = 0;
       while (vs.hasNext()) {
-        a->nthArgument(i++)->makeVar(vs.next());
+        args->push(TermList::var(vs.next()));
       }
-      a = env.sharing->insert(a);
+      Literal* a = Literal::create(pred, arity, /* polarity */ true, /* commutative */  false, args->begin());
       f = new QuantifiedFormula(FORALL,
         g->vars(),
         g->sorts(),
@@ -3772,11 +3762,10 @@ void TPTP::endFof()
       bool added;
       unsigned pred = env.signature->addPredicate(nm,0,added);
       if (!added) {
-  USER_ERROR("Names of claims must be unique: "+nm);
+        USER_ERROR("Names of claims must be unique: ", nm);
       }
       env.signature->getPredicate(pred)->markLabel();
-      Literal* a = new(0) Literal(pred,0,true,false);
-      a = env.sharing->insert(a);
+      auto a = Literal::create(pred, /* polarity */ true, {});
       Formula* claim = new AtomicFormula(a);
       VList* vs = f->freeVariables();
       if (VList::isNonEmpty(vs)) {
