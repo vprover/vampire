@@ -100,11 +100,6 @@ std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
   return out;
 }
 
-
-template<class A, class B>
-std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
-{ return out << "(" << self.first << ", " << self.second << ")"; }
-
 template<class Sep, class Iter>
 std::ostream& operator<<(std::ostream& out, Kernel::OutputInterleaved<Sep, Iter> self)
 {
@@ -118,5 +113,9 @@ std::ostream& operator<<(std::ostream& out, Kernel::OutputInterleaved<Sep, Iter>
 }
 
 } // namespace Kernel
+
+template<class A, class B>
+std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
+{ return out << "(" << self.first << ", " << self.second << ")"; }
 
 #endif // __Debug_Output_HPP__

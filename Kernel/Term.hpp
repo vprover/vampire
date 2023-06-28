@@ -29,9 +29,11 @@
 #ifndef __Term__
 #define __Term__
 
+#include "Debug/Output.hpp"
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
+#include <tuple>
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -985,40 +987,44 @@ public:
   {
     return Literal::literalHash(functor(), polarity() ^ flip, 
         [&](auto i){ return *nthArgument(i); }, arity(),
-        someIf(isTwoVarEquality(), [&](){ return twoVarEqSort(); }));
-    // CALL("Literal::hash");
-    // bool positive = (flip ^ isPositive());
-    // unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
-    // if (isTwoVarEquality()) {
-    //   hash = HashUtils::combine(
-    //     DefaultHash::hash(twoVarEqSort()),
-    //     hash
-    //   );
-    // }
-    // return DefaultHash::hashBytes(
-    //   reinterpret_cast<const unsigned char*>(_args+1),
-    //   _arity*sizeof(TermList),
-    //   hash
-    // );
+        someIf(isTwoVarEquality(), [&](){ return twoVarEqSort(); }),
+        commutative());
   }
 
   template<class GetArg>
-  static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort) {
-    CALL("Term::termHash");
-    return HashUtils::combine(
-        DefaultHash::hash(polarity),
-        Term::termHash(functor, getArg, arity),
-        DefaultHash::hash(twoVarEqSort));
-    
-    // return DefaultHash::hashIter(
-    //     range(0, arity).map([&](auto i) { 
-    //       TermList t = getArg(i);
-    //       return DefaultHash::hashBytes(
-    //           reinterpret_cast<const unsigned char*>(&t),
-    //           sizeof(TermList)
-    //           );
-    //       }),
-    //     DefaultHash::hash(functor));
+  static unsigned literalEquals(const Literal* lit, unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort, bool commutative) {
+    if (functor != lit->functor() || polarity != lit->polarity()) return false;
+
+    if (commutative) {
+      ASS_EQ(arity, 2)
+
+      if (someIf(lit->isTwoVarEquality(), [&](){ return lit->twoVarEqSort(); }) != twoVarEqSort) {
+        return false;
+      }
+      return make_tuple(*lit->nthArgument(0), *lit->nthArgument(1)) == make_tuple(getArg(0), getArg(1))
+          || make_tuple(*lit->nthArgument(0), *lit->nthArgument(1)) == make_tuple(getArg(1), getArg(0));
+
+    } else {
+      ASS(twoVarEqSort.isNone())
+      return range(0, arity).all([&](auto i) { return *lit->nthArgument(i) == getArg(i); });
+    }
+  }
+
+  template<class GetArg>
+  static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort, bool commutative) {
+    if (commutative) {
+      ASS_EQ(arity, 2)
+      return HashUtils::combine(
+          DefaultHash::hash(polarity),
+          DefaultHash::hash(functor),
+          DefaultHash::hash(twoVarEqSort),
+          getArg(0).defaultHash() ^ getArg(1).defaultHash());
+    } else {
+      return HashUtils::combine(
+          DefaultHash::hash(polarity),
+          Term::termHash(functor, getArg, arity),
+          DefaultHash::hash(twoVarEqSort));
+    }
   }
 
 

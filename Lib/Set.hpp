@@ -24,6 +24,7 @@
 #include "Hash.hpp"
 #include "Reflection.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Debug/Output.hpp"
 
 namespace std {
 template<typename T>
@@ -179,15 +180,10 @@ public:
     CALL("Set::rawFindOrInsert");
     inserted = false;
 
-#if VDEBUG
-    unsigned origHash = hashCode;
-#endif
+    auto correctHash = [](unsigned hash) { return hash < 2 ? 2 : hash; };
+    hashCode = correctHash(hashCode);
     if (_nonemptyCells >= _maxEntries) { // too many entries
       expand();
-    }
-
-    if (hashCode < 2) {
-      hashCode = 2;
     }
 
     Cell* found = 0;
@@ -215,7 +211,7 @@ public:
     cell->value = create();
     cell->code = hashCode;
     inserted = true;
-    ASS_EQ(Hash::hash(cell->value), origHash)
+    ASS_REP(correctHash(Hash::hash(cell->value)) == hashCode, cell->value)
     ASS(cval(cell->value))
     return cell->value;
   } // Set::insert
@@ -241,7 +237,7 @@ public:
    * @since 09/12/2006 Manchester, reimplemented
    */
   Val insert(Val val, unsigned code)
-  { return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { return Hash::equals(v, val); }); } // Set::insert
+  { bool dummy; return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { return Hash::equals(v, val); }, dummy); } // Set::insert
 
   /** Insert all elements from @b it iterator in the set */
   template<class It>
@@ -322,6 +318,19 @@ public:
     }
   } // deleteAll
 
+  void outputRaw(std::ostream& out) 
+  {
+    out << "[";
+    for (auto i : range(0, _capacity)) {
+      if (_entries[i].occupied()) {
+        out << _entries[i].value;
+      } else {
+        out << "_";
+      }
+      out << " ";
+    }
+    out << "]";
+  }
 private:
   Set(const Set&); //private non-defined copy constructor to prevent copying
 

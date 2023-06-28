@@ -15,7 +15,9 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
+#include "Debug/Output.hpp"
 #include "Indexing/TermSharing.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
@@ -1540,6 +1542,7 @@ template<class GetArg>
 Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg getArg)
 {
   CALL("Literal::create/4");
+  ASS(predicate != 0 || !getArg(0).isVar() || !getArg(1).isVar())
   // ASS_G(predicate, 0); //equality is to be created by createEquality
   ASS_EQ(env.signature->predicateArity(predicate), arity);
 
@@ -1554,14 +1557,13 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
   };
 
 
-
   bool share = range(0, arity).all([&](auto i) { return getArg(i).isSafe(); });
   if (share) {
     bool created = false;
     auto shared = 
       env.sharing->_literals.rawFindOrInsert(allocLiteral, 
-        Literal::literalHash(predicate, polarity, getArg, arity, /* twoVarEqSort */ Option<TermList>()), 
-        [&](Term* t) { return t->functor() == predicate && range(0, arity).all([&](auto i) { return getArg(i) == *t->nthArgument(i); }); },
+        Literal::literalHash(predicate, polarity, getArg, arity, /* twoVarEqSort */ Option<TermList>(), commutative), 
+        [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, getArg, arity, Option<TermList>(), commutative); },
         created);
     if (created) {
       env.sharing->computeAndSetSharedLiteralData(shared);

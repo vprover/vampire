@@ -453,15 +453,7 @@ template<bool opposite>
 bool TermSharing::equals(const Literal* l1, const Literal* l2)
 {
   CALL("TermSharing::equals(Literal*,Literal*)");
-
-  if( (l1->polarity()==l2->polarity()) == opposite) {
-    return false;
-  }
-
-  if(l1->isTwoVarEquality() && l2->isTwoVarEquality() &&
-      l1->twoVarEqSort()!=l2->twoVarEqSort()) {
-    return false;
-  }
-
-  return equals(static_cast<const Term*>(l1), static_cast<const Term*>(l2));
+  return Literal::literalEquals(l1, l2->functor(), l2->polarity() ^ opposite, 
+      [&](auto i){ return *l2->nthArgument(i); }, 
+      l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); }), l2->commutative());
 }
