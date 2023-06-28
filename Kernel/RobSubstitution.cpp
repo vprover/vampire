@@ -314,24 +314,17 @@ TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
   }
 }
 
-/**
- * If @b v is a bound variable then return the term or root variable
- * it is bound to. Otherwise, return the next unbound variable in the
- * UNBOUND_INDEX. This effectively names unbound variables apart from
- * any variables in the range of bound variables.
- */
-TermSpec const& RobSubstitution::derefIntroducingNewVariables(VarSpec v) const
+VarSpec RobSubstitution::findOrIntroduceOutputVariable(VarSpec v) const
 {
-  CALL("RobSubstitution::deref");
-  for(;;) {
-    auto binding = _bank.find(v);
-    if(binding.isNone()) {
-      const_cast<RobSubstitution&>(*this).bindVar(v,VarSpec(_nextUnboundAvailable++, UNBOUND_INDEX));
-      return _bank.get(v);
-    } else if(binding->isOutputVar() || binding->isTerm()) {
-      return binding.unwrap();
-    }
-    v = binding->varSpec();
+  CALL("RobSubstitution::introduceOutputVariable");
+  auto found = _bank.find(v);
+  ASS(found.isNone() || found->isOutputVar());
+  if (found.isSome()) {
+    return found->varSpec();
+  } else {
+    auto newVar = VarSpec(_nextUnboundAvailable++, UNBOUND_INDEX);
+    const_cast<RobSubstitution&>(*this).bind(v,TermSpec(newVar));
+    return newVar;
   }
 }
 
@@ -692,7 +685,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
         TermList tout;
         if (orig.term.isVar()) {
           ASS(!orig.term.isOutputVar())
-          tout = TermList::var(derefIntroducingNewVariables(orig.term.varSpec()).varSpec().var);
+          tout = TermList::var(findOrIntroduceOutputVariable(orig.term.varSpec()).var);
 
         } else if (orig.term.definitelyGround()) {
           return orig.term.unwrapGround();

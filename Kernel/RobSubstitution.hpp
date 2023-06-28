@@ -466,7 +466,8 @@ public:
   RobSubstitution(RobSubstitution&& obj) = default;
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
   TermSpec const& derefBound(TermSpec const& v) const;
-  TermSpec const& derefIntroducingNewVariables(VarSpec v) const;
+  // TermSpec const& derefIntroducingNewVariables(VarSpec v) const;
+  VarSpec findOrIntroduceOutputVariable(VarSpec v) const;
   VarSpec root(VarSpec v) const;
 private:
   TermList apply(TermSpec);
