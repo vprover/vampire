@@ -2125,16 +2125,16 @@ auto dropElementType(Iterator iter)
 { return iterTraits(std::move(iter)).map([](auto _) { return make_tuple(); }); }
 
 template<class Array>
-auto arrayIter(Array const& x) 
-{ return iterTraits(getArrayishObjectIterator<const_ref_t>(x)); }
+auto arrayIter(Array const& a) 
+{ return range(0, a.size()).map([&](auto i) -> decltype(auto) { return a[i]; }); }
 
 template<class Array>
-auto arrayIter(Array      & x) 
-{ return iterTraits(getArrayishObjectIterator<mut_ref_t>(x)); }
+auto arrayIter(Array      & a) 
+{ return range(0, a.size()).map([&](auto i) -> decltype(auto) { return a[i]; }); }
 
 template<class Array>
-auto arrayIter(Array     && x) 
-{ return iterTraits(ownedArrayishIterator(std::move(x))); }
+auto arrayIter(Array     && a) 
+{ return range(0, a.size()).map([a = std::move(a)](auto i) { return std::move(a[i]); }); }
 
 template<class Iter> 
 class BoxedIter {

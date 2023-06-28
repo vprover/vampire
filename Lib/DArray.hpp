@@ -191,6 +191,8 @@ public:
   } // ensure
 
 
+  void reset() { ensure(0); }
+
   /**
    * Set array's size to @b s and that its capacity is at least @b s.
    * If the capacity is smaller, the array will expand, and all old

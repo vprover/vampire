@@ -193,6 +193,10 @@ public:
   T& operator* () { return  self(); }
   T* operator->() { return &self(); }
 
+  auto size() const { return self().size(); }
+  template<class Idx> auto operator[](Idx idx) const { return self()[idx]; }
+  template<class Idx> auto operator[](Idx idx)       { return self()[idx]; }
+
   friend std::ostream& operator<<(std::ostream& out, Recycled const& self)
   { if (self.alive())return out << self.self(); else return out << "Recycled(NULL)"; }
 };
@@ -201,5 +205,18 @@ template<class T, class Reset, class Keep>
 bool Recycled<T, Reset, Keep>::memAlive = true;
 
 };
+
+template<class T>
+Recycled<Stack<T>> recycledStack() 
+{ return Recycled<Stack<T>>(); }
+
+
+template<class T, class... Ts>
+Recycled<Stack<T>> recycledStack(T t, Ts... ts) 
+{
+  Recycled<Stack<T>> out;
+  out->pushMany(std::move(t), std::move(ts)...);
+  return out;
+}
 
 #endif /*__Recycled__*/

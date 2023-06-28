@@ -64,6 +64,13 @@ public:
         value().~Val();
       }
     }
+    void reset() {
+      if (occupied()) {
+        key().~Key();
+        value().~Val();
+      }
+      code = 0;
+    }
 
   private:
     /** Create a new entry */
@@ -515,6 +522,7 @@ public:
     return true;
   }
   
+
   void clear()
   {
     if (_entries) {
@@ -528,6 +536,20 @@ public:
     _maxEntries  = 0;
   }
   
+  /**
+   * resets every entry in the map keeping the memory of _entries allocated
+   */
+  void reset()
+  {
+    CALL("Map::deleteAll");
+
+    for (int i = _capacity-1;i >= 0;i--) {
+      _entries[i].reset();
+    }
+    _noOfEntries = 0;
+  } // reset
+
+ 
   /**
    * Delete all entries.
    * @since 07/08/2005 Redmond
