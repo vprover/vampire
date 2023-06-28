@@ -55,8 +55,14 @@ public:
   { return t->hash(); }
   static bool equals(const Term* t1,const Term* t2);
 
+  /**
+   * True if the two literals are equal (or equal except polarity if @c opposite is true)
+   */
   template<bool opposite = false>
-  static bool equals(const Literal* l1, const Literal* l2);
+  static bool equals(const Literal* l1, const Literal* l2)
+  { return Literal::literalEquals(l1, l2->functor(), l2->polarity() ^ opposite, 
+        [&](auto i){ return *l2->nthArgument(i); }, 
+        l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); }), l2->commutative()); }
 
   DHSet<TermList>* getArraySorts(){
     return &_arraySorts;
@@ -110,6 +116,7 @@ private:
   bool _poly;
   bool _wellSortednessCheckingDisabled;
 }; // class TermSharing
+
 
 } // namespace Indexing
 
