@@ -482,7 +482,6 @@ void spiderMode()
   // to start counting instructions
 #ifdef __linux__
   Timer::ensureTimerInitialized();
-  env.options->setInstructionLimit(-1);
 #endif
 
   Exception* exception = 0;
