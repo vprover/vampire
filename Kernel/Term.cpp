@@ -1594,8 +1594,8 @@ Literal* Literal::create(Literal* l,bool polarity)
   ASS_EQ(l->getPreDataSize(), 0);
 
   return l->isEquality()
-    ? Literal::createEquality(l->polarity(), *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l))
-    : Literal::create(l->functor(), l->arity(), l->polarity(), l->commutative(), [&](auto i) { return *l->nthArgument(i); });
+    ? Literal::createEquality(polarity, *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l))
+    : Literal::create(l->functor(), l->arity(), polarity, l->commutative(), [&](auto i) { return *l->nthArgument(i); });
 } // Literal::create
 
 /** Create a new literal, copy from @b l its predicate symbol and
