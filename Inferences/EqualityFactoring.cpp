@@ -108,7 +108,6 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    TermList srtS = absUnif.subs().apply(srt,0);
 
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
@@ -124,6 +123,7 @@ struct EqualityFactoring::ResultFn
       return nullptr;
     }
 
+    TermList srtS = absUnif.subs().apply(srt,0);
     TermList sLHSS = absUnif.subs().apply(sLHS,0);
     TermList sRHSS = absUnif.subs().apply(sRHS,0);
     if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
@@ -133,7 +133,7 @@ struct EqualityFactoring::ResultFn
     if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
-    auto constraints = absUnif.constr().literals(absUnif.subs());
+    auto constraints = absUnif.computeConstraintLiterals();
 
     unsigned newLen=_cLen+constraints->length();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));

@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "Forwards.hpp"
+#include "Lib/TypeList.hpp"
 
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
@@ -535,14 +536,24 @@ public:
       push(std::move(x));
     }
   }
-
-  void pushMany() {}
+private:
+  void __pushMany() {}
 
   template<class... As>
-  void pushMany(C item, As... rest) 
+  void __pushMany(C item, As... rest) 
   { 
     push(std::move(item)); 
-    pushMany(std::move(rest)...);
+    __pushMany(std::move(rest)...);
+  }
+
+
+public:
+
+  template<class... As>
+  void pushMany(As... items) 
+  { 
+    reserve(size() + TypeList::Size<TypeList::List<As...>>::val);
+    __pushMany(std::move(items)...);
   }
 
 

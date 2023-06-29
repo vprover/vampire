@@ -94,9 +94,7 @@ public:
     template<class... As>
     EqualIf constr(UnificationConstraint constr, As... constrs) &&
     { 
-      unsigned constexpr len = TypeList::Size<TypeList::List<UnificationConstraint, As...>>::val;
-      _constr->reserve(len);
-      __push(*_constr, std::move(constr), std::move(constrs)...);
+      _constr->pushMany(std::move(constr), std::move(constrs)...);
       return std::move(*this); 
     }
 
@@ -104,20 +102,12 @@ public:
     template<class... As>
     EqualIf unify(UnificationConstraint unify, As... unifys) &&
     { 
-      unsigned constexpr len = TypeList::Size<TypeList::List<UnificationConstraint, As...>>::val;
-      _unify->reserve(len);
-      __push(*_unify, std::move(unify), std::move(unifys)...);
+      _unify->pushMany(std::move(unify), std::move(unifys)...);
       return std::move(*this); 
     }
 
     friend std::ostream& operator<<(std::ostream& out, EqualIf const& self)
     { return out << "EqualIf(unify: " << self._unify << ", constr: " << self._constr <<  ")"; }
-   private:
-    void __push(Stack<UnificationConstraint>& s)
-    {  }
-    template<class... As>
-    void __push(Stack<UnificationConstraint>& s, UnificationConstraint c, As... as)
-    { s.push(std::move(c)); __push(s, std::move(as)...); }
   };
 
   struct NeverEqual {

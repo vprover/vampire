@@ -36,26 +36,6 @@
 namespace Kernel
 {
 
-  
-// pair<TermList, int>& TermSpec::deref()
-// { return _deref.unwrapOrInit([&]() { 
-//     auto t = _subs->derefBound(RobSubstitution::TermSpec(_term, _index));
-//     return make_pair(t.term, t.index);
-//   }); }
-
-// TermSpec TermSpec::termArg(unsigned i)
-// { return TermSpec(*_subs, term()->termArg(i), index(i + nTypeArgs())); }
-
-// TermSpec::TermSpec(RobSubstitution& subs, TermList term, int index)
-//   : _subs(&subs)
-//   , _self(make_pair(term, index))
-// {
-// }
-
-
-// TermSpec TermSpec::typeArg(unsigned i)
-// { return TermSpec(*_subs, term()->typeArg(i), index(i)); }
-
 Shell::Options::UnificationWithAbstraction MismatchHandler::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
@@ -167,9 +147,19 @@ Option<MismatchHandler::AbstractionResult> funcExt(
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
        ) {
-        return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf()
-              .unify (UnificationConstraint(t1.termArg(0), t2.termArg(0)))
-              .constr(UnificationConstraint(t1.termArg(1), t2.termArg(1)))));
+        auto& arg1 = t1.termArg(1).deref(&au->subs());
+        auto& arg2 = t2.termArg(1).deref(&au->subs());
+        auto out = MismatchHandler::EqualIf()
+              .unify (UnificationConstraint(t1.typeArg(0), t2.typeArg(0)),
+                      UnificationConstraint(t1.typeArg(1), t2.typeArg(1)),
+                      UnificationConstraint(t1.termArg(0), t2.termArg(0)));
+
+        auto argsEq = UnificationConstraint(arg1.clone(), arg2.clone());
+        return some(MismatchHandler::AbstractionResult(
+              // if both are variables we don't want to introduce a constraint
+              arg1.isVar() && arg2.isVar()
+                ? std::move(out).unify(std::move(argsEq))
+                : std::move(out).constr(std::move(argsEq)))) ;
       }
     }
   }
