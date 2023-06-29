@@ -294,7 +294,7 @@ void Options::init()
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
-    _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","",true);
+    _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","msp",true);
     _minimizeSatProofs.description="Perform unsat core minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).";
     _lookup.insert(&_minimizeSatProofs);
@@ -923,7 +923,7 @@ void Options::init()
     _lookaheadDelay.tag(OptionTag::SATURATION);
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
-    
+
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "
@@ -943,6 +943,7 @@ void Options::init()
     _ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
     _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
     _ageWeightRatioShapeFrequency.onlyUsefulWith(_ageWeightRatioShape.is(notEqual(AgeWeightRatioShape::CONSTANT)));
+    _ageWeightRatioShapeFrequency.addHardConstraint(greaterThan(0u));
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 

@@ -59,14 +59,16 @@ using namespace std;
 bool outputAllowed(bool debug)
 {
 #if VDEBUG
-  if(debug){ return true; }
+  if (debug) { return true; }
 #endif
 
   // spider and smtcomp output modes are generally silent
-  return !Lib::env.options || (Lib::env.options->outputMode()!=Shell::Options::Output::SPIDER
-                               && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP 
-                               && Lib::env.options->outputMode()!=Shell::Options::Output::UCORE
-                              );
+  return !Lib::env.options ||
+    (
+     Lib::env.options->outputMode() != Shell::Options::Output::SPIDER
+     && Lib::env.options->outputMode() != Shell::Options::Output::SMTCOMP 
+     && Lib::env.options->outputMode() != Shell::Options::Output::UCORE
+     );
 }
 
 void reportSpiderFail()
@@ -77,9 +79,14 @@ void reportSpiderFail()
 void reportSpiderStatus(char status)
 {
 #if VZ3
+  if (UIHelper::spiderOutputDone) {
+    return;
+  }
   if (Lib::env.options && Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
     return;
   }
+
+  UIHelper::spiderOutputDone = true;
 
   // compute Vampire Z3 version and commit
   vstring version = VERSION_STRING;
@@ -100,7 +107,7 @@ void reportSpiderStatus(char status)
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
     << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
-    << commitNumber << ':' << z3Version << "\n";
+    << commitNumber << ':' << z3Version << endl;
   env.endOutput();
 #endif
 }
@@ -129,6 +136,8 @@ bool UIHelper::s_expecting_unsat=false;
 bool UIHelper::portfolioParent=false;
 bool UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
+bool UIHelper::spiderOutputDone = false;
+  
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
   CALL("UIHelper::outputAllPremises");

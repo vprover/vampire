@@ -482,23 +482,24 @@ void spiderMode()
 #if VZ3
   z3::exception* z3_exception = 0;
 #endif
-  bool noException = true;
+  
+  bool exceptionRaised = false;
   try {
     doProving();
   } catch (Exception& e) {
     exception = &e;
-    noException = false;
+    exceptionRaised = true;
 #if VZ3
   } catch(z3::exception& e){
     z3_exception = &e; 
-    noException = false;
+    exceptionRaised = true;
 #endif
   } catch (...) {
-    noException = false;
+    exceptionRaised = true;
   }
 
   env.beginOutput();
-  if (noException) {
+  if (!exceptionRaised) {
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
       reportSpiderStatus('+');
@@ -519,7 +520,7 @@ void spiderMode()
       break;
       
     case Statistics::REFUTATION_NOT_FOUND:
-      if(env.statistics->discardedNonRedundantClauses > 0){
+      if (env.statistics->discardedNonRedundantClauses > 0) {
         reportSpiderStatus('n');
       }
       else{
@@ -535,25 +536,33 @@ void spiderMode()
     default:
       ASSERTION_VIOLATION;
     }
-  } else {
-#if VZ3
-    if (z3_exception){
-      if (strcmp(z3_exception->msg(),"out of memory\n")){
-        reportSpiderStatus('m');
-      }
-      else{ reportSpiderFail(); }
-    }
-    else{
-#endif
-      reportSpiderFail();
-      ASS(exception); 
-      explainException(*exception); 
-#if VZ3
-    }
-#endif
-    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    
+    env.endOutput();
+    return;
   }
+
+  // exception
+  vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+
+#if VZ3
+  if (z3_exception) {
+    if (strcmp(z3_exception->msg(),"out of memory\n")) {
+      reportSpiderStatus('m');
+    }
+    else {
+      reportSpiderFail();
+    }
+    
+    env.endOutput();
+    return;
+  }
+#endif
+
+  reportSpiderFail();
   env.endOutput();
+  
+  ASS(exception); 
+  explainException(*exception); 
 } // spiderMode
 
 void clausifyMode(bool theory)
@@ -838,10 +847,12 @@ int main(int argc, char* argv[])
 #endif
   }
 #if VZ3
-  catch(z3::exception& exception){
+  catch (z3::exception& exception) {
     BYPASSING_ALLOCATOR;
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
-    cout << "Z3 exception:\n" << exception.msg() << endl;
+    if (outputAllowed()) {
+      cout << "Z3 exception:\n" << exception.msg() << endl;
+    }
     reportSpiderFail();
   }
 #endif
