@@ -319,14 +319,14 @@ void Problem::invalidateEverything()
   CALL("Problem::invalidateEverything");
 
   invalidateProperty();
-  _hasFormulas = MaybeBool::UNKNOWN;
-  _hasEquality = MaybeBool::UNKNOWN;
-  _hasInterpretedOperations = MaybeBool::UNKNOWN;
-  _hasNumerals = MaybeBool::UNKNOWN;
-  _hasFOOL = MaybeBool::UNKNOWN;
-  _hasCombs = MaybeBool::UNKNOWN;
-  _hasApp = MaybeBool::UNKNOWN;
-  _hasAppliedVar = MaybeBool::UNKNOWN;
+  _hasFormulas = MaybeBool::Unknown;
+  _hasEquality = MaybeBool::Unknown;
+  _hasInterpretedOperations = MaybeBool::Unknown;
+  _hasNumerals = MaybeBool::Unknown;
+  _hasFOOL = MaybeBool::Unknown;
+  _hasCombs = MaybeBool::Unknown;
+  _hasApp = MaybeBool::Unknown;
+  _hasAppliedVar = MaybeBool::Unknown;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
