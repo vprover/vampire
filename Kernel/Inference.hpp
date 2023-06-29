@@ -705,6 +705,9 @@ struct NonspecificInferenceMany {
 
 struct FromSatRefutation; // defined in SATInference.hpp
 
+class Inference;
+std::ostream& operator<<(std::ostream& out, Inference const& self);
+
 /**
  * Class to represent inferences
  */
@@ -838,7 +841,7 @@ public:
    **/
   void updateStatistics();
 
-   vstring toString() const;
+ friend std::ostream& operator<<(std::ostream& out, Inference const& self);
 
   /**
    * To implement lazy minimization of proofs coming from a SAT solver
@@ -852,6 +855,7 @@ public:
    */
   void minimizePremises();
 
+  // TODO why would we ever need this? replace it be appropriate output operator for InferenceRule
   vstring name() const { return ruleName(_rule); }
 
   /** return the input type of the unit */
