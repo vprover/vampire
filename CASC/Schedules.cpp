@@ -5555,66 +5555,54 @@ void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, S
     quick.push("lrs+1_5:4_fsr=off:gsp=on:nm=4:nwc=2.5:stl=62_6");
     break;
 
-  case Property::UEQ: // slowness 1.1
+  case Property::UEQ: // slowness 1.3
     if (atoms <= 9) {
-      // total time: 3777
-      quick.push("lrs+10_15_av=off:bd=preordered:drc=off:nwc=1.1:sp=reverse_frequency:tgt=ground:sil=297000:i=256800_0");
-      quick.push("lrs+10_20_av=off:drc=off:nwc=1.2:sims=off:sp=reverse_weighted_frequency:sil=330000:i=246000_0");
-      quick.push("lrs+10_2:3_av=off:bd=preordered:drc=off:fde=none:nwc=10.0:sp=occurrence:sil=264000:i=204900_0");
-      quick.push("lrs+10_4:3_av=off:bd=preordered:drc=off:fde=unused:nwc=1.7:sp=weighted_frequency:to=lpo:tgt=ground:sil=198000:i=153900_0");
-      quick.push("lrs+10_16_av=off:drc=off:nwc=1.5:sp=scramble:tgt=ground:sil=198000:i=102900_0");
-      quick.push("lrs+10_10_av=off:bd=off:fde=unused:nwc=4.0:sims=off:sp=occurrence:to=lpo:sil=198000:i=76800_0");
-      quick.push("lrs+10_64_av=off:bd=off:drc=off:fde=unused:sp=frequency:tgt=full:sil=99000:i=42300_0");
-      quick.push("lrs+10_8:1_av=off:bd=preordered:drc=off:nwc=10.0:to=lpo:sil=99000:i=15900_0");
-      quick.push("dis+10_10_av=off:bd=off:drc=off:sp=scramble:to=lpo:tgt=ground:i=11100_0");
-      quick.push("dis+10_5_av=off:drc=off:sos=all:to=lpo:tgt=ground:i=10500_0");
-      quick.push("lrs+10_7_av=off:drc=off:fde=unused:nwc=5.0:sp=occurrence:to=lpo:sil=99000:i=6000_0");
-      quick.push("lrs+10_64_av=off:bd=preordered:drc=off:fde=none:nwc=1.5:sims=off:sp=weighted_frequency:sil=198000:i=6000_0");
+      // total instructions: 864.6g (~ 288s)
+      quick.push("lrs+10_4_av=off:bd=preordered:drc=off:sp=occurrence:tgt=ground:sil=325500:i=282184_0");
+      quick.push("lrs+10_28_av=off:drc=off:fde=unused:nwc=1.2:sims=off:sp=frequency:sil=325500:i=202765_0");
+      quick.push("lrs+10_3:2_av=off:drc=off:fde=unused:sims=off:to=lpo:sil=195500:i=174063_0");
+      quick.push("dis+10_64_av=off:bd=preordered:drc=off:fde=unused:sims=off:to=lpo:tgt=ground:i=55931_0");
+      quick.push("lrs+10_6_av=off:drc=off:fde=unused:sp=reverse_arity:tgt=ground:sil=260499:i=36114_0");
+      quick.push("lrs+10_10:1_av=off:bd=preordered:drc=off:fde=none:nwc=10.0:sims=off:to=lpo:sil=130499:i=34470_0");
+      quick.push("dis+10_1024_av=off:ep=RSTC:fde=unused:sims=off:sp=occurrence:to=lpo:tgt=ground:i=28403_0");
+      quick.push("ott+10_50_av=off:bd=off:drc=off:sp=reverse_weighted_frequency:tgt=ground:i=25484_0");
+      quick.push("lrs+10_1024_av=off:drc=off:nwc=10.0:sims=off:sp=reverse_weighted_frequency:sil=65499:i=20130_0");
+      quick.push("ott+10_1024_av=off:drc=off:fde=unused:nwc=10.0:sp=occurrence:to=lpo:i=3840_0");
+      quick.push("lrs+10_2:7_av=off:bd=preordered:drc=off:fde=none:nwc=4.0:sims=off:sp=reverse_arity:to=lpo:sil=65499:i=2491_0");
+      quick.push("ott+10_5:1_av=off:drc=off:fde=none:sims=off:to=lpo:tgt=ground:i=2381_0");
+      quick.push("dis+10_32_av=off:bd=off:drc=off:fde=none:nwc=2.5:sp=reverse_frequency:tgt=ground:i=1502_0");
+      quick.push("dis+10_20_av=off:fde=none:nwc=5.0:sims=off:i=1231_0");
+      quick.push("dis+10_2:5_av=off:fde=unused:sims=off:tgt=full:i=571_0");
     }
     else if (atoms <= 13) {
-      // total time: 4686
-      quick.push("dis+10_2_av=off:bd=preordered:drc=off:nwc=1.2:sims=off:sp=reverse_frequency:to=lpo:tgt=ground:i=207900_0");
-      quick.push("ott+10_16_av=off:drc=off:fde=none:nwc=1.7:sp=weighted_frequency:i=193800_0");
-      quick.push("lrs+10_15_av=off:bd=preordered:drc=off:nwc=1.1:sp=reverse_frequency:tgt=ground:sil=297000:i=157500_0");
-      quick.push("ott+10_2:7_av=off:bd=preordered:drc=off:fde=unused:nwc=1.1:sims=off:i=139800_0");
-      quick.push("ott+10_20_av=off:drc=off:fde=none:sp=occurrence:tgt=ground:i=124500_0");
-      quick.push("ott+10_4:5_av=off:bd=preordered:drc=off:fde=unused:nwc=3.0:sp=scramble:to=lpo:tgt=ground:i=118200_0");
-      quick.push("lrs+10_2:7_av=off:bd=preordered:drc=off:fde=unused:nwc=1.5:sims=off:sp=scramble:to=lpo:sil=264000:i=65400_0");
-      quick.push("dis+10_5:4_av=off:bd=off:drc=off:fde=unused:nwc=1.5:sims=off:to=lpo:tgt=ground:i=63600_0");
-      quick.push("lrs+10_2:5_av=off:bd=preordered:drc=off:fde=none:nwc=1.3:sims=off:sp=reverse_frequency:sil=297000:i=61500_0");
-      quick.push("dis+10_50_av=off:sims=off:sp=weighted_frequency:tgt=full:i=61200_0");
-      quick.push("lrs+10_6_av=off:bd=preordered:drc=off:fde=unused:sims=off:to=lpo:tgt=ground:sil=132000:i=55200_0");
-      quick.push("ott+10_64_av=off:bd=off:drc=off:nwc=2.5:sp=scramble:tgt=ground:i=54900_0");
-      quick.push("dis+10_4_av=off:bd=off:drc=off:nwc=5.0:tgt=full:i=42900_0");
-      quick.push("lrs+10_4:5_av=off:fde=unused:nwc=2.0:sims=off:to=lpo:tgt=ground:sil=99000:i=41700_0");
-      quick.push("ott+10_9:1_av=off:bd=preordered:drc=off:fde=unused:nwc=10.0:sp=scramble:i=17700_0");
-    }
-    else if (atoms <= 16) {
-      // total time: 2661
-      quick.push("ott+10_4:5_av=off:bd=preordered:drc=off:fde=unused:nwc=3.0:sp=scramble:to=lpo:tgt=ground:i=186900_0");
-      quick.push("lrs+10_4_av=off:bd=preordered:drc=off:nwc=1.3:sims=off:sp=weighted_frequency:tgt=ground:sil=198000:i=122100_0");
-      quick.push("dis+10_7_av=off:drc=off:nwc=1.5:sims=off:sp=scramble:tgt=ground:i=109800_0");
-      quick.push("lrs+10_20_av=off:drc=off:nwc=1.2:sims=off:sp=reverse_weighted_frequency:sil=330000:i=101400_0");
-      quick.push("ott+10_64_av=off:bd=preordered:drc=off:fde=unused:sp=reverse_arity:tgt=ground:i=82800_0");
-      quick.push("lrs+10_7_av=off:bd=preordered:drc=off:fde=none:nwc=2.5:sp=reverse_arity:to=lpo:sil=297000:i=81300_0");
-      quick.push("lrs+10_28_av=off:drc=off:nwc=1.2:sims=off:sp=scramble:tgt=ground:sil=198000:i=48000_0");
-      quick.push("lrs+10_13_av=off:drc=off:fde=none:sims=off:tgt=ground:sil=99000:i=28200_0");
-      quick.push("dis+10_5_av=off:drc=off:sos=all:to=lpo:tgt=ground:i=22200_0");
-      quick.push("dis+10_40_av=off:bd=preordered:drc=off:nwc=1.3:sp=scramble:tgt=ground:i=15600_0");
+      // total instructions: 1157.9g (~ 385s)
+      quick.push("lrs+10_20_av=off:bd=off:drc=off:fde=none:sims=off:sp=reverse_weighted_frequency:tgt=ground:sil=325500:i=195333_0");
+      quick.push("lrs+10_64_av=off:drc=off:fde=unused:sims=off:sp=reverse_frequency:tgt=ground:sil=195500:i=193446_0");
+      quick.push("ott+10_4_av=off:bd=off:drc=off:fde=none:sims=off:tgt=ground:i=182120_0");
+      quick.push("lrs+10_1_av=off:fde=unused:to=lpo:tgt=full:sil=325500:i=151822_0");
+      quick.push("lrs+10_8:1_av=off:bd=preordered:drc=off:sims=off:sil=325500:i=107721_0");
+      quick.push("dis+10_64_av=off:drc=off:sims=off:sp=reverse_weighted_frequency:tgt=ground:i=88957_0");
+      quick.push("lrs+10_4_av=off:bd=preordered:drc=off:sp=occurrence:tgt=ground:sil=325500:i=84958_0");
+      quick.push("ott+10_28_av=off:bd=preordered:drc=off:nwc=1.7:sims=off:to=lpo:tgt=ground:i=66883_0");
+      quick.push("ott+10_6_av=off:drc=off:fde=unused:sp=reverse_frequency:to=lpo:i=42002_0");
+      quick.push("ott+10_2_av=off:bd=off:drc=off:tgt=ground:i=35319_0");
+      quick.push("lrs+10_16_av=off:bd=off:tgt=ground:sil=65499:i=14356_0");
     }
     else {
-      // total time: 3452
-      quick.push("ott+10_11_av=off:bd=off:drc=off:fde=none:nwc=1.2:to=lpo:tgt=ground:i=254100_0");
-      quick.push("ott+10_32_av=off:drc=off:fde=none:nwc=5.0:sp=reverse_weighted_frequency:tgt=full:i=203700_0");
-      quick.push("ott+10_20_av=off:drc=off:fde=none:sp=occurrence:tgt=ground:i=114300_0");
-      quick.push("lrs+10_10_av=off:bd=off:fde=unused:nwc=4.0:sims=off:sp=occurrence:to=lpo:sil=198000:i=99900_0");
-      quick.push("dis+10_10_av=off:bd=off:drc=off:sp=scramble:to=lpo:tgt=ground:i=91800_0");
-      quick.push("lrs+10_10_av=off:drc=off:sp=frequency:tgt=ground:sil=99000:i=90000_0");
-      quick.push("ott+10_9:1_av=off:bd=preordered:drc=off:fde=unused:nwc=10.0:sp=scramble:i=69300_0");
-      quick.push("dis+10_5_av=off:drc=off:sos=all:to=lpo:tgt=ground:i=40500_0");
-      quick.push("ott+10_8_av=off:drc=off:fde=none:nwc=4.0:sp=reverse_arity:to=lpo:i=35100_0");
-      quick.push("ott+10_5_av=off:bd=preordered:drc=off:fde=unused:nwc=2.5:sp=occurrence:to=lpo:tgt=ground:i=34800_0");
-      quick.push("lrs+10_5_av=off:drc=off:fde=none:nwc=1.1:sp=scramble:to=lpo:tgt=ground:sil=99000:i=2100_0");
+      // total instructions: 1101.2g (~ 367s)
+      quick.push("lrs+10_4_av=off:bd=preordered:drc=off:sp=occurrence:tgt=ground:sil=325500:i=222807_0");
+      quick.push("dis+10_1_av=off:bd=preordered:drc=off:nwc=5.0:sims=off:to=lpo:i=184421_0");
+      quick.push("lrs+10_6_av=off:drc=off:fde=unused:sp=reverse_arity:tgt=ground:sil=260499:i=150189_0");
+      quick.push("dis+10_6_av=off:bd=preordered:drc=off:fde=none:sims=off:sp=reverse_weighted_frequency:to=lpo:tgt=ground:i=132018_0");
+      quick.push("lrs+10_10_av=off:drc=off:fde=none:sims=off:sp=frequency:tgt=ground:sil=130499:i=106147_0");
+      quick.push("dis+10_32_av=off:bd=off:drc=off:fde=none:nwc=2.5:sp=reverse_frequency:tgt=ground:i=104999_0");
+      quick.push("ott+10_28_av=off:bd=preordered:drc=off:nwc=1.7:sims=off:to=lpo:tgt=ground:i=66839_0");
+      quick.push("lrs+10_32_av=off:drc=off:fde=unused:sims=off:sp=reverse_frequency:sil=325500:i=64095_0");
+      quick.push("lrs+10_5:4_av=off:bd=off:fde=none:sil=130499:i=27351_0");
+      quick.push("lrs+10_2:3_av=off:drc=off:nwc=2.0:sims=off:sp=occurrence:to=lpo:tgt=ground:sil=65499:i=21947_0");
+      quick.push("ott+10_50_av=off:bd=off:drc=off:sp=reverse_weighted_frequency:tgt=ground:i=20728_0");
+      quick.push("lrs+10_20_av=off:bd=off:drc=off:fde=none:sims=off:sp=reverse_weighted_frequency:tgt=ground:sil=325500:i=4600_0");
+      quick.push("ott+10_6_av=off:drc=off:fde=unused:sp=reverse_frequency:to=lpo:i=1079_0");
     }
     break;
   }
