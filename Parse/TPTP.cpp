@@ -3246,7 +3246,6 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     }
   }
   // not equality or distinct
-  // Literal* lit = new(arity) Literal(pred,arity, /* polarity */ true, /* commutative */ false);
   auto args = nLastTermLists(arity);
   OperatorType* type = env.signature->getPredicate(pred)->predType();
   for (auto i : range(0, arity)) {
