@@ -450,6 +450,10 @@ void UIHelper::outputResult(ostream& out)
     }
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
+    if (env.options->showSatSet()) {
+      out << std::endl << "% Warning: A saturation with incomplete strategy, doesn't guarantee a model exists!!!" << endl;
+      outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
+    }
     break;
   case Statistics::SATISFIABLE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){

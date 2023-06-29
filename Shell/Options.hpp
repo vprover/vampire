@@ -2172,6 +2172,7 @@ public:
   bool showAll() const { return _showAll.actualValue; }
   bool showActive() const { return showAll() || _showActive.actualValue; }
   bool showBlocked() const { return showAll() || _showBlocked.actualValue; }
+  bool showSatSet() const { return _showSatSet.actualValue; }
   bool showDefinitions() const { return showAll() || _showDefinitions.actualValue; }
   bool showNew() const { return showAll() || _showNew.actualValue; }
   bool showPureTheoryDescendants() const { return showAll() || _showPureTheoryDescendants.actualValue; }
@@ -2775,6 +2776,7 @@ private:
   BoolOptionValue _showAll;
   BoolOptionValue _showActive;
   BoolOptionValue _showBlocked;
+  BoolOptionValue _showSatSet;
   BoolOptionValue _showDefinitions;
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
   BoolOptionValue _showNew;

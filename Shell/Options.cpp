@@ -637,6 +637,11 @@ void Options::init()
     _lookup.insert(&_showBlocked);
     _showBlocked.tag(OptionTag::DEVELOPMENT);
 
+    _showSatSet = BoolOptionValue("show_sat_set","",false);
+    _showSatSet.description="Show the saturated set of clauses even if an incomplete strategy was used.";
+    _lookup.insert(&_showSatSet);
+    _showSatSet.tag(OptionTag::DEVELOPMENT);
+
     _showDefinitions = BoolOptionValue("show_definitions","",false);
     _showDefinitions.description="Show definition introductions.";
     _lookup.insert(&_showDefinitions);

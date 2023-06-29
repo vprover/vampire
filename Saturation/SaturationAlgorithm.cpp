@@ -1402,7 +1402,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     //  Shell::UIHelper::outputSaturatedSet(cout, pvi(UnitList::Iterator(collectSaturatedSet())));
     //}
 
-    if (termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) {
+    if ((termReason == Statistics::SATISFIABLE && getOptions().proof() != Options::Proof::OFF) || env.options->showSatSet()) {
       res.saturatedSet = collectSaturatedSet();
 
       if (_splitter) {
