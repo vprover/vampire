@@ -181,7 +181,6 @@ public:
 
   UnificationConstraintStack& constr() { return *_constr; }
   Recycled<Stack<Literal*>> computeConstraintLiterals() { return _constr->literals(*_subs); }
-  unsigned nConstraintLiterals() { return _constr->size(); }
 
   RobSubstitution      & subs()       { return *_subs; }
   RobSubstitution const& subs() const { return *_subs; }

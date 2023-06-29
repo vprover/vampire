@@ -327,7 +327,8 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  auto nConstraints = unifier->nConstraintLiterals();
+  auto constraints = unifier->computeConstraintLiterals();
+  auto nConstraints = constraints->size();
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
@@ -534,7 +535,6 @@ Clause* Superposition::performSuperposition(
   }
 
   {
-  auto constraints = unifier->computeConstraintLiterals();
   for(auto c : *constraints){
     (*res)[next++] = c;
   }

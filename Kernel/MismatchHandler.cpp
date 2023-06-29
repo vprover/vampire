@@ -287,6 +287,7 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 { 
   auto t1 = _t1.toTerm(s);
   auto t2 = _t2.toTerm(s);
+  // return Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term()));
   return t1 == t2 
     ? Option<Literal*>()
     : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));
@@ -491,6 +492,6 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     localBD.drop();
   }
 
-  DEBUG_UNIFY(1, *this)
+  DEBUG_UNIFY(1, *this, " (", success ? "success" : "fail", ")")
   return success;
 }

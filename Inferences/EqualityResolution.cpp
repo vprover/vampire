@@ -88,7 +88,9 @@ struct EqualityResolution::ResultFn
       return 0; 
     }
 
-    unsigned newLen=_cLen - 1 + absUnif->nConstraintLiterals();
+    auto constraints = absUnif->computeConstraintLiterals();
+    auto nConstraints = constraints->size();
+    unsigned newLen=_cLen - 1 + nConstraints;
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
@@ -118,7 +120,6 @@ struct EqualityResolution::ResultFn
         (*res)[next++] = currAfter;
       }
     }
-    auto constraints = absUnif->computeConstraintLiterals();
     for (auto l : *constraints) {
       (*res)[next++] = l;
     }

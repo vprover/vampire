@@ -104,7 +104,6 @@ struct BinaryResolution::ResultFn
     auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
     return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, 
         [&](){ return qr.unifier->computeConstraintLiterals(); }, 
-        qr.unifier->nConstraintLiterals(),
         _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
   }
 private:
@@ -122,7 +121,7 @@ private:
  */
 template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, ComputeConstraints computeConstraints, unsigned nConstraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+                                ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   CALL("BinaryResolution::generateClause");
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
@@ -147,6 +146,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   unsigned clength = queryCl->length();
   unsigned dlength = resultCl->length();
 
+
+
   // LRS-specific optimization:
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
@@ -156,6 +157,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
               resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
+  auto constraints = computeConstraints();
+  auto nConstraints = constraints->size();
   Inference inf(GeneratingInference2(nConstraints == 0 ?  InferenceRule::RESOLUTION : InferenceRule::CONSTRAINED_RESOLUTION, queryCl, resultCl));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
@@ -193,7 +196,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   unsigned next = 0;
-  Recycled<Stack<Literal*>> constraints = computeConstraints();
   for(Literal* c : *constraints){
       (*res)[next++] = c; 
   }
@@ -281,7 +283,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 {
   return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs, 
       /* computeConstraints */ []() { return recycledStack<Literal*>(); },
-      /* nConstraints */ 0,
       opts);
 }
 

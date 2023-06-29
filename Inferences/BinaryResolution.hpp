@@ -50,7 +50,7 @@ public:
   template<class ComputeConstraints>
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, ComputeConstraints constraints, unsigned nConstraints, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
+                                ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
 
   ClauseIterator generateClauses(Clause* premise);
 
