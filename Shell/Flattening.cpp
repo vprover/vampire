@@ -255,8 +255,8 @@ TermList Flattening::flatten (TermList ts)
 
  if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA: {
+    switch (sd->specialFunctor()) {
+      case Term::SpecialFunctor::FORMULA: {
         Formula* f = sd->getFormula();
         Formula* flattenedF = flatten(f);
         if (f == flattenedF) {
@@ -266,7 +266,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_ITE: {
+      case Term::SpecialFunctor::ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
         Formula* condition  = sd->getCondition();
@@ -284,7 +284,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_LET: {
+      case Term::SpecialFunctor::LET: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -298,7 +298,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_LET_TUPLE: {
+      case Term::SpecialFunctor::LET_TUPLE: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -312,7 +312,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_TUPLE: {
+      case Term::SpecialFunctor::TUPLE: {
         TermList tupleTerm = TermList(sd->getTupleTerm());
         TermList flattenedTupleTerm = flatten(tupleTerm);
 
@@ -324,7 +324,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
@@ -337,9 +337,6 @@ TermList Flattening::flatten (TermList ts)
         }
         return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
-
-      default:
-        ASSERTION_VIOLATION;
     }
   }
 

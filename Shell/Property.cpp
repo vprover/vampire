@@ -657,31 +657,29 @@ void Property::scan(TermList ts,bool unit,bool goal)
   Term* t = ts.term();
 
   if (t->isSpecial()) {
-    switch(t->functor()) {
-      case Term::SF_ITE:
+    switch(t->specialFunctor()) {
+      case Term::SpecialFunctor::ITE:
         _hasFOOL = true;
         addProp(PR_HAS_ITE);
         break;
 
-      case Term::SF_LET:
-      case Term::SF_LET_TUPLE:
+      case Term::SpecialFunctor::LET:
+      case Term::SpecialFunctor::LET_TUPLE:
         _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
         break;
-      case Term::SF_FORMULA:
+      case Term::SpecialFunctor::FORMULA:
         _hasFOOL = true;
         break;
 
-      case Term::SF_MATCH:
+      case Term::SpecialFunctor::MATCH:
         _hasFOOL = true;
         break;
 
-      case Term::SF_LAMBDA:
+      case Term::SpecialFunctor::LAMBDA:
         _hasLambda = true;
         break;
 
-      default:
-        break;
     }
   } else {
     if(t->isSort()){

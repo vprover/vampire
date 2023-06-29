@@ -248,11 +248,11 @@ TermList LambdaElimination::elimLambda(TermList term)
 
   Term* t = term.term();
   if(t->isSpecial()){   
-    switch(t->functor()){
-      case Term::SF_FORMULA: 
+    switch(t->specialFunctor()){
+      case Term::SpecialFunctor::FORMULA: 
         return elimLambda(t->getSpecialData()->getFormula());
 
-      case Term::SF_LAMBDA:{
+      case Term::SpecialFunctor::LAMBDA:{
         Stack<int> vars;
         TermStack sorts;
         Term::SpecialTermData* sd = t->getSpecialData();

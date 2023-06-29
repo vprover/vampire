@@ -337,8 +337,8 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
   TermList sort;
 
   Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_FORMULA: {
+  switch (sd->specialFunctor()) {
+    case Term::SpecialFunctor::FORMULA: {
       sort = AtomicSort::boolSort();
       conditions.push(sd->getFormula());
       thenBranches.push(TermList(Term::foolTrue()));
@@ -346,7 +346,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SF_ITE: {
+    case Term::SpecialFunctor::ITE: {
       sort = sd->getSort();
       conditions.push(sd->getCondition());
       thenBranches.push(*term->nthArgument(0));
@@ -354,21 +354,21 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE: {
+    case Term::SpecialFunctor::LET:
+    case Term::SpecialFunctor::LET_TUPLE: {
       TermList contents = *term->nthArgument(0);
       TermList processedLet = eliminateLet(sd, contents);
       return findITEs(processedLet, variables, conditions, thenBranches,
         elseBranches, matchVariables, matchConditions, matchBranches);
     }
 
-    case Term::SF_TUPLE: {
+    case Term::SpecialFunctor::TUPLE: {
       TermList tupleTerm = TermList(sd->getTupleTerm());
       return findITEs(tupleTerm, variables, conditions, thenBranches,
                       elseBranches, matchVariables, matchConditions, matchBranches);
     }
 
-    case Term::SF_MATCH: {
+    case Term::SpecialFunctor::MATCH: {
       sort = sd->getSort();
       auto matched = *term->nthArgument(0);
       List<Formula *> *mconditions(0);
@@ -391,8 +391,6 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       return TermList(var, false);
     }
 
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
   }
 
   unsigned var = createFreshVariable(sort);
@@ -679,13 +677,13 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 {
   CALL("NewCNF::eliminateLet");
 
-  ASS((sd->getType() == Term::SF_LET) || (sd->getType() == Term::SF_LET_TUPLE));
+  ASS((sd->specialFunctor() == Term::SpecialFunctor::LET) || (sd->specialFunctor() == Term::SpecialFunctor::LET_TUPLE));
 
   unsigned symbol;
   VList* variables;
   TermList binding = sd->getBinding();
 
-  if (sd->getType() == Term::SF_LET) {
+  if (sd->specialFunctor() == Term::SpecialFunctor::LET) {
     symbol = sd->getFunctor();
     variables = sd->getVariables();
   } else if (binding.isTerm() && binding.term()->isTuple()) {
@@ -784,7 +782,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 //    Term* term = binding.term();
 //    if (term->isSpecial()) {
 //      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->getType() == Term::SF_FORMULA) {
+//      if (sd->specialFunctor() == Term::SpecialFunctor::FORMULA) {
 //        inlineLet = true;
 //      }
 //    }
@@ -795,7 +793,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 ////      }
 //    } else if (term->isSpecial()) {
 //      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->getType() == Term::SF_FORMULA) {
+//      if (sd->specialFunctor() == Term::SpecialFunctor::FORMULA) {
 //        Formula* f = sd->getFormula();
 //        if ((f->connective() == LITERAL) && f->literal()->shared()) {
 //          inlineLet = true;
@@ -832,7 +830,7 @@ void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrence
 {
   CALL("NewCNF::processLet");
 
-  ASS((sd->getType() == Term::SF_LET) || (sd->getType() == Term::SF_LET_TUPLE));
+  ASS((sd->specialFunctor() == Term::SpecialFunctor::LET) || (sd->specialFunctor() == Term::SpecialFunctor::LET_TUPLE));
 
   TermList deletedContents = eliminateLet(sd, contents); // should be read "de-let-ed contents"
   Formula* deletedContentsFormula = BoolTermFormula::create(deletedContents);
@@ -1189,12 +1187,12 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   ASS_REP(term->isSpecial(), term->toString());
 
   Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_FORMULA:
+  switch (sd->specialFunctor()) {
+    case Term::SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
       break;
 
-    case Term::SF_ITE: {
+    case Term::SpecialFunctor::ITE: {
       Formula* condition = sd->getCondition();
 
       Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
@@ -1203,19 +1201,18 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
       break;
     }
 
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE:
+    case Term::SpecialFunctor::LET:
+    case Term::SpecialFunctor::LET_TUPLE:
       processLet(sd, *term->nthArgument(0), occurrences);
       break;
 
-    case Term::SF_MATCH: {
+    case Term::SpecialFunctor::MATCH: {
       processMatch(sd, term, occurrences);
       break;
     }
 
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
   }
+  ASSERTION_VIOLATION_REP(term->toString());
 }
 
 /**

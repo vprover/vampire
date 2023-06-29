@@ -28,11 +28,7 @@
 using namespace Lib;
 using namespace Kernel;
 
-const unsigned Term::SF_ITE;
-const unsigned Term::SF_LET;
-const unsigned Term::SF_FORMULA;
-const unsigned Term::SF_LAMBDA;
-const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
+constexpr unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
 void Term::setId(unsigned id)
 {
@@ -527,13 +523,13 @@ vstring Term::headToString() const
   if (isSpecial()) {
     const Term::SpecialTermData* sd = getSpecialData();
 
-    switch(functor()) {
-      case Term::SF_FORMULA: {
+    switch(specialFunctor()) {
+      case Term::SpecialFunctor::FORMULA: {
         ASS_EQ(arity(), 0);
         vstring formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      case Term::SF_LET: {
+      case Term::SpecialFunctor::LET: {
         ASS_EQ(arity(), 1);
         TermList binding = sd->getBinding();
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
@@ -556,11 +552,11 @@ vstring Term::headToString() const
         }
         return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
       }
-      case Term::SF_ITE: {
+      case Term::SpecialFunctor::ITE: {
         ASS_EQ(arity(),2);
         return "$ite(" + sd->getCondition()->toString() + ", ";
       }
-      case Term::SF_TUPLE: {
+      case Term::SpecialFunctor::TUPLE: {
         ASS_EQ(arity(), 0);
         Term* term = sd->getTupleTerm();
         vstring termList = "";
@@ -574,7 +570,7 @@ vstring Term::headToString() const
         }
         return "[" + termList + "]";
       }
-      case Term::SF_LET_TUPLE: {
+      case Term::SpecialFunctor::LET_TUPLE: {
         ASS_EQ(arity(), 1);
         VList* symbols = sd->getTupleSymbols();
         unsigned tupleFunctor = sd->getFunctor();
@@ -598,7 +594,7 @@ vstring Term::headToString() const
 
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
-      case Term:: SF_LAMBDA: {
+      case Term::SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
@@ -619,7 +615,7 @@ vstring Term::headToString() const
         varList += "]";        
         return "(^" + varList + " : (" + lambdaExp.toString() + "))";
       }
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         // we simply let the arguments be written out
         return "$match(";
       }
@@ -1014,7 +1010,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
 {
   CALL("Term::createITE");
   Term* s = new(2,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_ITE, 2);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::ITE), 2);
   TermList* ss = s->args();
   *ss = thenBranch;
   ss = ss->next();
@@ -1048,7 +1044,7 @@ Term* Term::createLet(unsigned functor, VList* variables, TermList binding, Term
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LET, 1);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::LET), 1);
   TermList* ss = s->args();
   *ss = body;
   ASS(ss->next()->isEmpty());
@@ -1088,7 +1084,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList bindi
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LET_TUPLE, 1);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::LET_TUPLE), 1);
   TermList* ss = s->args();
   *ss = body;
   ASS(ss->next()->isEmpty());
@@ -1108,7 +1104,7 @@ Term* Term::createFormula(Formula* formula)
   CALL("Term::createFormula");
 
   Term* s = new(0,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_FORMULA, 0);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::FORMULA), 0);
   s->getSpecialData()->_formulaData.formula = formula;
   return s;
 }
@@ -1122,7 +1118,7 @@ Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList
   CALL("Term::createLambda");
   
   Term* s = new(0, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LAMBDA, 0);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
   //should store body of lambda in args
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData._vars = vars;
@@ -1152,7 +1148,7 @@ Term* Term::createTuple(unsigned arity, TermList* sorts, TermList* elements) {
 Term* Term::createTuple(Term* tupleTerm) {
   CALL("Term::createTuple");
   Term* s = new(0, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_TUPLE, 0);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::TUPLE), 0);
   s->getSpecialData()->_tupleData.term = tupleTerm;
   return s;
 }
@@ -1160,7 +1156,7 @@ Term* Term::createTuple(Term* tupleTerm) {
 Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList *elements) {
   CALL("Term::createMatch");
   Term *s = new (arity, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_MATCH, arity);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::MATCH), arity);
   TermList *ss = s->args();
   s->getSpecialData()->_matchData.sort = sort;
   s->getSpecialData()->_matchData.matchedSort = matchedSort;
@@ -1424,15 +1420,15 @@ bool Term::isBoolean() const {
       env.signature->getFunction(term->functor())->fnType()->result() == AtomicSort::boolSort();
       return val;
     }
-    switch (term->getSpecialData()->getType()) {
-      case SF_FORMULA:
+    switch (term->specialFunctor()) {
+      case SpecialFunctor::FORMULA:
         return true;
-      case SF_TUPLE:
-      case SF_LAMBDA:
+      case SpecialFunctor::TUPLE:
+      case SpecialFunctor::LAMBDA:
         return false;
-      case SF_ITE:
-      case SF_LET:
-      case SF_LET_TUPLE: {
+      case SpecialFunctor::ITE:
+      case SpecialFunctor::LET:
+      case SpecialFunctor::LET_TUPLE: {
         const TermList *ts = term->nthArgument(0);
         if (!ts->isTerm()) {
           return false;
@@ -1441,7 +1437,7 @@ bool Term::isBoolean() const {
           break;
         }
       }
-      case SF_MATCH: {
+      case SpecialFunctor::MATCH: {
         const TermList *ts = term->nthArgument(2);
         if (!ts->isTerm()) {
           return false;
@@ -1932,4 +1928,18 @@ TermList Term::typeArg(unsigned n) const
   ASS_LE(0, n)
   ASS_L(n, numTypeArguments())
   return *nthArgument(n);
+}
+
+std::ostream& Kernel::operator<<(std::ostream& out, Term::SpecialFunctor const& self)
+{
+  switch (self) {
+    case Term::SpecialFunctor::ITE: return out << "ITE";
+    case Term::SpecialFunctor::LET: return out << "LET";
+    case Term::SpecialFunctor::FORMULA: return out << "FORMULA";
+    case Term::SpecialFunctor::TUPLE: return out << "TUPLE";
+    case Term::SpecialFunctor::LET_TUPLE: return out << "LET_TUPLE";
+    case Term::SpecialFunctor::LAMBDA: return out << "LAMBDA";
+    case Term::SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
+  }
+  ASSERTION_VIOLATION
 }

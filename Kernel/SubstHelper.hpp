@@ -285,15 +285,15 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 
   if(trm->isSpecial()) {
     Term::SpecialTermData* sd = trm->getSpecialData();
-    switch(trm->functor()) {
-    case Term::SF_ITE:
+    switch(trm->specialFunctor()) {
+    case Term::SpecialFunctor::ITE:
       return Term::createITE(
     applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
     applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
     );
-    case Term::SF_LET:
+    case Term::SpecialFunctor::LET:
       return Term::createLet(
     sd->getFunctor(),
     sd->getVariables(),
@@ -301,11 +301,11 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     sd->getSort()
     );
-    case Term::SF_FORMULA:
+    case Term::SpecialFunctor::FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case Term::SF_LET_TUPLE:
+    case Term::SpecialFunctor::LET_TUPLE:
       return Term::createTupleLet(
         sd->getFunctor(),
         sd->getTupleSymbols(),
@@ -313,9 +313,9 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
         sd->getSort()
         );
-    case Term::SF_TUPLE:
+    case Term::SpecialFunctor::TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
-    case Term::SF_MATCH: {
+    case Term::SpecialFunctor::MATCH: {
       DArray<TermList> terms(trm->arity());
       for (unsigned i = 0; i < trm->arity(); i++) {
         terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator, noSharing);

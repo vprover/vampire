@@ -450,25 +450,25 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
   }
 
   if (t1->isSpecial() && t2->isSpecial()) {
-    comp = compare ((int)t1->getSpecialData()->getType(),
-                    (int)t2->getSpecialData()->getType());
+    comp = compare ((int)t1->functor(),
+                    (int)t2->functor());
     if (comp != EQUAL) {
       return comp;
     }
 
     // same kind of special terms
-    switch (t1->getSpecialData()->getType()) {
-      case Term::SF_FORMULA:
+    switch (t1->specialFunctor()) {
+      case Term::SpecialFunctor::FORMULA:
         return compare(t1->getSpecialData()->getFormula(), t2->getSpecialData()->getFormula());
 
-      case Term::SF_ITE:
+      case Term::SpecialFunctor::ITE:
         comp = compare(t1->getSpecialData()->getCondition(), t2->getSpecialData()->getCondition());
         if (comp != EQUAL) {
           return comp;
         }
         break; // compare arguments "then" and "else" as usual below
 
-      case Term::SF_LET: {
+      case Term::SpecialFunctor::LET: {
         comp = compare((int) VList::length(t1->getSpecialData()->getVariables()),
                        (int) VList::length(t2->getSpecialData()->getVariables()));
         if (comp != EQUAL) {
@@ -483,7 +483,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare body of the let as usual below (although 1) what about sorts, 2) what about doing the modulo the bound name?)
       }
 
-      case Term::SF_LET_TUPLE: {
+      case Term::SpecialFunctor::LET_TUPLE: {
         comp = compare((int) VList::length(t1->getSpecialData()->getTupleSymbols()),
                        (int) VList::length(t2->getSpecialData()->getTupleSymbols()));
         if (comp != EQUAL) {
@@ -498,7 +498,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare body of the tuple below
       }
 
-      case Term::SF_TUPLE: {
+      case Term::SpecialFunctor::TUPLE: {
         comp = compare(t1->getSpecialData()->getTupleTerm(), t2->getSpecialData()->getTupleTerm());
         if (comp != EQUAL) {
           return comp;
@@ -506,7 +506,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare body of the tuple below
       }
 
-      case Term::SF_LAMBDA: {
+      case Term::SpecialFunctor::LAMBDA: {
         comp = compare((int) VList::length(t1->getSpecialData()->getLambdaVars()),
                        (int) VList::length(t2->getSpecialData()->getLambdaVars()));
         if (comp != EQUAL) {
@@ -518,12 +518,10 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         return comp;     
       }
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         break; // comparison by arity and pairwise by arguments is done below
       }
 
-      default:
-        ASSERTION_VIOLATION;
     }
   }
 

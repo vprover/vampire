@@ -73,8 +73,8 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 
   if (term->isSpecial()) {
     Term::SpecialTermData *sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA: {
+    switch (sd->specialFunctor()) {
+      case Term::SpecialFunctor::FORMULA: {
         Formula* formula = process(sd->getFormula());
 
         if (formula == sd->getFormula()) {
@@ -84,7 +84,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         return TermList(Term::createFormula(formula));
       }
 
-      case Term::SF_ITE: {
+      case Term::SpecialFunctor::ITE: {
         Formula* condition  = process(sd->getCondition());
         TermList thenBranch = process(*term->nthArgument(0));
         TermList elseBranch = process(*term->nthArgument(1));
@@ -96,7 +96,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         return TermList(Term::createITE(condition, thenBranch, elseBranch, sd->getSort()));
       }
 
-      case Term::SF_LET: {
+      case Term::SpecialFunctor::LET: {
         TermList binding = process(sd->getBinding());
         TermList body = process(*term->nthArgument(0));
 
@@ -108,7 +108,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
                                         binding, body, sd->getSort()));
       }
 
-      case Term::SF_LET_TUPLE: {
+      case Term::SpecialFunctor::LET_TUPLE: {
         TermList binding = process(sd->getBinding());
         TermList body = process(*term->nthArgument(0));
 
@@ -120,7 +120,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
                                              binding, body, sd->getSort()));
       }
 
-      case Term::SF_TUPLE: {
+      case Term::SpecialFunctor::TUPLE: {
         TermList tuple = process(TermList(sd->getTupleTerm()));
         ASS(tuple.isTerm());
 
@@ -138,7 +138,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         return TermList(Term::createTuple(t));
       }
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
@@ -152,9 +152,8 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
 
-      default:
-        ASSERTION_VIOLATION_REP(term->toString());
     }
+    ASSERTION_VIOLATION_REP(term->toString());
   }
 
   Term::Iterator terms(term);
@@ -192,7 +191,7 @@ bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstan
     Term* arg = (tuple->nthArgument(i))->term();
     TermList possibleTupleConstant;
     if (arg->isSpecial()) {
-      if (arg->getSpecialData()->getType() != Term::SF_FORMULA) {
+      if (arg->specialFunctor() != Term::SpecialFunctor::FORMULA) {
         return false;
       }
       Formula* f = arg->getSpecialData()->getFormula();
@@ -376,35 +375,33 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
 
   if (t->isSpecial()) {
     Term::SpecialTermData* sd = t->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA: {
+    switch (sd->specialFunctor()) {
+      case Term::SpecialFunctor::FORMULA: {
         collectBoundVariables(sd->getFormula());
         break;
       }
-      case Term::SF_ITE: {
+      case Term::SpecialFunctor::ITE: {
         collectBoundVariables(sd->getCondition());
         break;
       }
-      case Term::SF_LET: {
+      case Term::SpecialFunctor::LET: {
         collectBoundVariables(sd->getBinding());
         VList::Iterator vit(sd->getVariables());
         VList::pushFromIterator(vit, _bound);
         break;
       }
-      case Term::SF_LET_TUPLE: {
+      case Term::SpecialFunctor::LET_TUPLE: {
         collectBoundVariables(sd->getBinding());
         break;
       }
-      case Term::SF_TUPLE: {
+      case Term::SpecialFunctor::TUPLE: {
         collectBoundVariables(sd->getTupleTerm());
         break;
       }
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         // args are handled below
         break;
       }
-      default:
-        ASSERTION_VIOLATION_REP(t->toString());
     }
   }
 

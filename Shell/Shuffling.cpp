@@ -267,33 +267,32 @@ void Shuffling::shuffleIter(Shufflable sh) {
         if (!t->shared()) {
           if (t->isSpecial()) {
             Term::SpecialTermData* sd = t->getSpecialData();
-            switch (sd->getType()) {
-              case Term::SF_ITE:
+            switch (sd->specialFunctor()) {
+              case Term::SpecialFunctor::ITE:
                 todo.push(Shufflable(sd->getCondition()));
                 todo.push(Shufflable(*t->nthArgument(0)));
                 tl = *t->nthArgument(1);
                 goto tl_updated;
                 break; // I know, unreachable;
 
-              case Term::SF_FORMULA:
+              case Term::SpecialFunctor::FORMULA:
                 todo.push(Shufflable(sd->getFormula()));
                 break;
 
-              case Term::SF_LET:
-              case Term::SF_LET_TUPLE:
+              case Term::SpecialFunctor::LET:
+              case Term::SpecialFunctor::LET_TUPLE:
                 todo.push(Shufflable(sd->getBinding()));
                 tl = *t->nthArgument(0);
                 goto tl_updated;
                 break; // I know, unreachable;
 
-              case Term::SF_TUPLE:
+              case Term::SpecialFunctor::TUPLE:
                 tl = TermList(sd->getTupleTerm());
                 goto tl_updated;
                 break; // I know, unreachable;
 
-              default:
-                ASSERTION_VIOLATION_REP(tl.toString());
             }
+            ASSERTION_VIOLATION_REP(tl.toString());
           } else {
             Term::Iterator it(t);
             while (it.hasNext()) {

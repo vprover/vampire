@@ -98,34 +98,34 @@ TermList FormulaTransformer::apply(TermList ts) {
 
   if (term->isSpecial()) {
     Term::SpecialTermData *sd = ts.term()->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_ITE:
+    switch (sd->specialFunctor()) {
+      case Term::SpecialFunctor::ITE:
         return TermList(Term::createITE(apply(sd->getCondition()),
                                         apply(*term->nthArgument(0)),
                                         apply(*term->nthArgument(1)),
                                         sd->getSort()));
 
-      case Term::SF_FORMULA:
+      case Term::SpecialFunctor::FORMULA:
         return TermList(Term::createFormula(apply(sd->getFormula())));
 
-      case Term::SF_LET:
+      case Term::SpecialFunctor::LET:
         return TermList(Term::createLet(sd->getFunctor(),
                                         sd->getVariables(),
                                         apply(sd->getBinding()),
                                         apply(*term->nthArgument(0)),
                                         sd->getSort()));
 
-      case Term::SF_LET_TUPLE:
+      case Term::SpecialFunctor::LET_TUPLE:
         return TermList(Term::createTupleLet(sd->getFunctor(),
                                              sd->getTupleSymbols(),
                                              apply(sd->getBinding()),
                                              apply(*term->nthArgument(0)),
                                              sd->getSort()));
 
-      case Term::SF_TUPLE:
+      case Term::SpecialFunctor::TUPLE:
         return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {
           terms[i] = apply(*term->nthArgument(i));
@@ -133,9 +133,8 @@ TermList FormulaTransformer::apply(TermList ts) {
         return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
 
-      default:
-        ASSERTION_VIOLATION_REP(ts.toString());
     }
+    ASSERTION_VIOLATION_REP(ts.toString());
   }
 
   if (term->shared()) {

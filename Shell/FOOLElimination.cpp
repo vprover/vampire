@@ -503,8 +503,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
     Term::SpecialTermData* sd = term->getSpecialData();
 
-    switch (term->functor()) {
-      case Term::SF_ITE: {
+    switch (term->specialFunctor()) {
+      case Term::SpecialFunctor::ITE: {
         /**
          * Having a term of the form $ite(f, s, t) and the list Y1, ..., Ym, 
          * X1, ..., Xn of its free type and term variables (it is the union of 
@@ -584,7 +584,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SF_LET: {
+      case Term::SpecialFunctor::LET: {
         /**
          * Having a term of the form $let(f(B1,...Bj,Y1, ..., Yk) := s, t), where f is a
          * function or predicate symbol and the list A1,...,Am,X1, ..., Xn of free 
@@ -711,7 +711,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SF_FORMULA: {
+      case Term::SpecialFunctor::FORMULA: {
         if (context == FORMULA_CONTEXT) {
           formulaResult = process(sd->getFormula());
           break;
@@ -767,7 +767,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
         break;
       }
-      case Term::SF_LAMBDA: {
+      case Term::SpecialFunctor::LAMBDA: {
         // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in
         // the literature.
         LambdaElimination le = LambdaElimination();
@@ -775,7 +775,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         /**
          * Having a term of the form $match(v, p1, b1, ..., pm, bm) and the list
          * X1, ..., Xn of its free variables (it is the union of free variables
@@ -843,8 +843,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      default:
-        ASSERTION_VIOLATION;
     }
 
     if (env.options->showPreprocessing()) {

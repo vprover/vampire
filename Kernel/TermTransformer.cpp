@@ -148,8 +148,8 @@ Term* TermTransformer::transformSpecial(Term* term)
   ASS(term->isSpecial());
 
   Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_ITE: {
+  switch (sd->specialFunctor()) {
+    case Term::SpecialFunctor::ITE: {
       Formula* condition = transform(sd->getCondition());
       TermList thenBranch = transform(*term->nthArgument(0));
       TermList elseBranch = transform(*term->nthArgument(1));
@@ -163,7 +163,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    case Term::SF_FORMULA: {
+    case Term::SpecialFunctor::FORMULA: {
       Formula* formula = transform(sd->getFormula());
 
       if (formula == sd->getFormula()) {
@@ -173,7 +173,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    case Term::SF_LET: {
+    case Term::SpecialFunctor::LET: {
       TermList binding = transform(sd->getBinding());
       TermList body = transform(*term->nthArgument(0));
 
@@ -184,7 +184,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    case Term::SF_LET_TUPLE: {
+    case Term::SpecialFunctor::LET_TUPLE: {
       TermList binding = transform(sd->getBinding());
       TermList body = transform(*term->nthArgument(0));
 
@@ -196,7 +196,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       break;
     }
 
-    case Term::SF_TUPLE: {
+    case Term::SpecialFunctor::TUPLE: {
       Term* tupleTerm = transform(sd->getTupleTerm());
 
       if (tupleTerm == sd->getTupleTerm()) {
@@ -206,7 +206,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    case Term::SF_MATCH: {
+    case Term::SpecialFunctor::MATCH: {
       DArray<TermList> terms(term->arity());
       bool unchanged = true;
       for (unsigned i = 0; i < term->arity(); i++) {
