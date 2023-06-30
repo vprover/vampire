@@ -1,0 +1,9 @@
+#!/bin/sh
+
+input_language=`egrep -om1 "^(thf|tff|tcf|fof|cnf)" $1`
+if test "$input_language" = "thf"
+then
+	exec ./vampire_rel_static_ahmed-new-hol_6848 --cores 8 --input_syntax tptp --proof tptp --output_axiom_names on --mode portfolio --schedule snake_tptp_hol $1 -m 12000  -t $STAREXEC_WALLCLOCK_LIMIT
+else
+	exec ./vampire_casc2023 --mode casc -m 16384 --cores 7 -t $STAREXEC_WALLCLOCK_LIMIT $1
+fi
