@@ -46,6 +46,7 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
   CALL("UWAMismatchHandler::checkUWA");
 
     if(!(t1.isTerm() && t2.isTerm())) return false;
+    if(t1.term()->isSort() || t2.term()->isSort()) return false;
 
     bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
     bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
