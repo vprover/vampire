@@ -136,6 +136,17 @@ Option<MismatchHandler::AbstractionResult> funcExt(
   ASS(!t1.isSpecialVar())
   ASS(!t2.isSpecialVar())
 
+
+  // auto sortIsBoolOrVar = [](auto& t) {
+  //   if (t.isVar()) return false;
+  //   return t.sortIsBoolOrVar();
+  // };
+  // if (sortIsBoolOrVar(t1) || sortIsBoolOrVar(t2)) 
+  //   return some(MismatchHandler::AbstractionResult(
+  //         MismatchHandler::EqualIf()
+  //         .constr(UnificationConstraint(t1.clone(), t2.clone()))));
+
+
   auto isApp = [](auto& t) { return env.signature->isAppFun(t.functor()); };
   if ( (t1.isTerm() && t1.isSort()) 
     || (t2.isTerm() && t2.isSort()) ) return Option<MismatchHandler::AbstractionResult>();

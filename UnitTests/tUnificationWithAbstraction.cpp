@@ -746,6 +746,74 @@ RUN_TEST_hol_05(02,
       }
     )
 
+RUN_TEST(hol_06,
+    HOL_SUGAR(
+      DECL_SORT_BOOL;
+      DECL_SORT(A)
+      DECL_FUNC(f, {Bool}, A)
+      DECL_CONST(a, A)
+      DECL_CONST(b, A)
+    ),
+    IndexTest {
+      .index = getTermIndexHOL(),
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,
+      .insert = {
+               f(a),
+               f(b),
+               a,
+               b
+      },
+      .query = f(a),
+      .expected =  {
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(a),
+          .resultSigma = f(a),
+          .constraints = Stack<Literal*>{ } }, 
+
+        TermUnificationResultSpec 
+        { .querySigma  = f(a),
+          .resultSigma = f(b),
+          .constraints = { a != b } }, 
+
+      }
+    })
+
+
+RUN_TEST(hol_07,
+    HOL_SUGAR(
+      DECL_SORT_BOOL;
+      DECL_SORT(A)
+      DECL_FUNC(f, {Bool}, A)
+      DECL_CONST(a, A)
+      DECL_CONST(b, A)
+    ),
+    IndexTest {
+      .index = getTermIndexHOL(),
+      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,
+      .insert = {
+               f(a),
+               f(b),
+               a,
+               b
+      },
+      .query = a,
+      .expected =  {
+
+        TermUnificationResultSpec 
+        { .querySigma  = a,
+          .resultSigma = a,
+          .constraints = Stack<Literal*>{ } }, 
+
+        TermUnificationResultSpec 
+        { .querySigma  = a,
+          .resultSigma = b,
+          .constraints = { a != b } }, 
+
+      }
+    })
+
+
 RUN_TEST(term_indexing_poly_uwa_01,
     POLY_INT_SUGAR,
     IndexTest {

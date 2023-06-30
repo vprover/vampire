@@ -117,6 +117,7 @@
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_TYPE_CON(f, arity) auto f = TypeConSugar(#f, arity);    
 #define DECL_SORT(s)        auto s = TypeConstSugar(#s);
+#define DECL_SORT_BOOL      auto Bool = SortSugar(AtomicSort::boolSort());
 #define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 #define DECL_SORT_VAR(x, i) auto x = SortSugar(TermList::var(i));    
 #define DECL_VAR_SORTED(x, i, s) auto x = TermSugar(TermList::var(i), s);

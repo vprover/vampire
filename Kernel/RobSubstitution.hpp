@@ -260,7 +260,8 @@ public:
 
   bool isTerm() const;
   bool isLiteral() const;
-  TermSpec sort() const;
+  // TermSpec sort() const;
+  bool sortIsBoolOrVar() const;
   bool isSort() const;
   VarSpec varSpec() const;
   unsigned functor() const;

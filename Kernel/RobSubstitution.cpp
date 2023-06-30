@@ -187,13 +187,14 @@ TermList TermSpec::toTerm(RobSubstitution& s) const
 { return _self.match([&](CompositeTermSpec const& a)           { return TermList(Term::createFromIter(a.functor, iterTraits(a.argsIter()).map([&](auto& t) { return t.toTerm(s); }))); },
                      [&](AtomicTermSpec const& self) { return s.apply(self.term, self.index); }); }
 
-TermSpec TermSpec::sort() const
-{ return _self.match([&](CompositeTermSpec const& a)           -> TermSpec { 
-                        auto f = env.signature->getFunction(a.functor)->fnType();
-                        ASS_REP(f->numTypeArguments() == 0, "TODO: tricky because of polymorphism...")
-                        return TermSpec(f->result(), {});
-                     },
-                     [&](AtomicTermSpec const& self) -> TermSpec { return TermSpec(SortHelper::getResultSort(self.term.term()), self.index); }); }
+bool TermSpec::sortIsBoolOrVar() const
+{ 
+  if (!isTerm()) return false;
+  auto fun = env.signature->getFunction(functor());
+  auto op = fun->fnType();
+  TermList res = op->result();
+  return res.isVar() || res == AtomicSort::boolSort();
+}
 
 
 /**
