@@ -5559,7 +5559,7 @@ void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, S
   case Property::UEQ: // slowness 1.3
     if (props != 0) {
       if (atoms <= 16) {
-        // total instructions: 1493.5g (~ 497s)
+        // total instructions: 1517.4g (~ 505s)
         quick.push("ott+10_3_av=off:bd=preordered:drc=off:fde=none:nwc=5.0:sims=off:sp=reverse_arity:to=lpo:tgt=ground:i=234028_0");
         quick.push("lrs+10_2_av=off:bd=preordered:drc=off:nwc=10.0:sims=off:sil=385500:i=205304_0");
         quick.push("dis+10_2:3_av=off:bd=off:drc=off:nwc=1.1:sims=off:sp=reverse_weighted_frequency:to=lpo:tgt=ground:i=194228_0");
@@ -5567,14 +5567,15 @@ void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, S
         quick.push("lrs+10_28_av=off:drc=off:fde=unused:nwc=1.2:sims=off:sp=frequency:sil=275500:i=171647_0");
         quick.push("ott+10_128_av=off:bd=preordered:drc=off:fde=unused:tgt=ground:i=160378_0");
         quick.push("dis+10_3:4_av=off:fde=unused:sims=off:to=lpo:tgt=ground:i=77404_0");
-        quick.push("dis+10_64_av=off:drc=off:sims=off:sp=reverse_weighted_frequency:tgt=ground:i=75348_0");
         quick.push("ott+10_2_av=off:bd=preordered:drc=off:fde=unused:sp=reverse_arity:tgt=ground:i=73842_0");
+        quick.push("dis+10_32_av=off:drc=off:sp=occurrence:tgt=ground:i=52169_0");
         quick.push("ott+10_12_av=off:bd=off:drc=off:fde=unused:sims=off:to=lpo:tgt=ground:i=38898_0");
         quick.push("ott+10_15_av=off:bd=preordered:drc=off:sp=weighted_frequency:i=28368_0");
+        quick.push("lrs+10_1_av=off:bd=off:fde=none:nwc=5.0:sims=off:sp=occurrence:to=lpo:sil=220500:i=27885_0");
+        quick.push("ott+10_14_av=off:drc=off:sims=off:sp=reverse_frequency:tgt=ground:i=27444_0");
         quick.push("dis+10_1024_av=off:ep=RSTC:fde=unused:sims=off:sp=occurrence:to=lpo:tgt=ground:i=24110_0");
         quick.push("lrs+10_10:1_av=off:bd=preordered:drc=off:fde=none:nwc=10.0:sims=off:to=lpo:sil=110500:i=17278_0");
         quick.push("ott+10_4_av=off:drc=off:sims=off:to=lpo:tgt=ground:i=13343_0");
-        quick.push("ott+10_8_av=off:bd=preordered:drc=off:fde=none:sims=off:sp=reverse_frequency:tgt=ground:i=7804_0");
         quick.push("ott+10_1024_av=off:drc=off:fde=unused:nwc=10.0:sp=occurrence:to=lpo:i=3327_0");
         quick.push("dis+10_2_av=off:fde=none:nwc=2.0:i=1719_0");
         quick.push("dis+10_32_av=off:bd=off:drc=off:fde=none:nwc=2.5:sp=reverse_frequency:tgt=ground:i=1348_0");
@@ -5597,14 +5598,14 @@ void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, S
       }
     }
     else if (atoms <= 9) {
-      // total instructions: 1367.7g (~ 455s)
+      // total instructions: 1280.9g (~ 426s)
       quick.push("dis+10_50_av=off:bd=preordered:drc=off:sims=off:sp=reverse_arity:to=lpo:i=317119_0");
+      quick.push("lrs+10_4_av=off:bd=preordered:drc=off:sp=occurrence:tgt=ground:sil=275500:i=238848_0");
       quick.push("ott+10_8_av=off:bd=preordered:drc=off:fde=none:sims=off:sp=reverse_frequency:tgt=ground:i=210118_0");
-      quick.push("lrs+10_20_av=off:bd=off:drc=off:fde=none:sims=off:sp=reverse_weighted_frequency:tgt=ground:sil=275500:i=205969_0");
-      quick.push("lrs+10_128_av=off:drc=off:sims=off:tgt=ground:sil=385500:i=183780_0");
       quick.push("ott+10_128_av=off:bd=preordered:drc=off:fde=unused:tgt=ground:i=180102_0");
       quick.push("lrs+10_3:2_av=off:drc=off:fde=unused:sims=off:to=lpo:sil=165500:i=147361_0");
       quick.push("dis+10_1_av=off:bd=preordered:drc=off:nwc=5.0:sims=off:to=lpo:i=96703_0");
+      quick.push("lrs+10_128_av=off:bd=preordered:drc=off:fde=none:to=lpo:tgt=ground:sil=110500:i=64108_0");
       quick.push("ott+10_2_av=off:bd=preordered:drc=off:fde=unused:sp=reverse_arity:tgt=ground:i=18218_0");
       quick.push("ott+10_2_av=off:bd=preordered:drc=off:fde=unused:sims=off:sp=reverse_frequency:i=12310_0");
     }
