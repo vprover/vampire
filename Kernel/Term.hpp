@@ -282,7 +282,7 @@ public:
   };
   static constexpr SpecialFunctor SPECIAL_FUNCTOR_LAST = SpecialFunctor::MATCH;
 
-  static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND  = 0xFFFFFFFF - unsigned(SPECIAL_FUNCTOR_LAST);
+  static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND  =  std::numeric_limits<unsigned>::max() - unsigned(SPECIAL_FUNCTOR_LAST);
   static SpecialFunctor toSpecialFunctor(unsigned f) {
     ASS_GE(f, SPECIAL_FUNCTOR_LOWER_BOUND);
     unsigned result = std::numeric_limits<unsigned>::max() - unsigned(f);
