@@ -450,8 +450,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
   }
 
   if (t1->isSpecial() && t2->isSpecial()) {
-    comp = compare ((int)t1->functor(),
-                    (int)t2->functor());
+    comp = compare (unsigned(t1->specialFunctor()), unsigned(t2->specialFunctor()));
     if (comp != EQUAL) {
       return comp;
     }
