@@ -79,13 +79,13 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
     auto time = *ct->nthArgument(1);
     auto length = *ct->nthArgument(2);    
   
-    auto nextLoc = TermList(Term::create2(field->functor(), time, location));
+  //  auto nextLoc = TermList(Term::create2(field->functor(), time, location));
 
     auto lenLessOne = number::add(length, number::minus(one));
-  //  auto chainShort = TermList(Term::create(ct->functor(),{location, time, lenLessOne}));
+    auto chainShort = TermList(Term::create(ct->functor(),{location, time, lenLessOne}));
 
-    return TermList(Term::create(ct->functor(),{nextLoc, time, lenLessOne}));
-  //  return TermList(Term::create2(field->functor(), time, chainShort));
+  //  return TermList(Term::create(ct->functor(),{nextLoc, time, lenLessOne}));
+    return TermList(Term::create2(field->functor(), time, chainShort));
   };
 
   TermList num;
