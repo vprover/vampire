@@ -195,7 +195,7 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
   fu = Rectify::rectify(fu);
 
   //if(!inductionIsLimit){
-    cout << "FU: " << fu->toString() << endl;
+  //  cout << "FU: " << fu->toString() << endl;
   //}
 
   ClauseStack clausifiedHyps;
@@ -233,14 +233,14 @@ void MultiClauseNatInduction::createConclusions(ClauseStack& premises,
           resolved = true;
         }
       }
-      cout << "ADDING " + cls->toString() << endl;
+//      cout << "ADDING " + cls->toString() << endl;
       conclusions.push(cls);    
     }
   } else {
     disjuncts.reset();
     while(!clausifiedHyps.isEmpty()){
       Clause* cls = clausifiedHyps.pop();
-      cout << "ADDING " + cls->toString() << endl;
+//      cout << "ADDING " + cls->toString() << endl;
       conclusions.push(cls);
     }
   }
@@ -375,8 +375,6 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
     if(allLoopCounts && premise->length() == 1 && allGround){
       static TermStrStack iters;
 
-      cout << premise->toString() << endl;
-
       Literal* lit = (*premise)[0];
 
   //    vstring tpName;
@@ -408,8 +406,6 @@ ClauseIterator MultiClauseNatInduction::generateClauses(Clause* premise)
             premises.reset();
             premises.push(premise);
             
-            cout << "prem " <<  premise << endl;
-            cout << "iter " << iter << endl;
             createConclusions(premises, iter, limit, results, false, true);
           }
         }

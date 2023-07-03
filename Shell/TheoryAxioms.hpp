@@ -47,6 +47,7 @@ static unsigned const EXPENSIVE = 1;
    * used for the other theories.
    */
   void applyFOOL();
+  void applyChain();
 
 private:
 

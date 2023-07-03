@@ -140,6 +140,12 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  if(_options.addChainAxioms() != Options::ChainAxiom::OFF){
+    if (env.options->showPreprocessing())
+      env.out() << "adding chain axioms" << std::endl;
+    TheoryAxioms(prb).applyChain();
+  }
+
   if (prb.hasFOOL() || prb.higherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)

@@ -2892,6 +2892,7 @@ void Schedules::getRapidInductionSchedule(const Shell::Property& property, Sched
 
 void Schedules::getRapidChainTaskSchedule(const Shell::Property& property, Schedule& sched) {
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:uwa=interp_only:pc=all:canc=cautious:gve=force:de=on:uic=on:fvco=on:lls=on:pum=on:gis=on:gisne=on:lcm=same:sp=rev_occ:tha=off:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_150");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:uwa=interp_only:pc=all:canc=cautious:gve=force:de=on:uic=on:fvco=on:lls=on:pum=on:gis=on:gisne=on:lcm=same:sp=rev_occ:tha=off:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=10,10,1_150");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:acha=acyclic:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=off_15");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:uwa=interp_only:pc=all:canc=cautious:gve=force:de=on:uic=on:fvco=on:lls=on:pum=on:gis=on:gisne=on:lcm=same:sp=rev_occ:tha=off:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_15");
 
@@ -2930,9 +2931,11 @@ void Schedules::getRapidChainTaskSchedule(const Shell::Property& property, Sched
 
 void Schedules::getRapidMainTaskSchedule(const Shell::Property& property, Schedule& sched) {
   // NEWLY crafted strategies
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:lls=on:canc=cautious:uwa=one_side_nl:uic=on:ir=on:eti=on:pc=all:tha=off:gve=force:fvco=off:sp=rev_occ:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=10,10,1_10");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:acha=acyclic:tpiiw=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:mcni=on:plsqc=1,2:plsqr=1,1,1_10");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=off:fvco=off:gve=force:canc=cautious:uwa=one_side_nl:uic=on:ir=on:eti=on:de=on:lls=on:pc=all:tha=off:sp=rev_occ:clr=unit_10");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=1,1:plsq=off_10");
+  sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:acha=acyclic:canc=cautious:ir=on:bsr=unit_only:gs=off:fvco=on:ir=on:uic=on:fsd=on:bsd=on:acha=base:cu=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=off_20");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:uwa=interp_only:pc=all:canc=cautious:gve=force:de=on:uic=on:fvco=on:lls=on:pum=on:gis=on:gisne=on:lcm=same:sp=rev_occ:tha=off:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=on:plsqc=1,2:plsqr=1,1,1_15");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:acha=acyclic:canc=cautious:ir=on:bsr=unit_only:gs=off:fvco=on:ir=on:uic=on:fsd=on:bsd=on:tha=on:thsqc=0,8,16,24:thsqr=20,10,10,10,1:slsq=off:plsq=off_20");
   sched.push("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=unit_only:sp=rev_occ:eti=on:fvco=on:gs=off:av=off:uwa=one_side_nl:urr=on:lls=on:fsd=on:bsd=on:canc=cautious:gve=force:ir=on:tha=off:thsqc=0,8:thsqr=20,10,1:slsq=on:slsqc=0:slsqr=30,1:plsq=on:plsqc=1,2:plsqr=5,5,1_180");

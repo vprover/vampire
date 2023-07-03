@@ -1134,23 +1134,6 @@ void TheoryAxioms::apply()
     modified = true;
   }
 
-  // TODO, would be nice to completely do away with chaining axioms
-  // should be possible by using a chaining calculus, but leaving for future 
-  // work for now
-  if(env.options->addChainAxioms() != Options::ChainAxiom::OFF){
-    VirtualIterator<ProgramStruct*> structs = env.signature->structsIterator();
-    while(structs.hasNext()){
-      ProgramStruct* strct = structs.next();
-      for(unsigned i = 0; i < strct->numberOfFields(); i++){
-        StructField* field = strct->ithField(i);
-        if(field->isSelfPointer()){
-          addChainAxioms(field, strct->sort(), strct->nullFunctor());
-          modified = true;
-        }
-      }
-    }
-  }
-
   auto nat = env.signature->getNat();
   if (nat != nullptr) {
     addZeroSmallestElementAxiom(nat);
@@ -1190,6 +1173,27 @@ void TheoryAxioms::applyFOOL() {
   addTheoryClauseFromLits({boolVar1,boolVar2},InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE,CHEAP);
 } // TheoryAxioms::addBooleanDomainAxiom
 
+
+void TheoryAxioms::applyChain() {
+  CALL("TheoryAxioms::applyChain");
+
+  // TODO, would be nice to completely do away with chaining axioms
+  // should be possible by using a chaining calculus, but leaving for future 
+  // work for now
+
+  VirtualIterator<ProgramStruct*> structs = env.signature->structsIterator();
+  while(structs.hasNext()){
+    ProgramStruct* strct = structs.next();
+    for(unsigned i = 0; i < strct->numberOfFields(); i++){
+      StructField* field = strct->ithField(i);
+      if(field->isSelfPointer()){
+        addChainAxioms(field, strct->sort(), strct->nullFunctor());
+      }
+    }
+  }
+
+}
+
 void TheoryAxioms::addChainAxioms(StructField* f, TermList structSort, unsigned nullFunc) {
   CALL("TheoryAxioms::addChainAxioms");
 
@@ -1209,7 +1213,12 @@ void TheoryAxioms::addChainAxioms(StructField* f, TermList structSort, unsigned 
   TermList lhs = TermList(Term::create(chainFun, 3, argTerms.begin()));
   Literal* l1 = Literal::createEquality(true,lhs,loc,structSort);
   addTheoryClauseFromLits({l1},InferenceRule::CHAIN_AXIOM,CHEAP);
-  
+ 
+  if(env.options->addChainAxioms() == Options::ChainAxiom::BASE){
+    // only add base case
+    return;
+  }
+
   // inductive case
   TermList len(2,false);
   

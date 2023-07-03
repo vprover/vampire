@@ -79,13 +79,13 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
     auto time = *ct->nthArgument(1);
     auto length = *ct->nthArgument(2);    
   
-  //  auto nextLoc = TermList(Term::create2(field->functor(), time, location));
+    auto nextLoc = TermList(Term::create2(field->functor(), time, location));
 
     auto lenLessOne = number::add(length, number::minus(one));
-    auto chainShort = TermList(Term::create(ct->functor(),{location, time, lenLessOne}));
+  //  auto chainShort = TermList(Term::create(ct->functor(),{location, time, lenLessOne}));
 
-  //  return TermList(Term::create(ct->functor(),{nextLoc, time, lenLessOne}));
-    return TermList(Term::create2(field->functor(), time, chainShort));
+    return TermList(Term::create(ct->functor(),{nextLoc, time, lenLessOne}));
+  //  return TermList(Term::create2(field->functor(), time, chainShort));
   };
 
   TermList num;
@@ -127,6 +127,50 @@ ClauseIterator ChainReasoning::generateClauses(Clause* premise)
       }
       resultStack.push(r);
     }
+  }
+
+  if(premise->length() == 1 && env.options->chainUnrolling()){
+    Literal* lit = (*premise)[0];
+
+    TermList chainTerm;
+    bool chainTermFound = false;
+
+    TermIterator rsti = EqHelper::getSubtermIterator(lit,_salg->getOrdering());
+    while (rsti.hasNext()) {
+      auto term = rsti.next();
+      auto func = term.term()->functor();
+      if(env.signature->getFunction(func)->chain()){
+        auto length = *term.term()->nthArgument(2);
+        auto fun    = env.signature->getFunction(length.term()->functor());
+        if(length.isTerm() && (fun->skolem() || fun->finalLoopCount())){
+          chainTerm = term;
+          chainTermFound = true;
+          break;
+        }
+      }
+    }
+    
+    if(chainTermFound){
+      TermList loc = *chainTerm.term()->nthArgument(0);
+      TermList tp =  *chainTerm.term()->nthArgument(1);
+      TermList len = *chainTerm.term()->nthArgument(2); 
+
+      TermStack args;
+      args.push(loc);
+      args.push(tp);
+      args.push(TermList(number::zeroT()));
+
+      TermList newChainTerm = TermList(Term::create(chainTerm.term()->functor(), 3, args.begin()));
+
+      Literal* l1 = EqHelper::replace(lit, chainTerm, newChainTerm);
+      Literal* l2 = number::less(true, TermList(number::zeroT()), len); 
+
+      Clause* r = new(2) Clause(2, GeneratingInference1(InferenceRule::CHAIN_REASONING, premise));
+      (*r)[0] = l1;
+      (*r)[1] = l2;
+      resultStack.push(r);
+    }
+
   }
 
   LiteralStack lits;
