@@ -294,6 +294,11 @@ Literal* TermSharing::insert(Literal* t)
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;
     bool hasInterpretedConstants=false;
+
+    if(t->isEquality()){
+      weight += SortHelper::getEqualityArgumentSort(s).weight() - 1;
+    }
+
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
@@ -305,11 +310,6 @@ Literal* TermSharing::insert(Literal* t)
         Term* r = tt->term();
         vars += r->numVarOccs();
         weight += r->weight();
-
-        if(t->isEquality()){
-          TermList sort = SortHelper::getResultSort(r);
-          weight += sort.weight() - 1;
-        }
 
         if (env.colorUsed) {
           ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
