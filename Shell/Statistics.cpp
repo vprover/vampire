@@ -277,9 +277,7 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
-  COND_OUT("Reused names",reusedFormulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
-  COND_OUT("Reused skolems",reusedSkolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
@@ -526,6 +524,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Unused predicate definition removal";
   case BLOCKED_CLAUSE_ELIMINATION:
     return "Blocked clause elimination";
+  case TWEE:
+    return "Twee Goal Transformation";
   case PREPROCESS_2:
     return "Preprocessing 2";
   case NEW_CNF:

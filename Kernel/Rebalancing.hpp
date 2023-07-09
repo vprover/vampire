@@ -295,7 +295,7 @@ TermList BalanceIter<C>::buildRhs() const {
 
 template<class C> 
 Literal& BalanceIter<C>::build() const { 
-  return Literal::createEquality(_balancer._lit.polarity(), lhs(), buildRhs(), SortHelper::getTermSort(lhs(), &_balancer._lit));
+  return Literal::createEquality(_balancer._lit.polarity(), lhs(), buildRhs(), SortHelper::getEqualityArgumentSort(_balancer._lit));
 }
 
 } // namespace Rebalancing

@@ -95,13 +95,13 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, bool func, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number)
 {
   CALL("InferenceStore::recordIntroducedSymbol");
 
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  pStack->push(SymbolId(func,number));
+  pStack->push(SymbolId(st,number));
 }
 
 /**
@@ -171,7 +171,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     vstring ty="";
     TermList t;
 
-    if(t_map.find(var,t) && env.property->hasNonDefaultSorts()){
+    if(t_map.find(var,t) && env.getMainProblem()->hasNonDefaultSorts()){
       //hasNonDefaultSorts is true if the problem contains a sort
       //that is not $i and not a variable
       ty=" : " + t.toString();
@@ -640,8 +640,8 @@ protected:
     CALL("InferenceStore::TPTPProofPrinter::getFofString");
 
     vstring kind = "fof";
-    if(env.property->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.property->higherOrder()){ kind="thf"; }
+    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
+    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -688,14 +688,15 @@ protected:
     vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first) {
-	symsStr << env.signature->functionName(sym.second);
-      }
-      else {
-	symsStr << env.signature->predicateName(sym.second);
+      if (sym.first == SymbolType::FUNC ) {
+        symsStr << env.signature->functionName(sym.second);
+      } else if (sym.first == SymbolType::PRED){
+        symsStr << env.signature->predicateName(sym.second);
+      } else {
+        symsStr << env.signature->typeConName(sym.second);       
       }
       if (symIt.hasNext()) {
-	symsStr << ',';
+        symsStr << ',';
       }
     }
     return getNewSymbols(origin, symsStr.str());
@@ -876,7 +877,7 @@ protected:
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(false,nameLit->functor());
+    SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
@@ -934,8 +935,8 @@ protected:
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
-    if(env.property->hasNonDefaultSorts()){ kind="tff"; } 
-    if(env.property->higherOrder()){ kind="thf"; }
+    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; } 
+    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)

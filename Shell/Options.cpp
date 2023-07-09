@@ -294,7 +294,7 @@ void Options::init()
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
-    _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","",true);
+    _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","msp",true);
     _minimizeSatProofs.description="Perform unsat core minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).";
     _lookup.insert(&_minimizeSatProofs);
@@ -465,20 +465,18 @@ void Options::init()
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
     _functionDefinitionElimination.setRandomChoices({"all","none"});
 
-    _skolemReuse = BoolOptionValue("skolem_reuse", "skr", false);
-    _skolemReuse.description =
-      "Attempt to reuse Skolem symbols.\n"
-      "Symbols are re-used if they represent identical formulae up to renaming.";
-    _skolemReuse.addProblemConstraint(hasFormulas());
-    _lookup.insert(&_skolemReuse);
-    _skolemReuse.tag(OptionTag::PREPROCESSING);
-
-    _definitionReuse = BoolOptionValue("definition_reuse", "dr", false);
-    _definitionReuse.description =
-      "Reuse definition symbols in a similar fashion to Skolem reuse.";
-    _lookup.insert(&_definitionReuse);
-    _definitionReuse.addProblemConstraint(hasFormulas());
-    _definitionReuse.tag(OptionTag::PREPROCESSING);
+    _functionDefinitionIntroduction = UnsignedOptionValue(
+      "function_definition_introduction",
+      "fdi",
+      0
+    );
+    _functionDefinitionIntroduction.description =
+      "If non-zero, introduces function definitions with generalisation for repeated compound terms in the active set. "
+      "For example, if f(a, g(a)) and f(b, g(b)) occur frequently, we might define d(X) = f(X, g(X)). "
+      "The parameter value 'n' is a threshold: terms that occur more than n times have a definition created.";
+    _lookup.insert(&_functionDefinitionIntroduction);
+    _functionDefinitionIntroduction.tag(OptionTag::INFERENCES);
+    _functionDefinitionIntroduction.setRandomChoices({"0", "1", "2", "4", "8", "16", "32", "64"});
 
     _tweeGoalTransformation = ChoiceOptionValue<TweeGoalTransformation>("twee_goal_transformation",
        "tgt", TweeGoalTransformation::OFF, {"off","ground","full"});
@@ -522,6 +520,11 @@ void Options::init()
     _theoryFlattening.description = "Flatten clauses to separate theory and non-theory parts in the input. This is often quickly undone in proof search.";
     _lookup.insert(&_theoryFlattening);
     _theoryFlattening.tag(OptionTag::PREPROCESSING);
+
+    _ignoreUnrecognizedLogic = BoolOptionValue("ignore_unrecognized_logic","iul",false);
+    _ignoreUnrecognizedLogic.description = "Try proof search anyways, if vampire would throw an \"unrecognized logic\" error otherwise.";
+    _lookup.insert(&_ignoreUnrecognizedLogic);
+    _ignoreUnrecognizedLogic.tag(OptionTag::INPUT);
 
     _sineDepth = UnsignedOptionValue("sine_depth","sd",0);
     _sineDepth.description=
@@ -920,7 +923,7 @@ void Options::init()
     _lookaheadDelay.tag(OptionTag::SATURATION);
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
-    
+
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. a:w means that for every a clauses selected based on age "
@@ -940,6 +943,7 @@ void Options::init()
     _ageWeightRatioShapeFrequency = UnsignedOptionValue("age_weight_ratio_shape_frequency","awrsf",100);
     _ageWeightRatioShapeFrequency.description = "How frequently the age/weight ratio shape is to change: i.e. if set to 'decay' at a frequency of 100, the age/weight ratio will change every 100 age/weight choices.";
     _ageWeightRatioShapeFrequency.onlyUsefulWith(_ageWeightRatioShape.is(notEqual(AgeWeightRatioShape::CONSTANT)));
+    _ageWeightRatioShapeFrequency.addHardConstraint(greaterThan(0u));
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
@@ -1542,30 +1546,23 @@ void Options::init()
     _condensation.onlyUsefulWith(InferencingSaturationAlgorithm());
     _condensation.setRandomChoices({"on","off","fast"});
 
-    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedunancyCheck>("demodulation_redundancy_check","drc",DemodulationRedunancyCheck::ON,{"off","encompass","on"});
     _demodulationRedundancyCheck.description=
-       "Avoids the following cases of backward and forward demodulation, as they do not preserve completeness:\n"
+       "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
 
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
-       "where t > t1 and s = t > C (RHS replaced)";
+       "where t > t1 and s = t > C (RHS replaced)\n"
+       "With `on`, we check this condition and don't demodulate if we could violate completeness.\n"
+       "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
+       "With `off`, we skip the checks, save time, but become incomplete.";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
     _demodulationRedundancyCheck.onlyUsefulWith(InferencingSaturationAlgorithm());
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
-    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
-
-    _demodulationEncompassment = BoolOptionValue("demodulation_encompassment","de",false);
-    _demodulationEncompassment.description= "Treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper)";
-    _lookup.insert(&_demodulationEncompassment);
-    _demodulationEncompassment.tag(OptionTag::INFERENCES);
-    _demodulationEncompassment.onlyUsefulWith(InferencingSaturationAlgorithm());
-    _demodulationEncompassment.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
-    _demodulationEncompassment.onlyUsefulWith(_demodulationRedundancyCheck.is(equal(true)));
-    _demodulationEncompassment.addProblemConstraint(hasEquality());
-    _demodulationEncompassment.setRandomChoices({"on","off"});
+    _demodulationRedundancyCheck.setRandomChoices({"on","encompass","off"});
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
@@ -3447,7 +3444,7 @@ bool Options::complete(const Problem& prb) const
 {
   CALL("Options::complete");
 
-  if(prb.higherOrder()){
+  if(prb.isHigherOrder()){
     //safer for competition
     return false;
   }
@@ -3519,7 +3516,9 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // URR is complete for Horn problems
   }
 
-  if (!_demodulationRedundancyCheck.actualValue) return false;
+  if (_demodulationRedundancyCheck.actualValue == DemodulationRedunancyCheck::OFF) {
+    return false;
+  }
   if (!_superpositionFromVariables.actualValue) return false;
 
   // only checking resolution rules remain

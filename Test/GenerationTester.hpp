@@ -130,6 +130,7 @@ public:
     auto container = PlainClauseContainer();
     Problem p;
     Options o;
+    env.setMainProblem(&p);
     for (const auto& kv : _options) {
       o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);

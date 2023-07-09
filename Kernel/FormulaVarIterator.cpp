@@ -165,6 +165,8 @@ bool FormulaVarIterator::hasNext()
             case Term::SF_ITE:
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getCondition());
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getSort());
               break;
 
             case Term::SF_FORMULA:
@@ -180,6 +182,8 @@ bool FormulaVarIterator::hasNext()
 
               _instructions.push(FVI_BIND);
               _vars.push(sd->getVariables());
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getSort());
 
               break;
             }
@@ -187,6 +191,8 @@ bool FormulaVarIterator::hasNext()
             case Term::SF_LET_TUPLE: {
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getBinding());
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getSort());
               break;
             }
 
@@ -222,6 +228,10 @@ bool FormulaVarIterator::hasNext()
                 _instructions.push(FVI_TERM_LIST);
                 _termLists.push(*t->nthArgument(i));
               }
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getMatchedSort());
+              _instructions.push(FVI_TERM_LIST);
+              _termLists.push(sd->getSort());
               break;
             }
 

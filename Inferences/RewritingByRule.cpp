@@ -32,15 +32,15 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
 
   return pvi(iterTraits(c->getSelectedLiteralIterator())
     .flatMap([&ord](Literal* lit) {
-      TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, ord) :
-                                                        EqHelper::getSubtermIterator(lit, ord);
+      VirtualIterator<Term*> it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, ord) :
+                                                                  EqHelper::getSubtermIterator(lit, ord);
       return pvi(pushPairIntoRightIterator(lit, it));
     })
-    .flatMap([&rules](pair<Literal*, TermList> kv) {
+    .flatMap([&rules](pair<Literal*, Term*> kv) {
       return pvi(pushPairIntoRightIterator(kv, rules.items()));
     })
-    .map([c,&ord,stats](pair<pair<Literal*, TermList>,pair<TermList,TermList>> arg) -> Clause* {
-      auto rwTerm = arg.first.second;
+    .map([c,&ord,stats](pair<pair<Literal*, Term*>,pair<TermList,TermList>> arg) -> Clause* {
+      TermList rwTerm(arg.first.second);
       auto eqLHS = arg.second.first;
       auto tgtTerm = arg.second.second;
 

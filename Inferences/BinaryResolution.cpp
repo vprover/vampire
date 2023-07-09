@@ -330,7 +330,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     NonVariableNonTypeIterator nvi(queryLitAfter);
     while (nvi.hasNext()) {
       auto st = nvi.next();
-      res->addBlockedTerm(st);
+      res->addBlockedTerm(TermList(st));
     }
   }
 

@@ -40,7 +40,7 @@ Clause* BoolSimp::simplify(Clause* premise) {
     NonVariableNonTypeIterator nvi(literal);
 
     while (nvi.hasNext()) {
-      subTerm = nvi.next();
+      subTerm = TermList(nvi.next());
       if(SortHelper::getResultSort(subTerm.term()) == AtomicSort::boolSort()){
         simpedSubTerm = boolSimplify(subTerm);
         if(simpedSubTerm != subTerm){

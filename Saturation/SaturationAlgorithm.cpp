@@ -92,6 +92,7 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/RewritingByRule.hpp"
+#include "Inferences/DefinitionIntroduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1569,6 +1570,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
 
+  if(opt.functionDefinitionIntroduction())
+    gie->addFront(new DefinitionIntroduction);
+
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
@@ -1605,13 +1609,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if(prb.hasFOOL() &&
-    prb.higherOrder() && env.options->booleanEqTrick()){
+    prb.isHigherOrder() && env.options->booleanEqTrick()){
   //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
     gie->addFront(new BoolEqToDiseq());
   }
 
   if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
-     prb.higherOrder() && !opt.lambdaFreeHol()){
+     prb.isHigherOrder() && !opt.lambdaFreeHol()){
     gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     gie->addFront(new ElimLeibniz());
   }
@@ -1638,7 +1642,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
+      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       gie->addFront(new LazyClausificationGIE());
@@ -1696,7 +1700,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   //create simplification engine
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()){
+      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront(new LazyClausification());
@@ -1831,7 +1835,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !env.options->addProxyAxioms()){
+      prb.isHigherOrder() && !env.options->addProxyAxioms()){
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       /*res->addFrontMany(new ProxyISE());
       res->addFront(new OrImpAndProxyISE());

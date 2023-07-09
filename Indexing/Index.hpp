@@ -16,6 +16,7 @@
 #define __Indexing_Index__
 
 #include "Forwards.hpp"
+#include "Debug/Output.hpp"
 
 #include "Lib/Event.hpp"
 #include "Lib/Exception.hpp"
@@ -70,20 +71,30 @@ struct TermQueryResult
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
   : term(t), literal(l), clause(c), substitution(s) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-  : term(t), literal(l), clause(c), substitution(s), isTypeSub(b) {}
+  : term(t), literal(l), clause(c), substitution(s) {}
   TermQueryResult(TermList t, Literal* l, Clause* c)
   : term(t), literal(l), clause(c) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
   : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
   TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con), isTypeSub(b) {}
+  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
   ResultSubstitutionSP substitution;
   UnificationConstraintStackSP constraints;
-  bool isTypeSub = false; //true if the substitution only unifies the types of the terms
+  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
+  { 
+    return out 
+      << "{ term: " << self.term 
+      << ", literal: " << outputPtr(self.literal)
+      << ", clause: " << outputPtr(self.literal)
+      << ", substitution: " << self.substitution
+      << ", constraints: " << self.constraints
+      << "}";
+  }
+
 };
 
 struct ClauseSResQueryResult
