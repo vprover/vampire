@@ -685,6 +685,11 @@ int main(int argc, char* argv[])
     Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
+    //cout << env.options->functionExtensionality() << endl;
+    //if (env.statistics)
+    //    env.statistics->print(env.out());
+    //exit(0);
+
     switch (env.options->mode())
     {
     case Options::Mode::AXIOM_SELECTION:

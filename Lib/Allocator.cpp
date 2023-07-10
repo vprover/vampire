@@ -623,6 +623,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
     }
     _usedMemory = newSize;
 
+    cout << "Pages " << realSize << endl;
     char* mem = static_cast<char*>(malloc(realSize));
     if (!mem) {
       env.beginOutput();

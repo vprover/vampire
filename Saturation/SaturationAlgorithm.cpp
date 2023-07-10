@@ -380,6 +380,7 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
   if (env.options->showActive()) {
     env.beginOutput();    
     env.out() << "[SA] active: " << c->toString() << std::endl;
+    env.out() << Timer::elapsedMegaInstructions() << std::endl;
     env.endOutput();             
   }          
 }
@@ -786,6 +787,8 @@ void SaturationAlgorithm::init()
 {
   CALL("SaturationAlgorithm::init");
 
+  env.out() << "SaturationAlgorithm::init " << Timer::elapsedMegaInstructions() << std::endl;
+
   ClauseIterator toAdd;
 
   if (env.options->randomTraversals()) {
@@ -905,6 +908,8 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     Shuffling::shuffleArray(_newClauses.naked().begin(),_newClauses.size());
   }
 
+  cout << "SaturationAlgorithm::newClausesToUnprocessed " << Timer::elapsedMegaInstructions() << std::endl;
+
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
     switch(cl->store())
@@ -928,6 +933,9 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     }
     cl->decRefCnt(); //belongs to _newClauses.popWithoutDec()
   }
+
+  cout << "SaturationAlgorithm::newClausesToUnprocessed -end " << Timer::elapsedMegaInstructions() << std::endl;
+  exit(0);
 }
 
 /**
@@ -956,7 +964,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   env.statistics->generatedClauses++;
 
   env.checkTimeSometime<64>();
-
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
@@ -1305,6 +1312,8 @@ void SaturationAlgorithm::doUnprocessedLoop()
 {
   CALL("SaturationAlgorithm::doUnprocessedLoop");
 
+  env.out() << "SaturationAlgorithm::doUnprocessedLoop " << Timer::elapsedMegaInstructions() << std::endl;
+
 start:
 
   newClausesToUnprocessed();
@@ -1312,6 +1321,9 @@ start:
   while (! _unprocessed->isEmpty()) {
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
+
+    cout << c->toString() << endl;
+    cout << Timer::elapsedMegaInstructions() << std::endl;
 
     if (forwardSimplify(c)) {
       onClauseRetained(c);

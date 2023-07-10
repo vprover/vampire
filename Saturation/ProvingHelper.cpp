@@ -153,6 +153,8 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   env.statistics->phase=Statistics::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
+  env.out() << "runVampireSaturationImpl " << Timer::elapsedMegaInstructions() << std::endl;
+
   MainLoopResult sres(salg->run());
   env.statistics->phase=Statistics::FINALIZATION;
   Timer::setLimitEnforcement(false);
