@@ -34,6 +34,7 @@
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
+#include "RewritingData.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
@@ -73,7 +74,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
-    _rewriteRules(),
+    _rwData(new RewritingData(this)),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
@@ -472,20 +473,7 @@ vstring Clause::toString() const
     result += vstring("}");
   }
 
-  result += " rules: [ ";
-  auto it = _rewriteRules.items();
-  while (it.hasNext()) {
-    auto kv = it.next();
-    if (kv.second.isEmpty()) {
-      result += "!" + kv.first.toString();
-    } else {
-      result += kv.first.toString() + " -> " + kv.second.toString();
-    }
-    if (it.hasNext()) {
-      result += ", ";
-    }
-  }
-  result += " ]";
+  result += " rewritingData: [ " + _rwData->toString() + " ]";
 
   return result;
 }
@@ -798,32 +786,9 @@ unsigned Clause::getLiteralPosition(Literal* lit)
   }
 }
 
-const DHMap<TermList,TermList>& Clause::getRewriteRules()
+RewritingData* Clause::rewritingData()
 {
-  TIME_TRACE("get rewrite rules");
-  return _rewriteRules;
-}
-
-void Clause::addRewriteRule(TermList lhs, TermList rhs)
-{
-  TIME_TRACE("add rewrite rule");
-  if (lhs.isVar()) {
-    return;
-  }
-  _rewriteRules.insert(lhs,rhs);
-}
-
-void Clause::addBlockedTerm(TermList t)
-{
-  TermList empty;
-  empty.makeEmpty();
-  addRewriteRule(t, empty);
-}
-
-bool Clause::isBlockedTerm(TermList t) const
-{
-  TIME_TRACE("is blocked term");
-  return _rewriteRules.find(t);
+  return _rwData;
 }
 
 /**

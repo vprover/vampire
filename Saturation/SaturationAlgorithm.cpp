@@ -36,6 +36,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -820,13 +821,13 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   }
 
   Clause* cl=cl0;
-  if (cl->getRewriteRules().isEmpty()) {
+  if (cl->rewritingData()->isEmpty()) {
     auto it = cl->inference().iterator();
     if (cl->inference().hasNext(it)) {
       auto u = cl->inference().next(it);
       if (u->isClause()) {
         auto p = u->asClause();
-        if (!p->getRewriteRules().isEmpty()) {
+        if (!p->rewritingData()->isEmpty()) {
           static vmap<InferenceRule,unsigned> rules;
           auto kv = rules.insert(make_pair(cl0->inference().rule(),1));
           if (kv.second) {

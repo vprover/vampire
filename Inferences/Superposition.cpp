@@ -26,6 +26,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -334,9 +335,10 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   static bool dbs = getOptions().diamondBreakingSuperposition();
-  if (dbs && rwClause->isBlockedTerm(rwTerm)) {
+  if (dbs && rwClause->rewritingData()->contains(rwTerm.term())) {
     // cout << "blocked " << rwTerm << " in " << *rwClause << endl;
     env.statistics->skipped++;
+    return 0;
   }
 
   // the first checks the reference and the second checks the stack
@@ -573,31 +575,40 @@ Clause* Superposition::performSuperposition(
 
   if (dbs) {
     TIME_TRACE("diamond-breaking-s");
-    iterTraits(rwClause->getRewriteRules().items())
-      .forEach([res,subst,eqIsResult](pair<TermList,TermList> kv) {
-        TIME_TRACE("diamond-breaking-inner1");
-        res->addRewriteRule(
-          subst->apply(kv.first, !eqIsResult),
-          kv.second.isEmpty() ? kv.second : subst->apply(kv.second, !eqIsResult)
-        );
-      });
-    iterTraits(eqClause->getRewriteRules().items())
-      .forEach([res,&ordering,subst,eqIsResult,rwTermS](pair<TermList,TermList> kv) {
-        TIME_TRACE("diamond-breaking-inner2");
-        TermList lhs = subst->apply(kv.first, eqIsResult);
-        // drop all restrictions that are greater than the term we are rewriting (with)
-        if (ordering.compare(lhs,rwTermS)==Ordering::Result::LESS) {
-          res->addRewriteRule(lhs,
-            kv.second.isEmpty() ? kv.second : subst->apply(kv.second, eqIsResult));
-        }
-      });
+    auto rwData = res->rewritingData();
+    if (!rwClause->rewritingData()->copy(rwData, [subst, eqIsResult](TermList t) {
+      return subst->apply(t, !eqIsResult);
+    })) {
+      TIME_TRACE("skipped incompatible");
+      env.statistics->skipped++;
+      return 0;
+    }
+
+    if (!rwData->merge(eqClause->rewritingData(), [subst, eqIsResult](TermList t) {
+      return subst->apply(t, eqIsResult);
+    }, [this,rwTermS](Term* t) {
+      return _salg->getOrdering().compare(rwTermS,TermList(t))==Ordering::Result::GREATER;
+    }))
+    {
+      TIME_TRACE("skipped1");
+      env.statistics->skipped++;
+      return 0;
+    }
     {
       TIME_TRACE("diamond-breaking-rule");
-      res->addRewriteRule(rwTermS,tgtTermS);
+      if (!rwData->rewriteTerm(rwTermS.term(),tgtTermS)) {
+        TIME_TRACE("skipped2");
+        env.statistics->skipped++;
+        return 0;
+      }
       NonVariableNonTypeIterator nvi(rwTermS.term());
       while (nvi.hasNext()) {
         auto st = nvi.next();
-        res->addBlockedTerm(TermList(st));
+        if (!rwData->blockTerm(st)) {
+          TIME_TRACE("skipped3");
+          env.statistics->skipped++;
+          return 0;
+        }
       }
     }
     for (unsigned i = 0; i < rwClause->numSelected(); i++) {
@@ -605,9 +616,10 @@ Clause* Superposition::performSuperposition(
       auto tit = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(litS, ordering)
                                                : EqHelper::getSubtermIterator(litS, ordering);
       while (tit.hasNext()) {
-        TermList st(tit.next());
-        if (!res->isBlockedTerm(st) && ordering.compare(rwTermS, st)==Ordering::Result::GREATER) {
-          res->addBlockedTerm(st);
+        auto st = tit.next();
+        if (!rwData->contains(st) && ordering.compare(rwTermS, TermList(st))==Ordering::Result::GREATER) {
+          // TODO add skipping as above here as well
+          rwData->blockTerm(st);
         }
       }
     }

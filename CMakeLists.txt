@@ -232,6 +232,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Ordering_Equality.cpp
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
+    Kernel/RewritingData.cpp
     Kernel/RobSubstitution.cpp
     Kernel/MismatchHandler.cpp
     Kernel/Signature.cpp
@@ -279,6 +280,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Problem.hpp
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
+    Kernel/RewritingData.hpp
     Kernel/RobSubstitution.hpp
     Kernel/MismatchHandler.hpp
     Kernel/Signature.hpp

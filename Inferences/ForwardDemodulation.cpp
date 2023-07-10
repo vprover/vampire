@@ -27,6 +27,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -231,15 +232,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Clause* res = new(cLen) Clause(cLen,
           SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
         (*res)[0]=resLit;
-        {
-          TIME_TRACE("propagate");
-          auto rwIt = cl->getRewriteRules().items();
-          while (rwIt.hasNext()) {
-            auto kv = rwIt.next();
-            res->addRewriteRule(kv.first,kv.second);
-          }
-        }
-
         unsigned next=1;
         for(unsigned i=0;i<cLen;i++) {
           Literal* curr=(*cl)[i];
@@ -248,6 +240,26 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
         ASS_EQ(next,cLen);
+
+        {
+          TIME_TRACE("propagate");
+          auto rwData = res->rewritingData();
+          cl->rewritingData()->copy(rwData, [](TermList t){ return t; });
+          // TODO do the same in the else case
+          if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+            if (!rwData->merge(qr.clause->rewritingData(), [qr](TermList t) {
+              return qr.substitution->applyToBoundResult(t);
+            }, [this,trm](Term* t) {
+              return _salg->getOrdering().compare(trm,TermList(t))==Ordering::Result::GREATER;
+            }))
+            {
+              TIME_TRACE("cannot demodulate");
+              continue;
+            }
+          } else {
+            TIME_TRACE("demodulation not identity on query when result bound");
+          }
+        }
 
         env.statistics->forwardDemodulations++;
 

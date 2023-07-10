@@ -26,6 +26,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -308,29 +309,31 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   if (opts.diamondBreakingSuperposition()) {
     TIME_TRACE("diamond-breaking-br");
-    auto rwIt = queryCl->getRewriteRules().items();
-    while (rwIt.hasNext()) {
-      auto kv = rwIt.next();
-      res->addRewriteRule(
-        qr.substitution->applyToQuery(kv.first),
-        kv.second.isEmpty() ? kv.second : qr.substitution->applyToQuery(kv.second)
-      );
+
+    auto rwData = res->rewritingData();
+    queryCl->rewritingData()->copy(rwData, [qr](TermList t) {
+      return qr.substitution->applyToQuery(t);
+    });
+
+    if (!rwData->merge(qr.clause->rewritingData(), [qr](TermList t) {
+        return qr.substitution->applyToResult(t);
+      }, [](Term* t) { return true; }))
+    {
+      TIME_TRACE("skipped1 BR");
+      env.statistics->skipped++;
+      return 0;
     }
-    auto eqIt = qr.clause->getRewriteRules().items();
-    while (eqIt.hasNext()) {
-      auto kv = eqIt.next();
-      res->addRewriteRule(
-        qr.substitution->applyToResult(kv.first),
-        kv.second.isEmpty() ? kv.second : qr.substitution->applyToResult(kv.second)
-      );
-    }
+
     if (!queryLitAfter) {
       queryLitAfter = qr.substitution->applyToQuery(queryLit);
     }
+    // TODO add all subterms from the right premise selected literals
     NonVariableNonTypeIterator nvi(queryLitAfter);
     while (nvi.hasNext()) {
       auto st = nvi.next();
-      res->addBlockedTerm(TermList(st));
+      if (!rwData->contains(st)) {
+        rwData->blockTerm(st);
+      }
     }
   }
 

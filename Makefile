@@ -211,6 +211,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Ordering_Equality.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
+        Kernel/RewritingData.o\
         Kernel/RobSubstitution.o\
         Kernel/MismatchHandler.o\
         Kernel/Signature.o\

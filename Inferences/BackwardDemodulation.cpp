@@ -27,6 +27,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/RobSubstitution.hpp"
@@ -205,15 +206,6 @@ struct BackwardDemodulation::ResultFn
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
-    {
-      TIME_TRACE("propagate");
-      auto rwIt = qr.clause->getRewriteRules().items();
-      while (rwIt.hasNext()) {
-        auto kv = rwIt.next();
-        res->addRewriteRule(kv.first,kv.second);
-      }
-    }
-
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
@@ -222,6 +214,24 @@ struct BackwardDemodulation::ResultFn
       }
     }
     ASS_EQ(next,cLen);
+
+    {
+      TIME_TRACE("propagate");
+      auto rwData = res->rewritingData();
+      qr.clause->rewritingData()->copy(rwData, [](TermList t){ return t; });
+      // TODO do the same in the else case
+      if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
+        if (!rwData->merge(_cl->rewritingData(), [qr](TermList t) {
+          return qr.substitution->applyToBoundQuery(t);
+        }, [this,lhsS](Term* t) {
+          return _ordering.compare(lhsS,TermList(t))==Ordering::Result::GREATER;
+        }))
+        {
+          TIME_TRACE("cannot demodulate");
+          return BwSimplificationRecord(0);
+        }
+      }
+    }
 
     env.statistics->backwardDemodulations++;
     _removed->insert(qr.clause);

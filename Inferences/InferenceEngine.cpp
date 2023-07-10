@@ -23,6 +23,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/RewritingData.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -408,11 +409,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
     (*d)[newIdx] = (*c)[origIdx];
   }
-  auto rwIt = c->getRewriteRules().items();
-  while (rwIt.hasNext()) {
-    auto kv = rwIt.next();
-    d->addRewriteRule(kv.first,kv.second);
-  }
+  c->rewritingData()->copy(d->rewritingData(), [](TermList t){ return t; });
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
   env.statistics->duplicateLiterals += length - newLength;
@@ -536,11 +533,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
   }
-  auto rwIt = c->getRewriteRules().items();
-  while (rwIt.hasNext()) {
-    auto kv = rwIt.next();
-    d->addRewriteRule(kv.first,kv.second);
-  }
+  c->rewritingData()->copy(d->rewritingData(), [](TermList t){ return t; });
   env.statistics->trivialInequalities += found;
 
   return d;

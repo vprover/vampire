@@ -679,7 +679,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 
     toDo.push({t->args(), ts.index});
   }
-  ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
+  ASS(toDo.isEmpty() && terms.isEmpty() && args.length()==1);
   known.reset();
 
 

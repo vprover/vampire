@@ -357,10 +357,7 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  const DHMap<TermList,TermList>& getRewriteRules();
-  void addRewriteRule(TermList lhs, TermList rhs);
-  void addBlockedTerm(TermList t);
-  bool isBlockedTerm(TermList t) const;
+  RewritingData* rewritingData();
 
 protected:
   /** number of literals */
@@ -392,7 +389,7 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
-  DHMap<TermList,TermList> _rewriteRules;
+  RewritingData* _rwData;
 
   int _numActiveSplits;
 
