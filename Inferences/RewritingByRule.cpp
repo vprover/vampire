@@ -40,10 +40,11 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
     .flatMap([rwData](pair<Literal*, Term*> kv) {
       return pvi(pushPairIntoRightIterator(kv, rwData->items()));
     })
-    .map([c,&ord,stats](pair<pair<Literal*, Term*>,pair<Term*,TermList>> arg) -> Clause* {
+    .map([c,&ord,stats](pair<pair<Literal*, Term*>,pair<Term*,pair<TermList,TermQueryResult>>> arg) -> Clause* {
       TermList rwTerm(arg.first.second);
       TermList eqLHS(arg.second.first);
-      auto tgtTerm = arg.second.second;
+      auto tgtTerm = arg.second.second.first;
+      auto qr = arg.second.second.second;
 
       RobSubstitution subst;
       if (tgtTerm.isEmpty() || !subst.unify(eqLHS,0,rwTerm,0)) {
@@ -82,20 +83,43 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
         }
       }
 
-      Clause* res = new(c->length()) Clause(c->length(), GeneratingInference1(InferenceRule::SUPERPOSITION_BY_RULE, c));
-      for (unsigned i = 0;i < c->length(); i++) {
-        Literal* currAfter = EqHelper::replace(subst.apply((*c)[i], 0),eqLHSS,tgtTermS);
-        if(EqHelper::isEqTautology(currAfter)) {
-          res->destroy();
-          return nullptr;
+      ALWAYS(subst.unify(rwTerm,0,qr.term,1));
+
+      Literal* tgtLitS = EqHelper::replace(rwLitS,eqLHSS,tgtTermS);
+      if (EqHelper::isEqTautology(tgtLitS)) {
+        return nullptr;
+      }
+
+      unsigned newLen = c->length() + qr.clause->length() - 1;
+      Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::SUPERPOSITION_BY_RULE, c));
+      (*res)[0] = EqHelper::replace(rwLitS,eqLHSS,tgtTermS);
+      unsigned next = 1;
+      for (unsigned i = 0; i < c->length(); i++) {
+        auto curr = (*c)[i];
+        if (curr == arg.first.first) {
+          continue;
         }
-        (*res)[i] = currAfter;
+        Literal* currAfter = subst.apply(curr, 0);
+        (*res)[next++] = currAfter;
+      }
+
+      for (unsigned i = 0; i < qr.clause->length(); i++) {
+        auto curr = (*qr.clause)[i];
+        if (curr == qr.literal) {
+          continue;
+        }
+        Literal* currAfter = subst.apply(curr, 1);
+        (*res)[next++] = currAfter;
       }
 
       {
         TIME_TRACE("diamond-breaking-r");
         auto rwData = res->rewritingData();
-        c->rewritingData()->copy(rwData, [&subst](TermList t) { return subst.apply(t,0); });
+        if (!c->rewritingData()->copy(rwData, [&subst](TermList t) { return subst.apply(t,0); })) {
+          env.statistics->skipped++;
+          TIME_TRACE("rewriting by rule skipped");
+          return nullptr;
+        }
       }
       // auto rwstit = RewriteableSubtermsFn(ordering)(rwLit);
       // while (rwstit.hasNext()) {
@@ -111,6 +135,7 @@ ClauseIterator SuperpositionByRule::generateClauses(Clause* c)
 
       // cout << "superposition " << rwTerm << " in " << *c << endl
       //      << "by rule       " << eqLHS << " -> " << tgtTerm << endl
+      //      << "clause        " << *qr.clause << endl
       //      << "result        " << *res << endl << endl;
       return res;
     })
@@ -131,39 +156,49 @@ Clause* DemodulationByRule::simplify(Clause* c)
     while (it.hasNext()) {
       auto kv = it.next();
       TermList lhs(kv.first);
-      if (kv.second.isEmpty() || !lit->containsSubterm(lhs)) {
+      auto rhs = kv.second.first;
+      auto qr = kv.second.second;
+      if (rhs.isEmpty() || !lit->containsSubterm(lhs)) {
         continue;
       }
-      if (ord.compare(lhs,kv.second)!=Ordering::GREATER) {
+      if (ord.compare(lhs,rhs)!=Ordering::GREATER) {
         continue;
       }
       if (lit->isEquality() && (lit->termArg(0) == lhs || lit->termArg(1) == lhs)) {
-        // TODO: perform demodulation redundancy check
-        auto other = lit->termArg(0) == lhs ? lit->termArg(1) : lit->termArg(0);
-        Ordering::Result tord=ord.compare(kv.second, other);
-        if (tord !=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-          // bool isMax = true;
-          // for (unsigned j = 0; j < cLen; j++) {
-          //   if (lit == (*c)[j]) {
-          //     continue;
-          //   }
-          //   if (ord.compare(lit, (*c)[j]) == Ordering::LESS) {
-          //     isMax=false;
-          //     break;
-          //   }
-          // }
-          // if(isMax) {
-            // cout << "rule " << kv.first << "->" << kv.second << ", cl: " << *c << endl;
-            continue;
-          // }
-        }
+        // simply skip this for now, it is usually unsound
+        continue;
+        // // TODO: perform demodulation redundancy check
+        // auto other = lit->termArg(0) == lhs ? lit->termArg(1) : lit->termArg(0);
+        // Ordering::Result tord=ord.compare(kv.second, other);
+        // if (tord !=Ordering::LESS && tord!=Ordering::LESS_EQ) {
+        //   // bool isMax = true;
+        //   // for (unsigned j = 0; j < cLen; j++) {
+        //   //   if (lit == (*c)[j]) {
+        //   //     continue;
+        //   //   }
+        //   //   if (ord.compare(lit, (*c)[j]) == Ordering::LESS) {
+        //   //     isMax=false;
+        //   //     break;
+        //   //   }
+        //   // }
+        //   // if(isMax) {
+        //     // cout << "rule " << kv.first << "->" << kv.second << ", cl: " << *c << endl;
+        //     continue;
+        //   // }
+        // }
       }
 
       Clause* res = new(cLen) Clause(cLen,
         SimplifyingInference1(InferenceRule::DEMODULATION_BY_RULE, c));
-      for(unsigned j=0;j<cLen;j++) {
-        (*res)[j] = EqHelper::replace((*c)[j],lhs,kv.second);
+      (*res)[0]=EqHelper::replace(lit,lhs,rhs);
+      unsigned next=1;
+      for(unsigned i=0;i<cLen;i++) {
+        Literal* curr=(*c)[i];
+        if(curr!=lit) {
+          (*res)[next++] = curr;
+        }
       }
+      ASS_EQ(next,cLen);
       c->rewritingData()->copy(res->rewritingData(),[](TermList t) { return t; });
       env.statistics->demodulationByRule++;
       return res;

@@ -247,7 +247,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           cl->rewritingData()->copy(rwData, [](TermList t){ return t; });
           // TODO do the same in the else case
           if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
-            if (!rwData->merge(qr.clause->rewritingData(), [qr](TermList t) {
+            if (!qr.clause->rewritingData()->subsumes(rwData, [qr](TermList t) {
               return qr.substitution->applyToBoundResult(t);
             }, [this,trm](Term* t) {
               return _salg->getOrdering().compare(trm,TermList(t))==Ordering::Result::GREATER;

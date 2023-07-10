@@ -596,25 +596,26 @@ Clause* Superposition::performSuperposition(
     }
     {
       TIME_TRACE("diamond-breaking-rule");
-      if (!rwData->rewriteTerm(rwTermS.term(),tgtTermS)) {
+      if (!rwData->rewriteTerm(rwTermS.term(),tgtTermS,eqLHS,eqLit,eqClause)) {
         TIME_TRACE("skipped2");
         env.statistics->skipped++;
         return 0;
       }
-      NonVariableNonTypeIterator nvi(rwTermS.term());
-      while (nvi.hasNext()) {
-        auto st = nvi.next();
-        if (!rwData->blockTerm(st)) {
-          TIME_TRACE("skipped3");
-          env.statistics->skipped++;
-          return 0;
-        }
-      }
+      // TODO isn't this covered by adding everything from the selected below?
+      // NonVariableNonTypeIterator nvi(rwTermS.term());
+      // while (nvi.hasNext()) {
+      //   auto st = nvi.next();
+      //   if (!rwData->blockTerm(st)) {
+      //     TIME_TRACE("skipped3");
+      //     env.statistics->skipped++;
+      //     return 0;
+      //   }
+      // }
     }
     for (unsigned i = 0; i < rwClause->numSelected(); i++) {
-      auto litS = subst->apply((*rwClause)[i], !eqIsResult);
-      auto tit = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(litS, ordering)
-                                               : EqHelper::getSubtermIterator(litS, ordering);
+      auto lit = subst->apply((*rwClause)[i], !eqIsResult);
+      auto tit = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, ordering)
+                                               : EqHelper::getSubtermIterator(lit, ordering);
       while (tit.hasNext()) {
         auto st = tit.next();
         if (!rwData->contains(st) && ordering.compare(rwTermS, TermList(st))==Ordering::Result::GREATER) {

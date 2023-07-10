@@ -104,7 +104,8 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+    bool diamondBreaking = (_parent._hasEquality || _parent._unificationWithAbstraction) && _parent.getOptions().diamondBreakingSuperposition();
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector, diamondBreaking);
   }
 private:
   Clause* _cl;
@@ -119,7 +120,7 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls, bool diamondBreaking)
 {
   CALL("BinaryResolution::generateClause");
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
@@ -307,7 +308,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  if (opts.diamondBreakingSuperposition()) {
+  if (diamondBreaking) {
     TIME_TRACE("diamond-breaking-br");
 
     auto rwData = res->rewritingData();

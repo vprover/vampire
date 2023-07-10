@@ -19,12 +19,18 @@
 
 namespace Kernel {
 
-bool RewritingData::rewriteTerm(Term* t, TermList into)
+bool RewritingData::rewriteTerm(Term* t, TermList into, TermList origLhs, Literal* lit, Clause* cl)
 {
   CALL("RewritingData::rewriteTerm");
-  TIME_TRACE("rewritingdata rewriteTerm");
+  return addEntry(t, into, TermQueryResult(origLhs,lit,cl));
+}
+
+bool RewritingData::addEntry(Term* t, TermList into, TermQueryResult qr)
+{
+  CALL("RewritingData::addEntry");
+  auto val = make_pair(into,qr);
   if (t->ground() && into.isTerm() && into.term()->ground()) {
-    return _groundRules.findOrInsert(t,into) == into;
+    return _groundRules.findOrInsert(t,val).first == into;
   }
   if (!_varsComputed) {
     auto vit = _cl->getVariableIterator();
@@ -47,7 +53,7 @@ bool RewritingData::rewriteTerm(Term* t, TermList into)
       }
     }
   }
-  return _nongroundRules.findOrInsert(t,into) == into;
+  return _nongroundRules.findOrInsert(t,val).first == into;
 }
 
 // bool Clause::hasRewriteRule(TermList lhs, TermList rhs)
@@ -64,7 +70,7 @@ bool RewritingData::blockTerm(Term* t)
 {
   TermList empty;
   empty.makeEmpty();
-  return rewriteTerm(t, empty);
+  return addEntry(t, empty, TermQueryResult());
 }
 
 bool RewritingData::contains(Term* t) const
@@ -78,10 +84,10 @@ vstring RewritingData::toString() const
   auto it = items();
   while (it.hasNext()) {
     auto kv = it.next();
-    if (kv.second.isEmpty()) {
+    if (kv.second.first.isEmpty()) {
       res += "!" + kv.first->toString();
     } else {
-      res += kv.first->toString() + " -> " + kv.second.toString();
+      res += kv.first->toString() + " -> " + kv.second.first.toString();
     }
     if (it.hasNext()) {
       res += ", ";

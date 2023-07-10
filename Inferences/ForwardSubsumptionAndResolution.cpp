@@ -215,7 +215,7 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 }
 
 bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<TermList(TermList)>& subst) {
-  return subsumer->rewritingData()->subsumes(subsumed->rewritingData(), subst);
+  return subsumer->rewritingData()->subsumes(subsumed->rewritingData(), subst, [](Term* t){return true;});
 }
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)

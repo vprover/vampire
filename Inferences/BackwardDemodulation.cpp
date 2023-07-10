@@ -221,7 +221,7 @@ struct BackwardDemodulation::ResultFn
       qr.clause->rewritingData()->copy(rwData, [](TermList t){ return t; });
       // TODO do the same in the else case
       if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
-        if (!rwData->merge(_cl->rewritingData(), [qr](TermList t) {
+        if (!_cl->rewritingData()->subsumes(rwData, [qr](TermList t) {
           return qr.substitution->applyToBoundQuery(t);
         }, [this,lhsS](Term* t) {
           return _ordering.compare(lhsS,TermList(t))==Ordering::Result::GREATER;

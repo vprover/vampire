@@ -36,15 +36,16 @@ public:
   CLASS_NAME(BinaryResolution);
   USE_ALLOCATOR(BinaryResolution);
 
-  BinaryResolution() 
+  BinaryResolution(bool hasEquality) 
     : _index(0),
-    _unificationWithAbstraction(false)
+    _unificationWithAbstraction(false),
+    _hasEquality(hasEquality)
   {  }
 
   void attach(SaturationAlgorithm* salg);
   void detach();
 
-  static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, bool diamondBreaking = false);
   ClauseIterator generateClauses(Clause* premise);
 
 private:
@@ -53,6 +54,7 @@ private:
 
   BinaryResolutionIndex* _index;
   bool _unificationWithAbstraction;
+  bool _hasEquality;
 };
 
 };

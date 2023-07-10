@@ -1627,7 +1627,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   gie->addFront(new Factoring());
   if (opt.binaryResolution()) {
-    gie->addFront(new BinaryResolution());
+    gie->addFront(new BinaryResolution(prb.hasEquality()));
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
     gie->addFront(new URResolution());
@@ -1901,7 +1901,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
   res->addFront(new TautologyDeletionISE());
   if (env.options->diamondBreakingSuperposition()) {
-    res->addFront(new DemodulationByRule());
+    // res->addFront(new DemodulationByRule());
   }
   if(env.options->newTautologyDel()){
     res->addFront(new TautologyDeletionISE2());
