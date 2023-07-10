@@ -32,6 +32,7 @@ public:
 
   bool isEmpty() const { return _groundRules.isEmpty() && _nongroundRules.isEmpty(); }
   bool contains(Term* t) const;
+  bool isBlocked(Term* t);
   bool blockTerm(Term* t);
   bool rewriteTerm(Term* t, TermList into, TermList origLhs, Literal* lit, Clause* cl);
 

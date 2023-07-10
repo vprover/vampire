@@ -1591,7 +1591,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(env.options->superposition()){
       gie->addFront(new Superposition());
       if (env.options->diamondBreakingSuperposition()) {
-        gie->addFront(new SuperpositionByRule());
+        // gie->addFront(new SuperpositionByRule());
       }
     }
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){

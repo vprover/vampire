@@ -78,6 +78,19 @@ bool RewritingData::contains(Term* t) const
   return _groundRules.find(t) || _nongroundRules.find(t);
 }
 
+bool RewritingData::isBlocked(Term* t)
+{
+  auto ptr = _groundRules.findPtr(t);
+  if (ptr && ptr->first.isEmpty()) {
+    return true;
+  }
+  ptr = _nongroundRules.findPtr(t);
+  if (ptr && ptr->first.isEmpty()) {
+    return true;
+  }
+  return false;
+}
+
 vstring RewritingData::toString() const
 {
   vstring res;

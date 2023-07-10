@@ -335,7 +335,7 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   static bool dbs = getOptions().diamondBreakingSuperposition();
-  if (dbs && rwClause->rewritingData()->contains(rwTerm.term())) {
+  if (dbs && rwClause->rewritingData()->isBlocked(rwTerm.term())) {
     // cout << "blocked " << rwTerm << " in " << *rwClause << endl;
     env.statistics->skipped++;
     return 0;
