@@ -291,6 +291,18 @@ void Shuffling::shuffleIter(Shufflable sh) {
                 goto tl_updated;
                 break; // I know, unreachable;
 
+              case Term::SpecialFunctor::LAMBDA:
+                tl = sd->getLambdaExp();
+                goto tl_updated;
+                break; // I know, unreachable;
+
+              case Term::SpecialFunctor::MATCH:
+                // treat as non-special (and don't shuffle the MATCH specifics)
+                Term::Iterator it(t);
+                while (it.hasNext()) {
+                  todo.push(Shufflable(it.next()));
+                }
+                break;
             }
             ASSERTION_VIOLATION_REP(tl.toString());
           } else {
