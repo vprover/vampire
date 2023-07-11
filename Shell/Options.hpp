@@ -287,7 +287,6 @@ public:
 
   enum class ChainAxiom : unsigned int {
     OFF,
-    BASE,
     CYCLIC,
     ACYCLIC
   };
@@ -2415,6 +2414,7 @@ public:
   bool unorderedParamodulation() const { return _unorderedParamodulation.actualValue; }
   ChainLengthReasoning chainLengthReasoning() const { return _chainLengthReasoning.actualValue; }
   bool chainUnrolling() const { return _chainUnrolling.actualValue; }
+  bool chainSimp() const { return _chainSimp.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2765,6 +2765,7 @@ private:
   ChoiceOptionValue<PointerChaining> _pointerChaining;
   ChoiceOptionValue<ChainLengthReasoning> _chainLengthReasoning;
   BoolOptionValue _chainUnrolling;
+  BoolOptionValue _chainSimp;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

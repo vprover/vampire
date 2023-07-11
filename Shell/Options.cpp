@@ -527,7 +527,7 @@ void Options::init()
     _lookup.insert(&_theoryAxioms);
     _theoryAxioms.tag(OptionTag::PREPROCESSING);
 
-    _addChainAxioms = ChoiceOptionValue<ChainAxiom>("add_chain_axioms","acha",ChainAxiom::OFF,{"off","base","cyclic","acyclic"});
+    _addChainAxioms = ChoiceOptionValue<ChainAxiom>("add_chain_axioms","acha",ChainAxiom::OFF,{"off","cyclic","acyclic"});
     _addChainAxioms.description = "Axiomatise the theory of pointer chains. Relevant to RAPID problems.";
     _lookup.insert(&_addChainAxioms);
     //_addChainAxioms.onlyUsefulWith(_theoryAxioms.is(notEqual(TheoryAxiomLevel::OFF)));
@@ -1510,6 +1510,14 @@ void Options::init()
                                   "              C[chain(loc,tp,0)] \\/ len > 0       ";
     _chainUnrolling.tag(OptionTag::INFERENCES);
     _lookup.insert(&_chainUnrolling);
+
+    _chainSimp = BoolOptionValue("csimp","",false);
+    _chainSimp.description = "simplifies a chain term of 0 length"
+                             "           C[chain(loc,tp,0)]            "
+                             "    --------------------------------     "
+                             "                 C[loc]                  ";
+    _chainSimp.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_chainSimp);
 
     _unorderedParamodulation = BoolOptionValue("unordered_paramod","up",false);
     _unorderedParamodulation.description = "rewrite with both sides of an equality regardless of the ordering";

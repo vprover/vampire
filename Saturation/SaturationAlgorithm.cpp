@@ -80,6 +80,7 @@
 #include "Inferences/SubVarSup.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/ChainReasoning.hpp"
+#include "Inferences/ChainSimp.hpp"
 //#include "Inferences/RenamingOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
@@ -1873,6 +1874,10 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
       res->addFront(new IFFXORRewriterISE());
     }
     res->addFront(new BoolSimp());
+  }
+
+  if(env.options->chainSimp()){
+    res->addFront(new ChainSimp());    
   }
 
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
