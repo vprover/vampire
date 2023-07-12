@@ -450,6 +450,8 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         ASS_REP(simplifiedTupleTerm.isTerm(), simplifiedTupleTerm.toString());
         return TermList(Term::createTuple(simplifiedTupleTerm.term()));
       }
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;

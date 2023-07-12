@@ -337,6 +337,8 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;

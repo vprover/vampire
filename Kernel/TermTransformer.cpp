@@ -206,6 +206,8 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
+    case Term::SpecialFunctor::LAMBDA:
+      NOT_IMPLEMENTED;
     case Term::SpecialFunctor::MATCH: {
       DArray<TermList> terms(term->arity());
       bool unchanged = true;
@@ -221,8 +223,7 @@ Term* TermTransformer::transformSpecial(Term* term)
     }
 
   }
-  ASSERTION_VIOLATION_REP(term->toString()); 
-  return nullptr;
+  ASSERTION_VIOLATION_REP(term->toString());
 }
 
 TermList TermTransformer::transform(TermList ts)

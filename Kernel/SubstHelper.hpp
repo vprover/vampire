@@ -315,6 +315,9 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         );
     case Term::SpecialFunctor::TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
+    case Term::SpecialFunctor::LAMBDA:
+      // TODO in principle this should not be so difficult to handle
+      ASSERTION_VIOLATION;
     case Term::SpecialFunctor::MATCH: {
       DArray<TermList> terms(trm->arity());
       for (unsigned i = 0; i < trm->arity(); i++) {

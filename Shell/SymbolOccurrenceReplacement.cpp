@@ -51,6 +51,8 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
       case Term::SpecialFunctor::TUPLE:
         return Term::createTuple(process(TermList(sd->getTupleTerm())).term());
 
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {

@@ -367,7 +367,8 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       return findITEs(tupleTerm, variables, conditions, thenBranches,
                       elseBranches, matchVariables, matchConditions, matchBranches);
     }
-
+    case Term::SpecialFunctor::LAMBDA:
+      NOT_IMPLEMENTED;
     case Term::SpecialFunctor::MATCH: {
       sort = sd->getSort();
       auto matched = *term->nthArgument(0);
@@ -1191,7 +1192,8 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case Term::SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
       break;
-
+    case Term::SpecialFunctor::TUPLE:
+      NOT_IMPLEMENTED;
     case Term::SpecialFunctor::ITE: {
       Formula* condition = sd->getCondition();
 
@@ -1205,7 +1207,8 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case Term::SpecialFunctor::LET_TUPLE:
       processLet(sd, *term->nthArgument(0), occurrences);
       break;
-
+    case Term::SpecialFunctor::LAMBDA:
+      NOT_IMPLEMENTED;
     case Term::SpecialFunctor::MATCH: {
       processMatch(sd, term, occurrences);
       break;

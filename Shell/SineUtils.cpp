@@ -85,6 +85,12 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
           addSymIds(sd->getTupleTerm(), ids);
           break;
         }
+        case Term::SpecialFunctor::LAMBDA:
+          // TODO we don't break existing fall-through behaviour for now,
+          // but we should handle this case:
+          // recursively addSymIds() for the lambda body
+          // recursively addSymIds() for the lambda sorts?
+          break;
         case Term::SpecialFunctor::MATCH: {
           // args are handled below
           break;

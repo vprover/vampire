@@ -324,6 +324,8 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;

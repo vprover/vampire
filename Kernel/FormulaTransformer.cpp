@@ -125,6 +125,8 @@ TermList FormulaTransformer::apply(TermList ts) {
       case Term::SpecialFunctor::TUPLE:
         return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));
 
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {

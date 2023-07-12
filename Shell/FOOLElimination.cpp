@@ -710,7 +710,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         break;
       }
-
+      case Term::SpecialFunctor::TUPLE:
+      case Term::SpecialFunctor::LET_TUPLE:
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::FORMULA: {
         if (context == FORMULA_CONTEXT) {
           formulaResult = process(sd->getFormula());

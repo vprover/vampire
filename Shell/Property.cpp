@@ -663,6 +663,12 @@ void Property::scan(TermList ts,bool unit,bool goal)
         addProp(PR_HAS_ITE);
         break;
 
+      case Term::SpecialFunctor::TUPLE:
+        // TODO something like
+        // _hasFOOL = true
+        // addProp(PR_HAS_TUPLE)
+        // for now, do nothing
+        break;
       case Term::SpecialFunctor::LET:
       case Term::SpecialFunctor::LET_TUPLE:
         _hasFOOL = true;

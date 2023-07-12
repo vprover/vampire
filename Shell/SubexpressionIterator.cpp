@@ -152,9 +152,9 @@ namespace Shell {
 			       _subexpressions.push(Expression(sd->getLambdaExp(), polarity));
 			       break;
 
-            /*case Term::SpecialFunctor::TUPLE:
+            case Term::SpecialFunctor::TUPLE:
               _subexpressions.push(Expression(sd->getTupleTerm()));
-              break; */
+              break;
 
             case Term::SpecialFunctor::MATCH: {
               for (unsigned i = 0; i < term->arity(); i++) {

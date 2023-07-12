@@ -138,6 +138,8 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
         return TermList(Term::createTuple(t));
       }
 
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
@@ -398,6 +400,8 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
         collectBoundVariables(sd->getTupleTerm());
         break;
       }
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::MATCH: {
         // args are handled below
         break;
