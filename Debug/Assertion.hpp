@@ -236,13 +236,13 @@ void Debug::Assertion::violated(const char* file, int line, const char* cond,
                                 const T& rep, const char* repStr)
 {
   if (Shell::outputAllowed(true)) {
-    cout << "Condition in file " << file << ", line " << line
+    std::cout << "Condition in file " << file << ", line " << line
          << " violated:\n"
          << cond << "\n"
          << "Value of " << repStr << " is: " << rep
          << "\n----- stack dump -----\n";
-    Tracer::printStack(cout);
-    cout << "----- end of stack dump -----\n";
+    Tracer::printStack(std::cout);
+    std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();
 } // Assertion::violated
@@ -252,14 +252,14 @@ void Debug::Assertion::violated(const char* file, int line, const char* cond,
                                 const T& rep, const char* repStr, const U& rep2, const char* repStr2)
 {
   if (Shell::outputAllowed(true)) {
-    cout << "Condition in file " << file << ", line " << line
+    std::cout << "Condition in file " << file << ", line " << line
          << " violated:\n"
          << cond << "\n"
          << "Value of " << repStr << " is: " << rep << "\n"
          << "Value of " << repStr2 << " is: " << rep2
          << "\n----- stack dump -----\n";
-    Tracer::printStack(cout);
-    cout << "----- end of stack dump -----\n";
+    Tracer::printStack(std::cout);
+    std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();
 } // Assertion::violated
@@ -274,7 +274,7 @@ void Debug::Assertion::violatedEquality(const char* file, int line, const char* 
               << val1Str << " == " << val1 << "\n"
               << val2Str << " == " << val2 << "\n"
               << "----- stack dump -----\n";
-    Tracer::printStack(cout);
+    Tracer::printStack(std::cout);
     std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();
@@ -290,7 +290,7 @@ void Debug::Assertion::violatedNonequality(const char* file, int line, const cha
               << val1Str << " == " << val1 << "\n"
               << val2Str << " == " << val2 << "\n"
               << "----- stack dump -----\n";
-    Tracer::printStack(cout);
+    Tracer::printStack(std::cout);
     std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();
@@ -322,7 +322,7 @@ void Debug::Assertion::violatedComparison(const char* file, int line, const char
               << val1Str << " == " << val1 << "\n"
               << val2Str << " == " << val2 << "\n"
               << "----- stack dump -----\n";
-    Tracer::printStack(cout);
+    Tracer::printStack(std::cout);
     std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();
@@ -337,7 +337,7 @@ void Debug::Assertion::violatedMethod(const char* file, int line, const T& obj,
               << file << ", line " << line << " was violated for:\n"
               << objStr << " == " << obj << "\n"
               << "----- stack dump -----\n";
-    Tracer::printStack(cout);
+    Tracer::printStack(std::cout);
     std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();

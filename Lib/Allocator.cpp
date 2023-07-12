@@ -585,9 +585,7 @@ Allocator::Page* Allocator::allocatePages(size_t size)
       if(env.statistics) {
         env.statistics->print(env.out());
       }
-#if VDEBUG
       Debug::Tracer::printStack(env.out());
-#endif
       env.endOutput();
       System::terminateImmediately(1);
 #else

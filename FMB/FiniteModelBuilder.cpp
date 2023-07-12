@@ -2630,9 +2630,7 @@ void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
   if(env.statistics) {
     env.statistics->print(env.out());
   }
-#if VDEBUG
   Debug::Tracer::printStack(env.out());
-#endif
   env.endOutput();
   System::terminateImmediately(1);
 }

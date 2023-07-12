@@ -166,15 +166,11 @@ void handleSignal (int sigNum)
 	    env.beginOutput();
 	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	    env.statistics->print(env.out());
-#if VDEBUG
 	    Debug::Tracer::printStack(env.out());
-#endif
 	    env.endOutput();
 	  } else {
 	    cout << getpid() << "Aborted by signal " << signalDescription << "\n";
-#if VDEBUG
 	    Debug::Tracer::printStack(cout);
-#endif
 	  }
 	}
 	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
