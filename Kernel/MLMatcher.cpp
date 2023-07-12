@@ -734,11 +734,20 @@ void MLMatcher::getBindings(vunordered_map<unsigned, TermList>& outBindings) con
   m_impl->getBindings(outBindings);
 }
 
-bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
+bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset, Substitution& subst)
 {
   static MLMatcher::Impl matcher;
   matcher.init(baseLits, baseLen, instance, alts, resolvedLit, multiset);
-  return matcher.nextMatch();
+  if (matcher.nextMatch()) {
+    vunordered_map<unsigned, TermList> bindings;
+    matcher.getBindings(bindings);
+    subst.reset();
+    for (const auto& kv : bindings) {
+      subst.bind(kv.first, kv.second);
+    }
+    return true;
+  }
+  return false;
 }
 
 

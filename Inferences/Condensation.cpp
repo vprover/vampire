@@ -62,6 +62,7 @@ Clause* Condensation::simplify(Clause* cl)
   // For each pair of non-equal literals l1 and l2
   //
   CombinationIterator<unsigned> pairIt(0, clen);
+  Substitution rSubst;
   while(pairIt.hasNext()) {
     pair<unsigned,unsigned> lpair=pairIt.next();
     unsigned l1Index=lpair.first;
@@ -121,7 +122,7 @@ Clause* Condensation::simplify(Clause* cl)
       // I think this is asking if there is a substitution that will match
       // each lit in newLits with one of its instances in alts
       // CHECK!
-      success=MLMatcher::canBeMatched(newLits.array(), newLen, cl,alts.array(),0,false);
+      success=MLMatcher::canBeMatched(newLits.array(), newLen, cl,alts.array(),0,false,rSubst);
 
     // We will jump here if we do not find a match, in this case success will be false
     match_fin:

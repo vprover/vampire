@@ -26,6 +26,7 @@
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RewritingData.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -182,7 +183,7 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
   return res;
 }
 
-bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resLit)
+bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resLit, Substitution& subst)
 {
   Clause *mcl = cms->_cl;
   unsigned mclen = mcl->length();
@@ -211,7 +212,7 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
     }
   }
 
-  return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit);
+  return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit, subst);
 }
 
 bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<TermList(TermList)>& subst) {
@@ -234,6 +235,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   bool result = false;
 
   Clause::requestAux();
+  Substitution subst;
 
   static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
@@ -281,8 +283,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
           continue;
         }
 
-        if (MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0) && ColorHelper::compatible(cl->color(), mcl->color()) &&
-            blockedTermCheck(cl, cms->_cl, [](TermList t){return t;})) {
+        if (MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0, subst) && ColorHelper::compatible(cl->color(), mcl->color()) &&
+            blockedTermCheck(cl, cms->_cl, [&subst](TermList t){return SubstHelper::apply(t, subst); })) {
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
           result = true;
@@ -315,7 +317,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(mcl));
             replacement = resolutionClause;
-            cl->rewritingData()->copy(resolutionClause->rewritingData(), [](TermList t) { return t; });
+            cl->rewritingData()->copy(resolutionClause->rewritingData());
             result = true;
             goto fin;
           }
@@ -328,12 +330,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
           ClauseMatches *cms = csit.next();
           for (unsigned li = 0; li < clen; li++) {
             Literal *resLit = (*cl)[li];
-            if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color()) && blockedTermCheck(cl, cms->_cl, [](TermList t){return t;})) {
+            if (checkForSubsumptionResolution(cl, cms, resLit, subst) && ColorHelper::compatible(cl->color(), cms->_cl->color())
+                && blockedTermCheck(cl, cms->_cl, [&subst](TermList t){return SubstHelper::apply(t,subst);})) {
               resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
               env.statistics->forwardSubsumptionResolution++;
               premises = pvi(getSingletonIterator(cms->_cl));
               replacement = resolutionClause;
-              cl->rewritingData()->copy(resolutionClause->rewritingData(), [](TermList t) { return t; });
+              cl->rewritingData()->copy(resolutionClause->rewritingData());
               result = true;
               goto fin;
             }
@@ -369,13 +372,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             cms->fillInMatches(&miniIndex);
           }
 
-          if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color()) &&
-              blockedTermCheck(cl, cms->_cl, [](TermList t){return t;})) {
+          if (checkForSubsumptionResolution(cl, cms, resLit, subst) && ColorHelper::compatible(cl->color(), cms->_cl->color())
+              && blockedTermCheck(cl, cms->_cl, [&subst](TermList t){return SubstHelper::apply(t,subst);})) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(cms->_cl));
             replacement = resolutionClause;
-            cl->rewritingData()->copy(resolutionClause->rewritingData(), [](TermList t) { return t; });
+            cl->rewritingData()->copy(resolutionClause->rewritingData());
             result = true;
             goto fin;
           }
