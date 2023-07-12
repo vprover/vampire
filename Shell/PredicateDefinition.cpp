@@ -900,12 +900,7 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         break;
 
       case Term::SpecialFunctor::LAMBDA:
-        // TODO we don't break existing fall-through behaviour for now,
-        // but we should handle this case
-        // something like
-        // count() the lambda body
-        // count() the lambda sorts?
-        break;
+        NOT_IMPLEMENTED;
       case Term::SpecialFunctor::MATCH:
         break; // args are handled later
 
