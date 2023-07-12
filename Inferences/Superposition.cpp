@@ -596,7 +596,7 @@ Clause* Superposition::performSuperposition(
     }
     {
       TIME_TRACE("diamond-breaking-rule");
-      if (!rwData->rewriteTerm(rwTermS.term(),tgtTermS,eqLHS,eqLit,eqClause)) {
+      if (!rwData->addRewrite(rwTermS.term(),tgtTermS)) {
         TIME_TRACE("skipped2");
         env.statistics->skipped++;
         return 0;

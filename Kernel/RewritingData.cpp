@@ -19,18 +19,11 @@
 
 namespace Kernel {
 
-bool RewritingData::rewriteTerm(Term* t, TermList into, TermList origLhs, Literal* lit, Clause* cl)
+bool RewritingData::addRewrite(Term* t, TermList into)
 {
-  CALL("RewritingData::rewriteTerm");
-  return addEntry(t, into, TermQueryResult(origLhs,lit,cl));
-}
-
-bool RewritingData::addEntry(Term* t, TermList into, TermQueryResult qr)
-{
-  CALL("RewritingData::addEntry");
-  auto val = make_pair(into,qr);
+  CALL("RewritingData::addRewrite");
   if (t->ground() && into.isTerm() && into.term()->ground()) {
-    return _groundRules.findOrInsert(t,val).first == into;
+    return _groundRules.findOrInsert(t,into) == into;
   }
   if (!_varsComputed) {
     auto vit = _cl->getVariableIterator();
@@ -53,24 +46,14 @@ bool RewritingData::addEntry(Term* t, TermList into, TermQueryResult qr)
       }
     }
   }
-  return _nongroundRules.findOrInsert(t,val).first == into;
+  return _nongroundRules.findOrInsert(t,into) == into;
 }
-
-// bool Clause::hasRewriteRule(TermList lhs, TermList rhs)
-// {
-//   TIME_TRACE("has rewrite rule");
-//   if (lhs.isVar()) {
-//     return true;
-//   }
-//   auto ptr = _rewriteRules.findPtr(lhs);
-//   return ptr && *ptr == rhs;
-// }
 
 bool RewritingData::blockTerm(Term* t)
 {
   TermList empty;
   empty.makeEmpty();
-  return addEntry(t, empty, TermQueryResult());
+  return addRewrite(t, empty);
 }
 
 bool RewritingData::contains(Term* t) const
@@ -81,11 +64,11 @@ bool RewritingData::contains(Term* t) const
 bool RewritingData::isBlocked(Term* t)
 {
   auto ptr = _groundRules.findPtr(t);
-  if (ptr && ptr->first.isEmpty()) {
+  if (ptr && ptr->isEmpty()) {
     return true;
   }
   ptr = _nongroundRules.findPtr(t);
-  if (ptr && ptr->first.isEmpty()) {
+  if (ptr && ptr->isEmpty()) {
     return true;
   }
   return false;
@@ -97,10 +80,10 @@ vstring RewritingData::toString() const
   auto it = items();
   while (it.hasNext()) {
     auto kv = it.next();
-    if (kv.second.first.isEmpty()) {
+    if (kv.second.isEmpty()) {
       res += "!" + kv.first->toString();
     } else {
-      res += kv.first->toString() + " -> " + kv.second.first.toString();
+      res += kv.first->toString() + " -> " + kv.second.toString();
     }
     if (it.hasNext()) {
       res += ", ";

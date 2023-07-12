@@ -100,6 +100,7 @@ struct BackwardDemodulation::ResultFn
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
     _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
     _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
+    _diamondBreaking = parent.getOptions().diamondBreakingSuperposition();
   }
 
   /**
@@ -133,6 +134,12 @@ struct BackwardDemodulation::ResultFn
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
     TermList lhsS=qr.term;
     TermList rhsS;
+
+    ASS(lhsS.isTerm());
+    if (qr.clause->rewritingData()->isBlocked(lhsS.term())) {
+      TIME_TRACE("demodulation blocked precheck");
+      return BwSimplificationRecord(0);
+    }
 
     if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
       //When we apply substitution to the rhs, we get a term, that is
@@ -195,6 +202,28 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
+    if (_diamondBreaking) {
+      TIME_TRACE("demodulation-check");
+      // TODO do the same in the else case
+      if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
+        if (!_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
+          return qr.substitution->applyToBoundQuery(t);
+        }, [this,lhsS](Term* t) {
+          return _ordering.compare(lhsS,TermList(t))==Ordering::Result::GREATER;
+        }))
+        {
+          TIME_TRACE("cannot demodulate");
+          return BwSimplificationRecord(0);
+        }
+      }
+      // TODO check modulo rewriting and blocking
+      // if (!rwData->rewriteTerm(lhsS.term(), rhsS, lhs, _eqLit, _cl)) {
+      //   TIME_TRACE("cannot demodulate 1");
+      //   return BwSimplificationRecord(0);
+      // }
+    }
+
+
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
@@ -215,22 +244,10 @@ struct BackwardDemodulation::ResultFn
     }
     ASS_EQ(next,cLen);
 
-    {
-      TIME_TRACE("propagate");
+    if (_diamondBreaking) {
+      TIME_TRACE("demodulation-propagate");
       auto rwData = res->rewritingData();
-      qr.clause->rewritingData()->copy(rwData, [](TermList t){ return t; });
-      // TODO do the same in the else case
-      if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
-        if (!_cl->rewritingData()->subsumes(rwData, [qr](TermList t) {
-          return qr.substitution->applyToBoundQuery(t);
-        }, [this,lhsS](Term* t) {
-          return _ordering.compare(lhsS,TermList(t))==Ordering::Result::GREATER;
-        }))
-        {
-          TIME_TRACE("cannot demodulate");
-          return BwSimplificationRecord(0);
-        }
-      }
+      qr.clause->rewritingData()->copy(rwData);
     }
 
     env.statistics->backwardDemodulations++;
@@ -245,6 +262,7 @@ private:
 
   bool _redundancyCheck;
   bool _encompassing;
+  bool _diamondBreaking;
 
   Ordering& _ordering;
 };

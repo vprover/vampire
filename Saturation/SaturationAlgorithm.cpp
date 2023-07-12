@@ -92,7 +92,6 @@
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
-#include "Inferences/RewritingByRule.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
@@ -1590,9 +1589,6 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution());
     if(env.options->superposition()){
       gie->addFront(new Superposition());
-      if (env.options->diamondBreakingSuperposition()) {
-        // gie->addFront(new SuperpositionByRule());
-      }
     }
   } else if(opt.unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF){
     gie->addFront(new EqualityResolution()); 
@@ -1900,9 +1896,6 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
-  if (env.options->diamondBreakingSuperposition()) {
-    // res->addFront(new DemodulationByRule());
-  }
   if(env.options->newTautologyDel()){
     res->addFront(new TautologyDeletionISE2());
   }

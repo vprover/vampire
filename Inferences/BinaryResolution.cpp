@@ -312,9 +312,14 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     TIME_TRACE("diamond-breaking-br");
 
     auto rwData = res->rewritingData();
-    queryCl->rewritingData()->copy(rwData, [qr](TermList t) {
+    if (!queryCl->rewritingData()->copy(rwData, [qr](TermList t) {
       return qr.substitution->applyToQuery(t);
-    });
+    }))
+    {
+      TIME_TRACE("skipped2 BR");
+      env.statistics->skipped++;
+      return 0;
+    }
 
     if (!rwData->merge(qr.clause->rewritingData(), [qr](TermList t) {
         return qr.substitution->applyToResult(t);

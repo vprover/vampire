@@ -34,10 +34,11 @@ public:
   bool contains(Term* t) const;
   bool isBlocked(Term* t);
   bool blockTerm(Term* t);
-  bool rewriteTerm(Term* t, TermList into, TermList origLhs, Literal* lit, Clause* cl);
+  bool addRewrite(Term* t, TermList into);
 
-  // using Applicator = std::function<TermList(TermList)>;
-  // using Filter = std::function<bool(Term*)>;
+  bool copy(RewritingData* res) {
+    return copy(res, [](TermList t) { return t; });
+  }
 
   template<class Applicator>
   bool copy(RewritingData* res, Applicator f)
@@ -47,15 +48,12 @@ public:
 
     res->_groundRules.loadFromMap(_groundRules);
     TIME_TRACE("rewritingdata-copy nonground");
-    DHMap<Term*,pair<TermList,TermQueryResult>>::Iterator it(_nongroundRules);
+    DHMap<Term*,TermList>::Iterator it(_nongroundRules);
     while (it.hasNext()) {
       Term* lhs;
-      auto& kv = it.nextRef(lhs);
-      if (!res->addEntry(
-        f(TermList(lhs)).term(),
-        kv.first.isEmpty() ? kv.first : f(kv.first),
-        kv.second
-      )) {
+      TermList rhs;
+      it.next(lhs,rhs);
+      if (!res->addRewrite(f(TermList(lhs)).term(), rhs.isEmpty() ? rhs : f(rhs))) {
         return false;
       }
     }
@@ -68,28 +66,29 @@ public:
     CALL("RewritingData::merge");
     TIME_TRACE("rewritingdata-merge");
 
-    DHMap<Term*,pair<TermList,TermQueryResult>>::Iterator git(other->_groundRules);
+    DHMap<Term*,TermList>::Iterator git(other->_groundRules);
     while (git.hasNext()) {
       Term* lhs;
-      auto& kv = git.nextRef(lhs);
+      TermList rhs;
+      git.next(lhs,rhs);
       if (!g(lhs)) {
         continue;
       }
-      if (!addEntry(lhs,kv.first,kv.second)) {
+      if (!addRewrite(lhs,rhs)) {
         return false;
       }
     }
 
-    DHMap<Term*,pair<TermList,TermQueryResult>>::Iterator ngit(other->_nongroundRules);
+    DHMap<Term*,TermList>::Iterator ngit(other->_nongroundRules);
     while (ngit.hasNext()) {
       Term* lhs;
-      auto& kv = ngit.nextRef(lhs);
+      TermList rhs;
+      ngit.next(lhs,rhs);
       lhs = f(TermList(lhs)).term();
       if (!g(lhs)) {
         continue;
       }
-      if (!addEntry(lhs, kv.first.isEmpty() ? kv.first : f(kv.first), kv.second))
-      {
+      if (!addRewrite(lhs, rhs.isEmpty() ? rhs : f(rhs))) {
         return false;
       }
     }
@@ -105,35 +104,39 @@ public:
     if (_groundRules.size() > other->_groundRules.size()) {
       return false;
     }
-    DHMap<Term*,pair<TermList,TermQueryResult>>::Iterator git(_groundRules);
+    DHMap<Term*,TermList>::Iterator git(_groundRules);
     while (git.hasNext()) {
       Term* lhs;
-      auto& kv = git.nextRef(lhs);
+      TermList rhs;
+      git.next(lhs,rhs);
       if (!g(lhs)) {
         continue;
       }
       auto ptr = other->_groundRules.findPtr(lhs);
-      if (!ptr || ptr->first != kv.first) {
+      if (!ptr || !subsumes(rhs, *ptr)) {
         return false;
       }
     }
-    DHMap<Term*,pair<TermList,TermQueryResult>>::Iterator ngit(_nongroundRules);
+    DHMap<Term*,TermList>::Iterator ngit(_nongroundRules);
     while (ngit.hasNext()) {
       Term* lhs;
-      auto& kv = ngit.nextRef(lhs);
+      TermList rhs;
+      ngit.next(lhs,rhs);
       lhs = f(TermList(lhs)).term();
       if (!g(lhs)) {
         continue;
       }
-      auto rhs = kv.first.isEmpty() ? kv.first : f(kv.first);
+      if (rhs.isNonEmpty()) { 
+        rhs = f(rhs);
+      }
       if (lhs->ground() && rhs.isTerm() && rhs.term()->ground()) {
         auto ptr = other->_groundRules.findPtr(lhs);
-        if (!ptr || ptr->first != rhs) {
+        if (!ptr || !subsumes(rhs, *ptr)) {
           return false;
         }
       } else {
         auto ptr = other->_nongroundRules.findPtr(lhs);
-        if (!ptr || ptr->first != rhs) {
+        if (!ptr || !subsumes(rhs, *ptr)) {
           return false;
         }
       }
@@ -142,17 +145,19 @@ public:
     return true;
   }
 
-  VirtualIterator<pair<Term*,pair<TermList,TermQueryResult>>> items() const {
+  inline bool subsumes(TermList rhs, TermList rhsOther) {
+    return rhsOther.isEmpty() || rhs == rhsOther;
+  }
+
+  VirtualIterator<pair<Term*,TermList>> items() const {
     return pvi(getConcatenatedIterator(_groundRules.items(), _nongroundRules.items()));
   }
 
   vstring toString() const;
 
 private:
-  bool addEntry(Term* t, TermList into, TermQueryResult qr);
-
-  DHMap<Term*,pair<TermList,TermQueryResult>> _groundRules;
-  DHMap<Term*,pair<TermList,TermQueryResult>> _nongroundRules;
+  DHMap<Term*,TermList> _groundRules;
+  DHMap<Term*,TermList> _nongroundRules;
   Clause* _cl;
   DHSet<unsigned> _vars;
   bool _varsComputed = false;

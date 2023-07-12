@@ -104,6 +104,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
+      ASS(trm.isTerm());
+      if (cl->rewritingData()->isBlocked(trm.term())) {
+        TIME_TRACE("demodulation blocked precheck");
+        continue;
+      }
 
       bool toplevelCheck = _redundancyCheck &&
         lit->isEquality() && (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
@@ -222,6 +227,26 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
+        if (_salg->getOptions().diamondBreakingSuperposition()) {
+          TIME_TRACE("demodulation check");
+          // TODO do the same in the else case
+          if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+            if (!qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
+              return qr.substitution->applyToBoundResult(t);
+            }, [this,trm](Term* t) {
+              return _salg->getOrdering().compare(trm,TermList(t))==Ordering::Result::GREATER;
+            }))
+            {
+              continue;
+            }
+          }
+          //TODO check subsumption modulo this rewriting and blocking as well
+          // if (!rwData->rewriteTerm(trm.term(), rhsS, qr.term, qr.literal, qr.clause)) {
+          //   TIME_TRACE("cannot demodulate 1");
+          //   continue;
+          // }
+        }
+
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
@@ -241,24 +266,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
         ASS_EQ(next,cLen);
 
-        {
-          TIME_TRACE("propagate");
-          auto rwData = res->rewritingData();
-          cl->rewritingData()->copy(rwData, [](TermList t){ return t; });
-          // TODO do the same in the else case
-          if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
-            if (!qr.clause->rewritingData()->subsumes(rwData, [qr](TermList t) {
-              return qr.substitution->applyToBoundResult(t);
-            }, [this,trm](Term* t) {
-              return _salg->getOrdering().compare(trm,TermList(t))==Ordering::Result::GREATER;
-            }))
-            {
-              TIME_TRACE("cannot demodulate");
-              continue;
-            }
-          } else {
-            TIME_TRACE("demodulation not identity on query when result bound");
-          }
+        if (_salg->getOptions().diamondBreakingSuperposition()) {
+          TIME_TRACE("demodulation-propagate");
+          cl->rewritingData()->copy(res->rewritingData(), [](TermList t){ return t; });
         }
 
         env.statistics->forwardDemodulations++;
