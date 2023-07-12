@@ -32,6 +32,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/RewritingData.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -178,6 +179,16 @@ struct EqualityResolution::ResultFn
       (*res)[next++] = constraint;
     }
     ASS_EQ(next,newLen);
+
+    if (env.options->diamondBreakingSuperposition()) {
+      if (!_cl->rewritingData()->copy(res->rewritingData(),[](TermList t) {
+        return subst.apply(t,0);
+      })) {
+        env.statistics->skippedEqualityResolution++;
+        res->destroy();
+        return 0;
+      }
+    }
 
     env.statistics->equalityResolution++;
 

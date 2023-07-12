@@ -337,7 +337,7 @@ Clause* Superposition::performSuperposition(
   static bool dbs = getOptions().diamondBreakingSuperposition();
   if (dbs && rwClause->rewritingData()->isBlocked(rwTerm.term())) {
     // cout << "blocked " << rwTerm << " in " << *rwClause << endl;
-    env.statistics->skipped++;
+    env.statistics->skippedSuperposition++;
     return 0;
   }
 
@@ -579,48 +579,34 @@ Clause* Superposition::performSuperposition(
     if (!rwClause->rewritingData()->copy(rwData, [subst, eqIsResult](TermList t) {
       return subst->apply(t, !eqIsResult);
     })) {
-      TIME_TRACE("skipped incompatible");
-      env.statistics->skipped++;
-      return 0;
+      env.statistics->skippedSuperposition++;
+      goto construction_fail;
     }
 
     if (!rwData->merge(eqClause->rewritingData(), [subst, eqIsResult](TermList t) {
       return subst->apply(t, eqIsResult);
     }, [this,rwTermS](Term* t) {
       return _salg->getOrdering().compare(rwTermS,TermList(t))==Ordering::Result::GREATER;
-    }))
-    {
-      TIME_TRACE("skipped1");
-      env.statistics->skipped++;
-      return 0;
+    })) {
+      env.statistics->skippedSuperposition++;
+      goto construction_fail;
     }
-    {
-      TIME_TRACE("diamond-breaking-rule");
-      if (!rwData->addRewrite(rwTermS.term(),tgtTermS)) {
-        TIME_TRACE("skipped2");
-        env.statistics->skipped++;
-        return 0;
-      }
-      // TODO isn't this covered by adding everything from the selected below?
-      // NonVariableNonTypeIterator nvi(rwTermS.term());
-      // while (nvi.hasNext()) {
-      //   auto st = nvi.next();
-      //   if (!rwData->blockTerm(st)) {
-      //     TIME_TRACE("skipped3");
-      //     env.statistics->skipped++;
-      //     return 0;
-      //   }
-      // }
+    // add current rewrite rule
+    if (!rwData->addRewrite(rwTermS.term(),tgtTermS)) {
+      env.statistics->skippedSuperposition++;
+      goto construction_fail;
     }
+    // add everything that is smaller than rewritten term
     for (unsigned i = 0; i < rwClause->numSelected(); i++) {
       auto lit = subst->apply((*rwClause)[i], !eqIsResult);
       auto tit = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, ordering)
                                                : EqHelper::getSubtermIterator(lit, ordering);
       while (tit.hasNext()) {
         auto st = tit.next();
-        if (!rwData->contains(st) && ordering.compare(rwTermS, TermList(st))==Ordering::Result::GREATER) {
-          // TODO add skipping as above here as well
-          rwData->blockTerm(st);
+        if (ordering.compare(rwTermS, TermList(st))==Ordering::Result::GREATER && !rwData->blockTerm(st)) {
+          TIME_TRACE("sup-skipped3");
+          env.statistics->skippedSuperposition++;
+          goto construction_fail;
         }
       }
     }

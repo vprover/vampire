@@ -53,6 +53,7 @@ Statistics::Statistics()
     sineIterations(0),
     factoring(0),
     resolution(0),
+    skippedResolution(0),
     urResolution(0),
     cResolution(0),
     forwardSuperposition(0),
@@ -61,8 +62,11 @@ Statistics::Statistics()
     cForwardSuperposition(0),
     cBackwardSuperposition(0),
     selfSuperposition(0),
+    skippedSuperposition(0),
     equalityFactoring(0),
+    skippedEqualityFactoring(0),
     equalityResolution(0),
+    skippedEqualityResolution(0),
     forwardExtensionalityResolution(0),
     backwardExtensionalityResolution(0),
     theoryInstSimp(0),
@@ -107,9 +111,6 @@ Statistics::Statistics()
     leibnizElims(0),
     booleanSimps(0),
     duplicateLiterals(0),
-    demodulationByRule(0),
-    superpositionByRule(0),
-    skipped(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
     backwardSubsumptionResolution(0),
@@ -317,9 +318,6 @@ void Statistics::print(ostream& out)
       +innerRewrites
       +booleanSimps
       );
-  COND_OUT("Duplicate literals", duplicateLiterals);
-  COND_OUT("Demodulation by rule", demodulationByRule);
-  COND_OUT("Skipped", skipped);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
   COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
@@ -371,18 +369,21 @@ void Statistics::print(ostream& out)
       +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication);
   COND_OUT("Binary resolution", resolution);
+  COND_OUT("Skipped binary resolution", skippedResolution);
   COND_OUT("Unit resulting resolution", urResolution);
   COND_OUT("Binary resolution with abstraction",cResolution);
   COND_OUT("Factoring", factoring);
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);
-  COND_OUT("Superposition by rule", superpositionByRule);
   COND_OUT("Self superposition", selfSuperposition);
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
+  COND_OUT("Skipped superposition", skippedSuperposition);
   COND_OUT("Equality factoring", equalityFactoring);
+  COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
+  COND_OUT("Skipped equality resolution", skippedEqualityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);
   COND_OUT("Bw extensionality resolution", backwardExtensionalityResolution);
   COND_OUT("TheoryInstSimp",theoryInstSimp);

@@ -316,8 +316,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       return qr.substitution->applyToQuery(t);
     }))
     {
-      TIME_TRACE("skipped2 BR");
-      env.statistics->skipped++;
+      TIME_TRACE("BR-skipped1");
+      env.statistics->skippedResolution++;
       return 0;
     }
 
@@ -325,8 +325,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         return qr.substitution->applyToResult(t);
       }, [](Term* t) { return true; }))
     {
-      TIME_TRACE("skipped1 BR");
-      env.statistics->skipped++;
+      TIME_TRACE("BR-skipped2");
+      env.statistics->skippedResolution++;
       return 0;
     }
 
@@ -337,8 +337,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     NonVariableNonTypeIterator nvi(queryLitAfter);
     while (nvi.hasNext()) {
       auto st = nvi.next();
-      if (!rwData->contains(st)) {
-        rwData->blockTerm(st);
+      if (!rwData->blockTerm(st)) {
+        TIME_TRACE("BR-skipped3");
+        env.statistics->skippedResolution++;
+        return 0;
       }
     }
   }
