@@ -23,11 +23,11 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
 
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
-    switch (term->functor()) {
-      case Term::SF_ITE:
+    switch (term->specialFunctor()) {
+      case Term::SpecialFunctor::ITE:
         return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
 
-        case Term::SF_LET:
+      case Term::SpecialFunctor::LET:
           if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
             // function symbols, defined inside $let are expected to be
             // disjoint and fresh symbols are expected to be fresh
@@ -36,10 +36,10 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
           }
           return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
-        case Term::SF_FORMULA:
+      case Term::SpecialFunctor::FORMULA:
           return Term::createFormula(process(sd->getFormula()));
 
-      case Term::SF_LET_TUPLE:
+      case Term::SpecialFunctor::LET_TUPLE:
         if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
           // function symbols, defined inside $let are expected to be
           // disjoint and fresh symbols are expected to be fresh
@@ -48,22 +48,20 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
         }
         return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
-      case Term::SF_TUPLE:
+      case Term::SpecialFunctor::TUPLE:
         return Term::createTuple(process(TermList(sd->getTupleTerm())).term());
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
+      case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {
           terms[i] = process(*term->nthArgument(i));
         }
         return Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin());
       }
-
-#if VDEBUG
-        default:
-          ASSERTION_VIOLATION;
-#endif
     }
+    ASSERTION_VIOLATION;
   }
 
   bool renaming = !_isPredicate && (term->functor() == _symbol);

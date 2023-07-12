@@ -139,8 +139,8 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   CALL("Rectify::rectifySpecialTerm");
 
   Term::SpecialTermData* sd = t->getSpecialData();
-  switch(t->functor()) {
-  case Term::SF_ITE:
+  switch(t->specialFunctor()) {
+  case Term::SpecialFunctor::ITE:
   {
     ASS_EQ(t->arity(),2);
     Formula* c = rectify(sd->getCondition());
@@ -152,7 +152,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createITE(c, th, el, sort);
   }
-  case Term::SF_LET:
+  case Term::SpecialFunctor::LET:
   {
     ASS_EQ(t->arity(),1);
 
@@ -179,7 +179,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLet(sd->getFunctor(), variables, binding, contents, sort);
   }
-  case Term::SF_LET_TUPLE:
+  case Term::SpecialFunctor::LET_TUPLE:
   {
     ASS_EQ(t->arity(),1);
 
@@ -192,7 +192,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sort);
   } 
-  case Term::SF_FORMULA:
+  case Term::SpecialFunctor::FORMULA:
   {
     ASS_EQ(t->arity(),0);
     Formula* orig = rectify(sd->getFormula());
@@ -201,7 +201,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createFormula(orig);
   }
-  case Term::SF_LAMBDA:
+  case Term::SpecialFunctor::LAMBDA:
   {
     ASS_EQ(t->arity(),0);
     bindVars(sd->getLambdaVars());
@@ -235,7 +235,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
   }
-  case Term::SF_TUPLE:
+  case Term::SpecialFunctor::TUPLE:
   {
     ASS_EQ(t->arity(),0);
     Term* rectifiedTupleTerm = rectify(sd->getTupleTerm());
@@ -244,7 +244,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTuple(rectifiedTupleTerm);
   }
-  case Term::SF_MATCH: {
+  case Term::SpecialFunctor::MATCH: {
     DArray<TermList> terms(t->arity());
     bool unchanged = true;
     for (unsigned i = 0; i < t->arity(); i++) {
@@ -259,8 +259,6 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createMatch(sort, matchedSort, t->arity(), terms.begin());
   }
-  default:
-    ASSERTION_VIOLATION;
   }
   ASSERTION_VIOLATION;
 }

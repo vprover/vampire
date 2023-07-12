@@ -163,29 +163,32 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
     return true;
   }
 
-  switch(t->functor()) {
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE:
-    case Term::SF_ITE:
-    case Term::SF_MATCH:
-      resultSort = t->getSpecialData()->getSort();
-      return true;
-    case Term::SF_FORMULA:
-      resultSort = AtomicSort::boolSort();
-      return true;
-    case Term::SF_LAMBDA: {
-      resultSort = t->getSpecialData()->getSort();
-      return true;
-    }
-    case Term::SF_TUPLE: {
-      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
-      return true;
-    }
-    default:
-      ASS(!t->isSpecial());
+  if (!t->isSpecial()) {
       resultSort = getResultSort(t);
       return true;
   }
+
+  switch(t->specialFunctor()) {
+    case Term::SpecialFunctor::LET:
+    case Term::SpecialFunctor::LET_TUPLE:
+    case Term::SpecialFunctor::ITE:
+    case Term::SpecialFunctor::MATCH:
+      resultSort = t->getSpecialData()->getSort();
+      return true;
+    case Term::SpecialFunctor::FORMULA:
+      resultSort = AtomicSort::boolSort();
+      return true;
+    case Term::SpecialFunctor::LAMBDA: {
+      resultSort = t->getSpecialData()->getSort();
+      return true;
+    }
+    case Term::SpecialFunctor::TUPLE: {
+      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
+      return true;
+    }
+  }
+  ASSERTION_VIOLATION
+  
 } // SortHelper::getResultSortOrMasterVariable
 
 /**
@@ -397,8 +400,8 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
 
         Term::SpecialTermData* sd = term->getSpecialData();
 
-        switch (term->functor()) {
-          case Term::SF_ITE: {
+        switch (term->specialFunctor()) {
+          case Term::SpecialFunctor::ITE: {
             CollectTask newTask(COLLECT_TERMLIST);
             newTask.contextSort = sd->getSort();
 
@@ -415,7 +418,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             break;
           }
 
-          case Term::SF_LET: {
+          case Term::SpecialFunctor::LET: {
             TermList binding = sd->getBinding();
             bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
             Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
@@ -454,7 +457,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             break;
           }
 
-          case Term::SF_LET_TUPLE: {
+          case Term::SpecialFunctor::LET_TUPLE: {
             TermList binding = sd->getBinding();
             Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
             Substitution subst;
@@ -488,25 +491,25 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             break;
           }
 
-          case Term::SF_FORMULA: {
+          case Term::SpecialFunctor::FORMULA: {
             CollectTask newTask(COLLECT_FORMULA);
             newTask.f = sd->getFormula();
             todo.push(newTask);
           } break;
-          case Term::SF_LAMBDA: {
+          case Term::SpecialFunctor::LAMBDA: {
             CollectTask newTask(COLLECT_TERMLIST);
             newTask.contextSort = sd->getLambdaExpSort();
             newTask.ts = sd->getLambdaExp();
             todo.push(newTask);
           } break;
 
-          case Term::SF_TUPLE: {
+          case Term::SpecialFunctor::TUPLE: {
             CollectTask newTask(COLLECT_TERM);
             newTask.t = sd->getTupleTerm();
             todo.push(newTask);
           } break;
 
-          case Term::SF_MATCH: {
+          case Term::SpecialFunctor::MATCH: {
             CollectTask newTask(COLLECT_TERMLIST);
             auto matchedSort = term->getSpecialData()->getMatchedSort();
 
@@ -527,11 +530,6 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             }
             break;
           }
-
-      #if VDEBUG
-          default:
-            ASSERTION_VIOLATION;
-      #endif
         }
       } break;
 

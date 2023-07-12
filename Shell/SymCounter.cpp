@@ -234,33 +234,33 @@ void SymCounter::count(Term* term, int polarity, int add)
   if (!term->shared()) {
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
-      switch (sd->getType()) {
-        case Term::SF_FORMULA:
+      switch (sd->specialFunctor()) {
+        case Term::SpecialFunctor::FORMULA:
           count(sd->getFormula(), polarity, add);
               break;
-        case Term::SF_ITE:
+        case Term::SpecialFunctor::ITE:
           count(sd->getCondition(), 0, add);
               break;
-        case Term::SF_LET:
-        case Term::SF_LET_TUPLE: {
+        case Term::SpecialFunctor::LET:
+        case Term::SpecialFunctor::LET_TUPLE: {
           TermList binding = sd->getBinding();
           if (binding.isTerm()) {
             count(binding.term(), 1, add);
           }
           break;
         }
-        case Term::SF_TUPLE: {
+        case Term::SpecialFunctor::TUPLE: {
           count(sd->getTupleTerm(), 0, add);
           break;
         }
-        case Term::SF_LAMBDA: {
+        case Term::SpecialFunctor::LAMBDA: {
           TermList lambdaExp = sd->getLambdaExp();
           if(lambdaExp.isTerm()){
             count(lambdaExp.term(), polarity, add);
           }
           break;
         }
-        case Term::SF_MATCH: {
+        case Term::SpecialFunctor::MATCH: {
           for (unsigned i = 0; i < term->arity(); i++) {
             TermList t = *term->nthArgument(i);
             if (t.isTerm()) {
@@ -269,8 +269,6 @@ void SymCounter::count(Term* term, int polarity, int add)
           }
           break;
         }
-        default:
-          ASSERTION_VIOLATION;
       }
     } else {
       //There should never be a non-shared sort

@@ -66,31 +66,31 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
   if (!term->shared()) {
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
-      switch (sd->getType()) {
-        case Term::SF_FORMULA:
+      switch (sd->specialFunctor()) {
+        case Term::SpecialFunctor::FORMULA:
           extractFormulaSymbols(sd->getFormula(), ids);
               break;
-        case Term::SF_ITE:
+        case Term::SpecialFunctor::ITE:
           extractFormulaSymbols(sd->getCondition(), ids);
               break;
-        case Term::SF_LET:
-        case Term::SF_LET_TUPLE: {
+        case Term::SpecialFunctor::LET:
+        case Term::SpecialFunctor::LET_TUPLE: {
           TermList binding = sd->getBinding();
           if (binding.isTerm()) {
             addSymIds(binding.term(), ids);
           }
           break;
         }
-        case Term::SF_TUPLE: {
+        case Term::SpecialFunctor::TUPLE: {
           addSymIds(sd->getTupleTerm(), ids);
           break;
         }
-        case Term::SF_MATCH: {
+        case Term::SpecialFunctor::LAMBDA:
+          NOT_IMPLEMENTED;
+        case Term::SpecialFunctor::MATCH: {
           // args are handled below
           break;
         }
-        default:
-          ASSERTION_VIOLATION;
       }
     } else {
       //all sorts should be shared
