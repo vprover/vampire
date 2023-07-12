@@ -1,3 +1,0 @@
-#!/bin/sh
-
-exec ./vampire_rel_static_ahmed-new-hol_6848 --cores 8 --input_syntax tptp --proof tptp --output_axiom_names on --mode portfolio --schedule snake_tptp_hol $1 -m 12000  -t $STAREXEC_WALLCLOCK_LIMIT

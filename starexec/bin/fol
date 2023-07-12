@@ -1,3 +1,0 @@
-#!/bin/sh
-
-exec ./vampire_casc2023 --mode casc -m 16384 --cores 7 -t $STAREXEC_WALLCLOCK_LIMIT $1
