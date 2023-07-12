@@ -25,6 +25,7 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Allocator.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
@@ -100,12 +101,15 @@ void reportSpiderStatus(char status)
   }
 
   vstring problemName = Lib::env.options->problemName();
+  Timer* timer = Lib::env.timer;
 
   env.beginOutput();
   env.out()
     << status << " "
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
-    << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
+    << (timer ? timer->elapsedDeciseconds() : 0) << " "
+    << (timer ? timer->elapsedMegaInstructions() : 0) << " "
+    << Allocator::getUsedMemory()/1048576 << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
     << commitNumber << ':' << z3Version << endl;
   env.endOutput();

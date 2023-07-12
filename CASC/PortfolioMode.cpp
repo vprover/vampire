@@ -369,13 +369,21 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getSnakeTptpSatSchedule(prop,quick);
     break;
 
-  case Options::Schedule::CASC_2019:
+  case Options::Schedule::CASC_2023:
   case Options::Schedule::CASC:
+    Schedules::getCasc2023Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_2019:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
     break;
 
-  case Options::Schedule::CASC_SAT_2019:
+  case Options::Schedule::CASC_SAT_2023:
   case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2023Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_SAT_2019:
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
 
@@ -483,7 +491,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   // kill all running processes first
   decltype(processes)::Iterator killIt(processes);
   while(killIt.hasNext())
-    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGKILL);
+    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGINT);
 
   return success;
 }

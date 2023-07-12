@@ -93,6 +93,13 @@ void Options::init()
   _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
   _lookup.insert(&_instructionLimit);
 
+  _simulatedInstructionLimit = UnsignedOptionValue("simulated_instruction_limit","sil",0);
+  _simulatedInstructionLimit.description=
+    "Instruction limit (in millions) of executed instructions for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual instruction limit is used)";
+  _simulatedInstructionLimit.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+  _lookup.insert(&_simulatedInstructionLimit);
+  _simulatedInstructionLimit.tag(OptionTag::LRS);
+
   _parsingDoesNotCount = BoolOptionValue("parsing_does_not_count","",false);
   _parsingDoesNotCount.description= "Extend the instruction limit by the amount of instructions it took to parse the input problem.";
   _lookup.insert(&_parsingDoesNotCount);
@@ -145,8 +152,10 @@ void Options::init()
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
+         "casc_2023",
          "casc_2019",
          "casc_sat",
+         "casc_hol_2023",
          "casc_sat_2019",
          "casc_hol_2020",
          "file",
@@ -2819,7 +2828,7 @@ bool Options::OptionValue<T>::checkConstraints(){
        const OptionValueConstraintUP<T>& con = it.next();
        if(!con->check(*this)){
 
-         if(env.options->mode()==Mode::SPIDER){
+         if (env.options->mode() == Mode::SPIDER){
            reportSpiderFail();
            USER_ERROR("\nBroken Constraint: "+con->msg(*this));
          }
@@ -2861,7 +2870,7 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
 
-         if(env.options->mode()==Mode::SPIDER){
+         if (env.options->mode() == Mode::SPIDER){
            reportSpiderFail();
            USER_ERROR("WARNING: " + longName + con->msg());
          }

@@ -478,6 +478,12 @@ void spiderMode()
   CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
+  env.options->setNormalize(true);
+  // to start counting instructions
+#ifdef __linux__
+  Timer::ensureTimerInitialized();
+#endif
+
   Exception* exception = 0;
 #if VZ3
   z3::exception* z3_exception = 0;
