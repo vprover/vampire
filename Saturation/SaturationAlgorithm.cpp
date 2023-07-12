@@ -161,7 +161,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
       auto queueName = name + "HoFSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel1(false, opt, queueName));
     }
-    return std::make_unique<AvatarMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "HoFSQ", std::move(queues));
+    return std::make_unique<HoFeaturesMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "HoFSQ", std::move(queues));
   }
 #endif  
   else
