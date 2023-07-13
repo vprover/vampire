@@ -986,7 +986,7 @@ public:
   unsigned hash() const
   {
     return Literal::literalHash(functor(), polarity() ^ flip, 
-        [&](auto i){ return *nthArgument(i); }, arity(),
+        [&](auto i) -> TermList const& { return *nthArgument(i); }, arity(),
         someIf(isTwoVarEquality(), [&](){ return twoVarEqSort(); }),
         commutative());
   }
@@ -997,12 +997,12 @@ public:
 
     if (commutative) {
       ASS_EQ(arity, 2)
+      ASS(rightArgOrder(getArg(0), getArg(1)))
 
       if (someIf(lit->isTwoVarEquality(), [&](){ return lit->twoVarEqSort(); }) != twoVarEqSort) {
         return false;
       }
-      return make_tuple(*lit->nthArgument(0), *lit->nthArgument(1)) == make_tuple(getArg(0), getArg(1))
-          || make_tuple(*lit->nthArgument(0), *lit->nthArgument(1)) == make_tuple(getArg(1), getArg(0));
+      return make_tuple(*lit->nthArgument(0), *lit->nthArgument(1)) == make_tuple(getArg(0), getArg(1));
 
     } else {
       ASS(twoVarEqSort.isNone())
@@ -1010,15 +1010,19 @@ public:
     }
   }
 
+  static bool rightArgOrder(TermList const& lhs, TermList const& rhs);
+
   template<class GetArg>
   static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort, bool commutative) {
     if (commutative) {
       ASS_EQ(arity, 2)
+      ASS(rightArgOrder(getArg(0), getArg(1)))
       return HashUtils::combine(
           DefaultHash::hash(polarity),
           DefaultHash::hash(functor),
           DefaultHash::hash(twoVarEqSort),
-          getArg(0).defaultHash() ^ getArg(1).defaultHash());
+          getArg(0).defaultHash(),
+          getArg(1).defaultHash());
     } else {
       ASS(twoVarEqSort.isNone())
       return HashUtils::combine(
@@ -1105,8 +1109,6 @@ public:
 private:
   template<class GetArg>
   static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg args, Option<TermList> twoVarEqSort = Option<TermList>());
-  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, TermList variableSort);
-
 }; // class Literal
 
 // TODO used in some proofExtra output

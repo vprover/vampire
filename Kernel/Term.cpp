@@ -1543,6 +1543,7 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
 {
   CALL("Literal::create/4");
   ASS(!twoVarEqSort || (predicate == 0 && arity == 2 && getArg(0).isVar() && getArg(1).isVar()))
+  ASS(predicate != 0 || (commutative && arity == 2 && rightArgOrder(getArg(0), getArg(1))))
   ASS_EQ(env.signature->predicateArity(predicate), arity);
 
 
@@ -1558,8 +1559,6 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
     return l;
   };
 
-  // DBG(polarity ? " " : "~", *env.signature->getPredicate(predicate), "(", outputInterleaved(", ", range(0, arity).map([&](auto i) { return getArg(i); })), ")" )
-
   bool share = range(0, arity).all([&](auto i) { return getArg(i).isSafe(); });
   if (share) {
     bool created = false;
@@ -1568,12 +1567,14 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
         Literal::literalHash(predicate, polarity, getArg, arity, twoVarEqSort, commutative), 
         [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, getArg, arity, twoVarEqSort, commutative); },
         created);
+
     if (created) {
       if (twoVarEqSort) 
         env.sharing->computeAndSetSharedVarEqData(shared, *twoVarEqSort);
       else 
         env.sharing->computeAndSetSharedLiteralData(shared);
     }
+    ASS(!commutative || rightArgOrder(*shared->nthArgument(0), *shared->nthArgument(1)))
     return shared;
   } else {
     return allocLiteral();
@@ -1624,46 +1625,38 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
 {
    CALL("Literal::createEquality/4");
 
-   TermList srt1, srt2;
 #if VDEBUG
+   TermList srt1, srt2;
    static RobSubstitution checkSortSubst;
    checkSortSubst.reset();
-#endif
 
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {
        ASS_REP(arg1.isVar(), arg1.toString());
        ASS_REP(arg2.isVar(), arg2.toString());
-       return createVariableEquality(polarity, arg1, arg2, sort);
+     } else{
+       ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1));
      }
-     ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1));
    }
    else {    
     ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt1, 1), sort.toString(), srt1.toString());
-#if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
        checkSortSubst.reset();
        ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1), sort.toString(), arg2.toString() + " :  " + srt2.toString());
      }
-#endif
    }
+#endif // VDEBUG
 
-   return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, /* commutative */ true, 
-       [&](auto i) { ASS_L(i, 2); return i == 0 ? arg1 : arg2; });
-}
-
-/**
- * Create a literal that is equality between two variables.
- */
-Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList arg2, TermList variableSort)
-{ 
-  return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, /* commutative */ true, [&](auto i) { return i == 0 ? arg1 : arg2; }, some(variableSort));
+   if (Indexing::TermSharing::argNormGt(arg1, arg2)) {
+     swap(arg1, arg2);
+   }
+   auto getArg = [&](auto i) { ASS_L(i, 2); return i == 0 ? arg1 : arg2; };
+   return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, /* commutative */ true, getArg, someIf(arg1.isVar() && arg2.isVar(), [&](){ return sort; }));
 }
 
 Literal* Literal::create(unsigned predicate, bool polarity, std::initializer_list<TermList> args, bool commutative)
-{
-  return Literal::create(predicate, args.size(), polarity, commutative, [&](auto i) { return args.begin()[i]; });
-}
+{ return Literal::create(predicate, args.size(), polarity, commutative, [&](auto i) { return args.begin()[i]; }); }
+
 Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
 { return Literal::create(predicate, polarity, { arg }); }
 
@@ -1802,6 +1795,9 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
     return lhs.var() < rhs.var();
   }
 }
+
+bool Literal::rightArgOrder(TermList const& lhs, TermList const& rhs) 
+{ return !Indexing::TermSharing::argNormGt(lhs,rhs); }
 
 bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
 {

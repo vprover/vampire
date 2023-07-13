@@ -251,16 +251,6 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
 
   TIME_TRACE(TimeTrace::TERM_SHARING);
 
-  if (t->commutative()) {
-    ASS(t->arity() == 2);
-
-    TermList* ts1 = t->args();
-    TermList* ts2 = ts1->next();
-    if (argNormGt(*ts1, *ts2)) {
-      swap(ts1->_content, ts2->_content);
-    }
-  }
-
     unsigned weight = 1;
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;
