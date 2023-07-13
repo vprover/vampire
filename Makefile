@@ -23,9 +23,9 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-DBG_FLAGS = -g -DVTIME_PROFILING=1 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider 
+DBG_FLAGS = -g -DVTIME_PROFILING=1 -DVDEBUG=1 -DCHECK_LEAKS=0 -DVHOL=1 # debugging for spider 
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVTIME_PROFILING=1 -DVDEBUG=0 # no debugging
+REL_FLAGS = -O6 -DVTIME_PROFILING=1 -DVDEBUG=0 -DVHOL=1 # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -193,11 +193,12 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
-        Kernel/SKIKBO.o\
         Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
 	Kernel/LPO.o\
+	Kernel/HOLUnification.o\
+	Kernel/HOLMatching.o\
         Kernel/MainLoop.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
@@ -246,6 +247,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/LiteralSubstitutionTree.o\
          Indexing/ResultSubstitution.o\
          Indexing/SubstitutionTree.o\
+         Indexing/HOLSubstitutionTree.o\
          Indexing/SubstitutionTree_FastGen.o\
          Indexing/SubstitutionTree_FastInst.o\
          Indexing/SubstitutionTree_Nodes.o\
@@ -268,15 +270,11 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ExtensionalityResolution.o\
          Inferences/ArgCong.o\
          Inferences/NegativeExt.o\
-         Inferences/Narrow.o\
-         Inferences/SubVarSup.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/FOOLParamodulation.o\
          Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\
-         Inferences/CombinatorDemodISE.o\
-         Inferences/CombinatorNormalisationISE.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
@@ -297,6 +295,10 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
+         Inferences/FlexFlexSimplify.o\
+         Inferences/PositiveExt.o\
+         Inferences/ImitateProject.o\
+         Inferences/BetaEtaISE.o\
          Inferences/InductionHelper.o\
          Inferences/URResolution.o\
          Inferences/CNFOnTheFly.o\
@@ -355,10 +357,10 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
-         Shell/LambdaElimination.o\
          Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
+         Shell/LambdaConversion.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
@@ -472,7 +474,6 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Kernel/InferenceStore.o\
 	       Kernel/Matcher.o\
 	       Kernel/KBO.o\
-         Kernel/SKIKBO.o\
 	       Kernel/KBOForEPR.o\
 	       Kernel/Ordering.o\
 	       Kernel/Ordering_Equality.o\
