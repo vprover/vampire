@@ -19,6 +19,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Set.hpp"
 
@@ -327,8 +328,6 @@ Clause* Superposition::performSuperposition(
   ASS(eqClause->store()==Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
-  auto constraints = unifier->computeConstraintLiterals();
-  auto nConstraints = constraints->size();
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
@@ -355,7 +354,7 @@ Clause* Superposition::performSuperposition(
 
   unsigned numPositiveLiteralsLowerBound = Int::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
   //TODO update inference rule name AYB
-  Inference inf(GeneratingInference2(nConstraints == 0 ? InferenceRule::SUPERPOSITION : InferenceRule::CONSTRAINED_SUPERPOSITION, rwClause, eqClause));
+  Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
@@ -374,7 +373,7 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(nConstraints == 0){
+  if(!unifier->usesUwa()){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
@@ -411,25 +410,121 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  unsigned newLength = rwLength + eqLength - 1 + nConstraints;
+  Recycled<Stack<Literal*>> res;
+  res->reserve(rwLength + eqLength - 1 + unifier->maxNumberOfConstraints());
+
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
+  res->push(tgtLitS);
+  unsigned weight=tgtLitS->weight();
+  for(unsigned i=0;i<rwLength;i++) {
+    Literal* curr=(*rwClause)[i];
+    if(curr!=rwLit) {
+      Literal* currAfter = subst->apply(curr, !eqIsResult);
+
+      if (doSimS) {
+        currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+      }
+
+      if(EqHelper::isEqTautology(currAfter)) {
+        return nullptr;
+      }
+
+      if(needsToFulfilWeightLimit) {
+        weight+=currAfter->weight();
+        if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+          RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+          env.statistics->discardedNonRedundantClauses++;
+          return nullptr;
+        }
+      }
+
+      if (afterCheck) {
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
+        if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
+          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          return nullptr;
+        }
+      }
+
+      res->push(currAfter);
+    }
+  }
+
+  {
+    Literal* eqLitS = 0;
+    if (afterCheck && eqClause->numSelected() > 1) {
+      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+      eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
+    }
+
+    for(unsigned i=0;i<eqLength;i++) {
+      Literal* curr=(*eqClause)[i];
+      if(curr!=eqLit) {
+        Literal* currAfter = subst->apply(curr, eqIsResult);
+
+        if(EqHelper::isEqTautology(currAfter)) {
+          return nullptr;
+        }
+        if(needsToFulfilWeightLimit) {
+          weight+=currAfter->weight();
+          if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+            RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+            env.statistics->discardedNonRedundantClauses++;
+            return nullptr;
+          }
+        }
+
+        if (eqLitS && i < eqClause->numSelected()) {
+          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+
+          Ordering::Result o = ordering.compare(currAfter,eqLitS);
+
+          if (o == Ordering::GREATER || o == Ordering::GREATER_EQ || o == Ordering::EQUAL) { // where is GREATER_EQ ever coming from?
+            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            return nullptr;
+          }
+        }
+
+        res->push(currAfter);
+      }
+    }
+  }
+
+  res->loadFromIterator(unifier->computeConstraintLiterals()->iter());
+
+  if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+    RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
+    env.statistics->discardedNonRedundantClauses++;
+    return nullptr;
+  }
+
+  //TODO update AYB
+  if(!unifier->usesUwa()){
+    if(rwClause==eqClause) {
+      env.statistics->selfSuperposition++;
+    } else if(eqIsResult) {
+      env.statistics->forwardSuperposition++;
+    } else {
+      env.statistics->backwardSuperposition++;
+    }
+  } else {
+    if(rwClause==eqClause) {
+      env.statistics->cSelfSuperposition++;
+    } else if(eqIsResult) {
+      env.statistics->cForwardSuperposition++;
+    } else {
+      env.statistics->cBackwardSuperposition++;
+    }
+  }
+
   inf_destroyer.disable(); // ownership passed to the the clause below
-  Clause* res = new(newLength) Clause(newLength, inf);
+  auto clause = Clause::fromStack(*res, inf);
 
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
   if(env.options->proofExtra()==Options::ProofExtra::FULL){
-    /*
-    cout << "rwClause " << rwClause->toString() << endl;
-    cout << "eqClause " << eqClause->toString() << endl;
-    cout << "rwLit " << rwLit->toString() << endl;
-    cout << "eqLit " << eqLit->toString() << endl;
-    cout << "rwTerm " << rwTerm.toString() << endl;
-    cout << "eqLHS " << eqLHS.toString() << endl;
-     */
-    //cout << subst->toString() << endl;
 
     // First find which literal it is in the clause, as selection has occured already
     // this should remain the same...?
@@ -448,124 +543,11 @@ Clause* Superposition::performSuperposition(
         eqPos+" in "+eqClauseNum+" and "+
         rwPos+" in "+rwClauseNum;
 
-    //cout << extra << endl;
-    //NOT_IMPLEMENTED;
-
     if (!env.proofExtra) {
       env.proofExtra = new DHMap<const Unit*,vstring>();
     }
-    env.proofExtra->insert(res,extra);
+    env.proofExtra->insert(clause,extra);
   }
 
-  (*res)[0] = tgtLitS;
-  int next = 1;
-  unsigned weight=tgtLitS->weight();
-  for(unsigned i=0;i<rwLength;i++) {
-    Literal* curr=(*rwClause)[i];
-    if(curr!=rwLit) {
-      Literal* currAfter = subst->apply(curr, !eqIsResult);
-
-      if (doSimS) {
-        currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
-      }
-
-      if(EqHelper::isEqTautology(currAfter)) {
-        goto construction_fail;
-      }
-
-      if(needsToFulfilWeightLimit) {
-        weight+=currAfter->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
-          RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-          env.statistics->discardedNonRedundantClauses++;
-          goto construction_fail;
-        }
-      }
-
-      if (afterCheck) {
-        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
-        if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
-          goto construction_fail;
-        }
-      }
-
-      (*res)[next++] = currAfter;
-    }
-  }
-
-  {
-    Literal* eqLitS = 0;
-    if (afterCheck && eqClause->numSelected() > 1) {
-      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
-    }
-
-    for(unsigned i=0;i<eqLength;i++) {
-      Literal* curr=(*eqClause)[i];
-      if(curr!=eqLit) {
-        Literal* currAfter = subst->apply(curr, eqIsResult);
-
-        if(EqHelper::isEqTautology(currAfter)) {
-          goto construction_fail;
-        }
-        if(needsToFulfilWeightLimit) {
-          weight+=currAfter->weight();
-          if(!passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
-            RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-            env.statistics->discardedNonRedundantClauses++;
-            goto construction_fail;
-          }
-        }
-
-        if (eqLitS && i < eqClause->numSelected()) {
-          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-          Ordering::Result o = ordering.compare(currAfter,eqLitS);
-
-          if (o == Ordering::GREATER || o == Ordering::GREATER_EQ || o == Ordering::EQUAL) { // where is GREATER_EQ ever coming from?
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
-            goto construction_fail;
-          }
-        }
-
-        (*res)[next++] = currAfter;
-      }
-    }
-  }
-
-  {
-  for(auto c : *constraints){
-    (*res)[next++] = c;
-  }
-  }
-
-  if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
-    RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
-    env.statistics->discardedNonRedundantClauses++;
-    construction_fail:
-    res->destroy();
-    return 0;
-  }
-
-  //TODO update AYB
-  if(nConstraints == 0){
-    if(rwClause==eqClause) {
-      env.statistics->selfSuperposition++;
-    } else if(eqIsResult) {
-      env.statistics->forwardSuperposition++;
-    } else {
-      env.statistics->backwardSuperposition++;
-    }
-  } else {
-    if(rwClause==eqClause) {
-      env.statistics->cSelfSuperposition++;
-    } else if(eqIsResult) {
-      env.statistics->cForwardSuperposition++;
-    } else {
-      env.statistics->cBackwardSuperposition++;
-    }
-  }
-
-  return res;
+  return clause;
 }

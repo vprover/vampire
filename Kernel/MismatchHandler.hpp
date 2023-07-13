@@ -44,7 +44,9 @@ public:
   { return iterTraits(_cont.iter()); }
 
   Recycled<Stack<Literal*>> literals(RobSubstitution& s);
-  unsigned size() { return _cont.size(); }
+  // returns the maximum number of constraints of this stack. this is not equal to the actual number of constraints it will hold, as constraints 
+  // might become trivial (i.e. of the form t != t) after applying the substitution, so they will be filtered out when calling literals(RobSubstitution&)
+  unsigned maxNumberOfConstraints() { return _cont.size(); }
 
   auto literalIter(RobSubstitution& s)
   { return iterTraits(_cont.iter())
@@ -171,6 +173,7 @@ public:
 
   UnificationConstraintStack& constr() { return *_constr; }
   Recycled<Stack<Literal*>> computeConstraintLiterals() { return _constr->literals(*_subs); }
+  unsigned maxNumberOfConstraints() { return _constr->maxNumberOfConstraints(); }
 
   RobSubstitution      & subs()       { return *_subs; }
   RobSubstitution const& subs() const { return *_subs; }
