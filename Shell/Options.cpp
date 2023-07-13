@@ -980,6 +980,35 @@ void Options::init()
     _lookup.insert(&_ageWeightRatioShapeFrequency);
     _ageWeightRatioShapeFrequency.tag(OptionTag::SATURATION);
 
+#if VHOL
+
+    _hoFeaturesSplitQueues = BoolOptionValue("ho_feature_split_queue","hfsq",false);
+    _hoFeaturesSplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of higher-order featues)";
+    _hoFeaturesSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with theories...)
+    _hoFeaturesSplitQueues.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoFeaturesSplitQueues);
+    _hoFeaturesSplitQueues.tag(OptionTag::SATURATION);
+
+    _hoFeaturesSplitQueueCutoffs = StringOptionValue("ho_feature_split_queue_cutoffs", "hfsqc", "0");
+    _hoFeaturesSplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).";
+    _lookup.insert(&_hoFeaturesSplitQueueCutoffs);
+    _hoFeaturesSplitQueueCutoffs.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
+    _hoFeaturesSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _hoFeaturesSplitQueueRatios = StringOptionValue("ho_features_split_queue_ratios", "hfsqr", "1,1");
+    _hoFeaturesSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_hoFeaturesSplitQueueRatios);
+    _hoFeaturesSplitQueueRatios.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
+    _hoFeaturesSplitQueueRatios.tag(OptionTag::AVATAR);
+
+    _hoFeaturesSplitQueueLayeredArrangement = BoolOptionValue("ho_features_split_queue_layered_arrangement","hfsql",true);
+    _hoFeaturesSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_hoFeaturesSplitQueueLayeredArrangement);
+    _hoFeaturesSplitQueueLayeredArrangement.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
+    _hoFeaturesSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
+#else
+
     _useTheorySplitQueues = BoolOptionValue("theory_split_queue","thsq",false);
     _useTheorySplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)";
     _useTheorySplitQueues.onlyUsefulWith(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with theories...)
@@ -1010,33 +1039,6 @@ void Options::init()
     _lookup.insert(&_theorySplitQueueLayeredArrangement);
     _theorySplitQueueLayeredArrangement.onlyUsefulWith(_useTheorySplitQueues.is(equal(true)));
     _theorySplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
-
-#if VHOL
-
-    _hoFeaturesSplitQueues = BoolOptionValue("ho_feature_split_queue","hfsq",false);
-    _hoFeaturesSplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of higher-order featues)";
-    _hoFeaturesSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with theories...)
-    _hoFeaturesSplitQueues.addProblemConstraint(hasHigherOrder());
-    _lookup.insert(&_hoFeaturesSplitQueues);
-    _hoFeaturesSplitQueues.tag(OptionTag::SATURATION);
-
-    _hoFeaturesSplitQueueCutoffs = StringOptionValue("ho_feature_split_queue_cutoffs", "hfsqc", "0");
-    _hoFeaturesSplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).";
-    _lookup.insert(&_hoFeaturesSplitQueueCutoffs);
-    _hoFeaturesSplitQueueCutoffs.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
-    _hoFeaturesSplitQueueCutoffs.tag(OptionTag::SATURATION);
-
-    _hoFeaturesSplitQueueRatios = StringOptionValue("ho_features_split_queue_ratios", "hfsqr", "1,1");
-    _hoFeaturesSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
-    _lookup.insert(&_hoFeaturesSplitQueueRatios);
-    _hoFeaturesSplitQueueRatios.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
-    _hoFeaturesSplitQueueRatios.tag(OptionTag::AVATAR);
-
-    _hoFeaturesSplitQueueLayeredArrangement = BoolOptionValue("ho_features_split_queue_layered_arrangement","hfsql",true);
-    _hoFeaturesSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
-    _lookup.insert(&_hoFeaturesSplitQueueLayeredArrangement);
-    _hoFeaturesSplitQueueLayeredArrangement.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
-    _hoFeaturesSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
 #endif
 

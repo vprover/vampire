@@ -141,6 +141,18 @@ std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Optio
 
 std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
 {
+  #if VHOL
+  if(opt.hoFeaturesSplitQueues()){
+    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.hoFeaturesSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++)
+    {
+      auto queueName = name + "HoFSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel0(false, opt, queueName));
+    }
+    return std::make_unique<HoFeaturesMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "HoFSQ", std::move(queues));
+  }
+  #else
   if (opt.useTheorySplitQueues())
   {
     Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
@@ -152,18 +164,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
     }
     return std::make_unique<TheoryMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "ThSQ", std::move(queues));
   }
-#if VHOL
-  else if(opt.hoFeaturesSplitQueues()){
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
-    auto cutoffs = opt.hoFeaturesSplitQueueCutoffs();
-    for (unsigned i = 0; i < cutoffs.size(); i++)
-    {
-      auto queueName = name + "HoFSQ" + Int::toString(cutoffs[i]) + ":";
-      queues.push_back(makeLevel0(false, opt, queueName));
-    }
-    return std::make_unique<HoFeaturesMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "HoFSQ", std::move(queues));
-  }
-#endif
+  #endif
   else
   {
     return makeLevel0(isOutermost, opt, name);
