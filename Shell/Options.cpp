@@ -989,6 +989,20 @@ void Options::init()
     _lookup.insert(&_hoFeaturesSplitQueues);
     _hoFeaturesSplitQueues.tag(OptionTag::SATURATION);
 
+    _hoFeaturesLambdaWeight = UnsignedOptionValue("ho_feature_lambda_weight","hflw",1);
+    _hoFeaturesLambdaWeight.description = "How much should lambda occurrences count in the HO features";
+    _hoFeaturesLambdaWeight.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
+    _hoFeaturesLambdaWeight.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoFeaturesLambdaWeight);
+    _hoFeaturesLambdaWeight.tag(OptionTag::SATURATION);
+
+    _hoFeaturesAppVarWeight = UnsignedOptionValue("ho_feature_appvar_weight","hfaw",1);
+    _hoFeaturesAppVarWeight.description = "How much should app-var occurrences count in the HO features";
+    _hoFeaturesAppVarWeight.onlyUsefulWith(_hoFeaturesSplitQueues.is(equal(true)));
+    _hoFeaturesAppVarWeight.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoFeaturesAppVarWeight);
+    _hoFeaturesAppVarWeight.tag(OptionTag::SATURATION);
+
     _hoFeaturesSplitQueueCutoffs = StringOptionValue("ho_feature_split_queue_cutoffs", "hfsqc", "0");
     _hoFeaturesSplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).";
     _lookup.insert(&_hoFeaturesSplitQueueCutoffs);

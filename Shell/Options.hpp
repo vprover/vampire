@@ -2277,6 +2277,8 @@ public:
 
 #if VHOL
   bool hoFeaturesSplitQueues() const { return _hoFeaturesSplitQueues.actualValue; }
+  unsigned hoFeaturesLambdaWeight() const { return _hoFeaturesLambdaWeight.actualValue; }
+  unsigned hoFeaturesAppVarWeight() const { return _hoFeaturesAppVarWeight.actualValue; }
   Lib::vvector<int> hoFeaturesSplitQueueRatios() const;
   Lib::vvector<float> hoFeaturesSplitQueueCutoffs() const;
   bool hoFeaturesSplitQueueLayeredArrangement() const { return _hoFeaturesSplitQueueLayeredArrangement.actualValue; }
@@ -2578,6 +2580,8 @@ private:
   BoolOptionValue _theorySplitQueueLayeredArrangement;
 #if VHOL
   BoolOptionValue _hoFeaturesSplitQueues;
+  UnsignedOptionValue _hoFeaturesLambdaWeight;
+  UnsignedOptionValue _hoFeaturesAppVarWeight;
   StringOptionValue _hoFeaturesSplitQueueRatios;
   StringOptionValue _hoFeaturesSplitQueueCutoffs;
   BoolOptionValue _hoFeaturesSplitQueueLayeredArrangement;

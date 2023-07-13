@@ -712,27 +712,38 @@ bool TermList::containsLooseIndex() const {
 unsigned TermList::numOfAppVarsAndLambdas() const {
   CALL("TermList::numOfAppVarsAndLambdas");
 
-  unsigned res = 0;
-  TermStack toDo;
-  toDo.push(*this);
+  if (isVar()) {
+    return 0;
+  }
+  const Term* t = term();
 
-  while(!toDo.isEmpty()){
-    TermList t = toDo.pop();
-    if(t.isLambdaTerm()){
-      res++;
-      toDo.push(t.lambdaBody());
+  static DHMap<const Term*,unsigned> cache;
+
+  unsigned* cached;
+  if (!cache.getValuePtr(t,cached)) {
+    return *cached;
+  }
+
+  // it's OK that the entry in cache has already been created, will only possibly ask for proper subterms
+
+  unsigned res = 0;
+
+  if (isLambdaTerm()) {
+    res = env.options->hoFeaturesLambdaWeight() + lambdaBody().numOfAppVarsAndLambdas();
+  } else if (isApplication()) {
+    TermList head;
+    TermStack args;
+    ApplicativeHelper::getHeadAndArgs(t, head, args);
+    ASS(!head.isLambdaTerm()); // should be beta-reduced
+    if(head.isVar()) {
+      res += env.options->hoFeaturesAppVarWeight();
     }
-    if(t.isApplication()){
-      TermList head;
-      TermStack args;
-      ApplicativeHelper::getHeadAndArgs(t, head, args);
-      ASS(!head.isLambdaTerm()); // should be beta-reduced
-      if(head.isVar()) res++;
-      while(!args.isEmpty()){
-        toDo.push(args.pop());
-      }
+    while(!args.isEmpty()){
+      res += args.pop().numOfAppVarsAndLambdas();
     }
   }
+
+  *cached = res;
   return res;
 }
 
