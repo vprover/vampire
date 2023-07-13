@@ -5048,10 +5048,10 @@ void Schedules::getSnakeTptpHolSchedule(const Shell::Property& property, Schedul
    quick.push("dis+10_1:1_aac=none:cs=on:i=47:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_cnfonf=lazy_not_be_gen:hud=14:prag=on:sp=weighted_frequency:tnu=1:i=37:si=on:rtra=on_0");
    quick.push("lrs+1002_1:16_av=off:e2e=on:fe=axiom:prag=on:sos=on:ss=axioms:i=3:si=on:rtra=on_0");
-   quick.push("lrs+10_8:1_au=on:e2e=on:hfsq=on:hfsqc=1:ins=3:s2a=on:s2at=3.0:ss=axioms:i=19:si=on:rtra=on_0");
+   quick.push("lrs+10_8:1_au=on:e2e=on:avsq=on:ins=3:s2a=on:s2at=3.0:ss=axioms:i=19:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:bd=off:cnfonf=lazy_gen:fe=off:hud=10:plsq=on:plsqc=1:plsqr=32,1:i=5:si=on:rtra=on_0");
    quick.push("lrs+1004_1:1_cnfonf=lazy_pi_sigma_gen:fe=off:gs=on:hud=10:prag=on:tnu=1:i=44:si=on:rtra=on_0");
-   quick.push("ott+21_1:3_bd=off:cnfonf=lazy_gen:fe=off:hfsq=on:hfsqc=3:hud=10:ixr=off:plsq=on:plsqc=1:plsqr=32,1:prag=on:tnu=1:i=450:si=on:rtra=on_0");
+   quick.push("ott+21_1:3_bd=off:cnfonf=lazy_gen:fe=off:avsq=on:hud=10:ixr=off:plsq=on:plsqc=1:plsqr=32,1:prag=on:tnu=1:i=450:si=on:rtra=on_0");
    quick.push("dis+1004_1:128_au=on:cbe=off:e2e=on:sac=on:i=102:si=on:rtra=on_0");
   // Improves by expected 2315.393835274976 probs costing 9586 Mi
   // Sub-schedule for 1200Mi strat cap / 9600Mi overall limit
@@ -5308,16 +5308,16 @@ void Schedules::getSnakeTptpHolSchedule(const Shell::Property& property, Schedul
    quick.push("lrs+1010_1:1_cnfonf=off:ntd=on:nwc=3.0:s2a=on:sp=const_frequency:i=865:si=on:rtra=on_0");
    quick.push("dis+1002_1:1024_fe=off:hud=5:prag=on:i=5473:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_cnfonf=lazy_simp:hud=5:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=360:si=on:rtra=on_0");
-   quick.push("dis+1010_2:1_fde=unused:hfsq=on:prag=on:i=3362:si=on:rtra=on_0");
+   quick.push("dis+1010_2:1_fde=unused:avsq=on:prag=on:i=3362:si=on:rtra=on_0");
    quick.push("lrs+1010_10:959_abs=on:acc=on:bd=off:ccuc=small_ones:cha=on:cnfonf=lazy_simp:fd=preordered:fe=off:hud=3:ile=on:kws=inv_frequency:nm=2:piset=and:sd=5:sp=frequency:spb=goal_then_units:ss=axioms:st=4.5:i=3629:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_cnfonf=lazy_gen:kws=inv_precedence:nwc=10.0:i=1810:si=on:rtra=on_0");
    quick.push("dis+10_1:4_atotf=0.1:avsq=on:bsr=unit_only:e2e=on:sd=1:sp=const_max:ss=axioms:i=1267:si=on:rtra=on_0");
    quick.push("lrs+1004_1:24_i=5508:si=on:rtra=on_0");
-   quick.push("ott+10_1:10_bd=off:cnfonf=lazy_gen:hfsq=on:sd=2:sgt=16:sos=on:ss=axioms:i=50035:si=on:rtra=on_0");
+   quick.push("ott+10_1:10_bd=off:cnfonf=lazy_gen:avsq=on:sd=2:sgt=16:sos=on:ss=axioms:i=50035:si=on:rtra=on_0");
    quick.push("dis+10_1:1_cond=fast:fde=unused:s2a=on:sd=2:ss=axioms:i=6181:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_av=off:prag=on:sd=1:sos=on:sp=occurrence:ss=axioms:i=63457:si=on:rtra=on_0");
    quick.push("lrs+1010_1:8_au=on:bd=off:cnfonf=lazy_not_be_gen:fsr=off:kws=inv_arity_squared:piset=or:sp=weighted_frequency:i=737:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_au=on:cnfonf=lazy_simp:fsr=off:hfsq=on:ntd=on:nwc=10.0:sp=reverse_frequency:ss=axioms:st=1.5:i=15283:si=on:rtra=on_0");
+   quick.push("dis+1010_1:1_au=on:cnfonf=lazy_simp:fsr=off:avsq=on:ntd=on:nwc=10.0:sp=reverse_frequency:ss=axioms:st=1.5:i=15283:si=on:rtra=on_0");
    quick.push("lrs+1010_16:1_afp=2000:afq=1.1:au=on:nm=40:rawr=on:sp=weighted_frequency:i=19906:si=on:rtra=on_0");
   // Improves by expected 100.96227733242402 probs costing 959325 Mi
   // Sub-schedule for 120000Mi strat cap / 960000Mi overall limit
@@ -5363,7 +5363,7 @@ void Schedules::getSnakeTptpHolSchedule(const Shell::Property& property, Schedul
    quick.push("lrs+1666_1:1_au=on:s2a=on:sd=2:ss=axioms:st=5.0:i=41881:si=on:rtra=on_0");
    quick.push("dis-1_1:1_amm=off:au=on:cbe=off:spb=intro:i=2207:si=on:rtra=on_0");
    quick.push("ott+10_1:10_cnfonf=lazy_gen:fde=none:sp=const_frequency:i=15814:si=on:rtra=on_0");
-   quick.push("dis+1010_2:1_fde=unused:hfsq=on:prag=on:i=3362:si=on:rtra=on_0");
+   quick.push("dis+1010_2:1_fde=unused:avsq=on:prag=on:i=3362:si=on:rtra=on_0");
    quick.push("dis+1002_16:1_au=on:nwc=5.0:i=37202:si=on:rtra=on_0");
    quick.push("lrs+1004_1:24_i=5433:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_av=off:prag=on:sd=1:sos=on:sp=occurrence:ss=axioms:i=12787:si=on:rtra=on_0");
@@ -5411,11 +5411,11 @@ void Schedules::getSnakeTptpHolSchedule(const Shell::Property& property, Schedul
    quick.push("dis-1_1:1_amm=off:au=on:cbe=off:spb=intro:i=6077:si=on:rtra=on_0");
    quick.push("ott+10_1:10_cnfonf=lazy_gen:fde=none:sp=const_frequency:i=15814:si=on:rtra=on_0");
    quick.push("dis+1002_1:1024_fe=off:hud=5:prag=on:i=25962:si=on:rtra=on_0");
-   quick.push("dis+1010_2:1_fde=unused:hfsq=on:prag=on:i=3362:si=on:rtra=on_0");
+   quick.push("dis+1010_2:1_fde=unused:avsq=on:prag=on:i=3362:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_e2e=on:plsq=on:i=63430:si=on:rtra=on_0");
    quick.push("dis+1002_16:1_au=on:nwc=5.0:i=37202:si=on:rtra=on_0");
    quick.push("lrs+1004_1:24_i=198698:si=on:rtra=on_0");
-   quick.push("ott+10_1:10_bd=off:cnfonf=lazy_gen:hfsq=on:sd=2:sgt=16:sos=on:ss=axioms:i=50035:si=on:rtra=on_0");
+   quick.push("ott+10_1:10_bd=off:cnfonf=lazy_gen:avsq=on:sd=2:sgt=16:sos=on:ss=axioms:i=50035:si=on:rtra=on_0");
    quick.push("lrs+1010_1:8_au=on:bd=off:cnfonf=lazy_not_be_gen:fsr=off:kws=inv_arity_squared:piset=or:sp=weighted_frequency:i=31367:si=on:rtra=on_0");
    quick.push("lrs+1010_16:1_afp=2000:afq=1.1:au=on:nm=40:rawr=on:sp=weighted_frequency:i=158832:si=on:rtra=on_0");
   // Improves by expected 13.773932066734542 probs costing 3122762 Mi
@@ -5437,7 +5437,7 @@ void Schedules::getSnakeTptpHolSchedule(const Shell::Property& property, Schedul
    quick.push("lrs+1666_1:1_au=on:s2a=on:sd=2:ss=axioms:st=5.0:i=72226:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_e2e=on:plsq=on:i=90575:si=on:rtra=on_0");
    quick.push("dis+1002_16:1_au=on:nwc=5.0:i=37202:si=on:rtra=on_0");
-   quick.push("ott+10_1:10_bd=off:cnfonf=lazy_gen:hfsq=on:sd=2:sgt=16:sos=on:ss=axioms:i=64385:si=on:rtra=on_0");
+   quick.push("ott+10_1:10_bd=off:cnfonf=lazy_gen:avsq=on:sd=2:sgt=16:sos=on:ss=axioms:i=64385:si=on:rtra=on_0");
    quick.push("lrs+1010_16:1_afp=2000:afq=1.1:au=on:nm=40:rawr=on:sp=weighted_frequency:i=170931:si=on:rtra=on_0");
   // Improves by expected 2.5628576884420435 probs costing 1573274 Mi
   // Sub-schedule for 500000Mi strat cap / 4000000Mi overall limit
@@ -5476,7 +5476,7 @@ void Schedules::getSnakeSlhSchedule(const Shell::Property& property, Schedule& q
    quick.push("dis+10_1:1_nwc=10.0:sd=1:sgt=32:ss=axioms:i=497:si=on:rtra=on_0");
    quick.push("ott+1002_16:1_aac=none:au=on:fd=off:fde=unused:fsr=off:ins=4:nm=16:ntd=on:sos=on:i=512:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_acc=on:cnfonf=lazy_pi_sigma_gen:fde=none:i=307:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_hfsq=on:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sd=1:sos=on:ss=axioms:uhcvi=on:i=394:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_avsq=on:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sd=1:sos=on:ss=axioms:uhcvi=on:i=394:si=on:rtra=on_0");
   // Improves by expected 453.6301661906032 probs costing 9871 Mi
   // Sub-schedule for 20000Mi strat cap / 20000Mi overall limit
    quick.push("lrs+10_1:1_fe=off:sd=1:sos=on:ss=axioms:i=182:si=on:rtra=on_0");
@@ -5486,7 +5486,7 @@ void Schedules::getSnakeSlhSchedule(const Shell::Property& property, Schedule& q
    quick.push("ott+10_1:1_fde=none:hud=15:piset=all:prag=on:sd=1:sos=on:ss=axioms:st=3.0:i=899:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_ntd=on:sac=on:sd=1:slsq=on:slsqc=1:ss=axioms:st=5.0:uhcvi=on:i=1018:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_kws=precedence:sd=1:sos=on:sp=const_max:ss=axioms:st=2.0:i=277:si=on:rtra=on_0");
-   quick.push("dis+1002_8:1_au=on:cnfonf=off:hfsq=on:sd=2:sgt=8:ss=axioms:i=543:si=on:rtra=on_0");
+   quick.push("dis+1002_8:1_au=on:cnfonf=off:avsq=on:sd=2:sgt=8:ss=axioms:i=543:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_nm=2:sd=2:sos=on:ss=axioms:st=3.0:i=514:si=on:rtra=on_0");
    quick.push("dis+10_1:1_au=on:bsd=on:cnfonf=off:ntd=on:s2a=on:i=2993:si=on:rtra=on_0");
    quick.push("lrs+10_1:8_au=on:bd=off:cnfonf=off:e2e=on:ins=3:nm=2:sac=on:sos=all:i=810:si=on:rtra=on_0");
@@ -5495,13 +5495,13 @@ void Schedules::getSnakeSlhSchedule(const Shell::Property& property, Schedule& q
    quick.push("dis+1002_1:128_au=on:awrs=converge:cnfonf=off:fd=off:ntd=on:s2a=on:sos=on:i=1339:si=on:rtra=on_0");
    quick.push("dis+10_8:1_s2a=on:s2agt=32:sac=on:ss=axioms:i=453:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_av=off:fe=off:hud=5:ins=3:plsq=on:plsqc=2:plsqr=32,1:prag=on:sos=on:i=514:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1_acc=on:cnfonf=off:fsr=off:hfsq=on:ss=axioms:i=396:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1_acc=on:cnfonf=off:fsr=off:avsq=on:ss=axioms:i=396:si=on:rtra=on_0");
    quick.push("ott+10_1:1_au=on:bd=off:e2e=on:sos=all:ss=axioms:i=347:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_amm=off:anc=all_dependent:cnfonf=lazy_pi_sigma_gen:ins=3:sd=1:sos=on:sp=const_max:ss=axioms:st=4.0:i=390:si=on:rtra=on_0");
    quick.push("ott+1010_1:2_cnfonf=lazy_pi_sigma_gen:cond=fast:fe=axiom:nwc=10.0:sd=1:ss=axioms:i=1032:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_kws=inv_frequency:sd=2:sos=all:ss=axioms:st=1.5:i=470:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_bsr=unit_only:kws=precedence:prag=on:sos=on:sp=reverse_arity:ss=axioms:st=3.0:i=1030:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_bd=off:hfsq=on:hfsqr=2,1:ins=2:sd=1:spb=goal_then_units:ss=axioms:i=252:si=on:rtra=on_0");
+   quick.push("dis+1010_1:1_bd=off:avsq=on:ins=2:sd=1:spb=goal_then_units:ss=axioms:i=252:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:bd=off:fde=unused:sd=1:sos=on:ss=axioms:st=2.0:i=312:si=on:rtra=on_0");
    quick.push("dis+10_1:1024_cnfonf=off:sd=2:sgt=8:ss=axioms:st=2.0:tgt=ground:i=509:si=on:rtra=on_0");
    quick.push("ott+1010_8:1_au=on:cnfonf=off:ins=2:ixr=off:sd=1:sp=frequency:ss=axioms:i=1622:si=on:rtra=on_0");
@@ -5533,7 +5533,7 @@ void Schedules::getSnakeSlhSchedule(const Shell::Property& property, Schedule& q
   // Improves by expected 33.787293400423636 probs costing 29932 Mi
   // Sub-schedule for 60000Mi strat cap / 60000Mi overall limit
    quick.push("lrs+1002_1:1_au=on:e2e=on:fd=preordered:nm=2:sos=on:i=1631:si=on:rtra=on_0");
-   quick.push("lrs+1010_5:1_acc=on:au=on:cnfonf=off:fde=none:fe=axiom:fsr=off:hfsq=on:ins=2:nm=64:ntd=on:plsq=on:plsqc=1:plsqr=15,1:sac=on:i=8493:si=on:rtra=on_0");
+   quick.push("lrs+1010_5:1_acc=on:au=on:cnfonf=off:fde=none:fe=axiom:fsr=off:avsq=on:ins=2:nm=64:ntd=on:plsq=on:plsqc=1:plsqr=15,1:sac=on:i=8493:si=on:rtra=on_0");
    quick.push("dis+1010_3:1_cbe=off:nwc=3.0:prag=on:sac=on:sd=1:sgt=8:ss=axioms:i=2901:si=on:rtra=on_0");
    quick.push("dis+1010_1:10_bs=unit_only:cbe=off:chr=on:e2e=on:fde=unused:lma=on:s2a=on:sac=on:ss=axioms:i=1367:si=on:rtra=on_0");
    quick.push("dis-20_1:128_aac=none:cnfonf=off:e2e=on:fde=none:hud=15:sos=on:i=1470:si=on:rtra=on_0");
@@ -5542,16 +5542,16 @@ void Schedules::getSnakeSlhSchedule(const Shell::Property& property, Schedule& q
    quick.push("lrs+1002_1:8_au=on:bd=off:bet=on:e2e=on:kws=inv_arity_squared:sos=on:i=1030:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_c=on:cnfonf=off:fd=preordered:fe=axiom:nm=4:nwc=3.0:prag=on:sd=10:sos=all:sp=const_frequency:ss=axioms:i=1405:si=on:rtra=on_0");
    quick.push("dis+2_1:1_e2e=on:hud=5:prag=on:sd=1:sos=on:ss=axioms:i=272:si=on:rtra=on_0");
-   quick.push("ott+1010_1:1_au=on:bs=unit_only:fd=off:fe=axiom:fsr=off:hfsq=on:hfsqc=1:ins=3:piset=all_but_not_eq:sos=on:i=1549:si=on:rtra=on_0");
+   quick.push("ott+1010_1:1_au=on:bs=unit_only:fd=off:fe=axiom:fsr=off:avsq=on:ins=3:piset=all_but_not_eq:sos=on:i=1549:si=on:rtra=on_0");
    quick.push("lrs+10_5:1_au=on:sd=2:sgt=8:ss=axioms:i=1172:si=on:rtra=on_0");
    quick.push("dis+10_1:1_au=on:bsd=on:cnfonf=off:ntd=on:s2a=on:i=1424:si=on:rtra=on_0");
    quick.push("dis+1010_3:2_amm=sco:cnfonf=off:nwc=10.0:prag=on:sp=const_frequency:ss=axioms:i=632:si=on:rtra=on_0");
-   quick.push("dis+1002_3:2_apa=on:au=on:cnfonf=off:hfsq=on:ntd=on:s2a=on:s2agt=8:i=2746:si=on:rtra=on_0");
+   quick.push("dis+1002_3:2_apa=on:au=on:cnfonf=off:avsq=on:ntd=on:s2a=on:s2agt=8:i=2746:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_atotf=0.1:e2e=on:fde=unused:nwc=10.0:s2a=on:i=2054:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:cbe=off:cnfonf=off:sd=2:sgt=16:ss=axioms:i=1580:si=on:rtra=on_0");
    quick.push("lrs+10_5:1_fde=none:fe=axiom:hud=5:nm=2:prag=on:sos=all:i=2490:si=on:rtra=on_0");
    quick.push("dis+1002_4:1_amm=sco:apa=on:au=on:bsr=on:cnfonf=off:fde=none:ins=1:nwc=5.0:plsq=on:sac=on:sgt=20:sos=on:ss=axioms:i=1322:si=on:rtra=on_0");
-   quick.push("lrs+20_1:2_hfsq=on:ins=3:nwc=5.0:piset=all_but_not_eq:sd=1:sos=on:ss=axioms:st=1.5:i=1701:si=on:rtra=on_0");
+   quick.push("lrs+20_1:2_avsq=on:ins=3:nwc=5.0:piset=all_but_not_eq:sd=1:sos=on:ss=axioms:st=1.5:i=1701:si=on:rtra=on_0");
    quick.push("lrs-1002_1:1_au=on:av=off:hud=5:piset=pi_sigma:sos=on:sp=unary_first:i=6491:si=on:rtra=on_0");
    quick.push("dis+1010_1:50_afp=1:afq=2.0:cnfonf=lazy_pi_sigma_gen:sac=on:sos=on:i=2554:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_au=on:av=off:ins=1:sd=2:sos=on:sp=frequency:ss=axioms:i=2109:si=on:rtra=on_0");
@@ -5590,7 +5590,7 @@ void Schedules::getSnakeSlhSchedule(const Shell::Property& property, Schedule& q
 void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& quick) {
   // Sub-schedule for 10000Mi strat cap / 10000Mi overall limit
    quick.push("lrs+1002_1:1_au=on:av=off:fd=off:fde=unused:ntd=on:sos=on:sp=frequency:ss=axioms:i=763:si=on:rtra=on_0");
-   quick.push("lrs+1002_2:3_fde=none:hfsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=817:si=on:rtra=on_0");
+   quick.push("lrs+1002_2:3_fde=none:avsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=817:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_au=on:av=off:cnfonf=off:sd=1:sos=all:ss=axioms:st=1.5:i=618:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_e2e=on:ntd=on:nwc=5.0:sac=on:sd=1:sgt=16:spb=units:ss=axioms:i=538:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:bd=off:e2e=on:ins=3:sos=on:ss=axioms:i=836:si=on:rtra=on_0");
@@ -5598,7 +5598,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+10_1:1_au=on:bd=off:cnfonf=off:fd=off:sos=all:i=1520:si=on:rtra=on_0");
    quick.push("dis+10_1:1_acc=on:avsq=on:avsqr=1,16:kws=arity_squared:nm=20:sd=1:sp=const_frequency:ss=axioms:i=134:si=on:rtra=on_0");
    quick.push("dis+1010_3:1_acc=on:au=on:chr=on:cnfonf=off:fd=preordered:nwc=10.0:s2a=on:i=707:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_acc=on:e2e=on:hfsq=on:hfsqc=1:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=1259:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_acc=on:e2e=on:avsq=on:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=1259:si=on:rtra=on_0");
    quick.push("lrs+666_1:1_au=on:bs=unit_only:e2e=on:sd=1:sp=frequency:ss=axioms:i=2:si=on:rtra=on_0");
    quick.push("dis+10_1:1_au=on:e2e=on:fde=unused:nwc=5.0:sac=on:sos=all:sp=const_frequency:i=1363:si=on:rtra=on_0");
    quick.push("lrs+1010_1:5_cnfonf=lazy_pi_sigma_gen:kws=precedence:nm=32:nwc=10.0:sp=const_frequency:i=15:si=on:rtra=on_0");
@@ -5607,7 +5607,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
   // Sub-schedule for 20000Mi strat cap / 20000Mi overall limit
    quick.push("dis+2_1:1_apa=on:au=on:bd=off:c=on:cnfonf=off:fsr=off:sd=1:sos=on:ss=axioms:i=571:si=on:rtra=on_0");
    quick.push("dis+1004_1:4_av=off:e2e=on:hud=3:prag=on:sos=on:ss=axioms:i=761:si=on:rtra=on_0");
-   quick.push("lrs+1002_2:3_fde=none:hfsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=2133:si=on:rtra=on_0");
+   quick.push("lrs+1002_2:3_fde=none:avsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=2133:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_au=on:cnfonf=off:e2e=on:piset=small_set:sac=on:sd=1:sos=all:ss=axioms:st=5.0:i=443:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_au=on:av=off:cnfonf=off:sd=1:sos=all:ss=axioms:st=1.5:i=1081:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_e2e=on:fd=off:fe=off:prag=on:sos=on:i=1788:si=on:rtra=on_0");
@@ -5615,34 +5615,34 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+1010_8:1_au=on:cnfonf=lazy_pi_sigma_gen:fde=none:nwc=10.0:s2a=on:sac=on:i=3919:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_kws=precedence:sos=on:sp=frequency:ss=axioms:i=751:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_au=on:fde=none:nm=10:sos=on:i=802:si=on:rtra=on_0");
-   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:hfsq=on:hfsqr=1,8:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=1182:si=on:rtra=on_0");
+   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:avsq=on:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=1182:si=on:rtra=on_0");
    quick.push("ott+2_1:128_bd=off:ins=3:kws=precedence:sd=1:sos=on:sp=frequency:ss=axioms:st=5.0:i=282:si=on:rtra=on_0");
    quick.push("lrs+20_1:1_au=on:bd=off:erd=off:fde=none:sos=on:i=532:si=on:rtra=on_0");
    quick.push("dis+10_1:1_au=on:cbe=off:nm=10:sd=1:sos=all:ss=axioms:st=3.0:i=423:si=on:rtra=on_0");
    quick.push("dis+10_1:1_cnfonf=off:fe=off:nwc=10.0:s2a=on:s2agt=8:sd=1:ss=axioms:st=5.0:i=357:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:4_au=on:hfsq=on:sd=2:sgt=8:ss=axioms:i=808:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:4_au=on:avsq=on:sd=2:sgt=8:ss=axioms:i=808:si=on:rtra=on_0");
    quick.push("lrs+1010_4:1_amm=off:awrs=decay:bsr=on:cbe=off:e2e=on:fde=none:fe=axiom:nwc=5.0:prag=on:sac=on:sd=1:spb=goal_then_units:ss=axioms:i=1665:si=on:rtra=on_0");
    quick.push("dis+21_1:1_bd=off:e2e=on:s2a=on:s2agt=32:sfv=off:ss=axioms:st=2.0:i=1153:si=on:rtra=on_0");
   // Improves by expected 226.7572876818416 probs costing 19904 Mi
   // Sub-schedule for 30000Mi strat cap / 30000Mi overall limit
-   quick.push("dis+10_4:1_e2e=on:fde=none:hfsq=on:s2a=on:s2at=3.0:slsq=on:slsqc=1:i=1101:si=on:rtra=on_0");
+   quick.push("dis+10_4:1_e2e=on:fde=none:avsq=on:s2a=on:s2at=3.0:slsq=on:slsqc=1:i=1101:si=on:rtra=on_0");
    quick.push("dis+10_1:1_acc=on:fde=none:kws=inv_precedence:nwc=5.0:plsq=on:plsqc=1:plsqr=6,1:prag=on:s2a=on:i=1357:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_cs=on:e2e=on:hfsq=on:i=290:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_cs=on:e2e=on:avsq=on:i=290:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:av=off:fd=off:fde=unused:ntd=on:sos=on:sp=frequency:ss=axioms:i=2134:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_cnfonf=lazy_pi_sigma_gen:hfsq=on:sd=1:ss=axioms:i=265:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_cnfonf=lazy_pi_sigma_gen:avsq=on:sd=1:ss=axioms:i=265:si=on:rtra=on_0");
    quick.push("lrs+10_8:1_cbe=off:e2e=on:hud=10:sd=1:ss=axioms:st=3.0:tgt=ground:i=251:si=on:rtra=on_0");
-   quick.push("dis-1010_1:1_au=on:e2e=on:hfsq=on:nm=0:s2a=on:s2at=1.5:i=2473:si=on:rtra=on_0");
+   quick.push("dis-1010_1:1_au=on:e2e=on:avsq=on:nm=0:s2a=on:s2at=1.5:i=2473:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_apa=on:bsr=on:cnfonf=off:hud=10:ins=2:kws=inv_frequency:sd=2:slsq=on:slsqc=5:sos=on:ss=axioms:i=240:si=on:rtra=on_0");
    quick.push("lrs+2_1:64_bd=off:nwc=5.0:sd=2:ss=axioms:i=290:si=on:rtra=on_0");
    quick.push("lrs+10_8:1_bd=off:fd=off:kws=inv_precedence:sos=on:ss=axioms:i=358:si=on:rtra=on_0");
    quick.push("lrs+1002_1:128_bd=off:e2e=on:ins=1:sac=on:sd=1:sos=on:ss=axioms:st=2.0:i=585:si=on:rtra=on_0");
-   quick.push("dis+1002_2:3_aac=none:au=on:cbe=off:fde=none:hfsq=on:hfsqc=2:hfsqr=8,1:lcm=predicate:nm=32:prag=on:sos=on:sp=unary_first:ss=axioms:st=2.0:i=1609:si=on:rtra=on_0");
-   quick.push("dis+10_5:1_au=on:hfsq=on:ss=axioms:i=990:si=on:rtra=on_0");
+   quick.push("dis+1002_2:3_aac=none:au=on:cbe=off:fde=none:avsq=on:lcm=predicate:nm=32:prag=on:sos=on:sp=unary_first:ss=axioms:st=2.0:i=1609:si=on:rtra=on_0");
+   quick.push("dis+10_5:1_au=on:avsq=on:ss=axioms:i=990:si=on:rtra=on_0");
    quick.push("lrs+4_1:1_fd=off:fs=off:fsr=off:sac=on:sos=on:ss=axioms:i=413:si=on:rtra=on_0");
    quick.push("lrs+21_1:1_au=on:e2e=on:hud=10:sd=4:sos=on:ss=axioms:st=2.0:i=1265:si=on:rtra=on_0");
    quick.push("lrs+21_1:1_erd=off:ins=3:sd=1:sos=on:ss=axioms:i=263:si=on:rtra=on_0");
    quick.push("dis+10_3:1_avsq=on:sd=1:ss=axioms:st=2.0:tgt=ground:i=278:si=on:rtra=on_0");
-   quick.push("dis+1010_8:1_au=on:cbe=off:hfsq=on:plsq=on:plsqc=1:plsqr=32,1:rawr=on:rp=on:sd=2:ss=axioms:st=3.0:i=1965:si=on:rtra=on_0");
+   quick.push("dis+1010_8:1_au=on:cbe=off:avsq=on:plsq=on:plsqc=1:plsqr=32,1:rawr=on:rp=on:sd=2:ss=axioms:st=3.0:i=1965:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_bd=off:e2e=on:ins=2:sd=1:sos=all:ss=axioms:st=3.0:i=326:si=on:rtra=on_0");
    quick.push("lrs+31_1:1_au=on:cnfonf=off:ins=3:plsq=on:sd=1:sgt=32:sos=on:ss=axioms:i=494:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_fd=off:hud=20:sos=on:ss=axioms:tnu=2:i=289:si=on:rtra=on_0");
@@ -5652,7 +5652,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("ott+1010_1:1_au=on:av=off:fd=off:fde=none:fsr=off:ntd=on:sos=on:sp=occurrence:i=1084:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_au=on:bd=off:cnfonf=off:nm=0:sac=on:sd=1:sp=unary_frequency:ss=axioms:st=3.0:i=762:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_er=filter:fd=off:flr=on:nwc=10.0:ss=axioms:st=3.0:i=365:si=on:rtra=on_0");
-   quick.push("dis+2_1:1_au=on:hfsq=on:hfsqc=5:nm=0:sd=1:ss=axioms:i=556:si=on:rtra=on_0");
+   quick.push("dis+2_1:1_au=on:avsq=on:nm=0:sd=1:ss=axioms:i=556:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_bd=off:fde=unused:fe=off:fs=off:fsr=off:hud=10:sos=on:i=719:si=on:rtra=on_0");
    quick.push("dis+10_1:1_hud=5:nm=16:prag=on:sac=on:sos=on:ss=axioms:tnu=2:i=1097:si=on:rtra=on_0");
    quick.push("dis+21_1:1_au=on:c=on:cnfonf=off:e2e=on:ins=1:kws=precedence:ntd=on:sd=2:sos=on:ss=axioms:st=2.0:i=640:si=on:rtra=on_0");
@@ -5668,7 +5668,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("ott+1010_3:1_bd=preordered:cbe=off:e2e=on:fe=axiom:hud=5:s2a=on:s2agt=60:slsq=on:ss=axioms:tnu=1:i=7349:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_au=on:c=on:ins=3:plsq=on:plsqc=5:sd=1:sos=on:ss=axioms:i=567:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_bsr=on:e2e=on:fde=unused:nm=7:sac=on:sos=on:sp=frequency:tnu=9:i=731:si=on:rtra=on_0");
-   quick.push("ott+10_5:4_au=on:bs=unit_only:bsr=unit_only:fsr=off:hfsq=on:hfsqr=5,1:ins=3:kws=arity:sd=1:sos=all:ss=axioms:i=1276:si=on:rtra=on_0");
+   quick.push("ott+10_5:4_au=on:bs=unit_only:bsr=unit_only:fsr=off:avsq=on:ins=3:kws=arity:sd=1:sos=all:ss=axioms:i=1276:si=on:rtra=on_0");
    quick.push("dis+10_1:1_au=on:avsq=on:avsqr=16,1:fd=off:nm=2:sos=all:i=890:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_aac=none:au=on:fde=unused:nm=2:sac=on:sos=all:i=6294:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_atotf=0.1:au=on:cnfonf=off:inj=on:piset=and:s2a=on:sos=on:i=1035:si=on:rtra=on_0");
@@ -5690,7 +5690,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+22_1:1_au=on:fe=axiom:ntd=on:nwc=10.0:s2a=on:i=6442:si=on:rtra=on_0");
    quick.push("dis+10_1:1_acc=on:avsq=on:avsqr=1,16:kws=arity_squared:nm=20:sd=1:sp=const_frequency:ss=axioms:i=638:si=on:rtra=on_0");
    quick.push("dis+10_1:12_cnfonf=conj_eager:ss=axioms:st=3.0:tgt=full:i=620:si=on:rtra=on_0");
-   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:hfsq=on:hfsqr=1,8:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=4043:si=on:rtra=on_0");
+   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:avsq=on:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=4043:si=on:rtra=on_0");
    quick.push("lrs+10_5:1_cnfonf=lazy_not_gen_be_off:hud=5:sd=1:ss=axioms:i=597:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_au=on:cnfonf=off:sd=1:sgt=16:sp=occurrence:ss=axioms:i=1367:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:bd=off:fde=none:plsq=on:plsqc=2:plsqr=10,1:s2a=on:s2agt=16:i=1231:si=on:rtra=on_0");
@@ -5705,12 +5705,12 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+10_1:1_au=on:cnfonf=off:sd=1:sos=all:ss=axioms:st=3.0:i=501:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_au=on:av=off:cnfonf=off:fde=none:fsr=off:sos=on:sp=const_frequency:i=854:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_fe=off:hud=10:sos=on:ss=axioms:i=1016:si=on:rtra=on_0");
-   quick.push("ott+10_5:4_au=on:bs=unit_only:bsr=unit_only:fsr=off:hfsq=on:hfsqr=5,1:ins=3:kws=arity:sd=1:sos=all:ss=axioms:i=629:si=on:rtra=on_0");
+   quick.push("ott+10_5:4_au=on:bs=unit_only:bsr=unit_only:fsr=off:avsq=on:ins=3:kws=arity:sd=1:sos=all:ss=axioms:i=629:si=on:rtra=on_0");
    quick.push("dis+10_1:1_fd=off:fde=unused:prag=on:sos=all:i=661:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_atotf=0.1:au=on:cnfonf=off:inj=on:piset=and:s2a=on:sos=on:i=1035:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_bd=off:cnfonf=off:hud=10:nm=32:sac=on:sd=1:sims=off:sos=all:ss=axioms:st=2.0:i=1511:si=on:rtra=on_0");
    quick.push("lrs+1002_4:1_au=on:cnfonf=off:ins=1:nm=2:ntd=on:slsq=on:slsqc=4:sos=on:i=1257:si=on:rtra=on_0");
-   quick.push("lrs+1002_2:3_fde=none:hfsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=6340:si=on:rtra=on_0");
+   quick.push("lrs+1002_2:3_fde=none:avsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=6340:si=on:rtra=on_0");
    quick.push("dis+1002_1:2_cnfonf=lazy_pi_sigma_gen:ins=1:nm=32:ntd=on:nwc=10.0:prag=on:s2at=3.0:slsq=on:slsqr=1,16:i=1080:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_au=on:cnfonf=off:e2e=on:piset=small_set:sac=on:sd=1:sos=all:ss=axioms:st=5.0:i=1955:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_e2e=on:ntd=on:nwc=5.0:sac=on:sd=1:sgt=16:spb=units:ss=axioms:i=3906:si=on:rtra=on_0");
@@ -5735,12 +5735,12 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("ott+1002_2:1_au=on:ins=1:nm=2:sac=on:sos=all:i=1084:si=on:rtra=on_0");
    quick.push("dis+1010_3:1_acc=on:au=on:chr=on:cnfonf=off:fd=preordered:nwc=10.0:s2a=on:i=938:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_atotf=0.2:au=on:bd=off:cnfonf=off:e2e=on:sos=all:i=7500:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_acc=on:e2e=on:hfsq=on:hfsqc=1:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=775:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_acc=on:e2e=on:avsq=on:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=775:si=on:rtra=on_0");
    quick.push("dis+2_2:3_e2e=on:fsr=off:prag=on:sos=on:ss=axioms:i=2291:si=on:rtra=on_0");
    quick.push("ott+2_1:128_bd=off:ins=3:kws=precedence:sd=1:sos=on:sp=frequency:ss=axioms:st=5.0:i=282:si=on:rtra=on_0");
    quick.push("ott+1010_41:4_bd=off:cnfonf=off:hud=14:ntd=on:s2a=on:i=1745:si=on:rtra=on_0");
    quick.push("dis+10_1:2_au=on:cnfonf=lazy_pi_sigma_gen:ss=axioms:st=1.2:tgt=ground:i=938:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_e2e=on:hfsq=on:hfsqr=1,2:hud=18:nm=2:rp=on:sos=all:sp=reverse_frequency:ss=axioms:i=1320:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:1_e2e=on:avsq=on:hud=18:nm=2:rp=on:sos=all:sp=reverse_frequency:ss=axioms:i=1320:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_bs=on:e2e=on:prag=on:sos=on:ss=axioms:i=5115:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:bd=off:kws=precedence:sos=on:sp=frequency:ss=axioms:st=3.0:i=728:si=on:rtra=on_0");
    quick.push("lrs+1002_4:1_au=on:cnfonf=off:er=filter:fde=none:ntd=on:nwc=10.0:i=1234:si=on:rtra=on_0");
@@ -5753,43 +5753,43 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+21_1:1_bd=off:e2e=on:s2a=on:s2agt=32:sfv=off:ss=axioms:st=2.0:i=2186:si=on:rtra=on_0");
   // Improves by expected 101.99492211575122 probs costing 119779 Mi
   // Sub-schedule for 240000Mi strat cap / 240000Mi overall limit
-   quick.push("dis+10_4:1_e2e=on:fde=none:hfsq=on:s2a=on:s2at=3.0:slsq=on:slsqc=1:i=1101:si=on:rtra=on_0");
+   quick.push("dis+10_4:1_e2e=on:fde=none:avsq=on:s2a=on:s2at=3.0:slsq=on:slsqc=1:i=1101:si=on:rtra=on_0");
    quick.push("dis+10_1:1_acc=on:fde=none:kws=inv_precedence:nwc=5.0:plsq=on:plsqc=1:plsqr=6,1:prag=on:s2a=on:i=4577:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:av=off:fd=off:fde=unused:ntd=on:sos=on:sp=frequency:ss=axioms:i=2693:si=on:rtra=on_0");
    quick.push("dis+1010_8:1_cnfonf=lazy_gen:fe=off:fsr=off:hud=15:nwc=10.0:s2a=on:i=4273:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_fe=off:hud=10:sos=on:ss=axioms:i=1016:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_au=on:av=off:cnfonf=lazy_not_gen_be_off:fe=axiom:kws=arity:nwc=5.0:ss=axioms:i=9244:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:e2e=on:fde=none:ins=3:kws=precedence:s2a=on:s2at=5.0:sp=frequency:i=2335:si=on:rtra=on_0");
-   quick.push("ott+10_5:4_au=on:bs=unit_only:bsr=unit_only:fsr=off:hfsq=on:hfsqr=5,1:ins=3:kws=arity:sd=1:sos=all:ss=axioms:i=629:si=on:rtra=on_0");
+   quick.push("ott+10_5:4_au=on:bs=unit_only:bsr=unit_only:fsr=off:avsq=on:ins=3:kws=arity:sd=1:sos=all:ss=axioms:i=629:si=on:rtra=on_0");
    quick.push("dis+10_1:1_au=on:avsq=on:avsqr=16,1:fd=off:nm=2:sos=all:i=5800:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_aac=none:au=on:fde=unused:nm=2:sac=on:sos=all:i=13120:si=on:rtra=on_0");
-   quick.push("dis-1010_1:1_au=on:e2e=on:hfsq=on:nm=0:s2a=on:s2at=1.5:i=9390:si=on:rtra=on_0");
+   quick.push("dis-1010_1:1_au=on:e2e=on:avsq=on:nm=0:s2a=on:s2at=1.5:i=9390:si=on:rtra=on_0");
    quick.push("dis+10_4:1_av=off:cnfonf=off:hud=5:nwc=10.0:s2a=on:s2agt=16:i=2642:si=on:rtra=on_0");
    quick.push("dis+21_2:3_cnfonf=conj_eager:fsr=off:sd=1:slsq=on:ss=axioms:st=4.0:i=1845:si=on:rtra=on_0");
    quick.push("dis+1010_4:1_amm=off:bs=on:c=on:cbe=off:nm=64:nwc=6.0:s2a=on:s2at=5.0:sac=on:slsq=on:slsqr=1,8:i=4828:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_au=on:av=off:cnfonf=off:sd=1:sos=all:ss=axioms:st=1.5:i=1033:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_au=on:bd=off:e2e=on:fde=none:ins=1:prag=on:sos=on:i=6109:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1_au=on:hfsq=on:hfsqr=5,1:hud=22:ins=3:ntd=on:nwc=3.0:s2a=on:sp=weighted_frequency:i=2589:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1_au=on:avsq=on:hud=22:ins=3:ntd=on:nwc=3.0:s2a=on:sp=weighted_frequency:i=2589:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_alpa=true:anc=none:atotf=0.1:au=on:cnfonf=off:ins=3:nm=64:sd=1:sp=occurrence:ss=axioms:st=5.0:i=2290:si=on:rtra=on_0");
    quick.push("lrs+21_1:1_au=on:e2e=on:hud=10:sd=4:sos=on:ss=axioms:st=2.0:i=4408:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_au=on:bd=off:cnfonf=off:fd=off:sos=all:i=1066:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_acc=on:au=on:bd=off:bsr=unit_only:cnfonf=off:fsr=off:nm=2:sos=all:i=4592:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_e2e=on:fd=off:fe=off:prag=on:sos=on:i=4280:si=on:rtra=on_0");
    quick.push("lrs+1010_1:4_au=on:e2e=on:hud=10:nm=32:plsq=on:plsqc=1:plsqr=32,1:sac=on:sos=on:i=1403:si=on:rtra=on_0");
-   quick.push("dis+10_16:1_au=on:cnfonf=conj_eager:hfsq=on:hfsqc=2:piset=equals:s2a=on:sp=occurrence:ss=axioms:i=6139:si=on:rtra=on_0");
-   quick.push("dis+1010_8:1_au=on:cbe=off:hfsq=on:plsq=on:plsqc=1:plsqr=32,1:rawr=on:rp=on:sd=2:ss=axioms:st=3.0:i=5743:si=on:rtra=on_0");
-   quick.push("dis+10_16:1_au=on:c=on:chr=on:hfsq=on:nm=2:sac=on:sp=unary_first:ss=axioms:i=1781:si=on:rtra=on_0");
+   quick.push("dis+10_16:1_au=on:cnfonf=conj_eager:avsq=on:piset=equals:s2a=on:sp=occurrence:ss=axioms:i=6139:si=on:rtra=on_0");
+   quick.push("dis+1010_8:1_au=on:cbe=off:avsq=on:plsq=on:plsqc=1:plsqr=32,1:rawr=on:rp=on:sd=2:ss=axioms:st=3.0:i=5743:si=on:rtra=on_0");
+   quick.push("dis+10_16:1_au=on:c=on:chr=on:avsq=on:nm=2:sac=on:sp=unary_first:ss=axioms:i=1781:si=on:rtra=on_0");
    quick.push("lrs+1010_8:1_au=on:cnfonf=lazy_pi_sigma_gen:fde=none:nwc=10.0:s2a=on:sac=on:i=4513:si=on:rtra=on_0");
    quick.push("lrs+31_1:1_au=on:cnfonf=off:ins=3:plsq=on:sd=1:sgt=32:sos=on:ss=axioms:i=494:si=on:rtra=on_0");
    quick.push("lrs+10_5:1_avsq=on:avsqr=16,1:cnfonf=conj_eager:nwc=10.0:plsq=on:plsqc=1:plsqr=32,1:sd=2:spb=intro:ss=axioms:i=1928:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_fd=off:hud=20:sos=on:ss=axioms:tnu=2:i=1063:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:128_au=on:fsr=off:hfsq=on:ins=3:kws=frequency:sos=all:i=1460:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_bsd=on:cnfonf=off:hfsq=on:nm=10:piset=all_but_not_eq:s2a=on:s2at=6.0:sp=const_min:i=2214:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:128_au=on:fsr=off:avsq=on:ins=3:kws=frequency:sos=all:i=1460:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_bsd=on:cnfonf=off:avsq=on:nm=10:piset=all_but_not_eq:s2a=on:s2at=6.0:sp=const_min:i=2214:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_bd=off:chr=on:erd=off:fd=off:fe=axiom:hud=10:sac=on:sos=on:i=538:si=on:rtra=on_0");
    quick.push("dis+10_1:1_au=on:cnfonf=lazy_pi_sigma_gen:fde=none:s2a=on:s2agt=8:i=2717:si=on:rtra=on_0");
    quick.push("lrs+21_8:1_cnfonf=lazy_not_gen:nm=2:nwc=10.0:plsq=on:plsqc=2:plsqr=6,1:prag=on:sgt=8:sp=unary_frequency:ss=axioms:i=10373:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_cnfonf=off:fd=off:rp=on:sac=on:sos=on:i=1264:si=on:rtra=on_0");
-   quick.push("dis+10_16:1_au=on:bet=on:cbe=off:cnfonf=off:hfsq=on:ins=3:ntd=on:plsq=on:plsqc=1:plsqr=32,1:i=3847:si=on:rtra=on_0");
+   quick.push("dis+10_16:1_au=on:bet=on:cbe=off:cnfonf=off:avsq=on:ins=3:ntd=on:plsq=on:plsqc=1:plsqr=32,1:i=3847:si=on:rtra=on_0");
    quick.push("dis+10_1:1_acc=on:avsq=on:avsqr=1,16:kws=arity_squared:nm=20:sd=1:sp=const_frequency:ss=axioms:i=1920:si=on:rtra=on_0");
    quick.push("dis+1002_1:2_au=on:bs=on:bsr=unit_only:c=on:fsr=off:hud=10:kws=inv_precedence:nm=6:ntd=on:nwc=10.0:sac=on:sos=on:i=1617:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_fe=off:sd=2:sgt=16:ss=axioms:i=3303:si=on:rtra=on_0");
@@ -5797,11 +5797,11 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+1002_1:1_atotf=0.3:au=on:cnfonf=off:ins=3:plsq=on:plsqr=208885,1048576:sos=all:spb=goal_then_units:i=2255:si=on:rtra=on_0");
    quick.push("lrs+1666_1:1_bd=off:bet=on:bsd=on:bsr=unit_only:fde=none:nwc=10.0:sp=occurrence:i=2482:si=on:rtra=on_0");
    quick.push("dis+10_1:1_cnfonf=off:fde=none:ss=axioms:i=1579:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_acc=on:e2e=on:hfsq=on:hfsqc=1:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=15001:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_acc=on:e2e=on:avsq=on:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=15001:si=on:rtra=on_0");
    quick.push("ott+2_1:1_amm=off:atotf=0.4:cnfonf=off:fde=none:lma=on:nm=2:prag=on:sos=all:sp=const_max:tgt=ground:tnu=9:i=1635:si=on:rtra=on_0");
    quick.push("ott+1002_16:1_au=on:bsr=unit_only:fsr=off:sac=on:sos=on:i=4338:si=on:rtra=on_0");
    quick.push("lrs+10_5:1_cnfonf=lazy_not_gen_be_off:hud=5:sd=1:ss=axioms:i=1486:si=on:rtra=on_0");
-   quick.push("dis+2_1:1_au=on:hfsq=on:hfsqc=5:nm=0:sd=1:ss=axioms:i=556:si=on:rtra=on_0");
+   quick.push("dis+2_1:1_au=on:avsq=on:nm=0:sd=1:ss=axioms:i=556:si=on:rtra=on_0");
    quick.push("lrs+21_1:1_aac=none:c=on:cnfonf=lazy_not_gen:sos=on:i=3633:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:bd=off:kws=precedence:sos=on:sp=frequency:ss=axioms:st=3.0:i=728:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_au=on:cnfonf=lazy_pi_sigma_gen:sd=1:slsq=on:ss=axioms:i=568:si=on:rtra=on_0");
@@ -5822,12 +5822,12 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+2_1:1_bd=off:bs=unit_only:bsd=on:cnfonf=off:fde=unused:fsr=off:hud=5:kws=inv_arity_squared:sp=const_min:i=2235:si=on:rtra=on_0");
   // Improves by expected 87.6986428831153 probs costing 239816 Mi
   // Sub-schedule for 480000Mi strat cap / 480000Mi overall limit
-   quick.push("dis+10_4:1_e2e=on:fde=none:hfsq=on:s2a=on:s2at=3.0:slsq=on:slsqc=1:i=19923:si=on:rtra=on_0");
+   quick.push("dis+10_4:1_e2e=on:fde=none:avsq=on:s2a=on:s2at=3.0:slsq=on:slsqc=1:i=19923:si=on:rtra=on_0");
    quick.push("dis+10_1:1_acc=on:fde=none:kws=inv_precedence:nwc=5.0:plsq=on:plsqc=1:plsqr=6,1:prag=on:s2a=on:i=13542:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:av=off:fd=off:fde=unused:ntd=on:sos=on:sp=frequency:ss=axioms:i=1997:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_cnfonf=off:e2e=on:fde=unused:hud=10:nm=16:pe=on:s2a=on:s2at=2.0:tgt=ground:i=2601:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_fe=off:hud=10:sos=on:ss=axioms:i=1016:si=on:rtra=on_0");
-   quick.push("ott+10_5:4_au=on:bs=unit_only:bsr=unit_only:fsr=off:hfsq=on:hfsqr=5,1:ins=3:kws=arity:sd=1:sos=all:ss=axioms:i=1968:si=on:rtra=on_0");
+   quick.push("ott+10_5:4_au=on:bs=unit_only:bsr=unit_only:fsr=off:avsq=on:ins=3:kws=arity:sd=1:sos=all:ss=axioms:i=1968:si=on:rtra=on_0");
    quick.push("dis+10_1:1_au=on:avsq=on:avsqr=16,1:fd=off:nm=2:sos=all:i=5800:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_cnfonf=lazy_pi_sigma_gen:plsq=on:sos=on:i=9176:si=on:rtra=on_0");
    quick.push("ott+1010_16:1_au=on:cnfonf=off:e2e=on:i=15358:si=on:rtra=on_0");
@@ -5835,7 +5835,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+1010_1:1_fsd=on:hud=10:ntd=on:sp=reverse_arity:ss=axioms:i=13001:si=on:rtra=on_0");
    quick.push("dis+1010_1:28_chr=on:cnfonf=lazy_not_be_gen:fde=none:hud=5:ins=2:kws=precedence:prag=on:sos=on:sp=occurrence:spb=goal_then_units:ss=axioms:i=1042:si=on:rtra=on_0");
    quick.push("lrs+1002_4:1_au=on:cnfonf=off:ins=1:nm=2:ntd=on:slsq=on:slsqc=4:sos=on:i=5996:si=on:rtra=on_0");
-   quick.push("lrs+1002_2:3_fde=none:hfsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=14840:si=on:rtra=on_0");
+   quick.push("lrs+1002_2:3_fde=none:avsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=14840:si=on:rtra=on_0");
    quick.push("ott+1010_16:1_av=off:fe=off:hud=10:ins=5:nwc=3.0:prag=on:rawr=on:i=4504:si=on:rtra=on_0");
    quick.push("ott+1010_1:64_au=on:cbe=off:cnfonf=off:nwc=10.0:s2a=on:ss=axioms:i=5101:si=on:rtra=on_0");
    quick.push("dis+1010_13:15_au=on:bd=off:bet=on:cnfonf=off:fe=axiom:hud=10:nm=0:ntd=on:nwc=5.0:sp=const_max:updr=off:i=1615:si=on:rtra=on_0");
@@ -5848,10 +5848,10 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+1002_1:128_atotf=0.2:au=on:bd=off:cnfonf=off:plsq=on:plsqc=1:plsqr=1,2:prag=on:sd=1:ss=axioms:st=3.0:tgt=full:i=4854:si=on:rtra=on_0");
    quick.push("lrs+10_3:1_au=on:fsr=off:sd=1:sgt=100:ss=axioms:i=11200:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_e2e=on:nwc=5.0:sd=1:sgt=30:ss=axioms:i=1488:si=on:rtra=on_0");
-   quick.push("dis+2_16:1_au=on:bd=off:cbe=off:fd=preordered:fde=unused:fsr=off:hfsq=on:nwc=10.0:i=38001:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:6_bd=off:cnfonf=off:hfsq=on:hfsql=off:ins=2:kws=precedence:ntd=on:sp=const_frequency:spb=units:tgt=full:i=4317:si=on:rtra=on_0");
+   quick.push("dis+2_16:1_au=on:bd=off:cbe=off:fd=preordered:fde=unused:fsr=off:avsq=on:nwc=10.0:i=38001:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:6_bd=off:cnfonf=off:avsq=on:ins=2:kws=precedence:ntd=on:sp=const_frequency:spb=units:tgt=full:i=4317:si=on:rtra=on_0");
    quick.push("lrs+2_1:3_au=on:bd=off:e2e=on:sos=on:ss=axioms:i=2642:si=on:rtra=on_0");
-   quick.push("dis+10_16:1_au=on:c=on:chr=on:hfsq=on:nm=2:sac=on:sp=unary_first:ss=axioms:i=1781:si=on:rtra=on_0");
+   quick.push("dis+10_16:1_au=on:c=on:chr=on:avsq=on:nm=2:sac=on:sp=unary_first:ss=axioms:i=1781:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_abs=on:au=on:cnfonf=off:fde=unused:inj=on:sos=on:i=3344:si=on:rtra=on_0");
    quick.push("lrs+10_2:1_fde=none:prag=on:sd=2:sgt=8:ss=axioms:tgt=ground:i=14683:si=on:rtra=on_0");
    quick.push("dis+21_4:1_av=off:bsr=unit_only:cbe=off:e2e=on:hud=1:prag=on:sp=unary_first:ss=axioms:i=4170:si=on:rtra=on_0");
@@ -5859,8 +5859,8 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+1010_8:1_au=on:cnfonf=lazy_pi_sigma_gen:fde=none:nwc=10.0:s2a=on:sac=on:i=2277:si=on:rtra=on_0");
    quick.push("dis+3_7:4_bsr=on:c=on:erd=off:fde=none:hud=10:lma=on:nwc=5.0:sac=on:sos=on:sp=frequency:i=8152:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_av=off:prag=on:sos=all:sp=frequency:i=7003:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:128_au=on:fsr=off:hfsq=on:ins=3:kws=frequency:sos=all:i=1460:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_bsd=on:cnfonf=off:hfsq=on:nm=10:piset=all_but_not_eq:s2a=on:s2at=6.0:sp=const_min:i=1319:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:128_au=on:fsr=off:avsq=on:ins=3:kws=frequency:sos=all:i=1460:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_bsd=on:cnfonf=off:avsq=on:nm=10:piset=all_but_not_eq:s2a=on:s2at=6.0:sp=const_min:i=1319:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_au=on:fde=none:nm=10:sos=on:i=6719:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_cnfonf=off:fd=off:rp=on:sac=on:sos=on:i=1264:si=on:rtra=on_0");
    quick.push("dis+21_1:4_avsq=on:avsqr=924271,1048576:c=on:e2e=on:fs=off:fsr=off:piset=and:plsq=on:plsqr=32,1:sd=10:sos=on:sp=unary_first:ss=axioms:st=1.5:tnu=2:i=791:si=on:rtra=on_0");
@@ -5869,10 +5869,10 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+1002_16:1_au=on:ntd=on:sos=on:sp=frequency:uhcvi=on:i=8947:si=on:rtra=on_0");
    quick.push("lrs+21_7:1_bd=preordered:c=on:cnfonf=lazy_gen:fde=unused:fe=axiom:hud=10:piset=not:s2at=3.0:slsq=on:slsqr=9,7:ss=axioms:i=21393:si=on:rtra=on_0");
    quick.push("lrs+1666_1:1_bd=off:bet=on:bsd=on:bsr=unit_only:fde=none:nwc=10.0:sp=occurrence:i=2482:si=on:rtra=on_0");
-   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:hfsq=on:hfsqr=1,8:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=3758:si=on:rtra=on_0");
+   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:avsq=on:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=3758:si=on:rtra=on_0");
    quick.push("ott+2_1:1_amm=off:atotf=0.4:cnfonf=off:fde=none:lma=on:nm=2:prag=on:sos=all:sp=const_max:tgt=ground:tnu=9:i=1540:si=on:rtra=on_0");
-   quick.push("lrs+1010_16:1_acc=on:anc=all_dependent:fde=unused:hfsq=on:hfsql=off:hfsqr=4,1:hud=1:ins=2:piset=all_but_not_eq:prag=on:sac=on:i=57747:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_e2e=on:hfsq=on:hfsqr=1,2:hud=18:nm=2:rp=on:sos=all:sp=reverse_frequency:ss=axioms:i=10173:si=on:rtra=on_0");
+   quick.push("lrs+1010_16:1_acc=on:anc=all_dependent:fde=unused:avsq=on:hud=1:ins=2:piset=all_but_not_eq:prag=on:sac=on:i=57747:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:1_e2e=on:avsq=on:hud=18:nm=2:rp=on:sos=all:sp=reverse_frequency:ss=axioms:i=10173:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:bd=off:kws=precedence:sos=on:sp=frequency:ss=axioms:st=3.0:i=728:si=on:rtra=on_0");
    quick.push("dis+2_1:1_bd=off:prag=on:sos=all:sp=frequency:ss=axioms:uhcvi=on:i=8613:si=on:rtra=on_0");
    quick.push("ott+2_1:1_abs=on:e2e=on:fsd=on:fsr=off:kws=inv_precedence:piset=not:prag=on:s2a=on:s2pl=no:sos=on:i=4730:si=on:rtra=on_0");
@@ -5881,7 +5881,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+10_16:1_au=on:bd=off:sac=on:sos=all:i=9755:si=on:rtra=on_0");
    quick.push("ott+10_1:1_atotf=0.1:au=on:cnfonf=off:e2e=on:fsr=off:ins=4:kws=precedence:s2a=on:i=2566:si=on:rtra=on_0");
    quick.push("lrs+10_97:429_c=on:cnfonf=lazy_gen:fe=axiom:ntd=on:s2a=on:sp=const_frequency:tgt=ground:i=1342:si=on:rtra=on_0");
-   quick.push("dis+10_2:3_fd=off:fde=none:hfsq=on:hfsqc=2:lcm=reverse:prag=on:sac=on:sos=on:i=5733:si=on:rtra=on_0");
+   quick.push("dis+10_2:3_fd=off:fde=none:avsq=on:lcm=reverse:prag=on:sac=on:sos=on:i=5733:si=on:rtra=on_0");
    quick.push("lrs+21_1:128_acc=model:au=on:cbe=off:e2e=on:pe=on:piset=small_set:sos=on:sp=occurrence:ss=axioms:i=1179:si=on:rtra=on_0");
   // Improves by expected 70.77019844793129 probs costing 478707 Mi
   // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
@@ -5895,26 +5895,26 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+10_1:1_au=on:avsq=on:avsqr=16,1:fd=off:nm=2:sos=all:i=4245:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_aac=none:au=on:fde=unused:nm=2:sac=on:sos=all:i=68605:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_atotf=0.1:au=on:cnfonf=off:inj=on:piset=and:s2a=on:sos=on:i=1526:si=on:rtra=on_0");
-   quick.push("dis-1010_1:1_au=on:e2e=on:hfsq=on:nm=0:s2a=on:s2at=1.5:i=20100:si=on:rtra=on_0");
+   quick.push("dis-1010_1:1_au=on:e2e=on:avsq=on:nm=0:s2a=on:s2at=1.5:i=20100:si=on:rtra=on_0");
    quick.push("lrs+31_1:1_au=on:bd=off:fde=none:ins=3:sos=on:sp=unary_first:i=6916:si=on:rtra=on_0");
    quick.push("lrs+1002_4:1_au=on:cnfonf=off:ins=1:nm=2:ntd=on:slsq=on:slsqc=4:sos=on:i=13084:si=on:rtra=on_0");
    quick.push("lrs+1010_1:64_acc=model:anc=all:bd=off:bsd=on:bsr=on:ins=3:ntd=on:prag=on:sos=all:i=40579:si=on:rtra=on_0");
-   quick.push("lrs+1002_2:3_fde=none:hfsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=41023:si=on:rtra=on_0");
+   quick.push("lrs+1002_2:3_fde=none:avsq=on:nwc=3.0:prag=on:sac=on:sd=2:sgt=32:sos=on:sp=unary_frequency:ss=axioms:i=41023:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_apa=on:au=on:cnfonf=off:fde=unused:fsr=off:ins=2:ntd=on:plsq=on:plsqc=1:plsqr=32,1:sac=on:sos=on:i=16648:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_au=on:cnfonf=lazy_not_be_gen:nwc=5.0:piset=and:plsq=on:plsqc=1:plsqr=1,1:sp=reverse_frequency:tgt=ground:i=4630:si=on:rtra=on_0");
    quick.push("ott+1010_1:64_au=on:cbe=off:cnfonf=off:nwc=10.0:s2a=on:ss=axioms:i=5101:si=on:rtra=on_0");
-   quick.push("dis+1002_2:3_aac=none:au=on:cbe=off:fde=none:hfsq=on:hfsqc=2:hfsqr=8,1:lcm=predicate:nm=32:prag=on:sos=on:sp=unary_first:ss=axioms:st=2.0:i=22803:si=on:rtra=on_0");
+   quick.push("dis+1002_2:3_aac=none:au=on:cbe=off:fde=none:avsq=on:lcm=predicate:nm=32:prag=on:sos=on:sp=unary_first:ss=axioms:st=2.0:i=22803:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_au=on:bd=off:e2e=on:fde=none:ins=1:prag=on:sos=on:i=6109:si=on:rtra=on_0");
    quick.push("ott+10_1:1_bd=preordered:bsr=on:cnfonf=lazy_gen:ntd=on:nwc=10.0:sims=off:sp=const_frequency:i=3527:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1_au=on:hfsq=on:hfsqr=5,1:hud=22:ins=3:ntd=on:nwc=3.0:s2a=on:sp=weighted_frequency:i=5561:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1_au=on:avsq=on:hud=22:ins=3:ntd=on:nwc=3.0:s2a=on:sp=weighted_frequency:i=5561:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_e2e=on:ntd=on:nwc=5.0:sac=on:sd=1:sgt=16:spb=units:ss=axioms:i=65701:si=on:rtra=on_0");
    quick.push("lrs+1010_1:16_av=off:awrs=converge:cnfonf=off:nwc=4.0:plsq=on:plsqc=1:plsql=on:plsqr=3090729,1048576:ss=axioms:tgt=ground:i=67668:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:bd=off:e2e=on:ins=3:sos=on:ss=axioms:i=1761:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_au=on:kws=inv_precedence:nwc=5.0:sd=1:sgt=32:ss=axioms:i=1332:si=on:rtra=on_0");
    quick.push("lrs+21_16:1_au=on:bd=preordered:fde=none:ins=2:nwc=10.0:ss=axioms:st=2.0:i=12174:si=on:rtra=on_0");
    quick.push("lrs+1002_1:128_atotf=0.2:au=on:bd=off:cnfonf=off:plsq=on:plsqc=1:plsqr=1,2:prag=on:sd=1:ss=axioms:st=3.0:tgt=full:i=4186:si=on:rtra=on_0");
-   quick.push("dis+10_16:1_au=on:cnfonf=conj_eager:hfsq=on:hfsqc=2:piset=equals:s2a=on:sp=occurrence:ss=axioms:i=26143:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:6_bd=off:cnfonf=off:hfsq=on:hfsql=off:ins=2:kws=precedence:ntd=on:sp=const_frequency:spb=units:tgt=full:i=4317:si=on:rtra=on_0");
+   quick.push("dis+10_16:1_au=on:cnfonf=conj_eager:avsq=on:piset=equals:s2a=on:sp=occurrence:ss=axioms:i=26143:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:6_bd=off:cnfonf=off:avsq=on:ins=2:kws=precedence:ntd=on:sp=const_frequency:spb=units:tgt=full:i=4317:si=on:rtra=on_0");
    quick.push("ott+2_1:1_au=on:cnfonf=off:sos=all:ss=axioms:st=3.0:i=17650:si=on:rtra=on_0");
    quick.push("dis+10_3:2_cnfonf=lazy_pi_sigma_gen:fe=off:nwc=5.0:prag=on:s2a=on:s2at=3.0:sp=frequency:i=9898:si=on:rtra=on_0");
    quick.push("lrs+0_1:1_au=on:ins=3:kws=precedence:ntd=on:sos=on:sp=const_max:ss=axioms:i=6900:si=on:rtra=on_0");
@@ -5926,7 +5926,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+3_7:4_bsr=on:c=on:erd=off:fde=none:hud=10:lma=on:nwc=5.0:sac=on:sos=on:sp=frequency:i=5088:si=on:rtra=on_0");
    quick.push("dis+10_4:1_atotf=0.3:bs=on:cnfonf=lazy_simp:fe=axiom:gs=on:nm=0:nwc=10.0:sp=const_frequency:i=23452:si=on:rtra=on_0");
    quick.push("lrs+32_1:2_au=on:cbe=off:lecc=0.75:s2a=on:s2at=6.0:tgt=ground:i=14769:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:128_au=on:fsr=off:hfsq=on:ins=3:kws=frequency:sos=all:i=1460:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:128_au=on:fsr=off:avsq=on:ins=3:kws=frequency:sos=all:i=1460:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_au=on:fde=none:nm=10:sos=on:i=7053:si=on:rtra=on_0");
    quick.push("lrs+21_8:1_cnfonf=lazy_not_gen:nm=2:nwc=10.0:plsq=on:plsqc=2:plsqr=6,1:prag=on:sgt=8:sp=unary_frequency:ss=axioms:i=9504:si=on:rtra=on_0");
    quick.push("ott+1002_14:1_c=on:cnfonf=lazy_gen:er=tagged:fe=axiom:s2a=on:ss=included:i=18879:si=on:rtra=on_0");
@@ -5938,12 +5938,12 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+1002_16:1_au=on:ntd=on:sos=on:sp=frequency:uhcvi=on:i=2778:si=on:rtra=on_0");
    quick.push("lrs+21_7:1_bd=preordered:c=on:cnfonf=lazy_gen:fde=unused:fe=axiom:hud=10:piset=not:s2at=3.0:slsq=on:slsqr=9,7:ss=axioms:i=5318:si=on:rtra=on_0");
    quick.push("lrs+1666_1:1_bd=off:bet=on:bsd=on:bsr=unit_only:fde=none:nwc=10.0:sp=occurrence:i=1458:si=on:rtra=on_0");
-   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:hfsq=on:hfsqr=1,8:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=20702:si=on:rtra=on_0");
+   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:avsq=on:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=20702:si=on:rtra=on_0");
    quick.push("lrs+20_1:1_au=on:bd=off:erd=off:fde=none:sos=on:i=100206:si=on:rtra=on_0");
    quick.push("dis+1002_1:4_cnfonf=off:e2e=on:fde=unused:fsr=off:sac=on:sfv=off:tgt=full:i=15049:si=on:rtra=on_0");
-   quick.push("ott+1010_44:25_afr=on:c=on:cnfonf=off:e2e=on:fd=preordered:hfsq=on:hfsqc=3:hud=5:rawr=on:sp=frequency:spb=non_intro:tgt=full:tnu=1:i=7623:si=on:rtra=on_0");
+   quick.push("ott+1010_44:25_afr=on:c=on:cnfonf=off:e2e=on:fd=preordered:avsq=on:hud=5:rawr=on:sp=frequency:spb=non_intro:tgt=full:tnu=1:i=7623:si=on:rtra=on_0");
    quick.push("dis+10_1:1_cnfonf=off:fe=off:nwc=10.0:s2a=on:s2agt=8:sd=1:ss=axioms:st=5.0:i=8973:si=on:rtra=on_0");
-   quick.push("dis+1010_1:2_cnfonf=lazy_pi_sigma_gen:fe=axiom:hfsq=on:hfsqr=10,13:hud=10:sd=2:ss=axioms:i=3633:si=on:rtra=on_0");
+   quick.push("dis+1010_1:2_cnfonf=lazy_pi_sigma_gen:fe=axiom:avsq=on:hud=10:sd=2:ss=axioms:i=3633:si=on:rtra=on_0");
    quick.push("dis+1002_1:5_au=on:bsr=on:fde=unused:piset=not:sos=on:i=4675:si=on:rtra=on_0");
    quick.push("dis+1010_1:16_amm=sco:cnfonf=off:sd=1:ss=axioms:st=2.0:tgt=full:tnu=5:i=34824:si=on:rtra=on_0");
    quick.push("dis+1010_5:1_cnfonf=lazy_pi_sigma_gen:fe=off:hud=10:sd=1:ss=axioms:st=1.5:i=2416:si=on:rtra=on_0");
@@ -5959,7 +5959,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+2_1:1_bd=off:bs=unit_only:bsd=on:cnfonf=off:fde=unused:fsr=off:hud=5:kws=inv_arity_squared:sp=const_min:i=2235:si=on:rtra=on_0");
   // Improves by expected 48.80301293339291 probs costing 958213 Mi
   // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
-   quick.push("dis+10_4:1_e2e=on:fde=none:hfsq=on:s2a=on:s2at=3.0:slsq=on:slsqc=1:i=18622:si=on:rtra=on_0");
+   quick.push("dis+10_4:1_e2e=on:fde=none:avsq=on:s2a=on:s2at=3.0:slsq=on:slsqc=1:i=18622:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_au=on:av=off:cnfonf=lazy_not_gen_be_off:fe=axiom:kws=arity:nwc=5.0:ss=axioms:i=4969:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_au=on:bsd=on:c=on:fde=none:piset=equals:sac=on:sp=const_min:i=76578:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_c=on:cnfonf=lazy_gen:fe=off:ins=2:nwc=5.0:s2a=on:sp=occurrence:i=25642:si=on:rtra=on_0");
@@ -5975,7 +5975,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+10_1:1_au=on:bd=off:cnfonf=off:fd=off:sos=all:i=9162:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_acc=on:au=on:bd=off:bsr=unit_only:cnfonf=off:fsr=off:nm=2:sos=all:i=40221:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_e2e=on:fd=off:fe=off:prag=on:sos=on:i=4280:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_afp=2000:bsr=unit_only:chr=on:hfsq=on:hfsql=off:ntd=on:piset=and:sos=on:sp=weighted_frequency:i=5377:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_afp=2000:bsr=unit_only:chr=on:avsq=on:ntd=on:piset=and:sos=on:sp=weighted_frequency:i=5377:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_atotf=0.0319537:au=on:sos=on:sp=unary_frequency:i=6236:si=on:rtra=on_0");
    quick.push("dis+10_3:2_cnfonf=lazy_pi_sigma_gen:fe=off:nwc=5.0:prag=on:s2a=on:s2at=3.0:sp=frequency:i=9898:si=on:rtra=on_0");
    quick.push("lrs+0_1:1_au=on:ins=3:kws=precedence:ntd=on:sos=on:sp=const_max:ss=axioms:i=6900:si=on:rtra=on_0");
@@ -5994,13 +5994,13 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("dis+1002_16:1_au=on:ntd=on:sos=on:sp=frequency:uhcvi=on:i=2778:si=on:rtra=on_0");
    quick.push("lrs+21_7:1_bd=preordered:c=on:cnfonf=lazy_gen:fde=unused:fe=axiom:hud=10:piset=not:s2at=3.0:slsq=on:slsqr=9,7:ss=axioms:i=5318:si=on:rtra=on_0");
    quick.push("lrs+1666_1:1_bd=off:bet=on:bsd=on:bsr=unit_only:fde=none:nwc=10.0:sp=occurrence:i=2482:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_acc=on:e2e=on:hfsq=on:hfsqc=1:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=7597:si=on:rtra=on_0");
-   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:hfsq=on:hfsqr=1,8:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=2946:si=on:rtra=on_0");
-   quick.push("lrs+1010_16:1_acc=on:anc=all_dependent:fde=unused:hfsq=on:hfsql=off:hfsqr=4,1:hud=1:ins=2:piset=all_but_not_eq:prag=on:sac=on:i=92639:si=on:rtra=on_0");
-   quick.push("ott+1010_44:25_afr=on:c=on:cnfonf=off:e2e=on:fd=preordered:hfsq=on:hfsqc=3:hud=5:rawr=on:sp=frequency:spb=non_intro:tgt=full:tnu=1:i=7601:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_acc=on:e2e=on:avsq=on:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=7597:si=on:rtra=on_0");
+   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:avsq=on:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=2946:si=on:rtra=on_0");
+   quick.push("lrs+1010_16:1_acc=on:anc=all_dependent:fde=unused:avsq=on:hud=1:ins=2:piset=all_but_not_eq:prag=on:sac=on:i=92639:si=on:rtra=on_0");
+   quick.push("ott+1010_44:25_afr=on:c=on:cnfonf=off:e2e=on:fd=preordered:avsq=on:hud=5:rawr=on:sp=frequency:spb=non_intro:tgt=full:tnu=1:i=7601:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_bs=on:e2e=on:prag=on:sos=on:ss=axioms:i=6177:si=on:rtra=on_0");
    quick.push("dis+10_1:1_cnfonf=off:fe=off:nwc=10.0:s2a=on:s2agt=8:sd=1:ss=axioms:st=5.0:i=8973:si=on:rtra=on_0");
-   quick.push("dis+1010_1:2_cnfonf=lazy_pi_sigma_gen:fe=axiom:hfsq=on:hfsqr=10,13:hud=10:sd=2:ss=axioms:i=3633:si=on:rtra=on_0");
+   quick.push("dis+1010_1:2_cnfonf=lazy_pi_sigma_gen:fe=axiom:avsq=on:hud=10:sd=2:ss=axioms:i=3633:si=on:rtra=on_0");
    quick.push("dis+21_1:1_au=on:c=on:cnfonf=off:e2e=on:ins=1:kws=precedence:ntd=on:sd=2:sos=on:ss=axioms:st=2.0:i=25272:si=on:rtra=on_0");
    quick.push("ott+1010_16:1_cnfonf=lazy_pi_sigma_gen:fe=axiom:hud=5:prag=on:slsq=on:slsqr=4,1:i=19281:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_au=on:bd=off:bet=on:fde=none:nm=20:sos=on:i=95283:si=on:rtra=on_0");
@@ -6009,7 +6009,7 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+1002_2:1_fde=unused:kws=inv_frequency:ntd=on:i=6161:si=on:rtra=on_0");
    quick.push("lrs+10_16:1_au=on:bd=off:sac=on:sos=all:i=44526:si=on:rtra=on_0");
    quick.push("lrs+10_5:1_av=off:cnfonf=lazy_pi_sigma_gen:nwc=5.0:prag=on:s2a=on:s2agt=16:i=3801:si=on:rtra=on_0");
-   quick.push("dis+10_2:3_fd=off:fde=none:hfsq=on:hfsqc=2:lcm=reverse:prag=on:sac=on:sos=on:i=6096:si=on:rtra=on_0");
+   quick.push("dis+10_2:3_fd=off:fde=none:avsq=on:lcm=reverse:prag=on:sac=on:sos=on:i=6096:si=on:rtra=on_0");
    quick.push("ott+10_16:1_aac=none:au=on:cnfonf=off:nm=20:s2a=on:ss=axioms:i=85427:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_e2e=on:prag=on:rawr=on:sos=on:sp=weighted_frequency:i=15115:si=on:rtra=on_0");
   // Improves by expected 21.639246074651492 probs costing 959472 Mi
@@ -6021,9 +6021,9 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("lrs+10_1:1_apa=on:au=on:cnfonf=off:fde=unused:fsr=off:ins=2:ntd=on:plsq=on:plsqc=1:plsqr=32,1:sac=on:sos=on:i=16648:si=on:rtra=on_0");
    quick.push("ott+10_15:2_au=on:avsq=on:cnfonf=lazy_pi_sigma_gen:cs=on:fde=none:ins=2:sp=unary_first:i=18776:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_au=on:cnfonf=off:e2e=on:piset=small_set:sac=on:sd=1:sos=all:ss=axioms:st=5.0:i=46089:si=on:rtra=on_0");
-   quick.push("dis+1002_2:3_aac=none:au=on:cbe=off:fde=none:hfsq=on:hfsqc=2:hfsqr=8,1:lcm=predicate:nm=32:prag=on:sos=on:sp=unary_first:ss=axioms:st=2.0:i=22803:si=on:rtra=on_0");
+   quick.push("dis+1002_2:3_aac=none:au=on:cbe=off:fde=none:avsq=on:lcm=predicate:nm=32:prag=on:sos=on:sp=unary_first:ss=axioms:st=2.0:i=22803:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_c=on:cnfonf=off:hud=15:rawr=on:sd=1:sos=all:ss=axioms:i=73159:si=on:rtra=on_0");
-   quick.push("dis+1010_1:5_au=on:hfsq=on:hfsql=off:ins=3:nm=0:nwc=10.0:prag=on:sos=all:sp=const_frequency:i=11506:si=on:rtra=on_0");
+   quick.push("dis+1010_1:5_au=on:avsq=on:ins=3:nm=0:nwc=10.0:prag=on:sos=all:sp=const_frequency:i=11506:si=on:rtra=on_0");
    quick.push("lrs+21_16:1_au=on:bd=preordered:fde=none:ins=2:nwc=10.0:ss=axioms:st=2.0:i=12174:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_au=on:cnfonf=lazy_not_gen_be_off:inj=on:ins=2:nwc=5.0:s2a=on:i=12558:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_atotf=0.0319537:au=on:sos=on:sp=unary_frequency:i=6236:si=on:rtra=on_0");
@@ -6037,8 +6037,8 @@ void Schedules::getSnakeSlh2Schedule(const Shell::Property& property, Schedule& 
    quick.push("ott+1002_1:1_aac=none:au=on:bd=off:cnfonf=off:nm=0:s2at=3.0:s2pl=on:sac=on:sos=on:i=74001:si=on:rtra=on_0");
    quick.push("lrs+21_7:1_bd=preordered:c=on:cnfonf=lazy_gen:fde=unused:fe=axiom:hud=10:piset=not:s2at=3.0:slsq=on:slsqr=9,7:ss=axioms:i=71269:si=on:rtra=on_0");
    quick.push("lrs+1666_1:1_bd=off:bet=on:bsd=on:bsr=unit_only:fde=none:nwc=10.0:sp=occurrence:i=2482:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_acc=on:e2e=on:hfsq=on:hfsqc=1:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=13229:si=on:rtra=on_0");
-   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:hfsq=on:hfsqr=1,8:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=20702:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_acc=on:e2e=on:avsq=on:ixr=off:s2a=on:sd=2:sp=occurrence:ss=axioms:i=13229:si=on:rtra=on_0");
+   quick.push("dis+10_3:1_acc=on:bs=unit_only:cnfonf=off:fe=axiom:avsq=on:ins=3:plsq=on:plsqc=1:plsqr=32,1:prag=on:i=20702:si=on:rtra=on_0");
    quick.push("lrs+666_1:1_au=on:bs=unit_only:e2e=on:sd=1:sp=frequency:ss=axioms:i=40189:si=on:rtra=on_0");
    quick.push("dis+10_1:1_cnfonf=off:fe=off:nwc=10.0:s2a=on:s2agt=8:sd=1:ss=axioms:st=5.0:i=8973:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_aac=none:bet=on:cnfonf=lazy_not_be_gen:cond=on:sp=const_max:i=18513:si=on:rtra=on_0");
