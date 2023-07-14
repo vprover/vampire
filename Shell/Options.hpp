@@ -424,7 +424,6 @@ public:
 #if VHOL
     SNAKE_TPTP_HOL,
     SNAKE_SLH,
-    SNAKE_SLH2,
 #endif
     STRUCT_INDUCTION
   };

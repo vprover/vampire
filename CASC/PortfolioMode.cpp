@@ -371,15 +371,12 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getSnakeTptpSatSchedule(prop,quick);
     break;
 
-#if VHOL    
+#if VHOL
   case Options::Schedule::SNAKE_TPTP_HOL:
     Schedules::getSnakeTptpHolSchedule(prop,quick);
     break;
   case Options::Schedule::SNAKE_SLH:
     Schedules::getSnakeSlhSchedule(prop,quick);
-    break;
-  case Options::Schedule::SNAKE_SLH2:
-    Schedules::getSnakeSlh2Schedule(prop,quick);
     break;
 #endif
 
