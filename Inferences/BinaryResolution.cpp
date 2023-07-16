@@ -309,23 +309,21 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   if (diamondBreaking) {
-    TIME_TRACE("diamond-breaking-br");
+    TIME_TRACE("diamond-breaking");
 
     auto rwData = res->rewritingData();
     if (!queryCl->rewritingData()->copy(rwData, [qr](TermList t) {
       return qr.substitution->applyToQuery(t);
     }))
     {
-      TIME_TRACE("BR-skipped1");
       env.statistics->skippedResolution++;
       return 0;
     }
 
     if (!rwData->merge(qr.clause->rewritingData(), [qr](TermList t) {
         return qr.substitution->applyToResult(t);
-      }, [](Term* t) { return true; }))
+      }, FilterFn()))
     {
-      TIME_TRACE("BR-skipped2");
       env.statistics->skippedResolution++;
       return 0;
     }
@@ -338,7 +336,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     while (nvi.hasNext()) {
       auto st = nvi.next();
       if (!rwData->blockTerm(st)) {
-        TIME_TRACE("BR-skipped3");
         env.statistics->skippedResolution++;
         return 0;
       }

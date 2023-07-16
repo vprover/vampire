@@ -409,7 +409,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
     (*d)[newIdx] = (*c)[origIdx];
   }
-  c->rewritingData()->copy(d->rewritingData(), [](TermList t){ return t; });
+  c->rewritingData()->copy(d->rewritingData());
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
   env.statistics->duplicateLiterals += length - newLength;

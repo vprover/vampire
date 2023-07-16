@@ -107,7 +107,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       ASS(trm.isTerm());
       if (cl->rewritingData()->isBlocked(trm.term())) {
         TIME_TRACE("demodulation blocked precheck");
-        continue;
+        // continue;
       }
 
       bool toplevelCheck = _redundancyCheck &&
@@ -228,14 +228,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         if (_salg->getOptions().diamondBreakingSuperposition()) {
-          TIME_TRACE("demodulation check");
+          TIME_TRACE("diamond-breaking");
           // TODO do the same in the else case
           if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
             if (!qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
               return qr.substitution->applyToBoundResult(t);
-            }, [this,trm](Term* t) {
-              return _salg->getOrdering().compare(trm,TermList(t))==Ordering::Result::GREATER;
-            }))
+            }, FilterFn(&_salg->getOrdering(), trm)))
             {
               continue;
             }
@@ -267,8 +265,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         ASS_EQ(next,cLen);
 
         if (_salg->getOptions().diamondBreakingSuperposition()) {
-          TIME_TRACE("demodulation-propagate");
-          cl->rewritingData()->copy(res->rewritingData(), [](TermList t){ return t; });
+          TIME_TRACE("diamond-breaking");
+          cl->rewritingData()->copy(res->rewritingData());
         }
 
         env.statistics->forwardDemodulations++;

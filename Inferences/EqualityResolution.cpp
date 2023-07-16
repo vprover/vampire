@@ -181,6 +181,7 @@ struct EqualityResolution::ResultFn
     ASS_EQ(next,newLen);
 
     if (env.options->diamondBreakingSuperposition()) {
+      TIME_TRACE("diamond-breaking");
       if (!_cl->rewritingData()->copy(res->rewritingData(),[](TermList t) {
         return subst.apply(t,0);
       })) {

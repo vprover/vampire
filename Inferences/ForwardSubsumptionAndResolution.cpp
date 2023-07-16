@@ -216,7 +216,8 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 }
 
 bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<TermList(TermList)>& subst) {
-  return subsumer->rewritingData()->subsumes(subsumed->rewritingData(), subst, [](Term* t){return true;});
+  TIME_TRACE("diamond-breaking-subsume");
+  return subsumer->rewritingData()->subsumesLiberal(subsumed->rewritingData(), subst, FilterFn());
 }
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
@@ -317,7 +318,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(mcl));
             replacement = resolutionClause;
-            cl->rewritingData()->copy(resolutionClause->rewritingData());
+            {
+              TIME_TRACE("diamond-breaking");
+              cl->rewritingData()->copy(resolutionClause->rewritingData());
+            }
             result = true;
             goto fin;
           }
@@ -336,7 +340,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
               env.statistics->forwardSubsumptionResolution++;
               premises = pvi(getSingletonIterator(cms->_cl));
               replacement = resolutionClause;
-              cl->rewritingData()->copy(resolutionClause->rewritingData());
+              {
+                TIME_TRACE("diamond-breaking");
+                cl->rewritingData()->copy(resolutionClause->rewritingData());
+              }
               result = true;
               goto fin;
             }
@@ -378,7 +385,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(cms->_cl));
             replacement = resolutionClause;
-            cl->rewritingData()->copy(resolutionClause->rewritingData());
+            {
+              TIME_TRACE("diamond-breaking");
+              cl->rewritingData()->copy(resolutionClause->rewritingData());
+            }
             result = true;
             goto fin;
           }

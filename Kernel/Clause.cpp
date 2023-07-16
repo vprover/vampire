@@ -328,34 +328,6 @@ bool Clause::noSplits() const
   return !_inference.splits() || _inference.splits()->isEmpty();
 }
 
-vstring orderingToString(Literal* lit) {
-  if (!lit->isEquality()) {
-    return "";
-  }
-  auto ord = Ordering::tryGetGlobalOrdering();
-  auto comp = ord->getEqualityArgumentOrder(lit);
-  switch (comp) {
-    case Ordering::EQUAL: {
-      return "[=]";
-    }
-    case Ordering::INCOMPARABLE: {
-      return "[?]";
-    }
-    case Ordering::LESS: {
-      return "[<]";
-    }
-    case Ordering::LESS_EQ: {
-      return "[<=]";
-    }
-    case Ordering::GREATER: {
-      return "[>]";
-    }
-    case Ordering::GREATER_EQ: {
-      return "[>=]";
-    }
-  }
-}
-
 /**
  * Convert non-propositional part of the clause to vstring.
  */
@@ -368,15 +340,9 @@ vstring Clause::literalsOnlyToString() const
   } else {
     vstring result;
     result += _literals[0]->toString();
-    // if(env.options->proofExtra()!=Options::ProofExtra::OFF){
-      // result += " " + orderingToString(_literals[0]) + " ";
-    // }
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
       result += _literals[i]->toString();
-      // if(env.options->proofExtra()!=Options::ProofExtra::OFF){
-        // result += " " + orderingToString(_literals[i]) + " ";
-      // }
     }
     return result;
   }

@@ -21,24 +21,14 @@ namespace Kernel {
 
 bool RewritingData::addRewrite(Term* t, TermList into)
 {
-  if (into.isEmpty()) {
-    TIME_TRACE("block term");
-  } else {
-    TIME_TRACE("add rewrite");
-  }
   CALL("RewritingData::addRewrite");
-  // if (t->ground() && into.isTerm() && into.term()->ground()) {
-  //   return _groundRules.findOrInsert(t,into) == into;
-  // }
 
   if (into.isNonEmpty()) {
-    TIME_TRACE("subterm check");
     NonVariableNonTypeIterator nvi(t);
     while (nvi.hasNext()) {
       auto st = nvi.next();
       auto ptr = _rules.findPtr(st);
       if (ptr && ptr->isNonEmpty()) {
-        TIME_TRACE("subterm check fail");
         return false;
       }
     }
@@ -65,7 +55,24 @@ bool RewritingData::addRewrite(Term* t, TermList into)
       }
     }
   }
-  // return _nongroundRules.findOrInsert(t,into) == into;
+  // if (ord) {
+  //   bool greater = true;
+  //   for (unsigned i = 0; i < _cl->length(); i++) {
+  //     auto lit = (*_cl)[i];
+  //     for (unsigned j = 0; j < lit->arity(); j++) {
+  //       auto arg = lit->termArg(j);
+  //       if (ord->compare(TermList(t),arg)!=Ordering::GREATER) {
+  //         greater = false;
+  //         break;
+  //       }
+  //     }
+  //     if (!greater) {break;}
+  //   }
+  //   if (greater) {
+  //     TIME_TRACE("greater than all");
+  //     return true;
+  //   }
+  // }
   return _rules.findOrInsert(t,into) == into;
 }
 
@@ -79,16 +86,10 @@ bool RewritingData::blockTerm(Term* t)
 bool RewritingData::contains(Term* t) const
 {
   return _rules.find(t);
-  // return _groundRules.find(t) || _nongroundRules.find(t);
 }
 
 bool RewritingData::isBlocked(Term* t)
 {
-  // auto ptr = _groundRules.findPtr(t);
-  // if (ptr && ptr->isEmpty()) {
-  //   return true;
-  // }
-  // ptr = _nongroundRules.findPtr(t);
   auto ptr = _rules.findPtr(t);
   if (ptr && ptr->isEmpty()) {
     return true;

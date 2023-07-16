@@ -138,7 +138,7 @@ struct BackwardDemodulation::ResultFn
     ASS(lhsS.isTerm());
     if (qr.clause->rewritingData()->isBlocked(lhsS.term())) {
       TIME_TRACE("demodulation blocked precheck");
-      return BwSimplificationRecord(0);
+      // return BwSimplificationRecord(0);
     }
 
     if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
@@ -208,9 +208,7 @@ struct BackwardDemodulation::ResultFn
       if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
         if (!_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
           return qr.substitution->applyToBoundQuery(t);
-        }, [this,lhsS](Term* t) {
-          return _ordering.compare(lhsS,TermList(t))==Ordering::Result::GREATER;
-        }))
+        }, FilterFn(&_ordering, lhsS)))
         {
           TIME_TRACE("cannot demodulate");
           return BwSimplificationRecord(0);

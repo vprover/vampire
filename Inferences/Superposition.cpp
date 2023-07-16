@@ -336,7 +336,6 @@ Clause* Superposition::performSuperposition(
 
   static bool dbs = getOptions().diamondBreakingSuperposition();
   if (dbs && rwClause->rewritingData()->isBlocked(rwTerm.term())) {
-    // cout << "blocked " << rwTerm << " in " << *rwClause << endl;
     env.statistics->skippedSuperposition++;
     return 0;
   }
@@ -574,7 +573,7 @@ Clause* Superposition::performSuperposition(
   }
 
   if (dbs) {
-    TIME_TRACE("diamond-breaking-s");
+    TIME_TRACE("diamond-breaking");
     auto rwData = res->rewritingData();
     if (!rwClause->rewritingData()->copy(rwData, [subst, eqIsResult](TermList t) {
       return subst->apply(t, !eqIsResult);
@@ -585,9 +584,7 @@ Clause* Superposition::performSuperposition(
 
     if (!rwData->merge(eqClause->rewritingData(), [subst, eqIsResult](TermList t) {
       return subst->apply(t, eqIsResult);
-    }, [this,rwTermS](Term* t) {
-      return _salg->getOrdering().compare(rwTermS,TermList(t))==Ordering::Result::GREATER;
-    })) {
+    }, FilterFn(&_salg->getOrdering(), rwTermS))) {
       env.statistics->skippedSuperposition++;
       goto construction_fail;
     }
@@ -604,7 +601,6 @@ Clause* Superposition::performSuperposition(
       while (tit.hasNext()) {
         auto st = tit.next();
         if (ordering.compare(rwTermS, TermList(st))==Ordering::Result::GREATER && !rwData->blockTerm(st)) {
-          TIME_TRACE("sup-skipped3");
           env.statistics->skippedSuperposition++;
           goto construction_fail;
         }
