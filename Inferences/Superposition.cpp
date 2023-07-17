@@ -128,6 +128,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  static bool diamondBreaking = env.options->diamondBreakingSuperposition();
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
@@ -140,9 +141,14 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       { return pushPairIntoRightIterator(lit, env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _salg->getOrdering())
                                                                             : EqHelper::getSubtermIterator(lit,  _salg->getOrdering())); });
 
+  auto itf2_1 = getFilteredIterator(itf2,
+      [premise](pair<Literal*, Term*> arg) {
+        return !diamondBreaking || !premise->rewritingData() || !premise->rewritingData()->isBlocked(arg.second);
+      });
+
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,
+  auto itf3 = getMapAndFlattenIterator(itf2_1,
       [this](pair<Literal*, TypedTermList> arg)
       { return pushPairIntoRightIterator(arg, _lhsIndex->getUnifications(arg.second, /*retrieveSubstitutions*/ true, withConstraints)); });
 
@@ -333,12 +339,7 @@ Clause* Superposition::performSuperposition(
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
-
-  static bool dbs = getOptions().diamondBreakingSuperposition();
-  if (dbs && rwClause->rewritingData()->isBlocked(rwTerm.term())) {
-    env.statistics->skippedSuperposition++;
-    return 0;
-  }
+  ASS(!rwClause->rewritingData() || !rwClause->rewritingData()->isBlocked(rwTerm.term()));
 
   // the first checks the reference and the second checks the stack
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
@@ -424,12 +425,40 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
+  RewritingData* resRwData = nullptr;
+  if (getOptions().diamondBreakingSuperposition()) {
+    TIME_TRACE("diamond-breaking-s");
+    ScopedPtr<RewritingData> rwData(new RewritingData());
+    
+    if (!rwData->addRewriteRules(rwClause->rewritingData(), ResultSubstApplicator(subst.ptr(), !eqIsResult), FilterFn())) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
+
+    if (!rwData->addRewriteRules(eqClause->rewritingData(), ResultSubstApplicator(subst.ptr(), eqIsResult), FilterFn(&_salg->getOrdering(), rwTermS))) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
+    // add current rewrite rule
+    if (!rwData->addRewrite(rwTermS.term(),tgtTermS)) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
+    // add everything that is smaller than rewritten term
+    if (!rwData->blockNewTerms(rwClause, ResultSubstApplicator(subst.ptr(), !eqIsResult), FilterFn(&ordering, rwTermS), ordering)) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
+    resRwData = rwData.release();
+  }
+
   unsigned newLength = rwLength+eqLength-1+conLength;
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf);
+  res->setRewritingData(resRwData);
 
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
@@ -569,42 +598,6 @@ Clause* Superposition::performSuperposition(
 
       (*res)[next] = constraint;
       next++;   
-    }
-  }
-
-  if (dbs) {
-    TIME_TRACE("diamond-breaking");
-    auto rwData = res->rewritingData();
-    if (!rwClause->rewritingData()->copy(rwData, [subst, eqIsResult](TermList t) {
-      return subst->apply(t, !eqIsResult);
-    })) {
-      env.statistics->skippedSuperposition++;
-      goto construction_fail;
-    }
-
-    if (!rwData->merge(eqClause->rewritingData(), [subst, eqIsResult](TermList t) {
-      return subst->apply(t, eqIsResult);
-    }, FilterFn(&_salg->getOrdering(), rwTermS))) {
-      env.statistics->skippedSuperposition++;
-      goto construction_fail;
-    }
-    // add current rewrite rule
-    if (!rwData->addRewrite(rwTermS.term(),tgtTermS)) {
-      env.statistics->skippedSuperposition++;
-      goto construction_fail;
-    }
-    // add everything that is smaller than rewritten term
-    for (unsigned i = 0; i < rwClause->numSelected(); i++) {
-      auto lit = subst->apply((*rwClause)[i], !eqIsResult);
-      auto tit = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, ordering)
-                                               : EqHelper::getSubtermIterator(lit, ordering);
-      while (tit.hasNext()) {
-        auto st = tit.next();
-        if (ordering.compare(rwTermS, TermList(st))==Ordering::Result::GREATER && !rwData->blockTerm(st)) {
-          env.statistics->skippedSuperposition++;
-          goto construction_fail;
-        }
-      }
     }
   }
 

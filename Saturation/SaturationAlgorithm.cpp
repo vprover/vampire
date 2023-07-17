@@ -93,6 +93,7 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
+#include "Inferences/RewritingByRule.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -820,13 +821,13 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   }
 
   Clause* cl=cl0;
-  if (cl->rewritingData()->isEmpty()) {
+  if (!cl->rewritingData() || cl->rewritingData()->isEmpty()) {
     auto it = cl->inference().iterator();
     if (cl->inference().hasNext(it)) {
       auto u = cl->inference().next(it);
       if (u->isClause()) {
         auto p = u->asClause();
-        if (!p->rewritingData()->isEmpty()) {
+        if (p->rewritingData() && !p->rewritingData()->isEmpty()) {
           static vmap<InferenceRule,unsigned> rules;
           auto kv = rules.insert(make_pair(cl0->inference().rule(),1));
           if (kv.second) {

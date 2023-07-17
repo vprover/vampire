@@ -74,7 +74,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
-    _rwData(new RewritingData(this)),
+    _rwData(nullptr),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
@@ -437,9 +437,8 @@ vstring Clause::toString() const
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
+    result += " rewritingData: [ " + _rwData->toString() + " ]";
   }
-
-  result += " rewritingData: [ " + _rwData->toString() + " ]";
 
   return result;
 }
@@ -755,6 +754,14 @@ unsigned Clause::getLiteralPosition(Literal* lit)
 RewritingData* Clause::rewritingData()
 {
   return _rwData;
+}
+
+void Clause::setRewritingData(RewritingData* rwData)
+{
+  _rwData = rwData;
+  if (_rwData) {
+    _rwData->setClause(this);
+  }
 }
 
 /**

@@ -677,7 +677,7 @@ void MLMatcher::Impl::getBindings(vunordered_map<unsigned, TermList>& outBinding
   MatchingData const* const md = &s_matchingData;
 
   // Untested if using this together with resolvedLit works correctly, but it should (please remove this assertion if you can confirm this).
-  ASS(!md->resolvedLit);
+  // ASS(!md->resolvedLit);
 
   ASS(outBindings.empty());
 

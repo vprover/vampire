@@ -182,11 +182,46 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
+  RewritingData* resRwData = nullptr;
+  if (diamondBreaking) {
+    TIME_TRACE("diamond-breaking");
+    ScopedPtr<RewritingData> rwData(new RewritingData());
+    if (!rwData->addRewriteRules(queryCl->rewritingData(), [qr](TermList t) {
+      return qr.substitution->applyToQuery(t);
+    }, FilterFn()))
+    {
+      env.statistics->skippedResolution++;
+      return 0;
+    }
+
+    if (!rwData->addRewriteRules(qr.clause->rewritingData(), [qr](TermList t) {
+        return qr.substitution->applyToResult(t);
+      }, FilterFn()))
+    {
+      env.statistics->skippedResolution++;
+      return 0;
+    }
+
+    auto queryLitAfter = qr.substitution->applyToQuery(queryLit);
+    // TODO add all subterms from the right premise selected literals
+    NonVariableNonTypeIterator nvi(queryLitAfter);
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      if (!rwData->blockTerm(st)) {
+        env.statistics->skippedResolution++;
+        return 0;
+      }
+    }
+    resRwData = rwData.release();
+  }
+
+
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength;
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
+  res->setRewritingData(resRwData);
 
   Literal* queryLitAfter = 0;
   if (ord && queryCl->numSelected() > 1) {
@@ -305,40 +340,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
       (*res)[next] = newLit;
       next++;
-    }
-  }
-
-  if (diamondBreaking) {
-    TIME_TRACE("diamond-breaking");
-
-    auto rwData = res->rewritingData();
-    if (!queryCl->rewritingData()->copy(rwData, [qr](TermList t) {
-      return qr.substitution->applyToQuery(t);
-    }))
-    {
-      env.statistics->skippedResolution++;
-      return 0;
-    }
-
-    if (!rwData->merge(qr.clause->rewritingData(), [qr](TermList t) {
-        return qr.substitution->applyToResult(t);
-      }, FilterFn()))
-    {
-      env.statistics->skippedResolution++;
-      return 0;
-    }
-
-    if (!queryLitAfter) {
-      queryLitAfter = qr.substitution->applyToQuery(queryLit);
-    }
-    // TODO add all subterms from the right premise selected literals
-    NonVariableNonTypeIterator nvi(queryLitAfter);
-    while (nvi.hasNext()) {
-      auto st = nvi.next();
-      if (!rwData->blockTerm(st)) {
-        env.statistics->skippedResolution++;
-        return 0;
-      }
     }
   }
 

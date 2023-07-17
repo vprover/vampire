@@ -358,6 +358,7 @@ public:
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
   RewritingData* rewritingData();
+  void setRewritingData(RewritingData* rwData);
 
 protected:
   /** number of literals */

@@ -25,6 +25,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/RewritingData.hpp"
 
 #include "Shell/LambdaElimination.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
@@ -57,6 +58,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 
   TIME_TRACE("backward superposition index maintenance");
 
+  auto rwData = c->rewritingData();
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
@@ -64,6 +66,10 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
                                               : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
+      if (rwData && rwData->isBlocked(tt.term())) {
+        TIME_TRACE("blocked term not added to index");
+        continue;
+      }
       ((TermSubstitutionTree*)_is)->handle(tt, lit, c, adding);
     }
   }

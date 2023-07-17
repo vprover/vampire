@@ -135,12 +135,6 @@ struct BackwardDemodulation::ResultFn
     TermList lhsS=qr.term;
     TermList rhsS;
 
-    ASS(lhsS.isTerm());
-    if (qr.clause->rewritingData()->isBlocked(lhsS.term())) {
-      TIME_TRACE("demodulation blocked precheck");
-      // return BwSimplificationRecord(0);
-    }
-
     if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
       //When we apply substitution to the rhs, we get a term, that is
       //a variant of the term we'd like to get, as new variables are
@@ -206,9 +200,9 @@ struct BackwardDemodulation::ResultFn
       TIME_TRACE("demodulation-check");
       // TODO do the same in the else case
       if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
-        if (!_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
+        if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
           return qr.substitution->applyToBoundQuery(t);
-        }, FilterFn(&_ordering, lhsS)))
+        }, FilterFn(&_ordering, lhsS), &_ordering))
         {
           TIME_TRACE("cannot demodulate");
           return BwSimplificationRecord(0);
@@ -244,8 +238,18 @@ struct BackwardDemodulation::ResultFn
 
     if (_diamondBreaking) {
       TIME_TRACE("demodulation-propagate");
-      auto rwData = res->rewritingData();
-      qr.clause->rewritingData()->copy(rwData);
+      if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
+        res->setRewritingData(new RewritingData());
+        if (!res->rewritingData()->copySubsumes(_cl->rewritingData(), qr.clause->rewritingData(), lhsS.term(), rhsS,
+          [qr](TermList t) {
+            return qr.substitution->applyToBoundQuery(t);
+          }, FilterFn(&_ordering, lhsS))) {
+          TIME_TRACE("cannot demodulate instantiation");
+          return BwSimplificationRecord(0);
+        }
+      } else {
+        TIME_TRACE("demodulation other branch");
+      }
     }
 
     env.statistics->backwardDemodulations++;

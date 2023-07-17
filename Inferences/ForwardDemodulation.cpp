@@ -104,12 +104,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
-      ASS(trm.isTerm());
-      if (cl->rewritingData()->isBlocked(trm.term())) {
-        TIME_TRACE("demodulation blocked precheck");
-        // continue;
-      }
-
       bool toplevelCheck = _redundancyCheck &&
         lit->isEquality() && (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
@@ -231,18 +225,16 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           TIME_TRACE("diamond-breaking");
           // TODO do the same in the else case
           if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
-            if (!qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
+            if (qr.clause->rewritingData() && !qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
               return qr.substitution->applyToBoundResult(t);
-            }, FilterFn(&_salg->getOrdering(), trm)))
+            }, FilterFn(&_salg->getOrdering(), trm), &ordering))
             {
+              TIME_TRACE("cannot demodulate");
               continue;
             }
+          } else {
+            TIME_TRACE("demodulation other branch");
           }
-          //TODO check subsumption modulo this rewriting and blocking as well
-          // if (!rwData->rewriteTerm(trm.term(), rhsS, qr.term, qr.literal, qr.clause)) {
-          //   TIME_TRACE("cannot demodulate 1");
-          //   continue;
-          // }
         }
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
@@ -266,7 +258,16 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         if (_salg->getOptions().diamondBreakingSuperposition()) {
           TIME_TRACE("diamond-breaking");
-          cl->rewritingData()->copy(res->rewritingData());
+          if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+            res->setRewritingData(new RewritingData());
+            if (!res->rewritingData()->copySubsumes(qr.clause->rewritingData(), cl->rewritingData(), trm.term(), rhsS,
+              [qr](TermList t) {
+                return qr.substitution->applyToBoundResult(t);
+              }, FilterFn(&_salg->getOrdering(), trm))) {
+              TIME_TRACE("cannot demodulate instantation");
+              continue;
+            }
+          }
         }
 
         env.statistics->forwardDemodulations++;

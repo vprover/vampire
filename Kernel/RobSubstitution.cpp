@@ -178,7 +178,7 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
     if(!found) {
       binding.index=UNBOUND_INDEX;
       binding.term.makeVar(_nextUnboundAvailable++);
-      const_cast<RobSubstitution&>(*this).bind(v,binding);
+      const_cast<RobSubstitution&>(*this).bind(v,binding,false);
       return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()
               || binding.term.isVSpecialVar()) {
@@ -188,7 +188,7 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
   }
 }
 
-void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
+void RobSubstitution::bind(const VarSpec& v, const TermSpec& b, bool clearCache)
 {
   CALL("RobSubstitution::bind");
   ASSERT_VALID(b.term);
@@ -196,6 +196,12 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
   //should be shared.
   //ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
   ASS_NEQ(v.index, UNBOUND_INDEX);
+
+#ifdef CACHE
+  if (clearCache) {
+    _cache.reset();
+  }
+#endif
 
   if(bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
@@ -234,6 +240,7 @@ void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
   bind(var,TermSpec(to));
 }
 
+// go down the chain of bindings and give back the last bound variable
 RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
 {
   CALL("RobSubstitution::root");
@@ -248,7 +255,7 @@ RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
   }
 }
 
-bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
+bool RobSubstitution::occurs(VarSpec vs, TermSpec ts) const
 {
   vs=root(vs);
   Stack<TermSpec> toDo(8);
@@ -567,7 +574,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 }
 
 
-Literal* RobSubstitution::apply(Literal* lit, int index) const
+Literal* RobSubstitution::apply(Literal* lit, int index)
 {
   CALL("RobSubstitution::apply(Literal*...)");
   TIME_TRACE("RobSubstitution::apply(Literal*)");
@@ -591,7 +598,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
   return Literal::create(lit,ts.array());
 }
 
-TermList RobSubstitution::apply(TermList trm, int index) const
+TermList RobSubstitution::apply(TermList trm, int index)
 {
   CALL("RobSubstitution::apply(TermList...)");
   TIME_TRACE("RobSubstitution::apply(TermList)");
@@ -616,6 +623,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     Todo next = toDo.pop();
     TermList* tt=next.tl;
     index=next.index;
+    // construct term from arguments
     if(tt->isEmpty()) {
       Term* orig=terms.pop();
       //here we assume, that stack is an array with
@@ -630,6 +638,9 @@ TermList RobSubstitution::apply(TermList trm, int index) const
         constructed.setTerm(Term::create(orig,argLst));
       }
       args.push(constructed);
+#ifdef CACHE
+      _cache.insert(make_pair(TermList(orig),next.index),constructed);
+#endif
 
       VarSpec ref=termRefVars.pop();
       if(ref!=nilVS) {
@@ -642,6 +653,14 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       if(tt!=&trm)
         toDo.push({tt->next(), index});
     }
+
+#ifdef CACHE
+    TermList found;
+    if (_cache.find(make_pair(TermList(*tt),index),found)) {
+      args.push(found);
+      continue;
+    }
+#endif
 
     TermSpec ts(*tt,index);
 
@@ -674,6 +693,12 @@ TermList RobSubstitution::apply(TermList trm, int index) const
       args.push(TermList(t));
       continue;
     }
+#ifdef CACHE
+    if (_cache.find(make_pair(TermList(t),ts.index),found)) {
+      args.push(found);
+      continue;
+    }
+#endif
     terms.push(t);
     termRefVars.push(vs);
 

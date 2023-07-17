@@ -22,39 +22,19 @@ namespace Kernel {
 bool RewritingData::addRewrite(Term* t, TermList into)
 {
   CALL("RewritingData::addRewrite");
+  TIME_TRACE("add rewrite");
 
-  if (into.isNonEmpty()) {
-    NonVariableNonTypeIterator nvi(t);
-    while (nvi.hasNext()) {
-      auto st = nvi.next();
-      auto ptr = _rules.findPtr(st);
-      if (ptr && ptr->isNonEmpty()) {
-        return false;
-      }
-    }
-  }
+// #if VDEBUG
+//   if (into.isNonEmpty()) {
+//     NonVariableNonTypeIterator nvi(t);
+//     while (nvi.hasNext()) {
+//       auto st = nvi.next();
+//       auto ptr = _rules.findPtr(st);
+//       ASS(!ptr || ptr->isEmpty());
+//     }
+//   }
+// #endif
 
-  if (!_varsComputed) {
-    auto vit = _cl->getVariableIterator();
-    while (vit.hasNext()) {
-      _vars.insert(vit.next());
-    }
-    _varsComputed = true;
-  }
-  VariableIterator vit(t);
-  while (vit.hasNext()) {
-    if (!_vars.find(vit.next().var())) {
-      return true;
-    }
-  }
-  if (into.isNonEmpty()) {
-    vit.reset(into);
-    while (vit.hasNext()) {
-      if (!_vars.find(vit.next().var())) {
-        return true;
-      }
-    }
-  }
   // if (ord) {
   //   bool greater = true;
   //   for (unsigned i = 0; i < _cl->length(); i++) {
@@ -91,10 +71,13 @@ bool RewritingData::contains(Term* t) const
 bool RewritingData::isBlocked(Term* t)
 {
   auto ptr = _rules.findPtr(t);
-  if (ptr && ptr->isEmpty()) {
-    return true;
-  }
-  return false;
+  return ptr && ptr->isEmpty();
+}
+
+bool RewritingData::isRewritten(Term* t)
+{
+  auto ptr = _rules.findPtr(t);
+  return ptr && ptr->isNonEmpty();
 }
 
 vstring RewritingData::toString() const

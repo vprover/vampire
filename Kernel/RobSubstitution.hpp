@@ -28,6 +28,8 @@
 #include "Lib/VString.hpp"
 #endif
 
+#define CACHE
+
 namespace Kernel
 {
 
@@ -61,11 +63,17 @@ public:
   {
     _funcSubtermMap = 0;
     _bank.reset();
+#ifdef CACHE
+    _cache.reset();
+#endif
     _nextUnboundAvailable=0;
   }
 
   void setMap(FuncSubtermMap* fmap){
     _funcSubtermMap = fmap;
+#ifdef CACHE
+    _cache.reset();
+#endif
   }
   /**
    * Bind special variable to a specified term
@@ -81,8 +89,8 @@ public:
     bind(vs, TermSpec(t,index));
   }
   TermList getSpecialVarTop(unsigned specialVar) const;
-  TermList apply(TermList t, int index) const;
-  Literal* apply(Literal* lit, int index) const;
+  TermList apply(TermList t, int index);
+  Literal* apply(Literal* lit, int index);
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
@@ -230,12 +238,12 @@ private:
   TermSpec derefBound(TermSpec v) const;
 
   void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);
-  void bind(const VarSpec& v, const TermSpec& b);
+  void bind(const VarSpec& v, const TermSpec& b, bool clearCache = true);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
   bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
-  bool occurs(VarSpec vs, TermSpec ts);
+  bool occurs(VarSpec vs, TermSpec ts) const;
 
   inline
   VarSpec getVarSpec(TermSpec ts) const
@@ -256,6 +264,9 @@ private:
   FuncSubtermMap* _funcSubtermMap;
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
+#ifdef CACHE
+  DHMap<pair<TermList,unsigned>,TermList> _cache;
+#endif
 
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
   { return out << self._bank; }
@@ -278,6 +289,9 @@ private:
       } else {
 	_subst->_bank.set(_var,_term);
       }
+#ifdef CACHE
+      _subst->_cache.reset();
+#endif
     }
     friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
     { return out << "(ROB backtrack object for " << self._var << ")"; }
