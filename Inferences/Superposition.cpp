@@ -435,7 +435,8 @@ Clause* Superposition::performSuperposition(
       return 0;
     }
 
-    if (!rwData->addRewriteRules(eqClause->rewritingData(), ResultSubstApplicator(subst.ptr(), eqIsResult), FilterFn(&_salg->getOrdering(), rwTermS))) {
+    FilterFn rwFilter(&ordering, rwTermS);
+    if (!rwData->addRewriteRules(eqClause->rewritingData(), ResultSubstApplicator(subst.ptr(), eqIsResult), rwFilter)) {
       env.statistics->skippedSuperposition++;
       return 0;
     }
@@ -445,7 +446,7 @@ Clause* Superposition::performSuperposition(
       return 0;
     }
     // add everything that is smaller than rewritten term
-    if (!rwData->blockNewTerms(rwClause, ResultSubstApplicator(subst.ptr(), !eqIsResult), FilterFn(&ordering, rwTermS), ordering)) {
+    if (!rwData->blockNewTerms(rwClause, subst.ptr(), !eqIsResult, rwTermS, ordering)) {
       env.statistics->skippedSuperposition++;
       return 0;
     }

@@ -32,7 +32,7 @@ public:
   FilterFn() : _ord(nullptr), _t() {}
   FilterFn(Ordering* ord, TermList t) : _ord(ord), _t(t) {}
 
-  bool operator()(Term* arg) {
+  bool operator()(Term* arg) const {
     return !_ord || _ord->compare(_t,TermList(arg))==Ordering::Result::GREATER;
   }
 
@@ -72,11 +72,12 @@ public:
   bool addRewrite(Term* t, TermList into);
 
   bool addRewriteRules(RewritingData* res) {
-    return addRewriteRules(res, [](TermList t) { return t; }, FilterFn());
+    static FilterFn filter;
+    return addRewriteRules(res, [](TermList t) { return t; }, filter);
   }
 
   template<class Applicator>
-  bool addRewriteRules(RewritingData* other, Applicator f, FilterFn g)
+  bool addRewriteRules(RewritingData* other, Applicator f, const FilterFn& g)
   {
     CALL("RewritingData::addRewriteRules");
     if (!other) {
@@ -91,9 +92,9 @@ public:
       lhs = f(TermList(lhs)).term();
       {
         TIME_TRACE("filter");
-      if (!g(lhs)) {
-        continue;
-      }
+        if (!g(lhs)) {
+          continue;
+        }
       }
       if (!addRewrite(lhs, rhs.isEmpty() ? rhs : f(rhs))) {
         return false;
@@ -103,7 +104,7 @@ public:
   }
 
   template<class Applicator>
-  bool copySubsumes(RewritingData* subsumer, RewritingData* subsumed, Term* rwTerm, TermList tgtTerm, Applicator f, FilterFn g)
+  bool copySubsumes(RewritingData* subsumer, RewritingData* subsumed, /* Term* rwTerm, TermList tgtTerm, */ Applicator f, const FilterFn& g)
   {
     CALL("RewritingData::copySubsumes");
     if (subsumer) {
@@ -112,7 +113,7 @@ public:
         Term* lhs;
         TermList rhs;
         ngit.next(lhs,rhs);
-        if (!subsumer->varCheck(lhs, rhs)) {
+        if(!subsumer->varCheck(lhs, rhs)) {
           ngit.del();
           continue;
         }
@@ -128,16 +129,16 @@ public:
         }
       }
     }
-    if (!addRewrite(rwTerm, tgtTerm)) {
-      return false;
-    }
-    NonVariableNonTypeIterator nvi(rwTerm);
-    while (nvi.hasNext()) {
-      auto st = nvi.next();
-      if (!blockTerm(st)) {
-        return false;
-      }
-    }
+    // if (!addRewrite(f(TermList(rwTerm)).term(), f(tgtTerm))) {
+    //   return false;
+    // }
+    // NonVariableNonTypeIterator nvi(rwTerm);
+    // while (nvi.hasNext()) {
+    //   auto st = nvi.next();
+    //   if (!blockTerm(f(TermList(st)).term())) {
+    //     return false;
+    //   }
+    // }
 
     if (subsumed) {
       DHMap<Term*,TermList>::Iterator ngit2(subsumed->_rules);
@@ -152,7 +153,7 @@ public:
   }
 
   template<class Applicator>
-  bool subsumes(RewritingData* other, Applicator f, FilterFn g, Ordering* ord)
+  bool subsumes(RewritingData* other, Applicator f, const FilterFn& g, Ordering* ord)
   {
     CALL("RewritingData::subsumes");
 
@@ -168,9 +169,9 @@ public:
       lhs = f(TermList(lhs)).term();
       {
         TIME_TRACE("filter");
-      if (!g(lhs)) {
-        continue;
-      }
+        if (!g(lhs)) {
+          continue;
+        }
       }
       if (rhs.isNonEmpty()) {
         rhs = f(rhs);
@@ -182,11 +183,10 @@ public:
       } else {
         auto ptr = other->_rules.findPtr(lhs);
         if (!ptr) {
-          // return false;
           if (rhs.isEmpty()) {
             return false;
           }
-        } else if (!subsumes(*ptr, rhs, ord)) {
+        } else if (!subsumes(rhs, *ptr, ord)) {
           return false;
         }
       }
@@ -209,53 +209,42 @@ public:
     return rhs == rhsOther;
   }
 
-  template<class Applicator>
-  bool blockNewTerms(Clause* cl, Applicator f, FilterFn g, Ordering& ord) {
-    for (unsigned i = 0; i < cl->numSelected(); i++) {
-      auto lit = f((*cl)[i]);
-      auto tit = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, ord)
-                                               : EqHelper::getSubtermIterator(lit, ord);
-      while (tit.hasNext()) {
-        auto st = tit.next();
-        if (!g(st)) {
-          continue;
-        }
-        if (!blockTerm(st)) {
-          return false;
-        }
+
+  NonVariableNonTypeIterator getSubtermIterator(Literal* lit, const Ordering& ord)
+  {
+    CALL("getSubtermIterator");
+
+    if (lit->isEquality()) {
+      TermList sel;
+      switch(ord.getEqualityArgumentOrder(lit)) {
+      case Ordering::INCOMPARABLE: {
+        return NonVariableNonTypeIterator(lit);
       }
+      case Ordering::EQUAL:
+      case Ordering::GREATER:
+      case Ordering::GREATER_EQ:
+        sel=*lit->nthArgument(0);
+        break;
+      case Ordering::LESS:
+      case Ordering::LESS_EQ:
+        sel=*lit->nthArgument(1);
+        break;
+  #if VDEBUG
+      default:
+        ASSERTION_VIOLATION;
+  #endif
+      }
+      if (!sel.isTerm()) {
+        return NonVariableNonTypeIterator();
+      }
+      return NonVariableNonTypeIterator(sel.term(), true);
     }
-    return true;
+
+    return NonVariableNonTypeIterator(lit);
   }
 
-  bool varCheck(Term* lhs, TermList rhs)
-  {
-    CALL("RewritingData::varCheck");
-    TIME_TRACE("variable computation");
-    if (!_varsComputed) {
-      ASS(_cl);
-      auto vit = _cl->getVariableIterator();
-      while (vit.hasNext()) {
-        _vars.insert(vit.next());
-      }
-      _varsComputed = true;
-    }
-    VariableIterator vit(lhs);
-    while (vit.hasNext()) {
-      if (!_vars.find(vit.next().var())) {
-        return false;
-      }
-    }
-    if (rhs.isNonEmpty()) {
-      vit.reset(rhs);
-      while (vit.hasNext()) {
-        if (!_vars.find(vit.next().var())) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
+  bool blockNewTerms(Clause* cl, ResultSubstitution* subst, bool eqIsResult, TermList rwTerm, Ordering& ord);
+  bool varCheck(Term* lhs, TermList rhs);
 
   VirtualIterator<pair<Term*,TermList>> items() const {
     return _rules.items();

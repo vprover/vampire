@@ -240,7 +240,7 @@ struct BackwardDemodulation::ResultFn
       TIME_TRACE("demodulation-propagate");
       if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
         res->setRewritingData(new RewritingData());
-        if (!res->rewritingData()->copySubsumes(_cl->rewritingData(), qr.clause->rewritingData(), lhsS.term(), rhsS,
+        if (!res->rewritingData()->copySubsumes(_cl->rewritingData(), qr.clause->rewritingData(),// lhs.term(), rhs,
           [qr](TermList t) {
             return qr.substitution->applyToBoundQuery(t);
           }, FilterFn(&_ordering, lhsS))) {

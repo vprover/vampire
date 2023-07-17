@@ -260,7 +260,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           TIME_TRACE("diamond-breaking");
           if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
             res->setRewritingData(new RewritingData());
-            if (!res->rewritingData()->copySubsumes(qr.clause->rewritingData(), cl->rewritingData(), trm.term(), rhsS,
+            if (!res->rewritingData()->copySubsumes(qr.clause->rewritingData(), cl->rewritingData(),// qr.term.term(), rhs,
               [qr](TermList t) {
                 return qr.substitution->applyToBoundResult(t);
               }, FilterFn(&_salg->getOrdering(), trm))) {

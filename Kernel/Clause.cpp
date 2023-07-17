@@ -437,7 +437,7 @@ vstring Clause::toString() const
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
-    result += " rewritingData: [ " + _rwData->toString() + " ]";
+    result += " rewritingData: [ " + (_rwData ? _rwData->toString() : "") + " ]";
   }
 
   return result;
