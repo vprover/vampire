@@ -29,21 +29,14 @@ using namespace Lib;
 Z3MainLoop::Z3MainLoop(Problem& prb, const Options& opt)
 : MainLoop(prb,opt)
 {
-  CALL("Z3MainLoop::Z3MainLoop");
-
 }
 
 void Z3MainLoop::init()
 {
-  CALL("Z3MainLoop::init");
-
-  
 }
 
 MainLoopResult Z3MainLoop::runImpl()
 {
-  CALL("Z3MainLoop::runImpl");
-
   if(!_prb.getProperty()->allNonTheoryClausesGround()){
     return MainLoopResult(Statistics::INAPPROPRIATE);
   }

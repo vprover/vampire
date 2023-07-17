@@ -41,7 +41,6 @@ auto withEqualitySort(Literal* eq, TermListIter iter)
  */
 TermList EqHelper::getOtherEqualitySide(Literal* eq, TermList lhs)
 {
-  CALL("EqHelper::getOtherEqualitySide");
   ASS(eq->isEquality());
 
   if (*eq->nthArgument(0) == lhs) {
@@ -53,7 +52,6 @@ TermList EqHelper::getOtherEqualitySide(Literal* eq, TermList lhs)
 
 bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs)
 {
-  CALL("EqHelper::hasGreaterEqualitySide");
   ASS(eq->isEquality());
 
   switch(ord.getEqualityArgumentOrder(eq)) {
@@ -78,8 +76,6 @@ bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList
 
 Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
 {
-  CALL("EqHelper::replace(Literal*,...)");
-
   return static_cast<Literal*>(replace(static_cast<Term*>(lit), what, by));
 }
 
@@ -91,7 +87,6 @@ Literal* EqHelper::replace(Literal* lit, TermList what, TermList by)
  */
 Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
 {
-  CALL("EqHelper::replace(Term*,...)");
   ASS(trm0->shared());
   ASS(!trm0->isSort());
   ASS(tSrc.isVar() || !tSrc.term()->isSort());
@@ -180,25 +175,21 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
 
 VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  CALL("EqHelper::getSubtermIterator");
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
 }
 
 TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  CALL("EqHelper::getSubtermIterator");
   return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
 }
 
 VirtualIterator<Term*> EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  CALL("EqHelper::getFoSubtermIterator");
   return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord);
 }
 
 TermIterator EqHelper::getNarrowableSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  CALL("EqHelper::getNarrowableSubtermIterator");
   return getRewritableSubtermIterator<NarrowableSubtermIt>(lit, ord);
 } 
 
@@ -207,8 +198,6 @@ TermIterator EqHelper::getNarrowableSubtermIterator(Literal* lit, const Ordering
  */
 VirtualIterator<TypedTermList> EqHelper::getRewritableVarsIterator(DHSet<unsigned>* unstableVars, Literal* lit, const Ordering& ord)
 {
-  CALL("EqHelper::getNarrowableSubtermIterator");
-
   ASS(lit->isEquality());
     
   TermList sel;
@@ -246,8 +235,6 @@ VirtualIterator<TypedTermList> EqHelper::getRewritableVarsIterator(DHSet<unsigne
 template<class SubtermIterator>
 VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  CALL("EqHelper::getRewritableSubtermIterator");
-
   if (lit->isEquality()) {
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
@@ -289,8 +276,6 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
  */
 VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Ordering& ord)
 {
-  CALL("EqHelper::getLHSIterator");
-
   if (lit->isEquality()) {
     if (lit->isNegative()) {
       return withEqualitySort(lit,TermIterator::getEmpty());
@@ -335,8 +320,6 @@ struct EqHelper::IsNonVariable
  */
 VirtualIterator<TypedTermList> EqHelper::getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt)
 {
-  CALL("EqHelper::getSuperpositionLHSIterator");
-
   if (opt.superpositionFromVariables()) {
     return getLHSIterator(lit, ord);
   }
@@ -349,8 +332,6 @@ VirtualIterator<TypedTermList> EqHelper::getSuperpositionLHSIterator(Literal* li
 
 VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, const Ordering& ord)
 {
-  CALL("EqHelper::getSubVarSupLHSIterator"); 
-  
   ASS(lit->isEquality());
 
   TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
@@ -410,8 +391,6 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
  */
 VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt)
 {
-  CALL("EqHelper::getDemodulationLHSIterator");
-
   if (lit->isEquality()) {
     if (lit->isNegative()) {
       return withEqualitySort(lit, TermIterator::getEmpty());
@@ -456,7 +435,6 @@ VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit
 
 TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 {
-  CALL("EqHelper::getEqualityArgumentIterator");
   ASS(lit->isEquality());
 
   return pvi( getConcatenatedIterator(

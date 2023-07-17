@@ -58,8 +58,6 @@ using namespace Saturation;
 
 void SubVarSup::attach(SaturationAlgorithm* salg)
 {
-  CALL("SubVarSup::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _subtermIndex=static_cast<SubVarSupSubtermIndex*> (
 	  _salg->getIndexManager()->request(SUB_VAR_SUP_SUBTERM_SUBST_TREE) );
@@ -69,8 +67,6 @@ void SubVarSup::attach(SaturationAlgorithm* salg)
 
 void SubVarSup::detach()
 {
-  CALL("SubVarSup::detach");
-
   _subtermIndex=0;
   _lhsIndex=0;
   _salg->getIndexManager()->release(SUB_VAR_SUP_SUBTERM_SUBST_TREE);
@@ -85,8 +81,6 @@ struct SubVarSup::RewritableResultsFn
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
   VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
   {
-    CALL("SubVarSup::RewritableResultsFn()");
-
     return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubstitutions */ true)) );
   }
 private:
@@ -101,7 +95,6 @@ struct SubVarSup::RewriteableSubtermsFn
 
   VirtualIterator<pair<Literal*, TypedTermList> > operator()(Literal* lit)
   {
-    CALL("SubVarSup::RewriteableSubtermsFn()");
     return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableVarsIterator(&_unstableVars, lit, _ord)) );
   }
 
@@ -115,8 +108,6 @@ struct SubVarSup::ApplicableRewritesFn
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
   VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
   {
-    CALL("SubVarSup::ApplicableRewritesFn()");
-
     return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubst */ false)) );
   }
 private:
@@ -129,8 +120,6 @@ struct SubVarSup::ForwardResultFn
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
-    CALL("SubVarSup::ForwardResultFn::operator()");
-
     TermQueryResult& qr = arg.second;
     return _parent.performSubVarSup(_cl, arg.first.first, arg.first.second,
 	    qr.clause, qr.literal, qr.term, true);
@@ -146,8 +135,6 @@ struct SubVarSup::BackwardResultFn
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
-    CALL("SubVarSup::BackwardResultFn::operator()");
-
     if(_cl==arg.second.clause) {
       return 0;
     }
@@ -164,8 +151,6 @@ private:
 
 ClauseIterator SubVarSup::generateClauses(Clause* premise)
 {
-  CALL("SubVarSup::generateClauses");
-  
   //cout << "SubVarSup with " << premise->toString() << endl;
 
   auto itf1 = premise->getSelectedLiteralIterator();
@@ -210,7 +195,6 @@ Clause* SubVarSup::performSubVarSup(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS, bool eqIsResult)
 {
-  CALL("SubVarSup::performSubVarSup");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);

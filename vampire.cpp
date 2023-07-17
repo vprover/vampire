@@ -20,7 +20,6 @@
 #include "z3++.h"
 #endif
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
@@ -130,8 +129,6 @@ int g_returnValue = 1;
  */
 Problem* getPreprocessedProblem()
 {
-  CALL("getPreprocessedProblem");
-
 #ifdef __linux__
   unsigned saveInstrLimit = env.options->instructionLimit();
   if (env.options->parsingDoesNotCount()) {  
@@ -170,7 +167,6 @@ void explainException(Exception& exception)
 
 void getRandomStrategy()
 {
-  CALL("getRandomStrategy()");
   // We might have set random_strategy sat
   if(env.options->randomStrategy()==Options::RandomStrategy::OFF){
     env.options->setRandomStrategy(Options::RandomStrategy::ON);
@@ -189,7 +185,6 @@ void getRandomStrategy()
 
 void doProving()
 {
-  CALL("doProving()");
   // One call to randomize before preprocessing (see Options)
   env.options->randomizeStrategy(0);
 
@@ -212,8 +207,6 @@ void doProving()
  */
 void profileMode()
 {
-  CALL("profileMode()");
-
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
   /* CAREFUL: Make sure that the order
@@ -234,8 +227,6 @@ void profileMode()
 } // profileMode
 
 void outputResult(ostream& out) {
-  CALL("outputResult");
-
   switch(env.statistics->terminationReason) {
   case Statistics::UNKNOWN:
     cout<<"unknown"<<endl;
@@ -278,7 +269,6 @@ void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
 // print the clauses of a problem to a LaTeX file
 void outputClausesToLaTeX(Problem* prb)
 {
-  CALL("outputClausesToLaTeX");
   ASS(env.options->latexOutput()!="off");
 
   BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
@@ -313,7 +303,6 @@ void outputClausesToLaTeX(Problem* prb)
 // print the formulas of a problem to a LaTeX file
 void outputProblemToLaTeX(Problem* prb)
 {
-  CALL("outputProblemToLaTeX");
   ASS(env.options->latexOutput()!="off");
 
   BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
@@ -353,8 +342,6 @@ void outputProblemToLaTeX(Problem* prb)
  */
 void preprocessMode(bool theory)
 {
-  CALL("preprocessMode()");
-
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   TIME_TRACE(TimeTrace::PREPROCESSING);
@@ -409,8 +396,6 @@ void preprocessMode(bool theory)
  */
 void modelCheckMode()
 {
-  CALL("modelCheckMode");
-
   env.options->setOutputAxiomNames(true);
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
@@ -431,8 +416,6 @@ void modelCheckMode()
  */
 void outputMode()
 {
-  CALL("outputMode()");
-
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   env.beginOutput();
@@ -455,8 +438,6 @@ void outputMode()
 
 void vampireMode()
 {
-  CALL("vampireMode()");
-
   if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
@@ -475,7 +456,6 @@ void vampireMode()
 
 void spiderMode()
 {
-  CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
@@ -573,8 +553,6 @@ void spiderMode()
 
 void clausifyMode(bool theory)
 {
-  CALL("clausifyMode()");
-
   CompositeISE simplifier;
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
   simplifier.addFront(new TautologyDeletionISE());
@@ -628,8 +606,6 @@ void clausifyMode(bool theory)
 
 void axiomSelectionMode()
 {
-  CALL("axiomSelectionMode()");
-
   env.options->setSineSelection(Options::SineSelection::AXIOMS);
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
@@ -670,8 +646,6 @@ void axiomSelectionMode()
  */
 int main(int argc, char* argv[])
 {
-  CALL ("main");
-
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
 

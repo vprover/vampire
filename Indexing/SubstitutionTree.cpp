@@ -59,8 +59,6 @@ SubstitutionTree::SubstitutionTree(bool useC, bool rfSubs)
   , _tag(false)
 #endif
 {
-  CALL("SubstitutionTree::SubstitutionTree");
-
 } // SubstitutionTree::SubstitutionTree
 
 /**
@@ -70,7 +68,6 @@ SubstitutionTree::SubstitutionTree(bool useC, bool rfSubs)
  */
 SubstitutionTree::~SubstitutionTree()
 {
-  CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iterCnt,0);
 
   delete _root;
@@ -141,7 +138,6 @@ struct BindingComparator
 void SubstitutionTree::insert(BindingMap& svBindings, LeafData ld)
 {
 #define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
-  CALL("SubstitutionTree::insert");
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
   DEBUG_INSERT("insert: ", svBindings, " into ", *this)
@@ -356,7 +352,6 @@ start:
  */
 void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
 {
-  CALL("SubstitutionTree::remove");
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
 
@@ -452,7 +447,6 @@ void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
  */
 SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBindings)
 {
-  CALL("SubstitutionTree::findLeaf");
   ASS(root);
 
   Node* node=root;
@@ -534,8 +528,6 @@ vstring getIndentStr(int n)
 
 SubstitutionTree::Node::~Node()
 {
-  CALL("SubstitutionTree::Node::~Node");
-
   if(term.isTerm()) {
     term.term()->destroyNonShared();
   }
@@ -544,8 +536,6 @@ SubstitutionTree::Node::~Node()
 
 void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 {
-  CALL("SubstitutionTree::Node::split");
-
   Node* node=*pnode;
 
   IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts());
@@ -561,8 +551,6 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
 void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 {
-  CALL("SubstitutionTree::IntermediateNode::loadChildren");
-
   while(children.hasNext()) {
     Node* ext=*children.next();
     Node** own=childByTop(ext->term, true);
@@ -573,8 +561,6 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 
 void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 {
-  CALL("SubstitutionTree::Leaf::loadClauses");
-
   while(children.hasNext()) {
     LeafData ld=children.next();
     insert(ld);
@@ -626,7 +612,6 @@ void SubstitutionTree::LeafIterator::skipToNextLeaf()
 
 bool SubstitutionTree::LeafIterator::hasNext()
 {
-  CALL("SubstitutionTree::Leaf::hasNext");
   return _curr != nullptr;
 }
 
@@ -645,8 +630,6 @@ SubstitutionTree::UnificationsIterator::~UnificationsIterator()
 
 bool SubstitutionTree::UnificationsIterator::hasNext()
 {
-  CALL("SubstitutionTree::UnificationsIterator::hasNext");
-
   if(_clientBDRecording) {
     _subst->bdDone();
     _clientBDRecording=false;
@@ -659,8 +642,6 @@ bool SubstitutionTree::UnificationsIterator::hasNext()
 
 SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 {
-  CALL("SubstitutionTree::UnificationsIterator::next");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
 
@@ -696,8 +677,6 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
 
 bool SubstitutionTree::UnificationsIterator::findNextLeaf()
 {
-  CALL("SubstitutionTree::UnificationsIterator::findNextLeaf");
-
   if(_nodeIterators->isEmpty()) {
     //There are no node iterators in the stack, so there's nowhere
     //to look for the next leaf.
@@ -744,8 +723,6 @@ bool SubstitutionTree::UnificationsIterator::findNextLeaf()
 
 bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 {
-  CALL("SubstitutionTree::UnificationsIterator::enter");
-
 #if VDEBUG
   if(_tag){
     cout << "=========================================" << endl;
@@ -793,8 +770,6 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 
 bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
 {
-  CALL("SubstitutionTree::MismatchHandler::introduceConstraint");
-  
   auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
   _constraints.backtrackablePush(constraint,_bd);
   return true;
@@ -803,8 +778,6 @@ bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(Term
 bool SubstitutionTree::STHOMismatchHandler::handle
      (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
 {
-  CALL("SubstitutionTree::STHOMismatchHandler::handle");
-
   auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
   _constraints.backtrackablePush(constraint,_bd);
   return true;
@@ -816,8 +789,6 @@ bool SubstitutionTree::STHOMismatchHandler::handle
  */
 bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
 {
-  CALL("SubstitutionTree::UnificationsIterator::associate");
-
   //The ordering of the if statements is important here. Higher-order problems
   //should never require theory resoning (at the moment, theories cannot be parsed in HOL)
   //However, a user can still set UWA option on. We don't wan't that to result in 
@@ -837,8 +808,6 @@ bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList 
 //for them
 SubstitutionTree::NodeIterator SubstitutionTree::UnificationsIterator::getNodeIterator(IntermediateNode* n)
 {
-  CALL("SubstitutionTree::UnificationsIterator::getNodeIterator");
-
   unsigned specVar=n->childVar;
   TermList qt=_subst->getSpecialVarTop(specVar);
   if(qt.isVar()) {

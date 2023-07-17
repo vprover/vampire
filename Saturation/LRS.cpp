@@ -39,16 +39,12 @@ using namespace Shell;
 
 bool LRS::isComplete()
 {
-  CALL("LRS::isComplete");
-
   return !_limitsEverActive && SaturationAlgorithm::isComplete();
 }
 
 
 void LRS::onUnprocessedSelected(Clause* c)
 {
-  CALL("LRS::onUnprocessedSelected");
-
   SaturationAlgorithm::onUnprocessedSelected(c);
 
   if(shouldUpdateLimits()) {
@@ -73,8 +69,6 @@ void LRS::onUnprocessedSelected(Clause* c)
  */
 bool LRS::shouldUpdateLimits()
 {
-  CALL("LRS::shouldUpdateLimits");
-
   static unsigned cnt=0;
   cnt++;
 
@@ -92,8 +86,6 @@ bool LRS::shouldUpdateLimits()
  */
 long long LRS::estimatedReachableCount()
 {
-  CALL("LRS::estimatedReachableCount");
-
 #if DETERMINISE_LRS_LOAD
   static std::ifstream infile("lrs_data.txt");
   long long thing;

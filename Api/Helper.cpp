@@ -38,15 +38,11 @@ DefaultHelperCore* DefaultHelperCore::instance()
 
 vstring DefaultHelperCore::getVarName(Var v) const
 {
-  CALL("DefaultHelperCore::getVarName");
-
   return "X"+Int::toString(v);
 }
 
 vstring DefaultHelperCore::toString(Kernel::TermList t) const
 {
-  CALL("DefaultHelperCore::toString(TermList)");
-
   if(t.isOrdinaryVar()) {
     return getVarName(t.var());
   }
@@ -57,8 +53,6 @@ vstring DefaultHelperCore::toString(Kernel::TermList t) const
 /** Get dummy name for function or predicate */
 vstring DefaultHelperCore::getDummyName(bool pred, unsigned functor)
 {
-  CALL("DefaultHelperCore::getDummyName/2");
-
   Signature::Symbol* sym = pred ?
       env.signature->getPredicate(functor) :
       env.signature->getFunction(functor);
@@ -79,8 +73,6 @@ vstring DefaultHelperCore::getDummyName(bool pred, unsigned functor)
 /** Get dummy name for function or predicate */
 vstring DefaultHelperCore::getDummyName(const Kernel::Term* t)
 {
-  CALL("DefaultHelperCore::getDummyName/1");
-
   return getDummyName(t->isLiteral(), t->functor());
 }
 
@@ -107,8 +99,6 @@ vstring DefaultHelperCore::getSymbolName(const Kernel::Term* t) const
 
 vstring DefaultHelperCore::toString(const Kernel::Term* t0) const
 {
-  CALL("DefaultHelperCore::toString(const Kernel::Term*)");
-
   vstring res;
   if(t0->isSpecial()) {
     return t0->specialTermToString();
@@ -195,8 +185,6 @@ vstring DefaultHelperCore::toString(const Kernel::Term* t0) const
 
 vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
 {
-  CALL("DefaultHelperCore::toString(const Kernel::Formula*)");
-
   Kernel::Formula* f = const_cast<Kernel::Formula*>(f0);
 
   static vstring names [] =
@@ -278,8 +266,6 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
 
 vstring DefaultHelperCore::toString(const Kernel::Clause* clause) const
 {
-  CALL("DefaultHelperCore::toString(const Kernel::Clause*)");
-
   vstring res;
   Kernel::Clause::Iterator lits(*const_cast<Kernel::Clause*>(clause));
   if(lits.hasNext()) {
@@ -308,8 +294,6 @@ vstring DefaultHelperCore::toString(const Kernel::Clause* clause) const
  */
 vstring DefaultHelperCore::toString (const Kernel::Unit* unit0) const
 {
-  CALL("DefaultHelperCore::toString(const Kernel::Unit*)");
-
   Kernel::Unit* unit = const_cast<Kernel::Unit*>(unit0);
   vstring prefix;
   vstring main = "";
@@ -400,8 +384,6 @@ struct DefaultHelperCore::Var2NameMapper
 
 StringIterator DefaultHelperCore::getVarNames(VList* l)
 {
-  CALL("DefaultHelperCore::getVarNames");
-
   VirtualIterator<vstring> res=pvi( getPersistentIterator(
       getMappingIterator(
 	  VList::DestructiveIterator(l),
@@ -421,8 +403,6 @@ StringIterator DefaultHelperCore::getVarNames(VList* l)
 /** build a term f(*args) with specified @b arity */
 Term FBHelperCore::term(const Function& f,const Term* args, unsigned arity)
 {
-  CALL("FBHelperCore::term");
-
   if(f>=static_cast<unsigned>(env.signature->functions())) {
     throw FormulaBuilderException("Function does not exist");
   }
@@ -442,8 +422,6 @@ Term FBHelperCore::term(const Function& f,const Term* args, unsigned arity)
 /** build a predicate p(*args) with specified @b arity */
 Formula FBHelperCore::atom(const Predicate& p, bool positive, const Term* args, unsigned arity)
 {
-  CALL("FBHelperCore::atom");
-
   if(p>=static_cast<unsigned>(env.signature->predicates())) {
     throw FormulaBuilderException("Predicate does not exist");
   }
@@ -464,8 +442,6 @@ Formula FBHelperCore::atom(const Predicate& p, bool positive, const Term* args, 
 
 unsigned FBHelperCore::getUnaryPredicate()
 {
-  CALL("FBHelperCore::getUnaryPredicate");
-
   if(_unaryPredicate!=0) {
     return _unaryPredicate;
   }
@@ -484,8 +460,6 @@ unsigned FBHelperCore::getUnaryPredicate()
 
 Sort FBHelperCore::getSort(const Api::Term t)
 {
-  CALL("FBHelperCore::getSort");
-
   if(t.isVar()) {
     unsigned v = t.var();
     return getVarSort(v);
@@ -498,8 +472,6 @@ Sort FBHelperCore::getSort(const Api::Term t)
 
 void FBHelperCore::ensureArgumentsSortsMatch(BaseType* type, const Api::Term* args)
 {
-  CALL("FBHelperCore::ensureArgumentsSortsMatch");
-
   unsigned arity = type->arity();
   for(unsigned i=0; i<arity; i++) {
     unsigned parentSort = type->arg(i);
@@ -512,8 +484,6 @@ void FBHelperCore::ensureArgumentsSortsMatch(BaseType* type, const Api::Term* ar
 
 void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2)
 {
-  CALL("FBHelperCore::ensureEqualityArgumentsSortsMatch");
-
   Sort s1 = getSort(arg1);
   Sort s2 = getSort(arg2);  
   if(s1!=s2) {
@@ -523,8 +493,6 @@ void FBHelperCore::ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const
 
 vstring FBHelperCore::getVarName(Var v) const
 {
-  CALL("FBHelperCore::getVarName");
-
   if(outputDummyNames()) {
     return "X"+Int::toString(v);
   }
@@ -553,8 +521,6 @@ vstring FBHelperCore::getVarName(Var v) const
 
 Sort FBHelperCore::getVarSort(Var v) const
 {
-  CALL("FBHelperCore::getVarSort");
-
   Sort res;
   if(varSorts.find(v,res)) {
     return res;
@@ -599,8 +565,6 @@ unsigned FBHelperCore::getVar(vstring varName, Sort varSort)
 
 void FBHelperCore::addAttribute(AttribStack& stack, vstring name, vstring value)
 {
-  CALL("FBHelperCore::addAttribute");
-
   AttribPair attr(name,value);
   //TODO: This causes quadratic complexity in the number of attributes
   if(stack.find(attr)) {
@@ -615,8 +579,6 @@ void FBHelperCore::addAttribute(AttribStack& stack, vstring name, vstring value)
  */
 unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
 {
-  CALL("FBHelperCore::FBVarFactory::getVarAlias");
-
   vstring origName=_parent.getVarName(var);
   int i=0;
   vstring name;
@@ -633,8 +595,6 @@ unsigned FBHelperCore::FBVarFactory::getVarAlias(unsigned var)
  */
 vstring FBHelperCore::FBVarFactory::getVarName(unsigned var)
 {
-  CALL("FBHelperCore::FBVarFactory::getVarName");
-
   return _parent.getVarName(var);
 }
 
@@ -647,15 +607,11 @@ ApiHelper::ApiHelper() : _obj(0) {}
 
 ApiHelper::~ApiHelper()
 {
-  CALL("ApiHelper::~ApiHelper");
-
   updRef(false);
 }
 
 ApiHelper::ApiHelper(const ApiHelper& h)
 {
-  CALL("ApiHelper::ApiHelper(ApiHelper&)");
-
   _obj=h._obj;
   updRef(true);
 }
@@ -678,8 +634,6 @@ ApiHelper& ApiHelper::operator=(FBHelperCore* hc)
 
 void ApiHelper::updRef(bool inc)
 {
-  CALL("ApiHelper::updRef");
-
   if(_obj) {
     if(inc) {
       _obj->incRef();
@@ -692,29 +646,21 @@ void ApiHelper::updRef(bool inc)
 
 bool ApiHelper::operator==(const ApiHelper& h) const
 {
-  CALL("ApiHelper::operator==");
-
   return _obj==h._obj;
 }
 
 bool ApiHelper::operator!=(const ApiHelper& h) const
 {
-  CALL("ApiHelper::operator!=");
-
   return _obj!=h._obj;
 }
 
 DefaultHelperCore* ApiHelper::operator->() const
 {
-  CALL("ApiHelper::operator->");
-
   return **this;
 }
 
 DefaultHelperCore* ApiHelper::operator*() const
 {
-  CALL("ApiHelper::operator*");
-
   if(_obj) {
     return _obj;
   }
@@ -730,16 +676,12 @@ DefaultHelperCore* ApiHelper::operator*() const
 
 FBHelper::FBHelper()
 {
-  CALL("FBHelper::FBHelper");
-
   _obj=new FBHelperCore;
   updRef(true);
 }
 
 FBHelperCore* FBHelper::operator->() const
 {
-  CALL("FBHelper::operator->");
-
   ASS(_obj);
   return _obj;
 }

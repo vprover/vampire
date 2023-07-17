@@ -108,7 +108,6 @@ namespace Shell {
       FoolAwareSubformulaIterator(TermList ts): _sei(ts) {}
 
       bool hasNext() {
-        CALL("FoolAwareSubformulaIterator::hasNext");
         while (_sei.hasNext()) {
           SubexpressionIterator::Expression expression = _sei.next();
           if (expression.isFormula()) {
@@ -124,7 +123,6 @@ namespace Shell {
         return next(dummy);
       }
       Formula* next(int& polarity) {
-        CALL("FoolAwareSubformulaIterator::next(int&)");
         ASS(_next);
         polarity = _polarity;
         return _next;
@@ -144,7 +142,6 @@ namespace Shell {
       FoolAwareSubtermIterator(TermList ts): _sei(ts) {}
 
       bool hasNext() {
-        CALL("FoolAwareSubtermIterator::hasNext");
         while (_sei.hasNext()) {
           SubexpressionIterator::Expression expression = _sei.next();
           if (expression.isTerm()) {

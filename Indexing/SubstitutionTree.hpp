@@ -189,7 +189,6 @@ public:
   template<class Iterator, class TermOrLit> 
   QueryResultIterator iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool reversed = false)
   {
-    CALL("TermSubstitutionTree::iterator");
     return _root == nullptr 
       ? QueryResultIterator::getEmpty()
       : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, _functionalSubtermMap.asPtr() )));
@@ -201,8 +200,6 @@ public:
     inline
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
-      CALL("SubstitutionTree::LDComparator::compare");
-
       if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
         ASS_NEQ(ld1.clause->number(), ld2.clause->number());
         return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
@@ -328,7 +325,6 @@ public:
          */
         NodeIterator childBySort(TermList t)
         {
-          CALL("SubstitutionTree::ChildBySortHelper::childBySort");
           TermList srt;
           // only consider interpreted sorts
           if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar()){
@@ -354,7 +350,6 @@ public:
          */
         void mightExistAsTop(TermList t)
         {
-          CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
           if(!t.isTerm()){ return; }
           TermList srt;
           if(SortHelper::tryGetResultSort(t,srt) &&  !srt.isVar() && 
@@ -370,7 +365,6 @@ public:
         }
         void remove(TermList t)
         {
-          CALL("SubstitutionTree::ChildBySortHelper::remove");
           if(!t.isTerm()){ return;}
           TermList srt;
           if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar() &&  
@@ -638,8 +632,6 @@ public:
     }
     virtual Node** childByTop(TermList t, bool canCreate)
     {
-      CALL("SubstitutionTree::SListIntermediateNode::childByTop");
-
       Node** res;
       bool found=_nodes.getPosition(t,res,canCreate);
       if(!found) {
@@ -669,8 +661,6 @@ public:
     public:
       static Comparison compare(TermList t1,TermList t2)
       {
-	CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
-
 	if(t1.isVar()) {
 	  if(t2.isVar()) {
 	    return Int::compare(t1.var(), t2.var());
@@ -851,9 +841,6 @@ public:
   template<class Query>
   QueryResultIterator getVariants(Query query, bool retrieveSubstitutions)
   {
-    CALL("LiteralSubstitutionTree::getVariants");
-
-
     RenamingSubstitution* renaming = retrieveSubstitutions ? new RenamingSubstitution() : nullptr;
     ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(renaming) : ResultSubstitutionSP();
 
@@ -1071,7 +1058,6 @@ public:
       , _nodeTypes()
       , _iterCntr(parent->_iterCnt)
     {
-      CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
       ASS(root);
       ASS(!root->isLeaf());
 
@@ -1139,8 +1125,6 @@ public:
       TermSpec(bool q, TermList t)
       : q(q), t(t)
       {
-        CALL("SubstitutionTree::InstMatcher::TermSpec::TermSpec");
-
         //query does not contain special vars
         ASS(!q || !t.isTerm() || t.term()->shared());
         ASS(!q || !t.isSpecialVar());
@@ -1148,7 +1132,6 @@ public:
 
       vstring toString()
       {
-        CALL("SubstitutionTree::InstMatcher::TermSpec::toString");
         return (q ? "q|" : "n|")+t.toString();
       }
 
@@ -1176,7 +1159,6 @@ public:
      */
     void bindSpecialVar(unsigned var, TermList term)
     {
-      CALL("SubstitutionTree::InstMatcher::bindSpecialVar");
       ASS_EQ(getBSCnt(), 0);
 
       ALWAYS(_bindings.insert(TermList(var,true),TermSpec(true,term)));
@@ -1232,14 +1214,12 @@ public:
 
     bool isBound(TermList var)
     {
-      CALL("SubstitutionTree::InstMatcher::isBound");
       ASS(var.isVar());
 
       return _bindings.find(var);
     }
     void bind(TermList var, TermSpec trm)
     {
-      CALL("SubstitutionTree::InstMatcher::bind");
       ASS(!var.isOrdinaryVar() || !trm.q); //we do not bind ordinary vars to query terms
 
       ALWAYS(_bindings.insert(var, trm));
@@ -1278,7 +1258,6 @@ public:
       DerefApplicator(InstMatcher* im, bool query) : query(query), im(im) {}
       TermList apply(unsigned var)
       {
-        CALL("SubstitutionTree::InstMatcher::DerefApplicator::apply");
         if(query) {
     return im->_derefBindings.get(TermList(var, false));
         }
@@ -1288,7 +1267,6 @@ public:
       }
       TermList applyToSpecVar(unsigned specVar)
       {
-        CALL("SubstitutionTree::InstMatcher::DerefApplicator::applyToSpecVar");
         ASS(!query);
 
         return im->_derefBindings.get(TermList(specVar, true));
@@ -1327,7 +1305,6 @@ public:
       , _nodeTypes()
       , _iterCntr(parent->_iterCnt)
     {
-      CALL("SubstitutionTree::FastInstancesIterator::FastInstancesIterator");
       ASS(root);
       ASS(!root->isLeaf());
 
@@ -1410,8 +1387,6 @@ public:
 #endif
     {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
-      CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
-
       ASS(!_useUWAConstraints || retrieveSubstitution);
       ASS(!_useUWAConstraints || parent->_useC);
 

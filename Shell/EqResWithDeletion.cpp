@@ -29,8 +29,6 @@ using namespace Kernel;
 
 void EqResWithDeletion::apply(Problem& prb)
 {
-  CALL("EqResWithDeletion::apply");
-
   if(apply(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -42,8 +40,6 @@ void EqResWithDeletion::apply(Problem& prb)
  */
 bool EqResWithDeletion::apply(UnitList*& units)
 {
-  CALL("EqResWithDeletion::apply(UnitList*&)");
-
   bool modified = false;
 
   UnitList::DelIterator uit(units);
@@ -67,8 +63,6 @@ bool EqResWithDeletion::apply(UnitList*& units)
  */
 Clause* EqResWithDeletion::apply(Clause* cl)
 {
-  CALL("EqResWithDeletion::apply(Clause*)");
-
   //TODO: make the procedure linear time
 start_applying:
 
@@ -118,8 +112,6 @@ TermList EqResWithDeletion::apply(unsigned var)
 
 bool EqResWithDeletion::scan(Literal* lit)
 {
-  CALL("EqResWithDeletion::scan(Literal*)");
-
   if(lit->isEquality() && lit->isNegative()) {
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);

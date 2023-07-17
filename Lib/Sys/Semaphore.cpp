@@ -53,7 +53,6 @@ Semaphore::SemaphoreList* Semaphore::s_instances = 0;
 Semaphore::Semaphore(int num)
 :semCnt(num)
 {
-  CALL("Semaphore::Semaphore(int)");
   ASS_G(num,0);
 
   ensureEventHandlersInstalled();
@@ -93,15 +92,11 @@ get_retry:
 
 Semaphore::~Semaphore()
 {
-  CALL("Semaphore::~Semaphore");
-
   deregisterInstance();
 }
 
 Semaphore::Semaphore(const Semaphore& s)
 {
-  CALL("Semaphore::Semaphore(const Semaphore&)");
-
   semid=s.semid;
   semCnt=s.semCnt;
   registerInstance();
@@ -109,8 +104,6 @@ Semaphore::Semaphore(const Semaphore& s)
 
 const Semaphore& Semaphore::operator=(const Semaphore& s)
 {
-  CALL("Semaphore::operator=");
-
   deregisterInstance();
   semid=s.semid;
   semCnt=s.semCnt;
@@ -124,7 +117,6 @@ const Semaphore& Semaphore::operator=(const Semaphore& s)
  */
 void Semaphore::doInc(int num)
 {
-  CALL("Semaphore::doInc");
   ASS(hasSemaphore());
   ASS_L(num, semCnt+2);
 
@@ -146,7 +138,6 @@ void Semaphore::doInc(int num)
  *    */
 void Semaphore::doIncPersistent(int num)
 {
-  CALL("Semaphore::doIncPersistent");
   ASS(hasSemaphore());
   ASS_L(num, semCnt+2);
 
@@ -168,7 +159,6 @@ void Semaphore::doIncPersistent(int num)
  */
 void Semaphore::doDec(int num)
 {
-  CALL("Semaphore::doDec");
   ASS(hasSemaphore());
   ASS_L(num, semCnt+2);
 
@@ -195,7 +185,6 @@ retry_decreasing:
  */
 void Semaphore::doSet(int num, int val)
 {
-  CALL("Semaphore::doSet");
   ASS(hasSemaphore());
   ASS_L(num, semCnt+2);
   ASS_GE(val,0); //semaphores cannot be negative
@@ -216,7 +205,6 @@ void Semaphore::doSet(int num, int val)
  */
 int Semaphore::doGet(int num)
 {
-  CALL("Semaphore::doGet");
   ASS(hasSemaphore());
   ASS_L(num, semCnt+2);
 
@@ -236,7 +224,6 @@ int Semaphore::doGet(int num)
  */
 void Semaphore::inc(int num)
 {
-  CALL("Semaphore::inc");
   ASS(hasSemaphore());
   ASS_L(num, semCnt);
 
@@ -248,7 +235,6 @@ void Semaphore::inc(int num)
  *   */
 void Semaphore::incp(int num)
 {
-  CALL("Semaphore::incp");
   ASS(hasSemaphore());
   ASS_L(num, semCnt);
 
@@ -262,7 +248,6 @@ void Semaphore::incp(int num)
  */
 void Semaphore::dec(int num)
 {
-  CALL("Semaphore::dec");
   ASS(hasSemaphore());
   ASS_L(num, semCnt);
 
@@ -274,7 +259,6 @@ void Semaphore::dec(int num)
  */
 int Semaphore::get(int num)
 {
-  CALL("Semaphore::get");
   ASS(hasSemaphore());
   ASS_L(num, semCnt);
 
@@ -286,7 +270,6 @@ int Semaphore::get(int num)
  */
 void Semaphore::set(int num, int val)
 {
-  CALL("Semaphore::set");
   ASS(hasSemaphore());
   ASS_L(num, semCnt);
   ASS_GE(val, 0);
@@ -300,7 +283,6 @@ void Semaphore::set(int num, int val)
  */
 bool Semaphore::isLastInstance()
 {
-  CALL("Semaphore::isLastInstance");
   ASS(hasSemaphore());
 
   return doGet(semCnt)==1;
@@ -315,8 +297,6 @@ bool Semaphore::isLastInstance()
  */
 void Semaphore::registerInstance(bool addToInstanceList)
 {
-  CALL("Semaphore::registerInstance");
-
   if(!hasSemaphore()) {
     return;
   }
@@ -334,8 +314,6 @@ void Semaphore::registerInstance(bool addToInstanceList)
  */
 void Semaphore::deregisterInstance()
 {
-  CALL("Semaphore::deregisterInstance");
-
   if(!hasSemaphore()) {
     return;
   }
@@ -350,7 +328,6 @@ void Semaphore::deregisterInstance()
  */
 void Semaphore::acquireInstance()
 {
-  CALL("Semaphore::acquireInstance");
   ASS(hasSemaphore());
 
   doInc(semCnt);
@@ -362,7 +339,6 @@ void Semaphore::acquireInstance()
  */
 void Semaphore::releaseInstance()
 {
-  CALL("Semaphore::releaseInstance");
   ASS(hasSemaphore());
 
   //Here we may wait until other deregisterInstance() calls finish.
@@ -398,8 +374,6 @@ void Semaphore::releaseInstance()
  */
 void Semaphore::releaseAllSemaphores()
 {
-  CALL("Semaphore::releaseAllSemaphores");
-
   SemaphoreList* instIter=s_instances;
   while(instIter) {
     Semaphore* s=instIter->head();
@@ -418,8 +392,6 @@ void Semaphore::releaseAllSemaphores()
  */
 void Semaphore::postForkInChild()
 {
-  CALL("Semaphore::postForkInChild");
-
   SemaphoreList::Iterator sit(s_instances);
   while(sit.hasNext()) {
     Semaphore* s=sit.next();
@@ -433,8 +405,6 @@ void Semaphore::postForkInChild()
  */
 void Semaphore::ensureEventHandlersInstalled()
 {
-  CALL("Semaphore::ensureForkHandlerInstalled");
-
   static bool installed=false;
   if(installed) {
     return;

@@ -40,8 +40,6 @@ Normalisation::Normalisation ()
  */
 void Normalisation::normalise(Problem& prb)
 {
-  CALL("Normalisation::normalise");
-
   UnitList* units = prb.units();
   units = normalise(units);
   prb.units() = units;
@@ -54,8 +52,6 @@ void Normalisation::normalise(Problem& prb)
  */
 UnitList* Normalisation::normalise (UnitList* units)
 {
-  CALL("Normalisation::normalise (UnitList*");
-
   if (UnitList::isEmpty(units)) {
     return units;
   }
@@ -88,8 +84,6 @@ UnitList* Normalisation::normalise (UnitList* units)
  */
 void Normalisation::normalise (Unit* unit)
 {
-  CALL ("Normalisation::normalize(Unit*)");
-
   if (! unit->isClause()) {
     return;
   }
@@ -126,8 +120,6 @@ void Normalisation::normalise (Unit* unit)
  * @since 03/06/2007 Manchester, changed to new data structures */
 bool Normalisation::lessThan (Unit* u1, Unit* u2)
 {
-  CALL("Normalisation::lessThan (const Unit*...)");
-
   // the below code should be uncommented, it gives the best behavior
   // on the average
   switch (compare(static_cast<int>(u1->inputType()),static_cast<int>(u2->inputType()))) {
@@ -187,8 +179,6 @@ bool Normalisation::lessThan(Clause* cl1, Clause* cl2)
  */
 bool Normalisation::lessThan (Formula* f1, Formula* f2)
 {
-  CALL("Normalisation::lessThan (const Formula*...)");
-
   return compare(f1,f2) == LESS;
 } // Normalisation::lessThan
 
@@ -204,8 +194,6 @@ bool Normalisation::lessThan (Formula* f1, Formula* f2)
  */
 bool Normalisation::lessThan (Literal* l1, Literal* l2)
 {
-  CALL("Normalisation::lessThan (const Literal*...)");
-
   return compare(l1,l2) == LESS;
 }
 
@@ -219,8 +207,6 @@ bool Normalisation::lessThan (Literal* l1, Literal* l2)
  */
 Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
 {
-  CALL("Normalisation::compare (const Formula*...)");
-
   SubformulaIterator sf1(fm1);
   SubformulaIterator sf2(fm2);
 
@@ -287,8 +273,6 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
  */
 Comparison Normalisation::compare (Literal* l1, Literal* l2)
 {
-  CALL("Normalisation::compare (const Literal*...)");
-
   if (l1 == l2) {
     return EQUAL;
   }
@@ -396,8 +380,6 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
  */
 Comparison Normalisation::compare(TermList ts1, TermList ts2)
 {
-  CALL("Normalisation::compare(TermList...)");
-
   // both non-empty
   if (ts1.isVar() && !ts2.isVar()) {
      return LESS;
@@ -424,9 +406,6 @@ Comparison Normalisation::compare(TermList ts1, TermList ts2)
  */
 Comparison Normalisation::compare(Term* t1, Term* t2)
 {
-  CALL("Normalisation::compare(const Term*...)");
-
-
   if (t1 == t2) {
     return EQUAL;
   }

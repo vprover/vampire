@@ -45,7 +45,7 @@ template<class A, class... As> struct _printDbg<A, As...>{
   }
 };
 
-template<class... A> void printDbg(const char* file, int line, const char *fun, const A&... msg)
+template<class... A> void printDbg(const char* file, int line, const A&... msg)
 {
   int width = 60;
   std::cout << "[ debug ] ";
@@ -56,25 +56,14 @@ template<class... A> void printDbg(const char* file, int line, const char *fun, 
     std::cout << ' ';
   }
   std::cout <<  "@" << std::setw(5) << line << ":";
-
-  // TODO either use backtrace to figure out call depth or don't do this
-  /*
-  for (unsigned i = 0; i< _depth; i++) {
-    cout << "  ";
-  }
-  */
-  std::cout << fun << ": ";
   _printDbg<A...>{}(msg...);
   std::cout << std::endl; 
 }
 
 } // namespace Debug
 
-#define CALL(fun)
-#define CALLC(fun, cond)
-
 #if VDEBUG
-#  define DBG(...) { Debug::printDbg(__FILE__, __LINE__, __func__, __VA_ARGS__); }
+#  define DBG(...) { Debug::printDbg(__FILE__, __LINE__, __VA_ARGS__); }
 #  define DBGE(x) DBG(#x, " = ", x)
 #else // ! VDEBUG
 #  define DBG(...) {}

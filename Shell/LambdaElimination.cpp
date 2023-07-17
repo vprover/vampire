@@ -56,8 +56,6 @@ typedef ApplicativeHelper AH;
  */
 bool LambdaElimination::TermListComparator::lessThan(TermList t1, TermList t2)
 {
-  CALL("TermListComparator::lessThan");
-
   if(t1.tag()!=t2.tag()) {
     return t1.tag() < t2.tag();
   }
@@ -112,8 +110,6 @@ bool LambdaElimination::TermListComparator::lessThan(TermList t1, TermList t2)
 
 TermList LambdaElimination::elimLambda(Formula* formula)
 {
-  CALL("LambdaElimination::elimLambda(Formula*)");
-
   TermList appTerm; //The resulting term to be pushed onto _toBeProcessed 
   TermList constant; //The HOL constant for various connectives
 
@@ -240,8 +236,6 @@ TermList LambdaElimination::elimLambda(Formula* formula)
 
 TermList LambdaElimination::elimLambda(TermList term)
 {
-  CALL("LambdaElimination::elimLambda(TermList)");
-
   if(term.isVar()){
     return term;
   }
@@ -293,8 +287,6 @@ TermList LambdaElimination::elimLambda(TermList term)
 TermList LambdaElimination::elimLambda(Stack<int>& vars, TermStack& sorts, 
                                        TermList body, TermList sort)
 {
-  CALL("LambdaElimination::elimLambda(Stack<int>& vars...)");
-
   TermList bodye = elimLambda(body);
   // Lambda elimination should not change the sort
   // of a term
@@ -314,8 +306,6 @@ TermList LambdaElimination::elimLambda(Stack<int>& vars, TermStack& sorts,
 TermList LambdaElimination::elimLambda(int var, TermList varSort, 
                                        TermList body, TermList sort)
 {
-  CALL("LambdaElimination::elimLambda(int var...)");
-
   if(!body.isFreeVariable(var)){
     return createKTerm(sort, varSort, body);    
   }
@@ -366,15 +356,11 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
 
 TermList LambdaElimination::elimLambda(Term* lambdaTerm)
 {
-  CALL("LambdaElimination::elimLambda");
-  
   return elimLambda(TermList(lambdaTerm));
 }
 
 TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
 {
-  CALL("LambdaElimination::createKTerm");
-  
   unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
   return AH::createAppTerm(sortOf(res), res, arg1);             
@@ -383,8 +369,6 @@ TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
 TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg1sort, 
                                             TermList arg2, TermList arg2sort, Signature::Combinator comb)
 {
-  CALL("LambdaElimination::createSCorBTerm");
-  
   TermList s1, s2, s3;
   unsigned cb = env.signature->getCombinator(comb);
   
@@ -405,16 +389,12 @@ TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg1sort,
 
 TermList LambdaElimination::sortOf(TermList t)
 {
-  CALL("LambdaElimination::sortOf");
-  
   ASS(t.isTerm());
   return SortHelper::getResultSort(t.term());
 }
 
 void LambdaElimination::addCombinatorAxioms(Problem& prb)
 {
-  CALL("LambdaElimination::addCombinatorAxioms"); 
- 
   auto srtOf = [] (TermList t) { 
      ASS(t.isTerm());
      return SortHelper::getResultSort(t.term());
@@ -489,8 +469,6 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
 
 void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
 {
-  CALL("LambdaElimination::addFunctionExtensionalityAxiom"); 
- 
   auto srtOf = [] (TermList t) { 
      ASS(t.isTerm());
      return SortHelper::getResultSort(t.term());
@@ -521,8 +499,6 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
 
 void LambdaElimination::addChoiceAxiom(Problem& prb)
 {
-  CALL("LambdaElimination::addChoiceAxiom"); 
- 
   TermList alpha = TermList(0, false);
   TermList boolS = AtomicSort::boolSort();
   TermList alphaBool = AtomicSort::arrowSort(alpha, AtomicSort::boolSort());
@@ -549,8 +525,6 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
 
 void LambdaElimination::addProxyAxioms(Problem& prb)
 {
-  CALL("LambdaElimination::addProxyAxioms");   
-
   auto srtOf = [] (TermList t) { 
     ASS(t.isTerm());
     return SortHelper::getResultSort(t.term());

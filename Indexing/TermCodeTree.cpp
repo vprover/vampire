@@ -34,8 +34,6 @@ using namespace Kernel;
 
 void TermCodeTree::onCodeOpDestroying(CodeOp* op)
 {
-  CALL("TermCodeTree::onCodeOpDestroying");
-  
   if (op->isSuccess()) {    
     delete static_cast<TermInfo*>(op->getSuccessResult());
   }
@@ -49,8 +47,6 @@ TermCodeTree::TermCodeTree()
 
 void TermCodeTree::insert(TermInfo* ti)
 {
-  CALL("TermCodeTree::insert");
-  
   static CodeStack code;
   code.reset();
 
@@ -78,8 +74,6 @@ void TermCodeTree::insert(TermInfo* ti)
 
 void TermCodeTree::remove(const TermInfo& ti)
 {
-  CALL("TermCodeTree::remove");
-  
   static RemovingTermMatcher rtm;
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
@@ -131,8 +125,6 @@ void TermCodeTree::remove(const TermInfo& ti)
 void TermCodeTree::RemovingTermMatcher::init(FlatTerm* ft_, 
 					     TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  CALL("TermCodeTree::RemovingTermMatcher::init");
-  
   RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
   
   firstsInBlocks->push(entry);
@@ -153,8 +145,6 @@ TermCodeTree::TermMatcher::TermMatcher()
 
 void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
 {
-  CALL("TermCodeTree::TermMatcher::init");
-  
   Matcher::init(tree,tree->getEntryPoint());
 
   linfos=0;
@@ -169,8 +159,6 @@ void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
 
 void TermCodeTree::TermMatcher::reset()
 {
-  CALL("TermCodeTree::TermMatcher::reset");
-  
   ft->destroy();
 #if VDEBUG
   ft=0;
@@ -179,8 +167,6 @@ void TermCodeTree::TermMatcher::reset()
 
 TermCodeTree::TermInfo* TermCodeTree::TermMatcher::next()
 {
-  CALL("TermCodeTree::TermMatcher::next");
-  
   if (finished()) {
     //all possible matches are exhausted
     return 0;

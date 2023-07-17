@@ -72,8 +72,6 @@ ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, in
  */
 bool ResultSubstitution::isRenamingOn(TermList t, bool result) 
 {
-  CALL("ResultSubstitution::isRenamingOn");
-
   DHMap<TermList,TermList> renamingInMaking;
 
   VariableIterator it(t);

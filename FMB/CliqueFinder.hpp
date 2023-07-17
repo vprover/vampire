@@ -23,8 +23,6 @@ namespace FMB {
   public:
     static unsigned findMaxCliqueSize(DHMap<unsigned,DHSet<unsigned>*>* Ngraph)
     {
-      CALL("FMB::CliqueFinder::findMaxCliqueSize");
-
       //cout << "findMaxCliqueSize with " << Ngraph->size() << endl;
 
       // at least stores the number of nodes with at least index neighbours
@@ -93,8 +91,6 @@ namespace FMB {
     // check if a clique is a clique
     static bool checkClique(DHMap<unsigned,DHSet<unsigned>*>* Ngraph, Stack<unsigned>& clique)
     {
-      CALL("FMB::CliqueFinder::checkClique");
-      
       //cout << "CHECK "; for(unsigned j=0;j<clique.size();j++){ cout << clique[j] << " ";}; cout << endl;
 
       for(unsigned i=0;i<clique.size()-1;i++){

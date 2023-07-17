@@ -245,7 +245,6 @@ private:
 
   VarSpec getVarSpec(TermList tl, int index) const
   {
-    CALL("RobSubstitution::getVarSpec");
     ASS(tl.isVar());
     index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
     return VarSpec(tl.var(), index);

@@ -34,13 +34,10 @@ namespace Shell {
   }
 
   bool SubexpressionIterator::hasNext() {
-    CALL("SubexpressionIterator::hasNext");
     return _subexpressions.isNonEmpty();
   }
 
   SubexpressionIterator::Expression SubexpressionIterator::next() {
-    CALL("SubexpressionIterator::next");
-
     ASS(hasNext());
     Expression expression = _subexpressions.pop();
     int polarity = expression._polarity;

@@ -27,8 +27,6 @@ namespace Kernel
  */
 Term* TermTransformer::transform(Term* term)
 {
-  CALL("TermTransformer::transform(Term* term)");
-
   if (term->isSpecial()) {
     return transformSpecial(term);
   }
@@ -136,7 +134,6 @@ Term* TermTransformer::transform(Term* term)
 
 Literal* TermTransformer::transform(Literal* lit)
 {
-  CALL("TermTransformer::transform(Literal* lit)");
   Term* t = transform(static_cast<Term*>(lit));
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
@@ -144,7 +141,6 @@ Literal* TermTransformer::transform(Literal* lit)
 
 Term* TermTransformer::transformSpecial(Term* term)
 {
-  CALL("TermTransformer::transformSpecial(Term* term)");
   ASS(term->isSpecial());
 
   Term::SpecialTermData* sd = term->getSpecialData();
@@ -228,8 +224,6 @@ Term* TermTransformer::transformSpecial(Term* term)
 
 TermList TermTransformer::transform(TermList ts)
 {
-  CALL("TermTransformer::transform(TermList ts)");
-
   if (ts.isVar()) {
     return transformSubterm(ts);
   } else {
@@ -244,14 +238,12 @@ TermList TermTransformer::transform(TermList ts)
 
 Formula* TermTransformer::transform(Formula* f)
 {
-  CALL("TermTransformer::transform(Formula* f)");
   TermTransformingFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 
 Term* BottomUpTermTransformer::transform(Term* term)
 {
-  CALL("BottomUpTermTransformer::transform(Term* term)");
   ASS(term->shared());
 
   static Stack<TermList*> toDo(8);
@@ -340,7 +332,6 @@ Term* BottomUpTermTransformer::transform(Term* term)
 
 Literal* BottomUpTermTransformer::transform(Literal* lit)
 {
-  CALL("TermTransformer::transform(Literal* lit)");
   Term* t = transform(static_cast<Term*>(lit));
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
@@ -348,7 +339,6 @@ Literal* BottomUpTermTransformer::transform(Literal* lit)
 
 Formula* BottomUpTermTransformer::transform(Formula* f)
 {
-  CALL("BottomUpTermTransformer::transform(Formula* f)");
   static BottomUpTermTransformerFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }

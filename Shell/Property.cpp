@@ -15,7 +15,6 @@
  * @since 17/07/2003 Manchester, changed to new representation
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
@@ -99,8 +98,6 @@ Property::Property()
  */
 Property* Property::scan(UnitList* units)
 {
-  CALL("Property::scan");
-
   // a bit of a hack, these counts belong in Property
   for(unsigned f=0;f<env.signature->functions();f++){ 
     env.signature->getFunction(f)->resetUsageCnt(); 
@@ -122,8 +119,6 @@ Property* Property::scan(UnitList* units)
  */
 void Property::add(UnitList* units)
 {
-  CALL("Property::add(UnitList*)");
-
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     scan(us.next());
@@ -215,8 +210,6 @@ void Property::add(UnitList* units)
  */
 void Property::scan(Unit* unit)
 {
-  CALL("Property::scan(const Unit*)");
-
   _symbolsInFormula.reset();
 
   if (unit->isClause()) {
@@ -258,8 +251,6 @@ void Property::scan(Unit* unit)
  */
 void Property::scan(Clause* clause)
 {
-  CALL("Property::scan(const Clause*)");
-
   int positiveLiterals = 0;
   int negativeLiterals = 0;
   int equationalLiterals = 0;
@@ -367,9 +358,6 @@ void Property::scan(Clause* clause)
  */
 void Property::scan(FormulaUnit* unit)
 {
-  CALL("Property::scan(const FormulaUnit*)");
-
-
   if (unit->inputType() == UnitInputType::AXIOM) {
     _axiomFormulas ++;
   }
@@ -408,8 +396,6 @@ void Property::scan(FormulaUnit* unit)
  */
 void Property::scan(Formula* f, int polarity)
 {
-  CALL("void Property::scan(Formula* formula, int polarity)");
-
   _subformulas++;
   switch(f->connective()) {
     case LITERAL: {
@@ -486,8 +472,6 @@ void Property::scan(Formula* f, int polarity)
  */
 void Property::scanSort(TermList sort)
 {
-  CALL("Property::scanSort");
-
   if(sort.isVar()){
     _hasNonDefaultSorts = true;
     return;
@@ -575,8 +559,6 @@ void Property::scanSort(TermList sort)
  */
 void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
 {
-  CALL("Property::scan(const Literal*...)");
-
   if (lit->isEquality()) {
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
     TermList lhs = *lit->nthArgument(0);
@@ -646,8 +628,6 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
  */
 void Property::scan(TermList ts,bool unit,bool goal)
 {
-  CALL("Property::scan(TermList)");
-
   if (ts.isVar()) {
     _variablesInThisClause++;
     return;
@@ -746,8 +726,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
 void Property::scanForInterpreted(Term* t)
 {
-  CALL("Property::scanInterpretation");
-
   Interpretation itp;
   if (t->isLiteral()) {
     Literal* lit = static_cast<Literal*>(t);
@@ -804,7 +782,6 @@ void Property::scanForInterpreted(Term* t)
  */
 vstring Property::categoryString() const
 {
-  CALL("vstring Property::categoryString() const");
   return categoryToString(_category);
 }
 vstring Property::categoryToString(Category cat)
@@ -893,8 +870,6 @@ vstring Property::toString() const
  */
 bool Property::hasXEqualsY(const Clause* c)
 {
-  CALL("Property::hasXEqualsY (const Clause*)");
-
   for (int i = c->length()-1; i >= 0; i--) {
     const Literal* lit = (*c)[i];
     if (lit->isNegative()) {
@@ -932,8 +907,6 @@ bool Property::hasXEqualsY(const Clause* c)
  */
 bool Property::hasXEqualsY(const Formula* f)
 {
-  CALL("Property::hasXEqualsY (const Formula*)");
-
   MultiCounter posVars; // universally quantified variables in positive subformulas
   MultiCounter negVars; // universally quantified variables in negative subformulas
 

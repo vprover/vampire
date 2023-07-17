@@ -81,8 +81,6 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
  */
 bool PortfolioMode::perform(float slowness)
 {
-  CALL("PortfolioMode::perform");
-
   PortfolioMode pm;
   pm._slowness = slowness;
 
@@ -129,8 +127,6 @@ bool PortfolioMode::perform(float slowness)
 
 bool PortfolioMode::searchForProof()
 {
-  CALL("PortfolioMode::searchForProof");
-
   _prb = UIHelper::getInputProblem(*env.options);
 
   /* CAREFUL: Make sure that the order
@@ -168,8 +164,6 @@ bool PortfolioMode::searchForProof()
 
 bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 {
-  CALL("PortfolioMode::prepareScheduleAndPerform");
-
   // this is the one and only schedule that will leave this function
   // we fill it up in various ways
   Schedule schedule;
@@ -192,8 +186,6 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
   // a (temporary) helper lambda that will go away as soon as we have new schedules from spider
   auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) { 
-    CALL("PortfolioMode::prepareScheduleAndPerform-additionsSinceTheLastSpiderings");
-
     // Always try these
     addScheduleExtra(sOrig,sWithExtras,"si=on:rtra=on:rawr=on:rp=on"); // shuffling options
     addScheduleExtra(sOrig,sWithExtras,"sp=frequency");                // frequency sp; this is in casc19 but not smt18
@@ -295,8 +287,6 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
  */
 void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier) 
 {
-  CALL("PortfolioMode::rescaleScheduleLimits");
-
   Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
     vstring s = it.next();
@@ -337,8 +327,6 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
  */
 void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra)
 {
-  CALL("PortfolioMode::addScheduleExtra");
-
   Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
     vstring s = it.next();
@@ -355,8 +343,6 @@ void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstri
 
 void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule& fallback)
 {
-  CALL("PortfolioMode::getSchedules");
-
   switch(env.options->schedule()) {
   case Options::Schedule::FILE:
     Schedules::getScheduleFromFile(env.options->scheduleFile(), quick);
@@ -424,7 +410,6 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
 }
 
 bool PortfolioMode::runSchedule(Schedule schedule) {
-  CALL("PortfolioMode::runSchedule");
   TIME_TRACE("run schedule");
 
   Schedule::BottomFirstIterator it(schedule);
@@ -502,8 +487,6 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
  */
 bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
 {
-  CALL("PortfolioMode::runScheduleAndRecoverProof");
-
   if (schedule.size() == 0)
     return false;
 
@@ -551,8 +534,6 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
  */
 unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
 {
-  CALL("PortfolioMode::getSliceTime");
-
   unsigned pos = sliceCode.find_last_of('_');
   vstring sliceTimeStr = sliceCode.substr(pos+1);
   unsigned sliceTime;
@@ -593,7 +574,6 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
  */
 void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
 {
-  CALL("PortfolioMode::runSlice");
   TIME_TRACE("run slice");
 
   int sliceTime = getSliceTime(sliceCode);
@@ -639,8 +619,6 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
  */
 void PortfolioMode::runSlice(Options& strategyOpt)
 {
-  CALL("PortfolioMode::runSlice(Option&)");
-
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
 

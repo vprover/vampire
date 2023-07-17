@@ -59,8 +59,6 @@ class BestLiteralSelector
 
   BestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
   {
-    CALL("BestLiteralSelector::BestLiteralSelector");
-
     _comp.attachSelector(this);
   }
 
@@ -68,8 +66,6 @@ class BestLiteralSelector
 protected:
   void doSelection(Clause* c, unsigned eligible) override
   {
-    CALL("BestLiteralSelector::doSelection");
-
     unsigned besti=0;
     Literal* best=(*c)[0];
     for(unsigned i=1;i<eligible;i++) {
@@ -125,8 +121,6 @@ public:
 
   CompleteBestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
   {
-    CALL("CompleteBestLiteralSelector::CompleteBestLiteralSelector");
-
     _comp.attachSelector(this);
   }
 
@@ -134,7 +128,6 @@ public:
 protected:
   void doSelection(Clause* c, unsigned eligible) override
   {
-    CALL("CompleteBestLiteralSelector::doSelection");
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
     static bool combSup = env.options->combinatorySup();
@@ -248,7 +241,6 @@ protected:
 
   void fillMaximals(LiteralList*& maximals, DArray<Literal*> litArr)
   {
-    CALL("CompleteBestLiteralSelector::fillMaximals");
     DArray<Literal*>::ReversedIterator rlit(litArr);
     while(rlit.hasNext()) {
       Literal* lit=rlit.next();
@@ -259,8 +251,6 @@ protected:
 
   bool canBeSelected(Literal* lit, Set<unsigned>* maxTermHeads)
   {
-    CALL("CompleteBestLiteralSelector::canBeSelected");
-
     // TODO: 
     // - fsi always returns terms only.therefore the whole implementation would always return true anyways, so we can comment out this code.
     // - this was discovered during a refactoring. Why was this function here in the first place? 

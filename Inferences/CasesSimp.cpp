@@ -36,8 +36,6 @@ namespace Inferences {
 
 
 ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, TermList t) {
-  CALL("CasesSimp::performSimplification");
-
   ASS(t.isTerm());
 
   static ClauseStack results;
@@ -91,8 +89,6 @@ struct CasesSimp::ResultFn
   ResultFn(Clause* cl, CasesSimp& parent) : _cl(cl), _parent(parent) {}
   ClauseIterator operator()(pair<Literal*, TermList> arg)
   {
-    CALL("CasesSimp::ResultFn::operator()");
-    
     return _parent.performSimplification(_cl, arg.first, arg.second);
   }
 private:
@@ -106,8 +102,6 @@ struct CasesSimp::RewriteableSubtermsFn
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
-    CALL("CasesSimp::RewriteableSubtermsFn()");
-
     return pvi( pushPairIntoRightIterator(lit, 
                 getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
   }
@@ -117,8 +111,6 @@ struct CasesSimp::RewriteableSubtermsFn
 
 ClauseIterator CasesSimp::simplifyMany(Clause* premise)
 {
-  CALL("CasesSimp::generateClauses");
-
   auto it1 = premise->getLiteralIterator();
   auto it2 = getFilteredIterator(it1, isEqualityLit()); 
 

@@ -36,8 +36,6 @@ typedef ApplicativeHelper AH;
 
 Clause* CombinatorNormalisationISE::simplify(Clause* c)
 {
-  CALL("CombinatorNormalisationISE::simplify");
-
   Literal* newLit;
   LiteralStack litStack;
   bool modified = false;
@@ -73,8 +71,6 @@ Clause* CombinatorNormalisationISE::simplify(Clause* c)
 
 TermList CombinatorNormalisationISE::normalise(TermList t)
 {
-  CALL("CombinatorNormalisationISE::normalise");
-  
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
 
   ASS(!t.isVar());
@@ -162,8 +158,6 @@ TermList CombinatorNormalisationISE::normalise(TermList t)
 
 bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
 {
-  CALL("CombinatorNormalisationISE::replaceWithSmallerCombinator");
-
   static TermStack args;
   static TermStack args1;
   static TermStack args2;
@@ -306,8 +300,6 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
 
 TermList CombinatorNormalisationISE::createKTerm(TermList s1, TermList s2, TermList arg1)
 {
-  CALL("CombinatorNormalisationISE::createKTerm");
-  
   unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
   res = AH::createAppTerm(SortHelper::getResultSort(res.term()), res, arg1);             
@@ -317,8 +309,6 @@ TermList CombinatorNormalisationISE::createKTerm(TermList s1, TermList s2, TermL
 TermList CombinatorNormalisationISE::createSCorBTerm(TermList arg1, TermList arg1sort,
           TermList arg2, TermList arg2sort, Signature::Combinator comb)
 {
-  CALL("CombinatorNormalisationISE::createSCorBTerm");
-  
   TermList s1, s2, s3;
   unsigned cb = env.signature->getCombinator(comb);
   

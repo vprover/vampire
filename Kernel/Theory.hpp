@@ -423,8 +423,6 @@ public:
 
   Interpretation interpretationFromIndexedInterpretation(IndexedInterpretation ii, unsigned index)
   {
-    CALL("inpretationFromIndexedInterpretation");
-
     ConcreteIndexedInterpretation cii = std::make_pair(ii,index);
 
     Interpretation res;
@@ -519,7 +517,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, IntegerConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,IntegerConstantType)");
     if (!trm.isTerm()) {
       return false;
     }
@@ -534,7 +531,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, RationalConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,RationalConstantType)");
     if (!trm.isTerm()) {
       return false;
     }
@@ -549,7 +545,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, RealConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,RealConstantType)");
     if (!trm.isTerm()) {
       return false;
     }

@@ -17,7 +17,6 @@
  * @since 06/05/2015 Gothenburg in order to support FOOL, we need to search for formulas inside terms as well
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "SubformulaIterator.hpp"
 
@@ -105,8 +104,6 @@ SubformulaIterator::SubformulaIterator (FormulaList* ts)
  */
 bool SubformulaIterator::hasNext ()
 {
-  CALL("SubformulaIterator::hasNext");
-
   if (_current) {
     return true;
   }
@@ -241,8 +238,6 @@ bool SubformulaIterator::hasNext ()
  */
 Formula* SubformulaIterator::next ()
 {
-  CALL("SubformulaIterator::next/0");
-
   int dummy;
   return next(dummy);
 }
@@ -257,8 +252,6 @@ Formula* SubformulaIterator::next ()
  */
 Formula* SubformulaIterator::next (int& resultPolarity)
 {
-  CALL("SubformulaIterator::next/1");
-
   Formula* result = _current;
   resultPolarity = _currentPolarity;
 

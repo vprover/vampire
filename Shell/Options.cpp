@@ -24,7 +24,6 @@
 
 #include "Forwards.hpp"
 
-#include "Debug/Tracer.hpp"
 #include "Debug/Assertion.hpp"
 
 #include "Lib/VString.hpp"
@@ -66,14 +65,11 @@ static const int COPY_SIZE = 128;
 Options::Options ()
 
 {
-    CALL("Options::Options");
     init();
 }
 
 void Options::init()
 {
-   CALL("Options::init");
-
 //**********************************************************************
 //*********************** GLOBAL, for all modes  ***********************
 //**********************************************************************
@@ -2447,7 +2443,6 @@ void Options::init()
 
 void Options::copyValuesFrom(const Options& that)
 {
-  CALL("Options::copyValuesFrom");
   //copy across the actual values in that
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
 
@@ -2464,16 +2459,12 @@ void Options::copyValuesFrom(const Options& that)
 }
 Options::Options(const Options& that)
 {
-  CALL("Options::Options(const Options& that)");
-
   init();
   copyValuesFrom(that);
 }
 
 Options& Options::operator=(const Options& that)
 {
-  CALL("Options& Options::operator=(const Options& that)");
-
   if(this==&that) return *this;
   copyValuesFrom(that);
   return *this;
@@ -2489,8 +2480,6 @@ Options& Options::operator=(const Options& that)
  */
 void Options::set(const char* name,const char* value, bool longOpt)
 {
-  CALL ("Options::set/3");
-
   try {
     if((longOpt && !_lookup.findLong(name)->set(value)) ||
         (!longOpt && !_lookup.findShort(name)->set(value))) {
@@ -2544,12 +2533,10 @@ void Options::set(const char* name,const char* value, bool longOpt)
  */
 void Options::set(const vstring& name,const vstring& value)
 {
-  CALL ("Options::set/2");
   set(name.c_str(),value.c_str(),true);
 } // Options::set/2
 
 bool Options::OptionHasValue::check(Property*p){
-          CALL("Options::OptionHasValue::check");
           AbstractOptionValue* opt = env.options->getOptionValueByName(option_value);
           ASS(opt);
           return opt->getStringOfActual()==value;
@@ -2557,12 +2544,10 @@ bool Options::OptionHasValue::check(Property*p){
 
 bool Options::HasTheories::actualCheck(Property*p)
 {
-  CALL("Options::HasTheories::actualCheck");
   return (p->hasNumerals() || p->hasInterpretedOperations() || env.signature->hasTermAlgebras());
 }
 
 bool Options::HasTheories::check(Property*p) {
-  CALL("Options::HasTheories::check");
   // this was the condition used in Preprocess::preprocess guarding the addition of theory axioms
   return actualCheck(p);
 }
@@ -2591,8 +2576,6 @@ Options::OptionProblemConstraintUP Options::saNotInstGen(){
  */
 vstring Options::includeFileName (const vstring& relativeName)
 {
-  CALL("Options::includeFileName");
-
   if (relativeName[0] == '/') { // absolute name
     return relativeName;
   }
@@ -2644,8 +2627,6 @@ vstring Options::includeFileName (const vstring& relativeName)
  */
 void Options::output (ostream& str) const
 {
-  CALL("Options::output");
-
   if(printAllTheoryAxioms()){
     cout << "Sorry, not implemented yet!" << endl;
 
@@ -2788,8 +2769,6 @@ void Options::output (ostream& str) const
 
 template<typename T>
 bool Options::OptionValue<T>::randomize(Property* prop){
-  CALL("Options::OptionValue::randomize()");
-
   DArray<vstring>* choices = nullptr;
   if(env.options->randomStrategy()==RandomStrategy::NOCHECK) prop=0;
 
@@ -2822,7 +2801,6 @@ bool Options::OptionValue<T>::randomize(Property* prop){
 //TODO should not use cout, should use env.out
 template<typename T>
 bool Options::OptionValue<T>::checkConstraints(){
-     CALL("Options::OptionValue::checkConstraints");
      typename Lib::Stack<OptionValueConstraintUP<T>>::RefIterator it(_constraints);
      while(it.hasNext()){
        const OptionValueConstraintUP<T>& con = it.next();
@@ -2862,8 +2840,6 @@ bool Options::OptionValue<T>::checkConstraints(){
 
 template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
-    CALL("Options::OptionValue::checkProblemConstraints");
-
     Lib::Stack<OptionProblemConstraintUP>::RefIterator it(_prob_constraints);
     while(it.hasNext()){
       OptionProblemConstraintUP& con = it.next();
@@ -2900,8 +2876,6 @@ Options::AbstractWrappedConstraintUP Options::OptionValue<T>::is(OptionValueCons
  */
 bool Options::RatioOptionValue::readRatio(const char* val, char separator)
 {
-  CALL("RatioOptionValue::readRatio");
-
   // search the string for ":"
   bool found = false;
   int colonIndex = 0;
@@ -2949,8 +2923,6 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
 
 bool Options::NonGoalWeightOptionValue::setValue(const vstring& value)
 {
-  CALL("NonGoalWeightOptionValue::setValue");
-
  float newValue;
  if(!Int::stringToFloat(value.c_str(),newValue)) return false;
 
@@ -2970,8 +2942,6 @@ bool Options::NonGoalWeightOptionValue::setValue(const vstring& value)
 
 bool Options::SelectionOptionValue::setValue(const vstring& value)
 {
-  CALL("SelectionOptionValue::setValue");
-
   int sel;
   if(!Int::stringToInt(value,sel)) return false;
   switch (sel) {
@@ -3033,8 +3003,6 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
 
 bool Options::InputFileOptionValue::setValue(const vstring& value)
 {
-  CALL("InputFileOptionValue::setValue");
-
   actualValue=value;
   if(value.empty()) return true;
 
@@ -3066,8 +3034,6 @@ bool Options::InputFileOptionValue::setValue(const vstring& value)
 
 bool Options::TimeLimitOptionValue::setValue(const vstring& value)
 {
-  CALL("Options::readTimeLimit");
-
   int length = value.size();
   if (length == 0 || length >= COPY_SIZE) {
     USER_ERROR((vstring)"wrong value for time limit: " + value);
@@ -3124,7 +3090,6 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
 
 void Options::randomizeStrategy(Property* prop)
 {
-  CALL("Options::randomizeStrategy");
   if(_randomStrategy.actualValue==RandomStrategy::OFF) return;
 
   TIME_TRACE("random option generation");
@@ -3195,8 +3160,6 @@ void Options::randomizeStrategy(Property* prop)
  */
 void Options::readOptionsString(vstring optionsString,bool assign)
 {
-  CALL("Options::readOptionsString");
-
   // repeatedly look for param=value
   while (optionsString != "") {
     size_t index1 = optionsString.find('=');
@@ -3279,8 +3242,6 @@ void Options::readOptionsString(vstring optionsString,bool assign)
  */
 void Options::readFromEncodedOptions (vstring testId)
 {
-  CALL("Options::readFromTestId");
-
   _normalize.actualValue = true;
   _testId.actualValue = testId;
 
@@ -3348,8 +3309,6 @@ void Options::readFromEncodedOptions (vstring testId)
 
 void Options::setForcedOptionValues()
 {
-  CALL("Options::setForcedOptionValues");
-
   if(_forcedOptions.actualValue.empty()) return;
   readOptionsString(_forcedOptions.actualValue);
 }
@@ -3359,8 +3318,6 @@ void Options::setForcedOptionValues()
  */
 vstring Options::generateEncodedOptions() const
 {
-  CALL("Options::generateEncodedOptions");
-
   BYPASSING_ALLOCATOR;
   vostringstream res;
   //saturation algorithm
@@ -3439,8 +3396,6 @@ vstring Options::generateEncodedOptions() const
  */
 bool Options::complete(const Problem& prb) const
 {
-  CALL("Options::complete");
-
   if(prb.isHigherOrder()){
     //safer for competition
     return false;
@@ -3530,8 +3485,6 @@ bool Options::complete(const Problem& prb) const
  */
 bool Options::completeForNNE() const
 {
-  CALL("Options::completeForNNE");
-
   // preprocessing
   if (_sineSelection.actualValue != SineSelection::OFF) return false;
 
@@ -3558,8 +3511,6 @@ bool Options::completeForNNE() const
  */
 bool Options::checkGlobalOptionConstraints(bool fail_early)
 {
-  CALL("Options::checkGlobalOptionsConstraints");
-
   //Check forbidden options
   readOptionsString(_forbiddenOptions.actualValue,false);
     
@@ -3585,8 +3536,6 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
  **/
 bool Options::checkProblemOptionConstraints(Property* prop, bool before_preprocessing, bool fail_early)
 {
-   CALL("Options::checkProblemOptionConstraints");
-
   bool result = true;
 
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
@@ -3619,9 +3568,6 @@ Lib::vvector<A> parseCommaSeparatedList(vstring const& str)
 
 Lib::vvector<int> Options::theorySplitQueueRatios() const
 {
-  CALL("Options::theorySplitQueueRatios");
-
-
   auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
 
   // sanity checks
@@ -3639,7 +3585,6 @@ Lib::vvector<int> Options::theorySplitQueueRatios() const
 
 Lib::vvector<float> Options::theorySplitQueueCutoffs() const
 {
-  CALL("Options::theorySplitQueueCutoffs");
   // initialize cutoffs
   Lib::vvector<float> cutoffs;
 
@@ -3674,7 +3619,6 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
 
 Lib::vvector<int> Options::avatarSplitQueueRatios() const
 {
-  CALL("Options::avatarSplitQueueRatios");
   Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
 
   // sanity checks
@@ -3692,7 +3636,6 @@ Lib::vvector<int> Options::avatarSplitQueueRatios() const
 
 Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
 {
-  CALL("Options::avatarSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
@@ -3713,7 +3656,6 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
 
 Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
 {
-  CALL("Options::sineLevelSplitQueueRatios");
   auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
 
   // sanity checks
@@ -3731,7 +3673,6 @@ Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
 
 Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
 {
-  CALL("Options::sineLevelSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());
@@ -3752,7 +3693,6 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
 
 Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
 {
-  CALL("Options::positiveLiteralSplitQueueRatios");
   auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
 
   // sanity checks
@@ -3770,7 +3710,6 @@ Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
 
 Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
 {
-  CALL("Options::positiveLiteralSplitQueueCutoffs");
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);
   cutoffs.push_back(std::numeric_limits<float>::max());

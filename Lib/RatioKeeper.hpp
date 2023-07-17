@@ -17,7 +17,6 @@
 
 #include "Forwards.hpp"
 
-#include "Debug/Tracer.hpp"
 
 namespace Lib {
 
@@ -37,7 +36,6 @@ public:
 
   void doFirst(int cost=1)
   {
-    CALL("RatioKeeper::doFirst");
     ASS(shouldDoFirst());
     _balance -= cost*_secondRatio;
     _lastWasFirst = true;
@@ -45,7 +43,6 @@ public:
 
   void doSecond(int cost=1)
   {
-    CALL("RatioKeeper::doSecond");
     ASS(shouldDoSecond());
     _balance += cost*_firstRatio;
     _lastWasFirst = false;

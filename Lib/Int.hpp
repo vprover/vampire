@@ -100,8 +100,6 @@ class Int
   template<typename INT>
   static unsigned gcd(INT i,INT j)
   {
-    CALL("Int::gcd");
-
     unsigned a=safeAbs(i);
     unsigned b=safeAbs(j);
 
@@ -126,8 +124,6 @@ class Int
   template<typename INT>
   static bool safeUnaryMinus(const INT num, INT& res)
   {
-    CALL("Int::safeUnaryMinus");
-
     if(num == numeric_limits<INT>::min()) {
       return false;
     }
@@ -137,8 +133,6 @@ class Int
 
   static unsigned safeAbs(const int num)
   {
-    CALL("Int::safeAbs");
-
     if(num == numeric_limits<int>::min()) { // = -2147483648
       return (unsigned)num; // = 2147483648
     }
@@ -153,8 +147,6 @@ class Int
   template<typename INT>
   static bool safePlus(INT arg1, INT arg2, INT& res)
   {
-    CALL("Int::safePlus");
-
     if(arg2<0) {
       if(numeric_limits<INT>::min() - arg2 > arg1) { return false; }
     }
@@ -172,8 +164,6 @@ class Int
   template<typename INT>
   static bool safeMinus(INT num, INT sub, INT& res)
   {
-    CALL("Int::safeMinus");
-
     if(sub<0) {
       if(numeric_limits<INT>::max() + sub < num) { return false; }
     }
@@ -186,7 +176,6 @@ class Int
 
   template <typename T>
   static int sgn(T val) {
-    CALL("Int::sgn");
     return (T(0) < val) - (val < T(0));
   }
 
@@ -197,8 +186,6 @@ class Int
   template<typename INT>
   static bool safeMultiply(INT arg1, INT arg2, INT& res)
   {
-    CALL("Int::safeMultiply");
-
     if (arg1 == 0 || arg1 == 1 || arg2 == 0 || arg2 == 1) {
       res=arg1*arg2;
       return true;
@@ -231,7 +218,6 @@ class Int
 
   inline static bool safeDivide(int arg1, int arg2, int& res)
   {
-    CALL("Int::safeDivide");
     if (arg2 == 0) return false;
 
     // check for 2 complement representation

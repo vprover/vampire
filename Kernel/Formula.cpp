@@ -31,8 +31,6 @@ vstring Formula::DEFAULT_LABEL = "none";
  */
 void Formula::destroy ()
 {
-  CALL ("Formula::destroy");
-
   switch ( connective() ) {
   case LITERAL:
     delete static_cast<AtomicFormula*>(this);
@@ -97,8 +95,6 @@ vstring Formula::toString (Connective c)
  */
 vstring Formula::toString () const
 {
-  CALL("Formula::toString");
-
   vstring res;
 
   // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
@@ -244,8 +240,6 @@ vstring Formula::toString () const
  */
 bool Formula::parenthesesRequired (Connective outer) const
 {
-  CALL("Formula::parenthesesRequired");
-
   switch (connective())
     {
     case LITERAL:
@@ -288,8 +282,6 @@ bool Formula::parenthesesRequired (Connective outer) const
  */
 VList* Formula::freeVariables () const
 {
-  CALL("Formula::freeVariables");
-
   FormulaVarIterator fvi(this);
   VList* result = VList::empty();
   VList::FIFO stack(result);
@@ -301,8 +293,6 @@ VList* Formula::freeVariables () const
 
 bool Formula::isFreeVariable(unsigned var) const
 {
-  CALL("Formula::isFreeVariable");
-
   FormulaVarIterator fvi(this);
   while (fvi.hasNext()) {
     if (var == fvi.next()) {
@@ -320,8 +310,6 @@ bool Formula::isFreeVariable(unsigned var) const
  */
 VList* Formula::boundVariables () const
 {
-  CALL("Formula::boundVariables");
-
   VList* res = VList::empty();
   SubformulaIterator sfit(const_cast<Formula*>(this));
   while(sfit.hasNext()) {
@@ -342,8 +330,6 @@ VList* Formula::boundVariables () const
  */
 unsigned Formula::weight() const
 {
-  CALL("Formula::weight");
-
   unsigned result=0;
 
   SubformulaIterator fs(const_cast<Formula*>(this));
@@ -386,8 +372,6 @@ Formula* JunctionFormula::generalJunction(Connective c, FormulaList* args)
  */
 Color Formula::getColor()
 {
-  CALL("Formula::getColor");
-
   SubformulaIterator si(this);
   while(si.hasNext()) {
     Formula* f=si.next();
@@ -408,8 +392,6 @@ Color Formula::getColor()
  */
 bool Formula::getSkip()
 {
-  CALL("Formula::getColor");
-
   SubformulaIterator si(this);
   while(si.hasNext()) {
     Formula* f=si.next();
@@ -426,16 +408,12 @@ bool Formula::getSkip()
 
 Formula* Formula::trueFormula()
 {
-  CALL("Formula::trueFormula");
-
   static Formula* res = new Formula(true);
   return res;
 }
 
 Formula* Formula::falseFormula()
 {
-  CALL("Formula::falseFormula");
-
   static Formula* res = new Formula(false);
   return res;
 }
@@ -446,7 +424,6 @@ Formula* Formula::falseFormula()
  */
 Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseArg)
 {
-  CALL("Formula::createITE");
   TermList thenTerm(Term::createFormula(thenArg));
   TermList elseTerm(Term::createFormula(elseArg));
   TermList iteTerm(Term::createITE(condition, thenTerm, elseTerm, AtomicSort::boolSort()));
@@ -460,7 +437,6 @@ Formula* Formula::createITE(Formula* condition, Formula* thenArg, Formula* elseA
  */
 Formula* Formula::createLet(unsigned functor, VList* variables, TermList body, Formula* contents)
 {
-  CALL("Formula::createLet(TermList)");
   TermList contentsTerm(Term::createFormula(contents));
   TermList letTerm(Term::createLet(functor, variables, body, contentsTerm, AtomicSort::boolSort()));
   return new BoolTermFormula(letTerm);
@@ -473,7 +449,6 @@ Formula* Formula::createLet(unsigned functor, VList* variables, TermList body, F
  */
 Formula* Formula::createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents)
 {
-  CALL("Formula::createLet(Formula*)");
   TermList bodyTerm(Term::createFormula(body));
   TermList contentsTerm(Term::createFormula(contents));
   TermList letTerm(Term::createLet(predicate, variables, bodyTerm, contentsTerm, AtomicSort::boolSort()));
@@ -519,8 +494,6 @@ Formula* Formula::quantify(Formula* f)
  */
 Formula* Formula::fromClause(Clause* cl)
 {
-  CALL("Formula::fromClause");
-  
   FormulaList* resLst=0;
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {
@@ -534,13 +507,11 @@ Formula* Formula::fromClause(Clause* cl)
 
 std::ostream& operator<< (ostream& out, const Formula& f)
 {
-  CALL("operator <<(ostream&, const Formula&)");
   return out << f.toString();
 }
 
 std::ostream& operator<< (ostream& out, const Formula* f)
 {
-  CALL("operator <<(ostream&, const Formula&)");
   return out << f->toString();
 }
 

@@ -38,8 +38,6 @@ using namespace Shell;
  */
 void DistinctGroupExpansion::apply(Problem& prb)
 {
-  CALL("DistinctGroupExpansion::apply(Problem&)");
-
   if(apply(prb.units())){
     prb.invalidateProperty();
     prb.reportFormulasAdded();
@@ -56,8 +54,6 @@ void DistinctGroupExpansion::apply(Problem& prb)
  */
 bool DistinctGroupExpansion::apply(UnitList*& units)
 {
-  CALL("DistinctGroupExpansion::apply(UnitList*&)");
-
   bool added=false;
 
   Stack<Signature::DistinctGroupMembers>& group_members = env.signature->distinctGroupMembers();
@@ -99,8 +95,6 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
  */
 Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
 {
-  CALL("DistinctGroupExpansion::expand");
-
   ASS(constants.size()>=2);
   // If there are 2 just create a disequality
   if(constants.size()==2){

@@ -56,7 +56,6 @@ public:
   }
 
   MonomSet intersect(MonomSet&& rhs) && {
-    CALL("MonomSet::intersect")
     auto& lhs = *this;
     return MonomSet(intersectSortedStack(std::move(lhs._cancellable), std::move(rhs._cancellable)));
   }
@@ -79,7 +78,6 @@ struct Preprocess
   template<class NumTraits> 
   void operator()(Perfect<Polynom<NumTraits>> poly)
   {
-    CALL("AdditionGeneralizationImpl::Preprocess::operator()")
     // a variable might occur twice within one sum.
     Set<Variable, StlHash> didOccur;
     for (auto monom : poly->iterSummands()) {
@@ -123,7 +121,6 @@ struct Generalize
   template<class NumTraits>
   Perfect<Polynom<NumTraits>> operator()(Perfect<Polynom<NumTraits>> poly, PolyNf* generalizedArgs)  
   {
-    CALL("AdditionGeneralizationImpl::Generalize::operator()")
     using Monom = Kernel::Monom<NumTraits>;
 
     auto found = poly->iterSummands()

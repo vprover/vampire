@@ -37,7 +37,6 @@ namespace FMB {
 
     bool hasNext(){
       TIME_TRACE(TimeTrace::FMB_DEFINITION_INTRODUCTION);
-      CALL("DefinitionIntroduction::hasNext");
       // first see if we have any processed clauses
       if(_processed.length()==0){
         // process the next clause if it exists
@@ -50,7 +49,6 @@ namespace FMB {
 
     Clause* next(){
       TIME_TRACE(TimeTrace::FMB_DEFINITION_INTRODUCTION);
-      CALL("DefinitionIntroduction::next");
       ASS_G(_processed.length(),0);
       return _processed.pop();
     }
@@ -59,8 +57,6 @@ namespace FMB {
   private:
 
     void process(Clause* c){
-      CALL("DefinitionIntroduction::process");
-
       //cout << "Process " << c->toString() << endl;
 
       static Stack<Literal*> lits; // to rebuild the clause
@@ -107,8 +103,6 @@ namespace FMB {
     }
 
     Term* addGroundDefinition(Term* term, Clause* from){
-      CALL("DefinitionIntroduction::addGroundDefinition");
-
       //cout << "Adding defs for " << term->toString() << endl;
       ASS(term->ground());
       if(term->arity()==0) return term;
@@ -169,8 +163,6 @@ namespace FMB {
 
 /*
     Term* addNonGroundDefinition(Term* t, Clause* from){
-      CALL("DefinitionIntroduction::addNonGroundDefinition");
-
       // currently don't do anything until I've fixed it
       return t;
 

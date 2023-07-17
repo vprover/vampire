@@ -124,7 +124,6 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
   _unsatCore(unsatCoresForAssumptions),
   _out()
 {
-  CALL("Z3Interfacing::Z3Interfacing");
   BYPASSING_ALLOCATOR
   _out = exportSmtlib == "" ? Option<std::ofstream>()
                             : Option<std::ofstream>(std::ofstream(exportSmtlib.c_str())) ;
@@ -161,14 +160,11 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
 
 char const* Z3Interfacing::z3_full_version()
 {
-  CALL("Z3Interfacing::z3_version");
   return Z3_get_full_version();
 }
 
 unsigned Z3Interfacing::newVar()
 {
-  CALL("Z3Interfacing::newVar");
-
   ++_varCnt;
 
   // to make sure all the literals we will ask about later have allocated counterparts internally
@@ -179,7 +175,6 @@ unsigned Z3Interfacing::newVar()
 
 void Z3Interfacing::addClause(SATClause* cl)
 {
-  CALL("Z3Interfacing::addClause");
   BYPASSING_ALLOCATOR;
   ASS(cl);
 
@@ -216,8 +211,6 @@ void Z3Interfacing::retractAllAssumptions()
 
 void Z3Interfacing::addAssumption(SATLiteral lit)
 {
-  CALL("Z3Interfacing::addAssumption");
-
   auto pushAssumption = [&](SATLiteral lit) -> z3::expr
   {
     auto repr = getRepresentation(lit);
@@ -257,7 +250,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATClause* cl)
 
 SATSolver::Status Z3Interfacing::solve()
 {
-  CALL("Z3Interfacing::solve()");
   BYPASSING_ALLOCATOR;
   DEBUG("assumptions: ", _assumptions);
 
@@ -320,8 +312,6 @@ SATSolver::Status Z3Interfacing::solve()
 
 SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets)
 {
-  CALL("Z3Interfacing::solveUnderAssumptions");
-
   if (!_unsatCore) {
     return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit,onlyProperSubusets);
   }
@@ -338,7 +328,6 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
-  CALL("Z3Interfacing::getAssignment");
   BYPASSING_ALLOCATOR;
 
   ASS_EQ(_status,SATISFIABLE);
@@ -404,7 +393,6 @@ struct EvaluateInModel
 
   Result operator()(z3::expr expr, Result* evaluatedArgs)
   {
-    CALL("EvaluateInModel::operator()")
     DEBUG("in: ", expr)
     auto intVal = [](z3::expr e) -> Option<int> {
       int val;
@@ -464,7 +452,6 @@ struct EvaluateInModel
 
 Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
-  CALL("evaluateInModel(Term*)")
   DEBUG("in: ", *trm)
   DEBUG("model: \n", _model)
   ASS(!trm->isLiteral());
@@ -500,21 +487,17 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
 
 bool Z3Interfacing::isZeroImplied(unsigned var)
 {
-  CALL("Z3Interfacing::isZeroImplied");
-
   // Safe. TODO consider getting zero-implied
   return false;
 }
 
 void Z3Interfacing::collectZeroImplied(SATLiteralStack& acc)
 {
-  CALL("Z3Interfacing::collectZeroImplied");
   NOT_IMPLEMENTED;
 }
 
 SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
 {
-  CALL("Z3Interfacing::getZeroImpliedCertificate");
   NOT_IMPLEMENTED;
 
   return 0;
@@ -522,8 +505,6 @@ SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
 
 z3::sort Z3Interfacing::getz3sort(SortId s)
 {
-  CALL("Z3Interfacing::getz3sort");
-
   BYPASSING_ALLOCATOR;
   auto srt = _sorts.tryGet(s);
   if (srt.isSome()) {
@@ -568,7 +549,6 @@ vstring to_vstring(A const& a)
 
 void Z3Interfacing::createTermAlgebra(TermList sort)
 {
-  CALL("createTermAlgebra(TermList)")
   ASS(sort.isTerm() && sort.term()->isSort());
   if (_createdTermAlgebras.contains(sort)) return;
 
@@ -781,7 +761,6 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
 
 z3::func_decl const& Z3Interfacing::findConstructor(Term* t)
 {
-  CALL("Z3Interfacing::findConstructor(FuncId id)")
   auto id = FuncOrPredId::monomorphicFunction(t->functor());
   auto f = _toZ3.tryGet(id);
   if (f.isSome()) {
@@ -847,7 +826,6 @@ struct ToZ3Expr
 
   z3::expr operator()(TermList toEval, z3::expr* args)
   {
-    CALL("ToZ3Expr::operator()");
     // DEBUG("in: ", toEval)
     ASS(toEval.isTerm())
     auto trm = toEval.term();
@@ -1086,7 +1064,6 @@ struct ToZ3Expr
 
 z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 {
-  CALL("Z3Interfacing::z3Function");
   auto& self = *this;
 
   auto found = self._toZ3.tryGet(functor);
@@ -1133,7 +1110,6 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
  */
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
-  CALL("Z3Interfacing::getRepresentation(Term*)");
   Stack<z3::expr> defs;
   auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
   return Representation(expr, std::move(defs));
@@ -1141,7 +1117,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 {
-  CALL("Z3Interfacing::getRepresentation(SATLiteral)");
   BYPASSING_ALLOCATOR;
 
 
@@ -1187,8 +1162,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 
 SATClause* Z3Interfacing::getRefutation()
 {
-  CALL("Z3Interfacing::getRefutation");
-
   return PrimitiveProofRecordingSATSolver::getRefutation();
 
   // TODO: optionally, we could try getting an unsat core from Z3 (could be smaller than all the added clauses so far)
@@ -1198,7 +1171,6 @@ SATClause* Z3Interfacing::getRefutation()
 
 Z3Interfacing::~Z3Interfacing()
 {
-  CALL("~Z3Interfacing")
   _sorts.clear();
   _toZ3.clear();
   _fromZ3.clear();

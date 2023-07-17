@@ -64,7 +64,6 @@ public:
   virtual VarAssignment getAssignment(unsigned var) override;
 
   virtual bool isZeroImplied(unsigned var) override {
-    CALL("FallbackSolverWrapper::isZeroImplied");
     ASS_G(var,0); ASS_LE(var,_varCnt);
 
     if(_usingFallback){
@@ -97,8 +96,6 @@ public:
 
 
   virtual unsigned newVar() override { 
-    CALL("FallbackSolverWrapper::newVar");
-    
     ALWAYS(_inner->newVar() == ++_varCnt);
     ALWAYS(_fallback->newVar() == _varCnt);
     return _varCnt;

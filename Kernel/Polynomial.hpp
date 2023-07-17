@@ -891,8 +891,6 @@ bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) {
 template<class Number>
 TermList MonomFactors<Number>::denormalize(TermList* results)  const
 {
-  CALL("MonomFactors::denormalize()")
-
   if (_factors.size() == 0) {
     return Number::one();
   } else {
@@ -1068,8 +1066,6 @@ typename Number::ConstantType Polynom<Number>::unwrapNumber() const&
 template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
-  CALL("Polynom::denormalize()")
-
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
     auto c = TermList(theory->representConstant(monom.numeral));
     if (monom.factors->isOne()) {
@@ -1109,7 +1105,6 @@ Stack<Monom<Number>>& Polynom<Number>::raw()
 template<class Number>
 Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
 {
-  CALL("Polynom::replaceTerms(PolyNf*)")
   int offs = 0;
   Stack<Monom> out;
   out.reserve(nSummands());

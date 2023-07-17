@@ -718,8 +718,6 @@ private:
   };
 
   void initDefault(UnitInputType inputType, InferenceRule r) {
-    CALL("Inference::initDefault");
-
     _inputType = inputType;
     _rule = r;
     _included = false;

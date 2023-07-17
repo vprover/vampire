@@ -30,7 +30,6 @@
 #include <sys/prctl.h>
 #endif
 
-#include "Debug/Tracer.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -93,8 +92,6 @@ const char* signalToString (int sigNum)
  */
 void handleSignal (int sigNum)
 {
-  CALL("System::handleSignal");
-
   // true if a terminal signal has been handled already.
   // to avoid catching signals over and over again
   static bool handled = false;
@@ -221,8 +218,6 @@ void System::setSignalHandlers()
  */
 ZIArray<List<VoidFunc>*>& System::terminationHandlersArray()
 {
-  CALL("System::initializationHandlersArray");
-
   static ZIArray<List<VoidFunc>*> arr(2);
   return arr;
 }
@@ -237,8 +232,6 @@ ZIArray<List<VoidFunc>*>& System::terminationHandlersArray()
  */
 void System::addTerminationHandler(VoidFunc proc, unsigned priority)
 {
-  CALL("System::addTerminationHandler");
-
   VoidFuncList::push(proc, terminationHandlersArray()[priority]);
 }
 
@@ -248,8 +241,6 @@ void System::addTerminationHandler(VoidFunc proc, unsigned priority)
  */
 void System::onTermination()
 {
-  CALL("System::onTermination");
-
   static bool called=false;
   if(called) {
     return;
@@ -269,8 +260,6 @@ void System::onTermination()
 
 void System::terminateImmediately(int resultStatus)
 {
-  CALL("System::terminateImmediately");
-
   onTermination();
   _exit(resultStatus);
 }
@@ -290,8 +279,6 @@ void System::registerForSIGHUPOnParentDeath()
 
 vstring System::extractFileNameFromPath(vstring str)
 {
-  CALL("System::extractFileNameFromPath");
-
   size_t index=str.find_last_of("\\/")+1;
   if(index==vstring::npos) {
     return str;
@@ -307,8 +294,6 @@ vstring System::extractFileNameFromPath(vstring str)
  */
 bool System::extractDirNameFromPath(vstring path, vstring& dir)
 {
-  CALL("System::extractDirNameFromPath");
-
   size_t index=path.find_last_of("\\/");
   if(index==vstring::npos) {
     return false;
@@ -319,7 +304,6 @@ bool System::extractDirNameFromPath(vstring path, vstring& dir)
 
 bool System::fileExists(vstring fname)
 {
-  CALL("System::fileExists");
   BYPASSING_ALLOCATOR;
 
   ifstream ifile(fname.c_str());
@@ -329,8 +313,6 @@ bool System::fileExists(vstring fname)
 // C++17: use std::filesystem
 void System::readDir(vstring dirName, Stack<vstring>& filenames)
 {
-  CALL("System::readDir");
-
   DIR *dirp;
   struct dirent *dp;
 

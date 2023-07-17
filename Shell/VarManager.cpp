@@ -13,7 +13,6 @@
  */
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "VarManager.hpp"
 
@@ -26,7 +25,6 @@ VarManager::VarFactory* VarManager::_fact = 0;
 
 unsigned VarManager::getVarAlias(unsigned var)
 {
-  CALL("VarManager::getVarAlias");
   ASS(_fact);
 
   return _fact->getVarAlias(var);
@@ -34,7 +32,6 @@ unsigned VarManager::getVarAlias(unsigned var)
 
 vstring VarManager::getVarName(unsigned var)
 {
-  CALL("VarManager::getVarName");
   ASS(_fact);
 
   return _fact->getVarName(var);

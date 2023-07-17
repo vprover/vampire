@@ -548,7 +548,6 @@ public:
   }
 
   FuncSugar dtor(unsigned i) const {
-    CALL("FuncSugar::dtor(unsigned)")
     ASS_L(i, arity())
     ASS (symbol()->termAlgebraCons()) 
     return FuncSugar(

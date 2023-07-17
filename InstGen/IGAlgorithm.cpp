@@ -66,8 +66,6 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
     _tautologyDeletion(false),
     _equalityProxy(0)
 {
-  CALL("IGAlgorithm::IGAlgorithm");
-
   _ordering = OrderingSP(Ordering::create(prb, opt));
 
   if (opt.instGenSelection() == LOOKAHEAD_SELECTION) {
@@ -118,8 +116,6 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 
 IGAlgorithm::~IGAlgorithm()
 {
-  CALL("IGAlgorithm::~IGAlgorithm");
-
   delete _selected;
   delete _variantIdx;
   delete _satSolver;
@@ -130,8 +126,6 @@ IGAlgorithm::~IGAlgorithm()
 
 ClauseIterator IGAlgorithm::getActive()
 {
-  CALL("IGAlgorithm::getActive");
-
   return pvi( RCClauseStack::Iterator(_active) );
 }
 
@@ -147,8 +141,6 @@ ClauseIterator IGAlgorithm::getActive()
  */
 void IGAlgorithm::init()
 {
-  CALL("IGAlgorithm::init");
-
   if(_opt.instGenWithResolution()) {
     _saturationIndexManager = new IndexManager(0);
     if(_opt.globalSubsumption()) {
@@ -200,8 +192,6 @@ void IGAlgorithm::init()
 
 bool IGAlgorithm::addClause(Clause* cl)
 {
-  CALL("IGAlgorithm::addClause");
-
   TIME_TRACE("inst gen simplifications");
 
   cl = _duplicateLiteralRemoval.simplify(cl);
@@ -264,7 +254,6 @@ redundancy_check:
 
 Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation, SATClauseList* satPremises)
 {
-  CALL("IGAlgorithm::getFORefutation");
   ASS(satRefutation);
 
   UnitList* prems = SATInference::getFOPremises(satRefutation);
@@ -279,8 +268,6 @@ Clause* IGAlgorithm::getFORefutation(SATClause* satRefutation, SATClauseList* sa
 
 void IGAlgorithm::processUnprocessed()
 {
-  CALL("IGAlgorithm::processUnprocessed");
-
   TIME_TRACE("inst gen SAT solving");
 
   if (env.options->randomTraversals()) {
@@ -318,8 +305,6 @@ void IGAlgorithm::processUnprocessed()
 
 bool IGAlgorithm::isSelected(Literal* lit)
 {
-  CALL("IGAlgorithm::isSelected");
-
   return _satSolver->trueInAssignment(_gnd->groundLiteral(lit));
 }
 
@@ -336,8 +321,6 @@ bool IGAlgorithm::isSelected(Literal* lit)
  */
 bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance)
 {
-  CALL("IGAlgorithm::startGeneratingClause");
-
 #if VTRACE_DM
   cout << "tryGenC " << orig->number() << " and " << otherCl->number() << " on " << origLit->toString() << endl;
 #endif
@@ -394,8 +377,6 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
  */
 void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits)
 {
-  CALL("IGAlgorithm::finishGeneratingClause");
-
   Clause* res = Clause::fromStack(genLits, GeneratingInference1(InferenceRule::INSTANCE_GENERATION, orig));
   // make age also depend on the age of otherCl
   res->setAge(max(orig->age(), otherCl->age())+1);
@@ -436,8 +417,6 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
  */
 void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
 {
-  CALL("IGAlgorithm::tryGeneratingInstances");
-
   TIME_TRACE("inst gen generating instances");
 
   Literal* lit = (*cl)[litIdx];
@@ -486,8 +465,6 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
 // */
 //void IGAlgorithm::collectSelected(LiteralSubstitutionTree& acc)
 //{
-//  CALL("IGAlgorithm::collectSelected");
-//
 //  RCClauseStack::Iterator cit(_active);
 //  while(cit.hasNext()) {
 //    Clause* cl = cit.next();
@@ -508,8 +485,6 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
  */
 unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
 {
-  CALL("IGAlgorithm::lookaheadSelection");
-
   static DArray<VirtualIterator<SLQueryResult>> iters; //IG unification iterators
   iters.ensure(selCnt);
 
@@ -558,8 +533,6 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
  */
 void IGAlgorithm::selectAndAddToIndex(Clause* cl)
 {
-  CALL("IGAlgorithm::selectAndAddToIndex");
-
   bool modified = false;
   unsigned selIdx = 0;
 
@@ -596,8 +569,6 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
 
 void IGAlgorithm::removeFromIndex(Clause* cl)
 {
-  CALL("IGAlgorithm::removeFromIndex");
-
   unsigned selCnt = cl->numSelected();
   for(unsigned i=0; i<selCnt; i++) {
     _selected->remove((*cl)[i], cl);
@@ -606,8 +577,6 @@ void IGAlgorithm::removeFromIndex(Clause* cl)
 
 void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
 {
-  CALL("IGAlgorithm::onResolutionClauseDerived");
-
   if(!cl->noSplits()) {
     return;
   }
@@ -632,8 +601,6 @@ void IGAlgorithm::onResolutionClauseDerived(Clause* cl)
 
 void IGAlgorithm::doResolutionStep()
 {
-  CALL("IGAlgorithm::doResolutionStep");
-
   if(!_saturationAlgorithm) {
     return;
   }
@@ -665,8 +632,6 @@ void IGAlgorithm::doResolutionStep()
 
 void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
 {
-  CALL("IGAlgorithm::activate");
-
   selectAndAddToIndex(cl);
   
   if (env.options->showActive()) {
@@ -691,8 +656,6 @@ void IGAlgorithm::activate(Clause* cl, bool wasDeactivated)
 
 void IGAlgorithm::deactivate(Clause* cl)
 {
-  CALL("IGAlgorithm::deactivate");
-
   if(_deactivatedSet.insert(cl)) {
     _deactivated.push(cl);
   }
@@ -700,8 +663,6 @@ void IGAlgorithm::deactivate(Clause* cl)
 
 void IGAlgorithm::doImmediateReactivation()
 {
-  CALL("IGAlgorithm::doImmediateReactivation");
-
   static ClauseStack toActivate;
   toActivate.reset();
 
@@ -723,8 +684,6 @@ void IGAlgorithm::doImmediateReactivation()
 
 void IGAlgorithm::doPassiveReactivation()
 {
-  CALL("IGAlgorithm::doPassiveReactivation");
-
   static ClauseStack toActivate;
   toActivate.reset();
 
@@ -746,8 +705,6 @@ void IGAlgorithm::doPassiveReactivation()
 
 void IGAlgorithm::wipeIndexes()
 {
-  CALL("IGAlgorithm::wipeIndexes");
-
   _deactivated.reset();
   _deactivatedSet.reset();
 
@@ -764,8 +721,6 @@ void IGAlgorithm::wipeIndexes()
 
 void IGAlgorithm::restartWithCurrentClauses()
 {
-  CALL("IGAlgorithm::restartWithCurrentClauses");
-
   static RCClauseStack allClauses;
   allClauses.reset();
 
@@ -790,8 +745,6 @@ void IGAlgorithm::restartWithCurrentClauses()
 
 void IGAlgorithm::restartFromBeginning()
 {
-  CALL("IGAlgorithm::restartFromBeginning");
-
   /*
   {
     // throw away dismatching constraints
@@ -820,8 +773,6 @@ void IGAlgorithm::restartFromBeginning()
 
 MainLoopResult IGAlgorithm::runImpl()
 {
-  CALL("IGAlgorithm::runImpl");
-
   RCClauseStack::Iterator icit(_inputClauses);
   while(icit.hasNext()) {
     Clause* cl = icit.next();
@@ -910,8 +861,6 @@ MainLoopResult IGAlgorithm::runImpl()
 
 MainLoopResult IGAlgorithm::onModelFound()
 {
-  CALL("IGAlgorithm::onModelFound");
-
   if(_opt.complete(_prb)) {
     MainLoopResult res(Statistics::SATISFIABLE);
     if(_opt.proof()!=Options::Proof::OFF) {

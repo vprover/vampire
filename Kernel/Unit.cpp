@@ -16,7 +16,6 @@
 
 #include "Forwards.hpp"
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -45,7 +44,6 @@ unsigned Unit::_lastParsingNumber = 0;
  */
 void Unit::onPreprocessingEnd()
 {
-  CALL("Unit::onPreprocessingEnd");
   ASS(!_firstNonPreprocessingNumber);
 
   _firstNonPreprocessingNumber=_lastNumber+1;
@@ -62,7 +60,6 @@ Unit::Unit(Kind kind,const Inference& inf)
 
 void Unit::incRefCnt()
 {
-  CALL("Unit::incRefCnt");
   if(isClause()) {
     static_cast<Clause*>(this)->incRefCnt();
   }
@@ -70,14 +67,12 @@ void Unit::incRefCnt()
 
 void Unit::decRefCnt()
 {
-  CALL("Unit::decRefCnt");
   if(isClause()) {
     static_cast<Clause*>(this)->decRefCnt();
   }
 }
 
 Clause* Unit::asClause() {
-  CALL("Unit::asClause");
   ASS(isClause());
   return static_cast<Clause*>(this);
 }
@@ -85,8 +80,6 @@ Clause* Unit::asClause() {
 
 Color Unit::getColor()
 {
-  CALL("Unit::getColor");
-
   if(isClause()) {
     return static_cast<Clause*>(this)->color();
   }
@@ -97,8 +90,6 @@ Color Unit::getColor()
 
 unsigned Unit::getWeight()
 {
-  CALL("Unit::getWeight");
-
   if(isClause()) {
     return static_cast<Clause*>(this)->weight();
   }
@@ -109,8 +100,6 @@ unsigned Unit::getWeight()
 
 void Unit::destroy()
 {
-  CALL("Unit::destroy");
-
   if(isClause()) {
     static_cast<Clause*>(this)->destroy();
   }
@@ -121,8 +110,6 @@ void Unit::destroy()
 
 vstring Unit::toString() const
 {
-  CALL("Unit::toString");
-
   if(isClause()) {
     return static_cast<const Clause*>(this)->toString();
   }
@@ -133,8 +120,6 @@ vstring Unit::toString() const
 
 unsigned Unit::varCnt()
 {
-  CALL("Unit::varCnt");
-
   if(isClause()) {
     return static_cast<Clause*>(this)->varCnt();
   }
@@ -166,8 +151,6 @@ Formula* Unit::getFormula()
  */
 vstring Unit::inferenceAsString() const
 {
-  CALL("Unit::inferenceAsString");
-
 #if 1
   InferenceStore& infS = *InferenceStore::instance();
 
@@ -206,8 +189,6 @@ vstring Unit::inferenceAsString() const
 
 void Unit::assertValid()
 {
-  CALL("Unit::assertValid");
-
   if(isClause()) {
     ASS_ALLOC_TYPE(this,"Clause");
   }
@@ -219,8 +200,6 @@ void Unit::assertValid()
 // TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
 bool Unit::derivedFromInput() const
 {
-  CALL("Unit::derivedFromInput");
-
   // Depth-first search of derivation - it's likely that we'll hit an input clause as soon
   // as we hit the top
   Stack<Inference*> todo; 
@@ -242,8 +221,6 @@ typedef List<Inference*> InferenceList;
 // TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
 bool Unit::derivedFromGoalCheck() const
 {
-  CALL("Unit::derivedFromGoalCheck");
-
   // Breadth-first search of derivation - it's likely that we'll hit a goal-related node
   // close to the refutation... unless it doesn't exist of course
   InferenceList* todo = InferenceList::empty();

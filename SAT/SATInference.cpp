@@ -31,15 +31,12 @@ namespace SAT
  */
 void SATInference::collectFOPremises(SATClause* cl, Stack<Unit*>& acc)
 {
-  CALL("SATInference::collectFOPremises");
-  
   collectFilteredFOPremises(cl,acc, [](SATClause*) {return true; } );
 }
 
 
 UnitList* SATInference::getFOPremises(SATClause* cl)
 {
-  CALL("SATInference::getFOPremises");
   ASS(cl);
   ASS(cl->inference());
 
@@ -59,8 +56,6 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
 
 void SATInference::collectPropAxioms(SATClause* cl, SATClauseStack& res)
 {
-  CALL("SATInference::collectPropAxioms");
-
   static Stack<SATClause*> toDo;
   static DHSet<SATClause*> seen;
   toDo.reset();
@@ -107,7 +102,6 @@ FOConversionInference::FOConversionInference(Clause* cl) : _origin(cl)
 }
 FOConversionInference::~FOConversionInference()
 {
-  CALL("FOConversionInference::~FOConversionInference");
   _origin->decRefCnt();
 }
 

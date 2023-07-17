@@ -18,7 +18,6 @@
  * @since 15/05/2015 Gothenburg, FOOL support added
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "FormulaVarIterator.hpp"
 
@@ -43,7 +42,6 @@ FormulaVarIterator::FormulaVarIterator(const Formula* f)
 FormulaVarIterator::FormulaVarIterator(const Term* t)
   : _found(false)
 {
-  CALL("FormulaVarIterator::FormulaVarIterator(Term*)");
   _instructions.push(FVI_TERM);
   _terms.push(t);
 } // FormulaVarIterator::FormulaVarIterator
@@ -55,7 +53,6 @@ FormulaVarIterator::FormulaVarIterator(const Term* t)
 FormulaVarIterator::FormulaVarIterator(const TermList* ts)
   : _found(false)
 {
-  CALL("FormulaVarIterator::FormulaVarIterator(TermList)");
   _instructions.push(FVI_TERM_LIST);
   _termLists.push(*ts);
 } // FormulaVarIterator::FormulaVarIterator
@@ -66,8 +63,6 @@ FormulaVarIterator::FormulaVarIterator(const TermList* ts)
  */
 unsigned FormulaVarIterator::next()
 {
-  CALL("FormulaVarIterator::next");
-
   ASS(_found);
   _found = false;
   return _nextVar;
@@ -81,8 +76,6 @@ unsigned FormulaVarIterator::next()
  */
 bool FormulaVarIterator::hasNext()
 {
-  CALL("FormulaVarIterator::hasNext");
-
   if (_found) return true;
 
   while (_instructions.isNonEmpty()) {

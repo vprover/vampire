@@ -48,8 +48,6 @@ struct FastCondensation::CondensationBinder
   }
   bool bind(unsigned var, TermList term)
   {
-    CALL("CondensationBinder::bind");
-
     if(varMap->get(var)==-1) {
       return term.isVar() && var==term.var();
     }
@@ -69,8 +67,6 @@ private:
 
 Clause* FastCondensation::simplify(Clause* cl)
 {
-  CALL("FastCondensation::perform");
-
   TIME_TRACE("fast condensation");
 
   unsigned clen=cl->length();

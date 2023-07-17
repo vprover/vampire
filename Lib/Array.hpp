@@ -105,8 +105,6 @@ public:
    */
   virtual ~Array()
   {
-    CALL("Array::~Array()");
-
     if(_array) {
       array_delete(_array, _capacity);
       DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
@@ -201,7 +199,6 @@ protected:
    */
   void expandToFit (size_t n)
   {
-    CALL("Array::expandToFit");
     ASS(n >= _capacity);
 
     // determine new capacity (at least double the old one)

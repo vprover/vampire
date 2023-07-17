@@ -61,7 +61,6 @@ public:
   template<typename T>
   T apply(T t, bool result)
   {
-    CALL("ResultSubstitution::apply")
     if(result) {
       return applyToResult(t);
     } else {

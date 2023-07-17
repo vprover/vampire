@@ -55,8 +55,6 @@ Usage:
 
 int main(int argc, char* argv [])
 {
-  CALL ("main");
-
   for(int i=0;i<100;i++) {
     if((i*i)%7==1) {
       RSTAT_CTR_INC("numbers with (i*i)%7==1");

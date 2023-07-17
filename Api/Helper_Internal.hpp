@@ -84,8 +84,6 @@ public:
 
   void incRef()
   {
-    CALL("ApiHelperCore::incRef");
-
     refCtr++;
   }
 
@@ -97,7 +95,6 @@ public:
    */
   void decRef()
   {
-    CALL("ApiHelperCore::decRef");
     ASS_G(refCtr,0);
 
     refCtr--;
@@ -143,7 +140,6 @@ public:
 
   AttribStack& getSortAttributes(unsigned srt)
   {
-    CALL("ApiHelperCore::getSortAttributes");
     AttribStack* res;
     _sortAttributes.getValuePtr(srt, res);
     return *res;
@@ -151,7 +147,6 @@ public:
 
   AttribStack& getPredicateAttributes(unsigned pred)
   {
-    CALL("ApiHelperCore::getPredicateAttributes");
     AttribStack* res;
     _predicateAttributes.getValuePtr(pred, res);
     return *res;
@@ -159,7 +154,6 @@ public:
 
   AttribStack& getFunctionAttributes(unsigned func)
   {
-    CALL("ApiHelperCore::getFunctionAttributes");
     AttribStack* res;
     _functionAttributes.getValuePtr(func, res);
     return *res;

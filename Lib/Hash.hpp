@@ -209,7 +209,6 @@ public:
     size_t size,
     unsigned hash = FNV32_OFFSET_BASIS
   ) {
-    CALL("DefaultHash::hashBytes");
     for (size_t i = 0; i < size; i++) {
       hash = (hash ^ val[i]) * FNV32_PRIME;
     }
@@ -220,8 +219,6 @@ public:
    * FNV-1a applied to a NUL-terminated C-style string
    */
   static unsigned hashNulTerminated(const char* val) {
-    CALL("Hash::hash(const char *)");
-
     unsigned hash = FNV32_OFFSET_BASIS;
     while (*val) {
       hash = (hash ^ *val) * FNV32_PRIME;

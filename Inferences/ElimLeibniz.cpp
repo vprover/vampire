@@ -46,8 +46,6 @@ using namespace Saturation;
 typedef ApplicativeHelper AH;
 
 bool ElimLeibniz::polarity(Literal* lit) {
-  CALL("ElimLeibniz::polarity");
-
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
   ASS(AH::isBool(lhs)  || AH::isBool(rhs));
@@ -58,7 +56,6 @@ bool ElimLeibniz::polarity(Literal* lit) {
 }
 
 bool ElimLeibniz::isPair(Literal* l1, Literal* l2){
-  CALL("ElimLeibniz::isPair");
   ASS(polarity(l1)  != polarity(l2));
 
   LeibEqRec ler1 = getLiteralInfo(l1);
@@ -67,8 +64,6 @@ bool ElimLeibniz::isPair(Literal* l1, Literal* l2){
 }
 
 ElimLeibniz::LeibEqRec ElimLeibniz::getLiteralInfo(Literal* lit){
-  CALL("ElimLeibniz::getLiteralInfo");
-
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
   TermList nonBooleanSide = AH::isBool(rhs) ? lhs : rhs;
@@ -85,8 +80,6 @@ ElimLeibniz::LeibEqRec ElimLeibniz::getLiteralInfo(Literal* lit){
 
 Clause* ElimLeibniz::createConclusion(Clause* premise, Literal* newLit, 
                                       Literal* posLit, Literal* negLit, RobSubstitution& subst){
-  CALL("ElimLeibniz::createConclusion");
-
   unsigned newLen=premise->length() - 1;
   Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::LEIBNIZ_ELIMINATION, premise));
   Literal* newLitAfter = subst.apply(newLit, 0);
@@ -106,8 +99,6 @@ Clause* ElimLeibniz::createConclusion(Clause* premise, Literal* newLit,
 
 ClauseIterator ElimLeibniz::generateClauses(Clause* premise)
 {
-  CALL("ElimLeibniz::generateClauses");
-
   typedef SortHelper SH;
 
   static TermStack args;

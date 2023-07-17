@@ -58,7 +58,6 @@ public:
   virtual VarAssignment getAssignment(unsigned var) override;
 
   virtual bool isZeroImplied(unsigned var) override {
-    CALL("BufferedSolver::isZeroImplied");
     ASS_G(var,0); ASS_LE(var,_varCnt);
     // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
     return (var > _varCntInnerOld) ? false : _inner->isZeroImplied(var);
@@ -68,8 +67,6 @@ public:
 
   virtual void ensureVarCount(unsigned newVarCnt) override { _inner->ensureVarCount(newVarCnt); _varCnt=max(_varCnt,newVarCnt); }
   virtual unsigned newVar() override { 
-    CALL("BufferedSolver::newVar");
-    
     ALWAYS(_inner->newVar() == ++_varCnt);
     return _varCnt;
   }

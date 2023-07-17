@@ -34,7 +34,6 @@ using namespace Shell;
  */
 FormulaUnit* NNF::ennf(FormulaUnit* unit)
 {
-  CALL("NNF::ennf(Unit* u)");
   ASS(! unit->isClause());
 
   Formula* f = unit->formula();
@@ -64,7 +63,6 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
  */
 FormulaUnit* NNF::nnf(FormulaUnit* unit)
 {
-  CALL("NNF::nnf(Unit*)");
   ASS(! unit->isClause());
 
   Formula* f = unit->formula();
@@ -94,8 +92,6 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
  */
 Formula* NNF::ennf (Formula* f, bool polarity)
 {
-  CALL("NNF::ennf(Formula*...)");
-
   Connective c = f->connective();
   switch (c) {
   case LITERAL:
@@ -206,8 +202,6 @@ Formula* NNF::ennf (Formula* f, bool polarity)
 
 Literal* NNF::ennf(Literal* l)
 {
-  CALL("NNF::ennf(Literal*...)");
-
   if (l->shared()) {
     return l;
   }
@@ -233,8 +227,6 @@ Literal* NNF::ennf(Literal* l)
 
 TermList NNF::ennf(TermList ts, bool polarity)
 {
-  CALL("NNF::ennf(TermList...)");
-
   if (ts.isVar()) {
     return ts;
   }
@@ -392,8 +384,6 @@ TermList NNF::ennf(TermList ts, bool polarity)
  */
 FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
 {
-  CALL("NNF::ennf(FormulaList*...)");
-
   if (FormulaList::isEmpty(fs)) {
     return fs;
   }
@@ -432,8 +422,6 @@ FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
  */
 Formula* NNF::nnf (Formula* f, bool polarity)
 {
-  CALL("NNF::nnf(Formula*...)");
-
   Connective c = f->connective();
   switch (c) {
   case LITERAL:
@@ -543,8 +531,6 @@ Formula* NNF::nnf (Formula* f, bool polarity)
  */
 FormulaList* NNF::nnf (FormulaList* fs, bool polarity)
 {
-  CALL("NNF::nnf(FormulaList*...)");
-
   if (FormulaList::isEmpty(fs)) {
     return fs;
   }

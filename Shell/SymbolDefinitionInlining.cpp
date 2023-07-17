@@ -18,8 +18,6 @@ using namespace Kernel;
 using namespace Shell;
 
 TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
-  CALL("SymbolDefinitionInlining::substitute");
-
   Substitution substitution;
 
   VList::Iterator vit(_bindingVariables);
@@ -63,8 +61,6 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
 }
 
 TermList SymbolDefinitionInlining::process(TermList ts) {
-  CALL("SymbolDefinitionInlining::process(TermList)");
-
   if (ts.isVar()) {
     return ts;
   }
@@ -227,8 +223,6 @@ bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstan
 }
 
 Formula* SymbolDefinitionInlining::process(Formula* formula) {
-  CALL("SymbolDefinitionInlining::process(Formula*)");
-
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -330,8 +324,6 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
 }
 
 FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
-  CALL("SymbolDefinitionInlining::process(FormulaList*)");
-
   Stack<Formula*> elements(FormulaList::length(formulas));
 
   bool substituted = false;
@@ -359,8 +351,6 @@ FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
 }
 
 void SymbolDefinitionInlining::collectBoundVariables(TermList ts) {
-  CALL("SymbolDefinitionInlining::collectBoundVariables(TermList)");
-
   if (ts.isVar()) {
     return;
   }
@@ -369,8 +359,6 @@ void SymbolDefinitionInlining::collectBoundVariables(TermList ts) {
 }
 
 void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
-  CALL("SymbolDefinitionInlining::collectBoundVariables(Term*)");
-
   if (t->shared()) {
     return;
   }
@@ -416,8 +404,6 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
 }
 
 void SymbolDefinitionInlining::collectBoundVariables(Formula* formula) {
-  CALL("SymbolDefinitionInlining::collectBoundVariables(Formula*)");
-
   switch (formula->connective()) {
     case FORALL:
     case EXISTS: {

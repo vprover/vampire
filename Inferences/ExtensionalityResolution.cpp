@@ -53,8 +53,6 @@ struct ExtensionalityResolution::ForwardPairingFn
   : _extClauses(extClauses) {}
   VirtualIterator<pair<Literal*, ExtensionalityClause> > operator()(Literal* lit)
   {
-    CALL("ExtensionalityResolution::ForwardPairingFn::operator()");
-    
     if (!lit->isEquality() || lit->isPositive()) {
       return VirtualIterator<pair<Literal*, ExtensionalityClause> >::getEmpty();
     }
@@ -79,8 +77,6 @@ struct ExtensionalityResolution::ForwardUnificationsFn
   ForwardUnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
   VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> > operator()(pair<Literal*, ExtensionalityClause> arg)
   {
-    CALL("ExtensionalityResolution::ForwardUnificationsFn::operator()");
-    
     Literal* trmEq = arg.first;
     Literal* varEq = arg.second.literal;
 
@@ -102,8 +98,6 @@ struct ExtensionalityResolution::ForwardResultFn
   ForwardResultFn(Clause* otherCl, ExtensionalityResolution& parent) : _otherCl(otherCl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
   {
-    CALL("ExtensionalityResolution::ForwardResultFn::operator()");
-    
     RobSubstitution* subst = arg.second;
     Literal* otherLit = arg.first.first;
     Clause* extCl = arg.first.second.clause;
@@ -128,8 +122,6 @@ struct ExtensionalityResolution::NegEqSortFn
   NegEqSortFn (TermList sort) : _sort(sort) {}
   bool operator()(Literal* lit)
   {
-    CALL("ExtensionalityResolution::NegEqSortFn::operator()");
-    
     return lit->isEquality() && lit->isNegative() &&
       SortHelper::getEqualityArgumentSort(lit) == _sort;
   }
@@ -146,8 +138,6 @@ struct ExtensionalityResolution::BackwardPairingFn
   BackwardPairingFn (TermList sort) : _sort(sort) {}
   VirtualIterator<pair<Clause*, Literal*> > operator()(Clause* cl)
   {
-    CALL("ExtensionalityResolution::BackwardPairingFn::operator()");
-    
     return pvi(pushPairIntoRightIterator(
         cl,
         getFilteredIterator(
@@ -169,8 +159,6 @@ struct ExtensionalityResolution::BackwardUnificationsFn
   : _extLit (extLit) { _subst = RobSubstitutionSP(new RobSubstitution()); }
   VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> > operator()(pair<Clause*, Literal*> arg)
   {
-    CALL("ExtensionalityResolution::BackwardUnificationsFn::operator()");
-    
     Literal* otherLit = arg.second;
     
     SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
@@ -192,8 +180,6 @@ struct ExtensionalityResolution::BackwardResultFn
   BackwardResultFn(Clause* extCl, Literal* extLit, ExtensionalityResolution& parent) : _extCl(extCl), _extLit(extLit), _parent(parent) {}
   Clause* operator()(pair<pair<Clause*, Literal*>, RobSubstitution*> arg)
   {
-    CALL("ExtensionalityResolution::BackwardResultFn::operator()");
-    
     RobSubstitution* subst = arg.second;
     Clause* otherCl = arg.first.first;
     Literal* otherLit = arg.first.second;
@@ -221,8 +207,6 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   unsigned& counter,
   const Options& opts)
 {
-  CALL("ExtensionalityResolution::performExtensionalityResolution");
-  
   if(!ColorHelper::compatible(extCl->color(),otherCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
@@ -267,8 +251,6 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
  */
 ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
 {
-  CALL("ExtensionalityResolution::generateClauses");
-
   ExtensionalityClauseContainer* extClauses = _salg->getExtensionalityClauseContainer();
   ClauseIterator backwardIterator;
 

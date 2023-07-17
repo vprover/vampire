@@ -202,7 +202,6 @@ public:
   static vstring getFormulaStringFromName(SplitLevel compName, bool negated = false);
 
   bool isUsedName(SplitLevel name) const {
-    CALL("Splitter::isUsedName");
     ASS_L(name,_db.size());
     return (_db[name] != 0);
   }

@@ -36,8 +36,6 @@ using namespace Shell;
  */
 void Shuffling::polarityFlip(Problem& prb)
 {
-  CALL("Shuffling::polarityFlip (Problem&)");
-
   DArray<bool> flippage(env.signature->predicates());
 
   for (unsigned p = 0; p < flippage.size(); p++) {
@@ -86,8 +84,6 @@ void Shuffling::polarityFlip(Problem& prb)
  */
 void Shuffling::shuffle(Problem& prb)
 {
-  CALL("Shuffling::shuffle (Problem&)");
-
   shuffle(prb.units());
 }
 
@@ -98,8 +94,6 @@ void Shuffling::shuffle(Problem& prb)
  */
 void Shuffling::shuffle (UnitList*& units)
 {
-  CALL("Shuffling::shuffle (UnitList*&)");
-
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     shuffle(us.next());
@@ -110,8 +104,6 @@ void Shuffling::shuffle (UnitList*& units)
 
 void Shuffling::shuffle(Unit* unit)
 {
-  CALL("Shuffling::shuffle (Unit*");
-
   // cout << "Bef: " << unit->toString() << endl;
 
   if (unit->isClause()) {
@@ -125,8 +117,6 @@ void Shuffling::shuffle(Unit* unit)
 
 void Shuffling::shuffle(Clause* clause)
 {
-  CALL("Shuffling::shuffle (Clause*)");
-
   unsigned s = clause->numSelected();
 
   // don't shuffle between selected and non-selected literals
@@ -140,8 +130,6 @@ void Shuffling::shuffle(Clause* clause)
 
 // iterative implementation of shuffling Formula* / Literal* / TermList
 void Shuffling::shuffleIter(Shufflable sh) {
-  CALL("Shuffling::shuffleIter");
-
   static Stack<Shufflable> todo;
   ASS(todo.isEmpty());
 
