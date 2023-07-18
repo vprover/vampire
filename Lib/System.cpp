@@ -30,6 +30,7 @@
 #include <sys/prctl.h>
 #endif
 
+#include "Debug/Tracer.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"

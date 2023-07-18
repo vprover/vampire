@@ -21,6 +21,7 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Minisat/core/SolverTypes.h"
 #include <limits>

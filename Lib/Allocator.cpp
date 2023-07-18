@@ -26,6 +26,8 @@
 #include "Lib/System.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Debug/Tracer.hpp"
+
 // we leak the allocator because we cannot make sure that it will be deallocated as last static object
 #define LEAK_ALLOCATOR 1
 

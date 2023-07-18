@@ -18,6 +18,8 @@
 
 #include <cmath>
 
+#include "Debug/Tracer.hpp"
+
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
