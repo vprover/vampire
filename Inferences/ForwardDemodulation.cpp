@@ -227,7 +227,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
             if (qr.clause->rewritingData() && !qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
               return qr.substitution->applyToBoundResult(t);
-            }, FilterFn(&_salg->getOrdering(), trm), &ordering))
+            }, FilterFn(&_salg->getOrdering(), trm), ordering))
             {
               TIME_TRACE("cannot demodulate");
               continue;
@@ -263,7 +263,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
             if (!res->rewritingData()->copySubsumes(qr.clause->rewritingData(), cl->rewritingData(),// qr.term.term(), rhs,
               [qr](TermList t) {
                 return qr.substitution->applyToBoundResult(t);
-              }, FilterFn(&_salg->getOrdering(), trm))) {
+              }, FilterFn(&_salg->getOrdering(), trm), _salg->getOrdering())) {
               TIME_TRACE("cannot demodulate instantation");
               continue;
             }

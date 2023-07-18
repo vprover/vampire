@@ -121,10 +121,10 @@ bool RewritingData::blockNewTerms(Clause* cl, ResultSubstitution* subst, bool re
   return true;
 }
 
-bool RewritingData::varCheck(Term* lhs, TermList rhs)
+bool RewritingData::validate(Term* lhs, TermList rhs, Ordering& ord)
 {
   CALL("RewritingData::varCheck");
-  TIME_TRACE("variable computation");
+  TIME_TRACE("validate variables");
   if (_ruleValid.find(lhs)) {
     return true;
   }
@@ -150,6 +150,25 @@ bool RewritingData::varCheck(Term* lhs, TermList rhs)
       }
     }
   }
+
+  TIME_TRACE("validate2");
+  bool greater = true;
+  for (unsigned i = 0; i < _cl->length(); i++) {
+    auto lit = (*_cl)[i];
+    for (unsigned j = 0; j < lit->arity(); j++) {
+      auto arg = lit->termArg(j);
+      if (ord.compare(TermList(lhs),arg)!=Ordering::GREATER) {
+        greater = false;
+        break;
+      }
+    }
+    if (!greater) {break;}
+  }
+  if (greater) {
+    TIME_TRACE("greater than all");
+    return false;
+  }
+
   _ruleValid.insert(lhs);
   return true;
 }

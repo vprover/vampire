@@ -202,7 +202,7 @@ struct BackwardDemodulation::ResultFn
       if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
         if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
           return qr.substitution->applyToBoundQuery(t);
-        }, FilterFn(&_ordering, lhsS), &_ordering))
+        }, FilterFn(&_ordering, lhsS), _ordering))
         {
           TIME_TRACE("cannot demodulate");
           return BwSimplificationRecord(0);
@@ -243,7 +243,7 @@ struct BackwardDemodulation::ResultFn
         if (!res->rewritingData()->copySubsumes(_cl->rewritingData(), qr.clause->rewritingData(),// lhs.term(), rhs,
           [qr](TermList t) {
             return qr.substitution->applyToBoundQuery(t);
-          }, FilterFn(&_ordering, lhsS))) {
+          }, FilterFn(&_ordering, lhsS), _ordering)) {
           TIME_TRACE("cannot demodulate instantiation");
           return BwSimplificationRecord(0);
         }

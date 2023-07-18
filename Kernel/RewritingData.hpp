@@ -104,7 +104,7 @@ public:
   }
 
   template<class Applicator>
-  bool copySubsumes(RewritingData* subsumer, RewritingData* subsumed, /* Term* rwTerm, TermList tgtTerm, */ Applicator f, const FilterFn& g)
+  bool copySubsumes(RewritingData* subsumer, RewritingData* subsumed, /* Term* rwTerm, TermList tgtTerm, */ Applicator f, const FilterFn& g, Ordering& ord)
   {
     CALL("RewritingData::copySubsumes");
     if (subsumer) {
@@ -113,7 +113,7 @@ public:
         Term* lhs;
         TermList rhs;
         ngit.next(lhs,rhs);
-        if(!subsumer->varCheck(lhs, rhs)) {
+        if(!subsumer->validate(lhs, rhs, ord)) {
           ngit.del();
           continue;
         }
@@ -153,7 +153,7 @@ public:
   }
 
   template<class Applicator>
-  bool subsumes(RewritingData* other, Applicator f, const FilterFn& g, Ordering* ord)
+  bool subsumes(RewritingData* other, Applicator f, const FilterFn& g, Ordering& ord)
   {
     CALL("RewritingData::subsumes");
 
@@ -162,7 +162,7 @@ public:
       Term* lhs;
       TermList rhs;
       ngit.next(lhs,rhs);
-      if (!varCheck(lhs, rhs)) {
+      if (!validate(lhs, rhs, ord)) {
         ngit.del();
         continue;
       }
@@ -194,7 +194,7 @@ public:
     return true;
   }
 
-  inline bool subsumes(TermList rhs, TermList rhsOther, Ordering* ord = nullptr) {
+  inline bool subsumes(TermList rhs, TermList rhsOther, Ordering& ord) {
     // other is blocked
     if (rhsOther.isEmpty()) {
       return true;
@@ -203,10 +203,10 @@ public:
     if (rhs.isEmpty()) {
       return false;
     }
-    if (ord) {
-      return Ordering::isGorGEorE(ord->compare(rhsOther,rhs));
-    }
-    return rhs == rhsOther;
+    // if (ord) {
+      return Ordering::isGorGEorE(ord.compare(rhsOther,rhs));
+    // }
+    // return rhs == rhsOther;
   }
 
 
@@ -244,7 +244,7 @@ public:
   }
 
   bool blockNewTerms(Clause* cl, ResultSubstitution* subst, bool eqIsResult, TermList rwTerm, Ordering& ord);
-  bool varCheck(Term* lhs, TermList rhs);
+  bool validate(Term* lhs, TermList rhs, Ordering& ord);
 
   VirtualIterator<pair<Term*,TermList>> items() const {
     return _rules.items();

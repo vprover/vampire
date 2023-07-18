@@ -215,7 +215,7 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
   return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit, subst);
 }
 
-bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<TermList(TermList)>& subst, Ordering* ord) {
+bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<TermList(TermList)>& subst, Ordering& ord) {
   TIME_TRACE("diamond-breaking-subsume");
   return !subsumer->rewritingData() || subsumer->rewritingData()->subsumes(subsumed->rewritingData(), subst, FilterFn(), ord);
 }
@@ -240,7 +240,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
   static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
-  auto ord = &_salg->getOrdering();
+  auto& ord = _salg->getOrdering();
 
   for (unsigned li = 0; li < clen; li++) {
     SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, true);
