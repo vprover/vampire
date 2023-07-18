@@ -63,6 +63,8 @@ vampire_z3_rel_master_4933
 $
 ```
 
+Windows can be tricky. We are working on improving the situation, but in the meantime you might wish to look at the [Cygwin wiki page](https://github.com/vprover/vampire/wiki/Cygwin), and [related](https://github.com/vprover/vampire/issues/462) [bug](https://github.com/vprover/vampire/issues/318) [reports](https://github.com/vprover/vampire/issues/282).
+
 ### Adding Z3
 Vampire can optionally link to a fixed version of the external Z3 library.
 If you wish to do this, [initialise the `z3` submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules#_cloning_submodules) in the Vampire source directory.
