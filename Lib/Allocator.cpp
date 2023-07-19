@@ -26,6 +26,8 @@
 #include "Lib/System.hpp"
 #include "Lib/Timer.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Debug/Tracer.hpp"
+
 // we leak the allocator because we cannot make sure that it will be deallocated as last static object
 #define LEAK_ALLOCATOR 1
 
@@ -73,7 +75,6 @@ unsigned watchAddressLastValue = 0;
 #endif
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -115,8 +116,6 @@ unsigned Allocator::_tolerantZone = 1; // starts > 0; we are not checking by def
  */
 string Lib::___prettyFunToClassName(std::string str)
 {
-  CALLC("___prettyFunToClassName",MAKE_CALLS);
-
   string noPref = str.substr(19);
   size_t fnNamePos = noPref.find("::className()");
   string className = noPref.substr(0,fnNamePos);
@@ -143,8 +142,6 @@ void Allocator::operator delete(void* obj) {
  */
 Allocator::Allocator()
 {
-  CALLC("Allocator::Allocator",MAKE_CALLS);
-
 #if ! USE_SYSTEM_ALLOCATION
   for (int i = REQUIRES_PAGE/4-1;i >= 0;i--) {
     _freeList[i] = 0;
@@ -162,8 +159,6 @@ Allocator::Allocator()
  */
 Lib::Allocator::~Allocator ()
 {
-  CALLC("Allocator::~Allocator",MAKE_CALLS);
-
   while (_myPages) {
     deallocatePages(_myPages);
   }
@@ -175,8 +170,6 @@ Lib::Allocator::~Allocator ()
  */
 void Allocator::initialise()
 {
-  CALLC("Allocator::initialise",MAKE_CALLS)
-
 #if VDEBUG
   Descriptor::map = 0;
   Descriptor::afterLast = 0;
@@ -201,8 +194,6 @@ void Allocator::initialise()
  */
 void Allocator::addressStatus(const void* address)
 {
-  CALLC("Allocator::addressStatus",MAKE_CALLS);
-
   Descriptor* pg = 0; // page descriptor
   cout << "Status of address " << address << '\n';
 
@@ -276,7 +267,6 @@ void Allocator::reportUsageByClasses()
  */
 void Allocator::cleanup()
 {
-  CALLC("Allocator::cleanup",MAKE_CALLS);
   BYPASSING_ALLOCATOR;
 
 #if !LEAK_ALLOCATOR
@@ -348,7 +338,6 @@ void Allocator::deallocateKnown(void* obj,size_t size,const char* className)
 void Allocator::deallocateKnown(void* obj,size_t size)
 #endif
 {
-  CALLC("Allocator::deallocateKnown",MAKE_CALLS);
   ASS(obj);
 
   TimeoutProtector tp;
@@ -424,8 +413,6 @@ void Allocator::deallocateUnknown(void* obj,const char* className)
 void Allocator::deallocateUnknown(void* obj)
 #endif
 {
-  CALLC("Allocator::deallocateUnknown",MAKE_CALLS);
-
   TimeoutProtector tp;
 
 #if VDEBUG
@@ -502,8 +489,6 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize, const char* classN
 void* Allocator::reallocateUnknown(void* obj, size_t newsize)
 #endif
 {
-  CALLC("Allocator::reallocateUnknown",MAKE_CALLS);
-
   // cout << "reallocateUnknown " << obj << " newsize " << newsize << endl;
 
 #if VDEBUG
@@ -541,7 +526,6 @@ void* Allocator::reallocateUnknown(void* obj, size_t newsize)
  */
 Allocator* Allocator::newAllocator()
 {
-  CALLC("Allocator::newAllocator",MAKE_CALLS);
   BYPASSING_ALLOCATOR;
   
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -563,7 +547,6 @@ Allocator* Allocator::newAllocator()
  */
 Allocator::Page* Allocator::allocatePages(size_t size)
 {
-  CALLC("Allocator::allocatePages",MAKE_CALLS);
   ASS(size >= 0);
 
 #if VDEBUG && USE_SYSTEM_ALLOCATION
@@ -707,8 +690,6 @@ void Allocator::deallocatePages(Page* page)
 #if VDEBUG && USE_SYSTEM_ALLOCATION
   ASSERTION_VIOLATION;
 #else
-  CALLC("Allocator::deallocatePages",MAKE_CALLS);
-
 #if VDEBUG
   Descriptor* desc = Descriptor::find(page);
   desc->timestamp = ++Descriptor::globalTimestamp;
@@ -776,7 +757,6 @@ void* Allocator::allocateKnown(size_t size,const char* className)
 void* Allocator::allocateKnown(size_t size)
 #endif
 {
-  CALLC("Allocator::allocateKnown",MAKE_CALLS);
   ASS(size > 0);
 
   TimeoutProtector tp;
@@ -831,8 +811,6 @@ void* Allocator::allocateKnown(size_t size)
  */
 char* Allocator::allocatePiece(size_t size)
 {
-  CALLC("Allocator::allocatePiece",MAKE_CALLS);
-
   char* result;
 #if USE_SYSTEM_ALLOCATION
 //  result = new char[size];
@@ -899,7 +877,6 @@ void* Allocator::allocateUnknown(size_t size,const char* className)
 void* Allocator::allocateUnknown(size_t size)
 #endif
 {
-  CALLC("Allocator::allocateUnknown",MAKE_CALLS);
   ASS(size>0);
 
   TimeoutProtector tp;
@@ -957,8 +934,7 @@ void* Allocator::allocateUnknown(size_t size)
  * @since 14/12/2005 Bellevue
  */
 Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
-{    
-  CALLC("Allocator::Descriptor::find",MAKE_CALLS);
+{
   BYPASSING_ALLOCATOR;
 
   if (noOfEntries >= maxEntries) { // too many entries
@@ -1023,8 +999,6 @@ Allocator::Descriptor* Allocator::Descriptor::find (const void* addr)
  * @since 12/08/2014 Manchester
  */
 ostream& Lib::operator<<(ostream& out, const Allocator::Descriptor& d) {
-  CALLC("operator<<(ostream,Allocator::Descriptor)",MAKE_CALLS);
-  
   out << (size_t)(&d)
       << " [address:" << d.address
       << ",timestamp:" << d.timestamp
@@ -1058,7 +1032,6 @@ Allocator::Descriptor::Descriptor ()
     known(0),
     page(0)
 {
-//   CALL("Allocator::Descriptor::Descriptor");
 } // Allocator::Descriptor::Descriptor
 
 Allocator::Descriptor::~Descriptor() {}
@@ -1069,8 +1042,6 @@ Allocator::Descriptor::~Descriptor() {}
  */
 unsigned Allocator::Descriptor::hash (const void* addr)
 {
-  CALLC("Allocator::Descriptor::hash",MAKE_CALLS);
-
   char* val = reinterpret_cast<char*>(&addr);
   unsigned hash = FNV32_OFFSET_BASIS;
   for (int i = sizeof(void*)-1;i >= 0;i--) {
@@ -1181,7 +1152,6 @@ struct Mem
  */
 void testAllocator()
 {
-  CALLC("testAllocator",MAKE_CALLS);
 //   Random::setSeed(1);
   cout << "Testing the Allocator class...\n";
 

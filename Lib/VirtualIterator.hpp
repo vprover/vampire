@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Exception.hpp"
@@ -166,7 +165,6 @@ public:
   inline
   VirtualIterator(const VirtualIterator& obj) : _core(obj._core)
   {
-    CALL("ViratualIterator(const&)")
     if(_core) {
       _core->_refCnt++;
     }
@@ -175,7 +173,6 @@ public:
   inline
   ~VirtualIterator()
   {
-    CALL("VirtualIterator::~VirtualIterator");
     if(_core) {
 	_core->_refCnt--;
 	if(!_core->_refCnt) {
@@ -185,8 +182,6 @@ public:
   }
   VirtualIterator& operator=(const VirtualIterator& obj)
   {
-    CALL("VirtualIterator::operator=");
-
     IteratorCore<T>* oldCore=_core;
     _core=obj._core;
     if(_core) {
@@ -213,8 +208,6 @@ public:
   inline
   bool drop()
   {
-    CALL("VirtualIterator::drop");
-
     if(_core) {
       _core->_refCnt--;
       if(_core->_refCnt) {
@@ -234,7 +227,6 @@ public:
   inline
   bool hasNext()
   {
-    CALL("VirtualIterator::hasNext");
     ASS(_core);
 
     return _core->hasNext();
@@ -248,7 +240,6 @@ public:
   inline
   T next()
   {
-    CALL("VirtualIterator::next");
     ASS(_core);
 
     return _core->next();
@@ -257,7 +248,6 @@ public:
   /** Return true if the function @b size() can be called */
   bool knowsSize() const
   {
-    CALL("VirtualIterator::knowsSize");
     ASS(_core);
 
     return _core->knowsSize();
@@ -274,7 +264,6 @@ public:
    */
   size_t size() const
   {
-    CALL("VirtualIterator::size");
     ASS(_core);
     ASS(knowsSize());
 

@@ -53,8 +53,6 @@ TermQueryResultIterator TermIndex::getInstances(TypedTermList t, bool retrieveSu
 
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SuperpositionSubtermIndex::handleClause");
-
   TIME_TRACE("backward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
@@ -72,8 +70,6 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SuperpositionLHSIndex::handleClause");
-
   TIME_TRACE("forward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
@@ -89,8 +85,6 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 template <bool combinatorySupSupport>
 void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
 {
-  CALL("DemodulationSubtermIndex::handleClause");
-
   TIME_TRACE("backward demodulation index maintenance");
 
   static DHSet<Term*> inserted;
@@ -132,8 +126,6 @@ template class DemodulationSubtermIndexImpl<true>;
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("DemodulationLHSIndex::handleClause");
-
   if (c->length()!=1) {
     return;
   }
@@ -149,8 +141,6 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 
 void InductionTermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("InductionTermIndex::handleClause");
-
   TIME_TRACE("induction term index maintenance");
 
   if (InductionHelper::isInductionClause(c)) {
@@ -181,8 +171,6 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
 
 void StructInductionTermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("StructInductionTermIndex::handleClause");
-
   if (!InductionHelper::isInductionClause(c)) {
     return;
   }
@@ -222,9 +210,6 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
 
 void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SubVarSupSubtermIndex::handleClause");
-
-
   DHSet<unsigned> unstableVars;
   c->collectUnstableVars(unstableVars);
 
@@ -240,8 +225,6 @@ void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
 
 void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SubVarSupLHSIndex::handleClause");
-
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
@@ -253,8 +236,6 @@ void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
 }
 void PrimitiveInstantiationIndex::populateIndex()
 {
-  CALL("PrimitiveInstantiationIndex::populateIndex");
-
   typedef ApplicativeHelper AH;
 
   static Options::PISet set = env.options->piSet();
@@ -333,8 +314,6 @@ void PrimitiveInstantiationIndex::populateIndex()
 
 void NarrowingIndex::populateIndex()
 {
-  CALL("NarrowingIndex::populateIndex");
-
   typedef ApplicativeHelper AH;
 
   static Options::Narrow set = env.options->narrow();
@@ -397,7 +376,6 @@ void NarrowingIndex::populateIndex()
 
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
 {
-  CALL("SkolemisingFormulaIndex::insertFormula");
   _is->insert(TypedTermList(formula.term()), skolem);
 }
 

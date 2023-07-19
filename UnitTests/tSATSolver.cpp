@@ -33,8 +33,6 @@ using namespace SAT;
  */
 SATLiteral getLit(char c)
 {
-  CALL("getLit");
-
   bool pol;
   unsigned var;
   if(c>='a' && c<='z') {
@@ -57,8 +55,6 @@ SATLiteral getLit(char c)
  */
 SATClause* getClause(const char* spec)
 {
-  CALL("getClause");
-
   SATLiteralStack lits;
   while(*spec) {
     char c = *spec;
@@ -78,8 +74,6 @@ void ensurePrepared(SATSolver& s)
 /*
 void testZICert1(SATSolverWithAssumptions& s)
 {
-  CALL("testZICert1");
-
   ensurePrepared(s);
   s.addClause(getClause("ab"));
   s.addClause(getClause("c"));
@@ -112,8 +106,6 @@ TEST_FUN(satSolverZeroImpliedCert)
 
 void testProofWithAssumptions(SATSolver& s)
 {
-  CALL("testProofWithAssumptions");
-
   s.ensureVarCount(2);
   s.addClause(getClause("a"));
   s.addClause(getClause("A"));
@@ -243,8 +235,6 @@ TEST_FUN(testSATSolverInterface)
 }
 
 void testAssumptions(SATSolverWithAssumptions &s) {
-  CALL("testAssumptions");
-
   ensurePrepared(s);
 
   s.addClause(getClause("ab"));

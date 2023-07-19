@@ -22,15 +22,12 @@
 #include <cstddef>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Portability.hpp"
 
 #if VDEBUG
 #include <string>
 #endif
-
-#define MAKE_CALLS 0
 
 #define USE_PRECISE_CLASS_NAMES 0
 
@@ -66,7 +63,6 @@
  */
 template<class T> void checked_delete(T * x)
 {
-    CALL("checked_delete");
     // intentionally complex - simplification causes regressions
     typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
     (void) sizeof(type_must_be_complete);
@@ -87,19 +83,16 @@ public:
   /** Return the amount of used memory */
   static size_t getUsedMemory()
   {
-    CALLC("Allocator::getUsedMemory",MAKE_CALLS);
     return _usedMemory;
   }
   /** Return the global memory limit (in bytes) */
   static size_t getMemoryLimit()
   {
-    CALLC("Allocator::getMemoryLimit",MAKE_CALLS);
     return _memoryLimit;
   }
   /** Set the global memory limit (in bytes) */
   static void setMemoryLimit(size_t size)
   {
-    CALLC("Allocator::setMemoryLimit",MAKE_CALLS);
     _memoryLimit = size;
     _tolerated = size + (size/10);
   }
@@ -128,8 +121,6 @@ public:
     /** Initialise the static allocator's methods */
     Initialiser()
     {
-      CALLC("Allocator::Initialiser::Initialiser",MAKE_CALLS);
-
       if (Allocator::_initialised++ == 0) {
 	Allocator::initialise();
       }
@@ -137,7 +128,6 @@ public:
 
     ~Initialiser()
     {
-      CALLC("Allocator::Initialiser::~Initialiser",MAKE_CALLS);
       if (--Allocator::_initialised == 0) {
 	Allocator::cleanup();
       }
@@ -356,7 +346,6 @@ static Allocator::Initialiser _____;
 template<typename T>
 T* array_new(void* placement, size_t length)
 {
-  CALLC("array_new",MAKE_CALLS);
   ASS_NEQ(placement,0);
   ASS_G(length,0);
 
@@ -378,7 +367,6 @@ T* array_new(void* placement, size_t length)
 template<typename T>
 void array_delete(T* array, size_t length)
 {
-  CALLC("array_delete",MAKE_CALLS);
   ASS_NEQ(array,0);
   ASS_G(length,0);
 

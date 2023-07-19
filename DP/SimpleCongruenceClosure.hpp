@@ -140,7 +140,6 @@ private:
   * i.e. the representative for its congruence class
   */
   unsigned deref(unsigned c) const {
-    CALL("SimpleCongruenceClosure::deref");
     unsigned repr = _cInfos[c].reprConst;
     unsigned res = (repr==0) ? c : repr;
     ASS_REP2(_cInfos[res].reprConst==0, _cInfos[res].reprConst, c);

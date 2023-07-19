@@ -43,8 +43,6 @@ TheoryFlattening::TheoryFlattening(bool rec, bool share) : _recursive(rec), _sha
 
 void TheoryFlattening::apply(Problem& prb)
 {
-  CALL("TheoryFlattening::apply(Problem&)");
-
   if(apply(prb.units())) {
     prb.invalidateProperty();
   }
@@ -55,8 +53,6 @@ void TheoryFlattening::apply(Problem& prb)
  */
 bool TheoryFlattening::apply(UnitList*& units)
 {
-  CALL("TheoryFlattening::apply(UnitList*&)");
-
   bool modified = false;
 
   UnitList* res=0;
@@ -83,8 +79,6 @@ bool TheoryFlattening::apply(UnitList*& units)
  */
 bool TheoryFlattening::apply(ClauseList*& clauses)
 {
-  CALL("TheoryFlattening::apply(UnitList*&)");
-
   bool modified = false;
 
   ClauseList* res=0;
@@ -110,8 +104,6 @@ bool TheoryFlattening::apply(ClauseList*& clauses)
  */
 Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 {
-  CALL("TheoryFlattening::apply");
-
   // Find the max variable. This will be used to introduce new variables.
   unsigned maxVar = 0;
   VirtualIterator<unsigned> varIt = cl->getVariableIterator();
@@ -180,7 +172,6 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
  Literal* TheoryFlattening::replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar,
                                             DHMap<Term*,unsigned>& abstracted)
 {
-  CALL("TheoryFlattening::replaceTopTerms");
   //cout << "replaceTopTerms " << lit->toString() << endl;
 
   // Tells us if we're looking for interpreted are non-interpreted terms to flatten out
@@ -268,7 +259,6 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
                                                unsigned& maxVar,bool interpreted,
                                                DHMap<Term*,unsigned>& abstracted)
 {
-  CALL("TheoryFlattening::replaceTopTermsInTerm");
   //cout << "replaceTopTermsInTerm " << term->toString() << endl;
 
 

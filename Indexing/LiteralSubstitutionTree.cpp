@@ -54,8 +54,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool 
 
 SLQueryResultIterator LiteralSubstitutionTree::getAll()
 {
-  CALL("LiteralSubstitutionTree::getAll");
-
   return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
          .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
@@ -76,8 +74,6 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
 template<class Iterator>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints)
 {
-  CALL("LiteralSubstitutionTree::getResultIterator");
-
   auto iter = [&](bool reversed) 
     { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, useConstraints, reversed)) ; };
 

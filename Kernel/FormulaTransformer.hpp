@@ -160,7 +160,6 @@ public:
 
   virtual Formula* transform(Formula* f)
   {
-    CALL("FTFormulaUnitTransformer::transform(Formula*)");
     return _formulaTransformer.transform(f);
   }
 

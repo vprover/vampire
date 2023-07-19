@@ -271,8 +271,6 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
 
 int main(int argc, char* argv [])
 {
-  CALL("main");
-
   Stack<char*> args;
   args.loadFromIterator(getArrayishObjectIterator(argv, argc));
   readAndFilterGlobalOpts(args);

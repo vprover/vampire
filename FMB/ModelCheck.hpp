@@ -40,8 +40,6 @@ class ModelCheck{
 public:
 static void doCheck(Problem*& prb)
 {
-  CALL("ModelCheck::doCheck");
-
   // find model size
   // looking for a domain axiom
   // Currently assume it is called 'finite_domain'
@@ -165,8 +163,6 @@ private:
 
 static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domainConstants)
 {
-  CALL("ModelCheck::checkIsDomainLiteral");
-
             if(!l->isEquality()) USER_ERROR("finite_domain is not a domain axiom");
 
             // put var in left and constant in right
@@ -196,8 +192,6 @@ static void addDefinition(FiniteModel& model,Literal* lit,bool negated,
                           Set<Term*>& domainConstants,
                           DHMap<Term*,unsigned>& domainConstantNumber)
 {
-  CALL("ModelCheck::addDefinition");
-
   if(lit->isEquality()){
           if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");
           // Defining a function or constant

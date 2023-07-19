@@ -49,7 +49,6 @@ namespace FMB
  */
 void SortInference::doInference()
 {
-  CALL("SortInference::doInference");
   bool _print = env.options->showFMBsortInfo();
 
   if(_ignoreInference){
@@ -833,8 +832,6 @@ void SortInference::doInference()
 
 unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSort, bool createNew)
 {
-  CALL("SortInference::getDistinctSort");
-
   static bool firstMonotonicSortSeen = false;
   static unsigned firstMonotonicSort = 0;
   static DHMap<unsigned,unsigned> ourDistinctSorts;

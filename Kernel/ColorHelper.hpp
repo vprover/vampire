@@ -35,7 +35,6 @@ public:
    */
   static Color combine(Color c1, Color c2)
   {
-    CALL("ColorHelper::combine");
     ASS(env.colorUsed || (c1|c2)!=COLOR_INVALID);
     return static_cast<Color>(c1|c2);
   }
@@ -48,7 +47,6 @@ public:
    * and the other is @c COLOR_RIGHT.
    */
   static bool compatible(Color c1, Color c2) {
-    CALL("ColorHelper::compatible");
     return combine(c1,c2)!=COLOR_INVALID;
   }
 

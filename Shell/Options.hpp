@@ -898,7 +898,6 @@ private:
         // For use in showOptions and explainOption
         //virtual void output(vstringstream& out) const {
         virtual void output(ostream& out,bool linewrap) const {
-            CALL("Options::AbstractOptionValue::output");
             out << "--" << longName;
             if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
             out << endl;
@@ -937,22 +936,18 @@ private:
         typedef pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
 
         void setRandomChoices(std::initializer_list<vstring> list){
-          CALL("AbstractOptionValue::setRandomChoices(std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
         }
         void setRandomChoices(std::initializer_list<vstring> list,
                               std::initializer_list<vstring> list_sat){
-          CALL("AbstractOptionValue::setRandomChoices(std::initializer_list<vstring> list, std::initializer_list<vstring> list_sat)");
           rand_choices.push(RandEntry(isRandOn(),toArray(list)));
           rand_choices.push(RandEntry(isRandSat(),toArray(list_sat)));
         }
         void setRandomChoices(OptionProblemConstraintUP c,
                               std::initializer_list<vstring> list){
-          CALL("AbstractOptionValue::setRandomChoices(OptionProblemConstraintUP c, std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(std::move(c),toArray(list)));
         }
         void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
-          CALL("AbstractOptionValue::setNoPropertyRandomChoices(std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
           supress_problemconstraints=true;
         }
@@ -1070,7 +1065,6 @@ private:
         virtual bool checkProblemConstraints(Property* prop);
         
         virtual void output(ostream& out, bool linewrap) const {
-            CALL("Options::OptionValue::output");
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << getStringOfValue(defaultValue) << endl;
         }
@@ -1369,7 +1363,6 @@ OptionValue(l,s,def) {};
 bool setValue(const vstring& value);
 
 virtual void output(ostream& out,bool linewrap) const {
-    CALL("Options::TimeLimitOptionValue::output");
     AbstractOptionValue::output(out,linewrap);
     out << "\tdefault: " << defaultValue << "d" << endl;
 }
@@ -1840,7 +1833,6 @@ bool _hard;
 
       CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
       bool check(Property*p){
-          CALL("Options::CategoryCondition::check");
           ASS(p);
           return has ? p->category()==cat : p->category()!=cat;
       }
@@ -1858,7 +1850,6 @@ bool _hard;
       USE_ALLOCATOR(UsesEquality);
 
       bool check(Property*p){
-        CALL("Options::UsesEquality::check");
         ASS(p)
         return (p->equalityAtoms() != 0) ||
           // theories may introduce equality at various places of the pipeline!
@@ -1872,7 +1863,6 @@ bool _hard;
       USE_ALLOCATOR(HasHigherOrder);
 
       bool check(Property*p){
-        CALL("Options::HasHigherOrder::check");
         ASS(p)
         return (p->higherOrder());
       }
@@ -1884,7 +1874,6 @@ bool _hard;
       USE_ALLOCATOR(OnlyFirstOrder);
 
       bool check(Property*p){
-        CALL("Options::OnlyFirstOrder::check");
         ASS(p)
         return (!p->higherOrder());
       }
@@ -1896,7 +1885,6 @@ bool _hard;
       USE_ALLOCATOR(MayHaveNonUnits);
 
       bool check(Property*p){
-        CALL("Options::MayHaveNonUnits::check");
         return (p->formulas() > 0) // let's not try to guess what kind of clauses these will give rise to
           || (p->clauses() > p->unitClauses());
       }
@@ -1908,7 +1896,6 @@ bool _hard;
       USE_ALLOCATOR(NotJustEquality);
 
       bool check(Property*p){
-        CALL("Options::NotJustEquality::check");
         return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
       }
       vstring msg(){ return " not useful with just equality"; }
@@ -1922,7 +1909,6 @@ bool _hard;
       int atoms;
       bool greater;
       bool check(Property*p){ 
-        CALL("Options::AtomConstraint::check");
         return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
           
@@ -1948,7 +1934,6 @@ bool _hard;
       USE_ALLOCATOR(HasFormulas);
 
       bool check(Property*p) {
-        CALL("Options::HasFormulas::check");
         return p->hasFormulas();
       }
       vstring msg(){ return " only useful with (non-cnf) formulas"; }
@@ -1959,7 +1944,6 @@ bool _hard;
       USE_ALLOCATOR(HasGoal);
 
       bool check(Property*p){
-        CALL("Options::HasGoal::check");
         return p->hasGoal();
       }
       vstring msg(){ return " only useful with a goal: (conjecture) formulas or (negated_conjecture) clauses"; }
@@ -2011,7 +1995,6 @@ bool _hard;
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
       bool check(Property*p){
-        CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
         Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         while(it.hasNext()){ 
@@ -2442,7 +2425,6 @@ private:
         public:
         
         void insert(AbstractOptionValue* option_value){
-            CALL("LookupWrapper::insert");
             ASS(!option_value->longName.empty());
             bool new_long =  _longMap.insert(option_value->longName,option_value);
             bool new_short = true;
@@ -2453,12 +2435,10 @@ private:
             ASS(new_long && new_short);
         }
         AbstractOptionValue* findLong(vstring longName) const{
-            CALL("LookupWrapper::findLong");
             if(!_longMap.find(longName)){ throw ValueNotFoundException(); }
             return _longMap.get(longName);
         }
         AbstractOptionValue* findShort(vstring shortName) const{
-            CALL("LookupWrapper::findShort");
             if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
             return _shortMap.get(shortName);
         }

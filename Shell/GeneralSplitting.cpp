@@ -39,7 +39,6 @@ using namespace Kernel;
 
 void GeneralSplitting::apply(Problem& prb)
 {
-  CALL("GeneralSplitting::apply(Problem&)");
   if(apply(prb.units())) {
     prb.invalidateProperty();
   }
@@ -50,8 +49,6 @@ void GeneralSplitting::apply(Problem& prb)
  */
 bool GeneralSplitting::apply(UnitList*& units)
 {
-  CALL("GeneralSplitting::apply(UnitList*&)");
-
   bool modified = false;
 
   UnitList* splitRes=0;
@@ -81,8 +78,6 @@ bool GeneralSplitting::apply(UnitList*& units)
  */
 bool GeneralSplitting::apply(ClauseList*& clauses)
 {
-  CALL("GeneralSplitting::apply(UnitList*&)");
-
   bool modified = false;
 
   UnitList* splitRes=0;
@@ -116,8 +111,6 @@ bool GeneralSplitting::apply(ClauseList*& clauses)
  */
 bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 {
-  CALL("GeneralSplitting::apply");
-
   unsigned clen=cl->length();
   if(clen<=1) {
     return false;

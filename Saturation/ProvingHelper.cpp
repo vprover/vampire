@@ -50,8 +50,6 @@ using namespace Shell;
  */
   void ProvingHelper::runVampireSaturation(Problem& prb, const Options& opt)
 {
-  CALL("ProvingHelper::runVampireSaturation");
-
   try {
     runVampireSaturationImpl(prb, opt);
   }
@@ -87,8 +85,6 @@ using namespace Shell;
  */
 void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 {
-  CALL("ProvingHelper::runVampire");
-
   // when running a portfolio-mode worker, randomize for the first time for the preprocessing 
   // (second time is in ProvingHelper::runVampireSaturationImpl, but not so important there)
   Lib::Random::setSeed(opt.randomSeed());
@@ -128,8 +124,6 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
  */
   void ProvingHelper::runVampireSaturationImpl(Problem& prb, const Options& opt)
 {
-  CALL("ProvingHelper::runVampireSaturationImpl");
-
   Unit::onPreprocessingEnd();
   if (env.options->showPreprocessing()) {
     env.beginOutput();

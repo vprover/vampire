@@ -12,7 +12,6 @@
  * Implements class KBOForEPR for instances of the Knuth-Bendix ordering for EPR problems
  */
 
-#include "Debug/Tracer.hpp"
 
 
 #include "Lib/Environment.hpp"
@@ -42,7 +41,6 @@ using namespace Lib;
 KBOForEPR::KBOForEPR(Problem& prb, const Options& opt)
  : PrecedenceOrdering(prb, opt)
 {
-  CALL("KBOForEPR::KBOForEPR");
   ASS_EQ(prb.getProperty()->maxFunArity(),0);
 }
 
@@ -53,7 +51,6 @@ KBOForEPR::KBOForEPR(Problem& prb, const Options& opt)
  */
 Ordering::Result KBOForEPR::comparePredicates(Literal* l1, Literal* l2) const
 {
-  CALL("KBOForEPR::comparePredicates(Literal*...)");
   ASS(l1->shared());
   ASS(l2->shared());
   ASS(!l1->isEquality());
@@ -90,7 +87,6 @@ Ordering::Result KBOForEPR::comparePredicates(Literal* l1, Literal* l2) const
 
 Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const
 {
-  CALL("KBOForEPR::compare(TermList)");
   ASS(!tl1.isTerm() || tl1.term()->arity()==0)
   ASS(!tl2.isTerm() || tl2.term()->arity()==0)
 

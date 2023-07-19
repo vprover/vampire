@@ -47,8 +47,6 @@ using namespace Shell;
 FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) : 
    _sizes(sizes), _isPartial(false)
 {
-  CALL("FiniteModelMultiSorted::FiniteModelMultiSorted");
-
   (void)_isPartial; // to suppress unused warning
 
   f_offsets.ensure(env.signature->functions());
@@ -106,15 +104,12 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
 
 void FiniteModelMultiSorted::addConstantDefinition(unsigned f, unsigned res)
 {
-  CALL("FiniteModelMultiSorted::addConstantDefinition");
   static const DArray<unsigned> empty(0);
   addFunctionDefinition(f,empty,res);
 }
 
 void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
 {
-  CALL("FiniteModelMultiSorted::addFunctionDefinition");
-
   ASS_EQ(env.signature->functionArity(f),args.size());
 
   if(env.signature->functionArity(f)==0 && !env.signature->getFunction(f)->introduced()){
@@ -150,16 +145,12 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 
 void FiniteModelMultiSorted::addPropositionalDefinition(unsigned p, bool res)
 {
-  CALL("FiniteModelMultiSorted::addPropositionalDefinition");
-  
   static const DArray<unsigned> empty(0);
   addPredicateDefinition(p,empty,res);
 }
 
 void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<unsigned>& args, bool res)
 {
-  CALL("FiniteModelMultiSorted::addPredicateDefinition");
-
   ASS_EQ(env.signature->predicateArity(p),args.size());
 
   //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
@@ -183,15 +174,12 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 
 bool FiniteModelMultiSorted::isPartial()
 {
-  CALL("FiniteModelMultiSorted::isPartial");
   //TODO
   return true;
 }
 
 vstring FiniteModelMultiSorted::toString()
 {
-  CALL("FiniteModelMultiSorted::toString");
-
   vostringstream modelStm;
 
   bool printIntroduced = false;
@@ -456,7 +444,6 @@ pModelLabel:
 
 unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
 {
-  CALL("FiniteModelMultiSorted::evaluate(Term*)");
   ASS(term->ground());
 
 #if DEBUG_MODEL
@@ -490,7 +477,6 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
 
 bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
 {
-  CALL("FiniteModelMultiSorted::evaluate(Literal*)");
   ASS(lit->ground());
 
 #if DEBUG_MODEL
@@ -545,8 +531,6 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
 
 bool FiniteModelMultiSorted::evaluate(Unit* unit)
 {
-  CALL("FiniteModelMultiSorted::evaluate(Unit*)");
-
   Formula* formula = 0;
   if(unit->isClause()){
     Clause* clause = unit->asClause();
@@ -572,8 +556,6 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
  */
 bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
 {
-  CALL("FiniteModelMultiSorted::evaluate(Formula*)");
-
 #if DEBUG_MODEL
   for(unsigned i=0;i<depth;i++){ cout << "."; }
   cout << "Evaluating..." << formula->toString() << endl; 
@@ -692,8 +674,6 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
      */
     Formula* FiniteModelMultiSorted::partialEvaluate(Formula* formula)
     {
-        CALL("FiniteModelMultiSorted::partialEvaluate(Formula*)");
-        
 #if DEBUG_MODEL
         for(unsigned i=0;i<depth;i++){ cout << "."; }
         cout << "Evaluating..." << formula->toString() << endl;

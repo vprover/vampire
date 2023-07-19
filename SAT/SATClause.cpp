@@ -42,8 +42,6 @@ using namespace Shell;
  */
 void* SATClause::operator new(size_t sz,unsigned lits)
 {
-  CALL("SATClause::operator new");
-
   //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
   //this way, because _length-1 wouldn't behave well for
   //_length==0 on x64 platform.
@@ -82,8 +80,6 @@ SATClause::SATClause(unsigned length)
  */
 void SATClause::destroy()
 {
-  CALL("SATClause::destroy");
-
   if(_nonDestroyable) {
     //we don't destroy non-destroyable clauses.
     //This is to protect clauses which may act as premises to other clauses.
@@ -114,7 +110,6 @@ void SATClause::destroy()
 
 void SATClause::setInference(SATInference* val)
 {
-  CALL("SATClause::setInference");
   ASS(!_inference);
 
   _inference = val;
@@ -144,8 +139,6 @@ void SATClause::sort()
 
 SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
 {
-  CALL("SATClause::removeDuplicateLiterals(SATClause*)");
-
   unsigned clen=cl->length();
 
   cl->sort();
@@ -189,8 +182,6 @@ SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
 
 SATClause* SATClause::fromStack(SATLiteralStack& stack)
 {
-  CALL("SATClause::fromStack");
-
   unsigned clen = stack.size();
   SATClause* rcl=new(clen) SATClause(clen);
 
@@ -210,8 +201,6 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
  */
 vstring SATClause::toString() const
 {
-  CALL("SATClause::toString");
-
   vstring result;
   if (_length == 0) {
     result = "#";

@@ -42,8 +42,6 @@ ArrayTermTransformer::~ArrayTermTransformer() {}
 
 TermList ArrayTermTransformer::transformSubterm(TermList trm)
 {
-  CALL("ArrayTermTransformer::transformSubterm");
-  
   if (!trm.isTerm()) {
     return trm;
   }
@@ -122,8 +120,6 @@ TermList ArrayTermTransformer::transformSubterm(TermList trm)
 
 Literal* ArrayTermTransformer::rewriteNegEqByExtensionality(Literal* l)
 {
-  CALL("ArrayTermTransformer::rewriteNegEqByExtensionality");
-  
   if (l->isEquality() && l->isNegative()) {
     unsigned sort = SortHelper::getEqualityArgumentSort(l);
     unsigned select = theory->getSymbolForStructuredSort(sort, Theory::StructuredSortInterpretation::ARRAY_SELECT);
@@ -153,8 +149,6 @@ ArrayTheoryISE::ArrayTheoryISE() :
 
 Clause* ArrayTheoryISE::simplify(Clause* c)
 {
-  CALL("ArrayTheoryISE::simplify");
-  
   if (c->inputType() == Unit::AXIOM) {
     return c;
   }

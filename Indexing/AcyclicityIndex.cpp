@@ -31,8 +31,6 @@ namespace Indexing
 {
   unsigned CycleQueryResult::totalLengthClauses()
   {
-    CALL("CycleQueryResult::totalLengthClauses");
-
     unsigned n = 0;
     List<Clause*>::Iterator it(premises);
     while (it.hasNext()) {
@@ -44,7 +42,6 @@ namespace Indexing
 
   void addSubterm(TermList t, List<TermList>*& l)
   {
-    CALL("addSubterm");
     List<TermList>::Iterator it(l);
     while (it.hasNext()) {
       // TODO test for unifiability, keep only most general term
@@ -57,8 +54,6 @@ namespace Indexing
   
   List<TermList>* AcyclicityIndex::getSubterms(Term *t)
   {
-    CALL("AcyclicityIndex::getSubterms");
-    
     Stack<Term*> toVisit;
     List<TermList>* res = List<TermList>::empty();
     
@@ -95,8 +90,6 @@ namespace Indexing
 
   bool AcyclicityIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, TermList *sort)
   {
-    CALL("AcyclicityIndex::matchesPattern");
-
     if (!lit->isEquality() || !lit->polarity()) {
       return false;
     }
@@ -209,8 +202,6 @@ namespace Indexing
       _nextAvailableIndex(0),
       _currentDepth(0)
     {
-      CALL("AcyclicityIndex::CycleSearchIterator");
-      
       if (queryLit->isEquality()) {
         TermList sort = SortHelper::getEqualityArgumentSort(queryLit);
 
@@ -234,8 +225,6 @@ namespace Indexing
 
     Clause *applySubstitution(Clause *c, unsigned index)
     {
-      CALL("AcyclicityIndex::applySubstitution");
-      
       unsigned clen = c->length();
       Clause* res = new(clen) Clause(clen,
           GeneratingInference1(InferenceRule::INSTANTIATION, c));
@@ -249,8 +238,6 @@ namespace Indexing
 
     CycleQueryResult *resultFromNode(CycleSearchTreeNode *node)
     {
-      CALL("AcyclicityIndex::CycleSearchIterator::resultFromNode");
-
       LiteralList* l = LiteralList::empty();
       ClauseList* c = ClauseList::empty();
       ClauseList* cTheta = ClauseList::empty();
@@ -276,8 +263,6 @@ namespace Indexing
 
     void pushUnificationsOnStack(TermList t, CycleSearchTreeNode *parent)
     {
-      CALL("Acyclicity::pushUnificationOnStack");
-
       ASS(t.isTerm());
       ASS(_tis);
       TermQueryResultIterator tqrIt = _tis->getUnifications(TypedTermList(t.term()));
@@ -303,8 +288,6 @@ namespace Indexing
 
     bool notInAncestors(CycleSearchTreeNode *node, Literal *l)
     {
-      CALL("AcyclicityIndex::CycleSearchIterator::notInAncestors");
-
       CycleSearchTreeNode *n = node;
       while (n) {
         if (n->lit == l) {
@@ -318,8 +301,6 @@ namespace Indexing
 
     bool hasNext()
     {
-      CALL("AcyclicityIndex::CycleSearchIterator::hasNext");
-
       // if hasNext() has already been called without being followed
       // by a call to next(), the next value is already computed
       if (_nextResult) { return true; }
@@ -380,8 +361,6 @@ namespace Indexing
     
     OWN_ELEMENT_TYPE next()
     {
-      CALL("AcyclicityIndex::CycleSearchIterator::next()");
-
       ASS(_nextResult);
       CycleQueryResult *res = _nextResult;
       _nextResult = nullptr;
@@ -401,8 +380,6 @@ namespace Indexing
 
   void AcyclicityIndex::handleClause(Clause* c, bool adding)
   {
-    CALL("AcyclicityIndex::handleClause");
-
     ArrayishObjectIterator<Clause> it = c->getSelectedLiteralIterator();
     while (it.hasNext()) {
       if (adding) {
@@ -415,8 +392,6 @@ namespace Indexing
     
   void AcyclicityIndex::insert(Literal *lit, Clause *c)
   {
-    CALL("AcyclicityIndex::insert");
-
     TermList *fs;
     TermList *t;
     TermList sort;
@@ -443,8 +418,6 @@ namespace Indexing
 
   void AcyclicityIndex::remove(Literal *lit, Clause *c)
   {
-    CALL("AcyclicityIndex::remove");
-
     TermList *fs;
     TermList *t;
     TermList sort;
@@ -461,8 +434,6 @@ namespace Indexing
 
   CycleQueryResultsIterator AcyclicityIndex::queryCycles(Literal *lit, Clause *c)
   {
-    CALL("AcyclicityIndex::queryCycle");
-
     return pvi(CycleSearchIterator(lit, c, *this));
   }
 }

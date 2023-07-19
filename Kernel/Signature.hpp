@@ -323,7 +323,6 @@ class Signature
     InterpretedSymbol(const vstring& nm, Interpretation interp)
     : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
     {
-      CALL("InterpretedSymbol");
     }
 
     CLASS_NAME(Signature::InterpretedSymbol);
@@ -345,8 +344,6 @@ class Signature
     IntegerSymbol(const IntegerConstantType& val)
     : Symbol(val.toString(), 0, true), _intValue(val)
     {
-      CALL("IntegerSymbol");
-
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
     CLASS_NAME(Signature::IntegerSymbol);
@@ -365,8 +362,6 @@ class Signature
     RationalSymbol(const RationalConstantType& val)
     : Symbol(val.toString(), 0, true), _ratValue(val)
     {
-      CALL("RationalSymbol");
-
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
     CLASS_NAME(Signature::RationalSymbol);
@@ -385,8 +380,6 @@ class Signature
     RealSymbol(const RealConstantType& val)
     : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
     {
-      CALL("RealSymbol");
-
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
     CLASS_NAME(Signature::RealSymbol);
@@ -457,7 +450,6 @@ class Signature
   unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const vstring& name);
   unsigned addInterpretedFunction(Interpretation itp, const vstring& name)
   {
-    CALL("Signature::addInterpretedFunction(Interpretation,const vstring&)");
     ASS(!Theory::isPolymorphic(itp));
     return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name);
   }
@@ -465,7 +457,6 @@ class Signature
   unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const vstring& name);
   unsigned addInterpretedPredicate(Interpretation itp, const vstring& name)
   {
-    CALL("Signature::addInterpretedPredicate(Interpretation,const vstring&)");
     ASS(!Theory::isPolymorphic(itp));
     return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
   }
@@ -473,19 +464,16 @@ class Signature
   unsigned getInterpretingSymbol(Interpretation interp, OperatorType* type);
   unsigned getInterpretingSymbol(Interpretation interp)
   {
-    CALL("Signature::getInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
     return getInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
   }
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
   bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {
-    CALL("Signature::haveInterpretingSymbol(Interpretation, OperatorType*)");
     return _iSymbols.find(std::make_pair(interp,type));
   }
   bool haveInterpretingSymbol(Interpretation interp)
   {
-    CALL("Signature::haveInterpretingSymbol(Interpretation)");
     ASS(!Theory::isPolymorphic(interp));
     return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
   }
@@ -505,19 +493,16 @@ class Signature
   /** return the arity of a function with a given number */
   const unsigned functionArity(int number)
   {
-    CALL("Signature::functionArity");
     return _funs[number]->arity();
   }
   /** return the arity of a predicate with a given number */
   const unsigned predicateArity(int number)
   {
-    CALL("Signature::predicateArity");
     return _preds[number]->arity();
   }
 
   const unsigned typeConArity(int number)
   {
-    CALL("Signature::typeConArity");
     return _typeCons[number]->arity();
   }
 
@@ -676,8 +661,6 @@ class Signature
   }
 
   unsigned getDefaultSort(){
-    CALL("Signature::getDefaultSort");
-
     bool added = false;
     unsigned individualSort = addTypeCon("$i",0, added);
     if(added){
@@ -687,8 +670,6 @@ class Signature
   }
 
   unsigned getBoolSort(){
-    CALL("Signature::getBoolSort");
-
     bool added = false;
     unsigned boolSort = addTypeCon("$o",0, added);
     if(added){

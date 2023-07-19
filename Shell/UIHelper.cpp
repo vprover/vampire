@@ -144,8 +144,6 @@ bool UIHelper::spiderOutputDone = false;
   
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
-  CALL("UIHelper::outputAllPremises");
-
 #if 1
   InferenceStore::instance()->outputProof(cerr, units);
 #else
@@ -186,8 +184,6 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 
 void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 {
-  CALL("UIHelper::outputSaturatedSet");
-
   addCommentSignForSZS(out);
   out << "# SZS output start Saturation." << endl;
 
@@ -271,8 +267,6 @@ void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry
  */
 Problem* UIHelper::getInputProblem(const Options& opts)
 {
-  CALL("UIHelper::getInputProblem");
-    
   TIME_TRACE(TimeTrace::PARSING);
   env.statistics->phase = Statistics::PARSING;
 
@@ -384,8 +378,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
  */
 void UIHelper::outputResult(ostream& out)
 {
-  CALL("UIHelper::outputResult");
-
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
     if(env.options->outputMode() == Options::Output::SMTCOMP){ 
@@ -534,8 +526,6 @@ void UIHelper::outputResult(ostream& out)
 
 void UIHelper::outputSatisfiableResult(ostream& out)
 {
-  CALL("UIHelper::outputSatisfiableResult");
-
   //out << "Satisfiable!\n";
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
@@ -567,8 +557,6 @@ void UIHelper::outputSatisfiableResult(ostream& out)
  */
 void UIHelper::outputSymbolDeclarations(ostream& out)
 {
-  CALL("UIHelper::outputSymbolDeclarations");
-
   Signature& sig = *env.signature;
 
   unsigned typeCons = sig.typeCons();
@@ -598,8 +586,6 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
  */
 void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, bool typeCon, unsigned symNumber)
 {
-  CALL("UIHelper::outputSymbolTypeDeclarationIfNeeded");
-
   Signature::Symbol* sym;
 
   if(function){

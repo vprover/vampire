@@ -20,7 +20,6 @@
 #  define __Sort__
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "DArray.hpp"
@@ -32,8 +31,6 @@ struct DefaultComparator
   template<typename T>
   static Comparison compare(T a, T b)
   {
-    CALL("DefaultComparator::compare");
-
     if(a==b) {
       return EQUAL;
     }
@@ -50,7 +47,6 @@ struct DefaultComparator
 template <class Comparator, typename C>
 void sort(C* first, C* afterLast)
 {
-  CALL("sort");
   //modified sorting code, that was originally in Resolution::Tautology::sort
 
   C* arr=first;
@@ -176,16 +172,12 @@ class Sort
     _length(0),
     _comparator(comparator)
     {
-      CALL("Sort::Sort");
-
       void* mem = ALLOC_KNOWN(length*sizeof(ToCompare),"Sort<>");
       _elems = array_new<ToCompare>(mem, length);
     }
 
   inline ~Sort ()
   {
-    CALL("Sort::~Sort");
-
     array_delete(_elems,_size);
     DEALLOC_KNOWN(_elems,_size*sizeof(ToCompare),"Sort<>");
   }
@@ -221,7 +213,6 @@ class Sort
    */
   inline void sort ()
   {
-    CALL("Sort::sort/0");
     sort (0,_length-1);
   }
 
@@ -257,7 +248,6 @@ class Sort
    */
   void sort(int p,int r)
   {
-    CALL("Sort::sort/2");
     ASS(r < _length);
 
     if (p >= r) {
@@ -309,8 +299,6 @@ class Sort
    */
   bool member (const ToCompare elem, int fst, int lst) const
   {
-    CALL("Sort::member");
-
     for (;;) {
       if (fst > lst) {
 	return false;

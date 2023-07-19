@@ -37,8 +37,6 @@ LispParser::LispParser(LispLexer& lexer)
  */
 LispParser::Expression* LispParser::parse()
 {
-  CALL("LispParser::parse/0");
-
   Expression* result = new Expression(LIST);
   parse(&result->list);
   return result;
@@ -49,8 +47,6 @@ LispParser::Expression* LispParser::parse()
 // */
 //void LispParser::parse(List** expr)
 //{
-//  CALL("LispParser::parse/1");
-//
 //  Token t;
 //  for (;;) {
 //    _lexer.readToken(t);
@@ -99,8 +95,6 @@ LispParser::Expression* LispParser::parse()
  */
 void LispParser::parse(List** expr0)
 {
-  CALL("LispParser::parse/1");
-
   static Stack<List**> stack;
   stack.reset();
 
@@ -165,8 +159,6 @@ void LispParser::parse(List** expr0)
  */
 vstring LispParser::Expression::toString(bool outerParentheses) const
 {
-  CALL("LispParser::Expression::toString");
-
   switch (tag) {
   case ATOM:
     return str;
@@ -197,8 +189,6 @@ vstring LispParser::Expression::toString(bool outerParentheses) const
  */
 bool LispParser::Expression::get1Arg(vstring functionName, Expression*& arg)
 {
-  CALL("LispParser::Expression::get1Arg");
-
   if(!isList()) {
     return false;
   }
@@ -224,8 +214,6 @@ bool LispParser::Expression::get1Arg(vstring functionName, Expression*& arg)
  */
 bool LispParser::Expression::get2Args(vstring functionName, Expression*& arg1, Expression*& arg2)
 {
-  CALL("LispParser::Expression::get2Args");
-
   if(!isList()) {
     return false;
   }
@@ -254,8 +242,6 @@ bool LispParser::Expression::get2Args(vstring functionName, Expression*& arg1, E
  */
 bool LispParser::Expression::getPair(Expression*& el1, Expression*& el2)
 {
-  CALL("LispParser::Expression::getPair");
-
   if(!isList()) {
     return false;
   }
@@ -276,8 +262,6 @@ bool LispParser::Expression::getPair(Expression*& el1, Expression*& el2)
 
 bool LispParser::Expression::getSingleton(Expression*& el)
 {
-  CALL("LispParser::Expression::getSingleton");
-
   if(!isList()) {
     return false;
   }
@@ -320,8 +304,6 @@ void LispParser::Exception::cry(ostream& out) const
 
 void LispListReader::lispError(LExpr* expr, vstring reason)
 {
-  CALL("LispListReader::lispError");
-
   if(expr) {
     USER_ERROR(reason+": "+expr->toString());
   }
@@ -335,8 +317,6 @@ void LispListReader::lispError(LExpr* expr, vstring reason)
  */
 void LispListReader::lispCurrError(vstring reason)
 {
-  CALL("LispListReader::lispCurrError");
-
   if(hasNext()) {
     lispError(peekAtNext(), reason);
   }
@@ -347,7 +327,6 @@ void LispListReader::lispCurrError(vstring reason)
 
 LExpr* LispListReader::peekAtNext()
 {
-  CALL("LispListReader::peekAtNext");
   ASS(hasNext());
 
   return it.peekAtNext();
@@ -355,7 +334,6 @@ LExpr* LispListReader::peekAtNext()
 
 LExpr* LispListReader::readNext()
 {
-  CALL("LispListReader::readNext");
   ASS(hasNext());
 
   return it.next();
@@ -363,8 +341,6 @@ LExpr* LispListReader::readNext()
 
 bool LispListReader::tryReadAtom(vstring& atom)
 {
-  CALL("LispListReader::tryReadAtom");
-
   if(!hasNext()) { return false; }
 
   LExpr* next = peekAtNext();
@@ -378,8 +354,6 @@ bool LispListReader::tryReadAtom(vstring& atom)
 
 vstring LispListReader::readAtom()
 {
-  CALL("LispListReader::readAtom");
-
   vstring atm;
   if(!tryReadAtom(atm)) {
     lispCurrError("atom expected");
@@ -389,8 +363,6 @@ vstring LispListReader::readAtom()
 
 bool LispListReader::tryAcceptAtom(vstring atom)
 {
-  CALL("SMTLIBConcat::tryAcceptAtom");
-
   if(!hasNext()) { return false; }
 
   LExpr* next = peekAtNext();
@@ -403,8 +375,6 @@ bool LispListReader::tryAcceptAtom(vstring atom)
 
 void LispListReader::acceptAtom(vstring atom)
 {
-  CALL("SMTLIBConcat::acceptAtom");
-
   if(!tryAcceptAtom(atom)) {
     lispCurrError("atom \""+atom+"\" expected");
   }
@@ -412,8 +382,6 @@ void LispListReader::acceptAtom(vstring atom)
 
 bool LispListReader::tryReadListExpr(LExpr*& e)
 {
-  CALL("LispListReader::tryReadListExpr");
-
   if(!hasNext()) { return false; }
 
   LExpr* next = peekAtNext();
@@ -427,8 +395,6 @@ bool LispListReader::tryReadListExpr(LExpr*& e)
 
 LExpr* LispListReader::readListExpr()
 {
-  CALL("LispListReader::readListExpr");
-
   LExpr* list;
   if(!tryReadListExpr(list)) {
     lispCurrError("list expected");
@@ -438,8 +404,6 @@ LExpr* LispListReader::readListExpr()
 
 bool LispListReader::tryReadList(LExprList*& list)
 {
-  CALL("LispListReader::tryReadList");
-
   LExpr* lstExpr;
   if(tryReadListExpr(lstExpr)) {
     list = lstExpr->list;
@@ -450,27 +414,21 @@ bool LispListReader::tryReadList(LExprList*& list)
 
 LExprList* LispListReader::readList()
 {
-  CALL("LispListReader::readList");
-
   return readListExpr()->list;
 }
 
 bool LispListReader::tryAcceptList()
 {
-  CALL("LispListReader::tryAcceptList");
   LExprList* lst;
   return tryReadList(lst);
 }
 void LispListReader::acceptList()
 {
-  CALL("LispListReader::acceptList");
   readList();
 }
 
 void LispListReader::acceptEOL()
 {
-  CALL("LispListReader::acceptEOL");
-
   if(hasNext()) {
     lispCurrError("<eol> expected");
   }
@@ -478,8 +436,6 @@ void LispListReader::acceptEOL()
 
 bool LispListReader::lookAheadAtom(vstring atom)
 {
-  CALL("LispListReader::lookAheadAtom");
-
   if(!hasNext()) { return false; }
   LExpr* next = peekAtNext();
   return next->isAtom() && next->str==atom;
@@ -487,8 +443,6 @@ bool LispListReader::lookAheadAtom(vstring atom)
 
 bool LispListReader::tryAcceptCurlyBrackets()
 {
-  CALL("LispListReader::tryAcceptCurlyBrackets");
-
   LExpr* next = peekAtNext();
   if(!next->isAtom() || next->str!="{") {
     return false;

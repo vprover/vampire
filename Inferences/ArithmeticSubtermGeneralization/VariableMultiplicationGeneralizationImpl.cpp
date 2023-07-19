@@ -124,8 +124,6 @@ struct Preprocess
   template<class NumTraits> 
   void operator()(Perfect<Polynom<NumTraits>> p) 
   {
-    CALL("Preprocess::operator()")
-
     for (auto summand : p->iterSummands()) {
 
       auto varIter = summand.factors->iter()
@@ -162,7 +160,6 @@ struct Preprocess
 
   int joinRegions(int v, int w)
   {
-    CALL("Preprocess::joinRegions()")
     if (v == w) return v;
 
     components.doUnion(v,w);
@@ -185,7 +182,6 @@ struct Generalize
   template<class NumTraits>
   Monom<NumTraits> operator()(Monom<NumTraits> p, PolyNf* evaluatedArgs)  
   {
-    CALL("Generalize::operator()")
     using Pair = Monom<NumTraits>;
     return Pair(p.numeral, perfect(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
   }

@@ -230,8 +230,6 @@ private:
   DHMap<Literal*, SIGN> _literalsCache;
   DHMap<Formula*, SIGN> _formulasCache;
   inline void pushLiteral(SPGenClause gc, GenLit gl) {
-    CALL("NewCNF::pushLiteral");
-
     if (formula(gl)->connective() == LITERAL) {
       /**
        * A generalised literal that is atomic have two signs, the one assigned
@@ -367,8 +365,6 @@ private:
     }
 
     void replaceBy(Formula* f) {
-      CALL("Occurrences::replaceBy");
-
       Occurrences::Iterator occit(*this);
 
       bool negateOccurrenceSign = false;
@@ -391,8 +387,6 @@ private:
     }
 
     void invert() {
-      CALL("Occurrences::invert");
-
       Occurrences::Iterator occit(*this);
       while (occit.hasNext()) {
         Occurrence occ = occit.next();
@@ -478,8 +472,6 @@ private:
   }
 
   void introduceExtendedGenClause(Occurrence occ, List<GenLit>* gls) {
-    CALL("NewCNF::introduceExtendedGenClause(Occurrence, List<GenLit>*)");
-
     SPGenClause gc = occ.gc;
     unsigned position = occ.position;
 
@@ -545,8 +537,6 @@ private:
   }
 
   Occurrence pop(Occurrences &occurrences) {
-    CALL("NewCNF::pop");
-
     Occurrence occ = occurrences.pop();
     occ.gc->valid = false;
     _genClauses.erase(occ.gc->iter);

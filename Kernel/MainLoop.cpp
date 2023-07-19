@@ -41,8 +41,6 @@ using namespace FMB;
 
 void MainLoopResult::updateStatistics()
 {
-  CALL("MainLoopResult::updateStatistics");
-
   env.statistics->terminationReason = terminationReason;
   env.statistics->refutation = refutation;
   env.statistics->saturatedSet = saturatedSet;
@@ -56,7 +54,6 @@ void MainLoopResult::updateStatistics()
  */
 MainLoopResult MainLoop::run()
 {
-  CALL("MainLoop::run");
   TIME_TRACE("main loop");
 
   try {
@@ -89,16 +86,11 @@ MainLoopResult MainLoop::run()
  */
 bool MainLoop::isRefutation(Clause* cl)
 {
-  CALL("MainLoop::isRefutation");
-
   return cl->isEmpty() && cl->noSplits();
 }
 
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
-  CALL("MainLoop::createFromOptions");
-
-
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
   /*

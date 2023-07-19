@@ -36,8 +36,6 @@ using namespace Shell;
 
 bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
 {
-  CALL("Rectify::Renaming::tryGetBoundAndMarkUsed");
-
   if ((unsigned)var >= _capacity) {
     return false;
   }
@@ -52,8 +50,6 @@ bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
 
 Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
 {
-  CALL("Rectify::Renaming::getBoundAndUsage");
-
   ASS_L((unsigned)var,_capacity);
 
   VarUsageTrackingList* vs = _array[var];
@@ -71,7 +67,6 @@ Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
  */
 FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
 {
-  CALL("Rectify::rectify (Unit*...)");
   ASS(!unit0->isClause());
 
   FormulaUnit* unit = unit0;
@@ -99,8 +94,6 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
  */
 void Rectify::rectify(UnitList*& units)
 {
-  CALL("Rectify::rectify(UnitList*&)");
-
   UnitList::DelIterator us(units);
   while (us.hasNext()) {
     Unit* u = us.next();
@@ -121,8 +114,6 @@ void Rectify::rectify(UnitList*& units)
  */
 Rectify::Renaming::~Renaming ()
 {
-  CALL("Rectify::Renaming::~Renaming");
-
   for (int i = _capacity-1;i >= 0;i--) {
     VarUsageTrackingList::destroy(_array[i]);
     _array[i] = 0;
@@ -136,8 +127,6 @@ Rectify::Renaming::~Renaming ()
  */
 Term* Rectify::rectifySpecialTerm(Term* t)
 {
-  CALL("Rectify::rectifySpecialTerm");
-
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->specialFunctor()) {
   case Term::SpecialFunctor::ITE:
@@ -270,8 +259,6 @@ Term* Rectify::rectifySpecialTerm(Term* t)
  */
 Term* Rectify::rectify (Term* t)
 {
-  CALL("Rectify::rectify(Term*)");
-
   if (t->shared() && t->ground()) {
     return t;
   }
@@ -300,8 +287,6 @@ Term* Rectify::rectify (Term* t)
 
 SList* Rectify::rectifySortList(SList* from, bool& modified)
 {
-  CALL("rectifySortList");
-
   modified = false;
   SList* to = SList::empty();
   SList::Iterator slit(from);
@@ -318,7 +303,6 @@ SList* Rectify::rectifySortList(SList* from, bool& modified)
 
 Literal* Rectify::rectifyShared(Literal* lit)
 {
-  CALL("Rectify::rectifyShared");
   ASS(lit->shared());
 
   return SubstHelper::apply(lit, *this);
@@ -330,8 +314,6 @@ Literal* Rectify::rectifyShared(Literal* lit)
  */
 Literal* Rectify::rectify (Literal* l)
 {
-  CALL("Rectify::rectify(Literal*)");
-
   if (l->shared()) {
     if(l->ground()) {
       return l;
@@ -380,8 +362,6 @@ Literal* Rectify::rectify (Literal* l)
  */
 bool Rectify::rectify(TermList* from,TermList* to)
 {
-  CALL("Rectify::rectify(TermList* ...)");
-
   bool changed = false;
   while (! from->isEmpty()) {
     if (from->isVar()) {
@@ -413,8 +393,6 @@ bool Rectify::rectify(TermList* from,TermList* to)
  */
 unsigned Rectify::rectifyVar(unsigned v)
 {
-  CALL("Rectify::rectifyVar");
-
   int newV;
   if (! _renaming.tryGetBoundAndMarkUsed(v,newV)) {
     newV = _renaming.bind(v);
@@ -429,8 +407,6 @@ unsigned Rectify::rectifyVar(unsigned v)
  */
 TermList Rectify::rectify(TermList t)
 {
-  CALL("Rectify::rectify");
-
   if(t.isTerm()) {
     return TermList(rectify(t.term()));
   }
@@ -452,8 +428,6 @@ TermList Rectify::rectify(TermList t)
  */
 Formula* Rectify::rectify (Formula* f)
 {
-  CALL("Rectify::rectify (Formula*)");
-
   switch (f->connective()) {
   case LITERAL: 
   {
@@ -532,8 +506,6 @@ Formula* Rectify::rectify (Formula* f)
  */
 void Rectify::Renaming::undoBinding (unsigned var)
 {
-  CALL("Rectify::Renaming::undoBinding");
-
   ASS(var < _capacity);
 
   VarUsageTrackingList::pop(_array[var]);
@@ -545,8 +517,6 @@ void Rectify::Renaming::undoBinding (unsigned var)
  */
 unsigned Rectify::Renaming::bind (unsigned var)
 {
-  CALL("Rectify::Renaming::bind");
-
   unsigned result;
 
   if(VarManager::varNamePreserving()) {
@@ -571,8 +541,6 @@ unsigned Rectify::Renaming::bind (unsigned var)
  */
 void Rectify::bindVars(VList* vs)
 {
-  CALL ("Rectify::bindVars (VarList*)");
-
   VList::Iterator vit(vs);
   while(vit.hasNext()) {
     unsigned v = vit.next();
@@ -585,8 +553,6 @@ void Rectify::bindVars(VList* vs)
  */
 void Rectify::unbindVars(VList* vs)
 {
-  CALL ("Rectify::unbindVars (VarList*)");
-
   VList::Iterator vit(vs);
   while(vit.hasNext()) {
     unsigned v = vit.next();
@@ -601,8 +567,6 @@ void Rectify::unbindVars(VList* vs)
  */
 VList* Rectify::rectifyBoundVars (VList* vs)
 {
-  CALL ("Rectify::rectifyBoundVars(VarList*)");
-
   if (VList::isEmpty(vs)) {
     return vs;
   }
@@ -653,8 +617,6 @@ VList* Rectify::rectifyBoundVars (VList* vs)
  */
 FormulaList* Rectify::rectify (FormulaList* fs)
 {
-  CALL ("Rectify::rectify (FormulaList*)");
-
   Recycled<Stack<FormulaList*>> els;
 
   FormulaList* el = fs;

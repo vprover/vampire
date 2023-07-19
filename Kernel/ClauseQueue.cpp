@@ -13,7 +13,6 @@
  * @since 30/12/2007 Manchester
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Random.hpp"
@@ -42,8 +41,6 @@ ClauseQueue::ClauseQueue()
 /** Temporary!!! */
 ClauseQueue::~ClauseQueue ()
 {
-  CALL("ClauseQueue::~ClauseQueue");
-
   removeAll();
 
   DEALLOC_KNOWN(_left,sizeof(Node)+MAX_HEIGHT*sizeof(Node*),"ClauseQueue::Node");
@@ -55,8 +52,6 @@ ClauseQueue::~ClauseQueue ()
  */
 void ClauseQueue::insert(Clause* c)
 {
-  CALL("ClauseQueue::insert");
-
   // select a random height between 0 and top
   unsigned h = 0;
   while (Random::getBit()) {
@@ -103,8 +98,6 @@ void ClauseQueue::insert(Clause* c)
  */
 bool ClauseQueue::remove(Clause* c)
 {
-  CALL("ClauseQueue::remove");
-
   unsigned h = _height;
   Node* left = _left;
 
@@ -160,7 +153,6 @@ bool ClauseQueue::remove(Clause* c)
  */
 Clause* ClauseQueue::pop()
 {
-  CALL("ClauseQueue::pop");
   ASS(_height >= 0);
   ASS(_left->nodes[0] != 0);
 
@@ -191,8 +183,6 @@ Clause* ClauseQueue::pop()
  */
 void ClauseQueue::removeAll()
 {
-  CALL("ClauseQueue::removeAll");
-
   while (_left->nodes[0]) {
     pop();
   }

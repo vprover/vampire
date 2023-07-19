@@ -40,8 +40,6 @@ public:
   virtual ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) = 0;
   ClauseIterator retrieveVariants(Clause* cl)
   {
-    CALL("ClauseVariantIndex::retrieveVariants/1");
-
     // cout << "retrieveVariants for " <<  cl->toString() << endl;
 
     return retrieveVariants(cl->literals(), cl->length());

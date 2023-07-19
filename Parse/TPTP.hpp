@@ -668,8 +668,6 @@ private:
    */
   inline char getChar(int pos)
   {
-    CALL("TPTP::getChar");
-
     while (_cend <= pos) {
       int c = _in->get();
       //      if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
@@ -683,7 +681,6 @@ private:
    */
   inline void shiftChars(int n)
   {
-    CALL("TPTP::shiftChars");
     ASS(n > 0);
     ASS(n <= _cend);
 
@@ -709,8 +706,6 @@ private:
    */
   inline Token& getTok(int pos)
   {
-    CALL("TPTP::getTok");
-
     while (_tend <= pos) {
       Token& tok = _tokens[_tend++];
       readToken(tok);
@@ -723,8 +718,6 @@ private:
    */
   inline void shiftToks(int n)
   {
-    CALL("TPTP::shiftToks");
-
     ASS(n > 0);
     ASS(n <= _tend);
 

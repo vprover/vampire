@@ -40,7 +40,6 @@ using namespace Lib;
  */
 FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
 {
-  CALL("SimplifyFalseTrue::simplify(Unit*)");
   ASS(! unit->isClause());
 
   Formula* f = unit->formula();
@@ -72,8 +71,6 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
  */
 Formula* SimplifyFalseTrue::innerSimplify (Formula* f)
 {
-  CALL("SimplifyFalseTrue::innerSimplify(Formula*)");
-
   Connective con = f->connective();
   switch (con) {
   case TRUE:
@@ -325,8 +322,6 @@ Formula* SimplifyFalseTrue::innerSimplify (Formula* f)
 
 TermList SimplifyFalseTrue::simplify(TermList ts)
 {
-  CALL("SimplifyFalseTrue::simplify(TermList)");
-
   if (ts.isVar()) {
     return ts;
   }

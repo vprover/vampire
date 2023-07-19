@@ -31,7 +31,6 @@
 
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
@@ -508,7 +507,6 @@ public:
    * @since 28/12/2007 Manchester
    */
   unsigned hash() const {
-    CALL("Term::hash");
     return DefaultHash::hashBytes(
       reinterpret_cast<const unsigned char*>(_args+1),
       _arity*sizeof(TermList),
@@ -623,8 +621,6 @@ public:
   /** Set the number of variable _occurrences_ */
   void setNumVarOccs(unsigned v)
   {
-    CALL("Term::setNumVarOccs");
-
     if(_isTwoVarEquality) {
       ASS_EQ(v,2);
       return;
@@ -634,7 +630,6 @@ public:
 
   void setHasTermVar(bool b)
   {
-    CALL("setHasTermVar");
     ASS(shared() && !isSort());
     _args[0]._info.hasTermVar = b;
   }
@@ -642,7 +637,6 @@ public:
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
   {
-    CALL("Term::numVarOccs");
     ASS(shared());
     if(_isTwoVarEquality) {
       return _sort.isVar() ? 3 : 2 + _sort.term()->numVarOccs();
@@ -674,8 +668,6 @@ public:
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
   {
-    CALL("Term::getArgumentIndex");
-
     unsigned res=arity()-(arg-_args);
     ASS_L(res,arity());
     return res;
@@ -757,7 +749,6 @@ public:
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
   SpecialTermData* getSpecialData() {
-    CALL("Term::getSpecialData");
     ASS(isSpecial());
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
@@ -788,7 +779,6 @@ protected:
    */
   void setArgumentOrderValue(ArgumentOrderVals val)
   {
-    CALL("Term::setArgumentOrderValue");
     ASS_GE(val,AO_UNKNOWN);
     ASS_LE(val,AO_INCOMPARABLE);
 
@@ -841,7 +831,6 @@ public:
     bool hasNext() const { return _next->isNonEmpty(); }
     TermList next()
     {
-      CALL("Term::Iterator::next");
       ASS(hasNext());
       TermList res = *_next;
       _next = _next->next();
@@ -968,7 +957,6 @@ public:
   template<bool flip = false>
   unsigned hash() const
   {
-    CALL("Literal::hash");
     bool positive = (flip ^ isPositive());
     unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
     if (isTwoVarEquality()) {
@@ -1013,7 +1001,6 @@ public:
    */
   void markTwoVarEquality()
   {
-    CALL("Literal::markTwoVarEquality");
     ASS(!shared());
     ASS(isEquality());
     ASS(nthArgument(0)->isVar() || !nthArgument(0)->term()->shared());
@@ -1028,7 +1015,6 @@ public:
    */
   TermList twoVarEqSort() const
   {
-    CALL("Literal::twoVarEqSort");
     ASS(isTwoVarEquality());
 
     return _sort;
@@ -1037,7 +1023,6 @@ public:
   /** Assign sort of the variables in an equality between two variables. */
   void setTwoVarEqSort(TermList sort)
   {
-    CALL("Literal::setTwoVarEqSort");
     ASS(isTwoVarEquality());
 
     _sort = sort;

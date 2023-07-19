@@ -34,7 +34,6 @@ ClauseContainer* Discount::getSimplifyingClauseContainer()
 
 bool Discount::handleClauseBeforeActivation(Clause* cl)
 {
-  CALL("Discount::handleClauseBeforeActivation");
   ASS(cl->store()==Clause::SELECTED);
 
   if (!forwardSimplify(cl)) {

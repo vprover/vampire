@@ -34,13 +34,10 @@ using namespace Shell;
 ModelPrinter::ModelPrinter(IGAlgorithm& iga)
  : _iga(iga)
 {
-  CALL("ModelPrinter::ModelPrinter");
 }
 
 bool ModelPrinter::haveNonDefaultSorts()
 {
-  CALL("ModelPrinter::haveNonDefaultSorts");
-
   unsigned funs = env.signature->functions();
   for(unsigned i=0; i<funs; i++) {
     OperatorType* type = env.signature->getFunction(i)->fnType();
@@ -56,8 +53,6 @@ bool ModelPrinter::haveNonDefaultSorts()
 
 bool ModelPrinter::isEprProblem()
 {
-  CALL("ModelPrinter::isEprProblem");
-
   unsigned funCnt = env.signature->functions();
   for(unsigned i=0; i<funCnt; i++) {
     if(env.signature->functionArity(i)>0) {
@@ -69,8 +64,6 @@ bool ModelPrinter::isEprProblem()
 
 bool ModelPrinter::tryOutput(ostream& stm)
 {
-  CALL("ModelPrinter::tryOutput");
-
   if(!isEprProblem() || !haveNonDefaultSorts()) {
     return false;
   }
@@ -113,8 +106,6 @@ bool ModelPrinter::tryOutput(ostream& stm)
 
 bool ModelPrinter::isEquality(Literal* lit)
 {
-  CALL("ModelPrinter::isEquality");
-
   return lit->isEquality() || env.signature->getPredicate(lit->functor())->equalityProxy();
 }
 
@@ -125,8 +116,6 @@ bool ModelPrinter::isEquality(Literal* lit)
  */
 void ModelPrinter::collectConstants(Literal* lit)
 {
-  CALL("ModelPrinter::collectConstants");
-
   SubtermIterator sti(lit);
   while(sti.hasNext()) {
     TermList t = sti.next();
@@ -144,8 +133,6 @@ void ModelPrinter::collectConstants(Literal* lit)
 
 void ModelPrinter::collectTrueLits()
 {
-  CALL("ModelPrinter::collectTrueLits");
-
   ClauseIterator ait = _iga.getActive();
   while(ait.hasNext()) {
     Clause* cl = ait.next();
@@ -183,8 +170,6 @@ struct ModelPrinter::InstLitComparator
 
 void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<Literal*>& instSet, LiteralStack& instAcc)
 {
-  CALL("ModelPrinter::generateNewInstances");
-
   //TODO: Add a smarted way of handling variables occurring multiple times!!! (now it's by MatchingUtils::match)
 
   unsigned arity = base->arity();
@@ -276,8 +261,6 @@ void ModelPrinter::generateNewInstances(Literal* base, TermStack& domain, DHSet<
 
 void ModelPrinter::getInstances(LiteralStack& trueLits, TermStack& domain, LiteralStack& instanceAcc)
 {
-  CALL("ModelPrinter::getInstances");
-
   static DHSet<Literal*> instSet;
   instSet.reset();
 
@@ -291,8 +274,6 @@ void ModelPrinter::getInstances(LiteralStack& trueLits, TermStack& domain, Liter
 
 void ModelPrinter::analyzeEqualityAndPopulateDomain()
 {
-  CALL("ModelPrinter::analyzeEqualityAndPopulateDomain");
-
   TermStack eqInstDomain = _usedConstants;
   LiteralStack eqInsts;
   getInstances(_trueEqs, eqInstDomain, eqInsts);
@@ -349,8 +330,6 @@ void ModelPrinter::analyzeEqualityAndPopulateDomain()
 
 void ModelPrinter::rewriteLits(LiteralStack& lits)
 {
-  CALL("ModelPrinter::rewriteLits");
-
   static TermStack args;
 
   LiteralStack::Iterator iter(lits);
@@ -382,7 +361,6 @@ void ModelPrinter::rewriteLits(LiteralStack& lits)
 
 void ModelPrinter::outputDomainSpec(ostream& out)
 {
-  CALL("ModelPrinter::outputDomainSpec");
   ASS(_domain.isNonEmpty());
 
   out << "fof(model1,interpretation_domain," << endl
@@ -402,8 +380,6 @@ void ModelPrinter::outputDomainSpec(ostream& out)
 
 void ModelPrinter::outputFunInterpretations(ostream& out)
 {
-  CALL("ModelPrinter::outputFunInterpretations");
-
   if(_rewrites.isEmpty()) { return; }
 
   out << "fof(model2,interpretation_terms," << endl
@@ -436,8 +412,6 @@ struct ModelPrinter::PredNumComparator
 
 void ModelPrinter::outputPredInterpretations(ostream& out)
 {
-  CALL("ModelPrinter::outputPredInterpretations");
-
   LiteralStack model;
   getInstances(_trueLits, _domain, model);
 

@@ -77,8 +77,6 @@ public:
 
   static Result reverse(Result r)
   {
-    CALL("Ordering::reverse");
-    
     switch(r) {
     case GREATER:
       return LESS;

@@ -24,7 +24,6 @@ namespace SAT
 BufferedSolver::BufferedSolver(SATSolver* inner)
  : _inner(inner), _checkedIdx(0), _lastStatus(SATISFIABLE), _varCnt(0), _varCntInnerOld(0)
 {
-  CALL("BufferedSolver::BufferedSolver");
 }
 /**
  * Check if cl is implied by the current model i.e. if a literal
@@ -39,8 +38,6 @@ BufferedSolver::BufferedSolver(SATSolver* inner)
  */
 bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
 {
-  CALL("BufferedSolver::checkAndRecordImplied");
-
   static SATLiteralStack newLiterals;
   newLiterals.reset();
 
@@ -79,8 +76,6 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
  */
 void BufferedSolver::addClause(SATClause* cl)
 {
-  CALL("BufferedSolver::addClause");
-
   _unadded.push(cl);
 }
 
@@ -95,8 +90,6 @@ void BufferedSolver::addClause(SATClause* cl)
  */
 void BufferedSolver::flushUnadded()
 {
-  CALL("BufferedSolver::flushUnadded");
-
   //update maxVar
   _varCntInnerOld=_varCnt;
 
@@ -119,8 +112,6 @@ void BufferedSolver::flushUnadded()
  */
 SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
 {
-  CALL("BufferedSolver::solve"); 
-  
   // BufferedSolver does not support "UNKNOWN" status as
   // it needs _inner to have either a model or to be provably unsat
   ASS_EQ(conflictCountLimit, UINT_MAX);
@@ -154,7 +145,6 @@ SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
  */
 SATSolver::VarAssignment BufferedSolver::getAssignment(unsigned var)
 {
-  CALL("BufferedSolver::getAssignment");
   ASS_G(var,0); ASS_LE(var,_varCnt);
 
   // check buffer

@@ -45,7 +45,6 @@ public:
    */
   void addToEnd(TArg obj)
   {
-    CALL("DynamicHeap::addToEnd");
     ASS(!contains(obj));
 
     size_t newIdx1 = size()+1;
@@ -60,8 +59,6 @@ public:
    */  
   void heapify()
   {
-    CALL("DynamicHeap::heapify");
-        
     for (size_t i = (size() >> 1); i > 0; i--) {
       fixIncrease1(i);
     }
@@ -74,8 +71,6 @@ public:
    */
   void insert(TArg obj)
   {
-    CALL("DynamicHeap::insert");
-    
     addToEnd(obj);
     size_t newIdx1 = size();
     fixDecrease1(newIdx1);
@@ -83,7 +78,6 @@ public:
   
   T pop()
   {
-    CALL("DynamicHeap::pop");
     T res = _heap[0];
 
     T* data1 = getData1();
@@ -103,8 +97,6 @@ public:
 
   void notifyIncrease(TArg obj)
   {
-    CALL("DynamicHeap::notifyIncrease");
-    
     size_t idx = _elMap.get(obj);
     ASS(idx==1 || !isGreater1(idx/2, idx)); //check that we didn't decrease
     fixIncrease1(idx);
@@ -112,8 +104,6 @@ public:
 
   void notifyDecrease(TArg obj)
   {
-    CALL("DynamicHeap::notifyDecrease");
-
     size_t idx = _elMap.get(obj);
     ASS(idx*2>size() || !isGreater1(idx, idx*2)); //check that we didn't increase
     ASS(idx*2+1>size() || !isGreater1(idx, idx*2+1)); //check that we didn't increase
@@ -122,7 +112,6 @@ public:
 
   TArg top() const
   {
-    CALL("DynamicHeap::insert");
     ASS(!isEmpty());
 
     return _heap[0];
@@ -130,8 +119,6 @@ public:
 
   bool contains(TArg obj)
   {
-    CALL("DynamicHeap::contains");
-
     return _elMap.find(obj);
   }
 
@@ -149,7 +136,6 @@ private:
    */
   void fixDecrease1(size_t idx)
   {
-    CALL("DynamicHeap::fixDecrease1");
     ASS_G(idx, 0);
     ASS_LE(idx, size());
 
@@ -168,7 +154,6 @@ private:
    */
   void fixIncrease1(size_t idx)
   {
-    CALL("DynamicHeap::fixDecrease1");
     ASS_G(idx, 0);
     ASS_LE(idx, size());
 
@@ -213,7 +198,6 @@ private:
    */
   bool isGreater1(size_t idxA, size_t idxB)
   {
-    CALL("DynamicHeap::isGreater1");
     ASS_G(idxA, 0);
     ASS_LE(idxA, size());
     ASS_G(idxB, 0);
@@ -228,8 +212,6 @@ private:
    */
   void swapInHeap1(size_t idxA, size_t idxB)
   {
-    CALL("DynamicHeap::swapInHeap1");
-
     T* data1 = getData1();
     swap(data1[idxA], data1[idxB]);
     _elMap.set(data1[idxA], idxA);

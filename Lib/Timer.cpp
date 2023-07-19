@@ -160,7 +160,6 @@ timer_sigalrm_handler (int sig)
 /** number of miliseconds (of CPU time) passed since some moment */
 int Timer::miliseconds()
 {
-  CALL("Timer::miliseconds");
   ASS_GE(timer_sigalrm_counter, 0);
 
   return timer_sigalrm_counter;
@@ -223,8 +222,6 @@ long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int g
 
 void Timer::ensureTimerInitialized()
 {
-  CALL("Timer::ensureTimerInitialized");
-  
   // When ensureTimerInitialized is called, env.options->instructionLimit() will not be set yet,
   // so we do this init unconditionally
   resetInstructionMeasuring();
@@ -252,8 +249,6 @@ void Timer::ensureTimerInitialized()
 void Timer::resetInstructionMeasuring()
 {
 #ifdef __linux__ // if available, initialize the perf reading
-  CALL("Timer::resetInstructionMeasuring");
-
   /*
    * NOTE: we need to do this before initializing the actual timer
    * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
@@ -295,8 +290,6 @@ bool Timer::instructionLimitingInPlace()
 
 void Timer::deinitializeTimer()
 {
-  CALL("Timer::deinitializeTimer");
-
   itimerval tv1, tv2;
   tv1.it_value.tv_usec=0;
   tv1.it_value.tv_sec=0;
@@ -344,9 +337,6 @@ vstring Timer::msToSecondsString(int ms)
  */
 void Timer::printMSString(ostream& str, int ms)
 {
-  //having the call macro here distorts the stacks printouts
-//  CALL("Timer::printMSString");
-
   if(ms<0) {
     str << '-';
     ms = -ms;

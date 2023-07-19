@@ -236,7 +236,6 @@ public:
                                     hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const { 
-    CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
     return _usesSort[sort]; 
   } //TODO only utilised by FMB which should eventually update to use the new sorts (as TermLists)
@@ -246,7 +245,6 @@ public:
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
   
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
-    CALL("Property::setSMTLIBLogic");
     _smtlibLogic = smtLibLogic; 
   }
   SMTLIBLogic getSMTLIBLogic() const { 

@@ -72,8 +72,6 @@ class Definizator : public BottomUpTermTransformer {
     // a helper function to collect terms variables and their sorts
     // all stored in the above private fields to be looked up by transformSubterm
     void scanVars(Term* t) {
-      CALL("Definizator::scanVars");
-
       static DHSet<unsigned> varSeen;
       varSeen.reset();
       _typeArity = 0;
@@ -109,8 +107,6 @@ class Definizator : public BottomUpTermTransformer {
 
   protected:
     TermList transformSubterm(TermList trm) override {
-      CALL("Definizator::transformSubterm");
-
       // cout << "tf: " << trm.toString() << endl;
       if (trm.isVar()) return trm;
       Term* t = trm.term();
@@ -185,8 +181,6 @@ class Definizator : public BottomUpTermTransformer {
 
 void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
 {
-  CALL("TweeGoalTransformation::apply");
-
   Stack<Literal*> newLits;
   Definizator df(groundOnly);
 

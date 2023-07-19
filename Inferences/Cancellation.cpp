@@ -32,7 +32,6 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
 
 template<class NumTraits>
 Literal* cancelAdd(Literal* lit) {
-  CALL("cancelAdd(Literal* lit)")
   ASS_EQ(lit->numTypeArguments(), 0) // <- we only have equality, or inequality literals, which are not polymorphic
   ASS_EQ(lit->numTermArguments(), 2)
   auto normL = PolyNf::normalize(TypedTermList((*lit)[0], SortHelper::getTermArgSort(lit, 0)));
@@ -60,7 +59,6 @@ Literal* cancelAdd(Literal* lit) {
 }
 
 Literal* tryCancel(Interpretation inter, Literal* lit) {
-  CALL("tryCancel(Interpretation inter, Literal* lit)")
   switch(inter) {
     case Interpretation::EQUAL: {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
@@ -89,8 +87,6 @@ Cancellation::Cancellation(Ordering& ordering) : SimplifyingGeneratingLiteralSim
 
 Cancellation::Result Cancellation::simplifyLiteral(Literal* litIn) 
 {
-  CALL("Cancellation::simplifyLiteral(Literal*)")
-
   auto pred = litIn->functor();
   return Result::literal(
               theory->isInterpretedPredicate(pred) 
@@ -101,7 +97,6 @@ Cancellation::Result Cancellation::simplifyLiteral(Literal* litIn)
 template<class Number>
 CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr) 
 {
-  CALL("Polynom::cancelAdd(Polynom<Number> const& oldl, Polynom<Number> const& oldr)")
   DEBUG("in:  ", oldl, " <> ", oldr)
 
   using Numeral = typename Number::ConstantType;

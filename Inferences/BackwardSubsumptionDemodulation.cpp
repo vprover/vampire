@@ -63,7 +63,6 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation()
 
 void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardSubsumptionDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
@@ -72,7 +71,6 @@ void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 
 void BackwardSubsumptionDemodulation::detach()
 {
-  CALL("BackwardSubsumptionDemodulation::detach");
   _index.release();
   BackwardSimplificationEngine::detach();
 }
@@ -113,7 +111,6 @@ STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
 
 void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardSubsumptionDemodulation::perform");
   ASSERT_VALID(*sideCl);
 
   TIME_TRACE("backward subsumption demodulation");

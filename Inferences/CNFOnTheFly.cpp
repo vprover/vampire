@@ -44,8 +44,6 @@ static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingForm
 typedef ApplicativeHelper AH;
 
 /*Clause* NotProxyISE::simplify(Clause* c){
-  CALL("NotProxyISE::simplify");
-
   TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
@@ -88,8 +86,6 @@ typedef ApplicativeHelper AH;
 }
 
 Clause* EqualsProxyISE::simplify(Clause* c){
-  CALL("EqualsProxyISE::simplify");
-
   TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
@@ -132,8 +128,6 @@ Clause* EqualsProxyISE::simplify(Clause* c){
 }
 
 Clause* PiSigmaProxyISE::simplify(Clause* c){
-  CALL("PiSigmaProxyISE::simplify");
-
   TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
@@ -187,8 +181,6 @@ Clause* PiSigmaProxyISE::simplify(Clause* c){
 }
 
 Clause* OrImpAndProxyISE::simplify(Clause* c){
-  CALL("rImpAndProxyISE::simplify"); 
-
   TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
@@ -255,8 +247,6 @@ Clause* OrImpAndProxyISE::simplify(Clause* c){
 } 
 
 ClauseIterator ProxyISE::simplifyMany(Clause* c){
-  CALL("ProxyISE::simplifyMany");
-
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
   TermList boolSort = AtomicSort::boolSort();
@@ -405,8 +395,6 @@ afterLoop:
 
 ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index)
 {
-  CALL("CNFOnTheFly::produceClauses");
-
   static bool eager = env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
   static bool simp = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP;
   static bool gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
@@ -595,8 +583,6 @@ afterLoop:
 
 Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d, Literal* e)
 {
-  CALL("CNFOnTheFly::replaceLits");
-
   int length = c->length();
   if(d){ length++;}
   if(e){ length++;}
@@ -617,8 +603,6 @@ Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool inc
 }
 
 InferenceRule convert(Signature::Proxy cnst){
-  CALL("CNFOnTheFly::convert");
-
   switch(cnst){
     case Signature::PI:
       return InferenceRule::VPI_ELIMINATION;
@@ -634,8 +618,6 @@ InferenceRule convert(Signature::Proxy cnst){
 }
 
 TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
-  CALL("CNFOnTheFly::sigmaRemoval");
-
   static DHMap<unsigned,TermList> varSorts;
   varSorts.reset();
 
@@ -696,8 +678,6 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 
 TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
   
-  CALL("CNFOnTheFly::piRemoval");
-
   unsigned maxVar = clause->maxVar();
   do{ 
     maxVar++;
@@ -711,8 +691,6 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
 
 
 Clause* IFFXORRewriterISE::simplify(Clause* c){
-  CALL("IFFXORRewriterISE::simplify");
-
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
@@ -752,8 +730,6 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
 
 void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
 {
-  CALL("LazyClausificationGIE::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
     _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
@@ -761,8 +737,6 @@ void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
 
 void LazyClausificationGIE::detach()
 {
-  CALL("LazyClausificationGIE::detach");
-
   _formulaIndex=0;
   _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
   GeneratingInferenceEngine::detach();
@@ -770,8 +744,6 @@ void LazyClausificationGIE::detach()
 
 void LazyClausification::attach(SaturationAlgorithm* salg)
 {
-  CALL("LazyClausification::attach");
-
   SimplificationEngine::attach(salg);
   _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
    _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
@@ -779,8 +751,6 @@ void LazyClausification::attach(SaturationAlgorithm* salg)
 
 void LazyClausification::detach()
 {
-  CALL("LazyClausification::detach");
-
   _formulaIndex=0;
   _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
   SimplificationEngine::detach();
@@ -788,22 +758,16 @@ void LazyClausification::detach()
 
 ClauseIterator EagerClausificationISE::simplifyMany(Clause* c)
 {
-  CALL("EagerClausificationISE::simplifyMany");
-
   return produceClauses(c, false);
 }
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  CALL("LazyClausificationGIE::simplifyMany");
-
   return produceClauses(c, true, _formulaIndex);
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  CALL("LazyClausification::perform");
-
   return produceClauses(c, false, _formulaIndex);
 }
 

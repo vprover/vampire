@@ -24,7 +24,6 @@ namespace DP
  */
 unsigned ShortConflictMetaDP::getCoreSize(const LiteralStack& core)
 {
-  CALL("ShortConflictMetaDP::getCoreSize");
   // ASS_EQ(_solver.getStatus(), SATSolver::SATISFIABLE);
 
   unsigned res = 0;
@@ -47,8 +46,6 @@ unsigned ShortConflictMetaDP::getCoreSize(const LiteralStack& core)
  */
 DecisionProcedure::Status ShortConflictMetaDP::getStatus(bool getMultipleCores)
 {
-  CALL("ShortConflictMetaDP::getStatus");
-
   Status iStatus = _inner->getStatus(getMultipleCores);
 
   _unsatCores.reset();
@@ -109,7 +106,6 @@ DecisionProcedure::Status ShortConflictMetaDP::getStatus(bool getMultipleCores)
  */
 void ShortConflictMetaDP::getUnsatCore(LiteralStack& res, unsigned coreIndex)
 {
-  CALL("ShortConflictMetaDP::getUnsatCore");
   ASS(res.isEmpty());
   ASS_L(coreIndex, _unsatCores.size());
 

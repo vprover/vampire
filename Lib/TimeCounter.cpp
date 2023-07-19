@@ -13,7 +13,6 @@
  */
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
@@ -43,8 +42,6 @@ TimeCounter* TimeCounter::s_currTop = 0;
  */
 void TimeCounter::reinitialize()
 {
-  CALL("TimeCounter::reinitialize");
-
   s_measuring = true;
   s_initialized=0;
 
@@ -63,7 +60,6 @@ void TimeCounter::reinitialize()
 
 void TimeCounter::initialize()
 {
-  CALL("TimeCounter::initialize");
   ASS(!s_initialized);
 
   s_initialized=true;
@@ -85,7 +81,6 @@ void TimeCounter::initialize()
 
 void TimeCounter::startMeasuring(TimeCounterUnit tcu)
 {
-  CALL("TimeCounter::startMeasuring");
   ASS_NEQ(tcu, TC_OTHER);
 
   TimeoutProtector tp; // let's not get interrupted while updating our TimeCounter linked-list
@@ -111,8 +106,6 @@ void TimeCounter::startMeasuring(TimeCounterUnit tcu)
 
 void TimeCounter::stopMeasuring()
 {
-  CALL("TimeCounter::stopMeasuring");
-  
   TimeoutProtector tp; // let's not get interrupted while updating our TimeCounter linked-list
 
   if(_tcu==__TC_NONE) {
@@ -138,8 +131,6 @@ void TimeCounter::stopMeasuring()
 
 void TimeCounter::snapShot()
 {
-  CALL("TimeCounter::snapShot");
-
   int currTime=env.timer->elapsedMilliseconds();
 
   TimeCounter* counter = s_currTop;
@@ -165,8 +156,6 @@ void TimeCounter::snapShot()
 
 void TimeCounter::printReport(ostream& out)
 {
-  CALL("TimeCounter::printReport");
-
   snapShot();
 
   addCommentSignForSZS(out);

@@ -63,7 +63,6 @@ public:
   /** allocate a vector of the size @b length */
   static Vector* allocate(size_t length)
   {
-    CALL("Vector::allocate");
     ASS_G(length,0);
 
     size_t sz=sizeof(Vector) + (length-1)*sizeof(C);
@@ -79,8 +78,6 @@ public:
   /** deallocate the vector */
   void deallocate()
   {
-    CALL("Vector::deallocate");
-
     // in the case C is a class with an initialiser, apply the destructor of it
     // to every element of the allocated array
     array_delete(_array, _length);
@@ -90,8 +87,6 @@ public:
 
   bool operator==(const Vector& v) const
   {
-    CALL("Vector::operator==");
-
     if(length()!=v.length()) {
       return false;
     }
@@ -149,7 +144,6 @@ public:
 
     C next()
     {
-      CALL("Vector::DestructiveIterator::next");
       ASS(hasNext());
 
       C res=*cur;

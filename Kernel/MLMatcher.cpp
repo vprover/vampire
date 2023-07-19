@@ -67,8 +67,6 @@ private:
 bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* instCl, Literal* resolvedLit,
     unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
-  CALL("createLiteralBindings");
-
   static UUMap variablePositions;
   static BinaryHeap<unsigned,Int> varNums;
   variablePositions.reset();
@@ -220,8 +218,6 @@ struct MatchingData {
   bool compatible(unsigned b1Index, TermList* i1Bindings,
                   unsigned b2Index, unsigned i2AltIndex, pair<int,int>* iinfo) const
   {
-    CALL("MatchingData::compatible");
-
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
 
     while(iinfo->first!=-1) {
@@ -235,8 +231,6 @@ struct MatchingData {
 
   bool bindAlt(unsigned bIndex, unsigned altIndex)
   {
-    CALL("MatchingData::bindAlt");
-
     TermList* curBindings=altBindings[bIndex][altIndex];
     for(unsigned i=bIndex+1; i<len; i++) {
       if(!isInitialized(i)) {
@@ -264,8 +258,6 @@ struct MatchingData {
 
   pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
   {
-    CALL("MatchingData::getIntersectInfo");
-
     ASS_L(b1, b2);
     pair<int,int>* res=intersections->get(b2,b1);
     if( res ) {
@@ -311,8 +303,6 @@ struct MatchingData {
 
   InitResult ensureInit(unsigned bIndex)
   {
-    CALL("MatchingData::ensureInit");
-
     if(!isInitialized(bIndex)) {
       boundVarNums[bIndex]=boundVarNumStorage;
       altBindings[bIndex]=altBindingPtrStorage;
@@ -432,8 +422,6 @@ MLMatcher::Impl::Impl()
 
 void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit)
 {
-  CALL("MLMatcher::Impl::initMatchingData");
-
   s_baseLits.initFromArray(baseLen,baseLits0);
   s_altsArr.initFromArray(baseLen,alts);
 
@@ -544,8 +532,6 @@ void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Cl
 
 void MLMatcher::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
-  CALL("MLMatcher::Impl::init");
-
   if (resolvedLit) {
     // NOTE(JR): I think using resolvedLit together with multiset does not work since there's only two match records in that case.
     // However, I was not able to find a concrete error, so maybe I've missed something.
@@ -578,7 +564,6 @@ void MLMatcher::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instanc
 
 bool MLMatcher::Impl::nextMatch()
 {
-  CALL("MLMatcher::Impl::nextMatch");
   MatchingData* const md = &s_matchingData;
 
   while (true) {

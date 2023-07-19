@@ -50,7 +50,6 @@ namespace SAT{
   {
     UninterpretedForZ3Exception()
     {
-      CALL("Z3Interfacing::UninterpretedForZ3Exception::UninterpretedForZ3Exception");
     }
   };
 
@@ -98,8 +97,6 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   void ensureVarCount(unsigned newVarCnt) override {
-    CALL("Z3Interfacing::ensureVarCnt");
-
     while (_varCnt < newVarCnt) {
       newVar();
     }

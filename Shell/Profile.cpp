@@ -13,7 +13,6 @@
  * @since 15/06/2008 Kemerovo
  */
 
-#include "Debug/Tracer.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Sort.hpp"
 #include "Lib/Environment.hpp"
@@ -157,15 +156,11 @@ void Profile::output(const Clause* clause,ostream& str)
 Profile::VarCounter::VarCounter()
   : Array<const Clause*>(15)
 {
-  CALL("Profile::VarCounter::VarCounter");
-
   fillInterval(0,15);
 } // Profile::VarCounter::VarCounter
 
 void Profile::VarCounter::fillInterval(size_t start,size_t end)
 {
-  CALL("Profile::VarCounter::fillInterval");
-
   for (size_t i = start;i < end;i++) {
     _array[i] = 0;
   }
@@ -178,8 +173,6 @@ void Profile::VarCounter::fillInterval(size_t start,size_t end)
 Profile::Profile ()
   : _numberOfClauses(0)
 {
-  CALL("Profile::Profile");
-
   for (int i = HOW_MANY-1;i >= 0;i--) {
     _vars[i] = 0;
   }
@@ -204,8 +197,6 @@ Profile::Profile ()
 
 Profile::~Profile()
 {
-  CALL("Profile::~Profile");
-
   DEALLOC_UNKNOWN(_funs,"Profile::funs");
   DEALLOC_UNKNOWN(_funClauses,"Profile::funClauses");
   DEALLOC_UNKNOWN(_posPreds,"Profile::posPreds");
@@ -220,8 +211,6 @@ Profile::~Profile()
  */
 void Profile::scan(const UnitList* units)
 {
-  CALL("Profile::scan(UnitList*)");
-
   Signature* sig = env.signature;
   int fn = sig->functions();
   for (int i = fn-1;i >= 0;i--) {
@@ -290,8 +279,6 @@ void Profile::scan(const UnitList* units)
  */
 void Profile::scan (const Clause* clause)
 {
-  CALL("Profile::scan (const Clause*)");
-
   _varsInThisClause = 0;
   _symsInThisClause = 0;
   _currentClause = clause;
@@ -334,7 +321,6 @@ void Profile::scan (const Clause* clause)
  */
 void Profile::scan (const Literal* lit)
 {
-  CALL("Profile::scan (const Literal*...)");
   if (lit->isPositive()) {
     _posPreds[lit->functor()]++;
   }
@@ -357,8 +343,6 @@ void Profile::scan (const Literal* lit)
  */
 void Profile::scan(const TermList* ts)
 {
-  CALL("Profile::scan(TermList*))");
-
   Stack<const TermList*> stack(64);
 
   for (;;) {
@@ -464,8 +448,6 @@ vstring Profile::toString () const
  */
 int Profile::evaluate(const Clause* c)
 {
-  CALL("Profile::evaluate");
-
   bool hasPos = false;
   int length = c->length();
   int product = 1;

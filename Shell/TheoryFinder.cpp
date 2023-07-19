@@ -19,7 +19,6 @@
 
 // #include "CodeGenerator.hpp"
 
-#include "Debug/Tracer.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -46,7 +45,6 @@ TheoryFinder::TheoryFinder (const UnitList* units,Property* property)
   : _units(units),
     _property(property)
 {
-  CALL("TheoryFinder::TheoryFinder");
 } // TheoryFinder::TheoryFinder
 
 /**
@@ -54,7 +52,6 @@ TheoryFinder::TheoryFinder (const UnitList* units,Property* property)
  */
 TheoryFinder::~TheoryFinder ()
 {
-  CALL("TheoryFinder::~TheoryFinder");
 } // TheoryFinder::TheoryFinder
 
 /**
@@ -63,8 +60,6 @@ TheoryFinder::~TheoryFinder ()
  */
 int TheoryFinder::search()
 {
-  CALL("TheoryFinder::search");
-
   int found = 0;
   UnitList::Iterator uit(_units);
   while (uit.hasNext()) {
@@ -85,8 +80,6 @@ int TheoryFinder::search()
  */
 bool TheoryFinder::matchAll(const Unit* unit)
 {
-  CALL("TheoryFinder::matchAll(const Unit*)");
-
   // do not remove this, we need a pointer to an existing unit
   if (unit->isClause()) {
     return matchAll(static_cast<const Clause*>(unit));
@@ -103,8 +96,6 @@ bool TheoryFinder::matchAll(const Unit* unit)
  */
 bool TheoryFinder::matchAll(const Clause* clause)
 {
-  CALL("TheoryFinder::matchAll(const Clause*)");
-
   switch (clause->length()) {
   case 1:
     return matchAll((*clause)[0]);
@@ -131,8 +122,6 @@ bool TheoryFinder::matchAll(const Clause* clause)
  */
 bool TheoryFinder::matchAll(const Formula* formula)
 {
-  CALL("TheoryFinder::matchAll (const Formula*...)");
-
   while (formula->connective() == FORALL) {
     formula = formula->qarg();
   }
@@ -165,8 +154,6 @@ bool TheoryFinder::matchCode(const void* obj,
 			     const unsigned char* code,
 			     uint64_t prop)
 {
-  CALL("TheoryFinder::matchCode/3");
-  
   bool found = matchCode(obj, code);
   if (found && prop) {
     _property->addProp(prop);
@@ -186,8 +173,6 @@ bool TheoryFinder::matchCode(const void* obj,
 bool TheoryFinder::matchCode(const void* obj,
 			     const unsigned char* code)
 {
-  CALL("TheoryFinder::matchCode/2");
-
   Backtrack backtrack[20];
   unsigned backtrackPos = 0;
 
@@ -712,8 +697,6 @@ bool TheoryFinder::matchCode(const void* obj,
  */
 bool TheoryFinder::matchC(const Literal* lit)
 {
-  CALL("TheoryFinder::matchC");
-
 #if TRACE_FINDER
   cout << lit->toString() << "\n";
 #endif
@@ -740,7 +723,6 @@ bool TheoryFinder::matchC(const Literal* lit)
  */
 bool TheoryFinder::matchA(const Literal* lit)
 {
-  CALL("TheoryFinder::matchA");
   static const unsigned char code[] =
   {EQL, //                                   // =
     NEWFUN1,0,2,OLDFUN,0,
@@ -766,8 +748,6 @@ bool TheoryFinder::matchA(const Literal* lit)
  */
 bool TheoryFinder::matchExtensionality (const Clause* c)
 {
-  CALL("TheoryFinder::matchExtensionality (const Clause&...)");
-
   static const unsigned char code[] =
     {CLS,
      NLIT,0,
@@ -796,8 +776,6 @@ bool TheoryFinder::matchExtensionality (const Clause* c)
  */
 bool TheoryFinder::matchCondensedDetachment1(const Clause* c)
 {
-  CALL("TheoryFinder::CondensedDetachment1(const LiteralList&...)");
-
   static const unsigned char code[] =
   {CLS,
    PLIT,0,
@@ -824,8 +802,6 @@ bool TheoryFinder::matchCondensedDetachment1(const Clause* c)
  */
 bool TheoryFinder::matchCondensedDetachment2(const Clause* c)
 {
-  CALL("TheoryFinder::CondensedDetachment2(const Clause&...)");
-
   static const unsigned char code[] =
   {CLS,
    PLIT,0,
@@ -853,8 +829,6 @@ bool TheoryFinder::matchCondensedDetachment2(const Clause* c)
  */
 bool TheoryFinder::matchFLD1(const Clause* c)
 {
-  CALL("TheoryFinder::matchFLD1(const Clause&...)");
-
   static const unsigned char code[] =
     {CLS,
      PLIT,0,
@@ -887,8 +861,6 @@ bool TheoryFinder::matchFLD1(const Clause* c)
  */
 bool TheoryFinder::matchFLD2(const Clause* c)
 {
-  CALL("TheoryFinder::matchFLD2(const Clause&...)");
-
   static const unsigned char code[] =
   {CLS,
    PLIT,0,
@@ -916,8 +888,6 @@ bool TheoryFinder::matchFLD2(const Clause* c)
  */
 bool TheoryFinder::matchSubset (const Clause* c)
 {
-  CALL("TheoryFinder::matchSubset(const Clause* c)");
-
   static const unsigned char code[] =
   {CLS,
    PLIT,0,
@@ -944,8 +914,6 @@ bool TheoryFinder::matchSubset (const Clause* c)
  */
 bool TheoryFinder::matchSubset (const Formula* f)
 {
-  CALL("TheoryFinder::matchSubset(const Formula* f)");
-
   static const unsigned char code[] =
     {CIFF,                          // <=>
       POS,NEWPRED,0,2,NEWVAR,0,NEWVAR,1, //  subset(x,y)
@@ -980,7 +948,6 @@ bool TheoryFinder::matchSubset (const Formula* f)
  */
 bool TheoryFinder::matchListConstructors (const Formula* f)
 {
-  CALL("TheoryFinder::matchListConstructors");
 #if TRACE_FINDER
   cout << "M: [match list constructors axiom]\n";
 #endif
@@ -1020,8 +987,6 @@ bool TheoryFinder::matchListConstructors (const Formula* f)
  */
 bool TheoryFinder::matchExtensionality (const Formula* f)
 {
-  CALL("TheoryFinder::matchExtensionality (const Formula&...)");
-
   static const unsigned char code1[] =
     {CIFF,                           // <=>
       CFORALL,1,0,NBCIFF,              // (Ax0)<=>
@@ -1055,8 +1020,6 @@ bool TheoryFinder::matchExtensionality (const Formula* f)
  */
 bool TheoryFinder::matchLeftInverse(const Literal* lit)
 {
-  CALL("TheoryFinder::matchLeftInverse");
-
   static const unsigned char code[] =
    {EQL, //                                                // =
     NEWFUN1,0,2,NEWFUN,1,1,NEWVAR,0,OLDVAR,0, // *(i(x0),x0)
@@ -1079,8 +1042,6 @@ bool TheoryFinder::matchLeftInverse(const Literal* lit)
  */
 bool TheoryFinder::matchRightInverse(const Literal* lit)
 {
-  CALL("TheoryFinder::matchRightInverse");
-
   static const unsigned char code[] =
    {EQL, //                                                // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,1,OLDVAR,0,// *(x0,i(x0))
@@ -1103,8 +1064,6 @@ bool TheoryFinder::matchRightInverse(const Literal* lit)
  */
 bool TheoryFinder::matchLeftIdentity(const Literal* lit)
 {
-  CALL("TheoryFinder::matchLeftIdentity");
-
   static const unsigned char code[] =
    {EQL, //                           // =
     NEWFUN1,0,2,NEWFUN,1,0,NEWVAR,0,  // *(1,x)
@@ -1127,8 +1086,6 @@ bool TheoryFinder::matchLeftIdentity(const Literal* lit)
  */
 bool TheoryFinder::matchIdempotence(const Literal* lit)
 {
-  CALL("TheoryFinder::matchIdempotence");
-
   static const unsigned char code[] =
     {EQL,NEWFUN1,0,2,NEWVAR,0,OLDVAR,0,
      OLDVAR1,0,END}; // =(*(x0,x0),x0)
@@ -1149,8 +1106,6 @@ bool TheoryFinder::matchIdempotence(const Literal* lit)
  */
 bool TheoryFinder::matchRightIdentity(const Literal* lit)
 {
-  CALL("TheoryFinder::matchRightIdentity");
-
   static const unsigned char code[] =
    {EQL, //                          // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,0, // *(x,1)
@@ -1173,8 +1128,6 @@ bool TheoryFinder::matchRightIdentity(const Literal* lit)
  */
 bool TheoryFinder::matchAssociator(const Literal* lit)
 {
-  CALL("TheoryFinder::matchAssociator");
-
   static const unsigned char code[] =
    {EQL, //                                                    // =
     NEWFUN1,0,3,NEWVAR,0,NEWVAR,1,NEWVAR,2,                     // A(x0,x1,x2)
@@ -1198,8 +1151,6 @@ bool TheoryFinder::matchAssociator(const Literal* lit)
  */
 bool TheoryFinder::matchCommutator(const Literal* lit)
 {
-  CALL("TheoryFinder::matchCommutator");
-
   static const unsigned char code[] =
    {EQL,                                      // =
     NEWFUN1,0,3,NEWVAR,0,NEWVAR,1,            // C(x0,x1)
@@ -1223,8 +1174,6 @@ bool TheoryFinder::matchCommutator(const Literal* lit)
  */
 bool TheoryFinder::matchLeftDistributivity(const Literal* lit)
 {
-  CALL("TheoryFinder::matchLeftDistributivity");
-
   static const unsigned char code[] =
    {EQL, //                                                // =
     NEWFUN1,0,2,NEWFUN,1,2,NEWVAR,0,
@@ -1248,8 +1197,6 @@ bool TheoryFinder::matchLeftDistributivity(const Literal* lit)
  */
 bool TheoryFinder::matchRightDistributivity (const Literal* lit)
 {
-  CALL("TheoryFinder::matchRightDistributivity");
-
   static const unsigned char code[] =
    {EQL, //                                // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,2,
@@ -1273,8 +1220,6 @@ bool TheoryFinder::matchRightDistributivity (const Literal* lit)
  */
 bool TheoryFinder::matchRobbins(const Literal* lit)
 {
-  CALL("TheoryFinder::matchRobbins");
-
   static const unsigned char code1[] =
    {EQL, //                                                     // =
      NEWFUN1,0,1,NEWFUN,1,2,OLDFUN,0,OLDFUN,1,NEWVAR,0,NEWVAR,1,//  n(+(n(+(x0,x1)),
@@ -1317,8 +1262,6 @@ bool TheoryFinder::matchRobbins(const Literal* lit)
  */
 bool TheoryFinder::matchAlternative(const Literal* lit)
 {
-  CALL("TheoryFinder::matchAlternative");
-
   static const unsigned char code1[] =
    {EQL, //                                          // =
      NEWFUN1,0,2,OLDFUN,0,NEWVAR,0,OLDVAR,0,NEWVAR,1, // *(*(x0,x0),x1)
@@ -1345,8 +1288,6 @@ bool TheoryFinder::matchAlternative(const Literal* lit)
  */
 bool TheoryFinder::matchAbsorption(const Literal* lit)
 {
-  CALL("TheoryFinder::matchAbsorption");
-
   static const unsigned char code[] =
    {EQL,                                              // =
     NEWFUN1,0,2,NEWVAR,0,NEWFUN,1,2,OLDVAR,0,NEWVAR,1, // *(x0,+(x0,x1))
@@ -1369,8 +1310,6 @@ bool TheoryFinder::matchAbsorption(const Literal* lit)
  */
 bool TheoryFinder::matchCombinatorS(const Literal* lit)
 {
-  CALL("TheoryFinder::matchCombinatorS");
-
   static const unsigned char code[] =
    {EQL,                                     // =
     NEWFUN1,0,2,OLDFUN,0,OLDFUN,0,NEWFUN,1,0,
@@ -1395,8 +1334,6 @@ bool TheoryFinder::matchCombinatorS(const Literal* lit)
  */
 bool TheoryFinder::matchCombinatorB(const Literal* lit)
 {
-  CALL("TheoryFinder::matchCombinatorB");
-
   static const unsigned char code[] =
    {EQL,                                           // =
     NEWFUN1,0,2,OLDFUN,0,OLDFUN,0,NEWFUN,1,0,
@@ -1420,8 +1357,6 @@ bool TheoryFinder::matchCombinatorB(const Literal* lit)
  */
 bool TheoryFinder::matchCombinatorT(const Literal* lit)
 {
-  CALL("TheoryFinder::matchCombinatorT");
-
   static const unsigned char code[] =
    {EQL,                                              // =
     NEWFUN1,0,2,OLDFUN,0,NEWFUN,1,0,NEWVAR,0,NEWVAR,1, // _(_(T,x0),x1)
@@ -1444,8 +1379,6 @@ bool TheoryFinder::matchCombinatorT(const Literal* lit)
  */
 bool TheoryFinder::matchCombinatorO(const Literal* lit)
 {
-  CALL("TheoryFinder::matchCombinatorO");
-
   static const unsigned char code[] =
    {EQL,                                              // =
     NEWFUN1,0,2,OLDFUN,0,NEWFUN,1,0,NEWVAR,0,NEWVAR,1, // _(_(O,x0),x1)
@@ -1468,8 +1401,6 @@ bool TheoryFinder::matchCombinatorO(const Literal* lit)
  */
 bool TheoryFinder::matchCombinatorQ(const Literal* lit)
 {
-  CALL("TheoryFinder::matchCombinatorQ");
-
   static const unsigned char code[] =
    {EQL,                                           // =
     NEWFUN1,0,2,OLDFUN,0,OLDFUN,0,NEWFUN,1,0,
@@ -1492,8 +1423,6 @@ bool TheoryFinder::matchCombinatorQ(const Literal* lit)
  */
 bool TheoryFinder::matchAll (const Literal* lit)
 {
-  CALL("TheoryFinder::matchAll(const Literal*)");
-
   if (! lit->isPositive()) {
     return false;
   }
@@ -1525,8 +1454,6 @@ bool TheoryFinder::matchAll (const Literal* lit)
 //  */
 // void TheoryFinder::analyse (const Clause& clause)
 // {
-//   CALL("TheoryFinder::analyse");
-
 //   const Term& answer = clause.literals().head().atom().args().head();
 //   const vstring theory(answer.functor().name());
 //   if (theory == "group") {

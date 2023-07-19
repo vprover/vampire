@@ -15,7 +15,6 @@
  */
 
 #include "Debug/RuntimeStatistics.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -36,8 +35,6 @@ namespace Shell
  */
 Formula* Flattening::getFlattennedNegation(Formula* f)
 {
-  CALL("Flattening::getFlattennedNegation");
-
   switch(f->connective()) {
   case NOT:
     return f->uarg();
@@ -61,7 +58,6 @@ Formula* Flattening::getFlattennedNegation(Formula* f)
  */
 FormulaUnit* Flattening::flatten (FormulaUnit* unit)
 {
-  CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
   Formula* f = unit->formula();
@@ -92,8 +88,6 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
  */
 Formula* Flattening::innerFlatten (Formula* f)
 {
-  CALL("Flattening::innerFlatten(Formula*)");
-
   Connective con = f->connective();
   switch (con) {
   case TRUE:
@@ -214,8 +208,6 @@ Formula* Flattening::innerFlatten (Formula* f)
 
 Literal* Flattening::flatten(Literal* l)
 {
-  CALL("Flattening::flatten(Literal*)");
-
   if (l->shared()) {
     return l;
   }
@@ -241,8 +233,6 @@ Literal* Flattening::flatten(Literal* l)
 
 TermList Flattening::flatten (TermList ts)
 {
-  CALL("Flattening::flatten(TermList)");
-
   if (ts.isVar()) {
     return ts;
   }
@@ -373,7 +363,6 @@ TermList Flattening::flatten (TermList ts)
 FormulaList* Flattening::flatten (FormulaList* fs, 
 				  Connective con)
 {
-  CALL("Flattening::flatten (FormulaList*...)");
   ASS(con == OR || con == AND);
 
 #if 1

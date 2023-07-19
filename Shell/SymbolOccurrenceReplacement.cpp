@@ -18,7 +18,6 @@ using namespace Kernel;
 using namespace Shell;
 
 Term* SymbolOccurrenceReplacement::process(Term* term) {
-  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(Term*)");
   ASS(!term->isSort());
 
   if (term->isSpecial()) {
@@ -96,8 +95,6 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
 }
 
 TermList SymbolOccurrenceReplacement::process(TermList ts) {
-  CALL("SymbolOccurrenceReplacement::process(TermList)");
-
   if (!ts.isTerm()) {
     return ts;
   }
@@ -106,7 +103,6 @@ TermList SymbolOccurrenceReplacement::process(TermList ts) {
 }
 
 Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
-  CALL("SymbolOccurrenceReplacement::process(Formula*)");
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -180,6 +176,5 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 }
 
 FormulaList* SymbolOccurrenceReplacement::process(FormulaList* formulas) {
-  CALL("SymbolOccurrenceReplacement::process(FormulaList*)");
   return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
 }

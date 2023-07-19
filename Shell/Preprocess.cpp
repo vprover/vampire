@@ -14,7 +14,6 @@
  * @since 02/06/2007 Manchester, changed to new datastructures
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/ScopedLet.hpp"
 
@@ -74,8 +73,6 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
-  CALL("Preprocess::preprocess");
-
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
@@ -485,8 +482,6 @@ void Preprocess::preprocess(Problem& prb)
  */
 void Preprocess::preprocess1 (Problem& prb)
 {
-  CALL("Preprocess::preprocess1");
-
   ScopedLet<Statistics::ExecutionPhase> epLet(env.statistics->phase, Statistics::PREPROCESS_1);
 
   bool formulasSimplified = false;
@@ -538,8 +533,6 @@ void Preprocess::preprocess1 (Problem& prb)
  */
 void Preprocess::preprocess2(Problem& prb)
 {
-  CALL("Preprocess::preprocess2");
-
   env.statistics->phase=Statistics::PREPROCESS_2;
 
   UnitList::DelIterator us(prb.units());
@@ -567,7 +560,6 @@ void Preprocess::preprocess2(Problem& prb)
  */
 void Preprocess::naming(Problem& prb)
 {
-  CALL("Preprocess::naming");
   ASS(_options.naming());
 
   env.statistics->phase=Statistics::NAMING;
@@ -596,8 +588,6 @@ void Preprocess::naming(Problem& prb)
  */
 void Preprocess::newCnf(Problem& prb)
 {
-  CALL("Preprocess::newCnf");
-
   env.statistics->phase=Statistics::NEW_CNF;
 
   // TODO: this is an ugly copy-paste of "Preprocess::clausify"
@@ -662,8 +652,6 @@ void Preprocess::newCnf(Problem& prb)
  */
 Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
 {
-  CALL("Preprocess::preprocess3(Unit*)");
-
   if (u->isClause()) {
     return u;
   }
@@ -695,8 +683,6 @@ Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
  */
 void Preprocess::preprocess3 (Problem& prb)
 {
-  CALL("Preprocess::preprocess3(Problem&)");
-
   bool modified = false;
 
   env.statistics->phase=Statistics::PREPROCESS_3;
@@ -717,8 +703,6 @@ void Preprocess::preprocess3 (Problem& prb)
 
 void Preprocess::clausify(Problem& prb)
 {
-  CALL("Preprocess::clausify");
-
   env.statistics->phase=Statistics::CLAUSIFICATION;
 
   //we check if we haven't discovered an empty clause during preprocessing

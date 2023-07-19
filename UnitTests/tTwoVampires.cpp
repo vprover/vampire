@@ -45,8 +45,6 @@ using namespace Shell;
 
 void runChild(UnitList* units, vstring slice)
 {
-  CALL("runChild")
-  
   int resultValue=1;
   try {    
     env.timer->reset();

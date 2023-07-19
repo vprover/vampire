@@ -61,8 +61,6 @@ struct NegativeExt::ResultFn
   
   Clause* operator() (Literal* lit)
   {
-    CALL("NegativeExt::ResultFn::operator()");
-
     ASS(lit->isEquality());
     ASS(!lit->isPositive());
 
@@ -166,8 +164,6 @@ private:
 
 ClauseIterator NegativeExt::generateClauses(Clause* premise)
 {
-  CALL("NegativeExt::generateClauses");
-
   //cout << "NegativeExt with " + premise->toString() << endl;
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();
