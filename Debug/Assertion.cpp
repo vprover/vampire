@@ -71,48 +71,6 @@ void Assertion::violatedStrEquality(const char* file, int line, const char* val1
   abortAfterViolation();
 }
 
-void Assertion::checkType(const char* file, int line, const void* ptr, const char* assumed,
-                          const char* ptrStr)
-{
-  Allocator::Descriptor* desc = Allocator::Descriptor::find(ptr);
-
-  if (!desc) {
-    if (outputAllowed(true)) {
-      std::cout << "Type condition in file " << file << ", line " << line
-           << " violated:\n"
-           << ptrStr << " was not allocated by Lib::Allocator.\n";
-    }
-  }
-  else if (!USE_PRECISE_CLASS_NAMES && strcmp(assumed, desc->cls)) {
-    //TODO: the use of precise class names disrupts the check, fix it in the future!
-    if (outputAllowed(true)) {
-      std::cout << "Type condition in file " << file << ", line " << line
-           << " violated:\n"
-           << ptrStr << " was allocated as \"" << desc->cls
-           << "\" instead of \"" << assumed << "\".\n";
-    }
-  }
-  else if (!desc->allocated) {
-    if (outputAllowed(true)) {
-      std::cout << "Type condition in file " << file << ", line " << line
-           << " violated:\n"
-           << ptrStr << " was allocated as \"" << desc->cls
-           << "\", but no longer is.\n";
-    }
-  }
-  else {
-    return;
-  }
-
-  if (outputAllowed(true)) {
-    std::cout << "----- stack dump -----\n";
-    Tracer::printStack(std::cout);
-    std::cout << "----- end of stack dump -----\n";
-  }
-  abortAfterViolation();
-  return;
-} // Assertion::violated
-
 /**
  * Called when an exception is thrown as part of the ASSERT_VALID call.
  * Simply print the location and argument of the ASSERT_VALID statement.
