@@ -598,7 +598,7 @@ private:
     ASS(_capacity>_size+_deleted);
 
     unsigned h1=Hash1::hash(key);
-    int pos=h1%_capacity;
+    unsigned pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if(res->_info.timestamp != _timestamp ) {
       return 0;
