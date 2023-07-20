@@ -81,7 +81,7 @@ public:
     // in the case C is a class with an initialiser, apply the destructor of it
     // to every element of the allocated array
     array_delete(_array, _length);
-    //size_t sz=sizeof(Vector) + (_length-1)*sizeof(C);
+    size_t sz=sizeof(Vector) + (_length-1)*sizeof(C);
     DEALLOC_KNOWN(this,sz,"Vector");
   } // deallocate
 

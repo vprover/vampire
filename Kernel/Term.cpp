@@ -63,7 +63,7 @@ void Term::destroy ()
 {
   ASS(CHECK_LEAKS || ! shared());
 
-  //size_t sz = sizeof(Term)+_arity*sizeof(TermList)+getPreDataSize();
+  size_t sz = sizeof(Term)+_arity*sizeof(TermList)+getPreDataSize();
   void* mem = this;
   mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)-getPreDataSize());
   DEALLOC_KNOWN(mem,sz,"Term");

@@ -104,7 +104,7 @@ bool ClauseQueue::remove(Clause* c)
   for (;;) {
     Node* next = left->nodes[h];
     if (next && c == next->clause) {
-      //unsigned height = h;
+      unsigned height = h;
       // found, first change the links going to next
       for (;;) {
 	left->nodes[h] = next->nodes[h];

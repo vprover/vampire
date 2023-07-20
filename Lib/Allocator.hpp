@@ -22,25 +22,22 @@
 #include <cstdlib>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
+// legacy macros, should be removed eventually
 #define BYPASSING_ALLOCATOR
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
-
-#define CLASS_NAME(className)
-#define USE_ALLOCATOR(className)
+#define USE_ALLOCATOR(C)
 #define USE_ALLOCATOR_ARRAY
 #define USE_ALLOCATOR_UNK
+#define CLASS_NAME(className)
+#define ALLOC_KNOWN(size, className) ::operator new(size)
+#define DEALLOC_KNOWN(ptr, size, className) ::operator delete(ptr, size)
+#define ALLOC_UNKNOWN(size, className) std::malloc(size)
+#define REALLOC_UNKNOWN(ptr, size, className) std::realloc(ptr, size)
+#define DEALLOC_UNKNOWN(ptr, className) std::free(ptr)
 
-#define ALLOC_KNOWN(size, className) malloc(size)
-#define DEALLOC_KNOWN(obj, size, className) free(obj)
-#define ALLOC_UNKNOWN(size, className) malloc(size)
-#define REALLOC_UNKNOWN(ptr, size, className) realloc(ptr, size)
-#define DEALLOC_UNKNOWN(obj, className) free(obj)
-
-#define USE_PRECISE_CLASS_NAMES 0
-
+// TODO dubious: probably a compiler lint these days?
 /**
  * Deletion of incomplete class types causes memory leaks. Using this
  * causes compile error when deleting incomplete classes.
@@ -55,6 +52,8 @@ template<class T> void checked_delete(T * x)
     delete x;
 }
 
+// TODO dubious: is this just placement new?
+// see https://stackoverflow.com/questions/8720425/array-placement-new-requires-unspecified-overhead-in-the-buffer
 /**
  * Initialise an array of objects of type @b T that has length @b length
  * starting at @b placement, and return a pointer to its first element
@@ -79,6 +78,7 @@ T* array_new(void* placement, size_t length)
   return res;
 } // array_new
 
+// TODO maybe just inline this?
 /**
  * Apply the destructor of T to each element of the array @b array of objects
  * of type @b T and that has length @b length.
@@ -97,17 +97,6 @@ void array_delete(T* array, size_t length)
     (--array)->~T();
   }
 }
-
-class Allocator {
-public:
-  static void setMemoryLimit(size_t limit) { _memoryLimit = limit; }
-  static size_t getMemoryLimit() { return _memoryLimit; }
-  static size_t getUsedMemory() { return 0; }
-  static void reportUsageByClasses() {}
-
-private:
-  static size_t _memoryLimit;
-};
 
 #if 0
 

@@ -459,8 +459,6 @@ void Statistics::print(ostream& out)
 
   }
 
-  COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
-
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());

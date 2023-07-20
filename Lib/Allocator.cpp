@@ -15,9 +15,6 @@
  * @since 10/01/2008 Manchester, reimplemented
  */
 
-#include "Allocator.hpp"
-size_t Allocator::_memoryLimit = 300000000u;
-
 #if 0
 #if VDEBUG
 

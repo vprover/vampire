@@ -109,7 +109,6 @@ void reportSpiderStatus(char status)
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
     << (timer ? timer->elapsedDeciseconds() : 0) << " "
     << (timer ? timer->elapsedMegaInstructions() : 0) << " "
-    << Allocator::getUsedMemory()/1048576 << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
     << commitNumber << ':' << z3Version << endl;
   env.endOutput();
@@ -464,9 +463,6 @@ void UIHelper::outputResult(ostream& out)
       out << "unknown" << endl;
       return;
     }
-#if VDEBUG
-    Allocator::reportUsageByClasses();
-#endif
     addCommentSignForSZS(out);
     out << "Memory limit exceeded!\n";
     break;
