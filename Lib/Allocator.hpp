@@ -19,23 +19,141 @@
 #ifndef __Allocator__
 #define __Allocator__
 
+#include <cstddef>
 #include <cstdlib>
+#include <memory>
+#include <vector>
 
 #include "Debug/Assertion.hpp"
+
+namespace Lib {
+
+namespace Allocator {
+extern bool IGNORE_FREE;
+}
+
+template<size_t SIZE>
+class SlabAllocator {
+  static const size_t SLAB_COUNT = 1024;
+  class Slab {
+    std::unique_ptr<char[]> bytes;
+  public:
+    size_t remaining;
+
+    Slab() :
+      bytes(static_cast<char *>(::operator new[](SLAB_COUNT * SIZE))),
+      remaining(SIZE * SLAB_COUNT) {}
+
+    void *alloc() {
+      ASS_GE(remaining, SIZE);
+      remaining -= SIZE;
+      return static_cast<void *>(&bytes[remaining]);
+    }
+  };
+
+  std::vector<Slab> slabs;
+  std::vector<void *> free_list;
+
+public:
+  ~SlabAllocator() { Allocator::IGNORE_FREE = true; }
+
+  void *alloc() {
+    // first look if there's anything in the free list
+    if(!free_list.empty()) {
+      void *recycled = free_list.back();
+      free_list.pop_back();
+      return recycled;
+    }
+
+    // then check if the current slab has space
+    if(!slabs.empty() && slabs.back().remaining)
+      return slabs.back().alloc();
+
+    // current slab full, get a new one
+    slabs.emplace_back();
+    return slabs.back().alloc();
+  }
+
+  void free(void *ptr) { free_list.push_back(ptr); }
+};
+
+namespace Allocator {
+  extern SlabAllocator<4> SLAB4;
+  extern SlabAllocator<8> SLAB8;
+  extern SlabAllocator<16> SLAB16;
+  extern SlabAllocator<24> SLAB24;
+  extern SlabAllocator<32> SLAB32;
+  extern SlabAllocator<48> SLAB48;
+  extern SlabAllocator<64> SLAB64;
+
+  static inline void *alloc(size_t size, size_t align) {
+    // no support for overaligned objects yet, but nothing stopping it in principle
+    ASS_LE(align, alignof(std::max_align_t))
+
+    if(size <= 4)
+      return SLAB4.alloc();
+    if(size <= 8)
+      return SLAB8.alloc();
+    if(size <= 16)
+      return SLAB16.alloc();
+    if(size <= 24)
+      return SLAB24.alloc();
+    if(size <= 32)
+      return SLAB32.alloc();
+    if(size <= 48)
+      return SLAB48.alloc();
+    if(size <= 64)
+      return SLAB64.alloc();
+
+    // C++17: aligned operators
+    return ::operator new(size);
+  }
+
+  static inline void free(void *ptr, size_t size) {
+    if(!ptr || IGNORE_FREE)
+      return;
+
+    if(size <= 4)
+      return SLAB4.free(ptr);
+    if(size <= 8)
+      return SLAB8.free(ptr);
+    if(size <= 16)
+      return SLAB16.free(ptr);
+    if(size <= 24)
+      return SLAB24.free(ptr);
+    if(size <= 32)
+      return SLAB32.free(ptr);
+    if(size <= 48)
+      return SLAB48.free(ptr);
+    if(size <= 64)
+      return SLAB64.free(ptr);
+
+    // C++17: aligned operators
+    ::operator delete(ptr, size);
+  }
+};
+
+}
+
+// C++17: aligned operators
+#define USE_SMALL_OBJECT_ALLOCATOR(C) \
+  void *operator new(size_t size) { return Lib::Allocator::alloc(size, alignof(C)); }\
+  void operator delete(void *ptr, size_t size) { Lib::Allocator::free(ptr, size); }
 
 // legacy macros, should be removed eventually
 #define BYPASSING_ALLOCATOR
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
-#define USE_ALLOCATOR(C)
+#define USE_ALLOCATOR(C) USE_SMALL_OBJECT_ALLOCATOR(C)
 #define USE_ALLOCATOR_ARRAY
 #define USE_ALLOCATOR_UNK
 #define CLASS_NAME(className)
-#define ALLOC_KNOWN(size, className) ::operator new(size)
-#define DEALLOC_KNOWN(ptr, size, className) ::operator delete(ptr, size)
+#define ALLOC_KNOWN(size, className) Lib::Allocator::alloc(size, alignof(std::max_align_t))
+#define DEALLOC_KNOWN(ptr, size, className) Lib::Allocator::free(ptr, size)
 #define ALLOC_UNKNOWN(size, className) std::malloc(size)
 #define REALLOC_UNKNOWN(ptr, size, className) std::realloc(ptr, size)
 #define DEALLOC_UNKNOWN(ptr, className) std::free(ptr)
+
 
 // TODO dubious: probably a compiler lint these days?
 /**

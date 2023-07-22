@@ -15,6 +15,24 @@
  * @since 10/01/2008 Manchester, reimplemented
  */
 
+#include "Allocator.hpp"
+
+namespace Lib {
+namespace Allocator {
+
+bool IGNORE_FREE = false;
+
+SlabAllocator<4> SLAB4;
+SlabAllocator<8> SLAB8;
+SlabAllocator<16> SLAB16;
+SlabAllocator<24> SLAB24;
+SlabAllocator<32> SLAB32;
+SlabAllocator<48> SLAB48;
+SlabAllocator<64> SLAB64;
+
+}
+}
+
 #if 0
 #if VDEBUG
 
