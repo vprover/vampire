@@ -543,7 +543,7 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
     if (outputAllowed()) {
       env.beginOutput();
       addCommentSignForSZS(env.out());
-      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attemping to translate instructions to time" << endl;
+      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attempting to translate instructions to time" << endl;
       env.endOutput();
     }
 
