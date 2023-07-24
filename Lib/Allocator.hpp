@@ -13,6 +13,7 @@
  *
  * @since 13/12/2005 Redmond, made from the Shell Allocator.
  * @since 10/01/2008 Manchester, reimplemented
+ * @since 24/07/2023, just a small-object allocator
  */
 
 
@@ -21,135 +22,222 @@
 
 #include <cstddef>
 #include <cstdlib>
-#include <memory>
-#include <vector>
 
 #include "Debug/Assertion.hpp"
 
 namespace Lib {
 
-namespace Allocator {
-extern bool IGNORE_FREE;
-}
-
+/*
+ * A simple fixed-size allocator.
+ * Allocates largish blocks of memory (`COUNT * SIZE` bytes) from the system,
+ * chopping it into smaller fixed-size chunks for fast allocation/deallocation.
+ * Chunks are `SIZE` bytes long, aligned to the greatest common divisor of `SIZE` and `alignof(std::max_align_t)`.
+ *
+ * The allocator never releases memory from the system, instead retaining it in a free list for reallocation.
+ * This fits Vampire's generally-growing allocation pattern reasonably well in practice.
+ */
 template<size_t SIZE>
-class SlabAllocator {
-  static const size_t SLAB_COUNT = 1024;
-  class Slab {
-    std::unique_ptr<char[]> bytes;
-  public:
-    size_t remaining;
+class FixedSizeAllocator {
+  // the number of chunks (of size `SIZE`) to allocate upfront from the system
+  static const size_t COUNT = 1024;
 
-    Slab() :
-      bytes(static_cast<char *>(::operator new[](SLAB_COUNT * SIZE))),
-      remaining(SIZE * SLAB_COUNT) {}
+  // to allow for a sneaky implementation hack, we cannot allocate anything smaller than sizeof(void *)
+  static_assert(SIZE >= sizeof(void *), "need to store void * in the allocation to keep the free list");
 
+  // An allocated block of memory from the system
+  struct Block {
+    /**
+     * The block allocated from the system, that we chop up into little bits.
+     * Leaked by design to clean up quickly at program exit.
+     * NB: if deleted, must happen _after_ all its allocations are freed - tricky for the global allocator!
+     *
+     * TODO if we want to use Valgrind or similar tools, this will be reported as leaked.
+     * This can be fixed by either
+     * 1. Calling the system allocator if `RUNNING_ON_VALGRIND`, see https://valgrind.org/docs/manual/manual-core-adv.html
+     * 2. Cleaning up after ourselves. This works but is hazardous and less fine-grained, prefer (1) if possible.
+     **/
+    char *bytes = nullptr;
+    // the number of _bytes_ remaining in the block - when 0 we need a new block
+    size_t remaining = 0;
+
+    // hand out a single chunk
     void *alloc() {
       ASS_GE(remaining, SIZE);
       remaining -= SIZE;
-      return static_cast<void *>(&bytes[remaining]);
+      return static_cast<void *>(bytes + remaining);
     }
   };
 
-  std::vector<Slab> slabs;
-  std::vector<void *> free_list;
+  // the current block - old blocks are leaked
+  Block current;
+  /*
+   * The free list.
+   *
+   * This uses the block itself to store the free list.
+   * If `ptr` is freed, then free_list is updated to point to `ptr`,
+   * while `*ptr` points to the previous value of `free_list`.
+   */
+  void **free_list = nullptr;
 
 public:
-  ~SlabAllocator() { Allocator::IGNORE_FREE = true; }
-
+  // allocate a single chunk
   void *alloc() {
     // first look if there's anything in the free list
-    if(!free_list.empty()) {
-      void *recycled = free_list.back();
-      free_list.pop_back();
+    if(free_list) {
+      void *recycled = free_list;
+      free_list = static_cast<void **>(*free_list);
       return recycled;
     }
 
-    // then check if the current slab has space
-    if(!slabs.empty() && slabs.back().remaining)
-      return slabs.back().alloc();
+    // then check if the current block has space
+    if(current.remaining)
+      return current.alloc();
 
-    // current slab full, get a new one
-    slabs.emplace_back();
-    return slabs.back().alloc();
+    // current block full, get a new one
+    current.bytes = static_cast<char *>(::operator new(COUNT * SIZE));
+    current.remaining = COUNT * SIZE;
+    return current.alloc();
   }
 
-  void free(void *ptr) { free_list.push_back(ptr); }
+  // move a chunk to the free list for reallocation
+  // NB `ptr` must have been allocated from this allocator
+  void free(void *ptr) {
+    void **head = static_cast<void **>(ptr);
+    *head = free_list;
+    free_list = head;
+  }
 };
 
-namespace Allocator {
-  extern SlabAllocator<4> SLAB4;
-  extern SlabAllocator<8> SLAB8;
-  extern SlabAllocator<16> SLAB16;
-  extern SlabAllocator<24> SLAB24;
-  extern SlabAllocator<32> SLAB32;
-  extern SlabAllocator<48> SLAB48;
-  extern SlabAllocator<64> SLAB64;
-
-  static inline void *alloc(size_t size, size_t align) {
-    // no support for overaligned objects yet, but nothing stopping it in principle
+/*
+ * An allocator tuned for small objects.
+ *
+ * Tries one of several `FixedSizeAllocator`s, then falls back to the system allocator.
+ */
+class SmallObjectAllocator {
+public:
+  /*
+   * Allocate a piece of memory of at least `size`, aligned to at least `align`.
+   *
+   * Some notes on alignment.
+   * Currently we just assert that `align` is no more than `alignof(std::max_align_t)`.
+   * There is nothing stopping us supporting over-aligned types in principle,
+   * but none of "our" objects have over-alignment requirements (yet).
+   *
+   * We also don't check the case where align > size or e.g. size = 24, align = 16, see
+   * https://stackoverflow.com/questions/46457449/is-it-always-the-case-that-sizeoft-alignoft-for-all-object-types-t
+   * Such objects would be quite strange, as you couldn't declare e.g. T foo[2];
+   *
+   * I believe, with these caveats, that returned memory is correctly aligned (MR, July 2023).
+   */
+  [[gnu::alloc_size(2)]] // implicit `this` argument
+  [[gnu::alloc_align(3)]] // implicit `this` argument
+  [[gnu::returns_nonnull]]
+  [[gnu::malloc]]
+  [[nodiscard]]
+  inline void *alloc(size_t size, size_t align) {
+    // no support for overaligned objects yet, but there is nothing stopping it in principle
     ASS_LE(align, alignof(std::max_align_t))
 
-    if(size <= 4)
-      return SLAB4.alloc();
-    if(size <= 8)
-      return SLAB8.alloc();
-    if(size <= 16)
-      return SLAB16.alloc();
-    if(size <= 24)
-      return SLAB24.alloc();
-    if(size <= 32)
-      return SLAB32.alloc();
-    if(size <= 48)
-      return SLAB48.alloc();
-    if(size <= 64)
-      return SLAB64.alloc();
+    // this looks very branchy, but in practice either:
+    // 1. we have a constant value for `size` and the compiler eliminates them
+    // 2. somehow we don't, but out-of-order execution should make this passable
+    if(size <= 1 * sizeof(void *))
+      return FSA1.alloc();
+    if(size <= 2 * sizeof(void *))
+      return FSA2.alloc();
+    if(size <= 3 * sizeof(void *))
+      return FSA3.alloc();
+    if(size <= 4 * sizeof(void *))
+      return FSA4.alloc();
+    if(size <= 6 * sizeof(void *))
+      return FSA6.alloc();
+    if(size <= 8 * sizeof(void *))
+      return FSA8.alloc();
 
+    // fall back to the system allocator for larger allocations
     // C++17: aligned operators
     return ::operator new(size);
   }
 
-  static inline void free(void *ptr, size_t size) {
-    if(!ptr || IGNORE_FREE)
+  // deallocate a `pointer` to a memory chunk of known `size`
+  // NB `pointer` must have been allocated from this allocator
+  inline void free(void *pointer, size_t size) {
+    if(!pointer)
       return;
 
-    if(size <= 4)
-      return SLAB4.free(ptr);
-    if(size <= 8)
-      return SLAB8.free(ptr);
-    if(size <= 16)
-      return SLAB16.free(ptr);
-    if(size <= 24)
-      return SLAB24.free(ptr);
-    if(size <= 32)
-      return SLAB32.free(ptr);
-    if(size <= 48)
-      return SLAB48.free(ptr);
-    if(size <= 64)
-      return SLAB64.free(ptr);
+    if(size <= 1 * sizeof(void *))
+      return FSA1.free(pointer);
+    if(size <= 2 * sizeof(void *))
+      return FSA2.free(pointer);
+    if(size <= 3 * sizeof(void *))
+      return FSA3.free(pointer);
+    if(size <= 4 * sizeof(void *))
+      return FSA4.free(pointer);
+    if(size <= 6 * sizeof(void *))
+      return FSA6.free(pointer);
+    if(size <= 8 * sizeof(void *))
+      return FSA8.free(pointer);
 
     // C++17: aligned operators
-    ::operator delete(ptr, size);
+    ::operator delete(pointer);
   }
+
+private:
+  // sizes tuned somewhat based on real allocation data, but I don't claim they couldn't be better!
+  // when tuning, bear in mind that the larger the gap between sizes, the more memory is wasted
+  FixedSizeAllocator<1 * sizeof(void *)> FSA1;
+  FixedSizeAllocator<2 * sizeof(void *)> FSA2;
+  FixedSizeAllocator<3 * sizeof(void *)> FSA3;
+  FixedSizeAllocator<4 * sizeof(void *)> FSA4;
+  FixedSizeAllocator<6 * sizeof(void *)> FSA6;
+  FixedSizeAllocator<8 * sizeof(void *)> FSA8;
 };
+
+/*
+ * Global small-object allocator.
+ * Falls back to the system allocator for larger allocations.
+ *
+ * Not always a good idea: if you know your object is (or could be) large,
+ * or if you suspect it would be better to have its own allocator (spatial locality?),
+ * this probably isn't the best possible allocator for you.
+ */
+extern SmallObjectAllocator GLOBAL_SMALL_OBJECT_ALLOCATOR;
+
+// Allocate a piece of memory of at least `size`, aligned to at least `align`.
+// Memory is allocated from `GLOBAL_SMALL_OBJECT_ALLOCATOR`
+[[gnu::alloc_size(1)]]
+[[gnu::alloc_align(2)]]
+[[gnu::returns_nonnull]]
+[[gnu::malloc]]
+[[nodiscard]]
+inline void *alloc(size_t size, size_t align) {
+  return GLOBAL_SMALL_OBJECT_ALLOCATOR.alloc(size, align);
+}
+
+// Deallocate a `pointer` to a memory chunk of known `size`.
+// Memory is returned to `GLOBAL_SMALL_OBJECT_ALLOCATOR`.
+inline void free(void *pointer, size_t size) {
+  GLOBAL_SMALL_OBJECT_ALLOCATOR.free(pointer, size);
+}
 
 }
 
+// overload class-specific operator new to call the global small-object allocator
 // C++17: aligned operators
-#define USE_SMALL_OBJECT_ALLOCATOR(C) \
-  void *operator new(size_t size) { return Lib::Allocator::alloc(size, alignof(C)); }\
-  void operator delete(void *ptr, size_t size) { Lib::Allocator::free(ptr, size); }
+#define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C) \
+  void *operator new(size_t size) { return Lib::alloc(size, alignof(C)); }\
+  void operator delete(void *ptr, size_t size) { Lib::free(ptr, size); }
 
 // legacy macros, should be removed eventually
 #define BYPASSING_ALLOCATOR
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
-#define USE_ALLOCATOR(C) USE_SMALL_OBJECT_ALLOCATOR(C)
+#define USE_ALLOCATOR(C) USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
 #define USE_ALLOCATOR_ARRAY
 #define USE_ALLOCATOR_UNK
 #define CLASS_NAME(className)
-#define ALLOC_KNOWN(size, className) Lib::Allocator::alloc(size, alignof(std::max_align_t))
-#define DEALLOC_KNOWN(ptr, size, className) Lib::Allocator::free(ptr, size)
+#define ALLOC_KNOWN(size, className) Lib::alloc(size, alignof(std::max_align_t))
+#define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)
 #define ALLOC_UNKNOWN(size, className) std::malloc(size)
 #define REALLOC_UNKNOWN(ptr, size, className) std::realloc(ptr, size)
 #define DEALLOC_UNKNOWN(ptr, className) std::free(ptr)
@@ -215,465 +303,5 @@ void array_delete(T* array, size_t length)
     (--array)->~T();
   }
 }
-
-#if 0
-
-#include <cstddef>
-
-#include "Debug/Assertion.hpp"
-
-#include "Portability.hpp"
-
-#if VDEBUG
-#include <string>
-#endif
-
-#define USE_PRECISE_CLASS_NAMES 0
-
-/** Page size in bytes */
-#define VPAGE_SIZE 131000
-/** maximal size of allocated multi-page (in pages) */
-//#define MAX_PAGES 4096
-//#define MAX_PAGES 8192
-#define MAX_PAGES 40000
-/** Any memory piece of this or larger size will be allocated as a page
- *  or contiguous sequence of pages */
-#define REQUIRES_PAGE (VPAGE_SIZE/2)
-/** Maximal allowed number of allocators */
-#define MAX_ALLOCATORS 256
-
-/** The largest piece of memory that can be allocated at once */
-#define MAXIMAL_ALLOCATION (static_cast<unsigned long long>(VPAGE_SIZE)*MAX_PAGES)
-
-//this macro is undefined at the end of the file
-// alloc_size follows C notation, for a C++ method, argument 1 is the pointer to this, so
-// the actual allocation size lies in argument 2
-#if defined(__GNUC__) && !defined(__ICC) && (__GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2)
-# define ALLOC_SIZE_ATTR __attribute__((malloc, alloc_size(2)))
-#else
-# define ALLOC_SIZE_ATTR
-#endif
-
-/**
- * Deletion of incomplete class types causes memory leaks. Using this
- * causes compile error when deleting incomplete classes.
- *
- * (see http://www.boost.org/doc/libs/1_36_0/libs/utility/checked_delete.html )
- */
-template<class T> void checked_delete(T * x)
-{
-    // intentionally complex - simplification causes regressions
-    typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
-    (void) sizeof(type_must_be_complete);
-    delete x;
-}
-
-namespace Lib {
-
-class Allocator {
-public:
-  // Allocator is the only class which we don't allocate using Allocator ;)
-  void* operator new (size_t s);
-  void operator delete (void* obj);
-
-  Allocator();
-  ~Allocator();
-  
-  /** Return the amount of used memory */
-  static size_t getUsedMemory()
-  {
-    return _usedMemory;
-  }
-  /** Return the global memory limit (in bytes) */
-  static size_t getMemoryLimit()
-  {
-    return _memoryLimit;
-  }
-  /** Set the global memory limit (in bytes) */
-  static void setMemoryLimit(size_t size)
-  {
-    _memoryLimit = size;
-    _tolerated = size + (size/10);
-  }
-  /** The current allocator
-   * - through which allocations by the here defined macros are channelled */
-  static Allocator* current;
-
-#if VDEBUG
-  void* allocateKnown(size_t size,const char* className) ALLOC_SIZE_ATTR;
-  void deallocateKnown(void* obj,size_t size,const char* className);
-  void* allocateUnknown(size_t size,const char* className) ALLOC_SIZE_ATTR;
-  void* reallocateUnknown(void* obj, size_t newsize,const char* className);
-  void deallocateUnknown(void* obj,const char* className);
-  static void addressStatus(const void* address);
-  static void reportUsageByClasses();
-#else
-  void* allocateKnown(size_t size) ALLOC_SIZE_ATTR;
-  void deallocateKnown(void* obj,size_t size);
-  void* allocateUnknown(size_t size) ALLOC_SIZE_ATTR;
-  void* reallocateUnknown(void* obj, size_t newsize);
-  void deallocateUnknown(void* obj);
-#endif
-
-  class Initialiser {
-  public:
-    /** Initialise the static allocator's methods */
-    Initialiser()
-    {
-      if (Allocator::_initialised++ == 0) {
-	Allocator::initialise();
-      }
-    } // Initialiser::Initialiser
-
-    ~Initialiser()
-    {
-      if (--Allocator::_initialised == 0) {
-	Allocator::cleanup();
-      }
-    }
-  }; // class Allocator::Initialiser
-
-  static Allocator* newAllocator();
-
-private:
-  char* allocatePiece(size_t size);
-  static void initialise();
-  static void cleanup();
-  /** Array of Allocators. It is assumed that a small number of Allocators is
-   *  available at any given time and Allocator deletions are rare since
-   *  a deletion involves a linear lookup in the array and the
-   *  size of the array is small (currently, no during runtime deletion supported).
-   */
-  static Allocator* _all[MAX_ALLOCATORS];
-  /** Total number of allocators currently available */
-  static int _total;
-  /** > 0 if the global page manager has been initialised */
-  static int _initialised;
-
-  /**
-   * A piece of memory whose size is known by procedures de-allocating
-   * this piece. Since the size is known in advance, no bookkeeping of
-   * the size is required.
-   *
-   * Note: the code of Allocator uses sizeof(Known) as a canonical
-   * way of describing the size of a general pointer on the current
-   * architecture.
-   * 
-   * This pieces of memory are kept in a free list.
-   * @since 10/01/2007 Manchester
-   */
-  struct Known {
-    /** Pointer to the next available piece. Used when kept in a free list. */
-    Known* next;
-  }; // class Known
-
-  /**
-   * A piece of memory whose size is unknown by procedures de-allocating
-   * this piece. Since the size is unknown, storing the size is required.
-   *
-   * This pieces of memory are kept in a list
-   * @since 10/01/2007 Manchester
-   */
-  struct Unknown {
-    /** Size, used both when the piece is allocated and when it is kept
-     *  in the free list. It is the size of the piece, since the size of
-     *  the datastructure using the piece may actually be smaller */
-    size_t size;
-    /** Pointer to the next available piece. Used when kept in
-     *  the list. */
-    Unknown* next;
-  }; // class Unknown
-
-  static size_t unknownsSize(void* obj) {
-    ASS_LE(sizeof(size_t), sizeof(Known)); // because the code all around jumps back by sizeof(Known), but then reads/writes into size_t
-
-    char* mem = reinterpret_cast<char*>(obj) - sizeof(Known);
-    Unknown* unknown = reinterpret_cast<Unknown*>(mem);
-    return unknown->size - sizeof(Known);
-  }
-
-#if VDEBUG
-public:
-  /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */
-  struct EnableBypassChecking {
-    unsigned _save;
-    EnableBypassChecking() { _save = _tolerantZone; _tolerantZone = 0; }
-    ~EnableBypassChecking() { _tolerantZone = _save; }
-  };
-
-  /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */
-  struct DisableBypassChecking {
-    DisableBypassChecking() { _tolerantZone = 1; }
-  };
-
-  /** A helper struct used for implementing the BYPASSING_ALLOCATOR macro. */  
-  struct AllowBypassing {
-    AllowBypassing() { _tolerantZone++; }
-    ~AllowBypassing() { _tolerantZone--; }
-  };
-  
-  /** Descriptor stores information about allocated pieces of memory */
-  struct Descriptor
-  {
-    // Allocator (and its Descriptor) are the only classes which we don't allocate using Allocator
-    void* operator new[] (size_t s);
-    void operator delete[] (void* obj);
-
-    /** address of a piece of memory */
-    const void* address;
-    /** class to which it belongs */
-    const char* cls;
-    /** time when it allocated/deallocated */
-    unsigned timestamp;
-    /** size in bytes, 0 is unused */
-    unsigned size;
-    /** true if allocated */
-    unsigned allocated : 1;
-    /** true if allocated as a known-size object */
-    unsigned known : 1;
-    /** true if it is a page allocated to store other objects */
-    unsigned page : 1;
-    Descriptor();
-    ~Descriptor();
-
-    friend std::ostream& operator<<(std::ostream& out, const Descriptor& d);
-
-    static unsigned hash (const void* addr);
-    static Descriptor* find(const void* addr);
-    /** map from addresses to memory descriptors */
-    static Descriptor* map;
-    /** timestamp for (de)allocations */
-    static unsigned globalTimestamp;
-    /** number of entries in the map of memory descriptors */
-    static size_t noOfEntries;
-    /** number of entries in the map of memory descriptors */
-    static size_t maxEntries;
-    /** pointer to after the last descriptor in the table */
-    static Descriptor* afterLast;
-    /** capacity of the map */
-    static size_t capacity;
-  };
-#endif
-
-private:
-  /**
-   * A piece of memory whose size is multiple of VPAGE_SIZE. Each page
-   * is used in one of the following ways:
-   * <ol>
-   *  <li>to store a collection of Knowns</li>
-   *  <li>to store a collection of Uknowns</li>
-   *  <li>to store a single object of size greater than or equal to
-   *      REQUIRES_PAGE</li>
-   * </ol>
-   * @warning @b size should go just before @b content since Vampire
-   *             must be able to know the size of both Page and Unknown
-   *             before knowing the type (that is, Page or Unknown)
-   * @since 10/01/2007 Manchester
-   */
-  struct Page {
-    /** The next page, if any */
-    Page* next;
-    /** The previous page, if any */
-    Page* previous;
-    /**  Size of this page, multiple of VPAGE_SIZE */
-    size_t size;    
-    /** The page content starts here */
-    void* content[1];
-  }; // class Page
-
-  Page* allocatePages(size_t size);
-  void deallocatePages(Page* page);
-
-  /** The global memory limit */
-  static size_t _memoryLimit;
-  /** 10% over the memory limit. When reached, memory de-fragmentation
-   *  should occur */
-  static size_t _tolerated;
-
-  // structures used inside the allocator start here
-  /** The free list.
-   * At index @b i there are a linked list of Knowns of size (i+1)*sizeof(Known)
-   * Note that, essentially, sizeof(Known) = sizeof(void*).
-   */
-  Known* _freeList[REQUIRES_PAGE/4];
-  /** All pages allocated by this allocator and not returned to 
-   *  the global manager via deallocatePages (doubly linked).  */
-  Page* _myPages;
-#if ! USE_SYSTEM_ALLOCATION
-  /** Number of bytes available on the reserve page */
-  size_t _reserveBytesAvailable;
-  /** next available known */
-  char* _nextAvailableReserve;
-#endif // ! USE_SYSTEM_ALLOCATION
-
-  /** Total memory allocated by pages */
-  static size_t _usedMemory;
-  /** Page allocator array, a.k.a. "the global manager".
-   * Each entry is a (singly linked) list */
-  static Page* _pages[MAX_PAGES];
-
-  friend class Initialiser;
-  
-#if VDEBUG  
-  /*
-   * A tool for marking pieces of code which are allowed to bypass Allocator.
-   * See also Allocator::AllowBypassing and the BYPASSING_ALLOCATOR macro.
-   */
-  static unsigned _tolerantZone;  
-  friend void* ::operator new(size_t);
-  friend void* ::operator new[](size_t);
-  friend void ::operator delete(void*) noexcept;
-  friend void ::operator delete[](void*) noexcept;
-#endif
-}; // class Allocator
-
-/** An initialiser to be included in every compilation unit to ensure
- *  that the memory has been initialised properly.
- */
-static Allocator::Initialiser _____;
-
-/**
- * Initialise an array of objects of type @b T that has length @b length
- * starting at @b placement, and return a pointer to its first element
- * (whose value is equal to @b placement). This function is required when
- * we use an allocated piece of memory an array of elements of type @b T -
- * in this case we also have to initialise every array cell by applying
- * the constructor of T.
- * @author Krystof Hoder
- * @author Andrei Voronkov (documentation)
- */
-template<typename T>
-T* array_new(void* placement, size_t length)
-{
-  ASS_NEQ(placement,0);
-  ASS_G(length,0);
-
-  T* res=static_cast<T*>(placement);
-  T* p=res;
-  while(length--) {
-    ::new(static_cast<void*>(p++)) T();
-  }
-  return res;
-} // array_new
-
-/**
- * Apply the destructor of T to each element of the array @b array of objects
- * of type @b T and that has length @b length.
- * @see array_new() for more information.
- * @author Krystof Hoder
- * @author Andrei Voronkov (documentation)
- */
-template<typename T>
-void array_delete(T* array, size_t length)
-{
-  ASS_NEQ(array,0);
-  ASS_G(length,0);
-
-  array+=length;
-  while(length--) {
-    (--array)->~T();
-  }
-}
-
-#if VDEBUG
-
-std::ostream& operator<<(std::ostream& out, const Allocator::Descriptor& d);
-
-#define USE_ALLOCATOR_UNK                                            \
-  void* operator new (size_t sz)                                       \
-  { return Lib::Allocator::current->allocateUnknown(sz,className()); } \
-  void operator delete (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateUnknown(obj,className()); }
-#define USE_ALLOCATOR(C)                                            \
-  void* operator new (size_t sz)                                       \
-  { ASS_EQ(sz,sizeof(C)); return Lib::Allocator::current->allocateKnown(sizeof(C),className()); } \
-  void operator delete (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C),className()); }
-#define USE_ALLOCATOR_ARRAY \
-  void* operator new[] (size_t sz)                                       \
-  { return Lib::Allocator::current->allocateUnknown(sz,className()); } \
-  void operator delete[] (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateUnknown(obj,className()); }
-
-
-#if USE_PRECISE_CLASS_NAMES
-#  if defined(__GNUC__)
-
-     std::string ___prettyFunToClassName(std::string str);
-
-#    define CLASS_NAME(C) \
-       static const char* className () { \
-	  static std::string res = ___prettyFunToClassName(std::string(__PRETTY_FUNCTION__)); return res.c_str(); }
-#  else
-#    define CLASS_NAME(C) \
-       static const char* className () { return typeid(C).name(); }
-#  endif
-#else
-#  define CLASS_NAME(C) \
-    static const char* className () { return #C; }
-#endif
-
-#define ALLOC_KNOWN(size,className)				\
-  (Lib::Allocator::current->allocateKnown(size,className))
-#define ALLOC_UNKNOWN(size,className)				\
-  (Lib::Allocator::current->allocateUnknown(size,className))
-#define DEALLOC_KNOWN(obj,size,className)		        \
-  (Lib::Allocator::current->deallocateKnown(obj,size,className))
-#define REALLOC_UNKNOWN(obj,newsize,className)                    \
-    (Lib::Allocator::current->reallocateUnknown(obj,newsize,className))
-#define DEALLOC_UNKNOWN(obj,className)		                \
-  (Lib::Allocator::current->deallocateUnknown(obj,className))
-
-#define __CAT(x,y) x ## y
-
-#define BYPASSING_ALLOCATOR_(SEED) Allocator::AllowBypassing __CAT(_tmpBypass_, SEED);
-#define BYPASSING_ALLOCATOR BYPASSING_ALLOCATOR_(__LINE__)
-
-#define START_CHECKING_FOR_BYPASSES(SEED) Allocator::EnableBypassChecking __CAT(_tmpBypass_, SEED);
-#define START_CHECKING_FOR_ALLOCATOR_BYPASSES START_CHECKING_FOR_BYPASSES(__LINE__)
-
-#define STOP_CHECKING_FOR_BYPASSES(SEED) Allocator::DisableBypassChecking __CAT(_tmpBypass_, SEED);
-#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES STOP_CHECKING_FOR_BYPASSES(__LINE__)
-
-#else
-
-#define CLASS_NAME(name)
-#define ALLOC_KNOWN(size,className)				\
-  (Lib::Allocator::current->allocateKnown(size))
-#define DEALLOC_KNOWN(obj,size,className)		        \
-  (Lib::Allocator::current->deallocateKnown(obj,size))
-#define USE_ALLOCATOR_UNK                                            \
-  inline void* operator new (size_t sz)                                       \
-  { return Lib::Allocator::current->allocateUnknown(sz); } \
-  inline void operator delete (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateUnknown(obj); }
-#define USE_ALLOCATOR(C)                                        \
-  inline void* operator new (size_t)                                   \
-    { return Lib::Allocator::current->allocateKnown(sizeof(C)); }\
-  inline void operator delete (void* obj)                               \
-   { if (obj) Lib::Allocator::current->deallocateKnown(obj,sizeof(C)); }
-#define USE_ALLOCATOR_ARRAY                                            \
-  inline void* operator new[] (size_t sz)                                       \
-  { return Lib::Allocator::current->allocateUnknown(sz); } \
-  inline void operator delete[] (void* obj)                                  \
-  { if (obj) Lib::Allocator::current->deallocateUnknown(obj); }          
-#define ALLOC_UNKNOWN(size,className)				\
-  (Lib::Allocator::current->allocateUnknown(size))
-#define REALLOC_UNKNOWN(obj,newsize,className)                    \
-    (Lib::Allocator::current->reallocateUnknown(obj,newsize))
-#define DEALLOC_UNKNOWN(obj,className)		         \
-  (Lib::Allocator::current->deallocateUnknown(obj))
-
-#define START_CHECKING_FOR_ALLOCATOR_BYPASSES
-#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
-#define BYPASSING_ALLOCATOR
-     
-#endif
-
-} // namespace Lib
-
-#undef ALLOC_SIZE_ATTR
-
-#endif // __Allocator__
 
 #endif
