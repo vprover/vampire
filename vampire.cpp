@@ -183,12 +183,13 @@ void getRandomStrategy()
   env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
 }
 
-void doProving()
+VWARN_UNUSED
+Problem *doProving()
 {
   // One call to randomize before preprocessing (see Options)
   env.options->randomizeStrategy(0);
 
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  Problem *prb = getPreprocessedProblem();
 
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
   env.options->randomizeStrategy(prb->getProperty()); 
@@ -199,6 +200,7 @@ void doProving()
   }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
+  return prb;
 }
 
 /**
@@ -442,7 +444,7 @@ void vampireMode()
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  doProving();
+  ScopedPtr<Problem> prb(doProving());
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
@@ -470,8 +472,9 @@ void spiderMode()
 #endif
   
   bool exceptionRaised = false;
+  ScopedPtr<Problem> prb;
   try {
-    doProving();
+    prb = doProving();
   } catch (Exception& e) {
     exception = &e;
     exceptionRaised = true;
