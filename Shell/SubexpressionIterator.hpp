@@ -21,14 +21,12 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Term.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 namespace Shell {
   using namespace Lib;
   using namespace Kernel;
 
-  // FoolAwareSubexpressionIterator
-  class SubexpressionIterator { //: public IteratorCore<SubexpressionIterator::Expression> {
+  class SubexpressionIterator {
     public:
       CLASS_NAME(SubexpressionIterator);
       USE_ALLOCATOR(SubexpressionIterator);
@@ -98,66 +96,6 @@ namespace Shell {
 
     private:
       Stack<Expression> _subexpressions;
-  };
-
-  class FoolAwareSubformulaIterator : public IteratorCore<Formula*> {
-    public:
-      FoolAwareSubformulaIterator(Formula* f): _sei(f) {}
-      FoolAwareSubformulaIterator(FormulaList* fs): _sei(fs) {}
-      FoolAwareSubformulaIterator(Term* t): _sei(t) {}
-      FoolAwareSubformulaIterator(TermList ts): _sei(ts) {}
-
-      bool hasNext() {
-        while (_sei.hasNext()) {
-          SubexpressionIterator::Expression expression = _sei.next();
-          if (expression.isFormula()) {
-            _next = expression.getFormula();
-            _polarity = expression.getPolarity();
-            return true;
-          }
-        }
-        return false;
-      }
-      Formula* next() {
-        int dummy;
-        return next(dummy);
-      }
-      Formula* next(int& polarity) {
-        ASS(_next);
-        polarity = _polarity;
-        return _next;
-      }
-
-    private:
-      SubexpressionIterator _sei;
-      Formula* _next;
-      int _polarity;
-  };
-
-  class FoolAwareSubtermIterator : public IteratorCore<TermList> {
-    public:
-      FoolAwareSubtermIterator(Formula* f): _sei(f) {}
-      FoolAwareSubtermIterator(FormulaList* fs): _sei(fs) {}
-      FoolAwareSubtermIterator(Term* t): _sei(t) {}
-      FoolAwareSubtermIterator(TermList ts): _sei(ts) {}
-
-      bool hasNext() {
-        while (_sei.hasNext()) {
-          SubexpressionIterator::Expression expression = _sei.next();
-          if (expression.isTerm()) {
-            _next = expression.getTerm();
-            return true;
-          }
-        }
-        return false;
-      }
-      TermList next() {
-        return _next;
-      }
-
-    private:
-      SubexpressionIterator _sei;
-      TermList _next;
   };
 }
 
