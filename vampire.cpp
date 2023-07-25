@@ -14,24 +14,18 @@
 #include <iostream>
 #include <ostream>
 #include <fstream>
-#include <csignal>
 
 #if VZ3
 #include "z3++.h"
 #endif
 
-
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Stack.hpp"
-#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -42,8 +36,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
@@ -51,7 +43,6 @@
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CommandLine.hpp"
-//#include "Shell/EqualityProxy.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -67,24 +58,11 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "SAT/MinisatInterfacing.hpp"
-#include "SAT/MinisatInterfacingNewSimp.hpp"
-
 #include "FMB/ModelCheck.hpp"
-#include <thread>
 
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
 #endif
-
-#define USE_SPIDER 0
-#define SAVE_SPIDER_PROPERTIES 0
-
-using namespace Shell;
-using namespace SAT;
-using namespace Saturation;
-using namespace Inferences;
-//using namespace InstGen;
 
 /**
  * Return value is non-zero unless we were successful.
@@ -108,30 +86,15 @@ using namespace Inferences;
 int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 
 /**
- * Return value is non-zero unless we were successful.
- *
- * Being successful for modes that involve proving means that we have
- * either found refutation or established satisfiability.
- *
- *
- * If execution was interrupted by a SIGINT, value 3 is returned,
- * and in case of other signal we return 2. For implementation
- * of these return values see Lib/System.hpp.
- *
- * In case execution was terminated by the timer, return value is 1.
- * (see @c timeLimitReached() in Lib/Timer.cpp)
- */
-int g_returnValue = 1;
-
-/**
  * Preprocess input problem
  *
  */
+VWARN_UNUSED
 Problem* getPreprocessedProblem()
 {
 #ifdef __linux__
   unsigned saveInstrLimit = env.options->instructionLimit();
-  if (env.options->parsingDoesNotCount()) {  
+  if (env.options->parsingDoesNotCount()) {
     env.options->setInstructionLimit(0);
   }
 #endif
@@ -154,7 +117,7 @@ Problem* getPreprocessedProblem()
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
-  
+
   return prb;
 } // getPreprocessedProblem
 
@@ -228,29 +191,6 @@ void profileMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // profileMode
 
-void outputResult(ostream& out) {
-  switch(env.statistics->terminationReason) {
-  case Statistics::UNKNOWN:
-    cout<<"unknown"<<endl;
-    break;
-  case Statistics::INAPPROPRIATE:
-    cout<<"inappropriate"<<endl;
-    break;
-  case Statistics::SATISFIABLE:
-    cout<<"sat"<<endl;
-    break;
-  case Statistics::REFUTATION:
-    cout<<"unsat"<<endl;
-    break;
-  default:
-    //these outcomes are not reachable with the current implementation
-    ASSERTION_VIOLATION;
-  }
-  if(env.options->mode()!=Options::Mode::SPIDER){
-    env.statistics->print(env.out());
-  }
-}
-
 // prints Unit u at an index to latexOut using the LaTeX object
 void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
 {
@@ -317,8 +257,6 @@ void outputProblemToLaTeX(Problem* prb)
   latexOut << "\\[\n\\begin{array}{ll}" << endl;
 
   //TODO  get symbol and sort declarations into LaTeX
-  //UIHelper::outputSortDeclarations(env.out());
-  //UIHelper::outputSymbolDeclarations(env.out());
 
   UnitList::Iterator units(prb->units());
 
@@ -701,7 +639,6 @@ int main(int argc, char* argv[])
       env.options->setOutputAxiomNames(true);
       env.options->setNormalize(true);
       env.options->setRandomizeSeedForPortfolioWorkers(false);
-      //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -713,12 +650,8 @@ int main(int argc, char* argv[])
       env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
-      //env.options->setMulticore(0); // use all available cores
       env.options->setOutputAxiomNames(true);
 
-      //unsigned int nthreads = std::thread::hardware_concurrency();
-      //float slowness = 1.00 + (0.04 * nthreads);
- 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
@@ -732,7 +665,6 @@ int main(int argc, char* argv[])
       env.options->setOutputAxiomNames(true);
       env.options->setNormalize(true);
       env.options->setRandomizeSeedForPortfolioWorkers(false);
-      //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -820,9 +752,6 @@ int main(int argc, char* argv[])
     case Options::Mode::TPREPROCESS:
       preprocessMode(true);
       break;
-
-    default:
-      USER_ERROR("Unsupported mode");
     }
 #if CHECK_LEAKS
     delete env.signature;
@@ -863,7 +792,6 @@ catch (Parse::TPTP::ParseErrorException& exception) {
 #endif
     env.beginOutput();
     explainException(exception);
-    //env.statistics->print(env.out());
     env.endOutput();
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
@@ -875,7 +803,6 @@ catch (Parse::TPTP::ParseErrorException& exception) {
     env.out() << "Insufficient system memory" << '\n';
     env.endOutput();
   }
-//   delete env.allocator;
 
   return vampireReturnValue;
 } // main
