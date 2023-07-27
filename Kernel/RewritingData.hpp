@@ -27,20 +27,6 @@ namespace Kernel {
 
 using namespace Indexing;
 
-class FilterFn {
-public:
-  FilterFn() : _ord(nullptr), _t() {}
-  FilterFn(Ordering* ord, TermList t) : _ord(ord), _t(t) {}
-
-  bool operator()(Term* arg) const {
-    return !_ord || _ord->compare(_t,TermList(arg))==Ordering::Result::GREATER;
-  }
-
-private:
-  Ordering* _ord;
-  TermList _t;
-};
-
 class ResultSubstApplicator {
 public:
   ResultSubstApplicator(ResultSubstitution* subst, bool eqIsResult) : _subst(subst), _eqIsResult(eqIsResult) {}
@@ -58,45 +44,60 @@ private:
   bool _eqIsResult;
 };
 
+struct RuleInfo {
+  TermList rhs;
+  bool valid = false;
+  Term* rwTerm = nullptr;
+};
+
 class RewritingData {
 public:
   CLASS_NAME(RewritingData);
   USE_ALLOCATOR(RewritingData);
 
-  // bool isEmpty() const { return _groundRules.isEmpty() && _nongroundRules.isEmpty(); }
+  RewritingData(const Ordering& ord) : _ord(ord) {}
+
   bool isEmpty() const { return _rules.isEmpty(); }
   bool contains(Term* t) const;
   bool isBlocked(Term* t);
+  bool isBlockedUnsafe(Term* t);
   bool isRewritten(Term* t);
-  bool blockTerm(Term* t);
-  bool addRewrite(Term* t, TermList into);
+  bool blockTerm(Term* t, Term* rwTerm);
+  bool addRewrite(Term* t, TermList into, Term* rwTerm);
 
-  bool addRewriteRules(RewritingData* res) {
-    static FilterFn filter;
-    return addRewriteRules(res, [](TermList t) { return t; }, filter);
+  void copyRewriteRules(RewritingData* other)
+  {
+    CALL("RewritingData::copyRewriteRules");
+    ASS(isEmpty()); // this can be done only once
+
+    DHMap<Term*,RuleInfo>::Iterator it(other->_rules);
+    while (it.hasNext()) {
+      Term* lhs;
+      RuleInfo info;
+      it.next(lhs,info);
+      ALWAYS(addRewrite(lhs, info.rhs, info.rwTerm));
+    }
   }
 
   template<class Applicator>
-  bool addRewriteRules(RewritingData* other, Applicator f, const FilterFn& g)
+  bool addRewriteRules(Clause* cl, Applicator f, Term* rwTerm = nullptr)
   {
     CALL("RewritingData::addRewriteRules");
+    ASS_EQ(cl->store(),Clause::ACTIVE);
+    auto other = cl->rewritingData();
     if (!other) {
       return true;
     }
+    ASS(other->_valid);
 
-    DHMap<Term*,TermList>::Iterator ngit(other->_rules);
-    while (ngit.hasNext()) {
+    DHMap<Term*,RuleInfo>::Iterator it(other->_rules);
+    while (it.hasNext()) {
       Term* lhs;
-      TermList rhs;
-      ngit.next(lhs,rhs);
+      RuleInfo info;
+      it.next(lhs,info);
+      auto rhs = info.rhs;
       lhs = f(TermList(lhs)).term();
-      {
-        TIME_TRACE("filter");
-        if (!g(lhs)) {
-          continue;
-        }
-      }
-      if (!addRewrite(lhs, rhs.isEmpty() ? rhs : f(rhs))) {
+      if (!addRewrite(lhs, rhs.isEmpty() ? rhs : f(rhs), rwTerm)) {
         return false;
       }
     }
@@ -104,75 +105,24 @@ public:
   }
 
   template<class Applicator>
-  bool copySubsumes(RewritingData* subsumer, RewritingData* subsumed, /* Term* rwTerm, TermList tgtTerm, */ Applicator f, const FilterFn& g, Ordering& ord)
-  {
-    CALL("RewritingData::copySubsumes");
-    if (subsumer) {
-      DHMap<Term*,TermList>::DelIterator ngit(subsumer->_rules);
-      while (ngit.hasNext()) {
-        Term* lhs;
-        TermList rhs;
-        ngit.next(lhs,rhs);
-        if(!subsumer->validate(lhs, rhs, ord)) {
-          ngit.del();
-          continue;
-        }
-        lhs = f(TermList(lhs)).term();
-        {
-          TIME_TRACE("filter");
-          if (!g(lhs)) {
-            continue;
-          }
-        }
-        if (!addRewrite(lhs, rhs.isEmpty() ? rhs : f(rhs))) {
-          return false;
-        }
-      }
-    }
-    // if (!addRewrite(f(TermList(rwTerm)).term(), f(tgtTerm))) {
-    //   return false;
-    // }
-    // NonVariableNonTypeIterator nvi(rwTerm);
-    // while (nvi.hasNext()) {
-    //   auto st = nvi.next();
-    //   if (!blockTerm(f(TermList(st)).term())) {
-    //     return false;
-    //   }
-    // }
-
-    if (subsumed) {
-      DHMap<Term*,TermList>::Iterator ngit2(subsumed->_rules);
-      while (ngit2.hasNext()) {
-        Term* lhs;
-        TermList rhs;
-        ngit2.next(lhs,rhs);
-        addRewrite(lhs, rhs);
-      }
-    }
-    return true;
-  }
-
-  template<class Applicator>
-  bool subsumes(RewritingData* other, Applicator f, const FilterFn& g, Ordering& ord)
+  bool subsumes(RewritingData* other, Applicator f)
   {
     CALL("RewritingData::subsumes");
+    ASS(_valid);
 
-    DHMap<Term*,TermList>::DelIterator ngit(_rules);
-    while (ngit.hasNext()) {
+    DHMap<Term*,RuleInfo>::Iterator it(_rules);
+    while (it.hasNext()) {
       Term* lhs;
-      TermList rhs;
-      ngit.next(lhs,rhs);
-      if (!validate(lhs, rhs, ord)) {
-        ngit.del();
-        continue;
-      }
+      RuleInfo info;
+      it.next(lhs,info);
+      auto rhs = info.rhs;
       lhs = f(TermList(lhs)).term();
-      {
-        TIME_TRACE("filter");
-        if (!g(lhs)) {
-          continue;
-        }
-      }
+      // {
+      //   TIME_TRACE("filter-subsume");
+      //   if (rwTerm && compareTerms(rwTerm,lhs,ord) != Ordering::Result::GREATER) {
+      //     continue;
+      //   }
+      // }
       if (rhs.isNonEmpty()) {
         rhs = f(rhs);
       }
@@ -186,7 +136,7 @@ public:
           if (rhs.isEmpty()) {
             return false;
           }
-        } else if (!subsumes(rhs, *ptr, ord)) {
+        } else if (other->validate(lhs) && !subsumes(rhs, ptr->rhs)) {
           return false;
         }
       }
@@ -194,7 +144,7 @@ public:
     return true;
   }
 
-  inline bool subsumes(TermList rhs, TermList rhsOther, Ordering& ord) {
+  inline bool subsumes(TermList rhs, TermList rhsOther) {
     // other is blocked
     if (rhsOther.isEmpty()) {
       return true;
@@ -203,52 +153,12 @@ public:
     if (rhs.isEmpty()) {
       return false;
     }
-    // if (ord) {
-      return Ordering::isGorGEorE(ord.compare(rhsOther,rhs));
-    // }
-    // return rhs == rhsOther;
+    return Ordering::isGorGEorE(_ord.compare(rhsOther,rhs));
   }
 
-
-  NonVariableNonTypeIterator getSubtermIterator(Literal* lit, const Ordering& ord)
-  {
-    CALL("getSubtermIterator");
-
-    if (lit->isEquality()) {
-      TermList sel;
-      switch(ord.getEqualityArgumentOrder(lit)) {
-      case Ordering::INCOMPARABLE: {
-        return NonVariableNonTypeIterator(lit);
-      }
-      case Ordering::EQUAL:
-      case Ordering::GREATER:
-      case Ordering::GREATER_EQ:
-        sel=*lit->nthArgument(0);
-        break;
-      case Ordering::LESS:
-      case Ordering::LESS_EQ:
-        sel=*lit->nthArgument(1);
-        break;
-  #if VDEBUG
-      default:
-        ASSERTION_VIOLATION;
-  #endif
-      }
-      if (!sel.isTerm()) {
-        return NonVariableNonTypeIterator();
-      }
-      return NonVariableNonTypeIterator(sel.term(), true);
-    }
-
-    return NonVariableNonTypeIterator(lit);
-  }
-
-  bool blockNewTerms(Clause* cl, ResultSubstitution* subst, bool eqIsResult, TermList rwTerm, Ordering& ord);
-  bool validate(Term* lhs, TermList rhs, Ordering& ord);
-
-  VirtualIterator<pair<Term*,TermList>> items() const {
-    return _rules.items();
-  }
+  bool blockNewTerms(Clause* cl, ResultSubstitution* subst, bool eqIsResult, Term* rwLhs);
+  bool validate(Term* lhs);
+  void validate();
 
   void setClause(Clause* cl) {
     _cl = cl;
@@ -256,12 +166,33 @@ public:
 
   vstring toString() const;
 
+#if VDEBUG
+  static void debug(Clause* c) {
+    auto rwData = c->rewritingData();
+    if (!rwData) {
+      return;
+    }
+    DHMap<Term*,RuleInfo>::Iterator it(rwData->_rules);
+    while (it.hasNext()) {
+      auto lhs = it.nextKey();
+      NonVariableNonTypeIterator nvi(lhs);
+      while(nvi.hasNext()) {
+        auto st = nvi.next();
+        if (!rwData->isBlockedUnsafe(st)) {
+          ASS_REP(false,c->toString());
+        }
+      }
+    }
+  }
+#endif
+
 private:
-  DHMap<Term*,TermList> _rules;
-  DHSet<Term*> _ruleValid;
-  Clause* _cl;
+  DHMap<Term*,RuleInfo> _rules;
+  Clause* _cl = nullptr;
+  const Ordering& _ord;
   DHSet<unsigned> _vars;
   bool _varsComputed = false;
+  bool _valid = false;
 };
 
 };

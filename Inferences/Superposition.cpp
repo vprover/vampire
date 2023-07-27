@@ -428,28 +428,41 @@ Clause* Superposition::performSuperposition(
   RewritingData* resRwData = nullptr;
   if (getOptions().diamondBreakingSuperposition()) {
     TIME_TRACE("diamond-breaking-s");
-    ScopedPtr<RewritingData> rwData(new RewritingData());
-    
-    if (!rwData->addRewriteRules(rwClause->rewritingData(), ResultSubstApplicator(subst.ptr(), !eqIsResult), FilterFn())) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
+    ScopedPtr<RewritingData> rwData(new RewritingData(ordering));
 
-    FilterFn rwFilter(&ordering, rwTermS);
-    if (!rwData->addRewriteRules(eqClause->rewritingData(), ResultSubstApplicator(subst.ptr(), eqIsResult), rwFilter)) {
+    {TIME_TRACE("diamond-breaking-s 1");
+    CALL("1");
+    if (!rwData->addRewriteRules(rwClause, ResultSubstApplicator(subst.ptr(), !eqIsResult))) {
       env.statistics->skippedSuperposition++;
       return 0;
-    }
-    // add current rewrite rule
-    if (!rwData->addRewrite(rwTermS.term(),tgtTermS)) {
+    }}
+
+    {TIME_TRACE("diamond-breaking-s 2");
+    CALL("2");
+    if (!rwData->addRewriteRules(eqClause, ResultSubstApplicator(subst.ptr(), eqIsResult), rwTermS.term())) {
       env.statistics->skippedSuperposition++;
       return 0;
-    }
-    // add everything that is smaller than rewritten term
-    if (!rwData->blockNewTerms(rwClause, subst.ptr(), !eqIsResult, rwTermS, ordering)) {
+    }}
+
+    {TIME_TRACE("diamond-breaking-s 3");
+    CALL("3");
+    if (!rwData->addRewrite(rwTermS.term(),tgtTermS,rwTermS.term())) {
       env.statistics->skippedSuperposition++;
       return 0;
-    }
+    }}
+    // block new terms
+    {TIME_TRACE("diamond-breaking-s 4");
+    CALL("4");
+    if (!rwData->blockNewTerms(rwClause, subst.ptr(), !eqIsResult, rwTermS.term())) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }}
+    {TIME_TRACE("diamond-breaking-s 5");
+    CALL("5");
+    if (!rwData->blockNewTerms(eqClause, subst.ptr(), eqIsResult, rwTermS.term())) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }}
     resRwData = rwData.release();
   }
 

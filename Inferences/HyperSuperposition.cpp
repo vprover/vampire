@@ -364,7 +364,7 @@ void HyperSuperposition::resolveFixedLiteral(Clause* cl, unsigned litIndex, Clau
   SLQueryResultIterator unifs = _index->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult qr = unifs.next();
-    Clause* genCl = BinaryResolution::generateClause(cl, lit, qr, getOptions());
+    Clause* genCl = BinaryResolution::generateClause(cl, lit, qr, getOptions(), _salg->getOrdering());
     acc.push(ClausePair(cl, genCl));
   }
 }

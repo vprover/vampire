@@ -1259,6 +1259,12 @@ void SaturationAlgorithm::activate(Clause* cl)
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
+  if (cl->rewritingData()) {
+    cl->rewritingData()->validate();
+  }
+#if VDEBUG
+  RewritingData::debug(cl);
+#endif
   _active->add(cl);
     
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));

@@ -19,115 +19,137 @@
 
 namespace Kernel {
 
-bool RewritingData::addRewrite(Term* t, TermList into)
+bool RewritingData::addRewrite(Term* t, TermList into, Term* rwTerm)
 {
   CALL("RewritingData::addRewrite");
-  TIME_TRACE("add rewrite");
+  RuleInfo info;
+  info.rhs = into;
+  info.rwTerm = rwTerm;
 
-// #if VDEBUG
-//   if (into.isNonEmpty()) {
-//     NonVariableNonTypeIterator nvi(t);
-//     while (nvi.hasNext()) {
-//       auto st = nvi.next();
-//       auto ptr = _rules.findPtr(st);
-//       ASS(!ptr || ptr->isEmpty());
-//     }
-//   }
-// #endif
+  // try insertion
+  RuleInfo* ptr;
+  if (_rules.getValuePtr(t, ptr, info)) {
+    return true;
+  }
 
-  // if (ord) {
-  //   bool greater = true;
-  //   for (unsigned i = 0; i < _cl->length(); i++) {
-  //     auto lit = (*_cl)[i];
-  //     for (unsigned j = 0; j < lit->arity(); j++) {
-  //       auto arg = lit->termArg(j);
-  //       if (ord->compare(TermList(t),arg)!=Ordering::GREATER) {
-  //         greater = false;
-  //         break;
-  //       }
-  //     }
-  //     if (!greater) {break;}
-  //   }
-  //   if (greater) {
-  //     TIME_TRACE("greater than all");
-  //     return true;
-  //   }
-  // }
-  return _rules.findOrInsert(t,into) == into;
+  // check if rhs's agree
+  // ASS(ptr->valid);
+  ASS(!ptr->rwTerm || ptr->rwTerm == rwTerm);
+  if (into == ptr->rhs) {
+    return true;
+  }
+
+  // otherwise see if t really needs to be inserted
+  TIME_TRACE("condition precheck");
+  return (_ord.compare(TermList(rwTerm),TermList(t)) != Ordering::Result::GREATER);
 }
 
-bool RewritingData::blockTerm(Term* t)
+bool RewritingData::blockTerm(Term* t, Term* rwTerm)
 {
+  CALL("RewritingData::blockTerm");
   TermList empty;
   empty.makeEmpty();
-  return addRewrite(t, empty);
+  return addRewrite(t, empty, rwTerm);
 }
 
 bool RewritingData::contains(Term* t) const
 {
+  CALL("RewritingData::contains");
   return _rules.find(t);
 }
 
 bool RewritingData::isBlocked(Term* t)
 {
+  CALL("RewritingData::isBlocked");
   auto ptr = _rules.findPtr(t);
-  return ptr && ptr->isEmpty();
+  ASS(!ptr || ptr->valid);
+  return ptr && ptr->rhs.isEmpty();
+}
+
+bool RewritingData::isBlockedUnsafe(Term* t)
+{
+  CALL("RewritingData::isBlockedUnsafe");
+  auto ptr = _rules.findPtr(t);
+  return ptr && ptr->rhs.isEmpty();
 }
 
 bool RewritingData::isRewritten(Term* t)
 {
   auto ptr = _rules.findPtr(t);
-  return ptr && ptr->isNonEmpty();
+  ASS(!ptr || ptr->valid);
+  return ptr && ptr->rhs.isNonEmpty();
 }
 
-bool RewritingData::blockNewTerms(Clause* cl, ResultSubstitution* subst, bool result, TermList rwTerm, Ordering& ord) {
-  DHSet<Term*> added;
+template<class SubtermIterator>
+SubtermIterator getSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  CALL("getSubtermIterator");
+
+  if (lit->isEquality()) {
+    TermList sel;
+    switch(ord.getEqualityArgumentOrder(lit)) {
+    case Ordering::INCOMPARABLE: {
+      return SubtermIterator(lit);
+    }
+    case Ordering::EQUAL:
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ:
+      sel=*lit->nthArgument(0);
+      break;
+    case Ordering::LESS:
+    case Ordering::LESS_EQ:
+      sel=*lit->nthArgument(1);
+      break;
+#if VDEBUG
+    default:
+      ASSERTION_VIOLATION;
+#endif
+    }
+    if (!sel.isTerm()) {
+      return SubtermIterator();
+    }
+    return SubtermIterator(sel.term(), true);
+  }
+
+  return SubtermIterator(lit);
+}
+
+bool RewritingData::blockNewTerms(Clause* cl, ResultSubstitution* subst, bool result, Term* rwTerm)
+{
+  CALL("RewritingData::blockNewTerms");
+  DHSet<Term*> done;
+  // if (rwTerm) {
+  //   done.insert(rwTerm);
+  // }
   for (unsigned i = 0; i < cl->numSelected(); i++) {
     auto lit = subst->apply((*cl)[i], result);
-    // auto tit = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, ord)
-    //                                          : EqHelper::getSubtermIterator(lit, ord);
-    auto tit = getSubtermIterator(lit, ord);
+    auto tit = /* env.options->combinatorySup() ? getSubtermIterator<FirstOrderSubtermIt>(lit, ord)
+                                             :  */getSubtermIterator<NonVariableNonTypeIterator>(lit, _ord);
     while (tit.hasNext()) {
       auto st = tit.next();
-      if (added.find(st)) {
+      if (st != rwTerm && !done.insert(st)) {
         tit.right();
         continue;
       }
-      added.insert(st);
-      {
-        TIME_TRACE("filter");
-        auto comp = ord.compare(rwTerm,TermList(st));
-        if (Ordering::isGorGEorE(comp)) {
-          // add the term itself as well if GREATER
-          NonVariableNonTypeIterator inner(st,comp==Ordering::GREATER);
-          while (inner.hasNext()) {
-            auto st = inner.next();
-            if (added.find(st)) {
-              inner.right();
-              continue;
-            }
-            added.insert(st);
-            if (!blockTerm(st)) {
-              return false;
-            }
-          }
-        }
+      TIME_TRACE("filter-block");
+      if (!blockTerm(st, rwTerm)) {
+        return false;
       }
-      // if (!blockTerm(st)) {
-      //   return false;
-      // }
     }
   }
   return true;
 }
 
-bool RewritingData::validate(Term* lhs, TermList rhs, Ordering& ord)
+bool RewritingData::validate(Term* lhs)
 {
-  CALL("RewritingData::varCheck");
-  TIME_TRACE("validate variables");
-  if (_ruleValid.find(lhs)) {
+  CALL("RewritingData::validate");
+  TIME_TRACE("validate");
+  auto ptr = _rules.findPtr(lhs);
+  if (ptr->valid) {
     return true;
   }
+
+  // check if the rule contains any variables not in the clause
   if (!_varsComputed) {
     ASS(_cl);
     auto vit = _cl->getVariableIterator();
@@ -142,8 +164,8 @@ bool RewritingData::validate(Term* lhs, TermList rhs, Ordering& ord)
       return false;
     }
   }
-  if (rhs.isNonEmpty()) {
-    vit.reset(rhs);
+  if (ptr->rhs.isNonEmpty()) {
+    vit.reset(ptr->rhs);
     while (vit.hasNext()) {
       if (!_vars.find(vit.next().var())) {
         return false;
@@ -151,38 +173,68 @@ bool RewritingData::validate(Term* lhs, TermList rhs, Ordering& ord)
     }
   }
 
-  TIME_TRACE("validate2");
+  // check if the rule lhs is bigger than all maximal terms
   bool greater = true;
+  LiteralList* sel=0;
   for (unsigned i = 0; i < _cl->length(); i++) {
-    auto lit = (*_cl)[i];
+    LiteralList::push((*_cl)[i],sel);
+  }
+  _ord.removeNonMaximal(sel);
+  while (sel) {
+    auto lit = sel->head();
+    sel = sel->tail();
     for (unsigned j = 0; j < lit->arity(); j++) {
-      auto arg = lit->termArg(j);
-      if (ord.compare(TermList(lhs),arg)!=Ordering::GREATER) {
+      auto arg = *lit->nthArgument(j);
+      if (_ord.compare(TermList(lhs),arg)!=Ordering::GREATER) {
         greater = false;
         break;
       }
     }
-    if (!greater) {break;}
+    if (!greater) {
+      break;
+    }
   }
   if (greater) {
-    TIME_TRACE("greater than all");
     return false;
   }
 
-  _ruleValid.insert(lhs);
+  // finally, check if the rule lhs is not greater than the
+  // lhs of the associated rewrite (where it was copied from)
+  if (ptr->rwTerm) {
+    if (_ord.compare(TermList(ptr->rwTerm),TermList(lhs))!=Ordering::GREATER) {
+      return false;
+    }
+  }
+  ptr->rwTerm = nullptr;
+  ptr->valid = true;
   return true;
+}
+
+void RewritingData::validate()
+{
+  if (_valid) {
+    return;
+  }
+  DHMap<Term*,RuleInfo>::DelIterator it(_rules);
+  while (it.hasNext()) {
+    auto lhs = it.nextKey();
+    if (!validate(lhs)) {
+      it.del();
+    }
+  }
+  _valid = true;
 }
 
 vstring RewritingData::toString() const
 {
   vstring res;
-  auto it = items();
+  auto it = _rules.items();
   while (it.hasNext()) {
     auto kv = it.next();
-    if (kv.second.isEmpty()) {
+    if (kv.second.rhs.isEmpty()) {
       res += "!" + kv.first->toString();
     } else {
-      res += kv.first->toString() + " -> " + kv.second.toString();
+      res += kv.first->toString() + " -> " + kv.second.rhs.toString();
     }
     if (it.hasNext()) {
       res += ", ";

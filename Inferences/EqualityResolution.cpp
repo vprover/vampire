@@ -182,10 +182,16 @@ struct EqualityResolution::ResultFn
 
     if (env.options->diamondBreakingSuperposition()) {
       TIME_TRACE("diamond-breaking");
-      ScopedPtr<RewritingData> rwData(new RewritingData());
-      if (!rwData->addRewriteRules(_cl->rewritingData(),[](TermList t) {
+      ScopedPtr<RewritingData> rwData(new RewritingData(*_ord));
+      if (!rwData->addRewriteRules(_cl,[](TermList t) {
         return subst.apply(t,0);
-      }, FilterFn())) {
+      })) {
+        env.statistics->skippedEqualityResolution++;
+        res->destroy();
+        return 0;
+      }
+      auto resultSubst = ResultSubstitution::fromSubstitution(&subst, 0, 0);
+      if (!rwData->blockNewTerms(_cl, resultSubst.ptr(), true, nullptr)) {
         env.statistics->skippedEqualityResolution++;
         res->destroy();
         return 0;

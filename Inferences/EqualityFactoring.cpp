@@ -191,10 +191,10 @@ struct EqualityFactoring::ResultFn
 
     if (env.options->diamondBreakingSuperposition()) {
       TIME_TRACE("diamond-breaking");
-      ScopedPtr<RewritingData> rwData(new RewritingData());
-      if (!rwData->addRewriteRules(_cl->rewritingData(),[](TermList t) {
+      ScopedPtr<RewritingData> rwData(new RewritingData(_ordering));
+      if (!rwData->addRewriteRules(_cl,[](TermList t) {
         return subst.apply(t,0);
-      }, FilterFn())) {
+      })) {
         env.statistics->skippedEqualityFactoring++;
         res->destroy();
         return 0;

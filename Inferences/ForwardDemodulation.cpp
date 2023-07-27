@@ -221,21 +221,21 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        if (_salg->getOptions().diamondBreakingSuperposition()) {
-          TIME_TRACE("diamond-breaking");
-          // TODO do the same in the else case
-          if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
-            if (qr.clause->rewritingData() && !qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
-              return qr.substitution->applyToBoundResult(t);
-            }, FilterFn(&_salg->getOrdering(), trm), ordering))
-            {
-              TIME_TRACE("cannot demodulate");
-              continue;
-            }
-          } else {
-            TIME_TRACE("demodulation other branch");
-          }
-        }
+        // if (_salg->getOptions().diamondBreakingSuperposition()) {
+        //   TIME_TRACE("diamond-breaking");
+        //   // TODO do the same in the else case
+        //   if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+        //     if (qr.clause->rewritingData() && !qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
+        //       return qr.substitution->applyToBoundResult(t);
+        //     }, FilterFn(&_salg->getOrdering(), trm), ordering))
+        //     {
+        //       TIME_TRACE("cannot demodulate");
+        //       continue;
+        //     }
+        //   } else {
+        //     TIME_TRACE("demodulation other branch");
+        //   }
+        // }
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
         if(EqHelper::isEqTautology(resLit)) {
@@ -257,17 +257,21 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         ASS_EQ(next,cLen);
 
         if (_salg->getOptions().diamondBreakingSuperposition()) {
-          TIME_TRACE("diamond-breaking");
-          if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
-            res->setRewritingData(new RewritingData());
-            if (!res->rewritingData()->copySubsumes(qr.clause->rewritingData(), cl->rewritingData(),// qr.term.term(), rhs,
-              [qr](TermList t) {
-                return qr.substitution->applyToBoundResult(t);
-              }, FilterFn(&_salg->getOrdering(), trm), _salg->getOrdering())) {
-              TIME_TRACE("cannot demodulate instantation");
-              continue;
-            }
+          TIME_TRACE("diamond-breaking-copy");
+          if (cl->rewritingData()) {
+            res->setRewritingData(new RewritingData(_salg->getOrdering()));
+            res->rewritingData()->copyRewriteRules(cl->rewritingData());
           }
+          // if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+          //   res->setRewritingData(new RewritingData());
+          //   if (!res->rewritingData()->copySubsumes(qr.clause->rewritingData(), cl->rewritingData(),// qr.term.term(), rhs,
+          //     [qr](TermList t) {
+          //       return qr.substitution->applyToBoundResult(t);
+          //     }, FilterFn(&_salg->getOrdering(), trm), _salg->getOrdering())) {
+          //     TIME_TRACE("cannot demodulate instantation");
+          //     continue;
+          //   }
+          // }
         }
 
         env.statistics->forwardDemodulations++;
