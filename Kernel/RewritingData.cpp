@@ -40,7 +40,6 @@ bool RewritingData::addRewrite(Term* t, TermList into, Term* rwTerm)
   }
 
   // otherwise see if t really needs to be inserted
-  TIME_TRACE("condition precheck");
   return (_ord.compare(TermList(rwTerm),TermList(t)) != Ordering::Result::GREATER);
 }
 
@@ -62,8 +61,14 @@ bool RewritingData::isBlocked(Term* t)
 {
   CALL("RewritingData::isBlocked");
   auto ptr = _rules.findPtr(t);
-  ASS(!ptr || ptr->valid);
-  return ptr && ptr->rhs.isEmpty();
+  if (!ptr) {
+    return false;
+  }
+  if (!validate(t,*ptr)) {
+    _rules.remove(t);
+    return false;
+  }
+  return ptr->rhs.isEmpty();
 }
 
 bool RewritingData::isBlockedUnsafe(Term* t)
@@ -118,9 +123,6 @@ bool RewritingData::blockNewTerms(Clause* cl, ResultSubstitution* subst, bool re
 {
   CALL("RewritingData::blockNewTerms");
   DHSet<Term*> done;
-  // if (rwTerm) {
-  //   done.insert(rwTerm);
-  // }
   for (unsigned i = 0; i < cl->numSelected(); i++) {
     auto lit = subst->apply((*cl)[i], result);
     auto tit = /* env.options->combinatorySup() ? getSubtermIterator<FirstOrderSubtermIt>(lit, ord)
@@ -131,7 +133,6 @@ bool RewritingData::blockNewTerms(Clause* cl, ResultSubstitution* subst, bool re
         tit.right();
         continue;
       }
-      TIME_TRACE("filter-block");
       if (!blockTerm(st, rwTerm)) {
         return false;
       }
@@ -140,12 +141,11 @@ bool RewritingData::blockNewTerms(Clause* cl, ResultSubstitution* subst, bool re
   return true;
 }
 
-bool RewritingData::validate(Term* lhs)
+bool RewritingData::validate(Term* lhs, RuleInfo& info)
 {
-  CALL("RewritingData::validate");
+  CALL("RewritingData::validate(Term*)");
   TIME_TRACE("validate");
-  auto ptr = _rules.findPtr(lhs);
-  if (ptr->valid) {
+  if (info.valid) {
     return true;
   }
 
@@ -164,8 +164,8 @@ bool RewritingData::validate(Term* lhs)
       return false;
     }
   }
-  if (ptr->rhs.isNonEmpty()) {
-    vit.reset(ptr->rhs);
+  if (info.rhs.isNonEmpty()) {
+    vit.reset(info.rhs);
     while (vit.hasNext()) {
       if (!_vars.find(vit.next().var())) {
         return false;
@@ -175,16 +175,18 @@ bool RewritingData::validate(Term* lhs)
 
   // check if the rule lhs is bigger than all maximal terms
   bool greater = true;
-  LiteralList* sel=0;
-  for (unsigned i = 0; i < _cl->length(); i++) {
-    LiteralList::push((*_cl)[i],sel);
+  if (!_maximalLits) {
+    for (unsigned i = 0; i < _cl->length(); i++) {
+      LiteralList::push((*_cl)[i],_maximalLits);
+    }
+    _ord.removeNonMaximal(_maximalLits);
   }
-  _ord.removeNonMaximal(sel);
-  while (sel) {
-    auto lit = sel->head();
-    sel = sel->tail();
-    for (unsigned j = 0; j < lit->arity(); j++) {
-      auto arg = *lit->nthArgument(j);
+  auto lits = _maximalLits;
+  while (lits) {
+    auto lit = lits->head();
+    lits = lits->tail();
+    for (unsigned j = 0; j < lit->numTermArguments(); j++) {
+      auto arg = lit->termArg(j);
       if (_ord.compare(TermList(lhs),arg)!=Ordering::GREATER) {
         greater = false;
         break;
@@ -200,29 +202,28 @@ bool RewritingData::validate(Term* lhs)
 
   // finally, check if the rule lhs is not greater than the
   // lhs of the associated rewrite (where it was copied from)
-  if (ptr->rwTerm) {
-    if (_ord.compare(TermList(ptr->rwTerm),TermList(lhs))!=Ordering::GREATER) {
+  if (info.rwTerm) {
+    if (_ord.compare(TermList(info.rwTerm),TermList(lhs))!=Ordering::GREATER) {
       return false;
     }
   }
-  ptr->rwTerm = nullptr;
-  ptr->valid = true;
-  return true;
-}
-
-void RewritingData::validate()
-{
-  if (_valid) {
-    return;
-  }
-  DHMap<Term*,RuleInfo>::DelIterator it(_rules);
-  while (it.hasNext()) {
-    auto lhs = it.nextKey();
-    if (!validate(lhs)) {
-      it.del();
+  info.rwTerm = nullptr;
+  info.valid = true;
+  NonVariableNonTypeIterator nvi(lhs);
+  while(nvi.hasNext()) {
+    auto st = nvi.next();
+    auto ptr = _rules.findPtr(st);
+    if (!ptr) {
+      continue;
     }
+    if (ptr->valid) {
+      nvi.right();
+      continue;
+    }
+    ptr->rwTerm = nullptr;
+    ptr->valid = true;
   }
-  _valid = true;
+  return true;
 }
 
 vstring RewritingData::toString() const

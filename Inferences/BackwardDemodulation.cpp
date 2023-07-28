@@ -237,7 +237,7 @@ struct BackwardDemodulation::ResultFn
     ASS_EQ(next,cLen);
 
     if (_diamondBreaking) {
-      TIME_TRACE("diamond-breaking-copy");
+      TIME_TRACE("diamond-breaking");
       if (qr.clause->rewritingData()) {
         res->setRewritingData(new RewritingData(_ordering));
         res->rewritingData()->copyRewriteRules(qr.clause->rewritingData());

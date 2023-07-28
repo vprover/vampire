@@ -427,42 +427,32 @@ Clause* Superposition::performSuperposition(
 
   RewritingData* resRwData = nullptr;
   if (getOptions().diamondBreakingSuperposition()) {
-    TIME_TRACE("diamond-breaking-s");
+    TIME_TRACE("diamond-breaking");
     ScopedPtr<RewritingData> rwData(new RewritingData(ordering));
 
-    {TIME_TRACE("diamond-breaking-s 1");
-    CALL("1");
+    // add previous rewrites
     if (!rwData->addRewriteRules(rwClause, ResultSubstApplicator(subst.ptr(), !eqIsResult))) {
       env.statistics->skippedSuperposition++;
       return 0;
-    }}
-
-    {TIME_TRACE("diamond-breaking-s 2");
-    CALL("2");
+    }
     if (!rwData->addRewriteRules(eqClause, ResultSubstApplicator(subst.ptr(), eqIsResult), rwTermS.term())) {
       env.statistics->skippedSuperposition++;
       return 0;
-    }}
-
-    {TIME_TRACE("diamond-breaking-s 3");
-    CALL("3");
+    }
+    // add current rewrite
     if (!rwData->addRewrite(rwTermS.term(),tgtTermS,rwTermS.term())) {
       env.statistics->skippedSuperposition++;
       return 0;
-    }}
+    }
     // block new terms
-    {TIME_TRACE("diamond-breaking-s 4");
-    CALL("4");
     if (!rwData->blockNewTerms(rwClause, subst.ptr(), !eqIsResult, rwTermS.term())) {
       env.statistics->skippedSuperposition++;
       return 0;
-    }}
-    {TIME_TRACE("diamond-breaking-s 5");
-    CALL("5");
+    }
     if (!rwData->blockNewTerms(eqClause, subst.ptr(), eqIsResult, rwTermS.term())) {
       env.statistics->skippedSuperposition++;
       return 0;
-    }}
+    }
     resRwData = rwData.release();
   }
 

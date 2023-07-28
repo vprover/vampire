@@ -88,13 +88,15 @@ public:
     if (!other) {
       return true;
     }
-    ASS(other->_valid);
 
-    DHMap<Term*,RuleInfo>::Iterator it(other->_rules);
+    DHMap<Term*,RuleInfo>::DelIterator it(other->_rules);
     while (it.hasNext()) {
       Term* lhs;
-      RuleInfo info;
-      it.next(lhs,info);
+      auto& info = it.nextRef(lhs);
+      if (!other->validate(lhs,info)) {
+        it.del();
+        continue;
+      }
       auto rhs = info.rhs;
       lhs = f(TermList(lhs)).term();
       if (!addRewrite(lhs, rhs.isEmpty() ? rhs : f(rhs), rwTerm)) {
@@ -108,21 +110,17 @@ public:
   bool subsumes(RewritingData* other, Applicator f)
   {
     CALL("RewritingData::subsumes");
-    ASS(_valid);
 
-    DHMap<Term*,RuleInfo>::Iterator it(_rules);
+    DHMap<Term*,RuleInfo>::DelIterator it(_rules);
     while (it.hasNext()) {
       Term* lhs;
-      RuleInfo info;
-      it.next(lhs,info);
+      auto& info = it.nextRef(lhs);
       auto rhs = info.rhs;
+      if (!validate(lhs, info)) {
+        it.del();
+        continue;
+      }
       lhs = f(TermList(lhs)).term();
-      // {
-      //   TIME_TRACE("filter-subsume");
-      //   if (rwTerm && compareTerms(rwTerm,lhs,ord) != Ordering::Result::GREATER) {
-      //     continue;
-      //   }
-      // }
       if (rhs.isNonEmpty()) {
         rhs = f(rhs);
       }
@@ -136,7 +134,7 @@ public:
           if (rhs.isEmpty()) {
             return false;
           }
-        } else if (other->validate(lhs) && !subsumes(rhs, ptr->rhs)) {
+        } else if (other->validate(lhs, *ptr) && !subsumes(rhs, ptr->rhs)) {
           return false;
         }
       }
@@ -157,8 +155,7 @@ public:
   }
 
   bool blockNewTerms(Clause* cl, ResultSubstitution* subst, bool eqIsResult, Term* rwLhs);
-  bool validate(Term* lhs);
-  void validate();
+  bool validate(Term* lhs, RuleInfo& info);
 
   void setClause(Clause* cl) {
     _cl = cl;
@@ -192,7 +189,7 @@ private:
   const Ordering& _ord;
   DHSet<unsigned> _vars;
   bool _varsComputed = false;
-  bool _valid = false;
+  LiteralList* _maximalLits = LiteralList::empty();
 };
 
 };

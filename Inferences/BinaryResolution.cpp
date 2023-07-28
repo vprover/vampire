@@ -202,30 +202,15 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       return 0;
     }
 
-    // auto queryLitAfter = qr.substitution->applyToQuery(queryLit);
-    // // TODO add all subterms from the right premise selected literals
-    // NonVariableNonTypeIterator nvi(queryLitAfter);
-    // while (nvi.hasNext()) {
-    //   auto st = nvi.next();
-    //   if (!rwData->blockTerm(st)) {
-    //     env.statistics->skippedResolution++;
-    //     return 0;
-    //   }
-    // }
-
-    // block new terms
-    {TIME_TRACE("diamond-breaking-br 4");
-    CALL("4");
+    // block new terms from both clauses
     if (!rwData->blockNewTerms(queryCl, qr.substitution.ptr(), false, nullptr)) {
       env.statistics->skippedResolution++;
       return 0;
-    }}
-    {TIME_TRACE("diamond-breaking-br 5");
-    CALL("5");
+    }
     if (!rwData->blockNewTerms(qr.clause, qr.substitution.ptr(), true, nullptr)) {
       env.statistics->skippedResolution++;
       return 0;
-    }}
+    }
     resRwData = rwData.release();
   }
 

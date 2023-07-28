@@ -257,7 +257,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         ASS_EQ(next,cLen);
 
         if (_salg->getOptions().diamondBreakingSuperposition()) {
-          TIME_TRACE("diamond-breaking-copy");
+          TIME_TRACE("diamond-breaking");
           if (cl->rewritingData()) {
             res->setRewritingData(new RewritingData(_salg->getOrdering()));
             res->rewritingData()->copyRewriteRules(cl->rewritingData());
