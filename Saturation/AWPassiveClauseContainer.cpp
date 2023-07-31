@@ -175,34 +175,35 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
   _model = torch::jit::load(opt.neuralPassiveClauseContainer().c_str());
   _model.eval();
 
-  if (auto m = _model.find_method("eatMyTweaks")) { // if the model is not interested in tweaks, it will get none!
-    c10::List<double> tweaks;
+  const vstring& tweak_str = opt.neuralPassiveClauseContainerTweaks();
+  if (!tweak_str.empty()) {
+    if (auto m = _model.find_method("eatMyTweaks")) { // if the model is not interested in tweaks, it will get none!
+      c10::List<double> tweaks;
 
-    const vstring& tweak_str = opt.neuralPassiveClauseContainerTweaks();
+      std::size_t i=0,j;
+      while (true) {
+        j = tweak_str.find_first_of(',',i);
 
-    std::size_t i=0,j;
-    while (true) {
-      j = tweak_str.find_first_of(',',i);
+        auto t = tweak_str.substr(i,j-i);
+        if (t.empty()) {
+          break;
+        }
 
-      auto t = tweak_str.substr(i,j-i);
-      if (t.empty()) {
-        break;
+        double nextVal;
+        ALWAYS(Int::stringToDouble(t,nextVal));
+        tweaks.push_back(nextVal);
+
+        if (j == std::string::npos) {
+          break;
+        }
+
+        i = j+1;
       }
 
-      double nextVal;
-      ALWAYS(Int::stringToDouble(t,nextVal));
-      tweaks.push_back(nextVal);
-
-      if (j == std::string::npos) {
-        break;
-      }
-
-      i = j+1;
+      std::vector<torch::jit::IValue> inputs;
+      inputs.push_back(torch::jit::IValue(tweaks));
+      (*m)(std::move(inputs));
     }
-
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(torch::jit::IValue(tweaks));
-    (*m)(std::move(inputs));
   }
 
 #if DEBUG_MODEL
