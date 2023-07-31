@@ -230,6 +230,8 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
+  unsigned forwardDeletionByRule;
+  unsigned forwardDeletionByRuleBlocked;
 
   /** statistics of term algebra rules */
   unsigned taDistinctnessSimplifications;

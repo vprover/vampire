@@ -60,8 +60,6 @@ public:
   bool isEmpty() const { return _rules.isEmpty(); }
   bool contains(Term* t) const;
   bool isBlocked(Term* t);
-  bool isBlockedUnsafe(Term* t);
-  bool isRewritten(Term* t);
   bool blockTerm(Term* t, Term* rwTerm);
   bool addRewrite(Term* t, TermList into, Term* rwTerm);
 
@@ -107,9 +105,10 @@ public:
   }
 
   template<class Applicator>
-  bool subsumes(RewritingData* other, Applicator f)
+  bool subsumes(RewritingData* other, Applicator f, Term* rwTerm)
   {
     CALL("RewritingData::subsumes");
+    TIME_TRACE("subsumes");
 
     DHMap<Term*,RuleInfo>::DelIterator it(_rules);
     while (it.hasNext()) {
@@ -121,22 +120,27 @@ public:
         continue;
       }
       lhs = f(TermList(lhs)).term();
+      if (rwTerm && _ord.compare(TermList(rwTerm), TermList(lhs)) != Ordering::Result::GREATER) {
+        continue;
+      }
+      if (!other) {
+        return false;
+      }
+      auto ptr = other->_rules.findPtr(lhs);
+      if (!ptr) {
+        return false;
+      }
       if (rhs.isNonEmpty()) {
         rhs = f(rhs);
       }
-      if (!other) {
-        if (rhs.isEmpty()) {
-          return false;
-        }
-      } else {
-        auto ptr = other->_rules.findPtr(lhs);
-        if (!ptr) {
-          if (rhs.isEmpty()) {
-            return false;
-          }
-        } else if (other->validate(lhs, *ptr) && !subsumes(rhs, ptr->rhs)) {
-          return false;
-        }
+
+      if (!other->validate(lhs, *ptr)) {
+        other->_rules.remove(lhs);
+        return false;
+      }
+
+      if (!subsumes(rhs, ptr->rhs)) {
+        return false;
       }
     }
     return true;
@@ -163,6 +167,10 @@ public:
 
   vstring toString() const;
 
+  DHMap<Term*,RuleInfo>::DelIterator iter() {
+    return DHMap<Term*,RuleInfo>::DelIterator(_rules);
+  }
+
 #if VDEBUG
   static void debug(Clause* c) {
     auto rwData = c->rewritingData();
@@ -175,7 +183,7 @@ public:
       NonVariableNonTypeIterator nvi(lhs);
       while(nvi.hasNext()) {
         auto st = nvi.next();
-        if (!rwData->isBlockedUnsafe(st)) {
+        if (!rwData->isBlocked(st)) {
           ASS_REP(false,c->toString());
         }
       }

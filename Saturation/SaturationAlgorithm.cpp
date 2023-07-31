@@ -94,6 +94,7 @@
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/RewritingByRule.hpp"
+#include "Inferences/DeletionByRule.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1758,6 +1759,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
   }
+  res->addForwardSimplifierToFront(new ForwardDeletionByRule());
 
   // create backward simplification engine
   if (prb.hasEquality()) {
@@ -1785,6 +1787,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::Subsumption::UNIT_ONLY;
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }
+  res->addBackwardSimplifierToFront(new BackwardDeletionByRule());
 
   if (opt.mode()==Options::Mode::CONSEQUENCE_ELIMINATION) {
     res->_consFinder=new ConsequenceFinder();
@@ -1893,6 +1896,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
   }
+  // res->addFront(new DemodulationByRule());
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }

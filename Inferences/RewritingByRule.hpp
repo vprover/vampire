@@ -28,7 +28,7 @@ public:
   CLASS_NAME(SuperpositionByRule);
   USE_ALLOCATOR(SuperpositionByRule);
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 };
 
 class DemodulationByRule
@@ -38,7 +38,7 @@ public:
   CLASS_NAME(DemodulationByRule);
   USE_ALLOCATOR(DemodulationByRule);
 
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

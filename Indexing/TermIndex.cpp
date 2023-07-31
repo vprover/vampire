@@ -92,6 +92,30 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void BlockedTermIndex::handleClause(Clause* c, bool adding)
+{
+  CALL("BlockedTermIndex::handleClause");
+
+  auto rwData = c->rewritingData();
+  if (!rwData) {
+    return;
+  }
+
+  auto it = rwData->iter();
+  while (it.hasNext()) {
+    Term* t;
+    auto& info = it.nextRef(t);
+    if (info.rhs.isNonEmpty()) {
+      continue;
+    }
+    if (!rwData->validate(t,info)) {
+      it.del();
+      continue;
+    }
+    _is->handle(t, (*c)[0], c, adding);
+  }
+}
+
 template <bool combinatorySupSupport>
 void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
 {

@@ -196,24 +196,15 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    // if (_diamondBreaking) {
-    //   TIME_TRACE("demodulation-check");
-    //   // TODO do the same in the else case
-    //   if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
-    //     if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
-    //       return qr.substitution->applyToBoundQuery(t);
-    //     }, FilterFn(&_ordering, lhsS), _ordering))
-    //     {
-    //       TIME_TRACE("cannot demodulate");
-    //       return BwSimplificationRecord(0);
-    //     }
-    //   }
-    //   // TODO check modulo rewriting and blocking
-    //   // if (!rwData->rewriteTerm(lhsS.term(), rhsS, lhs, _eqLit, _cl)) {
-    //   //   TIME_TRACE("cannot demodulate 1");
-    //   //   return BwSimplificationRecord(0);
-    //   // }
-    // }
+    if (_diamondBreaking) {
+      TIME_TRACE("diamond-breaking");
+      if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
+        return qr.substitution->applyToBoundQuery(t);
+      }, lhsS.term()))
+      {
+        return BwSimplificationRecord(0);
+      }
+    }
 
 
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
@@ -242,18 +233,6 @@ struct BackwardDemodulation::ResultFn
         res->setRewritingData(new RewritingData(_ordering));
         res->rewritingData()->copyRewriteRules(qr.clause->rewritingData());
       }
-      // if (qr.substitution->isIdentityOnResultWhenQueryBound()) {
-      //   res->setRewritingData(new RewritingData());
-      //   if (!res->rewritingData()->copySubsumes(_cl->rewritingData(), qr.clause->rewritingData(),// lhs.term(), rhs,
-      //     [qr](TermList t) {
-      //       return qr.substitution->applyToBoundQuery(t);
-      //     }, FilterFn(&_ordering, lhsS), _ordering)) {
-      //     TIME_TRACE("cannot demodulate instantiation");
-      //     return BwSimplificationRecord(0);
-      //   }
-      // } else {
-      //   TIME_TRACE("demodulation other branch");
-      // }
     }
 
     env.statistics->backwardDemodulations++;

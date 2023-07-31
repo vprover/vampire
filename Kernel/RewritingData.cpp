@@ -71,20 +71,6 @@ bool RewritingData::isBlocked(Term* t)
   return ptr->rhs.isEmpty();
 }
 
-bool RewritingData::isBlockedUnsafe(Term* t)
-{
-  CALL("RewritingData::isBlockedUnsafe");
-  auto ptr = _rules.findPtr(t);
-  return ptr && ptr->rhs.isEmpty();
-}
-
-bool RewritingData::isRewritten(Term* t)
-{
-  auto ptr = _rules.findPtr(t);
-  ASS(!ptr || ptr->valid);
-  return ptr && ptr->rhs.isNonEmpty();
-}
-
 template<class SubtermIterator>
 SubtermIterator getSubtermIterator(Literal* lit, const Ordering& ord)
 {
@@ -187,7 +173,8 @@ bool RewritingData::validate(Term* lhs, RuleInfo& info)
     lits = lits->tail();
     for (unsigned j = 0; j < lit->numTermArguments(); j++) {
       auto arg = lit->termArg(j);
-      if (_ord.compare(TermList(lhs),arg)!=Ordering::GREATER) {
+      auto comp = _ord.compare(TermList(lhs),arg);
+      if (comp != Ordering::GREATER/*  && comp != Ordering::Result::EQUAL */) {
         greater = false;
         break;
       }
@@ -232,8 +219,13 @@ vstring RewritingData::toString() const
   auto it = _rules.items();
   while (it.hasNext()) {
     auto kv = it.next();
+    // if (kv.second.valid) {
+    //   res += "!";
+    // } else {
+    //   res += "?";
+    // }
     if (kv.second.rhs.isEmpty()) {
-      res += "!" + kv.first->toString();
+      res += "~" + kv.first->toString();
     } else {
       res += kv.first->toString() + " -> " + kv.second.rhs.toString();
     }

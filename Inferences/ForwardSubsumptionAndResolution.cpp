@@ -217,7 +217,7 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 
 bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<TermList(TermList)>& subst) {
   TIME_TRACE("diamond-breaking-subsume");
-  return !subsumer->rewritingData() || subsumer->rewritingData()->subsumes(subsumed->rewritingData(), subst);
+  return !subsumer->rewritingData() || subsumer->rewritingData()->subsumes(subsumed->rewritingData(), subst, nullptr);
 }
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
@@ -309,6 +309,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         while (rit.hasNext()) {
           auto qr = rit.next();
           Clause *mcl = qr.clause;
+          if (qr.clause->rewritingData()) {
+            continue;
+          }
           if (ColorHelper::compatible(cl->color(), mcl->color()) && blockedTermCheck(cl, mcl, [&qr](TermList t){
             if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
               return qr.substitution->applyToBoundResult(t);
@@ -338,6 +341,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         CMStack::Iterator csit(cmStore);
         while (csit.hasNext()) {
           ClauseMatches *cms = csit.next();
+          if (cms->_cl->rewritingData()) {
+            continue;
+          }
           for (unsigned li = 0; li < clen; li++) {
             Literal *resLit = (*cl)[li];
             if (checkForSubsumptionResolution(cl, cms, resLit, subst) && ColorHelper::compatible(cl->color(), cms->_cl->color())
@@ -368,6 +374,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         while (rit.hasNext()) {
           SLQueryResult res = rit.next();
           Clause *mcl = res.clause;
+          if (res.clause->rewritingData()) {
+            continue;
+          }
 
           ClauseMatches *cms = nullptr;
           if (mcl->hasAux()) {

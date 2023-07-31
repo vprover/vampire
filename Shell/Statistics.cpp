@@ -143,6 +143,8 @@ Statistics::Statistics()
     equationalTautologies(0),
     forwardSubsumed(0),
     backwardSubsumed(0),
+    forwardDeletionByRule(0),
+    forwardDeletionByRuleBlocked(0),
     taDistinctnessSimplifications(0),
     taDistinctnessTautologyDeletions(0),
     taInjectivitySimplifications(0),
@@ -354,6 +356,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Deep equational tautologies", deepEquationalTautologies);
   COND_OUT("Forward subsumptions", forwardSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
+  COND_OUT("Forward deletion by rule", forwardDeletionByRule);
+  COND_OUT("Forward deletion by blocking rule", forwardDeletionByRuleBlocked);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
   COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
