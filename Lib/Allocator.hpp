@@ -149,8 +149,12 @@ public:
       return FSA3.alloc();
     if(size <= 4 * sizeof(void *))
       return FSA4.alloc();
+    if(size <= 5 * sizeof(void *))
+      return FSA5.alloc();
     if(size <= 6 * sizeof(void *))
       return FSA6.alloc();
+    if(size <= 7 * sizeof(void *))
+      return FSA7.alloc();
     if(size <= 8 * sizeof(void *))
       return FSA8.alloc();
 
@@ -173,8 +177,12 @@ public:
       return FSA3.free(pointer);
     if(size <= 4 * sizeof(void *))
       return FSA4.free(pointer);
+    if(size <= 5 * sizeof(void *))
+      return FSA5.free(pointer);
     if(size <= 6 * sizeof(void *))
       return FSA6.free(pointer);
+    if(size <= 7 * sizeof(void *))
+      return FSA7.free(pointer);
     if(size <= 8 * sizeof(void *))
       return FSA8.free(pointer);
 
@@ -189,7 +197,9 @@ private:
   FixedSizeAllocator<2 * sizeof(void *)> FSA2;
   FixedSizeAllocator<3 * sizeof(void *)> FSA3;
   FixedSizeAllocator<4 * sizeof(void *)> FSA4;
+  FixedSizeAllocator<5 * sizeof(void *)> FSA5;
   FixedSizeAllocator<6 * sizeof(void *)> FSA6;
+  FixedSizeAllocator<7 * sizeof(void *)> FSA7;
   FixedSizeAllocator<8 * sizeof(void *)> FSA8;
 };
 
