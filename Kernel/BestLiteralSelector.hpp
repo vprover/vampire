@@ -239,7 +239,7 @@ protected:
     ensureSomeColoredSelected(c, eligible);
   }
 
-  void fillMaximals(LiteralList*& maximals, DArray<Literal*> litArr)
+  void fillMaximals(LiteralList*& maximals, DArray<Literal*>& litArr)
   {
     DArray<Literal*>::ReversedIterator rlit(litArr);
     while(rlit.hasNext()) {
