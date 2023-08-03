@@ -23,6 +23,17 @@
 #include <cstddef>
 #include <cstdlib>
 
+#ifdef VALGRIND
+#include <valgrind/memcheck.h>
+#else
+#define VALGRIND_MAKE_MEM_NOACCESS(addr, size)
+#define VALGRIND_MAKE_MEM_DEFINED(addr, size)
+#define VALGRIND_MAKE_MEM_UNDEFINED(addr, size)
+#define VALGRIND_CREATE_MEMPOOL(pool, redzone_bytes, zeroed)
+#define VALGRIND_MEMPOOL_ALLOC(pool, addr, size)
+#define VALGRIND_MEMPOOL_FREE(pool, addr)
+#endif
+
 #include "Debug/Assertion.hpp"
 
 namespace Lib {
@@ -49,12 +60,7 @@ class FixedSizeAllocator {
     /**
      * The block allocated from the system, that we chop up into little bits.
      * Leaked by design to clean up quickly at program exit.
-     * NB: if deleted, must happen _after_ all its allocations are freed - tricky for the global allocator!
-     *
-     * TODO if we want to use Valgrind or similar tools, this will be reported as leaked.
-     * This can be fixed by either
-     * 1. Calling the system allocator if `RUNNING_ON_VALGRIND`, see https://valgrind.org/docs/manual/manual-core-adv.html
-     * 2. Cleaning up after ourselves. This works but is hazardous and less fine-grained, prefer (1) if possible.
+     * NB: if deleted in future, must happen _after_ all its allocations are freed - tricky for the global allocator!
      **/
     char *bytes = nullptr;
     // the number of _bytes_ remaining in the block - when 0 we need a new block
@@ -80,23 +86,41 @@ class FixedSizeAllocator {
   void **free_list = nullptr;
 
 public:
+  FixedSizeAllocator() {
+    // register us as a Valgrind "mempool", using `this` as a key
+    VALGRIND_CREATE_MEMPOOL(this, 0, false);
+  }
+
   // allocate a single chunk
   void *alloc() {
     // first look if there's anything in the free list
     if(free_list) {
       void *recycled = free_list;
       free_list = static_cast<void **>(*free_list);
+
+      // we previously told Valgrind `recycled` was defined memory for a word...
+      VALGRIND_MAKE_MEM_UNDEFINED(recycled, sizeof(void *));
+      // ...but it isn't any longer, we just allocated it!
+      VALGRIND_MEMPOOL_ALLOC(this, recycled, SIZE);
       return recycled;
     }
 
     // then check if the current block has space
-    if(current.remaining)
-      return current.alloc();
+    if(current.remaining) {
+      void *result = current.alloc();
+      VALGRIND_MEMPOOL_ALLOC(this, result, SIZE);
+      return result;
+    }
 
     // current block full, get a new one
     current.bytes = static_cast<char *>(::operator new(COUNT * SIZE));
+    // should not access the block if we didn't allocate it properly...
+    VALGRIND_MAKE_MEM_NOACCESS(current.bytes, COUNT * SIZE);
     current.remaining = COUNT * SIZE;
-    return current.alloc();
+    void *result = current.alloc();
+    // ...like this
+    VALGRIND_MEMPOOL_ALLOC(this, result, SIZE);
+    return result;
   }
 
   // move a chunk to the free list for reallocation
@@ -105,6 +129,11 @@ public:
     void **head = static_cast<void **>(ptr);
     *head = free_list;
     free_list = head;
+    // we're done with this now
+    VALGRIND_MEMPOOL_FREE(this, ptr);
+    // ...but not really, we want to store the free list here
+    // make it defined memory according to Valgrind for one word
+    VALGRIND_MAKE_MEM_DEFINED(ptr, sizeof(void *));
   }
 };
 

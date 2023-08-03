@@ -71,6 +71,12 @@ else()
   endif()
 endif()
 
+# include the Valgrind header for some Valgrind API stuff
+option(VALGRIND "enable better Valgrind output (requires memcheck.h)" OFF)
+if(VALGRIND)
+  add_compile_definitions(VALGRIND=1)
+endif()
+
 ################################################################
 # define all vampire sources,
 # generate the main target and 
@@ -808,7 +814,7 @@ add_compile_definitions(VTIME_PROFILING=1)
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
-                    
+
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
