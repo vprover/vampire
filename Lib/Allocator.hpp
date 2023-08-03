@@ -123,9 +123,9 @@ public:
    * There is nothing stopping us supporting over-aligned types in principle,
    * but none of "our" objects have over-alignment requirements (yet).
    *
-   * We also don't check the case where align > size or e.g. size = 24, align = 16, see
+   * We also assume that size is a multiple of align, see
    * https://stackoverflow.com/questions/46457449/is-it-always-the-case-that-sizeoft-alignoft-for-all-object-types-t
-   * Such objects would be quite strange, as you couldn't declare e.g. T foo[2];
+   * Objects without this property would be quite strange, as you couldn't declare e.g. T foo[2];
    *
    * I believe, with these caveats, that returned memory is correctly aligned (MR, July 2023).
    */
@@ -135,6 +135,7 @@ public:
   [[gnu::malloc]]
   [[nodiscard]]
   inline void *alloc(size_t size, size_t align) {
+    ASS_EQ(size % align, 0)
     // no support for overaligned objects yet, but there is nothing stopping it in principle
     ASS_LE(align, alignof(std::max_align_t))
 
@@ -149,12 +150,8 @@ public:
       return FSA3.alloc();
     if(size <= 4 * sizeof(void *))
       return FSA4.alloc();
-    if(size <= 5 * sizeof(void *))
-      return FSA5.alloc();
     if(size <= 6 * sizeof(void *))
       return FSA6.alloc();
-    if(size <= 7 * sizeof(void *))
-      return FSA7.alloc();
     if(size <= 8 * sizeof(void *))
       return FSA8.alloc();
 
@@ -165,7 +162,9 @@ public:
 
   // deallocate a `pointer` to a memory chunk of known `size`
   // NB `pointer` must have been allocated from this allocator
-  inline void free(void *pointer, size_t size) {
+  inline void free(void *pointer, size_t size, size_t align) {
+    ASS_EQ(size % align, 0)
+
     if(!pointer)
       return;
 
@@ -177,12 +176,8 @@ public:
       return FSA3.free(pointer);
     if(size <= 4 * sizeof(void *))
       return FSA4.free(pointer);
-    if(size <= 5 * sizeof(void *))
-      return FSA5.free(pointer);
     if(size <= 6 * sizeof(void *))
       return FSA6.free(pointer);
-    if(size <= 7 * sizeof(void *))
-      return FSA7.free(pointer);
     if(size <= 8 * sizeof(void *))
       return FSA8.free(pointer);
 
@@ -197,9 +192,7 @@ private:
   FixedSizeAllocator<2 * sizeof(void *)> FSA2;
   FixedSizeAllocator<3 * sizeof(void *)> FSA3;
   FixedSizeAllocator<4 * sizeof(void *)> FSA4;
-  FixedSizeAllocator<5 * sizeof(void *)> FSA5;
   FixedSizeAllocator<6 * sizeof(void *)> FSA6;
-  FixedSizeAllocator<7 * sizeof(void *)> FSA7;
   FixedSizeAllocator<8 * sizeof(void *)> FSA8;
 };
 
@@ -213,7 +206,7 @@ private:
  */
 extern SmallObjectAllocator GLOBAL_SMALL_OBJECT_ALLOCATOR;
 
-// Allocate a piece of memory of at least `size`, aligned to at least `align`.
+// Allocate a piece of memory of at least `size`, which must be a multiple of `align`.
 // Memory is allocated from `GLOBAL_SMALL_OBJECT_ALLOCATOR`
 [[gnu::alloc_size(1)]]
 [[gnu::alloc_align(2)]]
@@ -224,10 +217,35 @@ inline void *alloc(size_t size, size_t align) {
   return GLOBAL_SMALL_OBJECT_ALLOCATOR.alloc(size, align);
 }
 
-// Deallocate a `pointer` to a memory chunk of known `size`.
+// Allocate a piece of memory of at least `size`, aligned to `alignof(std::max_align_t)`.
+// Memory is allocated from `GLOBAL_SMALL_OBJECT_ALLOCATOR`
+// Wasteful as `size` has to be rounded up, do not use in new code.
+[[gnu::alloc_size(1)]]
+[[gnu::returns_nonnull]]
+[[gnu::malloc]]
+[[nodiscard]]
+inline void *alloc(size_t size) {
+  const size_t align = alignof(std::max_align_t);
+  // round up to the nearest multiple of align
+  size = align * ((size + (align - 1)) / align);
+  return alloc(size, align);
+}
+
+// Deallocate a `pointer` to a memory chunk of known `size`, which must be a multiple of `align`.
 // Memory is returned to `GLOBAL_SMALL_OBJECT_ALLOCATOR`.
+inline void free(void *pointer, size_t size, size_t align) {
+  GLOBAL_SMALL_OBJECT_ALLOCATOR.free(pointer, size, align);
+}
+
+// Deallocate a `pointer` to a memory chunk of known `size` and aligned to `alignof(std::max_align_t)`.
+// Memory is returned to `GLOBAL_SMALL_OBJECT_ALLOCATOR`.
+// Wasteful as `size` has to be rounded up, do not use in new code.
 inline void free(void *pointer, size_t size) {
-  GLOBAL_SMALL_OBJECT_ALLOCATOR.free(pointer, size);
+  const size_t align = alignof(std::max_align_t);
+  // round up to the nearest multiple of align
+  size = align * ((size + (align - 1)) / align);
+
+  free(pointer, size, align);
 }
 
 }
@@ -236,7 +254,7 @@ inline void free(void *pointer, size_t size) {
 // C++17: aligned operators
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C) \
   void *operator new(size_t size) { return Lib::alloc(size, alignof(C)); }\
-  void operator delete(void *ptr, size_t size) { Lib::free(ptr, size); }
+  void operator delete(void *ptr, size_t size) { Lib::free(ptr, size, alignof(C)); }
 
 // legacy macros, should be removed eventually
 #define BYPASSING_ALLOCATOR
@@ -246,7 +264,7 @@ inline void free(void *pointer, size_t size) {
 #define USE_ALLOCATOR_ARRAY
 #define USE_ALLOCATOR_UNK
 #define CLASS_NAME(className)
-#define ALLOC_KNOWN(size, className) Lib::alloc(size, alignof(std::max_align_t))
+#define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)
 #define ALLOC_UNKNOWN(size, className) std::malloc(size)
 #define REALLOC_UNKNOWN(ptr, size, className) std::realloc(ptr, size)
