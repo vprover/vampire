@@ -285,14 +285,17 @@ void Shuffling::shuffleIter(Shufflable sh) {
                 break; // I know, unreachable;
 
               case Term::SpecialFunctor::MATCH:
-                // treat as non-special (and don't shuffle the MATCH specifics)
-                Term::Iterator it(t);
-                while (it.hasNext()) {
-                  todo.push(Shufflable(it.next()));
+                {
+                  // treat as non-special (and don't shuffle the MATCH specifics)
+                  Term::Iterator it(t);
+                  while (it.hasNext()) {
+                    todo.push(Shufflable(it.next()));
+                  }
                 }
                 break;
+              default:
+                ASSERTION_VIOLATION_REP(tl.toString());
             }
-            ASSERTION_VIOLATION_REP(tl.toString());
           } else {
             Term::Iterator it(t);
             while (it.hasNext()) {
