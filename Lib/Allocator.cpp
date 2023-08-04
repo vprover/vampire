@@ -18,4 +18,6 @@
 
 #include "Allocator.hpp"
 
+#ifndef USE_SYSTEM_ALLOCATION
 Lib::SmallObjectAllocator Lib::GLOBAL_SMALL_OBJECT_ALLOCATOR;
+#endif

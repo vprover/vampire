@@ -9,7 +9,7 @@
  */
 /**
  * @file Allocator.hpp
- * Defines the class Allocator plus the global allocator for Vampire.
+ * Defines some memory allocation routines.
  *
  * @since 13/12/2005 Redmond, made from the Shell Allocator.
  * @since 10/01/2008 Manchester, reimplemented
@@ -21,9 +21,30 @@
 #define __Allocator__
 
 #include <cstddef>
-#include <cstdlib>
 
 #include "Debug/Assertion.hpp"
+
+// uncomment for Valgrind
+// #define USE_SYSTEM_ALLOCATION
+
+// forward directly to system allocator
+#ifdef USE_SYSTEM_ALLOCATION
+namespace Lib {
+
+inline void *alloc(size_t size, size_t align = alignof(std::max_align_t)) {
+  // C++17: aligned operator new
+  return ::operator new(size);
+}
+
+inline void free(void *pointer, size_t size, size_t align = alignof(std::max_align_t)) {
+  ::operator delete(pointer);
+}
+}
+#define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
+
+// do some of our own allocation
+#else
+#include <cstdlib>
 
 namespace Lib {
 
@@ -255,6 +276,8 @@ inline void free(void *pointer, size_t size) {
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C) \
   void *operator new(size_t size) { return Lib::alloc(size, alignof(C)); }\
   void operator delete(void *ptr, size_t size) { Lib::free(ptr, size, alignof(C)); }
+
+#endif // USE_SYSTEM_ALLOCATION
 
 // legacy macros, should be removed eventually
 #define BYPASSING_ALLOCATOR
