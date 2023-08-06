@@ -56,7 +56,9 @@ using namespace Shell;
   catch(const std::bad_alloc &) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
     env.statistics->refutation=0;
-    throw;
+    size_t limit=Lib::getMemoryLimit();
+    //add extra 1 MB to allow proper termination
+    Lib::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&) {
     env.statistics->terminationReason=Statistics::TIME_LIMIT;
@@ -102,7 +104,9 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   catch(const std::bad_alloc &) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
     env.statistics->refutation=0;
-    throw;
+    size_t limit=Lib::getMemoryLimit();
+    //add extra 1 MB to allow proper termination
+    Lib::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&) {
     env.statistics->terminationReason=Statistics::TIME_LIMIT;

@@ -23,14 +23,26 @@
 #include <cstddef>
 
 #include "Debug/Assertion.hpp"
+#include "Lib/Portability.hpp"
 
-// uncomment for Valgrind
+// uncomment to use Valgrind more profitably
 // #define USE_SYSTEM_ALLOCATION
+
+namespace Lib {
+
+// get the amount of memory used by global operator new so far
+size_t getUsedMemory();
+
+// get the memory limit for global operator new
+size_t getMemoryLimit();
+// set the memory limit for global operator new
+void setMemoryLimit(size_t bytes);
+
+}
 
 // forward directly to system allocator
 #ifdef USE_SYSTEM_ALLOCATION
 namespace Lib {
-
 inline void *alloc(size_t size, size_t align = alignof(std::max_align_t)) {
   // C++17: aligned operator new
   return ::operator new(size);
@@ -43,7 +55,7 @@ inline void free(void *pointer, size_t size, size_t align = alignof(std::max_ali
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
 
 // do some of our own allocation
-#else
+#else // USE_SYSTEM_ALLOCATION
 #include <cstdlib>
 
 namespace Lib {
@@ -154,7 +166,7 @@ public:
   [[gnu::alloc_align(3)]] // implicit `this` argument
   [[gnu::returns_nonnull]]
   [[gnu::malloc]]
-  [[nodiscard]]
+  VWARN_UNUSED
   inline void *alloc(size_t size, size_t align) {
     ASS_EQ(size % align, 0)
     // no support for overaligned objects yet, but there is nothing stopping it in principle
@@ -203,7 +215,7 @@ public:
       return FSA8.free(pointer);
 
     // C++17: aligned operators
-    ::operator delete(pointer);
+    ::operator delete(pointer, size);
   }
 
 private:
@@ -233,7 +245,7 @@ extern SmallObjectAllocator GLOBAL_SMALL_OBJECT_ALLOCATOR;
 [[gnu::alloc_align(2)]]
 [[gnu::returns_nonnull]]
 [[gnu::malloc]]
-[[nodiscard]]
+VWARN_UNUSED
 inline void *alloc(size_t size, size_t align) {
   return GLOBAL_SMALL_OBJECT_ALLOCATOR.alloc(size, align);
 }
@@ -244,7 +256,7 @@ inline void *alloc(size_t size, size_t align) {
 [[gnu::alloc_size(1)]]
 [[gnu::returns_nonnull]]
 [[gnu::malloc]]
-[[nodiscard]]
+VWARN_UNUSED
 inline void *alloc(size_t size) {
   const size_t align = alignof(std::max_align_t);
   // round up to the nearest multiple of align
@@ -284,8 +296,6 @@ inline void free(void *pointer, size_t size) {
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define USE_ALLOCATOR(C) USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
-#define USE_ALLOCATOR_ARRAY
-#define USE_ALLOCATOR_UNK
 #define CLASS_NAME(className)
 #define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)

@@ -96,7 +96,6 @@ public:
   virtual ~RSObject() {};
 
   CLASS_NAME(RSObject);
-  USE_ALLOCATOR_UNK;
 
   virtual void print(ostream& out) = 0;
 

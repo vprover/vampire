@@ -83,7 +83,6 @@ public:
 
   CLASS_NAME(IteratorCore);
 //  CLASS_NAME(typeid(IteratorCore).name());
-  USE_ALLOCATOR_UNK;
 private:
   /**
    * Reference counter field used by the @b VirtualIterator object

@@ -144,7 +144,6 @@ struct PredicateDefinition::PredData
   }
 
   CLASS_NAME(PredicateDefinition::PredData);  
-  USE_ALLOCATOR_ARRAY;
 };
 
 PredicateDefinition::PredicateDefinition()
