@@ -21,6 +21,7 @@
 #define __Allocator__
 
 #include <cstddef>
+#include <new>
 
 #include "Debug/Assertion.hpp"
 #include "Lib/Portability.hpp"

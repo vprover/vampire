@@ -14,6 +14,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
   # we don't use multithreading in (mainline!) Vampire
   add_compile_options(-fno-threadsafe-statics)
+  # enable standards-compliant standard library with sized operator delete
+  add_compile_options(-fsized-deallocation)
 endif()
 
 # compile command database

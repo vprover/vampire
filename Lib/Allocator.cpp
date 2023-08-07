@@ -16,8 +16,6 @@
  * @since 24/07/2023, largely obsolete
  */
 
-#include <new>
-
 #include "Allocator.hpp"
 
 #ifndef USE_SYSTEM_ALLOCATION
@@ -35,8 +33,6 @@ void Lib::setMemoryLimit(size_t limit) { LIMIT = limit; }
 // override global allocators to keep track of allocated memory, doing very little else
 // TODO does not support get_new_handler/set_new_handler as we don't use it, but we could
 void *operator new(size_t size) {
-  ASS(size)
-
   if(ALLOCATED + size > LIMIT)
     throw std::bad_alloc();
 
@@ -56,7 +52,6 @@ void operator delete(void *ptr) noexcept {
 
 // normal delete, just decrements `ALLOCATED` and calls free()
 void operator delete(void *ptr, size_t size) noexcept {
-  ASS(size)
   ASS_GE(ALLOCATED, size)
   ALLOCATED -= size;
   std::free(ptr);
