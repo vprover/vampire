@@ -40,7 +40,7 @@ void NameReuse::key(vstringstream &buf, TermList ts)
   CALL("NameReuse::key(vstringstream &, TermList)");
   if(ts.isVar())
     // need to rename variables occuring in terms, sorts
-    buf << 'x' << _renaming.getOrBind(ts.var());
+    buf << 'x' << _renaming.getOrBind(ts.var(), ts.bank());
   else
     // all functors realised as fN, where N is the functor's index
     // sorts are known to be sorts from their context, so this is OK
@@ -124,7 +124,7 @@ vstring NameReuse::key(Formula *f)
         // unless they're not used, but in that case it's OK anyway
         VList::Iterator vars(subformula->vars());
         while(vars.hasNext())
-          buf << 'x' << _renaming.getOrBind(vars.next());
+          buf << 'x' << _renaming.getOrBind(vars.next(), DEFAULT_BANK);
         break;
       }
       case BOOL_TERM:

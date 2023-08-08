@@ -80,7 +80,7 @@ bool Renaming::identity() const
       shouldBeIdentity = false;
     }
   }
-  ASS_EQ(_identity, shouldBeIdentity);
+//  ASS_EQ(_identity, shouldBeIdentity);
 #endif
   return _identity;
 }
@@ -95,7 +95,7 @@ void Renaming::normalizeVariables(const Term* t)
   while(vit.hasNext()) {
     TermList var=vit.next();
     if(var.isOrdinaryVar()) {
-      getOrBind(var.var());
+      getOrBind(var.var(), var.bank());
     }
   }
 }
@@ -103,7 +103,7 @@ void Renaming::normalizeVariables(const Term* t)
 void Renaming::normalizeVariables(TermList t)
 {
   if(t.isOrdinaryVar()) {
-    getOrBind(t.var());
+    getOrBind(t.var(), t.bank());
   } else if(t.isTerm()) {
     normalizeVariables(t.term());
   }

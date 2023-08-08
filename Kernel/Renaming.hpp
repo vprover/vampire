@@ -67,12 +67,12 @@ public:
     _bank = bank;    
   }
 
-  unsigned getOrBind(unsigned v)
+  unsigned getOrBind(unsigned v, VarBank b)
   {
     unsigned res;
     if (_data.findOrInsert(v, res, _nextVar)) {
       _nextVar++;
-      if(v!=res) {
+      if(v!=res || b != _bank) {
         _identity = false;
       }
     }
@@ -111,7 +111,7 @@ private:
   public:
     Applicator(Renaming* parent) : _parent(parent) {}
     TermList apply(unsigned var)
-    { return TermList(_parent->getOrBind(var), _parent->bank()); }
+    { return TermList(_parent->getOrBind(var, /* dummy */ DEFAULT_BANK), _parent->bank()); }
   private:
     Renaming* _parent;
   };

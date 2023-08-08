@@ -391,7 +391,7 @@ SubstitutionTree::QueryResultIter SubstitutionTree::FastInstancesIterator::next(
         ? ld->literal->ground()
         : (ld->term.isTerm() && ld->term.term()->ground());
     if(!ground) {
-      Renaming normalizer;
+      Renaming normalizer(0, NORM_RESULT_BANK);
       if(_literalRetrieval) {
         normalizer.normalizeVariables(ld->literal);
       } else {
