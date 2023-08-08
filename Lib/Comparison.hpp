@@ -16,6 +16,7 @@
 #ifndef __VL_COMPARE__
 #define __VL_COMPARE__
 
+#include <utility>
 
 namespace Lib {
 
@@ -104,24 +105,12 @@ inline ClosureComparator<Closure> closureComparator(Closure c)
   return ClosureComparator<Closure>(c);
 }
 
-//struct DefaultComparator
-//{
-//  template<typename T>
-//  Comparison compare(T o1, T o2)
-//  {
-//    if(o1==o2) {
-//      return EQUAL;
-//    }
-//    else if(o1<o2) {
-//      return LESS;
-//    }
-//    else {
-//      ASS(o1>o2);
-//      return GREATER;
-//    }
-//  }
-//};
+template<class F, class... Fs>
+Comparison lexCompare(Comparison c, F f, Fs... fs) 
+{ return c != EQUAL ? c : lexCompare(f(), std::move(fs)...); }
 
+inline Comparison lexCompare(Comparison c)
+{ return c; }
 
 }
 

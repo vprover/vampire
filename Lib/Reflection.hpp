@@ -24,30 +24,45 @@
 ///@{
 
 
-#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
-  Class(Class const&) = default;                                                                    \
-  Class(Class     &&) = default;                                                                    \
-  Class& operator=(Class const&) = default;                                                         \
-  Class& operator=(Class     &&) = default;                                                         \
+#define DEFAULT_CONSTRUCTORS(Class)                                                       \
+  Class(Class const&) = default;                                                          \
+  Class(Class     &&) = default;                                                          \
+  Class& operator=(Class const&) = default;                                               \
+  Class& operator=(Class     &&) = default;                                               \
 
-#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                          \
-  friend bool operator==(Class const& l, Class const& r)                                            \
-  { return l.asTuple() == r.asTuple(); }                                                            \
-                                                                                                    \
-  friend bool operator<(Class const& l, Class const& r)                                             \
-  { return l.asTuple() < r.asTuple(); }                                                             \
-                                                                                                    \
-  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                      \
+#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                \
+  friend bool operator==(Class const& l, Class const& r)                                  \
+  { return l.asTuple() == r.asTuple(); }                                                  \
+                                                                                          \
+  friend bool operator<(Class const& l, Class const& r)                                   \
+  { return l.asTuple() < r.asTuple(); }                                                   \
+                                                                                          \
+  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                            \
 
-#define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                \
-  friend bool operator> (Class const& l, Class const& r) { return r < l; }                          \
-  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }                \
-  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }                \
-  friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }                      \
+#define __IMPL_COMPARISONS_FROM_COMPARE(Class, op, ...)                                   \
+  friend bool operator op(Class const& l, Class const& r) {                               \
+    switch (l.compare(r)) {                                                               \
+      __VA_ARGS__ return true;                                                            \
+      default:    return false;                                                           \
+    }                                                                                     \
+  }                                                                                       \
 
-#define IMPL_HASH_FROM_TUPLE(Class)                                                                 \
-  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                             \
-  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                           \
+#define IMPL_COMPARISONS_FROM_COMPARE(Class)                                              \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, >, case GREATER: )                             \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, <, case LESS: )                                \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, >=, case GREATER: case EQUAL: )                \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, <=, case LESS: case EQUAL: )                   \
+
+
+#define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                      \
+  friend bool operator> (Class const& l, Class const& r) { return r < l; }                \
+  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }      \
+  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }      \
+  friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }            \
+
+#define IMPL_HASH_FROM_TUPLE(Class)                                                       \
+  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                   \
+  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                 \
 
 //The obvious way to define this macro would be
 //#define DECL_ELEMENT_TYPE(T) typedef T _ElementType

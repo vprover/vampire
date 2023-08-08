@@ -219,7 +219,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
     PolyNf operator()(PolyNf orig, PolyNf* ts) 
     { 
       return orig.match(
-          [&](Perfect<FuncTerm> f)  -> PolyNf
+          [&](Perfect<FuncTerm> f)
           { 
             return f->function().tryInterpret()
               .andThen( [&](Theory::Interpretation && i)  -> Option<PolyNf>
@@ -230,10 +230,10 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
           }, 
 
           [&](Variable v) 
-          { return v; },
+          { return PolyNf(v); },
 
           [&](AnyPoly p) 
-          { return simplifyPoly(p, ts); }
+          { return PolyNf(simplifyPoly(p, ts)); }
       );
     }
   };

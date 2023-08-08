@@ -21,6 +21,8 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 #include "Lib/Hash.hpp"
+#include "Lib/Comparison.hpp"
+#include "Lib/Sort.hpp"
 #include "Lib/TypeList.hpp"
 #include "Lib/Option.hpp"
 #include <memory>
@@ -30,8 +32,101 @@ namespace Lib {
 
 namespace TL = TypeList;
 
+template<unsigned v>
+struct Constant { static constexpr unsigned value = v; };
+
 template <class... As> 
 class Coproduct;
+
+#define USE_SWITCH 1
+
+#if USE_SWITCH 
+
+template<unsigned maxExcl> struct SwitchImpl;
+
+#define SWITCH_CONT_1                 case 0:  return f(Constant<0>{});
+#define SWITCH_CONT_2  SWITCH_CONT_1  case 1:  return f(Constant<1>{});
+#define SWITCH_CONT_3  SWITCH_CONT_2  case 2:  return f(Constant<2>{});
+#define SWITCH_CONT_4  SWITCH_CONT_3  case 3:  return f(Constant<3>{});
+#define SWITCH_CONT_5  SWITCH_CONT_4  case 4:  return f(Constant<4>{});
+#define SWITCH_CONT_6  SWITCH_CONT_5  case 5:  return f(Constant<5>{});
+#define SWITCH_CONT_7  SWITCH_CONT_6  case 6:  return f(Constant<6>{});
+#define SWITCH_CONT_8  SWITCH_CONT_7  case 7:  return f(Constant<7>{});
+#define SWITCH_CONT_9  SWITCH_CONT_8  case 8:  return f(Constant<8>{});
+#define SWITCH_CONT_10 SWITCH_CONT_9  case 9:  return f(Constant<9>{});
+#define SWITCH_CONT_11 SWITCH_CONT_10 case 10: return f(Constant<10>{});
+#define SWITCH_CONT_12 SWITCH_CONT_11 case 11: return f(Constant<11>{});
+#define SWITCH_CONT_13 SWITCH_CONT_12 case 12: return f(Constant<12>{});
+#define SWITCH_CONT_14 SWITCH_CONT_13 case 13: return f(Constant<13>{});
+#define SWITCH_CONT_15 SWITCH_CONT_14 case 14: return f(Constant<14>{});
+#define SWITCH_CONT_16 SWITCH_CONT_15 case 15: return f(Constant<15>{});
+
+#define DECL_SWITCH_STRUCT(N)                                                             \
+  template<>                                                                              \
+  struct SwitchImpl<N> {                                                                     \
+    template<class F>                                                                     \
+    inline static auto apply(unsigned tag, F f) -> decltype(auto) {                       \
+      if (tag < N) {                                                                      \
+        switch (tag) {                                                                    \
+          SWITCH_CONT_ ## N                                                               \
+        }                                                                                 \
+      }                                                                                   \
+      ASSERTION_VIOLATION                                                                 \
+    }                                                                                     \
+  };                                                                                      \
+
+DECL_SWITCH_STRUCT(1)
+DECL_SWITCH_STRUCT(2)
+DECL_SWITCH_STRUCT(3)
+DECL_SWITCH_STRUCT(4)
+DECL_SWITCH_STRUCT(5)
+DECL_SWITCH_STRUCT(6)
+DECL_SWITCH_STRUCT(7)
+DECL_SWITCH_STRUCT(8)
+DECL_SWITCH_STRUCT(9)
+DECL_SWITCH_STRUCT(10)
+DECL_SWITCH_STRUCT(11)
+DECL_SWITCH_STRUCT(12)
+DECL_SWITCH_STRUCT(13)
+DECL_SWITCH_STRUCT(14)
+DECL_SWITCH_STRUCT(15)
+DECL_SWITCH_STRUCT(16)
+
+
+template<unsigned N, class F> inline auto switchN(unsigned tag, F fun) -> decltype(auto)
+{ return SwitchImpl<N>::apply(tag, fun); }
+
+#else // !USE_SWITCH
+
+template<unsigned I, unsigned N> 
+struct SwitchImpl
+{
+  static_assert(I < N, "out of bounds");
+  template<class F>
+  inline static auto apply(unsigned tag, F f) -> decltype(auto) {
+    if (tag == I) {
+      return f(Constant<I>{});
+    }
+    return SwitchImpl<I + 1, N>::apply(tag, f);
+  }
+};
+
+template<unsigned N>
+struct SwitchImpl<N, N + 1> {
+  template<class F>
+  inline static auto apply(unsigned tag, F f) -> decltype(auto) 
+  { 
+    ASS_EQ(tag, N)
+    return f(Constant<N>{});
+  }
+};
+
+
+template<unsigned N, class F> inline auto switchN(unsigned tag, F fun) -> decltype(auto)
+{ return SwitchImpl<0, N>::apply(tag, fun); }
+
+#endif 
+
 
 /** This namespace constains helper classes and functions to implement the coproduct */
 namespace CoproductImpl {
@@ -50,26 +145,7 @@ namespace CoproductImpl {
    */
   template<> union VariadicUnion<> {
     CLASS_NAME(VariadicUnion)
-
-    inline void unwrap(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
     ~VariadicUnion() {}
-// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define for_ref_qualifier(REF, MOVE)                                                                          \
-                                                                                                              \
-    template <class R, class F> inline R apply(unsigned idx, F f) REF                                         \
-    { ASSERTION_VIOLATION_REP(idx) }                                                                          \
-                                                                                                              \
-    template <class R, class... F>                                                                            \
-    inline static R match2(unsigned idx, VariadicUnion REF lhs, VariadicUnion REF rhs, F... f)                \
-    { ASSERTION_VIOLATION_REP(idx) }                                                                          \
-                                                                                                              \
-    template <class R> inline R match(unsigned idx) REF{ASSERTION_VIOLATION_REP(idx)}                         \
-
-    FOR_REF_QUALIFIER(for_ref_qualifier)
-#undef for_ref_qualifier
-
-    inline void destroy(unsigned idx) {ASSERTION_VIOLATION_REP(idx)}
-    inline static bool equal(unsigned idx, VariadicUnion const& lhs, VariadicUnion const& rhs) {ASSERTION_VIOLATION_REP(idx)}
   };
 
   /** Inductive case of the inductive definition of VariadicUnion.  
@@ -78,182 +154,34 @@ namespace CoproductImpl {
    */
   template <class A, class... As> union VariadicUnion<A, As...> {
     CLASS_NAME(VariadicUnion)
-    // USE_ALLOCATOR(VariadicUnion)
     using Ts = TL::List<A,As...>;
 
     A _head;
     VariadicUnion<As...> _tail;
 
     ~VariadicUnion() {}
-
-// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define for_ref_qualifier(REF, MOVE)                                                                          \
-                                                                                                              \
-    /** applies the `idx`th function of `F,Fs...` to the contents of this union, interpreting them as the     \
-     * `idx`th type of `A,As...`. This is only memory safe if that very type  has indeed been stored in this  \
-     * union. */                                                                                              \
-    template <class R, class F, class... Fs>                                                                  \
-    inline R match(unsigned idx, F f, Fs... fs) REF {                                                         \
-      if (idx == 0) {                                                                                         \
-        return f(MOVE(_head));                                                                                \
-      } else {                                                                                                \
-        return MOVE(_tail).template match<R>(idx - 1, fs...);                                                 \
-      }                                                                                                       \
-    }                                                                                                         \
-                                                                                                              \
-    /** same as `match`, but using the same function for every type.*/                                        \
-    template <class R, class F> inline R apply(unsigned idx, F f) REF {                                       \
-      if (idx == 0) {                                                                                         \
-        return f(MOVE(_head));                                                                                \
-      } else {                                                                                                \
-        return MOVE(_tail).template apply<R>(idx - 1, f);                                                     \
-      }                                                                                                       \
-    }                                                                                                         \
-                                                                                                              \
-    /** same as `match`, but using applying th function to the contents of two unions at once. both must have \
-     * the `idx`th type of `A,As...` stored in them. */                                                       \
-    template <class R, class F, class... Fs>                                                                  \
-    inline static R match2(unsigned idx, VariadicUnion REF lhs, VariadicUnion REF rhs, F f, Fs... fs)         \
-    {                                                                                                         \
-      if (idx == 0) {                                                                                         \
-        return f(MOVE(lhs._head), MOVE(rhs._head));                                                           \
-      } else {                                                                                                \
-        return VariadicUnion<As...>::template match2<R>(idx - 1, MOVE(lhs._tail), MOVE(rhs._tail), fs...);    \
-      }                                                                                                       \
-    }
-
-    FOR_REF_QUALIFIER(for_ref_qualifier)
-
-#undef for_ref_qualifier
-
-    inline void destroy(unsigned idx) 
-    { 
-      if (idx == 0) {
-        _head.~A(); 
-      } else {
-        _tail.destroy(idx - 1);
-      }
-    }
-
-    inline static bool equal(unsigned idx, VariadicUnion const& lhs, VariadicUnion const& rhs) {
-      if (idx == 0) {
-        return lhs._head == rhs._head;
-      } else {
-        return VariadicUnion<As...>::equal(idx - 1, lhs._tail, rhs._tail);
-      }
-    }
-
-    template <unsigned idx, class Bs> friend struct InitStaticTag;
     VariadicUnion() {}
 
+#define REF_POLYMORPIHIC(REF, MOVE)                                                       \
+    template<class B>                                                                     \
+    B REF cast() REF                                                                      \
+    {                                                                                     \
+      static_assert(TL::Contains<B, TL::List<A, As...>>::val, "invalid cast");            \
+      return (B REF)*this;                                                                \
+    }                                                                                     \
+
+  FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
+#undef REF_POLYMORPIHIC
   }; // VariadicUnion
 
-  /** A function object to reinterpret a VariadicUnion as its `idx`th type argument. 
-   * `As` is a list of types, as defined in `TypeList::List`. */
-  template <unsigned idx, class As> struct Unwrap;
-
-  template <class A, class... As> struct Unwrap<0, TL::List<A, As...>> {
-// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define for_ref_qualifier(REF, MOVE)                                                                          \
-    A REF operator()(VariadicUnion<A, As...> REF self) const {                                                \
-      return MOVE(self._head);                                                                                \
-    }
-
-    FOR_REF_QUALIFIER(for_ref_qualifier)
-
-#undef for_ref_qualifier
-  };
-
-  template <unsigned idx, class A, class... As> struct Unwrap<idx, TL::List<A, As...>> {
-// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define for_ref_qualifier(REF, MOVE)                                                                          \
-    TL::Get<idx - 1, TL::List<As...>> REF operator()(                                                         \
-        VariadicUnion<A, As...> REF self) const {                                                             \
-      return Unwrap<idx - 1, TL::List<As...>>{}(MOVE(self._tail));                                            \
-    }
-
-    FOR_REF_QUALIFIER(for_ref_qualifier)
-#undef for_ref_qualifier
-  };
-
-
-  /** A function object to initialize a VariadicUnion with its `idx`th type argument, 
-   * where `idx` is known at compile time.
-   * `As` is a list of types, as defined in `TypeList::List`. */
-  template <unsigned idx, class As> struct InitStaticTag {};
-
-  template <class A, class... As> struct InitStaticTag<0, TL::List<A, As...>> 
-  {
-// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define for_ref_qualifier(REF, MOVE)                                                                          \
-    void operator()(VariadicUnion<A, As...> &self, TL::Get<0, TL::List<A, As...>> REF value) const            \
-    { ::new (&self._head) A(MOVE(value)); }                                                                   \
-
-    FOR_REF_QUALIFIER(for_ref_qualifier)
-
-#undef for_ref_qualifier
-  };
-
-  template <unsigned idx, class A, class... As> struct InitStaticTag<idx, TL::List<A, As...>> {
-// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define for_ref_qualifier(REF, MOVE)                                                                          \
-    void operator()(VariadicUnion<A, As...> &self, TL::Get<idx, TL::List<A, As...>> REF value) const          \
-    { InitStaticTag<idx - 1, TL::List<As...>>{}(self._tail, MOVE(value)); }                                   \
-
-    FOR_REF_QUALIFIER(for_ref_qualifier)
-
-#undef for_ref_qualifier
-  };
-
-
-  /** A function object to initialize a VariadicUnion with its `idx`th type argument, 
-   * where `idx` is known only at runtime. `acc` and `size` are being used for bounds checks and to 
-   * compare `idx` against them.
-   * `As` is a list of types, as defined in `TypeList::List`. */
-  template <unsigned acc, unsigned size, class As> struct InitDynamicTag;
-
-  template <unsigned size, class... As> struct InitDynamicTag<size, size, TL::List<As...>> 
-  {
-// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define for_ref_qualifier(REF, MOVE)                                                                          \
-    void operator()(VariadicUnion<As...> &self, unsigned idx, VariadicUnion<As...> REF value) const           \
-    {  ASSERTION_VIOLATION }                                                                                  \
-
-    FOR_REF_QUALIFIER(for_ref_qualifier)
-
-#undef for_ref_qualifier
-  };
-
-
-  template <unsigned acc, unsigned size, class... As> struct InitDynamicTag<acc, size, TL::List<As...>> 
-  {
-// This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define for_ref_qualifier(REF, MOVE)                                                                          \
-    void operator()(VariadicUnion<As...> &self, unsigned idx, VariadicUnion<As...> REF value) const           \
-    {                                                                                                         \
-      using Ts = TL::List<As...>;                                                                             \
-      auto unwrap = Unwrap<acc, Ts>{};                                                                        \
-      if (acc == idx) {                                                                                       \
-        ::new (&unwrap(self)) TL::Get<acc,Ts>(unwrap(MOVE(value)));                                             \
-        return;                                                                                               \
-      }                                                                                                       \
-      InitDynamicTag<acc + 1, size, TL::List<As...>>{}(self, idx, MOVE(value));                               \
-    }                                                                                                         \
-
-    FOR_REF_QUALIFIER(for_ref_qualifier)
-
-#undef for_ref_qualifier
-  };
 } // namespace CoproductImpl
 
-/** a class used to combine orderings `O1...On` for types `A1...An` to a ordering on 
- * Coproduct<A1...An>. This is done by first comparing the tags, and then using the 
- * orderings `O1...On` if the tags are the same. */
-template<class... Ords> struct CoproductOrdering;
-
-/** Same as CoproductOrdering, but one polymorphic ordering class `Ord` instead of 
- * multiple orderings `O1...On`. */
-template<template<class> class Ord> struct PolymorphicCoproductOrdering;
+constexpr unsigned neededBits(unsigned i)
+{
+  return i <= 1 
+    ? 0 
+    : 1 + neededBits(i / 2);
+}
 
 /** 
  * The actual Coproduct class.  
@@ -268,18 +196,6 @@ template<template<class> class Ord> struct PolymorphicCoproductOrdering;
 template <class A, class... As> 
 class Coproduct<A, As...> 
 {
-  /* _tag specifies which of the types in `A, As...` is actually stored in the field _content */
-  unsigned _tag;
-  CoproductImpl::VariadicUnion<A, As...> _content;
-
-  using Self = Coproduct<A, As...>;
-  using Content = decltype(_content);
-
-  /** unsafe default constructor, content will be uninit */
-  Coproduct() : _tag(std::numeric_limits<unsigned>::max()) {}
-
-public:
-  CLASS_NAME(Coproduct)
 
   /** a type-level list of all types of this Coproduct */
   using Ts = TL::List<A, As...>;
@@ -287,6 +203,18 @@ public:
   /** the number of alternatives */
   static constexpr unsigned size = TL::Size<Ts>::val;
 
+  /* _tag specifies which of the types in `A, As...` is actually stored in the field _content */
+  unsigned _tag: neededBits(size);
+  CoproductImpl::VariadicUnion<A, As...> _content;
+
+  using Self = Coproduct<A, As...>;
+  using Content = decltype(_content);
+
+  /** unsafe default constructor, content will be uninit */
+  Coproduct() : _tag(-1) {}
+
+public:
+  CLASS_NAME(Coproduct)
   unsigned tag() const { return _tag; }
 
 public:
@@ -308,105 +236,104 @@ public:
   /** helper type level function, returning the first type of a list of types */
   template<class... Bs> using FstTy = TL::Get<0, TL::List<Bs...>>;
 
-#define REF_POLYMORPIHIC(REF, MOVE)                                                                           \
-                                                                                                              \
-  Coproduct(Coproduct REF other) : _tag(other._tag) {                                                         \
-    ASS_REP(other._tag <= size, other._tag);                                                                  \
-    CoproductImpl::InitDynamicTag<0, size, Ts>{}(_content, other._tag, MOVE(other._content));                 \
-  }                                                                                                           \
-                                                                                                              \
-  /**                                                                                                         \
-   * constructs a new Coproduct with the variant idx. The argument type must match `idx`th type of this       \
-   * corpoduct's variants types (A,As...).                                                                    \
-   */                                                                                                         \
-  template <unsigned idx>                                                                                     \
-  static Coproduct variant(TL::Get<idx, Ts> REF value) {                                                      \
-    Coproduct self;                                                                                           \
-    self._tag = idx;                                                                                          \
-    CoproductImpl::InitStaticTag<idx, Ts>{}(self._content, MOVE(value));                                      \
-    return self;                                                                                              \
-  }                                                                                                           \
-                                                                                                              \
-  /**                                                                                                         \
-   * constructs a new Coproduct with the variant idx.                                                         \
-   * \pre B must occur exactly once in A,As...                                                                \
-   */                                                                                                         \
-  template<class B>                                                                                           \
-  explicit Coproduct(B REF b)                                                                                 \
-    : Coproduct(variant<TL::IdxOf<B, Ts>::val>(MOVE(b)))                                                      \
-  { }                                                                                                         \
-                                                                                                              \
-   /**                                                                                                        \
-   * transforms all variants of this Coproduct to the same type and retuns the result                         \
-   *                                                                                                          \
+#define REF_POLYMORPIHIC(REF, MOVE)                                                       \
+                                                                                          \
+  Coproduct(Coproduct REF other) : _tag(other._tag) {                                     \
+    ASS_REP(other._tag < size, other._tag);                                               \
+    switchN<size>(other._tag, [&](auto N) {                                               \
+        ::new(&_content) TL::Get<N.value, Ts>(MOVE(other).template unwrap<N.value>());    \
+    });                                                                                   \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
+   * constructs a new Coproduct with the variant idx.                                     \
+   * \pre B must occur exactly once in A,As...                                            \
+   */                                                                                     \
+  template<class B>                                                                       \
+  explicit Coproduct(B REF b)                                                             \
+    : Coproduct(variant<TL::IdxOf<B, Ts>::val>(MOVE(b)))                                  \
+  { }                                                                                     \
+                                                                                          \
+   /**                                                                                    \
+   * transforms all variants of this Coproduct to the same type and retuns the result     \
+   *                                                                                      \
    * The arguments F... must all be function whichs argument type must match the type of the corresponding    \
    * variant of this Coproduct. The output types of the functions must all be the same type, which will be    \
-   * the return type of this function.                                                                        \
-   */                                                                                                         \
-  template <class... F>                                                                                       \
-  inline ResultOf<FstTy<F...>, A REF> match(F... fs) REF {                                                    \
-    using Ret = ResultOf<FstTy<F...>, A REF>;                                                                 \
-    ASS_REP(_tag <= size, _tag);                                                                              \
-    return MOVE(_content).template match<Ret>(_tag, fs...);                                                   \
-  }                                                                                                           \
-                                                                                                              \
-  /**                                                                                                         \
-   * transforms all variants of this Coproduct to the same type and retuns the result                         \
-   *                                                                                                          \
+   * the return type of this function.                                                    \
+   */                                                                                     \
+  template <class... F>                                                                   \
+  inline auto match(F... fs) REF -> decltype(auto) {                                      \
+    ASS_REP(_tag < size, _tag);                                                           \
+    auto fs_ = std::tie(fs...);                                                           \
+    return switchN<size>(_tag, [&](auto N) -> decltype(auto) {                            \
+        auto& f = get<N.value>(fs_);                                                      \
+        return f(unwrap<N.value>());                                                      \
+    });                                                                                   \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
+   * transforms all variants of this Coproduct to the same type and retuns the result     \
+   *                                                                                      \
    * This function works basically in the same way as match, but takes one polymorphic function object that   \
-   * can transform any variant instead of multiple functions per variant.                                     \
-   */                                                                                                         \
-  template <class F>                                                                                          \
-  inline ResultOf<F, A REF> apply(F f) REF {                                                                  \
-    ASS_REP(_tag <= size, _tag);                                                                              \
-    return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                         \
-  }                                                                                                           \
-                                                                                                              \
-  Coproduct &operator=(Coproduct REF other) {                                                                 \
-    ASS_REP(other._tag <= size, other._tag);                                                                  \
-    _content.destroy(_tag);                                                                                   \
-    CoproductImpl::InitDynamicTag<0, size, Ts>{}(_content, other._tag, MOVE(other._content));                 \
-    _tag = other._tag;                                                                                        \
-    return *this;                                                                                             \
-  }                                                                                                           \
-                                                                                                              \
-  /**                                                                                                         \
+   * can transform any variant instead of multiple functions per variant.                 \
+   */                                                                                     \
+  template <class F>                                                                      \
+  inline ResultOf<F, A REF> apply(F f) REF {                                              \
+    ASS_REP(_tag < size, _tag);                                                           \
+    using R = ResultOf<F, A REF>;                                                         \
+    return applyWithIdx([&](auto REF a, auto _idx) -> R { return f(MOVE(a)); });          \
+  }                                                                                       \
+                                                                                          \
+  template <class F>                                                                      \
+  inline ResultOf<F, A REF, Constant<0>> applyWithIdx(F f) REF {                          \
+    return switchN<size>(_tag, [&](auto N) -> decltype(auto) {                            \
+        return f(unwrap<N.value>(), N);                                                   \
+    });                                                                                   \
+  }                                                                                       \
+                                                                                          \
+  Coproduct &operator=(Coproduct REF other) {                                             \
+    this->~Coproduct();                                                                   \
+    ::new(this) Coproduct(MOVE(other));                                                   \
+    return *this;                                                                         \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
    * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type       \
-   * the result is undefined.                                                                                 \
-   *                                                                                                          \
-   * \pre B must occur exactly once in A,As...                                                                \
-   */                                                                                                         \
-  template <class B> inline B REF unwrap() REF                                                                \
-  { return MOVE(unwrap<TL::IdxOf<B, Ts>::val>()); }                                                           \
-                                                                                                              \
-  /**                                                                                                         \
+   * the result is undefined.                                                             \
+   *                                                                                      \
+   * \pre B must occur exactly once in A,As...                                            \
+   */                                                                                     \
+  template <class B> inline B REF unwrap() REF                                            \
+  { return MOVE(unwrap<TL::IdxOf<B, Ts>::val>()); }                                       \
+                                                                                          \
+  /**                                                                                     \
    * returns the value of this Coproduct if its variant's index is idx. otherwise the result is undefined.    \
-   *                                                                                                          \
-   * \pre idx must be less than the number of variants of this Coproduct                                      \
-   */                                                                                                         \
-  template <unsigned idx>                                                                                     \
-  inline TL::Get<idx, Ts> REF unwrap() REF {                                                                  \
-    static_assert(idx < size, "out of bounds");                                                               \
-    ASS_EQ(idx, _tag);                                                                                        \
-    return CoproductImpl::Unwrap<idx, Ts>{}(MOVE(_content));                                                  \
-  }                                                                                                           \
-                                                                                                              \
-  /**                                                                                                         \
+   *                                                                                      \
+   * \pre idx must be less than the number of variants of this Coproduct                  \
+   */                                                                                     \
+  template <unsigned idx>                                                                 \
+  inline TL::Get<idx, Ts> REF unwrap() REF {                                              \
+    static_assert(idx < size, "out of bounds");                                           \
+    ASS_EQ(idx, _tag);                                                                    \
+    return MOVE(_content).template cast<TL::Get<idx, Ts>>();                              \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
    * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type       \
-   * an empty Option is returned.                                                                             \
-   *                                                                                                          \
-   * \pre B must occur exactly once in A,As...                                                                \
-   */                                                                                                         \
-  template <class B> inline Option<B REF> as() REF                                                            \
-  { return is<B>() ? Option<B REF>(unwrap<B>()) : Option<B REF>();  }                                         \
-                                                                                                              \
-  /**                                                                                                         \
+   * an empty Option is returned.                                                         \
+   *                                                                                      \
+   * \pre B must occur exactly once in A,As...                                            \
+   */                                                                                     \
+  template <class B> inline Option<B REF> as() REF                                        \
+  { return is<B>() ? Option<B REF>(unwrap<B>()) : Option<B REF>();  }                     \
+                                                                                          \
+  /**                                                                                     \
    * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\
-   *                                                                                                          \
-   * \pre idx must be less than the number of variants of this Coproduct                                      \
-   */                                                                                                         \
-  template <unsigned idx>                                                                                     \
-  inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
+   *                                                                                      \
+   * \pre idx must be less than the number of variants of this Coproduct                  \
+   */                                                                                     \
+  template <unsigned idx>                                                                 \
+  inline Option<TL::Get<idx, Ts> REF> as() REF                                            \
   { return is<idx>() ? Option<TL::Get<idx, Ts> REF>(unwrap<idx>()) : Option<TL::Get<idx, Ts> REF>();  }                                     \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
@@ -414,19 +341,38 @@ public:
 
   friend bool operator==(const Coproduct &lhs, const Coproduct &rhs)
   {
-    if (lhs._tag != rhs._tag) {
-      return false;
-    } else {
-      auto tag = lhs._tag;
-      return Content::equal(tag, lhs._content, rhs._content);
-    }
+    return lhs._tag == rhs._tag 
+      && switchN<size>(lhs._tag, [&](auto N) {
+          return lhs.unwrap<N.value>() == rhs.unwrap<N.value>();
+      });
   }
 
   friend bool operator!=(const Coproduct &lhs, const Coproduct &rhs)
   { return !(lhs == rhs); }
 
   ~Coproduct() 
-  { _content.destroy(_tag); }
+  { 
+    switchN<size>(_tag, [&](auto N) {
+        using T = TL::Get<N.value, Ts>;
+        _content.template cast<T>().~T();
+    });
+  }
+                                                                                          \
+  /**                                                                                     \
+   * constructs a new Coproduct with the variant idx. The argument type must match 
+   * `idx`th type of this * corpoduct's variants types (A,As...).
+   */
+  template <unsigned idx>
+  static Coproduct variant(TL::Get<idx, Ts> value) 
+  {
+    static_assert(idx < size, "out of bounds");
+    using T = TL::Get<idx, Ts>;
+    Coproduct self;
+    self._tag = idx 
+      & ~(unsigned(-1) << neededBits(size)); // <- bit mask to get the compiler to not warn about potential truncation of unsigned to bitfield value. This does not affect the value of the assignment, as we have a static_assert(idx < size) before
+    ::new(&self._content) T(std::move(value));
+    return self;
+  }
 
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self)
   { return self.apply([&](auto const& x)  -> std::ostream&
@@ -434,19 +380,18 @@ public:
 
   friend struct std::hash<Coproduct>;
 
-  template<class... Ords> friend struct CoproductOrdering;
+  inline Lib::Comparison compare(Coproduct const& rhs) const
+  { 
+    auto& lhs = *this;
+    return  lexCompare(DefaultComparator::compare(lhs._tag, rhs._tag),
+        [&](){
+            return lhs.applyWithIdx([&](auto const& value, auto idx) 
+                           { return Lib::DefaultComparator::compare( value, rhs.template unwrap<decltype(idx)::value>()); });
+        });
+  }
 
-  friend bool operator<(Coproduct const& lhs, Coproduct const& rhs) 
-  { return std::less<Coproduct>{}(lhs,rhs); }
 
-  friend bool operator>(Coproduct const& lhs, Coproduct const& rhs) 
-  { return rhs < lhs; }
-
-  friend bool operator<=(Coproduct const& lhs, Coproduct const& rhs) 
-  { return lhs < rhs || lhs == rhs; }
-
-  friend bool operator>=(Coproduct const& lhs, Coproduct const& rhs) 
-  { return lhs > rhs || lhs == rhs; }
+  IMPL_COMPARISONS_FROM_COMPARE(Coproduct)
 
   unsigned defaultHash() const
   { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash(); })); }
@@ -454,32 +399,10 @@ public:
   unsigned defaultHash2() const
   { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash2(); })); }
 
-  Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
+  inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<A, As...> 
 
 
-
-namespace TL = TypeList;
-
-template<class... Ords> struct CoproductOrdering 
-{
-  template<class... As>
-  bool operator()(Coproduct<As...> const& lhs, Coproduct<As...> const& rhs) const
-  { 
-    if (lhs._tag < rhs._tag) return true;
-    if (lhs._tag > rhs._tag) return false;
-
-    auto tag = lhs._tag;
-    return CoproductImpl::VariadicUnion<As...>::template match2<bool>(tag, lhs._content, rhs._content, Ords{}...);
-  }
-};
-
-template<template<class> class Ord> struct PolymorphicCoproductOrdering
-{
-  template<class... As>
-  bool operator()(Coproduct<As...> const& lhs, Coproduct<As...> const& rhs) const
-  { return CoproductOrdering<Ord<As>...>{}(lhs,rhs); }
-};
 
 } // Lib
 
@@ -493,13 +416,6 @@ template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
   }
 };
 
-
-template<class... As>
-struct std::less<Lib::Coproduct<As...> >
-{
-  bool operator()(const Lib::Coproduct<As...>& lhs, const Lib::Coproduct<As...>& rhs)
-  { return Lib::PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
-};
 
 #endif // __LIB_COPRODUCT__H__
 
