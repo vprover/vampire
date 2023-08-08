@@ -246,6 +246,10 @@ void Options::init()
     _showPassiveTraffic.description="Print information about new clauses and their feature vectors and how they enter end leave the passive container.";
     _lookup.insert(&_showPassiveTraffic);
 
+    _reshuffleAt = UnsignedOptionValue("reshuffle_at","ra",0);
+    _reshuffleAt.description="Nonterministically pick a new random seed before the specified-th clause selection from the NeuralPassiveClauseContainer (counter starts from 1, 0 value means 'never do this')";
+    _lookup.insert(&_reshuffleAt);
+
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display the help message";
     _lookup.insert(&_showHelp);

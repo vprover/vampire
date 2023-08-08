@@ -2129,6 +2129,7 @@ public:
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   bool showPassiveTraffic() const { return _showPassiveTraffic.actualValue; }
+  unsigned reshuffleAt() const { return _reshuffleAt.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
@@ -2760,6 +2761,8 @@ private:
   BoolOptionValue _showSimplOrdering;
 
   BoolOptionValue _showPassiveTraffic;
+  UnsignedOptionValue _reshuffleAt;
+
 #if VZ3
   BoolOptionValue _showZ3;
   StringOptionValue _exportAvatarProblem;

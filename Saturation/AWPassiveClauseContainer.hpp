@@ -229,6 +229,8 @@ private:
   torch::jit::script::Module _model;
   unsigned _size;
   double _temp;
+
+  unsigned _reshuffleAt;
 };
 
 /**

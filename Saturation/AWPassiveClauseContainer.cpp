@@ -148,7 +148,7 @@ float LearnedPassiveClauseContainerExperNF12cLoop5::scoreClause(Clause* cl)
 }
 
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
-  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _size(0), _temp(opt.npccTemperature())
+  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _size(0), _temp(opt.npccTemperature()), _reshuffleAt(opt.reshuffleAt())
 {
   CALL("NeuralPassiveClauseContainer::NeuralPassiveClauseContainer");
 
@@ -273,11 +273,22 @@ Clause* NeuralPassiveClauseContainer::popSelected()
   CALL("NeuralPassiveClauseContainer::popSelected");
   ASS(_size);
 
+  static unsigned popCount = 0;
+
+  if (++popCount == _reshuffleAt) {
+    // cout << "reshuffled at "<< popCount << endl;
+    Random::resetSeed();
+  }
+
   // cout << "About to pop" << endl;
   Clause* cl = _queue->pop();
   // cout << "Got " << cl->number() << endl;
   // cout << "popped from " << _size << " got " << cl->toString() << endl;
   _size--;
+
+  if (popCount == _reshuffleAt) {
+    cout << "s: " << cl->number() << '\n';
+  }
 
   selectedEvent.fire(cl);
   return cl;
