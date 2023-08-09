@@ -36,6 +36,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermSharing.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -63,14 +64,18 @@ void Superposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
   _lhsIndex=static_cast<SuperpositionLHSIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
+  _demLhsIndex=static_cast<DemodulationLHSIndex*> (
+	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 }
 
 void Superposition::detach()
 {
   _subtermIndex=0;
   _lhsIndex=0;
+  _demLhsIndex=0;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
   _salg->getIndexManager()->release(SUPERPOSITION_LHS_SUBST_TREE);
+  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   GeneratingInferenceEngine::detach();
 }
 
@@ -303,6 +308,234 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   return true;
 }
 
+void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const Ordering& ord, TermStack& sides)
+{
+  if (!lit->isEquality()) {
+    sides.push(TermList(subst->apply(lit,result)));
+    return;
+  }
+
+  TermList t0=*lit->nthArgument(0);
+  TermList t1=*lit->nthArgument(1);
+  switch(ord.getEqualityArgumentOrder(lit))
+  {
+  case Ordering::INCOMPARABLE: {
+    TIME_TRACE("incomparable");
+    auto t0S = subst->apply(t0,result);
+    auto t1S = subst->apply(t1,result);
+    switch(ord.compare(t0S,t1S)) {
+      case Ordering::INCOMPARABLE: {
+        TIME_TRACE("incomparable inner");
+        sides.push(t0S);
+        sides.push(t1S);
+        break;
+      }
+      case Ordering::GREATER:
+      case Ordering::GREATER_EQ:
+        sides.push(t0S);
+        break;
+      case Ordering::LESS:
+      case Ordering::LESS_EQ:
+        sides.push(t1S);
+        break;
+      //there should be no equality literals of equal terms
+      case Ordering::EQUAL:
+        ASSERTION_VIOLATION;
+    }
+    break;
+  }
+  case Ordering::GREATER:
+  case Ordering::GREATER_EQ:
+    sides.push(subst->apply(t0,result));
+    break;
+  case Ordering::LESS:
+  case Ordering::LESS_EQ:
+    sides.push(subst->apply(t1,result));
+    break;
+  //there should be no equality literals of equal terms
+  case Ordering::EQUAL:
+    ASSERTION_VIOLATION;
+  }
+}
+
+bool Superposition::checkForSmallerReducibleTerm(Clause* eqClause, Clause* rwClause, TermList rwTermS, ResultSubstitution* subst, bool eqIsResult, const Ordering& ordering, DemodulationLHSIndex* lhsIndex)
+{
+  // return false;
+  TIME_TRACE("Superposition::checkForSmallerReducibleTerm");
+
+  DHSet<Term*> done;
+  {TIME_TRACE("1");
+  NonVariableNonTypeIterator nvi(rwTermS.term());
+  while (nvi.hasNext()) {
+    auto st = nvi.next();
+    if (!done.insert(st)) {
+      nvi.right();
+      continue;
+    }
+    if (checkTermReducible(st, ordering, lhsIndex)) {
+      return true;
+    }
+  }}
+
+  TermStack sides;
+  {TIME_TRACE("2");
+  for (unsigned i = 0; i < eqClause->numSelected(); i++) {
+    getLHSIterator((*eqClause)[i], subst, eqIsResult, ordering, sides);
+  }
+  for (unsigned i = 0; i < rwClause->numSelected(); i++) {
+    getLHSIterator((*rwClause)[i], subst, !eqIsResult, ordering, sides);
+  }}
+
+  for (auto side : sides) {
+    if (side.isVar()) {
+      continue;
+    }
+    NonVariableNonTypeIterator nvi(side.term());
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      if (!done.insert(st)) {
+        nvi.right();
+        continue;
+      }
+      if (st->containsSubterm(rwTermS)) {
+        continue;
+      }
+  {TIME_TRACE("3");
+      if (ordering.compare(rwTermS,TermList(st))!=Ordering::GREATER) {
+        continue;
+      }}
+      NonVariableNonTypeIterator nviInner(st,true);
+      while (nviInner.hasNext()) {
+        auto st2 = nviInner.next();
+        if (st2 != st && !done.insert(st2)) {
+          nviInner.right();
+          continue;
+        }
+  {TIME_TRACE("4");
+        if (checkTermReducible(st2, ordering, lhsIndex)) {
+          return true;
+        }}
+      }
+      nvi.right();
+    }
+  }
+  return false;
+}
+
+bool Superposition::checkForLeftmostInnermostReducibleTerm(Clause* eqClause, Clause* rwClause, Term* rwTermS, ResultSubstitution* subst, bool eqIsResult, const Ordering& ordering, DemodulationLHSIndex* lhsIndex)
+{
+  // return false;
+  TIME_TRACE("Superposition::checkForLeftmostInnermostReducibleTerm/2");
+
+  DHSet<Term*> done;
+
+  TermStack sides;
+  {TIME_TRACE("1");
+  for (unsigned i = 0; i < eqClause->numSelected(); i++) {
+    getLHSIterator((*eqClause)[i], subst, eqIsResult, ordering, sides);
+  }
+  for (unsigned i = 0; i < rwClause->numSelected(); i++) {
+    getLHSIterator((*rwClause)[i], subst, !eqIsResult, ordering, sides);
+  }}
+  CodeTreeTIS rewriteTis;
+  DHMap<Term*,TermList>::Iterator eqIt(eqClause->rewrites());
+  while (eqIt.hasNext()) {
+    rewriteTis.insert(subst->apply(TermList(eqIt.nextKey()),eqIsResult).term(), nullptr, nullptr);
+  }
+  DHMap<Term*,TermList>::Iterator rwIt(rwClause->rewrites());
+  while (rwIt.hasNext()) {
+    rewriteTis.insert(subst->apply(TermList(rwIt.nextKey()),!eqIsResult).term(), nullptr, nullptr);
+  }
+
+  for (auto side : sides) {
+    if (side.isVar()) {
+      continue;
+    }
+    PolishSubtermIterator nvi(side.term()); // we won't get side itself this way, but we don't need it
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      if (st.isVar() || !done.insert(st.term())) {
+        continue;
+      }
+      if (st.term() == rwTermS) {
+        // reached rwTerm without finding a reducible term
+        return false;
+      }
+      {TIME_TRACE("2");
+      if (rewriteTis.generalizationExists(st)) {
+        TIME_TRACE("skipped by rewrite");
+        return true;
+      }
+      if (checkTermReducible(st.term(), ordering, lhsIndex)) {
+        return true;
+      }}
+    }
+    if (side.term() == rwTermS) {
+      return false;
+    }
+  }
+  return false;
+}
+
+bool Superposition::checkForLeftmostInnermostReducibleTerm(TermList sideS, TermList rwTermS, const Ordering& ordering, DemodulationLHSIndex* lhsIndex)
+{
+  return false;
+  TIME_TRACE("Superposition::checkForLeftmostInnermostReducibleTerm");
+  DHSet<Term*> done;
+  PolishSubtermIterator nvi(sideS.term()); // we won't get sideS itself this way, but we don't need it
+  while (nvi.hasNext()) {
+    auto st = nvi.next();
+    if (st.isVar() || !done.insert(st.term())) {
+      continue;
+    }
+    if (st == rwTermS) {
+      break;
+    }
+    if (checkTermReducible(st.term(), ordering, lhsIndex)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Superposition::checkTermReducible(Term* t, const Ordering& ordering, DemodulationLHSIndex* lhsIndex)
+{
+  if (t->reducible()) {
+    return true;
+  }
+  auto it = lhsIndex->getGeneralizations(t,true);
+  while (it.hasNext()) {
+    auto qr = it.next();
+    TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+    TermList rhsS;
+    if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
+      //When we apply substitution to the rhs, we get a term, that is
+      //a variant of the term we'd like to get, as new variables are
+      //produced in the substitution application.
+      TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
+      TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
+      Renaming rNorm, qNorm, qDenorm;
+      rNorm.normalizeVariables(lhsSBadVars);
+      qNorm.normalizeVariables(t);
+      qDenorm.makeInverse(qNorm);
+      ASS_EQ(TermList(t),qDenorm.apply(rNorm.apply(lhsSBadVars)));
+      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+    } else {
+      rhsS=qr.substitution->applyToBoundResult(rhs);
+    }
+
+    Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
+    bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
+    if(!preordered && ordering.compare(TermList(t),rhsS)!=Ordering::GREATER) {
+      continue;
+    }
+    TIME_TRACE("skipped");
+    t->markReducible();
+    return true;
+  }
+  return false;
+}
+
 /**
  * If superposition should be performed, return result of the superposition,
  * otherwise return 0.
@@ -373,7 +606,8 @@ Clause* Superposition::performSuperposition(
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+  auto comp = ordering.compare(tgtTermS,rwTermS);
+  if(Ordering::isGorGEorE(comp)) {
     return 0;
   }
 
@@ -386,10 +620,23 @@ Clause* Superposition::performSuperposition(
       if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
+      // if (rwLitS->isPositive() && checkForLeftmostInnermostReducibleTerm(arg1, rwTermS)) {
+      //   return 0;
+      // }
     } else if(!arg1.containsSubterm(rwTermS)) {
       if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
+      // if (rwLitS->isPositive() && checkForLeftmostInnermostReducibleTerm(arg0, rwTermS)) {
+      //   return 0;
+      // }
+    } else {
+      // if (rwLitS->isPositive() && checkForLeftmostInnermostReducibleTerm(arg0, rwTermS)) {
+      //   return 0;
+      // }
+      // if (rwLitS->isPositive() && checkForLeftmostInnermostReducibleTerm(arg1, rwTermS)) {
+      //   return 0;
+      // }
     }
   }
 
@@ -399,6 +646,14 @@ Clause* Superposition::performSuperposition(
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
+    return 0;
+  }
+
+  // if (checkForSmallerReducibleTerm(eqClause,rwClause,rwTermS,subst.ptr(),eqIsResult,ordering,_demLhsIndex)) {
+  //   return 0;
+  // }
+
+  if (checkForLeftmostInnermostReducibleTerm(eqClause,rwClause,rwTermS.term(),subst.ptr(),eqIsResult,ordering,_demLhsIndex)) {
     return 0;
   }
 
@@ -574,6 +829,26 @@ Clause* Superposition::performSuperposition(
       env.statistics->cForwardSuperposition++;
     } else {
       env.statistics->cBackwardSuperposition++;
+    }
+  }
+  {TIME_TRACE("rewrites update");
+    auto& resRewrites = res->rewrites();
+    DHMap<Term*,TermList>::Iterator eqIt(eqClause->rewrites());
+    while (eqIt.hasNext()) {
+      Term* lhs;
+      TermList rhs;
+      eqIt.next(lhs,rhs);
+      resRewrites.insert(subst->apply(TermList(lhs),eqIsResult).term(),subst->apply(rhs,eqIsResult));
+    }
+    DHMap<Term*,TermList>::Iterator rwIt(rwClause->rewrites());
+    while (rwIt.hasNext()) {
+      Term* lhs;
+      TermList rhs;
+      rwIt.next(lhs,rhs);
+      resRewrites.insert(subst->apply(TermList(lhs),eqIsResult).term(),subst->apply(rhs,eqIsResult));
+    }
+    if (comp==Ordering::LESS) {
+      resRewrites.insert(rwTermS.term(), tgtTermS);
     }
   }
 

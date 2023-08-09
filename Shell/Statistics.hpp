@@ -172,6 +172,7 @@ public:
   unsigned forwardDemodulations;
   /** number of forward demodulations into equational tautologies */
   unsigned forwardDemodulationsToEqTaut;
+  unsigned demodulationByRule;
   /** number of backward demodulations */
   unsigned backwardDemodulations;
   /** number of backward demodulations into equational tautologies */

@@ -634,6 +634,16 @@ public:
     _args[0]._info.hasTermVar = b;
   }
 
+  bool reducible()
+  {
+    return _reducible;
+  }
+
+  void markReducible()
+  {
+    _reducible = 1;
+  }
+
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
   {
@@ -801,6 +811,7 @@ protected:
   unsigned _weight;
   /** length of maximum reduction length */
   int _maxRedLen;
+  unsigned _reducible : 1;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

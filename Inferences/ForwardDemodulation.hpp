@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "InferenceEngine.hpp"
 

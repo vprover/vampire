@@ -351,6 +351,9 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
+  DHMap<Term*,TermList>& rewrites() { return _rewrites; }
+  const DHMap<Term*,TermList>& rewrites() const { return _rewrites; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -381,6 +384,7 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
+  DHMap<Term*,TermList> _rewrites;
 
   int _numActiveSplits;
 

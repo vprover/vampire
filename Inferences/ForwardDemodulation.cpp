@@ -83,6 +83,13 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   static DHSet<TermList> attempted;
   attempted.reset();
 
+  CodeTreeTIS rewriteTis;
+  {TIME_TRACE("demodulation by rule");
+  DHMap<Term*,TermList>::Iterator rwIt(cl->rewrites());
+  while (rwIt.hasNext()) {
+    rewriteTis.insert(rwIt.nextKey(), nullptr, nullptr);
+  }}
+
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
@@ -108,6 +115,54 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       if (_encompassing) {
         toplevelCheck &= lit->isPositive() && (cLen == 1);
       }
+
+      {TIME_TRACE("demodulation by rule");
+      if (!lit->isEquality() || (trm!=*lit->nthArgument(0) && trm!=*lit->nthArgument(1))) {
+        auto git = rewriteTis.getGeneralizations(trm, true);
+        while(git.hasNext()) {
+          TermQueryResult qr=git.next();
+          TermList rhs=cl->rewrites().get(qr.term.term());
+          TermList rhsS;
+          if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
+            //When we apply substitution to the rhs, we get a term, that is
+            //a variant of the term we'd like to get, as new variables are
+            //produced in the substitution application.
+            TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
+            TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
+            Renaming rNorm, qNorm, qDenorm;
+            rNorm.normalizeVariables(lhsSBadVars);
+            qNorm.normalizeVariables(trm);
+            qDenorm.makeInverse(qNorm);
+            ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+            rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+          } else {
+            rhsS=qr.substitution->applyToBoundResult(rhs);
+          }
+
+          Literal* resLit = EqHelper::replace(lit,trm,rhsS);
+          if(EqHelper::isEqTautology(resLit)) {
+            env.statistics->forwardDemodulationsToEqTaut++;
+            return true;
+          }
+
+          Clause* res = new(cLen) Clause(cLen,
+            SimplifyingInference1(InferenceRule::FORWARD_DEMODULATION, cl));
+          (*res)[0]=resLit;
+
+          unsigned next=1;
+          for(unsigned i=0;i<cLen;i++) {
+            Literal* curr=(*cl)[i];
+            if(curr!=lit) {
+              (*res)[next++] = curr;
+            }
+          }
+          ASS_EQ(next,cLen);
+
+          env.statistics->demodulationByRule++;
+          replacement = res;
+          return true;
+        }
+      }}
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {

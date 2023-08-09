@@ -39,6 +39,10 @@ public:
 
   ClauseIterator generateClauses(Clause* premise);
 
+  static bool checkForLeftmostInnermostReducibleTerm(TermList sideS, TermList rwTermS, const Ordering& ordering, DemodulationLHSIndex* lhsIndex);
+  static bool checkForLeftmostInnermostReducibleTerm(Clause* eqClause, Clause* rwClause, Term* rwTermS, ResultSubstitution* subst, bool eqIsResult, const Ordering& ordering, DemodulationLHSIndex* lhsIndex);
+  static bool checkForSmallerReducibleTerm(Clause* eqClause, Clause* rwClause, TermList rwTermS, ResultSubstitution* subst, bool eqIsResult, const Ordering& ordering, DemodulationLHSIndex* lhsIndex);
+  static bool checkTermReducible(Term* t, const Ordering& ordering, DemodulationLHSIndex* lhsIndex);
 
 private:
   Clause* performSuperposition(
@@ -62,6 +66,7 @@ private:
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;
+  DemodulationLHSIndex* _demLhsIndex;
 };
 
 

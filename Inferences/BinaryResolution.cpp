@@ -39,6 +39,7 @@
 
 #include "BinaryResolution.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
+#include "Superposition.hpp"
 
 namespace Inferences
 {
@@ -55,6 +56,8 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<BinaryResolutionIndex*> (
 	  _salg->getIndexManager()->request(BINARY_RESOLUTION_SUBST_TREE) );
+  _demLhsIndex=static_cast<DemodulationLHSIndex*> (
+	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
   _unificationWithAbstraction = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
 }
@@ -64,7 +67,9 @@ void BinaryResolution::detach()
   ASS(_salg);
 
   _index=0;
+  _demLhsIndex=0;
   _salg->getIndexManager()->release(BINARY_RESOLUTION_SUBST_TREE);
+  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   GeneratingInferenceEngine::detach();
 }
 
@@ -91,20 +96,20 @@ private:
 
 struct BinaryResolution::ResultFn
 {
-  ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
+  ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, const Ordering& ord, LiteralSelector& selector, BinaryResolution& parent)
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
   Clause* operator()(pair<Literal*, SLQueryResult> arg)
   {
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _ord, _passiveClauseContainer, _afterCheck, &_selector, _parent._demLhsIndex);
   }
 private:
   Clause* _cl;
   PassiveClauseContainer* _passiveClauseContainer;
   bool _afterCheck;
-  Ordering* _ord;
+  const Ordering& _ord;
   LiteralSelector& _selector;
   BinaryResolution& _parent;
 };
@@ -113,7 +118,7 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, const Ordering& ord, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, LiteralSelector* ls, DemodulationLHSIndex* demLhsIndex)
 {
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
@@ -174,16 +179,24 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
+  // if (Superposition::checkForSmallerReducibleTerm(eqClause,rwClause,rwTermS,subst.ptr(),eqIsResult,ordering,_demLhsIndex)) {
+  //   return 0;
+  // }
+
+  Literal* queryLitAfter = queryLitAfter = qr.substitution->applyToQuery(queryLit);
+  if (demLhsIndex && Superposition::checkForLeftmostInnermostReducibleTerm(queryCl,qr.clause,nullptr,qr.substitution.ptr(),false,ord,demLhsIndex)) {
+    return 0;
+  }
+
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength;
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
 
-  Literal* queryLitAfter = 0;
-  if (ord && queryCl->numSelected() > 1) {
+  if (afterCheck && queryCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-    queryLitAfter = qr.substitution->applyToQuery(queryLit);
+    // queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
 #if VDEBUG
 /*
@@ -246,7 +259,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       if (queryLitAfter && i < queryCl->numSelected()) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-        Ordering::Result o = ord->compare(newLit,queryLitAfter);
+        Ordering::Result o = ord.compare(newLit,queryLitAfter);
 
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
@@ -263,7 +276,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   Literal* qrLitAfter = 0;
-  if (ord && qr.clause->numSelected() > 1) {
+  if (afterCheck && qr.clause->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     qrLitAfter = qr.substitution->applyToResult(qr.literal);
   }
@@ -284,7 +297,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       if (qrLitAfter && i < qr.clause->numSelected()) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-        Ordering::Result o = ord->compare(newLit,qrLitAfter);
+        Ordering::Result o = ord.compare(newLit,qrLitAfter);
 
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
@@ -324,7 +337,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs
   auto it3 = getMappingIterator(it2,ResultFn(premise, passiveClauseContainer,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering(),_salg->getLiteralSelector(),*this));
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
   // measure time of the overall processing
