@@ -61,6 +61,7 @@ Statistics::Statistics()
     cForwardSuperposition(0),
     cBackwardSuperposition(0),
     selfSuperposition(0),
+    skippedSuperposition(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -374,6 +375,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);
   COND_OUT("Self superposition", selfSuperposition);
+  COND_OUT("Skipped superposition", skippedSuperposition);
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
