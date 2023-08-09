@@ -213,10 +213,10 @@ public:
    * 
    * @since 25/08/2020 Manchester
    */
-  Option<Val&> tryGet(Key const& key) const
+  Option<Val const&> tryGet(Key const& key) const
   {
     CALL("Map::find/2");
-    using Opt = Option<Val&>;
+    using Opt = Option<Val const&>;
 
     auto code = hashCode(key);
     Entry* entry;

@@ -24,7 +24,7 @@ namespace TypeList {
    *
    * List : [class] -> class 
    */
-  template<class... As> struct List;
+  template<class... As> struct List {};
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////// FUNTIONS RETURNING TYPES 

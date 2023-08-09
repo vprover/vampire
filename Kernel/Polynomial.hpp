@@ -683,13 +683,6 @@ Option<typename NumTraits::ConstantType> AnyPoly::tryNumeral() const&
 
 } // namespace Kernel
 
-template<> struct std::less<Kernel::AnyPoly> 
-{
-  bool operator()(Kernel::AnyPoly const& lhs, Kernel::AnyPoly const& rhs) const 
-  { return PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
-};
-
-
 template<> struct std::hash<Kernel::AnyPoly> 
 {
   size_t operator()(Kernel::AnyPoly const& self) const 

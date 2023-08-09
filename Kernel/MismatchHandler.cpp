@@ -80,12 +80,12 @@ public:
   TermSpec next() {
     ASS(!_todo->isEmpty());
     auto t = _todo->pop();
-    auto* dt = &t.deref(_subs);
+    auto* dt = &_subs->derefBound(t);
     while (dt->isTerm() && dt->functor() == _function) {
       ASS_EQ(dt->nTermArgs(), 2);
       _todo->push(dt->termArg(1));
       t = dt->termArg(0);
-      dt = &t.deref(_subs);
+      dt = &_subs->derefBound(t);
     }
     return dt->clone();
   }
@@ -152,14 +152,14 @@ Option<MismatchHandler::AbstractionResult> funcExt(
     || (t2.isTerm() && t2.isSort()) ) return Option<MismatchHandler::AbstractionResult>();
   if (t1.isTerm() && t2.isTerm()) {
     if (isApp(t1) && isApp(t2)) {
-      auto argSort1 = t1.typeArg(0).deref(&au->subs()).clone();
-      auto argSort2 = t2.typeArg(0).deref(&au->subs()).clone();
+      auto argSort1 = au->subs().derefBound(t1.typeArg(0)).clone();
+      auto argSort2 = au->subs().derefBound(t2.typeArg(0)).clone();
       if (t1.isVar() || t2.isVar()
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
        ) {
-        auto& arg1 = t1.termArg(1).deref(&au->subs());
-        auto& arg2 = t2.termArg(1).deref(&au->subs());
+        auto& arg1 = au->subs().derefBound(t1.termArg(1));
+        auto& arg2 = au->subs().derefBound(t2.termArg(1));
         auto out = MismatchHandler::EqualIf()
               .unify (UnificationConstraint(t1.typeArg(0), t2.typeArg(0)),
                       UnificationConstraint(t1.typeArg(1), t2.typeArg(1)),
@@ -193,7 +193,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       }
       auto a1 = iterTraits(AcIter(IntTraits::addF(), t1.clone(), &au->subs())).template collect<Stack>();
       auto a2 = iterTraits(AcIter(IntTraits::addF(), t2.clone(), &au->subs())).template collect<Stack>();
-      auto cmp = [&](TermSpec const& lhs, TermSpec const& rhs) { return TermSpec::compare(lhs, rhs, [&](auto& t) -> TermSpec const& { return t.deref(&au->subs()); }); };
+      auto cmp = [&](TermSpec const& lhs, TermSpec const& rhs) { return TermSpec::compare(lhs, rhs, [&](auto& t) -> TermSpec const& { return au->subs().derefBound(t); }); };
       auto less = [&](TermSpec const& lhs, TermSpec const& rhs) { return cmp(lhs, rhs) < 0; };
       a1.sort(less);
       a2.sort(less);
@@ -407,7 +407,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       todo->push(term.clone());
       while (todo->isNonEmpty()) {
         auto t = todo->pop();
-        auto& dt = t.deref(&subs());
+        auto& dt = subs().derefBound(t);
         if (dt.isVar()) {
           if (dt == var) {
             return true;
@@ -422,8 +422,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
     while (toDo->isNonEmpty()) {
       auto cur = toDo->pop();
-      auto& dt1 = cur.lhs().deref(&subs());
-      auto& dt2 = cur.rhs().deref(&subs());
+      auto& dt1 = subs().derefBound(cur.lhs());
+      auto& dt2 = subs().derefBound(cur.rhs());
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
       if (dt1 == dt2) {
         progress = true;
