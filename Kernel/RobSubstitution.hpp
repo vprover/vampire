@@ -34,6 +34,9 @@
 #include "Lib/VString.hpp"
 #endif
 
+
+const int SPECIAL_INDEX=-2;
+const int UNBOUND_INDEX=-1;
 namespace Kernel
 {
 struct VarSpec
@@ -102,25 +105,24 @@ struct AtomicTermSpec {
 
   friend std::ostream& operator<<(std::ostream& out, AtomicTermSpec const& self);
   AtomicTermSpec clone() const { return *this; }
-  bool isVar() const;
-  VarSpec varSpec() const;
-  bool isTerm() const;
-  bool isOutputVar() const;
+  bool isVar() const { return term.isVar(); }
+  VarSpec varSpec() const { return VarSpec(term.var(), term.isSpecialVar() ? SPECIAL_INDEX : index); }
+  bool isTerm() const { return term.isTerm(); }
 
+  unsigned nTypeArgs() const { return term.term()->numTermArguments(); }
+  unsigned nTermArgs() const { return term.term()->numTermArguments(); }
+  unsigned nAllArgs() const { return term.term()->arity(); }
 
-  unsigned nTypeArgs() const;
-  unsigned nTermArgs() const;
-  unsigned nAllArgs() const;
-
-  AtomicTermSpec termArg(unsigned i) const;
-  AtomicTermSpec typeArg(unsigned i) const;
-  AtomicTermSpec anyArg(unsigned i) const;
+  AtomicTermSpec termArg(unsigned i) const { return AtomicTermSpec(this->term.term()->termArg(i), this->index); }
+  AtomicTermSpec typeArg(unsigned i) const { return AtomicTermSpec(this->term.term()->typeArg(i), this->index); }
+  AtomicTermSpec anyArg (unsigned i) const { return AtomicTermSpec(*this->term.term()->nthArgument(i), this->index); }
 
   auto typeArgs() const { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
   auto termArgs() const { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
-  auto allArgs() const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
+  auto allArgs()  const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
 
-  unsigned functor() const;
+
+  unsigned functor() const { return term.term()->functor(); }
 };
 
 class TermSpec;
@@ -179,8 +181,6 @@ public:
   friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
   friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);
   IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(TermSpec);
-  unsigned defaultHash() const;
-  unsigned defaultHash2() const;
 
   Option<AtomicTermSpec> asAtomic() const { return _self.as<AtomicTermSpec>().toOwned(); }
 
@@ -245,51 +245,102 @@ public:
     }
   }
 
-  TermList::Top top() const;
-  TermSpec const& deref(RobSubstitution const* s) const&;
-  bool isOutputVar() const;
+  TermList::Top top() const
+  { return _self.match([](CompositeTermSpec const& a) { return TermList::Top::functor(a.functor); },
+                       [](AtomicTermSpec const& old) { return old.term.top(); }); }
+  // TermSpec const& deref(RobSubstitution const* s) const&;
   unsigned varNumber() const { return *top().var(); }
-  bool definitelyGround() const;// { return t->shared() && t->ground(); }
-  // assuming it's ground
+  bool definitelyGround() const
+  { return _self.match([](CompositeTermSpec const& a) { return iterTraits(a.argsIter()).all([](auto& x) { return x.definitelyGround(); }); },
+                       [](AtomicTermSpec const& t) { return t.term.isTerm() && t.term.term()->shared() && t.term.term()->ground(); }); }
+    // assuming it's ground
   unsigned weight() const;
   bool sameTermContent(TermSpec const& other) const;
 
   bool isSpecialVar()  const;
-  bool isVar()         const;
+  bool isVar()         const
+  { return _self.match([](CompositeTermSpec const&)   { return false; },
+                       [](AtomicTermSpec const& self) { return self.isVar(); }); }
+
   bool isNormalVar()   const { return isVar() && !isSpecialVar(); }
 
-  bool isTerm() const;
+  bool isTerm() const
+  { return _self.match([](CompositeTermSpec const&)   { return true; },
+                       [](AtomicTermSpec const& self) { return self.isTerm(); }); }
+
   bool isLiteral() const;
   // TermSpec sort() const;
   bool sortIsBoolOrVar() const;
   bool isSort() const;
-  VarSpec varSpec() const;
-  unsigned functor() const;
+  VarSpec varSpec() const { return _self.as<AtomicTermSpec>()->varSpec(); }
 
-  unsigned nTypeArgs() const;//{ return derefTerm().term()->numTypeArguments(); }
-  unsigned nTermArgs() const;//{ return derefTerm().term()->numTermArguments(); }
-  unsigned nAllArgs() const;//{ return derefTerm().term()->numTermArguments(); }
-                            //
+  unsigned functor() const
+  { return _self.match([](CompositeTermSpec const& a) { return a.functor; },
+                       [](AtomicTermSpec const& self) { return self.functor(); }); }
+
+  unsigned nTypeArgs() const
+  { return _self.match([](CompositeTermSpec const& a) { return env.signature->getFunction(a.functor)->numTypeArguments(); },
+                       [](AtomicTermSpec const& self) { return self.nTypeArgs(); }); }
+
+  unsigned nTermArgs() const
+  { return _self.match([](CompositeTermSpec const& a) { return env.signature->getFunction(a.functor)->numTermArguments(); },
+                       [](AtomicTermSpec const& self) { return self.nTermArgs(); }); }
+
+  unsigned nAllArgs() const
+  { return _self.match([](CompositeTermSpec const& a) { return a.args.map([](auto& x) { return unsigned(x->size()); }).unwrapOr(0); },
+                       [](AtomicTermSpec const& self) { return self.nAllArgs(); }); }
+
   bool isNumeral() const { return isTerm() && env.signature->getFunction(functor())->interpretedNumber(); }
-  // bool isGround()      { return _subs->apply(_term, _index).ground(); }
-  TermSpec termArg(unsigned i) const;
-  TermSpec typeArg(unsigned i) const;
-  TermSpec anyArg(unsigned i) const;
+
+  TermSpec termArg(unsigned i) const
+  { return _self.match([&](CompositeTermSpec const& a) { return a.arg(i + nTypeArgs()).clone(); },
+                       [&](AtomicTermSpec const& self) { return TermSpec(self.termArg(i)); }); }
+
+  TermSpec typeArg(unsigned i) const
+  { return _self.match([&](CompositeTermSpec const& a) { return a.arg(i).clone(); },
+                       [&](AtomicTermSpec const& self) { return TermSpec(self.typeArg(i)); }); }
+
+  TermSpec anyArg(unsigned i) const
+  { return _self.match([&](CompositeTermSpec const& a) { return a.arg(i).clone(); },
+                       [&](AtomicTermSpec const& self) { return TermSpec(self.anyArg(i)); }); }
+
   auto typeArgs() const { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
   auto termArgs() const { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
   auto allArgs() const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
 
   TermList toTerm(RobSubstitution& s) const;
 
+private:
+  template<class HashFn>
+  static unsigned __hash(HashFn hashFn, TermSpec const& t) {
+    Recycled<Stack<TermSpec>> todo;
+    todo->push(t.clone());
+    unsigned hash = 0;
+    while (todo->isNonEmpty()) {
+      auto t = todo->pop();
+      if (t.isTerm()) {
+        hash = HashUtils::combine(hash, hashFn(t.functor()));
+        todo->loadFromIterator(t.allArgs());
+      } else {
+        hash = HashUtils::combine(hash, t.varNumber(), t.varSpec().index);
+      }
+    }
+    return 0;
+  }
+public:
+
+
+  unsigned defaultHash () const { return __hash([](auto const& x) { return DefaultHash ::hash(x); }, *this); }
+  unsigned defaultHash2() const { return __hash([](auto const& x) { return DefaultHash2::hash(x); }, *this); }
+
+
 };
 
 struct AutoDerefTermSpec
 {
   TermSpec term;
-  AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s)
-    : term(t.deref(s).clone())
-    { }
 
+  AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s);
   explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()) {}
   AutoDerefTermSpec clone() const { return AutoDerefTermSpec(*this); }
   AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
@@ -299,46 +350,118 @@ struct AutoDerefTermSpec
 struct AutoDerefTermSpecContext 
 {
   RobSubstitution const* subs;
-  bool recurseOnGround;
 };
 
-// memo for AutoDerefTermSpec that will only memorize AtomicTermSpec but not CompositeTermSpec 
-template<class Result>
-class OnlyMemorizeAtomic {
+// // memo for AutoDerefTermSpec that will only memorize AtomicTermSpec but not CompositeTermSpec 
+// template<class Result>
+// class OnlyMemorizeAtomic {
+//   Map<AtomicTermSpec, Result> _memo;
+// public:
+//   OnlyMemorizeAtomic(OnlyMemorizeAtomic &&) = default;
+//   OnlyMemorizeAtomic& operator=(OnlyMemorizeAtomic &&) = default;
+//   OnlyMemorizeAtomic() : _memo() {}
+//
+//   Option<Result> get(AutoDerefTermSpec const& arg)
+//   { return arg.term.asAtomic().isSome() 
+//        ? _memo.tryGet(*arg.term.asAtomic()).toOwned()
+//        : Option<Result>(); }
+//
+//   template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
+//   { return orig.term.asAtomic().isSome() ? _memo.getOrInit(*orig.term.asAtomic(), init)
+//                                            : init(); }
+//   void reset() { _memo.reset(); }
+// };
+
+template<class Result, unsigned SIZE>
+class OnlyMemorizeBigAtomic {
   Map<AtomicTermSpec, Result> _memo;
 public:
-  OnlyMemorizeAtomic(OnlyMemorizeAtomic &&) = default;
-  OnlyMemorizeAtomic& operator=(OnlyMemorizeAtomic &&) = default;
-  OnlyMemorizeAtomic() : _memo() {}
+  OnlyMemorizeBigAtomic(OnlyMemorizeBigAtomic &&) = default;
+  OnlyMemorizeBigAtomic& operator=(OnlyMemorizeBigAtomic &&) = default;
+  OnlyMemorizeBigAtomic() : _memo() {}
+
+  auto memoKey(AutoDerefTermSpec const& arg) -> Option<AtomicTermSpec>
+  { 
+    auto at = arg.term.asAtomic(); 
+    if (at.isSome() && at->term.isTerm()) {
+      auto term = at->term.term();
+      return !term->shared() || term->weight() > SIZE ? at : Option<AtomicTermSpec>{};
+    } else {
+      return {};
+    }
+  }
 
   Option<Result> get(AutoDerefTermSpec const& arg)
-  { return arg.term.asAtomic().isSome() 
-       ? _memo.tryGet(*arg.term.asAtomic()).toOwned()
-       : Option<Result>(); }
+  { 
+    auto key = memoKey(arg);
+    return key.isSome()
+       ? _memo.tryGet(*key).toOwned()
+       : Option<Result>(); 
+  }
 
   template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
-  { return orig.term.asAtomic().isSome() ? _memo.getOrInit(*orig.term.asAtomic(), init)
-                                           : init(); }
+  { 
+    auto key = memoKey(orig);
+    return key.isSome() ? _memo.getOrInit(*key, init)
+                        : init(); 
+  }
   void reset() { _memo.reset(); }
 };
+
+
 template<class Result>
-class OnlyMemorizeVars {
-  Map<VarSpec, Result> _memo;
+class OnlyMemorizeAtomicNonVar {
+  Map<AtomicTermSpec, Result> _memo;
 public:
-  OnlyMemorizeVars(OnlyMemorizeVars &&) = default;
-  OnlyMemorizeVars& operator=(OnlyMemorizeVars &&) = default;
-  OnlyMemorizeVars() : _memo() {}
+  OnlyMemorizeAtomicNonVar(OnlyMemorizeAtomicNonVar &&) = default;
+  OnlyMemorizeAtomicNonVar& operator=(OnlyMemorizeAtomicNonVar &&) = default;
+  OnlyMemorizeAtomicNonVar() : _memo() {}
+
+  auto memoKey(AutoDerefTermSpec const& arg) -> Option<AtomicTermSpec>
+  { 
+    auto at = arg.term.asAtomic(); 
+    if (at.isSome() && at->term.isTerm()) {
+      return at;
+    } else {
+      return {};
+    }
+  }
 
   Option<Result> get(AutoDerefTermSpec const& arg)
-  { return arg.term.isVar()
-       ? _memo.tryGet(arg.term.varSpec()).toOwned()
-       : Option<Result>(); }
+  { 
+    auto key = memoKey(arg);
+    return key.isSome()
+       ? _memo.tryGet(*key).toOwned()
+       : Option<Result>(); 
+  }
 
   template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
-  { return orig.term.isVar() ? _memo.getOrInit(orig.term.varSpec(), init)
-                             : init(); }
+  { 
+    auto key = memoKey(orig);
+    return key.isSome() ? _memo.getOrInit(*key, init)
+                        : init(); 
+  }
   void reset() { _memo.reset(); }
 };
+
+// template<class Result>
+// class OnlyMemorizeVars {
+//   Map<VarSpec, Result> _memo;
+// public:
+//   OnlyMemorizeVars(OnlyMemorizeVars &&) = default;
+//   OnlyMemorizeVars& operator=(OnlyMemorizeVars &&) = default;
+//   OnlyMemorizeVars() : _memo() {}
+//
+//   Option<Result> get(AutoDerefTermSpec const& arg)
+//   { return arg.term.isVar()
+//        ? _memo.tryGet(arg.term.varSpec()).toOwned()
+//        : Option<Result>(); }
+//
+//   template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
+//   { return orig.term.isVar() ? _memo.getOrInit(orig.term.varSpec(), init)
+//                              : init(); }
+//   void reset() { _memo.reset(); }
+// };
 class UnificationConstraint
 {
   TermSpec _t1;
@@ -384,9 +507,12 @@ class RobSubstitution
   friend class AbstractingUnifier;
   friend class UnificationConstraint;
  
-  DHMap<VarSpec,TermSpec,VarSpec::Hash1, VarSpec::Hash2> _bank;
+  DHMap<VarSpec, TermSpec, VarSpec::Hash1, VarSpec::Hash2> _bindings;
+  mutable DHMap<VarSpec, unsigned , VarSpec::Hash1, VarSpec::Hash2> _outputVarBindings;
   mutable unsigned _nextUnboundAvailable;
-  mutable OnlyMemorizeVars<TermList> _applyMemo;
+  mutable OnlyMemorizeAtomicNonVar<TermList> _applyMemo;
+  // mutable OnlyMemorizeAtomic<TermList> _applyMemo;
+  // mutable OnlyMemorizeBigAtomic<TermList, 4> _applyMemo;
 
 public:
   CLASS_NAME(RobSubstitution);
@@ -407,16 +533,14 @@ public:
   void denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex);
   bool isUnbound(VarSpec v) const;
 
-  [[deprecated("todo remove me")]]
-  bool isUnbound(unsigned var, int index) const
-  { return isUnbound(VarSpec(var,index)); }
   void reset()
   {
-    _bank.reset();
+    _bindings.reset();
+    _outputVarBindings.reset();
     _nextUnboundAvailable=0;
     _applyMemo.reset();
   }
-  bool keepRecycled() const { return _bank.keepRecycled(); }
+  bool keepRecycled() const { return _bindings.keepRecycled() || _outputVarBindings.keepRecycled(); }
 
   /**
    * Bind special variable to a specified term
@@ -428,9 +552,10 @@ public:
   void bindSpecialVar(unsigned var, TermList t, int index)
   {
     VarSpec vs(var, SPECIAL_INDEX);
-    ASS(!_bank.find(vs));
+    ASS(!_bindings.find(vs));
     bind(vs, TermSpec(t,index));
   }
+
   TermList::Top getSpecialVarTop(unsigned specialVar) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
@@ -439,16 +564,16 @@ public:
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
-#if VDEBUG
-  /**
-   * Return number of bindings stored in the substitution.
-   *
-   * - 0 means a fresh substitution.
-   * - Without backtracking, this number doesn't decrease.
-   */
-  size_t size() const {return _bank.size(); }
-
-#endif
+// #if VDEBUG
+//   /**
+//    * Return number of bindings stored in the substitution.
+//    *
+//    * - 0 means a fresh substitution.
+//    * - Without backtracking, this number doesn't decrease.
+//    */
+//   size_t size() const { return _bindings.size(); }
+//
+// #endif
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
   std::ostream& output(std::ostream& out, bool deref) const;
 
@@ -468,7 +593,7 @@ public:
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
   TermSpec const& derefBound(TermSpec const& v) const;
   // TermSpec const& derefIntroducingNewVariables(VarSpec v) const;
-  VarSpec findOrIntroduceOutputVariable(VarSpec v) const;
+  unsigned findOrIntroduceOutputVariable(VarSpec v) const;
   VarSpec root(VarSpec v) const;
 private:
   TermList apply(TermSpec);
@@ -478,11 +603,9 @@ private:
   RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
 
-  static const int UNBOUND_INDEX;
-  static const int SPECIAL_INDEX;
-
-
   void addToConstraints(const VarSpec& v1, const VarSpec& v2);
+  template<class T, class H1, class H2>
+  void bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b);
   void bind(const VarSpec& v, TermSpec b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   bool match(TermSpec base, TermSpec instance);
@@ -497,38 +620,7 @@ private:
   //   return VarSpec(tl.var(), index);
   // }
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
-  { return out << self._bank; }
-
-  class BindingBacktrackObject
-  : public BacktrackObject
-  {
-  public:
-    BindingBacktrackObject(RobSubstitution* subst, VarSpec v)
-    :_subst(subst), _var(v)
-    {
-      Option<TermSpec&> t = _subst->_bank.find(_var);
-      if(t) {
-        _term = some(t->clone());
-      }
-    }
-    void backtrack()
-    {
-      if(_term.isNone()) {
-	      _subst->_bank.remove(_var);
-      } else {
-	      _subst->_bank.set(_var,std::move(*_term));
-      }
-      _subst->_applyMemo.reset();
-    }
-    friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
-    { return out << "(ROB backtrack object for " << self._var << ")"; }
-    CLASS_NAME(RobSubstitution::BindingBacktrackObject);
-    USE_ALLOCATOR(BindingBacktrackObject);
-  private:
-    RobSubstitution* _subst;
-    VarSpec _var;
-    Option<TermSpec> _term;
-  };
+  { return out << "(" << self._bindings << ", " << self._outputVarBindings << ")"; }
 
   template<class Fn>
   SubstIterator getAssocIterator(RobSubstitution* subst,
@@ -544,6 +636,8 @@ private:
 
 };
 
+
+inline AutoDerefTermSpec::AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s) : term(s->derefBound(t).clone()) {}
 };
 
 namespace Lib {
@@ -559,21 +653,16 @@ namespace Lib {
 
     BottomUpChildIter(Item const& self, Kernel::AutoDerefTermSpecContext c) : _self(Item(self)), _arg(0) {}
  
-    Item self() { return _self.clone(); }
+    Item const& self() { return _self; }
 
     Item next(Kernel::AutoDerefTermSpecContext c)
     { return Kernel::AutoDerefTermSpec(_self.term.anyArg(_arg++), c.subs); }
 
     bool hasNext(Kernel::AutoDerefTermSpecContext c)
-    { return _self.term.isTerm() && (c.recurseOnGround 
-          ? _arg < _self.term.nAllArgs()
-          : (_self.term.definitelyGround() ? false 
-                                           : _arg < _self.term.nAllArgs())); }
+    { return _self.term.isTerm() && _arg < _self.term.nAllArgs(); }
 
     unsigned nChildren(Kernel::AutoDerefTermSpecContext c)
-    { return _self.term.isVar() ? 0 
-             : (c.recurseOnGround ? _self.term.nAllArgs()
-                                  : (_self.term.definitelyGround() ? 0 : _self.term.nAllArgs())); }
+    { return _self.term.isTerm() ? _self.term.nAllArgs() : 0; }
   };
 
 } // namespace Lib

@@ -20,6 +20,7 @@
 #include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Term.hpp"
+#include "Lib/Backtrackable.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
@@ -42,36 +43,14 @@ std::ostream& operator<<(std::ostream& out, TermSpec const& self)
                           [&](AtomicTermSpec    const& self) -> decltype(auto) { return out << self; }); }
 
 
-bool AtomicTermSpec::isOutputVar() const
-{ 
-  ASS(this->index != RobSubstitution::UNBOUND_INDEX || this->term.isVar()); 
-  return  this->index == RobSubstitution::UNBOUND_INDEX; 
-}
-
-bool TermSpec::isOutputVar() const
-{ return _self.match([](CompositeTermSpec const&  ) { return false; },
-                     [](AtomicTermSpec const& self) { return self.isOutputVar(); }); }
-
-
-TermList::Top TermSpec::top() const
-{ return _self.match([](CompositeTermSpec const& a) { return TermList::Top::functor(a.functor); },
-                     [](AtomicTermSpec const& old) { return old.term.top(); }); }
-
-TermSpec const& TermSpec::deref(RobSubstitution const* s) const&
- { return s->derefBound(*this); };
-
-bool TermSpec::definitelyGround() const
-{ return _self.match([](CompositeTermSpec const& a) { return iterTraits(a.argsIter()).all([](auto& x) { return x.definitelyGround(); }); },
-                     [](AtomicTermSpec const& t) { return t.term.isTerm() && t.term.term()->shared() && t.term.term()->ground(); }); }
+// TermSpec const& TermSpec::deref(RobSubstitution const* s) const&
+//  { return s->derefBound(*this); };
 
 unsigned TermSpec::weight() const
 { 
   ASS(definitelyGround())
   return _self.match([](CompositeTermSpec const& a) { return iterTraits(a.argsIter()).map([](auto& x) { return x.weight(); }).sum(); },
                      [](AtomicTermSpec const& t) { return t.term.term()->weight(); }); }
-
-const int RobSubstitution::SPECIAL_INDEX=-2;
-const int RobSubstitution::UNBOUND_INDEX=-1;
 
 bool TermSpec::sameTermContent(TermSpec const& other) const
 {
@@ -101,19 +80,6 @@ bool TermSpec::isSpecialVar() const
 { return _self.match([](CompositeTermSpec const&)   { return false; },
                      [](AtomicTermSpec const& self) { return self.term.isSpecialVar(); }); }
 
-bool AtomicTermSpec::isVar() const 
-{ return term.isVar(); }
-
-bool TermSpec::isVar() const 
-{ return _self.match([](CompositeTermSpec const&)   { return false; },
-                     [](AtomicTermSpec const& self) { return self.isVar(); }); }
-
-bool AtomicTermSpec::isTerm() const 
-{ return term.isTerm(); }
-
-bool TermSpec::isTerm() const
-{ return _self.match([](CompositeTermSpec const&)   { return true; },
-                     [](AtomicTermSpec const& self) { return self.isTerm(); }); }
 
 bool TermSpec::isLiteral() const 
 { return _self.match([](CompositeTermSpec const&)   { return false; },
@@ -122,65 +88,6 @@ bool TermSpec::isLiteral() const
 bool TermSpec::isSort() const 
 { return _self.match([](CompositeTermSpec const& a) { return a.isSort(); },
                      [](AtomicTermSpec const& self) { return self.term.term()->isSort(); }); }
-
-
-VarSpec AtomicTermSpec::varSpec() const 
-{ return VarSpec(term.var(), term.isSpecialVar() ? RobSubstitution::SPECIAL_INDEX : index); }
-
-
-VarSpec TermSpec::varSpec() const 
-{ return _self.as<AtomicTermSpec>()->varSpec(); }
-
-unsigned AtomicTermSpec::functor() const
-{ return term.term()->functor(); }
-
-unsigned TermSpec::functor() const
-{ return _self.match([](CompositeTermSpec const& a) { return a.functor; },
-                     [](AtomicTermSpec const& self) { return self.functor(); }); }
-
-
-unsigned AtomicTermSpec::nTypeArgs() const 
-{ return term.term()->numTermArguments(); }
-
-unsigned TermSpec::nTypeArgs() const 
-{ return _self.match([](CompositeTermSpec const& a) { return env.signature->getFunction(a.functor)->numTypeArguments(); },
-                     [](AtomicTermSpec const& self) { return self.nTypeArgs(); }); }
-
-unsigned AtomicTermSpec::nTermArgs() const 
-{ return term.term()->numTermArguments(); }
-
-unsigned TermSpec::nTermArgs() const 
-{ return _self.match([](CompositeTermSpec const& a) { return env.signature->getFunction(a.functor)->numTermArguments(); },
-                     [](AtomicTermSpec const& self) { return self.nTermArgs(); }); }
-
-unsigned AtomicTermSpec::nAllArgs() const
-{ return term.term()->arity(); }
-
-unsigned TermSpec::nAllArgs() const
-{ return _self.match([](CompositeTermSpec const& a) { return a.args.map([](auto& x) { return x->size(); }).unwrapOr(0); },
-                     [](AtomicTermSpec const& self) { return self.nAllArgs(); }); }
-
-
-AtomicTermSpec AtomicTermSpec::termArg(unsigned i) const
-{ return AtomicTermSpec(this->term.term()->termArg(i), this->index); }
-
-TermSpec TermSpec::termArg(unsigned i) const
-{ return _self.match([&](CompositeTermSpec const& a) { return a.arg(i + nTypeArgs()).clone(); },
-                     [&](AtomicTermSpec const& self) { return TermSpec(self.termArg(i)); }); }
-
-AtomicTermSpec AtomicTermSpec::typeArg(unsigned i) const
-{ return AtomicTermSpec(this->term.term()->typeArg(i), this->index); }
-
-TermSpec TermSpec::typeArg(unsigned i) const
-{ return _self.match([&](CompositeTermSpec const& a) { return a.arg(i).clone(); },
-                     [&](AtomicTermSpec const& self) { return TermSpec(self.typeArg(i)); }); }
-
-AtomicTermSpec AtomicTermSpec::anyArg(unsigned i) const
-{ return AtomicTermSpec(*this->term.term()->nthArgument(i), this->index); }
-
-TermSpec TermSpec::anyArg(unsigned i) const
-{ return _self.match([&](CompositeTermSpec const& a) { return a.arg(i).clone(); },
-                     [&](AtomicTermSpec const& self) { return TermSpec(self.anyArg(i)); }); }
 
 
 TermList TermSpec::toTerm(RobSubstitution& s) const
@@ -254,7 +161,7 @@ void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, i
     Renaming::Item itm=nit.next();
     VarSpec normal(itm.second, normalIndex);
     VarSpec denormalized(itm.first, denormalizedIndex);
-    ASS(!_bank.find(denormalized));
+    ASS(!_bindings.find(denormalized));
     bindVar(denormalized,normal);
   }
 }
@@ -263,8 +170,8 @@ bool RobSubstitution::isUnbound(VarSpec v) const
 {
   CALL("RobSubstitution::isUnbound");
   for(;;) {
-    auto binding = _bank.find(v);
-    if(binding.isNone() || binding->isOutputVar()) {
+    auto binding = _bindings.find(v);
+    if(binding.isNone()) {
       return true;
     } else if(binding->isTerm()) {
       return false;
@@ -282,8 +189,8 @@ TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar) const
 {
   VarSpec v(specialVar, SPECIAL_INDEX);
   for(;;) {
-    auto binding = _bank.find(v);
-    if(binding.isNone() || binding->isOutputVar()) {
+    auto binding = _bindings.find(v);
+    if(binding.isNone()) {
       static TermList auxVarTerm(1,false);
       return auxVarTerm.top();
     } else if(binding->isTerm()) {
@@ -302,11 +209,11 @@ TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
   CALL("RobSubstitution::derefBound");
   TermSpec const* t = &t_;
   for(;;) {
-    if (t->isTerm() || t->isOutputVar()) {
+    if (t->isTerm()) {
       return *t;
     } else {
-      auto binding = _bank.find(t->varSpec());
-      if (!binding || binding->isOutputVar()) {
+      auto binding = _bindings.find(t->varSpec());
+      if (!binding) {
         return *t;
       } else {
         t = &binding.unwrap();
@@ -315,16 +222,31 @@ TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
   }
 }
 
-VarSpec RobSubstitution::findOrIntroduceOutputVariable(VarSpec v) const
+template<class T, class H1, class H2>
+void RobSubstitution::bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b)
+{
+  if(bdIsRecording()) {
+    ASS(map.find(v).isNone());
+    bdAdd(BacktrackObject::fromClosure([this, v, &map](){
+      map.remove(v);
+      _applyMemo.reset();
+    }));
+  }
+  map.set(v,std::move(b));
+  _applyMemo.reset();
+}
+
+
+unsigned RobSubstitution::findOrIntroduceOutputVariable(VarSpec v) const
 {
   CALL("RobSubstitution::introduceOutputVariable");
-  auto found = _bank.find(v);
-  ASS(found.isNone() || found->isOutputVar());
+  ASS(_bindings.find(v).isNone());
+  auto found = _outputVarBindings.find(v);
   if (found.isSome()) {
-    return found->varSpec();
+    return *found;
   } else {
-    auto newVar = VarSpec(_nextUnboundAvailable++, UNBOUND_INDEX);
-    const_cast<RobSubstitution&>(*this).bind(v,TermSpec(newVar));
+    auto newVar = _nextUnboundAvailable++;
+    const_cast<RobSubstitution&>(*this).bind(_outputVarBindings, v, newVar);
     return newVar;
   }
 }
@@ -337,11 +259,7 @@ void RobSubstitution::bind(const VarSpec& v, TermSpec b)
   //ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
   ASS_NEQ(v.index, UNBOUND_INDEX);
 
-  if(bdIsRecording()) {
-    bdAdd(new BindingBacktrackObject(this, v));
-  }
-  _bank.set(v,std::move(b));
-  _applyMemo.reset();
+  bind(_bindings, v, std::move(b));
 }
 
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
@@ -356,8 +274,8 @@ VarSpec RobSubstitution::root(VarSpec v) const
 {
   CALL("RobSubstitution::root");
   for(;;) {
-    auto binding = _bank.find(v);
-    if(binding.isNone() || binding->isOutputVar() || binding->isTerm()) {
+    auto binding = _bindings.find(v);
+    if(binding.isNone() || binding->isTerm()) {
       return v;
     }
     v = binding->varSpec();
@@ -570,7 +488,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
       if (! TermList::sameTopFunctor(bts.old().term,its.old().term)) {
 	if(bts.old().term.isSpecialVar()) {
 	  VarSpec bvs(bts.old().term.var(), SPECIAL_INDEX);
-	  auto binding = _bank.find(bvs);
+	  auto binding = _bindings.find(bvs);
 	  if(binding) {
             binding1 = binding->old();
 	    ASS_EQ(binding1.index, base.old().index);
@@ -581,7 +499,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	  }
 	} else if(its.old().term.isSpecialVar()) {
 	  VarSpec ivs(its.old().term.var(), SPECIAL_INDEX);
-	  auto binding = _bank.find(ivs);
+	  auto binding = _bindings.find(ivs);
 	  if(binding) {
             binding2 = binding->old();
 	    ASS_EQ(binding2.index, instance.old().index);
@@ -592,7 +510,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	  }
 	} else if(bts.old().term.isOrdinaryVar()) {
 	  VarSpec bvs(bts.old().term.var(), bts.old().index);
-	  auto binding = _bank.find(bvs);
+	  auto binding = _bindings.find(bvs);
 	  if(binding) {
             binding1 = binding->old();
 	    ASS_EQ(binding1.index, instance.old().index);
@@ -681,22 +599,23 @@ TermList RobSubstitution::apply(TermList trm, int index) const
   // if (trm.ground()) return trm;
   
 
-  return evalBottomUpWithMemo<TermList>(AutoDerefTermSpec(TermSpec(trm, index), this), 
-      [&](auto& orig, TermList* args) -> TermList {
+  return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
+    .function([&](auto const& orig, TermList* args) -> TermList {
         TermList tout;
         if (orig.term.isVar()) {
-          ASS(!orig.term.isOutputVar())
-          tout = TermList::var(findOrIntroduceOutputVariable(orig.term.varSpec()).var);
-
-        } else if (orig.term.definitelyGround()) {
-          return orig.term.unwrapGround();
+          tout = TermList::var(findOrIntroduceOutputVariable(orig.term.varSpec()));
 
         } else {
           tout = TermList(orig.term.isSort() ? AtomicSort::create(orig.term.functor(), orig.term.nAllArgs(), args)
                                              : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
         }
         return tout;
-      }, _applyMemo, AutoDerefTermSpecContext { .subs = this, .recurseOnGround = false, });
+    })
+    .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
+                                          [&]() { return t.term.unwrapGround(); }); })
+    .memo<decltype(_applyMemo)&>(_applyMemo)
+    .context(AutoDerefTermSpecContext { .subs = this, })
+    .apply(AutoDerefTermSpec(TermSpec(trm, index), this));
 }
 
 TermList RobSubstitution::apply(TermSpec t) 
@@ -706,14 +625,19 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 {
   CALL("RobSubstitution::getApplicationResultWeight");
 
-  return evalBottomUp<size_t>(AutoDerefTermSpec(TermSpec(trm, index), this), 
-      [](auto& orig, size_t* sizes) 
-      { return orig.term.isVar()            ? 1 
-             : orig.term.definitelyGround() ? orig.term.groundWeight()
-                                            : (1 + range(0, orig.term.nAllArgs())
+  return BottomUpEvaluation<AutoDerefTermSpec, size_t>()
+    .function(
+      [](auto const& orig, size_t* sizes) 
+      { return !orig.term.isTerm() ? 1 
+                                   : (1 + range(0, orig.term.nAllArgs())
                                                       .map([&](auto i) { return sizes[i]; })
-                                                      .sum()); },
-                                 AutoDerefTermSpecContext { .subs = this, .recurseOnGround = false, });
+                                                      .sum()); })
+    .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
+                                          [&]() -> size_t { return t.term.groundWeight(); }); })
+    // .memo<decltype(_applyMemo)&>(_applyMemo)
+    .context(AutoDerefTermSpecContext { .subs = this, })
+    .apply(AutoDerefTermSpec(TermSpec(trm, index), this))
+    ;
 }
 
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
@@ -1006,30 +930,6 @@ bool operator==(TermSpec const& lhs, TermSpec const& rhs)
 
 bool operator<(TermSpec const& lhs, TermSpec const& rhs)
 { return TermSpec::compare(lhs, rhs, [](auto& t) -> decltype(auto) { return t; }) < 0; }
-
-template<class HashFn>
-unsigned __hash(HashFn hashFn, TermSpec const& t) {
-  Recycled<Stack<TermSpec>> todo;
-  todo->push(t.clone());
-  unsigned hash = 0;
-  while (todo->isNonEmpty()) {
-    auto t = todo->pop();
-    if (t.isTerm()) {
-      hash = HashUtils::combine(hash, hashFn(t.functor()));
-      todo->loadFromIterator(t.allArgs());
-    } else {
-      hash = HashUtils::combine(hash, t.varNumber(), t.varSpec().index);
-    }
-  }
-  return 0;
-}
-
-
-unsigned TermSpec::defaultHash() const
-{ return __hash([](auto const& x) { return DefaultHash::hash(x); }, *this); }
-
-unsigned TermSpec::defaultHash2() const
-{ return __hash([](auto const& x) { return DefaultHash2::hash(x); }, *this); }
 
 std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self)
 { return out << self.term; }
