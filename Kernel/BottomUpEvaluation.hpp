@@ -28,6 +28,7 @@
 #include "Lib/Recycled.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/TypeList.hpp"
+#include <utility>
 
 namespace Lib {
 
@@ -371,6 +372,235 @@ struct BottomUpChildIter<Kernel::PolyNf>
 
   friend ostream& operator<<(ostream& out, BottomUpChildIter const& self)
   { return out << self._self; }
+};
+
+namespace TL = Lib::TypeList;
+
+template<unsigned I, class Indexed>
+struct MapTupleElem;
+
+template<unsigned I, unsigned J, class A>
+struct MapTupleElem<I, TL::Indexed<J, A>>
+{
+  template<class Tup, class F>
+  inline static auto apply(Tup& bs, F& f) -> A
+  { return std::get<J>(bs); }
+};
+
+template<unsigned I, class A>
+struct MapTupleElem<I, TL::Indexed<I, A>>
+{
+  template<class Tup, class F>
+  inline static auto apply(Tup& bs, F& f) -> decltype(auto) 
+  { return std::move(f)(std::get<I>(bs)); }
+};
+
+
+
+template<unsigned N, class F, class Tup, class... Indexed>
+auto __mapTupleElem(Tup tup, F f, TL::List<Indexed...>) -> decltype(auto) {
+  return std::tuple<
+    decltype(MapTupleElem<N, Indexed>::apply(tup, f))...
+    >(MapTupleElem<N, Indexed>::apply(tup, f)...);
+}
+
+template<unsigned N, class F, class... As> 
+auto mapTupleElem(std::tuple<As...> tup, F f) -> decltype(auto) 
+{ return __mapTupleElem<N>(std::move(tup), f, TL::WithIndices<TL::List<As...>>{}); }
+
+template<unsigned N, class B, class... As> 
+auto replaceTupleElem(std::tuple<As...> tup, B b) -> decltype(auto) 
+{ return mapTupleElem<N>(std::move(tup), [&](auto) -> B { return move_if_value<B>(b); }); }
+
+template<class Type, Type value>
+struct ReturnConst {
+  template<class... As>
+  constexpr Type operator()(As...) const { return value; }
+};
+template<class Type>
+struct ReturnNone {
+  template<class... As>
+  constexpr Option<Type> operator()(As...) const { return Option<Type>(); }
+};
+
+// static constexpr auto returnNoneClosure = [](auto){
+//   return None<();
+// };
+
+template<class Arg, class Result>
+using NoMemo = Memo::None<Arg, Result>;
+
+#define FOR_FIELD(MACRO)                                                                  \
+  MACRO(0, Function , function      , (std::tuple<>())           )                        \
+  MACRO(1, EvNonRec , evNonRec      , (ReturnNone<Result>{})     )                        \
+  MACRO(2, Memo     , memo          , (NoMemo<Arg, Result>()))                            \
+  MACRO(3, Context  , context       , (std::tuple<>())           )                        \
+  MACRO(4, Int      , memoThreshold , (unsigned(0))              )                        \
+  /*    ^  ^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^----> default value */
+  /*    |      |         +--------------------------------------------> field name */
+  /*    |      +------------------------------------------------------> type param name */
+  /*    +-------------------------------------------------------------> index */
+
+template< class Arg
+        , class Result  
+#                                       define foreach(idx, Type, name, defaultVal)       \
+        , class Type = decltype(defaultVal) 
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+  >
+class BottomUpEvaluation {
+
+  template<class A, class R
+#                                       define foreach(idx, Type, name, defaultVal)       \
+  , class Type ## _
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+                                        > 
+ friend class BottomUpEvaluation;
+
+  std::tuple<> _dummy;
+#                                       define foreach(idx, Type, name, defaultVal)       \
+  Type _ ## name;
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+
+  BottomUpEvaluation(
+      std::tuple<
+#                                       define foreach(idx, Type, name, defaultVal)       \
+                Type,
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+                std::tuple<>> elems)
+    : _dummy()
+
+#                                       define foreach(idx, Type, name, defaultVal)       \
+    , _ ## name(std::get<idx>(elems))
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+  { }
+
+  template<
+#                                       define foreach(idx, Type, name, defaultVal)       \
+                class Type ## _,
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+                class... Dummies
+    >
+
+  static auto fromTuple(
+      std::tuple<
+#                                       define foreach(idx, Type, name, defaultVal)       \
+        Type ## _,
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+        std::tuple<>
+      > tup)
+  { return BottomUpEvaluation< Arg
+                             , Result
+#                                       define foreach(idx, Type, name, defaultVal)       \
+                             , Type ## _
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+                             >(std::move(tup)); }
+
+  auto intoTuple() &&
+  { return std::tuple<
+#                                       define foreach(idx, Type, name, defaultVal)       \
+             Type,
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+             std::tuple<>
+    >(
+#                                       define foreach(idx, Type, name, defaultVal)       \
+             move_if_value<Type>(_ ## name),
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+             make_tuple()); }
+
+public:
+  BottomUpEvaluation() 
+    : BottomUpEvaluation(
+        std::tuple<
+#                                       define foreach(idx, Type, name, defaultVal)       \
+             Type,
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+             std::tuple<>
+    >(
+#                                       define foreach(idx, Type, name, defaultVal)       \
+             defaultVal,
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+             make_tuple()))
+  {}
+
+
+#                                       define foreach(idx, Type, name, defaultVal)       \
+  template<class New>                                                                     \
+  auto name(New val) &&                                                                   \
+  { return fromTuple(replaceTupleElem<idx, New>(std::move(*this).intoTuple(), move_if_value<New>(val))); }\
+                                                                                          \
+  Type& name() { return _ ## name; }                                                      \
+
+
+                                        FOR_FIELD(foreach)
+#                                       undef foreach
+
+  Result apply(Arg const& toEval) 
+  {
+    CALL("evaluateBottomUp(...)")
+
+    // static_assert(std::is_same<ResultOf<Function, Arg, Result*>, Result>::value, "evaluation function must have signature `Result eval(Arg term, Result* evaluatedArgs)`");
+
+
+    /* recursion state. Contains a stack of items that are being recursed on. */
+    Recycled<Stack<BottomUpChildIter<Arg>>> recState;
+    Recycled<Stack<Result>> recResults;
+
+    recState->push(BottomUpChildIter<Arg>(toEval, _context));
+
+    while (!recState->isEmpty()) {
+      if (recState->top().hasNext(_context)) {
+        Arg t = recState->top().next(_context);
+
+        Option<Result> nonRec = _evNonRec(t);
+        if (nonRec) {
+          recResults->push(move_if_value<Result>(*nonRec));
+
+        } else {
+          Option<Result> cached = _memo.get(t);
+          if (cached.isSome()) {
+            recResults->push(std::move(cached).unwrap());
+          } else {
+            recState->push(BottomUpChildIter<Arg>(t, _context));
+          }
+
+        }
+
+      } else {
+
+        BottomUpChildIter<Arg> orig = recState->pop();
+
+        Result* argLst = orig.nChildren(_context) == 0 
+          ? nullptr 
+          : static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren(_context)]));
+
+        Result eval = _memo.getOrInit(orig.self(), 
+                        [&](){ return _function(orig.self(), argLst); });
+
+        DEBUG("evaluated: ", orig.self(), " -> ", eval);
+        recResults->pop(orig.nChildren(_context));
+        recResults->push(std::move(eval));
+      }
+    }
+    ASS(recState->isEmpty())
+
+
+    ASS(recResults->size() == 1);
+    auto result = recResults->pop();
+    DEBUG("eval result: ", toEval, " -> ", result);
+    return result;
+  }
 };
 
 template<class R, class A, class F, class Memo, class... Context>
