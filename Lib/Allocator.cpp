@@ -17,6 +17,7 @@
  */
 
 #include "Allocator.hpp"
+#include "Lib/Timer.hpp"
 
 #ifndef USE_SYSTEM_ALLOCATION
 Lib::SmallObjectAllocator Lib::GLOBAL_SMALL_OBJECT_ALLOCATOR;
@@ -30,9 +31,26 @@ size_t Lib::getUsedMemory() { return ALLOCATED; }
 size_t Lib::getMemoryLimit() { return LIMIT; }
 void Lib::setMemoryLimit(size_t limit) { LIMIT = limit; }
 
+void* protectedStdMalloc(std::size_t size) {
+  Lib::TimeoutProtector tp;
+  return std::malloc(size);
+}
+
+void* protectedStdRealloc(void* ptr, std::size_t new_size) {
+  Lib::TimeoutProtector tp;
+  return std::realloc(ptr, new_size);
+}
+
+void protectedStdFree(void* ptr) {
+  Lib::TimeoutProtector tp;
+  std::free(ptr);
+}
+
 // override global allocators to keep track of allocated memory, doing very little else
 // TODO does not support get_new_handler/set_new_handler as we don't use it, but we could
 void *operator new(size_t size) {
+  Lib::TimeoutProtector tp;
+
   if(ALLOCATED + size > LIMIT)
     throw std::bad_alloc();
 
@@ -47,11 +65,15 @@ void *operator new(size_t size) {
 // occurs very rarely and usually from deep in the bowels of the standard library
 // TODO does cause us to slightly over-report allocated memory
 void operator delete(void *ptr) noexcept {
+  Lib::TimeoutProtector tp;
+
   std::free(ptr);
 }
 
 // normal delete, just decrements `ALLOCATED` and calls free()
 void operator delete(void *ptr, size_t size) noexcept {
+  Lib::TimeoutProtector tp;
+
   ASS_GE(ALLOCATED, size)
   ALLOCATED -= size;
   std::free(ptr);

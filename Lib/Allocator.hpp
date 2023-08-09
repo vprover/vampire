@@ -290,7 +290,11 @@ inline void free(void *pointer, size_t size) {
   void *operator new(size_t size) { return Lib::alloc(size, alignof(C)); }\
   void operator delete(void *ptr, size_t size) { Lib::free(ptr, size, alignof(C)); }
 
-#endif // USE_SYSTEM_ALLOCATION
+#endif // USE_SYSTEM_ALLOCATION's else
+
+void* protectedStdMalloc(std::size_t size);
+void* protectedStdRealloc(void* ptr, std::size_t new_size);
+void protectedStdFree(void* ptr);
 
 // legacy macros, should be removed eventually
 #define BYPASSING_ALLOCATOR
@@ -300,9 +304,9 @@ inline void free(void *pointer, size_t size) {
 #define CLASS_NAME(className)
 #define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)
-#define ALLOC_UNKNOWN(size, className) std::malloc(size)
-#define REALLOC_UNKNOWN(ptr, size, className) std::realloc(ptr, size)
-#define DEALLOC_UNKNOWN(ptr, className) std::free(ptr)
+#define ALLOC_UNKNOWN(size, className) protectedStdMalloc(size)
+#define REALLOC_UNKNOWN(ptr, size, className) protectedStdRealloc(ptr,size)
+#define DEALLOC_UNKNOWN(ptr, className) protectedStdFree(ptr)
 
 
 // TODO dubious: probably a compiler lint these days?
