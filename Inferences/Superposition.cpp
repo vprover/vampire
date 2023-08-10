@@ -64,15 +64,15 @@ void Superposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
   _lhsIndex=static_cast<SuperpositionLHSIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
-  _demLhsIndex=static_cast<DemodulationLHSIndex*> (
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
+  _checker = new LeftmostInnermostReducibilityChecker(static_cast<DemodulationLHSIndex*> (
+	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) ), _salg->getOrdering());
 }
 
 void Superposition::detach()
 {
   _subtermIndex=0;
   _lhsIndex=0;
-  _demLhsIndex=0;
+  delete _checker;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
   _salg->getIndexManager()->release(SUPERPOSITION_LHS_SUBST_TREE);
   _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
@@ -123,6 +123,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
+  _checker->reset();
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
@@ -320,29 +321,29 @@ void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const 
   switch(ord.getEqualityArgumentOrder(lit))
   {
   case Ordering::INCOMPARABLE: {
-    TIME_TRACE("incomparable");
+    // TIME_TRACE("incomparable");
     auto t0S = subst->apply(t0,result);
     auto t1S = subst->apply(t1,result);
-    switch(ord.compare(t0S,t1S)) {
-      case Ordering::INCOMPARABLE: {
-        TIME_TRACE("incomparable inner");
+    // switch(ord.compare(t0S,t1S)) {
+    //   case Ordering::INCOMPARABLE: {
+    //     TIME_TRACE("incomparable inner");
         sides.push(t0S);
         sides.push(t1S);
         break;
-      }
-      case Ordering::GREATER:
-      case Ordering::GREATER_EQ:
-        sides.push(t0S);
-        break;
-      case Ordering::LESS:
-      case Ordering::LESS_EQ:
-        sides.push(t1S);
-        break;
-      //there should be no equality literals of equal terms
-      case Ordering::EQUAL:
-        ASSERTION_VIOLATION;
-    }
-    break;
+    //   }
+    //   case Ordering::GREATER:
+    //   case Ordering::GREATER_EQ:
+    //     sides.push(t0S);
+    //     break;
+    //   case Ordering::LESS:
+    //   case Ordering::LESS_EQ:
+    //     sides.push(t1S);
+    //     break;
+    //   //there should be no equality literals of equal terms
+    //   case Ordering::EQUAL:
+    //     ASSERTION_VIOLATION;
+    // }
+    // break;
   }
   case Ordering::GREATER:
   case Ordering::GREATER_EQ:
@@ -358,90 +359,80 @@ void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const 
   }
 }
 
-class LeftmostInnermostReducibilityChecker {
-private:
-  DHSet<Term*> _done;
-  DemodulationLHSIndex* _index;
-  const Ordering& _ord;
+LeftmostInnermostReducibilityChecker::LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord)
+: _done(), _index(index), _ord(ord), _demodulationCache() {}
 
-public:
-  LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord) : _done(), _index(index), _ord(ord) {}
+bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result)
+{
+  TIME_TRACE("LeftmostInnermostReducibilityChecker::check");
 
-  bool check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result)
-  {
-    TIME_TRACE("LeftmostInnermostReducibilityChecker::check");
+  TermStack sides;
+  for (unsigned i = 0; i < cl->numSelected(); i++) {
+    sides.reset();
+    getLHSIterator((*cl)[i], subst, result, _ord, sides);
 
-    TermStack sides;
-    for (unsigned i = 0; i < cl->numSelected(); i++) {
-      sides.reset();
-      getLHSIterator((*cl)[i], subst, result, _ord, sides);
-
-      for (auto side : sides) {
-        if (side.isVar()) {
+    for (auto side : sides) {
+      if (side.isVar()) {
+        continue;
+      }
+      PolishSubtermIterator nvi(side.term(), &_done); // we won't get side itself this way, but we don't need it
+      while (nvi.hasNext()) {
+        auto st = nvi.next();
+        if (st.isVar() || !_done.insert(st.term())) {
           continue;
         }
-        PolishSubtermIterator nvi(side.term()); // we won't get side itself this way, but we don't need it
-        while (nvi.hasNext()) {
-          auto st = nvi.next();
-          if (st.isVar() || !_done.insert(st.term())) {
-            continue;
-          }
-          if (st.term() == rwTermS) {
-            // reached rwTerm without finding a reducible term
-            return false;
-          }
-          {TIME_TRACE("2");
-          if (checkTermReducible(st.term())) {
-            return true;
-          }}
-        }
-        if (side.term() == rwTermS) {
+        if (st.term() == rwTermS) {
+          // reached rwTerm without finding a reducible term
           return false;
         }
+        if (checkTermReducible(st.term())) {
+          return true;
+        }
+      }
+      if (side.term() == rwTermS) {
+        return false;
       }
     }
-    return false;
   }
+  return false;
+}
 
-  bool checkTermReducible(Term* t)
-  {
-    if (t->reducible()) {
-      return true;
-    }
-    auto it = _index->getGeneralizations(t,true);
-    while (it.hasNext()) {
-      auto qr = it.next();
-      TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-      TermList rhsS;
-      if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
-        //When we apply substitution to the rhs, we get a term, that is
-        //a variant of the term we'd like to get, as new variables are
-        //produced in the substitution application.
-        TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
-        TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
-        Renaming rNorm, qNorm, qDenorm;
-        rNorm.normalizeVariables(lhsSBadVars);
-        qNorm.normalizeVariables(t);
-        qDenorm.makeInverse(qNorm);
-        ASS_EQ(TermList(t),qDenorm.apply(rNorm.apply(lhsSBadVars)));
-        rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-      } else {
-        rhsS=qr.substitution->applyToBoundResult(rhs);
-      }
-
-      Ordering::Result argOrder = _ord.getEqualityArgumentOrder(qr.literal);
-      bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-      {TIME_TRACE("inner compare");
-      if(!preordered && _ord.compare(TermList(t),rhsS)!=Ordering::GREATER) {
-        continue;
-      }}
-      TIME_TRACE("skipped");
-      t->markReducible();
-      return true;
-    }
-    return false;
+bool LeftmostInnermostReducibilityChecker::checkTermReducible(Term* t)
+{
+  if (t->reducible()) {
+    return true;
   }
-};
+  auto it = _index->getGeneralizations(t,true);
+  while (it.hasNext()) {
+    auto qr = it.next();
+    TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+    TermList rhsS;
+    if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
+      //When we apply substitution to the rhs, we get a term, that is
+      //a variant of the term we'd like to get, as new variables are
+      //produced in the substitution application.
+      TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
+      TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
+      Renaming rNorm, qNorm, qDenorm;
+      rNorm.normalizeVariables(lhsSBadVars);
+      qNorm.normalizeVariables(t);
+      qDenorm.makeInverse(qNorm);
+      ASS_EQ(TermList(t),qDenorm.apply(rNorm.apply(lhsSBadVars)));
+      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+    } else {
+      rhsS=qr.substitution->applyToBoundResult(rhs);
+    }
+
+    Ordering::Result argOrder = _ord.getEqualityArgumentOrder(qr.literal);
+    bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
+    if(!preordered && _ord.compare(TermList(t),rhsS)!=Ordering::GREATER) {
+      continue;
+    }
+    t->markReducible();
+    return true;
+  }
+  return false;
+}
 
 /**
  * If superposition should be performed, return result of the superposition,
@@ -527,23 +518,10 @@ Clause* Superposition::performSuperposition(
       if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
-      // if (rwLitS->isPositive() && checkForLeftmostInnermostReducibleTerm(arg1, rwTermS)) {
-      //   return 0;
-      // }
     } else if(!arg1.containsSubterm(rwTermS)) {
       if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
-      // if (rwLitS->isPositive() && checkForLeftmostInnermostReducibleTerm(arg0, rwTermS)) {
-      //   return 0;
-      // }
-    } else {
-      // if (rwLitS->isPositive() && checkForLeftmostInnermostReducibleTerm(arg0, rwTermS)) {
-      //   return 0;
-      // }
-      // if (rwLitS->isPositive() && checkForLeftmostInnermostReducibleTerm(arg1, rwTermS)) {
-      //   return 0;
-      // }
     }
   }
 
@@ -556,17 +534,12 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  // if (checkForSmallerReducibleTerm(eqClause,rwClause,rwTermS,subst.ptr(),eqIsResult,ordering,_demLhsIndex)) {
-  //   return 0;
-  // }
-
-  LeftmostInnermostReducibilityChecker checker(_demLhsIndex, _salg->getOrdering());
-  if (checker.check(eqClause,rwTermS.term(),subst.ptr(),eqIsResult)) {
+  if (_checker->check(eqClause,rwTermS.term(),subst.ptr(),eqIsResult)) {
     env.statistics->skippedSuperposition++;
     return 0;
   }
 
-  if (checker.check(rwClause,rwTermS.term(),subst.ptr(),!eqIsResult)) {
+  if (_checker->check(rwClause,rwTermS.term(),subst.ptr(),!eqIsResult)) {
     env.statistics->skippedSuperposition++;
     return 0;
   }
@@ -764,7 +737,8 @@ Clause* Superposition::performSuperposition(
       auto lhsS = subst->apply(TermList(lhs),!eqIsResult);
       resRewrites.insert(lhsS.term(),subst->apply(rhs,!eqIsResult));
     }
-    if (comp==Ordering::LESS) {
+    if (/* comp==Ordering::LESS && */ eqClause->length()!=1) {
+      cout << "added rule " << rwTermS << " -> " << tgtTermS << endl;
       resRewrites.insert(rwTermS.term(), tgtTermS);
     }
     // cout << "rewrites size " << res->rewrites().size() << endl;

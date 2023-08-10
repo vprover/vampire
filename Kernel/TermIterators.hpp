@@ -558,8 +558,11 @@ class PolishSubtermIterator
 : public IteratorCore<TermList>
 {
 public:
-  PolishSubtermIterator(const Term* term) : _stack(8), _used(false)
+  PolishSubtermIterator(const Term* term, DHSet<Term*>* skip = nullptr) : _stack(8), _used(false), _skip(skip)
   {
+    if (_skip && _skip->contains(const_cast<Term*>(term))) {
+      return;
+    }
     pushNext(term->args());
   }
 
@@ -577,6 +580,10 @@ private:
   void pushNext(const TermList* t)
   {
     while(!t->isEmpty()) {
+      if (_skip && t->isTerm() && _skip->contains(const_cast<Term*>(t->term()))) {
+        t=t->next();
+        continue;
+      }
       _stack.push(t);
       if(!t->isTerm()) {
 	return;
@@ -586,6 +593,7 @@ private:
   }
   Stack<const TermList*> _stack;
   bool _used;
+  DHSet<Term*>* _skip;
 };
 
 /**

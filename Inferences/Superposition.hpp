@@ -27,6 +27,22 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+class LeftmostInnermostReducibilityChecker {
+private:
+  DHSet<Term*> _done;
+  DemodulationLHSIndex* _index;
+  const Ordering& _ord;
+  DHMap<Term*,Stack<tuple<TermList,Clause*,bool>>> _demodulationCache;
+
+  bool checkTermReducible(Term* t);
+
+public:
+  LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord);
+
+  bool check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
+  void reset() { _done.reset(); }
+};
+
 class Superposition
 : public GeneratingInferenceEngine
 {
@@ -61,7 +77,7 @@ private:
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;
-  DemodulationLHSIndex* _demLhsIndex;
+  LeftmostInnermostReducibilityChecker* _checker;
 };
 
 
