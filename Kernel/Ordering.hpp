@@ -26,6 +26,7 @@
 #include "Lib/DArray.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Portability.hpp"
 
 namespace Kernel {
 
