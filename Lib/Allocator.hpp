@@ -13,7 +13,7 @@
  *
  * @since 13/12/2005 Redmond, made from the Shell Allocator.
  * @since 10/01/2008 Manchester, reimplemented
- * @since 24/07/2023, just a small-object allocator
+ * @since 24/07/2023, mostly replaced by a small-object allocator
  */
 
 
@@ -24,10 +24,14 @@
 #include <new>
 
 #include "Debug/Assertion.hpp"
-#include "Lib/Portability.hpp"
+#include "Portability.hpp"
 
-// uncomment to use Valgrind more profitably
-// #define USE_SYSTEM_ALLOCATION
+/*
+ * uncomment the following to use Valgrind more profitably
+ * if defined, we call a system allocation function for each allocation,
+ * which can make e.g. finding memory leaks easier, but is slower
+ */
+// #define INDIVIDUAL_ALLOCATIONS
 
 namespace Lib {
 
@@ -39,10 +43,14 @@ size_t getMemoryLimit();
 // set the memory limit for global operator new
 void setMemoryLimit(size_t bytes);
 
+// deprecated functions invoked by *ALLOC_UNKNOWN, should not be used in new code
+void *deprecatedAlloc(size_t size);
+void *deprecatedRealloc(void *ptr, size_t new_size);
+void deprecatedFree(void *ptr);
+
 }
 
-// forward directly to system allocator
-#ifdef USE_SYSTEM_ALLOCATION
+#ifdef INDIVIDUAL_ALLOCATIONS
 namespace Lib {
 inline void *alloc(size_t size, size_t align = alignof(std::max_align_t)) {
   // C++17: aligned operator new
@@ -56,8 +64,7 @@ inline void free(void *pointer, size_t size, size_t align = alignof(std::max_ali
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
 
 // do some of our own allocation
-#else // USE_SYSTEM_ALLOCATION
-#include <cstdlib>
+#else // INDIVIDUAL_ALLOCATIONS
 
 namespace Lib {
 
@@ -67,12 +74,12 @@ namespace Lib {
  * chopping it into smaller fixed-size chunks for fast allocation/deallocation.
  * Chunks are `SIZE` bytes long, aligned to the greatest common divisor of `SIZE` and `alignof(std::max_align_t)`.
  *
- * The allocator never releases memory from the system, instead retaining it in a free list for reallocation.
+ * The allocator never releases memory to the system, instead retaining it in a free list for reallocation.
  * This fits Vampire's generally-growing allocation pattern reasonably well in practice.
  */
 template<size_t SIZE>
 class FixedSizeAllocator {
-  // the number of chunks (of size `SIZE`) to allocate upfront from the system
+  // number of chunks (of size `SIZE`) to allocate at a time from the system
   static const size_t COUNT = 1024;
 
   // to allow for a sneaky implementation hack, we cannot allocate anything smaller than sizeof(void *)
@@ -290,11 +297,7 @@ inline void free(void *pointer, size_t size) {
   void *operator new(size_t size) { return Lib::alloc(size, alignof(C)); }\
   void operator delete(void *ptr, size_t size) { Lib::free(ptr, size, alignof(C)); }
 
-#endif // USE_SYSTEM_ALLOCATION's else
-
-void* protectedStdMalloc(std::size_t size);
-void* protectedStdRealloc(void* ptr, std::size_t new_size);
-void protectedStdFree(void* ptr);
+#endif // INDIVIDUAL_ALLOCATIONS's else
 
 // legacy macros, should be removed eventually
 #define BYPASSING_ALLOCATOR
@@ -304,10 +307,9 @@ void protectedStdFree(void* ptr);
 #define CLASS_NAME(className)
 #define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)
-#define ALLOC_UNKNOWN(size, className) protectedStdMalloc(size)
-#define REALLOC_UNKNOWN(ptr, size, className) protectedStdRealloc(ptr,size)
-#define DEALLOC_UNKNOWN(ptr, className) protectedStdFree(ptr)
-
+#define ALLOC_UNKNOWN(size, className) Lib::deprecatedAlloc(size)
+#define REALLOC_UNKNOWN(ptr, size, className) Lib::deprecatedRealloc(ptr, size)
+#define DEALLOC_UNKNOWN(ptr, className) Lib::deprecatedFree(ptr)
 
 // TODO dubious: probably a compiler lint these days?
 /**
