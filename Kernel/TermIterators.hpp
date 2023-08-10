@@ -563,7 +563,7 @@ public:
     if (_skip && _skip->contains(const_cast<Term*>(term))) {
       return;
     }
-    pushNext(term->args());
+    pushNext(term->termArgs());
   }
 
   bool hasNext();
@@ -588,7 +588,7 @@ private:
       if(!t->isTerm()) {
 	return;
       }
-      t=t->term()->args();
+      t=t->term()->termArgs();
     }
   }
   Stack<const TermList*> _stack;

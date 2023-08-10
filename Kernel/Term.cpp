@@ -297,6 +297,13 @@ unsigned Term::numTypeArguments() const {
       : env.signature->getFunction(_functor)->numTypeArguments();
 }
 
+const TermList* Term::termArgs() const
+{
+  ASS(!isSort());
+
+  return _args + (_arity - numTypeArguments());
+}
+
 TermList* Term::termArgs()
 {
   ASS(!isSort());

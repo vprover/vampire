@@ -324,26 +324,26 @@ void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const 
     // TIME_TRACE("incomparable");
     auto t0S = subst->apply(t0,result);
     auto t1S = subst->apply(t1,result);
-    // switch(ord.compare(t0S,t1S)) {
-    //   case Ordering::INCOMPARABLE: {
-    //     TIME_TRACE("incomparable inner");
+    switch(ord.compare(t0S,t1S)) {
+      case Ordering::INCOMPARABLE: {
+        TIME_TRACE("incomparable inner");
         sides.push(t0S);
         sides.push(t1S);
         break;
-    //   }
-    //   case Ordering::GREATER:
-    //   case Ordering::GREATER_EQ:
-    //     sides.push(t0S);
-    //     break;
-    //   case Ordering::LESS:
-    //   case Ordering::LESS_EQ:
-    //     sides.push(t1S);
-    //     break;
-    //   //there should be no equality literals of equal terms
-    //   case Ordering::EQUAL:
-    //     ASSERTION_VIOLATION;
-    // }
-    // break;
+      }
+      case Ordering::GREATER:
+      case Ordering::GREATER_EQ:
+        sides.push(t0S);
+        break;
+      case Ordering::LESS:
+      case Ordering::LESS_EQ:
+        sides.push(t1S);
+        break;
+      //there should be no equality literals of equal terms
+      case Ordering::EQUAL:
+        ASSERTION_VIOLATION;
+    }
+    break;
   }
   case Ordering::GREATER:
   case Ordering::GREATER_EQ:
@@ -405,6 +405,19 @@ bool LeftmostInnermostReducibilityChecker::checkTermReducible(Term* t)
   auto it = _index->getGeneralizations(t,true);
   while (it.hasNext()) {
     auto qr = it.next();
+
+    static RobSubstitution subst;
+    TypedTermList trm(t);
+    bool resultTermIsVar = qr.term.isVar();
+    if(resultTermIsVar){
+      TermList querySort = trm.sort();
+      TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+      subst.reset();
+      if(!subst.match(eqSort, 0, querySort, 1)){
+        continue;
+      }
+    }
+
     TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
     TermList rhsS;
     if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
@@ -421,6 +434,9 @@ bool LeftmostInnermostReducibilityChecker::checkTermReducible(Term* t)
       rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
     } else {
       rhsS=qr.substitution->applyToBoundResult(rhs);
+    }
+    if(resultTermIsVar){
+      rhsS = subst.apply(rhsS, 0);
     }
 
     Ordering::Result argOrder = _ord.getEqualityArgumentOrder(qr.literal);
@@ -737,10 +753,10 @@ Clause* Superposition::performSuperposition(
       auto lhsS = subst->apply(TermList(lhs),!eqIsResult);
       resRewrites.insert(lhsS.term(),subst->apply(rhs,!eqIsResult));
     }
-    if (/* comp==Ordering::LESS && */ eqClause->length()!=1) {
-      cout << "added rule " << rwTermS << " -> " << tgtTermS << endl;
-      resRewrites.insert(rwTermS.term(), tgtTermS);
-    }
+    // if (/* comp==Ordering::LESS && */ eqClause->length()!=1) {
+    //   cout << "added rule " << rwTermS << " -> " << tgtTermS << endl;
+    //   resRewrites.insert(rwTermS.term(), tgtTermS);
+    // }
     // cout << "rewrites size " << res->rewrites().size() << endl;
   }
 

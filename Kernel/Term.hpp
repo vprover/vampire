@@ -473,6 +473,7 @@ public:
     * non-emptiness
     * In the monomorphic case, the same as args()
     */
+  const TermList* termArgs() const;
   TermList* termArgs();
 
   /** Return the 1st type argument for a polymorphic term.

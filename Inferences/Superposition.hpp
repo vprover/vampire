@@ -37,6 +37,9 @@ private:
   bool checkTermReducible(Term* t);
 
 public:
+  CLASS_NAME(LeftmostInnermostReducibilityChecker);
+  USE_ALLOCATOR(LeftmostInnermostReducibilityChecker);
+
   LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord);
 
   bool check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
