@@ -239,10 +239,6 @@ bool TermList::equals(TermList t1, TermList t2)
   return true;
 }
 
-TermList::Top TermList::top() const
-{ return isTerm() ? TermList::Top::functor(term()->functor()) 
-                  : TermList::Top::var(var());            }
-
 /**
  * Return true if all proper terms in the @ args list are shared
  */

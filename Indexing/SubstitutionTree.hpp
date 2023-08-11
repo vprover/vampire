@@ -541,13 +541,12 @@
       class NodePtrComparator
       {
       public:
-        static Comparison compare(TermList::Top t1, TermList::Top t2)
-        { return t1 == t2 ? Comparison::EQUAL 
-               : t1 < t2  ? Comparison::LESS
-               :            Comparison::GREATER; }
+        static Comparison compare(TermList::Top const& t1, TermList::Top const& t2)
+        { return t1.compare(t2); }
 
         static Comparison compare(Node* n1, Node* n2)
         { return compare(n1->term.top(), n2->term.top()); }
+
         static Comparison compare(TermList::Top t1, Node* n2)
         { return compare(t1, n2->term.top()); }
       };

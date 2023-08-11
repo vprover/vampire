@@ -564,16 +564,8 @@ public:
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
-// #if VDEBUG
-//   /**
-//    * Return number of bindings stored in the substitution.
-//    *
-//    * - 0 means a fresh substitution.
-//    * - Without backtracking, this number doesn't decrease.
-//    */
-//   size_t size() const { return _bindings.size(); }
-//
-// #endif
+  bool isEmpty() const { return _bindings.size() == 0 && _outputVarBindings.size() == 0; }
+
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
   std::ostream& output(std::ostream& out, bool deref) const;
 

@@ -39,6 +39,8 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/Reflection.hpp"
+#include "Lib/Sort.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Coproduct.hpp"
@@ -174,15 +176,29 @@ public:
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; ASS_EQ(tag(), REF); }
-  class Top : public Coproduct<unsigned, unsigned> {
-    Top(Coproduct<unsigned, unsigned> self) : Coproduct<unsigned, unsigned>(self) {}
+
+  class Top {
+    using Inner = Coproduct<unsigned, unsigned>;
+    Inner _inner;
+    
+    Top(Inner self) : _inner(self) {}
   public:
-    static Top functor(unsigned f) { return Top(Coproduct::variant<1>(f)); }
-    static Top var    (unsigned v) { return Top(Coproduct::variant<0>(v)); }
-    Option<unsigned> functor() const { return as<1>().toOwned(); }
-    Option<unsigned> var()     const { return as<0>().toOwned(); }
+    static Top var    (unsigned v) { return Top(Inner::variant<0>(v)); }
+    static Top functor(unsigned f) { return Top(Inner::variant<1>(f)); }
+    template<class T>
+    static Top functor(T const* t) { return Top(Inner::variant<1>(t->functor())); }
+    Option<unsigned> var()     const { return _inner.as<0>().toOwned(); }
+    Option<unsigned> functor() const { return _inner.as<1>().toOwned(); }
+    Lib::Comparison compare(Top const& other) const 
+    { return _inner.compare(other._inner); }
+    IMPL_COMPARISONS_FROM_COMPARE(Top);
+    IMPL_EQ_FROM_COMPARE(Top);
   };
-  Top top() const;
+
+  Top top() const
+  { return isTerm() ? TermList::Top::functor(term()) 
+                    : TermList::Top::var(var());            }
+
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
