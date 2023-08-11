@@ -16,6 +16,7 @@
 #ifndef __Reflection__
 #define __Reflection__
 
+#include "Lib/Comparison.hpp"
 #include <type_traits>
 #include <initializer_list>
 
@@ -41,17 +42,24 @@
 
 #define __IMPL_COMPARISONS_FROM_COMPARE(Class, op, ...)                                   \
   friend bool operator op(Class const& l, Class const& r) {                               \
-    switch (l.compare(r)) {                                                               \
+    switch (DefaultComparator::compare(l,r)) {                                            \
       __VA_ARGS__ return true;                                                            \
       default:    return false;                                                           \
     }                                                                                     \
   }                                                                                       \
 
+#define IMPL_EQ_FROM_COMPARE(Class)                                                       \
+  friend bool operator==(Class const& l, Class const& r)                                  \
+  { return DefaultComparator::compare(l,r) == Comparison::EQUAL; }                        \
+                                                                                          \
+  friend bool operator!=(Class const& l, Class const& r)                                  \
+  { return !(l == r); }                                                                   \
+
 #define IMPL_COMPARISONS_FROM_COMPARE(Class)                                              \
-    __IMPL_COMPARISONS_FROM_COMPARE(Class, >, case GREATER: )                             \
-    __IMPL_COMPARISONS_FROM_COMPARE(Class, <, case LESS: )                                \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, > , case GREATER:             )                \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, < , case LESS   :             )                \
     __IMPL_COMPARISONS_FROM_COMPARE(Class, >=, case GREATER: case EQUAL: )                \
-    __IMPL_COMPARISONS_FROM_COMPARE(Class, <=, case LESS: case EQUAL: )                   \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, <=, case LESS   : case EQUAL: )                \
 
 
 #define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                      \

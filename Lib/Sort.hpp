@@ -27,24 +27,42 @@
 
 namespace Lib {
 
+template<class T>
+struct HasCompareFunction 
+{ 
+  template<class U> 
+  static constexpr decltype(std::declval<U const&>().compare(std::declval<U const&>()), bool()) check(int) { return true; }
+
+  template<class U> static constexpr bool check(...) { return false; }
+
+  static constexpr bool value = check<T>(int(0)); 
+};
+
+
 struct DefaultComparator
 {
-  template<typename T>
-  static Comparison compare(T a, T b)
-  {
-    CALL("DefaultComparator::compare");
 
-    if(a==b) {
-      return EQUAL;
-    }
-    else if(a<b) {
-      return LESS;
-    }
-    else {
-      ASS(a>b);
-      return GREATER;
-    }
+  template<typename T>
+  static typename std::enable_if<
+    HasCompareFunction<T>::value,
+    Comparison
+  >::type 
+  compare(T const& lhs, T const& rhs)
+  { return lhs.compare(rhs); }
+
+
+  template<typename T>
+  static typename std::enable_if<
+    !HasCompareFunction<T>::value,
+    Comparison
+  >::type 
+  compare(T const& a, T const& b)
+  {
+    if(a == b) { return EQUAL; }
+    else if(a < b) { return LESS; }
+    else { ASS(b < a); return GREATER; }
   }
+
 };
 
 template <class Comparator, typename C>

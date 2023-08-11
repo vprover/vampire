@@ -44,7 +44,8 @@ class Coproduct;
 
 template<unsigned maxExcl> struct SwitchImpl;
 
-#define SWITCH_CONT_1                 case 0:  return f(Constant<0>{});
+#define SWITCH_CONT_0
+#define SWITCH_CONT_1  SWITCH_CONT_0  case 0:  return f(Constant<0>{});
 #define SWITCH_CONT_2  SWITCH_CONT_1  case 1:  return f(Constant<1>{});
 #define SWITCH_CONT_3  SWITCH_CONT_2  case 2:  return f(Constant<2>{});
 #define SWITCH_CONT_4  SWITCH_CONT_3  case 3:  return f(Constant<3>{});
@@ -63,9 +64,9 @@ template<unsigned maxExcl> struct SwitchImpl;
 
 #define DECL_SWITCH_STRUCT(N)                                                             \
   template<>                                                                              \
-  struct SwitchImpl<N> {                                                                     \
+  struct SwitchImpl<N> {                                                                  \
     template<class F>                                                                     \
-    inline static auto apply(unsigned tag, F f) -> decltype(auto) {                       \
+    static auto apply(unsigned tag, F f) -> decltype(auto) {                       \
       if (tag < N) {                                                                      \
         switch (tag) {                                                                    \
           SWITCH_CONT_ ## N                                                               \
@@ -93,8 +94,8 @@ DECL_SWITCH_STRUCT(15)
 DECL_SWITCH_STRUCT(16)
 
 
-template<unsigned N, class F> inline auto switchN(unsigned tag, F fun) -> decltype(auto)
-{ return SwitchImpl<N>::apply(tag, fun); }
+template<unsigned N, class F> auto switchN(unsigned tag, F fun) -> decltype(auto)
+{ return SwitchImpl<N>::apply(tag, std::move(fun)); }
 
 #else // !USE_SWITCH
 
@@ -126,6 +127,15 @@ template<unsigned N, class F> inline auto switchN(unsigned tag, F fun) -> declty
 { return SwitchImpl<0, N>::apply(tag, fun); }
 
 #endif 
+
+
+constexpr unsigned neededBits(unsigned i)
+{ return i <= 1       ? 0
+       : (i & 1) == 1 ? neededBits(i + 1)
+                      : 1 + neededBits(i >> 1); }
+
+constexpr unsigned bitMask(unsigned i)
+{ return ~(unsigned(-1) << neededBits(i)); }
 
 
 /** This namespace constains helper classes and functions to implement the coproduct */
@@ -172,16 +182,12 @@ namespace CoproductImpl {
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
+
   }; // VariadicUnion
 
 } // namespace CoproductImpl
 
-constexpr unsigned neededBits(unsigned i)
-{
-  return i <= 1 
-    ? 0 
-    : 1 + neededBits(i / 2);
-}
+
 
 /** 
  * The actual Coproduct class.  
@@ -202,6 +208,8 @@ class Coproduct<A, As...>
 
   /** the number of alternatives */
   static constexpr unsigned size = TL::Size<Ts>::val;
+  static_assert(size == 0 || size - 1 == ((size - 1) & bitMask(size)), "bug in function neededBits");
+
 
   /* _tag specifies which of the types in `A, As...` is actually stored in the field _content */
   unsigned _tag: neededBits(size);
@@ -211,7 +219,11 @@ class Coproduct<A, As...>
   using Content = decltype(_content);
 
   /** unsafe default constructor, content will be uninit */
+#if VDEBUG
   Coproduct() : _tag(-1) {}
+#else //!VDEBUG
+  Coproduct() {}
+#endif
 
 public:
   CLASS_NAME(Coproduct)
@@ -366,10 +378,10 @@ public:
   static Coproduct variant(TL::Get<idx, Ts> value) 
   {
     static_assert(idx < size, "out of bounds");
+    static_assert((idx & bitMask(size)) == idx, "out of bounds");
     using T = TL::Get<idx, Ts>;
     Coproduct self;
-    self._tag = idx 
-      & ~(unsigned(-1) << neededBits(size)); // <- bit mask to get the compiler to not warn about potential truncation of unsigned to bitfield value. This does not affect the value of the assignment, as we have a static_assert(idx < size) before
+    self._tag = idx & bitMask(size); // <- bit mask to get the compiler to not warn about potential truncation of unsigned to bitfield value. This does not affect the value of the assignment, as we have a static_assert(idx < size) before
     ::new(&self._content) T(std::move(value));
     return self;
   }
@@ -385,8 +397,11 @@ public:
     auto& lhs = *this;
     return  lexCompare(DefaultComparator::compare(lhs._tag, rhs._tag),
         [&](){
-            return lhs.applyWithIdx([&](auto const& value, auto idx) 
-                           { return Lib::DefaultComparator::compare( value, rhs.template unwrap<decltype(idx)::value>()); });
+          return switchN<size>(lhs._tag, [&](auto N){
+              return DefaultComparator::compare(
+                  lhs.template unwrap<N.value>(),
+                  rhs.template unwrap<N.value>());
+           });
         });
   }
 
