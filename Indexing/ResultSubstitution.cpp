@@ -100,4 +100,30 @@ bool ResultSubstitution::isRenamingOn(TermList t, bool result)
   return true;
 }
 
+bool ResultSubstitution::isRenamingOn2(TermList t, bool result) 
+{
+  DHMap<TermList,TermList> renamingInMaking;
+
+  VariableIterator it(t);
+  while(it.hasNext()) {
+    TermList v = it.next();
+    ASS(v.isVar());
+
+    TermList vSubst;
+    if (result) {
+      vSubst = applyToResult(v);
+    } else {
+      vSubst = applyToQuery(v);
+    }
+    if (!vSubst.isVar()) {
+      return false;
+    }
+    TermList vStored;
+    if (!renamingInMaking.findOrInsert(v,vStored,vSubst) && vStored != vSubst) {
+      return false;
+    }
+  }
+  return true;
+}
+
 } // namespace Indexing

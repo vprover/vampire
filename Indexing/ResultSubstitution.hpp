@@ -69,6 +69,7 @@ public:
   }
 
   bool isRenamingOn(TermList t, bool result);
+  bool isRenamingOn2(TermList t, bool result);
 
   /** if implementation cannot easily give result for this, zero is returned */
   template<typename T>

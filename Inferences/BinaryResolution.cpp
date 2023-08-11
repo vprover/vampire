@@ -55,6 +55,8 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<BinaryResolutionIndex*> (
 	  _salg->getIndexManager()->request(BINARY_RESOLUTION_SUBST_TREE) );
+  _checker = new LeftmostInnermostReducibilityChecker(static_cast<DemodulationLHSIndex*> (
+	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) ), _salg->getOrdering());
 
   _unificationWithAbstraction = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
 }
@@ -63,6 +65,7 @@ void BinaryResolution::detach()
 {
   ASS(_salg);
 
+  delete _checker;
   _index=0;
   _salg->getIndexManager()->release(BINARY_RESOLUTION_SUBST_TREE);
   GeneratingInferenceEngine::detach();
@@ -98,7 +101,7 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector, _parent._checker);
   }
 private:
   Clause* _cl;
@@ -113,7 +116,7 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls, LeftmostInnermostReducibilityChecker* checker)
 {
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
@@ -170,6 +173,18 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
       RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
       env.statistics->discardedNonRedundantClauses++;
+      return 0;
+    }
+  }
+
+  if (checker) {
+    if (checker->check(qr.clause,qr.literal,qr.substitution.ptr(),true)) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
+
+    if (checker->check(queryCl,queryLit,qr.substitution.ptr(),false)) {
+      env.statistics->skippedSuperposition++;
       return 0;
     }
   }
@@ -297,6 +312,27 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
       (*res)[next] = newLit;
       next++;
+    }
+  }
+
+  {
+    TIME_TRACE("rewrites update");
+    auto& resRewrites = res->rewrites();
+    DHMap<Term*,TermQueryResult>::Iterator queryIt(queryCl->rewrites());
+    while (queryIt.hasNext()) {
+      Term* lhs;
+      TermQueryResult qr2;
+      queryIt.next(lhs,qr2);
+      auto lhsS = qr.substitution->applyToQuery(TermList(lhs));
+      resRewrites.insert(lhsS.term(),qr2);
+    }
+    DHMap<Term*,TermQueryResult>::Iterator rwIt(qr.clause->rewrites());
+    while (rwIt.hasNext()) {
+      Term* lhs;
+      TermQueryResult qr2;
+      rwIt.next(lhs,qr2);
+      auto lhsS = qr.substitution->applyToResult(TermList(lhs));
+      resRewrites.insert(lhsS.term(),qr2);
     }
   }
 

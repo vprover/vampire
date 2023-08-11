@@ -31,6 +31,8 @@
 #include "Unit.hpp"
 #include "Kernel/Inference.hpp"
 
+#include "Indexing/Index.hpp"
+
 namespace Kernel {
 
 using namespace Lib;
@@ -351,8 +353,8 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  DHMap<Term*,TermList>& rewrites() { return _rewrites; }
-  const DHMap<Term*,TermList>& rewrites() const { return _rewrites; }
+  DHMap<Term*,Indexing::TermQueryResult>& rewrites() { return _rewrites; }
+  const DHMap<Term*,Indexing::TermQueryResult>& rewrites() const { return _rewrites; }
 
 protected:
   /** number of literals */
@@ -384,7 +386,7 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
-  DHMap<Term*,TermList> _rewrites;
+  DHMap<Term*,Indexing::TermQueryResult> _rewrites;
 
   int _numActiveSplits;
 

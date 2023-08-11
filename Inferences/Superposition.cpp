@@ -309,10 +309,10 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
   return true;
 }
 
-void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const Ordering& ord, TermStack& sides)
+void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const Ordering& ord, Stack<pair<TermList,TermList>>& sides)
 {
   if (!lit->isEquality()) {
-    sides.push(TermList(subst->apply(lit,result)));
+    sides.push(make_pair(TermList(lit),TermList(subst->apply(lit,result))));
     return;
   }
 
@@ -327,17 +327,17 @@ void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const 
     switch(ord.compare(t0S,t1S)) {
       case Ordering::INCOMPARABLE: {
         TIME_TRACE("incomparable inner");
-        sides.push(t0S);
-        sides.push(t1S);
+        sides.push(make_pair(t0,t0S));
+        sides.push(make_pair(t1,t1S));
         break;
       }
       case Ordering::GREATER:
       case Ordering::GREATER_EQ:
-        sides.push(t0S);
+        sides.push(make_pair(t0,t0S));
         break;
       case Ordering::LESS:
       case Ordering::LESS_EQ:
-        sides.push(t1S);
+        sides.push(make_pair(t1,t1S));
         break;
       //there should be no equality literals of equal terms
       case Ordering::EQUAL:
@@ -347,11 +347,11 @@ void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const 
   }
   case Ordering::GREATER:
   case Ordering::GREATER_EQ:
-    sides.push(subst->apply(t0,result));
+    sides.push(make_pair(t0,subst->apply(t0,result)));
     break;
   case Ordering::LESS:
   case Ordering::LESS_EQ:
-    sides.push(subst->apply(t1,result));
+    sides.push(make_pair(t1,subst->apply(t1,result)));
     break;
   //there should be no equality literals of equal terms
   case Ordering::EQUAL:
@@ -366,13 +366,20 @@ bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, Resu
 {
   TIME_TRACE("LeftmostInnermostReducibilityChecker::check");
 
-  TermStack sides;
+  Stack<pair<TermList,TermList>> sides;
   for (unsigned i = 0; i < cl->numSelected(); i++) {
     sides.reset();
     getLHSIterator((*cl)[i], subst, result, _ord, sides);
 
-    for (auto side : sides) {
+    for (auto kv : sides) {
+      auto side = kv.second;
       if (side.isVar()) {
+        continue;
+      }
+      if (subst->isRenamingOn2(kv.first, result)) {
+        if (!rwTermS->isLiteral() && kv.second.containsSubterm(TermList(rwTermS))) {
+          return false;
+        }
         continue;
       }
       PolishSubtermIterator nvi(side.term(), &_done); // we won't get side itself this way, but we don't need it
@@ -385,6 +392,10 @@ bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, Resu
           // reached rwTerm without finding a reducible term
           return false;
         }
+        // if (cl->rewrites().find(st.term())) {
+        //   TIME_TRACE("reducible by rule");
+        //   return true;
+        // }
         if (checkTermReducible(st.term())) {
           return true;
         }
@@ -399,9 +410,9 @@ bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, Resu
 
 bool LeftmostInnermostReducibilityChecker::checkTermReducible(Term* t)
 {
-  if (t->reducible()) {
-    return true;
-  }
+  // if (t->reducible()) {
+  //   return true;
+  // }
   auto it = _index->getGeneralizations(t,true);
   while (it.hasNext()) {
     auto qr = it.next();
@@ -444,7 +455,7 @@ bool LeftmostInnermostReducibilityChecker::checkTermReducible(Term* t)
     if(!preordered && _ord.compare(TermList(t),rhsS)!=Ordering::GREATER) {
       continue;
     }
-    t->markReducible();
+    // t->markReducible();
     return true;
   }
   return false;
@@ -737,27 +748,26 @@ Clause* Superposition::performSuperposition(
   {
     TIME_TRACE("rewrites update");
     auto& resRewrites = res->rewrites();
-    DHMap<Term*,TermList>::Iterator eqIt(eqClause->rewrites());
+    DHMap<Term*,TermQueryResult>::Iterator eqIt(eqClause->rewrites());
     while (eqIt.hasNext()) {
       Term* lhs;
-      TermList rhs;
-      eqIt.next(lhs,rhs);
+      TermQueryResult qr;
+      eqIt.next(lhs,qr);
       auto lhsS = subst->apply(TermList(lhs),eqIsResult);
-      resRewrites.insert(lhsS.term(),subst->apply(rhs,eqIsResult));
+      resRewrites.insert(lhsS.term(),qr);
     }
-    DHMap<Term*,TermList>::Iterator rwIt(rwClause->rewrites());
+    DHMap<Term*,TermQueryResult>::Iterator rwIt(rwClause->rewrites());
     while (rwIt.hasNext()) {
       Term* lhs;
-      TermList rhs;
-      rwIt.next(lhs,rhs);
+      TermQueryResult qr;
+      rwIt.next(lhs,qr);
       auto lhsS = subst->apply(TermList(lhs),!eqIsResult);
-      resRewrites.insert(lhsS.term(),subst->apply(rhs,!eqIsResult));
+      resRewrites.insert(lhsS.term(),qr);
     }
-    // if (/* comp==Ordering::LESS && */ eqClause->length()!=1) {
-    //   cout << "added rule " << rwTermS << " -> " << tgtTermS << endl;
-    //   resRewrites.insert(rwTermS.term(), tgtTermS);
-    // }
-    // cout << "rewrites size " << res->rewrites().size() << endl;
+    if (comp==Ordering::LESS && eqClause->length()!=1) {
+      // cout << "added rule " << rwTermS << " -> " << tgtTermS << endl;
+      resRewrites.insert(rwTermS.term(), TermQueryResult(eqLHS,eqLit,eqClause));
+    }
   }
 
 /*

@@ -28,10 +28,12 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/Matcher.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -50,6 +52,25 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+struct Binder {
+  Binder(Substitution& subst) : subst(subst) {}
+
+  bool bind(unsigned var, TermList term)
+  {
+    TermList t;
+    if (subst.findBinding(var, t)) {
+      return t == term;
+    }
+    subst.bind(var,term);
+    return true;
+  }
+
+  void reset() { subst.reset(); }
+  void specVar(unsigned var, TermList term) { ASSERTION_VIOLATION; }
+
+  Substitution& subst;
+};
 
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
@@ -109,53 +130,69 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         toplevelCheck &= lit->isPositive() && (cLen == 1);
       }
 
-      // {TIME_TRACE("demodulation by rule");
-      // if (!lit->isEquality() || (trm!=*lit->nthArgument(0) && trm!=*lit->nthArgument(1))) {
-      //   auto git = cl->rewriteTis().getGeneralizations(trm, true);
-      //   while(git.hasNext()) {
-      //     TermQueryResult qr=git.next();
-      //     TermList rhs=cl->rewrites().get(qr.term.term());
-      //     TermList rhsS;
-      //     if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
-      //       //When we apply substitution to the rhs, we get a term, that is
-      //       //a variant of the term we'd like to get, as new variables are
-      //       //produced in the substitution application.
-      //       TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
-      //       TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
-      //       Renaming rNorm, qNorm, qDenorm;
-      //       rNorm.normalizeVariables(lhsSBadVars);
-      //       qNorm.normalizeVariables(trm);
-      //       qDenorm.makeInverse(qNorm);
-      //       ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      //       rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-      //     } else {
-      //       rhsS=qr.substitution->applyToBoundResult(rhs);
-      //     }
+      {TIME_TRACE("demodulation by rule");
+      if (!lit->isEquality() || (trm!=*lit->nthArgument(0) && trm!=*lit->nthArgument(1))) {
+        if (cl->rewrites().size()) {
+          TIME_TRACE("non empty rewrites");
+        }
+        auto ptr = cl->rewrites().findPtr(trm.term());
+        if (ptr) {
+          Substitution subst;
+          Binder b(subst);
+          ALWAYS(MatchingUtils::matchTerms(ptr->term, trm, b));
+          auto eqLitS = SubstHelper::apply(ptr->literal,subst);
+          bool matching = true;
+          for (unsigned i = 0; i < ptr->clause->length(); i++) {
+            auto qrLit = SubstHelper::apply((*ptr->clause)[i],subst);
+            if (qrLit == eqLitS) {
+              continue;
+            }
+            if (iterTraits(cl->iterLits()).all([qrLit,lit](Literal* other) {
+              return other==lit || other!=qrLit;
+            })) {
+              matching = false;
+              break;
+            }
+          }
+          if (matching) {
+            ASS_GE(cl->length(),ptr->clause->length());
+            Literal* resLit = EqHelper::replace(lit,trm,EqHelper::getOtherEqualitySide(eqLitS,trm));
+            if(EqHelper::isEqTautology(resLit)) {
+              env.statistics->forwardDemodulationsToEqTaut++;
+              return true;
+            }
 
-      //     Literal* resLit = EqHelper::replace(lit,trm,rhsS);
-      //     if(EqHelper::isEqTautology(resLit)) {
-      //       env.statistics->forwardDemodulationsToEqTaut++;
-      //       return true;
-      //     }
+            Clause* res = new(cLen) Clause(cLen,
+              SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION, cl, ptr->clause));
+            (*res)[0]=resLit;
 
-      //     Clause* res = new(cLen) Clause(cLen,
-      //       SimplifyingInference1(InferenceRule::FORWARD_DEMODULATION, cl));
-      //     (*res)[0]=resLit;
-
-      //     unsigned next=1;
-      //     for(unsigned i=0;i<cLen;i++) {
-      //       Literal* curr=(*cl)[i];
-      //       if(curr!=lit) {
-      //         (*res)[next++] = curr;
-      //       }
-      //     }
-      //     ASS_EQ(next,cLen);
-
-      //     env.statistics->demodulationByRule++;
-      //     replacement = res;
-      //     return true;
-      //   }
-      // }}
+            unsigned next=1;
+            for(unsigned i=0;i<cLen;i++) {
+              Literal* curr=(*cl)[i];
+              if(curr!=lit) {
+                (*res)[next++] = curr;
+              }
+            }
+            ASS_EQ(next,cLen);
+            {
+              TIME_TRACE("rewrites update");
+              auto& resRewrites = res->rewrites();
+              DHMap<Term*,TermQueryResult>::Iterator rwIt(cl->rewrites());
+              while (rwIt.hasNext()) {
+                Term* lhs;
+                TermQueryResult qr;
+                rwIt.next(lhs,qr);
+                resRewrites.insert(lhs,qr);
+              }
+            }
+            env.statistics->forwardSubsumptionDemodulations++;
+            replacement = res;
+            return true;
+          } else {
+            TIME_TRACE("not matching demodulation");
+          }
+        }
+      }}
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
@@ -293,26 +330,26 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           DHSet<unsigned> vars;
           vars.loadFromIterator(vit);
           auto& resRewrites = res->rewrites();
-          DHMap<Term*,TermList>::Iterator eqIt(qr.clause->rewrites());
+          DHMap<Term*,TermQueryResult>::Iterator eqIt(qr.clause->rewrites());
           while (eqIt.hasNext()) {
             Term* lhs;
-            TermList rhs;
-            eqIt.next(lhs,rhs);
+            TermQueryResult qr2;
+            eqIt.next(lhs,qr2);
             ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
-            if (iterTraits(getConcatenatedIterator(vi(new VariableIterator(lhs)),vi(new VariableIterator(rhs))))
+            if (iterTraits(vi(new VariableIterator(lhs)))
               .all([&vars](TermList t) {
                 return vars.find(t.var());
               }))
             {
-              resRewrites.insert(qr.substitution->applyToBoundResult(TermList(lhs)).term(),qr.substitution->applyToBoundResult(rhs));
+              resRewrites.insert(qr.substitution->applyToBoundResult(TermList(lhs)).term(),qr2);
             }
           }
-          DHMap<Term*,TermList>::Iterator rwIt(cl->rewrites());
+          DHMap<Term*,TermQueryResult>::Iterator rwIt(cl->rewrites());
           while (rwIt.hasNext()) {
             Term* lhs;
-            TermList rhs;
-            rwIt.next(lhs,rhs);
-            resRewrites.insert(lhs,rhs);
+            TermQueryResult qr2;
+            rwIt.next(lhs,qr2);
+            resRewrites.insert(lhs,qr2);
           }
         }
 
