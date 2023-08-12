@@ -29,7 +29,9 @@ using namespace Saturation;
 
 class LeftmostInnermostReducibilityChecker {
 private:
-  DHSet<Term*> _done;
+  DHSet<Term*> _reducible;
+  DHSet<Term*> _nonReducible;
+
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
   DHMap<Term*,Stack<tuple<TermList,Clause*,bool>>> _demodulationCache;
@@ -43,7 +45,8 @@ public:
   LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord);
 
   bool check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
-  void reset() { _done.reset(); }
+  void reset() { _nonReducible.reset(); }
+  bool isNonReducible(Term* t) const { return _nonReducible.contains(t); }
 };
 
 class Superposition
@@ -80,7 +83,6 @@ private:
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;
-  LeftmostInnermostReducibilityChecker* _checker;
 };
 
 

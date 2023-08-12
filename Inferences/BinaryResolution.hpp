@@ -54,7 +54,6 @@ private:
 
   BinaryResolutionIndex* _index;
   bool _unificationWithAbstraction;
-  LeftmostInnermostReducibilityChecker* _checker;
 };
 
 };

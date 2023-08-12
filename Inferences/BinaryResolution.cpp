@@ -55,8 +55,6 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<BinaryResolutionIndex*> (
 	  _salg->getIndexManager()->request(BINARY_RESOLUTION_SUBST_TREE) );
-  _checker = new LeftmostInnermostReducibilityChecker(static_cast<DemodulationLHSIndex*> (
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) ), _salg->getOrdering());
 
   _unificationWithAbstraction = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
 }
@@ -65,7 +63,6 @@ void BinaryResolution::detach()
 {
   ASS(_salg);
 
-  delete _checker;
   _index=0;
   _salg->getIndexManager()->release(BINARY_RESOLUTION_SUBST_TREE);
   GeneratingInferenceEngine::detach();
@@ -101,7 +98,7 @@ struct BinaryResolution::ResultFn
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector, _parent._checker);
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector, _parent._salg->getReducibilityChecker());
   }
 private:
   Clause* _cl;
@@ -317,22 +314,31 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   {
     TIME_TRACE("rewrites update");
-    auto& resRewrites = res->rewrites();
-    DHMap<Term*,TermQueryResult>::Iterator queryIt(queryCl->rewrites());
-    while (queryIt.hasNext()) {
-      Term* lhs;
-      TermQueryResult qr2;
-      queryIt.next(lhs,qr2);
-      auto lhsS = qr.substitution->applyToQuery(TermList(lhs));
-      resRewrites.insert(lhsS.term(),qr2);
+    auto resRewrites = new DHMap<Term*,TermQueryResult>();
+    if (queryCl->rewrites()) {
+      DHMap<Term*,TermQueryResult>::Iterator queryIt(*queryCl->rewrites());
+      while (queryIt.hasNext()) {
+        Term* lhs;
+        TermQueryResult qr2;
+        queryIt.next(lhs,qr2);
+        auto lhsS = qr.substitution->applyToQuery(TermList(lhs));
+        resRewrites->insert(lhsS.term(),qr2);
+      }
     }
-    DHMap<Term*,TermQueryResult>::Iterator rwIt(qr.clause->rewrites());
-    while (rwIt.hasNext()) {
-      Term* lhs;
-      TermQueryResult qr2;
-      rwIt.next(lhs,qr2);
-      auto lhsS = qr.substitution->applyToResult(TermList(lhs));
-      resRewrites.insert(lhsS.term(),qr2);
+    if (qr.clause->rewrites()) {
+      DHMap<Term*,TermQueryResult>::Iterator rwIt(*qr.clause->rewrites());
+      while (rwIt.hasNext()) {
+        Term* lhs;
+        TermQueryResult qr2;
+        rwIt.next(lhs,qr2);
+        auto lhsS = qr.substitution->applyToResult(TermList(lhs));
+        resRewrites->insert(lhsS.term(),qr2);
+      }
+    }
+    if (resRewrites->isEmpty()) {
+      delete resRewrites;
+    } else {
+      res->setRewrites(resRewrites);
     }
   }
 

@@ -176,31 +176,7 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
   }
   {
     TIME_TRACE("rewrites update");
-    // auto vit = baseClause->getVariableIterator();
-    // DHSet<unsigned> vars;
-    // vars.loadFromIterator(vit);
-    auto& resRewrites = res->rewrites();
-    // DHMap<Term*,TermQueryResult>::Iterator eqIt(baseClause->rewrites());
-    // while (eqIt.hasNext()) {
-    //   Term* lhs;
-    //   TermQueryResult qr2;
-    //   eqIt.next(lhs,qr2);
-    //   ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
-    //   if (iterTraits(vi(new VariableIterator(lhs)))
-    //     .all([&vars](TermList t) {
-    //       return vars.find(t.var());
-    //     }))
-    //   {
-    //     resRewrites.insert(qr.substitution->applyToBoundResult(TermList(lhs)).term(),qr2);
-    //   }
-    // }
-    DHMap<Term*,TermQueryResult>::Iterator rwIt(cl->rewrites());
-    while (rwIt.hasNext()) {
-      Term* lhs;
-      TermQueryResult qr2;
-      rwIt.next(lhs,qr2);
-      resRewrites.insert(lhs,qr2);
-    }
+    cl->transferRewrites(res);
   }
 
   return res;

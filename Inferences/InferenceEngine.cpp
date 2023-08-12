@@ -399,14 +399,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   }
   {
     TIME_TRACE("rewrites update");
-    auto& resRewrites = d->rewrites();
-    DHMap<Term*,TermQueryResult>::Iterator rwIt(c->rewrites());
-    while (rwIt.hasNext()) {
-      Term* lhs;
-      TermQueryResult qr;
-      rwIt.next(lhs,qr);
-      resRewrites.insert(lhs,qr);
-    }
+    c->transferRewrites(d);
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
@@ -529,14 +522,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   }
   {
     TIME_TRACE("rewrites update");
-    auto& resRewrites = d->rewrites();
-    DHMap<Term*,TermQueryResult>::Iterator rwIt(c->rewrites());
-    while (rwIt.hasNext()) {
-      Term* lhs;
-      TermQueryResult qr;
-      rwIt.next(lhs,qr);
-      resRewrites.insert(lhs,qr);
-    }
+    c->transferRewrites(d);
   }
   env.statistics->trivialInequalities += found;
 

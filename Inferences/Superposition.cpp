@@ -64,18 +64,14 @@ void Superposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
   _lhsIndex=static_cast<SuperpositionLHSIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
-  _checker = new LeftmostInnermostReducibilityChecker(static_cast<DemodulationLHSIndex*> (
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) ), _salg->getOrdering());
 }
 
 void Superposition::detach()
 {
   _subtermIndex=0;
   _lhsIndex=0;
-  delete _checker;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
   _salg->getIndexManager()->release(SUPERPOSITION_LHS_SUBST_TREE);
-  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   GeneratingInferenceEngine::detach();
 }
 
@@ -123,7 +119,6 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  _checker->reset();
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
@@ -360,7 +355,7 @@ void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const 
 }
 
 LeftmostInnermostReducibilityChecker::LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord)
-: _done(), _index(index), _ord(ord), _demodulationCache() {}
+: _reducible(), _nonReducible(), _index(index), _ord(ord), _demodulationCache() {}
 
 bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result)
 {
@@ -382,23 +377,28 @@ bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, Resu
         }
         continue;
       }
-      PolishSubtermIterator nvi(side.term(), &_done); // we won't get side itself this way, but we don't need it
+      PolishSubtermIterator nvi(side.term(), &_nonReducible); // we won't get side itself this way, but we don't need it
       while (nvi.hasNext()) {
         auto st = nvi.next();
-        if (st.isVar() || !_done.insert(st.term())) {
+        if (st.isVar() || _nonReducible.contains(st.term())) {
           continue;
         }
         if (st.term() == rwTermS) {
           // reached rwTerm without finding a reducible term
           return false;
         }
+        if (_reducible.contains(st.term())) {
+          return true;
+        }
         // if (cl->rewrites().find(st.term())) {
         //   TIME_TRACE("reducible by rule");
         //   return true;
         // }
         if (checkTermReducible(st.term())) {
+          _reducible.insert(st.term());
           return true;
         }
+        _nonReducible.insert(st.term());
       }
       if (side.term() == rwTermS) {
         return false;
@@ -561,14 +561,18 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if (_checker->check(eqClause,rwTermS.term(),subst.ptr(),eqIsResult)) {
-    env.statistics->skippedSuperposition++;
-    return 0;
-  }
+  auto checker = _salg->getReducibilityChecker();
 
-  if (_checker->check(rwClause,rwTermS.term(),subst.ptr(),!eqIsResult)) {
-    env.statistics->skippedSuperposition++;
-    return 0;
+  if (checker) {
+    if (checker->check(eqClause,rwTermS.term(),subst.ptr(),eqIsResult)) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
+
+    if (checker->check(rwClause,rwTermS.term(),subst.ptr(),!eqIsResult)) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
   }
 
   unsigned newLength = rwLength+eqLength-1+conLength;
@@ -747,26 +751,35 @@ Clause* Superposition::performSuperposition(
   }
   {
     TIME_TRACE("rewrites update");
-    auto& resRewrites = res->rewrites();
-    DHMap<Term*,TermQueryResult>::Iterator eqIt(eqClause->rewrites());
-    while (eqIt.hasNext()) {
-      Term* lhs;
-      TermQueryResult qr;
-      eqIt.next(lhs,qr);
-      auto lhsS = subst->apply(TermList(lhs),eqIsResult);
-      resRewrites.insert(lhsS.term(),qr);
+    auto resRewrites = new DHMap<Term*,TermQueryResult>();
+    if (eqClause->rewrites()) {
+      DHMap<Term*,TermQueryResult>::Iterator eqIt(*eqClause->rewrites());
+      while (eqIt.hasNext()) {
+        Term* lhs;
+        TermQueryResult qr;
+        eqIt.next(lhs,qr);
+        auto lhsS = subst->apply(TermList(lhs),eqIsResult);
+        resRewrites->insert(lhsS.term(),qr);
+      }
     }
-    DHMap<Term*,TermQueryResult>::Iterator rwIt(rwClause->rewrites());
-    while (rwIt.hasNext()) {
-      Term* lhs;
-      TermQueryResult qr;
-      rwIt.next(lhs,qr);
-      auto lhsS = subst->apply(TermList(lhs),!eqIsResult);
-      resRewrites.insert(lhsS.term(),qr);
+    if (rwClause->rewrites()) {
+      DHMap<Term*,TermQueryResult>::Iterator rwIt(*rwClause->rewrites());
+      while (rwIt.hasNext()) {
+        Term* lhs;
+        TermQueryResult qr;
+        rwIt.next(lhs,qr);
+        auto lhsS = subst->apply(TermList(lhs),!eqIsResult);
+        resRewrites->insert(lhsS.term(),qr);
+      }
     }
     if (comp==Ordering::LESS && eqClause->length()!=1) {
       // cout << "added rule " << rwTermS << " -> " << tgtTermS << endl;
-      resRewrites.insert(rwTermS.term(), TermQueryResult(eqLHS,eqLit,eqClause));
+      resRewrites->insert(rwTermS.term(), TermQueryResult(eqLHS,eqLit,eqClause));
+    }
+    if (resRewrites->isEmpty()) {
+      delete resRewrites;
+    } else {
+      res->setRewrites(resRewrites);
     }
   }
 

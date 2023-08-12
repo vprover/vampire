@@ -221,7 +221,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
-    _instantiation(0),
+    _instantiation(0), _checker(0),
     _generatedClauseCount(0),
     _activationLimit(0)
 {
@@ -289,6 +289,10 @@ SaturationAlgorithm::~SaturationAlgorithm()
   }
   if (_symEl) {
     delete _symEl;
+  }
+  if (_checker) {
+    getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
+    delete _checker;
   }
 
   _active->detach();
@@ -1188,7 +1192,10 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-    
+  if (_checker) {
+    _checker->reset();
+  }
+
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = timeTraceIter(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
@@ -1246,13 +1253,13 @@ start:
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
 
-    if (!c->rewrites().size()) {
+    if (!c->rewrites()) {
       auto it = c->inference().iterator();
       if (c->inference().hasNext(it)) {
         auto u = c->inference().next(it);
         if (u->isClause()) {
           auto p = u->asClause();
-          if (p->rewrites().size()) {
+          if (p->rewrites()) {
             static vset<InferenceRule> rules;
             if (rules.insert(c->inference().rule()).second) {
               cout << "inference not covered: " << ruleName(c->inference().rule()) << endl;
@@ -1494,6 +1501,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.splitting()){
     res->_splitter = new Splitter();
   }
+
+  res->_checker = new LeftmostInnermostReducibilityChecker(
+    static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)), res->_ordering.ref());
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();

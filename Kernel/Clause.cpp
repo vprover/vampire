@@ -73,6 +73,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
+    _rewrites(0),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {

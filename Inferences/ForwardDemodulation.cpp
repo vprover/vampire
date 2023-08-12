@@ -44,6 +44,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "Superposition.hpp"
 #include "ForwardDemodulation.hpp"
 
 namespace Inferences {
@@ -132,10 +133,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
       {TIME_TRACE("demodulation by rule");
       if (!lit->isEquality() || (trm!=*lit->nthArgument(0) && trm!=*lit->nthArgument(1))) {
-        if (cl->rewrites().size()) {
-          TIME_TRACE("non empty rewrites");
-        }
-        auto ptr = cl->rewrites().findPtr(trm.term());
+        TermQueryResult* ptr = cl->rewrites() ? cl->rewrites()->findPtr(trm.term()) : nullptr;
         if (ptr) {
           Substitution subst;
           Binder b(subst);
@@ -176,16 +174,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
             ASS_EQ(next,cLen);
             {
               TIME_TRACE("rewrites update");
-              auto& resRewrites = res->rewrites();
-              DHMap<Term*,TermQueryResult>::Iterator rwIt(cl->rewrites());
-              while (rwIt.hasNext()) {
-                Term* lhs;
-                TermQueryResult qr;
-                rwIt.next(lhs,qr);
-                resRewrites.insert(lhs,qr);
-              }
+              cl->transferRewrites(res);
             }
             env.statistics->forwardSubsumptionDemodulations++;
+            premises = pvi(getSingletonIterator(ptr->clause));
             replacement = res;
             return true;
           } else {
@@ -193,6 +185,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
       }}
+
+      if (_salg->getReducibilityChecker() && _salg->getReducibilityChecker()->isNonReducible(trm.term())) {
+        TIME_TRACE("non reducible cache");
+        it.right();
+        continue;
+      }
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
@@ -326,30 +324,35 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         env.statistics->forwardDemodulations++;
         {
           TIME_TRACE("rewrites update");
-          auto vit = qr.clause->getVariableIterator();
-          DHSet<unsigned> vars;
-          vars.loadFromIterator(vit);
-          auto& resRewrites = res->rewrites();
-          DHMap<Term*,TermQueryResult>::Iterator eqIt(qr.clause->rewrites());
-          while (eqIt.hasNext()) {
-            Term* lhs;
-            TermQueryResult qr2;
-            eqIt.next(lhs,qr2);
-            ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
-            if (iterTraits(vi(new VariableIterator(lhs)))
-              .all([&vars](TermList t) {
-                return vars.find(t.var());
-              }))
-            {
-              resRewrites.insert(qr.substitution->applyToBoundResult(TermList(lhs)).term(),qr2);
+          cl->transferRewrites(res);
+          if (qr.clause->rewrites()) {
+            auto resRewrites = res->rewrites();
+            if (!resRewrites) {
+              resRewrites = new DHMap<Term*,TermQueryResult>();
             }
-          }
-          DHMap<Term*,TermQueryResult>::Iterator rwIt(cl->rewrites());
-          while (rwIt.hasNext()) {
-            Term* lhs;
-            TermQueryResult qr2;
-            rwIt.next(lhs,qr2);
-            resRewrites.insert(lhs,qr2);
+            auto vit = qr.clause->getVariableIterator();
+            DHSet<unsigned> vars;
+            vars.loadFromIterator(vit);
+            DHMap<Term*,TermQueryResult>::Iterator eqIt(*qr.clause->rewrites());
+            while (eqIt.hasNext()) {
+              Term* lhs;
+              TermQueryResult qr2;
+              eqIt.next(lhs,qr2);
+              ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
+              if (iterTraits(vi(new VariableIterator(lhs)))
+                .all([&vars](TermList t) {
+                  return vars.find(t.var());
+                }))
+              {
+                resRewrites->insert(qr.substitution->applyToBoundResult(TermList(lhs)).term(),qr2);
+              }
+            }
+            if (resRewrites->isEmpty()) {
+              delete resRewrites;
+              res->setRewrites(nullptr);
+            } else {
+              res->setRewrites(resRewrites);
+            }
           }
         }
 
