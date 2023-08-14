@@ -109,12 +109,12 @@ bool UnitTesting::listTests(Stack<vstring> const&)
   return true;
 }
 
-bool TestUnit::run(ostream& out)
+bool TestUnit::run(std::ostream& out)
 {
   Stack<Test>::BottomFirstIterator uit(_tests);
 
   if(!uit.hasNext()) {
-    out<<"No tests to run."<<endl;
+    out<<"No tests to run."<<std::endl;
   }
   unsigned cnt_fail = 0;
   unsigned cnt_ok  = 0;
@@ -126,16 +126,16 @@ bool TestUnit::run(ostream& out)
     {
       ok = spawnTest(t.proc);
     }
-    out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
+    out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << std::endl;
     if (ok) cnt_ok++;
     else cnt_fail++;
   }
-  out << endl;
+  out << std::endl;
   auto cnt = cnt_fail + cnt_ok;
-  out << fixed << setprecision(1);
-  out << "Tests run: " << cnt << endl;
-  out << "  - ok   " << cnt_ok   << "\t(" << (cnt_ok   * 100.0 / cnt) << ") %" << endl;
-  out << "  - fail " << cnt_fail << "\t(" << (cnt_fail * 100.0 / cnt) << ") %" << endl;
+  out << std::fixed << std::setprecision(1);
+  out << "Tests run: " << cnt << std::endl;
+  out << "  - ok   " << cnt_ok   << "\t(" << (cnt_ok   * 100.0 / cnt) << ") %" << std::endl;
+  out << "  - fail " << cnt_fail << "\t(" << (cnt_fail * 100.0 / cnt) << ") %" << std::endl;
   return cnt_fail == 0;
 }
 
@@ -189,7 +189,7 @@ bool UnitTesting::add(vstring const& testUnit, TestUnit::Test test)
   return true;
 }
 
-std::ostream& operator<<(ostream& out, TestUnit::Test const& t) 
+std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t) 
 { return out << t.name; }
 
 } // namespace Test
@@ -209,7 +209,7 @@ int main(int argc, const char** argv)
   } else if (cmd == "run") {
     success = Test::UnitTesting::instance().run(args);
   } else {
-    cerr << "unknown command: " << cmd << endl;
+    std::cerr << "unknown command: " << cmd << std::endl;
     success = false;
   }
   return success ? 0 : -1;

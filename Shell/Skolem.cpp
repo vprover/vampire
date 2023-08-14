@@ -51,7 +51,7 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit, bool appify)
   ASS(! unit->isClause());
 
   unit = Rectify::rectify(unit);
-  //cout << "skolemising " + unit->toString() << endl; 
+  //std::cout << "skolemising " + unit->toString() << std::endl; 
 
  Formula* f = unit->formula();
   switch (f->connective()) {
@@ -485,7 +485,7 @@ Formula* Skolem::skolemise (Formula* f)
           skolemTerm = ApplicativeHelper::createAppTerm(
             SortHelper::getResultSort(head.term()), head, termVars).term();      
         }
-        _introducedSkolemSyms.push(make_pair(skolemisingTypeVar, sym));
+        _introducedSkolemSyms.push(std::make_pair(skolemisingTypeVar, sym));
 
         env.statistics->skolemFunctions++;
 
@@ -494,16 +494,16 @@ Formula* Skolem::skolemise (Formula* f)
         if (env.options->showSkolemisations()) {
           env.beginOutput();
           env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
-            <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
+            <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << std::endl;
           env.endOutput();
         }
 
         if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
           env.beginOutput();
-          ostream& out = env.out();
+          std::ostream& out = env.out();
             out <<"Nonconstant skolem function introduced: "
             <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
-            <<" in formula "<<_beingSkolemised->toString()<<endl;
+            <<" in formula "<<_beingSkolemised->toString()<<std::endl;
 
           /*
           Refutation ref(_beingSkolemised, true);

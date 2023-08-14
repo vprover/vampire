@@ -177,7 +177,7 @@ bool Environment::haveOutput()
  * Process must have an output stream acquired in order to call
  * this function.
  */
-ostream& Environment::out()
+std::ostream& Environment::out()
 {
   ASS(_outputDepth);
 
@@ -204,7 +204,7 @@ void Environment::setPipeOutput(SyncPipe* pipe)
   _pipe=pipe;
 }
 
-void Environment::setPriorityOutput(ostream* stm)
+void Environment::setPriorityOutput(std::ostream* stm)
 {
   ASS(!_priorityOutput || !stm);
 

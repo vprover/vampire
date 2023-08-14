@@ -96,7 +96,7 @@ void reportSpiderStatus(char status)
   vstring commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
   vstring z3Version = Z3Interfacing::z3_full_version();
   size_t spacePosition = z3Version.find(" ");
-  if (spacePosition != string::npos) {
+  if (spacePosition != std::string::npos) {
     z3Version = z3Version.substr(0,spacePosition);
   }
 
@@ -111,7 +111,7 @@ void reportSpiderStatus(char status)
     << (timer ? timer->elapsedMegaInstructions() : 0) << " "
     << Lib::getUsedMemory()/1048576 << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
-    << commitNumber << ':' << z3Version << endl;
+    << commitNumber << ':' << z3Version << std::endl;
   env.endOutput();
 #endif
 }
@@ -120,7 +120,7 @@ bool szsOutputMode() {
   return (Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SZS);
 }
 
-ostream& addCommentSignForSZS(ostream& out)
+std::ostream& addCommentSignForSZS(std::ostream& out)
 {
   if (szsOutputMode()) {
     out << "% ";
@@ -142,7 +142,7 @@ bool UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
 bool UIHelper::spiderOutputDone = false;
   
-void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
+void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, vstring prefix)
 {
 #if 1
   InferenceStore::instance()->outputProof(cerr, units);
@@ -177,23 +177,23 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
   Stack<UnitSpec>::BottomFirstIterator premIt(prems);
   while (premIt.hasNext()) {
     UnitSpec prem = premIt.next();
-    out << prefix << prem.toString() << endl;
+    out << prefix << prem.toString() << std::endl;
   }
 #endif
 }
 
-void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
+void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 {
   addCommentSignForSZS(out);
-  out << "# SZS output start Saturation." << endl;
+  out << "# SZS output start Saturation." << std::endl;
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
-    out << TPTPPrinter::toString(cl) << endl;
+    out << TPTPPrinter::toString(cl) << std::endl;
   }
 
   addCommentSignForSZS(out);
-  out << "# SZS output end Saturation." << endl;
+  out << "# SZS output end Saturation." << std::endl;
 } // outputSaturatedSet
 
 // String utility function that probably belongs elsewhere
@@ -205,7 +205,7 @@ static bool hasEnding (vstring const &fullString, vstring const &ending) {
   }
 }
 
-UnitList* UIHelper::tryParseTPTP(istream* input)
+UnitList* UIHelper::tryParseTPTP(std::istream* input)
 {
   Parse::TPTP parser(*input);
   try{
@@ -219,7 +219,7 @@ UnitList* UIHelper::tryParseTPTP(istream* input)
   return parser.units();
 }
 
-UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& smtLibLogic)
+UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,std::istream* input,SMTLIBLogic& smtLibLogic)
 {
   Parse::SMTLIB2 parser(opts);
   parser.parse(*input);
@@ -241,7 +241,7 @@ UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLog
 
 // Call this function to report a parsing attempt has failed and to reset the input
 template<typename T>
-void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry)
+void resetParsing(T exception, vstring inputFile, std::istream*& input,vstring nowtry)
 {
   if (env.options->mode()!=Options::Mode::SPIDER) {
     env.beginOutput();
@@ -250,13 +250,13 @@ void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry
     addCommentSignForSZS(env.out());
     exception.cry(env.out());
     addCommentSignForSZS(env.out());
-    env.out() << "Trying " << nowtry  << endl;
+    env.out() << "Trying " << nowtry  << std::endl;
     env.endOutput();
   }
 
   BYPASSING_ALLOCATOR;
-  delete static_cast<ifstream*>(input);
-  input=new ifstream(inputFile.c_str());
+  delete static_cast<std::ifstream*>(input);
+  input=new std::ifstream(inputFile.c_str());
 }
 
 /**
@@ -275,7 +275,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   vstring inputFile = opts.inputFile();
   auto inputSyntax = opts.inputSyntax();
 
-  istream* input;
+  std::istream* input;
   if (inputFile=="") {
     input=&cin;
 
@@ -288,10 +288,10 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       inputSyntax = Options::InputSyntax::TPTP;
     }
   } else {
-    // CAREFUL: this might not be enough if the ifstream (re)allocates while being operated
+    // CAREFUL: this might not be enough if the std::ifstream (re)allocates while being operated
     BYPASSING_ALLOCATOR; 
     
-    input=new ifstream(inputFile.c_str());
+    input=new std::ifstream(inputFile.c_str());
     if (input->fail()) {
       USER_ERROR("Cannot open problem file: "+inputFile);
     }
@@ -357,7 +357,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   if (inputFile!="") {
     BYPASSING_ALLOCATOR;
 
-    delete static_cast<ifstream*>(input);
+    delete static_cast<std::ifstream*>(input);
     input=0;
   }
 
@@ -376,16 +376,16 @@ Problem* UIHelper::getInputProblem(const Options& opts)
  *
  * If interpolant output is enabled, it is output in this function.
  */
-void UIHelper::outputResult(ostream& out)
+void UIHelper::outputResult(std::ostream& out)
 {
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
     if(env.options->outputMode() == Options::Output::SMTCOMP){ 
-      out << "unsat" << endl;
+      out << "unsat" << std::endl;
       return;
     }
     if(env.options->outputMode() == Options::Output::UCORE){
-      out << "unsat" << endl;
+      out << "unsat" << std::endl;
       InferenceStore::instance()->outputUnsatCore(out, env.statistics->refutation);
       return;
     }
@@ -393,7 +393,7 @@ void UIHelper::outputResult(ostream& out)
     out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
     if (szsOutputMode()) {
       out << "% SZS status " << (UIHelper::haveConjecture() ? ( UIHelper::haveConjectureInProof() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
-	  << " for " << env.options->problemName() << endl;
+	  << " for " << env.options->problemName() << std::endl;
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
       ASS(env.statistics->refutation->isClause());
@@ -401,11 +401,11 @@ void UIHelper::outputResult(ostream& out)
     }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
-        out << "% SZS output start Proof for " << env.options->problemName() << endl;
+        out << "% SZS output start Proof for " << env.options->problemName() << std::endl;
       }
       InferenceStore::instance()->outputProof(out, env.statistics->refutation);
       if (szsOutputMode()) {
-        out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
+        out << "% SZS output end Proof for " << env.options->problemName() << std::endl << std::flush;
       }
       // outputProof could have triggered proof minimization which might have cause inductionDepth to change (in fact, decrease)
       env.statistics->maxInductionDepth = env.statistics->refutation->inference().inductionDepth();
@@ -435,14 +435,14 @@ void UIHelper::outputResult(ostream& out)
         ASSERTION_VIOLATION;
       }
 
-      out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      out << "Actual weight: " << interpolant->weight() << endl;
-      out<<endl;
+      out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << std::endl;
+      out << "Actual weight: " << interpolant->weight() << std::endl;
+      out<<std::endl;
     }
 
     if (env.options->latexOutput() != "off") {
-      BYPASSING_ALLOCATOR; // for ofstream 
-      ofstream latexOut(env.options->latexOutput().c_str());
+      BYPASSING_ALLOCATOR; // for std::ofstream 
+      std::ofstream latexOut(env.options->latexOutput().c_str());
 
       LaTeX formatter;
       latexOut << formatter.refutationToString(env.statistics->refutation);
@@ -453,7 +453,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::TIME_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
-      out << "unknown" << endl;
+      out << "unknown" << std::endl;
       return;
     }
     addCommentSignForSZS(out);
@@ -461,7 +461,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::MEMORY_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
-      out << "unknown" << endl;
+      out << "unknown" << std::endl;
       return;
     }
     addCommentSignForSZS(out);
@@ -477,7 +477,7 @@ void UIHelper::outputResult(ostream& out)
   }
   case Statistics::REFUTATION_NOT_FOUND:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
-      out << "unknown" << endl;
+      out << "unknown" << std::endl;
       return;
     }
     addCommentSignForSZS(out);
@@ -485,7 +485,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::SATISFIABLE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
-      out << "sat" << endl;
+      out << "sat" << std::endl;
       return;
     }
     outputSatisfiableResult(out);
@@ -501,7 +501,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::INAPPROPRIATE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
-      out << "unknown" << endl;
+      out << "unknown" << std::endl;
       return;
     }
     addCommentSignForSZS(out);
@@ -509,7 +509,7 @@ void UIHelper::outputResult(ostream& out)
     break;
   case Statistics::UNKNOWN:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
-      out << "unknown" << endl;
+      out << "unknown" << std::endl;
       return;
     }
     addCommentSignForSZS(out);
@@ -521,20 +521,20 @@ void UIHelper::outputResult(ostream& out)
   env.statistics->print(out);
 }
 
-void UIHelper::outputSatisfiableResult(ostream& out)
+void UIHelper::outputSatisfiableResult(std::ostream& out)
 {
   //out << "Satisfiable!\n";
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	  <<" for " << env.options->problemName() << endl;
+	  <<" for " << env.options->problemName() << std::endl;
   }
   if (!env.statistics->model.empty()) {
     if (szsOutputMode()) {
-	out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+	out << "% SZS output start FiniteModel for " << env.options->problemName() << std::endl;
     }
     out << env.statistics->model;
     if (szsOutputMode()) {
-	out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
+	out << "% SZS output end FiniteModel for " << env.options->problemName() << std::endl;
     }
   }
   else //if (env.statistics->saturatedSet)
@@ -552,7 +552,7 @@ void UIHelper::outputSatisfiableResult(ostream& out)
  * @author Andrei Voronkov
  * @since 03/07/2013 Manchester
  */
-void UIHelper::outputSymbolDeclarations(ostream& out)
+void UIHelper::outputSymbolDeclarations(std::ostream& out)
 {
   Signature& sig = *env.signature;
 
@@ -581,7 +581,7 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
  * @author Andrei Voronkov
  * @since 03/07/2013 Manchester
  */
-void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, bool typeCon, unsigned symNumber)
+void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typeCon, unsigned symNumber)
 {
   Signature::Symbol* sym;
 
@@ -648,9 +648,9 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
         << "_def_" << symNumber << ", type, "
         << symName << ": ";
     out << type->toString();
-    out << ")." << endl;
+    out << ")." << std::endl;
   }
-  //out << ")." << endl;
+  //out << ")." << std::endl;
 }
 
 } // namespace Shell

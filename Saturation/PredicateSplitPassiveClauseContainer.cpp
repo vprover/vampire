@@ -185,13 +185,13 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
 
   if (_randomize) {
     unsigned toss = Random::getInteger(_ratioSum);
-    // cout << "metaqueue " << _name << " toss " << toss << " (below: " << _ratioSum << ")";
+    // std::cout << "metaqueue " << _name << " toss " << toss << " (below: " << _ratioSum << ")";
     queueIndex = 0;
     while (toss > _ratios[queueIndex]) {
       toss -= _ratios[queueIndex];
       queueIndex++;
     }
-    // cout << " means " << queueIndex << " (below: " << _ratios.size() << ")" << endl;
+    // std::cout << " means " << queueIndex << " (below: " << _ratios.size() << ")" << std::endl;
   } else {
     // compute queue from which we will pick a clause:
     // choose queue using weighted round robin

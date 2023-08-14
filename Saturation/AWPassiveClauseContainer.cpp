@@ -332,7 +332,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
 
 #if OUTPUT_LRS_DETAILS
   if (toRemove.isNonEmpty()) {
-    cout<<toRemove.size()<<" passive deleted, "<< (size()-toRemove.size()) <<" remains\n";
+    std::cout<<toRemove.size()<<" passive deleted, "<< (size()-toRemove.size()) <<" remains\n";
   }
 #endif
 
@@ -589,7 +589,7 @@ bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsig
 
     int maxSelWeight=0;
     for(unsigned i=0;i<upperBoundNumSelLits;i++) {
-      maxSelWeight=max((int)(*cl)[i]->weight(),maxSelWeight);
+      maxSelWeight=std::max((int)(*cl)[i]->weight(),maxSelWeight);
     }
     // TODO: this lower bound is not correct:
     //       if Avatar is used, then the child-clause could become splittable,

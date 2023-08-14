@@ -90,7 +90,7 @@ long long LRS::estimatedReachableCount()
   static std::ifstream infile("lrs_data.txt");
   long long thing;
   if (infile >> thing) {
-    cout << "reading " << thing << endl;
+    std::cout << "reading " << thing << std::endl;
     return thing;
   }
 #endif
@@ -156,7 +156,7 @@ long long LRS::estimatedReachableCount()
 
 #if DETERMINISE_LRS_SAVE
   static std::ofstream outfile("lrs_data.txt");
-  outfile << result << endl;
+  outfile << result << std::endl;
 #endif
 
   return result;

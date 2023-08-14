@@ -207,7 +207,7 @@ void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, Mis
 
   if(t1spec.sameTermContent(t2spec)){ return; }
 
-  //cout << "adding to constraints <" + tt1.toString() + ", " + tt2.toString() + ">" << endl; 
+  //std::cout << "adding to constraints <" + tt1.toString() + ", " + tt2.toString() + ">" << std::endl; 
 
   hndlr->handle(this, tt1, v1.index, tt2, v2.index);
 }

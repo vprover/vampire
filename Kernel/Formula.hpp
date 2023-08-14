@@ -545,8 +545,8 @@ TermList Formula::getBooleanTerm()
   return static_cast<BoolTermFormula*>(this)->getTerm();
 }
 
-std::ostream& operator<< (ostream& out, const Formula& f);
-std::ostream& operator<< (ostream& out, const Formula* f);
+std::ostream& operator<< (std::ostream& out, const Formula& f);
+std::ostream& operator<< (std::ostream& out, const Formula* f);
 
 }
 

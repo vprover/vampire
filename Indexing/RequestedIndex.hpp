@@ -93,9 +93,9 @@ class RequestedIndex final
     void swap(RequestedIndex& other)
     {
       using std::swap;
-      swap(_index, other._index);
-      swap(_type, other._type);
-      swap(_indexManager, other._indexManager);
+      std::swap(_index, other._index);
+      std::swap(_type, other._type);
+      std::swap(_indexManager, other._indexManager);
     }
 
   private:

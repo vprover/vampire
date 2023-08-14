@@ -235,7 +235,7 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
     for(size_t j=i+1;j<cnt;j++) {
       if(MatchingUtils::isVariant(lits[i], lits[j], false)) {
 	cnt--;
-	swap(lits[j], lits[cnt]);
+	std::swap(lits[j], lits[cnt]);
 	lits.pop();
       }
     }
@@ -321,7 +321,7 @@ selection_done:
     ASS_L(li,eligible);
     if((*c)[li]==maximals->head()) {
       if(li!=selCnt) {
-	swap((*c)[li], (*c)[selCnt]);
+	std::swap((*c)[li], (*c)[selCnt]);
       }
       selCnt++;
       LiteralList::pop(maximals);

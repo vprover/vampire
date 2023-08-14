@@ -81,4 +81,4 @@ void Debug::Tracer::printStack(std::ostream& str) {
   // TODO backtrace support for other platforms
   str << "no backtrace support for this compiler/platform yet" << std::endl;
 #endif
-} // Tracer::printStack (ostream& str)
+} // Tracer::printStack (std::ostream& str)

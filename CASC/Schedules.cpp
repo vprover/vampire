@@ -30,7 +30,7 @@ void Schedules::getScheduleFromFile(const vstring& filename, Schedule& quick)
     USER_ERROR("Schedule file was not set.");
   }
   BYPASSING_ALLOCATOR;
-  ifstream schedule_file (filename.c_str());
+  std::ifstream schedule_file (filename.c_str());
   if (schedule_file.fail()) {
     USER_ERROR("Cannot open schedule file: " + filename);
   }

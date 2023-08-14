@@ -258,7 +258,7 @@ struct MatchingData final {
    * Stores the variables that are common to any two base literals.
    * See function 'getIntersectInfo'.
    */
-  TriangularArray<pair<int,int>* >* intersections;
+  TriangularArray<std::pair<int,int>* >* intersections;
 
   /**
    * Base literals that are instantiated and matched to alternatives.
@@ -298,7 +298,7 @@ struct MatchingData final {
   unsigned* boundVarNumStorage;
   TermList** altBindingPtrStorage;
   TermList* altBindingStorage;
-  pair<int,int>* intersectionStorage;
+  std::pair<int,int>* intersectionStorage;
 
   enum InitResult {
     OK,
@@ -313,7 +313,7 @@ struct MatchingData final {
   /**
    * Compute the "intersect info" of base literals bases[b1] and bases[b2], i.e.,
    * the variables that the literals have in common.
-   * In particular, the result is an array of pair<int,int>.
+   * In particular, the result is an array of std::pair<int,int>.
    * Each element represents a variable that is common in bases[b1] and bases[b2];
    * the first and second components of the pair give the index i of the variable
    * in the array altBindings[bi][ai][i] for bi=b1 and bi=b2, respectively.
@@ -321,13 +321,13 @@ struct MatchingData final {
    *
    * Requires b1 < b2.
    */
-  pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
+  std::pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
   {
     ASS(isInitialized(b1));
     ASS(isInitialized(b2));
 
     ASS_L(b1, b2);
-    pair<int,int>* res=intersections->get(b2,b1);
+    std::pair<int,int>* res=intersections->get(b2,b1);
     if( res ) {
       return res;
     }
@@ -407,7 +407,7 @@ struct MatchingData final {
 
     // Iterate over variables common to bases[b1Index] and bases[b2Index].
     // (iinfo stores which variables are in common and should be getIntersectInfo(b1Index, b2Index)).
-    pair<int,int>* iinfo = getIntersectInfo(b1Index, b2Index);
+    std::pair<int,int>* iinfo = getIntersectInfo(b1Index, b2Index);
     while(iinfo->first!=-1) {
       if(i1Bindings[iinfo->first]!=i2Bindings[iinfo->second]) {
         return false;
@@ -733,12 +733,12 @@ class MLMatcherSD::Impl final
     DArray<unsigned*> s_boundVarNums;
     DArray<TermList**> s_altPtrs;
     TriangularArray<unsigned> s_remaining;
-    TriangularArray<pair<int,int>* > s_intersections;
+    TriangularArray<std::pair<int,int>* > s_intersections;
     DArray<unsigned> s_nextAlts;
     DArray<unsigned> s_boundVarNumData;
     DArray<TermList*> s_altBindingPtrs;
     DArray<TermList> s_altBindingsData;
-    DArray<pair<int,int> > s_intersectionData;
+    DArray<std::pair<int,int> > s_intersectionData;
 
     MatchingData s_matchingData;
 

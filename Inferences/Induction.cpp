@@ -296,7 +296,7 @@ struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
-  VirtualIterator<InductionContext> operator()(pair<Term*, VirtualIterator<TermQueryResult>> arg) {
+  VirtualIterator<InductionContext> operator()(std::pair<Term*, VirtualIterator<TermQueryResult>> arg) {
     auto indDepth = _premise->inference().inductionDepth();
     // heuristic 2
     if (indDepth) {
@@ -375,7 +375,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
   if(_opt.showInduction()){
     env.beginOutput();
-    env.out() << "[Induction] process " << lit->toString() << " in " << premise->toString() << endl;
+    env.out() << "[Induction] process " << lit->toString() << " in " << premise->toString() << std::endl;
     env.endOutput();
   }
 
@@ -451,11 +451,11 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
     }
     // collect term queries for each induction term
-    auto sideLitsIt = VirtualIterator<pair<Term*, TermQueryResultIterator>>::getEmpty();
+    auto sideLitsIt = VirtualIterator<std::pair<Term*, TermQueryResultIterator>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(Set<Term*>::Iterator(ta_terms))
         .map([this](Term* arg) {
-          return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), true));
+          return std::make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), true));
         }));
     }
     // put clauses from queries into contexts alongside with the given clause and induction term
@@ -592,13 +592,13 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   unsigned maxInductionDepth = 0;
   for (const auto& kv : context._cls) {
-    maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());
+    maxInductionDepth = std::max(maxInductionDepth,kv.first->inference().inductionDepth());
   }
   inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   if(_opt.showInduction()){
     env.beginOutput();
-    env.out() << "[Induction] formula " << fu->toString() << endl;
+    env.out() << "[Induction] formula " << fu->toString() << std::endl;
     env.endOutput();
   }
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
@@ -873,7 +873,7 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
     _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst));
     if(_opt.showInduction()){
       env.beginOutput();
-      env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;
+      env.out() << "[Induction] generate " << _clauses.top()->toString() << std::endl;
       env.endOutput();
     }
   }

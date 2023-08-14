@@ -77,7 +77,7 @@ void Superposition::detach()
 struct Superposition::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TypedTermList>, TermQueryResult> arg)
+  Clause* operator()(std::pair<std::pair<Literal*, TypedTermList>, TermQueryResult> arg)
   {
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
@@ -93,7 +93,7 @@ private:
 struct Superposition::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(std::pair<std::pair<Literal*, TermList>, TermQueryResult> arg)
   {
     if(_cl==arg.second.clause) {
       return 0;
@@ -114,7 +114,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
-  //cout << "SUPERPOSITION with " << premise->toString() << endl;
+  //std::cout << "SUPERPOSITION with " << premise->toString() << std::endl;
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
@@ -133,7 +133,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
   auto itf3 = getMapAndFlattenIterator(itf2,
-      [this](pair<Literal*, TypedTermList> arg)
+      [this](std::pair<Literal*, TypedTermList> arg)
       { return pushPairIntoRightIterator(arg, _lhsIndex->getUnifications(arg.second, /*retrieveSubstitutions*/ true, withConstraints)); });
 
   //Perform forward superposition
@@ -142,7 +142,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
   auto itb3 = getMapAndFlattenIterator(itb2, 
-      [this] (pair<Literal*, TermList> arg)
+      [this] (std::pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(
               arg, 
               _subtermIndex->getUnifications(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), 
@@ -178,7 +178,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
   }
   if(getOptions().showBlocked()) {
     env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
     env.endOutput();
   }
   if(getOptions().colorUnblocking()) {
@@ -370,7 +370,7 @@ Clause* Superposition::performSuperposition(
   }
 #endif
 
-  //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
+  //std::cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << std::endl;
 
   //check that we're not rewriting smaller subterm with larger
   if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
@@ -413,14 +413,14 @@ Clause* Superposition::performSuperposition(
   // superposition on 
   if(env.options->proofExtra()==Options::ProofExtra::FULL){
     /*
-    cout << "rwClause " << rwClause->toString() << endl;
-    cout << "eqClause " << eqClause->toString() << endl;
-    cout << "rwLit " << rwLit->toString() << endl;
-    cout << "eqLit " << eqLit->toString() << endl;
-    cout << "rwTerm " << rwTerm.toString() << endl;
-    cout << "eqLHS " << eqLHS.toString() << endl;
+    std::cout << "rwClause " << rwClause->toString() << std::endl;
+    std::cout << "eqClause " << eqClause->toString() << std::endl;
+    std::cout << "rwLit " << rwLit->toString() << std::endl;
+    std::cout << "eqLit " << eqLit->toString() << std::endl;
+    std::cout << "rwTerm " << rwTerm.toString() << std::endl;
+    std::cout << "eqLHS " << eqLHS.toString() << std::endl;
      */
-    //cout << subst->toString() << endl;
+    //std::cout << subst->toString() << std::endl;
 
     // First find which literal it is in the clause, as selection has occured already
     // this should remain the same...?
@@ -439,7 +439,7 @@ Clause* Superposition::performSuperposition(
         eqPos+" in "+eqClauseNum+" and "+
         rwPos+" in "+rwClauseNum;
 
-    //cout << extra << endl;
+    //std::cout << extra << std::endl;
     //NOT_IMPLEMENTED;
 
     if (!env.proofExtra) {
@@ -579,10 +579,10 @@ Clause* Superposition::performSuperposition(
 
 /*
   if(hasConstraints){ 
-    cout << "RETURNING " << res->toString() << endl;
+    std::cout << "RETURNING " << res->toString() << std::endl;
     //NOT_IMPLEMENTED;
   }
 */
-//  cout << "result " + res->toString() << endl;
+//  std::cout << "result " + res->toString() << std::endl;
   return res;
 }

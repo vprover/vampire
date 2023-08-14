@@ -91,7 +91,7 @@ public:
   virtual void ensureVarCount(unsigned newVarCnt) override { 
     _inner->ensureVarCount(newVarCnt); 
     _fallback->ensureVarCount(newVarCnt); 
-    _varCnt=max(_varCnt,newVarCnt); 
+    _varCnt=std::max(_varCnt,newVarCnt); 
   }
 
 

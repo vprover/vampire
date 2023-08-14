@@ -43,7 +43,7 @@ unsigned ELiteralSelector::lit_standard_diff(Literal* lit)
   if (lit->isEquality()) {
     unsigned w0 = lit->nthArgument(0)->weight();
     unsigned w1 = lit->nthArgument(1)->weight();
-    return max(w0,w1)-min(w0,w1);
+    return std::max(w0,w1)-std::min(w0,w1);
   } else {
     return lit->weight() - 1;
   }
@@ -157,7 +157,7 @@ void ELiteralSelector::doSelection(Clause* c, unsigned eligible)
     ASS(li<eligible);
     if((*c)[li]==sel->head()) {
       if(li!=selCnt) {
-        swap((*c)[li], (*c)[selCnt]);
+        std::swap((*c)[li], (*c)[selCnt]);
       }
       selCnt++;
       LiteralList::pop(sel);

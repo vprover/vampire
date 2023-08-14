@@ -731,7 +731,7 @@ void Property::scanForInterpreted(Term* t)
     Literal* lit = static_cast<Literal*>(t);
     if (!theory->isInterpretedPredicate(lit->functor())) { return; }
     if (lit->isEquality()) {
-      //cout << "this is interpreted equality " << t->toString() << endl;
+      //std::cout << "this is interpreted equality " << t->toString() << std::endl;
       return; 
     }
     itp = theory->interpretPredicate(lit);

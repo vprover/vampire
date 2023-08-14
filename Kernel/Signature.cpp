@@ -455,7 +455,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 {
   ASS(!Theory::isFunction(interpretation));
 
-  // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
+  // std::cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << std::endl;
 
   Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
 
@@ -469,7 +469,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
 
   vstring symbolKey = name+"_i"+Int::toString(interpretation)+(Theory::isPolymorphic(interpretation) ? type->toString() : "");
 
-  // cout << "symbolKey " << symbolKey << endl;
+  // std::cout << "symbolKey " << symbolKey << std::endl;
 
   ASS_REP(!_predNames.find(symbolKey), symbolKey);
 

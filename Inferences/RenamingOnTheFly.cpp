@@ -112,12 +112,12 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
       } 
 
       if(nameExists){
-        //cout << "the clause is " + c->toString() << endl;
-        //cout << "the formula is " + formula.toString() << endl;
-        //cout << "the name is " + name.toString() << endl;
-        //cout << "the lit is " + tqr.literal->toString() << endl;
-        //cout << "other clause is " + tqr.clause->toString() << endl;
-        //cout << "the sub is " + tqr.substitution->toString() << endl;
+        //std::cout << "the clause is " + c->toString() << std::endl;
+        //std::cout << "the formula is " + formula.toString() << std::endl;
+        //std::cout << "the name is " + name.toString() << std::endl;
+        //std::cout << "the lit is " + tqr.literal->toString() << std::endl;
+        //std::cout << "other clause is " + tqr.clause->toString() << std::endl;
+        //std::cout << "the sub is " + tqr.substitution->toString() << std::endl;
         Literal* newLit = Literal::createEquality(positive, nameS, troo, boolSort);
         if(needToAddDefClause){
           Clause* defClause = tqr.clause;
@@ -153,7 +153,7 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
    
         VariableIterator2 vit(formula.term());
         while(vit.hasNext()){
-          pair<TermList, TermList> varTypePair = vit.next();
+          std::pair<TermList, TermList> varTypePair = vit.next();
           if(!varSorts.find(varTypePair.first.var())){
             varSorts.insert(varTypePair.first.var(), varTypePair.second);
           }

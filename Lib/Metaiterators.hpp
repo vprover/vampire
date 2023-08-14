@@ -173,7 +173,7 @@ class InputIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
-  InputIterator(istream& inp, size_t cnt) : _inp(inp), _remaining(cnt) {}
+  InputIterator(std::istream& inp, size_t cnt) : _inp(inp), _remaining(cnt) {}
 
   bool hasNext() const { return _remaining>0; }
   T next() {
@@ -185,7 +185,7 @@ public:
   }
 
 private:
-  istream& _inp;
+  std::istream& _inp;
   size_t _remaining;
 };
 
@@ -1119,7 +1119,7 @@ template<typename T>
 class CombinationIterator
 {
 public:
-  DECL_ELEMENT_TYPE(pair<T,T>);
+  DECL_ELEMENT_TYPE(std::pair<T,T>);
   CombinationIterator(T from, T to)
   : _first(from), _second(from), _afterLast(to)
   {
@@ -1134,10 +1134,10 @@ public:
   }
   inline bool hasNext()
   { ASS_LE(_first,_afterLast); return _second!=_afterLast; }
-  pair<T,T> next()
+  std::pair<T,T> next()
   {
     ASS(hasNext());
-    pair<T,T> res=pair<T,T>(_first,_second);
+    std::pair<T,T> res=std::pair<T,T>(_first,_second);
     moveToNext();
     return res;
   }
@@ -1174,7 +1174,7 @@ template<typename T>
 class Combination2Iterator
 {
 public:
-  DECL_ELEMENT_TYPE(pair<T,T>);
+  DECL_ELEMENT_TYPE(std::pair<T,T>);
   Combination2Iterator(T from, T to1, T to2)
   : _first(from), _second(from), _afterLast1(to1), _afterLast2(to2)
   {
@@ -1186,10 +1186,10 @@ public:
   }
   inline bool hasNext()
   { return _first!=_afterLast1 && _second!=_afterLast2; }
-  pair<T,T> next()
+  std::pair<T,T> next()
   {
     ASS(hasNext());
-    pair<T,T> res=pair<T,T>(_first,_second);
+    std::pair<T,T> res=std::pair<T,T>(_first,_second);
     ASS_LE(_first,_afterLast1);
     ASS_LE(_second,_afterLast2);
     moveToNext();
@@ -1473,11 +1473,11 @@ T sumFn(T a1, T a2) { return a1+a2; }
 
 /** max function, useful for fold */
 template<typename T>
-T maxFn(T a1, T a2) { return max(a1,a2); }
+T maxFn(T a1, T a2) { return std::max(a1,a2); }
 
 /** min function, useful for fold */
 template<typename T>
-T minFn(T a1, T a2) { return min(a1,a2); }
+T minFn(T a1, T a2) { return std::min(a1,a2); }
 
 
 template<class It>
@@ -1494,7 +1494,7 @@ StmJoinAuxStruct<It> join(vstring glue, It it)
   return StmJoinAuxStruct<It>(glue, it);
 }
 template<typename It>
-std::ostream& operator<< (ostream& out, const StmJoinAuxStruct<It>& info )
+std::ostream& operator<< (std::ostream& out, const StmJoinAuxStruct<It>& info )
 {
   It it = info._it;
   while(it.hasNext()) {
@@ -1707,7 +1707,7 @@ public:
           if (found.tryGet(next).isSome()) {
             return Option<OWN_ELEMENT_TYPE>();
           } else {
-            found.insert(next, make_tuple());
+            found.insert(next, std::make_tuple());
             return Option<OWN_ELEMENT_TYPE>(std::move(next));
           }
         })); 

@@ -194,7 +194,7 @@ bool TheoryInstAndSimp::isSupportedFunction(Theory::Interpretation itp) {
 bool TheoryInstAndSimp::isPure(Literal* lit) {
   if (lit->isSpecial()) /* TODO: extend for let .. in / if then else */ {
 #if DPRINT
-    cout << "special lit " << lit -> toString() << endl;
+    std::cout << "special lit " << lit -> toString() << std::endl;
 #endif
     return false;
   }
@@ -227,7 +227,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   }
 
 #if DPRINT
-  cout << "found pure literal: " << lit->toString() << endl;
+  std::cout << "found pure literal: " << lit->toString() << std::endl;
 #endif
   return true;
 }
@@ -298,7 +298,7 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
 Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
 {
 #if DPRINT
-  cout << "selecting trivial literals in " << cl->toString() << endl ;
+  std::cout << "selecting trivial literals in " << cl->toString() << std::endl ;
 #endif
   /* find trivial candidates of the form x != t (x not occurring in t) */
   Clause::Iterator it(*cl);
@@ -317,7 +317,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
       if (c->isNegative()
           && c->isEquality()) {
 #if DPRINT
-        cout << "checking " << c->toString() << endl;
+        std::cout << "checking " << c->toString() << std::endl;
 #endif
         TermList left = c->termArg(0);
         TermList right = c->termArg(1);
@@ -343,7 +343,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
       } else {
         //mark as nontrivial pure
 #if DPRINT
-        cout << "non trivial pure found " << c->toString() << endl;
+        std::cout << "non trivial pure found " << c->toString() << std::endl;
 #endif
         nontriv_pure.push(c);
       }
@@ -353,9 +353,9 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
   }
 
 #if DPRINT
-  cout << "Found " << triv_candidates.length() << " trivial candidates." << endl;
-  cout << "Found " << nontriv_pure.length() << " nontrivial pure literals." << endl;
-  cout << "Found " << impure.length() << " impure literals." << endl;
+  std::cout << "Found " << triv_candidates.length() << " trivial candidates." << std::endl;
+  std::cout << "Found " << nontriv_pure.length() << " nontrivial pure literals." << std::endl;
+  std::cout << "Found " << impure.length() << " impure literals." << std::endl;
 #endif
   /* remove all candidates where the variable occurs in other pure
      non-trivial lits  */
@@ -389,7 +389,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
   }
 
 #if DPRINT
-  cout << "Found " << triv_candidates.length() << " trivial literals." << endl;
+  std::cout << "Found " << triv_candidates.length() << " trivial literals." << std::endl;
 #endif
   
   return triv_candidates;
@@ -401,7 +401,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
  */
 Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
 #if DPRINT
-  cout << "selectTheoryLiterals in " << cl->toString() << endl;
+  std::cout << "selectTheoryLiterals in " << cl->toString() << std::endl;
 #endif
 
   ASS_NEQ(_mode, Shell::Options::TheoryInstSimp::OFF);
@@ -422,13 +422,13 @@ Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
 
 void TheoryInstAndSimp::filterUninterpretedPartialFunctionDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits) {
 #if DPRINT
-  cout << "div zero filtering checking!" << endl;
+  std::cout << "div zero filtering checking!" << std::endl;
 #endif
   Stack<Literal*>::BottomFirstIterator it(theoryLits);
   while(it.hasNext()) {
     Literal* lit = it.next();
 #if DPRINT
-    cout << "div zero filtering checking: " << lit->toString() << endl;
+    std::cout << "div zero filtering checking: " << lit->toString() << std::endl;
 #endif
     bool keep_lit = true;
     SubtermIterator sit(lit);
@@ -442,7 +442,7 @@ void TheoryInstAndSimp::filterUninterpretedPartialFunctionDeep(Stack<Literal*>& 
           // treat this literal as uninterpreted
           keep_lit = false;
 #if DPRINT
-          cout << "division by zero removed: " << lit->toString() << endl;
+          std::cout << "division by zero removed: " << lit->toString() << std::endl;
 #endif
         }
       }

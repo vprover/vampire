@@ -409,8 +409,8 @@ TermList ApplicativeHelper::replaceFunctionalAndBooleanSubterms(Term* term, Func
 
   TermList* argLst=&args.top() - (hoti.argNum-1);
   ASS(!term->isLiteral());
-  //cout << "original " + term->toString() << endl;
+  //std::cout << "original " + term->toString() << std::endl;
   TermList replaced =  AH::createAppTerm(hoti.headSort, hoti.head, argLst, hoti.argNum, false);
-  //cout << "new " + replaced.toString() << endl;
+  //std::cout << "new " + replaced.toString() << std::endl;
   return replaced;
 }

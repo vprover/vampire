@@ -35,7 +35,7 @@ TEST_FUN(dis1)
 
   ASS(dsit.hasNext());
 
-  pair<TermList, TermList> diff=dsit.next();
+  std::pair<TermList, TermList> diff=dsit.next();
   TermList st1=diff.first;
   TermList st2=diff.second;
 

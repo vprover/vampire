@@ -177,7 +177,7 @@ public:
     ASS_EQ(lit->functor(), _srcPred);
 
     TermList args[2] = { lit->termArg(0), lit->termArg(1) };
-    if(_swapArguments) { swap(args[0], args[1]); }
+    if(_swapArguments) { std::swap(args[0], args[1]); }
     bool polarity = lit->isPositive() ^ _reversePolarity;
 
     return Literal::create(_tgtPred, 2, polarity, false, args);

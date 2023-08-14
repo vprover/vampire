@@ -177,17 +177,17 @@ private:
   }
 
   Kernel::RobSubstitution _subst;
-  unordered_set<unsigned> _varsMatched;
+  std::unordered_set<unsigned> _varsMatched;
   BacktrackData _btd;
 
   class MatchedVarBacktrackObject : public BacktrackObject {
   public:
-    MatchedVarBacktrackObject(unordered_set<unsigned>& s, unsigned i) : _s(s), _i(i) {}
+    MatchedVarBacktrackObject(std::unordered_set<unsigned>& s, unsigned i) : _s(s), _i(i) {}
     void backtrack() override {
       _s.erase(_i);
     }
   private:
-    unordered_set<unsigned>& _s;
+    std::unordered_set<unsigned>& _s;
     unsigned _i;
   };
 };

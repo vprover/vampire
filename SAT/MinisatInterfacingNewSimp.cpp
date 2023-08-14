@@ -48,7 +48,7 @@ MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts,
 void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
   env.beginOutput();
   reportSpiderStatus('m');
-  env.out() << "Minisat ran out of memory" << endl;
+  env.out() << "Minisat ran out of memory" << std::endl;
   if(env.statistics) {
     env.statistics->print(env.out());
   }
@@ -113,12 +113,12 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
    
   try{
     //int bef = _solver.nVars();
-    //cout << "Before: vars " << bef << ", non-unit clauses " << _solver.nClauses() << endl;
+    //std::cout << "Before: vars " << bef << ", non-unit clauses " << _solver.nClauses() << std::endl;
 
     _solver.setConfBudget(conflictCountLimit); // treating UINT_MAX as \infty
     lbool res = _solver.solveLimited(_assumptions,true,true);
 
-    //cout << "After: vars " << bef - _solver.eliminated_vars << ", non-unit clauses " << _solver.nClauses() << endl;
+    //std::cout << "After: vars " << bef - _solver.eliminated_vars << ", non-unit clauses " << _solver.nClauses() << std::endl;
   
     if (res == l_True) {
       _status = SATISFIABLE;

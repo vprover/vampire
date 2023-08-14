@@ -107,7 +107,7 @@ private:
   DHMap<unsigned,TermList> _varSorts;
 
   // for some heuristic evaluations after we are done
-  Stack<pair<bool, unsigned>> _introducedSkolemSyms;
+  Stack<std::pair<bool, unsigned>> _introducedSkolemSyms;
   
   FormulaUnit* _beingSkolemised;
 

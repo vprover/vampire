@@ -192,7 +192,7 @@ void profileMode()
 } // profileMode
 
 // prints Unit u at an index to latexOut using the LaTeX object
-void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
+void outputUnitToLaTeX(LaTeX& latex, std::ofstream& latexOut, Unit* u,unsigned index)
 {
     vstring stringform = latex.toString(u);
     latexOut << index++ << " & ";
@@ -205,7 +205,7 @@ void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
         count=0;
       }
     }
-    latexOut << "\\\\" << endl;
+    latexOut << "\\\\" << std::endl;
 }
 
 // print the clauses of a problem to a LaTeX file
@@ -213,14 +213,14 @@ void outputClausesToLaTeX(Problem* prb)
 {
   ASS(env.options->latexOutput()!="off");
 
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
+  BYPASSING_ALLOCATOR; // not sure why we need this yet, std::ofstream?
 
   LaTeX latex;
-  ofstream latexOut(env.options->latexOutput().c_str());
-  latexOut << latex.header() << endl;
-  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << endl;
+  std::ofstream latexOut(env.options->latexOutput().c_str());
+  latexOut << latex.header() << std::endl;
+  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << std::endl;
   //TODO output more header
-  latexOut << "\\[\n\\begin{array}{ll}" << endl;
+  latexOut << "\\[\n\\begin{array}{ll}" << std::endl;
 
   CompositeISE simplifier;
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
@@ -239,7 +239,7 @@ void outputClausesToLaTeX(Problem* prb)
   }
   latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
 
-  //close ofstream?
+  //close std::ofstream?
 }
 
 // print the formulas of a problem to a LaTeX file
@@ -247,14 +247,14 @@ void outputProblemToLaTeX(Problem* prb)
 {
   ASS(env.options->latexOutput()!="off");
 
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
+  BYPASSING_ALLOCATOR; // not sure why we need this yet, std::ofstream?
 
   LaTeX latex;
-  ofstream latexOut(env.options->latexOutput().c_str());
-  latexOut << latex.header() << endl;
-  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << endl;
+  std::ofstream latexOut(env.options->latexOutput().c_str());
+  latexOut << latex.header() << std::endl;
+  latexOut << "\\section{Problem "<<env.options->problemName() << "}" << std::endl;
   //TODO output more header
-  latexOut << "\\[\n\\begin{array}{ll}" << endl;
+  latexOut << "\\[\n\\begin{array}{ll}" << std::endl;
 
   //TODO  get symbol and sort declarations into LaTeX
 
@@ -267,7 +267,7 @@ void outputProblemToLaTeX(Problem* prb)
   }
   latexOut  << "\\end{array}\n\\]" << latex.footer() << "\n";
 
-  //close ofstream?
+  //close std::ofstream?
 }
 
 /**
@@ -694,7 +694,7 @@ int main(int argc, char* argv[])
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
       else {
-        cout << "unknown" << endl;
+        std::cout << "unknown" << std::endl;
       }
       break;
 
@@ -716,9 +716,9 @@ int main(int argc, char* argv[])
           CASC::CLTBMode::perform();
         }
       } catch (Lib::SystemFailException& ex) {
-        cerr << "Process " << getpid() << " received SystemFailException" << endl;
-        ex.cry(cerr);
-        cerr << " and will now die" << endl;
+        std::cerr << "Process " << getpid() << " received SystemFailException" << std::endl;
+        ex.cry(std::cerr);
+        std::cerr << " and will now die" << std::endl;
       }
       //we have processed the ltb batch file, so we can return zero
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -763,7 +763,7 @@ int main(int argc, char* argv[])
     BYPASSING_ALLOCATOR;
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     if (outputAllowed()) {
-      cout << "Z3 exception:\n" << exception.msg() << endl;
+      std::cout << "Z3 exception:\n" << exception.msg() << std::endl;
     }
     reportSpiderFail();
   }

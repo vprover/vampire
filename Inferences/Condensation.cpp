@@ -62,7 +62,7 @@ Clause* Condensation::simplify(Clause* cl)
   //
   CombinationIterator<unsigned> pairIt(0, clen);
   while(pairIt.hasNext()) {
-    pair<unsigned,unsigned> lpair=pairIt.next();
+    std::pair<unsigned,unsigned> lpair=pairIt.next();
     unsigned l1Index=lpair.first;
     unsigned l2Index=lpair.second;
     if(l1Index==l2Index) {

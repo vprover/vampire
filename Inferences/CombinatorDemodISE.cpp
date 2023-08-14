@@ -39,7 +39,7 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   LiteralStack litStack;
   bool modified = false;
 
- // cout << "into CombinatorDemodISE " + c->toString() << endl;
+ // std::cout << "into CombinatorDemodISE " + c->toString() << std::endl;
 
   unsigned length = 0;
   unsigned length0;
@@ -76,9 +76,9 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
   inf.increaseReductions(length);
   Clause* newC = Clause::fromStack(litStack, inf);
   /*if(c->number() == 1620){
-    cout << "out of CombinatorDemodISE " + newC->toString() << endl;
+    std::cout << "out of CombinatorDemodISE " + newC->toString() << std::endl;
   }*/
-  //if(!newC){ cout << "RETURNING NULL CLAUSE" << endl; }
+  //if(!newC){ std::cout << "RETURNING NULL CLAUSE" << std::endl; }
   return newC;
 }
 

@@ -86,7 +86,7 @@ IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
       break;
 #if VZ3
     case Options::SatSolver::Z3:
-      //cout << "Warning: Z3 not compatible with inst_gen, using Minisat" << endl;
+      //std::cout << "Warning: Z3 not compatible with inst_gen, using Minisat" << std::endl;
       _satSolver = new MinisatInterfacing(opt,true);
       break;
 #endif
@@ -322,7 +322,7 @@ bool IGAlgorithm::isSelected(Literal* lit)
 bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst, bool isQuery, Clause* otherCl,Literal* origLit, LiteralStack& genLits, bool& properInstance)
 {
 #if VTRACE_DM
-  cout << "tryGenC " << orig->number() << " and " << otherCl->number() << " on " << origLit->toString() << endl;
+  std::cout << "tryGenC " << orig->number() << " and " << otherCl->number() << " on " << origLit->toString() << std::endl;
 #endif
 
   genLits.reset();
@@ -352,8 +352,8 @@ bool IGAlgorithm::startGeneratingClause(Clause* orig, ResultSubstitution& subst,
       if (dmatch && dmatch->shouldBlock(olit,glit)) {
         RSTAT_CTR_INC("dismatch blocked");
 #if VTRACE_DM
-        cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << endl;
-        cout << "block with origLit : " << (olit==origLit) << endl;
+        std::cout << "[" << dmatch << "] " << "blocking for " << orig->number() << " and " << glit->toString() << std::endl;
+        std::cout << "block with origLit : " << (olit==origLit) << std::endl;
 #endif
         return false;
       }
@@ -379,7 +379,7 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
 {
   Clause* res = Clause::fromStack(genLits, GeneratingInference1(InferenceRule::INSTANCE_GENERATION, orig));
   // make age also depend on the age of otherCl
-  res->setAge(max(orig->age(), otherCl->age())+1);
+  res->setAge(std::max(orig->age(), otherCl->age())+1);
 
   env.statistics->instGenGeneratedClauses++;
   bool added = addClause(res);
@@ -398,13 +398,13 @@ void IGAlgorithm::finishGeneratingClause(Clause* orig, ResultSubstitution& subst
       dmatch = new DismatchingContraints();
       ALWAYS(_dismatchMap.insert(orig,dmatch));
 #if VTRACE_DM
-      cout << "[" << dmatch << "] "<< "creating for " << orig->toString() << endl;
+      std::cout << "[" << dmatch << "] "<< "creating for " << orig->toString() << std::endl;
 #endif
     }
 
     Literal* dm_with = isQuery ? subst.applyToQuery(origLit) : subst.applyToResult(origLit);
 #if VTRACE_DM
-      cout << "[" << dmatch << "] "<< "dismatch " << orig->number() << " add " << dm_with->toString() << endl;
+      std::cout << "[" << dmatch << "] "<< "dismatch " << orig->number() << " add " << dm_with->toString() << std::endl;
 #endif
     dmatch->add(origLit,dm_with);
   }
@@ -521,7 +521,7 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
   for (unsigned i=0; i < candidates.size(); i++) {
     unsigned idx = candidates[i];
     if(selIdx!=idx) {
-      swap((*cl)[idx], (*cl)[selIdx]);
+      std::swap((*cl)[idx], (*cl)[selIdx]);
     }
     selIdx++;
   }
@@ -544,7 +544,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
 
     if(selIdx!=i) {
       modified = true;
-      swap((*cl)[i], (*cl)[selIdx]);
+      std::swap((*cl)[i], (*cl)[selIdx]);
     }
     selIdx++;
   }
@@ -798,7 +798,7 @@ MainLoopResult IGAlgorithm::runImpl()
       processUnprocessed();
       // ASS_EQ(_satSolver->getStatus(), SATSolver::SATISFIABLE);
 
-      unsigned activatedCnt = max(10u, _passive.size()/4);
+      unsigned activatedCnt = std::max(10u, _passive.size()/4);
       for(unsigned i=0; i<activatedCnt && !_passive.isEmpty() && _instGenResolutionRatio.shouldDoFirst(); i++) {
 	Clause* given = _passive.popSelected();
 	activate(given);
@@ -869,7 +869,7 @@ MainLoopResult IGAlgorithm::onModelFound()
       if(szsOutputMode()) {
         env.beginOutput();
         env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-            << " for " << _opt.problemName() << endl << flush;
+            << " for " << _opt.problemName() << std::endl << std::flush;
         env.endOutput();
         UIHelper::satisfiableStatusWasAlreadyOutput = true;
       }

@@ -223,7 +223,7 @@ void Problem::PreprocessingOptions::setDefaults()
   _ods.setDefaults();
 }
 
-void Problem::PreprocessingOptions::printOptionValues(ostream& out)
+void Problem::PreprocessingOptions::printOptionValues(std::ostream& out)
 {
   OptionsReader curRdr;
   prepareOptionsReader(curRdr);
@@ -411,7 +411,7 @@ bool Problem::empty()
 ///////////////////////////////////////
 // Parsing
 
-void Problem::addFromStream(istream& s, vstring includeDirectory, bool simplifySyntax)
+void Problem::addFromStream(std::istream& s, vstring includeDirectory, bool simplifySyntax)
 {
   using namespace Shell;
 
@@ -1554,7 +1554,7 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
   return res;
 }
 
-void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
+void outputAttributes(std::ostream& out, FBHelperCore::AttribStack* attribs)
 {
   if(!attribs) {
     return;
@@ -1566,7 +1566,7 @@ void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
   }
 }
 
-void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
+void outputSymbolTypeDefinitions(std::ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
     FBHelperCore::AttribStack* attribs, bool dummyNames)
 {
   Signature::Symbol* sym = function ?
@@ -1612,11 +1612,11 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
     out << "$o";
   }
   outputAttributes(out, attribs);
-  out << " )." << endl;
+  out << " )." << std::endl;
 
 }
 
-void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
+void Problem::outputTypeDefinitions(std::ostream& out, bool outputAllTypeDefs)
 {
   DefaultHelperCore* core0 = _data->getCore();
   bool dummyNames = core0 && core0->outputDummyNames();
@@ -1625,7 +1625,7 @@ void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
   for(unsigned i=Sorts::FIRST_USER_SORT; i<sorts; i++) {
     out << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i) << ": $tType";
     if(core) { outputAttributes(out, &core->getSortAttributes(i)); }
-    out << " )." << endl;
+    out << " )." << std::endl;
   }
 
 
@@ -1641,18 +1641,18 @@ void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
   }
 }
 
-void Problem::output(ostream& out, bool outputTypeDefs, bool outputAllTypeDefs)
+void Problem::output(std::ostream& out, bool outputTypeDefs, bool outputAllTypeDefs)
 {
   if(outputTypeDefs) {
     outputTypeDefinitions(out, outputAllTypeDefs);
   }
   AnnotatedFormulaIterator afit = formulas();
   while(afit.hasNext()) {
-    out<<afit.next()<<endl;
+    out<<afit.next()<<std::endl;
   }
 }
 
-void Problem::outputStatistics(ostream& out)
+void Problem::outputStatistics(std::ostream& out)
 {
   env.statistics->print(out);
 }

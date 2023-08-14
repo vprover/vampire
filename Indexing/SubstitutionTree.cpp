@@ -725,11 +725,11 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 {
 #if VDEBUG
   if(_tag){
-    cout << "=========================================" << endl;
-    cout << "entering..." << *n << endl;
-    cout << "subst is " << _subst << endl;
-    cout << "svstack is " << _svStack << endl;
-    cout << "=========================================" << endl;
+    std::cout << "=========================================" << std::endl;
+    std::cout << "entering..." << *n << std::endl;
+    std::cout << "subst is " << _subst << std::endl;
+    std::cout << "svstack is " << _svStack << std::endl;
+    std::cout << "=========================================" << std::endl;
   } 
 #endif
 
@@ -770,7 +770,7 @@ bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
 
 bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
 {
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
+  auto constraint = std::make_pair(std::make_pair(query,index1),std::make_pair(node,index2));
   _constraints.backtrackablePush(constraint,_bd);
   return true;
 }
@@ -778,7 +778,7 @@ bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(Term
 bool SubstitutionTree::STHOMismatchHandler::handle
      (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
 {
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
+  auto constraint = std::make_pair(std::make_pair(query,index1),std::make_pair(node,index2));
   _constraints.backtrackablePush(constraint,_bd);
   return true;
 }
@@ -846,7 +846,7 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multilin
 
     if (multiline) {
       auto outp = [&](Node** x) { 
-        out << endl; 
+        out << std::endl; 
         repeat(out, INDENT, indent + 1);
         out << "| ";
         (*x)->output(out, multiline, indent + 1);
@@ -856,7 +856,7 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multilin
       while (childIter.hasNext()) {
         outp(childIter.next());
       }
-      out << endl; 
+      out << std::endl; 
       repeat(out, INDENT, indent);
       out << "]";
 

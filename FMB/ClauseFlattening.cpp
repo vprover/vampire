@@ -85,7 +85,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     }
   } subst;
 
-  // cout << "Begin: " << cl->toString() << endl;
+  // std::cout << "Begin: " << cl->toString() << std::endl;
 
   unsigned n = cl->length();
   unsigned idx = 0;
@@ -110,9 +110,9 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
       }
       cl = newcl;
       n--;
-      // cout << "Update: " << cl->toString() << endl;
+      // std::cout << "Update: " << cl->toString() << std::endl;
     } else {
-      // cout << "Done: " << cl->toString() << endl;
+      // std::cout << "Done: " << cl->toString() << std::endl;
       return cl;
     }
   }
@@ -159,7 +159,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   // process lits
   while(!lits.isEmpty()){
     Literal* lit = lits.pop();
-    //cout << "Flattening " << lit->toString() << endl;
+    //std::cout << "Flattening " << lit->toString() << std::endl;
     // Could combine check and flattening
     if(isShallow(lit)){
       if(!result.find(lit)){

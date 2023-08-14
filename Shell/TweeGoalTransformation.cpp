@@ -107,7 +107,7 @@ class Definizator : public BottomUpTermTransformer {
 
   protected:
     TermList transformSubterm(TermList trm) override {
-      // cout << "tf: " << trm.toString() << endl;
+      // std::cout << "tf: " << trm.toString() << std::endl;
       if (trm.isVar()) return trm;
       Term* t = trm.term();
       if (t->isSort() || t->arity() == 0 || (!t->ground() && _groundOnly)) return trm;
@@ -174,7 +174,7 @@ class Definizator : public BottomUpTermTransformer {
       }
       // record as a new premise
       UnitList::push(symAndDef.second,premises);
-      // cout << "r: " << res.toString() << endl;
+      // std::cout << "r: " << res.toString() << std::endl;
       return res;
     }
 };
@@ -198,9 +198,9 @@ void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
     newLits.reset();
     for (unsigned i = 0; i < c->size(); i++) {
       Literal* l = c->literals()[i];
-      // cout << "L: " << l->toString() << endl;
+      // std::cout << "L: " << l->toString() << std::endl;
       Literal* nl = df.transform(l);
-      // cout << "NL: " << nl->toString() << endl;
+      // std::cout << "NL: " << nl->toString() << std::endl;
       newLits.push(nl);
     }
     if (df.premises) {

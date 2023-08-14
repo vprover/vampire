@@ -287,9 +287,9 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
     if (env.options->showPreprocessing()) {
       env.beginOutput();
         if (v) {
-          env.out() << "unit " << (*u) << " replaced by " << (*v) << endl;
+          env.out() << "unit " << (*u) << " replaced by " << (*v) << std::endl;
         } else {
-          env.out() << "unit " << (*u) << " removed" << endl;
+          env.out() << "unit " << (*u) << " removed" << std::endl;
         }
       env.endOutput();
     }
@@ -318,7 +318,7 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
     for (unsigned i = 0; i < _predCnt; ++i) {
       if (!_preds[i].pocc && !_preds[i].nocc && !_preds[i].docc)
         continue;      
-      env.out() << _preds[i].stateToString() << endl;
+      env.out() << _preds[i].stateToString() << std::endl;
     }    
     env.endOutput();
   }  
@@ -341,7 +341,7 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
     env.beginOutput();
     for(unsigned i=0; i<_predCnt; ++i) {
       if(!_preds[i].pocc && !_preds[i].nocc  && !_preds[i].docc ) { continue; }
-      env.out() << _preds[i].stateToString() << endl;
+      env.out() << _preds[i].stateToString() << std::endl;
     }    
     env.endOutput();
   }

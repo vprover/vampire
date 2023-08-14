@@ -158,8 +158,8 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] " << unit->toString() << endl;
-    env.out() << "[PP] " << processedUnit->toString()  << endl;
+    env.out() << "[PP] " << unit->toString() << std::endl;
+    env.out() << "[PP] " << processedUnit->toString()  << std::endl;
     env.endOutput();
   }
 
@@ -672,7 +672,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         if (renameSymbol) {
           if (env.options->showPreprocessing()) {
             env.beginOutput();
-            env.out() << "[PP] FOOL replace in:  " << contents.toString() << endl;
+            env.out() << "[PP] FOOL replace in:  " << contents.toString() << std::endl;
             env.endOutput();
           }
 
@@ -683,7 +683,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           if (env.options->showPreprocessing()) {
             env.beginOutput();
-            env.out() << "[PP] FOOL replace out: " << contents.toString() << endl;
+            env.out() << "[PP] FOOL replace out: " << contents.toString() << std::endl;
             env.endOutput();
           }
         }
@@ -964,7 +964,7 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
-    env.out() << "[PP] FOOL added definition: " << def->toString() << endl;
+    env.out() << "[PP] FOOL added definition: " << def->toString() << std::endl;
     env.endOutput();
   }
 }
@@ -1002,7 +1002,7 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
     } else {
       env.out() << "function symbol " << env.signature->functionName(symbol);
     }
-    env.out() << " of the sort " << type->toString() << endl;
+    env.out() << " of the sort " << type->toString() << std::endl;
     env.endOutput();
   }
 
@@ -1020,8 +1020,8 @@ void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
      * all. Setting show_fool to on, however, will display everything.
      */
     env.beginOutput();
-    env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
-    env.out() << "[PP] FOOL out: " << outputRepr << endl;
+    env.out() << "[PP] FOOL in:  " << inputRepr  << std::endl;
+    env.out() << "[PP] FOOL out: " << outputRepr << std::endl;
     env.endOutput();
   }
 }

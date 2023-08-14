@@ -399,8 +399,8 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   ///////////////////////// parsing helper functions ///////////////////////// 
  
   /** opens the file with name f or throws a UserError on failure  */
-  auto openFile = [](const vstring& f) -> ifstream {
-    ifstream file(f.c_str());
+  auto openFile = [](const vstring& f) -> std::ifstream {
+    std::ifstream file(f.c_str());
     if (!file.is_open()) {
       throw UserErrorException("failed to open file ", f);
     }
@@ -877,11 +877,11 @@ KboWeight KboWeightMap<SigTraits>::symbolWeight(unsigned functor) const
 }
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-void showSpecialWeights(const KboSpecialWeights<PredSigTraits>& ws, ostream& out) 
+void showSpecialWeights(const KboSpecialWeights<PredSigTraits>& ws, std::ostream& out) 
 { }
 #endif
 
-void showSpecialWeights(const KboSpecialWeights<FuncSigTraits>& ws, ostream& out) 
+void showSpecialWeights(const KboSpecialWeights<FuncSigTraits>& ws, std::ostream& out) 
 { 
   out << "% " SPECIAL_WEIGHT_IDENT_VAR        " " << ws._variableWeight         << std::endl;
   out << "% " SPECIAL_WEIGHT_IDENT_NUM_REAL   " " << ws._numReal                << std::endl;
@@ -889,7 +889,7 @@ void showSpecialWeights(const KboSpecialWeights<FuncSigTraits>& ws, ostream& out
   out << "% " SPECIAL_WEIGHT_IDENT_NUM_INT    " " << ws._numInt                 << std::endl;
 }
 template<class SigTraits>
-void KBO::showConcrete_(ostream& out) const  
+void KBO::showConcrete_(std::ostream& out) const  
 {
   out << "% Weights of " << SigTraits::symbolKindName() << " (line format: `<name> <arity> <weight>`)" << std::endl;
   out << "% ===== begin of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
@@ -913,7 +913,7 @@ void KBO::showConcrete_(ostream& out) const
   out << "% ===== end of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
 
 }
-void KBO::showConcrete(ostream& out) const  
+void KBO::showConcrete(std::ostream& out) const  
 {
   showConcrete_<FuncSigTraits>(out);
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__

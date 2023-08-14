@@ -62,7 +62,7 @@ bool ModelPrinter::isEprProblem()
   return true;
 }
 
-bool ModelPrinter::tryOutput(ostream& stm)
+bool ModelPrinter::tryOutput(std::ostream& stm)
 {
   if(!isEprProblem() || !haveNonDefaultSorts()) {
     return false;
@@ -359,11 +359,11 @@ void ModelPrinter::rewriteLits(LiteralStack& lits)
   }
 }
 
-void ModelPrinter::outputDomainSpec(ostream& out)
+void ModelPrinter::outputDomainSpec(std::ostream& out)
 {
   ASS(_domain.isNonEmpty());
 
-  out << "fof(model1,interpretation_domain," << endl
+  out << "fof(model1,interpretation_domain," << std::endl
       << "    ! [X] : ( ";
 
   TermStack::BottomFirstIterator dit(_domain);
@@ -375,14 +375,14 @@ void ModelPrinter::outputDomainSpec(ostream& out)
     }
   }
 
-  out << " ) )." << endl;
+  out << " ) )." << std::endl;
 }
 
-void ModelPrinter::outputFunInterpretations(ostream& out)
+void ModelPrinter::outputFunInterpretations(std::ostream& out)
 {
   if(_rewrites.isEmpty()) { return; }
 
-  out << "fof(model2,interpretation_terms," << endl
+  out << "fof(model2,interpretation_terms," << std::endl
       << "    ( ";
 
   EqMap::Iterator eit(_rewrites);
@@ -395,7 +395,7 @@ void ModelPrinter::outputFunInterpretations(ostream& out)
     }
   }
 
-  out << ") )." << endl;
+  out << ") )." << std::endl;
 }
 
 
@@ -410,7 +410,7 @@ struct ModelPrinter::PredNumComparator
   }
 };
 
-void ModelPrinter::outputPredInterpretations(ostream& out)
+void ModelPrinter::outputPredInterpretations(std::ostream& out)
 {
   LiteralStack model;
   getInstances(_trueLits, _domain, model);
@@ -419,7 +419,7 @@ void ModelPrinter::outputPredInterpretations(ostream& out)
 
   if(model.isEmpty()) { return; }
 
-  out << "fof(model3,interpretation_atoms," << endl
+  out << "fof(model3,interpretation_atoms," << std::endl
       << "    ( ";
 
   LiteralStack::BottomFirstIterator mit(model);
@@ -427,10 +427,10 @@ void ModelPrinter::outputPredInterpretations(ostream& out)
     Literal* lit = mit.next();
     out << lit->toString();
     if(mit.hasNext()) {
-      out << " & " << endl << "      ";
+      out << " & " << std::endl << "      ";
     }
   }
-  out << " ) )." << endl;
+  out << " ) )." << std::endl;
 }
 
 }

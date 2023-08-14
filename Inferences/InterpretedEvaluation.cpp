@@ -63,7 +63,7 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
   bool okay = _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);
 
   //if(okay && lit!=res){
-  //  cout << "evaluate " << lit->toString() << " to " << res->toString() << endl;
+  //  std::cout << "evaluate " << lit->toString() << " to " << res->toString() << std::endl;
   //}
 
   return okay;
@@ -103,7 +103,7 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
       modified=true;
       if(constant) {
         if(constTrue) {
-          //cout << "evaluate " << cl->toString() << " to true" << endl;
+          //std::cout << "evaluate " << cl->toString() << " to true" << std::endl;
           env.statistics->evaluationCnt++;
           return 0;
         } else {

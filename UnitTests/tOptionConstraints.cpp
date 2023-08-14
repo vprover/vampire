@@ -21,14 +21,14 @@ bool testGlobal(Options& o)
     return o.checkGlobalOptionConstraints();
   }
   catch(Lib::UserErrorException& e){
-    e.cry(cout);
+    e.cry(std::cout);
     return false;
   }
 }
 
 bool testOption(bool bad, vstring name,vstring value)
 {
-    //cout << (bad ? "Should be bad" : "Should be good") << endl;
+    //std::cout << (bad ? "Should be bad" : "Should be good") << std::endl;
     Options options;
     options.set(name,value);
     bool res = testGlobal(options);

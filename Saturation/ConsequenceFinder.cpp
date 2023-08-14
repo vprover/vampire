@@ -85,7 +85,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   }
 
   env.beginOutput();
-  env.out() << "Pure cf clause: " << cl->toNiceString() <<endl;
+  env.out() << "Pure cf clause: " << cl->toNiceString() <<std::endl;
   env.endOutput();
 
   if(!horn || !pos) {
@@ -103,7 +103,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   _redundantsToHandle.push(red);
 
   env.beginOutput();
-  env.out() << "Consequence found: " << env.signature->predicateName(red) << endl;
+  env.out() << "Consequence found: " << env.signature->predicateName(red) << std::endl;
   env.endOutput();
 }
 

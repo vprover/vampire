@@ -251,7 +251,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
        TermList vsrt;
        if(varSorts.find(v,vsrt)){
         unsigned vsrtU = vsrt.term()->functor();
-         if(!isMonotonic[vsrtU]) sortedVariables.push(make_pair(v,vsrtU));
+         if(!isMonotonic[vsrtU]) sortedVariables.push(std::make_pair(v,vsrtU));
        }
        // else the var isn't used in the clause...they're not normalised
      }
@@ -278,9 +278,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
 
        ASS(SortHelper::areSortsValid(replacement));
        ClauseList::push(replacement,newAxioms);
-       //cout << "REPLACING" << endl;
-       //cout << cl->toString() << endl;
-       //cout << replacement->toString() << endl;
+       //std::cout << "REPLACING" << std::endl;
+       //std::cout << cl->toString() << std::endl;
+       //std::cout << replacement->toString() << std::endl;
        it.del(); 
      }
    }
@@ -296,7 +296,7 @@ public:
   using Arg = TypedTermList;
   TermList operator()(TypedTermList origTerm, TermList *evalArgs)
   {
-    // cout << "transformSubterm " << trm.toString() << endl;
+    // std::cout << "transformSubterm " << trm.toString() << std::endl;
 
     TermList srt = origTerm.sort();
     TermList trm = origTerm.isVar() ? origTerm : TermList(Term::create(origTerm.term(), evalArgs));
@@ -361,8 +361,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
        Literal* lnew = l->arity() == 0 ? l : evaluateLiteralBottomUp(l, SortFunctionTransformer(isMonotonic,sortFunctions));
        if(l!=lnew) {
          changed=true;
-         // cout << "before " << l->toString() << endl;
-         // cout << "after " << lnew->toString() << endl;
+         // std::cout << "before " << l->toString() << std::endl;
+         // std::cout << "after " << lnew->toString() << std::endl;
        }
        literals.push(lnew);
      }
@@ -370,8 +370,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
      if(changed){
        Clause* replacement = Clause::fromStack(literals,
                                    NonspecificInference1(InferenceRule::ADD_SORT_FUNCTIONS, cl));
-       //cout << "C " << cl->toString() << endl;
-       //cout << "R " << replacement->toString() << endl;
+       //std::cout << "C " << cl->toString() << std::endl;
+       //std::cout << "R " << replacement->toString() << std::endl;
        ASS(SortHelper::areSortsValid(replacement));
        ClauseList::push(replacement,newAxioms);
        it.del();

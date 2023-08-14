@@ -99,7 +99,7 @@ void Instantiation::registerClause(Clause* cl)
 {
   ASS(cl);
 
-  //cout << "register " << cl->toString() << endl;
+  //std::cout << "register " << cl->toString() << std::endl;
 
   Clause::Iterator cit(*cl);
   while(cit.hasNext()){
@@ -121,7 +121,7 @@ void Instantiation::registerClause(Clause* cl)
           }
           else{ ALWAYS(sorted_candidates_check.find(sort,cans_check)); }
           ASS(cans_check && cans);
-          // cout << "For sort " << sort << " there are " << cans->size() << " cans" <<endl;
+          // std::cout << "For sort " << sort << " there are " << cans->size() << " cans" <<std::endl;
           if(!cans_check->contains(t.term())){
             cans_check->insert(t.term());
             cans->push(t.term());
@@ -254,7 +254,7 @@ public:
         sub.bind(v,(* cans)[at]);
       }
     }
-    //cout << "sub is " << sub.toString() << endl;
+    //std::cout << "sub is " << sub.toString() << std::endl;
 
     // now update points and set finished if we are
     if(!candidates.find(currently) || candidates.get(currently)->size()==0 || 
@@ -297,7 +297,7 @@ private:
 
 ClauseIterator Instantiation::generateClauses(Clause* premise)
 {
-  //cout << "Instantiate " << premise->toString() << endl;
+  //std::cout << "Instantiate " << premise->toString() << std::endl;
 
   Stack<Substitution> subs;
   for(unsigned i=0;i<premise->length();i++){

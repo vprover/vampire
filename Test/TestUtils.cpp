@@ -123,7 +123,7 @@ template<>
 std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
 {
   const Literal& lit = _self;
-  auto print = [&]() -> ostream& {
+  auto print = [&]() -> std::ostream& {
 
     auto func = lit.functor();
     if(theory->isInterpretedPredicate(func)) {

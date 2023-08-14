@@ -513,7 +513,7 @@ vstring FBHelperCore::getVarName(Var v) const
 //      vstring v;
 //      unsigned k;
 //      it.next(k,v);
-//      cout<<k<<" "<<v<<endl;
+//      std::cout<<k<<" "<<v<<std::endl;
 //    }
 //    throw FormulaBuilderException("Var object was used in FormulaBuilder object which did not create it");
   }

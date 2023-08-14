@@ -52,9 +52,9 @@ void CommandLine::interpret (Options& options)
     ASS(_next < _last);
     const char* arg = *_next++;
     if (strcmp(arg, "--version")==0) {
-      cout << VERSION_STRING << endl;
+      std::cout << VERSION_STRING << std::endl;
 #if VZ3
-      cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
+      std::cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << std::endl;
 #endif
       exit(0);
     }
@@ -64,7 +64,7 @@ void CommandLine::interpret (Options& options)
     if(strcmp(arg,"--help")==0 || 
        (strcmp(arg,"-h")==0 && _next==_last) //if -h and there is no more
       ){ 
-      // cout << _next << " " << _last << endl;
+      // std::cout << _next << " " << _last << std::endl;
       options.set("help","on");
       env.beginOutput();
       options.output(env.out());
@@ -102,7 +102,7 @@ void CommandLine::interpret (Options& options)
     options.checkGlobalOptionConstraints();
   }
   if(options.encodeStrategy()){
-    cout << options.generateEncodedOptions() << "\n";
+    std::cout << options.generateEncodedOptions() << "\n";
   }
 } // CommandLine::interpret
 

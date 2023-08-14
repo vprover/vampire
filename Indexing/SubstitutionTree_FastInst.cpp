@@ -25,7 +25,7 @@
 namespace Indexing
 {
 
-std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec ts )
+std::ostream& operator<< (std::ostream& out, SubstitutionTree::InstMatcher::TermSpec ts )
 {
   out<<ts.toString();
   return out;
@@ -268,11 +268,11 @@ bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList no
     goto finish;
   }
 
-  static Stack<pair<TermSpec,TermSpec> > toDo;
+  static Stack<std::pair<TermSpec,TermSpec> > toDo;
   static DisagreementSetIterator dsit;
 
   toDo.reset();
-  toDo.push(make_pair(tsBinding, tsNode));
+  toDo.push(std::make_pair(tsBinding, tsNode));
 
   while(toDo.isNonEmpty()) {
     TermSpec ts1=toDo.top().first;
@@ -281,7 +281,7 @@ bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList no
 
     dsit.reset(ts1.t, ts2.t, ts1.q!=ts2.q);
     while(dsit.hasNext()) {
-      pair<TermList,TermList> disarg=dsit.next();
+      std::pair<TermList,TermList> disarg=dsit.next();
       TermList dt1=disarg.first;
       TermList dt2=disarg.second;
 
@@ -329,7 +329,7 @@ bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList no
 	deref2=deref(dt2);
       }
 
-      toDo.push(make_pair(deref1, deref2));
+      toDo.push(std::make_pair(deref1, deref2));
     }
   }
   success=true;

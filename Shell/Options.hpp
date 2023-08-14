@@ -125,7 +125,7 @@ public:
     Options& operator=(const Options& that);
 
     // used to print help and options
-    void output (ostream&) const;
+    void output (std::ostream&) const;
 
     // Dealing with encoded options. Used by --decode option
     void readFromEncodedOptions (vstring testId);
@@ -897,13 +897,13 @@ private:
         
         // For use in showOptions and explainOption
         //virtual void output(vstringstream& out) const {
-        virtual void output(ostream& out,bool linewrap) const {
+        virtual void output(std::ostream& out,bool linewrap) const {
             out << "--" << longName;
             if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
-            out << endl;
+            out << std::endl;
             
             if (experimental) {
-              out << "\t[experimental]" << endl;
+              out << "\t[experimental]" << std::endl;
             }
             
 
@@ -916,14 +916,14 @@ private:
                     out << *p;
                     count++;
                     if(linewrap && count>70 && *p==' '){
-                        out << endl << '\t';
+                        out << std::endl << '\t';
                         count=0;
                     }
                     if(*p=='\n'){ count=0; out << '\t'; }
                 }
-                out << endl;
+                out << std::endl;
             }
-            else{ out << "\tno description provided!" << endl; }
+            else{ out << "\tno description provided!" << std::endl; }
         }
         
         // Used to determine wheter the value of an option should be copied when
@@ -933,7 +933,7 @@ private:
        
         typedef std::unique_ptr<DArray<vstring>> vstringDArrayUP;
 
-        typedef pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
+        typedef std::pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
 
         void setRandomChoices(std::initializer_list<vstring> list){
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
@@ -1064,9 +1064,9 @@ private:
         }
         virtual bool checkProblemConstraints(Property* prop);
         
-        virtual void output(ostream& out, bool linewrap) const {
+        virtual void output(std::ostream& out, bool linewrap) const {
             AbstractOptionValue::output(out,linewrap);
-            out << "\tdefault: " << getStringOfValue(defaultValue) << endl;
+            out << "\tdefault: " << getStringOfValue(defaultValue) << std::endl;
         }
        
         // This is where actual randomisation happens
@@ -1109,11 +1109,11 @@ private:
             return true;
         }
         
-        virtual void output(ostream& out,bool linewrap) const {
+        virtual void output(std::ostream& out,bool linewrap) const {
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
-            out << endl;
-            string values_header = "values: ";
+            out << std::endl;
+            std::string values_header = "values: ";
             out << "\t" << values_header;
             // Again we restrict line length to 70 characters
             int count=0;
@@ -1125,7 +1125,7 @@ private:
                     out << ",";
                     vstring next = choices[i];
                     if(linewrap && next.size()+count>60){ // next.size() will be <70, how big is a tab?
-                        out << endl << "\t";
+                        out << std::endl << "\t";
                         for(unsigned j=0;j<values_header.size();j++){out << " ";}
                         count = 0;
                     }
@@ -1133,7 +1133,7 @@ private:
                     count += next.size();
                 }
             }
-            out << endl;
+            out << std::endl;
         }
         
         vstring getStringOfValue(T value) const {
@@ -1248,10 +1248,10 @@ char sep;
 int defaultOtherValue;
 int otherValue;
 
-virtual void output(ostream& out,bool linewrap) const override {
+virtual void output(std::ostream& out,bool linewrap) const override {
     AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault left: " << defaultValue << endl;
-    out << "\tdefault right: " << defaultOtherValue << endl;
+    out << "\tdefault left: " << defaultValue << std::endl;
+    out << "\tdefault right: " << defaultOtherValue << std::endl;
 }
 
 virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
@@ -1299,9 +1299,9 @@ OptionValue(l,s,def){};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out,bool linewrap) const {
+virtual void output(std::ostream& out,bool linewrap) const {
     AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault: " << defaultValue << endl;;
+    out << "\tdefault: " << defaultValue << std::endl;;
 }
 
 virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
@@ -1322,9 +1322,9 @@ OptionValue(l,s,def), parent(p){};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out,bool linewrap) const {
+virtual void output(std::ostream& out,bool linewrap) const {
     AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault: " << defaultValue << endl;;
+    out << "\tdefault: " << defaultValue << std::endl;;
 }
 virtual vstring getStringOfValue(vstring value) const{ return value; }
 private:
@@ -1362,9 +1362,9 @@ OptionValue(l,s,def) {};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out,bool linewrap) const {
+virtual void output(std::ostream& out,bool linewrap) const {
     AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault: " << defaultValue << "d" << endl;
+    out << "\tdefault: " << defaultValue << "d" << std::endl;
 }
 virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
 };
@@ -2431,7 +2431,7 @@ private:
             if(!option_value->shortName.empty()){
                 new_short = _shortMap.insert(option_value->shortName,option_value);
             }
-            if(!new_long || !new_short){ cout << "Bad " << option_value->longName << endl; }
+            if(!new_long || !new_short){ std::cout << "Bad " << option_value->longName << std::endl; }
             ASS(new_long && new_short);
         }
         AbstractOptionValue* findLong(vstring longName) const{

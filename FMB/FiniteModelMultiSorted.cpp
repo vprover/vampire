@@ -116,8 +116,8 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
     TermList srt = env.signature->getFunction(f)->fnType()->result();
     unsigned srtU = srt.term()->functor();
     if(sortRepr[srtU][res] == -1){
-      //cout << "Rep " << env.signature->functionName(f) << " for ";
-      //cout << env.sorts->sortName(srt) << " and " << res << endl;
+      //std::cout << "Rep " << env.signature->functionName(f) << " for ";
+      //std::cout << env.sorts->sortName(srt) << " and " << res << std::endl;
       sortRepr[srtU][res]=f;
     }
   } 
@@ -153,7 +153,7 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 {
   ASS_EQ(env.signature->predicateArity(p),args.size());
 
-  //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
+  //std::cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << std::endl;
 
   unsigned var = p_offsets[p];
   unsigned mult = 1;
@@ -197,7 +197,7 @@ vstring FiniteModelMultiSorted::toString()
     vstring sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
 
     // Sort declaration
-    modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
+    modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<std::endl;
 
     cnames[s].ensure(size+1);
 
@@ -211,24 +211,24 @@ vstring FiniteModelMultiSorted::toString()
         cname = env.signature->functionName(frep);
       }
       cnames[s][i]=cname; 
-      modelStm << cname << ":" << sortName << ")." << endl;
+      modelStm << cname << ":" << sortName << ")." << std::endl;
     }
 
     //Output domain
-    modelStm << "tff(finite_domain,axiom," << endl;
-    modelStm << "      ! [X:" << sortName << "] : (" << endl;
+    modelStm << "tff(finite_domain,axiom," << std::endl;
+    modelStm << "      ! [X:" << sortName << "] : (" << std::endl;
     modelStm << "         ";
     for(unsigned i=1;i<=size;i++){
       modelStm << "X = " << cnames[s][i]; 
       if(i<size) modelStm << " | ";
-      if(i==size) modelStm << endl;
-      else if(i%5==0) modelStm << endl << "         ";
+      if(i==size) modelStm << std::endl;
+      else if(i%5==0) modelStm << std::endl << "         ";
     }
-    modelStm << "      ) )." <<endl;
+    modelStm << "      ) )." <<std::endl;
     //Distinctness of domain
-    modelStm << endl;
+    modelStm << std::endl;
     if(size>1){
-    modelStm << "tff(distinct_domain,axiom," << endl;
+    modelStm << "tff(distinct_domain,axiom," << std::endl;
     modelStm << "         ";
     unsigned c=0;
     for(unsigned i=1;i<=size;i++){
@@ -237,12 +237,12 @@ vstring FiniteModelMultiSorted::toString()
         modelStm << cnames[s][i] <<" != " << cnames[s][j]; 
         if(!(i==size-1 && j==size)){
            modelStm << " & ";
-           if(c%5==0){ modelStm << endl << "         "; }
+           if(c%5==0){ modelStm << std::endl << "         "; }
         }
-        else{ modelStm << endl; }
+        else{ modelStm << std::endl; }
       }
     }
-    modelStm << ")." << endl << endl;
+    modelStm << ")." << std::endl << std::endl;
     }
   }
 
@@ -260,12 +260,12 @@ vstring FiniteModelMultiSorted::toString()
     if(name == cname) continue;
 
     vstring sortName = env.signature->typeConName(srt);
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<std::endl;
     if(res>0){ 
-      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
+      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<std::endl;
     }
     else{
-      modelStm << "% " << name << " undefined in model" << endl; 
+      modelStm << "% " << name << " undefined in model" << std::endl; 
     }
   }
 
@@ -283,9 +283,9 @@ vstring FiniteModelMultiSorted::toString()
       modelStm << sig->arg(i).toString();
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << " > " << sig->result().toString() << ")." << endl; 
+    modelStm << " > " << sig->result().toString() << ")." << std::endl; 
 
-    modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
+    modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<std::endl;
 
     unsigned offset = f_offsets[f];
 
@@ -334,15 +334,15 @@ fModelLabel:
           if(res>0){
             TermList resultSortT = sig->result();
             unsigned resultSort = resultSortT.term()->functor();    
-            modelStm << ") = " << cnames[resultSort][res] << endl;
+            modelStm << ") = " << cnames[resultSort][res] << std::endl;
           }
           else{
-            modelStm << ") undefined in model" << endl;
+            modelStm << ") undefined in model" << std::endl;
           }
           goto fModelLabel;
         }
       }
-      modelStm << endl << ")." << endl << endl;
+      modelStm << std::endl << ")." << std::endl << std::endl;
   }
 
   //Propositions
@@ -354,13 +354,13 @@ fModelLabel:
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o).";
     unsigned res = p_interpretation[p_offsets[f]];
     if(res==2){
-      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
+      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<std::endl;
     }
     else if(res==1){
-      modelStm << "tff("<<append(name,"_definition")<<",axiom,~"<<name<< ")."<<endl;
+      modelStm << "tff("<<append(name,"_definition")<<",axiom,~"<<name<< ")."<<std::endl;
     }
     else{
-      modelStm << "% " << name << " undefined" << endl;
+      modelStm << "% " << name << " undefined" << std::endl;
     }
   }
 
@@ -379,9 +379,9 @@ fModelLabel:
       modelStm << env.signature->typeConName(argS);
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << " > $o )." << endl;
+    modelStm << " > $o )." << std::endl;
 
-    modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
+    modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<std::endl;
 
     unsigned offset = p_offsets[f];
 
@@ -430,11 +430,11 @@ pModelLabel:
           if(res==0){
             modelStm << " undefined in model";
           }
-          modelStm << endl;
+          modelStm << std::endl;
           goto pModelLabel;
         }
       }
-      modelStm << endl << ")." << endl << endl;
+      modelStm << std::endl << ")." << std::endl << std::endl;
   }
 
 
@@ -447,8 +447,8 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
   ASS(term->ground());
 
 #if DEBUG_MODEL
-  cout << "evaluating ground term " << term->toString() << endl;
-  cout << "domain constant status " << isDomainConstant(term) << endl;
+  std::cout << "evaluating ground term " << term->toString() << std::endl;
+  std::cout << "domain constant status " << isDomainConstant(term) << std::endl;
 #endif  
   if(isDomainConstant(term)) return getDomainConstant(term).first;
 
@@ -480,7 +480,7 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
   ASS(lit->ground());
 
 #if DEBUG_MODEL
-  cout << "Evaluating ground literal " << lit->toString() << endl;
+  std::cout << "Evaluating ground literal " << lit->toString() << std::endl;
 #endif
 
   // evaluate all arguments
@@ -496,8 +496,8 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
   if(lit->isEquality()){
     bool res = args[0]==args[1];
 #if DEBUG_MODEL
-    cout << "Evaluate equality, args " << args[0] << " and " << args[1] << endl;
-    cout << "res is " << (lit->polarity() ? res : !res) << endl;
+    std::cout << "Evaluate equality, args " << args[0] << " and " << args[1] << std::endl;
+    std::cout << "res is " << (lit->polarity() ? res : !res) << std::endl;
 #endif
     if(lit->polarity()) return res;
     else return !res;
@@ -519,7 +519,7 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
 
   unsigned res = p_interpretation[var];
 #if DEBUG_MODEL
-    cout << "res is " << res << " and polarity is " << lit->polarity() << endl; 
+    std::cout << "res is " << res << " and polarity is " << lit->polarity() << std::endl; 
 #endif
 
   if(res==0) 
@@ -557,8 +557,8 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
 bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
 {
 #if DEBUG_MODEL
-  for(unsigned i=0;i<depth;i++){ cout << "."; }
-  cout << "Evaluating..." << formula->toString() << endl; 
+  for(unsigned i=0;i<depth;i++){ std::cout << "."; }
+  std::cout << "Evaluating..." << formula->toString() << std::endl; 
 #endif
 
   bool isAnd = false;
@@ -611,7 +611,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
       bool right_res = evaluate(right,depth+1);
       
 #if DEBUG_MODEL
-      cout << "left_res is " << left_res << ", right_res is " << right_res << endl;
+      std::cout << "left_res is " << left_res << ", right_res is " << right_res << std::endl;
 #endif
 
       if(isImp) return !left_res || right_res;
@@ -627,7 +627,7 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
      VList* vs = formula->vars();
      int var = vs->head();
 
-     //cout << "Quant " << isForall << " with " << var << endl;
+     //std::cout << "Quant " << isForall << " with " << var << std::endl;
 
      Formula* next = 0;
      if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),0,formula->qarg());
@@ -675,8 +675,8 @@ bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
     Formula* FiniteModelMultiSorted::partialEvaluate(Formula* formula)
     {
 #if DEBUG_MODEL
-        for(unsigned i=0;i<depth;i++){ cout << "."; }
-        cout << "Evaluating..." << formula->toString() << endl;
+        for(unsigned i=0;i<depth;i++){ std::cout << "."; }
+        std::cout << "Evaluating..." << formula->toString() << std::endl;
 #endif
         
         switch(formula->connective()){

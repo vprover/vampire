@@ -33,7 +33,7 @@ class ModelPrinter {
 public:
   ModelPrinter(IGAlgorithm& iga);
 
-  bool tryOutput(ostream& stm);
+  bool tryOutput(std::ostream& stm);
 private:
 
   struct InstLitComparator;
@@ -49,9 +49,9 @@ private:
   void analyzeEqualityAndPopulateDomain();
   void rewriteLits(LiteralStack& lits);
 
-  void outputDomainSpec(ostream& out);
-  void outputFunInterpretations(ostream& out);
-  void outputPredInterpretations(ostream& out);
+  void outputDomainSpec(std::ostream& out);
+  void outputFunInterpretations(std::ostream& out);
+  void outputPredInterpretations(std::ostream& out);
 
   void collectConstants(Literal* lit);
 

@@ -1123,7 +1123,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
   //First, does this represent a ground literal
   Literal* lit = _sat2fo.toFO(slit);
   if(lit && lit->ground()){
-    //cout << "getRepresentation of " << lit->toString() << endl;
+    //std::cout << "getRepresentation of " << lit->toString() << std::endl;
     // Now translate it into an SMT object
     try{
       auto repr = getRepresentation(lit);
@@ -1149,7 +1149,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
       return repr;
     }catch(z3::exception& exception){
      reportSpiderFail();
-     cout << "Z3 exception:\n" << exception.msg() << endl;
+     std::cout << "Z3 exception:\n" << exception.msg() << std::endl;
      ASSERTION_VIOLATION_REP("Failed to create Z3 rep for " + lit->toString());
     }
   } else {

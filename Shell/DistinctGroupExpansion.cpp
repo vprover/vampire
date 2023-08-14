@@ -71,7 +71,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
         added=true;
         Formula* expansion = expand(*members);
         if(env.options->showPreprocessing()){
-          env.out() << "  expansion adding " << expansion->toString() << endl;
+          env.out() << "  expansion adding " << expansion->toString() << std::endl;
         }
         // Currently we just say that these are from the Input, not $distinct or theory of ints
         UnitList::push(

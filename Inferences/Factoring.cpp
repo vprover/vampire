@@ -57,7 +57,7 @@ public:
   {
     _subst=RobSubstitutionSP(new RobSubstitution());
   }
-  VirtualIterator<pair<Literal*,RobSubstitution*> > operator() (pair<unsigned,unsigned> nums)
+  VirtualIterator<std::pair<Literal*,RobSubstitution*> > operator() (std::pair<unsigned,unsigned> nums)
   {
     Literal* l1 = (*_cl)[nums.first];
     Literal* l2 = (*_cl)[nums.second];
@@ -68,19 +68,19 @@ public:
 
     if(l1->isEquality()) {
       //We don't perform factoring with equalities
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
+      return VirtualIterator<std::pair<Literal*,RobSubstitution*> >::getEmpty();
     }
 
     if(_sel.isNegativeForSelection(l1)) {
       //We don't perform factoring on negative literals
       // (this check only becomes relevant, when there is more than one literal selected
       // and yet the selected ones are not all positive -- see the check in generateClauses)
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
+      return VirtualIterator<std::pair<Literal*,RobSubstitution*> >::getEmpty();
     }
 
     SubstIterator unifs=_subst->unifiers(l1,0,l2,0, false);
     if(!unifs.hasNext()) {
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
+      return VirtualIterator<std::pair<Literal*,RobSubstitution*> >::getEmpty();
     }
 
     return pvi( pushPairIntoRightIterator(l2, unifs) );
@@ -102,7 +102,7 @@ class Factoring::ResultsFn
 public:
   ResultsFn(Clause* cl, bool afterCheck, Ordering& ord)
   : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
-  Clause* operator() (pair<Literal*,RobSubstitution*> arg)
+  Clause* operator() (std::pair<Literal*,RobSubstitution*> arg)
   {
     unsigned newLength = _cLen-1;
     Clause* res = new(newLength) Clause(newLength,

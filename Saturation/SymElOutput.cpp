@@ -71,7 +71,7 @@ void SymElOutput::onNonRedundantClause(Clause* c)
     }
   }
   //if(c->color()==COLOR_TRANSPARENT && c->inputType()!=Clause::AXIOM && !c->skip()) {
-  //  cout<<"Interesting: "<<c->toNiceString()<<endl;
+  //  std::cout<<"Interesting: "<<c->toNiceString()<<std::endl;
   //}
 }
 
@@ -136,7 +136,7 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
     ASS_EQ(eliminated, COLOR_RIGHT);
     env.out()<<"Right";
   }
-  env.out()<<" symbol elimination"<<endl;
+  env.out()<<" symbol elimination"<<std::endl;
 
   vstring cname = "inv"+Int::toString(_symElNextClauseNumber);
   while(env.signature->isPredicateName(cname, 0)) {

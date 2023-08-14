@@ -76,7 +76,7 @@ Literal* equals(TermList t1, TermList t2)
 {
    SortType srt;
    if(!SortHelper::tryGetResultSort(t1,srt)){
-     cout << "Don't call equals with two variables" << endl;
+     std::cout << "Don't call equals with two variables" << std::endl;
      exit(0);
    }
    return Literal::createEquality(true, t1,t2,srt); 
@@ -96,7 +96,7 @@ Literal* pred(vstring p, TermList t)
 {
   SortType srt;
   if(!SortHelper::tryGetResultSort(t,srt)){
-    cout << "Don't call this pred with a variable argument" << endl;
+    std::cout << "Don't call this pred with a variable argument" << std::endl;
     exit(0);
   }
   return pred(p,t,srt);
@@ -133,23 +133,23 @@ LiteralIndexingStructure* getBasicIndex()
 void reportMatches(LiteralIndexingStructure* index, Literal* qlit)
 {
   SLQueryResultIterator it= index->getUnificationsWithConstraints(qlit,false,true);
-  cout << endl;
-  cout << "Unify with " << qlit->toString() << endl;
+  std::cout << std::endl;
+  std::cout << "Unify with " << qlit->toString() << std::endl;
   while(it.hasNext()){
     SLQueryResult qr = it.next();
-    cout << qr.clause->toString() << " matches with substitution: "<< endl;
-    // cout << qr.substitution->tryGetRobSubstitution()->toString() << endl;
-    cout << "and constraints: "<< endl;
+    std::cout << qr.clause->toString() << " matches with substitution: "<< std::endl;
+    // std::cout << qr.substitution->tryGetRobSubstitution()->toString() << std::endl;
+    std::cout << "and constraints: "<< std::endl;
     auto constraints = qr.constraints;
     for(unsigned i=0;i<constraints->size();i++){
       auto con = (*constraints)[i];
       TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
       TermList rT = qr.substitution->applyTo(con.second.first,con.second.second);
 
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
+      std::cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << std::endl;
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 }
 
 // This test demonstrates the current issue. The constraints produced depend on
@@ -195,7 +195,7 @@ bool handle(RobSubstitution* subst, TermList query, unsigned index1, TermList no
     unsigned x = _var++;
     TermList nodeVar = TermList(x,true);
     subst->bindSpecialVar(x,node,index2);
-    auto constraint = make_pair(make_pair(query,index1),make_pair(nodeVar,index2));
+    auto constraint = std::make_pair(std::make_pair(query,index1),std::make_pair(nodeVar,index2));
     _constraints->push(constraint);
     return true;
 }
@@ -204,27 +204,27 @@ Stack<UnificationConstraint>* _constraints;
 
 void reportRobUnify(TermList a, TermList b)
 {
-  cout << endl;
-  cout << "Unifying " << a.toString() << " with " << b.toString() << endl;
+  std::cout << std::endl;
+  std::cout << "Unifying " << a.toString() << " with " << b.toString() << std::endl;
   RobSubstitution sub;
   Stack<UnificationConstraint> constraints;
   //MismatchHandler* hndlr = new testMismatchHandler(&constraints);
   MismatchHandler* hndlr = new UWAMismatchHandler(constraints);
   bool result = sub.unify(a,NORM_QUERY_BANK,b,NORM_RESULT_BANK,hndlr);
-  cout << "Result is " << result << endl;
+  std::cout << "Result is " << result << std::endl;
   if(result){
-    // cout << "> Substitution is " << endl << sub.toString();
-    cout << "> Constraints are:" << endl;
+    // std::cout << "> Substitution is " << std::endl << sub.toString();
+    std::cout << "> Constraints are:" << std::endl;
     auto rs = ResultSubstitution::fromSubstitution(&sub,NORM_QUERY_BANK,NORM_RESULT_BANK);
     for(unsigned i=0;i<constraints.size();i++){
       auto con = (constraints)[i];
       TermList qT = sub.apply(con.first.first,con.first.second);
       TermList rT = sub.apply(con.second.first,con.second.second);
 
-      cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << endl;
+      std::cout << "> "<< qT.toString() << "!=" << rT.toString() << "\t\t from " << con.first.first.toString() << "!=" << con.second.first.toString() << std::endl;
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 }
 
 TEST_FUN(using_robsub)

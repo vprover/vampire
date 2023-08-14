@@ -191,7 +191,7 @@ unsigned SimpleCongruenceClosure::getFreshConst()
 unsigned SimpleCongruenceClosure::getSignatureConst(unsigned symbol, SignatureKind kind)
 {
   unsigned* pRes;
-  if(!_sigConsts.getValuePtr(make_pair(symbol, kind), pRes)) {
+  if(!_sigConsts.getValuePtr(std::make_pair(symbol, kind), pRes)) {
     return *pRes;
   }
   unsigned res = getFreshConst();
@@ -454,7 +454,7 @@ void SimpleCongruenceClosure::makeProofRepresentant(unsigned c)
   do{
     unsigned newC = _cInfos[c].proofPredecessor;
     _cInfos[c].proofPredecessor = prevC;
-    swap(_cInfos[c].predecessorPremise, transfPrem);
+    std::swap(_cInfos[c].predecessorPremise, transfPrem);
     prevC = c;
     c = newC;
   } while(c!=0);
@@ -697,8 +697,8 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
   unsigned depth2 = getProofDepth(c2);
 
   if(depth1<depth2) {
-    swap(c1,c2);
-    swap(depth1,depth2);
+    std::swap(c1,c2);
+    std::swap(depth1,depth2);
   }
 
   while(depth1>depth2) {
@@ -899,21 +899,21 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
                 c <= maxConst; c++) {
     ConstInfo& cInfo = _cInfos[c];
     
-    // cout << "init for " << c;
+    // std::cout << "init for " << c;
     
     cInfo.processed = false;    
     cInfo.half_normalized = false;
     cInfo.normalForm.makeEmpty();                
     
     if (cInfo.sigSymbol != NO_SIG_SYMBOL) { // either a symbol ...
-      // cout << " is sigsym ";
+      // std::cout << " is sigsym ";
       
       // this copies the term for constants and an empty termlist for function symbols of arity > 0
       cInfo.normalForm = cInfo.term;
       
-      //cout << " and term " << cInfo.term.toString() << endl;      
+      //std::cout << " and term " << cInfo.term.toString() << std::endl;      
       //if (cInfo.lit) {
-      //  cout << " and a lit " << cInfo.lit->toString() << endl;
+      //  std::cout << " and a lit " << cInfo.lit->toString() << std::endl;
       //}
       
       // it is important that the normal form has already been assigned, 
@@ -923,11 +923,11 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     	ASS_NEQ(cInfo.namedPair.first,0);
       ASS_NEQ(cInfo.namedPair.second,0);
       
-      //cout << " names a pair (" << cInfo.namedPair.first << ", " 
+      //std::cout << " names a pair (" << cInfo.namedPair.first << ", " 
       //                          << cInfo.namedPair.second << ")";
-      //cout << " and term " << cInfo.term.toString();      
+      //std::cout << " and term " << cInfo.term.toString();      
       //if (cInfo.lit) {
-      //  cout << " and a lit " << cInfo.lit->toString();
+      //  std::cout << " and a lit " << cInfo.lit->toString();
       //}
       
       unsigned lRep = deref(cInfo.namedPair.first);
@@ -935,28 +935,28 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
       ASS_NEQ(lRep,c); // the left child is necessarily in a different class
       _cInfos[lRep].upEdges.push(c);
       
-      //cout << " adds a left edge to " << lRep;
+      //std::cout << " adds a left edge to " << lRep;
       
       if (rRep != deref(c)) { // for the right child, don't store upEdges within a class
         _cInfos[rRep].upEdges.push(c);
         
-        //cout << " adds a right edge to " << rRep;
+        //std::cout << " adds a right edge to " << rRep;
       }
-      //cout << endl;      
+      //std::cout << std::endl;      
     }
   }
   
-  // cout << "processing" << endl;
+  // std::cout << "processing" << std::endl;
   
   while (!candidates.isEmpty()) {
     unsigned c = candidates.pop();
     unsigned r = deref(c);
     ConstInfo& rInfo = _cInfos[r];
     
-    //cout << "Picking candidate " << c << " with repr " << r << endl;
+    //std::cout << "Picking candidate " << c << " with repr " << r << std::endl;
     
     if (!rInfo.processed) {
-      //cout << "Class not processed yet." << endl;
+      //std::cout << "Class not processed yet." << std::endl;
       ConstInfo& cInfo = _cInfos[c];
                   
       rInfo.processed = true;
@@ -978,23 +978,23 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
         ConstInfo& sInfo = _cInfos[s];
         ASS(sInfo.namedPair!=CPair(0,0)); //must be a name of a pair
         
-        // cout << "superterm " << s;
+        // std::cout << "superterm " << s;
         
         if (sInfo.half_normalized) {                     
           // now becomes fully
           computeConstsNormalForm(s,normalForms);
           
-          //cout << " gets its normal form " << sInfo.normalForm.toString();
+          //std::cout << " gets its normal form " << sInfo.normalForm.toString();
           
           // and can be inserted among candidates
           candidates.insert(s);
         } else {
-          //cout << " becoming half_normalized";
+          //std::cout << " becoming half_normalized";
           
           sInfo.half_normalized = true;
         }
         
-        //cout << endl;
+        //std::cout << std::endl;
       }
       // upEdges must be kept clean between the calls to this function
       rInfo.upEdges.reset();
@@ -1009,7 +1009,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     TermList nf;
     nfIt.next(r,nf);
     
-    //cout << "Outputting for class " << r << " with nf " << nf.toString() << endl;
+    //std::cout << "Outputting for class " << r << " with nf " << nf.toString() << std::endl;
     
     static DHSet<TermList> seen;
     seen.reset();
@@ -1018,7 +1018,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     // for the representative
     computeConstsNormalForm(r,normalForms); // maybe calling for a second time, but that's cheap    
     if (!seen.contains(_cInfos[r].normalForm)) {
-      //cout << _cInfos[r].normalForm << " -> " << nf << endl;
+      //std::cout << _cInfos[r].normalForm << " -> " << nf << std::endl;
       model.push(Literal::createEquality(true,_cInfos[r].normalForm,nf,SortHelper::getResultSort(nf.term())));
       seen.insert(_cInfos[r].normalForm);
     }
@@ -1030,7 +1030,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
       
       computeConstsNormalForm(c,normalForms); // maybe calling for a second time, but that's cheap
       if (!seen.contains(_cInfos[c].normalForm)) {
-        //cout << _cInfos[c].normalForm << " -> " << nf << endl;
+        //std::cout << _cInfos[c].normalForm << " -> " << nf << std::endl;
         model.push(Literal::createEquality(true,_cInfos[c].normalForm,nf,SortHelper::getResultSort(nf.term())));
         seen.insert(_cInfos[c].normalForm);
       }

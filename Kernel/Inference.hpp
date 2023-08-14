@@ -25,7 +25,6 @@
 
 #include <type_traits>
 
-using namespace std;
 using namespace Lib;
 
 namespace Kernel {

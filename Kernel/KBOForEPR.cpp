@@ -110,9 +110,9 @@ Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const
 }
 
 
-void KBOForEPR::showConcrete(ostream& out) const 
+void KBOForEPR::showConcrete(std::ostream& out) const 
 { 
-  out << "% < specific output for KBOForEPR not (yet) implemented >" << endl;
+  out << "% < specific output for KBOForEPR not (yet) implemented >" << std::endl;
 }
 
 }

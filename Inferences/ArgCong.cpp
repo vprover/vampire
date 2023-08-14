@@ -137,7 +137,7 @@ private:
 
 ClauseIterator ArgCong::generateClauses(Clause* premise)
 {
-  //cout << "argcong with " + premise->toString() << endl;
+  //std::cout << "argcong with " + premise->toString() << std::endl;
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();
   }
@@ -153,7 +153,7 @@ ClauseIterator ArgCong::generateClauses(Clause* premise)
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 
-  //cout << "out of arg cong" << endl;
+  //std::cout << "out of arg cong" << std::endl;
   return pvi( it4 );
 }
 

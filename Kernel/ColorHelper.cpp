@@ -219,7 +219,7 @@ void ColorHelper::tryUnblock(Clause* c, SaturationAlgorithm* salg)
     if (unblocked) {
       if (env.options->showBlocked()) {
 	env.beginOutput();
-	env.out()<<"Unblocking clause "<<unblocked->toString()<<endl;
+	env.out()<<"Unblocking clause "<<unblocked->toString()<<std::endl;
 	env.endOutput();
       }
       salg->addNewClause(unblocked);

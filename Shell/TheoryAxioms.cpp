@@ -59,7 +59,7 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
       f = Formula::fromClause(static_cast<Clause*>(unit));
       qunit = new FormulaUnit(f,unit->inference());
     }
-    cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << qunit->toString() << "\n";
+    std::cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << qunit->toString() << "\n";
     if(f){ f->destroy(); } 
   }
   if(!unit->isClause()){
@@ -471,8 +471,8 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
   Literal* modxyge0 = Literal::create2(lessPred,false,modxy,zeroElement);
   addTheoryClauseFromLits({yis0,modxyge0}, InferenceRule::THA_MODULO_POSITIVE, EXPENSIVE);
 
-  // y!=0 => (mod(x,y) <= abs(y)-1)
-  // y=0 | ~( abs(y)-1 < mod(x,y) )
+  // y!=0 => (mod(x,y) <= std::abs(y)-1)
+  // y=0 | ~( std::abs(y)-1 < mod(x,y) )
   TermList absy(Term::create1(absFun,y));
   TermList m1(Term::create1(umFun,oneElement));
   TermList absym1(Term::create2(plusFun,absy,m1));
@@ -537,8 +537,8 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less,
   TermList mx(Term::create1(umFun,x));
   TermList absmX(Term::create1(absFun,mx));
 
-  // If x is positive then abs(x)=x 
-  // If x is negative then abs(x)=-x 
+  // If x is positive then std::abs(x)=x 
+  // If x is negative then std::abs(x)=-x 
 
   Literal* xNeg = Literal::create2(lessPred,false,zeroElement,x); // not 0<x
   Literal* xPos = Literal::create2(lessPred,false,x,zeroElement); // not x<0

@@ -741,7 +741,7 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
       BYPASSING_ALLOCATOR;
 
       vstring precedence;
-      ifstream precedence_file (opt.typeConPrecedence().c_str());
+      std::ifstream precedence_file (opt.typeConPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
         loadPermutationFromString(aux,precedence);
         precedence_file.close();
@@ -769,7 +769,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
       BYPASSING_ALLOCATOR;
 
       vstring precedence;
-      ifstream precedence_file (opt.functionPrecedence().c_str());
+      std::ifstream precedence_file (opt.functionPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
         loadPermutationFromString(aux,precedence);
         precedence_file.close();
@@ -795,7 +795,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
     BYPASSING_ALLOCATOR;
 
     vstring precedence;
-    ifstream precedence_file (opt.predicatePrecedence().c_str());
+    std::ifstream precedence_file (opt.predicatePrecedence().c_str());
     if (precedence_file.is_open() && getline(precedence_file, precedence)) {
       loadPermutationFromString(aux,precedence);
       precedence_file.close();
@@ -841,7 +841,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
         level = bound;
       }
       predicateLevels[i] = reverse ? (bound - level + 1) : level;
-      // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << predicateLevels[i] << endl;
+      // std::cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << predicateLevels[i] << std::endl;
     }
   }
 
@@ -860,7 +860,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
   return predicateLevels;
 }
 
-void PrecedenceOrdering::show(ostream& out) const 
+void PrecedenceOrdering::show(std::ostream& out) const 
 {
   auto _show = [&](const char* precKind, unsigned cntFunctors, auto getSymbol, auto compareFunctors)
     {

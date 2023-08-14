@@ -77,7 +77,7 @@ void RndLiteralSelector::doSelection(Clause* c, unsigned eligible)
     ASS(li < eligible);
     if ((*c)[li] == sel->head()) {
       if (li != selCnt) {
-        swap((*c)[li], (*c)[selCnt]);
+        std::swap((*c)[li], (*c)[selCnt]);
       }
       selCnt++;
       LiteralList::pop(sel);

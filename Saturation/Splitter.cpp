@@ -210,7 +210,7 @@ void SplittingBranchSelector::handleSatRefutation()
     SATClauseStack::Iterator it1(actualSatPremises);
     while (it1.hasNext()) {
       SATClause* scl = it1.next();
-      // cout << "SAT: " << scl->toString() << endl;
+      // std::cout << "SAT: " << scl->toString() << std::endl;
 
       Unit* dummy;
       Color c = colorFromPossiblyDeepFOConversion(scl,dummy);
@@ -219,7 +219,7 @@ void SplittingBranchSelector::handleSatRefutation()
       colorCnts[c]++;
     }
 
-    //cout << colorCnts[0] << " " << colorCnts[1] <<  " " << colorCnts[2] << endl;
+    //std::cout << colorCnts[0] << " " << colorCnts[1] <<  " " << colorCnts[2] << std::endl;
     Color sndCol = COLOR_RIGHT;
     if (colorCnts[COLOR_LEFT] < colorCnts[COLOR_RIGHT]) {
       sndCol = COLOR_LEFT;
@@ -454,13 +454,13 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 
     _trueInCCModel.reset();
 
-    // cout << "Obtained a model " << endl;
+    // std::cout << "Obtained a model " << std::endl;
     unsigned parentMaxAge = AGE_NOT_FILLED;
     LiteralStack::Iterator it(model);
     while(it.hasNext()) {
       Literal* lit = it.next();
 
-      // cout << lit->toString() << endl;
+      // std::cout << lit->toString() << std::endl;
 
       ASS(lit->isPositive());
       ASS(lit->isEquality());
@@ -1211,7 +1211,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     }
     def_u = new FormulaUnit(def_f,def_u_i);
     InferenceStore::instance()->recordIntroducedSplitName(def_u,formula_name);
-    // cout << "Add def " << def_u->toString() << " for " << name << endl;
+    // std::cout << "Add def " << def_u->toString() << " for " << name << std::endl;
     ALWAYS(_defs.insert(posName,def_u));
   }
 
@@ -1620,7 +1620,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
         env.out() << (_db[sit.next()]->component)->toString();
         if(sit.hasNext()){ env.out() << " | "; }
       }
-      env.out() << endl; 
+      env.out() << std::endl; 
       env.endOutput();
     }
 
@@ -1761,7 +1761,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
     unsigned level = ait.next();
     Clause* cl = getComponentClause(level);
 
-    //cout << "selected level: " level << " has clause: " << cl->toString() << endl;
+    //std::cout << "selected level: " level << " has clause: " << cl->toString() << std::endl;
     seen.insert(cl);
 
     fifo.pushBack(cl);
@@ -1774,10 +1774,10 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
     Clause* cl = u->asClause();
 
     if (seen.insert(cl)) {
-      // cout << "a new guy: " << cl->toString() << endl;
+      // std::cout << "a new guy: " << cl->toString() << std::endl;
       fifo.pushBack(cl);
     } else {
-      // cout << "seen already: " << cl->toString() << endl;
+      // std::cout << "seen already: " << cl->toString() << std::endl;
     }
   }
 

@@ -101,7 +101,7 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
 	    Composite<MaximalSize,
 	    Composite<Negative, LexComparator> > > > Comparator10;
 
-  int absNum = abs(selectorNumber);
+  int absNum = std::abs(selectorNumber);
 
   LiteralSelector* res;
   switch(absNum) {
@@ -168,7 +168,7 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
 
   for(unsigned i=selCnt;i<eligible;i++) {
     if((*c)[i]->color()!=COLOR_TRANSPARENT) {
-      swap((*c)[selCnt], (*c)[i]);
+      std::swap((*c)[selCnt], (*c)[i]);
       c->setSelected(selCnt+1);
       return;
     }
@@ -207,14 +207,14 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
     int priority = getSelectionPriority((*c)[i]);
     if (priority == maxPriority) {
       if (eligible != i) {
-        swap((*c)[i], (*c)[eligible]);
+        std::swap((*c)[i], (*c)[eligible]);
         modified = true;
       }
       eligible++;
     } else if (priority > maxPriority) {
       maxPriority = priority;
       eligible = 1;
-      swap((*c)[i], (*c)[0]);
+      std::swap((*c)[i], (*c)[0]);
       modified = true;
     }
   }

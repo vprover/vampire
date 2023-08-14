@@ -51,7 +51,7 @@ bool any(Range range, Pred p) {
 using expected_t = tuple<TermList, TermList>;
 
 template<class ConstantType>
-void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
+void test_rebalance(Literal* lit, std::initializer_list<expected_t> expected);
 
 #define ToConstantType(type)  typename type##Traits::ConstantType
 
@@ -298,15 +298,15 @@ TEST_REBALANCE_SPLIT(bug_2
 //     ))
 
 
-std::ostream& operator<<(std::ostream& out, initializer_list<expected_t> expected) {
+std::ostream& operator<<(std::ostream& out, std::initializer_list<expected_t> expected) {
   for (auto x : expected ) {
-    out << "\t" << get<0>(x) << "\t->\t" << get<1>(x) << "\n";
+    out << "\t" << std::get<0>(x) << "\t->\t" << std::get<1>(x) << "\n";
   }
   return out;
 }
 template<class A>
 std::ostream& operator<<(std::ostream& out, const BalanceIter<A>& x) {
-  return out << "\t" << x.lhs() << "\t->\t" << x.buildRhs() << endl;
+  return out << "\t" << x.lhs() << "\t->\t" << x.buildRhs() << std::endl;
 }
 template<class A>
 std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
@@ -318,7 +318,7 @@ std::ostream& operator<<(std::ostream& out, const Balancer<A>& b) {
 
 
 template<class A>
-void test_rebalance(Literal* lit_, initializer_list<expected_t> expected) {
+void test_rebalance(Literal* lit_, std::initializer_list<expected_t> expected) {
   Literal& lit = *lit_;
   ASS(lit.isEquality());
   using balancer_t = Balancer<NumberTheoryInverter>;
@@ -343,29 +343,29 @@ void test_rebalance(Literal* lit_, initializer_list<expected_t> expected) {
     results.push(expected_t(lhs, rhs));
     
     if (!any(expected, [&](const expected_t& ex) -> bool 
-          { return get<0>(ex) == lhs && get<1>(ex) == rhs; }
+          { return std::get<0>(ex) == lhs && std::get<1>(ex) == rhs; }
       )) {
 
-      cout << "case: " << lit << endl;
-      cout << "unexpected entry in balancer:" << endl;
-      cout << "\t"  << lhs << "\t->\t" << rhs << endl;
-      cout << "expected: \n" << expected << endl;
+      std::cout << "case: " << lit << std::endl;
+      std::cout << "unexpected entry in balancer:" << std::endl;
+      std::cout << "\t"  << lhs << "\t->\t" << rhs << std::endl;
+      std::cout << "expected: \n" << expected << std::endl;
       exit(-1);
 
     } 
     cnt++;
   }
   if (cnt != expected.size()) {
-      cout << "case: " << lit << endl;
-      cout << "unexpected results in balancer:" << endl;
+      std::cout << "case: " << lit << std::endl;
+      std::cout << "unexpected results in balancer:" << std::endl;
       if (results.isEmpty()) {
-        cout << "\t< nothing >" << endl;
+        std::cout << "\t< nothing >" << std::endl;
       } else {
         for (auto r : results) {
-          cout << "\t" << get<0>(r) << "\t->\t" << get<1>(r) << endl;
+          std::cout << "\t" << std::get<0>(r) << "\t->\t" << std::get<1>(r) << std::endl;
         }
       }
-      cout << "expected: \n" << expected << endl;
+      std::cout << "expected: \n" << expected << std::endl;
       exit(-1);
   }
 }

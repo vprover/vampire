@@ -101,7 +101,7 @@ IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& n
     throw MachineArithmeticException();
   }
 
-  if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
+  if (this->_val == std::numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
     return 0;
   }
 
@@ -146,7 +146,7 @@ IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& nu
     throw DivByZeroException();
   }
 
-  if (this->_val == numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
+  if (this->_val == std::numeric_limits<IntegerConstantType::InnerType>::min() && num._val == -1) {
     throw MachineArithmeticException();
   }
 
@@ -195,7 +195,7 @@ bool IntegerConstantType::divides(const IntegerConstantType& num) const
 {
   if (_val == 0) { return false; }
   if (num._val == _val) { return true; }
-  if (num._val == numeric_limits<decltype(num._val)>::min() && _val == -1) {
+  if (num._val == std::numeric_limits<decltype(num._val)>::min() && _val == -1) {
     return true;
   } else {
     return ( num._val % _val == 0);
@@ -267,14 +267,14 @@ IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
 {
   try {
-    if (n1 == numeric_limits<InnerType>::min()) {
-      if (n2 == numeric_limits<InnerType>::min()) {
+    if (n1 == std::numeric_limits<InnerType>::min()) {
+      if (n2 == std::numeric_limits<InnerType>::min()) {
         return EQUAL;
       } else {
         return GREATER;
       }
     } else {
-      if (n2 == numeric_limits<InnerType>::min()) {
+      if (n2 == std::numeric_limits<InnerType>::min()) {
         return LESS;
       } else {
         InnerType an1 = n1.abs().toInner();
@@ -392,16 +392,16 @@ vstring RationalConstantType::toString() const
 void RationalConstantType::cannonize()
 {
   unsigned gcd = Int::gcd(_num.toInner(), _den.toInner());
-  if (gcd == (unsigned)(-(long long)(numeric_limits<int>::min()))) { // we are talking about 2147483648, but I can't take minus of it's int representation!
-    ASS_EQ(_num, numeric_limits<int>::min());
-    ASS_EQ(_den, numeric_limits<int>::min());
+  if (gcd == (unsigned)(-(long long)(std::numeric_limits<int>::min()))) { // we are talking about 2147483648, but I can't take minus of it's int representation!
+    ASS_EQ(_num, std::numeric_limits<int>::min());
+    ASS_EQ(_den, std::numeric_limits<int>::min());
     _num = 1;
     _den = 1;
     return;
   }
 
   // now it's safe to treat this unsigned as signed
-  ASS_LE(gcd,(unsigned)numeric_limits<signed>::max());
+  ASS_LE(gcd,(unsigned)std::numeric_limits<signed>::max());
   if (gcd!=1) {
     _num = _num.intDivide(gcd);
     _den = _den.intDivide(gcd);
@@ -548,8 +548,8 @@ RealConstantType::RealConstantType(const vstring& number)
     numDbl *= 10;
   }
 
-  if (numDbl > numeric_limits<InnerType::InnerType>::max() ||
-      numDbl < numeric_limits<InnerType::InnerType>::min()) {
+  if (numDbl > std::numeric_limits<InnerType::InnerType>::max() ||
+      numDbl < std::numeric_limits<InnerType::InnerType>::min()) {
     //the numerator part of double doesn't fit inside the inner integer type
     throw MachineArithmeticException();
   }
@@ -1968,7 +1968,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
  */
 vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
 {
-   //cout << "Get LaTeX for " << func << endl;
+   //std::cout << "Get LaTeX for " << func << std::endl;
 
   // Used if no recorded template is found
   Interpretation i;

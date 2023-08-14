@@ -87,8 +87,8 @@ struct EqualityResolution::ResultFn
       }
     }
 
-    //cout << "arg0 " + arg0.toString() << endl;
-    //cout << "arg1 " + arg1.toString() << endl;
+    //std::cout << "arg0 " + arg0.toString() << std::endl;
+    //std::cout << "arg1 " + arg1.toString() << std::endl;
 
     // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
     // and therefore a constraint can be created between arguments
@@ -121,9 +121,9 @@ struct EqualityResolution::ResultFn
       return 0;    
     }
 
-    //cout << "equalityResolution with " + _cl->toString() << endl;
-    //cout << "The literal is " + lit->toString() << endl;
-    //cout << "cLength " << cLength << endl;
+    //std::cout << "equalityResolution with " + _cl->toString() << std::endl;
+    //std::cout << "The literal is " + lit->toString() << std::endl;
+    //std::cout << "cLength " << cLength << std::endl;
 
     unsigned newLen=_cLen-1+ constraints.length();
 

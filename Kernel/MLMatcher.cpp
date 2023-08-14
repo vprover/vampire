@@ -181,7 +181,7 @@ struct MatchingData {
   TriangularArray<unsigned>* remaining;
   unsigned* nextAlts;
 
-  TriangularArray<pair<int,int>* >* intersections;
+  TriangularArray<std::pair<int,int>* >* intersections;
 
   Literal** bases;
   LiteralList const* const* alts;
@@ -191,7 +191,7 @@ struct MatchingData {
   unsigned* boundVarNumStorage;
   TermList** altBindingPtrStorage;
   TermList* altBindingStorage;
-  pair<int,int>* intersectionStorage;
+  std::pair<int,int>* intersectionStorage;
 
   enum InitResult {
     OK,
@@ -216,7 +216,7 @@ struct MatchingData {
    * @b altBindings[b2Index][i2AltIndex] .
    */
   bool compatible(unsigned b1Index, TermList* i1Bindings,
-                  unsigned b2Index, unsigned i2AltIndex, pair<int,int>* iinfo) const
+                  unsigned b2Index, unsigned i2AltIndex, std::pair<int,int>* iinfo) const
   {
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
 
@@ -236,7 +236,7 @@ struct MatchingData {
       if(!isInitialized(i)) {
 	break;
       }
-      pair<int,int>* iinfo=getIntersectInfo(bIndex, i);
+      std::pair<int,int>* iinfo=getIntersectInfo(bIndex, i);
       unsigned remAlts=remaining->get(i,bIndex);
 
       if(iinfo->first!=-1) {
@@ -256,10 +256,10 @@ struct MatchingData {
     return true;
   }
 
-  pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
+  std::pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
   {
     ASS_L(b1, b2);
-    pair<int,int>* res=intersections->get(b2,b1);
+    std::pair<int,int>* res=intersections->get(b2,b1);
     if( res ) {
       return res;
     }
@@ -318,7 +318,7 @@ struct MatchingData {
 
       unsigned remAlts=0;
       for(unsigned pbi=0;pbi<bIndex;pbi++) { //pbi ~ previous base index
-	pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
+	std::pair<int,int>* iinfo=getIntersectInfo(pbi, bIndex);
         remAlts=remaining->get(bIndex, pbi);
 
         if(iinfo->first!=-1) {
@@ -386,12 +386,12 @@ class MLMatcher::Impl final
     DArray<unsigned*> s_boundVarNums;
     DArray<TermList**> s_altPtrs;
     TriangularArray<unsigned> s_remaining;
-    TriangularArray<pair<int,int>* > s_intersections;
+    TriangularArray<std::pair<int,int>* > s_intersections;
     DArray<unsigned> s_nextAlts;
     DArray<unsigned> s_boundVarNumData;
     DArray<TermList*> s_altBindingPtrs;
     DArray<TermList> s_altBindingsData;
-    DArray<pair<int,int> > s_intersectionData;
+    DArray<std::pair<int,int> > s_intersectionData;
 
     MatchingData s_matchingData;
 

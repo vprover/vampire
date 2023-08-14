@@ -125,13 +125,13 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
   }
 
 #if TRACE_INEQUALITY_SPLITTING
-  cout<<"---------"<<endl;
-  cout<<"IEQ split from: "<<(*cl)<<endl;
-  cout<<"IEQ split to: "<<(*res)<<endl;
+  std::cout<<"---------"<<std::endl;
+  std::cout<<"IEQ split from: "<<(*cl)<<std::endl;
+  std::cout<<"IEQ split to: "<<(*res)<<std::endl;
   UnitList::Iterator pit(premises);
   ALWAYS(pit.hasNext()); pit.next();
   while(pit.hasNext()) {
-    cout<<"IEQ name: "<<pit.next()->toString()<<endl;
+    std::cout<<"IEQ name: "<<pit.next()->toString()<<std::endl;
   }
 #endif
 

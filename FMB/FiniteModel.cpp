@@ -143,20 +143,20 @@ vstring FiniteModel::toString()
   bool printIntroduced = false;
 
   //Output domain
-  modelStm << "fof(finite_domain,axiom," << endl;
-  modelStm << "      ! [X] : (" << endl;
+  modelStm << "fof(finite_domain,axiom," << std::endl;
+  modelStm << "      ! [X] : (" << std::endl;
   modelStm << "         ";
   for(unsigned i=1;i<=_size;i++){
   modelStm << "X = fmb" << i;
   if(i<_size) modelStm << " | ";
-  if(i==_size) modelStm << endl;
-  else if(i%5==0) modelStm << endl << "         ";
+  if(i==_size) modelStm << std::endl;
+  else if(i%5==0) modelStm << std::endl << "         ";
   }
-  modelStm << "      ) )." <<endl;
+  modelStm << "      ) )." <<std::endl;
   //Distinctness of domain
-  modelStm << endl;
+  modelStm << std::endl;
   if(_size>1){
-  modelStm << "fof(distinct_domain,axiom," << endl;
+  modelStm << "fof(distinct_domain,axiom," << std::endl;
   modelStm << "         ";
   unsigned c=0;
   for(unsigned i=1;i<=_size;i++){
@@ -165,12 +165,12 @@ vstring FiniteModel::toString()
       modelStm << "fmb"<<i<<" != fmb"<<j;
       if(!(i==_size-1 && j==_size)){
          modelStm << " & ";
-         if(c%5==0){ modelStm << endl << "         "; }
+         if(c%5==0){ modelStm << std::endl << "         "; }
       }
-      else{ modelStm << endl; }
+      else{ modelStm << std::endl; }
     }
   }
-  modelStm << ")." << endl << endl;
+  modelStm << ")." << std::endl << std::endl;
   }
 
   //Constants
@@ -181,10 +181,10 @@ vstring FiniteModel::toString()
     vstring name = env.signature->functionName(f);
     unsigned res = f_interpretation[f_offsets[f]];
     if(res>0){ 
-      modelStm << "fof("<<name<<"_definition,axiom,"<<name<<" = fmb"<< res << ")."<<endl;
+      modelStm << "fof("<<name<<"_definition,axiom,"<<name<<" = fmb"<< res << ")."<<std::endl;
     }
     else{
-      modelStm << "% " << name << " undefined in model" << endl; 
+      modelStm << "% " << name << " undefined in model" << std::endl; 
     }
   }
 
@@ -194,7 +194,7 @@ vstring FiniteModel::toString()
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
     vstring name = env.signature->functionName(f);
-    modelStm << "fof(function_"<<name<<",axiom,"<<endl;
+    modelStm << "fof(function_"<<name<<",axiom,"<<std::endl;
 
     unsigned offset = f_offsets[f];
 
@@ -236,15 +236,15 @@ fModelLabel:
             modelStm << "fmb" << args[j];
           }
           if(res>0){
-            modelStm << ") = fmb" <<res << endl;
+            modelStm << ") = fmb" <<res << std::endl;
           }
           else{
-            modelStm << ") undefined in model" << endl;
+            modelStm << ") undefined in model" << std::endl;
           }
           goto fModelLabel;
         }
       }
-      modelStm << endl << ")." << endl << endl;
+      modelStm << std::endl << ")." << std::endl << std::endl;
   }
 
   //Propositions
@@ -255,13 +255,13 @@ fModelLabel:
     vstring name = env.signature->predicateName(f);
     unsigned res = p_interpretation[p_offsets[f]];
     if(res==2){
-      modelStm << "fof("<<name<<"_definition,axiom,"<<name<< ")."<<endl;
+      modelStm << "fof("<<name<<"_definition,axiom,"<<name<< ")."<<std::endl;
     }
     else if(res==1){
-      modelStm << "fof("<<name<<"_definition,axiom,~"<<name<< ")."<<endl;
+      modelStm << "fof("<<name<<"_definition,axiom,~"<<name<< ")."<<std::endl;
     }
     else{
-      modelStm << "% " << name << " undefined" << endl;
+      modelStm << "% " << name << " undefined" << std::endl;
     }
   }
 
@@ -271,7 +271,7 @@ fModelLabel:
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
     vstring name = env.signature->predicateName(f);
-    modelStm << "fof(predicate_"<<name<<",axiom,"<<endl;
+    modelStm << "fof(predicate_"<<name<<",axiom,"<<std::endl;
 
     unsigned offset = p_offsets[f];
 
@@ -316,11 +316,11 @@ pModelLabel:
           if(res==0){
             modelStm << " undefined in model";
           }
-          modelStm << endl;
+          modelStm << std::endl;
           goto pModelLabel;
         }
       }
-      modelStm << endl << ")." << endl << endl;
+      modelStm << std::endl << ")." << std::endl << std::endl;
   }
 
 
@@ -333,8 +333,8 @@ unsigned FiniteModel::evaluateGroundTerm(Term* term)
   ASS(term->ground());
 
 #if DEBUG_MODEL
-  cout << "evaluating ground term " << term->toString() << endl;
-  cout << "domain constant status " << isDomainConstant(term) << endl;
+  std::cout << "evaluating ground term " << term->toString() << std::endl;
+  std::cout << "domain constant status " << isDomainConstant(term) << std::endl;
 #endif  
   if(isDomainConstant(term)) return getDomainConstant(term);
 
@@ -364,7 +364,7 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
   ASS(lit->ground());
 
 #if DEBUG_MODEL
-  cout << "Evaluating ground literal " << lit->toString() << endl;
+  std::cout << "Evaluating ground literal " << lit->toString() << std::endl;
 #endif
 
   // evaluate all arguments
@@ -380,8 +380,8 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
   if(lit->isEquality()){
     bool res = args[0]==args[1];
 #if DEBUG_MODEL
-    cout << "Evaluate equality, args " << args[0] << " and " << args[1] << endl;
-    cout << "res is " << (lit->polarity() ? res : !res) << endl;
+    std::cout << "Evaluate equality, args " << args[0] << " and " << args[1] << std::endl;
+    std::cout << "res is " << (lit->polarity() ? res : !res) << std::endl;
 #endif
     if(lit->polarity()) return res;
     else return !res;
@@ -401,7 +401,7 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
 
   unsigned res = p_interpretation[var];
 #if DEBUG_MODEL
-    cout << "res is " << res << " and polarity is " << lit->polarity() << endl; 
+    std::cout << "res is " << res << " and polarity is " << lit->polarity() << std::endl; 
 #endif
 
   if(res==0) 
@@ -439,8 +439,8 @@ bool FiniteModel::evaluate(Unit* unit)
 bool FiniteModel::evaluate(Formula* formula,unsigned depth)
 {
 #if DEBUG_MODEL
-  for(unsigned i=0;i<depth;i++){ cout << "."; }
-  cout << "Evaluating..." << formula->toString() << endl; 
+  for(unsigned i=0;i<depth;i++){ std::cout << "."; }
+  std::cout << "Evaluating..." << formula->toString() << std::endl; 
 #endif
 
   bool isAnd = false;
@@ -493,7 +493,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
       bool right_res = evaluate(right,depth+1);
       
 #if DEBUG_MODEL
-      cout << "left_res is " << left_res << ", right_res is " << right_res << endl;
+      std::cout << "left_res is " << left_res << ", right_res is " << right_res << std::endl;
 #endif
 
       if(isImp) return !left_res || right_res;
@@ -509,7 +509,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      VList* vs = formula->vars();
      int var = vs->head();
 
-     //cout << "Quant " << isForall << " with " << var << endl;
+     //std::cout << "Quant " << isForall << " with " << var << std::endl;
 
      Formula* next = 0;
      if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),0,formula->qarg());
@@ -551,8 +551,8 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
     Formula* FiniteModel::partialEvaluate(Formula* formula)
     {
 #if DEBUG_MODEL
-        for(unsigned i=0;i<depth;i++){ cout << "."; }
-        cout << "Evaluating..." << formula->toString() << endl;
+        for(unsigned i=0;i<depth;i++){ std::cout << "."; }
+        std::cout << "Evaluating..." << formula->toString() << std::endl;
 #endif
         
         switch(formula->connective()){

@@ -280,7 +280,7 @@ vstring FormulaBuilder::getAttributeValue(Sort p, vstring attributeName)
 {
   FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getSortAttributes(p));
   while(it.hasNext()) {
-    pair<vstring,vstring> curr = it.next();
+    std::pair<vstring,vstring> curr = it.next();
     if(curr.first==attributeName) {
       return curr.second;
     }
@@ -318,7 +318,7 @@ vstring FormulaBuilder::getAttributeValue(Predicate p, vstring attributeName)
 {
   FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getPredicateAttributes(p));
   while(it.hasNext()) {
-    pair<vstring,vstring> curr = it.next();
+    std::pair<vstring,vstring> curr = it.next();
     if(curr.first==attributeName) {
       return curr.second;
     }
@@ -356,7 +356,7 @@ vstring FormulaBuilder::getAttributeValue(Function p, vstring attributeName)
 {
   FBHelperCore::AttribStack::BottomFirstIterator it(_aux->getFunctionAttributes(p));
   while(it.hasNext()) {
-    pair<vstring,vstring> curr = it.next();
+    std::pair<vstring,vstring> curr = it.next();
     if(curr.first==attributeName) {
       return curr.second;
     }
@@ -1127,12 +1127,12 @@ std::ostream& operator<< (std::ostream& str,const Api::Sort& sort)
   return str<<env.sorts->sortName(sort);
 }
 
-ostream& operator<< (ostream& str,const Api::Formula& f)
+std::ostream& operator<< (std::ostream& str,const Api::Formula& f)
 {
   return str<<f.toString();
 }
 
-ostream& operator<< (ostream& str,const Api::AnnotatedFormula& af)
+std::ostream& operator<< (std::ostream& str,const Api::AnnotatedFormula& af)
 {
   return str<<af.toString();
 }

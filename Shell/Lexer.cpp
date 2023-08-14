@@ -27,7 +27,7 @@ using namespace Lib;
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
-Lexer::Lexer (istream& in)
+Lexer::Lexer (std::istream& in)
   : _charBuffer(512),
     _charCursor(0),
     _stream(in),
@@ -170,10 +170,10 @@ LexerException::LexerException (vstring message,const Lexer& lexer)
 
 
 /**
- * Write itself to an ostream.
+ * Write itself to an std::ostream.
  * @since 15/07/2004 Turku
  */
-void LexerException::cry (ostream& out) const
+void LexerException::cry (std::ostream& out) const
 {
   out << "Lexer exception: " << _message << '\n';
 } // LexerException::LexerException

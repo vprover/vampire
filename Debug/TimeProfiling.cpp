@@ -57,7 +57,7 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
       .map([](auto& x) { return &*x; })
       .find([&](Node* n) { return n->name == name; })
       .unwrapOrElse([&]() { 
-          children.push(Lib::make_unique<Node>(name));
+          children.push(std::make_unique<Node>(name));
           return &*children.top();
       });
     auto start = Clock::now();
@@ -79,8 +79,8 @@ TimeTrace::ScopedTimer::~ScopedTimer()
   if (_trace._enabled) {
     auto now = Clock::now();
     auto cur = _trace._stack.pop();
-    auto node = get<0>(cur);
-    auto start = get<1>(cur);
+    auto node = std::get<0>(cur);
+    auto start = std::get<1>(cur);
     node->measurements.add(now  - start);
     ASS_EQ(node->name, _name);
     ASS(start == _start);
@@ -96,7 +96,7 @@ TimeTrace::ScopedChangeRoot::ScopedChangeRoot(TimeTrace& trace)
   : _trace(trace)
 {
   if (_trace._enabled) {
-    _trace._tmpRoots.push(get<0>(trace._stack.top()));
+    _trace._tmpRoots.push(std::get<0>(trace._stack.top()));
   }
 }
 
@@ -164,7 +164,7 @@ struct MaybeSetw {
   int width;
   friend std::ostream& operator<<(std::ostream& out, MaybeSetw const& self)
   { 
-    if (self.enabled) return out << setw(self.width);
+    if (self.enabled) return out << std::setw(self.width);
     else return out;
   }
 };
@@ -189,13 +189,13 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
   auto total = totalDuration();
   auto cnt = measurements.cnt();
   if (opts.parentDuration.isSome()) {
-    out << "[" << setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
+    out << "[" << std::setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
   }
   BYPASSING_ALLOCATOR
   if (opts.nameWidth.isSome()) {
-    out << msetw(opts.nameWidth.unwrap()) << left;
+    out << msetw(opts.nameWidth.unwrap()) << std::left;
   }
-  out << name << right;
+  out << name << std::right;
 
   out << " (total: "<< msetw(4) << total
       << ", avg: "  << msetw(4) << total / cnt
@@ -215,7 +215,7 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
 }
 
 struct TimeTrace::Node::FlattenState {
-  Stack<unique_ptr<Node>> nodes;
+  Stack<std::unique_ptr<Node>> nodes;
   Stack<Node*> recPath;
 };
 
@@ -237,7 +237,7 @@ void TimeTrace::Node::flatten_(FlattenState& s)
       .find([&](auto& n) { return n->name == c->name; });
 
     if (node_.isNone()) {
-      s.nodes.push(make_unique<Node>(c->name));
+      s.nodes.push(std::make_unique<Node>(c->name));
     }
     auto& node = node_.isSome() ? node_.unwrap() : s.nodes.top();
 
@@ -257,8 +257,8 @@ void TimeTrace::printPretty(std::ostream& out)
 
   auto now = Clock::now();
   for (auto& x : _stack) {
-    auto node = get<0>(x);
-    auto start = get<1>(x);
+    auto node = std::get<0>(x);
+    auto start = std::get<1>(x);
     node->measurements.add(now - start);
   }
 
@@ -280,8 +280,8 @@ void TimeTrace::printPretty(std::ostream& out)
 
 
   for (auto& x : _stack) {
-    auto node = get<0>(x);
-    auto start = get<1>(x);
+    auto node = std::get<0>(x);
+    auto start = std::get<1>(x);
     node->measurements.remove(now - start);
   }
 }

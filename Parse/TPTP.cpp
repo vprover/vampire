@@ -65,7 +65,7 @@ const int TPTP::SIGMA = 103u;
  * Create a parser, parse the input and return the parsed list of units.
  * @since 13/07/2011 Manchester
  */
-UnitList* TPTP::parse(istream& input)
+UnitList* TPTP::parse(std::istream& input)
 {
   Parse::TPTP parser(input);
   try{
@@ -82,7 +82,7 @@ UnitList* TPTP::parse(istream& input)
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
-TPTP::TPTP(istream& in)
+TPTP::TPTP(std::istream& in)
   : _containsConjecture(false),
     _allowedNames(0),
     _in(&in),
@@ -122,8 +122,8 @@ void TPTP::parse()
   while (!_states.isEmpty()) {
     State s = _states.pop();
 #ifdef DEBUG_SHOW_STATE
-    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl;
-    cout << toString(s) << endl;
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl;
+    std::cout << toString(s) << std::endl;
 #endif
     switch (s) {
     case UNIT_LIST:
@@ -273,9 +273,9 @@ void TPTP::parse()
 #endif
     }
 #ifdef DEBUG_SHOW_STATE
-    cout << "----------------------------------------" << endl;
+    std::cout << "----------------------------------------" << std::endl;
     printStacks();
-    cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << endl << endl;
+    std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" << std::endl << std::endl;
 #endif
   }
 } // TPTP::parse()
@@ -1077,7 +1077,7 @@ TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok, unsig
  * Exception printing a message. Currently computing a position is simplified
  * @since 08/04/2011 Manchester
  */
-void TPTP::ParseErrorException::cry(ostream& str) const
+void TPTP::ParseErrorException::cry(std::ostream& str) const
 {
   str << "Parsing Error on line " << _ln << "\n";
   str << _message << "\n";
@@ -1220,7 +1220,7 @@ void TPTP::unitList()
     }
     resetChars();
     {
-      BYPASSING_ALLOCATOR; // ifstream was allocated by "system new"
+      BYPASSING_ALLOCATOR; // std::ifstream was allocated by "system new"
       delete _in;
     }
     _in = _inputs.pop();
@@ -1414,7 +1414,7 @@ void TPTP::tff()
           symbol->setType(ot);  
           _typeConstructorArities.insert(nm, arity);
         }       
-        //cout << "added type constuctor " + nm + " of type " + symbol->fnType()->toString() << endl;
+        //std::cout << "added type constuctor " + nm + " of type " + symbol->fnType()->toString() << std::endl;
         while (lpars--) {
           consumeToken(T_RPAR);
         }
@@ -2110,8 +2110,8 @@ void TPTP::include()
   _includeDirectory = "";
   vstring fileName(env.options->includeFileName(relativeName));
   {
-    BYPASSING_ALLOCATOR; // we cannot make ifstream allocated via Allocator
-    _in = new ifstream(fileName.c_str());
+    BYPASSING_ALLOCATOR; // we cannot make std::ifstream allocated via Allocator
+    _in = new std::ifstream(fileName.c_str());
   }
   if (!*_in) {
     USER_ERROR((vstring)"cannot open file " + fileName);
@@ -3633,7 +3633,7 @@ void TPTP::endFof()
     assignAxiomName(unit,nm);
   }
 #if DEBUG_SHOW_UNITS
-  cout << "Unit: " << unit->toString() << "\n";
+  std::cout << "Unit: " << unit->toString() << "\n";
 #endif
   if (!_inputs.isEmpty()) {
     unit->inference().markIncluded();
@@ -3787,7 +3787,7 @@ void TPTP::endTff()
         }
       }
     }
-    //cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << endl;
+    //std::cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << std::endl;
   }
 } // endTff
 
@@ -3903,7 +3903,7 @@ TPTP::SourceRecord* TPTP::getSource()
     vstring nameInFile = getTok(0).content;
     resetToks();
 
-    // cout << "Creating file source record for " << fileName << " and " << nameInFile << endl;
+    // std::cout << "Creating file source record for " << fileName << " and " << nameInFile << std::endl;
 
     consumeToken(T_RPAR);
     return new FileSourceRecord(fileName,nameInFile);
@@ -3914,7 +3914,7 @@ TPTP::SourceRecord* TPTP::getSource()
     vstring name = getTok(0).content;
     resetToks();
 
-    // cout << "Creating inference source record for " << name <<  endl;
+    // std::cout << "Creating inference source record for " << name <<  std::endl;
 
     InferenceSourceRecord* r = new InferenceSourceRecord(name);
 
@@ -3939,7 +3939,7 @@ TPTP::SourceRecord* TPTP::getSource()
       if(tok.tag == T_COMMA) continue;
    
       if (tok.tag != T_NAME && tok.tag != T_INT) {
-        cout << "read token " << tok.tag << " with content " << tok.content << endl;
+        std::cout << "read token " << tok.tag << " with content " << tok.content << std::endl;
 
         // TODO: parse errors are nice, but maybe we just want to ignore any info which we cannot understand?
 
@@ -3955,7 +3955,7 @@ TPTP::SourceRecord* TPTP::getSource()
         skipToRPAR();
       } else {
         r->premises.push(premise);
-        // cout << "pushed premise " << premise << endl;
+        // std::cout << "pushed premise " << premise << std::endl;
       }
     }
     resetToks();
@@ -5117,7 +5117,7 @@ const char* TPTP::toString(State s)
   case END_TUPLE:
     return "END_TUPLE";
   default:
-    cout << (int)s << "\n";
+    std::cout << (int)s << "\n";
     ASS(false);
     break;
   }
@@ -5128,114 +5128,114 @@ const char* TPTP::toString(State s)
 void TPTP::printStacks() {
 
   Stack<State>::Iterator stit(_states);
-  cout << "States:";
-  if   (!stit.hasNext()) cout << " <empty>";
-  while (stit.hasNext()) cout << " " << toString(stit.next());
-  cout << endl;
+  std::cout << "States:";
+  if   (!stit.hasNext()) std::cout << " <empty>";
+  while (stit.hasNext()) std::cout << " " << toString(stit.next());
+  std::cout << std::endl;
 
   /*Stack<Type*>::Iterator tyit(_types);
-  cout << "Types:";
-  if   (!tyit.hasNext()) cout << " <empty>";
-  while (tyit.hasNext()) cout << " " << tyit.next()->tag();
-  cout << endl;
+  std::cout << "Types:";
+  if   (!tyit.hasNext()) std::cout << " <empty>";
+  while (tyit.hasNext()) std::cout << " " << tyit.next()->tag();
+  std::cout << std::endl;
 
   Stack<int>::Iterator cit(_connectives);
-  cout << "Connectives:";
-  if   (!cit.hasNext()) cout << " <empty>";
-  while (cit.hasNext()) cout << " " << cit.next();
-  cout << endl; 
+  std::cout << "Connectives:";
+  if   (!cit.hasNext()) std::cout << " <empty>";
+  while (cit.hasNext()) std::cout << " " << cit.next();
+  std::cout << std::endl; 
 
   Stack<vstring>::Iterator sit(_strings);
-  cout << "Strings:";
-  if   (!sit.hasNext()) cout << " <empty>";
-  while (sit.hasNext()) cout << " " << sit.next();
-  cout << endl;
+  std::cout << "Strings:";
+  if   (!sit.hasNext()) std::cout << " <empty>";
+  while (sit.hasNext()) std::cout << " " << sit.next();
+  std::cout << std::endl;
 
   Stack<int>::Iterator iit(_ints);
-  cout << "Ints:";
-  if   (!iit.hasNext()) cout << " <empty>";
-  while (iit.hasNext()) cout << " " << iit.next();
-  cout << endl;
+  std::cout << "Ints:";
+  if   (!iit.hasNext()) std::cout << " <empty>";
+  while (iit.hasNext()) std::cout << " " << iit.next();
+  std::cout << std::endl;
 
   Stack<bool>::Iterator bit(_bools);
-  cout << "Bools:";
-  if   (!bit.hasNext()) cout << " <empty>";
-  while (bit.hasNext()) cout << " " << bit.next();
-  cout << endl;
+  std::cout << "Bools:";
+  if   (!bit.hasNext()) std::cout << " <empty>";
+  while (bit.hasNext()) std::cout << " " << bit.next();
+  std::cout << std::endl;
   */
 
   Stack<TermList>::Iterator tit(_termLists);
-  cout << "Terms:";
-  if   (!tit.hasNext()) cout << " <empty>";
-  while (tit.hasNext()) cout << " " << tit.next().toString();
-  cout << endl;
+  std::cout << "Terms:";
+  if   (!tit.hasNext()) std::cout << " <empty>";
+  while (tit.hasNext()) std::cout << " " << tit.next().toString();
+  std::cout << std::endl;
 
   Stack<Formula*>::Iterator fit(_formulas);
-  cout << "Formulas:";
-  if   (!fit.hasNext()) cout << " <empty>";
-  while (fit.hasNext()) cout << " " << fit.next()->toString();
-  cout << endl;
+  std::cout << "Formulas:";
+  if   (!fit.hasNext()) std::cout << " <empty>";
+  while (fit.hasNext()) std::cout << " " << fit.next()->toString();
+  std::cout << std::endl;
 
   /*
   Stack<Formula::VarList*>::Iterator vlit(_varLists);
-  cout << "Var lists:";
-  if   (!vlit.hasNext()) cout << " <empty>";
+  std::cout << "Var lists:";
+  if   (!vlit.hasNext()) std::cout << " <empty>";
   while (vlit.hasNext()) {
     Formula::VarList::Iterator vit(vlit.next());
     if (!vit.hasNext()) {
-      cout << " <empty>";
+      std::cout << " <empty>";
     } else {
-      cout << " [";
+      std::cout << " [";
       while (vit.hasNext()) {
-        cout << vit.next();
-        if (vit.hasNext()) cout << " ";
+        std::cout << vit.next();
+        if (vit.hasNext()) std::cout << " ";
       };
-      cout << "]";
+      std::cout << "]";
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 
   Map<int, SortList*>::Iterator vsit(_variableSorts);
-  cout << "Variables sorts:";
-  if   (!vsit.hasNext()) cout << "<empty>";
+  std::cout << "Variables sorts:";
+  if   (!vsit.hasNext()) std::cout << "<empty>";
   int vsitKey;
   SortList* vsitVal;
   while (vsit.hasNext()) {
     vsit.next(vsitKey, vsitVal);
-    cout << " {" << vsitKey << " ->";
+    std::cout << " {" << vsitKey << " ->";
     SortList::Iterator slit(vsitVal);
-    if   (!slit.hasNext()) cout << " <empty>";
-    while (slit.hasNext()) cout << " " << (slit.next()).toString();
-    cout << "}";
+    if   (!slit.hasNext()) std::cout << " <empty>";
+    while (slit.hasNext()) std::cout << " " << (slit.next()).toString();
+    std::cout << "}";
   }
-  cout << endl;
+  std::cout << std::endl;
 
   Stack<SortList*>::Iterator slsit(_sortLists);
-  cout << "Sort lists: ";
-  if   (!slsit.hasNext()) cout << "<empty>";
+  std::cout << "Sort lists: ";
+  if   (!slsit.hasNext()) std::cout << "<empty>";
   while (slsit.hasNext()) {
     SortList* sl = slsit.next();
     SortList::Iterator slit(sl);
-    if   (!slit.hasNext()) cout << "<empty>";
-    while (slit.hasNext()) cout << (slit.next()).toString() << " ";
-    cout << ";";
+    if   (!slit.hasNext()) std::cout << "<empty>";
+    while (slit.hasNext()) std::cout << (slit.next()).toString() << " ";
+    std::cout << ";";
   }
-  cout << endl;
+  std::cout << std::endl;
 
   Stack<TheoryFunction>::Iterator tfit(_theoryFunctions);
-  cout << "Theory functions: ";
-  if   (!tfit.hasNext()) cout << " <empty>";
-  while (tfit.hasNext()) cout << " " << tfit.next();
-  cout << endl;
+  std::cout << "Theory functions: ";
+  if   (!tfit.hasNext()) std::cout << " <empty>";
+  while (tfit.hasNext()) std::cout << " " << tfit.next();
+  std::cout << std::endl;
 
   Stack<LetSymbols>::Iterator lfsit(_letSymbols);
-  cout << "Let functions scopes: ";
-  if (!lfsit.hasNext()) cout << "<empty>";
+  std::cout << "Let functions scopes: ";
+  if (!lfsit.hasNext()) std::cout << "<empty>";
   while (lfsit.hasNext()) {
     LetSymbols lfs = lfsit.next();
     LetSymbols::Iterator sit(lfs);
     if (!sit.hasNext()) {
-      cout << "<empty>";
+      std::cout << "<empty>";
     } else {
       unsigned i = lfs.length();
       while (sit.hasNext()) {
@@ -5248,23 +5248,23 @@ void TPTP::printStacks() {
         vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
                                          : env.signature->functionName (symbol);
 
-        cout << name << "/" << arity << " -> " << symbolName;
+        std::cout << name << "/" << arity << " -> " << symbolName;
         if (--i > 0) {
-          cout << ", ";
+          std::cout << ", ";
         }
       };
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 
   Stack<LetSymbols>::Iterator clfsit(_letTypedSymbols);
-  cout << "Current let functions scopes: ";
-  if (!clfsit.hasNext()) cout << "<empty>";
+  std::cout << "Current let functions scopes: ";
+  if (!clfsit.hasNext()) std::cout << "<empty>";
   while (clfsit.hasNext()) {
     LetSymbols lfs = clfsit.next();
     LetSymbols::Iterator csit(lfs);
     if (!csit.hasNext()) {
-      cout << "<empty>";
+      std::cout << "<empty>";
     } else {
       unsigned i = lfs.length();
       while (csit.hasNext()) {
@@ -5277,25 +5277,25 @@ void TPTP::printStacks() {
         vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
                                          : env.signature->functionName (symbol);
 
-        cout << name << "/" << arity << " -> " << symbolName;
+        std::cout << name << "/" << arity << " -> " << symbolName;
         if (--i > 0) {
-          cout << ", ";
+          std::cout << ", ";
         }
       };
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 
   Stack<LetDefinitions>::Iterator lbsit(_letDefinitions);
-  cout << "Let definitions: ";
-  if (!lbsit.hasNext()) cout << "<empty>";
+  std::cout << "Let definitions: ";
+  if (!lbsit.hasNext()) std::cout << "<empty>";
   while (lbsit.hasNext()) {
     LetDefinitions lbs = lbsit.next();
     LetDefinitions::Iterator lbit(lbs);
     if (!lbit.hasNext()) {
-      cout << "<empty>";
+      std::cout << "<empty>";
     } else {
-      cout << "[";
+      std::cout << "[";
       unsigned i = (unsigned)lbs.length();
       while (lbit.hasNext()) {
         LetSymbolReference ref = lbit.next();
@@ -5303,14 +5303,14 @@ void TPTP::printStacks() {
         bool isPredicate = IS_PREDICATE(ref);
         vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
                                          : env.signature->functionName (symbol);
-        cout << symbolName;
+        std::cout << symbolName;
         if (--i > 0) {
-          cout << ", ";
+          std::cout << ", ";
         }
       }
-      cout << "]";
+      std::cout << "]";
     }
   }*/
-  cout << endl;
+  std::cout << std::endl;
 }
 #endif

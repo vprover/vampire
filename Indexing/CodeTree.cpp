@@ -183,8 +183,8 @@ CodeTree::ILStruct::~ILStruct()
  */
 struct CodeTree::ILStruct::GVArrComparator
 {
-  Comparison compare(const pair<unsigned,unsigned>& p1,
-      const pair<unsigned,unsigned>& p2)
+  Comparison compare(const std::pair<unsigned,unsigned>& p1,
+      const std::pair<unsigned,unsigned>& p2)
   {
     return Int::compare(p1.first, p2.first);
   }
@@ -201,7 +201,7 @@ void CodeTree::ILStruct::putIntoSequence(ILStruct* previous_)
 
   if(!varCnt) { return; }
 
-  static DArray<pair<unsigned,unsigned> > gvArr;
+  static DArray<std::pair<unsigned,unsigned> > gvArr;
   gvArr.ensure(varCnt);
   for(unsigned i=0;i<varCnt;i++) {
     gvArr[i].first=globalVarNumbers[i];
@@ -279,7 +279,7 @@ void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
   ASS_L(matchIndex, matchCnt);
 
   matchCnt--;
-  swap(matches[matchIndex], matches[matchCnt]);
+  std::swap(matches[matchIndex], matches[matchCnt]);
 }
 
 CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)

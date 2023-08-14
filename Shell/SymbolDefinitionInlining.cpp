@@ -51,7 +51,7 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
       unsigned boundVar = bit.next();
       unsigned freshVar = ++_freshVarOffset;
       substitution.bind(boundVar, TermList(freshVar, false));
-      List<pair<unsigned, unsigned>>::push(make_pair(boundVar, freshVar), _varRenames);
+      List<std::pair<unsigned, unsigned>>::push(std::make_pair(boundVar, freshVar), _varRenames);
     }
   }
 

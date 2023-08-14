@@ -115,14 +115,14 @@ void testProofWithAssumptions(SATSolver& s)
   SATClause* refutation = s.getRefutation();
   PropInference* inf = static_cast<PropInference*>(refutation->inference());
 
-  // cout << endl << "Refutation: " << refutation->toString() << endl;
+  // std::cout << std::endl << "Refutation: " << refutation->toString() << std::endl;
 
   List<SATClause*>* prems = inf->getPremises();
 
-  // cout << "Inference length: " << prems->length() << endl;
+  // std::cout << "Inference length: " << prems->length() << std::endl;
   
   while(prems){
-    // cout << prems->head()->toString() << endl;
+    // std::cout << prems->head()->toString() << std::endl;
     prems = prems->tail();
   }
 
@@ -180,17 +180,17 @@ void testInterface(SATSolverWithAssumptions &s) {
   ASS(s.isZeroImplied(c));
   ASS(!s.isZeroImplied(d));
 
-  cout << " Random: ";
+  std::cout << " Random: ";
   for (int i = 0; i < 10; i++) {    
     s.randomizeForNextAssignment(27);
     s.solve();
-    cout << s.trueInAssignment(getLit('d'));
+    std::cout << s.trueInAssignment(getLit('d'));
   }
-  cout << "  Fixed: ";      
+  std::cout << "  Fixed: ";      
   for (int i = 0; i < 10; i++) {        
-    cout << s.trueInAssignment(getLit('d'));
+    std::cout << s.trueInAssignment(getLit('d'));
   }
-  cout << endl;  
+  std::cout << std::endl;  
   
   s.addAssumption(getLit('d'));
   s.addAssumption(getLit('a'));
@@ -220,12 +220,12 @@ void testInterface(SATSolverWithAssumptions &s) {
 
 TEST_FUN(testSATSolverInterface)
 { 
-  cout << endl << "Minisat" << endl;  
+  std::cout << std::endl << "Minisat" << std::endl;  
   MinisatInterfacing sMini(*env.options,true);
   testInterface(sMini);
     
   /* Not fully conforming - does not support zeroImplied and resource-limited solving
-  cout << endl << "Z3" << endl;
+  std::cout << std::endl << "Z3" << std::endl;
   {
     SAT2FO sat2fo;
     Z3Interfacing sZ3(*env.options,sat2fo);
@@ -257,32 +257,32 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   for (unsigned i = 0; i < failed.size(); i++) {
     SATLiteral lit = failed[i];
     if (lit.polarity()) {
-      cout << (char)('A' + lit.var()-1);
+      std::cout << (char)('A' + lit.var()-1);
     } else {
-      cout << (char)('a' + lit.var()-1);
+      std::cout << (char)('a' + lit.var()-1);
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 
   const SATLiteralStack& minimized = s.explicitlyMinimizedFailedAssumptions();
   for (unsigned i = 0; i < minimized.size(); i++) {
     SATLiteral lit = minimized[i];
     if (lit.polarity()) {
-      cout << (char)('A' + lit.var()-1);
+      std::cout << (char)('A' + lit.var()-1);
     } else {
-      cout << (char)('a' + lit.var()-1);
+      std::cout << (char)('a' + lit.var()-1);
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 }
 
 TEST_FUN(testSolvingUnderAssumptions)
 {
-  cout << endl << "Minisat" << endl;
+  std::cout << std::endl << "Minisat" << std::endl;
   MinisatInterfacing sMini(*env.options,true);
   testAssumptions(sMini);
 
-  /*cout << endl << "Z3" << endl;
+  /*std::cout << std::endl << "Z3" << std::endl;
   {
     SAT2FO sat2fo;
     Z3Interfacing sZ3(*env.options,sat2fo,true);

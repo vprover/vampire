@@ -51,10 +51,10 @@ struct ExtensionalityResolution::ForwardPairingFn
 {
   ForwardPairingFn (ExtensionalityClauseContainer* extClauses)
   : _extClauses(extClauses) {}
-  VirtualIterator<pair<Literal*, ExtensionalityClause> > operator()(Literal* lit)
+  VirtualIterator<std::pair<Literal*, ExtensionalityClause> > operator()(Literal* lit)
   {
     if (!lit->isEquality() || lit->isPositive()) {
-      return VirtualIterator<pair<Literal*, ExtensionalityClause> >::getEmpty();
+      return VirtualIterator<std::pair<Literal*, ExtensionalityClause> >::getEmpty();
     }
 
     TermList s = SortHelper::getEqualityArgumentSort(lit);
@@ -75,14 +75,14 @@ private:
 struct ExtensionalityResolution::ForwardUnificationsFn
 {
   ForwardUnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
-  VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> > operator()(pair<Literal*, ExtensionalityClause> arg)
+  VirtualIterator<std::pair<std::pair<Literal*, ExtensionalityClause>, RobSubstitution*> > operator()(std::pair<Literal*, ExtensionalityClause> arg)
   {
     Literal* trmEq = arg.first;
     Literal* varEq = arg.second.literal;
 
     SubstIterator unifs = _subst->unifiers(varEq,0,trmEq,1,true);
     if (!unifs.hasNext()) {
-      return VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >::getEmpty();
+      return VirtualIterator<std::pair<std::pair<Literal*, ExtensionalityClause>, RobSubstitution*> >::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, unifs));
   }
@@ -96,7 +96,7 @@ private:
 struct ExtensionalityResolution::ForwardResultFn
 {
   ForwardResultFn(Clause* otherCl, ExtensionalityResolution& parent) : _otherCl(otherCl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
+  Clause* operator()(std::pair<std::pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
   {
     RobSubstitution* subst = arg.second;
     Literal* otherLit = arg.first.first;
@@ -136,7 +136,7 @@ private:
 struct ExtensionalityResolution::BackwardPairingFn
 {
   BackwardPairingFn (TermList sort) : _sort(sort) {}
-  VirtualIterator<pair<Clause*, Literal*> > operator()(Clause* cl)
+  VirtualIterator<std::pair<Clause*, Literal*> > operator()(Clause* cl)
   {
     return pvi(pushPairIntoRightIterator(
         cl,
@@ -157,13 +157,13 @@ struct ExtensionalityResolution::BackwardUnificationsFn
 {
   BackwardUnificationsFn(Literal* extLit)
   : _extLit (extLit) { _subst = RobSubstitutionSP(new RobSubstitution()); }
-  VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> > operator()(pair<Clause*, Literal*> arg)
+  VirtualIterator<std::pair<std::pair<Clause*, Literal*>, RobSubstitution*> > operator()(std::pair<Clause*, Literal*> arg)
   {
     Literal* otherLit = arg.second;
     
     SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
     if (!unifs.hasNext()) {
-      return VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> >::getEmpty();
+      return VirtualIterator<std::pair<std::pair<Clause*, Literal*>, RobSubstitution*> >::getEmpty();
     }
     return pvi(pushPairIntoRightIterator(arg, unifs));
   }
@@ -178,7 +178,7 @@ private:
 struct ExtensionalityResolution::BackwardResultFn
 {
   BackwardResultFn(Clause* extCl, Literal* extLit, ExtensionalityResolution& parent) : _extCl(extCl), _extLit(extLit), _parent(parent) {}
-  Clause* operator()(pair<pair<Clause*, Literal*>, RobSubstitution*> arg)
+  Clause* operator()(std::pair<std::pair<Clause*, Literal*>, RobSubstitution*> arg)
   {
     RobSubstitution* subst = arg.second;
     Clause* otherCl = arg.first.first;
@@ -211,7 +211,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
       env.beginOutput();
-      env.out()<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
+      env.out()<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<std::endl;
       env.endOutput();
     }
     return 0;

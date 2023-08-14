@@ -31,7 +31,7 @@ using namespace Lib;
 void MultiCounter::expandToFit (int v)
 {
   // calculate the new capacity
-  int newTop = max(_top*2,v+1);
+  int newTop = std::max(_top*2,v+1);
 
   // allocate the new array
   void* mem = ALLOC_KNOWN(newTop*sizeof(int),"MultiCounter");

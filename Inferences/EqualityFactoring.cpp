@@ -65,7 +65,7 @@ private:
 struct EqualityFactoring::FactorablePairsFn
 {
   FactorablePairsFn(Clause* cl) : _cl(cl) {}
-  VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > > operator() (pair<Literal*,TermList> arg)
+  VirtualIterator<std::pair<std::pair<Literal*,TermList>,std::pair<Literal*,TermList> > > operator() (std::pair<Literal*,TermList> arg)
   {
     auto it1 = getContentIterator(*_cl);
 
@@ -85,7 +85,7 @@ struct EqualityFactoring::ResultFn
 {
   ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
       : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
-  Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
+  Clause* operator() (std::pair<std::pair<Literal*,TermList>,std::pair<Literal*,TermList> > arg)
   {
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal

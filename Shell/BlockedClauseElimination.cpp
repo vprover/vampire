@@ -81,7 +81,7 @@ void BlockedClauseElimination::apply(Problem& prb)
     }
   }
 
-  // cout << "Clauses indexed" << endl;
+  // std::cout << "Clauses indexed" << std::endl;
 
   typedef BinaryHeap<Candidate*, CandidateComparator> BlockClauseCheckPriorityQueue;
   BlockClauseCheckPriorityQueue queue;
@@ -101,7 +101,7 @@ void BlockedClauseElimination::apply(Problem& prb)
     }
   }
 
-  // cout << "Queue initialized" << endl;
+  // std::cout << "Queue initialized" << std::endl;
 
   while (!queue.isEmpty()) {
     Candidate* cand = queue.pop();
@@ -143,7 +143,7 @@ void BlockedClauseElimination::apply(Problem& prb)
 
     // resolves to tautology with all partners -- blocked!
     if (env.options->showPreprocessing()) {
-      cout << "[PP] Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
+      std::cout << "[PP] Blocked clause[" << cand->litIdx << "]: " << cl->toString() << std::endl;
     }
 
     env.statistics->blockedClauses++;
@@ -251,10 +251,10 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 {
   // With polymorphism, some intermediate terms created here are not well sorted, but that's OK
   TermSharing::WellSortednessCheckingLocalDisabler disableInScope(env.sharing);
-  // cout << "cl: " << cl->toString() << endl;
-  // cout << "lit: " << lit->toString() << endl;
-  // cout << "pcl: " << pcl->toString() << endl;
-  // cout << "plit: " << plit->toString() << endl;
+  // std::cout << "cl: " << cl->toString() << std::endl;
+  // std::cout << "lit: " << lit->toString() << std::endl;
+  // std::cout << "pcl: " << pcl->toString() << std::endl;
+  // std::cout << "plit: " << plit->toString() << std::endl;
 
   ASS_EQ(lit->arity(),plit->arity());
 
@@ -352,7 +352,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     }
   }
 
-  //cout << "varMax: " << varMax << endl;
+  //std::cout << "varMax: " << varMax << std::endl;
 
   // to do replacements in pcl, we need a mapping for all plit's arguments.
   replacements.reset();
@@ -427,10 +427,10 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 {
   _cc.reset();
 
-  // cout << "cl: " << cl->toString() << endl;
-  // cout << "lit: " << lit->toString() << endl;
-  // cout << "pcl: " << pcl->toString() << endl;
-  // cout << "plit: " << plit->toString() << endl;
+  // std::cout << "cl: " << cl->toString() << std::endl;
+  // std::cout << "lit: " << lit->toString() << std::endl;
+  // std::cout << "pcl: " << pcl->toString() << std::endl;
+  // std::cout << "plit: " << plit->toString() << std::endl;
 
   // two variable normalizers:
   TimesTwo timesTwo;
@@ -444,7 +444,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
       Literal* norm_oplit = SubstHelper::apply(oplit,timesTwo);
 
-      // cout << "norm_oplit1: " << norm_oplit->toString() << endl;
+      // std::cout << "norm_oplit1: " << norm_oplit->toString() << std::endl;
 
       _cc.addLiteral(norm_oplit);
     }
@@ -458,7 +458,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
       Literal* norm_oplit = SubstHelper::apply(oplit,timesTwoPlusOne);
 
-      // cout << "norm_oplit2: " << norm_oplit->toString() << endl;
+      // std::cout << "norm_oplit2: " << norm_oplit->toString() << std::endl;
 
       _cc.addLiteral(norm_oplit);
     }
@@ -476,7 +476,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
     Literal* eqLit = Literal::createEquality(true,left,right,sort);
 
-    // cout << "eqLit: " << eqLit->toString() << endl;
+    // std::cout << "eqLit: " << eqLit->toString() << std::endl;
 
     _cc.addLiteral(eqLit);
   }
@@ -488,10 +488,10 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
 bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
-  // cout << "cl: " << cl->toString() << endl;
-  // cout << "pcl: " << pcl->toString() << endl;
-  // cout << "lit: " << lit->toString() << endl;
-  // cout << "plit: " << plit->toString() << endl;
+  // std::cout << "cl: " << cl->toString() << std::endl;
+  // std::cout << "pcl: " << pcl->toString() << std::endl;
+  // std::cout << "lit: " << lit->toString() << std::endl;
+  // std::cout << "plit: " << plit->toString() << std::endl;
 
   static RobSubstitution subst_main;
   subst_main.reset();
@@ -518,10 +518,10 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
     }
     cl_lits.insert(scurlit);
 
-    // cout << "insert1(scurlit): " << scurlit->toString() << endl;
+    // std::cout << "insert1(scurlit): " << scurlit->toString() << std::endl;
   }
 
-  // cout << "opslit: " << opslit->toString() << endl;
+  // std::cout << "opslit: " << opslit->toString() << std::endl;
 
   ASS_NEQ(opslit,0);
 
@@ -541,7 +541,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
     }
     pcl_lits.insert(scurlit);
 
-    // cout << "insert2(scurlit): " << scurlit->toString() << endl;
+    // std::cout << "insert2(scurlit): " << scurlit->toString() << std::endl;
 
     if (curlit != plit && cl_lits.find(opscurlit)) {
       if (opslit->functor() != scurlit->functor() || !subst_aux.unifyArgs(opslit,0,scurlit,0)) { // opslit is the same thing as plit(subst_main)

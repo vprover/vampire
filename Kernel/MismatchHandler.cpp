@@ -76,14 +76,14 @@ bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 
 bool UWAMismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermList t2,unsigned index2)
 {
-  auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
+  auto constraint = std::make_pair(std::make_pair(t1,index1),std::make_pair(t2,index2));
   constraints.push(constraint);
   return true;
 }
 
 bool HOMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
 {
-  auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
+  auto constraint = std::make_pair(std::make_pair(t1,index1),std::make_pair(t2,index2));
   constraints.push(constraint);
   return true; 
 }

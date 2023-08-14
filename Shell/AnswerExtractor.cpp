@@ -77,7 +77,7 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
       env.out() << ',';
     }
   }
-  env.out() << "]|_] for " << env.options->problemName() << endl;
+  env.out() << "]|_] for " << env.options->problemName() << std::endl;
   env.endOutput();
 }
 
@@ -261,7 +261,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
   }
 
   if(!SubstBuilder(goalLits, lemmas, subst).run()) {
-    cout << "Answer not found in proof" << endl;
+    std::cout << "Answer not found in proof" << std::endl;
     return false;
   }
 
@@ -417,7 +417,7 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
   throw MainLoop::RefutationFoundException(refutation);
 
 //  env.beginOutput();
-//  env.out()<<cl->toString()<<endl;
+//  env.out()<<cl->toString()<<std::endl;
 //  env.endOutput();
 }
 

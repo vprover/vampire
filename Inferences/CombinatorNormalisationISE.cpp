@@ -40,7 +40,7 @@ Clause* CombinatorNormalisationISE::simplify(Clause* c)
   LiteralStack litStack;
   bool modified = false;
 
- // cout << "into CombinatorNormalisationISE " + c->toString() << endl;
+ // std::cout << "into CombinatorNormalisationISE " + c->toString() << std::endl;
 
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
@@ -122,10 +122,10 @@ TermList CombinatorNormalisationISE::normalise(TermList t)
     }
 
     TermList tl= argIts.top()->next();
-    //cout << "tl is " + tl.toString() << endl;
+    //std::cout << "tl is " + tl.toString() << std::endl;
     bool reduced = replaceWithSmallerCombinator(tl);
     if(reduced){
-      //cout << "after mod " + tl.toString() << endl;
+      //std::cout << "after mod " + tl.toString() << std::endl;
       modified.setTop(true);
     }
     if (tl.isVar()) {
@@ -170,7 +170,7 @@ bool CombinatorNormalisationISE::replaceWithSmallerCombinator(TermList& t)
     sort = SortHelper::getResultSort(t.term());
   }
 
-  //cout << "The original term is " + t.toString() << endl;
+  //std::cout << "The original term is " + t.toString() << std::endl;
 
   AH::getHeadAndArgs(t, head, args);
   if(AH::isComb(head) && (args.size() == 1 || args.size() == 2)){
@@ -313,12 +313,12 @@ TermList CombinatorNormalisationISE::createSCorBTerm(TermList arg1, TermList arg
   unsigned cb = env.signature->getCombinator(comb);
   
   if(comb == Signature::S_COMB || comb == Signature::C_COMB){
-    //cout << "CCOMB arg1 " + arg1.toString() + " of sort " + arg1sort.toString() << endl; 
+    //std::cout << "CCOMB arg1 " + arg1.toString() + " of sort " + arg1sort.toString() << std::endl; 
     s1 = AH::getNthArg(arg1sort, 1);
     s2 = AH::getNthArg(arg1sort, 2);
     s3 = AH::getResultApplieadToNArgs(arg1sort, 2);
   } else {
-    //cout << "BCOMB arg1 " + arg1.toString() + " of sort " + arg1sort.toString() << endl; 
+    //std::cout << "BCOMB arg1 " + arg1.toString() + " of sort " + arg1sort.toString() << std::endl; 
     s1 = AH::getNthArg(arg2sort, 1);
     s2 = AH::getNthArg(arg1sort, 1);
     s3 = AH::getResultApplieadToNArgs(arg1sort, 1);

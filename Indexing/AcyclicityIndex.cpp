@@ -208,8 +208,8 @@ namespace Indexing
         if (aindex._sIndexes.find(sort)) {
           _index = aindex._sIndexes.get(sort);
           _tis = aindex._tis;
-          if (_index->find(make_pair(queryLit, queryClause))) {
-            IndexEntry *entry = _index->get(make_pair(queryLit, queryClause));
+          if (_index->find(std::make_pair(queryLit, queryClause))) {
+            IndexEntry *entry = _index->get(std::make_pair(queryLit, queryClause));
             _stack.push(CycleSearchTreeNode::unificationNode(entry->t,
                                                              queryLit,
                                                              queryClause,
@@ -340,8 +340,8 @@ namespace Indexing
             _nextResult = resultFromNode(n);
             return true;
           }
-          if (_index->find(make_pair(n->lit, n->clause))) {
-            IndexEntry *entry = _index->get(make_pair(n->lit, n->clause));
+          if (_index->find(std::make_pair(n->lit, n->clause))) {
+            IndexEntry *entry = _index->get(std::make_pair(n->lit, n->clause));
             List<TermList>::Iterator it(entry->subterms);
             while (it.hasNext()) {
               TermList t = it.next();
@@ -408,7 +408,7 @@ namespace Indexing
         _sIndexes.insert(sort, index);
       }
 
-      ULit ulit = make_pair(lit, c);
+      ULit ulit = std::make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, *t, getSubterms(fs->term())));
         _tis->insert(TypedTermList(t->term()), lit, c);
@@ -423,7 +423,7 @@ namespace Indexing
     TermList sort;
      
     if (matchesPattern(lit, fs, t, &sort) && _sIndexes.find(sort)) {
-      ULit ulit = make_pair(lit, c);
+      ULit ulit = std::make_pair(lit, c);
       if (!_sIndexes.get(sort)->find(ulit))
         return;
 

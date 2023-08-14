@@ -79,7 +79,7 @@ struct Choice::AxiomsIterator
     _headSort = AtomicSort::arrowSort(*term->nthArgument(0),*term->nthArgument(1));
     _resultSort = ApplicativeHelper::getResultApplieadToNArgs(_headSort, 1);
 
-    //cout << "the result sort is " + _resultSort.toString() << endl;
+    //std::cout << "the result sort is " + _resultSort.toString() << std::endl;
 
     DHSet<unsigned>* ops = env.signature->getChoiceOperators();
     DHSet<unsigned>::Iterator opsIt(*ops);
@@ -194,7 +194,7 @@ struct Choice::SubtermsFn
 
 ClauseIterator Choice::generateClauses(Clause* premise)
 {
-  //cout << "Choice with " << premise->toString() << endl;
+  //std::cout << "Choice with " << premise->toString() << std::endl;
   
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();

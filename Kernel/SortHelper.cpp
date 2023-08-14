@@ -58,7 +58,7 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
   TermList* typeArg;
   OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
   unsigned typeArgsArity = ot->numTypeArguments();
-  //cout << "typeArgsArity " << typeArgsArity << endl;
+  //std::cout << "typeArgsArity " << typeArgsArity << std::endl;
 
   typeArg = const_cast<TermList*>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
@@ -252,7 +252,7 @@ TermList SortHelper::getTermSort(TermList trm, Literal* lit)
     return getResultSort(trm.term());
   }
   if(!trm.isVar()){
-    cout << "ERROR with " << trm.toString() << " in " << lit->toString() << endl;
+    std::cout << "ERROR with " << trm.toString() << " in " << lit->toString() << std::endl;
   }
   ASS(trm.isVar());
   return getVariableSort(trm, lit);
@@ -821,8 +821,8 @@ bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result
     int idx = 0;
     TermList* args = t->args();
     while (!args->isEmpty()) {
-//      cout << "The arg is " + args->toString() << endl;
-//      cout << "the var is " + var.toString() << endl;
+//      std::cout << "The arg is " + args->toString() << std::endl;
+//      std::cout << "the var is " + var.toString() << std::endl;
       if (*args==var) {
         result = getArgSort(t, idx);
         return true;
@@ -910,7 +910,7 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
     Term* ta = arg.term();
     TermList argSort = getResultSortMono(ta);
     if (type->arg(i) != argSort) {
-      //cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << endl;
+      //std::cout << "error with expected " << type.arg(i) << " and actual " << argSort << " when functor is " << t->functor() << " and arg is " << arg << std::endl;
       return false;
     }
   }

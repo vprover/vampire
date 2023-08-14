@@ -57,7 +57,7 @@ namespace FMB {
   private:
 
     void process(Clause* c){
-      //cout << "Process " << c->toString() << endl;
+      //std::cout << "Process " << c->toString() << std::endl;
 
       static Stack<Literal*> lits; // to rebuild the clause
       lits.reset();
@@ -68,7 +68,7 @@ namespace FMB {
         Literal* l = (*c)[i];
         bool updated = false;
 
-        //cout << " process " << l->toString() << endl;
+        //std::cout << " process " << l->toString() << std::endl;
 
         Stack<TermList> args; 
         for(TermList* ts = l->args(); ts->isNonEmpty(); ts = ts->next()){
@@ -103,7 +103,7 @@ namespace FMB {
     }
 
     Term* addGroundDefinition(Term* term, Clause* from){
-      //cout << "Adding defs for " << term->toString() << endl;
+      //std::cout << "Adding defs for " << term->toString() << std::endl;
       ASS(term->ground());
       if(term->arity()==0) return term;
 
@@ -113,7 +113,7 @@ namespace FMB {
       PolishSubtermIterator it(term);
       while(it.hasNext() || retC==0){
         Term* t = it.hasNext() ? it.next().term() : term;
-        //cout << "Considering " << t->toString() << endl;
+        //std::cout << "Considering " << t->toString() << std::endl;
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
           unsigned newConstant = env.signature->addFreshFunction(0,"fmbdef");
@@ -148,7 +148,7 @@ namespace FMB {
           lstack.push(l);
           Clause* def = Clause::fromStack(lstack,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,from));
 
-          //cout << "creating def " << def->toString() << endl;
+          //std::cout << "creating def " << def->toString() << std::endl;
           _processed.push(def); 
         }
       }

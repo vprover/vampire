@@ -62,7 +62,7 @@ bool IntUnionFind::doUnion(int c1, int c2)
     return false;
   }
   if(c1>c2) {
-    swap(c1,c2);
+    std::swap(c1,c2);
   }
   ASS_EQ(_parents[c2],-1);
   _parents[c2]=c1;

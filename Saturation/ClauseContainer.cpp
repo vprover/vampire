@@ -195,7 +195,7 @@ void ActiveClauseContainer::onLimitsUpdated()
 
 #if OUTPUT_LRS_DETAILS
   if (toRemove.isNonEmpty()) {
-    cout<<toRemove.size()<<" active deleted\n";
+    std::cout<<toRemove.size()<<" active deleted\n";
   }
 #endif
 

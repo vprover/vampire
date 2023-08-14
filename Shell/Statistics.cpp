@@ -181,7 +181,7 @@ Statistics::Statistics()
 {
 } // Statistics::Statistics
 
-void Statistics::explainRefutationNotFound(ostream& out)
+void Statistics::explainRefutationNotFound(std::ostream& out)
 {
   // should be a one-liner for each case!
   if (discardedNonRedundantClauses) {
@@ -201,24 +201,24 @@ void Statistics::explainRefutationNotFound(ostream& out)
   }
 }
 
-void Statistics::print(ostream& out)
+void Statistics::print(std::ostream& out)
 {
   if (env.options->statistics() != Options::Statistics::NONE) {
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
   bool separable=false;
-#define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
-#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << endl; separable = true; }
-#define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
+#define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << std::endl;}
+#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << std::endl; separable = true; }
+#define SEPARATOR if (separable) { addCommentSignForSZS(out); out << std::endl; separable = false; }
 
   addCommentSignForSZS(out);
   out << "------------------------------\n";
   addCommentSignForSZS(out);
-  out << "Version: " << VERSION_STRING << endl;
+  out << "Version: " << VERSION_STRING << std::endl;
 #if VZ3
   addCommentSignForSZS(out);
-  out << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
+  out << "Linked with Z3 " << Z3Interfacing::z3_full_version() << std::endl;
 #endif
 
   addCommentSignForSZS(out);
@@ -257,12 +257,12 @@ void Statistics::print(ostream& out)
   default:
     ASSERTION_VIOLATION;
   }
-  out << endl;
+  out << std::endl;
   if (phase!=FINALIZATION) {
     addCommentSignForSZS(out);
-    out << "Termination phase: " << phaseToString(phase) << endl;
+    out << "Termination phase: " << phaseToString(phase) << std::endl;
   }
-  out << endl;
+  out << std::endl;
 
   if (env.options->statistics()==Options::Statistics::FULL) {
 
@@ -464,13 +464,13 @@ void Statistics::print(ostream& out)
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
-  out << endl;
+  out << std::endl;
   
   unsigned instr = Timer::elapsedMegaInstructions();
   if (instr) {
     addCommentSignForSZS(out);
     out << "Instructions burned: " << instr << " (million)";
-    out << endl;
+    out << std::endl;
   }
   
   addCommentSignForSZS(out);

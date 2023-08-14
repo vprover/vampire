@@ -83,7 +83,7 @@ bool LambdaElimination::TermListComparator::lessThan(TermList t1, TermList t2)
     return false;
   }
 
-  pair<TermList, TermList> diff=dsit.next();
+  std::pair<TermList, TermList> diff=dsit.next();
   TermList st1=diff.first;
   TermList st2=diff.second;
   if(st1.isTerm()) {

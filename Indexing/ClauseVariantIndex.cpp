@@ -232,11 +232,11 @@ HashingClauseVariantIndex::~HashingClauseVariantIndex()
   }
 
   /*
-  cout << "max bucket of size " << max << endl;
+  std::cout << "max bucket of size " << max << std::endl;
   ClauseList::Iterator it(maxval);
   while (it.hasNext()) {
     Clause* cl = it.next();
-    cout << cl->toString() << endl;
+    std::cout << cl->toString() << std::endl;
   }
 
   maxval->destroy();
@@ -249,18 +249,18 @@ void HashingClauseVariantIndex::insert(Clause* cl)
 
   // static unsigned insertions = 0;
 
-  //cout << "insert " << cl->toString() << endl;
+  //std::cout << "insert " << cl->toString() << std::endl;
 
   unsigned h = computeHash(cl->literals(),cl->length());
 
-  //cout << "hashed to " << h << endl;
+  //std::cout << "hashed to " << h << std::endl;
 
   ClauseList** lst;
   _entries.getValuePtr(h,lst);
   ClauseList::push(cl, *lst);
 
-  // cout << "bucket of size " << (*lst)->length() << endl;
-  // cout << _entries.size() << "buckets after " << ++insertions << " insertions" << endl;
+  // std::cout << "bucket of size " << (*lst)->length() << std::endl;
+  // std::cout << _entries.size() << "buckets after " << ++insertions << " insertions" << std::endl;
 }
 
 ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
@@ -269,11 +269,11 @@ ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits
 
   unsigned h = computeHash(lits,length);
 
-  //cout << "hashed to " << h << endl;
+  //std::cout << "hashed to " << h << std::endl;
 
   ClauseList* lst;
   if (_entries.find(h,lst)) {
-    //cout << "found this long list: " << lst->length() << endl;
+    //std::cout << "found this long list: " << lst->length() << std::endl;
 
     return pvi( getFilteredIterator(
         getMappingIterator(
@@ -295,7 +295,7 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
     static DisagreementSetIterator dsit;
     dsit.reset(t1, t2, false);
     while(dsit.hasNext()) {
-      pair<TermList, TermList> dis=dsit.next();
+      std::pair<TermList, TermList> dis=dsit.next();
       if(dis.first.isTerm()) {
         if(dis.second.isTerm()) {
           ASS_NEQ(dis.first.term()->functor(), dis.second.term()->functor());
@@ -378,13 +378,13 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
       TermList* l1l = l1->nthArgument(0);
       TermList* l1r = l1->nthArgument(1);
       if (compare(l1l,l1r) == LESS) {
-        swap(l1l,l1r);
+        std::swap(l1l,l1r);
       }
 
       TermList* l2l = l2->nthArgument(0);
       TermList* l2r = l2->nthArgument(1);
       if (compare(l2l,l2r) == LESS) {
-        swap(l2l,l2r);
+        std::swap(l2l,l2r);
       }
 
       Comparison res = compare(l1l,l2l);
@@ -401,14 +401,14 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
    * A total ordering stable under variable substitutions.
    */
   bool operator()(unsigned a, unsigned b) {
-    // cout << "a = " << a << " lits[a]= " << _lits[a] << endl;
-    // cout << "b = " << b << " lits[b]= " << _lits[b] << endl;
+    // std::cout << "a = " << a << " lits[a]= " << _lits[a] << std::endl;
+    // std::cout << "b = " << b << " lits[b]= " << _lits[b] << std::endl;
 
     Literal* la = _lits[a];
     Literal* lb = _lits[b];
 
-    // cout << "a " << la->toString() << endl;
-    // cout << "b " << lb->toString() << endl;
+    // std::cout << "a " << la->toString() << std::endl;
+    // std::cout << "b " << lb->toString() << std::endl;
 
     return (compare(la,lb) == LESS);
   }
@@ -444,7 +444,7 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, 
 }
 
 unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, VarCounts& varCnts, unsigned hash_begin) {
-  //cout << "Literal " << l->toString() << endl;
+  //std::cout << "Literal " << l->toString() << std::endl;
 
   if (l->ground()) {
     // no variables to count
@@ -452,7 +452,7 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
     return DefaultHash::hash(l, hash_begin);
   }
 
-  //cout << "will hash header " << header << endl;
+  //std::cout << "will hash header " << header << std::endl;
 
   unsigned header = l->header();
 
@@ -463,7 +463,7 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
     TermList* ll = l->nthArgument(0);
     TermList* lr = l->nthArgument(1);
     if (VariableIgnoringComparator::compare(ll,lr) == LESS) {
-      swap(ll,lr);
+      std::swap(ll,lr);
     }
 
     hash = computeHashAndCountVariables(ll,varCnts,hash);
@@ -479,7 +479,7 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
 
 unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned length)
 {
-  // cout << "length " <<  length << endl;
+  // std::cout << "length " <<  length << std::endl;
 
   TIME_TRACE("hvci compute hash");
 

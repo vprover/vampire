@@ -93,7 +93,7 @@ Term* TermSharing::insert(Term* t)
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
-      swap(ts1->_content, ts2->_content);
+      std::swap(ts1->_content, ts2->_content);
     }
   }
 
@@ -276,7 +276,7 @@ Literal* TermSharing::insert(Literal* t)
     TermList* ts1 = t->args();
     TermList* ts2 = ts1->next();
     if (argNormGt(*ts1, *ts2)) {
-      swap(ts1->_content, ts2->_content);
+      std::swap(ts1->_content, ts2->_content);
     }
   }
 
@@ -354,7 +354,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
   if (argNormGt(*ts1, *ts2)) {
-    swap(ts1->_content, ts2->_content);
+    std::swap(ts1->_content, ts2->_content);
   }
 
   //we need these values set during insertion into the sharing set

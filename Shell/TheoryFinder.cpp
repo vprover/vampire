@@ -200,7 +200,7 @@ bool TheoryFinder::matchCode(const void* obj,
   switch (code[cp]) {
   case END:
 #if TRACE_FINDER
-    cout << "Matched\n";
+    std::cout << "Matched\n";
 #endif
     return true;
 
@@ -209,7 +209,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
 #if TRACE_FINDER
-    cout << "M: NEWVAR " << (int)code[cp+1] << ": " << ts->toString() << "\n";
+    std::cout << "M: NEWVAR " << (int)code[cp+1] << ": " << ts->toString() << "\n";
 #endif
     if (! ts->isVar()) {
       goto backtrack;
@@ -229,7 +229,7 @@ bool TheoryFinder::matchCode(const void* obj,
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
     int funNumber = code[cp+1];
 #if TRACE_FINDER
-    cout << "M: NEWFUN" << (code[cp] == NEWFUN1 ? "1" : "") << ' ' << funNumber
+    std::cout << "M: NEWFUN" << (code[cp] == NEWFUN1 ? "1" : "") << ' ' << funNumber
 	 << '/' << (int)code[cp+2] << ": " << ts->toString() << "\n";
 #endif
     if (ts->isVar()) {
@@ -263,7 +263,7 @@ bool TheoryFinder::matchCode(const void* obj,
     const Literal* lit = reinterpret_cast<const Literal*>(obj);
     int predNumber = code[cp+1];
 #if TRACE_FINDER
-    cout << "M: NEWPRED " << predNumber << '/' << (int)code[cp+2] << ": " << lit->toString() << "\n";
+    std::cout << "M: NEWPRED " << predNumber << '/' << (int)code[cp+2] << ": " << lit->toString() << "\n";
 #endif
     if (lit->arity() != code[cp+2]) {
       goto backtrack;
@@ -289,7 +289,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
 #if TRACE_FINDER
-    cout << "M: OLDFUN" << (code[cp] == OLDFUN1 ? "1" : "") << " " << (int)code[cp+1] << ": " << ts->toString() << "\n";
+    std::cout << "M: OLDFUN" << (code[cp] == OLDFUN1 ? "1" : "") << " " << (int)code[cp+1] << ": " << ts->toString() << "\n";
 #endif
     if (ts->isVar()) {
       goto backtrack;
@@ -297,13 +297,13 @@ bool TheoryFinder::matchCode(const void* obj,
     const Term* t = ts->term();
     if (t->isSort()) {
 #if TRACE_FINDER
-    cout << "Failing to match a sort argument against an OLDFUN" << endl;
+    std::cout << "Failing to match a sort argument against an OLDFUN" << std::endl;
 #endif
       goto backtrack;
     }
     if (funs[code[cp+1]] != t->functor()) {
 #if TRACE_FINDER
-    cout << "found a different functor, going to backtrack" << endl;
+    std::cout << "found a different functor, going to backtrack" << std::endl;
 #endif
       goto backtrack;
     }
@@ -320,7 +320,7 @@ bool TheoryFinder::matchCode(const void* obj,
 
   case OLDPRED: {
 #if TRACE_FINDER
-    cout << "M: OLDPRED " << (int)code[cp+1] << "\n";
+    std::cout << "M: OLDPRED " << (int)code[cp+1] << "\n";
 #endif
     ASS(objectPos > 0);
     obj = objects[--objectPos];
@@ -343,7 +343,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const TermList* ts = reinterpret_cast<const TermList*>(obj);
 #if TRACE_FINDER
-    cout << "M: OLDVAR" << (code[cp] == OLDVAR1 ? "1" : "")
+    std::cout << "M: OLDVAR" << (code[cp] == OLDVAR1 ? "1" : "")
 	 << ' ' << (int)code[cp+1] << ": " << ts->toString() << "\n";
 #endif
     if (! ts->isVar()) {
@@ -364,7 +364,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const Literal* lit = reinterpret_cast<const Literal*>(obj);
 #if TRACE_FINDER
-    cout << "M: EQL: " << lit->toString() << "\n";
+    std::cout << "M: EQL: " << lit->toString() << "\n";
 #endif
     if (! lit->isEquality()) {
       goto backtrack;
@@ -388,7 +388,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     clause = reinterpret_cast<const Clause*>(obj);
 #if TRACE_FINDER
-    cout << "M: CLS: " << clause->toString() << endl;
+    std::cout << "M: CLS: " << clause->toString() << std::endl;
 #endif
     clength = clause->length();
     cp++;
@@ -398,7 +398,7 @@ bool TheoryFinder::matchCode(const void* obj,
   case PLIT:
   case NLIT: {
 #if TRACE_FINDER
-    cout << "M: LIT " << (int)code[cp+1] << "\n";
+    std::cout << "M: LIT " << (int)code[cp+1] << "\n";
 #endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
@@ -446,7 +446,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
 #if TRACE_FINDER
-    cout << "M: IFF: " << f->toString() << "\n";
+    std::cout << "M: IFF: " << f->toString() << "\n";
 #endif
     if (f->connective() != IFF) {
       goto backtrack;
@@ -473,7 +473,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
 #if TRACE_FINDER
-    cout << "M: OR " << (int)code[cp+1] << ": " << f->toString() << "\n";
+    std::cout << "M: OR " << (int)code[cp+1] << ": " << f->toString() << "\n";
 #endif
     if (f->connective() != OR) {
       goto backtrack;
@@ -506,7 +506,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
 #if TRACE_FINDER
-    cout << "M: IMP: " << f->toString() << "\n";
+    std::cout << "M: IMP: " << f->toString() << "\n";
 #endif
     if (f->connective() != IMP) {
       goto backtrack;
@@ -524,7 +524,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
 #if TRACE_FINDER
-    cout << "M: FORALL " << (int)code[cp+1] << ": " << f->toString() << "\n";
+    std::cout << "M: FORALL " << (int)code[cp+1] << ": " << f->toString() << "\n";
 #endif
     if (f->connective() != FORALL) {
       goto backtrack;
@@ -548,7 +548,7 @@ bool TheoryFinder::matchCode(const void* obj,
     obj = objects[--objectPos];
     const Formula* f = reinterpret_cast<const Formula*>(obj);
 #if TRACE_FINDER
-    cout << "M: POS: " << f->toString() << "\n";
+    std::cout << "M: POS: " << f->toString() << "\n";
 #endif
     if (f->connective() != LITERAL) {
       goto backtrack;
@@ -579,7 +579,7 @@ bool TheoryFinder::matchCode(const void* obj,
  backtrack:
   if (backtrackPos == 0) {
 #if TRACE_FINDER
-    cout << "M: fail\n";
+    std::cout << "M: fail\n";
 #endif
     return false;
   }
@@ -618,7 +618,7 @@ bool TheoryFinder::matchCode(const void* obj,
   case EQL: {
     const Literal* lit = reinterpret_cast<const Literal*>(obj);
 #if TRACE_FINDER
-    cout << "B: EQL: " << lit->toString() << "\n";
+    std::cout << "B: EQL: " << lit->toString() << "\n";
 #endif
     const TermList* ts = lit->args();
     objects[objectPos++] = ts;
@@ -631,7 +631,7 @@ bool TheoryFinder::matchCode(const void* obj,
   case CIFF: {
     const Formula* f = reinterpret_cast<const Formula*>(obj);
 #if TRACE_FINDER
-    cout << "B: IFF: " << f->toString() << "\n";
+    std::cout << "B: IFF: " << f->toString() << "\n";
 #endif
     objects[objectPos++] = f->left();
     objects[objectPos++] = f->right();
@@ -643,7 +643,7 @@ bool TheoryFinder::matchCode(const void* obj,
   case PLIT:
   case NLIT: {
 #if TRACE_FINDER
-    cout << "B: LIT\n";
+    std::cout << "B: LIT\n";
 #endif
     unsigned l = code[cp+1];
     // bit field of choices for this literal
@@ -698,7 +698,7 @@ bool TheoryFinder::matchCode(const void* obj,
 bool TheoryFinder::matchC(const Literal* lit)
 {
 #if TRACE_FINDER
-  cout << lit->toString() << "\n";
+  std::cout << lit->toString() << "\n";
 #endif
   static const unsigned char code[] =
   {EQL, //                                   // =
@@ -708,7 +708,7 @@ bool TheoryFinder::matchC(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "C: " << lit->toString() << "\n";
+    std::cout << "C: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -733,7 +733,7 @@ bool TheoryFinder::matchA(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "A: " << lit->toString() << "\n";
+    std::cout << "A: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -761,7 +761,7 @@ bool TheoryFinder::matchExtensionality (const Clause* c)
 
   if (matchCode(c,code,Property::PR_HAS_EXTENSIONALITY)) {
 #if SHOW_FOUND
-    cout << "Extensionality: " << c->toString() << "\n";
+    std::cout << "Extensionality: " << c->toString() << "\n";
 #endif
     return true;
   }
@@ -787,7 +787,7 @@ bool TheoryFinder::matchCondensedDetachment1(const Clause* c)
 
   if (matchCode(c,code,Property::PR_HAS_CONDENSED_DETACHMENT1)) {
 #if SHOW_FOUND
-    cout << "Condensed detachment 1: " << c->toString() << "\n";
+    std::cout << "Condensed detachment 1: " << c->toString() << "\n";
 #endif
     return true;
   }
@@ -813,7 +813,7 @@ bool TheoryFinder::matchCondensedDetachment2(const Clause* c)
 
   if (matchCode(c,code,Property::PR_HAS_CONDENSED_DETACHMENT2)) {
 #if SHOW_FOUND
-    cout << "Condensed detachment 2: " << c->toString() << "\n";
+    std::cout << "Condensed detachment 2: " << c->toString() << "\n";
 #endif
     return true;
   }
@@ -844,7 +844,7 @@ bool TheoryFinder::matchFLD1(const Clause* c)
 
   if (matchCode(c,code,Property::PR_HAS_FLD1)) {
 #if SHOW_FOUND
-    cout << "FLD1: " << c->toString() << "\n";
+    std::cout << "FLD1: " << c->toString() << "\n";
 #endif
     return true;
   }
@@ -872,7 +872,7 @@ bool TheoryFinder::matchFLD2(const Clause* c)
 
   if (matchCode(c,code,Property::PR_HAS_FLD2)) {
 #if SHOW_FOUND
-    cout << "FLD2: " << c->toString() << "\n";
+    std::cout << "FLD2: " << c->toString() << "\n";
 #endif
     return true;
   }
@@ -898,7 +898,7 @@ bool TheoryFinder::matchSubset (const Clause* c)
 
   if (matchCode(c,code,Property::PR_HAS_SUBSET)) {
 #if SHOW_FOUND
-    cout << "Subset: " << c->toString() << "\n";
+    std::cout << "Subset: " << c->toString() << "\n";
 #endif
     return true;
   }
@@ -923,7 +923,7 @@ bool TheoryFinder::matchSubset (const Formula* f)
 
   if (matchCode(f,code,Property::PR_HAS_SUBSET)) {
 #if SHOW_FOUND
-    cout << "Subset: " << f->toString() << "\n";
+    std::cout << "Subset: " << f->toString() << "\n";
 #endif
     return true;
   }
@@ -949,7 +949,7 @@ bool TheoryFinder::matchSubset (const Formula* f)
 bool TheoryFinder::matchListConstructors (const Formula* f)
 {
 #if TRACE_FINDER
-  cout << "M: [match list constructors axiom]\n";
+  std::cout << "M: [match list constructors axiom]\n";
 #endif
 
   static const unsigned char code1[] =
@@ -970,7 +970,7 @@ bool TheoryFinder::matchListConstructors (const Formula* f)
   if (matchCode(f,code1,Property::PR_LIST_AXIOMS) ||
       matchCode(f,code2,Property::PR_LIST_AXIOMS)) {
 #if SHOW_FOUND
-    cout << "List constructors: " << f->toString() << "\n";
+    std::cout << "List constructors: " << f->toString() << "\n";
 #endif
     return true;
   }
@@ -1005,7 +1005,7 @@ bool TheoryFinder::matchExtensionality (const Formula* f)
   if (matchCode(f,code1,Property::PR_HAS_EXTENSIONALITY) ||
       matchCode(f,code2,Property::PR_HAS_EXTENSIONALITY)) {
 #if SHOW_FOUND
-    cout << "Extensionality: " << f->toString() << "\n";
+    std::cout << "Extensionality: " << f->toString() << "\n";
 #endif
     return true;
   }
@@ -1028,7 +1028,7 @@ bool TheoryFinder::matchLeftInverse(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Left inverse: " << lit->toString() << "\n";
+    std::cout << "Left inverse: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1050,7 +1050,7 @@ bool TheoryFinder::matchRightInverse(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Right inverse: " << lit->toString() << "\n";
+    std::cout << "Right inverse: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1072,7 +1072,7 @@ bool TheoryFinder::matchLeftIdentity(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Left identity: " << lit->toString() << "\n";
+    std::cout << "Left identity: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1092,7 +1092,7 @@ bool TheoryFinder::matchIdempotence(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Idempotence: " << lit->toString() << "\n";
+    std::cout << "Idempotence: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1113,7 +1113,7 @@ bool TheoryFinder::matchRightIdentity(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Right identity: " << lit->toString() << "\n";
+    std::cout << "Right identity: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1137,7 +1137,7 @@ bool TheoryFinder::matchAssociator(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Associator: " << lit->toString() << "\n";
+    std::cout << "Associator: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1160,7 +1160,7 @@ bool TheoryFinder::matchCommutator(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Commutator: " << lit->toString() << "\n";
+    std::cout << "Commutator: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1183,7 +1183,7 @@ bool TheoryFinder::matchLeftDistributivity(const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Left distributivity: " << lit->toString() << "\n";
+    std::cout << "Left distributivity: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1206,7 +1206,7 @@ bool TheoryFinder::matchRightDistributivity (const Literal* lit)
 
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Right distributivity: " << lit->toString() << "\n";
+    std::cout << "Right distributivity: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1246,7 +1246,7 @@ bool TheoryFinder::matchRobbins(const Literal* lit)
       matchCode(lit,code3,0) ||
       matchCode(lit,code4,0)) {
 #if SHOW_FOUND
-    cout << "Robbins: " << lit->toString() << "\n";
+    std::cout << "Robbins: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1274,7 +1274,7 @@ bool TheoryFinder::matchAlternative(const Literal* lit)
   if (matchCode(lit,code1,0) ||
       matchCode(lit,code2,0)) {
 #if SHOW_FOUND
-    cout << "Alternative: " << lit->toString() << "\n";
+    std::cout << "Alternative: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1295,7 +1295,7 @@ bool TheoryFinder::matchAbsorption(const Literal* lit)
   
   if (matchCode(lit,code,0)) {
 #if SHOW_FOUND
-    cout << "Absorption: " << lit->toString() << "\n";
+    std::cout << "Absorption: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1319,7 +1319,7 @@ bool TheoryFinder::matchCombinatorS(const Literal* lit)
 
   if (matchCode(lit,code,Property::PR_COMBINATOR)) {
 #if SHOW_FOUND
-    cout << "S: " << lit->toString() << "\n";
+    std::cout << "S: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1342,7 +1342,7 @@ bool TheoryFinder::matchCombinatorB(const Literal* lit)
 
   if (matchCode(lit,code,Property::PR_COMBINATOR_B)) {
 #if SHOW_FOUND
-    cout << "B: " << lit->toString() << "\n";
+    std::cout << "B: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1364,7 +1364,7 @@ bool TheoryFinder::matchCombinatorT(const Literal* lit)
 
   if (matchCode(lit,code,Property::PR_COMBINATOR)) {
 #if SHOW_FOUND
-    cout << "T: " << lit->toString() << "\n";
+    std::cout << "T: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1386,7 +1386,7 @@ bool TheoryFinder::matchCombinatorO(const Literal* lit)
 
   if (matchCode(lit,code,Property::PR_COMBINATOR)) {
 #if SHOW_FOUND
-    cout << "O: " << lit->toString() << "\n";
+    std::cout << "O: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1409,7 +1409,7 @@ bool TheoryFinder::matchCombinatorQ(const Literal* lit)
 
   if (matchCode(lit,code,Property::PR_COMBINATOR)) {
 #if SHOW_FOUND
-    cout << "Q: " << lit->toString() << "\n";
+    std::cout << "Q: " << lit->toString() << "\n";
 #endif
     return true;
   }
@@ -1478,7 +1478,7 @@ bool TheoryFinder::matchAll (const Literal* lit)
 //     _property->addProp(Property::PR_LO_GROUP);
 //   }
 // #if DEBUG_THEORY_FINDER
-//   cout << "THEORY FOUND: " << theory << "\n";
+//   std::cout << "THEORY FOUND: " << theory << "\n";
 // #endif
 // } // TheoryFinder::analyse
 

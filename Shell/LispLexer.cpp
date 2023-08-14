@@ -28,7 +28,7 @@ using namespace Shell;
  * Initialise a lexer.
  * @since 25/08/2009 Redmond
  */
-LispLexer::LispLexer (istream& in)
+LispLexer::LispLexer (std::istream& in)
   : Lexer (in)
 {
 } // LispLexer::LispLexer

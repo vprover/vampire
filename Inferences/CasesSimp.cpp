@@ -87,7 +87,7 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
 struct CasesSimp::ResultFn
 {
   ResultFn(Clause* cl, CasesSimp& parent) : _cl(cl), _parent(parent) {}
-  ClauseIterator operator()(pair<Literal*, TermList> arg)
+  ClauseIterator operator()(std::pair<Literal*, TermList> arg)
   {
     return _parent.performSimplification(_cl, arg.first, arg.second);
   }
@@ -100,7 +100,7 @@ struct CasesSimp::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn() {}
 
-  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
+  VirtualIterator<std::pair<Literal*, TermList> > operator()(Literal* lit)
   {
     return pvi( pushPairIntoRightIterator(lit, 
                 getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));

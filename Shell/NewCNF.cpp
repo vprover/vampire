@@ -45,9 +45,9 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   Formula* f = unit->formula();
 
 #if LOGGING
-  cout << endl << "----------------- INPUT ------------------" << endl;
-  cout << f->toString() << endl;
-  cout << "----------------- INPUT ------------------" << endl;
+  std::cout << std::endl << "----------------- INPUT ------------------" << std::endl;
+  std::cout << f->toString() << std::endl;
+  std::cout << "----------------- INPUT ------------------" << std::endl;
 #endif
 
   switch (f->connective()) {
@@ -80,11 +80,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
     dequeue(g, occurrences);
 
 #if LOGGING
-    cout << endl << "---------------------------------------------" << endl;
+    std::cout << std::endl << "---------------------------------------------" << std::endl;
     for (SPGenClause gc : _genClauses) {
       LOG1(gc->toString());
     }
-    cout << "---------------------------------------------" << endl << endl;
+    std::cout << "---------------------------------------------" << std::endl << std::endl;
 #endif
 
     if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
@@ -96,11 +96,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   }
 
 #if LOGGING
-  cout << endl << "----------------- OUTPUT -----------------" << endl;
+  std::cout << std::endl << "----------------- OUTPUT -----------------" << std::endl;
   for (SPGenClause gc : _genClauses) {
     LOG1(gc->toString());
   }
-  cout << "----------------- OUTPUT -----------------" << endl;
+  std::cout << "----------------- OUTPUT -----------------" << std::endl;
 #endif
 
   for (SPGenClause gc : _genClauses) {
@@ -152,7 +152,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
   Literal* processedLiteral = Literal::create(literal, arguments.begin());
 
   List<LPair>* literals(0);
-  List<LPair>::push(make_pair(processedLiteral, List<GenLit>::empty()),
+  List<LPair>::push(std::make_pair(processedLiteral, List<GenLit>::empty()),
                     literals);
 
   LOG4("Found", variables.size(), "variable(s) for ITEs inside", literal->toString());
@@ -187,8 +187,8 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
         Literal* thenLiteral = SubstHelper::apply(literal, thenSubst);
         Literal* elseLiteral = SubstHelper::apply(literal, elseSubst);
 
-        LPair thenPair = make_pair(thenLiteral, List<GenLit>::cons(negativeCondition, gls));
-        LPair elsePair = make_pair(elseLiteral, List<GenLit>::cons(positiveCondition, gls));
+        LPair thenPair = std::make_pair(thenLiteral, List<GenLit>::cons(negativeCondition, gls));
+        LPair elsePair = std::make_pair(elseLiteral, List<GenLit>::cons(positiveCondition, gls));
 
         List<LPair>::push(thenPair, processedLiterals);
         List<LPair>::push(elsePair, processedLiterals);
@@ -220,7 +220,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
         Literal* literal = p.first;
         List<GenLit>* gls = p.second;
 
-        LPair namePair = make_pair(literal, List<GenLit>::cons(GenLit(naming, NEGATIVE), gls));
+        LPair namePair = std::make_pair(literal, List<GenLit>::cons(GenLit(naming, NEGATIVE), gls));
 
         List<LPair>::push(namePair, processedLiterals);
       }
@@ -267,7 +267,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
 
         Literal *branchLiteral = SubstHelper::apply(literal, subst);
 
-        List<LPair>::push(make_pair(
+        List<LPair>::push(std::make_pair(
                               branchLiteral, List<GenLit>::cons(negCondition, gls)),
                           processedLiterals);
       }
@@ -693,9 +693,9 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     if (env.options->showPreprocessing()) {
       env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
+      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       env.endOutput();
     }
 
@@ -738,9 +738,9 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     if (env.options->showPreprocessing()) {
       env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
+      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       env.endOutput();
     }
 
@@ -782,18 +782,18 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     processedContents = inlineLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
-      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << endl;
-      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << endl;
-      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << endl;
+      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
+      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
+      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
       env.endOutput();
     }
   } else {
     processedContents = nameLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
-      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << endl;
-      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << endl;
-      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << endl;
+      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
+      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
+      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
       env.endOutput();
     }
   }
@@ -908,9 +908,9 @@ TermList NewCNF::inlineLetBinding(unsigned symbol, VList* bindingVariables, Term
   SymbolDefinitionInlining inlining(symbol, bindingVariables, binding, _maxVar);
   TermList inlinedContents = inlining.process(contents);
 
-  List<pair<unsigned, unsigned>>::Iterator renamings(inlining.variableRenamings());
+  List<std::pair<unsigned, unsigned>>::Iterator renamings(inlining.variableRenamings());
   while (renamings.hasNext()) {
-    pair<unsigned, unsigned> renaming = renamings.next();
+    std::pair<unsigned, unsigned> renaming = renamings.next();
     createFreshVariableRenaming(renaming.first, renaming.second);
   }
 
@@ -1424,7 +1424,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
   }
 
 #if LOGGING
-  cout << endl << "----------------- CNF ------------------" << endl;
+  std::cout << std::endl << "----------------- CNF ------------------" << std::endl;
 #endif
   while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
     List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
@@ -1438,7 +1438,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
     }
   }
 #if LOGGING
-  cout << "----------------- CNF ------------------" << endl << endl;
+  std::cout << "----------------- CNF ------------------" << std::endl << std::endl;
 #endif
 }
 

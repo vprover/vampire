@@ -362,8 +362,8 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
       return false;
     }
 
-    //cout << term1.toString() << endl;
-    //cout << term2.toString() << endl;
+    //std::cout << term1.toString() << std::endl;
+    //std::cout << term2.toString() << std::endl;
 
     toBeChecked.push(*term1.term()->nthArgument(2));
     toBeChecked.push(*term2.term()->nthArgument(2));
@@ -525,7 +525,7 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
     unsigned tl2Mult = 0;
     unsigned var = tl2vit.next(tl2Mult);
     unsigned tl1Mult = tl1TopLevelVars.multiplicity(var);
-    //cout << "its multip on right is " << tl1Mult << endl;
+    //std::cout << "its multip on right is " << tl1Mult << std::endl;
     if(tl1Mult > tl2Mult && vcr != RIGHT){
       vcr = LEFT;
     } else if(tl2Mult > tl1Mult && vcr != LEFT){
@@ -621,9 +621,9 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   }
   Result res=state->result(aat1,aat2);
   /*if(print){
-    if(res == LESS){ cout << tl1.toString() + " < " + tl2.toString() << endl; }
-    if(res == GREATER){ cout << tl1.toString() + " > " + tl2.toString() << endl; }
-    if(res == INCOMPARABLE){ cout << tl1.toString() + " <> " + tl2.toString() << endl; }
+    if(res == LESS){ std::cout << tl1.toString() + " < " + tl2.toString() << std::endl; }
+    if(res == GREATER){ std::cout << tl1.toString() + " > " + tl2.toString() << std::endl; }
+    if(res == INCOMPARABLE){ std::cout << tl1.toString() + " <> " + tl2.toString() << std::endl; }
   }*/
 #if VDEBUG
   _state=state;

@@ -78,7 +78,7 @@ Clause::Clause(unsigned length,const Inference& inf)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
   if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
-    //cout << "Setting extensionality" << endl;
+    //std::cout << "Setting extensionality" << std::endl;
     _extensionalityTag = true;
     inference().setInputType(UnitInputType::AXIOM);
   }

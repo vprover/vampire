@@ -39,7 +39,7 @@
 
 namespace Shell
 {
-TPTPPrinter::TPTPPrinter(ostream* tgtStream)
+TPTPPrinter::TPTPPrinter(std::ostream* tgtStream)
 : _tgtStream(tgtStream), _headersPrinted(false)
 {
 }
@@ -73,7 +73,7 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
 
   beginOutput();
   ensureHeadersPrinted(u);
-  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
+  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << std::endl;
   endOutput();
 }
 
@@ -176,7 +176,7 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
   default:
      ASSERTION_VIOLATION;
   }
-  tgt() << ", " << endl << "    " << bodyStr << " )." << endl;
+  tgt() << ", " << std::endl << "    " << bodyStr << " )." << std::endl;
 }
 
 /**
@@ -238,7 +238,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 
   tgt() <<  type->toString();
 
-  tgt() << " )." << endl;
+  tgt() << " )." << std::endl;
 }
 
 /**
@@ -285,7 +285,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   for (i = Sorts::FIRST_USER_SORT; i < sorts; i++) {
     if (List<unsigned>::member(i, _usedSorts))
       tgt() << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i)
-            	      << ": $tType" << " )." << endl;
+            	      << ": $tType" << " )." << std::endl;
 
   }
 } */ //TODO fix this function. At te moment, not sure how important it is
@@ -320,7 +320,7 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 /**
  * Retrieve the output stream to which vampire prints out
  */
-ostream& TPTPPrinter::tgt()
+std::ostream& TPTPPrinter::tgt()
 {
   if(_tgtStream) {
     return *_tgtStream;
@@ -357,10 +357,10 @@ vstring TPTPPrinter::toString(const Formula* formula)
   vstring res;
 
   // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
-  typedef pair<Connective,const Formula*> Todo;
+  typedef std::pair<Connective,const Formula*> Todo;
   Stack<Todo> stack;
 
-  stack.push(make_pair(NOCONN,formula));
+  stack.push(std::make_pair(NOCONN,formula));
 
   while (stack.isNonEmpty()) {
     Todo todo = stack.pop();
@@ -395,12 +395,12 @@ vstring TPTPPrinter::toString(const Formula* formula)
 
         const FormulaList* fs = f->args();
         res += "(";
-        stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
+        stack.push(std::make_pair(NOCONN,nullptr)); // render the final closing bracket
         while (FormulaList::isNonEmpty(fs)) {
           const Formula* arg = fs->head();
           fs = fs->tail();
           // the last argument, which will be printed first, is the only one not preceded by a rendering of con
-          stack.push(make_pair(FormulaList::isNonEmpty(fs) ? c : NOCONN,arg));
+          stack.push(std::make_pair(FormulaList::isNonEmpty(fs) ? c : NOCONN,arg));
         }
 
         continue;
@@ -412,20 +412,20 @@ vstring TPTPPrinter::toString(const Formula* formula)
 
       res += "(";
 
-      stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
+      stack.push(std::make_pair(NOCONN,nullptr)); // render the final closing bracket
 
-      stack.push(make_pair(c,f->right())); // second argument with con
+      stack.push(std::make_pair(c,f->right())); // second argument with con
 
-      stack.push(make_pair(NOCONN,f->left())); // first argument without con
+      stack.push(std::make_pair(NOCONN,f->left())); // first argument without con
 
       continue;
 
     case NOT:
       res += "(";
 
-      stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
+      stack.push(std::make_pair(NOCONN,nullptr)); // render the final closing bracket
 
-      stack.push(make_pair(c,f->uarg()));
+      stack.push(std::make_pair(c,f->uarg()));
 
       continue;
 
@@ -461,10 +461,10 @@ vstring TPTPPrinter::toString(const Formula* formula)
         }
         res += result + "] : (";
 
-        stack.push(make_pair(NOCONN,nullptr));
-        stack.push(make_pair(NOCONN,nullptr)); // here we close two brackets
+        stack.push(std::make_pair(NOCONN,nullptr));
+        stack.push(std::make_pair(NOCONN,nullptr)); // here we close two brackets
 
-        stack.push(make_pair(NOCONN,f->qarg()));
+        stack.push(std::make_pair(NOCONN,f->qarg()));
 
         continue;
       }

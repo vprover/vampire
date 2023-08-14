@@ -256,12 +256,12 @@ Term* BottomUpTermTransformer::transform(Term* term)
 
   toDo.push(term->args());
 
-  // cout << "transform " << lit->toString() << endl;
+  // std::cout << "transform " << lit->toString() << std::endl;
 
   for(;;) {
     TermList* tt=toDo.pop();
     if(tt->isEmpty()) {
-      // cout << "empty "  << endl;
+      // std::cout << "empty "  << std::endl;
 
       if(terms.isEmpty()) {
         //we're done, args stack contains modified arguments
@@ -271,7 +271,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
       }
       Term* orig=terms.pop();
 
-      // cout << "term popped " << orig->toString() << endl;
+      // std::cout << "term popped " << orig->toString() << std::endl;
 
       TermList* argLst = 0;
       if (orig->arity()) {
@@ -282,7 +282,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
         args.truncate(args.length() - orig->arity());
       }
 
-      // cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << endl;
+      // std::cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << std::endl;
       if(orig->isSort()){
         //For most applications we probably dont want to transform sorts
         //however, we don't enforce that here, inheriting classes can decide
@@ -296,7 +296,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
       toDo.push(tt->next());
     }
 
-    // cout << "Non-empty: " <<  tt->toString() << endl;
+    // std::cout << "Non-empty: " <<  tt->toString() << std::endl;
 
     TermList tl=*tt;
     if(tl.isVar()) {

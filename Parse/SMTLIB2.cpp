@@ -41,10 +41,10 @@
 #define LOGGING 0
 
 #if LOGGING
-#define LOG1(arg) cout << arg << endl;
-#define LOG2(a1,a2) cout << a1 << a2 << endl;
-#define LOG3(a1,a2,a3) cout << a1 << a2 << a3 << endl;
-#define LOG4(a1,a2,a3,a4) cout << a1 << a2 << a3 << a4 << endl;
+#define LOG1(arg) std::cout << arg << std::endl;
+#define LOG2(a1,a2) std::cout << a1 << a2 << std::endl;
+#define LOG3(a1,a2,a3) std::cout << a1 << a2 << a3 << std::endl;
+#define LOG4(a1,a2,a3,a4) std::cout << a1 << a2 << a3 << a4 << std::endl;
 #else
 #define LOG1(arg)
 #define LOG2(a1,a2)
@@ -68,7 +68,7 @@ SMTLIB2::SMTLIB2(const Options& opts)
 {
 }
 
-void SMTLIB2::parse(istream& str)
+void SMTLIB2::parse(std::istream& str)
 {
   LispLexer lex(str);
   LispParser lpar(lex);
@@ -386,7 +386,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       // so let's just warn and exit
       if(env.options->mode()!=Options::Mode::SPIDER) {
         env.beginOutput();
-        env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
+        env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << std::endl;
         env.endOutput();
       }
       break;
@@ -554,7 +554,7 @@ void SMTLIB2::readDeclareSort(const vstring& name, const vstring& arity)
   bool added;
   unsigned srt = env.signature->addTypeCon(pName,val,added);
   ASS(added);
-  ALWAYS(_declaredSymbols.insert(pName,make_pair(srt,SymbolType::TYPECON)));
+  ALWAYS(_declaredSymbols.insert(pName,std::make_pair(srt,SymbolType::TYPECON)));
   env.signature->getTypeCon(srt)->setType(OperatorType::getTypeConType(val));
 }
 
@@ -724,7 +724,7 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name,
   ASS(added);
   sym->setType(type);
 
-  DeclaredSymbol res = make_pair(symNum,type->isFunctionType()?SymbolType::FUNCTION:SymbolType::PREDICATE);
+  DeclaredSymbol res = std::make_pair(symNum,type->isFunctionType()?SymbolType::FUNCTION:SymbolType::PREDICATE);
 
   LOG2("declareFunctionOrPredicate -name ",name);
   LOG2("declareFunctionOrPredicate -symNum ",symNum);
@@ -769,7 +769,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
     TermList arg = TermList(_nextVar++, false);
     args.push(arg);
 
-    if (!lookup->insert(vName,make_pair(arg,vSort))) {
+    if (!lookup->insert(vName,std::make_pair(arg,vSort))) {
       USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in the definition of function "+name);
     }
 
@@ -831,7 +831,7 @@ void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermSt
       USER_ERROR_EXPR("List of parameters contains non-atomic expression '"+par->str+"'");
     }
     TermList sortVar(_nextVar++, false);
-    if (!lookup->insert(par->str, make_pair(sortVar, AtomicSort::superSort()))) {
+    if (!lookup->insert(par->str, std::make_pair(sortVar, AtomicSort::superSort()))) {
       USER_ERROR_EXPR("Type parameter '" + par->str + "' has already been defined");
     }
     if (ts) {
@@ -861,7 +861,7 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 
   bool added = false;
   unsigned srt = env.signature->addTypeCon(dtypeName,numTypeVars,added);
-  ALWAYS(_declaredSymbols.insert(dtypeName, make_pair(srt,SymbolType::TYPECON)));
+  ALWAYS(_declaredSymbols.insert(dtypeName, std::make_pair(srt,SymbolType::TYPECON)));
   Stack<TermAlgebraConstructor *> constructors;
   TermStack argSorts;
   Stack<vstring> destructorNames;
@@ -936,7 +936,7 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
     bool added = false;
     unsigned srt = env.signature->addTypeCon(dtypeName,0,added);
     ASS(added);
-    ALWAYS(_declaredSymbols.insert(dtypeName, make_pair(srt, SymbolType::TYPECON)));
+    ALWAYS(_declaredSymbols.insert(dtypeName, std::make_pair(srt, SymbolType::TYPECON)));
     env.signature->getTypeCon(srt)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
     TermList sort = TermList(AtomicSort::createConstant(srt));
     (void)sort; // to get rid of compiler warning when logging is off
@@ -1019,7 +1019,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
 
   LOG1("build constructor "+constrName+": "+constructorType->toString());
 
-  ALWAYS(_declaredSymbols.insert(constrName, make_pair(functor, SymbolType::FUNCTION)));
+  ALWAYS(_declaredSymbols.insert(constrName, std::make_pair(functor, SymbolType::FUNCTION)));
 
   Lib::Array<unsigned> destructorFunctors(arity);
   for (unsigned i = 0; i < arity; i++) {
@@ -1046,7 +1046,7 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
     destSym->setType(destructorType);
     destSym->markTermAlgebraDest();
 
-    ALWAYS(_declaredSymbols.insert(destructorName, make_pair(destructorFunctor, isPredicate ? SymbolType::PREDICATE : SymbolType::FUNCTION)));
+    ALWAYS(_declaredSymbols.insert(destructorName, std::make_pair(destructorFunctor, isPredicate ? SymbolType::PREDICATE : SymbolType::FUNCTION)));
 
     destructorFunctors[i] = destructorFunctor;
   }
@@ -1250,13 +1250,13 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
   // now read the following bottom up:
 
   // this will later create the actual let term and kill the lookup
-  _todo.push(make_pair(PO_LET_END,exp));
+  _todo.push(std::make_pair(PO_LET_END,exp));
 
   // this will parse the let's body (in the context of the lookup)
-  _todo.push(make_pair(PO_PARSE,body));
+  _todo.push(std::make_pair(PO_PARSE,body));
 
   // this will create the lookup when all bindings' expressions are parsed (and their sorts known)
-  _todo.push(make_pair(PO_LET_PREPARE_LOOKUP,exp));
+  _todo.push(std::make_pair(PO_LET_PREPARE_LOOKUP,exp));
 
   // but we start by parsing the bound expressions
   LispListReader bindRdr(bindings);
@@ -1267,7 +1267,7 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
     pRdr.readAtom(); // for now ignore the identifier
     LExpr* expr = pRdr.readNext();
 
-    _todo.push(make_pair(PO_PARSE,expr)); // just parse the expression
+    _todo.push(std::make_pair(PO_PARSE,expr)); // just parse the expression
     pRdr.acceptEOL();
   }
 }
@@ -1353,7 +1353,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
       trm = TermList(Term::create(symb,args.size(),args.begin()));
     }
 
-    if (!lookup->insert(cName,make_pair(trm,sort))) {
+    if (!lookup->insert(cName,std::make_pair(trm,sort))) {
       USER_ERROR_EXPR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
     }
   }
@@ -1456,10 +1456,10 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
 
   lRdr.acceptEOL();
 
-  _todo.push(make_pair(PO_MATCH_END, exp));
+  _todo.push(std::make_pair(PO_MATCH_END, exp));
   // this is the last thing we parse so that it pops
   // first when the result is created
-  _todo.push(make_pair(PO_PARSE, matchedAtom));
+  _todo.push(std::make_pair(PO_PARSE, matchedAtom));
 
   while (casesRdr.hasNext()) {
     LispListReader pRdr(casesRdr.readList());
@@ -1476,9 +1476,9 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
     LExpr *l = new LExpr(LispParser::LIST);
     LExprList::push(body, l->list);
     LExprList::push(pattern, l->list);
-    _todo.push(make_pair(PO_MATCH_CASE_END, l));
-    _todo.push(make_pair(PO_MATCH_CASE_START, l));
-    _todo.push(make_pair(PO_PARSE, matchedAtom));
+    _todo.push(std::make_pair(PO_MATCH_CASE_END, l));
+    _todo.push(std::make_pair(PO_MATCH_CASE_START, l));
+    _todo.push(std::make_pair(PO_PARSE, matchedAtom));
     if (pattern->isList()) {
       LispListReader tRdr(pattern);
       DeclaredSymbol sym;
@@ -1498,7 +1498,7 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
         st.push(tRdr.readNext());
       }
       while (st.isNonEmpty()) {
-        _todo.push(make_pair(PO_PARSE_SORT, st.pop()));
+        _todo.push(std::make_pair(PO_PARSE_SORT, st.pop()));
       }
     }
     pRdr.acceptEOL();
@@ -1546,7 +1546,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
         USER_ERROR_EXPR("Nested ctors ("+arg->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
       }
       // from the type arguments used in the matched term we instantiate the type of the other variables
-      if (!lookup->insert(arg->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
+      if (!lookup->insert(arg->str, std::make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
         USER_ERROR_EXPR("Variable '" + arg->str + "' has already been defined");
       }
     }
@@ -1558,7 +1558,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     }
     // in case of _ nothing to add to lookup
     if (pattern->str != UNDERSCORE) {
-      if (!lookup->insert(pattern->str, make_pair(TermList(_nextVar++, false), matchedTermSort))) {
+      if (!lookup->insert(pattern->str, std::make_pair(TermList(_nextVar++, false), matchedTermSort))) {
         USER_ERROR_EXPR("Variable '" + pattern->str + "' has already been defined");
       }
     }
@@ -1567,9 +1567,9 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
   _scopes.push(lookup);
   // only parse pattern if it's not _
   if (pattern->isList() || pattern->str != UNDERSCORE) {
-    _todo.push(make_pair(PO_PARSE, pattern));
+    _todo.push(std::make_pair(PO_PARSE, pattern));
   }
-  _todo.push(make_pair(PO_PARSE, body));
+  _todo.push(std::make_pair(PO_PARSE, body));
 }
 
 void SMTLIB2::parseMatchCaseEnd(LExpr *exp)
@@ -1600,7 +1600,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
     USER_ERROR_EXPR("Match term '" + matchedTerm.toString() + "' is not of a term algebra type in expression '" + exp->toString() + "'");
   }
   for (unsigned int i = 0; i < ta->nConstructors(); i++) {
-    ctorFunctors.insert(make_pair(ta->constructor(i)->functor(), ta->constructor(i)));
+    ctorFunctors.insert(std::make_pair(ta->constructor(i)->functor(), ta->constructor(i)));
   }
 
   TermList varPattern;
@@ -1693,7 +1693,7 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
   DEBUG_CODE(const vstring& theQuantAtom =)
     lRdr.readAtom();
   ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS);
-  _todo.push(make_pair(PO_QUANT,exp));
+  _todo.push(std::make_pair(PO_QUANT,exp));
 
   // there should next be a list of sorted variables
   LispListReader varRdr(lRdr.readList());
@@ -1706,7 +1706,7 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
     if(!pRdr.hasNext()) {
       USER_ERROR_EXPR("No associated sort for "+vName+" in quantification "+exp->toString());
     }
-    _todo.push(make_pair(PO_PARSE_SORT, pRdr.readNext()));
+    _todo.push(std::make_pair(PO_PARSE_SORT, pRdr.readNext()));
     if(pRdr.hasNext()) {
       USER_ERROR_EXPR("More than one sort for "+vName+" in quantification "+exp->toString());
     }
@@ -1743,7 +1743,7 @@ void SMTLIB2::parseQuantEnd(LExpr* exp)
 
     pRdr.acceptEOL();
 
-    if (!lookup->insert(vName,make_pair(TermList(_nextVar++,false),vSort))) {
+    if (!lookup->insert(vName,std::make_pair(TermList(_nextVar++,false),vSort))) {
       USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in quantification "+exp->toString());
     }
   }
@@ -1756,8 +1756,8 @@ void SMTLIB2::parseQuantEnd(LExpr* exp)
   if (!lRdr.hasNext()) {
     USER_ERROR_EXPR("Missing quantification body");
   }
-  _todo.push(make_pair(PO_PARSE_APPLICATION,exp)); // will create the actual quantified formula and clear the lookup...
-  _todo.push(make_pair(PO_PARSE,lRdr.readNext())); // ... from the only remaining argument, the body
+  _todo.push(std::make_pair(PO_PARSE_APPLICATION,exp)); // will create the actual quantified formula and clear the lookup...
+  _todo.push(std::make_pair(PO_PARSE,lRdr.readNext())); // ... from the only remaining argument, the body
   lRdr.acceptEOL();
 }
 
@@ -1776,8 +1776,8 @@ void SMTLIB2::parseParametric(LExpr* exp)
   if (!lRdr.hasNext()) {
     USER_ERROR_EXPR("Missing quantification body");
   }
-  _todo.push(make_pair(PO_PARSE_APPLICATION,exp)); // will create the actual quantified formula and clear the lookup...
-  _todo.push(make_pair(PO_PARSE,lRdr.readNext())); // ... from the only remaining argument, the body
+  _todo.push(std::make_pair(PO_PARSE_APPLICATION,exp)); // will create the actual quantified formula and clear the lookup...
+  _todo.push(std::make_pair(PO_PARSE,lRdr.readNext())); // ... from the only remaining argument, the body
   lRdr.acceptEOL();
 }
 
@@ -1803,17 +1803,17 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   if (!annotation_warning) {
     //env.beginOutput();
-    //env.out() << "% Warning: term annotations ignored!" << endl;
+    //env.out() << "% Warning: term annotations ignored!" << std::endl;
     //env.endOutput();
     annotation_warning = true;
   }
 
   // we only consider :named annotations
   if(lRdr.tryAcceptAtom(":named")){
-    _todo.push(make_pair(PO_LABEL,lRdr.readNext()));
+    _todo.push(std::make_pair(PO_LABEL,lRdr.readNext()));
   }
 
-  _todo.push(make_pair(PO_PARSE,toParse));
+  _todo.push(std::make_pair(PO_PARSE,toParse));
 
 }
 
@@ -1853,13 +1853,13 @@ bool SMTLIB2::parseAsSortDefinition(const vstring& id,LExpr* exp)
     const vstring& argName = argRdr.readAtom();
     // TODO: could check if the same string names more than one argument positions
     // the following just takes the first and ignores the others
-    lookup->insert(argName,make_pair(arg,AtomicSort::superSort()));
+    lookup->insert(argName,std::make_pair(arg,AtomicSort::superSort()));
   }
 
   _scopes.push(lookup);
 
-  _todo.push(make_pair(PO_POP_LOOKUP,nullptr)); //schedule lookup deletion (see above)
-  _todo.push(make_pair(PO_PARSE_SORT,def->body));
+  _todo.push(std::make_pair(PO_POP_LOOKUP,nullptr)); //schedule lookup deletion (see above)
+  _todo.push(std::make_pair(PO_PARSE_SORT,def->body));
 
   return true;
 }
@@ -2577,18 +2577,18 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
   ASS(_todo.isEmpty());
   ASS(_results.isEmpty());
 
-  _todo.push(make_pair(isSort?PO_PARSE_SORT:PO_PARSE,body));
+  _todo.push(std::make_pair(isSort?PO_PARSE_SORT:PO_PARSE,body));
 
   while (_todo.isNonEmpty()) {
     /*
-    cout << "Results:" << endl;
+    std::cout << "Results:" << std::endl;
     for (unsigned i = 0; i < results.size(); i++) {
-      cout << results[i].toString() << endl;
+      std::cout << results[i].toString() << std::endl;
     }
-    cout << "---" << endl;
+    std::cout << "---" << std::endl;
     */
 
-    pair<ParseOperation,LExpr*> cur = _todo.pop();
+    std::pair<ParseOperation,LExpr*> cur = _todo.pop();
     ParseOperation op = cur.first;
     LExpr* exp = cur.second;
 
@@ -2599,7 +2599,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
 
           // schedule arity check
           _results.push(ParseResult()); // separator into results
-          _todo.push(make_pair(PO_CHECK_ARITY,exp)); // check as a todo (exp for error reporting)
+          _todo.push(std::make_pair(PO_CHECK_ARITY,exp)); // check as a todo (exp for error reporting)
 
           // special treatment of some tokens
           LExpr* fst = lRdr.readNext();
@@ -2642,7 +2642,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
 
           // this handles the general function-to-arguments application:
 
-          _todo.push(make_pair(PO_PARSE_APPLICATION,exp));
+          _todo.push(std::make_pair(PO_PARSE_APPLICATION,exp));
           DeclaredSymbol sym;
           unsigned numTypeArgs = 0;
           if (fst->isAtom() && _declaredSymbols.find(fst->str,sym)) {
@@ -2656,7 +2656,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
           unsigned i = 0;
           while (lRdr.hasNext()) {
             auto op = i++ < numTypeArgs ? PO_PARSE_SORT : PO_PARSE;
-            _todo.push(make_pair(op,lRdr.next()));
+            _todo.push(std::make_pair(op,lRdr.next()));
           }
 
           continue;
@@ -2711,10 +2711,10 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
 
           // schedule arity check
           _results.push(ParseResult()); // separator into results
-          _todo.push(make_pair(PO_CHECK_ARITY,exp)); // check as a todo (exp for error reporting)
-          _todo.push(make_pair(PO_PARSE_SORT_APPLICATION,exp));
+          _todo.push(std::make_pair(PO_CHECK_ARITY,exp)); // check as a todo (exp for error reporting)
+          _todo.push(std::make_pair(PO_PARSE_SORT_APPLICATION,exp));
           while (lRdr.hasNext()) {
-            _todo.push(make_pair(PO_PARSE_SORT,lRdr.next()));
+            _todo.push(std::make_pair(PO_PARSE_SORT,lRdr.next()));
           }
 
           continue;

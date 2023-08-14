@@ -175,11 +175,11 @@ namespace Shell
             // print weight prediction
             if (containsLeftInference && containsRightInference)
             {
-                cout << "expecting interpolant weight " << m.eval(penaltyFunction - c.real_val(1)) << endl;
+                std::cout << "expecting interpolant weight " << m.eval(penaltyFunction - c.real_val(1)) << std::endl;
             }
             else
             {
-                cout << "expecting interpolant weight " << m.eval(penaltyFunction) << endl;
+                std::cout << "expecting interpolant weight " << m.eval(penaltyFunction) << std::endl;
             }
             
             return splittingFunction;
@@ -206,7 +206,7 @@ namespace Shell
         {
             representatives.insert(keyValuePair.second);
         }
-        cout << "Number of red subproofs: " << representatives.size() << endl;
+        std::cout << "Number of red subproofs: " << representatives.size() << std::endl;
         
         // compute number of alternations between red and blue subproofs
         /*
@@ -252,7 +252,7 @@ namespace Shell
             }
         }
         
-        cout << "Number of alternations: " << alternations.at(refutation) << endl;
+        std::cout << "Number of alternations: " << alternations.at(refutation) << std::endl;
     }
     
     /*
@@ -329,8 +329,8 @@ namespace Shell
             number_grey++;
         }
         
-        cout << "Proof contains " << number_red << " / " << number_blue << " / " << number_grey << " inferences (red/blue/grey)" << endl;
-        cout << "Percentage of grey inferences: " << static_cast<double>(number_grey) / (number_red + number_blue + number_grey) << endl;
+        std::cout << "Proof contains " << number_red << " / " << number_blue << " / " << number_grey << " inferences (red/blue/grey)" << std::endl;
+        std::cout << "Percentage of grey inferences: " << static_cast<double>(number_grey) / (number_red + number_blue + number_grey) << std::endl;
     }
 
 }

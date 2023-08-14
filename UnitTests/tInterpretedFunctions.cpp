@@ -72,12 +72,12 @@ bool equalityCheck(Option<LitSimplResult>& l, Option<LitSimplResult>& r)
 #define __CHECK(op, is, expected, msg, test_case)                                                             \
   if (!(op equalityCheck( is, expected))) {                                                                   \
     auto& out = cout;                                                                                         \
-    out << endl;                                                                                              \
-    out << msg << endl;                                                                                       \
-    out << "[   case   ] " << pretty(test_case) << endl;                                                      \
-    out << "[    is    ] " << #is << " =  " << pretty(is) << endl;                                            \
-    out << "[ expected ] " << #expected << " " #op "=" << " " << pretty(expected) << endl;                    \
-    out << endl;                                                                                              \
+    out << std::endl;                                                                                              \
+    out << msg << std::endl;                                                                                       \
+    out << "[   case   ] " << pretty(test_case) << std::endl;                                                      \
+    out << "[    is    ] " << #is << " =  " << pretty(is) << std::endl;                                            \
+    out << "[ expected ] " << #expected << " " #op "=" << " " << pretty(expected) << std::endl;                    \
+    out << std::endl;                                                                                              \
     exit(-1);                                                                                                 \
   }                                                                                                           \
 

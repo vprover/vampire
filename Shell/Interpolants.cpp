@@ -263,7 +263,7 @@ namespace Shell
             outputNodes.insert(refutation);
         }
 
-        return make_pair(std::move(inputNodes), std::move(outputNodes));
+        return std::make_pair(std::move(inputNodes), std::move(outputNodes));
     }
     
     /*
@@ -306,7 +306,7 @@ namespace Shell
           }
 
           void addLeft(Unit* u) {
-            // cout << "addLeft " << u->toString() << endl;
+            // std::cout << "addLeft " << u->toString() << std::endl;
 
             if (lastCol != COLOR_LEFT) {
               Formula* f = finiliseRight();
@@ -319,7 +319,7 @@ namespace Shell
           }
 
           void addRight(Unit* u) {
-            // cout << "addRight " << u->toString() << endl;
+            // std::cout << "addRight " << u->toString() << std::endl;
 
             if (lastCol != COLOR_RIGHT) {
               aside = finiliseLeft();
@@ -345,7 +345,7 @@ namespace Shell
         while (it.hasNext()) {
           Unit* u = it.next();
 
-          // cout << "Next " << u->toString() << endl;
+          // std::cout << "Next " << u->toString() << std::endl;
 
           if (outputNodes.find(u) != outputNodes.end()) {
             ASS_EQ(splittingFunction.at(u),COLOR_LEFT);
@@ -389,10 +389,10 @@ namespace Shell
         // print number of pieces
         // print the depth of each ...
 
-        // cout << "Number of red components: " << contributions.size() << endl;
-        cout << "Nestedness: " << justOneNoodle.implCnt << endl;
-        cout << "Before simplification: " << interpolant->toString() << endl;
-        cout << "Weight before simplification: " << interpolant->weight() << endl;
+        // std::cout << "Number of red components: " << contributions.size() << std::endl;
+        std::cout << "Nestedness: " << justOneNoodle.implCnt << std::endl;
+        std::cout << "Before simplification: " << interpolant->toString() << std::endl;
+        std::cout << "Weight before simplification: " << interpolant->weight() << std::endl;
 
         return Flattening::flatten(NNF::ennf(Flattening::flatten(SimplifyFalseTrue::simplify(interpolant)),true));
     }

@@ -189,7 +189,7 @@ void ClauseQueue::removeAll()
 } // removeAll
 
 #if VDEBUG
-void ClauseQueue::output(ostream& str) const
+void ClauseQueue::output(std::ostream& str) const
 {
   for (const Node* node = _left->nodes[0]; node; node=node->nodes[0]) {
     str << node->clause->toString() << '\n';

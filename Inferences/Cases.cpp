@@ -75,7 +75,7 @@ Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) 
 struct Cases::ResultFn
 {
   ResultFn(Clause* cl, Cases& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<Literal*, TermList> arg)
+  Clause* operator()(std::pair<Literal*, TermList> arg)
   {
     return _parent.performParamodulation(_cl, arg.first, arg.second);
   }
@@ -88,7 +88,7 @@ struct Cases::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
 
-  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
+  VirtualIterator<std::pair<Literal*, TermList> > operator()(Literal* lit)
   {
     return pvi( pushPairIntoRightIterator(lit, 
                 EqHelper::getBooleanSubtermIterator(lit, _ord)) );

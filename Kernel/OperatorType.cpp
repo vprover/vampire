@@ -103,9 +103,9 @@ OperatorType::OperatorTypes& OperatorType::operatorTypes() {
 OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsigned taArity)
 {
   /*
-  cout << "getTypeFromKey(" << key->length() << "): ";
+  std::cout << "getTypeFromKey(" << key->length() << "): ";
   for (unsigned i = 0; i < key->length(); i++) {
-    cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env.sorts->sortName((*key)[i])) << ",";
+    std::cout << (((*key)[i] == PREDICATE_FLAG) ? "FFFF" : env.sorts->sortName((*key)[i])) << ",";
   }
   */
 
@@ -114,14 +114,14 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsig
   if (operatorTypes().find(resultType, resultType)) {
     key->deallocate();
 
-    //cout << " Found " + resultType->toString() << endl;
+    //std::cout << " Found " + resultType->toString() << std::endl;
     
     return resultType;
   }
 
   operatorTypes().insert(resultType);
 
-  //cout << " Created new " + resultType->toString() << endl;
+  //std::cout << " Created new " + resultType->toString() << std::endl;
 
   return resultType;
 }

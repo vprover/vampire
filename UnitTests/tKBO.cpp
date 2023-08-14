@@ -69,8 +69,8 @@ TEST_FUN(kbo_test01) {
 
   auto ord = kbo( 
       weights( // <- function symbol weights
-        make_pair(f, 10u), // <- sets the weight of the function f to 10
-        make_pair(c, 1u ) // <- sets the weight of the constant c to 1
+        std::make_pair(f, 10u), // <- sets the weight of the function f to 10
+        std::make_pair(c, 1u ) // <- sets the weight of the constant c to 1
         // other functions/constants default to weight 1
       ), 
       weights() // <- predicate symbol weights
@@ -90,7 +90,7 @@ TEST_FUN(kbo_test02) {
   DECL_FUNC (g, {srt}, srt)
   DECL_CONST(c, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+  auto ord = kbo(weights(std::make_pair(f, 10u)), weights());
 
   ASS_EQ(ord.compare(f(c), g(g(g(g(g(c)))))), Ordering::Result::GREATER)
 }
@@ -102,7 +102,7 @@ TEST_FUN(kbo_test03) {
   DECL_FUNC (g, {srt}, srt)
   DECL_CONST(c, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+  auto ord = kbo(weights(std::make_pair(f, 10u)), weights());
 
 
   ASS_EQ(ord.compare(f(x), g(g(g(g(g(c)))))), Ordering::Result::GREATER)
@@ -114,7 +114,7 @@ TEST_FUN(kbo_test04) {
   DECL_FUNC (f, {srt}, srt)
   DECL_FUNC (g, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+  auto ord = kbo(weights(std::make_pair(f, 10u)), weights());
 
   ASS_EQ(ord.compare(f(x), g(g(g(g(g(y)))))), Ordering::Result::INCOMPARABLE)
 }
@@ -125,7 +125,7 @@ TEST_FUN(kbo_test05) {
   DECL_FUNC (g, {srt}, srt)
   DECL_FUNC (f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u)), weights());
+  auto ord = kbo(weights(std::make_pair(f, 0u)), weights());
 
   ASS_EQ(ord.compare(f(x), g(x)), Ordering::Result::LESS)
 }
@@ -135,7 +135,7 @@ TEST_FUN(kbo_test06) {
   DECL_SORT(srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u)), weights());
+  auto ord = kbo(weights(std::make_pair(f, 0u)), weights());
 
   ASS_EQ(ord.compare(f(x), x), Ordering::Result::GREATER)
 }
@@ -145,7 +145,7 @@ TEST_FUN(kbo_test07) {
   DECL_SORT(srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u)), weights());
+  auto ord = kbo(weights(std::make_pair(f, 0u)), weights());
 
   ASS_EQ(ord.compare(f(x), x), Ordering::Result::GREATER)
 }
@@ -156,7 +156,7 @@ TEST_FUN(kbo_test08) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
+  auto ord = kbo(weights(std::make_pair(f, 0u), std::make_pair(g, 1u)), weights());
 
   ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::LESS)
 }
@@ -168,7 +168,7 @@ TEST_FUN(kbo_test09) {
   DECL_FUNC(g, {srt}, srt)
 
   try {
-    auto ord = kbo(weights(make_pair(g, 1u), make_pair(f, 0u)), weights());
+    auto ord = kbo(weights(std::make_pair(g, 1u), std::make_pair(f, 0u)), weights());
     ASSERTION_VIOLATION
   } catch (UserErrorException&) {
     /* f is not maximal wrt precedence but has weight 0 */
@@ -182,7 +182,7 @@ TEST_FUN(kbo_test10) {
   DECL_CONST(a, srt)
 
   try {
-    auto ord = kbo(weights(make_pair(a, 0u)), weights());
+    auto ord = kbo(weights(std::make_pair(a, 0u)), weights());
     ASSERTION_VIOLATION
   } catch (UserErrorException&) {
     /* constant must be greater or equal to variable weight */
@@ -195,7 +195,7 @@ TEST_FUN(kbo_test11) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
+  auto ord = kbo(weights(std::make_pair(f, 0u), std::make_pair(g, 1u)), weights());
 
   ASS_EQ(ord.compare(g(f(x)), f(g(x))), Ordering::Result::LESS)
 }
@@ -217,7 +217,7 @@ TEST_FUN(kbo_test13) {
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
 
-  auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
+  auto ord = kbo(weights(std::make_pair(a,3u), std::make_pair(b,2u)), weights());
 
   ASS_EQ(ord.compare(a,b), Ordering::Result::GREATER)
 }
@@ -230,7 +230,7 @@ TEST_FUN(kbo_test14) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = kbo(weights(std::make_pair(a,1u), std::make_pair(u,0u)), weights());
 
   ASS_EQ(ord.compare(u(f(g(x),g(a))), u(f(x,g(a)))), Ordering::Result::GREATER)
 }
@@ -243,7 +243,7 @@ TEST_FUN(kbo_test15) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = kbo(weights(std::make_pair(a,1u), std::make_pair(u,0u)), weights());
 
   ASS_EQ(ord.compare(u(f(g(u(x)),g(a))), u(f(x,g(a)))), Ordering::Result::GREATER)
 }
@@ -254,7 +254,7 @@ TEST_FUN(kbo_test16) {
   DECL_CONST(a, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = kbo(weights(std::make_pair(a,1u), std::make_pair(u,0u)), weights());
 
   ASS_EQ(ord.compare(u(x), x), Ordering::Result::GREATER)
 }
@@ -266,7 +266,7 @@ TEST_FUN(kbo_test17) {
   DECL_FUNC(f, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = kbo(weights(std::make_pair(a,1u), std::make_pair(u,0u)), weights());
 
   ASS_EQ(ord.compare(u(f(x)), f(x)), Ordering::Result::GREATER)
 }
@@ -278,7 +278,7 @@ TEST_FUN(kbo_test18) {
   DECL_FUNC(f, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+  auto ord = kbo(weights(std::make_pair(a,1u), std::make_pair(u,0u)), weights());
 
   ASS_EQ(ord.compare(f(u(x)), f(x)), Ordering::Result::GREATER)
 }
@@ -292,11 +292,11 @@ TEST_FUN(kbo_test19) {
 
   auto ord = kbo(
       weights(
-        make_pair(f,2u), 
-        make_pair(g,3u)
+        std::make_pair(f,2u), 
+        std::make_pair(g,3u)
       ), 
       weights(
-        make_pair(p,2u)
+        std::make_pair(p,2u)
       ));
 
   ASS_EQ(ord.compare(p(f(g(x))), p(g(f(x)))), Ordering::Result::LESS)
@@ -312,7 +312,7 @@ TEST_FUN(kbo_test20) {
         10, // <- introduced symbol weight
         10, // <- variable weight
         weights(
-          make_pair(a,1u)
+          std::make_pair(a,1u)
         ), 
         weights());
     ASSERTION_VIOLATION
@@ -331,8 +331,8 @@ TEST_FUN(kbo_test21) {
       10, // <- introduced symbol weight
       10, // <- variable weight
       weights(
-        make_pair(a,11u),
-        make_pair(b,12u)
+        std::make_pair(a,11u),
+        std::make_pair(b,12u)
       ), 
       weights());
 
@@ -349,7 +349,7 @@ TEST_FUN(kbo_test22) {
         9, // <- introduced symbol weight
         10, // <- variable weight
         weights(
-          make_pair(a,12u)
+          std::make_pair(a,12u)
         ), 
         weights());
     ASSERTION_VIOLATION
@@ -372,8 +372,8 @@ TEST_FUN(kbo_test23) {
 
   auto ord = kbo(
     weights(
-      make_pair(f, 10u),
-      make_pair(g, 10u)
+      std::make_pair(f, 10u),
+      std::make_pair(g, 10u)
     ), 
     weights());
 

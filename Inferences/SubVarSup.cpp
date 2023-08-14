@@ -79,7 +79,7 @@ void SubVarSup::detach()
 struct SubVarSup::RewritableResultsFn
 {
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
+  VirtualIterator<std::pair<std::pair<Literal*, TypedTermList>, TermQueryResult> > operator()(std::pair<Literal*, TypedTermList> arg)
   {
     return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubstitutions */ true)) );
   }
@@ -93,7 +93,7 @@ struct SubVarSup::RewriteableSubtermsFn
     prem->collectUnstableVars(_unstableVars);
   }
 
-  VirtualIterator<pair<Literal*, TypedTermList> > operator()(Literal* lit)
+  VirtualIterator<std::pair<Literal*, TypedTermList> > operator()(Literal* lit)
   {
     return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableVarsIterator(&_unstableVars, lit, _ord)) );
   }
@@ -106,7 +106,7 @@ private:
 struct SubVarSup::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
+  VirtualIterator<std::pair<std::pair<Literal*, TypedTermList>, TermQueryResult> > operator()(std::pair<Literal*, TypedTermList> arg)
   {
     return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubst */ false)) );
   }
@@ -118,7 +118,7 @@ private:
 struct SubVarSup::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(std::pair<std::pair<Literal*, TermList>, TermQueryResult> arg)
   {
     TermQueryResult& qr = arg.second;
     return _parent.performSubVarSup(_cl, arg.first.first, arg.first.second,
@@ -133,7 +133,7 @@ private:
 struct SubVarSup::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(std::pair<std::pair<Literal*, TermList>, TermQueryResult> arg)
   {
     if(_cl==arg.second.clause) {
       return 0;
@@ -151,13 +151,13 @@ private:
 
 ClauseIterator SubVarSup::generateClauses(Clause* premise)
 {
-  //cout << "SubVarSup with " << premise->toString() << endl;
+  //std::cout << "SubVarSup with " << premise->toString() << std::endl;
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if
-  //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
+  //  a) The literal is a positive equality t1=t2 and the subterm is std::max(t1,t2) wrt ordering
   //  b) The subterm is not a variable
   auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering(), premise));
 
@@ -181,7 +181,7 @@ ClauseIterator SubVarSup::generateClauses(Clause* premise)
   // Remove null elements - these can come from performSubVarSup
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 
-  //cout << "out" << endl;
+  //std::cout << "out" << std::endl;
 
   return pvi( it6 );
 }
@@ -200,8 +200,8 @@ Clause* SubVarSup::performSubVarSup(
   ASS(eqClause->store()==Clause::ACTIVE);
   ASS(rwTerm.isVar());
 
-  //cout << "performSubVarSup with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-  //cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << endl;
+  //std::cout << "performSubVarSup with " << rwClause->toString() << " and " << eqClause->toString() << std::endl;
+  //std::cout << "rwTerm " << rwTerm.toString() << " eqLHSS " << eqLHS.toString() << std::endl;
 
   static RobSubstitution subst;
   subst.reset();
@@ -241,7 +241,7 @@ Clause* SubVarSup::performSubVarSup(
    //ASS_EQ(rwTermS,newEqLHS);
 #endif
 
-  //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
+  //std::cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << std::endl;
 
   /*if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
@@ -328,7 +328,7 @@ Clause* SubVarSup::performSubVarSup(
     env.statistics->backwardSubVarSup++;
   }
 
-  //cout << "SUBVARSUP " + res->toString() << endl;
+  //std::cout << "SUBVARSUP " + res->toString() << std::endl;
   return res;
 
 construction_fail:

@@ -210,7 +210,7 @@ struct URResolution::Item
       }
     }
     if(idx!=bestIdx) {
-      swap(_lits[idx], _lits[bestIdx]);
+      std::swap(_lits[idx], _lits[bestIdx]);
     }
   }
 
@@ -334,7 +334,7 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
     unsigned pos = ucl->getLiteralPosition(unif.literal);
     ASS(!_selectedOnly || pos<ucl->numSelected());
-    swap(itm->_lits[0], itm->_lits[pos]);
+    std::swap(itm->_lits[0], itm->_lits[pos]);
     itm->resolveLiteral(0, unif, cl, false);
 
     processAndGetClauses(itm, 1, acc);

@@ -89,7 +89,7 @@ vstring Formula::toString (Connective c)
 /**
  * Convert the formula to a vstring
  *
- * @since 12/10/2002 Tbilisi, implemented as ostream output function
+ * @since 12/10/2002 Tbilisi, implemented as std::ostream output function
  * @since 09/12/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
@@ -505,12 +505,12 @@ Formula* Formula::fromClause(Clause* cl)
   return Formula::quantify(res);
 }
 
-std::ostream& operator<< (ostream& out, const Formula& f)
+std::ostream& operator<< (std::ostream& out, const Formula& f)
 {
   return out << f.toString();
 }
 
-std::ostream& operator<< (ostream& out, const Formula* f)
+std::ostream& operator<< (std::ostream& out, const Formula* f)
 {
   return out << f->toString();
 }

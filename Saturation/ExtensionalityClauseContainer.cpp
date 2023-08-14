@@ -32,7 +32,7 @@ using namespace Shell;
 Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
   // Clause is already in extensionality container. We only have to search X=Y.
   if (c->isExtensionality()) {
-    //cout << "Using " << c->toString() << endl;
+    //std::cout << "Using " << c->toString() << std::endl;
     return getSingleVarEq(c);
   }
 
@@ -159,8 +159,8 @@ ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(TermL
   }
 }
 
-void ExtensionalityClauseContainer::print (ostream& out) {
-  out << "#####################" << endl;
+void ExtensionalityClauseContainer::print (std::ostream& out) {
+  out << "#####################" << std::endl;
 
   ClausesBySort::Iterator cbs(_clausesBySort);
 
@@ -169,13 +169,13 @@ void ExtensionalityClauseContainer::print (ostream& out) {
     ExtensionalityClauseList::Iterator it(l);
     while(it.hasNext()) {
       ExtensionalityClause c = it.next();
-      out << c.clause->toString() << endl
-          << c.literal->toString() << endl
-          << c.sort << endl;
+      out << c.clause->toString() << std::endl
+          << c.literal->toString() << std::endl
+          << c.sort << std::endl;
     }
   }
   
-  out << "#####################" << endl;
+  out << "#####################" << std::endl;
 }
 
 }

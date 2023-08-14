@@ -66,8 +66,8 @@ TEST_FUN(skikbo_test01) {
   // !!! The declaration order of function and constant symbols will define their precedence relation !!!
   auto ord = skikbo( 
       weights( // <- function symbol weights
-        make_pair(a, 10u), // <- sets the weight of the function f to 10
-        make_pair(b, 1u ) // <- sets the weight of the constant c to 1
+        std::make_pair(a, 10u), // <- sets the weight of the function f to 10
+        std::make_pair(b, 1u ) // <- sets the weight of the constant c to 1
         // other functions/constants default to weight 1
       )      
   ); 
@@ -91,8 +91,8 @@ TEST_FUN(skikbo_test02) {
 
   auto ord = skikbo(
     weights(
-      make_pair(a, 2u),
-      make_pair(b, 1u)     
+      std::make_pair(a, 2u),
+      std::make_pair(b, 1u)     
     )
   );
 
@@ -111,8 +111,8 @@ TEST_FUN(skikbo_test03) {
 
   auto ord = skikbo(
     weights(
-      make_pair(a, 1u),
-      make_pair(b, 1u)     
+      std::make_pair(a, 1u),
+      std::make_pair(b, 1u)     
     )
   );
 
@@ -131,8 +131,8 @@ TEST_FUN(skikbo_test04) {
 
   auto ord = skikbo(
     weights(
-      make_pair(f, 10u),
-      make_pair(a, 1u)     
+      std::make_pair(f, 10u),
+      std::make_pair(a, 1u)     
     )
   );
 
@@ -154,9 +154,9 @@ TEST_FUN(skikbo_test05) {
 
   auto ord = skikbo(
     weights(
-      make_pair(f, 10u),
-      make_pair(a, 2u),
-      make_pair(b, 1u)           
+      std::make_pair(f, 10u),
+      std::make_pair(a, 2u),
+      std::make_pair(b, 1u)           
     )
   );
 
@@ -181,8 +181,8 @@ TEST_FUN(skikbo_test06) {
 
   auto ord = skikbo(
     weights(
-      make_pair(f, 10u),
-      make_pair(a, 2u)                         
+      std::make_pair(f, 10u),
+      std::make_pair(a, 2u)                         
     )
   );
 

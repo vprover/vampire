@@ -265,7 +265,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
       d->defCl=cl;
       bool inserted = false;
       if(_defs.insert(d->fun, d)) {
-        //cout<<"Found: "<<(*(*d->defCl)[0])<<endl;
+        //std::cout<<"Found: "<<(*(*d->defCl)[0])<<std::endl;
         inserted = true;
         scanIterator.del();
       } else if(_defs.get(d->fun)->twoConstDef){
@@ -311,7 +311,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
   while(_blockedDefs.isNonEmpty()) {
     Def* d=_blockedDefs.pop();
     ASS_EQ(d->mark, Def::BLOCKED);
-//    cout<<"Blocked: "<<(*(*d->defCl)[0])<<endl;
+//    std::cout<<"Blocked: "<<(*(*d->defCl)[0])<<std::endl;
 
     UnitList::push(d->defCl, units);
     _defs.remove(d->fun);
@@ -329,14 +329,14 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
   for(unsigned i=0;i<_safeDefs.size(); i++) {
     Def* d=_safeDefs[i];
     ASS_EQ(d->mark, Def::SAFE);
-//    cout<<"Safe: "<<(*(*d->defCl)[0]);
+//    std::cout<<"Safe: "<<(*(*d->defCl)[0]);
 
     //we temporarily block the definition, so that we can rewrite
     //the definition clause without rewriting the lhs
     d->mark=Def::BLOCKED;
 //    Clause* oldCl=d->defCl;
     d->defCl=applyDefinitions(d->defCl);
-//    cout<<" unfolded into "<<(*(*d->defCl)[0])<<endl;
+//    std::cout<<" unfolded into "<<(*(*d->defCl)[0])<<std::endl;
 
     //update d->rhs with the right hand side of the equality
     Literal* defEq=(*d->defCl)[0];
@@ -368,8 +368,8 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
     if(cl->isProxyAxiomsDescendant()){ continue; }
     Clause* newCl=applyDefinitions(cl);
     if(cl!=newCl) {
-//      cout<<"D- "<<(*cl)<<endl;
-//      cout<<"D+ "<<(*newCl)<<endl;
+//      std::cout<<"D- "<<(*cl)<<std::endl;
+//      std::cout<<"D+ "<<(*newCl)<<std::endl;
       unfoldIterator.replace(newCl);
     }
   }
@@ -545,13 +545,13 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 
 
 
-typedef pair<unsigned,unsigned> BindingSpec;
+typedef std::pair<unsigned,unsigned> BindingSpec;
 typedef DHMap<BindingSpec, TermList> BindingMap;
 typedef DHMap<BindingSpec, bool> UnfoldedSet;
 
 Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
-  //cout << "applying definitions to " + lit->toString() << endl;
+  //std::cout << "applying definitions to " + lit->toString() << std::endl;
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -633,7 +633,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 
       if(defIndexes.top()) {
         modified.setTop(true);
-        BindingSpec spec=make_pair(defIndexes.top(), tl.var());
+        BindingSpec spec=std::make_pair(defIndexes.top(), tl.var());
         TermList bound=bindings.get(spec);
         if(bound.isVar() || unfolded.find(spec)) {
           args.push(bound);
@@ -673,7 +673,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       TermList* targs=t->args();
       while(dargs->isNonEmpty()) {
         ASS(targs->isNonEmpty());
-        ALWAYS(bindings.insert(make_pair(defIndex, dargs->var()), *targs));
+        ALWAYS(bindings.insert(std::make_pair(defIndex, dargs->var()), *targs));
         dargs=dargs->next();
         targs=targs->next();
       }

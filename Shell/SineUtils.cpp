@@ -55,8 +55,8 @@ using namespace Kernel;
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return max(env.signature->predicates()*3-1, 
-         max(env.signature->functions()*3, env.signature->typeCons()*3));
+  return std::max(env.signature->predicates()*3-1, 
+         std::max(env.signature->functions()*3, env.signature->typeCons()*3));
 }
 
 void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
@@ -304,7 +304,7 @@ void SineSelector::updateDefRelation(Unit* u)
   if (!sit.hasNext()) {
     if(_justForSineLevels){
       u->inference().setSineLevel(0);
-      //cout << "set level for a non-symboler " << u->toString() << " as " << "(0)" << endl;
+      //std::cout << "set level for a non-symboler " << u->toString() << " as " << "(0)" << std::endl;
     }
     _unitsWithoutSymbols.push(u);
     return;
@@ -411,7 +411,7 @@ bool SineSelector::perform(UnitList*& units)
 
       if(_justForSineLevels) {
         u->inference().setSineLevel(0);
-        //cout << "set level for " << u->toString() << " as " << "(0)" << endl;
+        //std::cout << "set level for " << u->toString() << " as " << "(0)" << std::endl;
       }
     }
   }
@@ -419,7 +419,7 @@ bool SineSelector::perform(UnitList*& units)
   unsigned depth=0;
   newlySelected.push_back(0);
 
-  // cout << "env.maxClausePriority starts as" << env.maxClausePriority << endl;
+  // std::cout << "env.maxClausePriority starts as" << env.maxClausePriority << std::endl;
 
   //select required axiom formulas
   while (newlySelected.isNonEmpty()) {
@@ -438,7 +438,7 @@ bool SineSelector::perform(UnitList*& units)
           env.maxSineLevel++;
         }
       }
-      // cout << "Time to inc" << endl;
+      // std::cout << "Time to inc" << std::endl;
 
       if (newlySelected.isNonEmpty()) {
 	//we must push another mark if we're not done yet
@@ -457,7 +457,7 @@ bool SineSelector::perform(UnitList*& units)
         SineSymbolExtractor::decodeSymId(sym,pred,functor);
         if (pred && !env.predicateSineLevels->find(functor)) {
           env.predicateSineLevels->insert(functor,env.maxSineLevel);
-          // cout << "set level of predicate " << functor << " i.e. " << env.signature->predicateName(functor) << " to " << env.maxClausePriority << endl;
+          // std::cout << "set level of predicate " << functor << " i.e. " << env.signature->predicateName(functor) << " to " << env.maxClausePriority << std::endl;
         }
       }
 
@@ -473,7 +473,7 @@ bool SineSelector::perform(UnitList*& units)
 
         if(_justForSineLevels){
           du->inference().setSineLevel(env.maxSineLevel);
-          //cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority << endl;
+          //std::cout << "set level for " << du->toString() << " in iteration as " << env.maxClausePriority << std::endl;
         }
       }
       //all defining units for the symbol sym were selected,
@@ -503,7 +503,7 @@ bool SineSelector::perform(UnitList*& units)
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);
   while (selIt.hasNext()) {
-    cout<<'#'<<selIt.next()->toString()<<endl;
+    std::cout<<'#'<<selIt.next()->toString()<<std::endl;
   }
 #endif
 
@@ -715,7 +715,7 @@ void SineTheorySelector::perform(UnitList*& units)
 #if SINE_PRINT_SELECTED
   UnitList::Iterator selIt(units);
   while (selIt.hasNext()) {
-    cout<<'#'<<selIt.next()->toString()<<endl;
+    std::cout<<'#'<<selIt.next()->toString()<<std::endl;
   }
 #endif
 }

@@ -90,7 +90,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
 
-  if(foundLabels.size()>0 && print){ cout << "Found constraints:" << endl; }
+  if(foundLabels.size()>0 && print){ std::cout << "Found constraints:" << std::endl; }
 
   DHSet<std::pair<unsigned,unsigned>> nonstrict_constraints;
   DHSet<std::pair<unsigned,unsigned>> strict_constraints;
@@ -100,12 +100,12 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     std::pair<unsigned,unsigned> constraint;
     if(_labelMap_nonstrict.find(l,constraint)){
       nonstrict_constraints.insert(constraint);
-      if(print) cout << constraint.first << " >= " << constraint.second << endl;
+      if(print) std::cout << constraint.first << " >= " << constraint.second << std::endl;
     }
     else{
       ALWAYS(_labelMap_strict.find(l,constraint));
       strict_constraints.insert(constraint);
-      if(print) cout << constraint.first << " > " << constraint.second << endl;
+      if(print) std::cout << constraint.first << " > " << constraint.second << std::endl;
     }
   }
 
@@ -140,13 +140,13 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       if(cls->size()>1){
         if(print){
            if(!header_printed){
-             cout << "Equalities:" << endl;
+             std::cout << "Equalities:" << std::endl;
              header_printed=true;
            }
-           cout << "= ";
+           std::cout << "= ";
            DHSet<unsigned>::Iterator it(*cls);
-           while(it.hasNext()) cout << it.next() << " ";
-           cout << endl;
+           while(it.hasNext()) std::cout << it.next() << " ";
+           std::cout << std::endl;
          }
          eq_classes.push(cls);   
       }
@@ -164,13 +164,13 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       unsigned frst = uf.root(con.first);
       unsigned snd = uf.root(con.second);
       if(frst==snd) continue;
-      nonstrict_cons.insert(make_pair(frst,snd));
+      nonstrict_cons.insert(std::make_pair(frst,snd));
 */
       nonstrict_cons.insert(con);
     }
   }
   if(print){
-    cout << "There were " << constraint_count << " non-strict constraints between sorts" << endl;
+    std::cout << "There were " << constraint_count << " non-strict constraints between sorts" << std::endl;
   }
   constraint_count = 0;
   {
@@ -182,7 +182,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
       unsigned frst = uf.root(con.first);
       unsigned snd = uf.root(con.second);
       if(frst==snd) continue;
-      strict_cons.insert(make_pair(frst,snd));
+      strict_cons.insert(std::make_pair(frst,snd));
 */
       ASS(con.first != con.second);
       if(con.first == con.second){
@@ -193,7 +193,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     }
   }
   if(print){
-    cout << "There were " << constraint_count << " strict constraints between sorts" << endl;
+    std::cout << "There were " << constraint_count << " strict constraints between sorts" << std::endl;
   }
 
 }
@@ -343,9 +343,9 @@ Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt
     unsigned tsT = toSrt.term()->functor();
 
     if(strict)
-      _labelMap_strict.insert(label,make_pair(fsT, tsT));
+      _labelMap_strict.insert(label,std::make_pair(fsT, tsT));
     else
-      _labelMap_nonstrict.insert(label,make_pair(fsT,tsT));
+      _labelMap_nonstrict.insert(label,std::make_pair(fsT,tsT));
 
     return new AtomicFormula(Literal::create(label,0,true,false,0)); 
 }

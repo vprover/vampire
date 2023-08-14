@@ -1506,7 +1506,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
  */
 TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 {
-  // Debug::Tracer::printStack(cout);
+  // Debug::Tracer::printStack(std::cout);
 
   // DEBUG( "transformSubterm for ", trm.toString() );
 

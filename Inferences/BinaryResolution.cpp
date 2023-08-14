@@ -73,11 +73,11 @@ struct BinaryResolution::UnificationsFn
 {
   UnificationsFn(BinaryResolutionIndex* index,bool cU)
   : _index(index),_unificationWithAbstraction(cU) {}
-  VirtualIterator<pair<Literal*, SLQueryResult> > operator()(Literal* lit)
+  VirtualIterator<std::pair<Literal*, SLQueryResult> > operator()(Literal* lit)
   {
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
-      return VirtualIterator<pair<Literal*, SLQueryResult> >::getEmpty();
+      return VirtualIterator<std::pair<Literal*, SLQueryResult> >::getEmpty();
     }
     if(_unificationWithAbstraction){
       return pvi( pushPairIntoRightIterator(lit, _index->getUnificationsWithConstraints(lit, true)) );
@@ -93,7 +93,7 @@ struct BinaryResolution::ResultFn
 {
   ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  Clause* operator()(pair<Literal*, SLQueryResult> arg)
+  Clause* operator()(std::pair<Literal*, SLQueryResult> arg)
   {
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
@@ -121,7 +121,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
       env.beginOutput();
-      env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<endl;
+      env.out()<<"Blocked resolution of "<<queryCl->toString()<<" and "<<qr.clause->toString()<<std::endl;
       env.endOutput();
     }
     if(opts.colorUnblocking()) {
@@ -188,13 +188,13 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 #if VDEBUG
 /*
   if(withConstraints && constraints->size() > 0){
-    cout << "Other: " << qr.clause->toString() << endl;
-    cout << "queryLit: " << queryLit->toString() << endl;
-    cout << "resLit: " << qr.literal->toString() << endl;
-    cout << "SUB:" << endl << qr.substitution->toString() << endl;
+    std::cout << "Other: " << qr.clause->toString() << std::endl;
+    std::cout << "queryLit: " << queryLit->toString() << std::endl;
+    std::cout << "resLit: " << qr.literal->toString() << std::endl;
+    std::cout << "SUB:" << std::endl << qr.substitution->toString() << std::endl;
 */
 /*
-    cout << "SUB(deref):" << endl << qr.substitution->toString(true) << endl;
+    std::cout << "SUB(deref):" << std::endl << qr.substitution->toString(true) << std::endl;
 */
   //}
 #endif
@@ -202,10 +202,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   unsigned next = 0;
   if(withConstraints){
   for(unsigned i=0;i<constraints->size();i++){
-      pair<pair<TermList,unsigned>,pair<TermList,unsigned>> con = (*constraints)[i]; 
+      std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> con = (*constraints)[i]; 
 
 #if VDEBUG
-      //cout << "con pair " << con.first.toString() << " , " << con.second.toString() << endl;
+      //std::cout << "con pair " << con.first.toString() << " , " << con.second.toString() << std::endl;
 #endif
   
       TermList qT = qr.substitution->applyTo(con.first.first,con.first.second);
@@ -307,14 +307,14 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     env.statistics->resolution++;
   }
 
-  //cout << "RESULT " << res->toString() << endl;
+  //std::cout << "RESULT " << res->toString() << std::endl;
 
   return res;
 }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
-  //cout << "BinaryResolution for " << premise->toString() << endl;
+  //std::cout << "BinaryResolution for " << premise->toString() << std::endl;
 
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 

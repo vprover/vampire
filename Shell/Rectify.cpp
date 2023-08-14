@@ -530,7 +530,7 @@ unsigned Rectify::Renaming::bind (unsigned var)
   else {
     result = _nextVar++;
   }
-  VarUsageTrackingList::push(make_pair(result,false), get(var));
+  VarUsageTrackingList::push(std::make_pair(result,false), get(var));
 
   return result;
 } // Rectify::Renaming::bind

@@ -126,7 +126,7 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
       }
 
       if(sharedLen>bestSharedLen && (!bestGround || lits[i]->ground()) ) {
-//	cout<<lits[i]->toString()<<" is better than "<<lits[bestIndex]->toString()<<endl;
+//	std::cout<<lits[i]->toString()<<" is better than "<<lits[bestIndex]->toString()<<std::endl;
 	bestSharedLen=sharedLen;
 	bestIndex=i;
 	bestGround=lits[i]->ground();
@@ -134,7 +134,7 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
     }
 
   have_best:
-    swap(lits[startIndex],lits[bestIndex]);
+    std::swap(lits[startIndex],lits[bestIndex]);
 
     if(unshared) {
       //we haven't matched the whole literal, so we won't proceed with the next one
@@ -790,7 +790,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
   //TODO: perform _set_, not _multiset_ subsumption for subsumption resolution
 
 //  bool verbose=query->number()==58746;
-//#define VERB_OUT(x) if(verbose) {cout<<x<<endl;}
+//#define VERB_OUT(x) if(verbose) {std::cout<<x<<std::endl;}
 
   unsigned clen=lms.size()-1;
 
@@ -854,7 +854,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 	MatchInfo* nq=ni->getMatch(k);		//next query literal
 	if(!compatible(bi,bq,ni,nq)) {
 	  rem--;
-	  swap(ni->getMatch(k),ni->getMatch(rem));
+	  std::swap(ni->getMatch(k),ni->getMatch(rem));
 	  continue;
 	}
 	k++;

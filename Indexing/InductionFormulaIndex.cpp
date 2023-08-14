@@ -31,14 +31,14 @@ Key InductionFormulaIndex::represent(const InductionContext& context)
   Key k;
   for (const auto& kv : context._cls) {
     LiteralStack lits = kv.second;
-    sort(lits.begin(), lits.end());
+    std::sort(lits.begin(), lits.end());
     k.first.push(lits);
   }
-  sort(k.first.begin(), k.first.end(), [](const LiteralStack& lhs, const LiteralStack& rhs) {
+  std::sort(k.first.begin(), k.first.end(), [](const LiteralStack& lhs, const LiteralStack& rhs) {
     if (lhs.size() != rhs.size()) {
       return lhs.size() < rhs.size();
     }
-    return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
   });
   return k;
 }

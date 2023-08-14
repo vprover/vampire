@@ -145,8 +145,8 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       result.push(lit);
     }
     else{
-      //cout << lit->toString() << " flattened to " << nlit->toString() << endl; 
-      //for(unsigned i=0;i<newLits.length();i++){ cout << ">> " << newLits[i]->toString() << endl; }
+      //std::cout << lit->toString() << " flattened to " << nlit->toString() << std::endl; 
+      //for(unsigned i=0;i<newLits.length();i++){ std::cout << ">> " << newLits[i]->toString() << std::endl; }
       updated=true;
       if(_recursive){
         lits.push(nlit);
@@ -172,7 +172,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
  Literal* TheoryFlattening::replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar,
                                             DHMap<Term*,unsigned>& abstracted)
 {
-  //cout << "replaceTopTerms " << lit->toString() << endl;
+  //std::cout << "replaceTopTerms " << lit->toString() << std::endl;
 
   // Tells us if we're looking for interpreted are non-interpreted terms to flatten out
   bool interpreted = theory->isInterpretedPredicate(lit->functor());
@@ -194,7 +194,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
       }
     }
   }
-  //cout << "interpreted is " << interpreted << endl;
+  //std::cout << "interpreted is " << interpreted << std::endl;
 
   bool updated = false;
 
@@ -208,7 +208,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     }
     Term* t = ts->term();
 
-    //cout << "term " << t->toString() << " has interp=" << env.signature->getFunction(t->functor())->interpreted() << endl;
+    //std::cout << "term " << t->toString() << " has interp=" << env.signature->getFunction(t->functor())->interpreted() << std::endl;
 
     // if interpreted status is different factor out
     // but never factor out interpreted constants e.g. numbers
@@ -222,7 +222,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
                         )&& 
         !theory->isInterpretedConstant(t) 
       ){
-      //cout << "Factoring out " << t->toString() << endl;
+      //std::cout << "Factoring out " << t->toString() << std::endl;
 
       unsigned newVar;
       bool create = false;
@@ -242,7 +242,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     else{
       Term* tt = replaceTopTermsInTerm(t,newLits,maxVar,interpreted,abstracted);
       if(tt!=t){ updated=true; }
-      //cout << "recurse in  " << tt->toString() << endl;
+      //std::cout << "recurse in  " << tt->toString() << std::endl;
       args.push(TermList(tt));
     }
   }
@@ -259,7 +259,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
                                                unsigned& maxVar,bool interpreted,
                                                DHMap<Term*,unsigned>& abstracted)
 {
-  //cout << "replaceTopTermsInTerm " << term->toString() << endl;
+  //std::cout << "replaceTopTermsInTerm " << term->toString() << std::endl;
 
 
   Stack<TermList> args;
@@ -291,7 +291,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 
     // if interpreted status is different factor out
     if(interpreted != interpretedStatus){ 
-      //cout << "Factoring out " << t->toString() << endl;
+      //std::cout << "Factoring out " << t->toString() << std::endl;
       
       unsigned newVar;
       bool create = false; 
@@ -315,7 +315,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     }
   }
 
-  //cout << "updated is " << updated << endl;
+  //std::cout << "updated is " << updated << std::endl;
 
   if(!updated) return term;
   else return Term::create(term->functor(),term->arity(),args.begin());

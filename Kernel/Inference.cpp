@@ -215,11 +215,11 @@ void Inference::updateStatistics()
         _XXNarrows = static_cast<Unit*>(_ptr1)->inference().xxNarrows();
         _reductions = static_cast<Unit*>(_ptr1)->inference().reductions();
       } else {
-        _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
+        _inductionDepth = std::max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
             static_cast<Unit*>(_ptr2)->inference().inductionDepth());
-        _XXNarrows = max(static_cast<Unit*>(_ptr1)->inference().xxNarrows(),
+        _XXNarrows = std::max(static_cast<Unit*>(_ptr1)->inference().xxNarrows(),
             static_cast<Unit*>(_ptr2)->inference().xxNarrows());
-        _reductions = max(static_cast<Unit*>(_ptr1)->inference().reductions(),
+        _reductions = std::max(static_cast<Unit*>(_ptr1)->inference().reductions(),
             static_cast<Unit*>(_ptr2)->inference().reductions());
       }
 
@@ -231,9 +231,9 @@ void Inference::updateStatistics()
       _reductions = 0;
       UnitList* it= static_cast<UnitList*>(_ptr1);
       while(it) {
-        _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
-        _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
-        _reductions = max(_reductions,it->head()->inference().reductions());
+        _inductionDepth = std::max(_inductionDepth,it->head()->inference().inductionDepth());
+        _XXNarrows = std::max(_XXNarrows,it->head()->inference().xxNarrows());
+        _reductions = std::max(_reductions,it->head()->inference().reductions());
         it=it->tail();
       }
       break;
@@ -339,7 +339,7 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   _combAxiomsDescendant = premise1->isCombAxiomsDescendant() && premise2->isCombAxiomsDescendant() ;
   _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();  
   _holAxiomsDescendant = premise1->isHolAxiomsDescendant() && premise2->isHolAxiomsDescendant();
-  _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
+  _sineLevel = std::min(premise1->getSineLevel(),premise2->getSineLevel());
 
   updateStatistics();
 }
@@ -373,7 +373,7 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
       _combAxiomsDescendant &= inf.isCombAxiomsDescendant();
       _proxyAxiomsDescendant &= inf.isProxyAxiomsDescendant();
       _holAxiomsDescendant &= inf.isHolAxiomsDescendant();
-      _sineLevel = min(_sineLevel,inf.getSineLevel());
+      _sineLevel = std::min(_sineLevel,inf.getSineLevel());
       it=it->tail();
     }
   } else {
@@ -511,7 +511,7 @@ void Inference::minimizePremises()
 
   UnitList* newFOPrems = SATInference::getFOPremises(newSatRef);
 
-  // cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << endl;
+  // std::cout << "Minimized from " << _premises->length() << " to " << newFOPrems->length() << std::endl;
 
   // "release" the old list
   {

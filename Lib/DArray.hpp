@@ -150,7 +150,7 @@ public:
       return true;
     }
 
-    size_t newCapacity = max(s, _capacity*2);
+    size_t newCapacity = std::max(s, _capacity*2);
 
     void* mem = ALLOC_KNOWN(sizeof(C)*newCapacity,"DArray<>");
     C* newArray=array_new<C>(mem, newCapacity);
@@ -179,7 +179,7 @@ public:
     }
 
     size_t oldCapacity=_capacity;
-    size_t newCapacity=max(s, oldCapacity*2);
+    size_t newCapacity=std::max(s, oldCapacity*2);
     void* mem = ALLOC_KNOWN(sizeof(C)*newCapacity,"DArray<>");
 
     C* oldArr = _array;
