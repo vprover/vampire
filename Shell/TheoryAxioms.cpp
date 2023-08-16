@@ -35,6 +35,7 @@
 #include "TheoryAxioms.hpp"
 #include "Options.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;

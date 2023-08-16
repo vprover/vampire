@@ -24,6 +24,8 @@
 namespace Debug
 {
 
+using namespace std;
+
 void RSMultiCounter::print(ostream& out)
 {
   out << name() << ":"<< endl;

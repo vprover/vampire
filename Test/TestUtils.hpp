@@ -189,22 +189,22 @@ public:
 };
 
 template<class A>
-class Pretty<unique_ptr<A>> {
-  unique_ptr<A> const& _self;
+class Pretty<std::unique_ptr<A>> {
+  std::unique_ptr<A> const& _self;
 
 public:
-  Pretty(unique_ptr<A> const& self) : _self(self) {}
+  Pretty(std::unique_ptr<A> const& self) : _self(self) {}
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return out << pretty(*_self); }
 };
 
 template<class A, class B>
-class Pretty<pair<A,B>> {
-  pair<A,B> const& _self;
+class Pretty<std::pair<A,B>> {
+  std::pair<A,B> const& _self;
 
 public:
-  Pretty(pair<A,B> const& self) : _self(self) {}
+  Pretty(std::pair<A,B> const& self) : _self(self) {}
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return out << pretty(_self.first) << " : " << pretty(_self.second); }
@@ -236,11 +236,11 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
     return true;
   }
   for (unsigned i = idx; i < perm.size(); i++) {
-    swap(perm[i], perm[idx]);
+    std::swap(perm[i], perm[idx]);
 
     if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
 
-    swap(perm[i], perm[idx]);
+    std::swap(perm[i], perm[idx]);
   }
 
   return false;

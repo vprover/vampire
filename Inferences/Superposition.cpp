@@ -55,6 +55,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 void Superposition::attach(SaturationAlgorithm* salg)
 {
@@ -178,7 +179,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
   }
   if(getOptions().showBlocked()) {
     env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
     env.endOutput();
   }
   if(getOptions().colorUnblocking()) {

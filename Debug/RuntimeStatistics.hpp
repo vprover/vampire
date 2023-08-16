@@ -87,7 +87,6 @@ square's last digit:
 
 namespace Debug {
 
-using namespace std;
 using namespace Lib;
 
 class RSObject
@@ -97,7 +96,7 @@ public:
 
   CLASS_NAME(RSObject);
 
-  virtual void print(ostream& out) = 0;
+  virtual void print(std::ostream& out) = 0;
 
   const char* name() { return _name; }
   bool hasName(const char* str) { return !strcmp(str, name()); }
@@ -113,7 +112,7 @@ class RSCounter
 public:
   RSCounter(const char* name) : RSObject(name), _counter(0) {}
 
-  void print(ostream& out) { out << name() << ": " << _counter << endl; }
+  void print(std::ostream& out) { out << name() << ": " << _counter << std::endl; }
   void inc() { _counter++; }
   void inc(size_t num) { _counter+=num; }
 private:
@@ -126,7 +125,7 @@ class RSMultiCounter
 public:
   RSMultiCounter(const char* name) : RSObject(name) {}
 
-  void print(ostream& out);
+  void print(std::ostream& out);
   void inc(size_t index) { _counters[index]++; }
 private:
   ZIArray<size_t> _counters;
@@ -140,7 +139,7 @@ public:
   RSMultiStatistic(const char* name) : RSObject(name) {}
   ~RSMultiStatistic();
 
-  void print(ostream& out);
+  void print(std::ostream& out);
   void addRecord(size_t index, int value) { ValList::push(value, _values[index]); }
 private:
   ZIArray<ValList* > _values;
@@ -172,7 +171,7 @@ public:
     return res;
   }
 
-  void print(ostream& out);
+  void print(std::ostream& out);
 private:
   RuntimeStatistics();
   ~RuntimeStatistics();

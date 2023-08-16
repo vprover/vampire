@@ -45,6 +45,7 @@
 #include "Options.hpp"
 #include "Property.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Shell;
 

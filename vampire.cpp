@@ -64,6 +64,8 @@
 #include "Lib/MemoryLeak.hpp"
 #endif
 
+using namespace std;
+
 /**
  * Return value is non-zero unless we were successful.
  *

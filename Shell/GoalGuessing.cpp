@@ -29,6 +29,8 @@
 namespace Shell
 {
 
+using namespace std;
+
 //////////////////////////
 // GoalGuessing
 //

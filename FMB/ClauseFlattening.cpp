@@ -28,6 +28,8 @@
 
 namespace FMB{
 
+using namespace std;
+
 bool ClauseFlattening::isShallow(Literal* lit)
 {
   // The term to check for variable arguments

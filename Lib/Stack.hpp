@@ -802,7 +802,7 @@ public:
     bd.addBacktrackObject(new PushBacktrackObject(this));
   }
 
-  friend ostream& operator<<(ostream& out, const Stack<C>& s) {
+  friend std::ostream& operator<<(std::ostream& out, const Stack<C>& s) {
     out << "[";
     auto iter = s.begin();
     if(iter != s.end()) {
@@ -833,10 +833,10 @@ namespace std
 template<typename T>
 void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2)
 {
-  swap(s1._capacity, s2._capacity);
-  swap(s1._cursor, s2._cursor);
-  swap(s1._end, s2._end);
-  swap(s1._stack, s2._stack);
+  std::swap(s1._capacity, s2._capacity);
+  std::swap(s1._cursor, s2._cursor);
+  std::swap(s1._end, s2._end);
+  std::swap(s1._stack, s2._stack);
 }
 
 }

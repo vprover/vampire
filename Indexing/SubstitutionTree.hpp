@@ -52,7 +52,6 @@
 #include <iostream>
 #endif
 
-using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -86,7 +85,7 @@ public:
   Cntr& _cntr;
 
   InstanceCntr& operator=(InstanceCntr&& other) 
-  { swap(other._cntr, _cntr); return *this; }
+  { std::swap(other._cntr, _cntr); return *this; }
 
   InstanceCntr(InstanceCntr&& other) 
     : _cntr(other._cntr)
@@ -248,9 +247,9 @@ public:
 
   class Node {
   public:
-    friend std::ostream& operator<<(ostream& out, OutputMultiline<Node> const& self) 
+    friend std::ostream& operator<<(std::ostream& out, OutputMultiline<Node> const& self) 
     { self.self.output(out, /* multiline = */ true, /* indent */ 0); return out; }
-    friend std::ostream& operator<<(ostream& out, Node const& self) 
+    friend std::ostream& operator<<(std::ostream& out, Node const& self) 
     { self.output(out, /* multiline = */ false, /* indent */ 0); return out; }
     inline
     Node() { term.makeEmpty(); }
@@ -777,7 +776,7 @@ public:
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
-          _nextVar = max(_nextVar, (int)var + 1);
+          _nextVar = std::max(_nextVar, (int)var + 1);
         });
     if (doInsert) insert(*bindings, ld);
     else          remove(*bindings, ld);
@@ -855,7 +854,7 @@ public:
     Recycled<BindingMap> svBindings;
     createBindings(normQuery, /* reversed */ false,
         [&](auto v, auto t) { {
-          _nextVar = max<int>(_nextVar, v + 1); // TODO do we need this line?
+          _nextVar = std::max<int>(_nextVar, v + 1); // TODO do we need this line?
           svBindings->insert(v, t);
         } });
     Leaf* leaf = findLeaf(*svBindings);
@@ -917,7 +916,7 @@ public:
       if(_specVars->size()<nextSpecVar) {
         //_specVars can get really big, but it was introduced instead of hash table
         //during optimizations, as it raised performance by abour 5%.
-        _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
+        _specVars->ensure(std::max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
       }
       _bindings->ensure(weight(query));
     }

@@ -22,6 +22,8 @@
 namespace Kernel
 {
 
+using namespace std;
+
 namespace __MU_Aux {
 
 class MapBinderAndApplicator

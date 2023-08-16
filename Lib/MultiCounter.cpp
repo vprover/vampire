@@ -21,6 +21,7 @@
 #include "Allocator.hpp"
 #include "Exception.hpp"
 
+using namespace std;
 using namespace Lib;
 
 /**

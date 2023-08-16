@@ -33,6 +33,7 @@
 #include "CNFOnTheFly.hpp"
 
 namespace Inferences {
+using namespace std;
 using namespace Indexing;
 
 static Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d = 0, Literal* e = 0);

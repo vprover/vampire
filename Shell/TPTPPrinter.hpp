@@ -32,7 +32,7 @@ using namespace Kernel;
  */
 class TPTPPrinter {
 public:
-  TPTPPrinter(ostream* tgtStream=0);
+  TPTPPrinter(std::ostream* tgtStream=0);
 
   void print(Unit* u);
   void printAsClaim(vstring name, Unit* u);
@@ -55,10 +55,10 @@ private:
 
   void beginOutput();
   void endOutput();
-  ostream& tgt();
+  std::ostream& tgt();
 
   /** if zero, we print to env.out() */
-  ostream* _tgtStream;
+  std::ostream* _tgtStream;
 
   bool _headersPrinted;
 };

@@ -38,6 +38,8 @@
 namespace FMB
 {
 
+using namespace std;
+
 Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 {
   _solver = new MinisatInterfacing(*env.options,true);

@@ -33,6 +33,7 @@
 #include "RenamingOnTheFly.hpp"
 
 namespace Inferences {
+using namespace std;
 using namespace Indexing;
 
 typedef ApplicativeHelper AH;

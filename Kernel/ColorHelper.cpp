@@ -32,6 +32,8 @@
 namespace Kernel
 {
 
+using namespace std;
+
 /**
  * Return true if symbol number @c functor is transparent. If @c predicate
  * is true, we assume @c functor to be predicate number, otherwise it is

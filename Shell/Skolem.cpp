@@ -34,6 +34,7 @@
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Shell;
 

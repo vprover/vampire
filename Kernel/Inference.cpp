@@ -23,6 +23,7 @@
 
 #include "Inference.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 

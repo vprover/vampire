@@ -47,6 +47,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 struct EqualityFactoring::IsPositiveEqualityFn
 {

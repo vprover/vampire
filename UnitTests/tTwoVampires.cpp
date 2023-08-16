@@ -35,6 +35,7 @@
 
 #include "Parse/TPTP.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 using namespace Kernel;

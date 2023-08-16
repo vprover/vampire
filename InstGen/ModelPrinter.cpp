@@ -29,6 +29,7 @@
 namespace InstGen
 {
 
+using namespace std;
 using namespace Shell;
 
 ModelPrinter::ModelPrinter(IGAlgorithm& iga)

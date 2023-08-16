@@ -33,6 +33,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 
 ///////////////////////

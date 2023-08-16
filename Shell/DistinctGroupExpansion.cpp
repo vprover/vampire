@@ -31,6 +31,7 @@
 #include "Options.hpp"
 #include "DistinctGroupExpansion.hpp"
 
+using namespace std;
 using namespace Shell;
 
 /**

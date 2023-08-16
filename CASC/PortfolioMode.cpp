@@ -45,6 +45,7 @@
 
 #include "PortfolioMode.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace CASC;
 

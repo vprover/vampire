@@ -64,7 +64,7 @@ public:
   static Literal* getSingleVarEq(Clause* c);
   ExtensionalityClauseIterator activeIterator(TermList sort);
   unsigned size() const { return _size; }
-  void print(ostream& o);
+  void print(std::ostream& o);
 private:
   ClausesBySort _clausesBySort;
   void add(ExtensionalityClause c);

@@ -21,6 +21,8 @@
 namespace Kernel
 {
 
+using namespace std;
+
 /**
  * TODO: functions transform and transformSpecial call each other to process FOOL subterms,
  * a fully non-recursive implementation is pretty complicated and is left for the future

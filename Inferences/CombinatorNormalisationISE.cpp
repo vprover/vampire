@@ -28,6 +28,7 @@
 #include "Shell/Statistics.hpp"
 #include "CombinatorNormalisationISE.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;

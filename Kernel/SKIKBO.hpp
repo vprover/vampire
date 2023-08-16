@@ -87,7 +87,7 @@ protected:
     return Ordering::INCOMPARABLE;
   }
 
-  void showConcrete(ostream&) const override
+  void showConcrete(std::ostream&) const override
   { NOT_IMPLEMENTED; }
 
   //VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;

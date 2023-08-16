@@ -33,8 +33,7 @@ namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
-using namespace std;
-using Key = pair<Stack<LiteralStack>,pair<Literal*,Literal*>>;
+using Key = std::pair<Stack<LiteralStack>,std::pair<Literal*,Literal*>>;
 
 class InductionFormulaIndex
 {
@@ -55,13 +54,13 @@ public:
       for (const auto& cl : cls) {
         cl->incRefCnt();
       }
-      _st.push(make_pair(cls, subst));
+      _st.push(std::make_pair(cls, subst));
     }
-    const Stack<pair<ClauseStack,Substitution>>& get() const {
+    const Stack<std::pair<ClauseStack,Substitution>>& get() const {
       return _st;
     }
   private:
-    Stack<pair<ClauseStack,Substitution>> _st;
+    Stack<std::pair<ClauseStack,Substitution>> _st;
   };
 
   static Key represent(const Inferences::InductionContext& context);

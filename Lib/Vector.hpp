@@ -31,7 +31,6 @@ namespace Indexing {
 
 namespace Lib {
 
-using namespace std;
 
 /**
  * Class of constant size generic vectors. The size of a vector is fixed when it

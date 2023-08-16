@@ -102,10 +102,10 @@ private:
       ASS(_sortedSignature);
     
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
-      //cout << "SORT " << s << endl;
+      //std::cout << "SORT " << s << std::endl;
       unsigned modelSize = _sortModelSizes[s];
       for(unsigned m=1;m<=modelSize;m++){
-        //cout << "MSIZE " << m << endl;
+        //std::cout << "MSIZE " << m << std::endl;
         addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s]);
         addNewSymmetryCanonicityAxioms(m,_sortedGroundedTerms[s],modelSize);
       }
@@ -237,7 +237,7 @@ private:
     STAR    // we don't care about this value
   };
 
-  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
+  typedef DArray<std::pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
 
   class DSAEnumerator { // Domain Size Assignment Enumerator - for the point-wise encoding case
   public:
@@ -345,30 +345,30 @@ private:
 
 public: // debugging
     static void output_cg(Constraint_Generator_Vals& cgv) {
-      cout << "[";
+      std::cout << "[";
       for (unsigned i = 0; i < cgv.size(); i++) {
-        cout << cgv[i].second;
+        std::cout << cgv[i].second;
         switch(cgv[i].first) {
         case EQ:
-          cout << "=";
+          std::cout << "=";
           break;
         case LEQ:
-          cout << ">";
+          std::cout << ">";
           break;
         case GEQ:
-          cout << "<";
+          std::cout << "<";
           break;
         case STAR:
-          cout << "*";
+          std::cout << "*";
           break;
         default:
           ASSERTION_VIOLATION;
         }
         if (i < cgv.size()-1) {
-          cout << ", ";
+          std::cout << ", ";
         }
       }
-      cout << "]";
+      std::cout << "]";
     }
 
 };

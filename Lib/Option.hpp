@@ -242,7 +242,7 @@ public:
   Option take() 
   {
     Option out;
-    swap(*this,out);
+    std::swap(*this,out);
     return out;
   }
 

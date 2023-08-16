@@ -158,7 +158,7 @@ struct OrdVarNumberExtractorFn
  *   with SortHelper::collectVariableSorts as it is more efficient.
  */
 class VariableWithSortIterator
-: public IteratorCore<pair<TermList,TermList>>
+: public IteratorCore<std::pair<TermList,TermList>>
 {
 public:
 
@@ -175,11 +175,11 @@ public:
   bool hasNext();
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  pair<TermList, TermList> next()
+  std::pair<TermList, TermList> next()
   {
     ASS(!_used);
     _used=true;
-    return make_pair(*_stack.top(),  SortHelper::getArgSort(const_cast<Term*>(_terms.top()), _argNums.top()));
+    return std::make_pair(*_stack.top(),  SortHelper::getArgSort(const_cast<Term*>(_terms.top()), _argNums.top()));
   }
 private:
   Stack<const TermList*> _stack;
@@ -677,7 +677,7 @@ private:
  * or literals in DFS left to right order.
  */
 class DisagreementSetIterator
-: public IteratorCore<pair<TermList, TermList> >
+: public IteratorCore<std::pair<TermList, TermList> >
 {
 public:
   /**
@@ -757,9 +757,9 @@ public:
 
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  pair<TermList, TermList> next()
+  std::pair<TermList, TermList> next()
   {
-    pair<TermList, TermList> res(_arg1,_arg2);
+    std::pair<TermList, TermList> res(_arg1,_arg2);
     _arg1.makeEmpty();
     return res;
   }

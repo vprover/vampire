@@ -39,6 +39,8 @@
 
 namespace Shell
 {
+
+using namespace std;
 TPTPPrinter::TPTPPrinter(ostream* tgtStream)
 : _tgtStream(tgtStream), _headersPrinted(false)
 {
