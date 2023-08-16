@@ -256,15 +256,22 @@
     };
 
     class Node {
+
+      /** term at this node */
+      TermList _term;
+#define CACHE_FUNCTOR 0
+#if CACHE_FUNCTOR
+      /** if _term is a Term* we cache the functor so we are faster than calling _term->term(); */
+      unsigned _functor;
+#endif // CACHE_FUNCTOR
+
     public:
       friend std::ostream& operator<<(ostream& out, OutputMultiline<Node> const& self) 
       { self.self.output(out, /* multiline = */ true, self.indent); return out; }
       friend std::ostream& operator<<(ostream& out, Node const& self) 
       { self.output(out, /* multiline = */ false, /* indent */ 0); return out; }
-      inline
-      Node() { term.makeEmpty(); }
-      inline
-      Node(TermList ts) : term(ts) { }
+      inline Node() : _term(TermList::empty()) {}
+      inline Node(TermList ts) : Node() { setTerm(ts); }
       virtual ~Node();
       /** True if a leaf node */
       virtual bool isLeaf() const = 0;
@@ -284,16 +291,31 @@
        * The current node will be deleted, but we don't want to destroy
        * structures, that are taken over by the new node implementation.
        */
-      virtual void makeEmpty() { term.makeEmpty(); }
+      virtual void makeEmpty() { _term.makeEmpty(); }
       static void split(Node** pnode, TermList* where, int var);
 
 #if VDEBUG
       virtual void assertValid() const {};
 #endif
 
-      /** term at this node */
-      TermList term;
-
+      void setTerm(TermList t) { 
+        _term = t; 
+#if CACHE_FUNCTOR
+        if (t.isTerm()) { _functor =  t.term()->functor(); } 
+#endif
+      }
+      inline TermList::Top top() { 
+#if CACHE_FUNCTOR
+        auto out = _term.isTerm() ? TermList::Top::functor(_functor) : _term.top(); 
+        ASS_EQ(_term.top(), out); 
+        return out; 
+#else // !CACHE_FUNCTOR
+        return _term.top(); 
+#endif
+      }
+      // if there is a write to this reference, a term with the same top() as the current one has to be written. otherwise use setTerm instead
+      TermList& term() { return _term; }
+      TermList const& term() const { return _term; }
       virtual void output(std::ostream& out, bool multiline, int indent) const = 0;
     };
 
@@ -330,7 +352,8 @@
        * If canCreate is false, null pointer is returned in case
        * suitable child does not exist.
        */
-      virtual Node** childByTop(TermList::Top t, bool canCreate) = 0;
+      virtual Node** __childByTop(TermList::Top t, bool canCreate) = 0;
+      Node** childByTop(TermList::Top t, bool canCreate);
 
 
       /**
@@ -409,7 +432,7 @@
     {
       bool operator()(Node** n)
       {
-        return (*n)->term.isVar();
+        return (*n)->term().isVar();
       }
     };
 
@@ -452,7 +475,7 @@
         return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
               IsPtrToVarNodeFn()) );
       }
-      virtual Node** childByTop(TermList::Top t, bool canCreate);
+      virtual Node** __childByTop(TermList::Top t, bool canCreate);
       void remove(TermList::Top t);
 
 #if VDEBUG
@@ -515,7 +538,7 @@
                       NodeSkipList::PtrIterator(_nodes),
                       IsPtrToVarNodeFn()) );
       }
-      virtual Node** childByTop(TermList::Top t, bool canCreate)
+      virtual Node** __childByTop(TermList::Top t, bool canCreate)
       {
         CALL("SubstitutionTree::SListIntermediateNode::childByTop");
 
@@ -541,18 +564,23 @@
       class NodePtrComparator
       {
       public:
-        static Comparison compare(TermList::Top const& t1, TermList::Top const& t2)
+        inline static Comparison compare(TermList::Top const& t1, TermList::Top const& t2)
         { return t1.compare(t2); }
 
-        static Comparison compare(Node* n1, Node* n2)
-        { return compare(n1->term.top(), n2->term.top()); }
+        inline static Comparison compare(Node* n1, Node* n2)
+        { return compare(n1->top(), n2->top()); }
 
-        static Comparison compare(TermList::Top t1, Node* n2)
-        { return compare(t1, n2->term.top()); }
+        __attribute__((noinline))
+        inline static Comparison compare(TermList::Top t1, Node* n2)
+        { return compare(
+            t1, 
+            n2->top()
+            ); }
       };
       typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
       NodeSkipList _nodes;
     };
+
 
     class Binding {
     public:
@@ -1351,12 +1379,12 @@
 
         bool success=true;
         bool recording=false;
-        if(!n->term.isEmpty()) {
+        if(!n->term().isEmpty()) {
           //n is proper node, not a root
 
           recording=true;
           _algo.bdRecord(bd);
-          success = _algo.associate(_svStack->top(),n->term);
+          success = _algo.associate(_svStack->top(),n->term());
           
         }
         if(success) {
@@ -1617,6 +1645,14 @@
     { return ld.term;  }
   };
 
+inline SubstitutionTree::Node** SubstitutionTree::IntermediateNode::childByTop(TermList::Top t, bool canCreate)
+{
+  return this->__childByTop(t, canCreate);
+  // we explicitly try to cast to help the inliner know the type where important
+  // auto snode = dynamic_cast<SListIntermediateNode*>(this);
+  // return snode != nullptr ? snode->__childByTop(t, canCreate)
+  //                         : this->__childByTop(t, canCreate);
+}
 
 
 } // namespace Indexing

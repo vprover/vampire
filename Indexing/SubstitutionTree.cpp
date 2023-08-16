@@ -183,7 +183,7 @@ start:
       if(svBindings.find(boundVar)) {
 	TermList term=svBindings.get(boundVar);
 	bool wouldDescendIntoChild = inode->childByTop(term.top(),false)!=0;
-	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
+	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term()));
 	if(!wouldDescendIntoChild) {
 	  //if we'd have to perform all postponed splitting due to
 	  //node with a single child, we rather remove that node
@@ -191,7 +191,7 @@ start:
 	  //later.
 	  removeProblematicNode=true;
 	}
-      } else if(!child->term.isTerm() || child->term.term()->shared()) {
+      } else if(!child->term().isTerm() || child->term().term()->shared()) {
 	//We can remove nodes binding to special variables undefined in our branch
 	//of the tree, as long as we're sure, that during split resolving we put these
 	//binding nodes below nodes that define spec. variables they bind.
@@ -200,8 +200,8 @@ start:
 	canPostponeSplits = false;
       }
       if(removeProblematicNode) {
-	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
-	child->term=inode->term;
+	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term()));
+	child->setTerm(inode->term());
 	*pnode=child;
 	inode->makeEmpty();
 	delete inode;
@@ -216,12 +216,12 @@ start:
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
-      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
-      node->term=urr.original;
+      IntermediateNode* newNode = createIntermediateNode(node->term(), urr.var);
+      node->setTerm(urr.original);
 
       *pnode=newNode;
 
-      Node** nodePosition=newNode->childByTop(node->term.top(), true);
+      Node** nodePosition=newNode->childByTop(node->top(), true);
       ASS(!*nodePosition);
       *nodePosition=node;
     }
@@ -270,7 +270,7 @@ start:
 
 
   TermList* tt = &term;
-  TermList* ss = &(*pnode)->term;
+  TermList* ss = &(*pnode)->term();
 
   ASS(TermList::sameTop(*ss, *tt));
 
@@ -378,7 +378,7 @@ void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
     ASS(pnode);
 
 
-    TermList* s = &(*pnode)->term;
+    TermList* s = &(*pnode)->term();
     ASS(TermList::sameTop(*s,t));
 
     if(*s==t) {
@@ -431,7 +431,7 @@ void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
   ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
 
   while( (*pnode)->isEmpty() ) {
-    TermList term=(*pnode)->term;
+    TermList term=(*pnode)->term();
     if(history.isEmpty()) {
       delete *pnode;
       *pnode=0;
@@ -471,7 +471,7 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
     node=*child;
 
 
-    TermList s = node->term;
+    TermList s = node->term();
     ASS(TermList::sameTop(s,t));
 
     if(s==t) {
@@ -537,8 +537,8 @@ SubstitutionTree::Node::~Node()
 {
   CALL("SubstitutionTree::Node::~Node");
 
-  if(term.isTerm()) {
-    term.term()->destroyNonShared();
+  if(term().isTerm()) {
+    term().term()->destroyNonShared();
   }
 }
 
@@ -549,13 +549,13 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term, var);
-  node->term=*where;
+  IntermediateNode* newNode = createIntermediateNode(node->term(), var);
+  node->setTerm(*where);
   *pnode=newNode;
 
   where->makeSpecialVar(var);
 
-  Node** nodePosition=newNode->childByTop(node->term.top(), true);
+  Node** nodePosition=newNode->childByTop(node->top(), true);
   ASS(!*nodePosition);
   *nodePosition=node;
 }
@@ -566,7 +566,7 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 
   while(children.hasNext()) {
     Node* ext=*children.next();
-    Node** own=childByTop(ext->term.top(), true);
+    Node** own=childByTop(ext->top(), true);
     ASS(! *own);
     *own=ext;
   }
@@ -631,14 +631,14 @@ bool SubstitutionTree::LeafIterator::hasNext()
 }
 
 void SubstitutionTree::Leaf::output(std::ostream& out, bool multiline, int indent) const 
-{ out << this->term; }
+{ out << this->term(); }
 
 void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multiline, int indent) const 
 {
   // TODO const version of allChildren
   auto childIter = iterTraits(((IntermediateNode*)this)->allChildren());
-  if (!this->term.isEmpty()) {
-    out << this->term
+  if (!this->term().isEmpty()) {
+    out << this->term()
         << " ; ";
   }
   out << "S" << this->childVar << " -> ";

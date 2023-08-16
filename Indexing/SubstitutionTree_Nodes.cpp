@@ -161,12 +161,12 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
   }
 }
 
-SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::childByTop(TermList::Top t, bool canCreate)
+SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::__childByTop(TermList::Top t, bool canCreate)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
 
   for(int i=0;i<_size;i++) {
-    if(t == _nodes[i]->term.top()) {
+    if(t == _nodes[i]->top()) {
       return &_nodes[i];
     }
   }
@@ -185,7 +185,7 @@ void SubstitutionTree::UArrIntermediateNode::remove(TermList::Top t)
   CALL("SubstitutionTree::UArrIntermediateNode::remove");
 
   for(int i=0;i<_size;i++) {
-    if(t == _nodes[i]->term.top()) {
+    if(t == _nodes[i]->top()) {
       _size--;
       _nodes[i]=_nodes[_size];
       _nodes[_size]=0;
@@ -205,7 +205,7 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
   CALL("SubstitutionTree::SListIntermediateNode::assimilate");
 
   IntermediateNode* res= 0;
-  res = new SListIntermediateNode(orig->term, orig->childVar);
+  res = new SListIntermediateNode(orig->term(), orig->childVar);
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;
@@ -220,7 +220,7 @@ SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
 {
   CALL("SubstitutionTree::SListLeaf::assimilate");
 
-  SListLeaf* res=new SListLeaf(orig->term);
+  SListLeaf* res=new SListLeaf(orig->term());
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;

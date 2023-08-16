@@ -501,7 +501,7 @@ main_loop_start:
       //there are no other alternatives
       return false;
     }
-    if(!_subst.matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
+    if(!_subst.matchNext(currSpecVar, curr->term(), sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
       if(!sibilingsRemain && _alternatives->isNonEmpty()) {
@@ -515,7 +515,7 @@ main_loop_start:
       curr=static_cast<UArrIntermediateNode*>(curr)->_nodes[0];
       ASS(curr);
       ASSERT_VALID(*curr);
-      if(!_subst.matchNext(specVar, curr->term, false)) {
+      if(!_subst.matchNext(specVar, curr->term(), false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst.backtrack();
 	if(sibilingsRemain || _alternatives->isNonEmpty()) {
@@ -586,13 +586,13 @@ bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
     if(query.isTerm()) {
       unsigned bindingFunctor=query.term()->functor();
       //let's skip terms that don't have the same top functor...
-      while(*nl && (!(*nl)->term.isTerm() || (*nl)->term.term()->functor()!=bindingFunctor)) {
+      while(*nl && (!(*nl)->term().isTerm() || (*nl)->term().term()->functor()!=bindingFunctor)) {
         nl++;
       }
 
       if(*nl) {
 	//we've found the term with the same top functor
-	ASS_EQ((*nl)->term.term()->functor(),bindingFunctor);
+	ASS_EQ((*nl)->term().term()->functor(),bindingFunctor);
         curr=*nl;
         noAlternatives=true; //there is at most one term with each top functor
       }

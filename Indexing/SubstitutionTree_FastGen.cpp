@@ -347,11 +347,11 @@ main_loop_start:
       //on _alternatives stack (as we always enter them first)
       if(parentType==UNSORTED_LIST) {
 	Node** alts=static_cast<Node**>(currAlt);
-	while(*alts && !(*alts)->term.isVar()) {
+	while(*alts && !(*alts)->term().isVar()) {
 	  alts++;
 	}
 	curr=*(alts++);
-	while(*alts && !(*alts)->term.isVar()) {
+	while(*alts && !(*alts)->term().isVar()) {
 	  alts++;
 	}
 	if(*alts) {
@@ -363,9 +363,9 @@ main_loop_start:
       } else {
 	ASS_EQ(parentType,SKIP_LIST)
 	auto alts = static_cast<SListIntermediateNode::NodeSkipList::Node *>(currAlt);
-	if(alts->head()->term.isVar()) {
+	if(alts->head()->term().isVar()) {
 	  curr=alts->head();
-	  if(alts->tail() && alts->tail()->head()->term.isVar()) {
+	  if(alts->tail() && alts->tail()->head()->term().isVar()) {
 	    _alternatives->push(alts->tail());
 	    sibilingsRemain=true;
 	  } else {
@@ -388,7 +388,7 @@ main_loop_start:
       //there are no other alternatives
       return false;
     }
-    if(!_subst.matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
+    if(!_subst.matchNext(currSpecVar, curr->term(), sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
       if(!sibilingsRemain && _alternatives->isNonEmpty()) {
@@ -402,7 +402,7 @@ main_loop_start:
       curr=static_cast<UArrIntermediateNode*>(curr)->_nodes[0];
       ASS(curr);
       ASSERT_VALID(*curr);
-      if(!_subst.matchNext(specVar, curr->term, false)) {
+      if(!_subst.matchNext(specVar, curr->term(), false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst->backtrack();
 	if(sibilingsRemain || _alternatives->isNonEmpty()) {
@@ -456,9 +456,9 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
     if(binding.isTerm()) {
       unsigned bindingFunctor=binding.term()->functor();
       //let's first skip proper term nodes at the beginning...
-      while(*nl && (*nl)->term.isTerm()) {
+      while(*nl && (*nl)->term().isTerm()) {
         //...and have the one that interests us, if we encounter it.
-        if(!curr && (*nl)->term.term()->functor()==bindingFunctor) {
+        if(!curr && (*nl)->term().term()->functor()==bindingFunctor) {
           curr=*nl;
         }
         nl++;
@@ -468,7 +468,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
         //the one proper term node, that interests us, isn't here
         Node** nl2=nl+1;
         while(*nl2) {
-          if((*nl2)->term.isTerm() && (*nl2)->term.term()->functor()==bindingFunctor) {
+          if((*nl2)->term().isTerm() && (*nl2)->term().term()->functor()==bindingFunctor) {
             curr=*nl2;
             break;
           }
@@ -477,13 +477,13 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
       }
     } else {
       //let's first skip proper term nodes at the beginning
-      while(*nl && (*nl)->term.isTerm()) {
+      while(*nl && (*nl)->term().isTerm()) {
         nl++;
       }
     }
     if(!curr && *nl) {
       curr=*(nl++);
-      while(*nl && (*nl)->term.isTerm()) {
+      while(*nl && (*nl)->term().isTerm()) {
 	nl++;
       }
     }
@@ -504,13 +504,13 @@ bool SubstitutionTree::FastGeneralizationsIterator::enterNode(Node*& curr)
 	curr=*byTop;
       }
     }
-    if(!curr && nl->head()->term.isVar()) {
+    if(!curr && nl->head()->term().isVar()) {
       curr=nl->head();
       nl=nl->tail();
     }
     //in SkipList nodes variables are only at the beginning
     //(so if there aren't any, there aren't any at all)
-    if(nl && nl->head()->term.isTerm()) {
+    if(nl && nl->head()->term().isTerm()) {
       nl=0;
     }
     if(curr) {
