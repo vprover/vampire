@@ -73,6 +73,8 @@ Clause::Clause(unsigned length,const Inference& inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
+    _backwardRewritingPositions(0),
+    _remDepth(0),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
@@ -405,6 +407,7 @@ vstring Clause::toString() const
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
+    result += ",remdepth:" + Int::toString(_remDepth);
     result += vstring("}");
   }
 

@@ -83,6 +83,7 @@
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
+#include "Inferences/InductionRewriting.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/CombinatorDemodISE.hpp"
@@ -1487,6 +1488,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new DefinitionIntroduction);
 
   //TODO here induction is last, is that right?
+  gie->addFront(new InductionRewriting(nullptr));
   if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
   }

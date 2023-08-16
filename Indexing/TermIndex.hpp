@@ -123,6 +123,31 @@ private:
   const Options& _opt;
 };
 
+class DemodulationRHSIndex
+: public TermIndex
+{
+public:
+  CLASS_NAME(DemodulationRHSIndex);
+  USE_ALLOCATOR(DemodulationRHSIndex);
+
+  DemodulationRHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt) {};
+protected:
+  void handleClause(Clause* c, bool adding);
+private:
+  Ordering& _ord;
+  const Options& _opt;
+};
+
+class RemodulationSubtermIndex
+: public TermIndex
+{
+public:
+  RemodulationSubtermIndex(TermIndexingStructure* is) : TermIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding) override;
+};
+
 /**
  * Term index for induction
  */

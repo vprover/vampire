@@ -33,6 +33,7 @@
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
 
+#include "InductionRewriting.hpp"
 #include "Induction.hpp"
 
 using std::pair;
@@ -371,6 +372,28 @@ private:
   Literal* _lit;
 };
 
+void getTermsToInductOn(Literal* lit, const Stack<pair<Position,bool>>& ps, DHSet<Term*>& indTerms)
+{
+  // cout << "lit " << *lit << endl;
+  for (unsigned i = 0; i < ps.size(); i++) {
+    DHSet<Term*> inner;
+    auto st = getTermAtPos(lit->termArg(ps[i].second?0:1).term(),ps[i].first);
+    NonVariableNonTypeIterator nvi(st);
+    while (nvi.hasNext()) {
+      auto stt = nvi.next();
+      if (isInductionTerm(stt) && indTerms.contains(stt)) {
+        inner.insert(stt);
+      }
+    }
+    DHSet<Term*>::DelIterator it(indTerms);
+    while (it.hasNext()) {
+      if (!inner.contains(it.next())) {
+        it.del();
+      }
+    }
+  }
+}
+
 void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
   if(_opt.showInduction()){
@@ -380,7 +403,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   }
 
   if (lit->ground()) {
-      Set<Term*> ta_terms;
+      DHSet<Term*> ta_terms;
       Set<Term*> int_terms;
 
       NonVariableNonTypeIterator it(lit);
@@ -396,6 +419,15 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             int_terms.insert(ts);
           }
         }
+      }
+
+      auto ps = premise->backwardRewritingPositions();
+      if (ps) {
+        ASS(lit->isNegative());
+        // cout << "before " << ta_terms.size() << endl;
+        // cout << *premise << endl;
+        getTermsToInductOn(lit, *ps, ta_terms);
+        // cout << "after " << ta_terms.size() << endl;
       }
 
     if (InductionHelper::isInductionLiteral(lit)) {
@@ -453,7 +485,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     // collect term queries for each induction term
     auto sideLitsIt = VirtualIterator<pair<Term*, TermQueryResultIterator>>::getEmpty();
     if (_opt.nonUnitInduction()) {
-      sideLitsIt = pvi(iterTraits(Set<Term*>::Iterator(ta_terms))
+      sideLitsIt = pvi(iterTraits(DHSet<Term*>::Iterator(ta_terms))
         .map([this](Term* arg) {
           return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), true));
         }));
@@ -478,7 +510,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         return hasPremise && cnt > 1;
       });
     // collect contexts for single-literal induction with given clause
-    auto indCtxSingle = iterTraits(Set<Term*>::Iterator(ta_terms))
+    auto indCtxSingle = iterTraits(DHSet<Term*>::Iterator(ta_terms))
       .map([&lit,&premise](Term* arg) {
         return InductionContext(arg, lit, premise);
       })

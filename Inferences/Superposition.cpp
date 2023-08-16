@@ -322,6 +322,9 @@ Clause* Superposition::performSuperposition(
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
+  if (rwClause->backwardRewritingPositions()) {
+    return 0;
+  }
 
   if(eqLHS.isVar()) {
     if(!checkSuperpositionFromVariable(eqClause, eqLit, eqLHS)) {

@@ -16,6 +16,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Inferences/InductionHelper.hpp"
+#include "Inferences/InductionRewriting.hpp"
 
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Clause.hpp"
@@ -89,6 +90,10 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 
   static DHSet<Term*> inserted;
 
+  if (c->backwardRewritingPositions()) {
+    return;
+  }
+
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
     // it is true (as stated below) that inserting only once per clause would be sufficient
@@ -136,6 +141,62 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while (lhsi.hasNext()) {
     _is->handle(lhsi.next(), lit, c, adding);
+  }
+}
+
+void DemodulationRHSIndex::handleClause(Clause* c, bool adding)
+{
+  if (c->length()!=1) {
+    return;
+  }
+
+  Literal* lit=(*c)[0];
+  auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  while (lhsi.hasNext()) {
+    auto lhs = lhsi.next();
+    auto rhs = EqHelper::getOtherEqualitySide(lit,lhs);
+    if (!rhs.containsAllVariablesOf(lhs)/*  || lhs.isVar() || !hasTermToInductOn(lhs.term()) */) {
+      continue;
+    }
+    _is->handle(TypedTermList(rhs, SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
+  }
+}
+
+void RemodulationSubtermIndex::handleClause(Clause* c, bool adding)
+{
+  if (c->length()!=1) {
+    return;
+  }
+
+  Literal* lit=(*c)[0];
+
+  if (!lit->isEquality() || lit->isPositive() || !lit->ground()) {
+    return;
+  }
+
+  // auto ps = c->backwardRewritingPositions();
+  // iterTraits(getConcatenatedIterator(
+  //   pvi(getSingletonIterator(make_pair(lit->termArg(0),true/*left*/))),
+  //   pvi(getSingletonIterator(make_pair(lit->termArg(1),false/*left*/)))
+  // ))
+  // .flatMap([](pair<TermList,bool> arg) {
+  //   return pvi(pushPairIntoRightIterator(arg.second,vi(new PositionalNonVariableNonTypeIterator(arg.first.term()))));
+  // })
+  // .filter([ps](pair<bool,pair<Term*,Position>> arg) {
+  //   return !ps || toTheLeft(getRightmostPosition(*ps, arg.first), arg.second.second);
+  // })
+  // .forEach([this,lit,c,adding](pair<bool,pair<Term*,Position>> arg) {
+  //   _is->handle(arg.second.first, lit, c, adding);
+  // });
+  DHSet<Term*> inserted;
+  NonVariableNonTypeIterator it(lit);
+  while (it.hasNext()) {
+    Term* t = it.next();
+    if (!inserted.insert(t)) {
+      it.right();
+      continue;
+    }
+    _is->handle(TypedTermList(t), lit, c, adding);
   }
 }
 

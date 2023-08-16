@@ -1756,7 +1756,7 @@ public:
   { return maxBy(std::less<Elem>{}); }
 
   auto timeTraced(const char* name)
-  { return iterTraits(timeTracedIter(name, std::move(_iter))); }
+  { return iterTraits(TimeTracedIter<Iter>(name, std::move(_iter))); }
 
   template<class Init, class F> 
   auto fold(Init init, F fun)

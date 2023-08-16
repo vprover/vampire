@@ -74,6 +74,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 {
   TIME_TRACE("forward demodulation");
 
+  if (cl->backwardRewritingPositions()) {
+    return false;
+  }
+
   Ordering& ordering = _salg->getOrdering();
 
   //Perhaps it might be a good idea to try to

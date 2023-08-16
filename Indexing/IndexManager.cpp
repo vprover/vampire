@@ -204,6 +204,17 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
+  case DEMODULATION_RHS_CODE_TREE:
+    tis=new CodeTreeTIS();
+    res=new DemodulationRHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    isGenerating = false;
+    break;
+  case REMODULATION_SUBTERM_CODE_TREE:
+    tis=new TermSubstitutionTree();
+    res=new RemodulationSubtermIndex(tis);
+    isGenerating = false;
+    break;
+
   case FW_SUBSUMPTION_CODE_TREE:
     res=new CodeTreeSubsumptionIndex();
     isGenerating = false;
