@@ -50,12 +50,13 @@ public:
   CLASS_NAME(SuperpositionSubtermIndex);
   USE_ALLOCATOR(SuperpositionSubtermIndex);
 
-  SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
-  : TermIndex(is), _ord(ord) {};
+  SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord, bool reverse)
+  : TermIndex(is), _ord(ord), _reverse(reverse) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
+  bool _reverse;
 };
 
 class SuperpositionLHSIndex
@@ -123,20 +124,17 @@ private:
   const Options& _opt;
 };
 
-class DemodulationRHSIndex
+class UnitLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(DemodulationRHSIndex);
-  USE_ALLOCATOR(DemodulationRHSIndex);
+  CLASS_NAME(UnitLHSIndex);
+  USE_ALLOCATOR(UnitLHSIndex);
 
-  DemodulationRHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  UnitLHSIndex(TermIndexingStructure* is) : TermIndex(is) {}
+
 protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  Ordering& _ord;
-  const Options& _opt;
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class RemodulationSubtermIndex
@@ -144,6 +142,15 @@ class RemodulationSubtermIndex
 {
 public:
   RemodulationSubtermIndex(TermIndexingStructure* is) : TermIndex(is) {};
+protected:
+  void handleClause(Clause* c, bool adding) override;
+};
+
+class UpwardChainBuildingSubtermIndex
+: public TermIndex
+{
+public:
+  UpwardChainBuildingSubtermIndex(TermIndexingStructure* is) : TermIndex(is) {};
 protected:
   void handleClause(Clause* c, bool adding) override;
 };

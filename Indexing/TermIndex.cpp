@@ -59,8 +59,8 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord)
-                                              : EqHelper::getSubtermIterator(lit,_ord);
+    auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord,_reverse)
+                                              : EqHelper::getSubtermIterator(lit,_ord,_reverse);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
       ((TermSubstitutionTree*)_is)->handle(tt, lit, c, adding);
@@ -90,7 +90,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 
   static DHSet<Term*> inserted;
 
-  if (c->backwardRewritingPositions()) {
+  if (c->remDepth()) {
     return;
   }
 
@@ -144,21 +144,22 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void DemodulationRHSIndex::handleClause(Clause* c, bool adding)
+void UnitLHSIndex::handleClause(Clause* c, bool adding)
 {
   if (c->length()!=1) {
     return;
   }
 
   Literal* lit=(*c)[0];
-  auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
-  while (lhsi.hasNext()) {
-    auto lhs = lhsi.next();
-    auto rhs = EqHelper::getOtherEqualitySide(lit,lhs);
-    if (!rhs.containsAllVariablesOf(lhs)/*  || lhs.isVar() || !hasTermToInductOn(lhs.term()) */) {
-      continue;
+  if (!lit->isEquality() || lit->isNegative()) {
+    return;
+  }
+  for (unsigned i = 0; i <= 1; i++) {
+    auto lhs = lit->termArg(i);
+    auto rhs = lit->termArg(1-i);
+    if (lhs.containsAllVariablesOf(rhs)) {
+      _is->handle(TypedTermList(lhs, SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
     }
-    _is->handle(TypedTermList(rhs, SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
   }
 }
 
@@ -174,20 +175,30 @@ void RemodulationSubtermIndex::handleClause(Clause* c, bool adding)
     return;
   }
 
-  // auto ps = c->backwardRewritingPositions();
-  // iterTraits(getConcatenatedIterator(
-  //   pvi(getSingletonIterator(make_pair(lit->termArg(0),true/*left*/))),
-  //   pvi(getSingletonIterator(make_pair(lit->termArg(1),false/*left*/)))
-  // ))
-  // .flatMap([](pair<TermList,bool> arg) {
-  //   return pvi(pushPairIntoRightIterator(arg.second,vi(new PositionalNonVariableNonTypeIterator(arg.first.term()))));
-  // })
-  // .filter([ps](pair<bool,pair<Term*,Position>> arg) {
-  //   return !ps || toTheLeft(getRightmostPosition(*ps, arg.first), arg.second.second);
-  // })
-  // .forEach([this,lit,c,adding](pair<bool,pair<Term*,Position>> arg) {
-  //   _is->handle(arg.second.first, lit, c, adding);
-  // });
+  DHSet<Term*> inserted;
+  NonVariableNonTypeIterator it(lit);
+  while (it.hasNext()) {
+    Term* t = it.next();
+    if (!inserted.insert(t)) {
+      it.right();
+      continue;
+    }
+    _is->handle(TypedTermList(t), lit, c, adding);
+  }
+}
+
+void UpwardChainBuildingSubtermIndex::handleClause(Clause* c, bool adding)
+{
+  if (c->length()!=1) {
+    return;
+  }
+
+  Literal* lit=(*c)[0];
+
+  if (!lit->isEquality() || lit->isNegative()) {
+    return;
+  }
+
   DHSet<Term*> inserted;
   NonVariableNonTypeIterator it(lit);
   while (it.hasNext()) {

@@ -69,6 +69,7 @@ private:
   };
 };
 
+TermList replaceOccurrence(Term* t, Term* orig, TermList repl, const Position& pos);
 vstring posToString(const Position& pos);
 Term* getTermAtPos(Term* t, const Position& p);
 bool isInductionTerm(Term* t);
@@ -76,6 +77,10 @@ void getTermsToInductOn(Literal* lit, const Stack<pair<Position,bool>>& ps, DHSe
 Position getRightmostPosition(const Stack<pair<Position,bool>>& ps, bool left);
 bool toTheLeft(const Position& p1, const Position& p2);
 bool hasTermToInductOn(Term* t);
+VirtualIterator<pair<Term*,Position>> getPositions(TermList t, Term* st);
+bool linear(Term* t);
+bool shouldChain(Term* lhs);
+VirtualIterator<TypedTermList> lhsIterator(Literal* lit);
 
 class PositionalNonVariableNonTypeIterator
   : public IteratorCore<pair<Term*,Position>>
@@ -111,6 +116,9 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 
 private:
+  Clause* perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, const Position& pos,
+    Clause* eqClause, Literal* eqLit, TermList eqLhs, ResultSubstitution* subst, bool eqIsResult);
+
   // void exploreTerm(Term* t, bool left);
   void exploreTermLMIM(Term* t, bool left);
 

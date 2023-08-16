@@ -258,6 +258,11 @@ public:
     INTERPRETED_CONSTANT,
     NO_SKOLEMS
   };
+  enum class Remodulation : unsigned int {
+    OFF,
+    UPWARDS_ONLY,
+    ON
+  };
 
   enum class PredicateSineLevels : unsigned int {
     NO,   // no means 1) the reverse of "on", 2) use with caution, it is predicted to be the worse value
@@ -2340,6 +2345,9 @@ public:
   IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
+  Remodulation remodulation() const { return _remodulation.actualValue; }
+  unsigned maxRemodulationDepth() const { return _maxRemodulationDepth.actualValue; }
+  bool introduceChains() const { return _introduceChains.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2647,6 +2655,9 @@ private:
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
+  ChoiceOptionValue<Remodulation> _remodulation;
+  UnsignedOptionValue _maxRemodulationDepth;
+  BoolOptionValue _introduceChains;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;

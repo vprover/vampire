@@ -218,8 +218,6 @@ enum class InferenceRule : unsigned char {
   SUBSUMPTION_RESOLUTION,
   /** forward demodulation inference */
   FORWARD_DEMODULATION,
-  FORWARD_REMODULATION,
-  BACKWARD_REMODULATION,
   /** backward demodulation inference */
   BACKWARD_DEMODULATION,
   /** forward subsumption demodulation inference */
@@ -278,6 +276,9 @@ enum class InferenceRule : unsigned char {
   CONSTRAINED_FACTORING,
   /** superposition inference */
   SUPERPOSITION,
+  FORWARD_REMODULATION,
+  BACKWARD_REMODULATION,
+  UPWARD_CHAIN_BUILDING,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
   /** equality factoring inference */

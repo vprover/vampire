@@ -679,6 +679,12 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
+  case InferenceRule::FORWARD_REMODULATION:
+    return "forward remodulation";
+  case InferenceRule::BACKWARD_REMODULATION:
+    return "backward remodulation";
+  case InferenceRule::UPWARD_CHAIN_BUILDING:
+    return "upward chain building";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
   case InferenceRule::EQUALITY_FACTORING:
@@ -688,10 +694,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "equality resolution";
   case InferenceRule::FORWARD_DEMODULATION:
     return "forward demodulation";
-  case InferenceRule::FORWARD_REMODULATION:
-    return "forward remodulation";
-  case InferenceRule::BACKWARD_REMODULATION:
-    return "backward remodulation";
   case InferenceRule::BACKWARD_DEMODULATION:
     return "backward demodulation";
   case InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION:

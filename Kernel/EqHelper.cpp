@@ -173,9 +173,9 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
 }
 
 
-VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord, bool reverse)
 {
-  return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
+  return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord, reverse);
 }
 
 TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
@@ -183,9 +183,9 @@ TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& o
   return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
 }
 
-VirtualIterator<Term*> EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<Term*> EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord, bool reverse)
 {
-  return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord);
+  return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord, reverse);
 }
 
 TermIterator EqHelper::getNarrowableSubtermIterator(Literal* lit, const Ordering& ord)
@@ -233,7 +233,7 @@ VirtualIterator<TypedTermList> EqHelper::getRewritableVarsIterator(DHSet<unsigne
  * superposition.
  */
 template<class SubtermIterator>
-VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord, bool reverse)
 {
   if (lit->isEquality()) {
     TermList sel;
@@ -245,11 +245,11 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
     case Ordering::EQUAL:
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
-      sel=*lit->nthArgument(0);
+      sel=*lit->nthArgument(reverse ? 1 : 0);
       break;
     case Ordering::LESS:
     case Ordering::LESS_EQ:
-      sel=*lit->nthArgument(1);
+      sel=*lit->nthArgument(reverse ? 0 : 1);
       break;
 #if VDEBUG
     default:

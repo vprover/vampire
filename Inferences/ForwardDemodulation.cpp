@@ -74,7 +74,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 {
   TIME_TRACE("forward demodulation");
 
-  if (cl->backwardRewritingPositions()) {
+  if (cl->remDepth()) {
     return false;
   }
 

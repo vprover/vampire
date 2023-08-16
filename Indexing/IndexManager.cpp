@@ -132,7 +132,12 @@ Index* IndexManager::create(IndexType t)
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
+    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering(), false);
+    isGenerating = true;
+    break;
+  case REVERSE_SUPERPOSITION_SUBTERM_SUBST_TREE:
+    tis=new TermSubstitutionTree(useConstraints, extByAbs);
+    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering(), true);
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
@@ -204,15 +209,22 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case DEMODULATION_RHS_CODE_TREE:
-    tis=new CodeTreeTIS();
-    res=new DemodulationRHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
-    isGenerating = false;
+  case UNIT_LHS_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new UnitLHSIndex(tis);
+    isGenerating = true;
     break;
+
   case REMODULATION_SUBTERM_CODE_TREE:
     tis=new TermSubstitutionTree();
     res=new RemodulationSubtermIndex(tis);
-    isGenerating = false;
+    isGenerating = true;
+    break;
+
+  case UPWARD_CHAIN_BUILDING_SUBTERM_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new UpwardChainBuildingSubtermIndex(tis);
+    isGenerating = true;
     break;
 
   case FW_SUBSUMPTION_CODE_TREE:

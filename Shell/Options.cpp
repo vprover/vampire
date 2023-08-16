@@ -1467,6 +1467,29 @@ void Options::init()
     _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_nonUnitInduction);
 
+    _remodulation = ChoiceOptionValue<Remodulation>(
+      "remodulation",
+      "rem",
+      Remodulation::OFF,
+      {"off", "upwards_only", "on"}
+    );
+    _remodulation.description = "";
+    _remodulation.tag(OptionTag::INFERENCES);
+    _remodulation.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_remodulation);
+
+    _maxRemodulationDepth = UnsignedOptionValue("max_remodulation_depth","mrd",2);
+    _maxRemodulationDepth.description = "";
+    _maxRemodulationDepth.tag(OptionTag::INFERENCES);
+    _maxRemodulationDepth.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));
+    _lookup.insert(&_maxRemodulationDepth);
+
+    _introduceChains = BoolOptionValue("introduce_chains","inch",false);
+    _introduceChains.description = "";
+    _introduceChains.tag(OptionTag::INFERENCES);
+    _introduceChains.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));
+    _lookup.insert(&_introduceChains);
+
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
     _instantiation.tag(OptionTag::INFERENCES);

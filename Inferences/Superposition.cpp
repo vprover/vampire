@@ -322,7 +322,7 @@ Clause* Superposition::performSuperposition(
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
-  if (rwClause->backwardRewritingPositions()) {
+  if (rwClause->remDepth() || eqClause->remDepth()) {
     return 0;
   }
 

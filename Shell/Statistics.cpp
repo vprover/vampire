@@ -61,6 +61,9 @@ Statistics::Statistics()
     cForwardSuperposition(0),
     cBackwardSuperposition(0),
     selfSuperposition(0),
+    forwardRemodulations(0),
+    backwardRemodulations(0),
+    upwardChainBuilding(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -111,8 +114,6 @@ Statistics::Statistics()
     forwardSubsumptionResolution(0),
     backwardSubsumptionResolution(0),
     forwardDemodulations(0),
-    forwardRemodulations(0),
-    backwardRemodulations(0),
     forwardDemodulationsToEqTaut(0),
     backwardDemodulations(0),
     backwardDemodulationsToEqTaut(0),
@@ -321,8 +322,6 @@ void Statistics::print(ostream& out)
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
   COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
   COND_OUT("Fw demodulations", forwardDemodulations);
-  COND_OUT("Fw remodulations", forwardRemodulations);
-  COND_OUT("Bw remodulations", backwardRemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
   COND_OUT("Fw subsumption demodulations", forwardSubsumptionDemodulations);
   COND_OUT("Bw subsumption demodulations", backwardSubsumptionDemodulations);
@@ -379,6 +378,9 @@ void Statistics::print(ostream& out)
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
+  COND_OUT("Fw remodulations", forwardRemodulations);
+  COND_OUT("Bw remodulations", backwardRemodulations);
+  COND_OUT("Upward chains", upwardChainBuilding);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);
