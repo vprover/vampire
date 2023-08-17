@@ -515,6 +515,10 @@ Formula* Skolem::skolemise (Formula* f)
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
 
         bool skolemisingTypeVar = rangeSort == AtomicSort::superSort();
+        if(skolemisingTypeVar && termVars.size()){
+          USER_ERROR("TH1 does not permit an existential type quantifer underneath a univesal term quantifier");
+        }
+
 
         if(rangeSort.isVar() || !rangeSort.term()->shared() || !rangeSort.term()->ground()) {
           //the range sort may include existential type variables that have been skolemised above

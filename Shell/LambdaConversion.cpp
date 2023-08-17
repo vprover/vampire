@@ -47,6 +47,35 @@ TermList LambdaConversion::convertLambda(Formula* formula)
 {
   CALL("LambdaConversion::convertLambda(Formula*)");
 
+  if(formula->connective() == FORALL){
+    VList* vars  = formula->vars();
+    SList* sorts = formula->sorts(); 
+    Formula* f = formula->qarg();
+    TermList s;
+
+    bool typeVarFound;
+    while(vars){
+      SortHelper::tryGetVariableSort(vars->head(), f, s);      
+      if(s == AtomicSort::superSort()){
+        typeVarFound = true;
+        vars  = vars->tail();
+        if(sorts)
+          sorts = sorts->tail();
+      } else {
+        break;
+      }
+    }
+
+    if(typeVarFound){
+      if(vars) {
+        formula = new QuantifiedFormula(FORALL,vars,sorts,f);
+      } else {
+        formula = f;
+      }
+    }
+
+  }
+
   VarToIndexMap map;
   return convertLambda(formula, map);
 }
@@ -126,6 +155,9 @@ TermList LambdaConversion::convertLambda(Formula* formula, VarToIndexMap& map)
       while(vit.hasNext()){
         int v = vit.next();
         ALWAYS(SortHelper::tryGetVariableSort(v, formula->qarg(), s));
+        if(s == AtomicSort::superSort()){
+          USER_ERROR("Vampire does not support full TH1. This benchmark is either outside of the TH1 fragment, or outside of the fragment supported by Vampire");
+        }
         VList* var = VList::singleton(v);        
         SList* sort = SList::singleton(s); 
         auto t = TermList(Term::createLambda(form, var, sort, AtomicSort::boolSort()));  
