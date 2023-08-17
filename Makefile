@@ -254,9 +254,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
 
-VIG_OBJ = InstGen/IGAlgorithm.o\
-          InstGen/ModelPrinter.o
-
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
          Inferences/BackwardSubsumptionDemodulation.o\
@@ -484,7 +481,7 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)

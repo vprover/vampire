@@ -277,11 +277,6 @@ public:
 
   unsigned smtFallbacks;
 
-  unsigned instGenGeneratedClauses;
-  unsigned instGenRedundantClauses;
-  unsigned instGenKeptClauses;
-  unsigned instGenIterations;
-
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 

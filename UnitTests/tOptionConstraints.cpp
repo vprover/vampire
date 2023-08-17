@@ -56,17 +56,3 @@ TEST_FUN(default_dependence)
   // since it does no make sense, unless extensionality_resolution is something else than the (default) off
   ASS(testOptionBad("extensionality_allow_pos_eq","true"));
 }
-
-TEST_FUN(urr)
-{
-  // Unit resulting resolution has the dependence that it cannot be non-default
-  // if the saturation algorithm is inst_gen AND inst_gen_with_resolution is off
-
-  {
-    Options o;
-    o.set("unit_resulting_resolution","on");
-    o.set("saturation_algorithm","inst_gen");
-    o.set("inst_gen_with_resolution","off");
-    ASS(!testGlobal(o));
-  } 
-}
