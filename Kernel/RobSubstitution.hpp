@@ -64,6 +64,11 @@ public:
     _nextUnboundAvailable=0;
   }
 
+  void resetNextUnboundAvailable()
+  {
+    _nextUnboundAvailable = 0;
+  }
+
   void setMap(FuncSubtermMap* fmap){
     _funcSubtermMap = fmap;
   }
@@ -258,19 +263,6 @@ private:
 
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
   { return out << self._bank; }
-
-  class NextUnboundVariableBacktrackObject
-  : public BacktrackObject
-  {
-  public:
-    NextUnboundVariableBacktrackObject(RobSubstitution* subst, unsigned v) : _subst(subst), _v(v) {}
-    void backtrack() { _subst->_nextUnboundAvailable = _v; }
-    CLASS_NAME(RobSubstitution::NextUnboundVariableBacktrackObject);
-    USE_ALLOCATOR(NextUnboundVariableBacktrackObject);
-  private:
-    RobSubstitution* _subst;
-    unsigned _v;
-  };
 
   class BindingBacktrackObject
   : public BacktrackObject
