@@ -134,7 +134,6 @@ public:
 
     // deal with completeness
     bool complete(const Problem&) const;
-    bool completeForNNE() const;
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
@@ -192,7 +191,6 @@ public:
         OTHER,
         DEVELOPMENT,
         OUTPUT,
-        INST_GEN,
         FMB,
         SAT,
         AVATAR,
@@ -473,12 +471,11 @@ public:
 
   /** Possible values for saturation_algorithm */
   enum class SaturationAlgorithm : unsigned int {
-     DISCOUNT = 0,
-     FINITE_MODEL_BUILDING = 1,
-     INST_GEN = 2,
-     LRS = 3,
-     OTTER = 4,
-     Z3 = 5,
+     DISCOUNT,
+     FINITE_MODEL_BUILDING,
+     LRS,
+     OTTER,
+     Z3
    };
 
   /** Possible values for activity of some inference rules */
@@ -2044,7 +2041,6 @@ bool _hard;
     
     static OptionProblemConstraintUP isRandOn();
     static OptionProblemConstraintUP isRandSat();
-    static OptionProblemConstraintUP saNotInstGen();
 
   //==========================================================
   // Getter functions
@@ -2166,7 +2162,6 @@ public:
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
-  // bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
@@ -2341,14 +2336,6 @@ public:
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
-  float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
-  bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
-  int instGenResolutionRatioInstGen() const { return _instGenResolutionInstGenRatio.actualValue; }
-  int instGenResolutionRatioResolution() const { return _instGenResolutionInstGenRatio.otherValue; }
-  int instGenRestartPeriod() const { return _instGenRestartPeriod.actualValue; }
-  float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient.actualValue; }
-  int instGenSelection() const { return _instGenSelection.actualValue; }
-  bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
@@ -2621,13 +2608,6 @@ private:
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   ChoiceOptionValue<Instantiation> _instantiation;
-  FloatOptionValue _instGenBigRestartRatio;
-  BoolOptionValue _instGenPassiveReactivation;
-  RatioOptionValue _instGenResolutionInstGenRatio;
-  //IntOptionValue _instGenResolutionRatioResolution;
-  IntOptionValue _instGenRestartPeriod;
-  FloatOptionValue _instGenRestartPeriodQuotient;
-  BoolOptionValue _instGenWithResolution;
   BoolOptionValue _useHashingVariantIndex;
 
   ChoiceOptionValue<Induction> _induction;
@@ -2795,7 +2775,6 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
-  // BoolOptionValue _use_dm;
 
   OptionChoiceValues _tagNames;
 
@@ -2803,8 +2782,7 @@ private:
   BoolOptionValue _restrictNWCtoGC;
 
   SelectionOptionValue _selection;
-  SelectionOptionValue _instGenSelection;
-    
+
   InputFileOptionValue _inputFile;
 
   BoolOptionValue _newCNF;

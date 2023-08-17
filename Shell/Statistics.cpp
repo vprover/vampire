@@ -169,11 +169,6 @@ Statistics::Statistics()
 
     smtFallbacks(0),
 
-    instGenGeneratedClauses(0),
-    instGenRedundantClauses(0),
-    instGenKeptClauses(0),
-    instGenIterations(0),
-
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
     refutation(0),
@@ -438,14 +433,6 @@ void Statistics::print(ostream& out)
   //COND_OUT("Sat splits", satSplits); // same as split clauses
   COND_OUT("Sat splitting refutations", satSplitRefutations);
   COND_OUT("SMT fallbacks",smtFallbacks);
-  SEPARATOR;
-
-  HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
-       instGenKeptClauses+instGenIterations);
-  COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
-  COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
-  COND_OUT("InstGen kept clauses", instGenKeptClauses);
-  COND_OUT("InstGen iterations", instGenIterations);
   SEPARATOR;
 
   //TODO record statistics for FMB

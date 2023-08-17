@@ -477,14 +477,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})
 
-set(VAMPIRE_INSTANCEGENERATION_SOURCES
-    InstGen/IGAlgorithm.cpp
-    InstGen/ModelPrinter.cpp
-    InstGen/IGAlgorithm.hpp
-    InstGen/ModelPrinter.hpp
-    )
-source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_SOURCES})
-
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
     SAT/FallbackSolverWrapper.cpp
@@ -766,7 +758,6 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_KERNEL_SOURCES}
     ${VAMPIRE_INDEXING_SOURCES}
     ${VAMPIRE_INFERENCE_SOURCES}
-    ${VAMPIRE_INSTANCEGENERATION_SOURCES}
     ${VAMPIRE_SAT_SOURCES}
     ${VAMPIRE_DECISION_PROCEDURES_SOURCES}
     ${VAMPIRE_SATURATION_SOURCES}
