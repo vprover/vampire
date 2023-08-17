@@ -145,9 +145,104 @@ class Coproduct;
 /** This namespace constains helper classes and functions to implement the coproduct */
 namespace CoproductImpl {
 
-#define NEW_VARIADIC_UNION 1
+  template<class... As>
+  class RawCoproduct;
 
-#if NEW_VARIADIC_UNION
+  namespace TrivialOperations {
+
+    template<class Op, class T> using trivial     = typename Op::template trivial<T>;
+    template<class Op, class T> using DefaultImpl = typename Op::template DefaultImpl<T>;
+
+    template<class A> struct RawCoproductTypes;
+
+    template<class... As> 
+    struct RawCoproductTypes<RawCoproduct<As...>> 
+    { using type = TL::List<As...>; };
+
+    template<template<class> class W, class A> 
+    struct RawCoproductTypes<W<A>> 
+    { using type = typename RawCoproductTypes<A>::type; };
+
+    template<class Union> using Ts       = typename RawCoproductTypes<Union>::type;
+
+    template<class Op, class ToWrap>
+    using DefaultImplIfNeeded = 
+      std::conditional_t<TL::All<Op::template trivial , Ts<ToWrap>>::val,                 ToWrap ,
+      std::conditional_t<TL::All<Op::template possible, Ts<ToWrap>>::val, DefaultImpl<Op, ToWrap>,
+                                                                             ToWrap >>;
+
+    struct Nothing {};
+
+    template<class Op, class Ts>
+    using DisableIfNeeded = 
+      std::conditional_t<TL::All<Op::template trivial, Ts>::val, Nothing, typename Op::Disable>;
+
+    struct Destr {
+
+      template<class A> using possible = std::is_destructible<A>;
+      template<class A> using trivial  = std::is_trivially_destructible<A>;
+
+      struct Disable { Disable() {}; ~Disable() {} };
+
+      template<class T>
+      struct DefaultImpl : public T {
+        DefaultImpl() : T() {}
+        ~DefaultImpl()
+        { 
+          this->switchN([&](auto N) {
+              using A = TL::Get<N.value, typename T::Ts>;
+              this->template cast<A>().~A();
+          }); 
+        }
+      };
+    };
+
+#define MK_CONS(ConsClass, REF, MOVE, move_OR_copy, OTHER_REF)                            \
+    struct ConsClass {                                                                    \
+                                                                                          \
+      template<class A> using possible                                                    \
+        = std::is_          ## move_OR_copy ## _constructible<A>;                         \
+      template<class A> using trivial                                                     \
+       = std::is_trivially_ ## move_OR_copy ## _constructible<A>;                         \
+                                                                                          \
+      struct Disable { Disable() {}; Disable(Disable REF) = delete; };                    \
+                                                                                          \
+      template<class T>                                                                   \
+      struct DefaultImpl : public T {                                                     \
+        DefaultImpl() : T() {}                                                            \
+        ~DefaultImpl() = default;                                                         \
+        DefaultImpl(DefaultImpl OTHER_REF other) = default;                               \
+        DefaultImpl(DefaultImpl       REF other)                                          \
+          : T()                                                                           \
+        {                                                                                 \
+          this->assignTag(other.tag());                                                   \
+          this->switchN([&](auto N) {                                                     \
+              using A = TL::Get<N.value, typename T::Ts>;                                 \
+              ::new(&this->template cast<A>())                                            \
+                A(MOVE(other.template cast<A>()));                                        \
+          });                                                                             \
+        }                                                                                 \
+                                                                                          \
+        DefaultImpl& operator=(DefaultImpl OTHER_REF other) = default;                    \
+        DefaultImpl& operator=(DefaultImpl       REF other)                               \
+        {                                                                                 \
+          this->assignTag(other.tag());                                                   \
+          this->switchN([&](auto N) {                                                     \
+              using A = TL::Get<N.value, typename T::Ts>;                                 \
+              this->template cast<A>() = MOVE(other.template cast<A>());                  \
+          });                                                                             \
+          return *this;                                                                   \
+        }                                                                                 \
+      };                                                                                  \
+    };
+
+
+  MK_CONS(CopyCons, const&,          , copy,     &&)
+  MK_CONS(MoveCons,     &&, std::move, move, const&)
+
+
+  }
+
 
   template<class... Ts>
   struct MaxSize;
@@ -161,170 +256,83 @@ namespace CoproductImpl {
   { static constexpr unsigned value = std::max<unsigned>(sizeof(T), MaxSize<Ts...>::value); };
 
 
-  struct MarkNotTrivial {
-    struct Nothing {};
-
-    struct CopyCons { CopyCons() {} CopyCons(CopyCons const&) {} };
-    struct MoveCons { MoveCons() {} MoveCons(CopyCons const&) {} };
-
-    struct Destr { ~Destr() {} };
-
-
-  };
-
-  // TODO update doc
-  /** This class is an untagged union of all type arguments. It is defined inductively by template specialization. 
-   * In a pseudo haskellish syntax the definition of the union can be thought of like this:
-   * data VariadicUnion []      = bottom type
-   * data VariadicUnion (a::as) = union {a, Coproduct as}
-   */
-  template <class... As> 
-  struct VariadicUnion
-  { 
-    CLASS_NAME(VariadicUnion)
-    using Ts = TL::List<As...>;
-    using Bytes = char [MaxSize<As...>::value];
-
-    Bytes _data;
-    using M = MarkNotTrivial;
-    template<template<class> class Pred, class Marker>
-    using MarkNonTrivial = std::conditional_t<TL::All<Pred, Ts>::val, M::Nothing, Marker>;
-
-    // MarkNonTrivial<is_trivially_copy_constructible, is_trivially_copy_constructible, M::CopyCons> _trivCopy;
-    // MarkNonTrivial<is_trivially_copy_constructible, is_trivially_destructible      , M::Destr   > _trivDestruct;
-
-    VariadicUnion() {}
-
-#define REF_POLYMORPIHIC(REF, MOVE)                                                       \
-    template<class B>                                                                     \
-    B REF cast() REF                                                                      \
-    {                                                                                     \
-      static_assert(TL::Contains<B, TL::List<As...>>::val, "invalid cast");               \
-      return (B REF) *this;                                                               \
-    }                                                                                     \
-
-  FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
-
-#undef REF_POLYMORPIHIC
-  };
-
-  // static_assert( std::is_trivially_copyable<VariadicUnion<int, int>>::value, "test 01");
-  // static_assert(!std::is_trivially_copyable<std::vector<int>>::value, "test 02");
-  // static_assert(!TL::All<is_trivially_copyable, TL::List<std::vector<int>, int>>::val, "test 03");
-  // static_assert(!std::is_trivially_copyable<VariadicUnion<std::vector<int>, int>>::value, "test 04");
-  //
-  // static_assert( std::is_trivially_destructible<VariadicUnion<int, int>>::value, "test 01");
-  // static_assert(!std::is_trivially_destructible<std::vector<int>>::value, "test 02");
-  // static_assert(!TL::All<is_trivially_destructible, TL::List<std::vector<int>, int>>::val, "test 03");
-  // static_assert(!std::is_trivially_destructible<VariadicUnion<std::vector<int>, int>>::value, "test 04");
-
-#define MK_CONS(PREFIX, REF, MOVE)                                                        \
-  template<class T>                                                                       \
-  struct PREFIX ## Cons : public T {                                                      \
-    PREFIX ## Cons() : T() {}                                                             \
-    PREFIX ## Cons(PREFIX ## Cons REF other)                                              \
-      : T()                                                                               \
-    { *this = MOVE(other); }                                                              \
-                                                                                          \
-    PREFIX ## Cons& operator=(PREFIX ## Cons REF other)                                   \
-    {                                                                                     \
-      this->assignTag(other.tag());                                                       \
-      this->switchN([&](auto N) {                                                         \
-          using A = TL::Get<N.value, typename T::Ts>;                                     \
-          ::new(&this->_content) A(MOVE(other._content.template cast<A>()));              \
-      });                                                                                 \
-      return *this;                                                                       \
-    }                                                                                     \
-  };                                                                                      \
-  template<class T>                                                                       \
-  struct PREFIX ## Assign : public T {                                                    \
-    PREFIX ## Assign() : T() {}                                                           \
-    PREFIX ## Assign& operator=(PREFIX ## Assign REF other)                               \
-    {                                                                                     \
-      this->assignTag(other.tag());                                                       \
-      this->switchN([&](auto N) {                                                         \
-          using A = TL::Get<N.value, typename T::Ts>;                                     \
-          ::new(&this->_content) A(MOVE(other._content.template cast<A>()));              \
-      });                                                                                 \
-      return *this;                                                                       \
-    }                                                                                     \
-  };                                                                                      \
-
-  MK_CONS(Copy, const&,          )
-  MK_CONS(Move,     &&, std::move)
-
-  template<class T>
-  struct Destr : public T {
-    Destr() : T() {}
-    ~Destr()
-    { 
-      this->switchN([&](auto N) {
-          using A = TL::Get<N.value, typename T::Ts>;
-          this->_content.template cast<A>().~A();
-      }); 
-    }
-  };
-
-
-  template<class T, class F>
-  struct CopyWith : public T {
-
-#define REF_POLYMORPIHIC(REF, MOVE)                                                       \
-    CopyWith(CopyWith REF other)                                                          \
-      : T()                                                                               \
-    { F{}(*this, MOVE(other)); }
-  FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
-#undef REF_POLYMORPIHIC
-
-#define REF_POLYMORPIHIC(REF, MOVE)                                                       \
-    CopyWith& operator=(CopyWith REF) = default;
-  FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
-#undef REF_POLYMORPIHIC
-
-  };
-
-  template<class T, class F>
-  struct DestructWith : public T {
-    ~DestructWith() 
-    { F{}((T&)*this); }
-  };
-
   template<class... As>
-  class Raw {
+  class RawCoproduct {
+    CLASS_NAME(RawCoproduct)
 
-    template<class> friend struct CopyCons;
-    template<class> friend struct CopyAssign;
-    template<class> friend struct MoveCons;
-    template<class> friend struct MoveAssign;
-    template<class> friend struct Destr;
+    template<class> friend struct TrivialOperations::CopyCons::DefaultImpl;
+    template<class> friend struct TrivialOperations::MoveCons::DefaultImpl;
+    template<class> friend struct TrivialOperations::Destr::DefaultImpl;
 
     template<class... Bs> friend class Lib::Coproduct;
 
     /** a type-level list of all types of this Coproduct */
     using Ts = TL::List<As...>;
+
     /** the number of alternatives */
     static constexpr unsigned size = TL::Size<Ts>::val;
-    static_assert(size == 0 || size - 1 == ((size - 1) & bitMask(size)), "bug in function neededBits");
 
-    unsigned _tag: neededBits(size);
-    VariadicUnion<As...> _content;
+    static constexpr unsigned nTags = 
+#if VDEBUG
+                                size + 1;
+#else //!VDEBUG
+                                size;
+#endif // VDEBUG
+    static constexpr unsigned bitMask = ::bitMask(nTags);
 
-    Raw() = default;
+    static_assert(nTags == 0 || nTags - 1 == ((nTags - 1) & bitMask), "bug in function neededBits");
 
-    unsigned tag() const { return _tag; }
+    using Bytes = char [MaxSize<As...>::value];
+    unsigned _tag: neededBits(nTags);
+    Bytes _content;
+
+
+    TrivialOperations::DisableIfNeeded<TrivialOperations::CopyCons, Ts> _copyCons;
+    TrivialOperations::DisableIfNeeded<TrivialOperations::MoveCons, Ts> _moveCons;
+    TrivialOperations::DisableIfNeeded<TrivialOperations::Destr   , Ts> _destr;
+
+#if VDEBUG
+    RawCoproduct() : _tag(-1) {
+      for (unsigned i = 0; i < sizeof(Bytes); i++) {
+        _content[i] = 0xFF;
+      }
+    }
+#else // !VDEBUG
+    RawCoproduct() = default;
+#endif // VDEBUG
+
+
+#define CONST_POLYMORPIHIC(CONST)                                                         \
+    template<class B>                                                                     \
+    B CONST& cast() CONST                                                                 \
+    {                                                                                     \
+      static_assert(TL::Contains<B, TL::List<As...>>::val, "invalid cast");               \
+      return *(B CONST*)_content;                                                         \
+    }                                                                                     \
+
+    CONST_POLYMORPIHIC(const)
+    CONST_POLYMORPIHIC(     )
+#undef CONST_POLYMORPIHIC
+
+
+
+    unsigned tag() const { 
+      ASS_REP(_tag < size, "access to uninitialized Coproduct")
+      return _tag; 
+    }
 
     template<unsigned tag>
     void assignTag()
     { 
       static_assert(tag < size, "tag out of bounds");
-      static_assert((tag & bitMask(size)) == tag, "unexpected lib author error");
+      static_assert((tag & bitMask) == tag, "unexpected lib author error");
       _tag = tag; 
     }
 
     void assignTag(unsigned tag)
     { 
       ASS_REP(tag < size, "tag out of bounds");
-      ASS_REP((tag & bitMask(size)) == tag, "unexpected lib author error");
+      ASS_REP((tag & bitMask) == tag, "unexpected lib author error");
       _tag = tag; 
     }
 
@@ -339,13 +347,11 @@ FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
   };
 
   template<class A>
-  class Raw<A> {
+  class RawCoproduct<A> {
 
-    template<class> friend struct CopyCons;
-    template<class> friend struct CopyAssign;
-    template<class> friend struct MoveCons;
-    template<class> friend struct MoveAssign;
-    template<class> friend struct Destr;
+    template<class> friend struct TrivialOperations::CopyCons::DefaultImpl;
+    template<class> friend struct TrivialOperations::MoveCons::DefaultImpl;
+    template<class> friend struct TrivialOperations::Destr::DefaultImpl;
 
     template<class... Bs> friend class Lib::Coproduct;
 
@@ -353,10 +359,8 @@ FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
     using Ts = TL::List<A>;
 
     /** the number of alternatives */
-    static constexpr unsigned size = TL::Size<Ts>::val;
-    VariadicUnion<A> _content;
-
-    Raw() = default;
+    static constexpr unsigned size = 1;
+    A _content;
 
     template<unsigned tag>
     void assignTag()
@@ -369,86 +373,34 @@ FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #define REF_POLYMORPIHIC(REF, MOVE)                                                       \
     template<class F>                                                                     \
     auto switchN(F f) REF -> decltype(auto)                                               \
-    { return Lib::switchN<1>(0, std::move(f)); }                                          \
+    { return f(Constant<0>{}); }                                                          \
 
 FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
-
 
     constexpr unsigned tag() const { return 0; }
   };
 
 
-  template<template<class> class OpPossible,template<class> class OpTrivial, 
-           class Ts, template<class> class W, class A>
-  using Wrap_ = 
-    std::conditional_t<TL::All<OpTrivial , Ts>::val, A,
-    std::conditional_t<TL::All<OpPossible, Ts>::val, W<A>,
-                                                     A>>;
-
-
   template<class... As>
-  using Raw2 = 
-     Wrap_<is_copy_constructible          ,is_trivially_copy_constructible, TL::List<As...>, CopyCons,
-     Wrap_<is_move_constructible          ,is_trivially_move_constructible, TL::List<As...>, MoveCons,
-     // Wrap_<is_copy_assignable             ,is_trivially_copy_assignable   , TL::List<As...>, CopyAssign,
-     // Wrap_<is_move_assignable             ,is_trivially_move_assignable   , TL::List<As...>, MoveAssign,
-     Wrap_<is_destructible                ,is_trivially_destructible      , TL::List<As...>, Destr,
-       Raw<As...>
+  using RawWithDefaultImpls = 
+     TrivialOperations::DefaultImplIfNeeded<TrivialOperations::CopyCons,
+     TrivialOperations::DefaultImplIfNeeded<TrivialOperations::MoveCons,
+     TrivialOperations::DefaultImplIfNeeded<TrivialOperations::Destr,
+       RawCoproduct<As...>
       >>>;
-  //MkCopy<MkDestr<Raw<As...>>>;
+
+  static_assert( std::is_trivially_copyable<RawCoproduct<int, int>>::value, "test 01");
+  static_assert(!std::is_trivially_copyable<std::vector<int>>::value, "test 02");
+  static_assert(!TL::All<is_trivially_copyable, TL::List<std::vector<int>, int>>::val, "test 03");
+  static_assert(!std::is_trivially_copyable<RawCoproduct<std::vector<int>, int>>::value, "test 04");
+
+  static_assert( std::is_trivially_destructible<RawCoproduct<int, int>>::value, "test 01");
+  static_assert(!std::is_trivially_destructible<std::vector<int>>::value, "test 02");
+  static_assert(!TL::All<is_trivially_destructible, TL::List<std::vector<int>, int>>::val, "test 03");
+  static_assert(!std::is_trivially_destructible<RawCoproduct<std::vector<int>, int>>::value, "test 04");
 
 
-
-#else  // !NEW_VARIADIC_UNION
-
-  /** This class is an untagged union of all type arguments. It is defined inductively by template specialization. 
-   * In a pseudo haskellish syntax the definition of the union can be thought of like this:
-   * data VariadicUnion []      = bottom type
-   * data VariadicUnion (a::as) = union {a, Coproduct as}
-   */
-  template <class... As> union VariadicUnion;
-
-  /** Base case of the inductive definition of VariadicUnion. Note that an empty union is an uninhabited type. 
-   * This means none of its methods will ever be called.  
-   *
-   * data VariadicUnion []      = bottom type
-   */
-  template<> union VariadicUnion<> {
-    CLASS_NAME(VariadicUnion)
-    ~VariadicUnion() {}
-  };
-
-  /** Inductive case of the inductive definition of VariadicUnion.  
-   *
-   * data VariadicUnion (a::as) = union {a, Coproduct as}
-   */
-  template <class A, class... As> union VariadicUnion<A, As...> {
-    CLASS_NAME(VariadicUnion)
-    using Ts = TL::List<A,As...>;
-
-    A _head;
-    VariadicUnion<As...> _tail;
-
-    ~VariadicUnion() {}
-    VariadicUnion() {}
-
-#define REF_POLYMORPIHIC(REF, MOVE)                                                       \
-    template<class B>                                                                     \
-    B REF cast() REF                                                                      \
-    {                                                                                     \
-      static_assert(TL::Contains<B, TL::List<A, As...>>::val, "invalid cast");            \
-      return (B REF)*this;                                                                \
-    }                                                                                     \
-
-  FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
-#undef REF_POLYMORPIHIC
-
-
-  }; // VariadicUnion
-
-
-#endif // NEW_VARIADIC_UNION
 } // namespace CoproductImpl
 
 
@@ -482,7 +434,7 @@ Variant<i, A> variant(A a)
 template <class... As> 
 class Coproduct
 {
-  CoproductImpl::Raw2<As...> _inner;
+  CoproductImpl::RawWithDefaultImpls<As...> _inner;
 
 
   /** a type-level list of all types of this Coproduct */
@@ -514,7 +466,16 @@ public:
    */
   template <class B> bool is() const 
   { return is<TL::IdxOf<B, Ts>::val>(); }
-
+                                                                                          \
+  /**
+   * constructs a new Coproduct with the variant idx.
+   * \pre B must occur exactly once in As...
+   */
+  template<class B, std::enable_if_t<TL::Contains<B, Ts>::val, int> = 0>
+  explicit Coproduct(B b)
+    : Coproduct(Variant<TL::IdxOf<B, Ts>::val, B>(move_if_value<B>(b)))
+  { }
+ 
 #define REF_POLYMORPIHIC(REF, MOVE)                                                       \
                                                                                           \
   /* Coproduct &operator=(Coproduct REF other) {                                          \
@@ -522,15 +483,6 @@ public:
     ::new(this) Coproduct(MOVE(other));                                                   \
     return *this;                                                                         \
   }  */                                                                                   \
-                                                                                          \
-  /**                                                                                     \
-   * constructs a new Coproduct with the variant idx.                                     \
-   * \pre B must occur exactly once in As...                                              \
-   */                                                                                     \
-  template<class B, std::enable_if_t<TL::Contains<B, Ts>::val, int> = 0>                  \
-  explicit Coproduct(B REF b)                                                             \
-    : Coproduct(variant<TL::IdxOf<B, Ts>::val>(MOVE(b)))                                  \
-  { }                                                                                     \
                                                                                           \
    /**                                                                                    \
    * transforms all variants of this Coproduct to the same type and retuns the result     \
@@ -586,7 +538,7 @@ public:
   inline TL::Get<idx, Ts> REF unwrap() REF {                                              \
     static_assert(idx < size, "out of bounds");                                           \
     ASS_EQ(idx, tag());                                                                   \
-    return MOVE(_inner._content.template cast<TL::Get<idx, Ts>>());                       \
+    return MOVE(_inner.template cast<TL::Get<idx, Ts>>());                                \
   }                                                                                       \
                                                                                           \
   /**                                                                                     \
@@ -634,9 +586,8 @@ public:
     static_assert(idx < size, "variant index out of bounds");
     static_assert(std::is_same<B, TL::Get<idx, Ts>>::value, "illegal index for variant");
 
-    Coproduct self;
-    self._inner.template assignTag<idx>();
-    ::new(&self._inner._content) B(std::move(value._self));
+    _inner.template assignTag<idx>();
+    ::new(&_inner._content) B(move_if_value<B>(value._self));
   }
 
   /**                                                                                     \
