@@ -512,7 +512,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     // collect contexts for single-literal induction with given clause
     auto indCtxSingle = iterTraits(DHSet<Term*>::Iterator(ta_terms))
       .filter([lit](Term* arg) {
-        return !lit->isEquality() || (lit->termArg(0).containsSubterm(TermList(arg)) && lit->termArg(1).containsSubterm(TermList(arg)));
+        return !arg->arity() || !lit->isEquality() ||
+          (lit->termArg(0).containsSubterm(TermList(arg)) && lit->termArg(1).containsSubterm(TermList(arg)));
       })
       .map([&lit,&premise](Term* arg) {
         return InductionContext(arg, lit, premise);

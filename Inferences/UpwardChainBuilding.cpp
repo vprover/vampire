@@ -249,7 +249,7 @@ Clause* UpwardChainBuilding::perform(
   //      << "from " << *rwClause << endl
   //      << "and " << *eqClause << endl << endl;
   // cout << left << " " << eqIsResult << endl;
-  res->setRemDepth(rwClause->remDepth()+eqClause->remDepth());
+  res->setRemDepth(rwClause->remDepth()+eqClause->remDepth()+1);
   env.statistics->upwardChainBuilding++;
   return res;
 }

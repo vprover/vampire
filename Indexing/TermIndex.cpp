@@ -131,7 +131,7 @@ template class DemodulationSubtermIndexImpl<true>;
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1) {
+  if (c->length()!=1 || c->remDepth()) {
     return;
   }
 

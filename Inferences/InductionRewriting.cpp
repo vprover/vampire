@@ -311,6 +311,9 @@ bool isInductionTerm(Term* t)
   if (!InductionHelper::isStructInductionTerm(t)) {
     return false;
   }
+  if (!t->ground()) {
+    return true;
+  }
   NonVariableNonTypeIterator nvi(t, true);
   while (nvi.hasNext()) {
     if (env.signature->getFunction(nvi.next()->functor())->skolem()) return true;
@@ -378,7 +381,7 @@ inline bool hasTermToInductOn(Term* t) {
   NonVariableNonTypeIterator stit(t);
   while (stit.hasNext()) {
     auto st = stit.next();
-    if (InductionHelper::isInductionTermFunctor(st->functor()) && InductionHelper::isStructInductionTerm(st)) {
+    if (isInductionTerm(st)) {
       return true;
     }
   }
@@ -519,9 +522,9 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
         .flatMap([](pair<TermList,bool> arg) {
           return pvi(pushPairIntoRightIterator(make_pair(arg.first.term(),arg.second),vi(new PositionalNonVariableNonTypeIterator(arg.first.term()))));
         })
-        .filter([ps](pair<pair<Term*,bool>,pair<Term*,Position>> arg) {
-          return !ps || toTheLeft(getRightmostPosition(*ps, arg.first.second), arg.second.second);
-        })
+        // .filter([ps](pair<pair<Term*,bool>,pair<Term*,Position>> arg) {
+        //   return !ps || toTheLeft(getRightmostPosition(*ps, arg.first.second), arg.second.second);
+        // })
         .flatMap([this](pair<pair<Term*,bool>,pair<Term*,Position>> arg) {
           // cout << "st " << *arg.first << " in " << posToString(arg.second) << endl;
           return pvi(pushPairIntoRightIterator(arg,_lhsIndex->getGeneralizations(arg.second.first, true)));
@@ -556,10 +559,10 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
               pvi(pushPairIntoRightIterator(make_pair(t1.term(),false),getPositions(t1,t)))
             )));
         })
-        .filter([](pair<pair<TypedTermList,TermQueryResult>,pair<pair<Term*,bool>,pair<Term*,Position>>> arg) {
-          auto ps = arg.first.second.clause->backwardRewritingPositions();
-          return !ps || toTheLeft(getRightmostPosition(*ps, arg.second.first.first), arg.second.second.second);
-        })
+        // .filter([](pair<pair<TypedTermList,TermQueryResult>,pair<pair<Term*,bool>,pair<Term*,Position>>> arg) {
+        //   auto ps = arg.first.second.clause->backwardRewritingPositions();
+        //   return !ps || toTheLeft(getRightmostPosition(*ps, arg.second.first.first), arg.second.second.second);
+        // })
         .map([lit,premise,this](pair<pair<TypedTermList,TermQueryResult>,pair<pair<Term*,bool>,pair<Term*,Position>>> arg) -> Clause* {
           auto side = arg.second.first.first;
           auto pos = arg.second.second.second;
@@ -604,7 +607,7 @@ Clause* InductionRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
   if (opt.remodulation()==Options::Remodulation::UPWARDS_ONLY && comp != Ordering::Result::LESS) {
     return nullptr;
   }
-  if (comp == Ordering::Result::LESS && shouldChain(rhs.term())) {
+  if (comp == Ordering::Result::LESS && opt.introduceChains() && shouldChain(rhs.term())) {
     return nullptr;
   }
 
