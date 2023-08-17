@@ -20,6 +20,8 @@
 
 namespace Kernel {
 
+using namespace std;
+
 vstring Formula::DEFAULT_LABEL = "none";
 
 /**

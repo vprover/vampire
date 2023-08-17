@@ -29,6 +29,7 @@
 namespace SAT
 {
 
+using namespace std;
 using namespace Shell;  
 using namespace Lib;  
   

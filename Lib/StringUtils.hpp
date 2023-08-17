@@ -21,7 +21,6 @@
 
 namespace Lib {
 
-using namespace std;
 
 template<class A> struct StringParser;
 

@@ -31,6 +31,8 @@
 namespace DP
 {
 
+using namespace std;
+
 const unsigned SimpleCongruenceClosure::NO_SIG_SYMBOL = 0xFFFFFFFF;
 
 vstring SimpleCongruenceClosure::CEq::toString() const

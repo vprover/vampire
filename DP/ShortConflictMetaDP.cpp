@@ -17,6 +17,8 @@
 namespace DP
 {
 
+using namespace std;
+
 /**
  * Computes number of literals in core not implied at the zero level
  * of the SAT solver i.e. those that have not been fully decided and

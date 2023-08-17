@@ -139,7 +139,7 @@ private:
     CLASS_NAME(Node)
     USE_ALLOCATOR(Node)
     const char* name;
-    Lib::Stack<unique_ptr<Node>> children;
+    Lib::Stack<std::unique_ptr<Node>> children;
     Measurements measurements;
     Node(const char* name) : name(name), children(), measurements() {}
     struct NodeFormatOpts ;
@@ -217,7 +217,7 @@ public:
   Result compare(Kernel::TermList l1, Kernel::TermList l2) const final override
   { TIME_TRACE(_nameTerm); return _ord.compare(l1,l2); }
 
-  void show(ostream& out) const final override
+  void show(std::ostream& out) const final override
   { _ord.show(out); }
 
   Ord      & inner()       { return _ord; }

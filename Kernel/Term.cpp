@@ -25,6 +25,7 @@
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 

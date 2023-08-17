@@ -40,6 +40,7 @@ using std::make_pair;
 
 namespace Inferences
 {
+using namespace std;
 using namespace Kernel;
 using namespace Lib; 
 

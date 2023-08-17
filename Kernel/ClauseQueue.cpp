@@ -26,6 +26,7 @@
 
 #define MAX_HEIGHT 31
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 

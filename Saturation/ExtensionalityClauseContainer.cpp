@@ -19,6 +19,7 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Shell;
 
 /**

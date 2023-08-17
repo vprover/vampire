@@ -24,6 +24,7 @@
 
 #include "AcyclicityIndex.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Lib;
 

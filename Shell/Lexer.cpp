@@ -20,6 +20,7 @@
 
 #include "Lexer.hpp"
 
+using namespace std;
 using namespace Shell;
 using namespace Lib;
 

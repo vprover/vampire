@@ -31,10 +31,10 @@
 #define LOGGING 0
 
 #if LOGGING
-#define LOG1(arg)         cout << arg << endl;
-#define LOG2(a1,a2)       cout << a1 << " " << a2 << endl;
-#define LOG3(a1,a2,a3)    cout << a1 << " " << a2 << " " << a3 << endl;
-#define LOG4(a1,a2,a3,a4) cout << a1 << " " << a2 << " " << a3 << " " << a4 << endl;
+#define LOG1(arg)         std::cout << arg << std::endl;
+#define LOG2(a1,a2)       std::cout << a1 << " " << a2 << std::endl;
+#define LOG3(a1,a2,a3)    std::cout << a1 << " " << a2 << " " << a3 << std::endl;
+#define LOG4(a1,a2,a3,a4) std::cout << a1 << " " << a2 << " " << a3 << " " << a4 << std::endl;
 #else
 #define LOG1(arg)
 #define LOG2(a1,a2)
@@ -84,7 +84,7 @@ private:
    */
   Deque<Formula*> _queue;
 
-  typedef pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
+  typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
 
   typedef List<Binding> BindingList;
 
@@ -124,8 +124,8 @@ private:
   #define RIGHT 1u
 
   // generalized literal
-  typedef pair<Formula*, SIGN> GenLit;
-  typedef pair<Literal*, List<GenLit>*> LPair;
+  typedef std::pair<Formula*, SIGN> GenLit;
+  typedef std::pair<Literal*, List<GenLit>*> LPair;
 
   inline static Formula* &formula(GenLit &gl) {
     return gl.first;
@@ -178,7 +178,7 @@ private:
     }
 
     // Position of a gen literal in _genClauses
-    list<SmartPtr<GenClause>,STLAllocator<SmartPtr<GenClause>>>::iterator iter;
+    std::list<SmartPtr<GenClause>,STLAllocator<SmartPtr<GenClause>>>::iterator iter;
 
     vstring toString() {
       vstring res = "GC("+Int::toString(size())+")";
@@ -211,7 +211,7 @@ private:
   bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
-  typedef list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
+  typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
 
   /**
    * pushLiteral is responsible for tautology elimination. Whenever it sees two

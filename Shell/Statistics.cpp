@@ -31,6 +31,7 @@
 #include "Statistics.hpp"
 
 
+using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;

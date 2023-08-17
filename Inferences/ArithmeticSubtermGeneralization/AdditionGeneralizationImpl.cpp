@@ -10,6 +10,8 @@
 
 namespace AdditionGeneralizationImpl {
 
+using namespace std;
+
 /**
  * Rule' 2)
  *   generalize multiplication

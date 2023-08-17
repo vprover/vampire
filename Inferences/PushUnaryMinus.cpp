@@ -14,6 +14,8 @@
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Inferences {
 
+using namespace std;
+
 enum class UMinus {
   Int,
   Rat,

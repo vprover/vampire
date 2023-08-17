@@ -28,6 +28,8 @@
 namespace Kernel
 {
 
+using namespace std;
+
 bool UWAMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
 {
     TermList tt1 = sub->apply(t1,index1);

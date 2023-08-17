@@ -64,6 +64,7 @@
 
 namespace Api {
 
+using namespace std;
 using namespace Lib;
 
 Problem::PreprocessingOptions::OptDataStore::OptDataStore()

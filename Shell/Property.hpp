@@ -39,7 +39,6 @@ namespace Kernel {
 
 namespace Shell {
 
-using namespace std;
 using namespace Kernel;
 using namespace Lib;
 

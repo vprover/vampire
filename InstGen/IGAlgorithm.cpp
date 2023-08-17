@@ -54,6 +54,7 @@
 namespace InstGen
 {
 
+using namespace std;
 using namespace Indexing;
 using namespace Saturation;
 

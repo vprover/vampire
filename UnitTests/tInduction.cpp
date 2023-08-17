@@ -24,6 +24,7 @@
 
 #include "Inferences/Induction.hpp"
 
+using namespace std;
 using namespace Test;
 using namespace Test::Generation;
 

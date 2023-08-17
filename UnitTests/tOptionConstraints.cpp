@@ -13,6 +13,7 @@
 
 #include "Test/UnitTesting.hpp"
 
+using namespace std;
 using namespace Shell;
 
 bool testGlobal(Options& o)

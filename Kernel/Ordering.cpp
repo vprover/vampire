@@ -46,6 +46,7 @@
 #define NONINTERPRETED_LEVEL_BOOST 0x1000
 #define COLORED_LEVEL_BOOST 0x10000
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 

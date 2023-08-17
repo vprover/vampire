@@ -68,10 +68,10 @@ protected:
     return ch;
   }
 
-  virtual streamsize xsgetn ( char_type * s0, streamsize n0 )
+  virtual std::streamsize xsgetn ( char_type * s0, std::streamsize n0 )
   {
     char_type * s=s0;
-    streamsize n=n0;
+    std::streamsize n=n0;
     if(_preRead!=-1) {
       *(s++)=_preRead;
       n--;
@@ -117,7 +117,7 @@ protected:
     return 0;
   }
 
-  virtual streamsize xsputn (const char_type * s, streamsize n)
+  virtual std::streamsize xsputn (const char_type * s, std::streamsize n)
   {
     ssize_t res=write(_fd, s, n*sizeof(char_type));
     if(res<0) {

@@ -25,6 +25,7 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 

@@ -10,6 +10,8 @@
 
 namespace VariableMultiplicationGeneralizationImpl {
 
+using namespace std;
+
 /**
 *  Rule 3)
 *    generalize variable multiplication

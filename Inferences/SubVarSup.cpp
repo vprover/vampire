@@ -55,6 +55,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 void SubVarSup::attach(SaturationAlgorithm* salg)
 {

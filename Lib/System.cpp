@@ -47,6 +47,8 @@ unsigned Lib::System::getNumberOfCores()
 
 namespace Lib {
 
+using namespace std;
+
 bool System::s_shouldIgnoreSIGINT = false;
 bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;

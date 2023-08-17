@@ -33,6 +33,7 @@
 // Set this to 1 to make Vampire output found matches
 #define SHOW_FOUND 0
 
+using namespace std;
 using namespace Lib;
 using namespace Shell;
 using namespace Kernel;
