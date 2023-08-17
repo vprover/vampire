@@ -242,7 +242,8 @@ public:
   Option take() 
   {
     Option out;
-    std::swap(*this,out);
+    using std::swap;//ADL
+    swap(*this,out);
     return out;
   }
 

@@ -212,7 +212,8 @@ private:
   void swapInHeap1(size_t idxA, size_t idxB)
   {
     T* data1 = getData1();
-    std::swap(data1[idxA], data1[idxB]);
+    using std::swap; //ADL
+    swap(data1[idxA], data1[idxB]);
     _elMap.set(data1[idxA], idxA);
     _elMap.set(data1[idxB], idxB);
   }

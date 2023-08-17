@@ -236,11 +236,12 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
     return true;
   }
   for (unsigned i = idx; i < perm.size(); i++) {
-    std::swap(perm[i], perm[idx]);
+    using std::swap;//ADL
+    swap(perm[i], perm[idx]);
 
     if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
 
-    std::swap(perm[i], perm[idx]);
+    swap(perm[i], perm[idx]);
   }
 
   return false;

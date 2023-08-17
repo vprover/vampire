@@ -85,7 +85,7 @@ public:
   Cntr& _cntr;
 
   InstanceCntr& operator=(InstanceCntr&& other) 
-  { std::swap(other._cntr, _cntr); return *this; }
+  { using std::swap; swap(other._cntr, _cntr); return *this; }
 
   InstanceCntr(InstanceCntr&& other) 
     : _cntr(other._cntr)

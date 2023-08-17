@@ -574,7 +574,8 @@ public:
 
     TermList* ts1 = args();
     TermList* ts2 = ts1->next();
-    std::swap(ts1->_content, ts2->_content);
+    using std::swap;//ADL
+    swap(ts1->_content, ts2->_content);
   }
 
   /** Return the weight. Applicable only to shared terms */
