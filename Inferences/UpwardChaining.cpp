@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file UpwardChainBuilding.cpp
- * Implements class UpwardChainBuilding.
+ * @file UpwardChaining.cpp
+ * Implements class UpwardChaining.
  */
 
 #include "Lib/Metaiterators.hpp"
@@ -24,7 +24,7 @@
 #include "Shell/Options.hpp"
 
 #include "InductionRewriting.hpp"
-#include "UpwardChainBuilding.hpp"
+#include "UpwardChaining.hpp"
 
 namespace Inferences {
 
@@ -33,25 +33,33 @@ using namespace Kernel;
 
 // inference
 
-void UpwardChainBuilding::attach(SaturationAlgorithm* salg)
+void UpwardChaining::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _lhsIndex=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(UNIT_LHS_INDEX) );
-  _subtermIndex=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(UPWARD_CHAIN_BUILDING_SUBTERM_INDEX) );
+  _leftLhsIndex=static_cast<TermIndex*>(
+	  _salg->getIndexManager()->request(LEFT_UPWARD_CHAINING_LHS_INDEX) );
+  _rightLhsIndex=static_cast<TermIndex*>(
+	  _salg->getIndexManager()->request(RIGHT_UPWARD_CHAINING_LHS_INDEX) );
+  _leftSubtermIndex=static_cast<TermIndex*>(
+	  _salg->getIndexManager()->request(LEFT_UPWARD_CHAINING_SUBTERM_INDEX) );
+  _rightSubtermIndex=static_cast<TermIndex*>(
+	  _salg->getIndexManager()->request(RIGHT_UPWARD_CHAINING_SUBTERM_INDEX) );
 }
 
-void UpwardChainBuilding::detach()
+void UpwardChaining::detach()
 {
-  _lhsIndex = 0;
-  _subtermIndex = 0;
-  _salg->getIndexManager()->release(UNIT_LHS_INDEX);
-  _salg->getIndexManager()->release(UPWARD_CHAIN_BUILDING_SUBTERM_INDEX);
+  _leftLhsIndex = 0;
+  _rightLhsIndex = 0;
+  _leftSubtermIndex = 0;
+  _rightSubtermIndex = 0;
+  _salg->getIndexManager()->release(LEFT_UPWARD_CHAINING_LHS_INDEX);
+  _salg->getIndexManager()->release(RIGHT_UPWARD_CHAINING_LHS_INDEX);
+  _salg->getIndexManager()->release(LEFT_UPWARD_CHAINING_SUBTERM_INDEX);
+  _salg->getIndexManager()->release(RIGHT_UPWARD_CHAINING_SUBTERM_INDEX);
   GeneratingInferenceEngine::detach();
 }
 
-ClauseIterator UpwardChainBuilding::generateClauses(Clause* premise)
+ClauseIterator UpwardChaining::generateClauses(Clause* premise)
 {
   auto res = ClauseIterator::getEmpty();
   ASS(_salg->getOptions().introduceChains());
@@ -59,16 +67,23 @@ ClauseIterator UpwardChainBuilding::generateClauses(Clause* premise)
   if (premise->length()!=1) {
     return res;
   }
+
   auto lit = (*premise)[0];
-  // cout << "lit " << *lit << endl;
   if (!lit->isEquality() || lit->isNegative()) {
     return res;
   }
 
+  if (premise->remDepth()>=_salg->getOptions().maxRemodulationDepth()) {
+    return res;
+  }
+
+  const auto& ord = _salg->getOrdering();
+
+  // left
   // 1. rewrite s[r]=t into s[l]=t with l=r where s[r] does not contain induction terms and l does
 
   // forward
-  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(lhsIterator(lit))
+  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(orderedLhsIterator(lit, ord, false /*reverse*/))
     .filter([](TypedTermList lhs) {
       return lhs.isTerm() && shouldChain(lhs.term());
     })
@@ -76,29 +91,25 @@ ClauseIterator UpwardChainBuilding::generateClauses(Clause* premise)
       return pvi(pushPairIntoRightIterator(lhs.term(), vi(new PositionalNonVariableNonTypeIterator(lhs.term()))));
     })
     .flatMap([this](pair<Term*,pair<Term*,Position>> arg) {
-      return pvi(pushPairIntoRightIterator(arg, _lhsIndex->getUnifications(arg.second.first, true)));
-    })
-    .filter([](pair<pair<Term*,pair<Term*,Position>>,TermQueryResult> arg) {
-      auto qr = arg.second;
-      auto eqRhs = EqHelper::getOtherEqualitySide(qr.literal, qr.term);
-      return eqRhs.isTerm() && !shouldChain(eqRhs.term());
+      return pvi(pushPairIntoRightIterator(arg, _leftLhsIndex->getUnifications(arg.second.first, true)));
     })
     .map([lit,premise,this](pair<pair<Term*,pair<Term*,Position>>,TermQueryResult> arg) -> Clause* {
       auto side = arg.first.first;
       auto rwTerm = arg.first.second.first;
       auto pos = arg.first.second.second;
       auto qr = arg.second;
+      ASS(!shouldChain(EqHelper::getOtherEqualitySide(qr.literal, qr.term).term()));
       return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.substitution,true,true);
     }))));
 
   // backward
-  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(lhsIterator(lit))
+  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(orderedLhsIterator(lit, ord, true /*reverse*/))
     .filter([lit](TypedTermList lhs) {
       auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
       return rhs.isTerm() && !shouldChain(rhs.term());
     })
     .flatMap([this](TypedTermList lhs) {
-      return pvi(pushPairIntoRightIterator(lhs,_subtermIndex->getUnifications(lhs, true)));
+      return pvi(pushPairIntoRightIterator(lhs,_leftSubtermIndex->getUnifications(lhs, true)));
     })
     .flatMap([](pair<TypedTermList,TermQueryResult> arg) {
       auto t = arg.second.term.term();
@@ -124,10 +135,11 @@ ClauseIterator UpwardChainBuilding::generateClauses(Clause* premise)
       return perform(qr.clause,qr.literal,side,rwTerm,premise,lit,eqLHS,pos,qr.substitution,false,true);
     }))));
 
+  // right
   // 2. rewrite s=t[l] into s=t[r] with l=r where l does not contain induction terms and s does
 
   // forward
-  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(lhsIterator(lit))
+  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(orderedLhsIterator(lit, ord, true /*reverse*/))
     .filter([lit](TypedTermList lhs) {
       auto rhs = EqHelper::getOtherEqualitySide(lit,lhs);
       return lhs.isTerm() && rhs.isTerm() && !shouldChain(rhs.term());
@@ -136,27 +148,24 @@ ClauseIterator UpwardChainBuilding::generateClauses(Clause* premise)
       return pvi(pushPairIntoRightIterator(lhs.term(), vi(new PositionalNonVariableNonTypeIterator(lhs.term()))));
     })
     .flatMap([this](pair<Term*,pair<Term*,Position>> arg) {
-      return pvi(pushPairIntoRightIterator(arg,_lhsIndex->getUnifications(arg.second.first, true)));
-    })
-    .filter([](pair<pair<Term*,pair<Term*,Position>>,TermQueryResult> arg) {
-      auto qr = arg.second;
-      return qr.term.isTerm() && shouldChain(qr.term.term());
+      return pvi(pushPairIntoRightIterator(arg,_rightLhsIndex->getUnifications(arg.second.first, true)));
     })
     .map([lit,premise,this](pair<pair<Term*,pair<Term*,Position>>,TermQueryResult> arg) -> Clause* {
       auto side = arg.first.first;
       auto rwTerm = arg.first.second.first;
       auto pos = arg.first.second.second;
       auto qr = arg.second;
+      ASS(shouldChain(qr.term.term()));
       return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.substitution,true,false);
     }))));
 
   // backward
-  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(lhsIterator(lit))
+  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(orderedLhsIterator(lit, ord, false /*reverse*/))
     .filter([](TypedTermList lhs) {
       return lhs.isTerm() && shouldChain(lhs.term());
     })
     .flatMap([this](TypedTermList lhs) {
-      return pvi(pushPairIntoRightIterator(lhs.term(),_subtermIndex->getUnifications(lhs.term(), true)));
+      return pvi(pushPairIntoRightIterator(lhs.term(),_rightSubtermIndex->getUnifications(lhs.term(), true)));
     })
     .flatMap([](pair<Term*,TermQueryResult> arg) {
       auto t = arg.second.term.term();
@@ -184,15 +193,14 @@ ClauseIterator UpwardChainBuilding::generateClauses(Clause* premise)
     }))));
   return pvi(iterTraits(res)
     .filter(NonzeroFn())
-    .timeTraced("upward chain building"));
+    .timeTraced("upward chaining"));
 }
 
-Clause* UpwardChainBuilding::perform(
+Clause* UpwardChaining::perform(
     Clause* rwClause, Literal* rwLit, TermList rwSide, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS, const Position& pos,
     ResultSubstitutionSP subst, bool eqIsResult, bool left)
 {
-  TIME_TRACE("perform upward chain building");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
@@ -242,7 +250,7 @@ Clause* UpwardChainBuilding::perform(
     return 0;
   }
 
-  Inference inf(GeneratingInference2(InferenceRule::UPWARD_CHAIN_BUILDING, rwClause, eqClause));
+  Inference inf(GeneratingInference2(InferenceRule::UPWARD_CHAINING, rwClause, eqClause));
   Clause* res = new(1) Clause(1, inf);
   (*res)[0] = tgtLitS;
   // cout << (eqIsResult ? "forward " : "backward ") << "chain " << *res << endl
@@ -250,7 +258,7 @@ Clause* UpwardChainBuilding::perform(
   //      << "and " << *eqClause << endl << endl;
   // cout << left << " " << eqIsResult << endl;
   res->setRemDepth(rwClause->remDepth()+eqClause->remDepth()+1);
-  env.statistics->upwardChainBuilding++;
+  env.statistics->upwardChaining++;
   return res;
 }
 

@@ -1478,7 +1478,7 @@ void Options::init()
     _remodulation.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_remodulation);
 
-    _maxRemodulationDepth = UnsignedOptionValue("max_remodulation_depth","mrd",2);
+    _maxRemodulationDepth = UnsignedOptionValue("max_remodulation_depth","mrd",3);
     _maxRemodulationDepth.description = "";
     _maxRemodulationDepth.tag(OptionTag::INFERENCES);
     _maxRemodulationDepth.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));

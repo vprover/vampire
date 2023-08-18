@@ -352,8 +352,6 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
-  Stack<pair<Position,bool>>* backwardRewritingPositions() { return _backwardRewritingPositions; }
-  void setBackwardRewritingPositions(Stack<pair<Position,bool>>* pos) { _backwardRewritingPositions = pos; }
   unsigned remDepth() const { return _remDepth; }
   void setRemDepth(unsigned depth) { _remDepth = depth; }
 
@@ -387,7 +385,6 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
-  Stack<pair<Position,bool>>* _backwardRewritingPositions;
   unsigned _remDepth;
 
   int _numActiveSplits;

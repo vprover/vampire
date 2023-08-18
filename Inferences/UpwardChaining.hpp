@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file UpwardChainBuilding.hpp
+ * @file UpwardChaining.hpp
  * Defines class InductionRewriting
  *
  */
 
-#ifndef __UpwardChainBuilding__
-#define __UpwardChainBuilding__
+#ifndef __UpwardChaining__
+#define __UpwardChaining__
 
 #include "Forwards.hpp"
 
@@ -35,12 +35,12 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class UpwardChainBuilding
+class UpwardChaining
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(UpwardChainBuilding);
-  USE_ALLOCATOR(UpwardChainBuilding);
+  CLASS_NAME(UpwardChaining);
+  USE_ALLOCATOR(UpwardChaining);
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -52,10 +52,12 @@ private:
     Clause* eqClause, Literal* eqLit, TermList eqLHS, const Position& pos,
     ResultSubstitutionSP subst, bool eqIsResult, bool left);
 
-  TermIndex* _lhsIndex;
-  TermIndex* _subtermIndex;
+  TermIndex* _leftLhsIndex;
+  TermIndex* _rightLhsIndex;
+  TermIndex* _leftSubtermIndex;
+  TermIndex* _rightSubtermIndex;
 };
 
 }
 
-#endif /*__UpwardChainBuilding__*/
+#endif /*__UpwardChaining__*/

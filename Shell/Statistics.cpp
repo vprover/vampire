@@ -63,7 +63,7 @@ Statistics::Statistics()
     selfSuperposition(0),
     forwardRemodulations(0),
     backwardRemodulations(0),
-    upwardChainBuilding(0),
+    upwardChaining(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -380,7 +380,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
   COND_OUT("Fw remodulations", forwardRemodulations);
   COND_OUT("Bw remodulations", backwardRemodulations);
-  COND_OUT("Upward chains", upwardChainBuilding);
+  COND_OUT("Upward chaining", upwardChaining);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);

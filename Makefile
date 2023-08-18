@@ -298,7 +298,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
          Inferences/InductionRewriting.o\
-         Inferences/UpwardChainBuilding.o\
+         Inferences/UpwardChaining.o\
          Inferences/InductionHelper.o\
          Inferences/URResolution.o\
          Inferences/CNFOnTheFly.o\

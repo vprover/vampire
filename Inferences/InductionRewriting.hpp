@@ -81,6 +81,7 @@ VirtualIterator<pair<Term*,Position>> getPositions(TermList t, Term* st);
 bool linear(Term* t);
 bool shouldChain(Term* lhs);
 VirtualIterator<TypedTermList> lhsIterator(Literal* lit);
+VirtualIterator<TypedTermList> orderedLhsIterator(Literal* lit, const Ordering& ord, bool reverse);
 
 class PositionalNonVariableNonTypeIterator
   : public IteratorCore<pair<Term*,Position>>
@@ -109,7 +110,7 @@ public:
   USE_ALLOCATOR(InductionRewriting);
 
   InductionRewriting(Induction* induction)
-    : _lhsIndex(0), _induction(induction) {}
+    : _lhsIndex(0) {}//, _induction(induction) {}
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -124,7 +125,7 @@ private:
 
   TermIndex* _lhsIndex;
   TermIndex* _subtermIndex;
-  Induction* _induction;
+  // Induction* _induction;
 
   DHMap<Term*,Stack<Position>> _leftTerms;
   DHMap<Term*,Stack<Position>> _rightTerms;

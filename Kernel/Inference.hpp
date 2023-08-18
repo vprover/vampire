@@ -278,7 +278,7 @@ enum class InferenceRule : unsigned char {
   SUPERPOSITION,
   FORWARD_REMODULATION,
   BACKWARD_REMODULATION,
-  UPWARD_CHAIN_BUILDING,
+  UPWARD_CHAINING,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
   /** equality factoring inference */

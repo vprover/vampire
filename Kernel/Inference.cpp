@@ -683,7 +683,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "forward remodulation";
   case InferenceRule::BACKWARD_REMODULATION:
     return "backward remodulation";
-  case InferenceRule::UPWARD_CHAIN_BUILDING:
+  case InferenceRule::UPWARD_CHAINING:
     return "upward chain building";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";

@@ -173,6 +173,7 @@ private:
   LiteralIndex* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
+  TermIndex* _demLhsIndex = nullptr;
   InductionFormulaIndex _formulaIndex;
 };
 
@@ -180,10 +181,10 @@ class InductionClauseIterator
 {
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
-    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
-      : _helper(helper), _opt(opt), _structInductionTermIndex(structInductionTermIndex),
-      _formulaIndex(formulaIndex)
+  InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt, const Ordering& ord,
+    TermIndex* structInductionTermIndex, TermIndex* demLhsIndex, InductionFormulaIndex& formulaIndex)
+      : _helper(helper), _opt(opt), _ord(ord), _structInductionTermIndex(structInductionTermIndex),
+      _demLhsIndex(demLhsIndex), _formulaIndex(formulaIndex)
   {
     processClause(premise);
   }
@@ -215,11 +216,14 @@ private:
   void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
 
   bool notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e);
+  bool isRedundant(const InductionContext& context);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;
   const Options& _opt;
+  const Ordering& _ord;
   TermIndex* _structInductionTermIndex;
+  TermIndex* _demLhsIndex;
   InductionFormulaIndex& _formulaIndex;
 };
 

@@ -60,9 +60,9 @@ void InductionRewriting::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
   _lhsIndex=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(UNIT_LHS_INDEX) );
+	  _salg->getIndexManager()->request(REMODULATION_LHS_INDEX) );
   _subtermIndex=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(REMODULATION_SUBTERM_CODE_TREE) );
+	  _salg->getIndexManager()->request(REMODULATION_SUBTERM_INDEX) );
   // _induction->attach(salg);
 }
 
@@ -72,8 +72,8 @@ void InductionRewriting::detach()
   // delete _induction;
   _lhsIndex = 0;
   _subtermIndex=0;
-  _salg->getIndexManager()->release(UNIT_LHS_INDEX);
-  _salg->getIndexManager()->release(REMODULATION_SUBTERM_CODE_TREE);
+  _salg->getIndexManager()->release(REMODULATION_LHS_INDEX);
+  _salg->getIndexManager()->release(REMODULATION_SUBTERM_INDEX);
   GeneratingInferenceEngine::detach();
 }
 
@@ -416,16 +416,14 @@ bool shouldChain (Term* lhs) {
   return linear(lhs) && !hasTermToInductOn(lhs);
 }
 
-vset<unsigned> getSkolems(Literal* lit) {
-  vset<unsigned> res;
+void getSkolems(Literal* lit, DHSet<unsigned>& skolems) {
   NonVariableNonTypeIterator it(lit);
   while (it.hasNext()) {
     auto trm = it.next();
     if (env.signature->getFunction(trm->functor())->skolem()) {
-      res.insert(trm->functor());
+      skolems.insert(trm->functor());
     }
   }
-  return res;
 }
 
 VirtualIterator<TypedTermList> lhsIterator(Literal* lit)
@@ -441,138 +439,158 @@ VirtualIterator<TypedTermList> lhsIterator(Literal* lit)
   return res;
 }
 
+template<class TermListIter>
+auto withEqualitySort(Literal* eq, TermListIter iter)
+{ return pvi(iterTraits(std::move(iter))
+    .map([eq](TermList t) { return TypedTermList(t, SortHelper::getEqualityArgumentSort(eq)); })); }
+
+VirtualIterator<TypedTermList> orderedLhsIterator(Literal* lit, const Ordering& ord, bool reverse)
+{
+  ASS(lit->isEquality() && lit->isPositive());
+
+  TermList t0=*lit->nthArgument(0);
+  TermList t1=*lit->nthArgument(1);
+  switch(ord.getEqualityArgumentOrder(lit))
+  {
+  case Ordering::INCOMPARABLE:
+    return withEqualitySort(lit, getConcatenatedIterator(getSingletonIterator(t0),getSingletonIterator(t1)) );
+  case Ordering::GREATER:
+  case Ordering::GREATER_EQ:
+    return withEqualitySort(lit, getSingletonIterator(reverse ? t1 : t0) );
+  case Ordering::LESS:
+  case Ordering::LESS_EQ:
+    return withEqualitySort(lit, getSingletonIterator(reverse ? t0 : t1) );
+  //there should be no equality literals of equal terms
+  case Ordering::EQUAL:
+    break;
+  }
+  ASSERTION_VIOLATION;
+}
+
 ClauseIterator InductionRewriting::generateClauses(Clause* premise)
 {
-  // cout << "premise " << *premise << endl;
-  // ClauseIterator res = _induction->generateClauses(premise);
   auto res = ClauseIterator::getEmpty();
 
-  if (premise->length()==1) {
-    auto lit = (*premise)[0];
-    // cout << "lit " << *lit << endl;
-    if (lit->isEquality() && lit->isNegative() && lit->ground()) {
-      // auto t0 = lit->termArg(0);
-      // auto t1 = lit->termArg(1);
+  if (premise->length()!=1 || premise->remDepth()>=_salg->getOptions().maxRemodulationDepth()) {
+    return res;
+  }
 
-      // exploreTerm(t0.term(),true);
-      // int s0 = _leftTerms.size();
+  auto lit = (*premise)[0];
+  if (!lit->isEquality()) {
+    return res;
+  }
 
-      // exploreTermLMIM(t0.term(),true);
-      // int s0_0 = _leftTerms.size();
+  // checking the skolems is pretty expensive, so we cache anything we can
+  static DHMap<Clause*,bool> skolemsChecked;
+  skolemsChecked.reset();
 
-      // // exploreTerm(t1.term(),false);
-      // // int s1 = _rightTerms.size();
+  static DHSet<unsigned> skolems;
+  skolems.reset();
+  getSkolems(lit,skolems);
 
-      // exploreTermLMIM(t1.term(),false);
-      // int s1_0 = _rightTerms.size();
-      // // cout << "left diff " << s0-s0_0 << endl
-      // //      << "right diff " << s1-s1_0 << endl;
-      // // cout << s0 << " and " << s1 << " or " << s0_0 << " and " << s1_0 << endl << endl;
-      // unsigned cnt = 0;
-      // unsigned matches = 0;
-      // DHSet<Term*> indTerms;
-      // DHMap<Term*,Stack<Position>>::Iterator leftIt(_leftTerms);
-      // DHMap<Term*,Stack<Term*>> leftIndTermIndex;
-      // while (leftIt.hasNext()) {
-      //   Term* t;
-      //   auto& ps = leftIt.nextRef(t);
-      //   getTermsToInductOn(t, ps, indTerms);
-      //   cnt += indTerms.size();
-      //   // cout << *t << ": " << endl;
-      //   DHSet<Term*>::Iterator lIt(indTerms);
-      //   while (lIt.hasNext()) {
-      //     auto indTerm = lIt.next();
-      //     Stack<Term*>* index;
-      //     leftIndTermIndex.getValuePtr(indTerm, index);
-      //     index->push(t);
-      //     // cout << *lIt.next() << " ";
-      //   }
-      //   // cout << endl;
-      // }
-      // cout << "left terms to induct on " << cnt << endl;
-      // cnt = 0;
-      // DHMap<Term*,Stack<Position>>::Iterator rightIt(_rightTerms);
-      // while (rightIt.hasNext()) {
-      //   Term* t;
-      //   auto& ps = rightIt.nextRef(t);
-      //   getTermsToInductOn(t, ps, indTerms);
-      //   cnt += indTerms.size();
-      //   // cout << *t << ": " << endl;
-      //   DHSet<Term*>::Iterator lIt(indTerms);
-      //   while (lIt.hasNext()) {
-      //     auto indTerm = lIt.next();
-      //     auto ptr = leftIndTermIndex.findPtr(indTerm);
-      //     if (ptr) {
-      //       matches += ptr->size();
-      //     }
-      //     // cout << *lIt.next() << " ";
-      //   }
-      //   // cout << endl;
-      // }
-      // cout << "right terms to induct on " << cnt << endl;
-      // cout << "matches " << matches << endl;
+  const auto& opt = _salg->getOptions();
 
-      // const auto& ord = _salg->getOrdering();
-      auto ps = premise->backwardRewritingPositions();
+  // forward
+  if (lit->isNegative() && lit->ground()) {
+    res = pvi(iterTraits(vi(new NonVariableNonTypeIterator(lit)))
+      .flatMap([this](Term* t) {
+        return pvi(pushPairIntoRightIterator(t,_lhsIndex->getGeneralizations(t, true)));
+      })
+      .filter([premise,&opt](pair<Term*,TermQueryResult> arg) {
+        auto qr = arg.second;
+        if (premise->remDepth()+qr.clause->remDepth()>=opt.maxRemodulationDepth()) {
+          return false;
+        }
+        if (SortHelper::getResultSort(arg.first) != SortHelper::getEqualityArgumentSort(qr.literal)) {
+          return false;
+        }
+        bool* skolemsOk;
+        if (!skolemsChecked.getValuePtr(qr.clause, skolemsOk, false) && !(*skolemsOk)) {
+          return false;
+        }
+        auto rhs = EqHelper::getOtherEqualitySide(qr.literal,TermList(qr.term));
+        if (rhs.isTerm()) {
+          NonVariableNonTypeIterator it(rhs.term(),true);
+          while (it.hasNext()) {
+            auto trm = it.next();
+            if (env.signature->getFunction(trm->functor())->skolem() && !skolems.contains(trm->functor())) {
+              return false;
+            }
+          }
+        }
+        (*skolemsOk) = true;
+        return true;
+      })
+      .flatMap([lit](pair<Term*,TermQueryResult> arg) {
+        auto t0 = lit->termArg(0);
+        auto t1 = lit->termArg(1);
+        return pushPairIntoRightIterator(arg.second,
+          pvi(getConcatenatedIterator(
+            pvi(pushPairIntoRightIterator(t0.term(),getPositions(t0,arg.first))),
+            pvi(pushPairIntoRightIterator(t1.term(),getPositions(t1,arg.first)))
+          )));
+      })
+      .map([lit,premise,this](pair<TermQueryResult,pair<Term*,pair<Term*,Position>>> arg) -> Clause* {
+        auto side = arg.second.first;
+        auto lhsS = arg.second.second.first;
+        auto pos = arg.second.second.second;
+        auto qr = arg.first;
+        return perform(premise,lit,side,lhsS,pos,qr.clause,qr.literal,qr.term,qr.substitution.ptr(),true);
+      })
+      .filter(NonzeroFn())
+      .timeTraced("forward remodulation"));
+  }
 
-      res = pvi(getConcatenatedIterator(res, pvi(iterTraits(getConcatenatedIterator(
-          pvi(getSingletonIterator(make_pair(lit->termArg(0),true/*left*/))),
-          pvi(getSingletonIterator(make_pair(lit->termArg(1),false/*left*/)))
-        ))
-        .flatMap([](pair<TermList,bool> arg) {
-          return pvi(pushPairIntoRightIterator(make_pair(arg.first.term(),arg.second),vi(new PositionalNonVariableNonTypeIterator(arg.first.term()))));
-        })
-        // .filter([ps](pair<pair<Term*,bool>,pair<Term*,Position>> arg) {
-        //   return !ps || toTheLeft(getRightmostPosition(*ps, arg.first.second), arg.second.second);
-        // })
-        .flatMap([this](pair<pair<Term*,bool>,pair<Term*,Position>> arg) {
-          // cout << "st " << *arg.first << " in " << posToString(arg.second) << endl;
-          return pvi(pushPairIntoRightIterator(arg,_lhsIndex->getGeneralizations(arg.second.first, true)));
-        })
-        .map([lit,premise,this](pair<pair<pair<Term*,bool>,pair<Term*,Position>>,TermQueryResult> arg) -> Clause* {
-          auto side = arg.first.first.first;
-          auto lhsS = arg.first.second.first;
-          auto pos = arg.first.second.second;
-          auto qr = arg.second;
-          return perform(premise,lit,side,lhsS,pos,qr.clause,qr.literal,qr.term,qr.substitution.ptr(),true);
-        })
-        .filter(NonzeroFn())
-        .timeTraced("forward remodulation"))));
-    }
-
-
-    if (lit->isEquality() && lit->isPositive()) {
-      const auto& ord = _salg->getOrdering();
-      const auto& opt = _salg->getOptions();
-
-      res = pvi(getConcatenatedIterator(res,pvi(iterTraits(lhsIterator(lit))
-        .flatMap([this](TypedTermList lhs) {
-          return pvi(pushPairIntoRightIterator(lhs,_subtermIndex->getInstances(lhs,true)));
-        })
-        .flatMap([](pair<TypedTermList,TermQueryResult> arg) {
-          auto t = arg.second.term.term();
-          auto t0 = arg.second.literal->termArg(0);
-          auto t1 = arg.second.literal->termArg(1);
-          return pushPairIntoRightIterator(arg,
-            pvi(getConcatenatedIterator(
-              pvi(pushPairIntoRightIterator(make_pair(t0.term(),true),getPositions(t0,t))),
-              pvi(pushPairIntoRightIterator(make_pair(t1.term(),false),getPositions(t1,t)))
-            )));
-        })
-        // .filter([](pair<pair<TypedTermList,TermQueryResult>,pair<pair<Term*,bool>,pair<Term*,Position>>> arg) {
-        //   auto ps = arg.first.second.clause->backwardRewritingPositions();
-        //   return !ps || toTheLeft(getRightmostPosition(*ps, arg.second.first.first), arg.second.second.second);
-        // })
-        .map([lit,premise,this](pair<pair<TypedTermList,TermQueryResult>,pair<pair<Term*,bool>,pair<Term*,Position>>> arg) -> Clause* {
-          auto side = arg.second.first.first;
-          auto pos = arg.second.second.second;
-          auto qr = arg.first.second;
-          auto eqLhs = arg.first.first;
-          return perform(qr.clause, qr.literal, side, qr.term.term(), pos, premise, lit, eqLhs, qr.substitution.ptr(), false);
-        })
-        .filter(NonzeroFn())
-        .timeTraced("backward remodulation"))));
-    }
+  // backward
+  if (lit->isPositive()) {
+    res = pvi(getConcatenatedIterator(res,pvi(iterTraits(lhsIterator(lit))
+      .flatMap([this](TypedTermList lhs) {
+        return pvi(pushPairIntoRightIterator(lhs,_subtermIndex->getInstances(lhs,true)));
+      })
+      .filter([premise,lit,&opt](pair<TypedTermList,TermQueryResult> arg) {
+        auto qr = arg.second;
+        if (premise->remDepth()+qr.clause->remDepth()>=opt.maxRemodulationDepth()) {
+          return false;
+        }
+        if (SortHelper::getResultSort(qr.term.term()) != SortHelper::getEqualityArgumentSort(lit)) {
+          return false;
+        }
+        bool* skolemsOk;
+        if (!skolemsChecked.getValuePtr(qr.clause, skolemsOk, false) && !(*skolemsOk)) {
+          return false;
+        }
+        if (!skolems.isEmpty()) {
+          DHSet<unsigned> rwSkolems;
+          getSkolems(qr.literal,rwSkolems);
+          DHSet<unsigned>::Iterator it(skolems);
+          while (it.hasNext()) {
+            if (!rwSkolems.contains(it.next())) {
+              return false;
+            }
+          }
+        }
+        (*skolemsOk) = true;
+        return true;
+      })
+      .flatMap([](pair<TypedTermList,TermQueryResult> arg) {
+        auto t = arg.second.term.term();
+        auto t0 = arg.second.literal->termArg(0);
+        auto t1 = arg.second.literal->termArg(1);
+        return pushPairIntoRightIterator(arg,
+          pvi(getConcatenatedIterator(
+            pvi(pushPairIntoRightIterator(t0.term(),getPositions(t0,t))),
+            pvi(pushPairIntoRightIterator(t1.term(),getPositions(t1,t)))
+          )));
+      })
+      .map([lit,premise,this](pair<pair<TypedTermList,TermQueryResult>,pair<Term*,pair<Term*,Position>>> arg) -> Clause* {
+        auto side = arg.second.first;
+        auto pos = arg.second.second.second;
+        auto qr = arg.first.second;
+        auto eqLhs = arg.first.first;
+        return perform(qr.clause, qr.literal, side, qr.term.term(), pos, premise, lit, eqLhs, qr.substitution.ptr(), false);
+      })
+      .filter(NonzeroFn())
+      .timeTraced("backward remodulation"))));
   }
   return res;
 }
@@ -580,26 +598,9 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
 Clause* InductionRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, const Position& pos,
   Clause* eqClause, Literal* eqLit, TermList eqLhs, ResultSubstitution* subst, bool eqIsResult)
 {
-  // heuristic to avoid remodulating with any random induction hypothesis
-  vset<unsigned> eqSkolems = getSkolems(eqLit);
-  if (!eqSkolems.empty()) {
-    vset<unsigned> rwSkolems = getSkolems(rwLit);
-    vset<unsigned> is;
-    set_intersection(eqSkolems.begin(), eqSkolems.end(), rwSkolems.begin(), rwSkolems.end(), inserter(is, is.end()));
-    if (is != eqSkolems) {
-      return 0;
-    }
-  }
-
   const auto& opt = _salg->getOptions();
-  if (rwClause->remDepth()+eqClause->remDepth()>=opt.maxRemodulationDepth()) {
-    return nullptr;
-  }
-  if (SortHelper::getResultSort(rwTerm) != SortHelper::getEqualityArgumentSort(eqLit)) {
-    return nullptr;
-  }
   const auto& ord = _salg->getOrdering();
-  // cout << "eq " << *qr.literal << endl;
+
   auto rhs = EqHelper::getOtherEqualitySide(eqLit,TermList(eqLhs));
   auto rhsS = eqIsResult ? subst->applyToBoundResult(rhs) : subst->applyToBoundQuery(rhs);
 
@@ -619,44 +620,7 @@ Clause* InductionRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
   Clause* res = new(1) Clause(1,
     GeneratingInference2(InferenceRule::FORWARD_REMODULATION, rwClause, eqClause));
   (*res)[0]=resLit;
-
-  auto resPs = new Stack<pair<Position,bool>>();
-  res->setBackwardRewritingPositions(resPs);
   res->setRemDepth(rwClause->remDepth()+eqClause->remDepth()+1);
-  bool left = rwLit->termArg(0).term() == rwSide;
-  // cout << "side " << *side << " " << (left ? "left" : "right") << " in " << *lit << endl;
-  bool reversed = resLit->termArg(left ? 1 : 0).term() == tgtSide;
-  auto ps = rwClause->backwardRewritingPositions();
-  if (ps) {
-    for (const auto& kv : *ps) {
-      bool diverged = false;
-      const auto& q = kv.first;
-      const auto& leftPrev = kv.second;
-      if (left != leftPrev) {
-        resPs->push(make_pair(q,reversed?!leftPrev:leftPrev));
-        continue; // skip position corresponding to the other side
-      }
-      for (unsigned i = 0; i < q.size(); i++) {
-        if (pos.size() <= i) {
-          break;
-        }
-        if (pos[i] != q[i]) {
-          diverged = true;
-          break;
-        }
-      }
-      if (diverged) {
-        resPs->push(make_pair(q,reversed?!leftPrev:leftPrev));
-      }
-    }
-  }
-  // assertPositionIn(pos,sideR);
-  resPs->push(make_pair(pos,reversed?!left:left));
-  // cout << *res << endl << " with positions " << endl;
-  // for (const auto& kv : *resPs) {
-  //   cout << kv.second << " " << posToString(kv.first) << endl;
-  //   assertPositionIn(kv.first,resLit->termArg(kv.second?0:1).term());
-  // }
 
   if (eqIsResult) {
     env.statistics->forwardRemodulations++;

@@ -209,21 +209,39 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case UNIT_LHS_INDEX:
+  case REMODULATION_LHS_INDEX:
     tis=new TermSubstitutionTree();
-    res=new UnitLHSIndex(tis);
+    res=new RemodulationLHSIndex(tis, _alg->getOptions());
     isGenerating = true;
     break;
 
-  case REMODULATION_SUBTERM_CODE_TREE:
+  case REMODULATION_SUBTERM_INDEX:
     tis=new TermSubstitutionTree();
-    res=new RemodulationSubtermIndex(tis);
+    res=new RemodulationSubtermIndex(tis, _alg->getOptions());
     isGenerating = true;
     break;
 
-  case UPWARD_CHAIN_BUILDING_SUBTERM_INDEX:
+  case LEFT_UPWARD_CHAINING_LHS_INDEX:
     tis=new TermSubstitutionTree();
-    res=new UpwardChainBuildingSubtermIndex(tis);
+    res=new UpwardChainingLHSIndex(tis, _alg->getOrdering(), _alg->getOptions(), true /*left*/);
+    isGenerating = true;
+    break;
+
+  case RIGHT_UPWARD_CHAINING_LHS_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new UpwardChainingLHSIndex(tis, _alg->getOrdering(), _alg->getOptions(), false /*left*/);
+    isGenerating = true;
+    break;
+
+  case LEFT_UPWARD_CHAINING_SUBTERM_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new UpwardChainingSubtermIndex(tis, _alg->getOrdering(), _alg->getOptions(), true /*left*/);
+    isGenerating = true;
+    break;
+
+  case RIGHT_UPWARD_CHAINING_SUBTERM_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new UpwardChainingSubtermIndex(tis, _alg->getOrdering(), _alg->getOptions(), false /*left*/);
     isGenerating = true;
     break;
 

@@ -124,35 +124,57 @@ private:
   const Options& _opt;
 };
 
-class UnitLHSIndex
+class RemodulationLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(UnitLHSIndex);
-  USE_ALLOCATOR(UnitLHSIndex);
+  CLASS_NAME(RemodulationLHSIndex);
+  USE_ALLOCATOR(RemodulationLHSIndex);
 
-  UnitLHSIndex(TermIndexingStructure* is) : TermIndex(is) {}
+  RemodulationLHSIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {}
 
 protected:
   void handleClause(Clause* c, bool adding) override;
+  const Options& _opt;
 };
 
 class RemodulationSubtermIndex
 : public TermIndex
 {
 public:
-  RemodulationSubtermIndex(TermIndexingStructure* is) : TermIndex(is) {};
+  RemodulationSubtermIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding) override;
+  const Options& _opt;
 };
 
-class UpwardChainBuildingSubtermIndex
+class UpwardChainingLHSIndex
 : public TermIndex
 {
 public:
-  UpwardChainBuildingSubtermIndex(TermIndexingStructure* is) : TermIndex(is) {};
+  CLASS_NAME(UpwardChainingLHSIndex);
+  USE_ALLOCATOR(UpwardChainingLHSIndex);
+
+  UpwardChainingLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt, bool left)
+  : TermIndex(is), _ord(ord), _opt(opt), _left(left) {}
 protected:
   void handleClause(Clause* c, bool adding) override;
+  const Ordering& _ord;
+  const Options& _opt;
+  bool _left;
+};
+
+class UpwardChainingSubtermIndex
+: public TermIndex
+{
+public:
+  UpwardChainingSubtermIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt, bool left)
+  : TermIndex(is), _ord(ord), _opt(opt), _left(left) {}
+protected:
+  void handleClause(Clause* c, bool adding) override;
+  const Ordering& _ord;
+  const Options& _opt;
+  bool _left;
 };
 
 /**

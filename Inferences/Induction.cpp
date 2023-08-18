@@ -242,9 +242,12 @@ void Induction::attach(SaturationAlgorithm* salg) {
     _structInductionTermIndex = static_cast<TermIndex*>(
       _salg->getIndexManager()->request(STRUCT_INDUCTION_TERM_INDEX));
   }
+  _demLhsIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE));
 }
 
 void Induction::detach() {
+  _demLhsIndex = nullptr;
+  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   if (InductionHelper::isNonUnitStructInductionOn()) {
     _structInductionTermIndex = nullptr;
     _salg->getIndexManager()->release(STRUCT_INDUCTION_TERM_INDEX);
@@ -261,7 +264,7 @@ void Induction::detach() {
 ClauseIterator Induction::generateClauses(Clause* premise)
 {
   return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex, _inductionTermIndex), getOptions(),
-    _structInductionTermIndex, _formulaIndex));
+    _salg->getOrdering(), _structInductionTermIndex, _demLhsIndex, _formulaIndex));
 }
 
 void InductionClauseIterator::processClause(Clause* premise)
@@ -394,6 +397,66 @@ void getTermsToInductOn(Literal* lit, const Stack<pair<Position,bool>>& ps, DHSe
   }
 }
 
+bool InductionClauseIterator::isRedundant(const InductionContext& context)
+{
+  TIME_TRACE("induction redundancy check");
+  if (context._cls.size()>1) {
+    return false;
+  }
+  auto cl = context._cls.begin()->first;
+  if (!cl->remDepth()) {
+    return false;
+  }
+  auto lits = context._cls.begin()->second;
+  if (lits.size()>1) {
+    return false;
+  }
+  auto lit = lits[0];
+  NonVariableNonTypeIterator it(lit);
+  while(it.hasNext()) {
+    TypedTermList trm=it.next();
+    auto git = _demLhsIndex->getGeneralizations(trm, true);
+    while(git.hasNext()) {
+      TermQueryResult qr=git.next();
+      ASS_EQ(qr.clause->length(),1);
+      if (!cl->splits() && qr.clause->splits() && !qr.clause->splits()->isSubsetOf(cl->splits())) {
+        continue;
+      }
+
+      static RobSubstitution subst;
+      bool resultTermIsVar = qr.term.isVar();
+      if(resultTermIsVar){
+        TermList querySort = trm.sort();
+        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        subst.reset();
+        if(!subst.match(eqSort, 0, querySort, 1)){
+          continue;
+        }
+      }
+
+      TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+      TermList rhsS;
+      ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
+      rhsS=qr.substitution->applyToBoundResult(rhs);
+      if(resultTermIsVar){
+        rhsS = subst.apply(rhsS, 0);
+      }
+
+      // double check this condition
+      // if (rhsS.containsSubterm(TermList(context._indTerm))) {
+      //   continue;
+      // }
+
+      Ordering::Result tord=_ord.compare(rhsS, trm);
+      if (tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
+        continue;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
   if(_opt.showInduction()){
@@ -421,14 +484,14 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         }
       }
 
-      auto ps = premise->backwardRewritingPositions();
-      if (ps) {
-        ASS(lit->isNegative());
-        // cout << "before " << ta_terms.size() << endl;
-        // cout << *premise << endl;
-        getTermsToInductOn(lit, *ps, ta_terms);
-        // cout << "after " << ta_terms.size() << endl;
-      }
+      // auto ps = premise->backwardRewritingPositions();
+      // if (ps) {
+      //   ASS(lit->isNegative());
+      //   // cout << "before " << ta_terms.size() << endl;
+      //   // cout << *premise << endl;
+      //   getTermsToInductOn(lit, *ps, ta_terms);
+      //   // cout << "after " << ta_terms.size() << endl;
+      // }
 
     if (InductionHelper::isInductionLiteral(lit)) {
       Set<Term*>::Iterator citer1(int_terms);
@@ -521,6 +584,13 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       // generalize all contexts if needed
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
+      })
+      .filter([this](const InductionContext& arg) {
+        if (isRedundant(arg)) {
+          TIME_TRACE("induction redundant");
+          return false;
+        }
+        return true;
       });
     auto indCtxIt = iterTraits(getConcatenatedIterator(sideLitsIt2, indCtxSingle))
       // filter out the ones without an induction literal
