@@ -30,6 +30,7 @@
 #include "NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Debug/Output.hpp"
+#include "Debug/Tracer.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
 #define DEBUG_FINALIZE(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 
