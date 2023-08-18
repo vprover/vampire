@@ -19,7 +19,7 @@
 #include "Allocator.hpp"
 #include "Lib/Timer.hpp"
 
-#ifndef USE_SYSTEM_ALLOCATION
+#ifndef INDIVIDUAL_ALLOCATIONS
 Lib::SmallObjectAllocator Lib::GLOBAL_SMALL_OBJECT_ALLOCATOR;
 #endif
 
