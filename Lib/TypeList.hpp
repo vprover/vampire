@@ -102,6 +102,24 @@ namespace TypeList {
 
 
   /* Meta level function. 
+   * size : List [class] -> bool
+   *
+   * returns the number of elements in the list
+   *
+   * E.g. All<std::is_trivially_copyable, List<int,std::vector<int>>>::val ==> false
+   *      All<std::is_trivially_copyable, List<int,bool>            >::val ==> true
+   */  
+  template<template<class> class Pred, class As> struct All;
+
+  template<template<class> class Pred> struct All<Pred, List<>> 
+  { static bool constexpr val = true; };
+
+  template<template<class> class Pred, class A, class... As> 
+  struct All<Pred, List<A, As...>> 
+  { static bool constexpr val = Pred<A>::value && All<Pred, List<As...>>::val; };
+
+
+  /* Meta level function. 
    * cnt : class -> List [class] -> unsigned
    *
    * returns the number of occurences of an element in a list
@@ -189,6 +207,7 @@ namespace TypeList {
   };
 
 
+
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////// COMPILE TIME TESTS
   ////////////////////////////////
@@ -265,6 +284,19 @@ namespace TypeList {
     STATIC_TEST_TYPE_EQ(
        WithIndices<List<A, B, A>>,
        List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>)
+
+    STATIC_TEST_VAL_EQ(
+       std::is_trivially_copyable<std::vector<int>>::value == false)
+
+    STATIC_TEST_VAL_EQ(
+       std::is_trivially_copyable<int>::value == true)
+
+    STATIC_TEST_VAL_EQ(
+             All<std::is_trivially_copyable, List<int,std::vector<int>>>::val == false)
+
+    STATIC_TEST_VAL_EQ(
+             All<std::is_trivially_copyable, List<int,bool            >>::val == true)
+
   }
 
 } // namespace TypeList

@@ -226,11 +226,11 @@ namespace CoproductImpl {
         DefaultImpl& operator=(DefaultImpl OTHER_REF other) = default;                    \
         DefaultImpl& operator=(DefaultImpl       REF other)                               \
         {                                                                                 \
-          this->assignTag(other.tag());                                                   \
           this->switchN([&](auto N) {                                                     \
               using A = TL::Get<N.value, typename T::Ts>;                                 \
-              this->template cast<A>() = MOVE(other.template cast<A>());                  \
+              this->template cast<A>().~A();                                              \
           });                                                                             \
+          ::new(this) DefaultImpl(MOVE(other));                                           \
           return *this;                                                                   \
         }                                                                                 \
       };                                                                                  \
@@ -604,7 +604,6 @@ public:
 
   friend struct std::hash<Coproduct>;
 
-  __attribute__((noinline))
   inline Lib::Comparison compare(Coproduct const& rhs) const
   { 
     auto& lhs = *this;
