@@ -15,13 +15,14 @@
 
 namespace Kernel {
 
+using namespace std;
+
 /** a struct that normalizes an object of type MonomFactors to a Monom */
 struct RenderMonom {
 
   template<class NumTraits>
   Monom<NumTraits> operator()(MonomFactors<NumTraits>&& x) const 
   { 
-    CALL("RenderMonom::operator()(MonomFactors<Numeral>&&)")
     using Numeral      = typename NumTraits::ConstantType;
     using Monom        = Monom       <NumTraits>;
     auto& raw = x.raw();
@@ -86,7 +87,6 @@ struct RenderPolyNf {
 
 template<class NumTraits>
 NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& rhs) {
-  CALL("normalizeAdd")
   using Polynom = Polynom<NumTraits>;
   using Monom = Monom<NumTraits>;
   using MonomFactors = MonomFactors<NumTraits>;
@@ -134,7 +134,6 @@ NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& 
 
 template<class NumTraits>
 NormalizationResult normalizeMul(NormalizationResult& lhs, NormalizationResult& rhs) {
-  CALL("normalizeMul")
   using Polynom = Polynom<NumTraits>;
   using MonomFactors = MonomFactors<NumTraits>;
   using MonomFactor = MonomFactor<NumTraits>;
@@ -277,7 +276,6 @@ NormalizationResult normalizeMinus(NormalizationResult& x) {
 template<class NumTraits>
 NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts) 
 {
-  CALL("normalizeNumSort(TermList,NormalizationResult)")
   auto singletonProduct = [](PolyNf t) -> NormalizationResult {
     return NormalizationResult(MonomFactors<NumTraits>(t));
   };
@@ -327,13 +325,11 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
 PolyNf normalizeTerm(TypedTermList t) 
 {
-  CALL("PolyNf::normalize")
   DEBUG("normalizing ", t)
   NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
     .function(
         [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
         { 
-          CALL("normalizeTerm(TypedTermList)::eval::operator()")
           auto sort = t.sort();
           if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
           if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
@@ -360,7 +356,6 @@ PolyNf normalizeTerm(TypedTermList t)
 
 TermList PolyNf::denormalize() const
 { 
-  CALL("PolyNf::denormalize")
   DEBUG("converting ", *this)
 
   static Memo::Hashed<PolyNf, TermList, StlHash> memo;

@@ -37,13 +37,12 @@
 namespace Indexing
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
 void ClauseCodeTree::onCodeOpDestroying(CodeOp* op)
 {
-  CALL("ClauseCodeTree::onCodeOpDestroying");
-    
   if (op->isLitEnd()) {
     delete op->getILS(); 
   }
@@ -62,8 +61,6 @@ ClauseCodeTree::ClauseCodeTree()
 
 void ClauseCodeTree::insert(Clause* cl)
 {
-  CALL("ClauseCodeTree::insert");
-
   unsigned clen=cl->length();
   static DArray<Literal*> lits;
   lits.initFromArray(clen, *cl);
@@ -100,8 +97,6 @@ struct ClauseCodeTree::InitialLiteralOrderingComparator
 
 void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 {
-  CALL("ClauseCodeTree::optimizeLiteralOrder");
-
   unsigned clen=lits.size();
   if(isEmpty() || clen<=1) {
     return;
@@ -153,8 +148,6 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 
 void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
 {
-  CALL("ClauseCodeTree::evalSharing");
-
   static CodeStack code;
   static CompileContext cctx;
 
@@ -184,8 +177,6 @@ void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLe
  */
 void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt, CodeOp*& nextOp)
 {
-  CALL("ClauseCodeTree::matchCode");
-
   size_t clen=code.length();
   CodeOp* treeOp=startOp;
 
@@ -230,8 +221,6 @@ void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matched
 
 void ClauseCodeTree::remove(Clause* cl)
 {
-  CALL("ClauseCodeTree::remove");
-
   static DArray<LitInfo> lInfos;
   Recycled<Stack<CodeOp*>> firstsInBlocks;
   Recycled<Stack<Recycled<RemovingLiteralMatcher, NoReset>>> rlms;
@@ -309,8 +298,6 @@ void ClauseCodeTree::remove(Clause* cl)
 void ClauseCodeTree::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
     size_t linfoCnt_, ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  CALL("ClauseCodeTree::RemovingLiteralMatcher::init");
-
   RemovingMatcher::init(entry_, linfos_, linfoCnt_, tree_, firstsInBlocks_);
 
   ALWAYS(prepareLiteral());
@@ -322,8 +309,6 @@ void ClauseCodeTree::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfo
  */
 bool ClauseCodeTree::removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks)
 {
-  CALL("ClauseCodeTree::removeOneOfAlternatives");
-
   unsigned initDepth=firstsInBlocks->size();
 
   while(!op->isSuccess() || op->getSuccessResult()!=cl) {
@@ -351,7 +336,6 @@ void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
 					  LitInfo* linfos_, size_t linfoCnt_,
 					  bool seekOnlySuccess)
 {
-  CALL("ClauseCodeTree::LiteralMatcher::init");
   ASS_G(linfoCnt_,0);
 
   Matcher::init(tree_,entry_);
@@ -388,8 +372,6 @@ void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
  */
 bool ClauseCodeTree::LiteralMatcher::next()
 {
-  CALL("ClauseCodeTree::LiteralMatcher::next");
-
   if(eagerlyMatched()) {
     _matched=!eagerResults.isEmpty();
     if(!_matched) {
@@ -421,7 +403,6 @@ bool ClauseCodeTree::LiteralMatcher::next()
  */
 bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
 {
-  CALL("ClauseCodeTree::LiteralMatcher::doEagerMatching");
   ASS(!eagerlyMatched()); //eager matching can be done only once
   ASS(eagerResults.isEmpty());
   ASS(!finished());
@@ -466,7 +447,6 @@ bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
 
 void ClauseCodeTree::LiteralMatcher::recordMatch()
 {
-  CALL("ClauseCodeTree::LiteralMatcher::recordMatch");
   ASS(matched());
 
   ILStruct* ils=op->getILS();
@@ -492,7 +472,6 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
  */
 void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, bool sres_)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::init");
   ASS(!tree_->isEmpty());
 
   query=query_;
@@ -559,8 +538,6 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
 
 void ClauseCodeTree::ClauseMatcher::reset()
 {
-  CALL("ClauseCodeTree::ClauseMatcher::deinit");
-
   unsigned liCnt=lInfos.size();
   for(unsigned i=0;i<liCnt;i++) {
     lInfos[i].dispose();
@@ -578,8 +555,6 @@ void ClauseCodeTree::ClauseMatcher::reset()
  */
 Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::next");
-
   if(lms.isEmpty()) {
     return 0;
   }
@@ -631,7 +606,6 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
 
 inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::canEnterLiteral");
   ASS(op->isLitEnd());
   ASS_EQ(lms.top()->op, op);
 
@@ -700,8 +674,6 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
  */
 void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::enterLiteral");
-
   if(!seekOnlySuccess) {
     RSTAT_MCTR_INC("enterLiteral levels (non-sos)", lms.size());
   }
@@ -733,7 +705,6 @@ void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuc
 
 void ClauseCodeTree::ClauseMatcher::leaveLiteral()
 {
-  CALL("ClauseCodeTree::ClauseMatcher::leaveLiteral");
   ASS(lms.isNonEmpty());
 
   lms.pop();
@@ -762,8 +733,6 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
 
 bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQueryLit)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::checkCandidate");
-
   unsigned clen=cl->length();
   //the last matcher in mls is the one that yielded the SUCCESS operation
   ASS_EQ(clen, lms.size()-1);
@@ -819,8 +788,6 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
 
 bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::matchGlobalVars");
-
   //TODO: perform _set_, not _multiset_ subsumption for subsumption resolution
 
 //  bool verbose=query->number()==58746;
@@ -918,8 +885,6 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 
 bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::compatible");
-
   if( lInfos[bq->liIndex].litIndex==lInfos[nq->liIndex].litIndex ||
       (lInfos[bq->liIndex].opposite && lInfos[nq->liIndex].opposite) ) {
     return false;
@@ -965,8 +930,6 @@ bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILSt
 
 bool ClauseCodeTree::ClauseMatcher::existsCompatibleMatch(ILStruct* si, MatchInfo* sq, ILStruct* targets)
 {
-  CALL("ClauseCodeTree::ClauseMatcher::existsCompatibleMatch");
-
   size_t tcnt=targets->matchCnt;
   for(size_t i=0;i<tcnt;i++) {
     if(compatible(si,sq,targets,targets->getMatch(i))) {

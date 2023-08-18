@@ -76,9 +76,9 @@ public:
   void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);  
   void recordIntroducedSplitName(Unit* u, vstring name);
 
-  void outputUnsatCore(ostream& out, Unit* refutation);
-  void outputProof(ostream& out, Unit* refutation);
-  void outputProof(ostream& out, UnitList* units);
+  void outputUnsatCore(std::ostream& out, Unit* refutation);
+  void outputProof(std::ostream& out, Unit* refutation);
+  void outputProof(std::ostream& out, UnitList* units);
 
   UnitIterator getParents(Unit* us, InferenceRule& rule);
   UnitIterator getParents(Unit* us);
@@ -93,7 +93,7 @@ private:
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
 
-  ProofPrinter* createProofPrinter(ostream& out);
+  ProofPrinter* createProofPrinter(std::ostream& out);
 
   DHMultiset<Clause*> _nextClIds;
 
@@ -101,7 +101,7 @@ private:
 
 
   /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
-  typedef pair<SymbolType,unsigned> SymbolId;  
+  typedef std::pair<SymbolType,unsigned> SymbolId;  
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
   DHMap<unsigned,vstring> _introducedSplitNames;

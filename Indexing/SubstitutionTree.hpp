@@ -61,7 +61,6 @@
   static constexpr int QUERY_BANK=0;
   static constexpr int RESULT_BANK=1;
   static constexpr int NORM_RESULT_BANK=3;
-  using namespace std;
   using namespace Lib;
   using namespace Kernel;
 
@@ -96,7 +95,7 @@
     Cntr& _cntr;
 
     InstanceCntr& operator=(InstanceCntr&& other) 
-    { swap(other._cntr, _cntr); return *this; }
+    { std::swap(other._cntr, _cntr); return *this; }
 
     InstanceCntr(InstanceCntr&& other) 
       : _cntr(other._cntr)
@@ -207,8 +206,6 @@
       inline
       static Comparison compare(const LeafData& ld1, const LeafData& ld2)
       {
-        CALL("SubstitutionTree::LDComparator::compare");
-
         if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
           ASS_NEQ(ld1.clause->number(), ld2.clause->number());
           return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
@@ -266,9 +263,9 @@
 #endif // CACHE_FUNCTOR
 
     public:
-      friend std::ostream& operator<<(ostream& out, OutputMultiline<Node> const& self) 
+      friend std::ostream& operator<<(std::ostream& out, OutputMultiline<Node> const& self) 
       { self.self.output(out, /* multiline = */ true, self.indent); return out; }
-      friend std::ostream& operator<<(ostream& out, Node const& self) 
+      friend std::ostream& operator<<(std::ostream& out, Node const& self) 
       { self.output(out, /* multiline = */ false, /* indent */ 0); return out; }
       inline Node() : _term(TermList::empty()) {}
       inline Node(TermList ts) : Node() { setTerm(ts); }
@@ -539,8 +536,6 @@
       }
       virtual Node** childByTop(TermList::Top t, bool canCreate)
       {
-        CALL("SubstitutionTree::SListIntermediateNode::childByTop");
-
         Node** res;
         bool found=_nodes.getPosition(t,res,canCreate);
         if(!found) {
@@ -656,7 +651,7 @@
       createBindings(norm, /* reversed */ false,
           [&](auto var, auto term) { 
             bindings->insert(var, term);
-            _nextVar = max(_nextVar, (int)var + 1);
+            _nextVar = std::max(_nextVar, (int)var + 1);
           });
       if (doInsert) insert(*bindings, ld);
       else          remove(*bindings, ld);
@@ -707,10 +702,7 @@
     template<class Query>
     RSQueryResultIter getVariants(Query query, bool retrieveSubstitutions)
     {
-      CALL("LiteralSubstitutionTree::getVariants");
-
-
-      auto renaming = retrieveSubstitutions ? make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
+      auto renaming = retrieveSubstitutions ? std::make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
       ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(&*renaming) : ResultSubstitutionSP();
 
       Query normQuery;
@@ -724,7 +716,7 @@
       Recycled<BindingMap> svBindings;
       createBindings(normQuery, /* reversed */ false,
           [&](auto v, auto t) { {
-            _nextVar = max<int>(_nextVar, v + 1); // TODO do we need this line?
+            _nextVar = std::max<int>(_nextVar, v + 1); // TODO do we need this line?
             svBindings->insert(v, t);
           } });
       Leaf* leaf = findLeaf(*svBindings);
@@ -786,7 +778,7 @@
         if(_specVars->size()<nextSpecVar) {
           //_specVars can get really big, but it was introduced instead of hash table
           //during optimizations, as it raised performance by abour 5%.
-          _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
+          _specVars->ensure(std::max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
         }
         _bindings->ensure(weight(query));
       }
@@ -925,7 +917,6 @@
         , _nodeTypes()
         , _iterCntr(parent->_iterCnt)
       {
-        CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
         ASS(root);
 
         parent->createBindings(query, reversed,
@@ -984,18 +975,13 @@
         TermSpec(bool q, TermList t)
         : q(q), t(t)
         {
-          CALL("SubstitutionTree::InstMatcher::TermSpec::TermSpec");
-
           //query does not contain special vars
           ASS(!q || !t.isTerm() || t.term()->shared());
           ASS(!q || !t.isSpecialVar());
         }
 
         vstring toString()
-        {
-          CALL("SubstitutionTree::InstMatcher::TermSpec::toString");
-          return (q ? "q|" : "n|")+t.toString();
-        }
+        { return (q ? "q|" : "n|")+t.toString(); }
 
         /**
          * Return true if the @b t field can be use as a binding for a query
@@ -1021,7 +1007,6 @@
        */
       void bindSpecialVar(unsigned var, TermList term)
       {
-        CALL("SubstitutionTree::InstMatcher::bindSpecialVar");
         ASS_EQ(getBSCnt(), 0);
 
         ALWAYS(_bindings->insert(TermList(var,true),TermSpec(true,term)));
@@ -1077,14 +1062,12 @@
 
       bool isBound(TermList var)
       {
-        CALL("SubstitutionTree::InstMatcher::isBound");
         ASS(var.isVar());
 
         return _bindings->find(var);
       }
       void bind(TermList var, TermSpec trm)
       {
-        CALL("SubstitutionTree::InstMatcher::bind");
         ASS(!var.isOrdinaryVar() || !trm.q); //we do not bind ordinary vars to query terms
 
         ALWAYS(_bindings->insert(var, trm));
@@ -1123,7 +1106,6 @@
         DerefApplicator(InstMatcher* im, bool query) : query(query), im(im) {}
         TermList apply(unsigned var)
         {
-          CALL("SubstitutionTree::InstMatcher::DerefApplicator::apply");
           if(query) {
             return im->_derefBindings->get(TermList(var, false));
           }
@@ -1133,7 +1115,6 @@
         }
         TermList applyToSpecVar(unsigned specVar)
         {
-          CALL("SubstitutionTree::InstMatcher::DerefApplicator::applyToSpecVar");
           ASS(!query);
 
           return im->_derefBindings->get(TermList(specVar, true));
@@ -1171,7 +1152,6 @@
         , _nodeTypes()
         , _iterCntr(parent->_iterCnt)
       {
-        CALL("SubstitutionTree::FastInstancesIterator::FastInstancesIterator");
         ASS(root);
 
         parent->createBindings(query, reversed,
@@ -1244,8 +1224,6 @@
         , _iterCntr(parent->_iterCnt)
       {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
-        CALL("SubstitutionTree::Iterator::Iterator");
-
         if(!root) {
           return;
         }
@@ -1276,8 +1254,6 @@
 
       bool hasNext()
       {
-        CALL("SubstitutionTree::Iterator::hasNext");
-
         if(_clientBDRecording) {
           _algo.bdDone();
           _clientBDRecording=false;
@@ -1290,8 +1266,6 @@
 
       QueryResult<Unifier> next()
       {
-        CALL("SubstitutionTree::Iterator::next");
-
         while(!_ldIterator.hasNext() && findNextLeaf()) {}
         ASS(_ldIterator.hasNext());
 
@@ -1324,8 +1298,6 @@
 
       bool findNextLeaf()
       {
-        CALL("SubstitutionTree::Iterator::findNextLeaf");
-
         if(_nodeIterators->isEmpty()) {
           //There are no node iterators in the stack, so there's nowhere
           //to look for the next leaf.
@@ -1372,8 +1344,6 @@
 
       bool enter(Node* n, BacktrackData& bd)
       {
-        CALL("SubstitutionTree::Iterator::enter");
-
         bool success=true;
         bool recording=false;
         if(!n->term().isEmpty()) {

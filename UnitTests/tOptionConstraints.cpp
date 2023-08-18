@@ -13,6 +13,7 @@
 
 #include "Test/UnitTesting.hpp"
 
+using namespace std;
 using namespace Shell;
 
 bool testGlobal(Options& o)
@@ -54,18 +55,4 @@ TEST_FUN(default_dependence)
   // we shouldn't just be able to set extensionality_allow_pos_eq to true,
   // since it does no make sense, unless extensionality_resolution is something else than the (default) off
   ASS(testOptionBad("extensionality_allow_pos_eq","true"));
-}
-
-TEST_FUN(urr)
-{
-  // Unit resulting resolution has the dependence that it cannot be non-default
-  // if the saturation algorithm is inst_gen AND inst_gen_with_resolution is off
-
-  {
-    Options o;
-    o.set("unit_resulting_resolution","on");
-    o.set("saturation_algorithm","inst_gen");
-    o.set("inst_gen_with_resolution","off");
-    ASS(!testGlobal(o));
-  } 
 }

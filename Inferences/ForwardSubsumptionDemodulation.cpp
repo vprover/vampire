@@ -44,7 +44,6 @@ using namespace Saturation;
 
 void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardSubsumptionDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), FSD_SUBST_TREE);
@@ -60,7 +59,6 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardSubsumptionDemodulation::detach()
 {
-  CALL("ForwardSubsumptionDemodulation::detach");
   _index.release();
   ForwardSimplificationEngine::detach();
 }
@@ -68,8 +66,6 @@ void ForwardSubsumptionDemodulation::detach()
 
 bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardSubsumptionDemodulation::perform");
-
   //                        cl
   //                 vvvvvvvvvvvvvvvv
   //     mcl       matched      /-- only look for a term to demodulate in this part!

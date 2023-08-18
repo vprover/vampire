@@ -48,7 +48,7 @@ public:
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
-  unique_ptr<TermIndexingStructure> _is;
+  std::unique_ptr<TermIndexingStructure> _is;
 };
 
 class SuperpositionSubtermIndex

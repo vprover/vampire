@@ -14,6 +14,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
   # we don't use multithreading in (mainline!) Vampire
   add_compile_options(-fno-threadsafe-statics)
+  # enable standards-compliant standard library with sized operator delete
+  add_compile_options(-fsized-deallocation)
 endif()
 
 # compile command database
@@ -41,6 +43,12 @@ if (NOT BUILD_SHARED_LIBS)
   set(CMAKE_EXE_LINKER_FLAGS -static)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
+
+# get symbol names in binary for backtraces
+set(CMAKE_ENABLE_EXPORTS ON)
+
+# link to libdl for dladdr() on POSIXy things, used for backtraces
+link_libraries(${CMAKE_DL_LIBS})
 
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -403,7 +411,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
     Inferences/GlobalSubsumption.cpp
-    Inferences/HyperSuperposition.cpp
     Inferences/InnerRewriting.cpp
     Inferences/EquationalTautologyRemoval.cpp
     Inferences/Induction.cpp
@@ -439,7 +446,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
     Inferences/GlobalSubsumption.hpp
-    Inferences/HyperSuperposition.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp
     Inferences/InductionHelper.hpp
@@ -470,14 +476,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Cancellation.cpp
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})
-
-set(VAMPIRE_INSTANCEGENERATION_SOURCES
-    InstGen/IGAlgorithm.cpp
-    InstGen/ModelPrinter.cpp
-    InstGen/IGAlgorithm.hpp
-    InstGen/ModelPrinter.hpp
-    )
-source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_SOURCES})
 
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
@@ -758,7 +756,6 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_KERNEL_SOURCES}
     ${VAMPIRE_INDEXING_SOURCES}
     ${VAMPIRE_INFERENCE_SOURCES}
-    ${VAMPIRE_INSTANCEGENERATION_SOURCES}
     ${VAMPIRE_SAT_SOURCES}
     ${VAMPIRE_DECISION_PROCEDURES_SOURCES}
     ${VAMPIRE_SATURATION_SOURCES}
@@ -912,7 +909,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.7)
+set(VAMPIRE_VERSION_NUMBER 4.8)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree

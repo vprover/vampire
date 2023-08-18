@@ -35,6 +35,7 @@
 
 namespace Inferences {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -42,7 +43,6 @@ using namespace Saturation;
 
 Clause* Condensation::simplify(Clause* cl)
 {
-  CALL("Condensation::perform");
   TIME_TRACE("condensation");
 
   unsigned clen=cl->length();

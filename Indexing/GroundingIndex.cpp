@@ -29,10 +29,10 @@
 namespace Indexing
 {
 
+using namespace std;
+
 GroundingIndex::GroundingIndex(const Options& opt)
 {
-  CALL("GroundingIndex::GroundingIndex");
-
   switch(opt.satSolver()){
 #if VZ3
     case Options::SatSolver::Z3:
@@ -50,8 +50,6 @@ GroundingIndex::GroundingIndex(const Options& opt)
 
 void GroundingIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("GroundingIndex::handleClause");
-
   //We are adding clauses into the index when performing the subsumption check
 }
 

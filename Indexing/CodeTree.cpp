@@ -35,6 +35,7 @@
 namespace Indexing
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -43,8 +44,6 @@ using namespace Kernel;
 CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
 : litIndex(litIndex), opposite(false)
 {
-  CALL("CodeTree::LitInfo::LitInfo");
-
   ft=FlatTerm::create((*cl)[litIndex]);
 }
 
@@ -90,8 +89,6 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
  */
 CodeTree::MatchInfo* CodeTree::MatchInfo::alloc(unsigned bindCnt)
 {
-  CALL("MatchInfo::alloc");
-
   //We have to get sizeof(MatchInfo) + (bindCnt-1)*sizeof(TermList)
   //this way, because bindCnt-1 wouldn't behave well for
   //bindCnt==0 on x64 platform.
@@ -107,8 +104,6 @@ CodeTree::MatchInfo* CodeTree::MatchInfo::alloc(unsigned bindCnt)
  */
 void CodeTree::MatchInfo::destroy(unsigned bindCnt)
 {
-  CALL("MatchInfo::destroy");
-
   //We have to get sizeof(MatchInfo) + (bindCnt-1)*sizeof(TermList)
   //this way, because bindCnt-1 wouldn't behave well for
   //bindCnt==0 on x64 platform.
@@ -202,8 +197,6 @@ struct CodeTree::ILStruct::GVArrComparator
  */
 void CodeTree::ILStruct::putIntoSequence(ILStruct* previous_)
 {
-  CALL("CodeTree::ILStruct::putIntoSequence");
-
   previous=previous_;
   depth=previous ? (previous->depth+1) : 0;
 
@@ -231,8 +224,6 @@ void CodeTree::ILStruct::putIntoSequence(ILStruct* previous_)
 
 bool CodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
 {
-  CALL("CodeTree::ILStruct::equalsForOpMatching");
-
   //LIT_END is always at the end of the term and we ask for op matching only
   //if the prefixes were equal. In this case the number of variables and the fact
   //the literal is an equality between variables should be the same on both literals.
@@ -250,8 +241,6 @@ bool CodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
 
 void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
 {
-  CALL("CodeTree::ILStruct::ensureFreshness");
-
   if(timestamp!=globalTimestamp) {
     timestamp=globalTimestamp;
     visited=false;
@@ -263,8 +252,6 @@ void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
 
 void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArray)
 {
-  CALL("CodeTree::ILStruct::addMatch");
-
   if(matchCnt==matches.size()) {
     matches.expand(matchCnt ? (matchCnt*2) : 4);
     size_t newSize=matches.size();
@@ -290,7 +277,6 @@ void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArr
  */
 void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
 {
-  CALL("CodeTree::ILStruct::deleteMatch");
   ASS_L(matchIndex, matchCnt);
 
   matchCnt--;
@@ -299,7 +285,6 @@ void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
 
 CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
 {
-  CALL("CodeTree::ILStruct::getMatch");
   ASS(!finished);
   ASS_L(matchIndex, matchCnt);
   ASS(matches[matchIndex]);
@@ -309,7 +294,6 @@ CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
 
 CodeTree::CodeOp CodeTree::CodeOp::getSuccess(void* ptr)
 {
-  CALL("CodeTree::CodeOp::getSuccess");
   ASS(ptr); //data has to be a non-zero pointer
 
   CodeOp res;
@@ -320,8 +304,6 @@ CodeTree::CodeOp CodeTree::CodeOp::getSuccess(void* ptr)
 }
 CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 {
-  CALL("CodeTree::CodeOp::getLitEnd");
-
   CodeOp res;
   res.setAlternative(0);
   res._data=reinterpret_cast<size_t>(ils)|LIT_END;
@@ -330,7 +312,6 @@ CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 }
 CodeTree::CodeOp CodeTree::CodeOp::getTermOp(InstructionSuffix i, unsigned num)
 {
-  CALL("CodeTree::CodeOp::getTermOp");
   ASS(i==CHECK_FUN || i==CHECK_VAR || i==ASSIGN_VAR);
 
   CodeOp res;
@@ -342,7 +323,6 @@ CodeTree::CodeOp CodeTree::CodeOp::getTermOp(InstructionSuffix i, unsigned num)
 
 CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(Term* trm)
 {
-  CALL("CodeTree::CodeOp::getGroundTermCheck");
   ASS(trm->ground());
 
   CodeOp res;
@@ -358,8 +338,6 @@ CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(Term* trm)
  */
 bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
 {
-  CALL("CodeTree::CodeOp::equalsForOpMatching");
-
   if(instrPrefix()!=o.instrPrefix()) {
     return false;
   }
@@ -381,8 +359,6 @@ bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
 
 CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
 {
-  CALL("CodeTree::CodeOp::getSearchStruct");
-
   //the following line gives warning for not being according
   //to the standard, so we have to work around
 //  static const size_t opOfs=offsetof(SearchStruct,landingOp);
@@ -398,16 +374,12 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
 CodeTree::SearchStruct::SearchStruct(Kind kind)
 : kind(kind)
 {
-  CALL("CodeTree::SearchStruct::SearchStruct");
-
   landingOp.setAlternative(0);
   landingOp.setLongInstr(SEARCH_STRUCT);
 }
 
 void CodeTree::SearchStruct::destroy()
 {
-  CALL("CodeTree::SearchStruct::destroy");
-
   switch(kind) {
   case FN_STRUCT:
     delete static_cast<FnSearchStruct*>(this);
@@ -420,8 +392,6 @@ void CodeTree::SearchStruct::destroy()
 
 bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& tgt)
 {
-  CALL("CodeTree::SearchStruct::getTargetOpPtr(const CodeOp&...)");
-
   switch(kind) {
   case FN_STRUCT:
     if(!insertedOp.isCheckFun()) { return false; }
@@ -438,8 +408,6 @@ bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& 
 
 CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftPos)
 {
-  CALL("CodeTree::SearchStruct::getTargetOp");
-
   if(!ftPos->isFun()) { return 0; }
   switch(kind) {
   case FN_STRUCT:
@@ -456,7 +424,6 @@ CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftP
 CodeTree::FixedSearchStruct::FixedSearchStruct(Kind kind, size_t length)
 : SearchStruct(kind), length(length)
 {
-  CALL("CodeTree::FixedSearchStruct::FixedSearchStruct");
   ASS(length);
 
   size_t tgtSize=sizeof(CodeOp*)*length;
@@ -466,8 +433,6 @@ CodeTree::FixedSearchStruct::FixedSearchStruct(Kind kind, size_t length)
 
 CodeTree::FixedSearchStruct::~FixedSearchStruct()
 {
-  CALL("CodeTree::FixedSearchStruct::~FixedSearchStruct");
-
   size_t tgtSize=sizeof(CodeOp*)*length;
     DEALLOC_KNOWN(targets, tgtSize, "CodeTree::FixedSearchStruct::targets");
 }
@@ -475,7 +440,6 @@ CodeTree::FixedSearchStruct::~FixedSearchStruct()
 CodeTree::GroundTermSearchStruct::GroundTermSearchStruct(size_t length)
 : FixedSearchStruct(GROUND_TERM_STRUCT, length)
 {
-  CALL("CodeTree::GroundTermSearchStruct::GroundTermSearchStruct");
   ASS(length);
 
   size_t valSize=sizeof(Term*)*length;
@@ -485,16 +449,12 @@ CodeTree::GroundTermSearchStruct::GroundTermSearchStruct(size_t length)
 
 CodeTree::GroundTermSearchStruct::~GroundTermSearchStruct()
 {
-  CALL("CodeTree::GroundTermSearchStruct::~GroundTermSearchStruct");
-
   size_t valSize=sizeof(Term*)*length;
   DEALLOC_KNOWN(values, valSize, "CodeTree::GroundTermSearchStruct::values");
 }
 
 CodeTree::CodeOp*& CodeTree::GroundTermSearchStruct::targetOp(const Term* trm)
 {
-  CALL("CodeTree::GroundTermSearchStruct::findTargetOp");
-
   size_t left=0;
   size_t right=length-1;
   while(left<right) {
@@ -532,7 +492,6 @@ struct CodeTree::GroundTermSearchStruct::OpComparator
 CodeTree::FnSearchStruct::FnSearchStruct(size_t length)
 : FixedSearchStruct(FN_STRUCT, length)
 {
-  CALL("CodeTree::FnSearchStruct::FnSearchStruct");
   ASS(length);
 
   size_t valSize=sizeof(unsigned)*length;
@@ -542,16 +501,12 @@ CodeTree::FnSearchStruct::FnSearchStruct(size_t length)
 
 CodeTree::FnSearchStruct::~FnSearchStruct()
 {
-  CALL("CodeTree::FnSearchStruct::~FnSearchStruct");
-
   size_t valSize=sizeof(unsigned)*length;
   DEALLOC_KNOWN(values, valSize, "CodeTree::SearchStruct::values");
 }
 
 CodeTree::CodeOp*& CodeTree::FnSearchStruct::targetOp(unsigned fn)
 {
-  CALL("CodeTree::FnSearchStruct::findTargetOp");
-
   size_t left=0;
   size_t right=length-1;
   while(left<right) {
@@ -625,8 +580,6 @@ CodeTree::CodeTree()
 
 CodeTree::~CodeTree()
 {
-  CALL("CodeTree::~CodeTree");
-      
   static Stack<CodeOp*> top_ops; 
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
@@ -673,7 +626,6 @@ CodeTree::~CodeTree()
  */
 CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
 {
-  CALL("CodeTree::firstOpToCodeBlock");
   ASS(!op->isSearchStruct());
 
   //the following line gives warning for not being according
@@ -692,8 +644,6 @@ CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
 template<class Visitor>
 void CodeTree::visitAllOps(Visitor visitor)
 {
-  CALL("CodeTree::visitAllOps");
-
   static Stack<CodeOp*> top_ops; 
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
@@ -737,8 +687,6 @@ void CodeTree::visitAllOps(Visitor visitor)
 
 void CodeTree::CompileContext::init()
 {
-  CALL("CodeTree::CompileContext::init");
-
   nextVarNum=0;
   varMap.reset();
   nextGlobalVarNum=0;
@@ -747,16 +695,12 @@ void CodeTree::CompileContext::init()
 
 void CodeTree::CompileContext::nextLit()
 {
-  CALL("CodeTree::CompileContext::nextLit");
-
   nextVarNum=0;
   varMap.reset();
 }
 
 void CodeTree::CompileContext::deinit(CodeTree* tree, bool discarded)
 {
-  CALL("CodeTree::CompileContext::deinit");
-
   if(discarded) {
     return;
   }
@@ -772,8 +716,6 @@ void CodeTree::CompileContext::deinit(CodeTree* tree, bool discarded)
 
 void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd)
 {
-  CALL("CodeTree::compileTerm");
-
   static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
 
@@ -847,8 +789,6 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
  */
 CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt, ILStruct* prev)
 {
-  CALL("CodeTree::buildBlock");
-
   size_t clen=code.length();
   ASS_LE(cnt,clen);
 
@@ -873,7 +813,6 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt, ILStruct*
  */
 void CodeTree::incorporate(CodeStack& code)
 {
-  CALL("CodeTree::incorporate");
   ASS(code.top().isSuccess());
 
   if(isEmpty()) {
@@ -1003,7 +942,6 @@ matching_done:
 
 void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
 {
-  CALL("CodeTree::compressCheckOps");
   ASS(chainStart->alternative());
 
   static Stack<CodeOp*> toDo;
@@ -1085,7 +1023,6 @@ void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
 
 void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp* removedOp)
 {
-  CALL("CodeTree::optimizeMemoryAfterRemoval");
   ASS(removedOp->isFail());
   LOG_OP("Code tree removal memory optimization");
   LOG_OP("firstsInBlocks->size()="<<firstsInBlocks->size());
@@ -1225,8 +1162,6 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
 void CodeTree::RemovingMatcher::init(CodeOp* entry_, LitInfo* linfos_,
     size_t linfoCnt_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  CALL("CodeTree::RemovingMatcher::init");
-
   fresh=true;
   entry=entry_;
   linfos=linfos_;
@@ -1245,8 +1180,6 @@ void CodeTree::RemovingMatcher::init(CodeOp* entry_, LitInfo* linfos_,
 
 bool CodeTree::RemovingMatcher::next()
 {
-  CALL("CodeTree::RemovingMatcher::next");
-
   if(fresh) {
     fresh=false;
   }
@@ -1327,8 +1260,6 @@ bool CodeTree::RemovingMatcher::next()
 
 bool CodeTree::RemovingMatcher::backtrack()
 {
-  CALL("CodeTree::RemovingMatcher::backtrack");
-
   if(btStack.isEmpty()) {
     curLInfo++;
     return prepareLiteral();
@@ -1343,8 +1274,6 @@ bool CodeTree::RemovingMatcher::backtrack()
 
 bool CodeTree::RemovingMatcher::prepareLiteral()
 {
-  CALL("CodeTree::RemovingMatcher::prepareLiteral");
-
   firstsInBlocks->truncate(initFIBDepth);
   if(curLInfo>=linfoCnt) {
     return false;
@@ -1357,7 +1286,6 @@ bool CodeTree::RemovingMatcher::prepareLiteral()
 
 inline bool CodeTree::RemovingMatcher::doSearchStruct()
 {
-  CALL("CodeTree::RemovingMatcher::doSearchStruct");
   ASS_EQ(op->instrSuffix(), SEARCH_STRUCT);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
@@ -1427,8 +1355,6 @@ void CodeTree::incTimeStamp()
 
 void CodeTree::Matcher::init(CodeTree* tree_, CodeOp* entry_)
 {
-  CALL("CodeTree::Matcher::init");
-
   tree=tree_;
   entry=entry_;
 
@@ -1441,8 +1367,6 @@ void CodeTree::Matcher::init(CodeTree* tree_, CodeOp* entry_)
 
 bool CodeTree::Matcher::execute()
 {
-  CALL("CodeTree::Matcher::execute");
-
   if(_fresh) {
     _fresh=false;
   }
@@ -1540,8 +1464,6 @@ bool CodeTree::Matcher::backtrack()
 
 bool CodeTree::Matcher::prepareLiteral()
 {
-  CALL("CodeTree::Matcher::prepareLiteral");
-
   if(curLInfo>=linfoCnt) {
     return false;
   }

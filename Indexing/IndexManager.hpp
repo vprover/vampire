@@ -78,7 +78,6 @@ public:
   explicit IndexManager(SaturationAlgorithm* alg);
   void setSaturationAlgorithm(SaturationAlgorithm* alg) 
   { 
-    CALL("IndexManager::setSaturationAlgorithm");
     ASS(!_alg);
     ASS(alg);
     _alg = alg; 

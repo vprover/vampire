@@ -36,8 +36,6 @@ bool MemoryLeak::_cancelled = false;
  */
 void MemoryLeak::release(Formula* f)
 {
-  CALL("MemoryLeak::release(Formula*)");
-
   if (_released.contains(f)) {
     return;
   }

@@ -28,8 +28,6 @@ using namespace Kernel;
 
 LiteralList* RndLiteralSelector::getMaximalsInOrder(Clause* c, unsigned eligible)
 {
-  CALL("RndLiteralSelector::getMaximalsInOrder");
-
   LiteralList* res = LiteralList::empty();
 
   for(int li=((int)eligible)-1; li>=0; li--) {
@@ -43,8 +41,6 @@ LiteralList* RndLiteralSelector::getMaximalsInOrder(Clause* c, unsigned eligible
 
 void RndLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
-  CALL("RndLiteralSelector::doSelection");
-
   LiteralList* sel = LiteralList::empty();
   Literal* singleSel = nullptr;
 

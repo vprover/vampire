@@ -94,7 +94,6 @@ public:
       _size(0),
       _entries(0)
   {
-    CALL("Set::Set");
     expand();
   } // Set::Set
 
@@ -108,8 +107,6 @@ public:
   /** Deallocate the set */
   inline ~Set ()
   {
-    CALL("~Set");
-
     if (_entries) {
       array_delete(_entries,_capacity);
       DEALLOC_KNOWN(_entries,_capacity*sizeof(Cell),"Set::Cell");
@@ -127,8 +124,6 @@ public:
   template<typename Key>
   bool find(Key key, Val& result) const
   {
-    CALL("Set::find");
-
     unsigned code = Hash::hash(key);
     if (code < 2) {
       code = 2;
@@ -154,8 +149,6 @@ public:
    */
   bool contains (Val val) const
   {
-    CALL("Set::contains");
-
     unsigned code = Hash::hash(val);
     if (code < 2) {
       code = 2;
@@ -177,7 +170,6 @@ public:
   template<class Create, class CorrectVal>
   Val& rawFindOrInsert(Create create, unsigned hashCode, CorrectVal cval, bool& inserted)
   {
-    CALL("Set::rawFindOrInsert");
     inserted = false;
 
     auto correctHash = [](unsigned hash) { return hash < 2 ? 2 : hash; };
@@ -260,8 +252,6 @@ public:
    */
   bool remove(const Val val)
   {
-    CALL("Set::remove");
-
     unsigned code = Hash::hash(val);
     if (code < 2) {
       code = 2;
@@ -292,7 +282,6 @@ public:
    */
   void reset()
   {
-    CALL("Set::reset");
     Cell* ptr = _entries;
     while(ptr!=_afterLast) {
       ptr->code = 0;
@@ -308,8 +297,6 @@ public:
    */
   void deleteAll()
   {
-    CALL("Set::deleteAll");
-
     for (int i = _capacity-1;i >= 0;i--) {
       Cell& e = _entries[i];
       if (e.occupied()) {
@@ -356,8 +343,6 @@ private:
    */
   void expand()
   {
-    CALL("Set::expand");
-
     size_t newCapacity = _capacity ? _capacity * 2 : 31;
     Cell* oldEntries = _entries;
 

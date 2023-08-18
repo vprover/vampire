@@ -13,7 +13,6 @@
  * @since 19/11/2015 Manchester
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Clause.hpp"
@@ -34,6 +33,7 @@
 
 #include "NewCNF.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -41,16 +41,14 @@ namespace Shell {
 
 void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 {
-  CALL("NewCNF::clausify");
-
   _beingClausified = unit;
 
   Formula* f = unit->formula();
 
 #if LOGGING
-  cout << endl << "----------------- INPUT ------------------" << endl;
-  cout << f->toString() << endl;
-  cout << "----------------- INPUT ------------------" << endl;
+  cout << std::endl << "----------------- INPUT ------------------" << std::endl;
+  cout << f->toString() << std::endl;
+  cout << "----------------- INPUT ------------------" << std::endl;
 #endif
 
   switch (f->connective()) {
@@ -83,11 +81,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
     dequeue(g, occurrences);
 
 #if LOGGING
-    cout << endl << "---------------------------------------------" << endl;
+    cout << std::endl << "---------------------------------------------" << std::endl;
     for (SPGenClause gc : _genClauses) {
       LOG1(gc->toString());
     }
-    cout << "---------------------------------------------" << endl << endl;
+    cout << "---------------------------------------------" << std::endl << std::endl;
 #endif
 
     if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
@@ -99,11 +97,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   }
 
 #if LOGGING
-  cout << endl << "----------------- OUTPUT -----------------" << endl;
+  cout << std::endl << "----------------- OUTPUT -----------------" << std::endl;
   for (SPGenClause gc : _genClauses) {
     LOG1(gc->toString());
   }
-  cout << "----------------- OUTPUT -----------------" << endl;
+  cout << "----------------- OUTPUT -----------------" << std::endl;
 #endif
 
   for (SPGenClause gc : _genClauses) {
@@ -129,8 +127,6 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 }
 
 void NewCNF::process(Literal* literal, Occurrences &occurrences) {
-  CALL("NewCNF::process(Literal*)");
-
   LOG2("process(Literal*)", literal->toString());
   LOG2("occurrences.size", occurrences.size());
 
@@ -307,8 +303,6 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
                           Stack<unsigned> &matchVariables, Stack<List<Formula*>*> &matchConditions,
                           Stack<List<TermList>*> &matchBranches)
 {
-  CALL("NewCNF::findITEs");
-
   if (ts.isVar() || ts.term()->shared()) {
     return ts;
   }
@@ -337,8 +331,8 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
   TermList sort;
 
   Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_FORMULA: {
+  switch (sd->specialFunctor()) {
+    case Term::SpecialFunctor::FORMULA: {
       sort = AtomicSort::boolSort();
       conditions.push(sd->getFormula());
       thenBranches.push(TermList(Term::foolTrue()));
@@ -346,7 +340,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SF_ITE: {
+    case Term::SpecialFunctor::ITE: {
       sort = sd->getSort();
       conditions.push(sd->getCondition());
       thenBranches.push(*term->nthArgument(0));
@@ -354,21 +348,22 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE: {
+    case Term::SpecialFunctor::LET:
+    case Term::SpecialFunctor::LET_TUPLE: {
       TermList contents = *term->nthArgument(0);
       TermList processedLet = eliminateLet(sd, contents);
       return findITEs(processedLet, variables, conditions, thenBranches,
         elseBranches, matchVariables, matchConditions, matchBranches);
     }
 
-    case Term::SF_TUPLE: {
+    case Term::SpecialFunctor::TUPLE: {
       TermList tupleTerm = TermList(sd->getTupleTerm());
       return findITEs(tupleTerm, variables, conditions, thenBranches,
                       elseBranches, matchVariables, matchConditions, matchBranches);
     }
-
-    case Term::SF_MATCH: {
+    case Term::SpecialFunctor::LAMBDA:
+      NOT_IMPLEMENTED;
+    case Term::SpecialFunctor::MATCH: {
       sort = sd->getSort();
       auto matched = *term->nthArgument(0);
       List<Formula *> *mconditions(0);
@@ -391,8 +386,6 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       return TermList(var, false);
     }
 
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
   }
 
   unsigned var = createFreshVariable(sort);
@@ -415,8 +408,6 @@ bool NewCNF::shouldInlineITE(unsigned iteCounter) {
 
 unsigned NewCNF::createFreshVariable(TermList sort)
 {
-  CALL("NewCNF::createFreshVariable");
-
   ensureHavingVarSorts();
 
   _maxVar++;
@@ -428,8 +419,6 @@ unsigned NewCNF::createFreshVariable(TermList sort)
 
 void NewCNF::createFreshVariableRenaming(unsigned oldVar, unsigned freshVar)
 {
-  CALL("NewCNF::createFreshVariableRenaming");
-
   ensureHavingVarSorts();
 
   TermList sort;
@@ -444,8 +433,6 @@ void NewCNF::createFreshVariableRenaming(unsigned oldVar, unsigned freshVar)
 
 void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(JunctionFormula*)");
-
   LOG2("processJunction", g->toString());
   LOG2("occurrences.size", occurrences.size());
 
@@ -478,8 +465,6 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
 
 void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(BinaryFormula*)");
-
   LOG2("processBinary", g->toString());
   LOG2("occurrences.size", occurrences.size());
 
@@ -505,8 +490,6 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 
 void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* &lst)
 {
-  CALL("NewCNF::pushAndRememberWhileApplying");
-
   // turn b into a singleton substitution
   static Substitution subst;
   subst.bind(b.first,b.second);
@@ -539,8 +522,6 @@ void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* 
 
 void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 {
-  CALL("NewCNF::processBoolVar");
-
   LOG2("processBoolVar", (sign == POSITIVE ? "X" : "~X") + Int::toString(var));
   LOG2("occurrences.size", occurrences.size());
 
@@ -618,8 +599,6 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 
 void NewCNF::processConstant(bool constant, Occurrences &occurrences)
 {
-  CALL("NewCNF::processConstant");
-
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
     if (constant == (occ.sign() == POSITIVE)) {
@@ -633,8 +612,6 @@ void NewCNF::processConstant(bool constant, Occurrences &occurrences)
 
 void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences)
 {
-  CALL("NewCNF::processITE");
-
   enqueue(condition);
   enqueue(thenBranch);
   enqueue(elseBranch);
@@ -651,7 +628,6 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
 
 void NewCNF::processMatch(Term::SpecialTermData *sd, Term *term, Occurrences &occurrences)
 {
-  CALL("NewCNF::processMatch");
   auto matched = *term->nthArgument(0);
 
   for (unsigned int i = 1; i < term->arity(); i += 2) {
@@ -677,15 +653,13 @@ void NewCNF::processMatch(Term::SpecialTermData *sd, Term *term, Occurrences &oc
 
 TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 {
-  CALL("NewCNF::eliminateLet");
-
-  ASS((sd->getType() == Term::SF_LET) || (sd->getType() == Term::SF_LET_TUPLE));
+  ASS((sd->specialFunctor() == Term::SpecialFunctor::LET) || (sd->specialFunctor() == Term::SpecialFunctor::LET_TUPLE));
 
   unsigned symbol;
   VList* variables;
   TermList binding = sd->getBinding();
 
-  if (sd->getType() == Term::SF_LET) {
+  if (sd->specialFunctor() == Term::SpecialFunctor::LET) {
     symbol = sd->getFunctor();
     variables = sd->getVariables();
   } else if (binding.isTerm() && binding.term()->isTuple()) {
@@ -720,9 +694,9 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     if (env.options->showPreprocessing()) {
       env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
+      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       env.endOutput();
     }
 
@@ -765,9 +739,9 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     if (env.options->showPreprocessing()) {
       env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
+      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
       env.endOutput();
     }
 
@@ -784,7 +758,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 //    Term* term = binding.term();
 //    if (term->isSpecial()) {
 //      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->getType() == Term::SF_FORMULA) {
+//      if (sd->specialFunctor() == Term::SpecialFunctor::FORMULA) {
 //        inlineLet = true;
 //      }
 //    }
@@ -795,7 +769,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 ////      }
 //    } else if (term->isSpecial()) {
 //      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->getType() == Term::SF_FORMULA) {
+//      if (sd->specialFunctor() == Term::SpecialFunctor::FORMULA) {
 //        Formula* f = sd->getFormula();
 //        if ((f->connective() == LITERAL) && f->literal()->shared()) {
 //          inlineLet = true;
@@ -809,18 +783,18 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     processedContents = inlineLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
-      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << endl;
-      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << endl;
-      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << endl;
+      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
+      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
+      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
       env.endOutput();
     }
   } else {
     processedContents = nameLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
       env.beginOutput();
-      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << endl;
-      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << endl;
-      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << endl;
+      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
+      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
+      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
       env.endOutput();
     }
   }
@@ -830,9 +804,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
 void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences)
 {
-  CALL("NewCNF::processLet");
-
-  ASS((sd->getType() == Term::SF_LET) || (sd->getType() == Term::SF_LET_TUPLE));
+  ASS((sd->specialFunctor() == Term::SpecialFunctor::LET) || (sd->specialFunctor() == Term::SpecialFunctor::LET_TUPLE));
 
   TermList deletedContents = eliminateLet(sd, contents); // should be read "de-let-ed contents"
   Formula* deletedContentsFormula = BoolTermFormula::create(deletedContents);
@@ -844,8 +816,6 @@ void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrence
 
 TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents)
 {
-  CALL("NewCNF::nameLetBinding");
-
   VList* bindingFreeVars = VList::empty();
   FormulaVarIterator bfvi(&binding);
   while (bfvi.hasNext()) {
@@ -935,8 +905,6 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
 }
 
 TermList NewCNF::inlineLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents) {
-  CALL("NewCNF::inlineLetBinding(TermList)");
-
   ensureHavingVarSorts();
   SymbolDefinitionInlining inlining(symbol, bindingVariables, binding, _maxVar);
   TermList inlinedContents = inlining.process(contents);
@@ -952,8 +920,6 @@ TermList NewCNF::inlineLetBinding(unsigned symbol, VList* bindingVariables, Term
 
 VarSet* NewCNF::freeVars(Formula* g)
 {
-  CALL("NewCNF::freeVars");
-
   LOG2("freeVars for", g->toString());
 
   VarSet* res;
@@ -970,8 +936,6 @@ VarSet* NewCNF::freeVars(Formula* g)
 
 void NewCNF::ensureHavingVarSorts()
 {
-  CALL("NewCNF::ensureHavingVarSorts");
-
   if (!_collectedVarSorts) {
     SortHelper::collectVariableSorts(_beingClausified->formula(), _varSorts);
     _collectedVarSorts = true;
@@ -988,8 +952,6 @@ void NewCNF::ensureHavingVarSorts()
 
 Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 {
-  CALL("NewCNF::createSkolemTerm");
-
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
@@ -1042,8 +1004,6 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
  */
 void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList*& foolBindings)
 {
-  CALL("NewCNF::skolemise");
-
   BindingList* processedBindings;
   BindingList* processedFoolBindings;
 
@@ -1126,8 +1086,6 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
 
 void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(QuantifiedFormula*)");
-
   LOG2("processQuantified", g->toString());
   LOG2("occurreces", occurrences.size());
 
@@ -1178,8 +1136,6 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 
 void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(TermList)");
-
   if (ts.isVar()) {
     processBoolVar(POSITIVE, ts.var(), occurrences);
     return;
@@ -1189,12 +1145,13 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   ASS_REP(term->isSpecial(), term->toString());
 
   Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_FORMULA:
+  switch (sd->specialFunctor()) {
+    case Term::SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
       break;
-
-    case Term::SF_ITE: {
+    case Term::SpecialFunctor::TUPLE:
+      NOT_IMPLEMENTED;
+    case Term::SpecialFunctor::ITE: {
       Formula* condition = sd->getCondition();
 
       Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
@@ -1203,19 +1160,19 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
       break;
     }
 
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE:
+    case Term::SpecialFunctor::LET:
+    case Term::SpecialFunctor::LET_TUPLE:
       processLet(sd, *term->nthArgument(0), occurrences);
       break;
-
-    case Term::SF_MATCH: {
+    case Term::SpecialFunctor::LAMBDA:
+      NOT_IMPLEMENTED;
+    case Term::SpecialFunctor::MATCH: {
       processMatch(sd, term, occurrences);
       break;
     }
 
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
   }
+  ASSERTION_VIOLATION_REP(term->toString());
 }
 
 /**
@@ -1223,8 +1180,6 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
  */
 Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 {
-  CALL("NewCNF::createNamingLiteral");
-
   unsigned length = VList::length(free);
   unsigned pred = env.signature->addNamePredicate(length);
   env.statistics->formulaNames++;
@@ -1271,8 +1226,6 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
  */
 void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::nameSubformula");
-
   LOG2("nameSubformula", g->toString());
   LOG2("occurrences", occurrences.size());
 
@@ -1308,8 +1261,6 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 
 void NewCNF::process(Formula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process");
-
   switch (g->connective()) {
     case AND:
     case OR:
@@ -1352,8 +1303,6 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
 
 void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 {
-  CALL("NewCNF::toClauses");
-
   Stack<unsigned> variables;
   Stack<Formula*> skolems;
 
@@ -1476,7 +1425,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
   }
 
 #if LOGGING
-  cout << endl << "----------------- CNF ------------------" << endl;
+  cout << std::endl << "----------------- CNF ------------------" << std::endl;
 #endif
   while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
     List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
@@ -1490,14 +1439,12 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
     }
   }
 #if LOGGING
-  cout << "----------------- CNF ------------------" << endl << endl;
+  cout << "----------------- CNF ------------------" << std::endl << std::endl;
 #endif
 }
 
 bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output)
 {
-  CALL("NewCNF::mapSubstitution");
-
   List<GenLit>::Iterator it(clause);
   while (it.hasNext()) {
     GenLit gl = it.next();
@@ -1532,8 +1479,6 @@ bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool only
 
 Clause* NewCNF::toClause(SPGenClause gc)
 {
-  CALL("NewCNF::toClause");
-
   Substitution* subst;
 
   if (!_substitutionsByBindings.find(gc->bindings, subst)) {

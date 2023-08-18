@@ -63,8 +63,6 @@ private:
   template<class Iterator, class... Args>
   auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
   {
-    CALL("LiteralSubstitutionTree::getResultIterator");
-
     auto iter = [=](bool reversed) 
       { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
 
@@ -116,12 +114,12 @@ public:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree> const& self)
   { 
     int i = 0;
-    out << "{ " << endl;
+    out << "{ " << std::endl;
     for (auto& t : self.self._trees) {
       if (!t.isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
         OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
-        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << std::endl; 
       }
       i++;
     }

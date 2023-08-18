@@ -29,6 +29,7 @@
 
 #include "TermSharing.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Indexing;
 
@@ -42,7 +43,6 @@ TermSharing::TermSharing()
   : _poly(true),
     _wellSortednessCheckingDisabled(false)
 {
-  CALL("TermSharing::TermSharing");
 }
 
 /**
@@ -51,8 +51,6 @@ TermSharing::TermSharing()
  */
 TermSharing::~TermSharing()
 {
-  CALL("TermSharing::~TermSharing");
-  
 #if CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
   while (ts.hasNext()) {
@@ -71,8 +69,6 @@ TermSharing::~TermSharing()
 
 void TermSharing::setPoly()
 {
-  CALL("TermSharing::setPoly()");
-
   //combinatory superposiiton can introduce polymorphism into a monomorphic problem
   _poly = env.getMainProblem()->isHigherOrder() || env.getMainProblem()->hasPolymorphicSym() ||
     (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
@@ -85,7 +81,6 @@ void TermSharing::setPoly()
  */
 void TermSharing::computeAndSetSharedTermData(Term* t)
 {
-  CALL("TermSharing::insert(Term*)");
   TIME_TRACE(TimeTrace::TERM_SHARING);
 
     unsigned weight = 1;
@@ -190,7 +185,6 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
  // TODO update documentation
 void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
 {
-  CALL("TermSharing::computeAndSetSharedSortData(AtomicSort*)");
   ASS(!sort->isLiteral());
   ASS(!sort->isSpecial());
   ASS(sort->isSort());
@@ -241,7 +235,6 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
  */
 void TermSharing::computeAndSetSharedLiteralData(Literal* t)
 {
-  CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
   ASS(!t->isSort());
   ASS(!t->isSpecial());
@@ -255,6 +248,11 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
     unsigned vars = 0;
     Color color = COLOR_TRANSPARENT;
     bool hasInterpretedConstants=false;
+
+    if(t->isEquality()){
+      weight += SortHelper::getEqualityArgumentSort(t).weight() - 1;
+    }
+
     for (TermList* tt = t->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
@@ -266,12 +264,6 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
         Term* r = tt->term();
         vars += r->numVarOccs();
         weight += r->weight();
-
-        if(t->isEquality()){
-          // TODO we're adding the weight of the sort twice here if we have an equality where both sides are terms. do we really want that?
-          TermList sort = SortHelper::getResultSort(r);
-          weight += sort.weight() - 1;
-        }
 
         if (env.colorUsed) {
           ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
@@ -307,7 +299,6 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
  */
 void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
 {
-  CALL("TermSharing::insertVariableEquality");
   ASS(t->isLiteral());
   ASS(t->commutative());
   ASS(t->isEquality());
@@ -352,8 +343,6 @@ void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
  */
 Literal* TermSharing::tryGetOpposite(Literal* l)
 {
-  CALL("TermSharing::tryGetOpposite");
-
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
@@ -364,8 +353,6 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
 
 int TermSharing::sumRedLengths(TermStack& args)
 {
-  CALL("TermSharing::sumRedLengths");
-
   int redLength = 0;
 
   for(unsigned i = 0; i < args.size(); i++){
@@ -387,8 +374,6 @@ int TermSharing::sumRedLengths(TermStack& args)
  */
 bool TermSharing::argNormGt(TermList t1, TermList t2)
 {
-  CALL("TermSharing::argNormGt");
-
   if(t1.tag()!=t2.tag()) {
     return t1.tag()>t2.tag();
   }
@@ -414,8 +399,6 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
  */
 bool TermSharing::equals(const Term* s,const Term* t)
 {
-  CALL("TermSharing::equals(Term*,Term*)");
-
   if (s->functor() != t->functor()) return false;
 
   const TermList* ss = s->args();

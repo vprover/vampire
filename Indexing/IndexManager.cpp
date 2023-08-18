@@ -41,8 +41,6 @@ IndexManager::IndexManager(SaturationAlgorithm* alg)
 
 Index* IndexManager::request(IndexType t)
 {
-  CALL("IndexManager::request");
-
   Entry e;
   if(_store.find(t,e)) {
     e.refCnt++;
@@ -56,8 +54,6 @@ Index* IndexManager::request(IndexType t)
 
 void IndexManager::release(IndexType t)
 {
-  CALL("IndexManager::release");
-
   Entry e=_store.get(t);
 
   e.refCnt--;
@@ -93,7 +89,6 @@ Index* IndexManager::get(IndexType t)
  */
 void IndexManager::provideIndex(IndexType t, Index* index)
 {
-  CALL("IndexManager::provideIndex");
   ASS(!_store.find(t));
 
   Entry e;
@@ -104,8 +99,6 @@ void IndexManager::provideIndex(IndexType t, Index* index)
 
 Index* IndexManager::create(IndexType t)
 {
-  CALL("IndexManager::create");
-
   Index* res;
 
   bool isGenerating;

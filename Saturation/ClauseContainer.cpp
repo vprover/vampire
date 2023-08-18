@@ -37,7 +37,6 @@ using namespace Indexing;
 
 void ClauseContainer::addClauses(ClauseIterator cit)
 {
-  CALL("ClauseContainer::addClauses");
   while (cit.hasNext()) {
     add(cit.next());
   }
@@ -48,7 +47,6 @@ void ClauseContainer::addClauses(ClauseIterator cit)
 
 void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
 {
-  CALL("RandomAccessClauseContainer::removeClauses");
   while (cit.hasNext()) {
     remove(cit.next());
   }
@@ -62,7 +60,6 @@ void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
  */
 void RandomAccessClauseContainer::attach(SaturationAlgorithm* salg)
 {
-  CALL("RandomAccessClauseContainer::attach");
   ASS(!_salg);
 
   _salg=salg;
@@ -77,7 +74,6 @@ void RandomAccessClauseContainer::attach(SaturationAlgorithm* salg)
  */
 void RandomAccessClauseContainer::detach()
 {
-  CALL("RandomAccessClauseContainer::detach");
   ASS(_salg);
 
   _limitChangeSData->unsubscribe();
@@ -89,8 +85,6 @@ void RandomAccessClauseContainer::detach()
 
 UnprocessedClauseContainer::~UnprocessedClauseContainer()
 {
-  CALL("UnprocessedClauseContainer::~UnprocessedClauseContainer");
-
   while (!_data.isEmpty()) {
     Clause* cl=_data.pop_back();
     ASS_EQ(cl->store(), Clause::UNPROCESSED);
@@ -100,16 +94,12 @@ UnprocessedClauseContainer::~UnprocessedClauseContainer()
 
 void UnprocessedClauseContainer::add(Clause* c)
 {
-  CALL("UnprocessedClauseContainer::add");
-
   _data.push_back(c);
   addedEvent.fire(c);
 }
 
 Clause* UnprocessedClauseContainer::pop()
 {
-  CALL("UnprocessedClauseContainer::pop");
-
   Clause* res=_data.pop_back();
   selectedEvent.fire(res);
   return res;
@@ -117,7 +107,6 @@ Clause* UnprocessedClauseContainer::pop()
 
 void PassiveClauseContainer::updateLimits(long long estReachableCnt)
 {
-  CALL("PassiveClauseContainer::updateLimits");
   ASS_GE(estReachableCnt,0);
 
   bool atLeastOneLimitTightened;
@@ -160,7 +149,6 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
 
 void ActiveClauseContainer::add(Clause* c)
 {
-  CALL("ActiveClauseContainer::add");
   TIME_TRACE("add clause")
 
   ASS(c->store()==Clause::ACTIVE);
@@ -176,8 +164,6 @@ void ActiveClauseContainer::add(Clause* c)
  */
 void ActiveClauseContainer::remove(Clause* c)
 {
-  CALL("ActiveClauseContainer::remove");
-
   ASS(c->store()==Clause::ACTIVE);
   ALWAYS(_clauses.remove(c));
   removedEvent.fire(c);
@@ -185,8 +171,6 @@ void ActiveClauseContainer::remove(Clause* c)
 
 void ActiveClauseContainer::onLimitsUpdated()
 {
-  CALL("ActiveClauseContainer::onLimitsUpdated");
-
   auto limits=getSaturationAlgorithm()->getPassiveClauseContainer();
   ASS(limits);
   if (!limits->ageLimited() || !limits->weightLimited()) {

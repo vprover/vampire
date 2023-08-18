@@ -344,8 +344,6 @@ class SDHelper
 template <typename Applicator>
 bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Applicator const& applicator)
 {
-  CALL("termContainsAllVariablesOfOtherUnderSubst");
-
   static vunordered_set<unsigned int> vars(16);
   vars.clear();
 

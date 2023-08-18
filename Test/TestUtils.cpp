@@ -27,6 +27,7 @@
 
 namespace Test {
 
+using namespace std;
 using namespace Kernel;
 using namespace Shell;
 

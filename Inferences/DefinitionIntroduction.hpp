@@ -27,14 +27,12 @@ public:
   USE_ALLOCATOR(DefinitionIntroduction);
 
   void attach(SaturationAlgorithm *salg) override {
-    CALL("DefinitionIntroduction::attach")
     GeneratingInferenceEngine::attach(salg);
     attachContainer(salg->getPassiveClauseContainer());
     reset = false;
   }
 
   void handleClause(Clause *cl, bool adding) override {
-    CALL("DefinitionIntroduction::handleClause");
     if(reset)
       _definitions.reset();
 
@@ -44,7 +42,6 @@ public:
   }
 
   ClauseIterator generateClauses(Clause *cl) override {
-    CALL("DefinitionIntroduction::generateClauses");
     reset = true;
     return pvi(decltype(_definitions)::Iterator(_definitions));
   }

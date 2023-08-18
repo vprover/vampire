@@ -33,8 +33,8 @@
 
 
 #define LOG_OP(x)
-//#define LOG_OP(x) cout<<x<<endl
-//#define LOG_OP(x) if(TimeCounter::isBeingMeasured(TC_FORWARD_SUBSUMPTION)) { cout<<x<<endl; }
+//#define LOG_OP(x) std::cout<<x<<std::endl
+//#define LOG_OP(x) if(TimeCounter::isBeingMeasured(TC_FORWARD_SUBSUMPTION)) { std::cout<<x<<std::endl; }
 
 namespace Indexing {
 

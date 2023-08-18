@@ -38,6 +38,7 @@
 
 // TODO make this test use assertions, instead of printing output
 
+using namespace std;
 using namespace Kernel;
 using namespace Indexing;
 #define TODO ASSERTION_VIOLATION_REP("TODO")
@@ -123,7 +124,6 @@ void checkLiteralMatches(LiteralSubstitutionTree& index, Options::UnificationWit
 template<class F>
 void checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TypedTermList term, Stack<TermUnificationResultSpec> expected, F unifFun)
 {
-  CALL("checkTermMatchesWithUnifFun(TermSubstitutionTree& index, TypedTermList term, Stack<TermUnificationResultSpec> expected, F unifFun)")
   Stack<TermUnificationResultSpec> is;
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
@@ -168,8 +168,6 @@ struct IndexTest {
   Stack<TermUnificationResultSpec> expected;
 
   void run() {
-    CALL("IndexTest::run")
-
     DECL_PRED(dummy, Stack<SortSugar>())
     for (auto x : this->insert) {
       index->insert(x, dummy(), unit(dummy()));

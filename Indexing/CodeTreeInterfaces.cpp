@@ -54,13 +54,11 @@ public:
 
   TermList applyToBoundResult(TermList t) override
   {
-    CALL("CodeTreeSubstitution::applyToBoundResult(TermList)");
     return SubstHelper::apply(t, *getApplicator());
   }
 
   Literal* applyToBoundResult(Literal* lit) override
   {
-    CALL("CodeTreeSubstitution::applyToBoundResult(Literal*)");
     return SubstHelper::apply(lit, *getApplicator());
   }
 
@@ -135,8 +133,6 @@ public:
 
   bool hasNext()
   {
-    CALL("CodeTreeTIS::ResultIterator::hasNext");
-
     if(_found) {
       return true;
     }
@@ -153,7 +149,6 @@ public:
 
   TermQueryResult next()
   {
-    CALL("CodeTreeTIS::ResultIterator::next");
     ASS(_found);
 
     ResultSubstitutionSP subs;
@@ -179,23 +174,17 @@ private:
 
 void CodeTreeTIS::insert(TypedTermList t, Literal* lit, Clause* cls)
 {
-  CALL("CodeTreeTIS::insert");
-
   TermCodeTree::TermInfo* ti=new TermCodeTree::TermInfo(t,lit,cls);
   _ct.insert(ti);
 }
 
 void CodeTreeTIS::remove(TypedTermList t, Literal* lit, Clause* cls)
 {
-  CALL("CodeTreeTIS::remove");
-  
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
 TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
-  CALL("CodeTreeTIS::getGeneralizations");
-
   if(_ct.isEmpty()) {
     return TermQueryResultIterator::getEmpty();
   }
@@ -205,8 +194,6 @@ TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool re
 
 bool CodeTreeTIS::generalizationExists(TermList t)
 {
-  CALL("CodeTreeTIS::generalizationExists");
-
   if(_ct.isEmpty()) {
     return false;
   }
@@ -234,7 +221,6 @@ public:
   
   bool hasNext()
   {
-    CALL("CodeTreeSubsumptionIndex::ClauseSResIterator::hasNext");
     if(ready) {
       return result;
     }
@@ -246,7 +232,6 @@ public:
   
   ClauseSResQueryResult next()
   {
-    CALL("CodeTreeSubsumptionIndex::ClauseSResIterator::next");
     ASS(result);
     
     ready=false;
@@ -266,8 +251,6 @@ private:
 
 void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
 {
-  CALL("CodeTreeSubsumptionIndex::handleClause");
-  
   TIME_TRACE("codetree subsumption index maintanance");
 
   if(adding) {
@@ -281,8 +264,6 @@ void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
 ClauseSResResultIterator CodeTreeSubsumptionIndex
 	::getSubsumingOrSResolvingClauses(Clause* cl, bool subsumptionResolution)
 {
-  CALL("CodeTreeSubsumptionIndex::getSubsumingClauses");
-
   if(_ct.isEmpty()) {
     return ClauseSResResultIterator::getEmpty();
   }

@@ -47,8 +47,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit, bool c
 
 SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
 {
-  CALL("LiteralSubstitutionTree::getVariants");
-
   return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
         .map([](auto qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.unif); }));
 }
@@ -56,8 +54,6 @@ SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool 
 // TODO no substitution in this resultIterator
 SLQueryResultIterator LiteralSubstitutionTree::getAll()
 {
-  CALL("LiteralSubstitutionTree::getAll");
-
   return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
          .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })

@@ -41,6 +41,7 @@
 namespace Inferences
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -62,7 +63,6 @@ URResolution::URResolution(bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
 
 void URResolution::attach(SaturationAlgorithm* salg)
 {
-  CALL("URResolution::attach");
   ASS(!_unitIndex);
   ASS(!_nonUnitIndex);
 
@@ -80,8 +80,6 @@ void URResolution::attach(SaturationAlgorithm* salg)
 
 void URResolution::detach()
 {
-  CALL("URResolution::detach");
-
   _unitIndex = 0;
   _salg->getIndexManager()->release(URR_UNIT_CLAUSE_SUBST_TREE);
   _nonUnitIndex = 0;
@@ -98,8 +96,6 @@ struct URResolution::Item
   : _mustResolveAll(mustResolveAll || (selectedOnly ? true : (cl->length() < 2)) ), _orig(cl), _color(cl->color()),
     _parent(parent)
   {
-    CALL("URResolution::Item::Item");
-
     unsigned clen = cl->length();
     _premises.init(clen, 0);
     _lits.ensure(clen);
@@ -126,8 +122,6 @@ struct URResolution::Item
    */
   void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution)
   {
-    CALL("URResolution::Item::resolveLiteral");
-
     _lits[idx] = 0;
     _premises[idx] = premise;
     _color = static_cast<Color>(_color | premise->color());
@@ -154,8 +148,6 @@ struct URResolution::Item
 
   Clause* generateClause() const
   {
-    CALL("URResolution::Item::generateClause");
-
     UnitList* premLst = 0;
     UnitList::push(_orig, premLst);
     Literal* single = 0;
@@ -188,8 +180,6 @@ struct URResolution::Item
 
   int getGoodness(Literal* lit)
   {
-    CALL("URResolution::Item::getGoodness");
-
     return lit->weight() - lit->getDistinctVars();
   }
 
@@ -201,8 +191,6 @@ struct URResolution::Item
    */
   void getBestLiteralReady(unsigned idx)
   {
-    CALL("URResolution::Item::getBestLiteralReady");
-
     ASS_L(idx, _activeLength);
 
     unsigned choiceSize = _activeLength - idx;
@@ -259,8 +247,6 @@ struct URResolution::Item
  */
 void URResolution::processLiteral(ItemList*& itms, unsigned idx)
 {
-  CALL("URResolution::processLiteral");
-
   ItemList::DelIterator iit(itms);
   while(iit.hasNext()) {
     Item* itm = iit.next();
@@ -311,8 +297,6 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
  */
 void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList*& acc)
 {
-  CALL("URResolution::processAndGetClauses");
-
   unsigned activeLen = itm->_activeLength;
 
   ItemList* itms = 0;
@@ -335,7 +319,6 @@ void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList
  */
 void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
 {
-  CALL("URResolution::doBackwardInferences");
   ASS_EQ(cl->size(), 1);
 
   Literal* lit = (*cl)[0];
@@ -361,8 +344,6 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
 
 ClauseIterator URResolution::generateClauses(Clause* cl)
 {
-  CALL("URResolution::generateClauses");
-
   unsigned clen = cl->size();
   if(clen<1) {
     return ClauseIterator::getEmpty();

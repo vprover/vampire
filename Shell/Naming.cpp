@@ -64,7 +64,6 @@ Naming::Naming(int threshold, bool preserveEpr, bool appify) :
  * @since 14/07/2005 Tel-Aviv airport, changed to replace the unit
  */
 FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
-  CALL("Naming::apply(Unit*)");
   ASS(!unit->isClause());
   ASS_REP(unit->formula()->freeVariables() == 0, *unit);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
@@ -111,8 +110,6 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {
-  CALL("Naming::apply_iter");
-
   TIME_TRACE("naming");
 
   Stack<Task> todo_stack;
@@ -749,8 +746,6 @@ Formula* Naming::apply_iter(Formula* top_f) {
  * @since 11/07/2005 flight Barcelona-Tel-Aviv
  */
 Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
-  CALL("Naming::apply_sub(Formula* ...)");
-
   switch (f->connective()) {
   case LITERAL:
   case BOOL_TERM:
@@ -1077,8 +1072,6 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
  * Return true if a definition for the formula @b f may be introduced
  */
 bool Naming::canBeInDefinition(Formula* f, Where where) {
-  CALL("Naming::canBeInDefinition");
-
   if (!_preserveEpr) {
     return true;
   }
@@ -1109,8 +1102,6 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
 }
 
 Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
-  CALL("Naming::getDefinitionLiteral");
-
   unsigned arity = VList::length(freeVars);
 
   static TermStack termVarSorts;
@@ -1185,8 +1176,6 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
  * @since 01/07/2005 Manchester
  */
 Formula* Naming::introduceDefinition(Formula* f, bool iff) {
-  CALL("Naming::introduceDefinition");
-
   ASS_NEQ(f->connective(), LITERAL);
   ASS_NEQ(f->connective(), NOT);
 
@@ -1243,8 +1232,6 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
  */
 FormulaList* Naming::apply_list(FormulaList* fs, Where where, int* results,
     int* negResults) {
-  CALL("Naming::apply_list(FormulaList*...)");
-
   if (FormulaList::isEmpty(fs)) {
     return fs;
   }

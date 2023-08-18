@@ -41,8 +41,6 @@ LfpRule<Rule>::LfpRule() : _inner() {}
 template<class Rule> 
 SimplifyingGeneratingInference1::Result LfpRule<Rule>::simplify(Clause *cl, bool doCheckOrdering) 
 {
-  CALL("LfpRule::simplify")
-
   auto splits = cl->splits();
 
   auto c0 = cl; // the parent of the current clause

@@ -15,13 +15,13 @@
  * @since 06/01/2004, Manchester
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "MultiCounter.hpp"
 #include "Int.hpp"
 #include "Allocator.hpp"
 #include "Exception.hpp"
 
+using namespace std;
 using namespace Lib;
 
 /**
@@ -31,8 +31,6 @@ using namespace Lib;
  */
 void MultiCounter::expandToFit (int v)
 {
-  CALL("MultiCounter::expandToFit");
-
   // calculate the new capacity
   int newTop = max(_top*2,v+1);
 

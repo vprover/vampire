@@ -25,8 +25,6 @@ using namespace std;
 
 vstring StringUtils::replaceChar(vstring str, char src, char target)
 {
-  CALL("StringUtils::replaceChar");
-
   size_t len=str.size();
   static DArray<char> buf;
   buf.ensure(len);
@@ -54,8 +52,6 @@ vstring StringUtils::replaceChar(vstring str, char src, char target)
  */
 vstring StringUtils::sanitizeSuffix(vstring str)
 {
-  CALL("StringUtils::sanitizeSuffix");
-
   size_t len=str.size();
   static DArray<char> buf;
   buf.ensure(len);
@@ -89,8 +85,6 @@ vstring StringUtils::sanitizeSuffix(vstring str)
 
 bool StringUtils::isPositiveInteger(vstring str)
 {
-  CALL("StringUtils::isPositiveInteger");
-
   size_t sz = str.size();
 
   if(str[0]=='0') {
@@ -106,8 +100,6 @@ bool StringUtils::isPositiveInteger(vstring str)
 
 bool StringUtils::isPositiveDecimal(vstring str)
 {
-  CALL("StringUtils::isPositiveDecimal");
-
   size_t sz = str.size();
 
   size_t i = 0;
@@ -131,8 +123,6 @@ bool StringUtils::isPositiveDecimal(vstring str)
 
 void StringUtils::splitStr(const char* str, char delimiter, Stack<vstring>& strings)
 {
-  CALL("StringUtils::splitStr");
-
   static Stack<char> currPart;
   currPart.reset();
 
@@ -154,8 +144,6 @@ void StringUtils::splitStr(const char* str, char delimiter, Stack<vstring>& stri
 
 bool StringUtils::readEquality(const char* str, char eqChar, vstring& lhs, vstring& rhs)
 {
-  CALL("StringUtils::readEquality");
-
   static Stack<vstring> parts;
   parts.reset();
   splitStr(str, eqChar, parts);
@@ -172,8 +160,6 @@ bool StringUtils::readEquality(const char* str, char eqChar, vstring& lhs, vstri
  */
 bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<vstring,vstring>& pairs)
 {
-  CALL("StringUtils::readEqualities");
-
   static Stack<vstring> parts;
   parts.reset();
   splitStr(str, delimiter, parts);

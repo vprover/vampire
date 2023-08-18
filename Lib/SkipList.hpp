@@ -19,7 +19,6 @@
 #  define __SkipList__
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Backtrackable.hpp"
@@ -62,7 +61,6 @@ public:
   inline
   void insert(Value val)
   {
-    CALL("SkipList::insert");
     Value* pval = insertPosition(val);
     *pval = val;
   } // SkipList::insert
@@ -71,8 +69,6 @@ public:
   inline
   void insertFromIterator(Iterator it)
   {
-    CALL("SkipList::insertFromIterator");
-
     while(it.hasNext()) {
       insert(it.next());
     }
@@ -85,7 +81,6 @@ public:
   inline
   bool ensurePresent(Value val)
   {
-    CALL("SkipList::ensurePresent");
     Value* pval;
     if(!getPosition(val, pval, true)) {
       *pval = val;
@@ -107,8 +102,6 @@ public:
   template<typename Key>
   bool getPosition(Key key, Value*& pvalue, bool canCreate)
   {
-    CALL("SkipList::getPosition");
-
     if(_top==0) {
       if(canCreate) {
 	pvalue = insertPosition(key);
@@ -174,8 +167,6 @@ public:
   template<typename Key>
   Value* insertPosition(Key key)
   {
-    CALL("SkipList::insertPosition");
-
     // select a random height between 0 and top
     unsigned nodeHeight = 0;
     while (Random::getBit()) {
@@ -252,8 +243,6 @@ public:
   template<typename Key>
   bool findLeastGreater(Key key, Value& value)
   {
-    CALL("SkipList::findLeastGreater");
-
     if(_top==0) {
       return false;
     }
@@ -362,7 +351,6 @@ public:
    */
   Value pop()
   {
-    CALL("SkipList::pop");
     ASS(isNonEmpty());
 
     // find the height of the first
@@ -406,7 +394,6 @@ public:
   template<typename Key>
   void remove(Key key)
   {
-    CALL("SkipList::remove");
     ASS(_top > 0);
 
     Node* found = 0; // found node
@@ -518,7 +505,6 @@ public:
     : _left(allocate(SKIP_LIST_MAX_HEIGHT)),
       _top(0)
   {
-    CALL("SkipList::SkipList");
     for (int h = SKIP_LIST_MAX_HEIGHT-1;h >= 0;h--) {
       _left->nodes[h] = 0;
     }
@@ -529,8 +515,6 @@ public:
    */
   ~SkipList()
   {
-    CALL("SkipList::~SkipList");
-
     makeEmpty();
     deallocate(_left,SKIP_LIST_MAX_HEIGHT);
   }
@@ -544,8 +528,6 @@ private:
   inline
   static Node* allocate(unsigned h)
   {
-    CALL("SkipList::allocate");
-
     void* memory = ALLOC_KNOWN(sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
 
     return reinterpret_cast<Node*>(memory);
@@ -555,7 +537,6 @@ private:
   inline
   static void deallocate(Node* node,unsigned h)
   {
-    CALL("SkipList::deallocate");
     DEALLOC_KNOWN(node,sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
   }
 

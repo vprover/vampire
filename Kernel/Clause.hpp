@@ -86,8 +86,6 @@ public:
   template<class Iter>
   static Clause* fromIterator(Iter litit, const Inference& inf)
   {
-    CALL("Clause::fromIterator");
-
     static Stack<Literal*> st;
     st.reset();
     st.loadFromIterator(litit);
@@ -209,8 +207,6 @@ public:
   void incRefCnt() { _refCnt++; }
   void decRefCnt()
   {
-    CALL("Clause::decRefCnt");
-
     ASS_G(_refCnt,0);
     _refCnt--;
     destroyIfUnnecessary();
@@ -262,8 +258,6 @@ public:
    * computed and cached (which happens at the first call to weight())
    */
   void setSplits(SplitSet* splits) {
-    CALL("Clause::setSplits");
-
     ASS(_weight == 0);
     _inference.setSplits(splits);
   }

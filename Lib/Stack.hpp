@@ -24,7 +24,6 @@
 #include "Lib/TypeList.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Lib/Reflection.hpp"
@@ -72,8 +71,6 @@ public:
   explicit Stack (size_t initialCapacity=0)
     : _capacity(initialCapacity)
   {
-    CALL("Stack::Stack");
-
     if(_capacity) {
       void* mem = ALLOC_KNOWN(_capacity*sizeof(C),className());
       _stack = static_cast<C*>(mem);
@@ -88,7 +85,6 @@ public:
   inline
   void reserve(size_t capacity) 
   {
-    CALL("Stack::reserve(size_t)");
     if (_capacity >= capacity) {
       return;
     }
@@ -117,8 +113,6 @@ public:
   Stack(const Stack& s)
    : _capacity(s._capacity)
   {
-    CALL("Stack::Stack(const Stack&)");
-
     if(_capacity) {
       void* mem = ALLOC_KNOWN(_capacity*sizeof(C),className());
       _stack = static_cast<C*>(mem);
@@ -134,8 +128,6 @@ public:
 
   Stack(Stack&& s) noexcept
   {
-    CALL("Stack::Stack(Stack&& s)");
-
     _capacity = 0;
     _stack = _cursor = _end = nullptr;
 
@@ -186,8 +178,6 @@ public:
    */
   inline ~Stack()
   {
-    CALL("Stack::~Stack");
-
     //The while cycle is completely eliminated by compiler
     //in "-O6 -DVDEBUG=0" mode for types without destructor,
     //so this destructor is constant time.
@@ -205,8 +195,6 @@ public:
 
   Stack& operator=(const Stack& s)
   {
-    CALL("Stack::operator=");
-
     if(&s == this) {
       return *this;
     }
@@ -217,8 +205,6 @@ public:
 
   Stack& operator=(Stack&& s) noexcept
   {
-    CALL("Stack::operator=&&");
-
     std::swap(*this,s);
     return *this;
   }
@@ -229,8 +215,6 @@ public:
    */
   template<class It>
   void loadFromIterator(It it) {
-    CALL("Stack::loadFromIterator");
-
     // TODO check iterator.size() or iterator.sizeHint()
     while(it.hasNext()) {
       push(it.next());
@@ -242,8 +226,6 @@ public:
    */
   template<class It>
   void moveFromIterator(It it) {
-    CALL("Stack::loadFromIterator");
-
     // TODO check iterator.size() or iterator.sizeHint()
     while(it.hasNext()) {
       push(std::move(it.next()));
@@ -256,7 +238,6 @@ public:
    */
   template<class It>
   static Stack fromIterator(It it) {
-    CALL("Stack::fromIterator");
     Stack out;
     out.moveFromIterator(std::move(it));
     return out;
@@ -293,8 +274,6 @@ public:
 
   friend int cmp(const Stack& l, const Stack& r)
   {
-    CALL("Stack::operator<");
-
     int sdiff = int(l.size()) - int(r.size());
     if(sdiff) return sdiff;
     
@@ -320,8 +299,6 @@ public:
 
   bool operator==(const Stack& o) const
   {
-    CALL("Stack::operator==");
-
     if(size()!=o.size()) {
       return false;
     }
@@ -370,7 +347,6 @@ public:
   inline
   void setTop(C elem)
   {
-    CALL("Stack::setTop");
     ASS(_cursor > _stack);
     ASS(_cursor <= _end);
 
@@ -404,8 +380,6 @@ public:
   inline
   void push(C elem)
   {
-    CALL("Stack::push");
-
     if (_cursor == _end) {
       expand();
     }
@@ -421,8 +395,6 @@ public:
   inline
   C pop()
   {
-    CALL("Stack::pop");
-
     ASS(_cursor > _stack);
     _cursor--;
 
@@ -467,7 +439,6 @@ public:
   inline
   void pop(unsigned cnt)
   {
-    CALL("Stack::pop(unsigned)");
     while (cnt-- != 0) 
       pop();
   } // Stack::pop(unsigned)
@@ -582,8 +553,6 @@ public:
 
   bool find(const C& el) const
   {
-    CALL("Stack::find");
-
     Iterator it(const_cast<Stack&>(*this));
     while(it.hasNext()) {
       if(it.next()==el) {
@@ -763,7 +732,6 @@ public:
     inline
     bool hasNext() const
     {
-      CALL("Stack::BottomFirstIterator::hasNext()")
       ASS_LE(_pointer, _afterLast);
       return _pointer != _afterLast;
     }
@@ -772,7 +740,6 @@ public:
     inline
     const C& next()
     {
-      CALL("Stack::BottomFirstIterator::next()")
       ASS_L(_pointer, _afterLast);
       return *(_pointer++);
     }
@@ -912,8 +879,6 @@ protected:
    */
   void expand ()
   {
-    CALL("Stack::expand");
-
     ASS(_cursor == _end);
 
     size_t newCapacity = _capacity ? (2 * _capacity) : 8;
@@ -956,8 +921,6 @@ public:
   Stack(std::initializer_list<C> cont)
    : Stack(cont.size())
   {
-    CALL("Stack::Stack(initializer_list<C>)");
-
     for (auto const& x : cont) {
       push(x);
     }
@@ -984,8 +947,7 @@ namespace std
 template<typename T>
 void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2)
 {
-  CALL("std::swap(Stack&,Stack&)");
-
+  using std::swap;//ADL
   swap(s1._capacity, s2._capacity);
   swap(s1._cursor, s2._cursor);
   swap(s1._end, s2._end);

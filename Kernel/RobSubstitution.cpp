@@ -33,6 +33,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 
 std::ostream& operator<<(std::ostream& out, AtomicTermSpec const& self)
@@ -124,7 +125,6 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 bool RobSubstitution::match(TermList base,int baseIndex,
 	TermList instance, int instanceIndex)
 {
-  CALL("RobSubstitution::match(TermList...)");
   return match(TermSpec(base,baseIndex), TermSpec(instance,instanceIndex));
 }
 /**
@@ -135,7 +135,6 @@ bool RobSubstitution::match(TermList base,int baseIndex,
 bool RobSubstitution::matchArgs(Term* base,int baseIndex,
 	Term* instance, int instanceIndex)
 {
-  CALL("RobSubstitution::match(Literal*...)");
   ASS_EQ(base->functor(),instance->functor());
 
   TermList baseTL(base);
@@ -154,8 +153,6 @@ bool RobSubstitution::matchArgs(Term* base,int baseIndex,
  */
 void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
 {
-  CALL("RobSubstitution::denormalize");
-
   VirtualIterator<Renaming::Item> nit=normalizer.items();
   while(nit.hasNext()) {
     Renaming::Item itm=nit.next();
@@ -168,7 +165,6 @@ void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, i
 
 bool RobSubstitution::isUnbound(VarSpec v) const
 {
-  CALL("RobSubstitution::isUnbound");
   for(;;) {
     auto binding = _bindings.find(v);
     if(binding.isNone()) {
@@ -206,7 +202,6 @@ TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar) const
  */
 TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
 {
-  CALL("RobSubstitution::derefBound");
   TermSpec const* t = &t_;
   for(;;) {
     if (t->isTerm()) {
@@ -239,7 +234,6 @@ void RobSubstitution::bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b
 
 unsigned RobSubstitution::findOrIntroduceOutputVariable(VarSpec v) const
 {
-  CALL("RobSubstitution::introduceOutputVariable");
   ASS(_bindings.find(v).isNone());
   auto found = _outputVarBindings.find(v);
   if (found.isSome()) {
@@ -253,7 +247,6 @@ unsigned RobSubstitution::findOrIntroduceOutputVariable(VarSpec v) const
 
 void RobSubstitution::bind(const VarSpec& v, TermSpec b)
 {
-  CALL("RobSubstitution::bind");
   //Aux terms don't contain special variables, ergo
   //should be shared.
   //ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
@@ -264,7 +257,6 @@ void RobSubstitution::bind(const VarSpec& v, TermSpec b)
 
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
-  CALL("RobSubstitution::bindVar");
   ASS_NEQ(var,to);
 
   bind(var,TermSpec(to));
@@ -272,7 +264,6 @@ void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 
 VarSpec RobSubstitution::root(VarSpec v) const
 {
-  CALL("RobSubstitution::root");
   for(;;) {
     auto binding = _bindings.find(v);
     if(binding.isNone() || binding->isTerm()) {
@@ -348,7 +339,6 @@ bool RobSubstitution::occurs(VarSpec const& toFind, AtomicTermSpec const& ts)
 
 bool RobSubstitution::unify(AtomicTermSpec s, AtomicTermSpec t)
 {
-  CALL("RobSubstitution::unify/2");
 #define DEBUG_UNIFY(lvl, ...) if (lvl < 0) DBG("unify: ", __VA_ARGS__)
   DEBUG_UNIFY(0, *this, ".unify(", s, ",", t, ")")
 
@@ -452,8 +442,6 @@ bool RobSubstitution::unify(AtomicTermSpec s, AtomicTermSpec t)
  */
 bool RobSubstitution::match(TermSpec base, TermSpec instance)
 {
-  CALL("RobSubstitution::match(TermSpec...)");
-
   if(base.sameTermContent(instance)) {
     return true;
   }
@@ -560,7 +548,6 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 
 Stack<Literal*> RobSubstitution::apply(Stack<Literal*> cl, int index) const
 {
-  CALL("RobSubstitution::apply(Clause*...)");
   for (unsigned i = 0; i < cl.size(); i++) {
     cl[i] = apply(cl[i], index);
   }
@@ -569,8 +556,6 @@ Stack<Literal*> RobSubstitution::apply(Stack<Literal*> cl, int index) const
 
 Literal* RobSubstitution::apply(Literal* lit, int index) const
 {
-  CALL("RobSubstitution::apply(Literal*...)");
-  TIME_TRACE("RobSubstitution::apply(Literal*,int)");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -593,12 +578,6 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
 
 TermList RobSubstitution::apply(TermList trm, int index) const
 {
-  CALL("RobSubstitution::apply(TermList...)");
-  TIME_TRACE("RobSubstitution::apply(TermList,int)");
-  // DBG(*this, ".apply(", TermSpec(trm, index), ")")
-  // if (trm.ground()) return trm;
-  
-
   return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
     .function([&](auto const& orig, TermList* args) -> TermList {
         TermList tout;
@@ -623,8 +602,6 @@ TermList RobSubstitution::apply(TermSpec t)
 
 size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) const
 {
-  CALL("RobSubstitution::getApplicationResultWeight");
-
   return BottomUpEvaluation<AutoDerefTermSpec, size_t>()
     .function(
       [](auto const& orig, size_t* sizes) 
@@ -642,7 +619,6 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
 {
-  CALL("RobSubstitution::getApplicationResultWeight");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -688,8 +664,6 @@ template<class Fn>
 SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
 	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
 {
-  CALL("RobSubstitution::getAssocIterator");
-
   if( !Literal::headersMatch(l1,l2,complementary) ) {
     return SubstIterator::getEmpty();
   }
@@ -775,7 +749,6 @@ public:
     ASS_EQ(_l1->arity(), 2);
   }
   ~AssocIterator() {
-    CALL("RobSubstitution::AssocIterator::~AssocIterator");
     if (_state != FINISHED && _state != FIRST) {
       backtrack(_bdataMain);
       backtrack(_bdataEqAssoc);
@@ -784,8 +757,6 @@ public:
     ASS(_bdataEqAssoc.isEmpty());
   }
   bool hasNext() {
-    CALL("RobSubstitution::AssocIterator::hasNext");
-
     if (_state == FINISHED) {
       return false;
     }
@@ -849,8 +820,6 @@ public:
   }
 private:
   void backtrack(BacktrackData &_bdata) {
-    CALL("RobSubstitution::AssocIterator::backtrack");
-
     ASS_EQ(&_bdata, &_subst->bdGet());
     _subst->bdDone();
     _bdata.backtrack();

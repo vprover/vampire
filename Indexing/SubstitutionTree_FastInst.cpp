@@ -25,10 +25,10 @@
 namespace Indexing
 {
 
+using namespace std;
+
 std::ostream& operator<< (ostream& out, SubstitutionTree::InstMatcher::TermSpec ts )
 {
-  CALL("operator<<(ostream&,SubstitutionTree::InstMatcher::TermSpec)");
-
   out<<ts.toString();
   return out;
 }
@@ -50,15 +50,11 @@ public:
 
   TermList applyToBoundQuery(TermList t) override
   {
-    CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
-
     return SubstHelper::apply(t, *this);
   }
 
   TermList apply(unsigned var)
   {
-    CALL("SubstitutionTree::InstMatcher::Substitution::apply");
-
     TermList normalized=_parent->derefQueryBinding(var);
     ASS_REP(!normalized.isTerm() || normalized.term()->shared(), normalized);
     return _resultDenormalizer->apply(normalized);
@@ -79,16 +75,12 @@ private:
 
 ResultSubstitutionSP SubstitutionTree::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
 {
-  CALL("SubstitutionTree::InstMatcher::getSubstitution");
-
   return ResultSubstitutionSP(
 	  new Substitution(this, resultDenormalizer));
 }
 
 TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
 {
-  CALL("SubstitutionTree::InstMatcher::derefQueryBinding");
-
   TermList tvar0(var, false);
   TermList tvar=tvar0;
 
@@ -162,7 +154,6 @@ TermList SubstitutionTree::InstMatcher::derefQueryBinding(unsigned var)
 
 SubstitutionTree::InstMatcher::TermSpec SubstitutionTree::InstMatcher::deref(TermList var)
 {
-  CALL("SubstitutionTree::InstMatcher::deref");
   ASS_REP(var.isVar(), var.tag());
 
 #if VDEBUG
@@ -191,8 +182,6 @@ SubstitutionTree::InstMatcher::TermSpec SubstitutionTree::InstMatcher::deref(Ter
  */
 void SubstitutionTree::InstMatcher::backtrack()
 {
-  CALL("SubstitutionTree::InstMatcher::backtrack");
-
   for(;;) {
     TermList boundVar=_boundVars->pop();
     if(boundVar.isEmpty()) {
@@ -211,7 +200,6 @@ void SubstitutionTree::InstMatcher::backtrack()
  */
 bool SubstitutionTree::InstMatcher::tryBacktrack()
 {
-  CALL("SubstitutionTree::InstMatcher::tryBacktrack");
 
   while(_boundVars->isNonEmpty()) {
     TermList boundVar=_boundVars->pop();
@@ -226,8 +214,6 @@ bool SubstitutionTree::InstMatcher::tryBacktrack()
 
 bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
-  CALL("SubstitutionTree::InstMatcher::matchNext");
-
   if(separate) {
     TermList sep;
     sep.makeEmpty();
@@ -257,8 +243,6 @@ bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTer
  */
 bool SubstitutionTree::InstMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
 {
-  CALL("SubstitutionTree::InstMatcher::matchNextAux");
-
   unsigned specVar;
   TermSpec tsBinding;
 
@@ -368,8 +352,6 @@ finish:
 
 bool SubstitutionTree::FastInstancesIterator::hasNext()
 {
-  CALL("SubstitutionTree::FastInstancesIterator::hasNext");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   return _ldIterator.hasNext();
 }
@@ -379,8 +361,6 @@ bool SubstitutionTree::FastInstancesIterator::hasNext()
 
 SubstitutionTree::RSQueryResult SubstitutionTree::FastInstancesIterator::next()
 {
-  CALL("SubstitutionTree::FastInstancesIterator::next");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
   auto ld = _ldIterator.next();
@@ -414,8 +394,6 @@ SubstitutionTree::RSQueryResult SubstitutionTree::FastInstancesIterator::next()
  */
 bool SubstitutionTree::FastInstancesIterator::findNextLeaf()
 {
-  CALL("SubstitutionTree::FastInstancesIterator::findNextLeaf");
-
   Node* curr;
   bool sibilingsRemain = false;
   if(_inLeaf) {
@@ -559,7 +537,6 @@ main_loop_start:
  */
 bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
 {
-  CALL("SubstitutionTree::FastInstancesIterator::enterNode");
   ASSERT_VALID(*curr);
   ASS(!curr->isLeaf());
 

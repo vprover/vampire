@@ -58,8 +58,6 @@ public:
   template<typename Arrayish>
   // Implements Fisher–Yates shuffling (each permutation equally likely)
   static void shuffleArray(Arrayish& a, unsigned len) {
-    CALL("Shuffling::shuffleArray");
-
     for(unsigned i=0;i<len;i++){
       unsigned j = Random::getInteger(len-i)+i;
       std::swap(a[i],a[j]);
@@ -73,8 +71,6 @@ public:
   // we leak the old one
   template<typename T>
   static void shuffleList(List<T>*& list) {
-    CALL("Shuffling::shuffleList");
-
     unsigned len = List<T>::length(list);
 
     if (len <= 1) {
@@ -106,8 +102,6 @@ public:
   // they get shuffled "in sync"
   template<typename T, typename S>
   static void shuffleTwoList(List<T>*& list1, List<S>*& list2) {
-    CALL("Shuffling::shuffleTwoList");
-
     unsigned len = List<T>::length(list1);
 
     if (len <= 1) {

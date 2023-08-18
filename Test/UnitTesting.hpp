@@ -21,14 +21,12 @@
 
 #include "Forwards.hpp"
 #include "Lib/Stack.hpp"
-#include "Debug/Tracer.hpp"
 #include "Lib/VString.hpp"
 
 
 
 namespace Test {
 
-using namespace std;
 using namespace Lib;
 
 typedef void (*TestProc)();
@@ -54,14 +52,14 @@ public:
    *
    * returns true iff all tests of the unit were successfull.
    */
-  bool run(ostream& out);
-  bool runTestsWithNameSubstring(vstring const& pref, ostream& out);
+  bool run(std::ostream& out);
+  bool runTestsWithNameSubstring(vstring const& pref, std::ostream& out);
   bool runTest(vstring const& name);
 
 
   bool hasTest(vstring const& name);
 
-  friend std::ostream& operator<<(ostream& out, TestUnit const& t)
+  friend std::ostream& operator<<(std::ostream& out, TestUnit const& t)
   { return out << t._name << t._tests; }
 
   vstring const& id() const { return _name; }
@@ -98,7 +96,7 @@ public:
   bool runTest(vstring const& unit, vstring const& testCase);
 };
 
-std::ostream& operator<<(ostream& out, TestUnit::Test const& t);
+std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t);
 
 class TestAdder
 {

@@ -27,6 +27,7 @@
 #include "Shell/Statistics.hpp"
 #include "CombinatorDemodISE.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
@@ -35,8 +36,6 @@ typedef ApplicativeHelper AH;
 
 Clause* CombinatorDemodISE::simplify(Clause* c)
 {
-  CALL("CombinatorDemodISE::simplify");
-
   Literal* newLit;
   LiteralStack litStack;
   bool modified = false;
@@ -86,8 +85,6 @@ Clause* CombinatorDemodISE::simplify(Clause* c)
 
 TermList CombinatorDemodISE::reduce(TermList t, unsigned& length)
 {
-  CALL("CombinatorDemodISE::reduce");
-  
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
 
   ASS(!t.isVar());
@@ -174,8 +171,6 @@ TermList CombinatorDemodISE::reduce(TermList t, unsigned& length)
 
 bool CombinatorDemodISE::headNormalForm(TermList& t)
 {
-  CALL("CombinatorDemodISE::headNormalForm");
-
   static TermStack args;
   TermList head;
   

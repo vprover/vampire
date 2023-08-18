@@ -69,7 +69,6 @@ public:
     bool hasNext() { return _next!=-1; }
     int next()
     {
-      CALL("IntUnionFind::ElementIterator::next");
       ASS_NEQ(_next,-1);
 
       int res=_next;
@@ -106,7 +105,6 @@ public:
     ComponentIterator(const IntUnionFind& obj)
     : _cit(obj._components), _data(obj._data)
     {
-      CALL("IntUnionFind::ComponentIterator::ComponentIterator");
       ASS(!obj._modified); //the evalComponents function must have been called before
     }
 

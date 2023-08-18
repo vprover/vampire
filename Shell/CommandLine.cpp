@@ -18,7 +18,6 @@
 #include <cstring>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
@@ -31,11 +30,12 @@
 
 namespace Shell {
 
+using namespace std;
+
 CommandLine::CommandLine (int argc, char* argv [])
   : _next(argv+1),
     _last(argv+argc)
 {
-  CALL ("CommandLine::CommandLine");
 } // CommandLine::CommandLine
 
 /**
@@ -49,8 +49,6 @@ CommandLine::CommandLine (int argc, char* argv [])
  */
 void CommandLine::interpret (Options& options)
 {
-  CALL ("CommandLine::interpret");
-
   bool fileGiven = false;
   while (_next != _last) {
     ASS(_next < _last);

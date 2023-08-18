@@ -17,8 +17,6 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/System.hpp"
 
-#include "InstGen/IGAlgorithm.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "FMB/FiniteModelBuilder.hpp"
@@ -35,14 +33,11 @@
 #include "MainLoop.hpp"
 
 using namespace Kernel;
-using namespace InstGen;
 using namespace Saturation;
 using namespace FMB;
 
 void MainLoopResult::updateStatistics()
 {
-  CALL("MainLoopResult::updateStatistics");
-
   env.statistics->terminationReason = terminationReason;
   env.statistics->refutation = refutation;
   env.statistics->saturatedSet = saturatedSet;
@@ -56,7 +51,6 @@ void MainLoopResult::updateStatistics()
  */
 MainLoopResult MainLoop::run()
 {
-  CALL("MainLoop::run");
   TIME_TRACE("main loop");
 
   try {
@@ -89,16 +83,11 @@ MainLoopResult MainLoop::run()
  */
 bool MainLoop::isRefutation(Clause* cl)
 {
-  CALL("MainLoop::isRefutation");
-
   return cl->isEmpty() && cl->noSplits();
 }
 
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
-  CALL("MainLoop::createFromOptions");
-
-
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
   /*
@@ -113,12 +102,6 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
-  case Options::SaturationAlgorithm::INST_GEN:
-    if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
-      USER_ERROR("The inst gen calculus is currently not compatible with polymorphism or higher-order constructs");
-    }
-    res = new IGAlgorithm(prb, opt);
-    break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
     if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
       USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");

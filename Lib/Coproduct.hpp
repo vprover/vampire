@@ -20,7 +20,6 @@
 #define MACRO_EXPANSION true
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Sort.hpp"
@@ -28,6 +27,7 @@
 #include "Lib/Option.hpp"
 #include <memory>
 #include <functional>
+#include <tuple>
 
 namespace Lib {
 
@@ -43,7 +43,7 @@ class Coproduct;
 
 #if USE_SWITCH 
 
-template<unsigned maxExcl> struct SwitchImpl;
+template<unsigned maxExcl> struct SwitchImpl{};
 
 #define SWITCH_CONT_0
 #define SWITCH_CONT_1  SWITCH_CONT_0  case 0:  return f(Constant<0>{});
@@ -105,18 +105,18 @@ struct SwitchImpl
 {
   static_assert(I < N, "out of bounds");
   template<class F>
-  inline static auto apply(unsigned tag, F f) -> decltype(auto) {
+  inline static ResultOf<F, Constant<0>> apply(unsigned tag, F f) {
     if (tag == I) {
       return f(Constant<I>{});
     }
-    return SwitchImpl<I + 1, N>::apply(tag, f);
+    return SwitchImpl<I + 1, N>::apply(tag, std::move(f));
   }
 };
 
 template<unsigned N>
 struct SwitchImpl<N, N + 1> {
   template<class F>
-  inline static auto apply(unsigned tag, F f) -> decltype(auto) 
+  inline static ResultOf<F, Constant<0>> apply(unsigned tag, F f) 
   { 
     ASS_EQ(tag, N)
     return f(Constant<N>{});
@@ -124,10 +124,10 @@ struct SwitchImpl<N, N + 1> {
 };
 
 
-template<unsigned N, class F> inline auto switchN(unsigned tag, F fun) -> decltype(auto)
-{ return SwitchImpl<0, N>::apply(tag, fun); }
+template<unsigned N, class F> inline ResultOf<F, Constant<0>> switchN(unsigned tag, F fun)
+{ return SwitchImpl<0, N>::apply(tag, std::move(fun)); }
 
-#endif 
+#endif  // if(USE_SWITCH) else
 
 
 constexpr unsigned neededBits(unsigned i)
@@ -392,12 +392,12 @@ FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 
   static_assert( std::is_trivially_copyable<RawCoproduct<int, int>>::value, "test 01");
   static_assert(!std::is_trivially_copyable<std::vector<int>>::value, "test 02");
-  static_assert(!TL::All<is_trivially_copyable, TL::List<std::vector<int>, int>>::val, "test 03");
+  static_assert(!TL::All<std::is_trivially_copyable, TL::List<std::vector<int>, int>>::val, "test 03");
   static_assert(!std::is_trivially_copyable<RawCoproduct<std::vector<int>, int>>::value, "test 04");
 
   static_assert( std::is_trivially_destructible<RawCoproduct<int, int>>::value, "test 01");
   static_assert(!std::is_trivially_destructible<std::vector<int>>::value, "test 02");
-  static_assert(!TL::All<is_trivially_destructible, TL::List<std::vector<int>, int>>::val, "test 03");
+  static_assert(!TL::All<std::is_trivially_destructible, TL::List<std::vector<int>, int>>::val, "test 03");
   static_assert(!std::is_trivially_destructible<RawCoproduct<std::vector<int>, int>>::value, "test 04");
 
 
@@ -487,15 +487,15 @@ public:
    /**                                                                                    \
    * transforms all variants of this Coproduct to the same type and retuns the result     \
    *                                                                                      \
-   * The arguments F... must all be function whichs argument type must match the type of the corresponding    \
-   * variant of this Coproduct. The output types of the functions must all be the same type, which will be    \
-   * the return type of this function.                                                    \
+   * The arguments F... must all be function whichs argument type must match the type of  \
+   * the corresponding * variant of this Coproduct. The output types of the functions must\
+   * all be the same type, which will be the return type of this function.                \
    */                                                                                     \
   template <class... F>                                                                   \
-  inline auto match(F... fs) REF -> decltype(auto) {                                      \
+  inline ResultOf<TL::Get<0, TL::List<F...>>, TL::Get<0, Ts> REF> match(F... fs) REF {    \
     auto fs_ = std::tie(fs...);                                                           \
     return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
-        auto& f = get<N.value>(fs_);                                                      \
+        auto& f = std::get<N.value>(fs_);                                                      \
         return f(unwrap<N.value>());                                                      \
     });                                                                                   \
   }                                                                                       \

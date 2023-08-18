@@ -33,13 +33,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-
 #include "NegativeExt.hpp"
 
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {
@@ -48,6 +43,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 struct NegativeExt::IsNegativeEqualityFn
 {
@@ -61,8 +57,6 @@ struct NegativeExt::ResultFn
   
   Clause* operator() (Literal* lit)
   {
-    CALL("NegativeExt::ResultFn::operator()");
-
     ASS(lit->isEquality());
     ASS(!lit->isPositive());
 
@@ -166,8 +160,6 @@ private:
 
 ClauseIterator NegativeExt::generateClauses(Clause* premise)
 {
-  CALL("NegativeExt::generateClauses");
-
   //cout << "NegativeExt with " + premise->toString() << endl;
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();

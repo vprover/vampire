@@ -154,7 +154,7 @@ class Recycled
 public:
 
   Recycled()
-    : Recycled(mem().isNonEmpty() ? mem().pop() : IF_USE_PTRS(make_unique<T>(), T()))
+    : Recycled(mem().isNonEmpty() ? mem().pop() : IF_USE_PTRS(std::make_unique<T>(), T()))
   { }
 
   template<class A, class... As>

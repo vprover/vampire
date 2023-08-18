@@ -125,7 +125,7 @@ public:
     Options& operator=(const Options& that);
 
     // used to print help and options
-    void output (ostream&) const;
+    void output (std::ostream&) const;
 
     // Dealing with encoded options. Used by --decode option
     void readFromEncodedOptions (vstring testId);
@@ -134,7 +134,6 @@ public:
 
     // deal with completeness
     bool complete(const Problem&) const;
-    bool completeForNNE() const;
 
     // deal with constraints
     void setForcedOptionValues(); // not currently used effectively
@@ -192,7 +191,6 @@ public:
         OTHER,
         DEVELOPMENT,
         OUTPUT,
-        INST_GEN,
         FMB,
         SAT,
         AVATAR,
@@ -408,8 +406,10 @@ public:
 
   enum class Schedule : unsigned int {
     CASC,
+    CASC_2023,
     CASC_2019,
     CASC_SAT,
+    CASC_SAT_2023,
     CASC_SAT_2019,
     CASC_HOL_2020,
     FILE,
@@ -474,12 +474,11 @@ public:
 
   /** Possible values for saturation_algorithm */
   enum class SaturationAlgorithm : unsigned int {
-     DISCOUNT = 0,
-     FINITE_MODEL_BUILDING = 1,
-     INST_GEN = 2,
-     LRS = 3,
-     OTTER = 4,
-     Z3 = 5,
+     DISCOUNT,
+     FINITE_MODEL_BUILDING,
+     LRS,
+     OTTER,
+     Z3
    };
 
   /** Possible values for activity of some inference rules */
@@ -898,14 +897,13 @@ private:
         
         // For use in showOptions and explainOption
         //virtual void output(vstringstream& out) const {
-        virtual void output(ostream& out,bool linewrap) const {
-            CALL("Options::AbstractOptionValue::output");
+        virtual void output(std::ostream& out,bool linewrap) const {
             out << "--" << longName;
             if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
-            out << endl;
+            out << std::endl;
             
             if (experimental) {
-              out << "\t[experimental]" << endl;
+              out << "\t[experimental]" << std::endl;
             }
             
 
@@ -918,14 +916,14 @@ private:
                     out << *p;
                     count++;
                     if(linewrap && count>70 && *p==' '){
-                        out << endl << '\t';
+                        out << std::endl << '\t';
                         count=0;
                     }
                     if(*p=='\n'){ count=0; out << '\t'; }
                 }
-                out << endl;
+                out << std::endl;
             }
-            else{ out << "\tno description provided!" << endl; }
+            else{ out << "\tno description provided!" << std::endl; }
         }
         
         // Used to determine wheter the value of an option should be copied when
@@ -935,25 +933,21 @@ private:
        
         typedef std::unique_ptr<DArray<vstring>> vstringDArrayUP;
 
-        typedef pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
+        typedef std::pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
 
         void setRandomChoices(std::initializer_list<vstring> list){
-          CALL("AbstractOptionValue::setRandomChoices(std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
         }
         void setRandomChoices(std::initializer_list<vstring> list,
                               std::initializer_list<vstring> list_sat){
-          CALL("AbstractOptionValue::setRandomChoices(std::initializer_list<vstring> list, std::initializer_list<vstring> list_sat)");
           rand_choices.push(RandEntry(isRandOn(),toArray(list)));
           rand_choices.push(RandEntry(isRandSat(),toArray(list_sat)));
         }
         void setRandomChoices(OptionProblemConstraintUP c,
                               std::initializer_list<vstring> list){
-          CALL("AbstractOptionValue::setRandomChoices(OptionProblemConstraintUP c, std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(std::move(c),toArray(list)));
         }
         void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
-          CALL("AbstractOptionValue::setNoPropertyRandomChoices(std::initializer_list<vstring> list)");
           rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
           supress_problemconstraints=true;
         }
@@ -1070,10 +1064,9 @@ private:
         }
         virtual bool checkProblemConstraints(Property* prop);
         
-        virtual void output(ostream& out, bool linewrap) const {
-            CALL("Options::OptionValue::output");
+        virtual void output(std::ostream& out, bool linewrap) const {
             AbstractOptionValue::output(out,linewrap);
-            out << "\tdefault: " << getStringOfValue(defaultValue) << endl;
+            out << "\tdefault: " << getStringOfValue(defaultValue) << std::endl;
         }
        
         // This is where actual randomisation happens
@@ -1116,11 +1109,11 @@ private:
             return true;
         }
         
-        virtual void output(ostream& out,bool linewrap) const {
+        virtual void output(std::ostream& out,bool linewrap) const {
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
-            out << endl;
-            string values_header = "values: ";
+            out << std::endl;
+            std::string values_header = "values: ";
             out << "\t" << values_header;
             // Again we restrict line length to 70 characters
             int count=0;
@@ -1132,7 +1125,7 @@ private:
                     out << ",";
                     vstring next = choices[i];
                     if(linewrap && next.size()+count>60){ // next.size() will be <70, how big is a tab?
-                        out << endl << "\t";
+                        out << std::endl << "\t";
                         for(unsigned j=0;j<values_header.size();j++){out << " ";}
                         count = 0;
                     }
@@ -1140,7 +1133,7 @@ private:
                     count += next.size();
                 }
             }
-            out << endl;
+            out << std::endl;
         }
         
         vstring getStringOfValue(T value) const {
@@ -1255,10 +1248,10 @@ char sep;
 int defaultOtherValue;
 int otherValue;
 
-virtual void output(ostream& out,bool linewrap) const override {
+virtual void output(std::ostream& out,bool linewrap) const override {
     AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault left: " << defaultValue << endl;
-    out << "\tdefault right: " << defaultOtherValue << endl;
+    out << "\tdefault left: " << defaultValue << std::endl;
+    out << "\tdefault right: " << defaultOtherValue << std::endl;
 }
 
 virtual vstring getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
@@ -1306,9 +1299,9 @@ OptionValue(l,s,def){};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out,bool linewrap) const {
+virtual void output(std::ostream& out,bool linewrap) const {
     AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault: " << defaultValue << endl;;
+    out << "\tdefault: " << defaultValue << std::endl;;
 }
 
 virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
@@ -1329,9 +1322,9 @@ OptionValue(l,s,def), parent(p){};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out,bool linewrap) const {
+virtual void output(std::ostream& out,bool linewrap) const {
     AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault: " << defaultValue << endl;;
+    out << "\tdefault: " << defaultValue << std::endl;;
 }
 virtual vstring getStringOfValue(vstring value) const{ return value; }
 private:
@@ -1369,10 +1362,9 @@ OptionValue(l,s,def) {};
 
 bool setValue(const vstring& value);
 
-virtual void output(ostream& out,bool linewrap) const {
-    CALL("Options::TimeLimitOptionValue::output");
+virtual void output(std::ostream& out,bool linewrap) const {
     AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault: " << defaultValue << "d" << endl;
+    out << "\tdefault: " << defaultValue << "d" << std::endl;
 }
 virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
 };
@@ -1841,7 +1833,6 @@ bool _hard;
 
       CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
       bool check(Property*p){
-          CALL("Options::CategoryCondition::check");
           ASS(p);
           return has ? p->category()==cat : p->category()!=cat;
       }
@@ -1859,7 +1850,6 @@ bool _hard;
       USE_ALLOCATOR(UsesEquality);
 
       bool check(Property*p){
-        CALL("Options::UsesEquality::check");
         ASS(p)
         return (p->equalityAtoms() != 0) ||
           // theories may introduce equality at various places of the pipeline!
@@ -1873,7 +1863,6 @@ bool _hard;
       USE_ALLOCATOR(HasHigherOrder);
 
       bool check(Property*p){
-        CALL("Options::HasHigherOrder::check");
         ASS(p)
         return (p->higherOrder());
       }
@@ -1885,7 +1874,6 @@ bool _hard;
       USE_ALLOCATOR(OnlyFirstOrder);
 
       bool check(Property*p){
-        CALL("Options::OnlyFirstOrder::check");
         ASS(p)
         return (!p->higherOrder());
       }
@@ -1897,7 +1885,6 @@ bool _hard;
       USE_ALLOCATOR(MayHaveNonUnits);
 
       bool check(Property*p){
-        CALL("Options::MayHaveNonUnits::check");
         return (p->formulas() > 0) // let's not try to guess what kind of clauses these will give rise to
           || (p->clauses() > p->unitClauses());
       }
@@ -1909,7 +1896,6 @@ bool _hard;
       USE_ALLOCATOR(NotJustEquality);
 
       bool check(Property*p){
-        CALL("Options::NotJustEquality::check");
         return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
       }
       vstring msg(){ return " not useful with just equality"; }
@@ -1923,7 +1909,6 @@ bool _hard;
       int atoms;
       bool greater;
       bool check(Property*p){ 
-        CALL("Options::AtomConstraint::check");
         return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
           
@@ -1949,7 +1934,6 @@ bool _hard;
       USE_ALLOCATOR(HasFormulas);
 
       bool check(Property*p) {
-        CALL("Options::HasFormulas::check");
         return p->hasFormulas();
       }
       vstring msg(){ return " only useful with (non-cnf) formulas"; }
@@ -1960,7 +1944,6 @@ bool _hard;
       USE_ALLOCATOR(HasGoal);
 
       bool check(Property*p){
-        CALL("Options::HasGoal::check");
         return p->hasGoal();
       }
       vstring msg(){ return " only useful with a goal: (conjecture) formulas or (negated_conjecture) clauses"; }
@@ -2012,7 +1995,6 @@ bool _hard;
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
       bool check(Property*p){
-        CALL("Options::ManyOptionProblemConstraints::check");
         bool res = is_and;
         Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         while(it.hasNext()){ 
@@ -2062,7 +2044,6 @@ bool _hard;
     
     static OptionProblemConstraintUP isRandOn();
     static OptionProblemConstraintUP isRandSat();
-    static OptionProblemConstraintUP saNotInstGen();
 
   //==========================================================
   // Getter functions
@@ -2185,7 +2166,6 @@ public:
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
-  // bool useDM() const { return _use_dm.actualValue; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
@@ -2203,7 +2183,6 @@ public:
   bool binaryResolution() const { return _binaryResolution.actualValue; }
   bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
-  bool hyperSuperposition() const { return _hyperSuperposition.actualValue; }
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
@@ -2244,6 +2223,8 @@ public:
 #ifdef __linux__
   unsigned instructionLimit() const { return _instructionLimit.actualValue; }
   void setInstructionLimit(unsigned newVal) { _instructionLimit.actualValue = newVal; }
+  unsigned simulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
+  unsigned setSimulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
   bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
@@ -2359,14 +2340,6 @@ public:
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
 
-  float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
-  bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
-  int instGenResolutionRatioInstGen() const { return _instGenResolutionInstGenRatio.actualValue; }
-  int instGenResolutionRatioResolution() const { return _instGenResolutionInstGenRatio.otherValue; }
-  int instGenRestartPeriod() const { return _instGenRestartPeriod.actualValue; }
-  float instGenRestartPeriodQuotient() const { return _instGenRestartPeriodQuotient.actualValue; }
-  int instGenSelection() const { return _instGenSelection.actualValue; }
-  bool instGenWithResolution() const { return _instGenWithResolution.actualValue; }
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
   void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
@@ -2443,23 +2416,20 @@ private:
         public:
         
         void insert(AbstractOptionValue* option_value){
-            CALL("LookupWrapper::insert");
             ASS(!option_value->longName.empty());
             bool new_long =  _longMap.insert(option_value->longName,option_value);
             bool new_short = true;
             if(!option_value->shortName.empty()){
                 new_short = _shortMap.insert(option_value->shortName,option_value);
             }
-            if(!new_long || !new_short){ cout << "Bad " << option_value->longName << endl; }
+            if(!new_long || !new_short){ std::cout << "Bad " << option_value->longName << std::endl; }
             ASS(new_long && new_short);
         }
         AbstractOptionValue* findLong(vstring longName) const{
-            CALL("LookupWrapper::findLong");
             if(!_longMap.find(longName)){ throw ValueNotFoundException(); }
             return _longMap.get(longName);
         }
         AbstractOptionValue* findShort(vstring shortName) const{
-            CALL("LookupWrapper::findShort");
             if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
             return _shortMap.get(shortName);
         }
@@ -2623,8 +2593,6 @@ private:
   ChoiceOptionValue<GoalGuess> _guessTheGoal;
   UnsignedOptionValue _guessTheGoalLimit;
 
-  BoolOptionValue _hyperSuperposition;
-
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
@@ -2644,13 +2612,6 @@ private:
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   ChoiceOptionValue<Instantiation> _instantiation;
-  FloatOptionValue _instGenBigRestartRatio;
-  BoolOptionValue _instGenPassiveReactivation;
-  RatioOptionValue _instGenResolutionInstGenRatio;
-  //IntOptionValue _instGenResolutionRatioResolution;
-  IntOptionValue _instGenRestartPeriod;
-  FloatOptionValue _instGenRestartPeriodQuotient;
-  BoolOptionValue _instGenWithResolution;
   BoolOptionValue _useHashingVariantIndex;
 
   ChoiceOptionValue<Induction> _induction;
@@ -2682,7 +2643,8 @@ private:
   StringOptionValue _ltbDirectory;
 
 #ifdef __linux__
-  UnsignedOptionValue _instructionLimit; 
+  UnsignedOptionValue _instructionLimit;
+  UnsignedOptionValue _simulatedInstructionLimit;
   BoolOptionValue _parsingDoesNotCount;
 #endif
 
@@ -2818,7 +2780,6 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
-  // BoolOptionValue _use_dm;
 
   OptionChoiceValues _tagNames;
 
@@ -2826,8 +2787,7 @@ private:
   BoolOptionValue _restrictNWCtoGC;
 
   SelectionOptionValue _selection;
-  SelectionOptionValue _instGenSelection;
-    
+
   InputFileOptionValue _inputFile;
 
   BoolOptionValue _newCNF;

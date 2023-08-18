@@ -227,7 +227,7 @@ class BottomUpEvaluation {
              move_if_value<Type>(_ ## name),
                                         FOR_FIELD(foreach)
 #                                       undef foreach
-             make_tuple()); }
+             std::make_tuple()); }
 
 public:
   BottomUpEvaluation() 
@@ -243,7 +243,7 @@ public:
              defaultVal,
                                         FOR_FIELD(foreach)
 #                                       undef foreach
-             make_tuple()))
+             std::make_tuple()))
   {}
 
 
@@ -282,8 +282,6 @@ public:
    */
   Result apply(Arg const& toEval) 
   {
-    CALL("evaluateBottomUp(...)")
-
     /* recursion state. Contains a stack of items that are being recursed on. */
     Recycled<Stack<BottomUpChildIter<Arg>>> recState;
     Recycled<Stack<Result>> recResults;
@@ -472,7 +470,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return _nChildren; }
 
-    friend ostream& operator<<(ostream& out, PolynomialBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, PolynomialBottomUpChildIter const& self)
     { return out << self._self << "@(" << self._idx1 << ", " << self._idx2 << ")"; }
   };
 
@@ -493,7 +491,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return _self->numTermArguments(); }
 
-    friend ostream& operator<<(ostream& out, FuncTermBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, FuncTermBottomUpChildIter const& self)
     { return out << self._self << "@" << self._idx; }
   };
 
@@ -512,7 +510,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return 0; }
 
-    friend ostream& operator<<(ostream& out, VariableBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, VariableBottomUpChildIter const& self)
     { return out << self._self; }
   };
 
@@ -538,7 +536,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
   Kernel::PolyNf self(EmptyContext = EmptyContext()) const
   { return _self.apply([](auto& x) { return Kernel::PolyNf(x._self); }); }
 
-  friend ostream& operator<<(ostream& out, BottomUpChildIter const& self)
+  friend std::ostream& operator<<(std::ostream& out, BottomUpChildIter const& self)
   { return out << self._self; }
 };
 

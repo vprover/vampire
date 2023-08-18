@@ -72,7 +72,6 @@ public:
   {
     RefutationFoundException(Clause* ref) : refutation(ref)
     {
-      CALL("MainLoop::RefutationFoundException::RefutationFoundException");
       ASS(isRefutation(ref));
     }
 

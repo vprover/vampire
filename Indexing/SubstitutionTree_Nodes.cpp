@@ -56,14 +56,12 @@ public:
   inline
   void insert(LeafData ld)
   {
-    CALL("SubstitutionTree::UListLeaf::insert");
     LDList::push(ld, _children);
     _size++;
   }
   inline
   void remove(LeafData ld)
   {
-    CALL("SubstitutionTree::UListLeaf::remove");
     _children = LDList::remove(ld, _children);
     _size--;
   }
@@ -100,11 +98,9 @@ public:
     return pvi( iterTraits(LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   void insert(LeafData ld) {
-    CALL("SubstitutionTree::SListLeaf::insert");
     _children.insert(ld);
   }
   void remove(LeafData ld) {
-    CALL("SubstitutionTree::SListLeaf::remove");
     _children.remove(ld);
   }
 
@@ -130,13 +126,11 @@ SubstitutionTree::Leaf* SubstitutionTree::createLeaf(TermList ts)
 
 SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(unsigned childVar)
 {
-  CALL("SubstitutionTree::createIntermediateNode/2");
   return new UArrIntermediateNode(childVar);
 }
 
 SubstitutionTree::IntermediateNode* SubstitutionTree::createIntermediateNode(TermList ts, unsigned childVar)
 {
-  CALL("SubstitutionTree::createIntermediateNode/3");
   return new UArrIntermediateNode(ts, childVar);
 }
 
@@ -163,8 +157,6 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
 
 SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::childByTop(TermList::Top t, bool canCreate)
 {
-  CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
-
   for(int i=0;i<_size;i++) {
     if(t == _nodes[i]->top()) {
       return &_nodes[i];
@@ -182,8 +174,6 @@ SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::childByTop(Term
 
 void SubstitutionTree::UArrIntermediateNode::remove(TermList::Top t)
 {
-  CALL("SubstitutionTree::UArrIntermediateNode::remove");
-
   for(int i=0;i<_size;i++) {
     if(t == _nodes[i]->top()) {
       _size--;
@@ -202,8 +192,6 @@ void SubstitutionTree::UArrIntermediateNode::remove(TermList::Top t)
 SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
 	::assimilate(IntermediateNode* orig)
 {
-  CALL("SubstitutionTree::SListIntermediateNode::assimilate");
-
   IntermediateNode* res= 0;
   res = new SListIntermediateNode(orig->term(), orig->childVar);
   res->loadChildren(orig->allChildren());
@@ -218,8 +206,6 @@ SubstitutionTree::IntermediateNode* SubstitutionTree::SListIntermediateNode
  */
 SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
 {
-  CALL("SubstitutionTree::SListLeaf::assimilate");
-
   SListLeaf* res=new SListLeaf(orig->term());
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
@@ -229,8 +215,6 @@ SubstitutionTree::SListLeaf* SubstitutionTree::SListLeaf::assimilate(Leaf* orig)
 
 void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
 {
-  CALL("SubstitutionTree::ensureLeafEfficiency");
-
   if( (*leaf)->algorithm()==UNSORTED_LIST && (*leaf)->size()>5 ) {
     *leaf=SListLeaf::assimilate(*leaf);
   }
@@ -238,8 +222,6 @@ void SubstitutionTree::ensureLeafEfficiency(Leaf** leaf)
 
 void SubstitutionTree::ensureIntermediateNodeEfficiency(IntermediateNode** inode)
 {
-  CALL("SubstitutionTree::ensureIntermediateNodeEfficiency");
-
   if( (*inode)->algorithm()==UNSORTED_LIST && (*inode)->size()>3 ) {
     *inode=SListIntermediateNode::assimilate(*inode);
   }

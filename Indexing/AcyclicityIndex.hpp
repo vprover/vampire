@@ -79,7 +79,7 @@ private:
   struct IndexEntry;
   struct CycleSearchTreeNode;
   struct CycleSearchIterator;
-  typedef pair<Kernel::Literal*, Kernel::Clause*> ULit;
+  typedef std::pair<Kernel::Literal*, Kernel::Clause*> ULit;
   typedef Lib::DHMap<ULit, IndexEntry*> SIndex;
 
   Lib::DHMap<TermList, SIndex*> _sIndexes;

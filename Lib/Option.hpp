@@ -19,7 +19,6 @@
 
 #include <type_traits>
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 #include <iostream>
 #include "Lib/Reflection.hpp"
 
@@ -296,6 +295,12 @@ public:
   std::remove_reference_t<A> const* asPtr() const { return isSome() ? &unwrap() : nullptr; }
 
 
+  Option take() 
+  {
+    Option out;
+    std::swap(*this,out);
+    return out;
+  }
   /** 
    * returns the value held by this option if there is one, or calls the given function f without arguments, 
    * initializes the closuer with the returned value, and returns a reference to the value afterwards.
@@ -418,13 +423,6 @@ public:
   FOR_REF_QUALIFIER(ref_polymorphic)
 
 #undef ref_polymorphic
-
-  Option take() 
-  {
-    Option out;
-    swap(*this,out);
-    return out;
-  }
 
   class OptionIter {
     Option _self;

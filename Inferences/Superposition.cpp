@@ -56,11 +56,10 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 void Superposition::attach(SaturationAlgorithm* salg)
 {
-  CALL("Superposition::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _subtermIndex=static_cast<SuperpositionSubtermIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
@@ -70,8 +69,6 @@ void Superposition::attach(SaturationAlgorithm* salg)
 
 void Superposition::detach()
 {
-  CALL("Superposition::detach");
-
   _subtermIndex=0;
   _lhsIndex=0;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
@@ -84,8 +81,6 @@ struct Superposition::ForwardResultFn
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TypedTermList>, TQueryRes<AbstractingUnifier*>> arg)
   {
-    CALL("Superposition::ForwardResultFn::operator()");
-
     auto& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
 	    qr.clause, qr.literal, qr.term, qr.unifier, true, _passiveClauseContainer);
@@ -102,8 +97,6 @@ struct Superposition::BackwardResultFn
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<AbstractingUnifier*>> arg)
   {
-    CALL("Superposition::BackwardResultFn::operator()");
-
     if(_cl==arg.second.clause) {
       return 0;
     }
@@ -121,7 +114,6 @@ private:
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
-  CALL("Superposition::generateClauses");
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   auto itf1 = premise->getSelectedLiteralIterator();
@@ -177,14 +169,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
  */
 bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
 {
-  CALL("Superposition::checkClauseColorCompatibility");
-
   if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     return true;
   }
   if(getOptions().showBlocked()) {
     env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
     env.endOutput();
   }
   if(getOptions().colorUnblocking()) {
@@ -209,7 +199,6 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
  */
 bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS)
 {
-  CALL("Superposition::checkSuperpositionFromVariable");
   ASS(eqLHS.isVar());
   //if we should do rewriting, LHS cannot appear inside RHS
   //ASS_REP(!EqHelper::getOtherEqualitySide(eqLit, eqLHS).containsSubterm(eqLHS), eqLit->toString());
@@ -249,8 +238,6 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
       ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
 {
-  CALL("Superposition::earlyWeightLimitCheck");
-
   unsigned nonInvolvedLiteralWLB=0;//weight lower bound for literals that aren't going to be rewritten
 
   unsigned rwLength = rwClause->length();
@@ -321,7 +308,6 @@ Clause* Superposition::performSuperposition(
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
 {
-  CALL("Superposition::performSuperposition");
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);

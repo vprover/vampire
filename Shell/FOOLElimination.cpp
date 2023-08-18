@@ -38,6 +38,7 @@
 
 #include "FOOLElimination.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -51,8 +52,6 @@ const char* FOOLElimination::MATCH_PREFIX  = "mG";
 FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0), _polymorphic(0) {}
 
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
-  CALL("FOOLElimination::needsElimination");
-
   /**
    * Be careful with the difference between FOOLElimination::needsElimination
    * and Property::_hasFOOL!
@@ -96,8 +95,6 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit) {
 }
 
 void FOOLElimination::apply(Problem& prb)  {
-  CALL("FOOLElimination::apply(Problem*)");
-
   _higherOrder = prb.hasApp();
   _polymorphic = prb.hasPolymorphicSym();
   apply(prb.units());
@@ -106,8 +103,6 @@ void FOOLElimination::apply(Problem& prb)  {
 }
 
 void FOOLElimination::apply(UnitList*& units) {
-  CALL("FOOLElimination::apply(UnitList*&)");
-
   UnitList::DelIterator us(units);
   while(us.hasNext()) {
     Unit* unit = us.next();
@@ -136,8 +131,6 @@ void FOOLElimination::apply(UnitList*& units) {
 }
 
 FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
-  CALL("FOOLElimination::apply(FormulaUnit*)");
-
   if (!needsElimination(unit)) {
     return unit;
   }
@@ -175,8 +168,6 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 }
 
 Formula* FOOLElimination::process(Formula* formula) {
-  CALL("FOOLElimination::process(Formula*)");
-
   if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
      !_polymorphic){
     LambdaElimination le = LambdaElimination();
@@ -321,8 +312,6 @@ Formula* FOOLElimination::process(Formula* formula) {
 }
 
 FormulaList* FOOLElimination::process(FormulaList* formulas) {
-  CALL ("FOOLElimination::process(FormulaList*)");
-
   FormulaList*  res = FormulaList::empty();
   FormulaList** ipt = &res;
 
@@ -369,8 +358,6 @@ FormulaList* FOOLElimination::process(FormulaList* formulas) {
  * FOOL_TRUE all over the place.
  */
 void FOOLElimination::process(TermList ts, Context context, TermList& termResult, Formula*& formulaResult) {
-  CALL("FOOLElimination::process(TermList ts, Context context, ...)");
-
 #if VDEBUG
   // A term can only be processed in a formula context if it has boolean sort
   // The opposite does not hold - a boolean term can stand in a term context
@@ -403,7 +390,6 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
  * A shortcut of process(TermList, context) for TERM_CONTEXT.
  */
 TermList FOOLElimination::process(TermList terms) {
-  CALL("FOOLElimination::process(TermList terms)");
   TermList ts;
   Formula* dummy;
   process(terms, TERM_CONTEXT, ts, dummy);
@@ -414,7 +400,6 @@ TermList FOOLElimination::process(TermList terms) {
  * A shortcut of process(TermList, context) for FORMULA_CONTEXT.
  */
 Formula* FOOLElimination::processAsFormula(TermList terms) {
-  CALL("FOOLElimination::processAsFormula(TermList terms)");
   Formula* formula = nullptr;
   TermList dummy;
   process(terms, FORMULA_CONTEXT, dummy, formula);
@@ -437,8 +422,6 @@ Formula* FOOLElimination::processAsFormula(TermList terms) {
  * subterms and we don't have to further process it.
  */
 void FOOLElimination::process(Term* term, Context context, TermList& termResult, Formula*& formulaResult) {
-  CALL("FOOLElimination::process(Term* term, Context context, ...)");
-
   // collect free variables of the term and their sorts
   // WARNING, this list is leaked in all cases. Sometimes,
   // it becomes the quantified variables of a formula, 
@@ -503,8 +486,8 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
     Term::SpecialTermData* sd = term->getSpecialData();
 
-    switch (term->functor()) {
-      case Term::SF_ITE: {
+    switch (term->specialFunctor()) {
+      case Term::SpecialFunctor::ITE: {
         /**
          * Having a term of the form $ite(f, s, t) and the list Y1, ..., Ym, 
          * X1, ..., Xn of its free type and term variables (it is the union of 
@@ -584,7 +567,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SF_LET: {
+      case Term::SpecialFunctor::LET: {
         /**
          * Having a term of the form $let(f(B1,...Bj,Y1, ..., Yk) := s, t), where f is a
          * function or predicate symbol and the list A1,...,Am,X1, ..., Xn of free 
@@ -710,8 +693,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         break;
       }
-
-      case Term::SF_FORMULA: {
+      case Term::SpecialFunctor::TUPLE:
+      case Term::SpecialFunctor::LET_TUPLE:
+        NOT_IMPLEMENTED;
+      case Term::SpecialFunctor::FORMULA: {
         if (context == FORMULA_CONTEXT) {
           formulaResult = process(sd->getFormula());
           break;
@@ -767,7 +752,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
         break;
       }
-      case Term::SF_LAMBDA: {
+      case Term::SpecialFunctor::LAMBDA: {
         // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in
         // the literature.
         LambdaElimination le = LambdaElimination();
@@ -775,7 +760,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         /**
          * Having a term of the form $match(v, p1, b1, ..., pm, bm) and the list
          * X1, ..., Xn of its free variables (it is the union of free variables
@@ -843,8 +828,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      default:
-        ASSERTION_VIOLATION;
     }
 
     if (env.options->showPreprocessing()) {
@@ -891,8 +874,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
  * A shortcut of process(Term*, context) for TERM_CONTEXT.
  */
 TermList FOOLElimination::process(Term* term) {
-  CALL("FOOLElimination::process(Term* term)");
-
   TermList termList;
   Formula* dummy;
 
@@ -905,8 +886,6 @@ TermList FOOLElimination::process(Term* term) {
  * A shortcut of process(Term*, context) for FORMULA_CONTEXT.
  */
 Formula* FOOLElimination::processAsFormula(Term* term) {
-  CALL("FOOLElimination::processAsFormula(Term* term)");
-
   Formula* formula = nullptr;
   TermList dummy;
 
@@ -922,8 +901,6 @@ Formula* FOOLElimination::processAsFormula(Term* term) {
  */
 Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
                                                    TermList lhsTerm, TermList rhsTerm, TermList termSort) {
-  CALL("FOOLElimination::buildEq");
-
   if (context == FORMULA_CONTEXT) {
     // build equivalence
     return new BinaryFormula(IFF, lhsFormula, rhsFormula);
@@ -941,8 +918,6 @@ Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula*
  */
 void FOOLElimination::buildApplication(unsigned symbol, Context context, TermStack& vars,
                                        TermList& functionApplication, Formula*& predicateApplication) {
-  CALL("FOOLElimination::buildApplication");
-
   if (context == FORMULA_CONTEXT) {
     predicateApplication = new AtomicFormula(Literal::create(symbol, vars.size(), true, false, vars.begin()));
   } else {
@@ -957,8 +932,6 @@ void FOOLElimination::buildApplication(unsigned symbol, Context context, TermSta
 void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars, 
                                    TermStack& termVars, TermStack& allVars, TermStack& termVarSorts)
 {
-  CALL("FOOLElimination::collectSorts");
-
   VList::Iterator fvi(vars);
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
@@ -986,8 +959,6 @@ void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars,
  * doesn't have FOOL subterms.
  */
 void FOOLElimination::addDefinition(FormulaUnit* def) {
-  CALL("FOOLElimination::addDefinition");
-
   ASS_REP(!needsElimination(def), def->toString());
 
   _defs = new UnitList(def, _defs);
@@ -1007,8 +978,6 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
 
 unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* prefix,
                                                TermStack sorts, TermList resultSort, unsigned typeArgsArity) {
-  CALL("FOOLElimination::introduceFreshSymbol");
-
   unsigned arity = (unsigned)sorts.size();
   OperatorType* type;
   if (context == FORMULA_CONTEXT) {
@@ -1042,8 +1011,6 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
 }
 
 void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
-  CALL("FOOLElimination::reportProcessed");
-
   if (inputRepr != outputRepr) {
     /**
      * If show_fool is set to off, the string representations of the input

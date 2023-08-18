@@ -131,7 +131,6 @@ Option<MismatchHandler::AbstractionResult> funcExt(
     AbstractingUnifier* au, 
     TermSpec const& t1, TermSpec const& t2)
 {
-  CALL("HOMismatchHandler::tryAbstract")
   ASS(t1.isTerm() || t2.isTerm())
   ASS(!t1.isSpecialVar())
   ASS(!t2.isSpecialVar())
@@ -180,7 +179,6 @@ Option<MismatchHandler::AbstractionResult> funcExt(
 
 Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const
 {
-  CALL("MismatchHandler::checkUWA");
   using Uwa = Shell::Options::UnificationWithAbstraction;
   ASS(_mode != Uwa::OFF)
 
@@ -299,7 +297,6 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 
 bool AbstractingUnifier::fixedPointIteration()
 {
-  CALL("AbstractionResult::fixedPointIteration");
   Recycled<Stack<UnificationConstraint>> todo;
   while (!constr().isEmpty()) { 
     todo->push(constr().pop(bd()));
@@ -356,7 +353,6 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
 #define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
-  CALL("AbstractionResult::unify");
   ASS_NEQ(_uwa._mode, Shell::Options::UnificationWithAbstraction::OFF) 
   DEBUG_UNIFY(1, *this, ".unify(", t1, ",", t2, ")")
   progress = false;

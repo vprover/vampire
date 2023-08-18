@@ -28,7 +28,6 @@
 
 namespace Shell {
 
-using namespace std;
 using namespace Lib;
 
 class LispLexer;
@@ -97,7 +96,7 @@ public:
   {
   public:                                
     Exception (vstring message,const Token&);
-    void cry (ostream&) const;
+    void cry (std::ostream&) const;
     ~Exception () {}
   protected:
     vstring _message;
@@ -118,7 +117,6 @@ class LispListReader {
 public:
   explicit LispListReader(LExpr* e) : it(nullptr)
   {
-    CALL("LispListReader::LispListReader(LExpr*)");
     if(!e->isList()) {
       lispError(e, "list expected");
     }
@@ -202,7 +200,6 @@ public:
 
   LExprList* getList() const
   {
-    CALL("LispListWriter::getList");
     ASS(!_destroyed);
 
     LExprList* res = 0;
@@ -212,8 +209,6 @@ public:
 
   LExpr* get() const
   {
-    CALL("LispListWriter::get");
-
     LExpr* res = new LExpr(LispParser::LIST);
     res->list = getList();
     return res;

@@ -140,6 +140,7 @@ struct CompositeTermSpec {
   CompositeTermSpec& operator=(CompositeTermSpec&&) = default;
 
   TermSpec const& arg(unsigned i) const { return (**args)[i]; }
+
   auto argsIter() const 
   { return iterTraits(args.iter())
                 .flatMap([](auto& args) { return arrayIter(*args); }); }
@@ -197,8 +198,8 @@ public:
 
   template<class Deref>
   static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
-    Recycled<Stack<pair<TermSpec, TermSpec>>> todo;
-    todo->push(make_pair(lhs.clone(),rhs.clone()));
+    Recycled<Stack<std::pair<TermSpec, TermSpec>>> todo;
+    todo->push(std::make_pair(lhs.clone(),rhs.clone()));
     // DBG("compare: ", lhs, " <> ", rhs)
     while (todo->isNonEmpty()) {
       auto lhs_ = std::move(todo->top().first);
@@ -569,8 +570,7 @@ public:
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
   std::ostream& output(std::ostream& out, bool deref) const;
 
-  typedef pair<TermSpec,TermSpec> TTPair;
- 
+  typedef std::pair<TermSpec,TermSpec> TTPair;
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
   {
     if(self.index == SPECIAL_INDEX) {
@@ -604,13 +604,6 @@ private:
   bool unify(AtomicTermSpec t1, AtomicTermSpec t2);
   bool occurs(VarSpec const& vs, AtomicTermSpec const& ts);
 
-  // VarSpec getVarSpec(TermList tl, int index) const
-  // {
-  //   CALL("RobSubstitution::getVarSpec");
-  //   ASS(tl.isVar());
-  //   index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
-  //   return VarSpec(tl.var(), index);
-  // }
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
   { return out << "(" << self._bindings << ", " << self._outputVarBindings << ")"; }
 

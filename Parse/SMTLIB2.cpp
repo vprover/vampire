@@ -56,6 +56,8 @@
 
 namespace Parse {
 
+using namespace std;
+
 static const char* PAR = "par";
 static const char* TYPECON_POSTFIX = "()";
 
@@ -66,13 +68,10 @@ SMTLIB2::SMTLIB2(const Options& opts)
   _formulas(nullptr),
   _topLevelExpr(nullptr)
 {
-  CALL("SMTLIB2::SMTLIB2");
 }
 
 void SMTLIB2::parse(istream& str)
 {
-  CALL("SMTLIB2::parse(istream&)");
-
   LispLexer lex(str);
   LispParser lpar(lex);
   LExpr* expr = lpar.parse();
@@ -81,15 +80,12 @@ void SMTLIB2::parse(istream& str)
 
 void SMTLIB2::parse(LExpr* bench)
 {
-  CALL("SMTLIB2::parse(LExpr*)");
-
   ASS(bench->isList());
   readBenchmark(bench->list);
 }
 
 void SMTLIB2::readBenchmark(LExprList* bench)
 {
-  CALL("SMTLIB2::readBenchmark");
   LispListReader bRdr(bench);
 
   bool afterCheckSat = false;
@@ -456,8 +452,6 @@ const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
 
 SMTLIBLogic SMTLIB2::getLogicFromString(const vstring& str)
 {
-  CALL("SMTLIB2::getLogicFromString");
-
   static NameArray smtlibLogicNames(s_smtlibLogicNameStrings, sizeof(s_smtlibLogicNameStrings)/sizeof(char*));
   ASS_EQ(smtlibLogicNames.length, SMT_UNDEFINED);
 
@@ -470,8 +464,6 @@ SMTLIBLogic SMTLIB2::getLogicFromString(const vstring& str)
 
 void SMTLIB2::readLogic(const vstring& logicStr)
 {
-  CALL("SMTLIB2::checkLogic");
-
   _logic = getLogicFromString(logicStr);
   _logicSet = true;
 
@@ -547,8 +539,6 @@ void SMTLIB2::readLogic(const vstring& logicStr)
 
 void SMTLIB2::readDeclareSort(const vstring& name, const vstring& arity)
 {
-  CALL("SMTLIB2::readDeclareSort");
-
   vstring pName = name + TYPECON_POSTFIX;
   if (isAlreadyKnownSymbol(pName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol: "+name);
@@ -572,8 +562,6 @@ void SMTLIB2::readDeclareSort(const vstring& name, const vstring& arity)
 
 void SMTLIB2::readDefineSort(const vstring& name, LExprList* args, LExpr* body)
 {
-  CALL("SMTLIB2::readDefineSort");
-
   vstring pName = name + TYPECON_POSTFIX;
   if (isAlreadyKnownSymbol(pName)) {
     USER_ERROR_EXPR("Redeclaring built-in, declared or defined sort symbol: "+name);
@@ -623,8 +611,6 @@ const char * SMTLIB2::s_formulaSymbolNameStrings[] = {
 
 SMTLIB2::FormulaSymbol SMTLIB2::getBuiltInFormulaSymbol(const vstring& str)
 {
-  CALL("SMTLIB::getFormulaSymbol");
-
   static NameArray formulaSymbolNames(s_formulaSymbolNameStrings, sizeof(s_formulaSymbolNameStrings)/sizeof(char*));
   ASS_EQ(formulaSymbolNames.length, FS_USER_PRED_SYMBOL);
 
@@ -661,8 +647,6 @@ const char * SMTLIB2::s_termSymbolNameStrings[] = {
 
 SMTLIB2::TermSymbol SMTLIB2::getBuiltInTermSymbol(const vstring& str)
 {
-  CALL("SMTLIB::getTermSymbol");
-
   static NameArray termSymbolNames(s_termSymbolNameStrings, sizeof(s_termSymbolNameStrings)/sizeof(char*));
   ASS_EQ(termSymbolNames.length, TS_USER_FUNCTION);
 
@@ -675,8 +659,6 @@ SMTLIB2::TermSymbol SMTLIB2::getBuiltInTermSymbol(const vstring& str)
 
 bool SMTLIB2::isAlreadyKnownSymbol(const vstring& name)
 {
-  CALL("SMTLIB2::isAlreadyKnownSymbol");
-
   if (getBuiltInFormulaSymbol(name) != FS_USER_PRED_SYMBOL) {
     return true;
   }
@@ -694,8 +676,6 @@ bool SMTLIB2::isAlreadyKnownSymbol(const vstring& name)
 
 void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, unsigned taArity)
 {
-  CALL("SMTLIB2::readDeclareFun");
-
   if (isAlreadyKnownSymbol(name)) {
     USER_ERROR_EXPR("Redeclaring function symbol: "+name);
   }
@@ -716,8 +696,6 @@ void SMTLIB2::readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSor
 
 SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts, unsigned taArity)
 {
-  CALL("SMTLIB2::declareFunctionOrPredicate");
-
   bool added = false;
   unsigned symNum;
   Signature::Symbol* sym;
@@ -763,8 +741,6 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name,
 
 void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive)
 {
-  CALL("SMTLIB2::readDefineFun");
-
   if (isAlreadyKnownSymbol(name)) {
     USER_ERROR_EXPR("Redeclaring function symbol: "+name);
   }
@@ -843,8 +819,6 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
 void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
 {
-  CALL("SMTLIB2::readTypeParameters");
-
   if (!rdr.hasNext()) {
     USER_ERROR_EXPR("'par' keyword must be followed by a list of parameters");
   }
@@ -870,8 +844,6 @@ void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermSt
 
 void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 {
-  CALL("SMTLIB2::readDeclareDatatype");
-
   // first declare the sort
   vstring dtypeName = sort->str+TYPECON_POSTFIX;
   if (isAlreadyKnownSymbol(dtypeName)) {
@@ -943,8 +915,6 @@ void SMTLIB2::readDeclareDatatype(LExpr *sort, LExprList *datatype)
 
 void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype)
 {
-  CALL("SMTLIB2::readDeclareDatatypes");
-  
   if(LExprList::length(sorts) != LExprList::length(datatypes)){
     USER_ERROR_EXPR("declare-datatype(s) declaration mismatch between declared datatypes and definitions");
   }
@@ -1033,8 +1003,6 @@ void SMTLIB2::readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool 
 
 TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName, TermList taSort,
                                                              Stack<vstring> destructorNames, TermStack argSorts) {
-  CALL("SMTLIB2::buildTermAlgebraConstructor");
-
   if (isAlreadyKnownSymbol(constrName)) {
     USER_ERROR_EXPR("Redeclaring function symbol: " + constrName);
   }
@@ -1090,8 +1058,6 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(vstring constrName,
 
 bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
 {
-  CALL("SMTLIB2::ParseResult::asFormula");
-
   if (formula) {
     ASS_EQ(sort, AtomicSort::boolSort());
     resFrm = attachLabelToFormula(frm);
@@ -1127,8 +1093,6 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
 
 TermList SMTLIB2::ParseResult::asTerm(TermList& resTrm)
 {
-  CALL("SMTLIB2::ParseResult::asTerm");
-
   if (formula) {
     ASS_EQ(sort, AtomicSort::boolSort());
 
@@ -1151,7 +1115,6 @@ TermList SMTLIB2::ParseResult::asTerm(TermList& resTrm)
 
 vstring SMTLIB2::ParseResult::toString()
 {
-  CALL("SMTLIB2::ParseResult::toString");
   if (isSeparator()) {
     return "separator";
   }
@@ -1171,8 +1134,6 @@ Formula* SMTLIB2::ParseResult::attachLabelToFormula(Formula* frm)
 
 Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, TermList firstArgSort)
 {
-  CALL("SMTLIB2::getFormulaSymbolInterpretation");
-
   switch(fs) {
   case FS_LESS:
     if(firstArgSort == AtomicSort::intSort()){
@@ -1211,8 +1172,6 @@ Interpretation SMTLIB2::getFormulaSymbolInterpretation(FormulaSymbol fs, TermLis
 
 Interpretation SMTLIB2::getUnaryMinusInterpretation(TermList argSort)
 {
-  CALL("SMTLIB2::getUnaryMinusInterpretation");
-
   if(argSort == AtomicSort::intSort()){
       return Theory::INT_UNARY_MINUS;
   } else if(argSort == AtomicSort::realSort()) {
@@ -1224,8 +1183,6 @@ Interpretation SMTLIB2::getUnaryMinusInterpretation(TermList argSort)
 
 Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firstArgSort)
 {
-  CALL("SMTLIB2::getTermSymbolInterpretation");
-
   switch(ts) {
   case TS_MINUS:
     if(firstArgSort == AtomicSort::intSort()){
@@ -1267,15 +1224,11 @@ Interpretation SMTLIB2::getTermSymbolInterpretation(TermSymbol ts, TermList firs
 
 void SMTLIB2::complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp)
 {
-  CALL("SMTLIB2::complainAboutArgShortageOrWrongSorts");
-
   USER_ERROR_EXPR("Not enough arguments or wrong sorts for "+symbolClass+" application '"+exp->toString()+"'");
 }
 
 void SMTLIB2::parseLetBegin(LExpr* exp)
 {
-  CALL("SMTLIB2::parseLetBegin");
-
   LOG2("parseLetBegin  ",exp->toString());
 
   ASS(exp->isList());
@@ -1323,7 +1276,6 @@ void SMTLIB2::parseLetBegin(LExpr* exp)
 
 void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
 {
-  CALL("SMTLIB2::parseLetPrepareLookup");
   LOG2("PO_LET_PREPARE_LOOKUP",exp->toString());
 
   // so we know it is let
@@ -1413,7 +1365,6 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
 
 void SMTLIB2::parseLetEnd(LExpr* exp)
 {
-  CALL("SMTLIB2::parseLetEnd");
   LOG2("PO_LET_END ",exp->toString());
 
   // so we know it is let
@@ -1474,8 +1425,6 @@ static const char *UNDERSCORE = "_";
 
 bool SMTLIB2::isTermAlgebraConstructor(const vstring &name)
 {
-  CALL("SMTLIB2::isTermAlgebraConstructor");
-
   if (_declaredSymbols.find(name)) {
     DeclaredSymbol &s = _declaredSymbols.get(name);
     return (s.second==SymbolType::FUNCTION && env.signature->getTermAlgebraConstructor(s.first));
@@ -1486,8 +1435,6 @@ bool SMTLIB2::isTermAlgebraConstructor(const vstring &name)
 
 void SMTLIB2::parseMatchBegin(LExpr *exp)
 {
-  CALL("SMTLIB2::parseMatchBegin");
-
   LOG2("parseMatchBegin  ", exp->toString());
 
   ASS(exp->isList());
@@ -1562,8 +1509,6 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
 
 void SMTLIB2::parseMatchCaseStart(LExpr *exp)
 {
-  CALL("SMTLIB2::parseMatchCaseStart");
-
   ASS(exp->isList());
   LispListReader eRdr(exp->list);
 
@@ -1631,8 +1576,6 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
 
 void SMTLIB2::parseMatchCaseEnd(LExpr *exp)
 {
-  CALL("SMTLIB2::parseMatchCaseEnd");
-
   LExprList::destroy(exp->list);
   delete exp;
   delete _scopes.pop();
@@ -1640,8 +1583,6 @@ void SMTLIB2::parseMatchCaseEnd(LExpr *exp)
 
 void SMTLIB2::parseMatchEnd(LExpr *exp)
 {
-  CALL("SMTLIB2::parseMatchEnd");
-
   LOG2("PO_MATCH_END ", exp->toString());
 
   ASS(exp->isList());
@@ -1747,8 +1688,6 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 
 void SMTLIB2::parseQuantBegin(LExpr* exp)
 {
-  CALL("SMTLIB2::parseQuantBegin");
-
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
 
@@ -1780,8 +1719,6 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
 
 void SMTLIB2::parseQuantEnd(LExpr* exp)
 {
-  CALL("SMTLIB2::parseQuantEnd");
-
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
 
@@ -1828,8 +1765,6 @@ void SMTLIB2::parseQuantEnd(LExpr* exp)
 
 void SMTLIB2::parseParametric(LExpr* exp)
 {
-  CALL("SMTLIB2::parseParametric");
-
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
 
@@ -1852,8 +1787,6 @@ static const char* EXCLAMATION = "!";
 
 void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 {
-  CALL("SMTLIB2::parseAnnotatedTerm");
-
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
 
@@ -1888,8 +1821,6 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
 bool SMTLIB2::parseAsScopeLookup(const vstring& id)
 {
-  CALL("SMTLIB2::parseAsScopeLookup");
-
   Scopes::Iterator sIt(_scopes);
   while (sIt.hasNext()) {
     TermLookup* lookup = sIt.next();
@@ -1906,7 +1837,6 @@ bool SMTLIB2::parseAsScopeLookup(const vstring& id)
 
 bool SMTLIB2::parseAsSortDefinition(const vstring& id,LExpr* exp)
 {
-  CALL("SMTLIB2::parseAsSortDefinition");
   vstring pId = id + TYPECON_POSTFIX;
   auto def = _sortDefinitions.findPtr(pId);
   if (!def) {
@@ -1938,8 +1868,6 @@ bool SMTLIB2::parseAsSortDefinition(const vstring& id,LExpr* exp)
 
 bool SMTLIB2::parseAsSpecConstant(const vstring& id)
 {
-  CALL("SMTLIB2::parseAsSpecConstant");
-
   if (StringUtils::isPositiveInteger(id)) {
     if (_numeralsAreReal) {
       goto real_constant; // just below
@@ -1967,8 +1895,6 @@ bool SMTLIB2::parseAsSpecConstant(const vstring& id)
 
 bool SMTLIB2::parseAsUserDefinedSymbol(const vstring& id,LExpr* exp,bool isSort)
 {
-  CALL("SMTLIB2::parseAsUserDefinedSymbol");
-
   DeclaredSymbol sym;
   if (!_declaredSymbols.find(id+(isSort?TYPECON_POSTFIX:""),sym)) {
     return false;
@@ -2055,8 +1981,6 @@ static const char* BUILT_IN_SYMBOL = "built-in symbol";
 
 bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
 {
-  CALL("SMTLIB2::parseAsBuiltinFormulaSymbol");
-
   FormulaSymbol fs = getBuiltInFormulaSymbol(id);
   switch (fs) {
     case FS_TRUE:
@@ -2340,8 +2264,6 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp)
 
 bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 {
-  CALL("SMTLIB2::parseAsBuiltinTermSymbol");
-
   // try built-in term symbols
   TermSymbol ts = getBuiltInTermSymbol(id);
   switch(ts) {
@@ -2581,8 +2503,6 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp)
 
 void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 {
-  CALL("SMTLIB2::parseRankedFunctionApplication");
-
   ASS(exp->isList());
   LispListReader lRdr(exp->list);
   LExpr* head = lRdr.readNext();
@@ -2656,8 +2576,6 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
 
 SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
 {
-  CALL("SMTLIB2::parseTermOrFormula");
-
   ASS(_todo.isEmpty());
   ASS(_results.isEmpty());
 
@@ -2898,8 +2816,6 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
 
 void SMTLIB2::readAssert(LExpr* body)
 {
-  CALL("SMTLIB2::readAssert");
-
   _nextVar = 0;
   ASS(_scopes.isEmpty());
 
@@ -2916,8 +2832,6 @@ void SMTLIB2::readAssert(LExpr* body)
 
 void SMTLIB2::readAssertNot(LExpr* body)
 {
-  CALL("SMTLIB2::readAssert");
-
   _nextVar = 0;
   ASS(_scopes.isEmpty());
 
@@ -2936,8 +2850,6 @@ void SMTLIB2::readAssertNot(LExpr* body)
 
 void SMTLIB2::readAssertTheory(LExpr* body)
 {
-  CALL("SMTLIB2::readAssertTheory");
-
   _nextVar = 0;
   ASS(_scopes.isEmpty());
 
@@ -2954,8 +2866,6 @@ void SMTLIB2::readAssertTheory(LExpr* body)
 
 void SMTLIB2::colorSymbol(const vstring& name, Color color)
 {
-  CALL("SMTLIB2::colorSymbol");
-
   if (!_declaredSymbols.find(name)) {
     USER_ERROR_EXPR("'"+name+"' is not a user symbol");
   }

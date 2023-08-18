@@ -47,6 +47,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 EqualityFactoring::EqualityFactoring()
   : _mismatchHandler(MismatchHandler::createOnlyHigherOrder())
@@ -94,7 +95,6 @@ struct EqualityFactoring::ResultFn
       : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
-    CALL("EqualityFactoring::ResultFn::operator()");
     auto absUnif = AbstractingUnifier::empty(_self._mismatchHandler);
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
@@ -184,8 +184,6 @@ private:
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 {
-  CALL("EqualityFactoring::generateClauses");
-
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }

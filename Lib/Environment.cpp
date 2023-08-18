@@ -14,7 +14,6 @@
  * @since 06/05/2007 Manchester
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Sys/SyncPipe.hpp"
 
@@ -80,8 +79,6 @@ Environment::Environment()
 
 Environment::~Environment()
 {
-  CALL("Environment::~Environment");
-
   Timer::setLimitEnforcement(false);
 
   //in the usual cases the _outputDepth should be zero at this point, but in case of
@@ -111,8 +108,6 @@ Environment::~Environment()
  */
 bool Environment::timeLimitReached() const
 {
-  CALL("Environment::timeLimitReached");
-
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
@@ -141,7 +136,6 @@ int Environment::remainingTime() const
  */
 void Environment::beginOutput()
 {
-  CALL("Environment::beginOutput");
   ASS_GE(_outputDepth,0);
 
   _outputDepth++;
@@ -155,7 +149,6 @@ void Environment::beginOutput()
  */
 void Environment::endOutput()
 {
-  CALL("Environment::endOutput");
   ASS_G(_outputDepth,0);
 
   _outputDepth--;
@@ -175,8 +168,6 @@ void Environment::endOutput()
  */
 bool Environment::haveOutput()
 {
-  CALL("Environment::haveOutput");
-
   return _outputDepth;
 }
 
@@ -188,7 +179,6 @@ bool Environment::haveOutput()
  */
 ostream& Environment::out()
 {
-  CALL("Environment::out");
   ASS(_outputDepth);
 
   if(_priorityOutput) {
@@ -209,7 +199,6 @@ ostream& Environment::out()
  */
 void Environment::setPipeOutput(SyncPipe* pipe)
 {
-  CALL("Environment::setPipeOutput");
   ASS(!haveOutput());
 
   _pipe=pipe;
@@ -217,7 +206,6 @@ void Environment::setPipeOutput(SyncPipe* pipe)
 
 void Environment::setPriorityOutput(ostream* stm)
 {
-  CALL("Environment::setPriorityOutput");
   ASS(!_priorityOutput || !stm);
 
   _priorityOutput=stm;

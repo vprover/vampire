@@ -54,8 +54,6 @@ SubstitutionTree::SubstitutionTree()
   : _nextVar(0)
   , _root(nullptr)
 {
-  CALL("SubstitutionTree::SubstitutionTree");
-
 } // SubstitutionTree::SubstitutionTree
 
 /**
@@ -65,7 +63,6 @@ SubstitutionTree::SubstitutionTree()
  */
 SubstitutionTree::~SubstitutionTree()
 {
-  CALL("SubstitutionTree::~SubstitutionTree");
   ASS_EQ(_iterCnt,0);
   delete _root;
 } // SubstitutionTree::~SubstitutionTree
@@ -135,7 +132,6 @@ struct BindingComparator
 void SubstitutionTree::insert(BindingMap& svBindings, LeafData ld)
 {
 #define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
-  CALL("SubstitutionTree::insert");
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
   DEBUG_INSERT("insert: ", svBindings, " into ", *this)
@@ -357,7 +353,6 @@ start:
  */
 void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
 {
-  CALL("SubstitutionTree::remove");
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
 
@@ -453,7 +448,6 @@ void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
  */
 SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBindings)
 {
-  CALL("SubstitutionTree::findLeaf");
   ASS(root);
 
   Node* node=root;
@@ -535,8 +529,6 @@ vstring getIndentStr(int n)
 
 SubstitutionTree::Node::~Node()
 {
-  CALL("SubstitutionTree::Node::~Node");
-
   if(term().isTerm()) {
     term().term()->destroyNonShared();
   }
@@ -545,8 +537,6 @@ SubstitutionTree::Node::~Node()
 
 void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 {
-  CALL("SubstitutionTree::Node::split");
-
   Node* node=*pnode;
 
   IntermediateNode* newNode = createIntermediateNode(node->term(), var);
@@ -562,8 +552,6 @@ void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
 
 void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 {
-  CALL("SubstitutionTree::IntermediateNode::loadChildren");
-
   while(children.hasNext()) {
     Node* ext=*children.next();
     Node** own=childByTop(ext->top(), true);
@@ -574,8 +562,6 @@ void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
 
 void SubstitutionTree::Leaf::loadChildren(LDIterator children)
 {
-  CALL("SubstitutionTree::Leaf::loadClauses");
-
   while(children.hasNext()) {
     insert(*children.next());
   }
@@ -626,7 +612,6 @@ void SubstitutionTree::LeafIterator::skipToNextLeaf()
 
 bool SubstitutionTree::LeafIterator::hasNext()
 {
-  CALL("SubstitutionTree::Leaf::hasNext");
   return _curr != nullptr;
 }
 
