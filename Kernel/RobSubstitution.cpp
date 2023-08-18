@@ -234,13 +234,27 @@ void RobSubstitution::bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b
 
 unsigned RobSubstitution::findOrIntroduceOutputVariable(VarSpec v) const
 {
+  if (!_startedBindingOutputVars) {
+    _startedBindingOutputVars = true;
+    ASS_EQ(_nextUnboundAvailable, 0)
+    auto& thisMut = const_cast<RobSubstitution&>(*this);
+    if (thisMut.bdIsRecording()) {
+      thisMut.bdAdd(BacktrackObject::fromClosure([this](){
+        _outputVarBindings.reset();
+        _nextUnboundAvailable = 0;
+        _startedBindingOutputVars = false;
+        _applyMemo.reset();
+      }));
+    }
+  }
   ASS(_bindings.find(v).isNone());
   auto found = _outputVarBindings.find(v);
   if (found.isSome()) {
     return *found;
   } else {
     auto newVar = _nextUnboundAvailable++;
-    const_cast<RobSubstitution&>(*this).bind(_outputVarBindings, v, newVar);
+    _outputVarBindings.set(v, newVar);
+    _applyMemo.reset();
     return newVar;
   }
 }

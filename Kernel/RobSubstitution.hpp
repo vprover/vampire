@@ -510,6 +510,7 @@ class RobSubstitution
  
   DHMap<VarSpec, TermSpec, VarSpec::Hash1, VarSpec::Hash2> _bindings;
   mutable DHMap<VarSpec, unsigned , VarSpec::Hash1, VarSpec::Hash2> _outputVarBindings;
+  mutable bool _startedBindingOutputVars;
   mutable unsigned _nextUnboundAvailable;
   mutable OnlyMemorizeAtomicNonVar<TermList> _applyMemo;
   // mutable OnlyMemorizeAtomic<TermList> _applyMemo;
@@ -519,7 +520,9 @@ public:
   CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
-  RobSubstitution() : _nextUnboundAvailable(0) {}
+  RobSubstitution() 
+    : _startedBindingOutputVars(false)
+    , _nextUnboundAvailable(0) {}
 
   SubstIterator matches(Literal* base, int baseIndex,
 	  Literal* instance, int instanceIndex, bool complementary);
@@ -538,6 +541,7 @@ public:
   {
     _bindings.reset();
     _outputVarBindings.reset();
+    _startedBindingOutputVars = false;
     _nextUnboundAvailable=0;
     _applyMemo.reset();
   }
