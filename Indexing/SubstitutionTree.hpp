@@ -352,8 +352,7 @@
        * If canCreate is false, null pointer is returned in case
        * suitable child does not exist.
        */
-      virtual Node** __childByTop(TermList::Top t, bool canCreate) = 0;
-      Node** childByTop(TermList::Top t, bool canCreate);
+      virtual Node** childByTop(TermList::Top t, bool canCreate) = 0;
 
 
       /**
@@ -475,7 +474,7 @@
         return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
               IsPtrToVarNodeFn()) );
       }
-      virtual Node** __childByTop(TermList::Top t, bool canCreate);
+      virtual Node** childByTop(TermList::Top t, bool canCreate);
       void remove(TermList::Top t);
 
 #if VDEBUG
@@ -538,7 +537,7 @@
                       NodeSkipList::PtrIterator(_nodes),
                       IsPtrToVarNodeFn()) );
       }
-      virtual Node** __childByTop(TermList::Top t, bool canCreate)
+      virtual Node** childByTop(TermList::Top t, bool canCreate)
       {
         CALL("SubstitutionTree::SListIntermediateNode::childByTop");
 
@@ -564,18 +563,16 @@
       class NodePtrComparator
       {
       public:
-        inline static Comparison compare(TermList::Top const& t1, TermList::Top const& t2)
-        { return t1.compare(t2); }
-
-        inline static Comparison compare(Node* n1, Node* n2)
-        { return compare(n1->top(), n2->top()); }
-
-        __attribute__((noinline))
-        inline static Comparison compare(TermList::Top t1, Node* n2)
-        { return compare(
-            t1, 
-            n2->top()
-            ); }
+        inline static Comparison compare(TermList::Top& l, Node* r)
+        { 
+          if(l.var()) {
+            return r->term().isVar() ? Int::compare(*l.var(), r->term().var())
+                                     : LESS;
+          } else {
+            return r->term().isVar() ? GREATER
+                                     : Int::compare(*l.functor(), r->term().term()->functor());
+          }
+        }
       };
       typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
       NodeSkipList _nodes;
@@ -1644,16 +1641,6 @@
     static TermList const& getKey(SubstitutionTree::LeafData const& ld)
     { return ld.term;  }
   };
-
-inline SubstitutionTree::Node** SubstitutionTree::IntermediateNode::childByTop(TermList::Top t, bool canCreate)
-{
-  return this->__childByTop(t, canCreate);
-  // we explicitly try to cast to help the inliner know the type where important
-  // auto snode = dynamic_cast<SListIntermediateNode*>(this);
-  // return snode != nullptr ? snode->__childByTop(t, canCreate)
-  //                         : this->__childByTop(t, canCreate);
-}
-
 
 } // namespace Indexing
 

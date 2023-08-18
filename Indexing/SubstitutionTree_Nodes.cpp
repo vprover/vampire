@@ -161,7 +161,7 @@ void SubstitutionTree::IntermediateNode::destroyChildren()
   }
 }
 
-SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::__childByTop(TermList::Top t, bool canCreate)
+SubstitutionTree::Node** SubstitutionTree::UArrIntermediateNode::childByTop(TermList::Top t, bool canCreate)
 {
   CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
 

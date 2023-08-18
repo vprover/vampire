@@ -177,6 +177,7 @@ public:
   // TODO get rid of default constructor
   TermSpec() : TermSpec(decltype(_self)(AtomicTermSpec())) {}
   TermSpec(VarSpec v) : TermSpec(TermList::var(v.var), v.index) {}
+  TermSpec(TermList self, int index) : _self(AtomicTermSpec(self, index)) {}
 
   friend bool operator==(TermSpec const& lhs, TermSpec const& rhs);
   friend bool operator<(TermSpec const& lhs, TermSpec const& rhs);
@@ -232,7 +233,6 @@ public:
   TermSpec clone() const { return TermSpec(_self.clone()); }
   
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
-  TermSpec(TermList self, int index) : _self(AtomicTermSpec(self, index)) {}
 
 
   template<class... Args>

@@ -186,6 +186,15 @@ bool TermList::sameTop(TermList ss,TermList tt)
   }
   return ss.term()->functor() == tt.term()->functor();
 }
+std::ostream& Kernel::operator<<(std::ostream& out, TermList::Top const& self)
+{ 
+  if (self.var()) {
+    return out << TermList::var(self.var());
+  } else {
+    ASS(self.functor())
+    return out << *env.signature->getFunction(*self.functor());
+  }
+}
 
 /**
  * Return true if @b ss and @b tt are both complex terms with the

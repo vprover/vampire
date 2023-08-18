@@ -173,26 +173,32 @@ public:
   /** make the term empty (so that isEmpty() returns true) */
   inline void makeEmpty()
   { _content = FUN; }
+  inline static TermList empty()
+  { TermList out; out.makeEmpty(); return out; }
   /** make the term into a reference */
   inline void setTerm(Term* t)
   { _term = t; ASS_EQ(tag(), REF); }
 
   class Top {
     using Inner = Coproduct<unsigned, unsigned>;
+    static constexpr unsigned VAR = 0;
+    static constexpr unsigned FUN = 1;
     Inner _inner;
     
     Top(Inner self) : _inner(self) {}
   public:
-    static Top var    (unsigned v) { return Top(Inner::variant<0>(v)); }
-    static Top functor(unsigned f) { return Top(Inner::variant<1>(f)); }
+    static Top var    (unsigned v) { return Top(Inner::variant<VAR>(v)); }
+    static Top functor(unsigned f) { return Top(Inner::variant<FUN>(f)); }
     template<class T>
-    static Top functor(T const* t) { return Top(Inner::variant<1>(t->functor())); }
-    Option<unsigned> var()     const { return _inner.as<0>().toOwned(); }
-    Option<unsigned> functor() const { return _inner.as<1>().toOwned(); }
+    static Top functor(T const* t) { return Top(Inner::variant<FUN>(t->functor())); }
+    Option<unsigned> var()     const { return _inner.as<VAR>().toOwned(); }
+    Option<unsigned> functor() const { return _inner.as<FUN>().toOwned(); }
     Lib::Comparison compare(Top const& other) const 
     { return _inner.compare(other._inner); }
     IMPL_COMPARISONS_FROM_COMPARE(Top);
-    IMPL_EQ_FROM_COMPARE(Top);
+    friend bool operator==(Top const& l, Top const& r) { return l._inner == r._inner; }
+    friend bool operator!=(Top const& l, Top const& r) { return      !(l == r);       }
+    friend std::ostream& operator<<(std::ostream& out, Top const& self);
   };
 
   Top top() const

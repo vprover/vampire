@@ -42,6 +42,9 @@ struct HasCompareFunction
 struct DefaultComparator
 {
 
+  static Comparison compare(unsigned a, unsigned b)
+  { return a == b ? EQUAL : a < b ? LESS : GREATER; }
+
   template<typename T>
   static typename std::enable_if<
     HasCompareFunction<T>::value,
@@ -58,11 +61,11 @@ struct DefaultComparator
   >::type 
   compare(T const& a, T const& b)
   {
-    if(a == b) { return EQUAL; }
-    else if(a < b) { return LESS; }
-    else { ASS(b < a); return GREATER; }
+    ASS(a < b || b < a || a == b)
+    return a < b ? LESS 
+         : b < a ? GREATER 
+         : EQUAL;
   }
-
 };
 
 template <class Comparator, typename C>
