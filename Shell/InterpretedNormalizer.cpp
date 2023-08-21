@@ -31,6 +31,8 @@
 namespace Shell
 {
 
+using namespace std;
+
 /**
  * Base term transforming class
  */

@@ -17,8 +17,6 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/System.hpp"
 
-#include "InstGen/IGAlgorithm.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "FMB/FiniteModelBuilder.hpp"
@@ -35,7 +33,6 @@
 #include "MainLoop.hpp"
 
 using namespace Kernel;
-using namespace InstGen;
 using namespace Saturation;
 using namespace FMB;
 
@@ -105,12 +102,6 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
-  case Options::SaturationAlgorithm::INST_GEN:
-    if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
-      USER_ERROR("The inst gen calculus is currently not compatible with polymorphism or higher-order constructs");
-    }
-    res = new IGAlgorithm(prb, opt);
-    break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
     if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
       USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");

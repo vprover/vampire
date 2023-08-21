@@ -31,6 +31,7 @@
 #include "Statistics.hpp"
 
 
+using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
@@ -170,11 +171,6 @@ Statistics::Statistics()
     satSplitRefutations(0),
 
     smtFallbacks(0),
-
-    instGenGeneratedClauses(0),
-    instGenRedundantClauses(0),
-    instGenKeptClauses(0),
-    instGenIterations(0),
 
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
@@ -445,14 +441,6 @@ void Statistics::print(ostream& out)
   COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 
-  HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
-       instGenKeptClauses+instGenIterations);
-  COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
-  COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
-  COND_OUT("InstGen kept clauses", instGenKeptClauses);
-  COND_OUT("InstGen iterations", instGenIterations);
-  SEPARATOR;
-
   //TODO record statistics for FMB
 
   //TODO record statistics for MiniSAT
@@ -465,7 +453,7 @@ void Statistics::print(ostream& out)
 
   }
 
-  COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
+  COND_OUT("Memory used [KB]", Lib::getUsedMemory()/1024);
 
   addCommentSignForSZS(out);
   out << "Time elapsed: ";

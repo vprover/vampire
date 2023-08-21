@@ -37,9 +37,6 @@ template <typename T, typename U>
 [[noreturn]] void violated(const char* file, int line, const char* condition,
                            const T& rep, const char* repStr, const U& rep2, const char* repStr2);
 
-void checkType(const char* file, int line, const void* ptr,
-               const char* assumed, const char* ptrStr);
-
 template <typename T, typename U>
 [[noreturn]] void violatedEquality(const char* file, int line, const char* val1Str,
                                    const char* val2Str, const T& val1, const U& val2);
@@ -133,10 +130,8 @@ template <typename T>
     }                                                                                                   \
   }
 
-#define ASS_ALLOC_TYPE(PTR, TYPE)                                         \
-  {                                                                       \
-    Debug::Assertion::checkType(__FILE__, __LINE__, (PTR), (TYPE), #PTR); \
-  }
+
+#define ASS_ALLOC_TYPE(PTR, TYPE)
 
 #define ASS_METHOD(OBJ, METHOD)                                                       \
   {                                                                                   \

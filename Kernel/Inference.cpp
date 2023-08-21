@@ -23,6 +23,7 @@
 
 #include "Inference.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 
@@ -815,14 +816,10 @@ vstring Kernel::ruleName(InferenceRule rule)
 
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
-  case InferenceRule::INSTANCE_GENERATION:
-    return "instance generation";
   case InferenceRule::UNIT_RESULTING_RESOLUTION:
     return "unit resulting resolution";
   case InferenceRule::GLOBAL_SUBSUMPTION:
     return "global subsumption";
-  case InferenceRule::SAT_INSTGEN_REFUTATION:
-    return "sat instgen refutation";
   case InferenceRule::DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
   case InferenceRule::EXTERNAL:

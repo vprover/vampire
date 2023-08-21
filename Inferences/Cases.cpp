@@ -34,6 +34,8 @@
 
 namespace Inferences {
 
+using namespace std;
+
 Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
   ASS(t.isTerm());
 

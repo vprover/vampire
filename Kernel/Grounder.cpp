@@ -33,6 +33,7 @@
 
 #include "Grounder.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 /**

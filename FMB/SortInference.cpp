@@ -42,6 +42,8 @@
 namespace FMB 
 {
 
+using namespace std;
+
 
 /**
  * We assume this occurs *after* flattening so all literals are shallow

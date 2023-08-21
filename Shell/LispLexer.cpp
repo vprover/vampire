@@ -22,6 +22,7 @@
 
 #include "LispLexer.hpp"
 
+using namespace std;
 using namespace Shell;
 
 /**

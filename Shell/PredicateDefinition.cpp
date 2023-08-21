@@ -44,6 +44,7 @@
 namespace Shell
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -144,7 +145,6 @@ struct PredicateDefinition::PredData
   }
 
   CLASS_NAME(PredicateDefinition::PredData);  
-  USE_ALLOCATOR_ARRAY;
 };
 
 PredicateDefinition::PredicateDefinition()

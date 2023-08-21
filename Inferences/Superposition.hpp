@@ -35,7 +35,6 @@ private:
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
   const Options& _opt;
-  DHMap<Term*,Stack<tuple<TermList,Clause*,bool>>> _demodulationCache;
 
   bool checkTermReducible(Term* t);
   bool checkLeftmostInnermost(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);

@@ -309,7 +309,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return _nChildren; }
 
-    friend ostream& operator<<(ostream& out, PolynomialBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, PolynomialBottomUpChildIter const& self)
     { return out << self._self << "@(" << self._idx1 << ", " << self._idx2 << ")"; }
   };
 
@@ -330,7 +330,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return _self->numTermArguments(); }
 
-    friend ostream& operator<<(ostream& out, FuncTermBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, FuncTermBottomUpChildIter const& self)
     { return out << self._self << "@" << self._idx; }
   };
 
@@ -349,7 +349,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return 0; }
 
-    friend ostream& operator<<(ostream& out, VariableBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, VariableBottomUpChildIter const& self)
     { return out << self._self; }
   };
 
@@ -375,7 +375,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
   Kernel::PolyNf self() const
   { return _self.apply([](auto& x) { return Kernel::PolyNf(x._self); }); }
 
-  friend ostream& operator<<(ostream& out, BottomUpChildIter const& self)
+  friend std::ostream& operator<<(std::ostream& out, BottomUpChildIter const& self)
   { return out << self._self; }
 };
 

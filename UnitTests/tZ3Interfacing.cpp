@@ -23,6 +23,7 @@
 // #define DEBUG(...) DBG(__VA_ARGS__)
 // #endif
 
+using namespace std;
 using namespace Shell;
 using namespace SAT;
 

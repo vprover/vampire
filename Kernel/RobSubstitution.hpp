@@ -69,6 +69,11 @@ public:
     _nextUnboundAvailable=0;
   }
 
+  void resetNextUnboundAvailable()
+  {
+    _nextUnboundAvailable = 0;
+  }
+
   void setMap(FuncSubtermMap* fmap){
     _funcSubtermMap = fmap;
 #ifdef CACHE
@@ -198,7 +203,7 @@ public:
     /** index of term to which it is bound */
     int index;
   };
-  typedef pair<TermSpec,TermSpec> TTPair;
+  typedef std::pair<TermSpec,TermSpec> TTPair;
  
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
@@ -264,27 +269,11 @@ private:
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
 #ifdef CACHE
-  DHMap<pair<TermList,unsigned>,TermList> _cache;
+  DHMap<std::pair<TermList,unsigned>,TermList> _cache;
 #endif
 
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
   { return out << self._bank; }
-
-  class NextUnboundVariableBacktrackObject
-  : public BacktrackObject
-  {
-  public:
-    NextUnboundVariableBacktrackObject(RobSubstitution* subst, unsigned v) : _subst(subst), _v(v) {}
-    void backtrack()
-    {
-      _subst->_nextUnboundAvailable = _v;
-    }
-    CLASS_NAME(RobSubstitution::NextUnboundVariableBacktrackObject);
-    USE_ALLOCATOR(NextUnboundVariableBacktrackObject);
-  private:
-    RobSubstitution* _subst;
-    unsigned _v;
-  };
 
   class BindingBacktrackObject
   : public BacktrackObject

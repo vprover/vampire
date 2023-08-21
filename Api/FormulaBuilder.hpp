@@ -24,7 +24,6 @@
 
 namespace Api {
 
-using namespace std;
 
 /**
  * Exception that is thrown when some of the Api code
@@ -382,7 +381,6 @@ std::ostream& operator<< (std::ostream& str,const Api::AnnotatedFormula& f);
 namespace Api
 {
 
-using namespace std;
 using namespace Lib;
 
 class Problem;

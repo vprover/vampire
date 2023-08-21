@@ -64,6 +64,8 @@
 #include "Lib/MemoryLeak.hpp"
 #endif
 
+using namespace std;
+
 /**
  * Return value is non-zero unless we were successful.
  *
@@ -612,7 +614,7 @@ int main(int argc, char* argv[])
       exit(0);
     }
 
-    Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
+    Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
     switch (env.options->mode())

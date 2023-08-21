@@ -575,6 +575,7 @@ public:
 
     TermList* ts1 = args();
     TermList* ts2 = ts1->next();
+    using std::swap;//ADL
     swap(ts1->_content, ts2->_content);
   }
 
@@ -1064,9 +1065,9 @@ private:
 bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
-std::ostream& operator<< (ostream& out, TermList tl );
-std::ostream& operator<< (ostream& out, const Term& tl );
-std::ostream& operator<< (ostream& out, const Literal& tl );
+std::ostream& operator<< (std::ostream& out, TermList tl );
+std::ostream& operator<< (std::ostream& out, const Term& tl );
+std::ostream& operator<< (std::ostream& out, const Literal& tl );
 
 std::ostream& operator<<(std::ostream& out, Term::SpecialFunctor const& self);
 

@@ -27,6 +27,7 @@
 #include "Shell/Statistics.hpp"
 #include "CombinatorDemodISE.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;

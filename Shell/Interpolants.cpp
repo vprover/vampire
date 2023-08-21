@@ -63,8 +63,9 @@
 
 namespace Shell
 {
+    using namespace std;
     using namespace Kernel;
-    
+
     
 //preprocessing proof
     

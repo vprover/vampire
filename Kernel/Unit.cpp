@@ -32,6 +32,7 @@
 
 #include "Unit.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 unsigned Unit::_lastNumber = 0;

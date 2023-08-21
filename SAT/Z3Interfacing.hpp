@@ -21,7 +21,7 @@
  *  so that vampire can be "factored-out" of runs which cause particular Z3
  *  behaviour. Should be useful for producing MWEs for the Z3 people.
  */
-#define PRINT_CPP(X) // cout << X << endl;
+#define PRINT_CPP(X) // std::cout << X << std::endl;
 
 #include <fstream>
 

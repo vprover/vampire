@@ -33,6 +33,7 @@
 
 #include "ExtensionalityResolution.hpp"
 
+using namespace std;
 using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;

@@ -36,7 +36,7 @@ template<typename C, typename D>
 struct PairRightPushingFn
 {
   PairRightPushingFn(C c) : _c(c) {}
-  pair<C,D> operator()(D d) { return pair<C,D>(_c,d); }
+  std::pair<C,D> operator()(D d) { return std::pair<C,D>(_c,d); }
 private:
   C _c;
 };
@@ -45,7 +45,7 @@ template<typename C, class D>
 struct PairLeftPushingFn
 {
   PairLeftPushingFn(D d): _d(d) {}
-  pair<C,D> operator()(C c) { return pair<C,D>(c,_d); }
+  std::pair<C,D> operator()(C c) { return std::pair<C,D>(c,_d); }
 private:
   D _d;
 };
@@ -62,7 +62,7 @@ private:
  */
 template<typename C, typename DIt>
 MappingIterator<DIt,PairRightPushingFn<C,ELEMENT_TYPE(DIt)> >
-  pushPairIntoRightIterator(pair<C, DIt > obj)
+  pushPairIntoRightIterator(std::pair<C, DIt > obj)
 {
   return getMappingIterator(obj.second, PairRightPushingFn<C,ELEMENT_TYPE(DIt)>(obj.first));
 }
@@ -78,12 +78,12 @@ template<typename C, typename D>
 class RightPushedPair
 {
 public:
-  DECL_ELEMENT_TYPE(pair<C,ELEMENT_TYPE(D)>);
+  DECL_ELEMENT_TYPE(std::pair<C,ELEMENT_TYPE(D)>);
   DECL_ITERATOR_TYPE(MappingIterator<ITERATOR_TYPE(D),PairRightPushingFn<C,ELEMENT_TYPE(D)> >);
-  RightPushedPair(pair<C,D> p) : _p(p) {}
-  pair<C,D> get() { return _p; }
+  RightPushedPair(std::pair<C,D> p) : _p(p) {}
+  std::pair<C,D> get() { return _p; }
 private:
-  pair<C,D> _p;
+  std::pair<C,D> _p;
 };
 
 /** See VirtualIterator.hpp */

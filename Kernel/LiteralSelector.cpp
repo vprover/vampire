@@ -38,6 +38,8 @@
 namespace Kernel
 {
 
+using namespace std;
+
 /**
  * Return true if literal @b l is positive for the purpose of
  * literal selection

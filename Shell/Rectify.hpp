@@ -49,7 +49,7 @@ public:
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
 private:
-  typedef pair<unsigned,bool> VarWithUsageInfo;
+  typedef std::pair<unsigned,bool> VarWithUsageInfo;
   typedef List<VarWithUsageInfo> VarUsageTrackingList;
   /** Renaming stores bindings for free and bound variables */
   class Renaming

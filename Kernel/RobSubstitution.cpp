@@ -27,6 +27,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 
 const int RobSubstitution::SPECIAL_INDEX=-2;
@@ -167,12 +168,8 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
     bool found=_bank.find(v,binding);
     if(!found) {
       binding.index=UNBOUND_INDEX;
-      auto temp = _nextUnboundAvailable;
       binding.term.makeVar(_nextUnboundAvailable++);
       const_cast<RobSubstitution&>(*this).bind(v,binding,false);
-      if(const_cast<RobSubstitution&>(*this).bdIsRecording()) {
-        const_cast<RobSubstitution&>(*this).bdAdd(new NextUnboundVariableBacktrackObject(const_cast<RobSubstitution*>(this), temp));
-      }
       return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()
               || binding.term.isVSpecialVar()) {

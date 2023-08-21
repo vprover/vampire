@@ -75,7 +75,7 @@ TEST_FUN(check_spec) {
         long long int R = r.toInner();
 
         ASS_EQ(Q * J + R, I)
-        ASS(0 <= R && R < abs(J))
+        ASS(0 <= R && R < std::abs(J))
       }
       if (i == std::numeric_limits<int>::max()) {
         break;

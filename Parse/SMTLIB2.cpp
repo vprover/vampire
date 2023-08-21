@@ -56,6 +56,8 @@
 
 namespace Parse {
 
+using namespace std;
+
 static const char* PAR = "par";
 static const char* TYPECON_POSTFIX = "()";
 

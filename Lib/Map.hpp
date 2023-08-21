@@ -106,7 +106,7 @@ public:
     Key     &&   key()     && { ASS(code); return std::move(*reinterpret_cast<Key*>(&_key));   }
     Key const&   key() const& { ASS(code); return *reinterpret_cast<Key const*>(&_key);   }
 
-    friend ostream& operator<<(ostream& out, Entry const& self) 
+    friend std::ostream& operator<<(std::ostream& out, Entry const& self) 
     { return self.occupied() ? out << self.key() << " -> " << self.value() : out << "<empty entry>";   } 
 
   private:
@@ -694,7 +694,7 @@ public:
   ConstIterator iter() const
   { return ConstIterator(*this); }
 
-  friend ostream& operator<<(ostream& out, Map const& self) 
+  friend std::ostream& operator<<(std::ostream& out, Map const& self) 
   { 
     out << "{";
     auto iter = self.iter();

@@ -27,7 +27,7 @@
 //The obvious way to define this macro would be
 //#define DECL_ELEMENT_TYPE(T) typedef T _ElementType
 //but the preprocessor understands for example
-//M(pair<A,B>)
+//M(std::pair<A,B>)
 //as an instantiation of  macro M with two arguments --
 //pair<A is first and B> second.
 
@@ -43,7 +43,7 @@
  * Although the macro formally takes variable number of arguments, it
  * should be used only with a single argument. The variable number
  * of formal arguments is to allow for the use of template types,
- * such as pair<int,int>, since the preprocessor considers every
+ * such as std::pair<int,int>, since the preprocessor considers every
  * comma as an argument separator.
  */
 #define DECL_ELEMENT_TYPE(...) typedef __VA_ARGS__ _ElementType
@@ -83,7 +83,7 @@
  * Although the macro formally takes variable number of arguments, it
  * should be used only with a single argument. The variable number
  * of formal arguments is to allow for the use of template types,
- * such as pair<int,int>, since the preprocessor considers every
+ * such as std::pair<int,int>, since the preprocessor considers every
  * comma as an argument separator.
  */
 #define DECL_ITERATOR_TYPE(...) typedef __VA_ARGS__ _IteratorType

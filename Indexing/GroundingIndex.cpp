@@ -29,6 +29,8 @@
 namespace Indexing
 {
 
+using namespace std;
+
 GroundingIndex::GroundingIndex(const Options& opt)
 {
   switch(opt.satSolver()){

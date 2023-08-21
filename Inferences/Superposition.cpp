@@ -48,14 +48,15 @@
 
 #if VDEBUG
 #include <iostream>
-using namespace std;
 #endif
+using namespace std;
 
 using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 void Superposition::attach(SaturationAlgorithm* salg)
 {
@@ -179,7 +180,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
   }
   if(getOptions().showBlocked()) {
     env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
     env.endOutput();
   }
   if(getOptions().colorUnblocking()) {
@@ -355,7 +356,7 @@ void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const 
 }
 
 LeftmostInnermostReducibilityChecker::LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt)
-: _reducible(), _nonReducible(), _index(index), _ord(ord), _opt(opt), _demodulationCache() {}
+: _reducible(), _nonReducible(), _index(index), _ord(ord), _opt(opt) {}
 
 bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result)
 {

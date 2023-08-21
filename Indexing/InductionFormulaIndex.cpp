@@ -19,6 +19,7 @@
 namespace Indexing
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Inferences;
 

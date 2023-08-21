@@ -25,7 +25,6 @@
 
 #include <type_traits>
 
-using namespace std;
 using namespace Lib;
 
 namespace Kernel {
@@ -296,8 +295,6 @@ enum class InferenceRule : unsigned char {
   INDUCTION_HYPERRESOLUTION,
   /* Generalized induction hyperresolution */
   GEN_INDUCTION_HYPERRESOLUTION,
-  /** generated as instance of its parent */
-  INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
   /** the last generating inference marker --
@@ -403,9 +400,6 @@ enum class InferenceRule : unsigned char {
   GENERAL_SPLITTING_COMPONENT,
   /** replacing colored constants by skolem functions */
   COLOR_UNBLOCKING,
-
-  /** refutation in the SAT solver for InstGen */
-  SAT_INSTGEN_REFUTATION,
 
   /** definition introduced by AVATAR */
   AVATAR_DEFINITION,
@@ -602,7 +596,6 @@ inline bool isExternalTheoryAxiomRule(InferenceRule r) {
 inline bool isSatRefutationRule(InferenceRule r) {
   return (r == InferenceRule::AVATAR_REFUTATION) ||
          (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
-         (r == InferenceRule::SAT_INSTGEN_REFUTATION) ||
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 

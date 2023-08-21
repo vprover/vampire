@@ -35,6 +35,8 @@
 #define DEBUG_TIMER_CHANGES 0
 #define MEGA (1 << 20)
 
+using namespace std;
+
 // things that need to be signal-safe because they are used in timer_sigalrm_handler
 // in principle we also need is_lock_free() to avoid deadlock as well
 // not sure it's worth assertion-failing over

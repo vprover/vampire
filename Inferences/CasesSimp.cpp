@@ -34,6 +34,8 @@
 
 namespace Inferences {
 
+using namespace std;
+
 
 ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, TermList t) {
   ASS(t.isTerm());

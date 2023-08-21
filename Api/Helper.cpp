@@ -21,6 +21,7 @@
 namespace Api
 {
 
+using namespace std;
 using namespace Kernel;
 using namespace Shell;
 

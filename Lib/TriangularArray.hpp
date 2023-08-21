@@ -53,7 +53,7 @@ public:
     ASS_G(side,0);
     _2sideMinus1=2*side-1;
     if(dataSize()>_capacity) {
-      size_t newCapacity=max(_capacity*2, dataSize());
+      size_t newCapacity=std::max(_capacity*2, dataSize());
       void * mem=ALLOC_KNOWN(newCapacity*sizeof(T), "Lib::TriangularArray");
 
       array_delete(_data, _capacity);

@@ -185,7 +185,7 @@ public:
   }  
 };
 
-inline std::ostream& operator<<(ostream& out, SATSolver::Status const& s)
+inline std::ostream& operator<<(std::ostream& out, SATSolver::Status const& s)
 { 
   switch (s)  {
     case SATSolver::SATISFIABLE: return out << "SATISFIABLE";
