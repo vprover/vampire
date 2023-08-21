@@ -9,7 +9,7 @@
  */
 
 /**
- * This file defines the class Coproduct, which is a generic tagged union. 
+ * This file defines the class Coproduct, which is a generic tagged union.
  *
  * \see UnitTests/tCoproduct.cpp for a tutorial
  */
@@ -36,12 +36,12 @@ namespace TL = TypeList;
 template<unsigned v>
 struct Constant { static constexpr unsigned value = v; };
 
-template <class... As> 
+template <class... As>
 class Coproduct;
 
 #define USE_SWITCH 0
 
-#if USE_SWITCH 
+#if USE_SWITCH
 
 template<unsigned maxExcl> struct SwitchImpl{};
 
@@ -100,7 +100,7 @@ template<unsigned N, class F> auto switchN(unsigned tag, F fun) -> decltype(auto
 
 #else // !USE_SWITCH
 
-template<unsigned I, unsigned N> 
+template<unsigned I, unsigned N>
 struct SwitchImpl
 {
   static_assert(I < N, "out of bounds");
@@ -114,10 +114,10 @@ struct SwitchImpl
 };
 
 template<unsigned N>
-struct SwitchImpl<N, N + 1> {
+struct SwitchImpl<N, N> {
   template<class F>
-  inline static ResultOf<F, Constant<0>> apply(unsigned tag, F f) 
-  { 
+  inline static ResultOf<F, Constant<0>> apply(unsigned tag, F f)
+  {
     ASS_EQ(tag, N)
     return f(Constant<N>{});
   }
@@ -125,7 +125,7 @@ struct SwitchImpl<N, N + 1> {
 
 
 template<unsigned N, class F> inline ResultOf<F, Constant<0>> switchN(unsigned tag, F fun)
-{ return SwitchImpl<0, N>::apply(tag, std::move(fun)); }
+{ return SwitchImpl<0, N - 1>::apply(tag, std::move(fun)); }
 
 #endif  // if(USE_SWITCH) else
 
@@ -139,7 +139,7 @@ constexpr unsigned bitMask(unsigned i)
 { return ~(unsigned(-1) << neededBits(i)); }
 
 
-template<class... As> 
+template<class... As>
 class Coproduct;
 
 /** This namespace constains helper classes and functions to implement the coproduct */
@@ -155,18 +155,18 @@ namespace CoproductImpl {
 
     template<class A> struct RawCoproductTypes;
 
-    template<class... As> 
-    struct RawCoproductTypes<RawCoproduct<As...>> 
+    template<class... As>
+    struct RawCoproductTypes<RawCoproduct<As...>>
     { using type = TL::List<As...>; };
 
-    template<template<class> class W, class A> 
-    struct RawCoproductTypes<W<A>> 
+    template<template<class> class W, class A>
+    struct RawCoproductTypes<W<A>>
     { using type = typename RawCoproductTypes<A>::type; };
 
     template<class Union> using Ts       = typename RawCoproductTypes<Union>::type;
 
     template<class Op, class ToWrap>
-    using DefaultImplIfNeeded = 
+    using DefaultImplIfNeeded =
       std::conditional_t<TL::All<Op::template trivial , Ts<ToWrap>>::val,                 ToWrap ,
       std::conditional_t<TL::All<Op::template possible, Ts<ToWrap>>::val, DefaultImpl<Op, ToWrap>,
                                                                              ToWrap >>;
@@ -174,7 +174,7 @@ namespace CoproductImpl {
     struct Nothing {};
 
     template<class Op, class Ts>
-    using DisableIfNeeded = 
+    using DisableIfNeeded =
       std::conditional_t<TL::All<Op::template trivial, Ts>::val, Nothing, typename Op::Disable>;
 
     struct Destr {
@@ -188,11 +188,11 @@ namespace CoproductImpl {
       struct DefaultImpl : public T {
         DefaultImpl() : T() {}
         ~DefaultImpl()
-        { 
+        {
           this->switchN([&](auto N) {
               using A = TL::Get<N.value, typename T::Ts>;
               this->template cast<A>().~A();
-          }); 
+          });
         }
       };
     };
@@ -247,12 +247,12 @@ namespace CoproductImpl {
   template<class... Ts>
   struct MaxSize;
 
-  template<> 
-  struct MaxSize<> 
+  template<>
+  struct MaxSize<>
   { static constexpr unsigned value = 0; };
 
-  template<class T, class... Ts> 
-  struct MaxSize<T, Ts...> 
+  template<class T, class... Ts>
+  struct MaxSize<T, Ts...>
   { static constexpr unsigned value = std::max<unsigned>(sizeof(T), MaxSize<Ts...>::value); };
 
 
@@ -263,7 +263,6 @@ namespace CoproductImpl {
     template<class> friend struct TrivialOperations::CopyCons::DefaultImpl;
     template<class> friend struct TrivialOperations::MoveCons::DefaultImpl;
     template<class> friend struct TrivialOperations::Destr::DefaultImpl;
-
     template<class... Bs> friend class Lib::Coproduct;
 
     /** a type-level list of all types of this Coproduct */
@@ -272,7 +271,7 @@ namespace CoproductImpl {
     /** the number of alternatives */
     static constexpr unsigned size = TL::Size<Ts>::val;
 
-    static constexpr unsigned nTags = 
+    static constexpr unsigned nTags =
 #if VDEBUG
                                 size + 1;
 #else //!VDEBUG
@@ -292,7 +291,9 @@ namespace CoproductImpl {
     TrivialOperations::DisableIfNeeded<TrivialOperations::Destr   , Ts> _destr;
 
 #if VDEBUG
-    RawCoproduct() : _tag(-1) {
+    RawCoproduct()
+      : _tag(size)
+    {
       for (unsigned i = 0; i < sizeof(Bytes); i++) {
         _content[i] = 0xFF;
       }
@@ -314,26 +315,25 @@ namespace CoproductImpl {
     CONST_POLYMORPIHIC(     )
 #undef CONST_POLYMORPIHIC
 
-
-
-    unsigned tag() const { 
+    unsigned tag() const
+    {
       ASS_REP(_tag < size, "access to uninitialized Coproduct")
-      return _tag; 
+      return _tag;
     }
 
     template<unsigned tag>
     void assignTag()
-    { 
+    {
       static_assert(tag < size, "tag out of bounds");
       static_assert((tag & bitMask) == tag, "unexpected lib author error");
-      _tag = tag; 
+      _tag = tag;
     }
 
     void assignTag(unsigned tag)
-    { 
+    {
       ASS_REP(tag < size, "tag out of bounds");
       ASS_REP((tag & bitMask) == tag, "unexpected lib author error");
-      _tag = tag; 
+      _tag = tag;
     }
 
 #define REF_POLYMORPIHIC(REF, MOVE)                                                       \
@@ -383,7 +383,7 @@ FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 
 
   template<class... As>
-  using RawWithDefaultImpls = 
+  using RawWithDefaultImpls =
      TrivialOperations::DefaultImplIfNeeded<TrivialOperations::CopyCons,
      TrivialOperations::DefaultImplIfNeeded<TrivialOperations::MoveCons,
      TrivialOperations::DefaultImplIfNeeded<TrivialOperations::Destr,
@@ -415,23 +415,23 @@ public:
 };
 
 template<unsigned i, class A>
-Variant<i, A> variant(A a) 
+Variant<i, A> variant(A a)
 { return Variant<i, A>(move_if_value<A>(a)); };
 
 
 
 
-/** 
- * The actual Coproduct class.  
- * A coproduct, also called Sum type, is a union of types, tagged with indices. It can be constructed with 
- * either of the type/index pairs, and in this implementation the index can be left away if all types in this 
- * coproduct are distinct. 
+/**
+ * The actual Coproduct class.
+ * A coproduct, also called Sum type, is a union of types, tagged with indices. It can be constructed with
+ * either of the type/index pairs, and in this implementation the index can be left away if all types in this
+ * coproduct are distinct.
  *
  * It is implemented as a tagged union.
- * 
+ *
  * \see UnitTests/tCoproduct.cpp for usage
  */
-template <class... As> 
+template <class... As>
 class Coproduct
 {
   CoproductImpl::RawWithDefaultImpls<As...> _inner;
@@ -454,17 +454,17 @@ public:
 public:
 
   /** Returns whether this coproduct is the variant idx */
-  template<unsigned idx> bool is() const 
+  template<unsigned idx> bool is() const
   {
     static_assert(idx < size, "out of bounds");
     return tag() == idx;
   }
 
-  /** 
-   * Returns whether this coproduct is the variant witht he given type. 
+  /**
+   * Returns whether this coproduct is the variant witht he given type.
    * \pre is exactly one occurence of the type B in this Coproduct's types (As...).
    */
-  template <class B> bool is() const 
+  template <class B> bool is() const
   { return is<TL::IdxOf<B, Ts>::val>(); }
                                                                                           \
   /**
@@ -475,7 +475,7 @@ public:
   explicit Coproduct(B b)
     : Coproduct(Variant<TL::IdxOf<B, Ts>::val, B>(move_if_value<B>(b)))
   { }
- 
+
 #define REF_POLYMORPIHIC(REF, MOVE)                                                       \
                                                                                           \
   /* Coproduct &operator=(Coproduct REF other) {                                          \
@@ -569,9 +569,9 @@ public:
   // TODO trivial one
   friend bool operator==(const Coproduct &lhs, const Coproduct &rhs)
   {
-    return lhs.tag() == rhs.tag() 
-      && lhs._inner.switchN([&](auto N) {
-          return lhs.unwrap<N.value>() == rhs.unwrap<N.value>();
+    return lhs.tag() == rhs.tag()
+      && lhs.applyWithIdx([&](auto& lhs, auto N) -> bool {
+          return lhs == rhs.template unwrap<N.value>();
       });
   }
 
@@ -580,7 +580,7 @@ public:
   { return !(lhs == rhs); }
 
   template <unsigned idx, class B>
-  Coproduct(Variant<idx, B> value) 
+  Coproduct(Variant<idx, B> value)
   {
     static_assert(TL::Contains<B, Ts>::val, "not a variant of Coproduct");
     static_assert(idx < size, "variant index out of bounds");
@@ -590,12 +590,12 @@ public:
     ::new(&_inner._content) B(move_if_value<B>(value._self));
   }
 
-  /**                                                                                     \
-   * constructs a new Coproduct with the variant idx. The argument type must match 
+  /**
+   * constructs a new Coproduct with the variant idx. The argument type must match
    * `idx`th type of this * corpoduct's variants types (As...).
    */
   template <unsigned idx>
-  static Coproduct variant(TL::Get<idx, Ts> value) 
+  static Coproduct variant(TL::Get<idx, Ts> value)
   { return Coproduct(Variant<idx, TL::Get<idx, Ts>>(move_if_value<TL::Get<idx, Ts>>(value))); }
 
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self)
@@ -605,7 +605,7 @@ public:
   friend struct std::hash<Coproduct>;
 
   inline Lib::Comparison compare(Coproduct const& rhs) const
-  { 
+  {
     auto& lhs = *this;
     return  lexCompare(DefaultComparator::compare(lhs.tag(), rhs.tag()),
         [&](){
@@ -627,7 +627,7 @@ public:
   { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), apply([](auto const& x){ return x.defaultHash2(); })); }
 
   inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
-}; // class Coproduct<As...> 
+}; // class Coproduct<As...>
 
 
 
