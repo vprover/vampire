@@ -1717,6 +1717,12 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(InferencingSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
+    _reducibilityCheck = ChoiceOptionValue<ReducibilityCheck>("reducibility_check","rc",ReducibilityCheck::OFF,{"leftmost_innermost","smaller","off"});
+    _reducibilityCheck.description = "";
+    _lookup.insert(&_reducibilityCheck);
+    _reducibilityCheck.tag(OptionTag::INFERENCES);
+    _reducibilityCheck.onlyUsefulWith(InferencingSaturationAlgorithm());
+
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";

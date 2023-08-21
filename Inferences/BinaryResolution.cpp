@@ -176,12 +176,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   if (checker) {
     if (checker->check(qr.clause,qr.literal,qr.substitution.ptr(),true)) {
-      env.statistics->skippedSuperposition++;
+      env.statistics->skippedResolution++;
       return 0;
     }
 
     if (checker->check(queryCl,queryLit,qr.substitution.ptr(),false)) {
-      env.statistics->skippedSuperposition++;
+      env.statistics->skippedResolution++;
       return 0;
     }
   }

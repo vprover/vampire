@@ -759,6 +759,12 @@ public:
     OFF = 3
   };
 
+  enum class ReducibilityCheck : unsigned int {
+    LEFTMOST_INNERMOST = 0,
+    SMALLER = 1,
+    OFF = 2,
+  };
+
 
     //==========================================================
     // The Internals
@@ -2187,6 +2193,7 @@ public:
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
+  ReducibilityCheck reducibilityCheck() const { return _reducibilityCheck.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -2605,6 +2612,7 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
+  ChoiceOptionValue<ReducibilityCheck> _reducibilityCheck;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;

@@ -354,13 +354,25 @@ void getLHSIterator(Literal* lit, ResultSubstitution* subst, bool result, const 
   }
 }
 
-LeftmostInnermostReducibilityChecker::LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord)
-: _reducible(), _nonReducible(), _index(index), _ord(ord), _demodulationCache() {}
+LeftmostInnermostReducibilityChecker::LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt)
+: _reducible(), _nonReducible(), _index(index), _ord(ord), _opt(opt), _demodulationCache() {}
 
 bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result)
 {
   TIME_TRACE("LeftmostInnermostReducibilityChecker::check");
+  switch (_opt.reducibilityCheck()) {
+    case Options::ReducibilityCheck::OFF:
+      return false;
+    case Options::ReducibilityCheck::LEFTMOST_INNERMOST:
+      return checkLeftmostInnermost(cl, rwTermS, subst, result);
+    case Options::ReducibilityCheck::SMALLER:
+      return checkSmaller(cl, rwTermS, subst, result);
+  }
+  ASSERTION_VIOLATION;
+}
 
+bool LeftmostInnermostReducibilityChecker::checkLeftmostInnermost(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result)
+{
   Stack<pair<TermList,TermList>> sides;
   for (unsigned i = 0; i < cl->numSelected(); i++) {
     sides.reset();
@@ -402,6 +414,48 @@ bool LeftmostInnermostReducibilityChecker::check(Clause* cl, Term* rwTermS, Resu
       }
       if (side.term() == rwTermS) {
         return false;
+      }
+    }
+  }
+  return false;
+}
+
+bool LeftmostInnermostReducibilityChecker::checkSmaller(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result)
+{
+  Stack<pair<TermList,TermList>> sides;
+  for (unsigned i = 0; i < cl->numSelected(); i++) {
+    sides.reset();
+    getLHSIterator((*cl)[i], subst, result, _ord, sides);
+
+    for (auto kv : sides) {
+      auto side = kv.second;
+      if (side.isVar()) {
+        continue;
+      }
+      if (subst->isRenamingOn2(kv.first, result)) {
+        continue;
+      }
+      PolishSubtermIterator nvi(side.term(), &_nonReducible); // we won't get side itself this way, but we don't need it
+      while (nvi.hasNext()) {
+        auto st = nvi.next();
+        if (st.isVar() || _nonReducible.contains(st.term())) {
+          continue;
+        }
+        if (_reducible.contains(st.term())) {
+          if (rwTermS->isLiteral() || _ord.compare(TermList(rwTermS),st) == Ordering::Result::GREATER) {
+            return true;
+          } else {
+            continue;
+          }
+        }
+        if (checkTermReducible(st.term())) {
+          _reducible.insert(st.term());
+          if (rwTermS->isLiteral() || _ord.compare(TermList(rwTermS),st) == Ordering::Result::GREATER) {
+            return true;
+          }
+        } else {
+          _nonReducible.insert(st.term());
+        }
       }
     }
   }

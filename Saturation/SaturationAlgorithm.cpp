@@ -1503,7 +1503,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   res->_checker = new LeftmostInnermostReducibilityChecker(
-    static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)), res->_ordering.ref());
+    static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)), res->_ordering.ref(), opt);
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();

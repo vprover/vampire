@@ -34,15 +34,18 @@ private:
 
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
+  const Options& _opt;
   DHMap<Term*,Stack<tuple<TermList,Clause*,bool>>> _demodulationCache;
 
   bool checkTermReducible(Term* t);
+  bool checkLeftmostInnermost(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
+  bool checkSmaller(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
 
 public:
   CLASS_NAME(LeftmostInnermostReducibilityChecker);
   USE_ALLOCATOR(LeftmostInnermostReducibilityChecker);
 
-  LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord);
+  LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
   bool check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
   void reset() { _nonReducible.reset(); }
