@@ -160,6 +160,7 @@ struct TermQueryResult;
 namespace Saturation
 {
 class SaturationAlgorithm;
+class GivenClauseAlgorithm;
 
 class ClauseContainer;
 class UnprocessedClauseContainer;

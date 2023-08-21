@@ -29,7 +29,7 @@ using namespace Kernel;
 using namespace Shell;
 
 Otter::Otter(Problem& prb, const Options& opt)
-  : SaturationAlgorithm(prb, opt)
+  : GivenClauseAlgorithm(prb, opt)
 {
 }
 
@@ -44,12 +44,12 @@ void Otter::onActiveRemoved(Clause* cl)
     _simplCont.remove(cl);
   }
 
-  SaturationAlgorithm::onActiveRemoved(cl);
+  GivenClauseAlgorithm::onActiveRemoved(cl);
 }
 
 void Otter::onPassiveAdded(Clause* cl)
 {
-  SaturationAlgorithm::onPassiveAdded(cl);
+  GivenClauseAlgorithm::onPassiveAdded(cl);
 
   if(cl->store()==Clause::PASSIVE) {
     _simplCont.add(cl);
@@ -62,12 +62,12 @@ void Otter::onPassiveRemoved(Clause* cl)
     _simplCont.remove(cl);
   }
 
-  SaturationAlgorithm::onPassiveRemoved(cl);
+  GivenClauseAlgorithm::onPassiveRemoved(cl);
 }
 
 void Otter::onClauseRetained(Clause* cl)
 {
-  SaturationAlgorithm::onClauseRetained(cl);
+  GivenClauseAlgorithm::onClauseRetained(cl);
 
   backwardSimplify(cl);
 }
@@ -77,7 +77,7 @@ void Otter::onSOSClauseAdded(Clause* cl)
   ASS(cl);
   ASS_EQ(cl->store(), Clause::ACTIVE);
 
-  SaturationAlgorithm::onSOSClauseAdded(cl);
+  GivenClauseAlgorithm::onSOSClauseAdded(cl);
 
   _simplCont.add(cl);
 }

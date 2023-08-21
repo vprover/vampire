@@ -54,38 +54,116 @@ class LabelFinder;
 class SymElOutput;
 class Splitter;
 
-class SaturationAlgorithm : public MainLoop
-{
+class SaturationAlgorithm : public MainLoop {
 public:
-  CLASS_NAME(SaturationAlgorithm);
-  USE_ALLOCATOR(SaturationAlgorithm);
-
-  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
-
   SaturationAlgorithm(Problem& prb, const Options& opt);
   virtual ~SaturationAlgorithm();
 
+  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
-  //the following two functions allow to run the saturation algorithm step by step.
-  void initAlgorithmRun();
-  void doOneAlgorithmStep();
-
+  virtual void addNewClause(Clause* cl) = 0;
+  virtual void removeActiveOrPassiveClause(Clause* cl) = 0;
+  virtual bool clausesFlushed() = 0;
   UnitList* collectSaturatedSet();
 
   void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
-
   void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
   void addSimplifierToFront(SimplificationEngine* simplifier);
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
+  virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
+  ClauseContainer* getGeneratingClauseContainer() { return _active; }
+  ClauseIterator activeClauses() { return _active->clauses(); }
 
-  void addNewClause(Clause* cl);
-  bool clausesFlushed();
+  // get the passive clause container, or null if we don't have one
+  virtual PassiveClauseContainer* getPassiveClauseContainer() = 0;
 
-  void removeActiveOrPassiveClause(Clause* cl);
+  ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
+    return _extensionality;
+  }
+
+  IndexManager* getIndexManager() { return _imgr.ptr(); }
+  Ordering& getOrdering() const {  return *_ordering; }
+  LiteralSelector& getLiteralSelector() const { return *_selector; }
+  Splitter* getSplitter() { return _splitter; }
+
+  /** Return the number of clauses that entered the passive container */
+  unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
+
+  /**
+   * If the saturation algorithm run is in progress, return pointer
+   * to the object; otherwise return zero.
+   */
+  static SaturationAlgorithm* tryGetInstance() { return s_instance; }
+  static void tryUpdateFinalClauseCount();
+
+protected:
+  virtual bool isComplete();
+  int elapsedTime();
+  virtual void init();
+  virtual void addInputClause(Clause* cl) = 0;
+  void handleEmptyClause(Clause* cl);
+
+  static SaturationAlgorithm* s_instance;
+
+  ActiveClauseContainer* _active;
+  ExtensionalityClauseContainer* _extensionality;
+
+  ScopedPtr<SimplifyingGeneratingInference> _generator;
+  ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
+
+  typedef List<ForwardSimplificationEngine*> FwSimplList;
+  FwSimplList* _fwSimplifiers;
+
+  //Simplification occurs at the same point in the loop
+  //as forward and backward simplification, but does not involve
+  //clauses in active. At the moment, the only simplification inference
+  //is the higher-order cnfOnTheFly
+  typedef List<SimplificationEngine*> SimplList;
+  SimplList* _simplifiers;
+
+  typedef List<BackwardSimplificationEngine*> BwSimplList;
+  BwSimplList* _bwSimplifiers;
+
+  SmartPtr<IndexManager> _imgr;
+  OrderingSP _ordering;
+  ScopedPtr<LiteralSelector> _selector;
+  Splitter* _splitter;
+
+  LabelFinder* _labelFinder;
+  AnswerLiteralManager* _answerLiteralManager;
+  Instantiation* _instantiation;
+
+  bool _completeOptionSettings;
+
+  /** Number of clauses generated in total */
+  unsigned _generatedClauseCount;
+
+  int _startTime;
+  int _startInstrs;
+
+private:
+  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+};
+
+class GivenClauseAlgorithm : public SaturationAlgorithm
+{
+  friend SaturationAlgorithm;
+public:
+  GivenClauseAlgorithm(Problem& prb, const Options& opt);
+  ~GivenClauseAlgorithm();
+
+  //the following two functions allow to run the saturation algorithm step by step.
+  void initAlgorithmRun();
+  void doOneAlgorithmStep();
+
+  void addNewClause(Clause* cl) final;
+  bool clausesFlushed() final;
+
+  void removeActiveOrPassiveClause(Clause* cl) override;
 
   //Run when clause cl has been simplified. Replacement is the array of replacing
   //clauses which can be empty
@@ -97,21 +175,7 @@ public:
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
 
-  virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
-  virtual ClauseContainer* getGeneratingClauseContainer() { return _active; }
-  ExtensionalityClauseContainer* getExtensionalityClauseContainer() {
-    return _extensionality;
-  }
-
-  ClauseIterator activeClauses();
-
-  PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
-  IndexManager* getIndexManager() { return _imgr.ptr(); }
-  Ordering& getOrdering() const {  return *_ordering; }
-  LiteralSelector& getLiteralSelector() const { return *_selector; }
-
-  /** Return the number of clauses that entered the passive container */
-  unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
+  PassiveClauseContainer* getPassiveClauseContainer() final { return _passive.get(); }
 
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
@@ -119,20 +183,12 @@ public:
   void onNewClause(Clause* c);
 
 
-  /**
-   * If the saturation algorithm run is in progress, return pointer
-   * to the object; otherwise return zero.
-   */
-  static SaturationAlgorithm* tryGetInstance() { return s_instance; }
-  static void tryUpdateFinalClauseCount();
-
-  Splitter* getSplitter() { return _splitter; }
-
 protected:
-  virtual void init();
-  virtual MainLoopResult runImpl();
+  void init() override;
+  MainLoopResult runImpl() override;
   void doUnprocessedLoop();
   virtual bool handleClauseBeforeActivation(Clause* c);
+  void addInputClause(Clause* cl) override;
   void addInputSOSClause(Clause* cl);
 
   void newClausesToUnprocessed();
@@ -156,31 +212,21 @@ protected:
   /** called before the selected clause is deleted from the searchspace */
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
-  int elapsedTime();
-  virtual bool isComplete();
 
 private:
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
-  void addInputClause(Clause* cl);
 
   LiteralSelector& getSosLiteralSelector();
 
-  void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  SmartPtr<IndexManager> _imgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;
 
-  static SaturationAlgorithm* s_instance;
 protected:
 
-  int _startTime;
-  int _startInstrs;
-
-  bool _completeOptionSettings;  
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;
@@ -189,35 +235,9 @@ protected:
 
   UnprocessedClauseContainer* _unprocessed;
   std::unique_ptr<PassiveClauseContainer> _passive;
-  ActiveClauseContainer* _active;
-  ExtensionalityClauseContainer* _extensionality;
-
-  ScopedPtr<SimplifyingGeneratingInference> _generator;
-  ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
-
-  typedef List<ForwardSimplificationEngine*> FwSimplList;
-  FwSimplList* _fwSimplifiers;
-
-  //Simplification occurs at the same point in the loop
-  //as forward and backward simplification, but does not involve
-  //clauses in active. At the moment, the only simplification inference
-  //is the higher-order cnfOnTheFly
-  typedef List<SimplificationEngine*> SimplList;
-  SimplList* _simplifiers;
-
-  typedef List<BackwardSimplificationEngine*> BwSimplList;
-  BwSimplList* _bwSimplifiers;
-
-  OrderingSP _ordering;
-  ScopedPtr<LiteralSelector> _selector;
-
-  Splitter* _splitter;
 
   ConsequenceFinder* _consFinder;
-  LabelFinder* _labelFinder;
   SymElOutput* _symEl;
-  AnswerLiteralManager* _answerLiteralManager;
-  Instantiation* _instantiation;
 
 
   SubscriptionData _passiveContRemovalSData;
@@ -234,12 +254,7 @@ protected:
 
   // counters
 
-  /** Number of clauses that entered the unprocessed container */
-  unsigned _generatedClauseCount;
-
   unsigned _activationLimit;
-private:
-  static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
 };
 
 

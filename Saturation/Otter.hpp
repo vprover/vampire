@@ -25,7 +25,7 @@ namespace Saturation {
 using namespace Kernel;
 
 class Otter
-: public SaturationAlgorithm
+: public GivenClauseAlgorithm
 {
 public:
   CLASS_NAME(Otter);

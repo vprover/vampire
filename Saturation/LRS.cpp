@@ -40,13 +40,13 @@ using namespace Shell;
 
 bool LRS::isComplete()
 {
-  return !_limitsEverActive && SaturationAlgorithm::isComplete();
+  return !_limitsEverActive && GivenClauseAlgorithm::isComplete();
 }
 
 
 void LRS::onUnprocessedSelected(Clause* c)
 {
-  SaturationAlgorithm::onUnprocessedSelected(c);
+  GivenClauseAlgorithm::onUnprocessedSelected(c);
 
   if(shouldUpdateLimits()) {
     TIME_TRACE("LRS limit maintenance");

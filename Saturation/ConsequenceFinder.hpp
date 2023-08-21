@@ -44,7 +44,7 @@ public:
   
   ~ConsequenceFinder();
 
-  void init(SaturationAlgorithm* sa);
+  void init(GivenClauseAlgorithm* sa);
 
   bool isRedundant(Clause* cl);
 
@@ -58,7 +58,7 @@ private:
 
   void indexClause(unsigned indexNum, Clause* cl, bool add);
 
-  SaturationAlgorithm* _sa;
+  GivenClauseAlgorithm* _sa;
 
   Stack<unsigned> _redundantsToHandle;
 

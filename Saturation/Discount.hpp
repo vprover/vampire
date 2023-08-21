@@ -25,20 +25,20 @@ namespace Saturation {
 using namespace Kernel;
 
 class Discount
-: public SaturationAlgorithm
+: public GivenClauseAlgorithm
 {
 public:
   CLASS_NAME(Discount);
   USE_ALLOCATOR(Discount);
 
   Discount(Problem& prb, const Options& opt)
-    : SaturationAlgorithm(prb, opt) {}
+    : GivenClauseAlgorithm(prb, opt) {}
 
   ClauseContainer* getSimplifyingClauseContainer();
 
 protected:
 
-  //overrides SaturationAlgorithm::handleClauseBeforeActivation
+  //overrides GivenClauseAlgorithm::handleClauseBeforeActivation
   bool handleClauseBeforeActivation(Clause* cl);
 
 };

@@ -33,7 +33,7 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-void ConsequenceFinder::init(SaturationAlgorithm* sa)
+void ConsequenceFinder::init(GivenClauseAlgorithm* sa)
 {
   _sa=sa;
 
