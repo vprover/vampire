@@ -46,7 +46,7 @@ public:
    * Get the value of the counter v.
    * @since 16/01/2004 Manchester changed to new representation of variables
    */
-  int get(int v) const { return _counts[v]; }
+  int get(int v) { return _counts[v]; }
 
 private:
   ZIArray<int> _counts;
