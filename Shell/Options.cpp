@@ -741,7 +741,7 @@ void Options::init()
 //*********************** Saturation  ***********************
 
     _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","fmb","lrs","otter"
+                                                                  {"discount","fmb","lrs","otter","given_pair"
 #if VZ3
       ,"z3"
 #endif
@@ -751,6 +751,7 @@ void Options::init()
     " - discount:\n"
     " - otter:\n"
     " - limited resource:\n"
+    " - given-pair\n"
     " - fmb : finite model building for satisfiable problems.\n"
     " - z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
     "z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
@@ -770,7 +771,8 @@ void Options::init()
     auto ProperSaturationAlgorithm = [this] {
       return Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),
                 _saturationAlgorithm.is(equal(SaturationAlgorithm::OTTER)),
-                _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT)));
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT)),
+                _saturationAlgorithm.is(equal(SaturationAlgorithm::GIVEN_PAIR)));
     };
 
     _sos = ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"});
@@ -3173,6 +3175,9 @@ void Options::readFromEncodedOptions (vstring testId)
   else if (ma == "ott") {
     _saturationAlgorithm.actualValue = SaturationAlgorithm::OTTER;
   }
+  else if (ma == "gp") {
+    _saturationAlgorithm.actualValue = SaturationAlgorithm::GIVEN_PAIR;
+  }
   else if (ma == "fmb") {
     _saturationAlgorithm.actualValue = SaturationAlgorithm::FINITE_MODEL_BUILDING;
   }
@@ -3241,6 +3246,7 @@ vstring Options::generateEncodedOptions() const
     case SaturationAlgorithm::LRS : sat="lrs"; break;
     case SaturationAlgorithm::DISCOUNT : sat="dis"; break;
     case SaturationAlgorithm::OTTER : sat="ott"; break;
+    case SaturationAlgorithm::GIVEN_PAIR : sat="gp"; break;
     case SaturationAlgorithm::FINITE_MODEL_BUILDING : sat="fmb"; break;
     default : ASSERTION_VIOLATION;
   }

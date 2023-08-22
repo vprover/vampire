@@ -475,6 +475,7 @@ public:
      FINITE_MODEL_BUILDING,
      LRS,
      OTTER,
+     GIVEN_PAIR,
      Z3
    };
 

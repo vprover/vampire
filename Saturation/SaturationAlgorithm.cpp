@@ -113,6 +113,7 @@
 #include "Discount.hpp"
 #include "LRS.hpp"
 #include "Otter.hpp"
+#include "GivenPair.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -1492,6 +1493,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     break;
   case Shell::Options::SaturationAlgorithm::OTTER:
     res=new Otter(prb, opt);
+    given_clause = true;
+    break;
+  case Shell::Options::SaturationAlgorithm::GIVEN_PAIR:
+    res=new GivenPairAlgorithm(prb, opt);
     given_clause = true;
     break;
   default:

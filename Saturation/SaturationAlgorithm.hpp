@@ -75,7 +75,7 @@ public:
   void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
 
   virtual ClauseContainer* getSimplifyingClauseContainer() = 0;
-  ClauseContainer* getGeneratingClauseContainer() { return _active; }
+  virtual ClauseContainer* getGeneratingClauseContainer() = 0;
   ClauseIterator activeClauses() { return _active->clauses(); }
 
   // get the passive clause container, or null if we don't have one
@@ -175,6 +175,7 @@ public:
   void onNonRedundantClause(Clause* c);
   void onParenthood(Clause* cl, Clause* parent);
 
+  ClauseContainer* getGeneratingClauseContainer() override { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() final { return _passive.get(); }
 
   /**
