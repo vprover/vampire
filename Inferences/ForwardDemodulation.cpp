@@ -186,11 +186,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
       }}
 
-      if (_salg->getReducibilityChecker() && _salg->getReducibilityChecker()->isNonReducible(trm.term())) {
-        TIME_TRACE("non reducible cache");
-        it.right();
-        continue;
-      }
+      // if (_salg->getReducibilityChecker() && _salg->getReducibilityChecker()->isNonReducible(trm.term())) {
+      //   TIME_TRACE("non reducible cache");
+      //   it.right();
+      //   continue;
+      // }
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {

@@ -133,7 +133,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
     Lib/MemoryLeak.cpp
-    Lib/MultiCounter.cpp
     Lib/NameArray.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp

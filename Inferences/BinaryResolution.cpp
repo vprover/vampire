@@ -176,12 +176,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   if (checker) {
-    if (checker->check(qr.clause,qr.literal,qr.substitution.ptr(),true)) {
+    if (checker->check(qr.clause,qr.literal,nullptr,qr.substitution.ptr(),true)) {
       env.statistics->skippedResolution++;
       return 0;
     }
 
-    if (checker->check(queryCl,queryLit,qr.substitution.ptr(),false)) {
+    if (checker->check(queryCl,queryLit,nullptr,qr.substitution.ptr(),false)) {
       env.statistics->skippedResolution++;
       return 0;
     }

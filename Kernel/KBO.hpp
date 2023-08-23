@@ -158,6 +158,8 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+
+  KboWeightMap<FuncSigTraits> _funcWeights;
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
@@ -168,7 +170,6 @@ protected:
 
 private:
 
-  KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;
 #endif

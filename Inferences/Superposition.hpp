@@ -18,6 +18,8 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
+#include "Kernel/KBO.hpp"
+#include "Lib/MultiCounter.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -34,19 +36,49 @@ private:
 
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
+  KBO* _kbo;
   const Options& _opt;
 
-  bool checkTermReducible(Term* t);
+  class SmallerIterator {
+  public:
+    SmallerIterator(Term* side, Term* rwTermS, KBO* kbo, const Ordering& ord);
+
+    bool hasNext();
+    Term* next();
+
+  private:
+    void pushTerms(TermList* t, unsigned depth);
+
+    struct Info {
+      Info(size_t v) : w(), vc(v), nope() {}
+      unsigned w;
+      DArray<unsigned> vc;
+      bool nope;
+    };
+
+    TermList _rwTerm;
+    TermList _side;
+    Stack<std::pair<TermList*,unsigned>> _stack;
+    Stack<Info> _infos;
+    MultiCounter _rwVarCnts;
+    unsigned _maxVar;
+    unsigned _rwWeight;
+    KBO* _kbo;
+    const Ordering& _ord;
+    Term* _next;
+  };
+
+  bool checkTermReducible(Term* t, TermList* tgtTermS);
   bool checkLeftmostInnermost(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
-  bool checkSmaller(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
+  bool checkSmaller(Clause* cl, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result);
 
 public:
   CLASS_NAME(LeftmostInnermostReducibilityChecker);
   USE_ALLOCATOR(LeftmostInnermostReducibilityChecker);
 
-  LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
+  LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt, Problem& prb);
 
-  bool check(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
+  bool check(Clause* cl, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result);
   void reset() { _nonReducible.reset(); }
   bool isNonReducible(Term* t) const { return _nonReducible.contains(t); }
 };
