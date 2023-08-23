@@ -47,6 +47,7 @@ TermList LambdaConversion::convertLambda(Formula* formula)
 {
   CALL("LambdaConversion::convertLambda(Formula*)");
 
+  // remove top level universal type quantifiers.
   if(formula->connective() == FORALL){
     VList* vars  = formula->vars();
     SList* sorts = formula->sorts(); 
@@ -73,7 +74,6 @@ TermList LambdaConversion::convertLambda(Formula* formula)
         formula = f;
       }
     }
-
   }
 
   VarToIndexMap map;
@@ -87,7 +87,7 @@ TermList LambdaConversion::convertLambda(Formula* formula, VarToIndexMap& map)
   TermList appTerm; //The resulting term
 
   Connective conn = formula->connective();
-                                        
+               
   switch(conn){
     case LITERAL: {
       Literal* lit = formula->literal();

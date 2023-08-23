@@ -2066,9 +2066,9 @@ bool Term::skip() const
       return false;
     }
   }
-  NonVariableIterator nvi(const_cast<Term*>(this));
+  NonVariableNonTypeIterator nvi(const_cast<Term*>(this));
   while (nvi.hasNext()) {
-    unsigned func=nvi.next().term()->functor();
+    unsigned func=nvi.next()->functor();
     if (!env.signature->getFunction(func)->skip()) {
       return false;
     }
