@@ -420,8 +420,8 @@ bool LeftmostInnermostReducibilityChecker::checkLeftmostInnermost(Clause* cl, Te
   return false;
 }
 
-LeftmostInnermostReducibilityChecker::SmallerIterator::SmallerIterator(Term* side, Term* rwTermS, KBO* kbo, const Ordering& ord)
-  : _rwTerm(rwTermS), _side(side), _stack(), _infos(), _rwVarCnts(), _maxVar(0), _rwWeight(0), _kbo(kbo), _ord(ord), _next(nullptr)
+LeftmostInnermostReducibilityChecker::SmallerIterator::SmallerIterator(Term* side, Term* sideS, Term* rwTermS, KBO* kbo, const Ordering& ord)
+  : _rwTerm(rwTermS), _side(side), _sideS(sideS), _stack(), _infos(), _rwVarCnts(), _maxVar(0), _rwWeight(0), _kbo(kbo), _ord(ord), _next(nullptr)
 {
   SubtermIterator sti(rwTermS);
   while (sti.hasNext()) {
@@ -439,15 +439,18 @@ LeftmostInnermostReducibilityChecker::SmallerIterator::SmallerIterator(Term* sid
   }
   _maxVar++;
   _rwWeight += _kbo->_funcWeights.symbolWeight(rwTermS->functor());
-  pushTerms(&_side,0);
+  pushTerms(&_side, &_sideS);
 }
 
-void LeftmostInnermostReducibilityChecker::SmallerIterator::pushTerms(TermList* t, unsigned depth)
+void LeftmostInnermostReducibilityChecker::SmallerIterator::pushTerms(TermList* orig, TermList* t)
 {
-  while(!t->isEmpty()) {
+  while(t->isNonEmpty()) {
+    ASS(orig->isNonEmpty());
+    auto depth = _stack.size();
     // cout << "trying to push " << *t << " at depth " << depth << endl;
     ASS_GE(_infos.size(),depth);
     if (t->isVar()) {
+      ASS(orig->isVar());
       ASS(depth);
       if (t->var() >= _maxVar) {
         _infos[depth-1].nope = true;
@@ -456,20 +459,43 @@ void LeftmostInnermostReducibilityChecker::SmallerIterator::pushTerms(TermList* 
         _infos[depth-1].vc[t->var()]++;
       }
       _infos[depth-1].w += _kbo->_funcWeights._specialWeights._variableWeight;
+      orig=orig->next();
       t=t->next();
       continue;
     }
     if (t->term() == _rwTerm.term()) {
-      TIME_TRACE("term is term");
+      ASS(orig->isTerm());
       if (depth) {
-        for (unsigned j = 0; j < _maxVar; j++) {
-          _infos[depth-1].vc[j]=_rwVarCnts.get(j);
-        }
-        _infos[depth-1].w = _rwWeight;
+        _infos[depth-1].nope = true;
+        // for (unsigned j = 0; j < _maxVar; j++) {
+        //   _infos[depth-1].vc[j]+=_rwVarCnts.get(j);
+        // }
+        // _infos[depth-1].w += _rwWeight;
+        orig=orig->next();
         t=t->next();
         continue;
       }
       break;
+    }
+    if (orig->isVar()) {
+      TIME_TRACE("orig is var");
+      _infos[depth-1].w += _kbo->_funcWeights.symbolWeight(t->term()->functor());
+      SubtermIterator stit(t->term());
+      while (stit.hasNext()) {
+        auto st = stit.next();
+        if (st.isTerm() && st.term()->isSort()) {
+          continue;
+        }
+        if (st.isVar()) {
+          _infos[depth-1].vc[st.var()]++;
+          _infos[depth-1].w += _kbo->_funcWeights._specialWeights._variableWeight;
+        } else {
+          _infos[depth-1].w += _kbo->_funcWeights.symbolWeight(st.term()->functor());
+        }
+      }
+      orig=orig->next();
+      t=t->next();
+      continue;
     }
     if (_infos.size() == depth) {
       _infos.push(Info(_maxVar));
@@ -479,9 +505,10 @@ void LeftmostInnermostReducibilityChecker::SmallerIterator::pushTerms(TermList* 
     }
     _infos[depth].w = _kbo->_funcWeights.symbolWeight(t->term());
     _infos[depth].nope = false;
-    _stack.push(make_pair(t,depth));
-    depth++;
+
+    _stack.push(make_pair(orig,t));
     t=t->term()->termArgs();
+    orig=orig->term()->termArgs();
   }
 }
 
@@ -495,8 +522,9 @@ bool LeftmostInnermostReducibilityChecker::SmallerIterator::hasNext()
   }
   while (_stack.isNonEmpty()) {
     auto kv = _stack.pop();
-    auto t = kv.first;
-    auto depth = kv.second;
+    auto orig = kv.first;
+    auto t = kv.second;
+    auto depth = _stack.size(); // deliberately after the pop
     ASS(t->isTerm());
     // cout << "term " << *t << endl;
     // cout << "depth " << depth << endl << endl;
@@ -521,17 +549,22 @@ bool LeftmostInnermostReducibilityChecker::SmallerIterator::hasNext()
       } else {
         _infos[depth-1].nope = true;
       }
-      pushTerms(t->next(),depth);
+      pushTerms(orig->next(),t->next());
     }
     // cout << "weight " << currWeight << " maybeSmaller " << mayBeSmaller << endl;
     if (mayBeSmaller) {
       if (currWeight < _rwWeight) {
         _next = t->term();
       } else if (currWeight == _rwWeight && t->term()!=_rwTerm.term()) {
-        TIME_TRACE("actual compare");
-        auto comp = _ord.compare(_rwTerm,TermList(t->term()));
-        if (comp == Ordering::Result::GREATER) {
+        auto precComp = _kbo->compareFunctionPrecedences(_rwTerm.term()->functor(),t->term()->functor());
+        if (precComp == Ordering::Result::GREATER) {
           _next = t->term();
+        } else if (precComp == Ordering::Result::EQUAL) {
+          TIME_TRACE("actual compare");
+          auto comp = _ord.compare(_rwTerm,TermList(t->term()));
+          if (comp == Ordering::Result::GREATER) {
+            _next = t->term();
+          }
         }
       }
     }
@@ -542,7 +575,7 @@ bool LeftmostInnermostReducibilityChecker::SmallerIterator::hasNext()
       ASS_EQ(testComp,Ordering::Result::GREATER);
       return true;
     } else {
-      ASS_REP(testComp!=Ordering::Result::GREATER, _rwTerm.toString() + " " + Int::toString(_rwWeight) + " " + t->toString() + " " + Int::toString(_infos[depth].w) + " " + Int::toString(mayBeSmaller));
+      ASS_REP(testComp!=Ordering::Result::GREATER, _rwTerm.toString() + " " + Int::toString(_rwWeight) + " " + t->toString() + " " + Int::toString(currWeight) + " " + Int::toString(mayBeSmaller));
     }
   }
   return false;
@@ -579,19 +612,20 @@ bool LeftmostInnermostReducibilityChecker::checkSmaller(Clause* cl, Term* rwTerm
     getLHSIterator((*cl)[i], subst, result, _ord, sides);
 
     for (auto kv : sides) {
-      auto side = kv.second;
-      if (side.isVar()) {
+      auto side = kv.first;
+      auto sideS = kv.second;
+      if (side.isVar() || sideS.isVar()) {
         continue;
       }
-      // cout << "side " << kv.first << endl;
-      // cout << "sideS " << side << endl;
+      // cout << "side " << side << endl;
+      // cout << "sideS " << sideS << endl;
       // cout << "rwTermS " << *rwTermS << endl << endl;
-      if (subst->isRenamingOn2(kv.first, result)) {
+      if (subst->isRenamingOn2(side, result)) {
         continue;
       }
 
 #if VDEBUG
-      auto testIt = iterTraits(getUniquePersistentIterator(vi(new NonVariableNonTypeIterator(side.term()))))
+      auto testIt = iterTraits(getUniquePersistentIterator(vi(new NonVariableNonTypeIterator(sideS.term()))))
         .filter([this,rwTermS](Term* t) {
           return _ord.compare(TermList(rwTermS),TermList(t))==Ordering::Result::GREATER && !rwTermS->containsSubterm(TermList(t));
         });
@@ -599,7 +633,7 @@ bool LeftmostInnermostReducibilityChecker::checkSmaller(Clause* cl, Term* rwTerm
       smallers.loadFromIterator(testIt);
 #endif
 
-      SmallerIterator stit(side.term(), rwTermS, _kbo, _ord);
+      SmallerIterator stit(side.term(), sideS.term(), rwTermS, _kbo, _ord);
       while (stit.hasNext()) {
         auto st = stit.next();
 #if VDEBUG
@@ -626,6 +660,7 @@ bool LeftmostInnermostReducibilityChecker::checkSmaller(Clause* cl, Term* rwTerm
 
 bool LeftmostInnermostReducibilityChecker::checkTermReducible(Term* t, TermList* tgtTermS)
 {
+  TIME_TRACE("checkTermReducible");
   if (_nonReducible.contains(t)) {
     return false;
   }

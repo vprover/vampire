@@ -41,16 +41,16 @@ private:
 
   class SmallerIterator {
   public:
-    SmallerIterator(Term* side, Term* rwTermS, KBO* kbo, const Ordering& ord);
+    SmallerIterator(Term* side, Term* sideS, Term* rwTermS, KBO* kbo, const Ordering& ord);
 
     bool hasNext();
     Term* next();
 
   private:
-    void pushTerms(TermList* t, unsigned depth);
+    void pushTerms(TermList* orig, TermList* t);
 
     struct Info {
-      Info(size_t v) : w(), vc(v), nope() {}
+      Info(size_t v) : w(0), vc(v), nope(false) {}
       unsigned w;
       DArray<unsigned> vc;
       bool nope;
@@ -58,7 +58,8 @@ private:
 
     TermList _rwTerm;
     TermList _side;
-    Stack<std::pair<TermList*,unsigned>> _stack;
+    TermList _sideS;
+    Stack<std::pair<TermList*,TermList*>> _stack;
     Stack<Info> _infos;
     MultiCounter _rwVarCnts;
     unsigned _maxVar;
