@@ -197,8 +197,9 @@
     // TODO make const function
     template<class I, class TermOrLit, class... Args> 
     inline auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
-    { if (_root == nullptr) return VirtualIterator<ELEMENT_TYPE(I)>::getEmpty();
-      else                  return pvi(I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)); }
+    { return ifElseIter(_root == nullptr, 
+        [&](){ return EmptyIter<ELEMENT_TYPE(I)>{}; },
+        [&](){ return iterPointer(std::make_unique<I>(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)); }); }
 
     class LDComparator
     {

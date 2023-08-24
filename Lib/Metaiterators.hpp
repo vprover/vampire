@@ -1768,21 +1768,29 @@ public:
   CoproductIter(Coproduct<Is...> i) : _inner(Coproduct<Is...>(std::move(i))) {}
 
   bool hasNext() const
-  { Coproduct<Is...>& inner = _inner;
+  { 
+    Coproduct<Is...> const& inner = _inner;;
     return inner.apply([](auto& x) { return x.hasNext();}); }
 
   bool hasNext()
-  { Coproduct<Is...>& inner = _inner;
+  { 
+    Coproduct<Is...> & inner = _inner;;
     return inner.apply([](auto& x) { return x.hasNext();}); }
 
   OWN_ELEMENT_TYPE next()
-  { return _inner.apply([](auto&& x) { return x.next();}); }
+  { 
+    Coproduct<Is...> & inner = _inner;;
+    return inner.apply([](auto&& x) { return x.next();}); }
 
   bool knowsSize() const 
-  { return _inner.apply([](auto& x) { return x.knowsSize();}); }
+  { 
+    Coproduct<Is...> const& inner = _inner;;
+    return inner.apply([](auto& x) { return x.knowsSize();}); }
 
   size_t size() const
-  { return _inner.apply([](auto& x) { return x.size();}); }
+  { 
+    Coproduct<Is...> const& inner = _inner;;
+    return inner.apply([](auto& x) { return x.size();}); }
 };
 
 template<class... Is>
@@ -1790,19 +1798,53 @@ auto coproductIter(Coproduct<Is...> is)
 { return iterTraits(CoproductIter<Is...>(std::move(is))); }
 
 
-template<class IfIter, class ElseIter>
-static auto _ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
-{ return iterTraits(
-         cond ? coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(ifIter()))
-              : coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(elseIter()))); }
+// template<class IfIter, class ElseIter>
+// static auto _ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
+// { return iterTraits(
+//          cond ? coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(ifIter()))
+//               : coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(elseIter()))); }
+//
+// template<class ElseIter>
+// static auto ifElseIter(ElseIter elseIter) 
+// { return elseIter(); }
+//
+// template<class IfIter, class... ElseIters>
+// static auto ifElseIter(bool cond, IfIter ifIter, ElseIters... elseIters) 
+// { return _ifElseIter(cond, std::move(ifIter), [&]() { return ifElseIter(std::move(elseIters)...); }); }
 
-template<class ElseIter>
-static auto ifElseIter(ElseIter elseIter) 
-{ return elseIter(); }
+template<class IfIterCons, class ElseIterCons>
+static auto ifElseIter(bool cond, IfIterCons ifCons, ElseIterCons elseCons) 
+{ 
+  using C = Coproduct<ResultOf<IfIterCons>, ResultOf<ElseIterCons>>;
+  return coproductIter(cond ? C::template variant<0>(ifCons()) : C::template variant<1>(elseCons()));
+}
 
-template<class IfIter, class... ElseIters>
-static auto ifElseIter(bool cond, IfIter ifIter, ElseIters... elseIters) 
-{ return _ifElseIter(cond, std::move(ifIter), [&]() { return ifElseIter(std::move(elseIters)...); }); }
+template<class T>
+struct EmptyIter
+{
+  DECL_ELEMENT_TYPE(T);
+  bool hasNext() { return false; }
+  T next() { ASSERTION_VIOLATION }
+  unsigned size() { return 0; }
+  bool knownSize() { return true; }
+};
+
+template<class Pointer>
+class IterPointer
+{
+  Pointer _p;
+public:
+  IterPointer(Pointer p) : _p(std::move(p)) {}
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(std::remove_reference_t<decltype(*_p)>));
+  bool hasNext()       { return (*_p).hasNext(); }
+  bool hasNext() const { return (*_p).hasNext(); }
+  OWN_ELEMENT_TYPE next() { return (*_p).next(); }
+  unsigned size() { return (*_p).size(); }
+  bool knownSize() { return (*_p).knownSize(); }
+};
+
+template<class P>
+IterPointer<P> iterPointer(P p) { return IterPointer<P>(std::move(p)); }
 
 
 template<class I1>
@@ -1828,9 +1870,7 @@ public:
   { return move_if_value<Elem>(_iter.next()); }
 
   bool hasNext() 
-  { 
-    return _iter.hasNext(); 
-  }
+  { return _iter.hasNext(); }
 
   Option<Elem> tryNext() 
   { 

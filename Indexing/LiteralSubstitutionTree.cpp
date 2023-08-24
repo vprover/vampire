@@ -36,13 +36,13 @@ LiteralSubstitutionTree::LiteralSubstitutionTree()
 { }
 
 SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
-{ return getResultIterator<SubstitutionTree::Iterator<RetrievalAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions); }
+{ return pvi(getResultIterator<SubstitutionTree::Iterator<RetrievalAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions)); }
 
 SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
-{ return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
+{ return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
 
 SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
-{ return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions); }
+{ return pvi(getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions)); }
 
 
 SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)

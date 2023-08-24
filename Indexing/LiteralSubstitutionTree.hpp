@@ -67,17 +67,17 @@ private:
       { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
 
     auto filterResults = [=](auto it) { 
-      return pvi(
-          std::move(it)
-          .map([](auto r) { return lQueryRes(r.data->literal, r.data->clause, std::move(r.unif)); })
-          ); 
+      return std::move(it)
+          .map([](auto r) { return lQueryRes(r.data->literal, r.data->clause, std::move(r.unif)); }) ; 
     };
-    return !lit->commutative() 
-      ?  filterResults(iter( /* reversed */ false))
-      :  filterResults(concatIters(
-          iter( /* reversed */ false),
-          iter( /* reversed */ true)
-        ));
+    return ifElseIter(
+        !lit->commutative(),
+        [&]() { return filterResults(iter( /* reversed */ false)); },
+        [&]() { return filterResults(concatIters(
+                                      iter( /* reversed */ false),
+                                      iter( /* reversed */ true)
+                                    )); }
+        );
   }
 
 
