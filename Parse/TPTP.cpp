@@ -3171,9 +3171,8 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
         USER_ERROR("The sort ", tsSort, " of type argument ", ts, " is not $ttype as mandated by TF1");
       }
     } else {
-      Recycled<RobSubstitution> subst;
-      subst->reset();
-      if(!subst->match(sort, 0, tsSort, 1)) {
+      _substScratchpad.reset();
+      if(!_substScratchpad.match(sort, 0, tsSort, 1)) {
         USER_ERROR("Failed to create predicate application for ", name, " of type ", type, "\n",
                    "The sort ", tsSort, " of the intended term argument ", ts, " (at index ", i, ") "
                    "is not an instance of sort ", sort);
@@ -3221,9 +3220,8 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
                    "is not $tType as mandated by TF1");
       }
     } else {
-      static RobSubstitution subst;
-      subst.reset();
-      if(!subst.match(sort, 0, ssSort, 1)){
+      _substScratchpad.reset();
+      if(!_substScratchpad.match(sort, 0, ssSort, 1)){
         USER_ERROR("Failed to create function application for " + name + " of type " + type->toString() + "\n" +
                    "The sort " + ssSort.toString() + " of the intended term argument " + ss.toString() + " (at index " + Int::toString(i) +") "
                    "is not an instance of sort " + sort.toString());
