@@ -95,7 +95,8 @@ DECL_SWITCH_STRUCT(15)
 DECL_SWITCH_STRUCT(16)
 
 
-template<unsigned N, class F> auto switchN(unsigned tag, F fun) -> decltype(auto)
+template<unsigned N, class F> 
+ResultOf<F, Constant<0>> switchN(unsigned tag, F fun)
 { return SwitchImpl<N>::apply(tag, std::move(fun)); }
 
 #else // !USE_SWITCH
@@ -124,7 +125,8 @@ struct SwitchImpl<N, N> {
 };
 
 
-template<unsigned N, class F> inline ResultOf<F, Constant<0>> switchN(unsigned tag, F fun)
+template<unsigned N, class F> 
+inline ResultOf<F, Constant<0>> switchN(unsigned tag, F fun)
 { return SwitchImpl<0, N - 1>::apply(tag, std::move(fun)); }
 
 #endif  // if(USE_SWITCH) else
@@ -302,6 +304,9 @@ namespace CoproductImpl {
     RawCoproduct() = default;
 #endif // VDEBUG
 
+    template<class F>
+    ResultOf<F, Constant<0>> switchN(F f) const
+    { return Lib::switchN<size>(_tag, std::move(f)); }
 
 #define CONST_POLYMORPIHIC(CONST)                                                         \
     template<class B>                                                                     \
@@ -310,6 +315,7 @@ namespace CoproductImpl {
       static_assert(TL::Contains<B, TL::List<As...>>::val, "invalid cast");               \
       return *(B CONST*)_content;                                                         \
     }                                                                                     \
+                                                                                          \
 
     CONST_POLYMORPIHIC(const)
     CONST_POLYMORPIHIC(     )
@@ -335,15 +341,6 @@ namespace CoproductImpl {
       ASS_REP((tag & bitMask) == tag, "unexpected lib author error");
       _tag = tag;
     }
-
-#define REF_POLYMORPIHIC(REF, MOVE)                                                       \
-    template<class F>                                                                     \
-    auto switchN(F f) REF -> decltype(auto)                                               \
-    { return Lib::switchN<size>(_tag, std::move(f)); }                                    \
-
-FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
-#undef REF_POLYMORPIHIC
-
   };
 
   template<class A>
@@ -370,13 +367,9 @@ FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
     { ASS_REP(tag == 0, "tag out of bounds"); }
 
 
-#define REF_POLYMORPIHIC(REF, MOVE)                                                       \
-    template<class F>                                                                     \
-    auto switchN(F f) REF -> decltype(auto)                                               \
-    { return f(Constant<0>{}); }                                                          \
-
-FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
-#undef REF_POLYMORPIHIC
+    template<class F>
+    ResultOf<F, Constant<0>> switchN(F f) const
+    { return f(Constant<0>{}); }
 
     constexpr unsigned tag() const { return 0; }
   };
@@ -495,7 +488,7 @@ public:
   inline ResultOf<TL::Get<0, TL::List<F...>>, TL::Get<0, Ts> REF> match(F... fs) REF {    \
     auto fs_ = std::tie(fs...);                                                           \
     return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
-        auto& f = std::get<N.value>(fs_);                                                      \
+        auto& f = std::get<N.value>(fs_);                                                 \
         return f(unwrap<N.value>());                                                      \
     });                                                                                   \
   }                                                                                       \
@@ -507,14 +500,14 @@ public:
    * can transform any variant instead of multiple functions per variant.                 \
    */                                                                                     \
   template <class F>                                                                      \
-  inline ResultOf<F, TL::Get<0, Ts> REF> apply(F f) REF {                                 \
+  inline auto apply(F f) REF -> decltype(auto) {                                          \
     return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
-        return f(MOVE(unwrap<N.value>()));                                                \
+        return f((TL::Get<N.value, Ts> REF)MOVE(unwrap<N.value>()));                      \
     });                                                                                   \
   }                                                                                       \
                                                                                           \
   template <class F>                                                                      \
-  inline ResultOf<F, TL::Get<0, Ts> REF, Constant<0>> applyWithIdx(F f) REF {             \
+  auto applyWithIdx(F f) REF -> decltype(auto) {                                          \
     return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
         return f(MOVE(unwrap<N.value>()), N);                                             \
     });                                                                                   \
