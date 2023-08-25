@@ -36,52 +36,22 @@ private:
 
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
-  KBO* _kbo;
   const Options& _opt;
 
-  class SmallerIterator {
-  public:
-    SmallerIterator(Term* side, Term* sideS, Term* rwTermS, KBO* kbo, const Ordering& ord);
-
-    bool hasNext();
-    Term* next();
-
-  private:
-    void pushTerms(TermList* orig, TermList* t);
-
-    struct Info {
-      Info(size_t v) : w(0), vc(v), nope(false) {}
-      unsigned w;
-      DArray<unsigned> vc;
-      bool nope;
-    };
-
-    TermList _rwTerm;
-    TermList _side;
-    TermList _sideS;
-    Stack<std::pair<TermList*,TermList*>> _stack;
-    Stack<Info> _infos;
-    MultiCounter _rwVarCnts;
-    unsigned _maxVar;
-    unsigned _rwWeight;
-    KBO* _kbo;
-    const Ordering& _ord;
-    Term* _next;
-  };
-
-  bool checkTermReducible(Term* t, TermList* tgtTermS);
+  bool checkTerm(Term* t, Term* tS, Term* rwTermS, ResultSubstitution* subst, bool result, bool& variant);
+  bool checkTermReducible(Term* tS, TermList* tgtTermS);
   bool checkLeftmostInnermost(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
-  bool checkSmaller(Clause* cl, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result);
+  bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result);
 
 public:
   CLASS_NAME(LeftmostInnermostReducibilityChecker);
   USE_ALLOCATOR(LeftmostInnermostReducibilityChecker);
 
-  LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt, Problem& prb);
+  LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
-  bool check(Clause* cl, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result);
+  bool check(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result);
   void reset() { _nonReducible.reset(); }
-  bool isNonReducible(Term* t) const { return _nonReducible.contains(t); }
+  bool isNonReducible(Term* t) { return _nonReducible.contains(t); }  
 };
 
 class Superposition

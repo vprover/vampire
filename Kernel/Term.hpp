@@ -636,14 +636,14 @@ public:
     _args[0]._info.hasTermVar = b;
   }
 
-  bool reducible()
+  unsigned varmap() const
   {
-    return _reducible;
+    return _varmap;
   }
 
-  void markReducible()
+  void setVarmap(unsigned v)
   {
-    _reducible = 1;
+    _varmap = v;
   }
 
   /** Return the number of variable _occurrences_ */
@@ -813,7 +813,7 @@ protected:
   unsigned _weight;
   /** length of maximum reduction length */
   int _maxRedLen;
-  unsigned _reducible : 1;
+  unsigned _varmap : 32;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

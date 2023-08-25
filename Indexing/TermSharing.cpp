@@ -102,6 +102,7 @@ Term* TermSharing::insert(Term* t)
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned varmap = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
@@ -157,6 +158,7 @@ Term* TermSharing::insert(Term* t)
           hasTermVar = true;
         }
         vars++;
+        varmap |= 1UL << tt->var();
         weight += 1;
       }
       else 
@@ -166,6 +168,7 @@ Term* TermSharing::insert(Term* t)
         Term* r = tt->term();
   
         vars += r->numVarOccs();
+        varmap |= r->varmap();
         weight += r->weight();
         hasTermVar |= r->hasTermVar();
         if (env.colorUsed) {
@@ -179,6 +182,7 @@ Term* TermSharing::insert(Term* t)
     t->markShared();
     t->setId(_terms.size());
     t->setNumVarOccs(vars);
+    t->setVarmap(varmap);
     t->setWeight(weight);
     t->setHasTermVar(hasTermVar);
     if (env.colorUsed) {
@@ -219,6 +223,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
     }    
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned varmap = 0;
 
     for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
@@ -233,12 +238,14 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
         Term* r = tt->term();
   
         vars += r->numVarOccs();
+        varmap |= r->varmap();
         weight += r->weight();
       }
     }
     sort->markShared();
     sort->setId(_sorts.size());
     sort->setNumVarOccs(vars);
+    sort->setVarmap(varmap);
     sort->setWeight(weight);
 
     ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
@@ -285,6 +292,7 @@ Literal* TermSharing::insert(Literal* t)
   if (s == t) {
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned varmap = 0;
     Color color = COLOR_TRANSPARENT;
     bool hasInterpretedConstants=false;
 
@@ -296,12 +304,14 @@ Literal* TermSharing::insert(Literal* t)
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
         vars++;
+        varmap |= 1UL << tt->var();
         weight += 1;
       }
       else {
         ASS_REP(tt->term()->shared(), tt->term()->toString());
         Term* r = tt->term();
         vars += r->numVarOccs();
+        varmap |= r->varmap();
         weight += r->weight();
 
         if (env.colorUsed) {
@@ -316,6 +326,7 @@ Literal* TermSharing::insert(Literal* t)
     t->markShared();
     t->setId(_literals.size());
     t->setNumVarOccs(vars);
+    t->setVarmap(varmap);
     t->setWeight(weight);
     if (env.colorUsed) {
       Color fcolor = env.signature->getPredicate(t->functor())->color();
