@@ -2870,8 +2870,6 @@ bool Options::NonGoalWeightOptionValue::setValue(const vstring& value)
   denominator=100;
 
   return true;
-
-
 }
 
 bool Options::SelectionOptionValue::setValue(const vstring& value)
@@ -3096,9 +3094,10 @@ void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstri
 
   AbstractOptionValue* opt = getOptionValueByName(optname);
   if (opt) {
-    if (!opt->set(value)) {
+    if (!opt->setIfNondef(value)) {
       USER_ERROR("Sampling file processing error -- unknown option value: " + value + " for option " + optname);
     }
+
   } else {
     USER_ERROR("Sampling file processing error -- unknown option: " + optname);
   }

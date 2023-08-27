@@ -864,20 +864,26 @@ private:
           if(okay) is_set=true;
           return okay;
         }
-        
+
+        bool setIfNondef(const vstring& value){
+          bool okay = setValue(value);
+          if(okay && !isDefault()) is_set=true;
+          return okay;
+        }
+
         // Set to a random value
         virtual bool randomize(Property* P) = 0;
 
         // Experimental options are not included in help
         void setExperimental(){experimental=true;}
-        
+
         // Meta-data
         vstring longName;
         vstring shortName;
         vstring description;
         bool experimental;
         bool is_set;
-        
+
         // Checking constraits
         virtual bool checkConstraints() = 0;
         virtual bool checkProblemConstraints(Property* prop) = 0;
