@@ -859,15 +859,11 @@ private:
         // Returns false if we cannot set (will cause a UserError in Options::set)
         virtual bool setValue(const vstring& value) = 0;
 
-        bool set(const vstring& value){
-          bool okay = setValue(value); 
-          if(okay) is_set=true;
-          return okay;
-        }
-
-        bool setIfNondef(const vstring& value){
+        bool set(const vstring& value, bool dont_touch_if_defaulting = false) {
           bool okay = setValue(value);
-          if(okay && !isDefault()) is_set=true;
+          if (okay && (!dont_touch_if_defaulting || !isDefault())) {
+            is_set=true;
+          }
           return okay;
         }
 

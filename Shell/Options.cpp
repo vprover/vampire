@@ -3094,7 +3094,7 @@ void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstri
 
   AbstractOptionValue* opt = getOptionValueByName(optname);
   if (opt) {
-    if (!opt->setIfNondef(value)) {
+    if (!opt->set(value,/* dont_touch_if_defaulting =*/ true)) {
       USER_ERROR("Sampling file processing error -- unknown option value: " + value + " for option " + optname);
     }
 
