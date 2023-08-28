@@ -1239,6 +1239,8 @@ OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
 
 virtual OptionValueConstraintUP<int> getNotDefault() override { return isNotDefaultRatio(); }
 
+virtual bool isDefault() const override { return defaultValue * otherValue == actualValue * defaultOtherValue; }
+
 void addConstraintIfNotDefault(AbstractWrappedConstraintUP c){
     addConstraint(If(isNotDefaultRatio()).then(unwrap<int>(c)));
 }
