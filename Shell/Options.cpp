@@ -515,6 +515,13 @@ void Options::init()
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
     _blockedClauseElimination.setRandomChoices({"on","off"});
 
+    _distinctGroupExpansionLimit = UnsignedOptionValue("distinct_group_expansion_limit","dgel",140);
+    _distinctGroupExpansionLimit.description = "If a distinct group (defined, e.g., via TPTP's $distinct)"
+         " is not larger than this limit, it will be expanded during preprocessing into quadratically many disequalities."
+         " (0 means `always expand`)";
+    _lookup.insert(&_distinctGroupExpansionLimit);
+    _distinctGroupExpansionLimit.tag(OptionTag::PREPROCESSING);
+
     _theoryAxioms = ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"});
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
     _lookup.insert(&_theoryAxioms);
