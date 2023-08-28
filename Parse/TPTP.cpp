@@ -3149,7 +3149,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
         if(t.isVar() || t.term()->arity()!=0){ USER_ERROR("$distinct can only be used with constants");}
         distincts.push(t.term()->functor());
       }
-      Formula* distinct_formula = DistinctGroupExpansion().expand(distincts);
+      Formula* distinct_formula = DistinctGroupExpansion(0 /* zero means "always expand"*/).expand(distincts);
       return distinct_formula;
     }else{
       // Otherwise record them as being in a distinct group
