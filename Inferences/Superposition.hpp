@@ -29,19 +29,27 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+// struct VariantHash
+// {
+//   // static bool equals(T o1, T o2);
+//   static unsigned hash(Term* t);
+// };
+
 class LeftmostInnermostReducibilityChecker {
 private:
   DHSet<Term*> _reducible;
   DHSet<Term*> _nonReducible;
+  DHSet<Term*> _done;
 
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
   const Options& _opt;
 
   bool checkTerm(Term* t, Term* tS, Term* rwTermS, ResultSubstitution* subst, bool result, bool& variant);
-  bool checkTermReducible(Term* tS, TermList* tgtTermS);
+  bool checkTermReducible(Term* tS, TermList* tgtTermS, bool greater);
   bool checkLeftmostInnermost(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
-  bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result);
+  bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater);
+  bool checkSmallerSanity(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, vstringstream& exp);
 
 public:
   CLASS_NAME(LeftmostInnermostReducibilityChecker);
@@ -49,8 +57,9 @@ public:
 
   LeftmostInnermostReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
-  bool check(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result);
+  bool check(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater);
   void reset() { _nonReducible.reset(); }
+  void resetDone() { _done.reset(); }
   bool isNonReducible(Term* t) { return _nonReducible.contains(t); }  
 };
 

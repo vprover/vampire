@@ -680,38 +680,6 @@ private:
   int _added;
 }; // NonVariableIterator
 
-class NonTypeIterator
-  : public IteratorCore<TermList>
-{
-public:
-  NonTypeIterator(const NonTypeIterator&);
-  /**
-   * If @c includeSelf is false, then only proper subterms of @c term will be included.
-   */
-  NonTypeIterator(TermList term, bool includeSelf = false)
-  : _stack(8),
-    _added(0)
-  {
-    _stack.push(std::make_pair(term,0));
-    if (!includeSelf) {
-      NonTypeIterator::next();
-    }
-  }
-  // NonTypeIterator(TermList ts);
-
-  /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
-  void right();
-  const Stack<TermList>& path() const { return _path; }
-private:
-  /** available non-variable subterms */
-  Stack<std::pair<TermList,unsigned>> _stack;
-  /** the number of non-variable subterms added at the last iteration, used by right() */
-  int _added;
-  Stack<TermList> _path;
-}; // NonTypeIterator
-
 /**
  * Iterator that iterator over disagreement set of two terms
  * or literals in DFS left to right order.

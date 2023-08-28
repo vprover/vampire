@@ -478,41 +478,6 @@ void NonVariableNonTypeIterator::right()
   }
 } // NonVariableIterator::right
 
-TermList NonTypeIterator::next()
-{
-  auto kv = _stack.pop();
-  TermList t = kv.first;
-  unsigned depth = kv.second;
-  _added = 0;
-  if (t.isTerm()) {
-    for(unsigned i = t.term()->numTypeArguments(); i < t.term()->arity(); i++){
-      _stack.push(std::make_pair(*t.term()->nthArgument(i),depth+1));
-      _added++;
-    }
-  }
-  if (_added) {
-    _path.push(t);
-  } else if (_stack.isNonEmpty()) {
-    while (_path.size()>_stack.top().second) {
-      _path.pop();
-    }
-  }
-  return t;
-}
-
-void NonTypeIterator::right()
-{
-  while (_added > 0) {
-    _added--;
-    _stack.pop();
-  }
-  if (_stack.isNonEmpty()) {
-    while (_path.size()>_stack.top().second) {
-      _path.pop();
-    }
-  }
-}
-
 /**
  * True if there exists next non-variable subterm
  */
