@@ -85,6 +85,13 @@ class OverlayBinder
         return base_it->second == term;
       }
       else {
+#if VHOL
+        if(env.property->higherOrder()){
+          if(term.containsLooseIndex()){
+            return false;
+          }
+        }
+#endif        
         auto res = m_overlay.insert({var, term});
         auto it = res.first;
         bool inserted = res.second;
