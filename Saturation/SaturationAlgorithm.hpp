@@ -32,7 +32,6 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
-#include "Inferences/Superposition.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -110,7 +109,7 @@ public:
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
-  LeftmostInnermostReducibilityChecker* getReducibilityChecker() const { return _checker; }
+  ReducibilityChecker* getReducibilityChecker() const { return _checker; }
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
@@ -220,7 +219,7 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-  LeftmostInnermostReducibilityChecker* _checker;
+  ReducibilityChecker* _checker;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

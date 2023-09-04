@@ -44,7 +44,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "Superposition.hpp"
+#include "ReducibilityChecker.hpp"
 #include "ForwardDemodulation.hpp"
 
 namespace Inferences {

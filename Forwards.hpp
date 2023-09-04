@@ -174,6 +174,7 @@ class GeneratingInferenceEngine;
 class ImmediateSimplificationEngine;
 class ForwardSimplificationEngine;
 class BackwardSimplificationEngine;
+class ReducibilityChecker;
 }
 
 namespace SAT

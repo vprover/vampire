@@ -305,7 +305,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/TheoryInstAndSimp.o
+         Inferences/TheoryInstAndSimp.o\
+         Inferences/ReducibilityChecker.o
 #         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/MinimizingSolver.o\

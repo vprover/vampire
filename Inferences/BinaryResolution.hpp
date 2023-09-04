@@ -21,7 +21,6 @@
 #include "InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
-#include "Superposition.hpp"
 
 namespace Inferences
 {
@@ -45,7 +44,7 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
 
-  static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, LeftmostInnermostReducibilityChecker* checker = 0);
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, ReducibilityChecker* checker = 0);
   ClauseIterator generateClauses(Clause* premise);
 
 private:

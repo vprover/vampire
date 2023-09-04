@@ -37,6 +37,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "ReducibilityChecker.hpp"
 #include "BinaryResolution.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 
@@ -114,7 +115,7 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls, LeftmostInnermostReducibilityChecker* checker)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls, ReducibilityChecker* checker)
 {
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 

@@ -91,6 +91,7 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
+#include "Inferences/ReducibilityChecker.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1503,7 +1504,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_splitter = new Splitter();
   }
 
-  res->_checker = new LeftmostInnermostReducibilityChecker(
+  res->_checker = new ReducibilityChecker(
     static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)), res->_ordering.ref(), opt);
 
   // create generating inference engine
