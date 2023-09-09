@@ -121,7 +121,7 @@ void Signature::Symbol::destroyTypeConSymbol()
  * A constant can be added into one particular distinct group
  * at most once
  *
- * We also record the symbol in the group's members, under certain conditions
+ * We also record the symbol in the group's members
  */
 void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 {
@@ -129,17 +129,10 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   ASS(!List<unsigned>::member(group, _distinctGroups))
 
   List<unsigned>::push(group, _distinctGroups);
-
   env.signature->_distinctGroupsAddedTo=true;
 
   Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
-  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE
-                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
-    // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
-    // ... instead DistinctEqualitySimplifier will take over
-    members->push(this_number);
-  }
-
+  members->push(this_number);
 } // addToDistinctGroup
 
 /**

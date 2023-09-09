@@ -48,12 +48,6 @@ public:
    */
   int get(int v) { return _counts[v]; }
 
-  /** 
-   * Set the value of the counter v.
-   * @since 16/01/2004 Manchester changed to new representation of variables
-   */
-  void set(int v, int c) { _counts[v] = c; }
-
 private:
   ZIArray<int> _counts;
 }; // class MultiCounter
