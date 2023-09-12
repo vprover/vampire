@@ -3681,25 +3681,7 @@ void TPTP::endFof()
     break;
 
   case UnitInputType::CLAIM:
-    {
-      bool added;
-      unsigned pred = env.signature->addPredicate(nm,0,added);
-      if (!added) {
-  USER_ERROR("Names of claims must be unique: "+nm);
-      }
-      env.signature->getPredicate(pred)->markLabel();
-      Literal* a = new(0) Literal(pred,0,true,false);
-      a = env.sharing->insert(a);
-      Formula* claim = new AtomicFormula(a);
-      VList* vs = f->freeVariables();
-      if (VList::isNonEmpty(vs)) {
-        //TODO can we use sortOf to get sorts of vs?
-        f = new QuantifiedFormula(FORALL,vs,0,f);
-      }
-      f = new BinaryFormula(IFF,claim,f);
-      unit = new FormulaUnit(f,
-          FormulaTransformation(InferenceRule::CLAIM_DEFINITION,unit));
-    }
+    unit = processClaimFormula(unit,f,nm);
     break;
 
   default:
@@ -3707,6 +3689,37 @@ void TPTP::endFof()
   }
   _units.push(unit);
 } // tag
+
+/*
+* The given unit has already been parsed (and had the role CLAIM).
+* It's actually a FormulaUnit with the formula f wrapped inside.
+* nm is the name of the claim in TPTP, but can be any other string
+* that will serve as the name of the predice we introduce:
+*
+* Now instead of returning it directly, we turn it into an equivalence
+* with a fresh predicate symbol (of name nm) and return that one. 
+* The new symbo is marked not to be eliminated during preprocessing.
+*/
+Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const vstring& nm)
+{
+  bool added;
+  unsigned pred = env.signature->addPredicate(nm,0,added);
+  if (!added) {
+    USER_ERROR("Names of claims must be unique: "+nm);
+  }
+  env.signature->getPredicate(pred)->markLabel();
+  Literal* a = new(0) Literal(pred,0,true,false);
+  a = env.sharing->insert(a);
+  Formula* claim = new AtomicFormula(a);
+  VList* vs = f->freeVariables();
+  if (VList::isNonEmpty(vs)) {
+    //TODO can we use sortOf to get sorts of vs?
+    f = new QuantifiedFormula(FORALL,vs,0,f);
+  }
+  f = new BinaryFormula(IFF,claim,f);
+  return new FormulaUnit(f,
+      FormulaTransformation(InferenceRule::CLAIM_DEFINITION,unit));
+}
 
 /**
  * Add a state just reading a tag and save the tag in _tags.
