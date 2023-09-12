@@ -837,6 +837,9 @@ public:
   static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
 
+  // also here, simply made public static to share the code with another use site
+  static Unit* processClaimFormula(Unit* unit, Formula* f, const vstring& nm);
+
   /**
    * Used to store the contents of the 'source' of an input formula
    * This is based on the 'file' and 'inference' record description in

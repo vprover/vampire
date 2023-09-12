@@ -445,6 +445,13 @@ private:
   /**
    * Unofficial command
    *
+   * Treated analogously to the TPTP CLAIM formula role (see the TPTP parser on that).
+   */
+  void readAssertClaim(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
    * Behaves like conjecture declaration in TPTP
    */
   void readAssertNot(LExpr* body);
