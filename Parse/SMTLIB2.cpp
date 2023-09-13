@@ -2509,7 +2509,9 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   ASS(head->isList());
   LispListReader headRdr(head);
 
-  headRdr.acceptAtom(UNDERSCORE);
+  if (!headRdr.tryAcceptAtom(UNDERSCORE)) {
+    USER_ERROR("Compound functor expected to be a rankend function (starting with '_'). Instead read: "+head->toString());
+  }
 
   if(headRdr.tryAcceptAtom("divisible")){
 
