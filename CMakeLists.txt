@@ -312,6 +312,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
+    Kernel/VarOrder.hpp
+    Kernel/VarOrder.cpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp

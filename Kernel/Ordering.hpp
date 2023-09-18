@@ -28,6 +28,8 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
 
+#include "VarOrder.hpp"
+
 namespace Kernel {
 
 using namespace Shell;
@@ -66,6 +68,7 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
+  virtual VarOrders makeGreater(TermList tl1, TermList tl2, const VarOrders& vos) const;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -134,6 +137,7 @@ public:
   virtual void showConcrete(std::ostream&) const = 0;
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
+  Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
@@ -150,7 +154,6 @@ protected:
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
-  Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
   int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;

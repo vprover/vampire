@@ -32,19 +32,22 @@ using namespace Indexing;
 
 class ReducibilityChecker {
 private:
-  DHSet<Term*> _reducible;
-  DHSet<Term*> _nonReducible;
-  DHSet<Term*> _done;
+  // DHSet<Term*> _reducible;
+  // DHSet<Term*> _nonReducible;
+  // DHSet<Term*> _done;
 
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
   const Options& _opt;
 
-  bool checkTerm(Term* t, Term* tS, Term* rwTermS, ResultSubstitution* subst, bool result, bool& variant);
-  bool checkTermReducible(Term* tS, TermList* tgtTermS, bool greater);
+  VarOrders checkTerm(Term* t, Term* tS, Term* rwTermS, ResultSubstitution* subst, bool result, bool& variant);
+  VarOrders checkTermReducible(Term* tS, TermList* tgtTermS, bool greater, const VarOrders& initial);
   bool checkLeftmostInnermost(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
-  bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater);
+  bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater, vstringstream& exp);
   bool checkSmallerSanity(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, vstringstream& exp);
+  bool checkSmallerSanityGround(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, vstringstream& exp);
+
+  bool kboGreater(TermList tl1, TermList tl2, const VarOrder& vo, const DHSet<unsigned>& vars);
 
 public:
   CLASS_NAME(ReducibilityChecker);
@@ -53,9 +56,9 @@ public:
   ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
   bool check(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater);
-  void reset() { _nonReducible.reset(); }
-  void resetDone() { _done.reset(); }
-  bool isNonReducible(Term* t) { return _nonReducible.contains(t); }  
+  void reset() { /* _nonReducible.reset(); */ }
+  void resetDone() { /* _done.reset(); */ }
+  bool isNonReducible(Term* t) { return false; /* _nonReducible.contains(t); */ }  
 };
 
 }

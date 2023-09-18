@@ -158,6 +158,7 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+  VarOrders makeGreater(TermList tl1, TermList tl2, const VarOrders& vos) const override;
 
   KboWeightMap<FuncSigTraits> _funcWeights;
 protected:

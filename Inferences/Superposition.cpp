@@ -372,13 +372,14 @@ Clause* Superposition::performSuperposition(
   }
 #endif
 
-  //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
+  // cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
   auto comp = ordering.compare(tgtTermS,rwTermS);
   if(Ordering::isGorGEorE(comp)) {
     return 0;
   }
+  // cout << "ordering " << Ordering::resultToString(comp) << endl;
 
   if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
@@ -407,6 +408,12 @@ Clause* Superposition::performSuperposition(
 
   auto checker = _salg->getReducibilityChecker();
 
+  // TIME_TRACE("sup");
+  // if (comp == Ordering::INCOMPARABLE) {
+  //   TIME_TRACE("sup incomparable");
+  // }
+  // std::cout << std::endl << "SUPERPOSITION\nrwClause " << *rwClause << std::endl
+  //      << "eqClause " << *eqClause << std::endl << "rwTermS " << rwTermS << std::endl;
   if (checker) {
     checker->resetDone();
     if (checker->check(eqClause,eqLHS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult,comp==Ordering::LESS)) {
@@ -419,6 +426,10 @@ Clause* Superposition::performSuperposition(
       return 0;
     }
   }
+  if (comp == Ordering::INCOMPARABLE) {
+    TIME_TRACE("sup incomparable survived");
+  }
+  // std::cout << std::endl;
 
   unsigned newLength = rwLength+eqLength-1+conLength;
 

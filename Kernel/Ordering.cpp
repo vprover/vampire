@@ -918,3 +918,11 @@ void PrecedenceOrdering::show(ostream& out) const
 
   showConcrete(out);
 }
+
+VarOrders Ordering::makeGreater(TermList tl1, TermList tl2, const VarOrders& vos) const
+{
+  if (vos.isEmpty() || compare(tl1,tl2)==GREATER) {
+    return vos;
+  }
+  return VarOrders();
+}
