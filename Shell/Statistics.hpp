@@ -149,6 +149,7 @@ public:
   unsigned inductionApplicationInProof;
   unsigned generalizedInductionApplication;
   unsigned generalizedInductionApplicationInProof;
+  unsigned inductionRedundant;
   /** number of argument congruences */
   unsigned argumentCongruence;
   unsigned narrow;

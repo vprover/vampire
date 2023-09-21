@@ -96,6 +96,7 @@ Statistics::Statistics()
     intDBDownInductionInProof(0),
     inductionApplication(0),
     inductionApplicationInProof(0),
+    inductionRedundant(0),
     generalizedInductionApplication(0),
     generalizedInductionApplicationInProof(0),
     argumentCongruence(0),
@@ -415,6 +416,7 @@ void Statistics::print(ostream& out)
   COND_OUT("InductionApplicationsInProof",inductionApplicationInProof);
   COND_OUT("GeneralizedInductionApplications",generalizedInductionApplication);
   COND_OUT("GeneralizedInductionApplicationsInProof",generalizedInductionApplicationInProof);
+  COND_OUT("InductionRedundant",inductionRedundant);
   COND_OUT("Argument congruence", argumentCongruence);
   COND_OUT("Negative extensionality", negativeExtensionality);
   COND_OUT("Primitive substitutions", primitiveInstantiations);

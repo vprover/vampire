@@ -573,6 +573,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         return hasPremise && cnt > 1;
       });
     // collect contexts for single-literal induction with given clause
+    const bool redundancy_check = _opt.inductionRedundancyCheck();
     auto indCtxSingle = iterTraits(DHSet<Term*>::Iterator(ta_terms))
       .filter([lit](Term* arg) {
         return !arg->arity() || !lit->isEquality() ||
@@ -585,9 +586,9 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       })
-      .filter([this](const InductionContext& arg) {
-        if (isRedundant(arg)) {
-          TIME_TRACE("induction redundant");
+      .filter([this,redundancy_check](const InductionContext& arg) {
+        if (redundancy_check && isRedundant(arg)) {
+          env.statistics->inductionRedundant++;
           return false;
         }
         return true;

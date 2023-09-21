@@ -1473,22 +1473,28 @@ void Options::init()
       Remodulation::OFF,
       {"off", "upwards_only", "on"}
     );
-    _remodulation.description = "";
+    _remodulation.description = "Rewrite inductive goals with unit equalities in the upward direction (w.r.t. the ordering) to obtain inductive lemmas";
     _remodulation.tag(OptionTag::INFERENCES);
     _remodulation.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_remodulation);
 
     _maxRemodulationDepth = UnsignedOptionValue("max_remodulation_depth","mrd",3);
-    _maxRemodulationDepth.description = "";
+    _maxRemodulationDepth.description = "Set maximum remodulation depth";
     _maxRemodulationDepth.tag(OptionTag::INFERENCES);
     _maxRemodulationDepth.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));
     _lookup.insert(&_maxRemodulationDepth);
 
     _introduceChains = BoolOptionValue("introduce_chains","inch",false);
-    _introduceChains.description = "";
+    _introduceChains.description = "Introduce chains to avoid useless clauses during inductive lemma generation";
     _introduceChains.tag(OptionTag::INFERENCES);
     _introduceChains.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));
     _lookup.insert(&_introduceChains);
+
+    _inductionRedundancyCheck = BoolOptionValue("induction_redundancy_check","indrc",false);
+    _inductionRedundancyCheck.description = "Skip redundant induction inferences";
+    _inductionRedundancyCheck.tag(OptionTag::INFERENCES);
+    _inductionRedundancyCheck.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));
+    _lookup.insert(&_inductionRedundancyCheck);
 
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";

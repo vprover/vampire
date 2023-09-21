@@ -2348,6 +2348,7 @@ public:
   Remodulation remodulation() const { return _remodulation.actualValue; }
   unsigned maxRemodulationDepth() const { return _maxRemodulationDepth.actualValue; }
   bool introduceChains() const { return _introduceChains.actualValue; }
+  bool inductionRedundancyCheck() const { return _inductionRedundancyCheck.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
   bool instGenPassiveReactivation() const { return _instGenPassiveReactivation.actualValue; }
@@ -2658,6 +2659,7 @@ private:
   ChoiceOptionValue<Remodulation> _remodulation;
   UnsignedOptionValue _maxRemodulationDepth;
   BoolOptionValue _introduceChains;
+  BoolOptionValue _inductionRedundancyCheck;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
