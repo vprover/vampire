@@ -415,14 +415,18 @@ Clause* Superposition::performSuperposition(
   // std::cout << std::endl << "SUPERPOSITION\nrwClause " << *rwClause << std::endl
   //      << "eqClause " << *eqClause << std::endl << "rwTermS " << rwTermS << std::endl;
   if (checker) {
-    checker->resetDone();
-    if (checker->check(eqClause,eqLHS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult,comp==Ordering::LESS)) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
+    // checker->resetDone();
+    // if (checker->check(eqClause,eqLHS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult,comp==Ordering::LESS)) {
+    //   env.statistics->skippedSuperposition++;
+    //   return 0;
+    // }
 
-    if (checker->check(rwClause,rwTerm,rwTermS.term(),&tgtTermS,subst.ptr(),!eqIsResult,comp==Ordering::LESS)) {
-      env.statistics->skippedSuperposition++;
+    // if (checker->check(rwClause,rwTerm,rwTermS.term(),&tgtTermS,subst.ptr(),!eqIsResult,comp==Ordering::LESS)) {
+    //   env.statistics->skippedSuperposition++;
+    //   return 0;
+    // }
+    if (checker->check(rwClause,eqClause,rwLitS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult)) {
+      // env.statistics->skippedSuperposition++;
       return 0;
     }
   }

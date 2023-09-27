@@ -99,6 +99,11 @@ public:
     std::memset(_data, 0, _capacity * sizeof(T));
   }
 
+  size_t size() const
+  {
+    return (_2sideMinus1+1)/2;
+  }
+
 private:
   /**
    * It's more convenient to have the side times two minus 1,

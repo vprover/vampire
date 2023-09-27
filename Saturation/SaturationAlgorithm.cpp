@@ -1194,9 +1194,9 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-  if (_checker) {
-    _checker->reset();
-  }
+  // if (_checker) {
+  //   _checker->reset();
+  // }
 
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = timeTraceIter(TimeTrace::CLAUSE_GENERATION, generated.clauses);

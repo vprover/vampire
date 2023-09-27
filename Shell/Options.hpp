@@ -759,7 +759,8 @@ public:
   enum class ReducibilityCheck : unsigned int {
     LEFTMOST_INNERMOST = 0,
     SMALLER = 1,
-    OFF = 2,
+    SMALLER_GROUND = 2,
+    OFF = 3,
   };
 
 

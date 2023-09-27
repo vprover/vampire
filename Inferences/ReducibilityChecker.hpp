@@ -24,28 +24,17 @@ namespace Inferences {
 
 using namespace Indexing;
 
-// struct VariantHash
-// {
-//   // static bool equals(T o1, T o2);
-//   static unsigned hash(Term* t);
-// };
-
 class ReducibilityChecker {
 private:
-  // DHSet<Term*> _reducible;
-  // DHSet<Term*> _nonReducible;
-  // DHSet<Term*> _done;
-
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
   const Options& _opt;
 
-  VarOrders checkTerm(Term* t, Term* tS, Term* rwTermS, ResultSubstitution* subst, bool result, bool& variant);
+  VarOrders checkTerm(Term* t, Term* tS, Term* rwTermS, const DHSet<unsigned>& vars);
   VarOrders checkTermReducible(Term* tS, TermList* tgtTermS, bool greater, const VarOrders& initial);
-  bool checkLeftmostInnermost(Clause* cl, Term* rwTermS, ResultSubstitution* subst, bool result);
-  bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater, vstringstream& exp);
-  bool checkSmallerSanity(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, vstringstream& exp);
-  bool checkSmallerSanityGround(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, vstringstream& exp);
+  // bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater, vstringstream& exp);
+  bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+  bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 
   bool kboGreater(TermList tl1, TermList tl2, const VarOrder& vo, const DHSet<unsigned>& vars);
 
@@ -55,10 +44,7 @@ public:
 
   ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
-  bool check(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater);
-  void reset() { /* _nonReducible.reset(); */ }
-  void resetDone() { /* _done.reset(); */ }
-  bool isNonReducible(Term* t) { return false; /* _nonReducible.contains(t); */ }  
+  bool check(Clause* rwClause, Clause* eqClause, Literal* rwLitS, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool eqIsResult);
 };
 
 }
