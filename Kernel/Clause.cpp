@@ -69,8 +69,6 @@ Clause::Clause(unsigned length,const Inference& inf)
     _store(NONE),
     _numSelected(0),
     _answerLiteralChecked(false),
-    _computableChecked(false),
-    _computable(true),
     _weight(0),
     _weightForClauseSelection(0),
     _refCnt(0),
@@ -818,18 +816,13 @@ Literal* Clause::getAnswerLiteral() {
 }
 
 bool Clause::computable() {
-  if (!_computableChecked) {
-    _computable = true;
-    for (unsigned i = 0; i < length(); ++i) {
-      if ((*this)[i]->isAnswerLiteral()) continue;
-      if (!(*this)[i]->computable()) {
-        _computable = false;
-        break;
-      }
+  for (unsigned i = 0; i < length(); ++i) {
+    if ((*this)[i]->isAnswerLiteral()) continue;
+    if (!(*this)[i]->computable()) {
+      return false;
     }
-    _computableChecked = true;
   }
-  return _computable;
+  return true;
 }
 
 }

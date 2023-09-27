@@ -215,6 +215,12 @@ public:
 
   UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle = false);
+
+  /*
+   * Clauses with answer literals cannot be split -- hence if we obtain a clause with
+   * avatar assertions that has an answer literal, we have to un-split it.
+   * This method replaces `C \/ ans(r) <- A1,...,An` with `C \/ ans(r) \/ ~A1 \/ ... \/ ~An`
+   */
   Clause* reintroduceAvatarAssertions(Clause* cl);
 
 private:

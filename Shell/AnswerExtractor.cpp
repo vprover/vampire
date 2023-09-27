@@ -38,9 +38,7 @@
 
 #include "AnswerExtractor.hpp"
 
-namespace {
-  typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
-}
+typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
 
 namespace Shell
 {
@@ -640,7 +638,7 @@ Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* the
 
   Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
   Stack<TermList> litArgs;
-  Term* condTerm = Term::createFromLiteral(condition);
+  Term* condTerm = Term::translateToSynthesisConditionTerm(condition);
   for (unsigned i = 0; i < thenLit->arity(); ++i) {
     TermList* ttl = thenLit->nthArgument(i);
     TermList* etl = elseLit->nthArgument(i);

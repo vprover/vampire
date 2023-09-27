@@ -861,7 +861,6 @@ const vstring& Literal::predicateName() const
 
 
 bool Literal::isAnswerLiteral() const {
-  if (isEquality()) return false;
   return env.signature->getPredicate(functor())->answerPredicate();
 }
 
@@ -934,9 +933,9 @@ Term* Term::create(Term* t,TermList* args)
  *  from the array @b args its arguments. Insert it into the sharing
  *  structure if all arguments are shared.
  */
-Term* Term::createFromLiteral(Literal* l)
+Term* Term::translateToSynthesisConditionTerm(Literal* l)
 {
-  CALL("Term::createFromLiteral");
+  CALL("Term::translateToSynthesisConditionTerm");
   ASS_EQ(l->getPreDataSize(), 0);
   ASS(!l->isSpecial());
 
