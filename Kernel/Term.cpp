@@ -960,6 +960,7 @@ Term* Term::translateToSynthesisConditionTerm(Literal* l)
       for (unsigned i = 0; i < arity; ++i) {
         argSorts.push(ot->arg(i));
       }
+      if (!env.signature->getPredicate(l->functor())->computable()) sym->markUncomputable();
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
   }
