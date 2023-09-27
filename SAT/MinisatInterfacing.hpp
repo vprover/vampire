@@ -43,7 +43,6 @@ public:
    * (Minisat deletes unconditionally satisfied clauses.)
    */
   virtual void simplify() override {
-    CALL("MinisatInterfacing::simplify");
     _solver.simplify();
   }
 

@@ -29,7 +29,6 @@ namespace Kernel
  */
 void Substitution::bind(int v,Term* t)
 {
-  CALL("Substitution::bind(int,Term*)");
   TermList ts;
   ts.setTerm(t);
   bind(v,ts);
@@ -47,8 +46,6 @@ void Substitution::rebind(int v,Term* t)
  */
 void Substitution::bind(int v,TermList t)
 {
-  CALL("Substitution::bind(int,TermList)");
-
   ALWAYS(_map.insert(v, t));
 } // Substitution::bind
 
@@ -65,15 +62,11 @@ void Substitution::rebind(int v,TermList t)
  */
 void Substitution::unbind(int v)
 {
-  CALL("Substitution::unbind");
-
   ALWAYS(_map.remove(v));
 } // Substitution::unbind
 
 void Substitution::reset()
 {
-  CALL("Substitution::reset");
-
   _map.reset();
 }
 
@@ -98,8 +91,6 @@ TermList Substitution::apply(unsigned var)
  */
 bool Substitution::findBinding(int var, TermList& res) const
 {
-  CALL("Substitution::findBinding");
-
   return _map.find(var, res);
 } // Substitution::bound
 

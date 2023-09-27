@@ -48,6 +48,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
@@ -92,7 +93,6 @@ Clause::Clause(unsigned length,const Inference& inf)
  */
 void* Clause::operator new(size_t sz, unsigned lits)
 {
-  CALL("Clause::operator new");
   ASS_EQ(sz,sizeof(Clause));
 
   RSTAT_CTR_INC("clauses created");
@@ -108,8 +108,6 @@ void* Clause::operator new(size_t sz, unsigned lits)
 
 void Clause::operator delete(void* ptr,unsigned length)
 {
-  CALL("Clause::operator delete");
-
   RSTAT_CTR_INC("clauses deleted by delete operator");
 
   //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
@@ -141,8 +139,6 @@ void Clause::destroyExceptInferenceObject()
 
 Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
 {
-  CALL("Clause::fromStack");
-
   unsigned clen = lits.size();
   Clause* res = new (clen) Clause(clen, inf);
 
@@ -163,8 +159,6 @@ Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
  */
 Clause* Clause::fromClause(Clause* c)
 {
-  CALL("Clause::fromClause");
-
   Clause* res = fromIterator(Clause::Iterator(*c), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
 
   if (c->splits()) {
@@ -198,8 +192,6 @@ void Clause::destroyIfUnnecessary()
  */
 void Clause::destroy()
 {
-  CALL("Clause::destroy");
-
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
@@ -233,8 +225,6 @@ void Clause::destroy()
  * and there Clause's reference counter is zero. */
 void Clause::setStore(Store s)
 {
-  CALL("Clause::setStore");
-
 #if VDEBUG
   //assure there is one selected clause
   static Clause* selected=0;
@@ -256,8 +246,6 @@ void Clause::setStore(Store s)
  */
 bool Clause::isGround()
 {
-  CALL("Clause::isGround");
-
   Iterator it(*this);
   while (it.hasNext()) {
     if (!it.next()->ground()) {
@@ -272,8 +260,6 @@ bool Clause::isGround()
  */
 bool Clause::isPropositional()
 {
-  CALL("Clause::isPropositional");
-
   Iterator it(*this);
   while (it.hasNext()) {
     if (it.next()->arity() > 0) {
@@ -288,8 +274,6 @@ bool Clause::isPropositional()
  */
 bool Clause::isHorn()
 {
-  CALL("Clause::isHorn");
-
   bool posFound=false;
   Iterator it(*this);
   while (it.hasNext()) {
@@ -310,8 +294,6 @@ bool Clause::isHorn()
  */
 VirtualIterator<unsigned> Clause::getVariableIterator()
 {
-  CALL("Clause::getVariableIterator");
-
   return pvi( getUniquePersistentIterator(
       getMappingIterator(
 	  getMapAndFlattenIterator(
@@ -326,8 +308,6 @@ VirtualIterator<unsigned> Clause::getVariableIterator()
  */
 bool Clause::noSplits() const
 {
-  CALL("Clause::noSplits");
-
   return !_inference.splits() || _inference.splits()->isEmpty();
 }
 
@@ -336,8 +316,6 @@ bool Clause::noSplits() const
  */
 vstring Clause::literalsOnlyToString() const
 {
-  CALL("Clause::literalsOnlyToString");
-
   if (_length == 0) {
     return "$false";
   } else {
@@ -358,8 +336,6 @@ vstring Clause::literalsOnlyToString() const
  */
 vstring Clause::toTPTPString() const
 {
-  CALL("Clause::toTPTPString()");
-
   vstring result = literalsOnlyToString();
 
   return result;
@@ -370,8 +346,6 @@ vstring Clause::toTPTPString() const
  */
 vstring Clause::toNiceString() const
 {
-  CALL("Clause::toNiceString()");
-
   vstring result = literalsOnlyToString();
 
   if (splits() && !splits()->isEmpty()) {
@@ -387,8 +361,6 @@ vstring Clause::toNiceString() const
  */
 vstring Clause::toString() const
 {
-  CALL("Clause::toString()");
-
   // print id and literals of clause
   vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
 
@@ -451,7 +423,6 @@ vstring Clause::toString() const
  */
 VirtualIterator<vstring> Clause::toSimpleClauseStrings()
 {
-  CALL("toSimpleClauseStrings");
     return pvi(getSingletonIterator(literalsOnlyToString()));
 
 }
@@ -478,7 +449,6 @@ bool Clause::skip() const
  */
 void Clause::computeColor() const
 {
-  CALL("Clause::computeColor");
   ASS_EQ(_color, COLOR_INVALID);
 
   Color color = COLOR_TRANSPARENT;
@@ -502,8 +472,6 @@ void Clause::computeColor() const
  */
 unsigned Clause::computeWeight() const
 {
-  CALL("Clause::computeWeight");
-
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
     ASS(_literals[i]->shared());
@@ -535,8 +503,6 @@ unsigned Clause::splitWeight() const
  */
 
 unsigned Clause::getNumeralWeight() const {
-  CALL("Clause::getNumeralWeight");
-
   unsigned res = 0;
   Iterator litIt(*this);
   while (litIt.hasNext()) {
@@ -588,8 +554,6 @@ unsigned Clause::getNumeralWeight() const {
  */
 unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
 {
-  CALL("Clause::computeWeightForClauseSelection");
-
   unsigned w = 0;
   if (_weight) {
     w = _weight;
@@ -632,8 +596,6 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
  */
 unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
 {
-  CALL("Clause::computeWeightForClauseSelection(unsigned w, ...)");
-
   static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
   static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
 
@@ -648,21 +610,17 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
 
 void Clause::collectUnstableVars(DHSet<unsigned>& acc)
 {
-  CALL("Clause::collectUnstableVars");
   collectVars2<UnstableVarIt>(acc);
 }
 
 void Clause::collectVars(DHSet<unsigned>& acc)
 {
-  CALL("Clause::collectVars");
   collectVars2<VariableIterator>(acc);
 }
 
 template<class VarIt>
 void Clause::collectVars2(DHSet<unsigned>& acc)
 {
-  CALL("Clause::collectVars2");
-
   Iterator it(*this);
   while (it.hasNext()) {
     Literal* lit = it.next();
@@ -677,8 +635,6 @@ void Clause::collectVars2(DHSet<unsigned>& acc)
 
 unsigned Clause::varCnt()
 {
-  CALL("Clause::varCnt");
-
   static DHSet<unsigned> vars;
   vars.reset();
   collectVars(vars);
@@ -687,8 +643,6 @@ unsigned Clause::varCnt()
 
 unsigned Clause::maxVar()
 {
-  CALL("Clause::maxVar()");
-  
   unsigned max = 0;
   VirtualIterator<unsigned> it = getVariableIterator();
 
@@ -701,7 +655,6 @@ unsigned Clause::maxVar()
 
 unsigned Clause::numPositiveLiterals()
 {
-  CALL("Clause::numPositiveLiterals");
   unsigned count = 0;
   for (int i = 0; i < _length; i++)
   {
@@ -760,7 +713,6 @@ unsigned Clause::getLiteralPosition(Literal* lit)
  */
 void Clause::notifyLiteralReorder()
 {
-  CALL("Clause::notifyLiteralReorder");
   if (_literalPositions) {
     _literalPositions->update(_literals);
   }

@@ -28,9 +28,10 @@
 
 namespace FMB{
 
+using namespace std;
+
 bool ClauseFlattening::isShallow(Literal* lit)
 {
-  CALL("ClauseFlattening::isShallow(Literal)");
   // The term to check for variable arguments
   Term* check = 0;
 
@@ -65,8 +66,6 @@ bool ClauseFlattening::isShallow(Literal* lit)
  */
 Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 {
-  CALL("ClauseFlattening::resolveNegativeVariableEqualities");
-
   // a helper class to be passed to SubstHelper
   class SingleVar2VarSubst {
     unsigned _from;
@@ -128,7 +127,6 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
  */
 Clause* ClauseFlattening::flatten(Clause* cl)
 {
-  CALL("ClauseFlattening::flatten");
   TIME_TRACE("fmb flattening");
 
   cl = resolveNegativeVariableEqualities(cl);

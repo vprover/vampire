@@ -30,6 +30,7 @@
 namespace Indexing
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -113,8 +114,6 @@ public:
 
 ClauseIterator SubstitutionTreeClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
 {
-  CALL("SubstitutionTreeClauseVariantIndex::retrieveVariants/2");
-
   if(length==0) {
     return pvi( ClauseList::Iterator(_emptyClauses) );
   }
@@ -147,8 +146,6 @@ ClauseIterator SubstitutionTreeClauseVariantIndex::retrieveVariants(Literal* con
 
 SubstitutionTreeClauseVariantIndex::~SubstitutionTreeClauseVariantIndex()
 {
-  CALL("SubstitutionTreeClauseVariantIndex::~SubstitutionTreeClauseVariantIndex");
-
   unsigned streeArrSz=_strees.size();
   for(unsigned i=0;i<streeArrSz;i++) {
     if(_strees[i]!=0) {
@@ -170,8 +167,6 @@ SubstitutionTreeClauseVariantIndex::~SubstitutionTreeClauseVariantIndex()
  */
 void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
 {
-  CALL("SubstitutionTreeClauseVariantIndex::insert");
-
   unsigned clen=cl->length();
 
   if(cl->length()==0) {
@@ -195,7 +190,6 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
 
 Literal* SubstitutionTreeClauseVariantIndex::getMainLiteral(Literal* const * lits, unsigned length)
 {
-  CALL("SubstitutionTreeClauseVariantIndex::getMainLiteral");
   ASS_G(length,0);
 
   static LiteralComparators::NormalizedLinearComparatorByWeight<> comp;
@@ -218,8 +212,6 @@ Literal* SubstitutionTreeClauseVariantIndex::getMainLiteral(Literal* const * lit
 
 HashingClauseVariantIndex::~HashingClauseVariantIndex()
 {
-  CALL("HashingClauseVariantIndex::~HashingClauseVariantIndex");
-
   /*
   unsigned max = 0;
   ClauseList* maxval = 0;
@@ -254,8 +246,6 @@ HashingClauseVariantIndex::~HashingClauseVariantIndex()
 
 void HashingClauseVariantIndex::insert(Clause* cl)
 {
-  CALL("HashingClauseVariantIndex::insert");
-
   TIME_TRACE("hvci insert");
 
   // static unsigned insertions = 0;
@@ -276,8 +266,6 @@ void HashingClauseVariantIndex::insert(Clause* cl)
 
 ClauseIterator HashingClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
 {
-  CALL("HashingClauseVariantIndex::retrieveVariants/2");
-
   TIME_TRACE("hvci retrieve");
 
   unsigned h = computeHash(lits,length);
@@ -304,8 +292,6 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
 
   static Comparison disagreement(Term* t1,Term* t2)
   {
-    CALL("HashingClauseVariantIndex::VariableIgnoringComparator::disagreement");
-
     //now get just some total deterministic order while ignoring variables
     static DisagreementSetIterator dsit;
     dsit.reset(t1, t2, false);
@@ -329,8 +315,6 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
 
   static Comparison compare(TermList* tl1, TermList* tl2)
   {
-    CALL("HashingClauseVariantIndex::VariableIgnoringComparator::compare(Termlist*,Termlist*)");
-
     if(!tl1->isTerm()) {
       if(!tl2->isTerm()) {
         return EQUAL;
@@ -369,8 +353,6 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
 
   static Comparison compare(Literal* l1, Literal* l2)
   {
-    CALL("HashingClauseVariantIndex::VariableIgnoringComparator::compare(Literal*,Literal*)");
-
     if(l1->weight()!=l2->weight()) {
       // number of general symbol occurrences
       return Int::compare(l1->weight(),l2->weight());
@@ -420,8 +402,6 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
    * A total ordering stable under variable substitutions.
    */
   bool operator()(unsigned a, unsigned b) {
-    CALL("HashingClauseVariantIndex::VariableIgnoringComparator::operator()");
-
     // cout << "a = " << a << " lits[a]= " << _lits[a] << endl;
     // cout << "b = " << b << " lits[b]= " << _lits[b] << endl;
 
@@ -436,8 +416,6 @@ struct HashingClauseVariantIndex::VariableIgnoringComparator {
 };
 
 unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, VarCounts& varCnts, unsigned hash_begin) {
-  CALL("HashingClauseVariantIndex::computeHashAndCountVariables(Term*, ...)");
-
   if (ptl->isVar()) {
     return computeHashAndCountVariables(ptl->var(),varCnts,hash_begin);
   }
@@ -467,8 +445,6 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, 
 }
 
 unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, VarCounts& varCnts, unsigned hash_begin) {
-  CALL("HashingClauseVariantIndex::computeHashAndCountVariables(Literal*, ...)");
-
   //cout << "Literal " << l->toString() << endl;
 
   if (l->ground()) {
@@ -504,8 +480,6 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
 
 unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned length)
 {
-  CALL("HashingClauseVariantIndex::computeHash");
-
   // cout << "length " <<  length << endl;
 
   TIME_TRACE("hvci compute hash");

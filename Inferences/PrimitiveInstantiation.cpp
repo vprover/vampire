@@ -44,8 +44,6 @@ using namespace Saturation;
 
 void PrimitiveInstantiation::attach(SaturationAlgorithm* salg)
 {
-  CALL("PrimitiveInstantiation::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<PrimitiveInstantiationIndex*> (
     _salg->getIndexManager()->request(PRIMITIVE_INSTANTIATION_INDEX) );
@@ -53,8 +51,6 @@ void PrimitiveInstantiation::attach(SaturationAlgorithm* salg)
 
 void PrimitiveInstantiation::detach()
 {
-  CALL("PrimitiveInstantiation::detach");
-
   _index=0;
   _salg->getIndexManager()->release(PRIMITIVE_INSTANTIATION_INDEX);
   GeneratingInferenceEngine::detach();
@@ -115,17 +111,18 @@ struct PrimitiveInstantiation::ApplicableRewritesFn
   ApplicableRewritesFn(PrimitiveInstantiationIndex* index) : _index(index){}
   VirtualIterator<TermQueryResult> operator()(Literal* l)
   {
-    CALL("PrimitiveInstantiation::ApplicableRewritesFn()");
-        
     TermList lhs = *l->nthArgument(0);
     TermList rhs = *l->nthArgument(1);
    
+    TypedTermList lhst(lhs, SortHelper::getEqualityArgumentSort(l));
+    TypedTermList rhst(rhs, SortHelper::getEqualityArgumentSort(l));
+
     TermStack args;
     TermList head;
 
     ApplicativeHelper::getHeadAndArgs(lhs, head, args);
      
-    return pvi(_index->getUnifications((head.isVar() ? lhs : rhs)));
+    return pvi(_index->getUnifications((head.isVar() ? lhst : rhst)));
   }
 private:
   PrimitiveInstantiationIndex* _index;
@@ -133,8 +130,6 @@ private:
 
 ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
 {
-  CALL("PrimitiveInstantiation::generateClauses");
-  
   //is this correct?
   auto it1 = premise->getSelectedLiteralIterator();
   //filter out literals that are not suitable for narrowing

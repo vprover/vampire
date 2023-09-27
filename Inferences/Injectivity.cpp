@@ -30,8 +30,6 @@
 namespace Inferences {
 
 ClauseIterator Injectivity::generateClauses(Clause* premise) {
-  CALL("Injectivity::generateClauses");
-
   if(premise->length() != 2){
     return ClauseIterator::getEmpty();
   }
@@ -110,8 +108,6 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
 }
 
 TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsigned index){
-  CALL("Injectivity::createNewLhs");
-
   TermList* typeArg = oldhead.term()->args();
   TermStack typeArgs;
   while(!typeArg->isEmpty()){

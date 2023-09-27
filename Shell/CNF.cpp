@@ -14,7 +14,6 @@
  * @since 27/12/2007 Manchester, changed completely to a new implementation
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -42,7 +41,6 @@ CNF::CNF()
  */
 void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
 {
-  CALL("CNF::clausify/2");
   ASS(! unit->isClause());
 
   _unit = static_cast<FormulaUnit*>(unit);
@@ -78,8 +76,6 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
  */
 void CNF::clausify (Formula* f)
 {
-  CALL("CNF::clausify/1");
-
   switch (f->connective()) {
   case LITERAL:
     _literals.push(f->literal());

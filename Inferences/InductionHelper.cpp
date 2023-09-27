@@ -44,8 +44,6 @@ struct SLQueryResultToTermQueryResultFn
 };
 
 bool isIntegerComparisonLiteral(Literal* lit) {
-  CALL("isIntegerComparisonLiteral");
-
   if (!lit->ground() || !theory->isInterpretedPredicate(lit)) return false;
   switch (theory->interpretPredicate(lit)) {
     case Theory::INT_LESS:
@@ -67,8 +65,6 @@ bool isIntegerComparisonLiteral(Literal* lit) {
 
 TermQueryResultIterator InductionHelper::getComparisonMatch(
     bool polarity, bool termIsLeft, Term* t) {
-  CALL("InductionHelper::getComparisonMatch");
-
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
   static TermList var(0, false);
   Literal* pattern = Literal::create2(less, polarity, termIsLeft ? TermList(t) : var, termIsLeft ? var : TermList(t));
@@ -78,7 +74,6 @@ TermQueryResultIterator InductionHelper::getComparisonMatch(
 
 TermQueryResultIterator InductionHelper::getLess(Term* t)
 {
-  CALL("InductionHelper::getLess");
   return pvi(getConcatenatedIterator(
     // x <= t  iff  ~ t < x
     getComparisonMatch(/*polarity=*/false, /*termIsLeft=*/true, t),
@@ -88,7 +83,6 @@ TermQueryResultIterator InductionHelper::getLess(Term* t)
 
 TermQueryResultIterator InductionHelper::getGreater(Term* t)
 {
-  CALL("InductionHelper::getGreater");
   return pvi(getConcatenatedIterator(
     // x >= t  iff  ~ x < t
     getComparisonMatch(/*polarity=*/false, /*termIsLeft=*/false, t),
@@ -96,64 +90,53 @@ TermQueryResultIterator InductionHelper::getGreater(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(TermList inductionTerm) {
-  CALL("InductionHelper::getIndTQRsForInductionTerm");
-
+TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   ASS(_inductionTermIndex);
-  return _inductionTermIndex->getUnifications(inductionTerm);
+  return _inductionTermIndex->getUnifications(TypedTermList(inductionTerm));
 }
 
 bool InductionHelper::isIntegerComparison(Clause* c) {
-  CALL("InductionHelper::isIntegerComparison");
   if (c->length() != 1) return false;
   return isIntegerComparisonLiteral((*c)[0]);
 }
 
 bool InductionHelper::isIntInductionOn() {
-  CALL("InductionHelper::isIntInductionOn");
   static bool intInd = env.options->induction() == Options::Induction::BOTH ||
                         env.options->induction() == Options::Induction::INTEGER;
   return intInd;
 }
 
 bool InductionHelper::isIntInductionOneOn() {
-  CALL("InductionHelper::isIntInductionOneOn");
   return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::ONE);
 }
 
 bool InductionHelper::isIntInductionTwoOn() {
-  CALL("InductionHelper::isIntInductionTwoOn");
   return isIntInductionOn() && (env.options->intInduction() == Options::IntInductionKind::TWO);
 }
 
 bool InductionHelper::isInductionForFiniteIntervalsOn() {
-  CALL("InductionHelper::isInductionForFiniteIntervalsOn");
   static bool finite = env.options->integerInductionInterval() == Options::IntegerInductionInterval::FINITE ||
                        env.options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
   return isIntInductionOn() && finite;
 }
 
 bool InductionHelper::isInductionForInfiniteIntervalsOn() {
-  CALL("InductionHelper::isInductionForInfiniteIntervalsOn");
   static bool infinite = env.options->integerInductionInterval() == Options::IntegerInductionInterval::INFINITE ||
                          env.options->integerInductionInterval() == Options::IntegerInductionInterval::BOTH;
   return isIntInductionOn() && infinite;
 }
 
 bool InductionHelper::isStructInductionOn() {
-  CALL("InductionHelper::isStructInductionOn");
   static bool structInd = env.options->induction() == Options::Induction::BOTH ||
                           env.options->induction() == Options::Induction::STRUCTURAL;
   return structInd;
 }
 
 bool InductionHelper::isNonUnitStructInductionOn() {
-  CALL("InductionHelper::isNonUnitStructInductionOn");
   return isStructInductionOn() && env.options->nonUnitInduction();
 }
 
 bool InductionHelper::isInductionClause(Clause* c) {
-  CALL("InductionHelper::isInductionClause");
   static Options::InductionChoice kind = env.options->inductionChoice();
   static bool all = (kind == Options::InductionChoice::ALL);
   static bool goal = (kind == Options::InductionChoice::GOAL);
@@ -167,7 +150,6 @@ bool InductionHelper::isInductionClause(Clause* c) {
 }
 
 bool InductionHelper::isInductionLiteral(Literal* l) {
-  CALL("InductionHelper::isInductionLiteral");
   static bool negOnly = env.options->inductionNegOnly();
   return ((!negOnly || l->isNegative() || 
            (theory->isInterpretedPredicate(l) && theory->isInequality(theory->interpretPredicate(l)))
@@ -176,7 +158,6 @@ bool InductionHelper::isInductionLiteral(Literal* l) {
 }
 
 bool InductionHelper::isInductionTermFunctor(unsigned f) {
-  CALL("InductionHelper::isInductionTermFunctor");
   static Options::InductionChoice kind = env.options->inductionChoice();
   static bool all = (kind == Options::InductionChoice::ALL);
   static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
@@ -223,9 +204,7 @@ static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, Opti
   }
 }
 
-bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
-  CALL("InductionHelper::isIntInductionTermInLiteral");
-
+bool InductionHelper::isIntInductionTermListInLiteral(Term* tl, Literal* l) {
   // Term tl has to be an integer term.
   // Further, integer term tl from literal l cannot be used for induction if any
   // of the following conditions is satisfied.
@@ -237,8 +216,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   //   2: tl has only one occurrence in l
   //   3: tl does not occur in both arguments of l
   //   4: comparisons or equalities are not allowed
-  ASS(tl.isTerm());
-  unsigned f = tl.term()->functor();
+  unsigned f = tl->functor();
   if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort())
     return false;
 
@@ -251,19 +229,18 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
       return false;
     break;
   case TS::NO_SKOLEMS:
-    if(!containsSkolem(tl.term()))
+    if(!containsSkolem(tl))
       return false;
     break;
   }
 
   return (l->isEquality()
-    ? termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessEq())
+    ? termAndLiteralSatisfyStrictness(TermList(tl), l, env.options->integerInductionStrictnessEq())
     : !isIntegerComparisonLiteral(l) ||
-      termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessComp()));
+      termAndLiteralSatisfyStrictness(TermList(tl), l, env.options->integerInductionStrictnessComp()));
 }
 
 bool InductionHelper::isStructInductionTerm(Term* t) {
-  CALL("InductionHelper::isStructInductionFunctor");
   static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
   return (env.signature->isTermAlgebraSort(SortHelper::getResultSort(t)) &&
            // skip base constructors even if induction on complex terms is on:

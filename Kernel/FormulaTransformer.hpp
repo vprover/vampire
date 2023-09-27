@@ -19,6 +19,7 @@
 
 #include "Inference.hpp"
 #include "TermTransformer.hpp"
+#include "Lib/Recycled.hpp"
 
 namespace Kernel {
 
@@ -104,12 +105,8 @@ class BottomUpTermTransformerFormulaTransformer : public FormulaTransformer
 
 class PolarityAwareFormulaTransformer : protected FormulaTransformer {
 public:
-  ~PolarityAwareFormulaTransformer();
-
   virtual Formula* transformWithPolarity(Formula* f, int polarity=1);
 protected:
-  PolarityAwareFormulaTransformer();
-
   virtual Formula* applyNot(Formula* f);
 
   virtual Formula* applyImp(Formula* f);
@@ -121,7 +118,7 @@ protected:
   TermList getVarSort(unsigned var) const;
 
 private:
-  DHMap<unsigned,TermList>* _varSorts;
+  Recycled<DHMap<unsigned,TermList>> _varSorts;
   int _polarity;
 };
 
@@ -163,7 +160,6 @@ public:
 
   virtual Formula* transform(Formula* f)
   {
-    CALL("FTFormulaUnitTransformer::transform(Formula*)");
     return _formulaTransformer.transform(f);
   }
 

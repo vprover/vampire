@@ -47,6 +47,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 struct EqualityFactoring::IsPositiveEqualityFn
 {
@@ -87,8 +88,6 @@ struct EqualityFactoring::ResultFn
       : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
-    CALL("EqualityFactoring::ResultFn::operator()");
-
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
@@ -116,7 +115,7 @@ struct EqualityFactoring::ResultFn
     ASS_NEQ(sLit, fLit);
 
     static Options::FunctionExtensionality ext = env.options->functionExtensionality();
-    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.property->higherOrder();
+    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) && env.getMainProblem()->isHigherOrder();
 
     if(use_ho_handler){
       TermList sLHSreplaced = sLHS;
@@ -203,8 +202,6 @@ private:
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 {
-  CALL("EqualityFactoring::generateClauses");
-
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }

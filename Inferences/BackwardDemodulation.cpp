@@ -45,6 +45,7 @@
 
 namespace Inferences {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -52,7 +53,6 @@ using namespace Saturation;
 
 void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationSubtermIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
@@ -60,7 +60,6 @@ void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 
 void BackwardDemodulation::detach()
 {
-  CALL("BackwardDemodulation::detach");
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
   BackwardSimplificationEngine::detach();
@@ -77,7 +76,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
+  VirtualIterator<pair<TypedTermList,TermQueryResult> > operator() (TypedTermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -108,8 +107,6 @@ struct BackwardDemodulation::ResultFn
    */
   BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
   {
-    CALL("BackwardDemodulation::ResultFn::operator()");
-
     TermQueryResult qr=arg.second;
 
     if( !ColorHelper::compatible(_cl->color(), qr.clause->color()) ) {
@@ -125,27 +122,11 @@ struct BackwardDemodulation::ResultFn
 
     TermList lhs=arg.first;
 
-    TermList qrSort = SortHelper::getTermSort(qr.term, qr.literal);
-
-    /* The following check replaces the original:
-      "if(qrSort!=_eqSort) {
-         return BwSimplificationRecord(0);
-      }"
-      from the monomorphic setting */
-    if(lhs.isVar()){
-      //when finding instances of a variable, RobSubstitution is used
-      //view Indexing::TermSubstitutionTree::getInstances
-      RobSubstitution* sub = qr.substitution->tryGetRobSubstitution();
-      ASS(sub)
-      //rather than 0 and 1, we should use the constants delared in
-      //substitution tree
-      if(!sub->match(_eqSort, 0, qrSort, 1)){
-        return BwSimplificationRecord(0);        
-      }
-    }
+    // AYB there used to be a check here to ensure that the sorts
+    // matched. This is no longer necessary, as sort matching / unification
+    // is handled directly within the tree
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-
     TermList lhsS=qr.term;
     TermList rhsS;
 
@@ -251,7 +232,6 @@ private:
 void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardDemodulation::perform");
   TIME_TRACE("backward demodulation");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {

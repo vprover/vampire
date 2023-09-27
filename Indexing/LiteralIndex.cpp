@@ -72,8 +72,6 @@ size_t LiteralIndex::getUnificationCount(Literal* lit, bool complementary)
 
 void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
 {
-  CALL("LiteralIndex::handleLiteral");
-
   if (lit->isAnswerLiteral()) return;
   if(add) {
     _is->insert(lit, cl);
@@ -84,8 +82,6 @@ void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
 
 void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("BinaryResolutionIndex::handleClause");
-
   TIME_TRACE("binary resolution index maintenance");
 
   int selCnt=c->numSelected();
@@ -99,8 +95,6 @@ void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
 
 void BackwardSubsumptionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("BackwardSubsumptionIndex::handleClause");
-
   TIME_TRACE("backward subsumption index maintenance");
 
   unsigned clen=c->length();
@@ -112,8 +106,6 @@ void BackwardSubsumptionIndex::handleClause(Clause* c, bool adding)
 
 void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("FwSubsSimplifyingLiteralIndex::handleClause");
-
   if (c->length() < 2) {
     return;
   }
@@ -126,8 +118,6 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 
 void FSDLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("FSDLiteralIndex::handleClause");
-
   if (c->length() < 2) {
     return;
   }
@@ -163,8 +153,6 @@ void FSDLiteralIndex::handleClause(Clause* c, bool adding)
 
 void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("UnitClauseLiteralIndex::handleClause");
-
   if(c->length()==1) {
     TIME_TRACE("unit clause index maintenance");
     
@@ -174,8 +162,6 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 
 void UnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("UnitClauseWithALLiteralIndex::handleClause");
-
   if(c->length()==1 || (c->hasAnswerLiteral() && c->length() == 2)) {
     TIME_TRACE("unit clause with answer literals index maintenance");
 
@@ -186,8 +172,6 @@ void UnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
 
 void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("NonUnitClauseLiteralIndex::handleClause");
-
   unsigned clen=c->length();
   if(clen<2) {
     return;
@@ -201,8 +185,6 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 
 void NonUnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("NonUnitClauseWithALLiteralIndex::handleClause");
-
   unsigned clen=c->length();
   if(clen<2 || (c->hasAnswerLiteral() && clen<3)) {
     return;
@@ -236,7 +218,6 @@ RewriteRuleIndex::~RewriteRuleIndex()
  */
 Literal* RewriteRuleIndex::getGreater(Clause* c)
 {
-  CALL("RewriteRuleIndex::getGreater");
   ASS_EQ(c->length(), 2);
 
   static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
@@ -264,8 +245,6 @@ Literal* RewriteRuleIndex::getGreater(Clause* c)
 
 void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("RewriteRuleIndex::handleClause");
-
   if(c->length()!=2) {
     return;
   }
@@ -328,8 +307,6 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 
 void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding)
 {
-  CALL("RewriteRuleIndex::handleEquivalence");
-
   Literal* csm = (cgr==(*c)[0]) ? (*c)[1] : (*c)[0];
   Literal* dsm = (dgr==(*d)[0]) ? (*d)[1] : (*d)[0];
 
@@ -420,8 +397,6 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
  */
 void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("DismatchingLiteralIndex::handleClause");
-
   //TODO add time counter for dismatching
 
   unsigned clen=c->length();
@@ -431,15 +406,12 @@ void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
 }
 void DismatchingLiteralIndex::addLiteral(Literal* l)
 {
-  CALL("DismatchingLiteralIndex::addLiteral");
   //TODO is it safe to pass 0 here?
   handleLiteral(l,0,true);
 }
 
 void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("UnitIntegerComparisonLiteralIndex::handleClause");
-
   TIME_TRACE("unit integer comparison literal index maintenance");
   
   if (!Inferences::InductionHelper::isIntegerComparison(c)) {

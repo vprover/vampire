@@ -56,11 +56,10 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 void Superposition::attach(SaturationAlgorithm* salg)
 {
-  CALL("Superposition::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _subtermIndex=static_cast<SuperpositionSubtermIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
@@ -70,8 +69,6 @@ void Superposition::attach(SaturationAlgorithm* salg)
 
 void Superposition::detach()
 {
-  CALL("Superposition::detach");
-
   _subtermIndex=0;
   _lhsIndex=0;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
@@ -79,83 +76,14 @@ void Superposition::detach()
   GeneratingInferenceEngine::detach();
 }
 
-
-
-struct Superposition::RewritableResultsFn
-{
-  RewritableResultsFn(SuperpositionSubtermIndex* index,bool wc,bool ea) : _index(index),
-                     _withC(wc), _extByAbs(ea) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
-  {
-    CALL("Superposition::RewritableResultsFn()");
-    if(_withC){
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
-    }
-    else if(_extByAbs){
-      TermList sort = SortHelper::getTermSort(arg.second, arg.first);
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
-    }
-    else{
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
-    }
-  }
-private:
-  SuperpositionSubtermIndex* _index;
-  bool _withC;
-  bool _extByAbs;
-};
-
-struct Superposition::RewriteableSubtermsFn
-{
-  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
-
-  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
-  {
-    CALL("Superposition::RewriteableSubtermsFn()");
-    TermIterator it = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _ord) :
-                                                      EqHelper::getSubtermIterator(lit, _ord);
-    return pvi( pushPairIntoRightIterator(lit, it) );
-  }
-
-private:
-  Ordering& _ord;
-};
-
-struct Superposition::ApplicableRewritesFn
-{
-  ApplicableRewritesFn(SuperpositionLHSIndex* index, bool wc, bool ea) : _index(index), 
-                      _withC(wc), _extByAbs(ea) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
-  {
-    CALL("Superposition::ApplicableRewritesFn()");
-    if(_withC){
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsWithConstraints(arg.second, true)) );
-    }  
-    else if(_extByAbs){
-      TermList sort = SortHelper::getTermSort(arg.second, arg.first);
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnificationsUsingSorts(arg.second, sort, true)) );
-    }
-    else{
-      return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
-    }
-  }
-private:
-  SuperpositionLHSIndex* _index;
-  bool _withC;
-  bool _extByAbs;
-};
-
-
 struct Superposition::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TypedTermList>, TermQueryResult> arg)
   {
-    CALL("Superposition::ForwardResultFn::operator()");
-
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints, qr.isTypeSub);
+	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints);
   }
 private:
   Clause* _cl;
@@ -169,15 +97,13 @@ struct Superposition::BackwardResultFn
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
-    CALL("Superposition::BackwardResultFn::operator()");
-
     if(_cl==arg.second.clause) {
       return 0;
     }
 
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints, qr.isTypeSub);
+	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints);
   }
 private:
   Clause* _cl;
@@ -188,33 +114,41 @@ private:
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
-  CALL("Superposition::generateClauses");
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool extByAbstraction = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION)
-                               && env.property->higherOrder();
 
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
   // a maximal side of an equality or of a non-equational literal
-  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering()));
+  auto itf2 = getMapAndFlattenIterator(itf1,
+      [this](Literal* lit)
+      // returns an iterator over the rewritable subterms
+      { return pushPairIntoRightIterator(lit, env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit, _salg->getOrdering())
+                                                                            : EqHelper::getSubtermIterator(lit,  _salg->getOrdering())); });
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex,withConstraints, extByAbstraction));
+  auto itf3 = getMapAndFlattenIterator(itf2,
+      [this](pair<Literal*, TypedTermList> arg)
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUnifications(arg.second, /*retrieveSubstitutions*/ true, withConstraints)); });
 
   //Perform forward superposition
   auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex,withConstraints, extByAbstraction));
+  auto itb3 = getMapAndFlattenIterator(itb2, 
+      [this] (pair<Literal*, TermList> arg)
+      { return pushPairIntoRightIterator(
+              arg, 
+              _subtermIndex->getUnifications(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), 
+                /* retrieveSubstitutions */ true, withConstraints)); });
 
   //Perform backward superposition
   auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
@@ -241,14 +175,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
  */
 bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
 {
-  CALL("Superposition::checkClauseColorCompatibility");
-
   if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     return true;
   }
   if(getOptions().showBlocked()) {
     env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
     env.endOutput();
   }
   if(getOptions().colorUnblocking()) {
@@ -273,7 +205,6 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
  */
 bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS)
 {
-  CALL("Superposition::checkSuperpositionFromVariable");
   ASS(eqLHS.isVar());
   //if we should do rewriting, LHS cannot appear inside RHS
   //ASS_REP(!EqHelper::getOtherEqualitySide(eqLit, eqLHS).containsSubterm(eqLHS), eqLit->toString());
@@ -313,8 +244,6 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
       ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
 {
-  CALL("Superposition::earlyWeightLimitCheck");
-
   unsigned nonInvolvedLiteralWLB=0;//weight lower bound for literals that aren't going to be rewritten
 
   unsigned rwLength = rwClause->length();
@@ -384,46 +313,17 @@ Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-    UnificationConstraintStackSP constraints, bool isTypeSub)
+    UnificationConstraintStackSP constraints)
 {
-  CALL("Superposition::performSuperposition");
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
 
-  /* cout << "performSuperposition with " << rwClause->toString() << " and " << eqClause->toString() << endl;
-    cout << "rwTerm " << rwTerm.toString() << " eqLHS " << eqLHS.toString() << endl;
-    cout << "subst " << endl << subst->tryGetRobSubstitution()->toString() << endl;
-    cout << "eqIsResult " << eqIsResult << endl;*/
-
-
-  // the first checks the reference and the second checks the stack
-/*
-  if(!constraints.isEmpty() && !constraints->isEmpty()){ 
-    cout << "has constraints" << endl; 
-    Stack<UnificationConstraint>::Iterator uit(*constraints);
-    while(uit.hasNext()){ auto c = uit.next(); cout << c.first.toString() << "," << c.second.toString() << endl; }
-  }
-*/
-
   // the first checks the reference and the second checks the stack
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
-  ASS(!hasConstraints || !isTypeSub);
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
-  if(eqLHS.isVar()) { 
-    //The case where eqLHS is a variable suffices because superposition 
-    //is never carried out into variables. When unifying two terms
-    //sort unification is guaranteed
-    RobSubstitution* sub = subst->tryGetRobSubstitution();
-    ASS(sub);
-    TermList rwTermSort = SortHelper::getTermSort(rwTerm, rwLit);
-    if(!sub->unify(eqLHSsort, eqIsResult, rwTermSort, !eqIsResult)){
-      //cannot perform superposition because sorts don't unify
-      return 0;
-    }
-  }
 
   if(eqLHS.isVar()) {
     if(!checkSuperpositionFromVariable(eqClause, eqLit, eqLHS)) {
@@ -467,7 +367,7 @@ Clause* Superposition::performSuperposition(
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
 #if VDEBUG
-  if(!hasConstraints && !isTypeSub){
+  if(!hasConstraints){
     ASS_EQ(rwTermS,eqLHSS);
   }
 #endif
@@ -510,7 +410,7 @@ Clause* Superposition::performSuperposition(
   if ((bothHaveAnsLit && !subst->apply(eqLit, eqIsResult)->computableOrVar()) ||
       (rwAnsLit && !subst->apply(rwAnsLit, !eqIsResult)->computableOrVar()) ||
       (eqAnsLit && !subst->apply(eqAnsLit, eqIsResult)->computableOrVar())) return 0;
-  unsigned newLength = rwLength+eqLength-1+conLength + isTypeSub - (bothHaveAnsLit ? 1 : 0);
+  unsigned newLength = rwLength+eqLength-1+conLength - (bothHaveAnsLit ? 1 : 0);
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -656,12 +556,6 @@ Clause* Superposition::performSuperposition(
       (*res)[next] = constraint;
       next++;   
     }
-  }
-
-  if(isTypeSub){
-    TermList eqLHSsortS = subst->apply(eqLHSsort, eqIsResult);
-    Literal* constraint = Literal::createEquality(false,eqLHSS,rwTermS,eqLHSsortS);
-    (*res)[next] = constraint;
   }
 
   if (bothHaveAnsLit) {

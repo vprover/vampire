@@ -11,6 +11,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Test/UnitTesting.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Lib;
 

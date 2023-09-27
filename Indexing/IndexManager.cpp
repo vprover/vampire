@@ -35,8 +35,6 @@ using namespace Indexing;
 
 Index* IndexManager::request(IndexType t)
 {
-  CALL("IndexManager::request");
-
   Entry e;
   if(_store.find(t,e)) {
     e.refCnt++;
@@ -50,8 +48,6 @@ Index* IndexManager::request(IndexType t)
 
 void IndexManager::release(IndexType t)
 {
-  CALL("IndexManager::release");
-
   Entry e=_store.get(t);
 
   e.refCnt--;
@@ -87,7 +83,6 @@ Index* IndexManager::get(IndexType t)
  */
 void IndexManager::provideIndex(IndexType t, Index* index)
 {
-  CALL("IndexManager::provideIndex");
   ASS(!_store.find(t));
 
   Entry e;
@@ -98,16 +93,15 @@ void IndexManager::provideIndex(IndexType t, Index* index)
 
 Index* IndexManager::create(IndexType t)
 {
-  CALL("IndexManager::create");
-
   Index* res;
   LiteralIndexingStructure* is;
   TermIndexingStructure* tis;
+  TermSubstitutionTree* tst;
 
   bool isGenerating;
   static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
   static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                    env.property->higherOrder();
+                    env.getMainProblem()->isHigherOrder();
                     
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
@@ -152,8 +146,8 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    tst=new TermSubstitutionTree(useConstraints, extByAbs);
+    res=new SuperpositionLHSIndex(tst, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     

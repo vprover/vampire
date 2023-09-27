@@ -53,7 +53,6 @@ using namespace Saturation;
 
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
@@ -65,7 +64,6 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardDemodulation::detach()
 {
-  CALL("ForwardDemodulation::detach");
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   ForwardSimplificationEngine::detach();
@@ -74,7 +72,6 @@ void ForwardDemodulation::detach()
 template <bool combinatorySupSupport>
 bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardDemodulation::perform");
   TIME_TRACE("forward demodulation");
 
   Ordering& ordering = _salg->getOrdering();
@@ -94,7 +91,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);
     while(it.hasNext()) {
-      TermList trm=it.next();
+      TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -104,7 +101,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
-      TermList querySort = SortHelper::getTermSort(trm, lit);
 
       bool toplevelCheck = _redundancyCheck &&
         lit->isEquality() && (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
@@ -132,6 +128,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         static RobSubstitution subst;
         bool resultTermIsVar = qr.term.isVar();
         if(resultTermIsVar){
+          TermList querySort = trm.sort();
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
           subst.reset();
           if(!subst.match(eqSort, 0, querySort, 1)){

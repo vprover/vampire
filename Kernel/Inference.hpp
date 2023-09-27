@@ -25,7 +25,6 @@
 
 #include <type_traits>
 
-using namespace std;
 using namespace Lib;
 
 namespace Kernel {
@@ -241,8 +240,6 @@ enum class InferenceRule : unsigned char {
   TERM_ALGEBRA_DISTINCTNESS,
   /** inference rule for term algebras (injectivity of constructors)*/
   TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
-  /** hyper-superposition */
-  HYPER_SUPERPOSITION_SIMPLIFYING, // not used at the moment
   /** global subsumption */
   GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
   /** distinct equality removal */
@@ -296,14 +293,10 @@ enum class InferenceRule : unsigned char {
   FOOL_PARAMODULATION,
   /** unit resulting resolution */
   UNIT_RESULTING_RESOLUTION,
-  /** hyper-superposition */
-  HYPER_SUPERPOSITION_GENERATING,
   /* Induction hyperresolution */
   INDUCTION_HYPERRESOLUTION,
   /* Generalized induction hyperresolution */
   GEN_INDUCTION_HYPERRESOLUTION,
-  /** generated as instance of its parent */
-  INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
   /** the last generating inference marker --
@@ -409,9 +402,6 @@ enum class InferenceRule : unsigned char {
   GENERAL_SPLITTING_COMPONENT,
   /** replacing colored constants by skolem functions */
   COLOR_UNBLOCKING,
-
-  /** refutation in the SAT solver for InstGen */
-  SAT_INSTGEN_REFUTATION,
 
   /** definition introduced by AVATAR */
   AVATAR_DEFINITION,
@@ -610,7 +600,6 @@ inline bool isExternalTheoryAxiomRule(InferenceRule r) {
 inline bool isSatRefutationRule(InferenceRule r) {
   return (r == InferenceRule::AVATAR_REFUTATION) ||
          (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
-         (r == InferenceRule::SAT_INSTGEN_REFUTATION) ||
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
@@ -726,8 +715,6 @@ private:
   };
 
   void initDefault(UnitInputType inputType, InferenceRule r) {
-    CALL("Inference::initDefault");
-
     _inputType = inputType;
     _rule = r;
     _included = false;

@@ -13,7 +13,6 @@
  */
 
 #if VZ3
-#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -50,9 +49,12 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#define DEBUG(...)  //DBG(__VA_ARGS__)
+
 namespace Inferences
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -103,8 +105,6 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTauto
 
 void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 {
-  CALL("Superposition::attach");
-
   SimplifyingGeneratingInference::attach(salg);
   _splitter = salg->getSplitter();
 }
@@ -113,7 +113,6 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 
 bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
 {
-  CALL("TheoryInstAndSimp::calcIsSupportedSort")
   //TODO: extend for more sorts (arrays, datatypes)
   if(   sort == IntTraits::sort() 
      || sort == RatTraits::sort() 
@@ -208,7 +207,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
   //check all (proper) subterms
   NonVariableNonTypeIterator nvi(lit);
   while( nvi.hasNext() ) {
-    Term* term = nvi.next().term();
+    Term* term = nvi.next();
 
     //we can stop if we found an uninterpreted function / constant
     if (isSupportedFunction(term)){
@@ -299,7 +298,6 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
  **/
 Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
 {
-  CALL("TheoryInstAndSimp::selectTrivialLiterals");
 #if DPRINT
   cout << "selecting trivial literals in " << cl->toString() << endl ;
 #endif
@@ -403,7 +401,6 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
  * Selects the theory literals to be used for instantiation. These are all non-trivial pure theory literals.
  */
 Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
-  CALL("TheoryInstAndSimp::selectTheoryLiterals");
 #if DPRINT
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
@@ -534,8 +531,6 @@ public:
 Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     SkolemizedLiterals skolem, unsigned freshVar)
 {
-  CALL("TheoryInstAndSimp::instantiateGeneralised(..)")
-
   auto negatedClause = [](Stack<SATLiteral> lits) -> SATClause*
   { 
     for (auto& lit : lits) {
@@ -594,8 +589,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
 
 Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals skolem)
 {
-  CALL("TheoryInstAndSimp::instantiateWithModel(..)")
-
   for (auto var : skolem.vars) {
     auto ev = _solver->evaluateInModel(skolem.subst.apply(var).term());
     if (ev) {
@@ -656,8 +649,6 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
 
 
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar) {
-  CALL("TheoryInstAndSimp::getSolutions");
-
   BYPASSING_ALLOCATOR;
 
   auto skolemized = skolemize(iterTraits(getConcatenatedIterator(
@@ -733,8 +724,6 @@ struct InstanceFn
       bool& redundant
     )
   {
-    CALL("TheoryInstAndSimp::InstanceFn::operator()");
-
     // We delete cl as it's a theory-tautology
     if(!sol.sat) {
       // now we run SMT solver again without guarding
@@ -767,8 +756,6 @@ struct InstanceFn
 
 Stack<Literal*> computeGuards(Stack<Literal*> const& lits) 
 {
-  CALL("computeGuards");
-
   /* finds the constructor for a given distructor */
   auto findConstructor = [](TermAlgebra* ta, unsigned destructor, bool predicate) -> TermAlgebraConstructor* 
   {
@@ -928,8 +915,6 @@ static const char* THEORY_INST_SIMP = "theory instantiation and simplification";
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
-  CALL("TheoryInstAndSimp::generateSimplify");
-
   auto empty = ClauseGenerationResult {
     .clauses          = ClauseIterator::getEmpty(),
     .premiseRedundant = false,
@@ -998,7 +983,6 @@ std::ostream& operator<<(std::ostream& out, Solution const& self)
 
 TheoryInstAndSimp::~TheoryInstAndSimp()
 {
-  CALL("~TheoryInstAndSimp")
   BYPASSING_ALLOCATOR
   delete _solver;
 }

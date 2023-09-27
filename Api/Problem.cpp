@@ -17,7 +17,6 @@
 #include "Helper_Internal.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Deque.hpp"
 #include "Lib/DHMap.hpp"
@@ -65,12 +64,11 @@
 
 namespace Api {
 
+using namespace std;
 using namespace Lib;
 
 Problem::PreprocessingOptions::OptDataStore::OptDataStore()
 {
-  CALL("Problem::PreprocessingOptions::ARRStore::ARRStore()");
-
   lhs = new Stack<Formula>();
   posRhs = new Stack<Formula>();
   negRhs = new Stack<Formula>();
@@ -81,8 +79,6 @@ Problem::PreprocessingOptions::OptDataStore::OptDataStore()
 
 Problem::PreprocessingOptions::OptDataStore::OptDataStore(const OptDataStore& o)
 {
-  CALL("Problem::PreprocessingOptions::ARRStore::ARRStore(const ARRStore&)");
-
   lhs = new Stack<Formula>(*o.lhs);
   posRhs = new Stack<Formula>(*o.posRhs);
   negRhs = new Stack<Formula>(*o.negRhs);
@@ -93,8 +89,6 @@ Problem::PreprocessingOptions::OptDataStore::OptDataStore(const OptDataStore& o)
 
 Problem::PreprocessingOptions::OptDataStore& Problem::PreprocessingOptions::OptDataStore::operator=(const OptDataStore& o)
 {
-  CALL("Problem::PreprocessingOptions::ARRStore::operator=");
-
   *lhs = *o.lhs;
   *posRhs = *o.posRhs;
   *negRhs = *o.negRhs;
@@ -106,8 +100,6 @@ Problem::PreprocessingOptions::OptDataStore& Problem::PreprocessingOptions::OptD
 
 Problem::PreprocessingOptions::OptDataStore::~OptDataStore()
 {
-  CALL("Problem::PreprocessingOptions::ARRStore::~ARRStore");
-
   delete lhs;
   delete posRhs;
   delete negRhs;
@@ -118,8 +110,6 @@ Problem::PreprocessingOptions::OptDataStore::~OptDataStore()
 
 void Problem::PreprocessingOptions::OptDataStore::setDefaults()
 {
-  CALL("Problem::PreprocessingOptions::OptDataStore::setDefaults");
-
   lhs->reset();
   posRhs->reset();
   negRhs->reset();
@@ -131,15 +121,11 @@ void Problem::PreprocessingOptions::OptDataStore::setDefaults()
 
 Problem::PreprocessingOptions::PreprocessingOptions()
 {
-  CALL("Problem::PreprocessingOptions::PreprocessingOptions/0");
-
   setDefaults();
 }
 
 Problem::PreprocessingOptions::PreprocessingOptions(vstring spec)
 {
-  CALL("Problem::PreprocessingOptions::PreprocessingOptions/1");
-
   setDefaults();
 
   OptionsReader optReader;
@@ -151,8 +137,6 @@ Problem::PreprocessingOptions::PreprocessingOptions(vstring spec)
 
 void Problem::PreprocessingOptions::prepareOptionsReader(OptionsReader& rdr)
 {
-  CALL("Problem::PreprocessingOptions::prepareOptionsReader");
-
   EnumReader<PreprocessingMode> enumPreprMode;
   enumPreprMode.addVal("selection_only", PM_SELECTION_ONLY);
   enumPreprMode.addVal("early_preprocessing", PM_EARLY_PREPROCESSING);
@@ -209,8 +193,6 @@ void Problem::PreprocessingOptions::prepareOptionsReader(OptionsReader& rdr)
 
 void Problem::PreprocessingOptions::setDefaults()
 {
-  CALL("Problem::PreprocessingOptions::setDefaults");
-
   mode = PM_CLAUSIFY;
   namingThreshold = 8;
   preserveEpr = false;
@@ -244,8 +226,6 @@ void Problem::PreprocessingOptions::setDefaults()
 
 void Problem::PreprocessingOptions::printOptionValues(ostream& out)
 {
-  CALL("Problem::PreprocessingOptions::printOptionValues");
-
   OptionsReader curRdr;
   prepareOptionsReader(curRdr);
 
@@ -259,7 +239,6 @@ void Problem::PreprocessingOptions::printOptionValues(ostream& out)
 void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
     Formula posRhs, Formula negRhs, Formula dblRhs)
 {
-  CALL("Problem::PreprocessingOptions::addAsymmetricRewritingRule");
   ASS_EQ(_ods.lhs->size(),_ods.posRhs->size());
   ASS_EQ(_ods.lhs->size(),_ods.negRhs->size());
   ASS_EQ(_ods.lhs->size(),_ods.dblRhs->size());
@@ -272,8 +251,6 @@ void Problem::PreprocessingOptions::addAsymmetricRewritingRule(Formula lhs,
 
 void Problem::PreprocessingOptions::importAssymmetricRulesFrom(const PreprocessingOptions& src)
 {
-  CALL("Problem::PreprocessingOptions::importAssymmetricRulesFrom");
-
   _ods.lhs = src._ods.lhs;
   _ods.posRhs = src._ods.posRhs;
   _ods.negRhs = src._ods.negRhs;
@@ -286,8 +263,6 @@ void Problem::PreprocessingOptions::importAssymmetricRulesFrom(const Preprocessi
 struct Problem::PreprocessingOptions::Atom2LitFn
 {
   Kernel::Literal* operator()(Formula f) {
-    CALL("Problem::PreprocessingOptions::Atom2LitFn::operator()");
-
     Kernel::Formula* form = f.form;
     while(form->connective()==Kernel::NOT) {
       form = form->uarg();
@@ -302,8 +277,6 @@ struct Problem::PreprocessingOptions::Atom2LitFn
 void Problem::PreprocessingOptions::restrictPredicateEquivalenceDiscovery(size_t set1Sz, Formula* set1,
     size_t set2Sz, Formula* set2)
 {
-  CALL("Problem::PreprocessingOptions::restrictPredicateEquivalenceDiscovery");
-
   _predicateEquivalenceDiscoveryRestricted = true;
   _ods.pedSet1->reset();
   _ods.pedSet1->loadFromIterator(getMappingIterator(getArrayishObjectIterator(set1, set1Sz),Atom2LitFn()));
@@ -313,8 +286,6 @@ void Problem::PreprocessingOptions::restrictPredicateEquivalenceDiscovery(size_t
 
 void Problem::PreprocessingOptions::validate() const
 {
-  CALL("Problem::PreprocessingOptions::validate");
-
   if(namingThreshold>32767 || namingThreshold<0) {
     throw new ApiException("namingThreshold must be in the range [0,32767]");
   }
@@ -352,7 +323,6 @@ public:
 
   void cloneInto(PData* obj)
   {
-    CALL("Problem::PData::cloneInto");
     ASS_EQ(obj->_forms, 0);
 
     obj->_forms = AFList::copy(_forms);
@@ -360,8 +330,6 @@ public:
 
   void addFormula(AnnotatedFormula f)
   {
-    CALL("Problem::PData::addFormula");
-
     _size++;
     AFList::push(f, _forms);
   }
@@ -372,13 +340,11 @@ public:
 
   /** Problem must be non-empty */
   ApiHelper getApiHelper() {
-    CALL("Problem::PData::getApiHelper");
     ASS_G(size(),0);
     return _forms->head()._aux;
   }
 
   DefaultHelperCore* getCore() {
-    CALL("Problem::PData::getCore");
     if(size()==0) { return 0; }
     return *getApiHelper();
   }
@@ -392,24 +358,18 @@ private:
 
 Problem::Problem()
 {
-  CALL("Problem::Problem");
-
   _data=new PData;
   _data->incRef();
 }
 
 Problem::Problem(const Problem& p)
 {
-  CALL("Problem::Problem(const Problem&)");
-
   _data=const_cast<PData*>(p._data);
   _data->incRef();
 }
 
 Problem& Problem::operator=(const Problem& p)
 {
-  CALL("Problem::operator =");
-
   PData* oldData=_data;
 
   _data=const_cast<PData*>(p._data);
@@ -422,15 +382,11 @@ Problem& Problem::operator=(const Problem& p)
 
 Problem::~Problem()
 {
-  CALL("Problem::~Problem");
-
   _data->decRef();
 }
 
 Problem Problem::clone()
 {
-  CALL("Problem::clone");
-
   Problem res;
   _data->cloneInto(res._data);
   return res;
@@ -438,22 +394,16 @@ Problem Problem::clone()
 
 void Problem::addFormula(AnnotatedFormula f)
 {
-  CALL("Problem::addFormula");
-
   _data->addFormula(f);
 }
 
 size_t Problem::size()
 {
-  CALL("Problem::size");
-
   return _data->size();
 }
 
 bool Problem::empty()
 {
-  CALL("Problem::empty");
-
   return size()==0;
 }
 
@@ -464,8 +414,6 @@ bool Problem::empty()
 
 void Problem::addFromStream(istream& s, vstring includeDirectory, bool simplifySyntax)
 {
-  CALL("Problem::addFromStream");
-
   using namespace Shell;
 
   vstring originalInclude=env.options->include();
@@ -501,8 +449,6 @@ public:
 
   Problem transform(Problem p)
   {
-    CALL("ProblemTransformer::transform(Problem)");
-
     VarManager::VarFactory* oldFactory = VarManager::varNamePreservingFactory();
 
     if(p.size()>0) {
@@ -535,8 +481,6 @@ protected:
 
   virtual void transformImpl(Problem p)
   {
-    CALL("ProblemTransformer::transformImpl(Problem)");
-
     AnnotatedFormulaIterator fit=p.formulas();
     while(fit.hasNext()) {
       AnnotatedFormula f=fit.next();
@@ -549,7 +493,6 @@ protected:
    */
   void transform(AnnotatedFormula f)
   {
-    CALL("Problem::ProblemTransformer::transform(AnnotatedFormula)");
     ASS(!_transforming);
     ASS(_defs.isEmpty());
 
@@ -576,7 +519,6 @@ protected:
 
   void addUnit(Kernel::Unit* unit)
   {
-    CALL("Problem::ProblemTransformer::addUnit");
     ASS(unit);
 
     AnnotatedFormula af = AnnotatedFormula(unit, _origAF._aux);
@@ -600,8 +542,6 @@ protected:
 
   void handleDefs(Kernel::UnitList*& defLst)
   {
-    CALL("Problem::ProblemTransformer::addUnit");
-
     while(defLst) {
       _defs.push_back(Kernel::UnitList::pop(defLst));
     }
@@ -625,8 +565,6 @@ class Problem::Preprocessor1 : public ProblemTransformer
 protected:
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::Preprocessor1::transformImpl");
-
     using namespace Shell;
 
     if(unit->isClause()) {
@@ -655,8 +593,6 @@ public:
 protected:
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::VariableEqualityPropagator::transformImpl");
-
     addUnit(_eqProp.apply(unit));
   }
   EqualityPropagator _eqProp;
@@ -669,8 +605,6 @@ public:
 protected:
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::BDDSweeper::transformImpl");
-
     Kernel::Unit* res;
     if(!_act.apply(unit, res)) {
       addUnit(unit);
@@ -694,8 +628,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::BDDSweeper::transformImpl(Problem)");
-
     Kernel::UnitList* units = 0;
 
     AnnotatedFormulaIterator fit=p.formulas();
@@ -715,8 +647,6 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::BDDSweeper::transformImpl");
-
     Unit* res;
     if(!_aii.apply(unit, res)) {
       addUnit(unit);
@@ -739,8 +669,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::AIGDefinitionIntroducer::transformImpl(Problem)");
-
     Kernel::UnitList* units = 0;
 
     AnnotatedFormulaIterator fit=p.formulas();
@@ -769,8 +697,6 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::AIGDefinitionIntroducer::transformImpl");
-
     Unit* res;
     if(!_adi.apply(unit, res)) {
       addUnit(unit);
@@ -788,8 +714,6 @@ class Problem::AIGConditionalRewriter
 public:
   Problem transform(Problem p)
   {
-    CALL("AIGConditionalRewriter::transform");
-
     Kernel::UnitList* units = 0;
 
     AnnotatedFormulaIterator fit=p.formulas();
@@ -826,8 +750,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::PredicateIndexIntroducer::transformImpl(Problem)");
-
     Kernel::UnitList* units = 0;
 
     AnnotatedFormulaIterator fit=p.formulas();
@@ -847,8 +769,6 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::PredicateIndexIntroducer::transformImpl");
-
     Unit* res;
     if(!_pii.apply(unit, res)) {
       addUnit(unit);
@@ -866,8 +786,6 @@ class Problem::TopLevelFlattener : public ProblemTransformer
 protected:
   virtual void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::EPRRestoringInliner::transformImpl");
-
     if(unit->isClause()) {
       addUnit(unit);
       return;
@@ -900,8 +818,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::PredicateDefinitionMerger::transformImpl(Problem)");
-
     Kernel::UnitList* units = 0;
 
     AnnotatedFormulaIterator fit=p.formulas();
@@ -921,8 +837,6 @@ protected:
 
   virtual void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::PredicateDefinitionMerger::transformImpl");
-
     Kernel::Unit* res = _merger.apply(unit);
     if(res) {
       addUnit(res);
@@ -943,8 +857,6 @@ public:
 
   bool addAsymetricDefinition(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs)
   {
-    CALL("Problem::PredicateDefinitionInliner::addAsymetricDefinition");
-
     Kernel::Formula* lhsF = lhs;
     bool negate = false;
     while(lhsF->connective()==Kernel::NOT) {
@@ -969,8 +881,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::PredicateDefinitionInliner::transformImpl(Problem)");
-
     static DHSet<Kernel::Unit*> defs;
     defs.reset();
 
@@ -1045,8 +955,6 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::PredicateDefinitionInliner::transformImpl");
-
     Kernel::Unit* res = _pdInliner.apply(unit);
     if(res) {
       addUnit(res);
@@ -1068,8 +976,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
-
     p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY).transform(p);
 
     Kernel::UnitList* units = 0;
@@ -1091,8 +997,6 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::EPRRestoringInliner::transformImpl");
-
     Kernel::Unit* res = _eprInliner.apply(unit);
     if(res) {
       addUnit(res);
@@ -1107,8 +1011,6 @@ class Problem::ConstantSkolemizer : public ProblemTransformer
 protected:
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::ConstantSkolemizer::transformImpl");
-
     if(unit->isClause()) {
       addUnit(unit);
       return;
@@ -1129,8 +1031,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::EPRRestoringInliner::transformImpl(Problem)");
-
     p = ConstantSkolemizer().transform(p);
     p = PredicateDefinitionInliner(INL_PREDICATE_EQUIVALENCES_ONLY).transform(p);
 
@@ -1153,8 +1053,6 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::EPRRestoringInliner::transformImpl");
-
     UnitList* res = 0;
     if(!_eprSkolem.apply(unit, res)) {
       addUnit(unit);
@@ -1181,7 +1079,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::UnusedPredicateDefinitionRemover::transformImpl(Problem)");
     ASS(replacements.isEmpty()); //this function can be called only once per instance of this class
 
     Kernel::UnitList* units = 0;
@@ -1203,8 +1100,6 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::UnusedPredicateDefinitionRemover::transformImpl");
-
     Kernel::Unit* v;
     if(!replacements.find(unit,v)) {
       addUnit(unit);
@@ -1235,8 +1130,6 @@ public:
 
   Problem transform(Problem p)
   {
-    CALL("PredicateEquivalenceDiscoverer::transform");
-
     if(p.empty()) {
       return p;
     }
@@ -1324,7 +1217,6 @@ public:
 protected:
   virtual void transformImpl(Problem p)
   {
-    CALL("Problem::SineSelector::transformImpl(Problem)");
     ASS(selected.isEmpty()); //this function can be called only once per instance of this class
 
     Kernel::UnitList* units = 0;
@@ -1351,8 +1243,6 @@ protected:
 
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::SineSelector::transformImpl");
-
     if(selected.find(unit)) {
       addUnit(unit);
     }
@@ -1372,8 +1262,6 @@ public:
 protected:
   void transformImpl(Kernel::Unit* unit)
   {
-    CALL("Problem::Clausifier::transformImpl");
-
     using namespace Shell;
 
     if(unit->isClause()) {
@@ -1425,8 +1313,6 @@ protected:
 Problem Problem::clausify(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
     bool unusedPredicateDefinitionRemoval)
 {
-  CALL("Problem::clausify");
-
   PreprocessingOptions opts;
   opts.mode = PM_CLAUSIFY;
   opts.namingThreshold = namingThreshold;
@@ -1440,8 +1326,6 @@ Problem Problem::clausify(int namingThreshold, bool preserveEpr, InliningMode pr
 Problem Problem::skolemize(int namingThreshold, bool preserveEpr, InliningMode predicateDefinitionInlining,
     bool unusedPredicateDefinitionRemoval)
 {
-  CALL("Problem::skolemize");
-
   PreprocessingOptions opts;
   opts.mode = PM_SKOLEMIZE;
   opts.namingThreshold = namingThreshold;
@@ -1454,8 +1338,6 @@ Problem Problem::skolemize(int namingThreshold, bool preserveEpr, InliningMode p
 
 Problem Problem::inlinePredicateDefinitions(InliningMode mode)
 {
-  CALL("Problem::inlinePredicateDefinitions");
-
   if(mode==INL_OFF) {
     throw ApiException("Cannot perform definition inlining in function inlinePredicateDefinitions(InliningMode) with mode INL_OFF");
   }
@@ -1470,8 +1352,6 @@ Problem Problem::inlinePredicateDefinitions(InliningMode mode)
 
 Problem Problem::removeUnusedPredicateDefinitions()
 {
-  CALL("Problem::removeUnusedPredicateDefinitions");
-
   PreprocessingOptions opts;
   opts.mode = PM_EARLY_PREPROCESSING;
   opts.predicateDefinitionInlining = INL_OFF;
@@ -1482,8 +1362,6 @@ Problem Problem::removeUnusedPredicateDefinitions()
 
 Problem Problem::preprocessInStages(size_t stageCount, const PreprocessingOptions* stageSpecs)
 {
-  CALL("Problem::preprocessInStages");
-
   Problem res = *this;
   for(size_t idx=0; idx<stageCount; idx++) {
     res = res.preprocess(stageSpecs[idx]);
@@ -1493,8 +1371,6 @@ Problem Problem::preprocessInStages(size_t stageCount, const PreprocessingOption
 
 void Problem::readStageSpecs(vstring stagesStr, size_t& stageCnt, PreprocessingOptions*& stageSpecs)
 {
-  CALL("Problem::readStageSpecs");
-
   Stack<vstring> singleSpecs;
   StringUtils::splitStr(stagesStr.c_str(), ';', singleSpecs);
 
@@ -1515,8 +1391,6 @@ void Problem::readStageSpecs(vstring stagesStr, size_t& stageCnt, PreprocessingO
 
 Problem Problem::preprocessInStages(vstring stagesStr)
 {
-  CALL("Problem::preprocessInStages");
-
   size_t stageCnt;
   PreprocessingOptions* stageSpecs;
 
@@ -1530,8 +1404,6 @@ Problem Problem::preprocessInStages(vstring stagesStr)
 
 Problem Problem::singlePreprocessingIteration(const PreprocessingOptions& options)
 {
-  CALL("Problem::singlePreprocessingIteration");
-
   Problem res = *this;
 
   if(options.sineSelection) {
@@ -1626,7 +1498,6 @@ inlining:
 
 Problem Problem::preprocess(const PreprocessingOptions& options)
 {
-  CALL("Problem::preprocess");
   options.validate();
 
   Problem res = *this;
@@ -1655,8 +1526,6 @@ Problem Problem::preprocess(const PreprocessingOptions& options)
 
 bool Problem::fixpointReached(FixpointCheck fc, Problem& oldPrb, Problem& newPrb)
 {
-  CALL("Problem::fixpointReached");
-
   switch(fc) {
   case FC_NONE:
     return false;
@@ -1669,16 +1538,12 @@ bool Problem::fixpointReached(FixpointCheck fc, Problem& oldPrb, Problem& newPrb
 
 Problem Problem::performAsymetricRewriting(Formula lhs, Formula posRhs, Formula negRhs, Formula dblRhs)
 {
-  CALL("Problem::performAsymetricRewriting");
-
   return performAsymetricRewriting(1, &lhs, &posRhs, &negRhs, &dblRhs);
 }
 
 Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formula* posRhsArray, Formula* negRhsArray,
     Formula* dblRhsArray)
 {
-  CALL("Problem::performAsymetricRewriting");
-
   Problem res = Preprocessor1().transform(*this);
   PredicateDefinitionInliner inl(INL_NO_DISCOVERED_DEFS);
   for(size_t i=0; i<cnt; i++) {
@@ -1692,8 +1557,6 @@ Problem Problem::performAsymetricRewriting(size_t cnt, Formula* lhsArray, Formul
 
 void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
 {
-  CALL("outputAttributes");
-
   if(!attribs) {
     return;
   }
@@ -1707,8 +1570,6 @@ void outputAttributes(ostream& out, FBHelperCore::AttribStack* attribs)
 void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function, bool outputAllTypeDefs,
     FBHelperCore::AttribStack* attribs, bool dummyNames)
 {
-  CALL("outputSymbolTypeDefinitions");
-
   Signature::Symbol* sym = function ?
       env.signature->getFunction(symNumber) : env.signature->getPredicate(symNumber);
 
@@ -1758,8 +1619,6 @@ void outputSymbolTypeDefinitions(ostream& out, unsigned symNumber, bool function
 
 void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
 {
-  CALL("Problem::outputTypeDefinitions");
-
   DefaultHelperCore* core0 = _data->getCore();
   bool dummyNames = core0 && core0->outputDummyNames();
   FBHelperCore* core = (core0 && core0->isFBHelper()) ? static_cast<FBHelperCore*>(core0) : 0;
@@ -1785,8 +1644,6 @@ void Problem::outputTypeDefinitions(ostream& out, bool outputAllTypeDefs)
 
 void Problem::output(ostream& out, bool outputTypeDefs, bool outputAllTypeDefs)
 {
-  CALL("Problem::output");
-
   if(outputTypeDefs) {
     outputTypeDefinitions(out, outputAllTypeDefs);
   }
@@ -1798,8 +1655,6 @@ void Problem::output(ostream& out, bool outputTypeDefs, bool outputAllTypeDefs)
 
 void Problem::outputStatistics(ostream& out)
 {
-  CALL("Problem::outputStatictics");
-
   env.statistics->print(out);
 }
 
@@ -1808,8 +1663,6 @@ void Problem::outputStatistics(ostream& out)
 
 bool AnnotatedFormulaIterator::hasNext()
 {
-  CALL("AnnotatedFormulaIterator::hasNext");
-
   AFList** plst=static_cast<AFList**>(idata);
 
   if(ready) {
@@ -1825,8 +1678,6 @@ bool AnnotatedFormulaIterator::hasNext()
 
 AnnotatedFormula AnnotatedFormulaIterator::next()
 {
-  CALL("AnnotatedFormulaIterator::next");
-
   AFList** plst=static_cast<AFList**>(idata);
   ASS(ready);
   ASS(*plst); //we're not at the end of the list
@@ -1836,8 +1687,6 @@ AnnotatedFormula AnnotatedFormulaIterator::next()
 
 void AnnotatedFormulaIterator::del()
 {
-  CALL("AnnotatedFormulaIterator::del");
-
   AFList** plst=static_cast<AFList**>(idata);
   ASS(*plst); //we're not at the end of the list
 
@@ -1849,8 +1698,6 @@ void AnnotatedFormulaIterator::del()
 
 AnnotatedFormulaIterator Problem::formulas()
 {
-  CALL("Problem::formulas");
-
   AnnotatedFormulaIterator res;
   res.idata=&_data->forms();
   res.ready=true;

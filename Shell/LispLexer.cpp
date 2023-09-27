@@ -17,12 +17,12 @@
 #include <cstring>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Exception.hpp"
 
 #include "LispLexer.hpp"
 
+using namespace std;
 using namespace Shell;
 
 /**
@@ -42,8 +42,6 @@ LispLexer::LispLexer (istream& in)
  */
 void LispLexer::skipWhiteSpacesAndComments ()
 {
-  CALL("LispLexer::skipWhiteSpacesAndComments");
-
   bool comment = false;
   while (! _eof) {
     switch (_lastCharacter) {
@@ -80,8 +78,6 @@ void LispLexer::skipWhiteSpacesAndComments ()
  */
 void LispLexer::readToken (Token& token)
 {
-  CALL("LispLexer::readToken");
-
   skipWhiteSpacesAndComments();
   _charCursor = 0;
 
@@ -139,8 +135,6 @@ void LispLexer::readToken (Token& token)
  */
 void LispLexer::readName (Token& token)
 {
-  CALL("LispLexer::readName");
-
   saveLastChar();
 
   while (readNextChar()) {
@@ -177,8 +171,6 @@ void LispLexer::readName (Token& token)
  */
 void LispLexer::readQuotedString(Token& token, char opening, char closing, char escapeChar)
 {
-  CALL("LispLexer::readQuotedString");
-
   bool escape=false;
   // Don't save this char so that the final string doesn't contain the quote symbol
   //saveLastChar();

@@ -17,7 +17,6 @@
  * @since 06/05/2015 Gothenburg in order to support FOOL, we need to search for formulas inside terms as well
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "SubformulaIterator.hpp"
 
@@ -105,8 +104,6 @@ SubformulaIterator::SubformulaIterator (FormulaList* ts)
  */
 bool SubformulaIterator::hasNext ()
 {
-  CALL("SubformulaIterator::hasNext");
-
   if (_current) {
     return true;
   }
@@ -161,15 +158,15 @@ bool SubformulaIterator::hasNext ()
           break;
         }
 
-        switch (term->functor()) {
-          case Term::SF_ITE: {
+        switch (term->specialFunctor()) {
+          case Term::SpecialFunctor::ITE: {
             _current = term->getSpecialData()->getCondition();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
             return true;
           }
-          case Term::SF_LET: {
+          case Term::SpecialFunctor::LET: {
             delete _reserve;
             TermList binding = term->getSpecialData()->getBinding();
             if (!binding.isTerm()) {
@@ -180,7 +177,7 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
-          case Term::SF_LET_TUPLE: {
+          case Term::SpecialFunctor::LET_TUPLE: {
             delete _reserve;
             TermList binding = term->getSpecialData()->getBinding();
             if (!binding.isTerm()) {
@@ -191,14 +188,14 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
-          case Term::SF_FORMULA: {
+          case Term::SpecialFunctor::FORMULA: {
             _current = term->getSpecialData()->getFormula();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
             return true;
           }
-          case Term::SF_LAMBDA: {
+          case Term::SpecialFunctor::LAMBDA: {
             delete _reserve;
             TermList lambdaExp = term->getSpecialData()->getLambdaExp();
             if (!lambdaExp.isTerm()) {
@@ -209,22 +206,18 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
-          case Term::SF_TUPLE: {
+          case Term::SpecialFunctor::TUPLE: {
             delete _reserve;
             Term* tupleTerm = term->getSpecialData()->getTupleTerm();
             // TODO: should be 1 instead of polarity?
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
           }
-          case Term::SF_MATCH: {
+          case Term::SpecialFunctor::MATCH: {
             delete _reserve;
             _reserve = rest;
             break;
           }
-#if VDEBUG
-          default:
-            ASSERTION_VIOLATION;
-#endif
         }
         break;
       }
@@ -245,8 +238,6 @@ bool SubformulaIterator::hasNext ()
  */
 Formula* SubformulaIterator::next ()
 {
-  CALL("SubformulaIterator::next/0");
-
   int dummy;
   return next(dummy);
 }
@@ -261,8 +252,6 @@ Formula* SubformulaIterator::next ()
  */
 Formula* SubformulaIterator::next (int& resultPolarity)
 {
-  CALL("SubformulaIterator::next/1");
-
   Formula* result = _current;
   resultPolarity = _currentPolarity;
 

@@ -52,6 +52,7 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -62,8 +63,6 @@ using namespace Kernel;
 
 void SplittingBranchSelector::init()
 {
-  CALL("SplittingBranchSelector::init");
-
   _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
@@ -121,8 +120,6 @@ void SplittingBranchSelector::init()
 
 void SplittingBranchSelector::updateVarCnt()
 {
-  CALL("SplittingBranchSelector::updateVarCnt");
-
   unsigned satVarCnt = _parent.maxSatVar();
   unsigned splitLvlCnt = _parent.splitLevelCnt();
 
@@ -139,8 +136,6 @@ void SplittingBranchSelector::updateVarCnt()
  */
 void SplittingBranchSelector::considerPolarityAdvice(SATLiteral lit)
 {
-  CALL("SplittingBranchSelector::considerPolarityAdvice");
-
   switch (_literalPolarityAdvice) {
     case Options::SplittingLiteralPolarityAdvice::FALSE:
       _solver->suggestPolarity(lit.var(),lit.oppositePolarity());
@@ -186,8 +181,6 @@ static Color colorFromPossiblyDeepFOConversion(SATClause* scl,Unit*& u)
 
 void SplittingBranchSelector::handleSatRefutation()
 {
-  CALL("SplittingBranchSelector::handleSatRefutation");
-
   SATClause* satRefutation = _solver->getRefutation();
   SATClauseList* satPremises = env.options->minimizeSatProofs() ?
       _solver->getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
@@ -326,8 +319,6 @@ void SplittingBranchSelector::handleSatRefutation()
 }
 
 SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCCModel(unsigned var) {
-  CALL("SplittingBranchSelector::getSolverAssimentConsideringCCModel");
-
   if (_ccModel) {
     // if we work with ccModel, the cc-model overrides the satsolver, but only for positive ground equalities
     SAT2FO& s2f = _parent.satNaming();
@@ -356,8 +347,6 @@ static const unsigned AGE_NOT_FILLED = UINT_MAX;
 
 int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
 {
-  CALL("SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge");
-
   int max = 0;
 
   unsigned maxSatVar = _parent.maxSatVar();
@@ -390,7 +379,6 @@ int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
 
 SATSolver::Status SplittingBranchSelector::processDPConflicts()
 {
-  CALL("SplittingBranchSelector::processDPConflicts");
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
 
   if(!_dp) {
@@ -519,7 +507,6 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
 void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
     SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
-  CALL("SplittingBranchSelector::updateSelection");
   ASS_NEQ(asgn, SATSolver::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
 
   SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(satVar, true));
@@ -565,8 +552,6 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
 
 void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRefutation)
 {
-  CALL("SplittingBranchSelector::addSatClauseToSolver");
-
   cl = SATClause::removeDuplicateLiterals(cl);
   if(!cl) {
     RSTAT_CTR_INC("splitter_tautology");
@@ -584,7 +569,6 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
 
 void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize)
 {
-  CALL("SplittingBranchSelector::recomputeModel");
   ASS(addedComps.isEmpty());
   ASS(removedComps.isEmpty());
 
@@ -610,7 +594,6 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
   }
   ASS_EQ(stat,SATSolver::SATISFIABLE);
 
-  unsigned _usedcnt=0; // for the statistics below
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
 
@@ -625,20 +608,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     }
 
     updateSelection(i, asgn, addedComps, removedComps);
-    
-    if (asgn != SATSolver::DONT_CARE) {
-      _usedcnt++;
-    }
   }
-  /*
-  if(maxSatVar>=1){
-    int percent = (_usedcnt *100) / maxSatVar;
-    RSTAT_MCTR_INC("minimise_model_percent",percent);
-  }
-  
-  RSTAT_CTR_INC_MANY("ssat_usual_activations", addedComps.size());
-  RSTAT_CTR_INC_MANY("ssat_usual_deactivations", removedComps.size());
-  */
 }
 
 //////////////
@@ -651,7 +621,6 @@ Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
   _clausesAdded(false), _haveBranchRefutation(false)
 {
-  CALL("Splitter::Splitter");
   if(env.options->proof()==Options::Proof::TPTP){
     unsigned spl = env.signature->addFreshFunction(0,"spl");
     splPrefix = env.signature->functionName(spl)+"_";
@@ -660,8 +629,6 @@ Splitter::Splitter()
 
 Splitter::~Splitter()
 {
-  CALL("Splitter::~Splitter");
-
   while(_db.isNonEmpty()) {
     if(_db.top()) {
       delete _db.top();
@@ -672,7 +639,6 @@ Splitter::~Splitter()
 
 const Options& Splitter::getOptions() const
 {
-  CALL("Splitter::getOptions");
   ASS(_sa);
 
   return _sa->getOptions();
@@ -680,7 +646,6 @@ const Options& Splitter::getOptions() const
 
 Ordering& Splitter::getOrdering() const
 {
-  CALL("Splitter::getOrdering");
   ASS(_sa);
 
   return _sa->getOrdering();
@@ -689,8 +654,6 @@ Ordering& Splitter::getOrdering() const
 
 void Splitter::init(SaturationAlgorithm* sa)
 {
-  CALL("Splitter::init");
-
   _sa = sa;
 
   const Options& opts = getOptions();
@@ -735,8 +698,6 @@ void Splitter::init(SaturationAlgorithm* sa)
 
 SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
 {
-  CALL("Splitter::getNameFromLiteral");
-
   SplitLevel res = getNameFromLiteralUnsafe(lit);
   ASS_L(res, _db.size());
   return res;
@@ -749,22 +710,16 @@ SplitLevel Splitter::getNameFromLiteral(SATLiteral lit) const
  */
 SplitLevel Splitter::getNameFromLiteralUnsafe(SATLiteral lit) const
 {
-  CALL("Splitter::getNameFromLiteralUnsafe");
-
   return (lit.var()-1)*2 + (lit.polarity() ? 0 : 1);
 }
 SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
 {
-  CALL("Splitter::getLiteralFromName");
-
   unsigned var = compName/2 + 1;
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
 vstring Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
-  CALL("Splitter::getFormulaStringFromName");
-
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
     lit = lit.opposite();
@@ -778,8 +733,6 @@ vstring Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 
 Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
-  CALL("Splitter::getDefinitionFromName");
-
   // always stored positively
   return _defs.get(compName & ~1);
 }
@@ -795,7 +748,6 @@ void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) con
 
 Clause* Splitter::getComponentClause(SplitLevel name) const
 {
-  CALL("Splitter::getComponentClause");
   ASS_L(name,_db.size());
   ASS_NEQ(_db[name],0);
 
@@ -803,8 +755,6 @@ Clause* Splitter::getComponentClause(SplitLevel name) const
 }
 
 Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
-  CALL("Splitter::reintroduceAvatarAssertions");
-
   // This method can only be called when synthesizing programs
   ASS(env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   Inference inf(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl));
@@ -828,8 +778,6 @@ Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
 
 void Splitter::onAllProcessed()
 {
-  CALL("Splitter::onAllProcessed");
-
   bool flushing = false;
   if(_flushPeriod) {
     if(_haveBranchRefutation) {
@@ -902,8 +850,6 @@ void Splitter::onAllProcessed()
 
 bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, Clause*& compCl)
 {
-  CALL("Splitter::shouldAddClauseForNonSplittable");
-  
   if((_congruenceClosure != Options::SplittingCongruenceClosure::OFF
 #if VZ3
       || hasSMTSolver
@@ -951,8 +897,6 @@ bool Splitter::shouldAddClauseForNonSplittable(Clause* cl, unsigned& compName, C
 
 bool Splitter::handleNonSplittable(Clause* cl)
 {
-  CALL("Splitter::handleNonSplittable");
-
   SplitLevel compName;
   Clause* compCl;
   if(!shouldAddClauseForNonSplittable(cl, compName, compCl)) {
@@ -1037,8 +981,6 @@ bool Splitter::handleNonSplittable(Clause* cl)
  */
 vstring Splitter::splitsToString(SplitSet* splits)
 {
-  CALL("Splitter::splitsToString");
-
   vostringstream res;
 
   typename SplitSet::Iterator it(*splits);
@@ -1064,7 +1006,6 @@ vstring Splitter::splitsToString(SplitSet* splits)
  */
 bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 {
-  CALL("Splitter::getComponents");
   ASS_EQ(acc.size(), 0);
 
   unsigned clen=cl->length();
@@ -1128,8 +1069,6 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
  */
 bool Splitter::doSplitting(Clause* cl)
 {
-  CALL("Splitter::doSplitting");
-
   static bool hasStopped = false;
   if (hasStopped) {
     return false;
@@ -1234,8 +1173,6 @@ bool Splitter::doSplitting(Clause* cl)
  */
 bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl)
 {
-  CALL("Splitter::tryGetExistingComponentName");
-
   ClauseIterator existingComponents;
   { 
     TIME_TRACE("splitting component index usage");
@@ -1271,7 +1208,6 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
  */
 Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, Literal* const * lits, Clause* orig)
 {
-  CALL("Splitter::buildAndInsertComponentClause");
   ASS_EQ(_db[name],0);
 
   /**
@@ -1355,7 +1291,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
 SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
 {
-  CALL("Splitter::addNonGroundComponent");
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
   ASS(forAll(getArrayishObjectIterator(lits, size), 
@@ -1379,7 +1314,6 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
 
 SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl)
 {
-  CALL("Splitter::addGroundComponent");
   ASS_REP(_db.size()%2==0, _db.size());
   ASS(lit->ground());
 
@@ -1422,7 +1356,6 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
  */
 SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Clause* orig, Clause*& compCl)
 {
-  CALL("Splitter::getComponentName/3");
   return tryGetComponentNameOrAddNew(comp.size(), comp.begin(), orig, compCl);
 }
 
@@ -1437,8 +1370,6 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Claus
  */
 SplitLevel Splitter::tryGetComponentNameOrAddNew(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl)
 {
-  CALL("Splitter::getComponentName/4");
-
   SplitLevel res;
 
   if(tryGetExistingComponentName(size, lits, res, compCl)) {
@@ -1464,7 +1395,6 @@ static const int NOT_WORTH_REINTRODUCING = 0;
  */
 void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 {
-  CALL("Splitter::assignClauseSplitSet");
   ASS(!cl->splits());
     
   cl->setSplits(splits);
@@ -1501,7 +1431,6 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
  */
 void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement)
 {
-  CALL("Splitter::onClauseReduction");
   ASS(cl);
 
   if(!premises.hasNext()) {
@@ -1572,8 +1501,6 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 
 bool Splitter::allSplitLevelsActive(SplitSet* s)
 {
-  CALL("Splitter::allSplitLevelsActive");
-
   SplitSet::Iterator sit(*s);
   while(sit.hasNext()) {
     SplitLevel lev=sit.next();
@@ -1588,8 +1515,6 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
 
 void Splitter::onNewClause(Clause* cl)
 {
-  CALL("Splitter::onNewClause");
-
   //For now just record if cl is in the variant index
   // i.e. is a component
   //TODO - if it is then
@@ -1643,8 +1568,6 @@ void Splitter::onNewClause(Clause* cl)
  */
 SplitSet* Splitter::getNewClauseSplitSet(Clause* cl)
 {
-  CALL("Splitter::getNewClauseSplitSet");
-
   SplitSet* res;
   Inference& inf= cl->inference();
   Inference::Iterator it=inf.iterator();
@@ -1670,7 +1593,6 @@ SplitSet* Splitter::getNewClauseSplitSet(Clause* cl)
 
 Splitter::SplitRecord::~SplitRecord()
 {
-  CALL("Splitter::SplitRecord::~SplitRecord");
   component->decRefCnt();
   while(reduced.isNonEmpty()) {
     Clause* cl = reduced.pop().clause;
@@ -1683,15 +1605,11 @@ Splitter::SplitRecord::~SplitRecord()
  */
 void Splitter::SplitRecord::addReduced(Clause* cl)
 {
-  CALL("Splitter::SplitRecord::addReduced");
-
   cl->incRefCnt(); //dec when popped from the '_db[slev]->reduced' stack in backtrack method
   reduced.push(ReductionRecord(cl));
 }
 
 void Splitter::addSatClauseToSolver(SATClause* cl, bool refutation) {
-  CALL("Splitter::addSatClauseToSolver");
-
   _clausesAdded = true;
   if (refutation) {
     _haveBranchRefutation = true;
@@ -1701,8 +1619,6 @@ void Splitter::addSatClauseToSolver(SATClause* cl, bool refutation) {
 
 bool Splitter::handleEmptyClause(Clause* cl)
 {
-  CALL("Splitter::handleEmptyClause");
-
   if(cl->splits()->isEmpty()) {
     return false;
   }
@@ -1751,8 +1667,6 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
 void Splitter::addComponents(const SplitLevelStack& toAdd)
 {
-  CALL("Splitter::addComponents");
-
   SplitLevelStack::ConstIterator slit(toAdd);
   while(slit.hasNext()) {
     SplitLevel sl = slit.next();
@@ -1770,18 +1684,15 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
     } else {
       // children were kept, so we just put them back
       RCClauseStack::Iterator chit(sr->children);
-      unsigned reactivated_cnt = 0;
       while (chit.hasNext()) {
         Clause* cl = chit.next();
         cl->incNumActiveSplits();
         if (cl->getNumActiveSplits() == (int)cl->splits()->size()) {
-          reactivated_cnt++;
           _sa->addNewClause(cl);
           //check that restored clause does not depend on inactive splits
           ASS(allSplitLevelsActive(cl->splits()));
         }
       }
-      // RSTAT_MCTR_INC("reactivated clauses",reactivated_cnt);
     }
   }
 }
@@ -1794,7 +1705,6 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
  */
 void Splitter::removeComponents(const SplitLevelStack& toRemove)
 {
-  CALL("Splitter::removeComponents");
   ASS(_sa->clausesFlushed());
   
   SplitSet* backtracked = SplitSet::getFromArray(toRemove.begin(), toRemove.size());
@@ -1874,8 +1784,6 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  CALL("Splitter::preprendCurrentlyAssumedComponentClauses");
-
   DHSet<Clause*> seen;
 
   UnitList*   res = nullptr;

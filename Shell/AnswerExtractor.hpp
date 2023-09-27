@@ -138,7 +138,7 @@ private:
 
   ConjectureSkolemReplacement _skolemReplacement;
 
-  List<pair<unsigned,pair<Clause*, Literal*>>>* _answerPairs = nullptr;
+  List<std::pair<unsigned,std::pair<Clause*, Literal*>>>* _answerPairs = nullptr;
 
   Literal* _lastAnsLit = nullptr;
 };

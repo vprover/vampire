@@ -31,6 +31,7 @@
 #include "Options.hpp"
 #include "DistinctGroupExpansion.hpp"
 
+using namespace std;
 using namespace Shell;
 
 /**
@@ -38,8 +39,6 @@ using namespace Shell;
  */
 void DistinctGroupExpansion::apply(Problem& prb)
 {
-  CALL("DistinctGroupExpansion::apply(Problem&)");
-
   if(apply(prb.units())){
     prb.invalidateProperty();
     prb.reportFormulasAdded();
@@ -56,22 +55,19 @@ void DistinctGroupExpansion::apply(Problem& prb)
  */
 bool DistinctGroupExpansion::apply(UnitList*& units)
 {
-  CALL("DistinctGroupExpansion::apply(UnitList*&)");
-
   bool added=false;
 
   Stack<Signature::DistinctGroupMembers>& group_members = env.signature->distinctGroupMembers();
 
-  // If this is updated then make sure you update the check in
-  // Kernel::Signature::Symol::addToDistinctGroup as well
-  bool expandEverything = env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING;
+  bool expandEverything = (_expandUpToSize == 0) ||
+     env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING;
 
   bool someLeft = false;
 
   for(unsigned i=0;i<group_members.size();i++){
     Signature::DistinctGroupMembers members = group_members[i];
     if(members->size() > 0) {
-      if( members->size()>1 && (members->size() <= EXPAND_UP_TO_SIZE || expandEverything)) {
+      if( members->size()>1 && (expandEverything || members->size() <= _expandUpToSize)) {
         added=true;
         Formula* expansion = expand(*members);
         if(env.options->showPreprocessing()){
@@ -82,7 +78,9 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
           new FormulaUnit(expansion,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::DISTINCTNESS_AXIOM)),
           units);
       }
-      else someLeft=true;
+      else {
+        someLeft=true;
+      }
     }
   } 
 
@@ -99,8 +97,6 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
  */
 Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
 {
-  CALL("DistinctGroupExpansion::expand");
-
   ASS(constants.size()>=2);
   // If there are 2 just create a disequality
   if(constants.size()==2){

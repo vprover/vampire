@@ -38,15 +38,14 @@
 
 #include "AnswerExtractor.hpp"
 
-typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
-
 namespace Shell
 {
 
+using namespace std;
+typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
+
 void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 {
-  CALL("AnswerExtractor::tryOutputAnswer");
-
   Stack<TermList> answer;
 
   bool hasALManager = false, hasSyntManager = false;
@@ -105,8 +104,6 @@ void AnswerExtractor::tryOutputInputUnits() {
 
 void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
 {
-  CALL("AnswerExtractor::getNeededUnits");
-
   InferenceStore& is = *InferenceStore::instance();
 
   Stack<Unit*> toDo;
@@ -144,7 +141,6 @@ public:
   {}
   ~SubstBuilder()
   {
-    CALL("ConjunctionGoalAnswerExractor::SubstBuilder::~SubstBuilder");
     for(unsigned i=0; i<_goalCnt; i++) {
       _btData[i].drop();
     }
@@ -152,8 +148,6 @@ public:
 
   bool run()
   {
-    CALL("ConjunctionGoalAnswerExractor::SubstBuilder::run");
-
     _depth = 0;
     enterGoal();
     for(;;) {
@@ -182,23 +176,17 @@ public:
 
   void enterGoal()
   {
-    CALL("ConjunctionGoalAnswerExractor::SubstBuilder::enterGoal");
-
     _unifIts[_depth] = _lemmas.getUnifications(_goalLits[_depth], false, false);
     _triedEqUnif[_depth] = false;
     _subst.bdRecord(_btData[_depth]);
   }
   void leaveGoal()
   {
-    CALL("ConjunctionGoalAnswerExractor::SubstBuilder::leaveGoal");
-
     _subst.bdDone();
     _btData[_depth].backtrack();
   }
   bool nextGoalUnif()
   {
-    CALL("ConjunctionGoalAnswerExractor::SubstBuilder::nextGoalUnif");
-
     Literal* goalLit = _goalLits[_depth];
 
     while(_unifIts[_depth].hasNext()) {
@@ -232,8 +220,6 @@ private:
 
 bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
 {
-  CALL("ConjunctionGoalAnswerExractor::tryGetAnswer");
-
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
   DHSet<Unit*> all;
@@ -319,8 +305,6 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
 AnswerLiteralManager* AnswerLiteralManager::getInstance()
 {
-  CALL("AnswerLiteralManager::getInstance");
-
   static AnswerLiteralManager instance;
 
   return &instance;
@@ -328,8 +312,6 @@ AnswerLiteralManager* AnswerLiteralManager::getInstance()
 
 bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
 {
-  CALL("AnswerLiteralManager::tryGetAnswer");
-
   RCClauseStack::Iterator cit(_answers);
   while(cit.hasNext()) {
     Clause* ansCl = cit.next();
@@ -348,8 +330,6 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& ans
 
 Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
 {
-  CALL("AnswerLiteralManager::getAnswerLiteral");
-
   static Stack<TermList> litArgs;
   litArgs.reset();
   VList::Iterator vit(vars);
@@ -373,8 +353,6 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
 
 Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
-  CALL("AnswerLiteralManager::tryAddingAnswerLiteral");
-
   Formula* quant = tryGetQuantifiedFormulaForAnswerLiteral(unit);
   if (quant == nullptr) return unit;
 
@@ -398,8 +376,6 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 }
 
 Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
-  CALL("AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral");
-
   if (unit->isClause() || unit->inputType()!=UnitInputType::CONJECTURE) {
     return nullptr;
   }
@@ -419,8 +395,6 @@ Formula* AnswerLiteralManager::quantifyJunction(Formula* junction, VList* exists
 
 void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
 {
-  CALL("AnswerLiteralManager::addAnswerLiterals");
-
   if(addAnswerLiterals(prb.units())) {
     prb.invalidateProperty();
   }
@@ -432,8 +406,6 @@ void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
  */
 bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
 {
-  CALL("AnswerLiteralManager::addAnswerLiterals");
-
   bool someAdded = false;
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
@@ -449,8 +421,6 @@ bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
 
 void AnswerLiteralManager::onNewClause(Clause* cl)
 {
-  CALL("AnswerLiteralManager::onNewClause");
-
   if(!cl->noSplits()) {
     return;
   }
@@ -470,8 +440,6 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
 
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
 {
-  CALL("AnswerLiteralManager::getResolverClause");
-
   Clause* res;
   if(_resolverClauses.find(pred, res)) {
     return res;
@@ -496,8 +464,6 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
 
 Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 {
-  CALL("AnswerLiteralManager::getRefutation");
-
   unsigned clen = answer->length();
   UnitList* premises = 0;
   UnitList::push(answer, premises);
@@ -514,8 +480,6 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 
 SynthesisManager* SynthesisManager::getInstance()
 {
-  CALL("SynthesisManager::getInstance");
-
   static SynthesisManager instance;
 
   return &instance;
@@ -523,8 +487,6 @@ SynthesisManager* SynthesisManager::getInstance()
 
 bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
 {
-  CALL("SynthesisManager::tryGetAnswer");
-
   if (!_lastAnsLit && AnsList::isEmpty(_answerPairs)) return false;
   if (_lastAnsLit) {
     AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
@@ -567,8 +529,6 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
 
 void SynthesisManager::onNewClause(Clause* cl)
 {
-  CALL("SynthesisManager::onNewClause");
-
   if(!cl->noSplits() || cl->isEmpty() || (cl->length() != 1) || !(*cl)[0]->isAnswerLiteral()) {
     return;
   }
@@ -580,8 +540,6 @@ void SynthesisManager::onNewClause(Clause* cl)
 }
 
 Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
-  CALL("SynthesisManager::recordAnswerAndReduce");
-
   if (!cl->noSplits() || !cl->hasAnswerLiteral() || !cl->computable()) {
     return nullptr;
   }
@@ -632,8 +590,6 @@ void SynthesisManager::bindSkolemToVar(Term* skolem, unsigned var) {
 }
 
 Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) {
-  CALL("SynthesisManager::makeITEAnswerLiteral");
-
   ASS(Literal::headersMatch(thenLit, elseLit, /*complementary=*/false));
 
   Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
@@ -651,8 +607,6 @@ Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* the
 }
 
 Formula* SynthesisManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
-  CALL("SynthesisManager::tryGetQuantifiedFormulaForAnswerLiteral");
-
   if(unit->isClause() || (unit->inputType()!=UnitInputType::CONJECTURE && unit->inputType()!=UnitInputType::NEGATED_CONJECTURE)) {
     return nullptr;
   }
@@ -677,8 +631,6 @@ Formula* SynthesisManager::quantifyJunction(Formula* junction, VList* existsVars
 }
 
 Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
-  CALL("SynthesisManager::getConditionFromClause");
-
   FormulaList* fl = FormulaList::empty();
   for (unsigned i = 0; i < cl->length(); ++i) {
     Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transform((*cl)[i]));
@@ -693,7 +645,6 @@ void SynthesisManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, uns
 }
 
 TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
-  CALL("SynthesisManager::ConjectureSkolemReplacement::transformTermList");
   // First replace free variables by 0-like constants
   if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
     TermList zero(theory->representConstant(IntegerConstantType(0)));

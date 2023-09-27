@@ -45,6 +45,7 @@
 namespace Inferences
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -52,7 +53,6 @@ using namespace Saturation;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
-  CALL("BinaryResolution::attach");
   ASS(!_index);
 
   GeneratingInferenceEngine::attach(salg);
@@ -64,7 +64,6 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
 
 void BinaryResolution::detach()
 {
-  CALL("BinaryResolution::detach");
   ASS(_salg);
 
   _index=0;
@@ -99,8 +98,6 @@ struct BinaryResolution::ResultFn
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
   Clause* operator()(pair<Literal*, SLQueryResult> arg)
   {
-    CALL("BinaryResolution::ResultFn::operator()");
-
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
@@ -121,7 +118,6 @@ private:
  */
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
-  CALL("BinaryResolution::generateClause");
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
   if(!ColorHelper::compatible(queryCl->color(),qr.clause->color()) ) {
@@ -337,8 +333,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
-  CALL("BinaryResolution::generateClauses");
-
   //cout << "BinaryResolution for " << premise->toString() << endl;
 
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();

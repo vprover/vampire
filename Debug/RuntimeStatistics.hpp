@@ -55,8 +55,6 @@ Usage:
 
 int main(int argc, char* argv [])
 {
-  CALL ("main");
-
   for(int i=0;i<100;i++) {
     if((i*i)%7==1) {
       RSTAT_CTR_INC("numbers with (i*i)%7==1");
@@ -89,7 +87,6 @@ square's last digit:
 
 namespace Debug {
 
-using namespace std;
 using namespace Lib;
 
 class RSObject
@@ -98,9 +95,8 @@ public:
   virtual ~RSObject() {};
 
   CLASS_NAME(RSObject);
-  USE_ALLOCATOR_UNK;
 
-  virtual void print(ostream& out) = 0;
+  virtual void print(std::ostream& out) = 0;
 
   const char* name() { return _name; }
   bool hasName(const char* str) { return !strcmp(str, name()); }
@@ -116,7 +112,7 @@ class RSCounter
 public:
   RSCounter(const char* name) : RSObject(name), _counter(0) {}
 
-  void print(ostream& out) { out << name() << ": " << _counter << endl; }
+  void print(std::ostream& out) { out << name() << ": " << _counter << std::endl; }
   void inc() { _counter++; }
   void inc(size_t num) { _counter+=num; }
 private:
@@ -129,7 +125,7 @@ class RSMultiCounter
 public:
   RSMultiCounter(const char* name) : RSObject(name) {}
 
-  void print(ostream& out);
+  void print(std::ostream& out);
   void inc(size_t index) { _counters[index]++; }
 private:
   ZIArray<size_t> _counters;
@@ -143,7 +139,7 @@ public:
   RSMultiStatistic(const char* name) : RSObject(name) {}
   ~RSMultiStatistic();
 
-  void print(ostream& out);
+  void print(std::ostream& out);
   void addRecord(size_t index, int value) { ValList::push(value, _values[index]); }
 private:
   ZIArray<ValList* > _values;
@@ -175,7 +171,7 @@ public:
     return res;
   }
 
-  void print(ostream& out);
+  void print(std::ostream& out);
 private:
   RuntimeStatistics();
   ~RuntimeStatistics();
