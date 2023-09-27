@@ -16,6 +16,7 @@ namespace Saturation {
 MainLoopResult GivenPairAlgorithm::runImpl() {
   while(true) {
     unsigned left_index, right_index;
+    std::cout << "Pick a clause pair:";
     std::cin >> left_index >> right_index;
 
     Clause *left = by_number.get(left_index);
@@ -32,6 +33,7 @@ MainLoopResult GivenPairAlgorithm::runImpl() {
 
 void GivenPairAlgorithm::addNewClause(Clause *cl) {
 start:
+  env.statistics->generatedClauses++;
   if(env.options->showNew())
     std::cout << "[SA] new: " << cl->toString() << std::endl;
 
@@ -76,6 +78,10 @@ start:
     }
   }
 
+  if(env.options->showPassive())
+    std::cout << "[SA] passive: " << cl->toString() << std::endl;
+
+  env.statistics->activations++;
   // "backward" simplification into the active set
   BwSimplList::Iterator bsit(_bwSimplifiers);
   while (bsit.hasNext()) {
@@ -88,6 +94,7 @@ start:
       Clause *replacement = record.replacement;
 
       _active->remove(redundant);
+      env.statistics->activeClauses--;
       if(!replacement) {
         if(env.options->showReductions())
           std::cout << "[SA] deleted: " << redundant->toString() << std::endl;
@@ -100,12 +107,12 @@ start:
     }
   }
 
-  if(env.options->showActive())
-    std::cout << "[SA] active: " << cl->toString() << std::endl;
   _selector->select(cl);
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
   by_number.insert(cl->number(), cl);
+  if(env.options->showActive())
+    std::cout << "[SA] active: " << cl->toString() << std::endl;
 }
 }
