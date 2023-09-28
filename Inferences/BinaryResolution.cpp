@@ -180,9 +180,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   Literal* cAnsLit = queryCl->getAnswerLiteral();
   Literal* dAnsLit = qr.clause->getAnswerLiteral();
   bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
-  if ((bothHaveAnsLit && !qr.substitution->applyToResult(qr.literal)->computableOrVar()) ||
-      (cAnsLit && !qr.substitution->applyToQuery(cAnsLit)->computableOrVar()) ||
-      (dAnsLit && !qr.substitution->applyToResult(dAnsLit)->computableOrVar())) return 0;
 
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength-(bothHaveAnsLit ? 1 : 0);

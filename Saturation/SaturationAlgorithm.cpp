@@ -64,6 +64,7 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/InvalidAnswerLiteralRemoval.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -1830,6 +1831,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
   res->addFront(new DuplicateLiteralRemovalISE());
 
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)
+     res->addFront(new InvalidAnswerLiteralRemoval());
   return res;
 }
 

@@ -13,13 +13,19 @@
  */
 
 #include "InvalidAnswerLiteralRemoval.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Inferences
 {
 
 Clause* InvalidAnswerLiteralRemoval::simplify(Clause* cl)
 {
-  // TODO: if cl contains uncomputable answer literal, return nullptr
+  unsigned cLen = cl->length();
+  for (unsigned li = 0; li < cLen; li++) {
+    Literal* lit = (*cl)[li];
+    if (lit->isAnswerLiteral() && !lit->computableOrVar())
+      return nullptr;
+  }
   return cl;
 }
 
