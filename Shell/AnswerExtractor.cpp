@@ -710,7 +710,12 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
         unsigned pred = env.signature->getPredForSynthesisFn(tcond->functor());
         Stack<TermList> args;
         for (unsigned i = 0; i < tcond->arity(); ++i) args.push(transform(*(tcond->nthArgument(i))));
-        Literal* newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, /*commutative=*/false, args.begin());
+        Literal* newCond;
+        if (env.signature->isEqualityPredicate(pred)) {
+          newCond = Literal::createEquality(/*polarity=*/true, args[0], args[1], sort);
+        } else {
+          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, /*commutative=*/false, args.begin());
+        }
         // Build the whole ITE term
         return TermList(Term::createITE(new AtomicFormula(newCond), transform(*(t->nthArgument(1))), transform(*(t->nthArgument(2))), sort));
       }
