@@ -900,25 +900,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env.checkTimeSometime<64>();
 
-  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-
-  if (synthesis) {
-    ASS((_answerLiteralManager != nullptr));
-    Clause* ansLitCl = cl;
-    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
-      ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
-    }
-    Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
-    if (reduced) {
-      ansLitCl = reduced;
-    }
-    if (ansLitCl != cl) {
-      addNewClause(ansLitCl);
-      onClauseReduction(cl, &ansLitCl, 1, 0);
-      return;
-    }
-  }
-
   cl=doImmediateSimplification(cl);
   if (!cl) {
     return;
@@ -1044,6 +1025,25 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
         return false;
       }
+    }
+  }
+
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+
+  if (synthesis) {
+    ASS((_answerLiteralManager != nullptr));
+    Clause* ansLitCl = cl;
+    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+      ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
+    }
+    Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
+    if (reduced) {
+      ansLitCl = reduced;
+    }
+    if (ansLitCl != cl) {
+      addNewClause(ansLitCl);
+      onClauseReduction(cl, &ansLitCl, 1, 0);
+      return false;
     }
   }
 
