@@ -16,8 +16,22 @@ namespace Saturation {
 MainLoopResult GivenPairAlgorithm::runImpl() {
   while(true) {
     unsigned left_index, right_index;
-    std::cout << "Pick a clause pair:";
-    std::cin >> left_index >> right_index;
+    std::cout << "Pick a clause pair: ";
+    std::string ignored;
+    if(!(std::cin >> left_index >> right_index)) {
+      std::cin.clear();
+      std::cout << "Bad clause pair: expected space-separated clause numbers." << std::endl;
+      continue;
+    }
+    if(!by_number.find(left_index)) {
+      std::cout << "No clause with number " << left_index << std::endl;
+      continue;
+    }
+    if(!by_number.find(right_index)) {
+      std::cout << "No clause with number " << right_index << std::endl;
+      continue;
+    }
+    std::getline(std::cin, ignored);
 
     Clause *left = by_number.get(left_index);
     Clause *right = by_number.get(right_index);
