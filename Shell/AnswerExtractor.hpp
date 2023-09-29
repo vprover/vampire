@@ -20,6 +20,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermTransformer.hpp"
@@ -101,7 +102,21 @@ public:
 
   virtual Clause* recordAnswerAndReduce(Clause* cl) override;
 
-  void bindSkolemToVar(Term* skolem, unsigned var);
+  void processSkolems(FormulaUnit* fu, List<std::pair<unsigned, Term*>>* bindings);
+
+  // TODO(hzzv): this and the following method should be called immediatelly after each other.
+  // This logic is fragile and should be changed - however, at this point it is not clear to me
+  // how to improve it so that it still works with NewCNF.
+  void storeSkolemizedFormulaAndBindings(Formula* f, List<std::pair<unsigned, Term*>>* bindings) {
+    _skolemizedFormula = f;
+    _bindings = List<std::pair<unsigned, Term*>>::empty();
+    List<std::pair<unsigned, Term*>>::Iterator it(bindings);
+    while (it.hasNext()) List<std::pair<unsigned, Term*>>::push(it.next(), _bindings);
+  }
+
+  void processSkolems(FormulaUnit* fu) {
+    if (fu->formula() == _skolemizedFormula) processSkolems(fu, _bindings);
+  }
 
   static unsigned getITEFunctionSymbol(TermList sort) {
     vstring name = "$ite_" + sort.toString();
@@ -136,11 +151,16 @@ private:
 
   Formula* getConditionFromClause(Clause* cl);
 
+  bool isDerivedFromAnswerLiteralInference(Unit* u);
+
   ConjectureSkolemReplacement _skolemReplacement;
 
   List<std::pair<unsigned,std::pair<Clause*, Literal*>>>* _answerPairs = nullptr;
 
   Literal* _lastAnsLit = nullptr;
+
+  Formula* _skolemizedFormula = nullptr;
+  List<std::pair<unsigned, Term*>>* _bindings = nullptr;
 };
 
 }
