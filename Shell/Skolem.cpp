@@ -95,44 +95,17 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   if (synthesis) {
-    DHSet<unsigned> answerAllowedVars;
-    if (f->connective()==EXISTS && (f->qarg()->connective()==OR || (f->qarg()->connective()==FORALL && f->qarg()->qarg()->connective()==OR)) &&
-        (unit->inputType()==UnitInputType::CONJECTURE || unit->inputType()==UnitInputType::NEGATED_CONJECTURE)) {
-      FormulaList::Iterator jit(static_cast<const JunctionFormula*>(f->qarg()->connective()==OR ? f->qarg() : f->qarg()->qarg())->getArgs());
-      bool hasAnsLit = false;
-      while (jit.hasNext() && !hasAnsLit) {
-        Formula* subf = jit.next();
-        Literal* lit = nullptr;
-        if (subf->connective()==LITERAL) lit = subf->literal();
-        else if (subf->connective()==NOT && subf->uarg()->connective()==LITERAL) lit = subf->uarg()->literal();
-        if (lit && lit->isAnswerLiteral()) hasAnsLit = true;
-      }
-      if (hasAnsLit) {
-        VList* vars = f->vars();
-        VList::Iterator it(vars);
-        while (it.hasNext()) answerAllowedVars.insert(it.next());
-      }
-    }
-
     DHMap<unsigned,TermList>::Iterator vit(_varSorts);
-    SynthesisManager* sm = SynthesisManager::getInstance();
-    bool added = false;
+    List<pair<unsigned, Term*>>* bindings = List<pair<unsigned, Term*>>::empty();
     while (vit.hasNext()) {
       unsigned v = vit.nextKey();
       TermList tl = _subst.apply(v);
       if (tl.isTerm()) {
         ASS(env.signature->getFunction(tl.term()->functor())->skolem());
-        if (!answerAllowedVars.contains(v)) {
-          env.signature->getFunction(tl.term()->functor())->markUncomputable();
-        } else {
-          sm->bindSkolemToVar(tl.term(), v);
-          if (!added) {
-            sm->addInputUnit(unit);
-            added = true;
-          }
-        }
+        List<pair<unsigned, Term*>>::push(make_pair(v, tl.term()), bindings);
       }
     }
+    SynthesisManager::getInstance()->processSkolems(unit, bindings);
   }
 
   UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions); // making sure unit is the last inserted, i.e. first in the list

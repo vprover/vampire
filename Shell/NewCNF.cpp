@@ -23,6 +23,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Flattening.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Options.hpp"
@@ -95,6 +96,9 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
       process(g, occurrences);
     }
   }
+
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)
+    SynthesisManager::getInstance()->processSkolems(unit);
 
 #if LOGGING
   cout << endl << "----------------- OUTPUT -----------------" << endl;
@@ -1077,6 +1081,8 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
   while (it.hasNext()) {
     _bindingStore.pushAndRemember(it.next(),bindings);
   }
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)
+    SynthesisManager::getInstance()->storeSkolemizedFormulaAndBindings(g, processedBindings);
 
   BindingList::Iterator fit(processedFoolBindings);
   while (fit.hasNext()) {

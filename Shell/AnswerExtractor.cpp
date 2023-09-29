@@ -584,9 +584,42 @@ Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
   return newCl;
 }
 
-void SynthesisManager::bindSkolemToVar(Term* skolem, unsigned var) {
-  ASS(env.signature->getFunction(skolem->functor())->skolem());
-  _skolemReplacement.bindSkolemToVar(skolem, var);
+void SynthesisManager::processSkolems(FormulaUnit* fu, List<pair<unsigned, Term*>>* bindings) {
+  Formula* f = fu->formula();
+  DHSet<unsigned> answerAllowedVars;
+  // TODO: maybe devise a better method to check if f is the synthesis specification?
+  if (f->connective()==EXISTS && (f->qarg()->connective()==OR || (f->qarg()->connective()==FORALL && f->qarg()->qarg()->connective()==OR)) &&
+      (fu->inputType()==UnitInputType::CONJECTURE || fu->inputType()==UnitInputType::NEGATED_CONJECTURE)) {
+    FormulaList::Iterator jit(static_cast<const JunctionFormula*>(f->qarg()->connective()==OR ? f->qarg() : f->qarg()->qarg())->getArgs());
+    bool hasAnsLit = false;
+    while (jit.hasNext() && !hasAnsLit) {
+      Formula* subf = jit.next();
+      Literal* lit = nullptr;
+      if (subf->connective()==LITERAL) lit = subf->literal();
+      else if (subf->connective()==NOT && subf->uarg()->connective()==LITERAL) lit = subf->uarg()->literal();
+      if (lit && lit->isAnswerLiteral()) hasAnsLit = true;
+    }
+    if (hasAnsLit) {
+      VList* vars = f->vars();
+      VList::Iterator it(vars);
+      while (it.hasNext()) answerAllowedVars.insert(it.next());
+    }
+  }
+  List<pair<unsigned, Term*>>::Iterator it(bindings);
+  bool boundVar = false;
+  while (it.hasNext()) {
+    auto p = it.next();
+    if (answerAllowedVars.contains(p.first)) {
+      ASS(env.signature->getFunction(p.second->functor())->skolem());
+      _skolemReplacement.bindSkolemToVar(p.second, p.first);
+      if (!boundVar) {
+        addInputUnit(fu);
+        boundVar = true;
+      }
+    } else {
+      env.signature->getFunction(p.second->functor())->markUncomputable();
+    }
+  }
 }
 
 Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) {
