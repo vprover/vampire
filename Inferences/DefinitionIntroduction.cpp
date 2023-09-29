@@ -114,8 +114,6 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
 }
 
 void DefinitionIntroduction::process(Term *t) {
-  CALL("DefinitionIntroduction::process(Term *)");
-
   // CCSA: we only care about Skolems
   if(!env.signature->getFunction(t->functor())->skolem())
     return;

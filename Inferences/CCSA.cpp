@@ -43,7 +43,6 @@ namespace CCSA {
 static DHSet<std::pair<unsigned, unsigned>> commutes;
 
 void registerCommutes(unsigned relation, unsigned functor) {
-  CALL("CCSA::registerCommutes");
   commutes.insert(std::make_pair(relation, functor));
 }
 
@@ -91,8 +90,6 @@ static Clause *replaceLiteral(Clause *premise, Literal *remove, Stack<Literal *>
 }
 
 static ClauseIterator perform(Clause *premise, Literal *literal) {
-  CALL("SubtermISE::perform")
-
   TermList relation = (*literal)[0];
   TermList subterm = (*literal)[1];
   TermList subterm_sort = SortHelper::getArgSort(literal, 1);
@@ -161,8 +158,6 @@ static ClauseIterator perform(Clause *premise, Literal *literal) {
 }
 
 ClauseIterator SubtermISE::simplifyMany(Clause* premise) {
-  CALL("SubtermISE::simplifyMany")
-
   for(unsigned i = 0; i < premise->length(); i++)
     if(isInterestingSubterm((*premise)[i]))
       return perform(premise, (*premise)[i]);
@@ -178,7 +173,6 @@ Literal *createSubterm(
   TermList superterm,
   TermList superterm_sort
 ) {
-  CALL("CCSA::createSubterm")
   unsigned predicate = env.signature->getInterpretingSymbol(
     Theory::SUBTERM,
     OperatorType::getPredicateType({AtomicSort::defaultSort(), subterm_sort, superterm_sort})
@@ -186,34 +180,30 @@ Literal *createSubterm(
   return Literal::create(predicate, polarity, {relation, subterm, superterm});
 }
 
-static TermSubstitutionTree term_index;
+static TermSubstitutionTree *term_index = new TermSubstitutionTree();
 static DHMap<TermList, TermList> term_map;
 
-void registerTermRewrite(TermList left, TermList right) {
-  CALL("CCSA::registerTermRewrite")
-  term_index.insert(left, nullptr, nullptr);
+void registerTermRewrite(TermList left, TermList right, TermList sort) {
+  term_index->insert(TypedTermList(left, sort), nullptr, nullptr);
   term_map.insert(left, right);
 }
 
-static LiteralSubstitutionTree literal_index;
+static LiteralSubstitutionTree *literal_index = new LiteralSubstitutionTree();
 static DHMap<Literal *, Stack<Stack<Literal *>>> literal_map;
 
 void registerLiteralRewrite(Literal *left, Stack<Stack<Literal *>> right) {
-  CALL("CCSA::registerLiteralRewrite")
-  literal_index.insert(left, nullptr);
+  literal_index->insert(left, nullptr);
   literal_map.insert(left, right);
 }
 
 ClauseIterator RewriteGIE::generateClauses(Clause *cl) {
-  CALL("RewriteGIE::generateClauses")
-
   static ClauseStack results;
   results.reset();
 
   for(unsigned i = 0; i < cl->length(); i++) {
     Literal *literal = cl->literals()[i];
 
-    LiteralQueryResultIterator literal_results = literal_index.getGeneralizations(literal, false, true);
+    LiteralQueryResultIterator literal_results = literal_index->getGeneralizations(literal, false, true);
     if(literal_results.hasNext()) {
       LiteralQueryResult result = literal_results.next();
       const Stack<Stack<Literal *>> &conjunction = literal_map.get(result.literal);
@@ -233,8 +223,8 @@ ClauseIterator RewriteGIE::generateClauses(Clause *cl) {
 
     NonVariableNonTypeIterator subterms(literal);
     while(subterms.hasNext()) {
-      TermList subterm = subterms.next();
-      TermQueryResultIterator term_results = term_index.getGeneralizations(subterm, true);
+      TypedTermList subterm = subterms.next();
+      TermQueryResultIterator term_results = term_index->getGeneralizations(subterm, true);
       if(!term_results.hasNext())
         continue;
 

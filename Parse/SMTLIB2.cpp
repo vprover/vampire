@@ -352,17 +352,16 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       if(!ibRdr.tryReadAtom(relation_name))
         USER_ERROR("declare-subterm-relation expects a relation name");
 
-      if(isAlreadyKnownFunctionSymbol(relation_name))
+      if(isAlreadyKnownSymbol(relation_name))
         USER_ERROR("subterm relation already declared: " + relation_name);
 
       TermList default_sort = AtomicSort::defaultSort();
       TermStack domain;
-      unsigned relation = declareFunctionOrPredicate(relation_name, default_sort, domain).first;
-
+      unsigned relation = declareFunctionOrPredicate(relation_name, default_sort, domain, 0).first;
       vstring name;
       while(ibRdr.tryReadAtom(name)) {
-        DeclaredFunction function;
-        if(!_declaredFunctions.find(name, function))
+        DeclaredSymbol function;
+        if(!_declaredSymbols.find(name, function))
           USER_ERROR("undeclared function: " + name);
 
         unsigned functor = function.first;
@@ -2987,9 +2986,7 @@ static Stack<Stack<Literal *>> readConjunction(Formula *f)
 
 void SMTLIB2::readDeclareRewrite(LExpr *body)
 {
-  CALL("SMTLIB2::readDeclareRewrite");
-
-  ParseResult result = parseTermOrFormula(body);
+  ParseResult result = parseTermOrFormula(body, false);
   Formula* formula;
   if (!result.asFormula(formula))
     USER_ERROR("declare-rewrite body is not a formula: "+body->toString());
@@ -3011,7 +3008,7 @@ void SMTLIB2::readDeclareRewrite(LExpr *body)
     if(left_sort != right_sort)
       USER_ERROR("rewrite not well-sorted: "+literal->toString());
 
-    Inferences::CCSA::registerTermRewrite((*literal)[0], (*literal)[1]);
+    Inferences::CCSA::registerTermRewrite((*literal)[0], (*literal)[1], left_sort);
   }
   else {
     Literal *left = readLiteral(formula->left());
