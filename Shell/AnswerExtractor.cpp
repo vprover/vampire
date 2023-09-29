@@ -584,22 +584,26 @@ Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
   return newCl;
 }
 
+bool SynthesisManager::isDerivedFromAnswerLiteralInference(Unit* u) {
+  InferenceStore& is = *InferenceStore::instance();
+  Stack<Unit*> toDo;
+  toDo.push(u);
+  while (toDo.isNonEmpty()) {
+    Unit* u = toDo.pop();
+    InferenceRule infRule;
+    UnitIterator parents = is.getParents(u, infRule);
+    if (infRule == InferenceRule::ANSWER_LITERAL) return true;
+    while (parents.hasNext()) toDo.push(parents.next());
+  }
+  return false;
+}
+
 void SynthesisManager::processSkolems(FormulaUnit* fu, List<pair<unsigned, Term*>>* bindings) {
   Formula* f = fu->formula();
   DHSet<unsigned> answerAllowedVars;
-  // TODO: maybe devise a better method to check if f is the synthesis specification?
-  if (f->connective()==EXISTS && (f->qarg()->connective()==OR || (f->qarg()->connective()==FORALL && f->qarg()->qarg()->connective()==OR)) &&
+  if (f->connective()==EXISTS &&
       (fu->inputType()==UnitInputType::CONJECTURE || fu->inputType()==UnitInputType::NEGATED_CONJECTURE)) {
-    FormulaList::Iterator jit(static_cast<const JunctionFormula*>(f->qarg()->connective()==OR ? f->qarg() : f->qarg()->qarg())->getArgs());
-    bool hasAnsLit = false;
-    while (jit.hasNext() && !hasAnsLit) {
-      Formula* subf = jit.next();
-      Literal* lit = nullptr;
-      if (subf->connective()==LITERAL) lit = subf->literal();
-      else if (subf->connective()==NOT && subf->uarg()->connective()==LITERAL) lit = subf->uarg()->literal();
-      if (lit && lit->isAnswerLiteral()) hasAnsLit = true;
-    }
-    if (hasAnsLit) {
+    if (isDerivedFromAnswerLiteralInference(fu)) {
       VList* vars = f->vars();
       VList::Iterator it(vars);
       while (it.hasNext()) answerAllowedVars.insert(it.next());

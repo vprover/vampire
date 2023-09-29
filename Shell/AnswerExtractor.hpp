@@ -151,6 +151,8 @@ private:
 
   Formula* getConditionFromClause(Clause* cl);
 
+  bool isDerivedFromAnswerLiteralInference(Unit* u);
+
   ConjectureSkolemReplacement _skolemReplacement;
 
   List<std::pair<unsigned,std::pair<Clause*, Literal*>>>* _answerPairs = nullptr;
