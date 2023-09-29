@@ -49,5 +49,10 @@ public:
 
 };
 
+class NonGroundDeletionISE : public ImmediateSimplificationEngine {
+  Clause *simplify(Clause *premise) override;
+};
+
+
 }
 }

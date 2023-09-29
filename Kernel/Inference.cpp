@@ -320,6 +320,7 @@ void Inference::init1(InferenceRule r, Unit* premise)
   _proxyAxiomsDescendant = premise->isProxyAxiomsDescendant();
   _holAxiomsDescendant = premise->isHolAxiomsDescendant();
   _sineLevel = premise->getSineLevel();
+  onlyGroundInstances = premise->inference().onlyGroundInstances;
 
   updateStatistics();
 }
@@ -341,6 +342,10 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();  
   _holAxiomsDescendant = premise1->isHolAxiomsDescendant() && premise2->isHolAxiomsDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
+  if(premise1->inference().onlyGroundInstances)
+    onlyGroundInstances = premise1->inference().onlyGroundInstances;
+  else if(premise2->inference().onlyGroundInstances)
+    onlyGroundInstances = premise2->inference().onlyGroundInstances;
 
   updateStatistics();
 }
@@ -375,6 +380,8 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
       _proxyAxiomsDescendant &= inf.isProxyAxiomsDescendant();
       _holAxiomsDescendant &= inf.isHolAxiomsDescendant();
       _sineLevel = min(_sineLevel,inf.getSineLevel());
+      if(!onlyGroundInstances && inf.onlyGroundInstances)
+        onlyGroundInstances = inf.onlyGroundInstances;
       it=it->tail();
     }
   } else {

@@ -293,6 +293,25 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("assert-ground")) {
+      if (!ibRdr.hasNext()) {
+        USER_ERROR_EXPR("assert-ground expects a sort");
+      }
+      LExpr *sortExpr = ibRdr.readNext();
+      TermList sort = parseSort(sortExpr);
+
+      if (!ibRdr.hasNext()) {
+        USER_ERROR_EXPR("assert-ground expects a body");
+      }
+      LExpr *body = ibRdr.readNext();
+      readAssert(body);
+
+      ibRdr.acceptEOL();
+
+      _formulas->head()->inference().onlyGroundInstances = sort.term();
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("assert-not")) {
       if (!ibRdr.hasNext()) {
         USER_ERROR_EXPR("assert-not expects a body");

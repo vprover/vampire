@@ -1812,6 +1812,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
   res->addFront(new DuplicateLiteralRemovalISE());
 
+  res->addFront(new CCSA::NonGroundDeletionISE());
   res->addFrontMany(new CCSA::SubtermISE());
 
   return res;

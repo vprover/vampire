@@ -241,5 +241,34 @@ ClauseIterator RewriteGIE::generateClauses(Clause *cl) {
   return pvi(it);
 }
 
+Clause *NonGroundDeletionISE::simplify(Clause *cl) {
+  // input clauses are OK
+  if(!cl->age())
+    return cl;
+
+  // clauses not derived from only-ground axioms also OK
+  Term *sort = cl->inference().onlyGroundInstances;
+  if(!sort)
+    return cl;
+
+  DHMap<unsigned, TermList> vars;
+  SortHelper::collectVariableSorts(cl, vars);
+  decltype(vars)::Iterator it(vars);
+  while(it.hasNext())
+    if(it.next() == TermList(sort))
+      return nullptr;
+
+  for(unsigned i = 0; i < cl->length(); i++) {
+    NonVariableNonTypeIterator it((*cl)[i]);
+    while(it.hasNext()) {
+      Term *subterm = it.next();
+      if(env.signature->getFunction(subterm->functor())->skolem() && SortHelper::getResultSort(subterm) == TermList(sort))
+        return nullptr;
+    }
+  }
+
+  return cl;
+}
+
 } // namespace CCSA
 } // namespace Inferences
