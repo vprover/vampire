@@ -30,13 +30,13 @@ private:
   const Ordering& _ord;
   const Options& _opt;
 
-  VarOrders checkTerm(Term* t, Term* tS, Term* rwTermS, const DHSet<unsigned>& vars);
-  VarOrders checkTermReducible(Term* tS, TermList* tgtTermS, bool greater, const VarOrders& initial);
+  // VarOrders checkTerm(Term* t, Term* tS, Term* rwTermS, const DHSet<unsigned>& vars);
+  // VarOrders checkTermReducible(Term* tS, TermList* tgtTermS, bool greater, const VarOrders& initial);
   // bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 
-  bool kboGreater(TermList tl1, TermList tl2, const VarOrder& vo, const DHSet<unsigned>& vars);
+  // bool kboGreater(TermList tl1, TermList tl2, const VarOrder& vo, const DHSet<unsigned>& vars);
 
 public:
   CLASS_NAME(ReducibilityChecker);

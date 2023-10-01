@@ -66,10 +66,6 @@ public:
   void traverse(TermList tl,int coefficient);
   Result result(Term* t1, Term* t2);
 
-  VarOrders traverseGround(Term* t1, Term* t2, const VarOrders& vos);
-  bool resultGround(Term* t1, TermList tl2);
-
-  bool checkVars();
 private:
   void recordVariable(unsigned var, int coef);
   Result innerResult(TermList t1, TermList t2);
@@ -292,190 +288,6 @@ void KBO::State::traverse(Term* t1, Term* t2)
     }
   }
   ASS_EQ(depth,0);
-}
-
-bool KBO::State::resultGround(Term* t1, TermList tl2)
-{
-  // cout << _weightDiff << endl;
-  if (!checkVars()) {
-    // cout << 1 << endl;
-    // cout << "checkVars failed " << *t1 << " " << tl2 << endl;
-    TIME_TRACE("checkvars failed");
-    return false;
-  }
-  if (_weightDiff>0) {
-    // cout << 2 << endl;
-    return true;
-  }
-  else if (_weightDiff == 0 && tl2.isTerm() && t1->functor()!=tl2.term()->functor()) {
-    // cout << 3 << endl;
-    if(t1->isLiteral()) {
-      int prec1, prec2;
-      prec1=_kbo.predicatePrecedence(t1->functor());
-      prec2=_kbo.predicatePrecedence(tl2.term()->functor());
-      ASS_NEQ(prec1,prec2);//precedence ordering must be total
-      if (prec1>prec2) {
-        return true;
-      }
-    } else if(t1->isSort()) {
-      if (_kbo.compareTypeConPrecedences(t1->functor(), tl2.term()->functor()) == GREATER) {
-        return true;
-      }
-    } else {
-      if (_kbo.compareFunctionPrecedences(t1->functor(), tl2.term()->functor()) == GREATER) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-VarOrders KBO::State::traverseGround(Term* t1, Term* t2, const Stack<VarOrder>& vos)
-{
-  ASS_EQ(t1->functor(),t2->functor());
-  ASS(t1->arity());
-
-  Stack<Stack<VarOrder>> g_vos;
-  g_vos.push(Stack<VarOrder>()); // depth 0
-  g_vos.push(Stack<VarOrder>()); // depth 1
-  // cout << "equals " << vos << endl;
-  Stack<Stack<VarOrder>> equals;
-  equals.push(vos);
-  equals.push(vos);
-
-  unsigned depth=1;
-
-  static Stack<TermList*> stack(32);
-  stack.push(t1->args());
-  stack.push(t2->args());
-  TermList* ss; //t1 subterms
-  TermList* tt; //t2 subterms
-  while(!stack.isEmpty()) {
-    tt=stack.pop();
-    ss=stack.pop();
-    if(ss->isEmpty()) {
-      ASS(tt->isEmpty());
-      // end of a lexicographic comparison of arguments
-      depth--;
-      if (_weightDiff != 0) {
-        equals[depth+1].reset();
-        if (_weightDiff > 0) {
-          // TODO finish this
-          if (checkVars()) {
-            for (const auto& e : equals[depth]) {
-              g_vos[depth].push(e);
-            }
-          }
-        }
-      } else {
-        for (auto&& vo : equals[depth+1]) {
-          equals[depth].push(vo);
-        }  
-      }
-      // propagate subresults one level up
-      for (auto&& vo : g_vos[depth+1]) {
-        g_vos[depth].push(vo);
-      }
-      // invalidate subresults
-      equals[depth+1].reset();
-      g_vos[depth+1].reset();
-      continue;
-    }
-
-    // cout << "lex " << *ss << " " << *tt << " " << g_vos[depth] << endl;
-    stack.push(ss->next());
-    stack.push(tt->next());
-    if(ss->sameContent(tt)) {
-      //if content is the same, neighter weightDiff nor varDiffs would change
-      continue;
-    }
-    if (TermList::sameTopFunctor(*ss,*tt)) {
-      ASS(ss->isTerm());
-      ASS(tt->isTerm());
-      ASS(ss->term()->arity());
-      stack.push(ss->term()->args());
-      stack.push(tt->term()->args());
-      depth++;
-      if (depth==g_vos.size()) {
-        g_vos.push(Stack<VarOrder>());
-        equals.push(equals[depth-1]);
-      }
-    } else {
-      traverse(*ss,1);
-      traverse(*tt,-1);
-      if (equals.isNonEmpty()) {
-        if (checkVars()) {
-          if (_weightDiff != 0) {
-            if (_weightDiff > 0) {
-              for (const auto& e : equals[depth]) {
-                g_vos[depth].push(e);
-              }
-            }
-          } else if (ss->isTerm() && tt->isTerm()) {
-            ASS(!_weightDiff);
-            if (ss->term()->isSort()) {
-              if (_kbo.compareTypeConPrecedences(ss->term()->functor(), tt->term()->functor())==GREATER) {
-                for (const auto& e : equals[depth]) {
-                  g_vos[depth].push(e);
-                }
-              }
-            } else {
-              if (_kbo.compareFunctionPrecedences(ss->term()->functor(), tt->term()->functor())==GREATER) {
-                for (const auto& e : equals[depth]) {
-                  g_vos[depth].push(e);
-                }
-              }
-            }
-          }/*  else if (ss->isVar() && tt->isTerm()) {
-            ASS(!_weightDiff);
-            for (const auto& e : equals[depth]) {
-              g_vos[depth].push(e);
-            }
-          } */
-           else if (ss->isTerm() && tt->isVar()) {
-            ASS(!_weightDiff);
-            for (const auto& e : equals[depth]) {
-              g_vos[depth].push(e);
-            }
-          }
-        }
-
-        VarOrders newEquals;
-        // at this point they are equal iff both are variables
-        if (ss->isVar() && tt->isVar()) {
-          // ASS(!_weightDiff);
-          for (auto e : equals[depth]) {
-            if (e.add_gt(ss->var(),tt->var())) {
-              g_vos[depth].push(e);
-            }
-          }
-          for (auto e : equals[depth]) {
-            if (e.add_eq(ss->var(),tt->var())) {
-              newEquals.push(e);
-            }
-          }
-        }
-        swap(equals[depth],newEquals);
-      }
-    }
-  }
-  ASS_EQ(depth,0);
-  if (_weightDiff == 0) {
-    return g_vos[0];
-  }
-  return VarOrders();
-}
-
-bool KBO::State::checkVars()
-{
-  auto it = _varDiffs.items();
-  while (it.hasNext()) {
-    auto kv = it.next();
-    if (kv.second < 0) {
-      return false;
-    }
-  }
-  return true;
 }
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
@@ -935,63 +747,202 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-VarOrders KBO::makeGreater(TermList tl1, TermList tl2, const VarOrders& vos) const
+bool KBO::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
 {
-  if (vos.isEmpty()) {
-    return vos;
+  if (tl1 == tl2) {
+    return false;
   }
-  if(tl1==tl2) {
-    return VarOrders();
+  if (tl1.isVar()) {
+    if (tl2.isVar()) {
+      return vo.add_gt(tl1.var(),tl2.var());
+    }
+    return false;
   }
-  VarOrders new_vos;
-  if(tl1.isOrdinaryVar()) {
-    if (tl2.isOrdinaryVar()) {
-      // check if varorder can be extended with tl1.var() > tl2.var()
-      for (auto vo : vos) {
-        if (vo.add_gt(tl1.var(),tl2.var())) {
-          new_vos.push(vo);
+  if (tl2.isVar()) {
+    VariableIterator vit(tl1.term());
+    while (vit.hasNext()) {
+      auto v = vit.next().var();
+      if (v == tl2.var() || vo.add_gt(v,tl2.var())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  auto t1 = tl1.term();
+  auto t2 = tl2.term();
+
+  if (t1->weight()<t2->weight()) {
+    return false;
+  }
+  if (t1->weight()==t2->weight()) {
+    if (t1->functor()==t2->functor()) {
+      // lexicographic case
+      bool gt = false;
+      for (unsigned i = 0; i < t1->arity(); i++) {
+        auto arg1 = *t1->nthArgument(i);
+        auto arg2 = *t2->nthArgument(i);
+        if (arg1 == arg2) {
+          continue;
+        }
+        if (makeGreater(arg1,arg2,vo)) {
+          gt = true;
+          break;
+        } else {
+          return false;
+        }
+      }
+      if (!gt) {
+        return false;
+      }
+    } else {
+      if (t1->isSort()) {
+        ASS(t2->isSort());
+        if (compareTypeConPrecedences(t1->functor(),t2->functor()) != Ordering::GREATER) {
+          return false;
+        }
+      } else {
+        if (compareFunctionPrecedences(t1->functor(),t2->functor()) != Ordering::GREATER) {
+          return false;
         }
       }
     }
-    return new_vos;
   }
 
-  ASS(tl1.isTerm());
-  Term* t1=tl1.term();
+  // compare variables
+  VariableIterator vit2(t2);
+  DHMap<unsigned,unsigned> varCnts;
+  while (vit2.hasNext()) {
+    unsigned* cnt;
+    varCnts.getValuePtr(vit2.next().var(), cnt, 0);
+    (*cnt)++;
+  }
 
-  ASS(_state);
-  State* state=_state;
-#if VDEBUG
-  //this is to make sure _state isn't used while we're using it
-  _state=0;
-#endif
+  VariableIterator vit1(t2);
+  unsigned pos = varCnts.size();
+  while (vit1.hasNext()) {
+    unsigned t1v = vit1.next().var();
+    DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
+    while (vit2.hasNext()) {
+      unsigned t2v;
+      unsigned& cnt = vit2.nextRef(t2v);
+      if (t1v == t2v || vo.query(t1v,t2v) == PoComp::GT) {
+        if (!cnt) { // already 0
+          continue;
+        }
+        cnt--;
+        if (!cnt) {
+          ASS(pos);
+          pos--;
+        }
+      }
+    }
+  }
+  if (pos) {
+    // TODO try to find more variables
+    return false;
+  }
 
-  // cout << "compare " << tl1 << " " << tl2 << endl;
-  state->init();
-  if(tl2.isTerm() && t1->functor()==tl2.term()->functor()) {
-    new_vos=state->traverseGround(t1,tl2.term(),vos);
-  } else {
-    state->traverse(tl1,1);
-    state->traverse(tl2,-1);
+  return true;
+}
+
+bool KBO::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
+{
+  if (tl1 == tl2) {
+    return false;
   }
-  // cout << "compare " << tl1 << " > " << tl2 << " " << vos << " " << new_vos << endl; 
-  bool res=state->resultGround(t1,tl2);
-  if (new_vos.isNonEmpty()) {
-    // for (const auto& vo : new_vos) {
-    //   cout << "makes greater " << vo << endl;
-    // }
-    res = true;
+  if (tl1.isVar()) {
+    if (tl2.isVar()) {
+      return vo.query(tl1.var(),tl2.var()) == PoComp::GT;
+    }
+    return false;
   }
-#if VDEBUG
-  _state=state;
-#endif
-  if (!res) {
-    return VarOrders();
+  if (tl2.isVar()) {
+    VariableIterator vit(tl1.term());
+    while (vit.hasNext()) {
+      auto v = vit.next().var();
+      if (v == tl2.var() || vo.query(v,tl2.var()) == PoComp::GT) {
+        return true;
+      }
+    }
+    return false;
   }
-  if (new_vos.isNonEmpty()) {
-    return new_vos;
+
+  auto t1 = tl1.term();
+  auto t2 = tl2.term();
+
+  if (t1->weight()<t2->weight()) {
+    return false;
   }
-  return vos;
+  if (t1->weight()==t2->weight()) {
+    if (t1->functor()==t2->functor()) {
+      // lexicographic case
+      bool gt = false;
+      for (unsigned i = 0; i < t1->arity(); i++) {
+        auto arg1 = *t1->nthArgument(i);
+        auto arg2 = *t2->nthArgument(i);
+        if (arg1 == arg2) {
+          continue;
+        }
+        if (isGreater(arg1,arg2,vo)) {
+          gt = true;
+          break;
+        } else {
+          return false;
+        }
+      }
+      if (!gt) {
+        return false;
+      }
+    } else {
+      if (t1->isSort()) {
+        ASS(t2->isSort());
+        if (compareTypeConPrecedences(t1->functor(),t2->functor()) != Ordering::GREATER) {
+          return false;
+        }
+      } else {
+        if (compareFunctionPrecedences(t1->functor(),t2->functor()) != Ordering::GREATER) {
+          return false;
+        }
+      }
+    }
+  }
+
+  // compare variables
+  VariableIterator vit2(t2);
+  DHMap<unsigned,unsigned> varCnts;
+  while (vit2.hasNext()) {
+    unsigned* cnt;
+    varCnts.getValuePtr(vit2.next().var(), cnt, 0);
+    (*cnt)++;
+  }
+
+  VariableIterator vit1(t2);
+  unsigned pos = varCnts.size();
+  while (vit1.hasNext()) {
+    unsigned t1v = vit1.next().var();
+    DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
+    while (vit2.hasNext()) {
+      unsigned t2v;
+      unsigned& cnt = vit2.nextRef(t2v);
+      if (t1v == t2v || vo.query(t1v,t2v) == PoComp::GT) {
+        if (!cnt) { // already 0
+          continue;
+        }
+        cnt--;
+        if (!cnt) {
+          ASS(pos);
+          pos--;
+        }
+      }
+    }
+  }
+  if (pos) {
+    // cout << "compare " << tl1 << " " << tl2 << endl;
+    return false;
+  }
+
+  return true;
 }
 
 int KBO::symbolWeight(Term* t) const

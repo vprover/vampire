@@ -230,6 +230,7 @@ public:
   unsigned forwardSubsumed;
   /** number of backward subsumed clauses */
   unsigned backwardSubsumed;
+  unsigned forwardGroundJoinableEqs;
 
   /** statistics of term algebra rules */
   unsigned taDistinctnessSimplifications;

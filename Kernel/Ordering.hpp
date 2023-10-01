@@ -68,7 +68,8 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
-  virtual VarOrders makeGreater(TermList tl1, TermList tl2, const VarOrders& vos) const;
+  virtual bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const;
+  virtual bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const;
 
   virtual void show(std::ostream& out) const = 0;
 
