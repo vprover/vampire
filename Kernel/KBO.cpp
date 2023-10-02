@@ -760,12 +760,20 @@ bool KBO::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
     return false;
   }
   if (tl2.isVar()) {
+    int inc = -1;
     VariableIterator vit(tl1.term());
     while (vit.hasNext()) {
       auto v = vit.next().var();
-      if (v == tl2.var() || vo.add_gt(v,tl2.var())) {
+      auto c = vo.query(v,tl2.var());
+      if (c == PoComp::EQ || c == PoComp::GT) {
         return true;
+      } else if (c == PoComp::INC && inc == -1) {
+        inc = v;
       }
+    }
+    if (inc != -1) {
+      ALWAYS(vo.add_gt(inc,tl2.var()));
+      return true;
     }
     return false;
   }

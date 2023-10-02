@@ -42,6 +42,9 @@ public:
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
+  static void order_diff_helper(VarOrder& vo, const List<Edge>* edges, Stack<VarOrder>& res);
+  static Stack<VarOrder> order_diff(const VarOrder& vo, const VarOrder& other);
+
 protected:
   struct State {
     VarOrder vo;
@@ -51,10 +54,8 @@ protected:
   };
 
   bool join(TermList s, TermList t, bool checkCompleteness);
-  void normalise(TermList& t, const VarOrder& vo, bool& checkCompleteness);
+  void normalise(TermList& s, TermList& t, const VarOrder& vo, bool& cc_s, bool& cc_t);
   bool extend(TermList& t, bool& checkCompleteness, VarOrder& ext);
-  void order_diff_helper(VarOrder& vo, const List<Edge>* edges, Stack<VarOrder>& res);
-  Stack<VarOrder> order_diff(const VarOrder& vo, const VarOrder& other);
 
   bool _preorderedOnly;
   bool _redundancyCheck;

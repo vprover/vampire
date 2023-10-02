@@ -119,6 +119,9 @@ bool PartialOrdering<T>::is_total() const
 template<typename T>
 PoComp PartialOrdering<T>::get(const T& x, const T& y) const
 {
+  if (x == y) {
+    return PoComp::EQ;
+  }
   if (!_nodes.find(x) || !_nodes.find(y)) {
     return PoComp::INC;
   }

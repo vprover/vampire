@@ -147,8 +147,7 @@ bool ForwardGroundJoinability::join(TermList s, TermList t, bool checkCompletene
   while (todo.isNonEmpty()) {
     auto curr = todo.pop();
     auto& c = curr.cflags;
-    normalise(curr.s, curr.vo, c.first);
-    normalise(curr.t, curr.vo, c.second);
+    normalise(curr.s, curr.t, curr.vo, c.first, c.second);
     if (curr.s == curr.t) {
       continue;
     }
@@ -163,8 +162,7 @@ bool ForwardGroundJoinability::join(TermList s, TermList t, bool checkCompletene
     bool joined = false;
     VarOrder ext = curr.vo;
     while (extend(sp, cp.first, ext) || extend(tp, cp.second, ext)) {
-      normalise(sp, ext, cp.first);
-      normalise(tp, ext, cp.second);
+      normalise(sp, tp, ext, cp.first, cp.second);
       if (sp == tp) {
         joined = true;
         // cout << "removing " << ext.to_string() << endl
@@ -192,15 +190,9 @@ bool ForwardGroundJoinability::join(TermList s, TermList t, bool checkCompletene
   return true;
 }
 
-void ForwardGroundJoinability::normalise(TermList& t, const VarOrder& vo, bool& checkCompleteness)
+void ForwardGroundJoinability::normalise(TermList& s, TermList& t, const VarOrder& vo, bool& cc_s, bool& cc_t)
 {
-  // if (vo.is_empty()) {
-  //   return;
-  //   TIME_TRACE("joinability normalise first");
-  // }
   TIME_TRACE("joinability normalise");
-  // cout << "normalising " << t << " under " << vo.to_string() << " completeness " << checkCompleteness << endl;
-  // TermList res = t;
   const auto& ord = _salg->getOrdering();
   DHMap<Term*,TermList> cache;
   bool reduced = false;
@@ -208,11 +200,8 @@ void ForwardGroundJoinability::normalise(TermList& t, const VarOrder& vo, bool& 
   empty.makeEmpty();
 
   do {
-    if (t.isVar()) {
-      return;
-    }
     reduced = false;
-    NonVariableNonTypeIterator it(t.term()/* , !checkCompleteness */); // TODO top-level rewrites with completeness check
+    NonVariableNonTypeIterator it(s, t, false, false/* , !checkCompleteness */); // TODO top-level rewrites with completeness check
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       TermList* cptr;
@@ -222,9 +211,10 @@ void ForwardGroundJoinability::normalise(TermList& t, const VarOrder& vo, bool& 
           continue;
         }
         // no need to add reducing clause to premises since we have already added it
+        s = replace(s,trm,*cptr);
         t = replace(t,trm,*cptr);
         reduced = true;
-        checkCompleteness = false;
+        // checkCompleteness = false;
         break;
       }
 
@@ -259,9 +249,10 @@ void ForwardGroundJoinability::normalise(TermList& t, const VarOrder& vo, bool& 
         }
         ASS_REP(!vo.is_empty() || ord.compare(trm,rhsS)==Ordering::GREATER, trm.toString() + " not greater than " + rhsS.toString());
 
+        s = replace(s,trm,rhsS);
         t = replace(t,trm,rhsS);
         reduced = true;
-        checkCompleteness = false;
+        // checkCompleteness = false;
         _premises.insert(qr.clause);
         *cptr = rhsS;
         break;

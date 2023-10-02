@@ -426,7 +426,7 @@ Clause* Superposition::performSuperposition(
     //   return 0;
     // }
     if (checker->check(rwClause,eqClause,rwLitS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult)) {
-      // env.statistics->skippedSuperposition++;
+      env.statistics->skippedSuperposition++;
       return 0;
     }
   }

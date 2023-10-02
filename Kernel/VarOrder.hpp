@@ -29,6 +29,7 @@ public:
   vstring to_string() const;
   const List<Edge>* transitive_reduction() const;
   bool is_empty() const;
+  size_t size() const { return _po.size(); }
 
   class EqApplicator
   {

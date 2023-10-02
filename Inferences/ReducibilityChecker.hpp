@@ -33,6 +33,7 @@ private:
   // VarOrders checkTerm(Term* t, Term* tS, Term* rwTermS, const DHSet<unsigned>& vars);
   // VarOrders checkTermReducible(Term* tS, TermList* tgtTermS, bool greater, const VarOrders& initial);
   // bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater, vstringstream& exp);
+  bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 
