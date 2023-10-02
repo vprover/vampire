@@ -597,11 +597,11 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::FOOL_ELIMINATION:
     return "fool elimination";
   case InferenceRule::FOOL_ITE_ELIMINATION:
-    return "fool $ite elimination";
+    return "fool ite elimination";
   case InferenceRule::FOOL_LET_ELIMINATION:
-    return "fool $let elimination";
+    return "fool let elimination";
   case InferenceRule::FOOL_MATCH_ELIMINATION:
-    return "fool $match elimination";
+    return "fool match elimination";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
 //  case CHOICE_AXIOM:
