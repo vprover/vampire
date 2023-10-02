@@ -48,13 +48,13 @@ PoComp reverse(PoComp comp)
 
 template<typename T>
 PartialOrdering<T>::PartialOrdering()
-  : _nodes(), _size(0), _array(nullptr), _tr()
+  : _nodes(), _inverse(), _size(0), _array(nullptr), _tr()
 {
 }
 
 template<typename T>
 PartialOrdering<T>::PartialOrdering(const PartialOrdering<T>& other)
-  : _nodes(other._nodes), _size(_nodes.size()), _array(nullptr), _tr()
+  : _nodes(other._nodes), _inverse(other._inverse), _size(_nodes.size()), _array(nullptr), _tr()
 {
   size_t arrSize = ((_size - 1) * _size / 2);
   if (arrSize) {
@@ -76,6 +76,8 @@ PartialOrdering<T>& PartialOrdering<T>::operator=(const PartialOrdering<T>& othe
   }
   _nodes.reset();
   _nodes.loadFromMap(other._nodes);
+  _inverse.reset();
+  _inverse.loadFromMap(other._inverse);
   _size = other._size;
   size_t arrSize = ((_size - 1) * _size / 2);
   if (arrSize) {
@@ -178,6 +180,22 @@ bool PartialOrdering<T>::set(const T& x, const T& y, PoComp v)
 }
 
 template<typename T>
+const T& PartialOrdering<T>::get_rep(const T& e) const
+{
+  const size_t* ptr = _nodes.findPtr(e);
+  if (!ptr) {
+    return e;
+  }
+  size_t idx_e = *ptr;
+  for (size_t idx_o = 0; idx_o < idx_e; idx_o++) {
+    if (idx_of(idx_o,idx_e) == PoComp::EQ) {
+      return _inverse.get(idx_o);
+    }
+  }
+  return e;
+}
+
+template<typename T>
 size_t PartialOrdering<T>::idx_of_elem(const T& e) const
 {
   ASS(_nodes.find(e));
@@ -190,6 +208,7 @@ size_t PartialOrdering<T>::idx_of_elem_ext(const T& e)
   size_t *ptr;
   // cout << "size " << _size << endl;
   if (_nodes.getValuePtr(e, ptr, _size)) {
+    ALWAYS(_inverse.insert(_size, e));
     // cout << "extend" << endl;
     // extend array
     size_t prevSize = ((_size - 1) * _size / 2);

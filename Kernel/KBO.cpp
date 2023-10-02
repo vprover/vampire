@@ -749,6 +749,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
 bool KBO::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
 {
+  TIME_TRACE("KBO::makeGreater");
   if (tl1 == tl2) {
     return false;
   }
@@ -818,7 +819,7 @@ bool KBO::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
     (*cnt)++;
   }
 
-  VariableIterator vit1(t2);
+  VariableIterator vit1(t1);
   unsigned pos = varCnts.size();
   while (vit1.hasNext()) {
     unsigned t1v = vit1.next().var();
@@ -848,6 +849,7 @@ bool KBO::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
 
 bool KBO::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
 {
+  TIME_TRACE("KBO::isGreater");
   if (tl1 == tl2) {
     return false;
   }
@@ -885,6 +887,7 @@ bool KBO::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
           continue;
         }
         if (isGreater(arg1,arg2,vo)) {
+          ASS_REP(!vo.is_empty() || compare(arg1,arg2)==Ordering::GREATER, vstring("lex ") + arg1.toString() + " not greater than " + arg2.toString());
           gt = true;
           break;
         } else {
@@ -917,7 +920,7 @@ bool KBO::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
     (*cnt)++;
   }
 
-  VariableIterator vit1(t2);
+  VariableIterator vit1(t1);
   unsigned pos = varCnts.size();
   while (vit1.hasNext()) {
     unsigned t1v = vit1.next().var();

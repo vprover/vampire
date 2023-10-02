@@ -223,6 +223,8 @@ enum class InferenceRule : unsigned char {
   FORWARD_SUBSUMPTION_DEMODULATION,
   /** backward subsumption demodulation inference */
   BACKWARD_SUBSUMPTION_DEMODULATION,
+  /** forward ground joinability inference */
+  FORWARD_GROUND_JOINABILITY,
   /** forward literal rewriting inference */
   FORWARD_LITERAL_REWRITING,
   /** inner rewriting */

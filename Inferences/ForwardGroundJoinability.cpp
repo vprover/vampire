@@ -14,34 +14,13 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/DHSet.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Debug/TimeProfiling.hpp"
-#include "Lib/Timer.hpp"
-#include "Lib/VirtualIterator.hpp"
-
-#include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ColorHelper.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "Kernel/Matcher.hpp"
 
-#include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
-#include "Indexing/TermIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
-
-#include "Shell/Options.hpp"
 
 #include "ForwardGroundJoinability.hpp"
 
@@ -51,6 +30,23 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace std;
+
+inline TermList replace(TermList t, TermList what, TermList by) {
+  if (t == what) {
+    return by;
+  }
+  return TermList(EqHelper::replace(t.term(), what, by));
+}
+
+// TODOs:
+// - reduce top-level terms modulo completeness check
+// - make harder effort in KBO to extend the order (now it is based on orienting x > y if these are directly compared)
+// - try doing the same in LPO
+// - apply equalities from variable order
+// - improve normalisation/extension by skipping terms already checked
+// - implement backward variant
+// - add option to switch (what about demodulation options? encompassment? preordered?)
+// - pass variable orders and underlying triangular arrays more efficiently (e.g. recycle them)
 
 void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
 {
@@ -80,15 +76,21 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
     if (!lit->isEquality()) {
       continue;
     }
+    _premises.reset();
     auto s = lit->termArg(0);
     auto t = lit->termArg(1);
     if (join(s,t,checkCompleteness)) {
       env.statistics->forwardGroundJoinableEqs++;
+      premises = pvi(iterTraits(_premises.iterator()).persistent());
 
       if (lit->isNegative()) {
         auto clen = cl->length()-1;
+        auto prems = UnitList::empty();
+        UnitList::pushFromIterator(_premises.iterator(), prems);
+        UnitList::push(cl, prems);
+
         Clause* res = new(clen) Clause(clen,
-          SimplifyingInference1(InferenceRule::FORWARD_DEMODULATION, cl));
+          SimplifyingInferenceMany(InferenceRule::FORWARD_GROUND_JOINABILITY, prems));
 
         unsigned j = 0;
         for (unsigned l = 0; l < clen; l++) {
@@ -144,49 +146,45 @@ bool ForwardGroundJoinability::join(TermList s, TermList t, bool checkCompletene
   });
   while (todo.isNonEmpty()) {
     auto curr = todo.pop();
-    auto c = curr.cflags;
-    TermList s = normalise(curr.s, curr.vo, c.first);
-    TermList t = normalise(curr.t, curr.vo, c.second);
-    if (s == t) {
+    auto& c = curr.cflags;
+    normalise(curr.s, curr.vo, c.first);
+    normalise(curr.t, curr.vo, c.second);
+    if (curr.s == curr.t) {
       continue;
     }
     // found a total variable preorder under which the terms don't join
     if (curr.vo.is_total(vars.size())) {
       return false;
     }
-    TermList sp = s;
-    TermList tp = t;
+    TermList sp = curr.s;
+    TermList tp = curr.t;
     auto cp = c;
     // we have to extend vo via some rewrite
-    bool extended = false;
+    bool joined = false;
     VarOrder ext = curr.vo;
     while (extend(sp, cp.first, ext) || extend(tp, cp.second, ext)) {
-      TermList spp = normalise(sp, ext, cp.first);
-      TermList tpp = normalise(tp, ext, cp.second);
-      ASS(sp != spp || tp != tpp);
-      if (spp == tpp) {
-        extended = true;
-        // return false;
-        // USER_ERROR("x");
+      normalise(sp, ext, cp.first);
+      normalise(tp, ext, cp.second);
+      if (sp == tp) {
+        joined = true;
         // cout << "removing " << ext.to_string() << endl
         //      << "from " << curr.vo.to_string() << endl;
         auto vos = order_diff(curr.vo,ext);
         for (const auto& evo : vos) {
-          // cout << "res " << evo.to_string() << endl;
+          VarOrder::EqApplicator voApp(evo);
           todo.push(State {
             .vo = evo,
-            .s = curr.s,
-            .t = curr.t,
-            .cflags = curr.cflags,
+            .s = SubstHelper::apply(curr.s,voApp),
+            .t = SubstHelper::apply(curr.t,voApp),
+            .cflags = c,
           });
         }
         // cout << endl;
         break;
       }
-      sp = spp;
-      tp = tpp;
+      // curr.vo = ext; // TODO this is in the pseudocode, although I think incorrectly
     }
-    if (!extended) {
+    if (!joined) {
       return false;
     }
   }
@@ -194,33 +192,41 @@ bool ForwardGroundJoinability::join(TermList s, TermList t, bool checkCompletene
   return true;
 }
 
-TermList ForwardGroundJoinability::normalise(TermList t, const VarOrder& vo, bool checkCompleteness)
+void ForwardGroundJoinability::normalise(TermList& t, const VarOrder& vo, bool& checkCompleteness)
 {
+  // if (vo.is_empty()) {
+  //   return;
+  //   TIME_TRACE("joinability normalise first");
+  // }
   TIME_TRACE("joinability normalise");
-  // cout << "normalising " << t << " under " << vo.to_string() << endl;
-  TermList res = t;
+  // cout << "normalising " << t << " under " << vo.to_string() << " completeness " << checkCompleteness << endl;
+  // TermList res = t;
   const auto& ord = _salg->getOrdering();
   DHMap<Term*,TermList> cache;
   bool reduced = false;
+  static TermList empty;
+  empty.makeEmpty();
 
   do {
-    if (res.isVar()) {
-      return res;
+    if (t.isVar()) {
+      return;
     }
     reduced = false;
-    NonVariableNonTypeIterator it(res.term()); // TODO top-level rewrites with completeness check
+    NonVariableNonTypeIterator it(t.term()/* , !checkCompleteness */); // TODO top-level rewrites with completeness check
     while(it.hasNext()) {
       TypedTermList trm = it.next();
-      // cout << "trying subterm " << trm.toString() << endl;
-      // auto cptr = cache.findPtr(trm.term());
-      // if (cptr) {
-      //   if (cptr->isEmpty()) {
-      //     continue;
-      //   }
-      //   res = TermList(EqHelper::replace(res.term(),trm,*cptr));
-      //   reduced = true;
-      //   break;
-      // }
+      TermList* cptr;
+      if (!cache.getValuePtr(trm.term(),cptr,empty)) {
+        // term has been checked and not reducible
+        if (cptr->isEmpty()) {
+          continue;
+        }
+        // no need to add reducing clause to premises since we have already added it
+        t = replace(t,trm,*cptr);
+        reduced = true;
+        checkCompleteness = false;
+        break;
+      }
 
       TermQueryResultIterator git = _index->getGeneralizations(trm, true);
       while (git.hasNext()) {
@@ -248,11 +254,16 @@ TermList ForwardGroundJoinability::normalise(TermList t, const VarOrder& vo, boo
 
         // cout << "checking " << trm << " >? " << rhsS << " under " << vo.to_string() << endl;
         if (!ord.isGreater(trm,rhsS,vo)) {
+          // cout << "trm " << trm << " > " << rhsS << " under " << vo.to_string() << endl;
           continue;
         }
+        ASS_REP(!vo.is_empty() || ord.compare(trm,rhsS)==Ordering::GREATER, trm.toString() + " not greater than " + rhsS.toString());
 
-        res = TermList(EqHelper::replace(res.term(),trm,rhsS));
+        t = replace(t,trm,rhsS);
         reduced = true;
+        checkCompleteness = false;
+        _premises.insert(qr.clause);
+        *cptr = rhsS;
         break;
       }
       if (reduced) {
@@ -260,20 +271,18 @@ TermList ForwardGroundJoinability::normalise(TermList t, const VarOrder& vo, boo
       }
     }
   } while (reduced);
-
-  return res;
 }
 
-bool ForwardGroundJoinability::extend(TermList t, bool checkCompleteness, VarOrder& ext)
+bool ForwardGroundJoinability::extend(TermList& t, bool& checkCompleteness, VarOrder& ext)
 {
   TIME_TRACE("joinability extend");
-  // cout << "extending " << t << " under " << ext.to_string() << endl;
+  // cout << "extending " << t << " under " << ext.to_string() << " completeness " << checkCompleteness << endl;
   const auto& ord = _salg->getOrdering();
   DHSet<Term*> attempted;
   if (t.isVar()) {
     return false;
   }
-  NonVariableNonTypeIterator it(t.term()); // TODO top-level rewrites with completeness check
+  NonVariableNonTypeIterator it(t.term()/* , !checkCompleteness */); // TODO top-level rewrites with completeness check
   while(it.hasNext()) {
     TypedTermList trm = it.next();
     if (!attempted.insert(trm.term())) {
@@ -307,8 +316,10 @@ bool ForwardGroundJoinability::extend(TermList t, bool checkCompleteness, VarOrd
 
       VarOrder temp = ext;
       if (ord.makeGreater(trm,rhsS,temp)) {
+        t = replace(t,trm,rhsS);
         // cout << "extended the order to " << temp.to_string() << " with eq " << *trm.term() << " = " << rhsS << endl;
         ext = temp;
+        checkCompleteness = false;
         return true;
       }
     }

@@ -28,8 +28,6 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
 
-#include "VarOrder.hpp"
-
 namespace Kernel {
 
 using namespace Shell;

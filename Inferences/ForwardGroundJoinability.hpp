@@ -17,7 +17,10 @@
 #define __ForwardGroundJoinability__
 
 #include "Forwards.hpp"
+
 #include "Indexing/TermIndex.hpp"
+
+#include "Kernel/VarOrder.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -48,8 +51,8 @@ protected:
   };
 
   bool join(TermList s, TermList t, bool checkCompleteness);
-  TermList normalise(TermList t, const VarOrder& vo, bool checkCompleteness);
-  bool extend(TermList t, bool checkCompleteness, VarOrder& ext);
+  void normalise(TermList& t, const VarOrder& vo, bool& checkCompleteness);
+  bool extend(TermList& t, bool& checkCompleteness, VarOrder& ext);
   void order_diff_helper(VarOrder& vo, const List<Edge>* edges, Stack<VarOrder>& res);
   Stack<VarOrder> order_diff(const VarOrder& vo, const VarOrder& other);
 
@@ -57,6 +60,7 @@ protected:
   bool _redundancyCheck;
   bool _encompassing;
   DemodulationLHSIndex* _index;
+  DHSet<Clause*> _premises;
 };
 
 };

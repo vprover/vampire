@@ -28,6 +28,17 @@ public:
   bool is_total(size_t n) const;
   vstring to_string() const;
   const List<Edge>* transitive_reduction() const;
+  bool is_empty() const;
+
+  class EqApplicator
+  {
+  public:
+    EqApplicator(const VarOrder& vo) : _vo(vo) {}
+    TermList apply(unsigned v);
+
+  private:
+    const VarOrder& _vo;
+  };
 
 private:
   PartialOrdering<unsigned> _po;

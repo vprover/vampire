@@ -31,6 +31,7 @@ enum class PoComp {
 };
 
 PoComp reverse(PoComp comp);
+vstring toString(PoComp comp);
 
 struct Edge {
   unsigned x;
@@ -53,6 +54,7 @@ public:
   const List<Edge>* transitive_reduction() const { return _tr; }
   PoComp get(const T& x, const T& y) const;
   bool set(const T& x, const T& y, PoComp v);
+  const T& get_rep(const T& e) const;
 
   vstring to_string() const;
   vstring to_string_raw() const;
@@ -69,6 +71,7 @@ private:
   void set_inferred_loop_eq(size_t idx_x, size_t idx_y);
 
   DHMap<T,size_t> _nodes;
+  DHMap<size_t,T> _inverse;
   size_t _size;
   PoComp* _array;
   List<Edge>* _tr; // transitive reduction

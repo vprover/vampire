@@ -52,6 +52,16 @@ const List<Edge>* VarOrder::transitive_reduction() const
   return _po.transitive_reduction();
 }
 
+bool VarOrder::is_empty() const
+{
+  return _po.size() < 2;
+}
+
+TermList VarOrder::EqApplicator::apply(unsigned v)
+{
+  return TermList(_vo._po.get_rep(v),false);
+}
+
 // bool VarOrder::add_eq(unsigned x, unsigned y)
 // {
 //   ASS(hasVar(x));
