@@ -431,7 +431,7 @@ class Signature
    */
   unsigned addStringConstant(const vstring& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
+  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0, bool computable = false);
   unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);

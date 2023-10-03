@@ -102,8 +102,10 @@ public:
 
   virtual Clause* recordAnswerAndReduce(Clause* cl) override;
 
+  // TODO(hzzv): remove this & remove it from Skolem.cpp & NewCNF.cpp
   void processSkolems(FormulaUnit* fu, List<std::pair<unsigned, Term*>>* bindings);
 
+  // TODO(hzzv): remove this & remove it from Skolem.cpp & NewCNF.cpp
   // TODO(hzzv): this and the following method should be called immediatelly after each other.
   // This logic is fragile and should be changed - however, at this point it is not clear to me
   // how to improve it so that it still works with NewCNF.
@@ -114,6 +116,7 @@ public:
     while (it.hasNext()) List<std::pair<unsigned, Term*>>::push(it.next(), _bindings);
   }
 
+  // TODO(hzzv): remove this & remove it from Skolem.cpp & NewCNF.cpp
   void processSkolems(FormulaUnit* fu) {
     if (fu->formula() == _skolemizedFormula) processSkolems(fu, _bindings);
   }

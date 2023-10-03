@@ -25,6 +25,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
@@ -365,8 +366,8 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
   Formula* conj = new JunctionFormula(AND, conjArgs);
-  Formula* newQuant = quantifyJunction(conj, vars, unit);
-  Formula* newForm = new NegatedFormula(newQuant);
+  Formula* newForm = quantifyJunction(conj, vars, unit);
+  //Formula* newForm = new NegatedFormula(newQuant);
 
   newForm = Flattening::flatten(newForm);
 
@@ -390,7 +391,7 @@ Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* uni
 }
 
 Formula* AnswerLiteralManager::quantifyJunction(Formula* junction, VList* existsVars, Unit* originalUnit) {
-  return new QuantifiedFormula(EXISTS, existsVars, 0, junction);
+  return new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction));
 }
 
 void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
@@ -588,6 +589,7 @@ Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
   return newCl;
 }
 
+// TODO(hzzv): remove this?
 bool SynthesisManager::isDerivedFromAnswerLiteralInference(Unit* u) {
   InferenceStore& is = *InferenceStore::instance();
   Stack<Unit*> toDo;
@@ -602,6 +604,7 @@ bool SynthesisManager::isDerivedFromAnswerLiteralInference(Unit* u) {
   return false;
 }
 
+// TODO(hzzv): remove this & remove it from Skolem.cpp & NewCNF.cpp
 void SynthesisManager::processSkolems(FormulaUnit* fu, List<pair<unsigned, Term*>>* bindings) {
   Formula* f = fu->formula();
   DHSet<unsigned> answerAllowedVars;
@@ -661,13 +664,33 @@ Formula* SynthesisManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
     return nullptr;
   }
 
+
+
   return (form->uarg()->connective()==EXISTS) ? form->uarg() : form->uarg()->qarg();
 }
 
+// TODO(hzzv): change method name
 Formula* SynthesisManager::quantifyJunction(Formula* junction, VList* existsVars, Unit* originalUnit) {
   Formula* form = static_cast<FormulaUnit*>(originalUnit)->formula();
-  Formula* quant = new QuantifiedFormula(EXISTS, existsVars, 0, junction);
-  if (form->uarg()->connective()!=EXISTS) quant = new QuantifiedFormula(FORALL, form->uarg()->vars(), 0, quant);
+  Formula* quant = new QuantifiedFormula(FORALL, existsVars, 0, new NegatedFormula(junction));
+  if (form->uarg()->connective()!=EXISTS) {
+    VList::Iterator it(form->uarg()->vars());
+    Substitution subst;
+    while (it.hasNext()) {
+      unsigned var = it.next();
+      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
+      Signature::Symbol* skSym = env.signature->getFunction(skFun);
+      TermList sort;
+      if (!SortHelper::tryGetVariableSort(var, form, sort)) sort = AtomicSort::defaultSort();
+      OperatorType* ot = OperatorType::getConstantsType(sort); 
+      skSym->setType(ot);
+      Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
+      subst.bind(var, skTerm);
+      _skolemReplacement.bindSkolemToVar(skTerm, var);
+      cout << "AE sym " << skSym->name() << ": " << sort << endl;
+    }
+    quant = SubstHelper::apply(quant, subst);
+  }
   return quant;
 }
 
