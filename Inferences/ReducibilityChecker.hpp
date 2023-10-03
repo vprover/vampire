@@ -45,6 +45,7 @@ public:
 
   ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
+  void preprocessClause(Clause* cl);
   bool check(Clause* rwClause, Clause* eqClause, Literal* rwLitS, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool eqIsResult);
 };
 

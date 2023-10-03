@@ -829,8 +829,13 @@ bool KBO::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
 
   VariableIterator vit1(t1);
   unsigned pos = varCnts.size();
+  DHMap<unsigned,unsigned> varCntsExtra;
   while (vit1.hasNext()) {
     unsigned t1v = vit1.next().var();
+    unsigned* cnt;
+    varCntsExtra.getValuePtr(t1v, cnt, 0);
+    (*cnt)++;
+
     DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
     while (vit2.hasNext()) {
       unsigned t2v;
@@ -849,7 +854,34 @@ bool KBO::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
   }
   if (pos) {
     // TODO try to find more variables
-    return false;
+    // DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
+    // while (vit2.hasNext() && pos) {
+    //   unsigned t2v;
+    //   unsigned& cnt2 = vit2.nextRef(t2v);
+    //   if (cnt2) {
+    //     DHMap<unsigned,unsigned>::Iterator vit1(varCntsExtra);
+    //     while (vit1.hasNext() && cnt2) {
+    //       unsigned t1v;
+    //       unsigned cnt1;
+    //       vit1.next(t1v,cnt1);
+    //       if (vo.add_gt(t1v,t2v)) {
+    //         if (cnt2 < cnt1) {
+    //           cnt2 = 0;
+    //           break;
+    //         } else {
+    //           cnt2 -= cnt1;
+    //         }
+    //       }
+    //     }
+    //     if (!cnt2) {
+    //       pos--;
+    //     }
+    //   }
+    // }
+    // if (!pos) {
+    //   TIME_TRACE("fixed order");
+    // }
+    return !pos;
   }
 
   return true;

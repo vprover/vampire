@@ -116,6 +116,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
+  _salg->getReducibilityChecker()->preprocessClause(premise);
+
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
 
   //TODO probably shouldn't go here!
@@ -413,7 +415,7 @@ Clause* Superposition::performSuperposition(
   //   TIME_TRACE("sup incomparable");
   // }
   // std::cout << std::endl << "SUPERPOSITION\nrwClause " << *rwClause << std::endl
-  //      << "eqClause " << *eqClause << std::endl << "rwTermS " << rwTermS << std::endl;
+  //      << "eqClause " << *eqClause << std::endl << "rwTermS " << rwTermS << " tgtTermS " << tgtTermS << std::endl;
   if (checker) {
     // checker->resetDone();
     // if (checker->check(eqClause,eqLHS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult,comp==Ordering::LESS)) {
@@ -426,6 +428,7 @@ Clause* Superposition::performSuperposition(
     //   return 0;
     // }
     if (checker->check(rwClause,eqClause,rwLitS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult)) {
+      // std::cout << "redundant" << std::endl;
       env.statistics->skippedSuperposition++;
       return 0;
     }
