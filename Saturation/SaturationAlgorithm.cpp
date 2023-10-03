@@ -468,6 +468,9 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
     onNewUsefulPropositionalClause(cl);
   }
 
+  if (_answerLiteralManager) {
+    _answerLiteralManager->onNewClause(cl);
+  }
 }
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
@@ -906,10 +909,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
   if (cl->isEmpty()) {
     handleEmptyClause(cl);
     return;
-  }
-
-  if (_answerLiteralManager) {
-    _answerLiteralManager->onNewClause(cl);
   }
 
   cl->setStore(Clause::UNPROCESSED);
