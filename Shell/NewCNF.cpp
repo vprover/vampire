@@ -1148,7 +1148,7 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   switch (sd->specialFunctor()) {
     case Term::SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
-      break;
+      return;
     case Term::SpecialFunctor::TUPLE:
       NOT_IMPLEMENTED;
     case Term::SpecialFunctor::ITE: {
@@ -1157,20 +1157,18 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
       Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
       Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
       processITE(condition, left, right, occurrences);
-      break;
+      return;
     }
-
     case Term::SpecialFunctor::LET:
     case Term::SpecialFunctor::LET_TUPLE:
       processLet(sd, *term->nthArgument(0), occurrences);
-      break;
+      return;
     case Term::SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
     case Term::SpecialFunctor::MATCH: {
       processMatch(sd, term, occurrences);
-      break;
+      return;
     }
-
   }
   ASSERTION_VIOLATION_REP(term->toString());
 }
