@@ -20,14 +20,16 @@
 
 namespace Inferences {
 
+/*   
+* Removes clauses containing answer literals with uncomputable symbols, 
+* as synthesized programs cannot include such symbols.
+*/
 class InvalidAnswerLiteralRemoval
 : public ImmediateSimplificationEngine
 {
 public:
   CLASS_NAME(InvalidAnswerLiteralRemoval);
   USE_ALLOCATOR(InvalidAnswerLiteralRemoval);
-
-  InvalidAnswerLiteralRemoval() {}
 
   Clause* simplify(Clause* cl) override;
 };
