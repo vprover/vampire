@@ -115,6 +115,9 @@ enum class InferenceRule : unsigned char {
   /** introduction of answer literal into the conjecture,
    * or the unit negation of answer literal used to obtain refutation */
   ANSWER_LITERAL,
+  /** introduction of answer literal into the conjecture,
+   * and skolemisation of input variables */
+  ANSWER_LITERAL_INPUT_SKOLEMISATION,
   /** claim definition, definition introduced by a claim in the input */
   CLAIM_DEFINITION,
 //     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */

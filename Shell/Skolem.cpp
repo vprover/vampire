@@ -26,7 +26,6 @@
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/SharedSet.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Statistics.hpp"
 #include "Indexing/TermSharing.hpp"
 
@@ -91,21 +90,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   if (f == g) { // not changed
     return unit;
-  }
-
-  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-  if (synthesis) {
-    DHMap<unsigned,TermList>::Iterator vit(_varSorts);
-    List<pair<unsigned, Term*>>* bindings = List<pair<unsigned, Term*>>::empty();
-    while (vit.hasNext()) {
-      unsigned v = vit.nextKey();
-      TermList tl = _subst.apply(v);
-      if (tl.isTerm()) {
-        ASS(env.signature->getFunction(tl.term()->functor())->skolem());
-        List<pair<unsigned, Term*>>::push(make_pair(v, tl.term()), bindings);
-      }
-    }
-    SynthesisManager::getInstance()->processSkolems(unit, bindings);
   }
 
   UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions); // making sure unit is the last inserted, i.e. first in the list

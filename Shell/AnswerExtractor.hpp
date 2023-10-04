@@ -82,7 +82,7 @@ private:
 
   virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit);
 
-  virtual Formula* quantifyJunction(Formula* junction, VList* existsVars, Unit* originalUnit);
+  virtual Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit);
 
   Clause* getResolverClause(unsigned pred);
 
@@ -101,25 +101,6 @@ public:
   virtual void onNewClause(Clause* cl) override;
 
   virtual Clause* recordAnswerAndReduce(Clause* cl) override;
-
-  // TODO(hzzv): remove this & remove it from Skolem.cpp & NewCNF.cpp
-  void processSkolems(FormulaUnit* fu, List<std::pair<unsigned, Term*>>* bindings);
-
-  // TODO(hzzv): remove this & remove it from Skolem.cpp & NewCNF.cpp
-  // TODO(hzzv): this and the following method should be called immediatelly after each other.
-  // This logic is fragile and should be changed - however, at this point it is not clear to me
-  // how to improve it so that it still works with NewCNF.
-  void storeSkolemizedFormulaAndBindings(Formula* f, List<std::pair<unsigned, Term*>>* bindings) {
-    _skolemizedFormula = f;
-    _bindings = List<std::pair<unsigned, Term*>>::empty();
-    List<std::pair<unsigned, Term*>>::Iterator it(bindings);
-    while (it.hasNext()) List<std::pair<unsigned, Term*>>::push(it.next(), _bindings);
-  }
-
-  // TODO(hzzv): remove this & remove it from Skolem.cpp & NewCNF.cpp
-  void processSkolems(FormulaUnit* fu) {
-    if (fu->formula() == _skolemizedFormula) processSkolems(fu, _bindings);
-  }
 
   static unsigned getITEFunctionSymbol(TermList sort) {
     vstring name = "$ite_" + sort.toString();
@@ -150,20 +131,15 @@ private:
 
   virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
 
-  virtual Formula* quantifyJunction(Formula* junction, VList* existsVars, Unit* originalUnit) override;
+  virtual Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) override;
 
   Formula* getConditionFromClause(Clause* cl);
-
-  bool isDerivedFromAnswerLiteralInference(Unit* u);
 
   ConjectureSkolemReplacement _skolemReplacement;
 
   List<std::pair<unsigned,std::pair<Clause*, Literal*>>>* _answerPairs = nullptr;
 
   Literal* _lastAnsLit = nullptr;
-
-  Formula* _skolemizedFormula = nullptr;
-  List<std::pair<unsigned, Term*>>* _bindings = nullptr;
 };
 
 }

@@ -366,14 +366,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
   Formula* conj = new JunctionFormula(AND, conjArgs);
-  Formula* newForm = quantifyJunction(conj, vars, unit);
-  //Formula* newForm = new NegatedFormula(newQuant);
-
-  newForm = Flattening::flatten(newForm);
-
-  Unit* res = new FormulaUnit(newForm,FormulaTransformation(InferenceRule::ANSWER_LITERAL, unit));
-
-  return res;
+  return createUnitFromConjunctionWithAnswerLiteral(conj, vars, unit);
 }
 
 Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
@@ -390,8 +383,9 @@ Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* uni
   return form->uarg();
 }
 
-Formula* AnswerLiteralManager::quantifyJunction(Formula* junction, VList* existsVars, Unit* originalUnit) {
-  return new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction));
+Unit* AnswerLiteralManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
+  Formula* f = Flattening::flatten(new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction)));
+  return new FormulaUnit(f, FormulaTransformation(InferenceRule::ANSWER_LITERAL, originalUnit));
 }
 
 void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
@@ -589,50 +583,6 @@ Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
   return newCl;
 }
 
-// TODO(hzzv): remove this?
-bool SynthesisManager::isDerivedFromAnswerLiteralInference(Unit* u) {
-  InferenceStore& is = *InferenceStore::instance();
-  Stack<Unit*> toDo;
-  toDo.push(u);
-  while (toDo.isNonEmpty()) {
-    Unit* u = toDo.pop();
-    InferenceRule infRule;
-    UnitIterator parents = is.getParents(u, infRule);
-    if (infRule == InferenceRule::ANSWER_LITERAL) return true;
-    while (parents.hasNext()) toDo.push(parents.next());
-  }
-  return false;
-}
-
-// TODO(hzzv): remove this & remove it from Skolem.cpp & NewCNF.cpp
-void SynthesisManager::processSkolems(FormulaUnit* fu, List<pair<unsigned, Term*>>* bindings) {
-  Formula* f = fu->formula();
-  DHSet<unsigned> answerAllowedVars;
-  if (f->connective()==EXISTS &&
-      (fu->inputType()==UnitInputType::CONJECTURE || fu->inputType()==UnitInputType::NEGATED_CONJECTURE)) {
-    if (isDerivedFromAnswerLiteralInference(fu)) {
-      VList* vars = f->vars();
-      VList::Iterator it(vars);
-      while (it.hasNext()) answerAllowedVars.insert(it.next());
-    }
-  }
-  List<pair<unsigned, Term*>>::Iterator it(bindings);
-  bool boundVar = false;
-  while (it.hasNext()) {
-    auto p = it.next();
-    if (answerAllowedVars.contains(p.first)) {
-      ASS(env.signature->getFunction(p.second->functor())->skolem());
-      _skolemReplacement.bindSkolemToVar(p.second, p.first);
-      if (!boundVar) {
-        addInputUnit(fu);
-        boundVar = true;
-      }
-    } else {
-      env.signature->getFunction(p.second->functor())->markUncomputable();
-    }
-  }
-}
-
 Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) {
   ASS(Literal::headersMatch(thenLit, elseLit, /*complementary=*/false));
 
@@ -669,11 +619,11 @@ Formula* SynthesisManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
   return (form->uarg()->connective()==EXISTS) ? form->uarg() : form->uarg()->qarg();
 }
 
-// TODO(hzzv): change method name
-Formula* SynthesisManager::quantifyJunction(Formula* junction, VList* existsVars, Unit* originalUnit) {
+Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
   Formula* form = static_cast<FormulaUnit*>(originalUnit)->formula();
   Formula* quant = new QuantifiedFormula(FORALL, existsVars, 0, new NegatedFormula(junction));
-  if (form->uarg()->connective()!=EXISTS) {
+  bool skolemise = (form->uarg()->connective()==FORALL);
+  if (skolemise) {
     VList::Iterator it(form->uarg()->vars());
     Substitution subst;
     while (it.hasNext()) {
@@ -687,11 +637,11 @@ Formula* SynthesisManager::quantifyJunction(Formula* junction, VList* existsVars
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
       subst.bind(var, skTerm);
       _skolemReplacement.bindSkolemToVar(skTerm, var);
-      cout << "AE sym " << skSym->name() << ": " << sort << endl;
     }
     quant = SubstHelper::apply(quant, subst);
   }
-  return quant;
+  quant = Flattening::flatten(quant);
+  return new FormulaUnit(quant, FormulaTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL, originalUnit));
 }
 
 Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
