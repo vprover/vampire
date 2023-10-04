@@ -713,7 +713,13 @@ protected:
     else if (!parents.hasNext()) {
       vstring newSymbolInfo;
       if (hasNewSymbols(us)) {
-	      newSymbolInfo = getNewSymbols("naming",us);
+        vstring newSymbOrigin;
+        if (rule == InferenceRule::FUNCTION_DEFINITION) {
+          newSymbOrigin = "definition";
+        } else {
+          newSymbOrigin = "naming";
+        }
+	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
       }
       inferenceStr="introduced("+tptpRuleName(rule)+",["+newSymbolInfo+"])";
     }
