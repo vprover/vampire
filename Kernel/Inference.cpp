@@ -602,8 +602,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "fool let definition";
   case InferenceRule::FOOL_FORMULA_DEFINITION:
     return "fool formula definition";
-  case InferenceRule::FOOL_MATCH_ELIMINATION:
-    return "fool match elimination";
+  case InferenceRule::FOOL_MATCH_DEFINITION:
+    return "fool match definition";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
 //  case CHOICE_AXIOM:
