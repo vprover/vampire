@@ -422,7 +422,11 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
 
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
-    if(!(*cl)[i]->isAnswerLiteral()) {
+    Literal* lit = (*cl)[i];
+    if(!lit->isAnswerLiteral()) {
+      return;
+    }
+    if (!lit->computableOrVar()) {
       return;
     }
   }
