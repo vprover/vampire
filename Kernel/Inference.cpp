@@ -599,7 +599,9 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::FOOL_ITE_DEFINITION:
     return "fool ite definition";
   case InferenceRule::FOOL_LET_DEFINITION:
-    return "fool let elimination";
+    return "fool let definition";
+  case InferenceRule::FOOL_FORMULA_DEFINITION:
+    return "fool formula definition";
   case InferenceRule::FOOL_MATCH_ELIMINATION:
     return "fool match elimination";
   case InferenceRule::FOOL_PARAMODULATION:

@@ -714,7 +714,8 @@ protected:
       vstring newSymbolInfo;
       if (hasNewSymbols(us)) {
         vstring newSymbOrigin;
-        if (rule == InferenceRule::FUNCTION_DEFINITION || rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION) {
+        if (rule == InferenceRule::FUNCTION_DEFINITION ||
+          rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION || rule == InferenceRule::FOOL_FORMULA_DEFINITION) {
           newSymbOrigin = "definition";
         } else {
           newSymbOrigin = "naming";

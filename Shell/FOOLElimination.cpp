@@ -747,8 +747,11 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           }
 
           // add the introduced definition
-          addDefinition(new FormulaUnit(freshSymbolDefinition,
-            NonspecificInference1(InferenceRule::FOOL_ELIMINATION, _unit)));
+          FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
+            NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_FORMULA_DEFINITION));
+          addDefinition(defUnit);
+
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit,SymbolType::FUNC, freshSymbol);
 
           termResult = freshSymbolApplication;
         } else {

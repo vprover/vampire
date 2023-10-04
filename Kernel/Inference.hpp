@@ -390,8 +390,10 @@ enum class InferenceRule : unsigned char {
   FOOL_ELIMINATION,
   /** Definition of $ite expressions */
   FOOL_ITE_DEFINITION,
-  /** Elimination of $let expressions */
+  /** Definition of $let expressions */
   FOOL_LET_DEFINITION,
+  /** Definition of formulas used as terms */
+  FOOL_FORMULA_DEFINITION,
   /** Elimination of $match expressions */
   FOOL_MATCH_ELIMINATION,
   /** result of general splitting */
