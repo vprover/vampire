@@ -665,17 +665,20 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // add the introduced definition
-        addDefinition(new FormulaUnit(freshSymbolDefinition,
-            NonspecificInference1(InferenceRule::FOOL_LET_ELIMINATION, _unit)));
+        FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
+            NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_LET_DEFINITION));
+        addDefinition(defUnit);
 
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
         // replace occurrences of f(s1, ..., sj,t1, ..., tk) by
         // g(A1, ..., Am, s1, ..., sj,X1, ..., Xn, t1, ..., tk)
         if (renameSymbol) {
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit,bindingContext == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
+
           if (env.options->showPreprocessing()) {
             env.beginOutput();
-            env.out() << "[PP] FOOL replace in:  " << contents.toString() << endl;
+            env.out() << "[PP] FOOL replace in: " << contents.toString() << endl;
             env.endOutput();
           }
 
