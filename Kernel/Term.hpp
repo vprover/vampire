@@ -756,7 +756,6 @@ public:
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
 
-  // TODO(hzzv): should these values be rather cached? Is the memory or time more critical?
   virtual bool computable() const;
   virtual bool computableOrVar() const;
 
@@ -1052,7 +1051,6 @@ public:
   vstring toString() const;
   const vstring& predicateName() const;
 
-  // TODO(hzzv): cache this?
   virtual bool computable() const;
   virtual bool computableOrVar() const;
 

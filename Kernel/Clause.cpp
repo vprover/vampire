@@ -69,15 +69,13 @@ Clause::Clause(unsigned length,const Inference& inf)
     _component(false),
     _store(NONE),
     _numSelected(0),
-    _answerLiteralChecked(false),
     _weight(0),
     _weightForClauseSelection(0),
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
     _numActiveSplits(0),
-    _auxTimestamp(0),
-    _answerLiteral(nullptr)
+    _auxTimestamp(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
   if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
@@ -756,15 +754,12 @@ std::ostream& operator<<(std::ostream& out, Clause::Store const& store)
 }
 
 Literal* Clause::getAnswerLiteral() {
-  if (_answerLiteralChecked) return _answerLiteral;
   for (unsigned i = 0; i < _length; ++i) {
     if (_literals[i]->isAnswerLiteral()) {
-      _answerLiteral = _literals[i];
-      break;
+      return _literals[i];
     }
   }
-  _answerLiteralChecked = true;
-  return _answerLiteral;
+  return nullptr;
 }
 
 bool Clause::computable() {

@@ -377,8 +377,6 @@ protected:
   Store _store : 3;
   /** number of selected literals */
   unsigned _numSelected : 20;
-  /** whether _answerLiteral contains a correct (possibly null) pointer */
-  unsigned _answerLiteralChecked : 1;
 
   /** weight */
   mutable unsigned _weight;
@@ -401,8 +399,6 @@ protected:
 #if VDEBUG
   static bool _auxInUse;
 #endif
-
-  Literal* _answerLiteral;
 
 
   /** Array of literals of this unit */
