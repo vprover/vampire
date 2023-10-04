@@ -596,8 +596,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "flattening";
   case InferenceRule::FOOL_ELIMINATION:
     return "fool elimination";
-  case InferenceRule::FOOL_ITE_ELIMINATION:
-    return "fool ite elimination";
+  case InferenceRule::FOOL_ITE_DEFINITION:
+    return "fool ite definition";
   case InferenceRule::FOOL_LET_ELIMINATION:
     return "fool let elimination";
   case InferenceRule::FOOL_MATCH_ELIMINATION:
