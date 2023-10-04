@@ -392,7 +392,10 @@ au=off > tnu ~ui 0,9
 > inj ~cat off:4,on:1
 
 # higher order split queue
-> hfsq ~cat off:3,on:1
-hfsq=on > hfsql ~cat off:4,on:1
+> hfsq ~cat off:10,on:1
+hfsq=on > hfsql ~cat off:1,on:4
 hfsq=on > hfsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
 hfsq=on > hfsqr ~u2r -5;3;,
+
+hfsq=on > hflw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
+hfsq=on > hfaw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
