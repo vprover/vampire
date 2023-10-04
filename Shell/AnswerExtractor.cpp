@@ -533,10 +533,11 @@ void SynthesisManager::onNewClause(Clause* cl)
   }
 
   ASS(cl->hasAnswerLiteral())
-  _lastAnsLit = cl->getAnswerLiteral();
 
-  if (!_lastAnsLit->computableOrVar())
+  Literal* lit = cl->getAnswerLiteral();
+  if (!lit->computableOrVar())
     return;
+  _lastAnsLit = lit;
 
   Clause* refutation = getRefutation(cl);
   throw MainLoop::RefutationFoundException(refutation);
