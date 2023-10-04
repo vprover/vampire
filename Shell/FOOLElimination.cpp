@@ -824,7 +824,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             //TODO do we know the sorts of freeVars?
             impl = new QuantifiedFormula(FORALL, freeVars, 0, impl);
           }
-          addDefinition(new FormulaUnit(impl, NonspecificInference1(InferenceRule::FOOL_MATCH_ELIMINATION, _unit)));
+          FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
+          addDefinition(defUnit);
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
         }
 
         if (context == FORMULA_CONTEXT) {
