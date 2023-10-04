@@ -714,7 +714,7 @@ protected:
       vstring newSymbolInfo;
       if (hasNewSymbols(us)) {
         vstring newSymbOrigin;
-        if (rule == InferenceRule::FUNCTION_DEFINITION) {
+        if (rule == InferenceRule::FUNCTION_DEFINITION || rule == InferenceRule::FOOL_ITE_DEFINITION) {
           newSymbOrigin = "definition";
         } else {
           newSymbOrigin = "naming";
@@ -935,7 +935,7 @@ protected:
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
     case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
     case InferenceRule::FOOL_LET_ELIMINATION:
-    case InferenceRule::FOOL_ITE_ELIMINATION:
+    case InferenceRule::FOOL_ITE_DEFINITION:
     case InferenceRule::FOOL_ELIMINATION:
     case InferenceRule::BOOLEAN_TERM_ENCODING:
     case InferenceRule::CHOICE_AXIOM:

@@ -388,8 +388,8 @@ enum class InferenceRule : unsigned char {
   BOOLEAN_TERM_ENCODING,
   /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
   FOOL_ELIMINATION,
-  /** Elimination of $ite expressions */
-  FOOL_ITE_ELIMINATION,
+  /** Definition of $ite expressions */
+  FOOL_ITE_DEFINITION,
   /** Elimination of $let expressions */
   FOOL_LET_ELIMINATION,
   /** Elimination of $match expressions */
