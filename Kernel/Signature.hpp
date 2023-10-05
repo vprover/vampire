@@ -893,16 +893,6 @@ class Signature
 
   static bool symbolNeedsQuoting(vstring name, bool interpreted, unsigned arity);
 
-  void addSynthesisPair(unsigned fn, unsigned pred) {
-    ASS(fn < _funs.length());
-    ASS(pred < _preds.length());
-    _synthesisFnToPred.insert(fn, pred);
-  }
-
-  unsigned getPredForSynthesisFn(unsigned fn) {
-    return _synthesisFnToPred.get(fn);
-  }
-
 private:
   Stack<TermList> _dividesNvalues;
   DHMap<Term*, int> _formulaCounts;
@@ -980,9 +970,6 @@ private:
    * functor of its sort, the ctors and dtors still have to be instantiated to the right instances.
    */ 
   DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
-
-  // Map from functions to predicates they represent in answer literal conditions used in synthesis
-  DHMap<unsigned, unsigned> _synthesisFnToPred;
 
   //TODO Why are these here? They are not used anywhere. AYB
   //void defineOptionTermAlgebra(unsigned optionSort);

@@ -313,7 +313,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     Literal* newLitD = qr.substitution->applyToResult(dAnsLit);
     bool cNeg = queryLit->isNegative();
     Literal* condLit = cNeg ? qr.substitution->applyToResult(qr.literal) : qr.substitution->applyToQuery(queryLit);
-    (*res)[next] = SynthesisManager::makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
+    (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
   }
 
   if(withConstraints){

@@ -102,6 +102,35 @@ public:
 
   virtual Clause* recordAnswerAndReduce(Clause* cl) override;
 
+  Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
+
+private:
+  class ConjectureSkolemReplacement : public TermTransformer {
+   public:
+    ConjectureSkolemReplacement() : _skolemToVar() {}
+    void bindSkolemToVar(Term* t, unsigned v);
+    TermList transformTermList(TermList tl, TermList sort);
+    virtual Literal* transform(Literal* lit) { return TermTransformer::transform(lit); }
+    void addCondPair(unsigned fn, unsigned pred) { _condFnToPred.insert(fn, pred); }
+   protected:
+    virtual TermList transformSubterm(TermList trm);
+    virtual TermList transform(TermList ts);
+   private:
+    vmap<Term*, unsigned> _skolemToVar;
+    // Map from functions to predicates they represent in answer literal conditions
+    DHMap<unsigned, unsigned> _condFnToPred;
+  };
+
+  virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
+
+  virtual Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) override;
+
+  Formula* getConditionFromClause(Clause* cl);
+
+  Term* translateToSynthesisConditionTerm(Literal* l);
+
+  static Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
+
   static unsigned getITEFunctionSymbol(TermList sort) {
     vstring name = "$ite_" + sort.toString();
     bool added = false;
@@ -112,28 +141,6 @@ public:
     }
     return fn;
   }
-
-  static Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
-
-private:
-  class ConjectureSkolemReplacement : public TermTransformer {
-   public:
-    ConjectureSkolemReplacement() : _skolemToVar() {}
-    void bindSkolemToVar(Term* t, unsigned v);
-    TermList transformTermList(TermList tl, TermList sort);
-    virtual Literal* transform(Literal* lit) { return TermTransformer::transform(lit); }
-   protected:
-    virtual TermList transformSubterm(TermList trm);
-    virtual TermList transform(TermList ts);
-   private:
-    vmap<Term*, unsigned> _skolemToVar;
-  };
-
-  virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
-
-  virtual Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) override;
-
-  Formula* getConditionFromClause(Clause* cl);
 
   ConjectureSkolemReplacement _skolemReplacement;
 

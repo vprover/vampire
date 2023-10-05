@@ -192,7 +192,7 @@ void NonUnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("non unit clause with answer literals index maintenance");
   unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
   for(unsigned i=0; i<activeLen; i++) {
-    if (!(*c)[i]->isAnswerLiteral()) handleLiteral((*c)[i], c, adding);
+    handleLiteral((*c)[i], c, adding);
   }
 }
 

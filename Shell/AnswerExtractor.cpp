@@ -593,13 +593,13 @@ Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* the
 
   Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
   Stack<TermList> litArgs;
-  Term* condTerm = Term::translateToSynthesisConditionTerm(condition);
+  Term* condTerm = translateToSynthesisConditionTerm(condition);
   for (unsigned i = 0; i < thenLit->arity(); ++i) {
     TermList* ttl = thenLit->nthArgument(i);
     TermList* etl = elseLit->nthArgument(i);
     if (ttl == etl) litArgs.push(*ttl);
     else {
-      litArgs.push(TermList(Term::createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
+      litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
     }
   }
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), /*commutative=*/false, litArgs.begin());
@@ -656,6 +656,57 @@ Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
     FormulaList::push(new AtomicFormula(newLit), fl);
   }
   return JunctionFormula::generalJunction(Connective::AND, fl);
+}
+
+/** Create a new complex term, with its top-level function symbol
+ *  created as a dummy symbol representing the predicate of @b l, and copy
+ *  from the array @b args its arguments. Insert it into the sharing
+ *  structure if all arguments are shared.
+ */
+Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
+{
+  ASS_EQ(l->getPreDataSize(), 0);
+  ASS(!l->isSpecial());
+
+  unsigned arity = l->arity();
+  vstring fnName = "cond_";
+  if (l->isNegative()) fnName.append("not_");
+  fnName.append(l->predicateName());
+  if (l->isEquality()) fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
+  bool added = false;
+  unsigned fn = env.signature->addFunction(fnName, arity, added);
+  // Store the mapping between the function and predicate symbols
+  _skolemReplacement.addCondPair(fn, l->functor());
+  if (added) {
+    Signature::Symbol* sym = env.signature->getFunction(fn);
+    Stack<TermList> argSorts;
+    if (l->isEquality()) {
+      TermList as = SortHelper::getEqualityArgumentSort(l);
+      argSorts.push(as);
+      argSorts.push(as);
+    } else {
+      OperatorType* ot = env.signature->getPredicate(l->functor())->predType();
+      for (unsigned i = 0; i < arity; ++i) {
+        argSorts.push(ot->arg(i));
+      }
+      if (!env.signature->getPredicate(l->functor())->computable()) sym->markUncomputable();
+    }
+    sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
+  }
+  
+  Stack<TermList> args;
+  for (unsigned i = 0; i < arity; ++i) args.push(*(l->nthArgument(i)));
+  return Term::create(fn, arity, args.begin());
+}
+
+/**
+ * Create a (condition ? thenBranch : elseBranch) expression
+ * and return the resulting term
+ */
+Term* SynthesisManager::createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
+{
+  unsigned itefn = getITEFunctionSymbol(branchSort);
+  return Term::create(itefn, {TermList(condition), thenBranch, elseBranch});
 }
 
 void SynthesisManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {
@@ -726,7 +777,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
         vstring condName = tcond->functionName();
-        unsigned pred = env.signature->getPredForSynthesisFn(tcond->functor());
+        unsigned pred = _condFnToPred.get(tcond->functor());
         Stack<TermList> args;
         for (unsigned i = 0; i < tcond->arity(); ++i) args.push(transform(*(tcond->nthArgument(i))));
         Literal* newCond;

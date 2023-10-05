@@ -133,6 +133,7 @@ struct URResolution::Item
    */
   void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution)
   {
+    Literal* rlit = _lits[idx];
     _lits[idx] = 0;
     _premises[idx] = premise;
     _color = static_cast<Color>(_color | premise->color());
@@ -144,11 +145,10 @@ struct URResolution::Item
       if (!premAnsLit->ground()) premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
       if (!_ansLit) _ansLit = premAnsLit;
       else if (_ansLit != premAnsLit) {
-        Literal* rlit = _lits[idx];
         bool neg = rlit->isNegative(); 
         Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
         if (neg) resolved = Literal::complementaryLiteral(resolved);
-        _ansLit = SynthesisManager::makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
+        _ansLit = SynthesisManager::getInstance()->makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
       }
     }
 

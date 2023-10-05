@@ -378,7 +378,6 @@ public:
   static Term* create(unsigned function, unsigned arity, const TermList* args);
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
   static Term* create(Term* t,TermList* args);
-  static Term* translateToSynthesisConditionTerm(Literal* l);
   static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
   static Term* createNonShared(Term* t,TermList* args);
   static Term* createNonShared(Term* t);
@@ -395,7 +394,6 @@ public:
   static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
   static Term* createTuple(Term* tupleTerm);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
-  static Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
