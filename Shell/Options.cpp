@@ -3207,7 +3207,7 @@ void Options::trySamplingStrategy()
     vstring args = pieces[2];
     pieces.reset();
 
-    if (sampler == "~cat") { // categorical sampling
+    if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
       StringUtils::splitStr(args.c_str(),',',pieces);
 
       unsigned total = 0;
@@ -3251,7 +3251,7 @@ void Options::trySamplingStrategy()
       ASS_NEQ(value,"");
 
       strategySamplingAssign(optname,value,fakes);
-    } else if (sampler == "~u2r") {
+    } else if (sampler == "~u2r") { // "uniform to ratio", given e.g. "~u2r -10;4;:" takes a uniform float f between -10 and 4, computes 2^r and turns this into a ratio with ":" as the separator
       StringUtils::splitStr(args.c_str(),';',pieces);
       StringUtils::dropEmpty(pieces);
 
@@ -3278,7 +3278,7 @@ void Options::trySamplingStrategy()
       strategySamplingAssign(optname,Int::toString(numer)+pieces[2]+Int::toString(denom),fakes);
 
       pieces.reset();
-    } else if (sampler == "~sgd") {
+    } else if (sampler == "~sgd") { // "shifted geometric distribution", e.g. "~sgd 0.07,2" (used for naming) means: value 2+i, i from N, has probability 0.07*(1-0.07)^i. This has a mean of 2+0.07*(1-0.07)
       StringUtils::splitStr(args.c_str(),',',pieces);
       StringUtils::dropEmpty(pieces);
 
@@ -3295,7 +3295,7 @@ void Options::trySamplingStrategy()
       strategySamplingAssign(optname,Int::toString(nval),fakes);
 
       pieces.reset();
-    } else if (sampler == "~uf") {
+    } else if (sampler == "~uf") { // uniform float (with lower and upper bound given, as in "~uf 0.0,0.5")
       StringUtils::splitStr(args.c_str(),',',pieces);
       StringUtils::dropEmpty(pieces);
 
@@ -3311,7 +3311,7 @@ void Options::trySamplingStrategy()
       strategySamplingAssign(optname,Int::toString(raw),fakes);
 
       pieces.reset();
-    } else if (sampler == "~ui") {
+    } else if (sampler == "~ui") { // uniform int (with lower and upper bound given, as in "~ui 1,500")
       StringUtils::splitStr(args.c_str(),',',pieces);
       StringUtils::dropEmpty(pieces);
 
