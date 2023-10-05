@@ -1,3 +1,8 @@
+# MACRO DEFINITIONS
+
+# set $has_z3 to false, if you want to sample without it (here it currently affects whether fmbes=smt will possibly get sampled)
+> $has_z3 ~cat true:1
+
 # PREPROCESSING
 
 # blocked_clause_elimination
@@ -38,7 +43,7 @@ $nm=NZ > nm ~sgd 0.07,2
 # SATURATION
 
 # saturation_algorithms
-> sa     ~cat discount:572,otter:236,fmb:700
+> sa ~cat fmb:22,otter:60,discount:28
 
 # literal selection
 > $s_pos ~cat Y:4,N:1
@@ -295,8 +300,34 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 > uhcvi ~cat off:1,on:1
 
-# MISSING:
-# Any theory reasoning options (including term algebras and sa=z3)
-# Any induction options
-# Any higher-order options (Higher-order options section)
-# Any FMB
+# FMB options
+
+# fmb_enumeration_strategy
+$has_z3=true  sa=fmb > fmbes ~cat sbeam:1,smt:1,contour:1
+$has_z3!=true sa=fmb > fmbes ~cat sbeam:1,contour:1
+
+# fmb_size_weight_ratio
+fmbes=contour > fmbswr ~ui 0,5
+
+# fmb_adjust_sorts
+sa=fmb fmbes!=contour > fmbas ~cat group:36,predicate:4,expand:4,off:1,function:1
+sa=fmb  fmbes=contour > fmbas ~cat group:36,predicate:4,off:1,function:1
+
+# fmb_detect_sort_bounds
+sa=fmb fmbas!=predicate fmbas!=function > fmbdsb ~cat off:5,on:1
+
+# fmb_detect_sort_bounds_time_limit
+fmbdsb=on > fmbdsbt ~cat 1:5,2:2,3:1
+
+# fmb_keep_sbeam_generators
+sa=fmb fmbes=sbeam > fmbksg ~cat off:2,on:1
+
+# fmb_start_size - setting this to values > 1 is making things "finite mode incomplete" (but could save time for some problems)
+sa=fmb > fmbss ~cat 1:5,666:1
+fmbss=666 > fmbss ~sgd 0.1,1
+
+# fmb_symmetry_symbol_order
+sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1
+
+# fmb_symmetry_ratio
+sa=fmb > fmbsr ~uf 1.0,2.5
