@@ -197,6 +197,8 @@ public:
         SAT,
         AVATAR,
         INFERENCES,
+        INDUCTION,
+        THEORIES,
         LRS,
         SATURATION,
         PREPROCESSING,

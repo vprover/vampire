@@ -529,7 +529,7 @@ void Options::init()
          " is not larger than this limit, it will be expanded during preprocessing into quadratically many disequalities."
          " (0 means `always expand`)";
     _lookup.insert(&_distinctGroupExpansionLimit);
-    _distinctGroupExpansionLimit.tag(OptionTag::PREPROCESSING);
+    _distinctGroupExpansionLimit.tag(OptionTag::INPUT);
 
     _theoryAxioms = ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"});
     _theoryAxioms.description="Include theory axioms for detected interpreted symbols";
@@ -1136,7 +1136,7 @@ void Options::init()
     _lrsEstimateCorrectionCoef = FloatOptionValue("lrs_estimate_correction_coef","lecc",1.0);
     _lrsEstimateCorrectionCoef.description = "Make lrs more (<1.0) or less (>1.0) agressive by multiplying by this coef its estimate of how many clauses are still reachable.";
     _lookup.insert(&_lrsEstimateCorrectionCoef);
-    _lrsEstimateCorrectionCoef.tag(OptionTag::SATURATION);
+    _lrsEstimateCorrectionCoef.tag(OptionTag::LRS);
     _lrsEstimateCorrectionCoef.addConstraint(greaterThan(0.0f));
     _lrsEstimateCorrectionCoef.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
     _lrsEstimateCorrectionCoef.setRandomChoices({"1.0","1.1","1.2","0.9","0.8"});
@@ -1166,7 +1166,7 @@ void Options::init()
     "\n- new    : deprecated"
     "\n- full   : deprecated"
     "";
-    _theoryInstAndSimp.tag(OptionTag::INFERENCES);
+    _theoryInstAndSimp.tag(OptionTag::THEORIES);
     _theoryInstAndSimp.addProblemConstraint(hasTheories());
     _lookup.insert(&_theoryInstAndSimp);
 
@@ -1183,14 +1183,14 @@ void Options::init()
     "\n ==================== "
     "\n     P[(-1, 0)]"
     ;
-    _thiGeneralise.tag(OptionTag::INFERENCES);
+    _thiGeneralise.tag(OptionTag::THEORIES);
     _lookup.insert(&_thiGeneralise);
     _thiGeneralise.setExperimental();
     _thiGeneralise.onlyUsefulWith(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 
     _thiTautologyDeletion = BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false);
     _thiTautologyDeletion.description = "Enable deletion of tautology theory subclauses detected via theory instantiation.";
-    _thiTautologyDeletion.tag(OptionTag::INFERENCES);
+    _thiTautologyDeletion.tag(OptionTag::THEORIES);
     _lookup.insert(&_thiTautologyDeletion);
     _thiTautologyDeletion.setExperimental();
     _thiTautologyDeletion.onlyUsefulWith(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
@@ -1210,19 +1210,19 @@ void Options::init()
       "- all: always apply\n"
       "- ground: only if both s and t are ground\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
-    _unificationWithAbstraction.tag(OptionTag::INFERENCES);
+    _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
 
     _useACeval = BoolOptionValue("use_ac_eval","uace",true);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
-    _useACeval.tag(OptionTag::INFERENCES);
+    _useACeval.tag(OptionTag::THEORIES);
     _lookup.insert(&_useACeval);
 
     _inequalityNormalization = BoolOptionValue("normalize_inequalities","norm_ineq",false);
     _inequalityNormalization.description="Enable normalizing of inequalities like s < t ==> 0 < t - s.";
     _lookup.insert(&_inequalityNormalization);
     _inequalityNormalization.addProblemConstraint(hasTheories());
-    _inequalityNormalization.tag(OptionTag::INFERENCES);
+    _inequalityNormalization.tag(OptionTag::THEORIES);
 
     auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d)
     { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
@@ -1234,14 +1234,13 @@ void Options::init()
                                 anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_cancellation);
     _cancellation.addProblemConstraint(hasTheories());
-    _cancellation.tag(OptionTag::INFERENCES);
+    _cancellation.tag(OptionTag::THEORIES);
 
     _highSchool = BoolOptionValue("high_school", "hsm", false);
     _highSchool.description="Enables high school education for vampire. (i.e.: sets -gve cautious, -asg cautious, -ev cautious, -canc cautious, -pum on )";
     _lookup.insert(&_highSchool);
     _highSchool.addProblemConstraint(hasTheories());
-    _highSchool.tag(OptionTag::INFERENCES);
-
+    _highSchool.tag(OptionTag::THEORIES);
 
     _pushUnaryMinus = BoolOptionValue(
        "push_unary_minus", "pum",
@@ -1253,7 +1252,7 @@ void Options::init()
           ;
     _lookup.insert(&_pushUnaryMinus);
     _pushUnaryMinus.addProblemConstraint(hasTheories());
-    _pushUnaryMinus.tag(OptionTag::INFERENCES);
+    _pushUnaryMinus.tag(OptionTag::THEORIES);
 
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
@@ -1277,7 +1276,7 @@ void Options::init()
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_gaussianVariableElimination);
     _gaussianVariableElimination.addProblemConstraint(hasTheories());
-    _gaussianVariableElimination.tag(OptionTag::INFERENCES);
+    _gaussianVariableElimination.tag(OptionTag::THEORIES);
 
     _arithmeticSubtermGeneralizations = choiceArithmeticSimplificationMode(
        "arithmetic_subterm_generalizations", "asg",
@@ -1288,7 +1287,7 @@ void Options::init()
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.";
     _lookup.insert(&_arithmeticSubtermGeneralizations);
     _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories());
-    _arithmeticSubtermGeneralizations.tag(OptionTag::INFERENCES);
+    _arithmeticSubtermGeneralizations.tag(OptionTag::THEORIES);
 
     _evaluationMode = ChoiceOptionValue<EvaluationMode>("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
@@ -1302,27 +1301,27 @@ void Options::init()
     ";
     _lookup.insert(&_evaluationMode);
     _evaluationMode.addProblemConstraint(hasTheories());
-    _evaluationMode.tag(OptionTag::SATURATION);
+    _evaluationMode.tag(OptionTag::THEORIES);
     _evaluationMode.setExperimental();
 
     _induction = ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
                       {"none","struct","int","both"});
     _induction.description = "Apply structural and/or integer induction on datatypes and integers.";
-    _induction.tag(OptionTag::INFERENCES);
+    _induction.tag(OptionTag::INDUCTION);
     _lookup.insert(&_induction);
     //_induction.setRandomChoices
 
     _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
                          StructuralInductionKind::ONE,{"one","two","three","all"});
     _structInduction.description="The kind of structural induction applied";
-    _structInduction.tag(OptionTag::INFERENCES);
+    _structInduction.tag(OptionTag::INDUCTION);
     _structInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_structInduction);
 
     _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
                          IntInductionKind::ONE,{"one","two","all"});
     _intInduction.description="The kind of integer induction applied";
-    _intInduction.tag(OptionTag::INFERENCES);
+    _intInduction.tag(OptionTag::INDUCTION);
 
     _intInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_intInduction);
@@ -1332,7 +1331,7 @@ void Options::init()
     _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"
                                  " extends this with skolem constants introduced by induction. Consider using"
                                  " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
-    _inductionChoice.tag(OptionTag::INFERENCES);
+    _inductionChoice.tag(OptionTag::INDUCTION);
     _lookup.insert(&_inductionChoice);
     _inductionChoice.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
@@ -1341,26 +1340,26 @@ void Options::init()
 
     _maxInductionDepth = UnsignedOptionValue("induction_max_depth","indmd",0);
     _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
-    _maxInductionDepth.tag(OptionTag::INFERENCES);
+    _maxInductionDepth.tag(OptionTag::INDUCTION);
     _maxInductionDepth.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _maxInductionDepth.addHardConstraint(lessThan(33u));
     _lookup.insert(&_maxInductionDepth);
 
     _inductionNegOnly = BoolOptionValue("induction_neg_only","indn",true);
     _inductionNegOnly.description = "Only apply induction to negative literals";
-    _inductionNegOnly.tag(OptionTag::INFERENCES);
+    _inductionNegOnly.tag(OptionTag::INDUCTION);
     _inductionNegOnly.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionNegOnly);
 
     _inductionUnitOnly = BoolOptionValue("induction_unit_only","indu",true);
     _inductionUnitOnly.description = "Only apply induction to unit clauses";
-    _inductionUnitOnly.tag(OptionTag::INFERENCES);
+    _inductionUnitOnly.tag(OptionTag::INDUCTION);
     _inductionUnitOnly.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionUnitOnly);
 
     _inductionGen = BoolOptionValue("induction_gen","indgen",false);
     _inductionGen.description = "Apply induction with generalization (on both all & selected occurrences)";
-    _inductionGen.tag(OptionTag::INFERENCES);
+    _inductionGen.tag(OptionTag::INDUCTION);
     _inductionGen.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionGen);
 
@@ -1368,7 +1367,7 @@ void Options::init()
     _maxInductionGenSubsetSize.description = "Set maximum number of occurrences of the induction term to be"
                                               " generalized, where 0 means no max. (Regular induction will"
                                               " be applied without this restriction.)";
-    _maxInductionGenSubsetSize.tag(OptionTag::INFERENCES);
+    _maxInductionGenSubsetSize.tag(OptionTag::INDUCTION);
     _maxInductionGenSubsetSize.onlyUsefulWith(_inductionGen.is(equal(true)));
     _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
     _lookup.insert(&_maxInductionGenSubsetSize);
@@ -1376,26 +1375,26 @@ void Options::init()
     _inductionStrengthenHypothesis = BoolOptionValue("induction_strengthen_hypothesis","indstrhyp",false);
     _inductionStrengthenHypothesis.description = "Strengthen induction formulas with the remaining skolem constants"
                                                   " replaced with universally quantified variables in hypotheses";
-    _inductionStrengthenHypothesis.tag(OptionTag::INFERENCES);
+    _inductionStrengthenHypothesis.tag(OptionTag::INDUCTION);
     _inductionStrengthenHypothesis.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionStrengthenHypothesis);
 
     _inductionOnComplexTerms = BoolOptionValue("induction_on_complex_terms","indoct",false);
     _inductionOnComplexTerms.description = "Apply induction on complex (ground) terms vs. only on constants";
-    _inductionOnComplexTerms.tag(OptionTag::INFERENCES);
+    _inductionOnComplexTerms.tag(OptionTag::INDUCTION);
     _inductionOnComplexTerms.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnComplexTerms);
 
     _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
     _integerInductionDefaultBound.description = "Always apply integer induction with bound 0";
-    _integerInductionDefaultBound.tag(OptionTag::INFERENCES);
+    _integerInductionDefaultBound.tag(OptionTag::INDUCTION);
     _integerInductionDefaultBound.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionDefaultBound);
 
     _integerInductionInterval = ChoiceOptionValue<IntegerInductionInterval>("int_induction_interval","intindint",
                          IntegerInductionInterval::BOTH,{"infinite","finite","both"});
     _integerInductionInterval.description="Whether integer induction is applied over infinite or finite intervals, or both";
-    _integerInductionInterval.tag(OptionTag::INFERENCES);
+    _integerInductionInterval.tag(OptionTag::INDUCTION);
     _integerInductionInterval.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionInterval);
 
@@ -1422,7 +1421,7 @@ void Options::init()
       "  - only_one_occurrence: t has only one occurrence in l\n"
       "  - not_in_both: t does not occur in both arguments of l\n"
       "  - always: induction on l is not allowed at all\n";
-    _integerInductionStrictnessEq.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessEq.tag(OptionTag::INDUCTION);
     _integerInductionStrictnessEq.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessEq);
 
@@ -1441,7 +1440,7 @@ void Options::init()
       "  - only_one_occurrence: t has only one occurrence in l\n"
       "  - not_in_both: t does not occur in both arguments of l\n"
       "  - always: induction on l is not allowed at all\n";
-    _integerInductionStrictnessComp.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessComp.tag(OptionTag::INDUCTION);
     _integerInductionStrictnessComp.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessComp);
 
@@ -1457,19 +1456,19 @@ void Options::init()
       "  - none: no exclusion\n"
       "  - interpreted_constant: t is an interpreted constant\n"
       "  - no_skolems: t does not contain a skolem function";
-    _integerInductionStrictnessTerm.tag(OptionTag::INFERENCES);
+    _integerInductionStrictnessTerm.tag(OptionTag::INDUCTION);
     _integerInductionStrictnessTerm.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessTerm);
 
     _nonUnitInduction = BoolOptionValue("non_unit_induction","nui",false);
     _nonUnitInduction.description = "Induction on certain clauses or clause sets instead of just unit clauses";
-    _nonUnitInduction.tag(OptionTag::INFERENCES);
+    _nonUnitInduction.tag(OptionTag::INDUCTION);
     _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_nonUnitInduction);
 
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
-    _instantiation.tag(OptionTag::INFERENCES);
+    _instantiation.tag(OptionTag::THEORIES);
     _lookup.insert(&_instantiation);
     _instantiation.setRandomChoices({"off","on"}); // Turn this on rarely
 
@@ -1571,7 +1570,7 @@ void Options::init()
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
     _demodulationRedundancyCheck.setRandomChoices({"on","encompass","off"});
 
-    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","",false);
+    _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses";
     _lookup.insert(&_extensionalityAllowPosEq);
@@ -1579,7 +1578,7 @@ void Options::init()
     _extensionalityAllowPosEq.onlyUsefulWith(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
     _extensionalityAllowPosEq.setRandomChoices({"on","off","off"}); // Prefer off
 
-    _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","",0);
+    _extensionalityMaxLength = UnsignedOptionValue("extensionality_max_length","erml",0);
     _extensionalityMaxLength.description="Sets the maximum length (number of literals) an extensionality"
       " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.";
     _lookup.insert(&_extensionalityMaxLength);
@@ -1636,7 +1635,7 @@ void Options::init()
       "               ...\n"
       "         sn = tn \\/ A";
     _lookup.insert(&_termAlgebraInferences);
-    _termAlgebraInferences.tag(OptionTag::INFERENCES);
+    _termAlgebraInferences.tag(OptionTag::THEORIES);
 
     _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
                                                                      TACyclicityCheck::OFF,{"off","axiom","rule","light"});
@@ -1647,7 +1646,7 @@ void Options::init()
       "- rule : the cyclicity rule is enforced by a specific hyper-resolution rule\n"
       "- light : the cyclicity rule is enforced by rule generating disequality between a term and its known subterms";
     _lookup.insert(&_termAlgebraCyclicityCheck);
-    _termAlgebraCyclicityCheck.tag(OptionTag::INFERENCES);
+    _termAlgebraCyclicityCheck.tag(OptionTag::THEORIES);
 
     _forwardDemodulation = ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"});
     _forwardDemodulation.description=
@@ -2367,6 +2366,8 @@ void Options::init()
                  "SAT Solving",
                  "AVATAR",
                  "Inferences",
+                 "Induction",
+                 "Theories",
                  "LRS Specific",
                  "Saturation",
                  "Preprocessing",
