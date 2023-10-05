@@ -61,8 +61,6 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
     return false;
   }
 
-  if (lit->isAnswerLiteral()) return false;
-
   bool okay = _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);
 
   //if(okay && lit!=res){
