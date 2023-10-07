@@ -40,8 +40,8 @@ public:
 
   static vstring toString(const Unit*);
   static vstring toString(const Formula*);
-  static vstring toString(const Term*);
   static vstring toString(const Literal*);
+  static vstring toString(TermList);
 
 private:
 
