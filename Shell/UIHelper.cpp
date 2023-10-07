@@ -641,10 +641,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  if(typeCon && env.signature->isDefaultSortCon(symNumber) &&
-    (!env.signature->isBoolCon(symNumber) || !env.options->showFOOL())){
+  if(typeCon && env.signature->isInterpretedNonDefault(symNumber))
     return;
-  }
 
   if (sym->interpreted()) {
     //there is no need to output type definitions for interpreted symbols
@@ -670,13 +668,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
 
   OperatorType* type = function ? sym->fnType() :
                (typeCon ? sym->typeConType() : sym->predType());
-
-  if (type->isAllDefault()) {//TODO required
-    return;
-  }
-
-  //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
-  //    << sym->name() << ": ";
+  (void) type;
 
   vstring symName = sym->name();
   if(typeCon && env.signature->isBoolCon(symNumber)){
@@ -684,16 +676,17 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     symName = "$bool";
   }
 
-  //don't output type of app. It is an internal Vampire thing
-  if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.getMainProblem()->isHigherOrder() ? "thf(" : "tff(")
-        << (function ? "func" : (typeCon ?  "type" : "pred"))
-        << "_def_" << symNumber << ", type, "
-        << symName << ": ";
-    out << type->toString();
-    out << ")." << endl;
+  if(typeCon) {
+    ASS(env.signature->isDefaultSortCon(symNumber))
+    out << "(declare-sort Individual 0)" << std::endl;
   }
-  //out << ")." << endl;
+  else {
+    out << "(declare-fun ";
+    out << symName << " (";
+    for(unsigned i = 0; i < sym->arity(); i++)
+      out << (i ? " " : "") << "Individual";
+    out << ") " << (function ? "Individual" : "Bool") << ")" << std::endl;
+  }
 }
 
 } // namespace Shell

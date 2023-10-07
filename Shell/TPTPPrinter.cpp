@@ -484,9 +484,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
 //  Inference::Rule rule = inf->rule();
 
   vstring prefix;
-  vstring main = "";
 
-  bool negate_formula = false;
   vstring kind;
   switch (unit->inputType()) {
   case UnitInputType::ASSUMPTION:
@@ -498,7 +496,6 @@ vstring TPTPPrinter::toString (const Unit* unit)
       kind = "negated_conjecture";
     }
     else {
-      negate_formula = true;
       kind = "conjecture";
     }
     break;
@@ -516,56 +513,72 @@ vstring TPTPPrinter::toString (const Unit* unit)
     break;
   }
 
-  if (unit->isClause()) {
-    prefix = "cnf";
-    main = static_cast<const Clause*>(unit)->toTPTPString();
-  }
-  else {
-    prefix = "tff";
-    const Formula* f = static_cast<const FormulaUnit*>(unit)->formula();
-    if(negate_formula) {
-      Formula* quant=Formula::quantify(const_cast<Formula*>(f));
-      if(quant->connective()==NOT) {
-	ASS_EQ(quant, f);
-	main = toString(quant->uarg());
-      }
-      else if(quant->connective()==LITERAL && quant->literal()->isNegative()){
-        ASS_EQ(quant,f);
-        Literal* comp = Literal::complementaryLiteral(quant->literal());
-        main = comp->toString();
-      }
-      else {
-	Formula* neg=new NegatedFormula(quant);
-	main = toString(neg);
-	neg->destroy();
-      }
-      if(quant!=f) {
-	ASS_EQ(quant->connective(),FORALL);
-        VList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
-	quant->destroy();
-      }
+  ASS(unit->isClause());
+  const Clause *cl = static_cast<const Clause *>(unit);
+  DHMap<unsigned, TermList> sorts;
+  SortHelper::collectVariableSorts(const_cast<Unit *>(unit), sorts);
+  vstring result = "(assert ";
+  if(!sorts.isEmpty()) {
+    result += "(forall (";
+    decltype(sorts)::Iterator vars(sorts);
+    bool space = false;
+    while(vars.hasNext()) {
+      result += space ? " " : "";
+      result += "(_" + Int::toString(vars.nextKey()) + " Individual)";
+      space = true;
     }
-    else {
-      main = toString(f);
-    }
+    result += ") ";
+  }
+  result += "(or";
+  for(unsigned i = 0; i < cl->length(); i++) {
+    result += ' ';
+    result += toString((*cl)[i]);
   }
 
-  vstring unitName;
-  if(!Parse::TPTP::findAxiomName(unit, unitName)) {
-    unitName="u" + Int::toString(unit->number());
-  }
-
-  return prefix + "(" + unitName + "," + kind + ",\n"
-    + "    " + main + ").\n";
-}
-
-
-vstring TPTPPrinter::toString(const Term* t){
-  NOT_IMPLEMENTED;
+  if(!sorts.isEmpty())
+    result += ")";
+  result += "))";
+  return result;
 }
 
 vstring TPTPPrinter::toString(const Literal* l){
-  NOT_IMPLEMENTED;
+  vstring result;
+  if(!l->polarity())
+    result += "(not ";
+  if(l->arity())
+    result += '(';
+
+  result += l->predicateName();
+  for(unsigned i = 0; i < l->arity(); i++) {
+    result += ' ';
+    result += toString((*l)[i]);
+  }
+
+  if(l->arity())
+    result += ')';
+  if(!l->polarity())
+    result += ')';
+  return result;
+}
+
+vstring TPTPPrinter::toString(TermList tl){
+  if(tl.isVar())
+    return "_" + Int::toString(tl.var());
+
+  Term *t = tl.term();
+  vstring result;
+  if(t->arity())
+    result += '(';
+
+  result += t->functionName();
+  for(unsigned i = 0; i < t->arity(); i++) {
+    result += ' ';
+    result += toString((*t)[i]);
+  }
+
+  if(t->arity())
+    result += ')';
+  return result;
 }
 
 }
