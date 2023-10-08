@@ -3146,7 +3146,9 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
       distincts.reset();
       for(int i=arity-1;i >= 0; i--){
         TermList t = _termLists.pop();
-        if(t.isVar() || t.term()->arity()!=0){ USER_ERROR("$distinct can only be used with constants");}
+        if(t.isVar() || t.term()->arity()!=0){
+          USER_ERROR("$distinct can only be used with constants. Found "+t.toString());
+        }
         distincts.push(t.term()->functor());
       }
       Formula* distinct_formula = DistinctGroupExpansion(0 /* zero means "always expand"*/).expand(distincts);
@@ -3157,7 +3159,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
       for(int i = arity-1;i >=0; i--){
         TermList ts = _termLists.pop();
         if(!ts.isTerm() || ts.term()->arity()!=0){
-          USER_ERROR("$distinct should only be used positively with constants");
+          USER_ERROR("$distinct can only be used with constants. Found "+ts.toString());
         }
         env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
       }
