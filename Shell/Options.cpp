@@ -3139,8 +3139,6 @@ vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>&
 
 void Options::sampleStrategy(const vstring& strategySamplerFilename)
 {
-  BYPASSING_ALLOCATOR;
-
   std::ifstream input(strategySamplerFilename.c_str());
 
   if (input.fail()) {
