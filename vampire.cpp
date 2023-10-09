@@ -151,13 +151,18 @@ void getRandomStrategy()
 VWARN_UNUSED
 Problem *doProving()
 {
+  // a new strategy randomization mechanism independent with randomizeStrategy below
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
+  }
+
   // One call to randomize before preprocessing (see Options)
   env.options->randomizeStrategy(0);
 
   Problem *prb = getPreprocessedProblem();
 
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
-  env.options->randomizeStrategy(prb->getProperty()); 
+  env.options->randomizeStrategy(prb->getProperty());
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
