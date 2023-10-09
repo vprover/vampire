@@ -74,6 +74,7 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
  *
  * @since 27/12/2007 Manchester
  */
+/*
 void CNF::clausify_rec (Formula* f)
 {
   switch (f->connective()) {
@@ -126,7 +127,7 @@ void CNF::clausify_rec (Formula* f)
   default:
     ASSERTION_VIOLATION;
   }
-} // CNF::clausify
+}*/ // CNF::clausify
 
 /**
  * A recursion-free implementation of the above.
