@@ -3085,6 +3085,13 @@ void Options::randomizeStrategy(Property* prop)
   if(prop) cout << "Random strategy: " + generateEncodedOptions() << endl;
 }
 
+/**
+ * During strategy sampling, this assigns a value to an option
+ * (but checks these make sense and issues an error if not).
+ *
+ * An optname starting with $ is not meant to be a real option, but a fake one.
+ * Fakes get stored in the map fakes and can be referenced later, during the sampling process.
+ */
 void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstring,vstring>& fakes)
 {
   // dollar sign signifies fake options
@@ -3104,6 +3111,13 @@ void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstri
   }
 }
 
+/**
+ * During strategy sampling, this reads a value of an option
+ * (but checks the name make sense and issues an error if not).
+ *
+ * An optname starting with $ is not meant to be a real option, but a fake one.
+ * Fakes get read from the given map fakes.
+ */
 vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>& fakes)
 {
   if (optname[0] == '$') {
