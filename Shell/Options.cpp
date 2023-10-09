@@ -3123,16 +3123,14 @@ vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>&
   return "";
 }
 
-void Options::trySamplingStrategy()
+void Options::sampleStrategy(const vstring& strategySamplerFilename)
 {
-  if(_sampleStrategy.actualValue=="") return;
-
   BYPASSING_ALLOCATOR;
 
-  std::ifstream input(_sampleStrategy.actualValue.c_str());
+  std::ifstream input(strategySamplerFilename.c_str());
 
   if (input.fail()) {
-    USER_ERROR("Cannot open sampler file: "+_sampleStrategy.actualValue);
+    USER_ERROR("Cannot open sampler file: "+strategySamplerFilename);
   }
 
   // our local randomizing engine (randomly seeded)

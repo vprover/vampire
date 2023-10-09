@@ -152,7 +152,9 @@ VWARN_UNUSED
 Problem *doProving()
 {
   // a new strategy randomization mechanism independent with randomizeStrategy below
-  env.options->trySamplingStrategy();
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
+  }
 
   // One call to randomize before preprocessing (see Options)
   env.options->randomizeStrategy(0);

@@ -152,7 +152,30 @@ public:
     // the preprocessing stage. This means that in vampire.cpp we call this twice
     void randomizeStrategy(Property* prop);
 
-    void trySamplingStrategy();
+    /**
+     * Sample a random strategy from a distribution described by the given file.
+     *
+     * The format of the sampler file should be easy to understant (Look for examples samplerFOL.txt, samplerFNT.txt, samplerSMT.txt under vampire root).
+     * The file describes a sequence of sampling rules (one on each line, barring empty lines and comment lines starting with a #),
+     * which are executed in order, and each rule (provided its preconditions are satisfied) triggers
+     * sampling of a value for a particular option from a specified distribution.
+     * The most common sampler is for the categorical distribution (~cat), which is specified by a list of values with corresponding integer frequencies.
+     * Other samplers include ratios, uniform floats and integers, and a (shifted) geometric distribution for potentially unbounded integers.
+     * A notable feature is the ability to sample also fake (non-existent) options, recognized by a $-sign prefixed, whose value can later be reference in the conditions.
+     *
+     * Example:
+     *
+     * # naming
+     * > $nm ~cat Z:1,NZ:5
+     * $nm=Z > nm ~cat 0:1
+     * $nm=NZ > nm ~sgd 0.07,2
+     *
+     * First samples a fake option $nm with either a value Z (1 out of 6) or Nz (5 out of 6).
+     * Then, if $nm is set to Z samples the (actual) naming option with value 0 (nm ~cat 0:1 is simply an assignment to the effect of nm := 0),
+     * and if $nm is set to NZ, samples from a shifted geometric distribution with p=0.07 and a shift=2. (So 2 gets selected with a probability p,
+     * 3 with a probability p(1-p), ... and 2+i with a probability p(1-p)^i).
+     */
+    void sampleStrategy(const vstring& samplerFileName);
 
     /**
      * Return the problem name
@@ -775,7 +798,7 @@ public:
     //
     // The details are explained in comments below
 private:
-    // helper function of trySamplingStrategy
+    // helper function of sampleStrategy
     void strategySamplingAssign(vstring optname, vstring value, DHMap<vstring,vstring>& fakes);
     vstring strategySamplingLookup(vstring optname, DHMap<vstring,vstring>& fakes);
 
@@ -2116,6 +2139,7 @@ public:
   unsigned randomSeed() const { return _randomSeed.actualValue; }
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
+  const vstring& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
