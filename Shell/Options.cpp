@@ -3221,7 +3221,7 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       StringUtils::splitStr(args.c_str(),',',pieces);
 
       unsigned total = 0;
-      Stack<std::pair<unsigned,vstring>> mulvals;
+      Stack<std::pair<unsigned,vstring>> mulvals; //values with multiplicities, e.g. "off:5", or "on:1"
 
       // parse the mulvals
       {
