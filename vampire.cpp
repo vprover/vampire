@@ -105,7 +105,15 @@ Problem* getPreprocessedProblem()
 
 #ifdef __linux__
   if (env.options->parsingDoesNotCount()) {
-    env.options->setInstructionLimit(saveInstrLimit+Timer::elapsedMegaInstructions());
+    Timer::updateInstructionCount();
+    unsigned burnedParsing = Timer::elapsedMegaInstructions();
+
+    env.beginOutput();
+    addCommentSignForSZS(env.out());
+    env.out() << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
+    env.endOutput();
+
+    env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
   }
 #endif
 
