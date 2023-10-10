@@ -3564,6 +3564,13 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_encode);
     forbidden.insert(&_decode);
     forbidden.insert(&_sampleStrategy);
+
+    forbidden.insert(&_memoryLimit);
+    forbidden.insert(&_proof);
+    forbidden.insert(&_inputSyntax);
+#ifdef __linux__
+    forbidden.insert(&_parsingDoesNotCount);
+#endif
     forbidden.insert(&_ignoreMissing); // or maybe we do!
   }
 
