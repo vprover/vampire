@@ -196,7 +196,7 @@ to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv
 > lcm ~cat standard:500,predicate:51
 
 # sine_to_pred_levels
-> s2pl ~cat off:50,on:2,no:3
+lcm=standard > s2pl ~cat off:50,on:2,no:3
 
 # SINE LEVELS - configure (must come after sine_to_age & slsq & s2pl)
 
