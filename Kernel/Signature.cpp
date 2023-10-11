@@ -820,14 +820,19 @@ unsigned Signature::addPredicate (const vstring& name,
  */
 unsigned Signature::addNamePredicate(unsigned arity)
 {
-  return addFreshPredicate(arity,"sP");
+  unsigned index = addFreshPredicate(arity,"sP");
+  getPredicate(index)->markNamesFormula();
+  return index;
 } // addNamePredicate
 
 
 unsigned Signature::addNameFunction(unsigned arity)
 {
-  return addFreshFunction(arity,"sP");
-} // addNamePredicate
+  unsigned index = addFreshFunction(arity,"sP");
+  getFunction(index)->markNamesFormula();
+  return index;
+} // addNameFunction
+
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
  * the function name will be prefixI, where I is an integer, otherwise it will be
