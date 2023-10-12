@@ -1237,6 +1237,15 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
   e->add(std::move(cls), std::move(subst));
 }
 
+/*
+ToDo
+*/
+void InductionClauseIterator::performStructInductionSynth(const InductionContext& context, InductionFormulaIndex::Entry* e)
+{
+  //ToDo
+}
+
+
 // Whether an induction formula is applicable (or has already been generated)
 // is determined by its conclusion part, which is resolved against the literals
 // and bounds we induct on. From this point of view, an integer induction formula
