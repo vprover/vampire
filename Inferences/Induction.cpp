@@ -380,6 +380,16 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     env.endOutput();
   }
 
+  NonVariableNonTypeIterator nvi(lit);
+  while (nvi.hasNext()) {
+    auto st = nvi.next();
+    if (env.signature->getFunction(st->functor())->skolem()) {
+      InductionContext ctx(st, lit, premise);
+      performStructInductionSynth(ctx, nullptr);
+      USER_ERROR("x");
+    }
+  }
+
   if (lit->ground()) {
       Set<Term*> ta_terms;
       Set<Term*> int_terms;
@@ -1253,6 +1263,10 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   auto free_vars = L->freeVariables();
   ASS(free_vars);
   int synth_var = free_vars->head();
+  TermList freshSynthVar(var++,false);
+  Substitution s;
+  s.bind(synth_var, freshSynthVar);
+  L = SubstHelper::apply(L, s);
 
   TermStack recFuncArgs(ta->nConstructors() + 1);
 
@@ -1278,8 +1292,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
         TermReplacement tr(context._indTerm, y);
         Literal* curLit = tr.transform(L);
 
-        Substitution s;
-        s.bind(synth_var, w);
+        s.reset();
+        s.bind(freshSynthVar.var(), w);
         curLit = SubstHelper::apply(curLit, s);
 
         FormulaList::push(new AtomicFormula(curLit), hyps);
@@ -1295,8 +1309,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     TermReplacement tr(context._indTerm, cons);
     Literal* curLit = tr.transform(L);
 
-    Substitution s;
-    s.bind(synth_var, u);
+    s.reset();
+    s.bind(freshSynthVar.var(), u);
     curLit = SubstHelper::apply(curLit, s);
 
     Formula* succedent = new AtomicFormula(curLit);
@@ -1317,15 +1331,21 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   TermList z(var++, false);
   recFuncArgs.push(z);
 
-  unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec"); 
+  auto synth_sort = SortHelper::getVariableSort(freshSynthVar, L);
+  unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec");
+  TermStack sortArgs(ta->nConstructors() + 1);
+  for (unsigned i = 0; i < ta->nConstructors()+1; i++){
+    sortArgs.push(sort);
+  }
+  env.signature->getFunction(rec_fn)->setType(OperatorType::getFunctionType(sortArgs.size(), sortArgs.begin(), synth_sort));
 
   TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
 
   TermReplacement tr(context._indTerm, z);
   Literal* curLit = tr.transform(L);
 
-  Substitution s;
-  s.bind(synth_var, rec);
+  s.reset();
+  s.bind(freshSynthVar.var(), rec);
 
   Formula* conclusion = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), new AtomicFormula(SubstHelper::apply(curLit, s)));
 
