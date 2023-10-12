@@ -1242,7 +1242,99 @@ ToDo
 */
 void InductionClauseIterator::performStructInductionSynth(const InductionContext& context, InductionFormulaIndex::Entry* e)
 {
-  //ToDo
+  TermList sort = SortHelper::getResultSort(context._indTerm);
+  TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
+
+  FormulaList* formulas = FormulaList::empty();
+
+  unsigned var = 0;
+  Literal* L = Literal::complementaryLiteral(context._cls.begin()->second[0]);
+  
+  auto free_vars = L->freeVariables();
+  ASS(free_vars);
+  int synth_var = free_vars->head();
+
+  TermStack recFuncArgs(ta->nConstructors() + 1);
+
+  for (unsigned i = 0; i < ta->nConstructors(); i++){
+    TermAlgebraConstructor* con = ta->constructor(i);
+    unsigned arity = con->arity();
+    
+    TermStack argTerms(arity); // exactly arity arguments
+    TermStack recTerms(arity); // at most arity arguments
+    VList* recTermSynth = VList::empty();
+    FormulaList* hyps = FormulaList::empty();
+
+    for (unsigned j = 0; j < arity; j++){
+      TermList y(var++, false);
+      argTerms.push(y);
+
+      if (con->argSort(j) == con->rangeSort()){
+        recTerms.push(y);
+
+        TermList w(var++, false);
+        VList::push(w.var(), recTermSynth);
+
+        TermReplacement tr(context._indTerm, y);
+        Literal* curLit = tr.transform(L);
+
+        Substitution s;
+        s.bind(synth_var, w);
+        curLit = SubstHelper::apply(curLit, s);
+
+        FormulaList::push(new AtomicFormula(curLit), hyps);
+      }
+    }
+
+    Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps);
+    TermList u(var++, false);
+    recFuncArgs.push(u);
+
+    TermList cons(Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin()));
+    
+    TermReplacement tr(context._indTerm, cons);
+    Literal* curLit = tr.transform(L);
+
+    Substitution s;
+    s.bind(synth_var, u);
+    curLit = SubstHelper::apply(curLit, s);
+
+    Formula* succedent = new AtomicFormula(curLit);
+    Formula* inductionCase = new BinaryFormula(Connective::IMP, antecedent, succedent);
+
+    Formula* exists = new QuantifiedFormula(Connective::EXISTS, recTermSynth, SList::empty(), inductionCase);
+
+    VList* univQuantifiedVars = VList::empty();
+    VList::pushFromIterator(iterTraits(TermStack::Iterator(argTerms)).map([](TermList t) { return t.var(); }), univQuantifiedVars);
+
+    Formula* forall =  new QuantifiedFormula(Connective::FORALL, univQuantifiedVars, SList::empty(), exists);
+
+    formulas->push(forall, formulas);
+  }
+
+  Formula* formula = new JunctionFormula(Connective::AND, formulas);
+
+  TermList z(var++, false);
+  recFuncArgs.push(z);
+
+  unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec"); 
+
+  TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
+
+  TermReplacement tr(context._indTerm, z);
+  Literal* curLit = tr.transform(L);
+
+  Substitution s;
+  s.bind(synth_var, rec);
+
+  Formula* conclusion = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), new AtomicFormula(SubstHelper::apply(curLit, s)));
+
+  formula = new BinaryFormula(Connective::IMP, formula, conclusion);
+
+  formula = QuantifiedFormula::quantify(formula); // Quantifies formula over all free variables (u_1, ..., u_m)
+
+  std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
+
 }
 
 
