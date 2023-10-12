@@ -58,6 +58,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inUnit(0),
     _inductionSkolem(0),
     _skolem(0),
+    _namesFormula(0),
     _tuple(0),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
