@@ -74,6 +74,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _remDepth(0),
+    _posInfo(),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {

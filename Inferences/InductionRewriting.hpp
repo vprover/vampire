@@ -117,7 +117,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 
 private:
-  Clause* perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, const Position& pos,
+  Clause* perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,
     Clause* eqClause, Literal* eqLit, TermList eqLhs, ResultSubstitution* subst, bool eqIsResult);
 
   // void exploreTerm(Term* t, bool left);

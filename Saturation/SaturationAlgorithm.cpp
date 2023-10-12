@@ -1490,13 +1490,13 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
-    if (opt.remodulation()!=Options::Remodulation::OFF) {
-      if (opt.introduceChains()) {
-        gie->addFront(new UpwardChaining());
-      }
-      gie->addFront(new InductionRewriting(nullptr));
-    }
     gie->addFront(new Induction());
+  }
+  if (opt.goalParamodulation()!=Options::GoalParamodulation::OFF) {
+    if (opt.goalParamodulationChaining()) {
+      gie->addFront(new UpwardChaining());
+    }
+    gie->addFront(new InductionRewriting(nullptr));
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){

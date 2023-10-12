@@ -258,10 +258,12 @@ public:
     INTERPRETED_CONSTANT,
     NO_SKOLEMS
   };
-  enum class Remodulation : unsigned int {
+  enum class GoalParamodulation : unsigned int {
     OFF,
-    UPWARDS_ONLY,
-    ON
+    UP_LMIM,
+    UP,
+    LMIM,
+    ALL,
   };
 
   enum class PredicateSineLevels : unsigned int {
@@ -2345,9 +2347,9 @@ public:
   IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
-  Remodulation remodulation() const { return _remodulation.actualValue; }
-  unsigned maxRemodulationDepth() const { return _maxRemodulationDepth.actualValue; }
-  bool introduceChains() const { return _introduceChains.actualValue; }
+  GoalParamodulation goalParamodulation() const { return _goalParamodulation.actualValue; }
+  unsigned maxGoalParamodulationDepth() const { return _maxGoalParamodulationDepth.actualValue; }
+  bool goalParamodulationChaining() const { return _goalParamodulationChaining.actualValue; }
   bool inductionRedundancyCheck() const { return _inductionRedundancyCheck.actualValue; }
 
   float instGenBigRestartRatio() const { return _instGenBigRestartRatio.actualValue; }
@@ -2656,9 +2658,9 @@ private:
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
-  ChoiceOptionValue<Remodulation> _remodulation;
-  UnsignedOptionValue _maxRemodulationDepth;
-  BoolOptionValue _introduceChains;
+  ChoiceOptionValue<GoalParamodulation> _goalParamodulation;
+  UnsignedOptionValue _maxGoalParamodulationDepth;
+  BoolOptionValue _goalParamodulationChaining;
   BoolOptionValue _inductionRedundancyCheck;
 
   StringOptionValue _latexOutput;

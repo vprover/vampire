@@ -1467,33 +1467,31 @@ void Options::init()
     _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_nonUnitInduction);
 
-    _remodulation = ChoiceOptionValue<Remodulation>(
-      "remodulation",
-      "rem",
-      Remodulation::OFF,
-      {"off", "upwards_only", "on"}
+    _goalParamodulation = ChoiceOptionValue<GoalParamodulation>(
+      "goal_paramodulation",
+      "gp",
+      GoalParamodulation::OFF,
+      {"off", "up_lmim", "up", "lmim", "all"}
     );
-    _remodulation.description = "Rewrite inductive goals with unit equalities in the upward direction (w.r.t. the ordering) to obtain inductive lemmas";
-    _remodulation.tag(OptionTag::INFERENCES);
-    _remodulation.reliesOn(_induction.is(notEqual(Induction::NONE)));
-    _lookup.insert(&_remodulation);
+    _goalParamodulation.description = "Paramodulate goals with unit equalities possibly in the upward direction (w.r.t. the ordering)";
+    _goalParamodulation.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_goalParamodulation);
 
-    _maxRemodulationDepth = UnsignedOptionValue("max_remodulation_depth","mrd",3);
-    _maxRemodulationDepth.description = "Set maximum remodulation depth";
-    _maxRemodulationDepth.tag(OptionTag::INFERENCES);
-    _maxRemodulationDepth.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));
-    _lookup.insert(&_maxRemodulationDepth);
+    _maxGoalParamodulationDepth = UnsignedOptionValue("max_goal_paramodulation_depth","mgpd",3);
+    _maxGoalParamodulationDepth.description = "Set maximum goal paramodulation depth";
+    _maxGoalParamodulationDepth.tag(OptionTag::INFERENCES);
+    _maxGoalParamodulationDepth.reliesOn(_goalParamodulation.is(notEqual(GoalParamodulation::OFF)));
+    _lookup.insert(&_maxGoalParamodulationDepth);
 
-    _introduceChains = BoolOptionValue("introduce_chains","inch",false);
-    _introduceChains.description = "Introduce chains to avoid useless clauses during inductive lemma generation";
-    _introduceChains.tag(OptionTag::INFERENCES);
-    _introduceChains.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));
-    _lookup.insert(&_introduceChains);
+    _goalParamodulationChaining = BoolOptionValue("goal_paramodulation_chaining","gpc",false);
+    _goalParamodulationChaining.description = "Introduce chains to avoid useless clauses during goal paramodulation for inductive reasoning";
+    _goalParamodulationChaining.tag(OptionTag::INFERENCES);
+    _goalParamodulationChaining.reliesOn(_goalParamodulation.is(notEqual(GoalParamodulation::OFF)));
+    _lookup.insert(&_goalParamodulationChaining);
 
     _inductionRedundancyCheck = BoolOptionValue("induction_redundancy_check","indrc",false);
     _inductionRedundancyCheck.description = "Skip redundant induction inferences";
     _inductionRedundancyCheck.tag(OptionTag::INFERENCES);
-    _inductionRedundancyCheck.reliesOn(_remodulation.is(notEqual(Remodulation::OFF)));
     _lookup.insert(&_inductionRedundancyCheck);
 
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});

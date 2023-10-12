@@ -209,15 +209,15 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
-  case REMODULATION_LHS_INDEX:
+  case GOAL_PARAMODULATION_LHS_INDEX:
     tis=new TermSubstitutionTree();
-    res=new RemodulationLHSIndex(tis, _alg->getOptions());
+    res=new GoalParamodulationLHSIndex(tis, _alg->getOptions());
     isGenerating = true;
     break;
 
-  case REMODULATION_SUBTERM_INDEX:
+  case GOAL_PARAMODULATION_SUBTERM_INDEX:
     tis=new TermSubstitutionTree();
-    res=new RemodulationSubtermIndex(tis, _alg->getOptions());
+    res=new GoalParamodulationSubtermIndex(tis, _alg->getOptions());
     isGenerating = true;
     break;
 

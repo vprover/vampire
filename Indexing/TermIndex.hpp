@@ -124,25 +124,25 @@ private:
   const Options& _opt;
 };
 
-class RemodulationLHSIndex
+class GoalParamodulationLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(RemodulationLHSIndex);
-  USE_ALLOCATOR(RemodulationLHSIndex);
+  CLASS_NAME(GoalParamodulationLHSIndex);
+  USE_ALLOCATOR(GoalParamodulationLHSIndex);
 
-  RemodulationLHSIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {}
+  GoalParamodulationLHSIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {}
 
 protected:
   void handleClause(Clause* c, bool adding) override;
   const Options& _opt;
 };
 
-class RemodulationSubtermIndex
+class GoalParamodulationSubtermIndex
 : public TermIndex
 {
 public:
-  RemodulationSubtermIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {};
+  GoalParamodulationSubtermIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding) override;
   const Options& _opt;

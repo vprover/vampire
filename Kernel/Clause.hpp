@@ -354,6 +354,14 @@ public:
 
   unsigned remDepth() const { return _remDepth; }
   void setRemDepth(unsigned depth) { _remDepth = depth; }
+  bool reversed() const { return _posInfo.reversed; }
+  bool switched() const { return _posInfo.switched; }
+  const Position& position() const { return _posInfo.pos; }
+  void setPosInfo(bool reversed, bool switched, Position&& pos) {
+    _posInfo.reversed = reversed;
+    _posInfo.switched = switched;
+    _posInfo.pos = std::move(pos);
+  }
 
 protected:
   /** number of literals */
@@ -386,6 +394,15 @@ protected:
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
   unsigned _remDepth;
+  // tuple containing info about the position of the last rewrite on this clause:
+  // 1. is literal reversed compared to first rewrite
+  // 2. has rewrite happened in RHS w.r.t. the initial orientation
+  // 3. position below top-level
+  struct {
+    bool reversed = false;
+    bool switched = false;
+    Position pos;
+  } _posInfo;
 
   int _numActiveSplits;
 

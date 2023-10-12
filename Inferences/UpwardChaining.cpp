@@ -62,7 +62,7 @@ void UpwardChaining::detach()
 ClauseIterator UpwardChaining::generateClauses(Clause* premise)
 {
   auto res = ClauseIterator::getEmpty();
-  ASS(_salg->getOptions().introduceChains());
+  ASS(_salg->getOptions().goalParamodulationChaining());
 
   if (premise->length()!=1) {
     return res;
@@ -73,7 +73,7 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
     return res;
   }
 
-  if (premise->remDepth()>=_salg->getOptions().maxRemodulationDepth()) {
+  if (premise->remDepth()>=_salg->getOptions().maxGoalParamodulationDepth()) {
     return res;
   }
 
@@ -209,7 +209,7 @@ Clause* UpwardChaining::perform(
   ASS(rwLit->isEquality()&&rwLit->isPositive());
   ASS(eqLit->isEquality()&&eqLit->isPositive());
 
-  if (rwClause->remDepth()+eqClause->remDepth()>=_salg->getOptions().maxRemodulationDepth()) {
+  if (rwClause->remDepth()+eqClause->remDepth()>=_salg->getOptions().maxGoalParamodulationDepth()) {
     return 0;
   }
 
@@ -258,7 +258,7 @@ Clause* UpwardChaining::perform(
   //      << "and " << *eqClause << endl << endl;
   // cout << left << " " << eqIsResult << endl;
   res->setRemDepth(rwClause->remDepth()+eqClause->remDepth()+1);
-  env.statistics->upwardChaining++;
+  env.statistics->goalParamodulationChaining++;
   return res;
 }
 

@@ -61,9 +61,8 @@ Statistics::Statistics()
     cForwardSuperposition(0),
     cBackwardSuperposition(0),
     selfSuperposition(0),
-    forwardRemodulations(0),
-    backwardRemodulations(0),
-    upwardChaining(0),
+    goalParamodulations(0),
+    goalParamodulationChaining(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -96,9 +95,9 @@ Statistics::Statistics()
     intDBDownInductionInProof(0),
     inductionApplication(0),
     inductionApplicationInProof(0),
-    inductionRedundant(0),
     generalizedInductionApplication(0),
     generalizedInductionApplicationInProof(0),
+    inductionRedundant(0),
     argumentCongruence(0),
     narrow(0),
     forwardSubVarSup(0),
@@ -379,9 +378,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
-  COND_OUT("Fw remodulations", forwardRemodulations);
-  COND_OUT("Bw remodulations", backwardRemodulations);
-  COND_OUT("Upward chaining", upwardChaining);
+  COND_OUT("Goal paramodulations", goalParamodulations);
+  COND_OUT("Goal paramodulations chaining", goalParamodulationChaining);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);

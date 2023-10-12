@@ -144,9 +144,9 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void RemodulationLHSIndex::handleClause(Clause* c, bool adding)
+void GoalParamodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()>=_opt.maxRemodulationDepth()) {
+  if (c->length()!=1 || c->remDepth()>=_opt.maxGoalParamodulationDepth()) {
     return;
   }
 
@@ -163,9 +163,9 @@ void RemodulationLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void RemodulationSubtermIndex::handleClause(Clause* c, bool adding)
+void GoalParamodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()>=_opt.maxRemodulationDepth()) {
+  if (c->length()!=1 || c->remDepth()>=_opt.maxGoalParamodulationDepth()) {
     return;
   }
 
@@ -189,7 +189,7 @@ void RemodulationSubtermIndex::handleClause(Clause* c, bool adding)
 
 void UpwardChainingLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()>=_opt.maxRemodulationDepth()) {
+  if (c->length()!=1 || c->remDepth()>=_opt.maxGoalParamodulationDepth()) {
     return;
   }
 
@@ -221,7 +221,7 @@ void UpwardChainingLHSIndex::handleClause(Clause* c, bool adding)
 
 void UpwardChainingSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()>=_opt.maxRemodulationDepth()) {
+  if (c->length()!=1 || c->remDepth()>=_opt.maxGoalParamodulationDepth()) {
     return;
   }
 
