@@ -30,6 +30,8 @@
 
 namespace Shell {
 
+using namespace std;
+
 CommandLine::CommandLine (int argc, char* argv [])
   : _next(argv+1),
     _last(argv+argc)

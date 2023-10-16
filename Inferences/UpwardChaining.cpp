@@ -30,6 +30,7 @@ namespace Inferences {
 
 using namespace Lib;
 using namespace Kernel;
+using namespace std;
 
 // inference
 

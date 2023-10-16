@@ -42,7 +42,6 @@
 
 namespace Kernel {
 
-using namespace std;
 using namespace Lib;
 typedef Map<vstring, unsigned> SymbolMap;
 
@@ -152,6 +151,8 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
+    /** if introduced for naming a subformula */
+    unsigned _namesFormula : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
     /** proxy type */
@@ -258,6 +259,9 @@ class Signature
     inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
 
+    inline void markNamesFormula() { _namesFormula = 1; }
+    inline bool namesFormula() { return _namesFormula; }
+
     inline void markTuple(){ _tuple = 1; }
     inline bool tupleSort(){ return _tuple; }
 
@@ -298,7 +302,7 @@ class Signature
     /** This takes the symbol number of this symbol as the symbol doesn't know it
         Note that this should only be called on a constant **/
     void addToDistinctGroup(unsigned group,unsigned this_number);
-    friend ostream& operator<<(ostream& out, const Signature::Symbol& self){ return out << self.name(); };
+    friend std::ostream& operator<<(std::ostream& out, const Signature::Symbol& self){ return out << self.name(); };
 
     void setType(OperatorType* type);
     void forceType(OperatorType* type);

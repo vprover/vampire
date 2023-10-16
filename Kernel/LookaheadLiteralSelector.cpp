@@ -34,6 +34,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Indexing;
 using namespace Saturation;

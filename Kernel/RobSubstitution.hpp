@@ -64,6 +64,11 @@ public:
     _nextUnboundAvailable=0;
   }
 
+  void resetNextUnboundAvailable()
+  {
+    _nextUnboundAvailable = 0;
+  }
+
   void setMap(FuncSubtermMap* fmap){
     _funcSubtermMap = fmap;
   }
@@ -190,7 +195,7 @@ public:
     /** index of term to which it is bound */
     int index;
   };
-  typedef pair<TermSpec,TermSpec> TTPair;
+  typedef std::pair<TermSpec,TermSpec> TTPair;
  
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash

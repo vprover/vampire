@@ -40,6 +40,8 @@
 namespace Shell
 {
 
+using namespace std;
+
 void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 {
   Stack<TermList> answer;

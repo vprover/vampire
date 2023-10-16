@@ -59,6 +59,7 @@
 
 #include "Kernel/TermIterators.hpp"
 
+using namespace std;
 using namespace Shell;
 
 /**
@@ -154,7 +155,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if(env.options->choiceAxiom()){
-    LambdaElimination::addChoiceAxiom(prb);    
+    LambdaElimination::addChoiceAxiom(prb);
   }
 
   prb.getProperty();
@@ -166,7 +167,7 @@ void Preprocess::preprocess(Problem& prb)
   if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
     LambdaElimination::addProxyAxioms(prb);
   }
-  
+
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
@@ -177,7 +178,7 @@ void Preprocess::preprocess(Problem& prb)
   if(env.signature->hasDistinctGroups()){
     if(env.options->showPreprocessing())
       env.out() << "distinct group expansion" << std::endl;
-    DistinctGroupExpansion().apply(prb);
+    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {

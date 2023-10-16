@@ -82,11 +82,11 @@ struct InductionContext {
 
   vstring toString() const {
     vstringstream str;
-    str << *_indTerm << endl;
+    str << *_indTerm << std::endl;
     for (const auto& kv : _cls) {
-      str << *kv.first << endl;
+      str << *kv.first << std::endl;
       for (const auto& lit : kv.second) {
-        str << *lit << endl;
+        str << *lit << std::endl;
       }
     }
     return str.str();

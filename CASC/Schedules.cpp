@@ -20,6 +20,7 @@
 
 #include <fstream>
 
+using namespace std;
 using namespace Lib;
 using namespace Shell;
 using namespace CASC;

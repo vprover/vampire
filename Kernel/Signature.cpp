@@ -58,6 +58,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inUnit(0),
     _inductionSkolem(0),
     _skolem(0),
+    _namesFormula(0),
     _tuple(0),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
@@ -121,7 +122,7 @@ void Signature::Symbol::destroyTypeConSymbol()
  * A constant can be added into one particular distinct group
  * at most once
  *
- * We also record the symbol in the group's members, under certain conditions
+ * We also record the symbol in the group's members
  */
 void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 {
@@ -129,17 +130,10 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   ASS(!List<unsigned>::member(group, _distinctGroups))
 
   List<unsigned>::push(group, _distinctGroups);
-
   env.signature->_distinctGroupsAddedTo=true;
 
   Signature::DistinctGroupMembers members = env.signature->_distinctGroupMembers[group];
-  if(members->size() <= DistinctGroupExpansion::EXPAND_UP_TO_SIZE
-                       || env.options->saturationAlgorithm()==Options::SaturationAlgorithm::FINITE_MODEL_BUILDING){
-    // we add one more than EXPAND_UP_TO_SIZE to signal to DistinctGroupExpansion::apply not to expand
-    // ... instead DistinctEqualitySimplifier will take over
-    members->push(this_number);
-  }
-
+  members->push(this_number);
 } // addToDistinctGroup
 
 /**
@@ -151,11 +145,11 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
  */
 void Signature::Symbol::setType(OperatorType* type)
 {
-  ASS_REP(!_type, _type->toString());
+  ASS_REP(!_type || _type == type, _type->toString());
 
   // this is copied out to the Symbol for convenience
   _typeArgsArity = type->numTypeArguments(); 
-  _type = type;  
+  _type = type;
 }
 
 /**
@@ -827,14 +821,19 @@ unsigned Signature::addPredicate (const vstring& name,
  */
 unsigned Signature::addNamePredicate(unsigned arity)
 {
-  return addFreshPredicate(arity,"sP");
+  unsigned index = addFreshPredicate(arity,"sP");
+  getPredicate(index)->markNamesFormula();
+  return index;
 } // addNamePredicate
 
 
 unsigned Signature::addNameFunction(unsigned arity)
 {
-  return addFreshFunction(arity,"sP");
-} // addNamePredicate
+  unsigned index = addFreshFunction(arity,"sP");
+  getFunction(index)->markNamesFormula();
+  return index;
+} // addNameFunction
+
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
  * the function name will be prefixI, where I is an integer, otherwise it will be

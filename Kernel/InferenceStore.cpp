@@ -652,7 +652,7 @@ protected:
       } else if (sym.first == SymbolType::PRED){
         symsStr << env.signature->predicateName(sym.second);
       } else {
-        symsStr << env.signature->typeConName(sym.second);       
+        symsStr << env.signature->typeConName(sym.second);
       }
       if (symIt.hasNext()) {
         symsStr << ',';
@@ -689,7 +689,6 @@ protected:
     default: ;
     }
 
-
     //get vstring representing the formula
 
     vstring formulaStr=getFormulaString(us);
@@ -700,21 +699,29 @@ protected:
     if (rule==InferenceRule::INPUT) {
       vstring fileName;
       if (env.options->inputFile()=="") {
-	fileName="unknown";
+	      fileName="unknown";
       }
       else {
-	fileName="'"+env.options->inputFile()+"'";
+	      fileName="'"+env.options->inputFile()+"'";
       }
       vstring axiomName;
       if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
-	axiomName="unknown";
+	      axiomName="unknown";
       }
       inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
     }
     else if (!parents.hasNext()) {
       vstring newSymbolInfo;
       if (hasNewSymbols(us)) {
-	newSymbolInfo = getNewSymbols("naming",us);
+        vstring newSymbOrigin;
+        if (rule == InferenceRule::FUNCTION_DEFINITION ||
+          rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
+          rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) {
+          newSymbOrigin = "definition";
+        } else {
+          newSymbOrigin = "naming";
+        }
+	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
       }
       inferenceStr="introduced("+tptpRuleName(rule)+",["+newSymbolInfo+"])";
     }
@@ -722,7 +729,7 @@ protected:
       ASS(parents.hasNext());
       vstring statusStr;
       if (rule==InferenceRule::SKOLEMIZE) {
-	statusStr="status(esa),"+getNewSymbols("skolem",us);
+	      statusStr="status(esa),"+getNewSymbols("skolem",us);
       }
 
       inferenceStr="inference("+tptpRuleName(rule);
@@ -754,7 +761,7 @@ protected:
     vstring inferenceStr="inference("+tptpRuleName(rule)+",[],[";
 
     //here we rely on the fact that the base premise is always put as the first premise in
-    //GeneralSplitting::apply 
+    //GeneralSplitting::apply
 
     ALWAYS(parents.hasNext());
     Unit* base=parents.next();
@@ -784,7 +791,7 @@ protected:
     vstring defId=tptpDefId(us);
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
-	"inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
+	    "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
 
 
     List<unsigned>* nameVars=0;
@@ -803,14 +810,14 @@ protected:
     while(lits.hasNext()) {
       Literal* lit=lits.next();
       if (lit==nameLit) {
-	continue;
+	      continue;
       }
       if (first) {
-	first=false;
+	      first=false;
       }
       else {
-	multiple=true;
-	compStr+=" | ";
+	      multiple=true;
+	      compStr+=" | ";
       }
       compStr+=lit->toString();
 
@@ -855,7 +862,7 @@ protected:
     vstring defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
-  "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
+      "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
 
     vstringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
@@ -872,7 +879,7 @@ struct InferenceStore::ProofCheckPrinter
 {
   CLASS_NAME(InferenceStore::ProofCheckPrinter);
   USE_ALLOCATOR(InferenceStore::ProofCheckPrinter);
-  
+
   ProofCheckPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 
@@ -881,7 +888,7 @@ protected:
   {
     InferenceRule rule;
     UnitIterator parents=_is->getParents(cs, rule);
- 
+
     //outputSymbolDeclarations also deals with sorts for now
     //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
@@ -929,8 +936,8 @@ protected:
     case InferenceRule::AVATAR_REFUTATION:
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
     case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
-    case InferenceRule::FOOL_LET_ELIMINATION:
-    case InferenceRule::FOOL_ITE_ELIMINATION:
+    case InferenceRule::FOOL_LET_DEFINITION:
+    case InferenceRule::FOOL_ITE_DEFINITION:
     case InferenceRule::FOOL_ELIMINATION:
     case InferenceRule::BOOLEAN_TERM_ENCODING:
     case InferenceRule::CHOICE_AXIOM:

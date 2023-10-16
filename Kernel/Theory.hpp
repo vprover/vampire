@@ -122,7 +122,7 @@ private:
 };
 
 inline
-std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
+std::ostream& operator<< (std::ostream& out, const IntegerConstantType& val) {
   return out << val.toInner();
 }
 
@@ -200,7 +200,7 @@ private:
 };
 
 inline
-std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
+std::ostream& operator<< (std::ostream& out, const RationalConstantType& val) {
   return out << val.toString();
 }
 
@@ -271,7 +271,7 @@ inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs)
 }
 
 inline
-std::ostream& operator<< (ostream& out, const RealConstantType& val) {
+std::ostream& operator<< (std::ostream& out, const RealConstantType& val) {
   return out << val.toString();
 }
 

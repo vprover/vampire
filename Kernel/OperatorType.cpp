@@ -21,6 +21,7 @@
 #include "Term.hpp"
 #include "Signature.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 /**

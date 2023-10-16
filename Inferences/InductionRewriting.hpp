@@ -73,33 +73,33 @@ TermList replaceOccurrence(Term* t, Term* orig, TermList repl, const Position& p
 vstring posToString(const Position& pos);
 Term* getTermAtPos(Term* t, const Position& p);
 bool isInductionTerm(Term* t);
-void getTermsToInductOn(Literal* lit, const Stack<pair<Position,bool>>& ps, DHSet<Term*>& indTerms);
-Position getRightmostPosition(const Stack<pair<Position,bool>>& ps, bool left);
+void getTermsToInductOn(Literal* lit, const Stack<std::pair<Position,bool>>& ps, DHSet<Term*>& indTerms);
+Position getRightmostPosition(const Stack<std::pair<Position,bool>>& ps, bool left);
 bool toTheLeft(const Position& p1, const Position& p2);
 bool hasTermToInductOn(Term* t);
-VirtualIterator<pair<Term*,Position>> getPositions(TermList t, Term* st);
+VirtualIterator<std::pair<Term*,Position>> getPositions(TermList t, Term* st);
 bool linear(Term* t);
 bool shouldChain(Term* lhs);
 VirtualIterator<TypedTermList> lhsIterator(Literal* lit);
 VirtualIterator<TypedTermList> orderedLhsIterator(Literal* lit, const Ordering& ord, bool reverse);
 
 class PositionalNonVariableNonTypeIterator
-  : public IteratorCore<pair<Term*,Position>>
+  : public IteratorCore<std::pair<Term*,Position>>
 {
 public:
   PositionalNonVariableNonTypeIterator(const PositionalNonVariableNonTypeIterator&);
 
   PositionalNonVariableNonTypeIterator(Term* term) : _stack(8)
   {
-    _stack.push(make_pair(term,Position()));
+    _stack.push(std::make_pair(term,Position()));
   }
 
   /** true if there exists at least one subterm */
   bool hasNext() { return !_stack.isEmpty(); }
-  pair<Term*,Position> next();
+  std::pair<Term*,Position> next();
 private:
   /** available non-variable subterms */
-  Stack<pair<Term*,Position>> _stack;
+  Stack<std::pair<Term*,Position>> _stack;
 }; // PositionalNonVariableNonTypeIterator
 
 class InductionRewriting

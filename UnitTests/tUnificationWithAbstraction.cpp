@@ -31,6 +31,7 @@
 
 // TODO make this test use assertions, instead of printing output
 
+using namespace std;
 using namespace Kernel;
 using namespace Indexing;
 using SortType = TermList;

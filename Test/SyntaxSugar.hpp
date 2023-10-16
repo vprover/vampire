@@ -687,7 +687,7 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
   return out;
 }
 
-inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
+inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
 
   using namespace Shell;
 

@@ -821,7 +821,7 @@ struct IteratorTypeInfo<const List<T>*>
 #if VDEBUG
 
 template<typename T>
-std::ostream& operator<< (ostream& out, const List<T>& lstr )
+std::ostream& operator<< (std::ostream& out, const List<T>& lstr )
 {
   const List<T>* lst=&lstr;
   out<<'[';
@@ -836,7 +836,7 @@ std::ostream& operator<< (ostream& out, const List<T>& lstr )
 }
 
 template<typename T>
-std::ostream& operator<< (ostream& out, const List<T*>& lstr )
+std::ostream& operator<< (std::ostream& out, const List<T*>& lstr )
 {
   const List<T*>* lst=&lstr;
   out<<'[';

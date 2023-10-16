@@ -33,13 +33,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-
 #include "NegativeExt.hpp"
 
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {
@@ -48,6 +43,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 struct NegativeExt::IsNegativeEqualityFn
 {

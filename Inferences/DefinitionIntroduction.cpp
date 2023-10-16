@@ -15,6 +15,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/InferenceStore.hpp"
 
 namespace Inferences
 {
@@ -109,6 +110,8 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
   NonspecificInference0 inference(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION);
   Clause *definition = new (1) Clause(1, inference);
   (*definition)[0] = eq;
+
+  InferenceStore::instance()->recordIntroducedSymbol(definition,SymbolType::FUNC,functor);
 
   _definitions.push(definition);
 }

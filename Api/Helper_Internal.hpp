@@ -135,7 +135,7 @@ public:
   void ensureArgumentsSortsMatch(BaseType* type, const Api::Term* args);
   void ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2);
 
-  typedef pair<vstring,vstring> AttribPair;
+  typedef std::pair<vstring,vstring> AttribPair;
   typedef Stack<AttribPair> AttribStack;
 
   AttribStack& getSortAttributes(unsigned srt)

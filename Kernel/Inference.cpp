@@ -23,6 +23,7 @@
 
 #include "Inference.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 
@@ -595,12 +596,14 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "flattening";
   case InferenceRule::FOOL_ELIMINATION:
     return "fool elimination";
-  case InferenceRule::FOOL_ITE_ELIMINATION:
-    return "fool $ite elimination";
-  case InferenceRule::FOOL_LET_ELIMINATION:
-    return "fool $let elimination";
-  case InferenceRule::FOOL_MATCH_ELIMINATION:
-    return "fool $match elimination";
+  case InferenceRule::FOOL_ITE_DEFINITION:
+    return "fool ite definition";
+  case InferenceRule::FOOL_LET_DEFINITION:
+    return "fool let definition";
+  case InferenceRule::FOOL_FORMULA_DEFINITION:
+    return "fool formula definition";
+  case InferenceRule::FOOL_MATCH_DEFINITION:
+    return "fool match definition";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
 //  case CHOICE_AXIOM:
@@ -821,14 +824,10 @@ vstring Kernel::ruleName(InferenceRule rule)
 
   case InferenceRule::COLOR_UNBLOCKING:
     return "color unblocking";
-  case InferenceRule::INSTANCE_GENERATION:
-    return "instance generation";
   case InferenceRule::UNIT_RESULTING_RESOLUTION:
     return "unit resulting resolution";
   case InferenceRule::GLOBAL_SUBSUMPTION:
     return "global subsumption";
-  case InferenceRule::SAT_INSTGEN_REFUTATION:
-    return "sat instgen refutation";
   case InferenceRule::DISTINCT_EQUALITY_REMOVAL:
     return "distinct equality removal";
   case InferenceRule::EXTERNAL:

@@ -97,6 +97,7 @@ public:
   static bool instructionLimitingInPlace();
   static unsigned elapsedMegaInstructions();
   static void resetInstructionMeasuring();
+  static void updateInstructionCount();
 
   // called when a limit is reached
   [[noreturn]] static void limitReached(unsigned char whichLimit);

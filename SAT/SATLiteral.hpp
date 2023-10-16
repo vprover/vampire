@@ -25,7 +25,6 @@
 
 namespace SAT {
 
-using namespace std;
 using namespace Kernel;
 
 class SATLiteral

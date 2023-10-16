@@ -27,6 +27,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 
 const int RobSubstitution::SPECIAL_INDEX=-2;

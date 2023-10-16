@@ -87,7 +87,7 @@ private:
    *
    * Is used for the shallow representation of the currifyed terms.
    */
-  typedef pair<unsigned,unsigned> CPair;
+  typedef std::pair<unsigned,unsigned> CPair;
   /** Equality between two constants */
   struct CEq
   {
@@ -266,7 +266,7 @@ private:
   /**
    * Map from signature symbols to the local constant numbers.
    */
-  DHMap<pair<unsigned,SignatureKind>,unsigned> _sigConsts;
+  DHMap<std::pair<unsigned,SignatureKind>,unsigned> _sigConsts;
 
   typedef DHMap<CPair,unsigned> PairMap;
   /** Names of constant pairs (modulo the congruence!)*/

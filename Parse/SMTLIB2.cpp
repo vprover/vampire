@@ -56,6 +56,8 @@
 
 namespace Parse {
 
+using namespace std;
+
 static const char* PAR = "par";
 static const char* TYPECON_POSTFIX = "()";
 
@@ -282,6 +284,18 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       }
       LExpr* body = ibRdr.readNext();
       readAssert(body);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
+    if (ibRdr.tryAcceptAtom("assert-claim")) {
+      if (!ibRdr.hasNext()) {
+        USER_ERROR_EXPR("assert expects a body");
+      }
+      LExpr* body = ibRdr.readNext();
+      readAssertClaim(body);
 
       ibRdr.acceptEOL();
 
@@ -2507,7 +2521,9 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   ASS(head->isList());
   LispListReader headRdr(head);
 
-  headRdr.acceptAtom(UNDERSCORE);
+  if (!headRdr.tryAcceptAtom(UNDERSCORE)) {
+    USER_ERROR("Compound functor expected to be a rankend function (starting with '_'). Instead read: "+head->toString());
+  }
 
   if(headRdr.tryAcceptAtom("divisible")){
 
@@ -2826,6 +2842,24 @@ void SMTLIB2::readAssert(LExpr* body)
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
   UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::readAssertClaim(LExpr* body)
+{
+  _nextVar = 0;
+  ASS(_scopes.isEmpty());
+
+  ParseResult res = parseTermOrFormula(body,false/*isSort*/);
+
+  Formula* fla;
+  if (!res.asFormula(fla)) {
+    USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
+  }
+
+  static unsigned claim_id = 0;
+
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
+  UnitList::push(TPTP::processClaimFormula(fu,fla,"claim"+Int::toString(claim_id++)), _formulas);
 }
 
 void SMTLIB2::readAssertNot(LExpr* body)

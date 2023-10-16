@@ -17,6 +17,7 @@
 
 namespace Shell {
 
+using namespace std;
 using namespace Lib;
 
 // TODO: these should be dispensable with C++17 onwards
@@ -57,7 +58,7 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
       .map([](auto& x) { return &*x; })
       .find([&](Node* n) { return n->name == name; })
       .unwrapOrElse([&]() { 
-          children.push(Lib::make_unique<Node>(name));
+          children.push(std::make_unique<Node>(name));
           return &*children.top();
       });
     auto start = Clock::now();

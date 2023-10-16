@@ -22,6 +22,8 @@
 namespace Inferences
 {
 
+using namespace std;
+
 Clause* EquationalTautologyRemoval::simplify(Clause* cl)
 {
   // first check whether it makes sense to trigger CC:
