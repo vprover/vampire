@@ -139,15 +139,22 @@ struct URResolution::Item
     _color = static_cast<Color>(_color | premise->color());
     ASS_NEQ(_color, COLOR_INVALID)
 
-    if (_ansLit && !_ansLit->ground()) _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
+    if (_ansLit && !_ansLit->ground()) {
+      _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
+    }
     if (premise->hasAnswerLiteral()) {
       Literal* premAnsLit = premise->getAnswerLiteral();
-      if (!premAnsLit->ground()) premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
-      if (!_ansLit) _ansLit = premAnsLit;
-      else if (_ansLit != premAnsLit) {
+      if (!premAnsLit->ground()) {
+        premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
+      }
+      if (!_ansLit) {
+        _ansLit = premAnsLit;
+      } else if (_ansLit != premAnsLit) {
         bool neg = rlit->isNegative(); 
         Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
-        if (neg) resolved = Literal::complementaryLiteral(resolved);
+        if (neg) {
+          resolved = Literal::complementaryLiteral(resolved);
+        }
         _ansLit = SynthesisManager::getInstance()->makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
       }
     }
@@ -195,7 +202,9 @@ struct URResolution::Item
 
     LiteralIterator it = _ansLit ? pvi(getSingletonIterator(_ansLit)) : LiteralIterator::getEmpty();
     if(single) {
-      if (!_ansLit || _ansLit->ground()) single = Renaming::normalize(single);
+      if (!_ansLit || _ansLit->ground()) {
+        single = Renaming::normalize(single);
+      }
       res = Clause::fromIterator(pvi(getConcatenatedIterator(getSingletonIterator(single), it)), inf);
     }
     else {

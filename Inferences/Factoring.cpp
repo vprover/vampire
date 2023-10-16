@@ -105,7 +105,6 @@ public:
   : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
   Clause* operator() (pair<Literal*,RobSubstitution*> arg)
   {
-    if (_cl->hasAnswerLiteral() && !arg.second->apply(_cl->getAnswerLiteral(), 0)->computableOrVar()) return 0;
     unsigned newLength = _cLen-1;
     Clause* res = new(newLength) Clause(newLength,
         GeneratingInference1(InferenceRule::FACTORING,_cl));

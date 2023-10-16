@@ -923,7 +923,9 @@ unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix, bool 
   unsigned f = addFreshFunction(arity, "sK", suffix);
   Symbol* s = getFunction(f);
   s->markSkolem();
-  if (!computable) s->markUncomputable();
+  if (!computable) {
+    s->markUncomputable();
+  }
 
   // Register it as a LaTeX function
  // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");

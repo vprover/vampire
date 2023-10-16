@@ -4982,7 +4982,9 @@ void TPTP::vampire()
     else {
       PARSE_ERROR("'left', 'right', 'skip' or 'uncomputable' expected",getTok(0));
     }
-    if (!uncomputable) env.colorUsed = true;
+    if (!uncomputable) {
+      env.colorUsed = true;
+    }
     Signature::Symbol* sym = pred
                              ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
                              : env.signature->getFunction(env.signature->addFunction(symb,arity));
