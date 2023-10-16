@@ -380,16 +380,6 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     env.endOutput();
   }
 
-  NonVariableNonTypeIterator nvi(lit);
-  while (nvi.hasNext()) {
-    auto st = nvi.next();
-    if (env.signature->getFunction(st->functor())->skolem()) {
-      InductionContext ctx(st, lit, premise);
-      performStructInductionSynth(ctx, nullptr);
-      USER_ERROR("x");
-    }
-  }
-
   if (lit->ground()) {
       Set<Term*> ta_terms;
       Set<Term*> int_terms;
@@ -533,6 +523,16 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       // resolve the formulas with the premises
       for (auto& kv : e->get()) {
         resolveClauses(kv.first, ctx, kv.second);
+      }
+    }
+  } else {
+    NonVariableNonTypeIterator nvi(lit);
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      if (env.signature->getFunction(st->functor())->skolem()) {
+        InductionContext ctx(st, lit, premise);
+        performStructInductionSynth(ctx, nullptr);
+        USER_ERROR("x");
       }
     }
   }
@@ -1260,7 +1260,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   unsigned var = 0;
   Literal* L = Literal::complementaryLiteral(context._cls.begin()->second[0]);
   
-  auto free_vars = L->freeVariables();
+  VList* free_vars = L->freeVariables();
   ASS(free_vars);
   int synth_var = free_vars->head();
   TermList freshSynthVar(var++,false);
