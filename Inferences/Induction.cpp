@@ -1314,7 +1314,13 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     curLit = SubstHelper::apply(curLit, s);
 
     Formula* succedent = new AtomicFormula(curLit);
-    Formula* inductionCase = new BinaryFormula(Connective::IMP, antecedent, succedent);
+
+    if (argTerms.isEmpty()) { // No implication needed for induction step
+      formulas->push(succedent, formulas);
+      continue;
+    }
+
+    Formula* inductionCase = new BinaryFormula(Connective::IMP, antecedent, succedent); // Induction step
 
     Formula* exists = new QuantifiedFormula(Connective::EXISTS, recTermSynth, SList::empty(), inductionCase);
 
@@ -1325,8 +1331,9 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
     formulas->push(forall, formulas);
   }
-
   Formula* formula = new JunctionFormula(Connective::AND, formulas);
+
+  // Construct conclusion
 
   TermList z(var++, false);
   recFuncArgs.push(z);
