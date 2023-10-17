@@ -306,6 +306,10 @@ Term* getTermAtPos(Term* t, const Position& p)
 
 bool isInductionTerm(Term* t)
 {
+  // uncomment to use for general reasoning
+  // return true;
+
+
   if (!InductionHelper::isInductionTermFunctor(t->functor())) {
     return false;
   }
