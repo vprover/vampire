@@ -106,7 +106,8 @@ struct URResolution::Item
   : _orig(cl), _color(cl->color()), _parent(parent)
   {
     unsigned clen = cl->length();
-    _ansLit = cl->getAnswerLiteral();
+    bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+    _ansLit = synthesis ? cl->getAnswerLiteral() : nullptr;
     _mustResolveAll = mustResolveAll || (selectedOnly ? true : (clen < 2 + (_ansLit ? 1 : 0)));
     unsigned litslen = clen - (_ansLit ? 1 : 0);
     _premises.init(litslen, 0);
@@ -142,7 +143,8 @@ struct URResolution::Item
     if (_ansLit && !_ansLit->ground()) {
       _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
     }
-    if (premise->hasAnswerLiteral()) {
+    bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+    if (synthesis && premise->hasAnswerLiteral()) {
       Literal* premAnsLit = premise->getAnswerLiteral();
       if (!premAnsLit->ground()) {
         premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
@@ -284,6 +286,7 @@ struct URResolution::Item
  */
 void URResolution::processLiteral(ItemList*& itms, unsigned idx)
 {
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   ItemList::DelIterator iit(itms);
   while(iit.hasNext()) {
     Item* itm = iit.next();
@@ -309,7 +312,7 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       itm2->resolveLiteral(idx, unif, unif.clause, true);
       iit.insert(itm2);
 
-      if(itm->_atMostOneNonGround && !unif.clause->hasAnswerLiteral()) {
+      if(itm->_atMostOneNonGround && (!synthesis || !unif.clause->hasAnswerLiteral())) {
         //if there is only one non-ground literal left, there is no need to retrieve
         //all unifications
         break;
@@ -356,7 +359,7 @@ void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList
  */
 void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
 {
-  ASS((cl->size() == 1) || (cl->hasAnswerLiteral() && cl->size() == 2));
+  ASS((cl->size() == 1) || (cl->size() == 2 && cl->hasAnswerLiteral()));
 
   Literal* lit = (*cl)[0];
   if (lit->isAnswerLiteral()) {
@@ -394,7 +397,8 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
   ClauseList* res = 0;
   processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res);
 
-  if(clen==1 || (clen==2 && cl->hasAnswerLiteral())) {
+  if (clen==1 ||
+      ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) && clen==2 && cl->hasAnswerLiteral())) {
     doBackwardInferences(cl, res);
   }
 

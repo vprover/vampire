@@ -1434,7 +1434,8 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   ASS(cl);
 
   if(!premises.hasNext()) {
-    ASS(!replacement || cl->splits()==replacement->splits() || (cl->hasAnswerLiteral() && (replacement->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION || replacement->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL)));
+    ASS(!replacement || cl->splits()==replacement->splits() ||
+        ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) && cl->hasAnswerLiteral() && (replacement->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION || replacement->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL)));
     return;
   }
 

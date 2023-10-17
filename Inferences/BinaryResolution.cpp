@@ -177,8 +177,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  Literal* cAnsLit = queryCl->getAnswerLiteral();
-  Literal* dAnsLit = qr.clause->getAnswerLiteral();
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
+  Literal* dAnsLit = synthesis ? qr.clause->getAnswerLiteral() : nullptr;
   bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
 
   unsigned conlength = withConstraints ? constraints->size() : 0;
