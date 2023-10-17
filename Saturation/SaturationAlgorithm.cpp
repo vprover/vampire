@@ -1497,7 +1497,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (opt.goalParamodulationChaining()) {
       gie->addFront(new UpwardChaining());
     }
-    gie->addFront(new InductionRewriting(nullptr));
+    gie->addFront(new InductionRewriting());
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){

@@ -31,32 +31,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace std;
 
-// iterators and filters
-
-TermList SingleOccurrenceReplacementIterator::Replacer::transformSubterm(TermList trm)
-{
-  if (trm.isVar() || _matchCount > _i) {
-    return trm;
-  }
-  if (trm.term() == _o && _i == _matchCount++) {
-    return _r;
-  }
-  return trm;
-}
-
-Term* SingleOccurrenceReplacementIterator::next()
-{
-  ASS(hasNext());
-  if (_t == _o) {
-    _iteration++;
-    return _r.term();
-  }
-  Replacer sor(_o, _r, _iteration++);
-  return sor.transform(_t);
-}
-
-// inference
-
 void InductionRewriting::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
@@ -64,13 +38,10 @@ void InductionRewriting::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_LHS_INDEX) );
   _subtermIndex=static_cast<TermIndex*>(
 	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_SUBTERM_INDEX) );
-  // _induction->attach(salg);
 }
 
 void InductionRewriting::detach()
 {
-  // _induction->detach();
-  // delete _induction;
   _lhsIndex = 0;
   _subtermIndex=0;
   _salg->getIndexManager()->release(GOAL_PARAMODULATION_LHS_INDEX);
@@ -139,19 +110,6 @@ bool toTheLeftStrict(const Position& p1, const Position& p2)
   return false;
 } 
 
-bool toTheLeft(const Position& p1, const Position& p2)
-{
-  for (unsigned i = 0; i < p1.size(); i++) {
-    if (p2.size() <= i) {
-      return true;
-    }
-    if (p1[i] != p2[i]) {
-      return p1[i] < p2[i];
-    }
-  }
-  return true;
-}
-
 vstring posToString(const Position& pos)
 {
   vstring res;
@@ -162,146 +120,6 @@ vstring posToString(const Position& pos)
     }
   }
   return res;
-}
-
-// void InductionRewriting::exploreTerm(Term* t, bool left)
-// {
-//   TIME_TRACE("InductionRewriting::exploreTerm");
-//   auto& terms = left ? _leftTerms : _rightTerms;
-//   terms.reset();
-//   terms.insert(t);
-
-//   Stack<pair<Term*,unsigned>> todo;
-//   todo.push(make_pair(t,0));
-//   const auto& ord = _salg->getOrdering();
-
-//   while(todo.isNonEmpty()) {
-//     auto kv = todo.pop();
-//     auto curr = kv.first;
-//     auto depth = kv.second;
-//     if (depth >= MAX_DEPTH) {
-//       continue;
-//     }
-//     // cout << "rewriting term " << *curr << endl;
-//     iterTraits(vi(new NonVariableNonTypeIterator(curr,true)))
-//       .unique()
-//       .timeTraced("term iter")
-//       .flatMap([this](Term* st) {
-//         // cout << "st " << *st << endl;
-//         return pvi(pushPairIntoRightIterator(st,_lhsIndex->getGeneralizations(st, true)));
-//       })
-//       .timeTraced("lhs index query")
-//       .flatMap([curr,&ord](pair<Term*,TermQueryResult> arg) {
-//         auto lhsS = arg.first;
-//         auto qr = arg.second;
-//         if (SortHelper::getResultSort(lhsS) != SortHelper::getEqualityArgumentSort(qr.literal)) {
-//           return VirtualIterator<Term*>::getEmpty();
-//         }
-//         // cout << "eq " << *qr.literal << endl;
-//         auto rhs = EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-//         auto rhsS = qr.substitution->applyToBoundResult(rhs);
-//         if (ord.compare(TermList(lhsS),rhsS)!=Ordering::Result::LESS) {
-//           return VirtualIterator<Term*>::getEmpty();
-//         }
-//         return pvi(vi(new SingleOccurrenceReplacementIterator(curr, lhsS, rhsS)));
-//       })
-//       .timeTraced("rewrite")
-//       .forEach([&terms,&todo,depth](Term* res) {
-//         if (terms.insert(res)) {
-//           todo.push(make_pair(res,depth+1));
-//         }
-//       });
-//   }
-// }
-
-Stack<Position> insertPosition(const Stack<Position>& ps, const Position& p)
-{
-  Stack<Position> res;
-  for (const auto& q : ps) {
-    bool diverged = false;
-    for (unsigned i = 0; i < q.size(); i++) {
-      if (p.size() <= i) {
-        break;
-      }
-      if (p[i] != q[i]) {
-        diverged = true;
-        break;
-      }
-    }
-    if (diverged) {
-      res.push(q);
-    }
-  }
-  res.push(p);
-  return res;
-}
-
-void InductionRewriting::exploreTermLMIM(Term* t, bool left)
-{
-  TIME_TRACE("InductionRewriting::exploreTermLMIM");
-  auto& terms = left ? _leftTerms : _rightTerms;
-  terms.reset();
-  Stack<Position> ps;
-  ps.push(Position());
-  terms.insert(t,std::move(ps));
-
-  Stack<tuple<Term*,Stack<unsigned>,unsigned>> todo;
-  todo.push(make_tuple(t,Stack<unsigned>(),0));
-  const auto& ord = _salg->getOrdering();
-
-  while(todo.isNonEmpty()) {
-    auto tp = todo.pop();
-    auto curr = get<0>(tp);
-    auto pos = get<1>(tp);
-    auto depth = get<2>(tp);
-    if (depth >= env.options->maxGoalParamodulationDepth()) {
-      continue;
-    }
-    // cout << "lmim rewriting term " << *curr << endl;
-    iterTraits(vi(new PositionalNonVariableNonTypeIterator(curr)))
-      .filter([pos](pair<Term*,Stack<unsigned>> arg) {
-        return toTheLeft(pos, arg.second);
-      })
-      .flatMap([this](pair<Term*,Stack<unsigned>> arg) {
-        // cout << "st " << *arg.first << " in " << posToString(arg.second) << endl;
-        return pvi(pushPairIntoRightIterator(arg,_lhsIndex->getGeneralizations(arg.first, true)));
-      })
-      .map([curr,&ord](pair<pair<Term*,Stack<unsigned>>,TermQueryResult> arg) {
-        auto lhsS = arg.first.first;
-        auto pos = arg.first.second;
-        auto qr = arg.second;
-        if (SortHelper::getResultSort(lhsS) != SortHelper::getEqualityArgumentSort(qr.literal)) {
-          return make_pair((Term*)nullptr,pos);
-        }
-        // cout << "eq " << *qr.literal << endl;
-        auto rhs = EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-        auto rhsS = qr.substitution->applyToBoundResult(rhs);
-        if (ord.compare(TermList(lhsS),rhsS)!=Ordering::Result::LESS) {
-          return make_pair((Term*)nullptr,pos);
-        }
-        return make_pair(replaceOccurrence(curr, lhsS, rhsS, pos).term(), pos);
-      })
-      .filter([](pair<Term*,Stack<unsigned>> res) {
-        return res.first;
-      })
-      .forEach([&terms,&todo,depth,curr](pair<Term*,Stack<unsigned>> res) {
-        if (!terms.find(res.first)) {
-          // cout << "res " << *res.first << endl;
-          todo.push(make_tuple(res.first,res.second,depth+1));
-          terms.insert(res.first,insertPosition(terms.get(curr), res.second));
-        }
-      });
-  }
-}
-
-Term* getTermAtPos(Term* t, const Position& p)
-{
-  Term* curr = t;
-  for (const auto& i : p) {
-    ASS_L(i,curr->arity());
-    curr = curr->nthArgument(i)->term();
-  }
-  return curr;
 }
 
 bool isInductionTerm(Term* t)
@@ -324,53 +142,6 @@ bool isInductionTerm(Term* t)
     if (env.signature->getFunction(nvi.next()->functor())->skolem()) return true;
   }
   return false;
-}
-
-// void getTermsToInductOn(Term* t, const Stack<Position>& ps, DHSet<Term*>& indTerms)
-// {
-//   indTerms.reset();
-//   ASS(ps.isNonEmpty());
-//   auto st = getTermAtPos(t,ps[0]);
-//   NonVariableNonTypeIterator nvi(st,true);
-//   while (nvi.hasNext()) {
-//     auto stt = nvi.next();
-//     if (isInductionTerm(stt)) {
-//       indTerms.insert(stt);
-//     }
-//   }
-//   if (indTerms.isEmpty()) {
-//     return;
-//   }
-//   for (unsigned i = 1; i < ps.size(); i++) {
-//     DHSet<Term*> inner;
-//     auto st = getTermAtPos(t,ps[i]);
-//     NonVariableNonTypeIterator nvi(st,true);
-//     while (nvi.hasNext()) {
-//       auto stt = nvi.next();
-//       if (isInductionTerm(stt) && indTerms.contains(stt)) {
-//         inner.insert(stt);
-//       }
-//     }
-//     DHSet<Term*>::DelIterator it(indTerms);
-//     while (it.hasNext()) {
-//       if (!inner.contains(it.next())) {
-//         it.del();
-//       }
-//     }
-//   }
-// }
-
-Position getRightmostPosition(const Stack<pair<Position,bool>>& ps, bool left) {
-  Position curr;
-  for (auto& kv : ps) {
-    if (kv.second != left) {
-      continue;
-    }
-    if (toTheLeft(curr,kv.first)) {
-      curr = kv.first;
-    }
-  }
-  return curr;
 }
 
 void assertPositionIn(const Position& p, Term* t) {
@@ -417,7 +188,7 @@ bool linear(Term* t)
   return true;
 }
 
-bool shouldChain (Term* lhs) {
+bool shouldChain(Term* lhs) {
   return linear(lhs) && !hasTermToInductOn(lhs);
 }
 

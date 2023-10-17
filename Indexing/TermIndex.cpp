@@ -59,8 +59,8 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord,_reverse)
-                                              : EqHelper::getSubtermIterator(lit,_ord,_reverse);
+    auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord)
+                                              : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
       ((TermSubstitutionTree*)_is)->handle(tt, lit, c, adding);

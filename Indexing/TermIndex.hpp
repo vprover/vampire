@@ -50,13 +50,12 @@ public:
   CLASS_NAME(SuperpositionSubtermIndex);
   USE_ALLOCATOR(SuperpositionSubtermIndex);
 
-  SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord, bool reverse)
-  : TermIndex(is), _ord(ord), _reverse(reverse) {};
+  SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
+  : TermIndex(is), _ord(ord) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
-  bool _reverse;
 };
 
 class SuperpositionLHSIndex

@@ -132,12 +132,7 @@ Index* IndexManager::create(IndexType t)
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
     tis=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering(), false);
-    isGenerating = true;
-    break;
-  case REVERSE_SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering(), true);
+    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
