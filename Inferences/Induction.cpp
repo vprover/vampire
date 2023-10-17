@@ -1315,19 +1315,19 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
     Formula* succedent = new AtomicFormula(curLit);
 
-    if (argTerms.isEmpty()) { // No implication needed for induction step
+    if (arity == 0) { //no forall y, no forall w, no implication
       formulas->push(succedent, formulas);
       continue;
     }
 
     Formula* inductionCase = new BinaryFormula(Connective::IMP, antecedent, succedent); // Induction step
 
-    Formula* exists = new QuantifiedFormula(Connective::EXISTS, recTermSynth, SList::empty(), inductionCase);
+    Formula* exists = new QuantifiedFormula(Connective::FORALL, recTermSynth, SList::empty(), inductionCase);
 
     VList* univQuantifiedVars = VList::empty();
     VList::pushFromIterator(iterTraits(TermStack::Iterator(argTerms)).map([](TermList t) { return t.var(); }), univQuantifiedVars);
 
-    Formula* forall =  new QuantifiedFormula(Connective::FORALL, univQuantifiedVars, SList::empty(), exists);
+    Formula* forall =  new QuantifiedFormula(Connective::FORALL, univQuantifiedVars, SList::empty(), (VList::isEmpty(recTermSynth)) ? succedent : exists);
 
     formulas->push(forall, formulas);
   }
