@@ -433,9 +433,6 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
     if(!lit->isAnswerLiteral()) {
       return;
     }
-    if (!lit->computableOrVar()) {
-      return;
-    }
   }
 
   _answers.push(cl);
