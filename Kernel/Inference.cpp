@@ -682,10 +682,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
-  case InferenceRule::FORWARD_REMODULATION:
-    return "forward remodulation";
-  case InferenceRule::BACKWARD_REMODULATION:
-    return "backward remodulation";
+  case InferenceRule::GOAL_PARAMODULATION:
+    return "goal paramodulation";
   case InferenceRule::UPWARD_CHAINING:
     return "upward chain building";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:

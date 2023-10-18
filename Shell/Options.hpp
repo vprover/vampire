@@ -285,9 +285,9 @@ public:
   };
   enum class GoalParamodulation : unsigned int {
     OFF,
-    UP_LMIM,
+    UP_LTR,
     UP,
-    LMIM,
+    LTR,
     ALL,
   };
 

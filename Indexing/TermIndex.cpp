@@ -16,7 +16,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Inferences/InductionHelper.hpp"
-#include "Inferences/InductionRewriting.hpp"
+#include "Inferences/GoalParamodulation.hpp"
 
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Clause.hpp"
@@ -90,7 +90,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 
   static DHSet<Term*> inserted;
 
-  if (c->remDepth()) {
+  if (c->goalParamodulationDepth()) {
     return;
   }
 
@@ -131,7 +131,7 @@ template class DemodulationSubtermIndexImpl<true>;
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()) {
+  if (c->length()!=1 || c->goalParamodulationDepth()) {
     return;
   }
 
@@ -146,7 +146,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 
 void GoalParamodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()>=_opt.maxGoalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalParamodulationDepth()>=_opt.maxGoalParamodulationDepth()) {
     return;
   }
 
@@ -165,7 +165,7 @@ void GoalParamodulationLHSIndex::handleClause(Clause* c, bool adding)
 
 void GoalParamodulationSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()>=_opt.maxGoalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalParamodulationDepth()>=_opt.maxGoalParamodulationDepth()) {
     return;
   }
 
@@ -189,7 +189,7 @@ void GoalParamodulationSubtermIndex::handleClause(Clause* c, bool adding)
 
 void UpwardChainingLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()>=_opt.maxGoalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalParamodulationDepth()>=_opt.maxGoalParamodulationDepth()) {
     return;
   }
 
@@ -221,7 +221,7 @@ void UpwardChainingLHSIndex::handleClause(Clause* c, bool adding)
 
 void UpwardChainingSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->remDepth()>=_opt.maxGoalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalParamodulationDepth()>=_opt.maxGoalParamodulationDepth()) {
     return;
   }
 

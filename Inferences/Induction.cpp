@@ -23,6 +23,7 @@
 #include "Lib/PairUtils.hpp"
 #include "Lib/Set.hpp"
 
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -33,7 +34,6 @@
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
 
-#include "InductionRewriting.hpp"
 #include "Induction.hpp"
 
 using std::pair;
@@ -383,7 +383,7 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
     return false;
   }
   auto cl = context._cls.begin()->first;
-  if (!cl->remDepth()) {
+  if (!cl->goalParamodulationDepth()) {
     return false;
   }
   auto lits = context._cls.begin()->second;

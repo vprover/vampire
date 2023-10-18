@@ -37,6 +37,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "ForwardSubsumptionAndResolution.hpp"
+#include "GoalParamodulation.hpp"
 
 namespace Inferences {
 using namespace Lib;
@@ -233,6 +234,15 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     while (rit.hasNext()) {
       Clause *premise = rit.next().clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
+        if (cl->goalParamodulationDepth()<premise->goalParamodulationDepth()) {
+          continue;
+        }
+        if (premise->switched() && !cl->switched()) {
+          continue;
+        }
+        if (premise->switched() == cl->switched() && toTheLeftStrict(cl->position(),premise->position())) {
+          continue;
+        }
         premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
         result = true;

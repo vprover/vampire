@@ -278,6 +278,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
          Inferences/ForwardSubsumptionDemodulation.o\
+         Inferences/GoalParamodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/InnerRewriting.o\
          Inferences/EquationalTautologyRemoval.o\
@@ -293,7 +294,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
-         Inferences/InductionRewriting.o\
          Inferences/UpwardChaining.o\
          Inferences/InductionHelper.o\
          Inferences/URResolution.o\

@@ -1470,7 +1470,7 @@ void Options::init()
       "goal_paramodulation",
       "gp",
       GoalParamodulation::OFF,
-      {"off", "up_lmim", "up", "lmim", "all"}
+      {"off", "up_ltr", "up", "ltr", "all"}
     );
     _goalParamodulation.description = "Paramodulate goals with unit equalities possibly in the upward direction (w.r.t. the ordering)";
     _goalParamodulation.tag(OptionTag::INFERENCES);

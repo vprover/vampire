@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file InductionRewriting.hpp
- * Defines class InductionRewriting
+ * @file GoalParamodulation.hpp
+ * Defines class GoalParamodulation
  *
  */
 
-#ifndef __InductionRewriting__
-#define __InductionRewriting__
+#ifndef __GoalParamodulation__
+#define __GoalParamodulation__
 
 #include "Forwards.hpp"
 
@@ -41,6 +41,7 @@ VirtualIterator<std::pair<Term*,Position>> getPositions(TermList t, Term* st);
 bool shouldChain(Term* lhs);
 VirtualIterator<TypedTermList> lhsIterator(Literal* lit);
 VirtualIterator<TypedTermList> orderedLhsIterator(Literal* lit, const Ordering& ord, bool reverse);
+bool toTheLeftStrict(const Position& p1, const Position& p2);
 
 class PositionalNonVariableNonTypeIterator
   : public IteratorCore<std::pair<Term*,Position>>
@@ -61,12 +62,12 @@ private:
   Stack<std::pair<Term*,Position>> _stack;
 }; // PositionalNonVariableNonTypeIterator
 
-class InductionRewriting
+class GoalParamodulation
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(InductionRewriting);
-  USE_ALLOCATOR(InductionRewriting);
+  CLASS_NAME(GoalParamodulation);
+  USE_ALLOCATOR(GoalParamodulation);
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -76,10 +77,14 @@ private:
   Clause* perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,
     Clause* eqClause, Literal* eqLit, TermList eqLhs, ResultSubstitution* subst, bool eqIsResult);
 
+  bool _onlyUpwards;
+  bool _leftToRight;
+  bool _chaining;
+
   TermIndex* _lhsIndex;
   TermIndex* _subtermIndex;
 };
 
 }
 
-#endif /*__InductionRewriting__*/
+#endif /*__GoalParamodulation__*/

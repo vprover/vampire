@@ -9,7 +9,7 @@
  */
 /**
  * @file UpwardChaining.hpp
- * Defines class InductionRewriting
+ * Defines class UpwardChaining
  *
  */
 

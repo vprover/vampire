@@ -410,10 +410,10 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
     Inferences/GlobalSubsumption.cpp
+    Inferences/GoalParamodulation.cpp
     Inferences/InnerRewriting.cpp
     Inferences/EquationalTautologyRemoval.cpp
     Inferences/Induction.cpp
-    Inferences/InductionRewriting.cpp
     Inferences/InductionHelper.cpp
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
@@ -446,10 +446,10 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
     Inferences/GlobalSubsumption.hpp
+    Inferences/GoalParamodulation.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp
     Inferences/Induction.hpp
-    Inferences/InductionRewriting.hpp
     Inferences/InductionHelper.hpp
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp

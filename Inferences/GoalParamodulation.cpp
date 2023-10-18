@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file InductionRewriting.cpp
- * Implements class InductionRewriting.
+ * @file GoalParamodulation.cpp
+ * Implements class GoalParamodulation.
  */
 
 #include "Lib/Metaiterators.hpp"
@@ -23,7 +23,7 @@
 
 #include "Shell/Options.hpp"
 
-#include "InductionRewriting.hpp"
+#include "GoalParamodulation.hpp"
 
 namespace Inferences {
 
@@ -31,16 +31,22 @@ using namespace Lib;
 using namespace Kernel;
 using namespace std;
 
-void InductionRewriting::attach(SaturationAlgorithm* salg)
+void GoalParamodulation::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
+
+  auto gp = salg->getOptions().goalParamodulation();
+  _onlyUpwards = (gp == Options::GoalParamodulation::UP || gp == Options::GoalParamodulation::UP_LTR);
+  _leftToRight = (gp == Options::GoalParamodulation::LTR || gp == Options::GoalParamodulation::UP_LTR);
+  _chaining = salg->getOptions().goalParamodulationChaining();
+
   _lhsIndex=static_cast<TermIndex*>(
 	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_LHS_INDEX) );
   _subtermIndex=static_cast<TermIndex*>(
 	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_SUBTERM_INDEX) );
 }
 
-void InductionRewriting::detach()
+void GoalParamodulation::detach()
 {
   _lhsIndex = 0;
   _subtermIndex=0;
@@ -125,7 +131,7 @@ vstring posToString(const Position& pos)
 bool isInductionTerm(Term* t)
 {
   // uncomment to use for general reasoning
-  // return true;
+  return true;
 
 
   if (!InductionHelper::isInductionTermFunctor(t->functor())) {
@@ -243,11 +249,11 @@ VirtualIterator<TypedTermList> orderedLhsIterator(Literal* lit, const Ordering& 
   ASSERTION_VIOLATION;
 }
 
-ClauseIterator InductionRewriting::generateClauses(Clause* premise)
+ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
 {
   auto res = ClauseIterator::getEmpty();
 
-  if (premise->length()!=1 || premise->remDepth()>=_salg->getOptions().maxGoalParamodulationDepth()) {
+  if (premise->length()!=1 || premise->goalParamodulationDepth()>=_salg->getOptions().maxGoalParamodulationDepth()) {
     return res;
   }
 
@@ -274,7 +280,7 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
       })
       .filter([premise,&opt](pair<Term*,TermQueryResult> arg) {
         auto qr = arg.second;
-        if (premise->remDepth()+qr.clause->remDepth()>=opt.maxGoalParamodulationDepth()) {
+        if (premise->goalParamodulationDepth()+qr.clause->goalParamodulationDepth()>=opt.maxGoalParamodulationDepth()) {
           return false;
         }
         if (SortHelper::getResultSort(arg.first) != SortHelper::getEqualityArgumentSort(qr.literal)) {
@@ -325,7 +331,7 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
       })
       .filter([premise,lit,&opt](pair<TypedTermList,TermQueryResult> arg) {
         auto qr = arg.second;
-        if (premise->remDepth()+qr.clause->remDepth()>=opt.maxGoalParamodulationDepth()) {
+        if (premise->goalParamodulationDepth()+qr.clause->goalParamodulationDepth()>=opt.maxGoalParamodulationDepth()) {
           return false;
         }
         if (SortHelper::getResultSort(qr.term.term()) != SortHelper::getEqualityArgumentSort(lit)) {
@@ -371,34 +377,25 @@ ClauseIterator InductionRewriting::generateClauses(Clause* premise)
   return res;
 }
 
-inline bool onlyUpwards(Options::GoalParamodulation gp) {
-  return gp == Options::GoalParamodulation::UP || gp == Options::GoalParamodulation::UP_LMIM;
-}
-
-inline bool lmim(Options::GoalParamodulation gp) {
-  return gp == Options::GoalParamodulation::LMIM || gp == Options::GoalParamodulation::UP_LMIM;
-}
-
-Clause* InductionRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,
+Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,
   Clause* eqClause, Literal* eqLit, TermList eqLhs, ResultSubstitution* subst, bool eqIsResult)
 {
-  const auto& opt = _salg->getOptions();
   const auto& ord = _salg->getOrdering();
 
   auto rhs = EqHelper::getOtherEqualitySide(eqLit,TermList(eqLhs));
   auto rhsS = eqIsResult ? subst->applyToBoundResult(rhs) : subst->applyToBoundQuery(rhs);
 
   auto comp = ord.compare(TermList(rwTerm),rhsS);
-  if (onlyUpwards(opt.goalParamodulation()) && comp != Ordering::Result::LESS) {
+  if (_onlyUpwards && comp != Ordering::Result::LESS) {
     return nullptr;
   }
-  if (comp == Ordering::Result::LESS && opt.goalParamodulationChaining() && shouldChain(rhs.term())) {
+  if (comp == Ordering::Result::LESS && _chaining && shouldChain(rhs.term())) {
     return nullptr;
   }
 
   bool reversed = rwClause->reversed();
   bool switchedNew = false;
-  if (lmim(opt.goalParamodulation())) {
+  if (_leftToRight) {
     // calculate positional stuff
     bool switched = rwClause->switched();
     const Position& sidePos = rwClause->position();
@@ -443,10 +440,10 @@ Clause* InductionRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
   auto resLit = Literal::createEquality(false, TermList(tgtSide), other, SortHelper::getEqualityArgumentSort(rwLit));
 
   Clause* res = new(1) Clause(1,
-    GeneratingInference2(InferenceRule::FORWARD_REMODULATION, rwClause, eqClause));
+    GeneratingInference2(InferenceRule::GOAL_PARAMODULATION, rwClause, eqClause));
   (*res)[0]=resLit;
-  res->setRemDepth(rwClause->remDepth()+eqClause->remDepth()+1);
-  if (lmim(opt.goalParamodulation())) {
+  res->setGoalParamodulationDepth(rwClause->goalParamodulationDepth()+eqClause->goalParamodulationDepth()+1);
+  if (_leftToRight) {
     bool reversedNew = other == resLit->termArg(other == rwLit->termArg(0) ? 1 : 0);
     res->setPosInfo(reversed ^ reversedNew, switchedNew, std::move(pos));
   }
