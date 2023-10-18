@@ -74,10 +74,6 @@ namespace Shell {
 
 #endif // VTIME_PROFILING
 
-
-#if VTIME_PROFILING
-
-
 /**
  * A class to trace time for particular blocks. this class shall never be used directly,
  * as it is preprocessed away when the flag VTIME_PROFILING is set to false.
@@ -223,7 +219,6 @@ public:
   Ord      & inner()       { return _ord; }
   Ord const& inner() const { return _ord; }
 };
-#endif // VTIME_PROFILING
 
 } // namespace Shell
 
