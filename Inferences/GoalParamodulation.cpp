@@ -275,6 +275,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
   // forward
   if (lit->isNegative() && lit->ground()) {
     res = pvi(iterTraits(vi(new NonVariableNonTypeIterator(lit)))
+      .unique()
       .flatMap([this](Term* t) {
         return pvi(pushPairIntoRightIterator(t,_lhsIndex->getGeneralizations(t, true)));
       })
