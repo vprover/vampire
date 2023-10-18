@@ -1296,44 +1296,42 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
         s.bind(freshSynthVar.var(), w);
         curLit = SubstHelper::apply(curLit, s);
 
-        FormulaList::push(new AtomicFormula(curLit), hyps);
+        FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j]
       }
     }
 
-    Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps);
+    // ∃w_k. /\ L[y_j, w_j]
+    Formula* antecedent = new QuantifiedFormula(Connective::EXISTS, recTermSynth, SList::empty(), JunctionFormula::generalJunction(Connective::AND, hyps));
+
     TermList u(var++, false);
     recFuncArgs.push(u);
 
     TermList cons(Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin()));
-    
     TermReplacement tr(context._indTerm, cons);
     Literal* curLit = tr.transform(L);
-
     s.reset();
     s.bind(freshSynthVar.var(), u);
-    curLit = SubstHelper::apply(curLit, s);
-
-    Formula* succedent = new AtomicFormula(curLit);
+    curLit = SubstHelper::apply(curLit, s); 
+    Formula* succedent = new AtomicFormula(curLit); // L[cons(y_1, ..., y_n), u_i]
 
     if (arity == 0) { //no forall y, no forall w, no implication
       formulas->push(succedent, formulas);
       continue;
     }
 
-    Formula* inductionCase = new BinaryFormula(Connective::IMP, antecedent, succedent); // Induction step
-
-    Formula* exists = new QuantifiedFormula(Connective::FORALL, recTermSynth, SList::empty(), inductionCase);
+    Formula* inductionCase = new BinaryFormula(Connective::IMP, antecedent, succedent); // Induction step: (∃w_k. /\ L[y_j, w_j]) --> L[cons(y_1, ..., y_n), u_i]
 
     VList* univQuantifiedVars = VList::empty();
     VList::pushFromIterator(iterTraits(TermStack::Iterator(argTerms)).map([](TermList t) { return t.var(); }), univQuantifiedVars);
 
-    Formula* forall =  new QuantifiedFormula(Connective::FORALL, univQuantifiedVars, SList::empty(), (VList::isEmpty(recTermSynth)) ? succedent : exists);
+    Formula* forall =  new QuantifiedFormula(Connective::FORALL, univQuantifiedVars, SList::empty(), (VList::isEmpty(recTermSynth)) ? succedent : inductionCase);
 
     formulas->push(forall, formulas);
   }
   Formula* formula = new JunctionFormula(Connective::AND, formulas);
 
-  // Construct conclusion
+
+  // Construct conclusion: ∀z. L[z, rec(u_1, ..., u_m, z)]
 
   TermList z(var++, false);
   recFuncArgs.push(z);
@@ -1362,6 +1360,11 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
 
+  auto cls = produceClauses(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
+  std::cout << "Clausified induction formula:\n";
+  for (auto cl: cls) {
+    std :: cout << cl->toString() << "\n";
+  }
 }
 
 
