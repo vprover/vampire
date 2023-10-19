@@ -79,119 +79,103 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
   }
 
   const auto& ord = _salg->getOrdering();
+  auto sc = shouldChain(lit,ord);
 
-  // left
-  // 1. rewrite s[r]=t into s[l]=t with l=r where s[r] does not contain induction terms and l does
+  if (sc) {
+    auto comp = ord.getEqualityArgumentOrder(lit);
+    ASS(comp != Ordering::INCOMPARABLE && comp != Ordering::EQUAL);
+    auto side = lit->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 0 : 1);
+    if (side.isTerm()) {
+      // 1. left, forward
+      // rewrite given unuseful s[r]=t into s[l]=t with indexed not unuseful l=r
+      res = pvi(getConcatenatedIterator(res, pvi(iterTraits(vi(new PositionalNonVariableNonTypeIterator(side.term())))
+        .flatMap([this](pair<Term*,Position> arg) {
+          return pvi(pushPairIntoRightIterator(arg, _leftLhsIndex->getUnifications(arg.first, true)));
+        })
+        .map([side,lit,premise,this,&ord](pair<pair<Term*,Position>,TermQueryResult> arg) -> Clause* {
+          auto rwTerm = arg.first.first;
+          auto pos = arg.first.second;
+          auto qr = arg.second;
+          ASS(!shouldChain(qr.literal, ord));
+          return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.substitution,true,true);
+        }))));
 
-  // forward
-  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(orderedLhsIterator(lit, ord, false /*reverse*/))
-    .filter([](TypedTermList lhs) {
-      return lhs.isTerm() && shouldChain(lhs.term());
-    })
-    .flatMap([](TypedTermList lhs) {
-      return pvi(pushPairIntoRightIterator(lhs.term(), vi(new PositionalNonVariableNonTypeIterator(lhs.term()))));
-    })
-    .flatMap([this](pair<Term*,pair<Term*,Position>> arg) {
-      return pvi(pushPairIntoRightIterator(arg, _leftLhsIndex->getUnifications(arg.second.first, true)));
-    })
-    .map([lit,premise,this](pair<pair<Term*,pair<Term*,Position>>,TermQueryResult> arg) -> Clause* {
-      auto side = arg.first.first;
-      auto rwTerm = arg.first.second.first;
-      auto pos = arg.first.second.second;
-      auto qr = arg.second;
-      ASS(!shouldChain(EqHelper::getOtherEqualitySide(qr.literal, qr.term).term()));
-      return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.substitution,true,true);
-    }))));
+      // 2. right, backward
+      // rewrite indexed not unuseful s=t[l] into s=t[r] with given unuseful l=r
+      res = pvi(getConcatenatedIterator(res, pvi(iterTraits(_rightSubtermIndex->getUnifications(side.term(), true))
+        .flatMap([](TermQueryResult arg) {
+          auto t = arg.term.term();
+          auto t0 = arg.literal->termArg(0);
+          auto t1 = arg.literal->termArg(1);
+          return pushPairIntoRightIterator(arg,
+            pvi(getConcatenatedIterator(
+              pvi(pushPairIntoRightIterator(t0,getPositions(t0,t))),
+              pvi(pushPairIntoRightIterator(t1,getPositions(t1,t)))
+            )));
+        })
+        .map([side,lit,premise,this,&ord](pair<TermQueryResult,pair<TermList,pair<Term*,Position>>> arg) -> Clause* {
+          auto eqLHS = side;
+          auto rwSide = arg.second.first;
+          auto rwTerm = arg.first.term;
+          ASS_EQ(arg.second.second.first,rwTerm.term());
+          auto pos = arg.second.second.second;
+          auto qr = arg.first;
+          ASS(!shouldChain(qr.literal, ord));
+          return perform(qr.clause,qr.literal,rwSide,rwTerm,premise,lit,eqLHS,pos,qr.substitution,false,false);
+        }))));
+    }
+  } else {
+    // 3. left, backward
+    // rewrite indexed unuseful s[r]=t into s[l]=t with given not unuseful l=r
+    res = pvi(getConcatenatedIterator(res, pvi(iterTraits(EqHelper::getSuperpositionLHSIterator(lit, ord, _salg->getOptions()))
+      .map([lit](TypedTermList lhs) {
+        return TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), SortHelper::getEqualityArgumentSort(lit));
+      })
+      .flatMap([this](TypedTermList lhs) {
+        return pvi(pushPairIntoRightIterator(lhs,_leftSubtermIndex->getUnifications(lhs, true)));
+      })
+      .flatMap([&ord](pair<TypedTermList,TermQueryResult> arg) {
+        auto comp = ord.getEqualityArgumentOrder(arg.second.literal);
+        ASS(comp != Ordering::INCOMPARABLE && comp != Ordering::EQUAL);
+        auto side = arg.second.literal->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 1 : 0);
 
-  // backward
-  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(orderedLhsIterator(lit, ord, true /*reverse*/))
-    .filter([lit](TypedTermList lhs) {
-      auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-      return rhs.isTerm() && !shouldChain(rhs.term());
-    })
-    .flatMap([this](TypedTermList lhs) {
-      return pvi(pushPairIntoRightIterator(lhs,_leftSubtermIndex->getUnifications(lhs, true)));
-    })
-    .flatMap([](pair<TypedTermList,TermQueryResult> arg) {
-      auto t = arg.second.term.term();
-      auto t0 = arg.second.literal->termArg(0);
-      auto t1 = arg.second.literal->termArg(1);
-      return pushPairIntoRightIterator(arg,
-        pvi(getConcatenatedIterator(
-          pvi(pushPairIntoRightIterator(t0,getPositions(t0,t))),
-          pvi(pushPairIntoRightIterator(t1,getPositions(t1,t)))
-        )));
-    })
-    .filter([](pair<pair<TypedTermList,TermQueryResult>,pair<TermList,pair<Term*,Position>>> arg) {
-      auto side = arg.second.first;
-      return side.isTerm() && shouldChain(side.term());
-    })
-    .map([lit,premise,this](pair<pair<TypedTermList,TermQueryResult>,pair<TermList,pair<Term*,Position>>> arg) -> Clause* {
-      auto eqLHS = arg.first.first;
-      auto side = arg.second.first;
-      auto rwTerm = arg.first.second.term;
-      ASS_EQ(arg.second.second.first,rwTerm.term());
-      auto pos = arg.second.second.second;
-      auto qr = arg.first.second;
-      return perform(qr.clause,qr.literal,side,rwTerm,premise,lit,eqLHS,pos,qr.substitution,false,true);
-    }))));
+        auto t = arg.second.term.term();
+        return pushPairIntoRightIterator(arg,pvi(pushPairIntoRightIterator(side,getPositions(side,t))));
+      })
+      .map([lit,premise,this](pair<pair<TypedTermList,TermQueryResult>,pair<TermList,pair<Term*,Position>>> arg) -> Clause* {
+        auto eqLHS = arg.first.first;
+        auto side = arg.second.first;
+        auto rwTerm = arg.first.second.term;
+        ASS_EQ(arg.second.second.first,rwTerm.term());
+        auto pos = arg.second.second.second;
+        auto qr = arg.first.second;
+        return perform(qr.clause,qr.literal,side,rwTerm,premise,lit,eqLHS,pos,qr.substitution,false,true);
+      }))));
 
-  // right
-  // 2. rewrite s=t[l] into s=t[r] with l=r where l does not contain induction terms and s does
+    // 4. right, forward
+    // rewrite given not unuseful s=t[l] into s=t[r] with indexed unuseful l=r
+    res = pvi(getConcatenatedIterator(res, pvi(iterTraits(EqHelper::getSuperpositionLHSIterator(lit, ord, _salg->getOptions()))
+      .map([lit](TermList t) {
+        return TypedTermList(EqHelper::getOtherEqualitySide(lit,t), SortHelper::getEqualityArgumentSort(lit));
+      })
+      .filter([](TypedTermList lhs) {
+        return lhs.isTerm();
+      })
+      .flatMap([](TypedTermList lhs) {
+        return pvi(pushPairIntoRightIterator(lhs.term(), vi(new PositionalNonVariableNonTypeIterator(lhs.term()))));
+      })
+      .flatMap([this](pair<Term*,pair<Term*,Position>> arg) {
+        return pvi(pushPairIntoRightIterator(arg,_rightLhsIndex->getUnifications(arg.second.first, true)));
+      })
+      .map([lit,premise,this](pair<pair<Term*,pair<Term*,Position>>,TermQueryResult> arg) -> Clause* {
+        auto side = arg.first.first;
+        auto rwTerm = arg.first.second.first;
+        auto pos = arg.first.second.second;
+        auto qr = arg.second;
+        return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.substitution,true,false);
+      }))));
+  }
 
-  // forward
-  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(orderedLhsIterator(lit, ord, true /*reverse*/))
-    .filter([lit](TypedTermList lhs) {
-      auto rhs = EqHelper::getOtherEqualitySide(lit,lhs);
-      return lhs.isTerm() && rhs.isTerm() && !shouldChain(rhs.term());
-    })
-    .flatMap([](TypedTermList lhs) {
-      return pvi(pushPairIntoRightIterator(lhs.term(), vi(new PositionalNonVariableNonTypeIterator(lhs.term()))));
-    })
-    .flatMap([this](pair<Term*,pair<Term*,Position>> arg) {
-      return pvi(pushPairIntoRightIterator(arg,_rightLhsIndex->getUnifications(arg.second.first, true)));
-    })
-    .map([lit,premise,this](pair<pair<Term*,pair<Term*,Position>>,TermQueryResult> arg) -> Clause* {
-      auto side = arg.first.first;
-      auto rwTerm = arg.first.second.first;
-      auto pos = arg.first.second.second;
-      auto qr = arg.second;
-      ASS(shouldChain(qr.term.term()));
-      return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.substitution,true,false);
-    }))));
-
-  // backward
-  res = pvi(getConcatenatedIterator(res, pvi(iterTraits(orderedLhsIterator(lit, ord, false /*reverse*/))
-    .filter([](TypedTermList lhs) {
-      return lhs.isTerm() && shouldChain(lhs.term());
-    })
-    .flatMap([this](TypedTermList lhs) {
-      return pvi(pushPairIntoRightIterator(lhs.term(),_rightSubtermIndex->getUnifications(lhs.term(), true)));
-    })
-    .flatMap([](pair<Term*,TermQueryResult> arg) {
-      auto t = arg.second.term.term();
-      auto t0 = arg.second.literal->termArg(0);
-      auto t1 = arg.second.literal->termArg(1);
-      return pushPairIntoRightIterator(arg,
-        pvi(getConcatenatedIterator(
-          pvi(pushPairIntoRightIterator(t0,getPositions(t0,t))),
-          pvi(pushPairIntoRightIterator(t1,getPositions(t1,t)))
-        )));
-    })
-    .filter([](pair<pair<Term*,TermQueryResult>,pair<TermList,pair<Term*,Position>>> arg) {
-      auto side = arg.second.first;
-      auto other = EqHelper::getOtherEqualitySide(arg.first.second.literal,side);
-      return side.isTerm() && other.isTerm() && !shouldChain(other.term());
-    })
-    .map([lit,premise,this](pair<pair<Term*,TermQueryResult>,pair<TermList,pair<Term*,Position>>> arg) -> Clause* {
-      auto eqLHS = TermList(arg.first.first);
-      auto side = arg.second.first;
-      auto rwTerm = arg.first.second.term;
-      ASS_EQ(arg.second.second.first,rwTerm.term());
-      auto pos = arg.second.second.second;
-      auto qr = arg.first.second;
-      return perform(qr.clause,qr.literal,side,rwTerm,premise,lit,eqLHS,pos,qr.substitution,false,false);
-    }))));
   return pvi(iterTraits(res)
     .filter(NonzeroFn())
     .timeTraced("upward chaining"));
@@ -202,7 +186,6 @@ Clause* UpwardChaining::perform(
     Clause* eqClause, Literal* eqLit, TermList eqLHS, const Position& pos,
     ResultSubstitutionSP subst, bool eqIsResult, bool left)
 {
-  // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
   ASS_EQ(rwClause->length(),1);
@@ -224,20 +207,25 @@ Clause* UpwardChaining::perform(
   TermList otherSide = EqHelper::getOtherEqualitySide(rwLit, rwSide);
   TermList otherSideS = subst->apply(otherSide, !eqIsResult);
 
+  auto rwComp = ordering.compare(rwTermS,tgtTermS);
+  auto sideComp = ordering.compare(rwSideS,otherSideS);
+
   if (left) {
-    // we rewrite the not-smaller side into a not-smaller term
-    if (Ordering::isGorGEorE(ordering.compare(rwTermS,tgtTermS))) {
+    // rewrite the greater side
+    if (sideComp != Ordering::GREATER && sideComp != Ordering::GREATER_EQ) {
       return 0;
     }
-    if (Ordering::isGorGEorE(ordering.compare(otherSideS,rwSideS))) {
+    // into a not-smaller term
+    if (Ordering::isGorGEorE(rwComp)) {
       return 0;
     }
   } else {
-    // we rewrite the not-greater side into a not-greater term 
-    if (Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+    // rewrite the not-greater side
+    if (Ordering::isGorGEorE(sideComp)) {
       return 0;
     }
-    if (Ordering::isGorGEorE(ordering.compare(rwSideS,otherSideS))) {
+    // into a not-greater term
+    if (rwComp != Ordering::GREATER && rwComp != Ordering::GREATER_EQ) {
       return 0;
     }
   }

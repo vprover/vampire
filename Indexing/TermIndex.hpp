@@ -130,10 +130,11 @@ public:
   CLASS_NAME(GoalParamodulationLHSIndex);
   USE_ALLOCATOR(GoalParamodulationLHSIndex);
 
-  GoalParamodulationLHSIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {}
+  GoalParamodulationLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt) : TermIndex(is), _ord(ord), _opt(opt) {}
 
 protected:
   void handleClause(Clause* c, bool adding) override;
+  const Ordering& _ord;
   const Options& _opt;
 };
 

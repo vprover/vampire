@@ -206,7 +206,7 @@ Index* IndexManager::create(IndexType t)
 
   case GOAL_PARAMODULATION_LHS_INDEX:
     tis=new TermSubstitutionTree();
-    res=new GoalParamodulationLHSIndex(tis, _alg->getOptions());
+    res=new GoalParamodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
 

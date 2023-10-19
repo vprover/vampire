@@ -38,9 +38,7 @@ using namespace Saturation;
 TermList replaceOccurrence(Term* t, Term* orig, TermList repl, const Position& pos);
 vstring posToString(const Position& pos);
 VirtualIterator<std::pair<Term*,Position>> getPositions(TermList t, Term* st);
-bool shouldChain(Term* lhs);
-VirtualIterator<TypedTermList> lhsIterator(Literal* lit);
-VirtualIterator<TypedTermList> orderedLhsIterator(Literal* lit, const Ordering& ord, bool reverse);
+bool shouldChain(Literal* lit, const Ordering& ord);
 bool toTheLeftStrict(const Position& p1, const Position& p2);
 
 class PositionalNonVariableNonTypeIterator

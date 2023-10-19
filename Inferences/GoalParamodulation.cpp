@@ -131,22 +131,28 @@ vstring posToString(const Position& pos)
 bool isInductionTerm(Term* t)
 {
   // uncomment to use for general reasoning
-  return true;
+  // return true;
 
+  static DHMap<Term*,bool> cache;
+  bool* ptr;
+  if (!cache.getValuePtr(t,ptr,false)) {
+    return *ptr;
+  }
 
-  if (!InductionHelper::isInductionTermFunctor(t->functor())) {
+  if (!InductionHelper::isInductionTermFunctor(t->functor()) || !InductionHelper::isStructInductionTerm(t)) {
     return false;
   }
-  if (!InductionHelper::isStructInductionTerm(t)) {
-    return false;
-  }
+  *ptr = true;
   if (!t->ground()) {
     return true;
   }
   NonVariableNonTypeIterator nvi(t, true);
   while (nvi.hasNext()) {
-    if (env.signature->getFunction(nvi.next()->functor())->skolem()) return true;
+    if (env.signature->getFunction(nvi.next()->functor())->skolem()) {
+      return true;
+    }
   }
+  *ptr = false;
   return false;
 }
 
@@ -159,8 +165,11 @@ void assertPositionIn(const Position& p, Term* t) {
   }
 }
 
-inline bool hasTermToInductOn(Term* t) {
-  NonVariableNonTypeIterator stit(t);
+inline bool hasTermToInductOn(TermList t) {
+  if (t.isVar()) {
+    return false;
+  }
+  NonVariableNonTypeIterator stit(t.term());
   while (stit.hasNext()) {
     auto st = stit.next();
     if (isInductionTerm(st)) {
@@ -181,21 +190,31 @@ VirtualIterator<pair<Term*,Position>> getPositions(TermList t, Term* st)
     }));
 }
 
-bool linear(Term* t)
+bool linear(TermList t)
 {
-  SubtermIterator stit(t);
+  if (t.isVar()) {
+    return true;
+  }
+  VariableIterator vit(t.term());
   DHSet<unsigned> vars;
-  while (stit.hasNext()) {
-    auto st = stit.next();
-    if (st.isVar() && !vars.insert(st.var())) {
+  while (vit.hasNext()) {
+    auto var = vit.next();
+    if (!vars.insert(var.var())) {
       return false;
     }
   }
   return true;
 }
 
-bool shouldChain(Term* lhs) {
-  return linear(lhs) && !hasTermToInductOn(lhs);
+bool shouldChain(Literal* lit, const Ordering& ord) {
+  ASS(lit->isEquality() && lit->isPositive());
+  auto comp = ord.getEqualityArgumentOrder(lit);
+  if (comp == Ordering::INCOMPARABLE) {
+    return false;
+  }
+  ASS_NEQ(comp,Ordering::EQUAL);
+  auto side = lit->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 1 : 0);
+  return linear(side) && !hasTermToInductOn(side);
 }
 
 void getSkolems(Literal* lit, DHSet<unsigned>& skolems) {
@@ -208,7 +227,7 @@ void getSkolems(Literal* lit, DHSet<unsigned>& skolems) {
   }
 }
 
-VirtualIterator<TypedTermList> lhsIterator(Literal* lit)
+VirtualIterator<TypedTermList> sideIterator(Literal* lit)
 {
   auto res = VirtualIterator<TypedTermList>::getEmpty();
   for (unsigned i = 0; i <= 1; i++) {
@@ -219,34 +238,6 @@ VirtualIterator<TypedTermList> lhsIterator(Literal* lit)
     }
   }
   return res;
-}
-
-template<class TermListIter>
-auto withEqualitySort(Literal* eq, TermListIter iter)
-{ return pvi(iterTraits(std::move(iter))
-    .map([eq](TermList t) { return TypedTermList(t, SortHelper::getEqualityArgumentSort(eq)); })); }
-
-VirtualIterator<TypedTermList> orderedLhsIterator(Literal* lit, const Ordering& ord, bool reverse)
-{
-  ASS(lit->isEquality() && lit->isPositive());
-
-  TermList t0=*lit->nthArgument(0);
-  TermList t1=*lit->nthArgument(1);
-  switch(ord.getEqualityArgumentOrder(lit))
-  {
-  case Ordering::INCOMPARABLE:
-    return withEqualitySort(lit, getConcatenatedIterator(getSingletonIterator(t0),getSingletonIterator(t1)) );
-  case Ordering::GREATER:
-  case Ordering::GREATER_EQ:
-    return withEqualitySort(lit, getSingletonIterator(reverse ? t1 : t0) );
-  case Ordering::LESS:
-  case Ordering::LESS_EQ:
-    return withEqualitySort(lit, getSingletonIterator(reverse ? t0 : t1) );
-  //there should be no equality literals of equal terms
-  case Ordering::EQUAL:
-    break;
-  }
-  ASSERTION_VIOLATION;
 }
 
 ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
@@ -287,9 +278,10 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
         if (SortHelper::getResultSort(arg.first) != SortHelper::getEqualityArgumentSort(qr.literal)) {
           return false;
         }
+        // TODO this check with the Skolems is extremely expensive in some cases
         bool* skolemsOk;
-        if (!skolemsChecked.getValuePtr(qr.clause, skolemsOk, false) && !(*skolemsOk)) {
-          return false;
+        if (!skolemsChecked.getValuePtr(qr.clause, skolemsOk, false)) {
+          return *skolemsOk;
         }
         auto rhs = EqHelper::getOtherEqualitySide(qr.literal,TermList(qr.term));
         if (rhs.isTerm()) {
@@ -325,8 +317,8 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
   }
 
   // backward
-  if (lit->isPositive()) {
-    res = pvi(getConcatenatedIterator(res,pvi(iterTraits(lhsIterator(lit))
+  if (lit->isPositive() && (!_chaining || !shouldChain(lit,_salg->getOrdering()))) {
+    res = pvi(getConcatenatedIterator(res,pvi(iterTraits(sideIterator(lit))
       .flatMap([this](TypedTermList lhs) {
         return pvi(pushPairIntoRightIterator(lhs,_subtermIndex->getInstances(lhs,true)));
       })
@@ -390,9 +382,7 @@ Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
   if (_onlyUpwards && comp != Ordering::Result::LESS) {
     return nullptr;
   }
-  if (comp == Ordering::Result::LESS && _chaining && shouldChain(rhs.term())) {
-    return nullptr;
-  }
+  ASS_REP(!_chaining || !shouldChain(eqLit,ord), eqLit->toString());
 
   bool reversed = rwClause->reversed();
   bool switchedNew = false;

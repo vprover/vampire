@@ -151,7 +151,7 @@ void GoalParamodulationLHSIndex::handleClause(Clause* c, bool adding)
   }
 
   Literal* lit=(*c)[0];
-  if (!lit->isEquality() || lit->isNegative()) {
+  if (!lit->isEquality() || lit->isNegative() || (_opt.goalParamodulationChaining() && shouldChain(lit, _ord))) {
     return;
   }
   for (unsigned i = 0; i <= 1; i++) {
@@ -197,24 +197,29 @@ void UpwardChainingLHSIndex::handleClause(Clause* c, bool adding)
   if (!lit->isEquality() || lit->isNegative()) {
     return;
   }
-  auto it = orderedLhsIterator(lit, _ord, _left);
-  while (it.hasNext()) {
-    auto lhs = it.next();
-    auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-    // left upward chaining, we index r from l=r, l should not be chained and l !<= r
-    if (_left) {
-      if (rhs.isVar() || shouldChain(rhs.term())) {
-        continue;
-      }
+  if (_left == shouldChain(lit, _ord)) {
+    return;
+  }
+  if (_left) {
+    auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
+    while (lhsi.hasNext()) {
+      auto lhs = EqHelper::getOtherEqualitySide(lit,lhsi.next());
+	    _is->handle(TypedTermList(lhs, SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
     }
-    // right upward chaining, we index l from l=r, l should be chained and l !<= r
-    else {
-      if (lhs.isVar() || !shouldChain(lhs.term())) {
-        continue;
+  } else {
+    switch (_ord.getEqualityArgumentOrder(lit)) {
+      case Ordering::LESS_EQ:
+      case Ordering::LESS: {
+        _is->handle(TypedTermList(lit->termArg(1), SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
+        break;
       }
-    }
-    if (lhs.containsAllVariablesOf(rhs)) {
-      _is->handle(TypedTermList(lhs, SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
+      case Ordering::GREATER_EQ:
+      case Ordering::GREATER: {
+        _is->handle(TypedTermList(lit->termArg(0), SortHelper::getEqualityArgumentSort(lit)), lit, c, adding);
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION;
     }
   }
 }
@@ -231,31 +236,42 @@ void UpwardChainingSubtermIndex::handleClause(Clause* c, bool adding)
     return;
   }
 
+  if (_left != shouldChain(lit, _ord)) {
+    return;
+  }
   DHSet<Term*> inserted;
-  auto it = orderedLhsIterator(lit, _ord, !_left);
-  while (it.hasNext()) {
-    auto lhs = it.next();
-    auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-    if (lhs.isVar()) {
-      continue;
+  if (_left) {
+    auto comp = _ord.getEqualityArgumentOrder(lit);
+    ASS(comp != Ordering::INCOMPARABLE && comp != Ordering::EQUAL);
+    auto t = lit->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 0 : 1);
+    if (t.isVar()) {
+      return;
     }
-    if (_left) {
-      if (!shouldChain(lhs.term())) {
-        continue;
-      }
-    } else {
-      if (rhs.isVar() || shouldChain(rhs.term())) {
-        continue;
-      }
-    }
-    NonVariableNonTypeIterator nvi(lhs.term(),true);
+    NonVariableNonTypeIterator nvi(t.term(),true);
     while (nvi.hasNext()) {
-      Term* t = nvi.next();
-      if (!inserted.insert(t)) {
+      Term* st = nvi.next();
+      if (!inserted.insert(st)) {
         nvi.right();
         continue;
       }
-      _is->handle(t, lit, c, adding);
+      _is->handle(st, lit, c, adding);
+    }
+  } else {
+    auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
+    while (lhsi.hasNext()) {
+      auto lhs = EqHelper::getOtherEqualitySide(lit,lhsi.next());
+      if (lhs.isVar()) {
+        continue;
+      }
+      NonVariableNonTypeIterator nvi(lhs.term(),true);
+      while (nvi.hasNext()) {
+        auto st = nvi.next();
+        if (!inserted.insert(st)) {
+          nvi.right();
+          continue;
+        }
+        _is->handle(st, lit, c, adding);
+      }
     }
   }
 }
