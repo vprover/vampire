@@ -217,14 +217,22 @@ bool shouldChain(Literal* lit, const Ordering& ord) {
   return linear(side) && !hasTermToInductOn(side);
 }
 
-void getSkolems(Literal* lit, DHSet<unsigned>& skolems) {
+DHSet<unsigned>* getSkolems(Literal* lit) {
+  TIME_TRACE("getSkolems");
+  // checking the skolems is pretty expensive, so we cache them per literal
+  static DHMap<Literal*,DHSet<unsigned>> skolemCache;
+  DHSet<unsigned>* ptr;
+  if (!skolemCache.getValuePtr(lit, ptr)) {
+    return ptr;
+  }
   NonVariableNonTypeIterator it(lit);
   while (it.hasNext()) {
     auto trm = it.next();
     if (env.signature->getFunction(trm->functor())->skolem()) {
-      skolems.insert(trm->functor());
+      ptr->insert(trm->functor());
     }
   }
+  return ptr;
 }
 
 VirtualIterator<TypedTermList> sideIterator(Literal* lit)
@@ -236,6 +244,39 @@ VirtualIterator<TypedTermList> sideIterator(Literal* lit)
     if (lhs.containsAllVariablesOf(rhs)) {
       res = pvi(getConcatenatedIterator(res, pvi(getSingletonIterator(TypedTermList(lhs,SortHelper::getEqualityArgumentSort(lit))))));
     }
+  }
+  return res;
+}
+
+VirtualIterator<Term*> termIterator(Literal* lit, Clause* cl, bool leftToRight) {
+  ASS(lit->isEquality() && lit->isNegative() && lit->ground());
+  if (!leftToRight) {
+    return vi(new NonVariableNonTypeIterator(lit));
+  }
+  bool reversed = cl->reversed();
+  bool switched = cl->switched();
+  const Position& pos = cl->position();
+  TermList currSide = lit->termArg((reversed ^ switched) ? 1 : 0);
+  TermList other = lit->termArg((reversed ^ switched) ? 0 : 1);
+  if (pos.isEmpty() && !switched) {
+    return vi(new NonVariableNonTypeIterator(lit));
+  }
+  auto res = VirtualIterator<Term*>::getEmpty();
+  Term* curr = currSide.term();
+  for (const auto& i : pos) {
+    // add args to the right of index
+    for (unsigned j = i+1; j < curr->arity(); j++) {
+      auto arg = curr->termArg(j);
+      res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(arg.term(),true))));
+    }
+    // add term itself
+    res = pvi(getConcatenatedIterator(res, getSingletonIterator(curr)));
+    curr = curr->termArg(i).term();
+  }
+  // add last term and all its subterms
+  res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(curr,true))));
+  if (!switched) {
+    res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(other.term(),true))));
   }
   return res;
 }
@@ -253,24 +294,18 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
     return res;
   }
 
-  // checking the skolems is pretty expensive, so we cache anything we can
-  static DHMap<Clause*,bool> skolemsChecked;
-  skolemsChecked.reset();
-
-  static DHSet<unsigned> skolems;
-  skolems.reset();
-  getSkolems(lit,skolems);
+  auto skPtr = getSkolems(lit);
 
   const auto& opt = _salg->getOptions();
 
   // forward
   if (lit->isNegative() && lit->ground()) {
-    res = pvi(iterTraits(vi(new NonVariableNonTypeIterator(lit)))
+    res = pvi(iterTraits(termIterator(lit,premise,_leftToRight))
       .unique()
       .flatMap([this](Term* t) {
         return pvi(pushPairIntoRightIterator(t,_lhsIndex->getGeneralizations(t, true)));
       })
-      .filter([premise,&opt](pair<Term*,TermQueryResult> arg) {
+      .filter([premise,&opt,skPtr](pair<Term*,TermQueryResult> arg) {
         auto qr = arg.second;
         if (premise->goalParamodulationDepth()+qr.clause->goalParamodulationDepth()>=opt.maxGoalParamodulationDepth()) {
           return false;
@@ -279,21 +314,12 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
           return false;
         }
         // TODO this check with the Skolems is extremely expensive in some cases
-        bool* skolemsOk;
-        if (!skolemsChecked.getValuePtr(qr.clause, skolemsOk, false)) {
-          return *skolemsOk;
-        }
-        auto rhs = EqHelper::getOtherEqualitySide(qr.literal,TermList(qr.term));
-        if (rhs.isTerm()) {
-          NonVariableNonTypeIterator it(rhs.term(),true);
-          while (it.hasNext()) {
-            auto trm = it.next();
-            if (env.signature->getFunction(trm->functor())->skolem() && !skolems.contains(trm->functor())) {
-              return false;
-            }
+        DHSet<unsigned>::Iterator skIt(*getSkolems(qr.literal));
+        while (skIt.hasNext()) {
+          if (!skPtr->contains(skIt.next())) {
+            return false;
           }
         }
-        (*skolemsOk) = true;
         return true;
       })
       .flatMap([lit](pair<Term*,TermQueryResult> arg) {
@@ -322,7 +348,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
       .flatMap([this](TypedTermList lhs) {
         return pvi(pushPairIntoRightIterator(lhs,_subtermIndex->getInstances(lhs,true)));
       })
-      .filter([premise,lit,&opt](pair<TypedTermList,TermQueryResult> arg) {
+      .filter([premise,lit,&opt,skPtr](pair<TypedTermList,TermQueryResult> arg) {
         auto qr = arg.second;
         if (premise->goalParamodulationDepth()+qr.clause->goalParamodulationDepth()>=opt.maxGoalParamodulationDepth()) {
           return false;
@@ -330,21 +356,16 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
         if (SortHelper::getResultSort(qr.term.term()) != SortHelper::getEqualityArgumentSort(lit)) {
           return false;
         }
-        bool* skolemsOk;
-        if (!skolemsChecked.getValuePtr(qr.clause, skolemsOk, false) && !(*skolemsOk)) {
-          return false;
+        if (skPtr->isEmpty()) {
+          return true;
         }
-        if (!skolems.isEmpty()) {
-          DHSet<unsigned> rwSkolems;
-          getSkolems(qr.literal,rwSkolems);
-          DHSet<unsigned>::Iterator it(skolems);
-          while (it.hasNext()) {
-            if (!rwSkolems.contains(it.next())) {
-              return false;
-            }
+        auto skPtrOther = getSkolems(qr.literal);
+        DHSet<unsigned>::Iterator skIt(*skPtr);
+        while (skIt.hasNext()) {
+          if (!skPtrOther->contains(skIt.next())) {
+            return false;
           }
         }
-        (*skolemsOk) = true;
         return true;
       })
       .flatMap([](pair<TypedTermList,TermQueryResult> arg) {
@@ -378,8 +399,7 @@ Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
   auto rhs = EqHelper::getOtherEqualitySide(eqLit,TermList(eqLhs));
   auto rhsS = eqIsResult ? subst->applyToBoundResult(rhs) : subst->applyToBoundQuery(rhs);
 
-  auto comp = ord.compare(TermList(rwTerm),rhsS);
-  if (_onlyUpwards && comp != Ordering::Result::LESS) {
+  if (_onlyUpwards && ord.compare(TermList(rwTerm),rhsS) != Ordering::Result::LESS) {
     return nullptr;
   }
   ASS_REP(!_chaining || !shouldChain(eqLit,ord), eqLit->toString());

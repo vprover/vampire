@@ -147,7 +147,7 @@ public:
   }
 private:
   /** operator= is private and without a body, because we don't want any. */
-  DHSet& operator=(const DHSet& obj);
+  // DHSet& operator=(const DHSet& obj);
 
   typedef DHMap<Val,EmptyStruct,Hash1,Hash2> InnerMap;
 
