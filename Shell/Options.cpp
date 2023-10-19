@@ -3443,7 +3443,6 @@ void Options::readOptionsString(vstring optionsString,bool assign)
  */
 void Options::readFromEncodedOptions (vstring testId)
 {
-  _normalize.actualValue = true;
   _testId.actualValue = testId;
 
   vstring ma(testId,0,3); // the first 3 characters
