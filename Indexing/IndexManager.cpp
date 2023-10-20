@@ -124,9 +124,19 @@ Index* IndexManager::create(IndexType t)
     res=new UnitClauseLiteralIndex(is);
     isGenerating = true;
     break;
+  case URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
+    is=new LiteralSubstitutionTree();
+    res=new UnitClauseWithALLiteralIndex(is);
+    isGenerating = true;
+    break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
     is=new LiteralSubstitutionTree();
     res=new NonUnitClauseLiteralIndex(is);
+    isGenerating = true;
+    break;
+  case URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
+    is=new LiteralSubstitutionTree();
+    res=new NonUnitClauseWithALLiteralIndex(is);
     isGenerating = true;
     break;
 

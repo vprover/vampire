@@ -305,6 +305,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
+         Inferences/InvalidAnswerLiteralRemoval.o\
          Inferences/TheoryInstAndSimp.o
 #         Inferences/RenamingOnTheFly.o\
 

@@ -44,7 +44,7 @@ public:
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
   Term* transformSpecial(Term* specialTerm);
-  TermList transform(TermList ts);
+  virtual TermList transform(TermList ts);
   virtual Formula* transform(Formula* f);
 };
 

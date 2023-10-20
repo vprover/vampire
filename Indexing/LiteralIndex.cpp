@@ -72,6 +72,9 @@ size_t LiteralIndex::getUnificationCount(Literal* lit, bool complementary)
 
 void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
 {
+  if (lit->isAnswerLiteral()) {
+    return;
+  }
   if(add) {
     _is->insert(lit, cl);
   } else {
@@ -159,6 +162,16 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
+void UnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  if(c->length()==1 || (c->hasAnswerLiteral() && c->length() == 2)) {
+    TIME_TRACE("unit clause with answer literals index maintenance");
+
+    Literal* al = c->getAnswerLiteral();
+    handleLiteral((*c)[(al == (*c)[0]) ? 1 : 0], c, adding);
+  }
+}
+
 void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
   unsigned clen=c->length();
@@ -166,6 +179,19 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
     return;
   }
   TIME_TRACE("non unit clause index maintenance");
+  unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
+  for(unsigned i=0; i<activeLen; i++) {
+    handleLiteral((*c)[i], c, adding);
+  }
+}
+
+void NonUnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  unsigned clen=c->length();
+  if(clen<2 || (c->hasAnswerLiteral() && clen<3)) {
+    return;
+  }
+  TIME_TRACE("non unit clause with answer literals index maintenance");
   unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
   for(unsigned i=0; i<activeLen; i++) {
     handleLiteral((*c)[i], c, adding);

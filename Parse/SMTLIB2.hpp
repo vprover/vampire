@@ -465,11 +465,23 @@ private:
   void readAssertTheory(LExpr* body);
 
   /**
+   * Helper method: switch on SymbolType and return corresponding Symbol.
+   */
+  Signature::Symbol* getSymbol(DeclaredSymbol& s);
+
+  /**
    * Unofficial command
    *
    * Behaves like conjecture declaration in TPTP
    */
   void colorSymbol(const vstring& name, Color color);
+
+  /**
+   * Unofficial option
+   *
+   * Disallows a symbol in synthesized program
+   */
+  void markSymbolUncomputable(const vstring& name);
 
   /**
    * Units collected during parsing.

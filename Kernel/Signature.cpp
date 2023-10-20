@@ -60,6 +60,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skolem(0),
     _namesFormula(0),
     _tuple(0),
+    _computable(1),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
 {
@@ -923,10 +924,14 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
  * into the name of the Skolem function.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
+unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix, bool computable)
 {
   unsigned f = addFreshFunction(arity, "sK", suffix);
-  getFunction(f)->markSkolem();
+  Symbol* s = getFunction(f);
+  s->markSkolem();
+  if (!computable) {
+    s->markUncomputable();
+  }
 
   // Register it as a LaTeX function
  // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");

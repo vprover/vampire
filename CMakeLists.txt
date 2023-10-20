@@ -417,6 +417,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
+    Inferences/InvalidAnswerLiteralRemoval.cpp
     Inferences/PushUnaryMinus.cpp
     Inferences/Cancellation.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -451,6 +452,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
+    Inferences/InvalidAnswerLiteralRemoval.hpp
     Inferences/PushUnaryMinus.hpp
     Inferences/Cancellation.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp

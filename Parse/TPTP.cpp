@@ -4979,8 +4979,8 @@ void TPTP::vampire()
     }
     resetToks();
     consumeToken(T_COMMA);
-    Color color;
-    bool skip = false;
+    Color color = COLOR_INVALID;
+    bool skip = false, uncomputable = false;
     vstring lr = name();
     if (lr == "left") {
       color=COLOR_LEFT;
@@ -4991,17 +4991,26 @@ void TPTP::vampire()
     else if (lr == "skip") {
       skip = true;
     }
-    else {
-      PARSE_ERROR("'left', 'right' or 'skip' expected",getTok(0));
+    else if (lr == "uncomputable") {
+      uncomputable = true;
     }
-    env.colorUsed = true;
+    else {
+      PARSE_ERROR("'left', 'right', 'skip' or 'uncomputable' expected",getTok(0));
+    }
+    if (!uncomputable) {
+      env.colorUsed = true;
+    }
     Signature::Symbol* sym = pred
                              ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
                              : env.signature->getFunction(env.signature->addFunction(symb,arity));
     if (skip) {
       sym->markSkip();
     }
+    else if (uncomputable) {
+      sym->markUncomputable();
+    }
     else {
+      ASS_NEQ(color, COLOR_INVALID);
       sym->addColor(color);
     }
   }
