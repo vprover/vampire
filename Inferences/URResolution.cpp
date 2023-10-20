@@ -103,20 +103,37 @@ struct URResolution::Item
   USE_ALLOCATOR(URResolution::Item); 
   
   Item(Clause* cl, bool selectedOnly, URResolution& parent, bool mustResolveAll)
-  : _orig(cl), _color(cl->color()), _parent(parent)
+  : _mustResolveAll(mustResolveAll || (selectedOnly ? true : (cl->length() < 2))), _orig(cl), _color(cl->color()),
+    _ansLit(nullptr), _parent(parent)
   {
     unsigned clen = cl->length();
+    unsigned litslen = clen;
     bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-    _ansLit = synthesis ? cl->getAnswerLiteral() : nullptr;
-    _mustResolveAll = mustResolveAll || (selectedOnly ? true : (clen < 2 + (_ansLit ? 1 : 0)));
-    unsigned litslen = clen - (_ansLit ? 1 : 0);
+    if (synthesis) {
+      _ansLit = cl->getAnswerLiteral();
+      if (_ansLit) {
+        _mustResolveAll = mustResolveAll || (selectedOnly ? true : (clen < 3));
+        litslen--;
+      }
+    }
     _premises.init(litslen, 0);
     _lits.ensure(litslen);
     unsigned nonGroundCnt = 0;
-    for(unsigned i=0; i<clen; i++) {
-      if ((*cl)[i] != _ansLit) {
+    if (synthesis) {
+      for(unsigned i=0; i<clen; i++) {
+        if ((*cl)[i] != _ansLit) {
+          _lits[i] = (*cl)[i];
+          if(!_lits[i]->ground()) {
+            nonGroundCnt++;
+          }
+        }
+      }
+    } else {
+      for(unsigned i=0; i<clen; i++) {
         _lits[i] = (*cl)[i];
-        if(!_lits[i]->ground()) nonGroundCnt++;
+        if(!_lits[i]->ground()) {
+          nonGroundCnt++;
+        }
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -140,24 +157,25 @@ struct URResolution::Item
     _color = static_cast<Color>(_color | premise->color());
     ASS_NEQ(_color, COLOR_INVALID)
 
-    if (_ansLit && !_ansLit->ground()) {
-      _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
-    }
-    bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-    if (synthesis && premise->hasAnswerLiteral()) {
-      Literal* premAnsLit = premise->getAnswerLiteral();
-      if (!premAnsLit->ground()) {
-        premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
+    if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+      if (_ansLit && !_ansLit->ground()) {
+        _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
       }
-      if (!_ansLit) {
-        _ansLit = premAnsLit;
-      } else if (_ansLit != premAnsLit) {
-        bool neg = rlit->isNegative(); 
-        Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
-        if (neg) {
-          resolved = Literal::complementaryLiteral(resolved);
+      if (premise->hasAnswerLiteral()) {
+        Literal* premAnsLit = premise->getAnswerLiteral();
+        if (!premAnsLit->ground()) {
+          premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
         }
-        _ansLit = SynthesisManager::getInstance()->makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
+        if (!_ansLit) {
+          _ansLit = premAnsLit;
+        } else if (_ansLit != premAnsLit) {
+          bool neg = rlit->isNegative(); 
+          Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
+          if (neg) {
+            resolved = Literal::complementaryLiteral(resolved);
+          }
+          _ansLit = SynthesisManager::getInstance()->makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
+        }
       }
     }
 
@@ -202,15 +220,14 @@ struct URResolution::Item
     Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
     Clause* res;
 
-    LiteralIterator it = _ansLit ? pvi(getSingletonIterator(_ansLit)) : LiteralIterator::getEmpty();
     if(single) {
       if (!_ansLit || _ansLit->ground()) {
         single = Renaming::normalize(single);
       }
-      res = Clause::fromIterator(pvi(getConcatenatedIterator(getSingletonIterator(single), it)), inf);
+      res = Clause::fromIterator(_ansLit ? pvi(ti(single, _ansLit)) : pvi(getSingletonIterator(single)), inf);
     }
     else {
-      res = Clause::fromIterator(it, inf);
+      res = Clause::fromIterator(_ansLit ? pvi(getSingletonIterator(_ansLit)) : LiteralIterator::getEmpty(), inf);
     }
     return res;
   }
