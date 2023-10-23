@@ -371,7 +371,7 @@ private:
    * @param L the base clause
    * @param M the instance clause
    */
-  void setupProblem(Kernel::Clause *L,
+  void loadProblem(Kernel::Clause *L,
                     Kernel::Clause *M);
 
   /**
@@ -489,17 +489,17 @@ public:
    *
    * @param L the base clause
    * @param M the instance clause
-   * @param setNegative if true, the Match set will be filled with negative matches as well.
+   * @param setSR if true, the Match set will be filled with negative matches as well. It will also check whether subsumption resolution is impossible.
    * @return true if M is subsumed by L
    *
-   * @remark The @b setNegative parameter is used to save time on the setup of subsumption resolution. If it is intended to check for subsumption resolution right after, it is better to set it to true and call checkSubsumptionResolution with the flag usePreviousMatchSet set to true.
+   * @remark The @b setSR parameter is used to save time on the setup of subsumption resolution. If it is intended to check for subsumption resolution right after, it is better to set it to true and call checkSubsumptionResolution with the flag usePreviousMatchSet set to true.
    *
    * A clause L subsumes a clause M if there exists a substitution \f$\sigma\f$ such that \f$\sigma(L)\subseteq M\f$.
    * Where L and M are considered as multisets of literals.
    */
   bool checkSubsumption(Kernel::Clause *L,
                         Kernel::Clause *M,
-                        bool setNegative = false);
+                        bool setSR = false);
 
   /**
    * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
@@ -509,7 +509,7 @@ public:
    * @param usePreviousMatchSet whether to use the previous match set or not. If false, the match set will be cleared and filled again.
    * @return the conclusion of the resolution, or NULL if no resolution is possible
    *
-   * @warning if the @b usePreviousMatchSet flag is true, the last call must have been a call to checkSubsumption with the flag setNegative set to true.
+   * @warning if the @b usePreviousMatchSet flag is true, the last call must have been a call to checkSubsumption with the flag setSR set to true.
    *
    * L /\ M => L /\ M* where M* is the conclusion of the subsumption resolution
    *

@@ -20,12 +20,12 @@
  * ----- Subsumption: -----
  * Let L and M be two clauses considered as multisets. L subsumes M iff there exists a substitution s
  * such that s(L) is a sub-multiset of M.
- * Subsumption can occurs if the three following conditions are satisfied:
+ * Subsumption can occurs iff the three following conditions are satisfied:
  * 1. Completeness : All literals of L have a substitution to M.
- *    There exists s such that forall l_i in L, (l_i) in M
+ *    There exists s such that forall l_i in L, s(l_i) in M
  * 2. Multiplicity conservation : For each literal l_i in L, there exists at most one
  *    literal m_j in M such that s(l_i) = m_j.
- * 3. Substitution validity : The substitution s is compatible with all the substitutions.
+ * 3. Substitution validity : The substitution s is compatible with all the sub-substitutions.
  *
  * ----- Subsumption Resolution: -----
  * Let L and M be two clauses considered as sets. L and M are said to be the base and instance
@@ -35,14 +35,15 @@
  *                 a literal m' in M
  *    such that s(L') = {~m'} and s(L) is a subset of M.
  * Subsumption resolution can occur if the 5 following conditions are satisfied:
- * 1. Existence    : There exists a literal l_i in L and a literal m_j such that
+ * 1. Existence             : There exists a literal l_i in L and a literal m_j such that
  *    s(l_i) = m_j (m' exists).
  * 2. Uniqueness   : There is only one literal m_j such that there exists a literal l_i in L
- *    such that s(l_i) = m_j. (m' is unique)
- * 3. Completeness : All literals of L must either have a substitution to M-{m'} or {~m'}.
+ *    such that s(l_i) = ~m_j. (m' is unique)
+ * 3. Completeness          : All literals of L must either have a substitution to M - {m'} or {~m'}.
  *    Forall l_i in L, there exists m_j in M such that s(l_i) = m_j or s(l_i) = ~m_j
- * 4. Coherence    : Literals in M cannot be mapped by both positive and negative substitutions.
- * 5. Substitution validity : The substitution s is compatible with all the substitutions.
+ * 4. Coherence             : Literals in M cannot be mapped by both positive and negative substitutions.
+ *    Forall m_j in M, forall l_i, l_i' != l_i in L, s(l_i) = m_j => s(l_i') != ~m_j
+ * 5. Substitution validity : The substitution s is compatible with all the sub-substitutions.
  *
  */
 
@@ -62,6 +63,7 @@ const unsigned INVALID = std::numeric_limits<unsigned>::max();
 /****************************************************************************/
 /*               SATSubsumptionAndResolution::MatchSet                      */
 /****************************************************************************/
+
 void SATSubsumptionAndResolution::MatchSet::indexMatrix()
 {
   CALL("SATSubsumptionAndResolution::MatchSet::indexMatrix")
@@ -114,10 +116,11 @@ bool SATSubsumptionAndResolution::MatchSet::hasNegativeMatchJ(unsigned j)
 /****************************************************************************/
 /*       SATSubsumptionAndResolution::SATSubsumptionAndResolution           */
 /****************************************************************************/
-void SATSubsumptionAndResolution::setupProblem(Clause *L,
-                                               Clause *M)
+
+void SATSubsumptionAndResolution::loadProblem(Clause *L,
+                                              Clause *M)
 {
-  CALL("SATSubsumptionAndResolution::setupProblem");
+  CALL("SATSubsumptionAndResolution::loadProblem");
   ASS(L)
   ASS(M)
 #if VDEBUG
@@ -154,7 +157,7 @@ void SATSubsumptionAndResolution::setupProblem(Clause *L,
 
   _solver.s.clear();
   _bindingsManager.clear();
-} // SATSubsumptionAndResolution::setupProblem
+} // SATSubsumptionAndResolution::loadProblem
 
 static vvector<unsigned> headerMultiset;
 /**
@@ -299,23 +302,25 @@ bool SATSubsumptionAndResolution::fillMatchesS()
 
   Literal *l_i, *m_j;
 
-  // number of matches found - is equal to the number of variables in the SAT solver
+  // number of matches found is equal to the number of variables in the SAT solver
   for (unsigned i = 0; i < _m; ++i) {
     l_i = _L->literals()[i];
     bool foundMatch = false;
 
     for (unsigned j = 0; j < _n; ++j) {
       m_j = _M->literals()[j];
-      if (l_i->functor() != m_j->functor()
-       || l_i->polarity() != m_j->polarity()) {
+      if (l_i->functor() != m_j->functor() || l_i->polarity() != m_j->polarity()) {
         continue;
       }
       if (l_i->arity() == 0) {
         ASS(m_j->arity() == 0)
+        ASS(l_i->functor() == m_j->functor())
         addBinding(nullptr, i, j, true, true);
         foundMatch = true;
         continue;
       }
+      // it is important that foundMatch is "or-ed" after calling the function. Otherwise the function might not be called.
+      // foundMatch |= checkAndAddMatch(l_i, m_j, i, j, true); is NOT correct.
       foundMatch = checkAndAddMatch(l_i, m_j, i, j, true) || foundMatch;
     } // for (unsigned j = 0; j < _n; ++j)
 
@@ -323,7 +328,7 @@ bool SATSubsumptionAndResolution::fillMatchesS()
       _subsumptionImpossible = true;
       return false;
     } // if (!foundPositiveMatch)
-  }   // for (unsigned i = 0; i < _nBaseLits; ++i)
+  }   // for (unsigned i = 0; i < _m; ++i)
 
   return true;
 } // SATSubsumptionAndResolution::fillMatchesS()
@@ -359,31 +364,34 @@ void SATSubsumptionAndResolution::fillMatchesSR()
       }
       if (l_i->arity() == 0) {
         ASS(m_j->arity() == 0)
+        ASS(l_i->functor() == m_j->functor())
         if (l_i->polarity() == m_j->polarity()) {
           addBinding(nullptr, i, j, true, true);
           foundPositiveMatch = true;
+          continue;
         }
-        else {
-          addBinding(nullptr, i, j, false, true);
-          hasNegativeMatch = true;
-          foundNegativeMatch = true;
-        }
-      }
-      else if (l_i->polarity() == m_j->polarity()) {
-        foundPositiveMatch = checkAndAddMatch(l_i, m_j, i, j, true) || foundPositiveMatch;
-      } // end of positive literal match
-      // dont check for negative literals if it was established that _sr_impossible
-      else if (checkAndAddMatch(l_i, m_j, i, j, false)) {
+        addBinding(nullptr, i, j, false, true);
         hasNegativeMatch = true;
         foundNegativeMatch = true;
-      } // end of negative literal matches
-    }   // for (unsigned j = 0; j < _nInstanceLits; ++j)
+        continue;
+      }
+      if (l_i->polarity() == m_j->polarity()) {
+        // it is important that foundPositiveMatch is "or-ed" after calling the function. Otherwise the function might not be called.
+        // foundPositiveMatch |= checkAndAddMatch(l_i, m_j, i, j, true); is NOT correct.
+        foundPositiveMatch = checkAndAddMatch(l_i, m_j, i, j, true) || foundPositiveMatch;
+        continue;
+      }
+      // check negative polarity matches
+      // same comment as above
+      hasNegativeMatch = checkAndAddMatch(l_i, m_j, i, j, false) | hasNegativeMatch;
+      foundNegativeMatch |= hasNegativeMatch;
+    } // for (unsigned j = 0; j < _nInstanceLits; ++j)
 
     // Check whether subsumption and subsumption resolution are possible
     if (!foundPositiveMatch) {
       _subsumptionImpossible = true;
       if (!foundNegativeMatch) {
-        // no positive or negative matches found
+        // no positive nor negative matches found
         _srImpossible = true;
         return;
       }
@@ -391,6 +399,8 @@ void SATSubsumptionAndResolution::fillMatchesSR()
       if (!firstNegativeMatch)
         firstNegativeMatch = l_i;
       else if (firstNegativeMatch->header() != l_i->header()) {
+        // there are two literals in L with only negative polarity matches, but they have a different functor
+        // therefore, subsumption resolution is impossible
         _srImpossible = true;
         return;
       }
@@ -782,21 +792,13 @@ Clause *SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause *
                                   SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, M, L));
 
   int next = 0;
-  bool found = false;
   for (int i = 0; i < mlen; i++) {
     Literal *curr = (*M)[i];
-    // As we will apply subsumption resolution after duplicate literal
-    // deletion, the same literal should never occur twice.
-    ASS(curr != m_j || !found)
-    if (curr != m_j || found) {
-      (*res)[next++] = curr;
-    }
-    else {
-      found = true;
-    }
+    if (curr == m_j)
+      continue;
+    (*res)[next++] = curr;
   }
   ASS_EQ(next, nlen)
-
   return res;
 }
 
@@ -868,24 +870,20 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause *L,
   ASS(L)
   ASS(M)
 
-  setupProblem(L, M);
+  loadProblem(L, M);
 
   // Fill the matches
   if (setSR) {
     _srImpossible = pruneSubsumptionResolution();
+    // WARNING!!! This assumes that the check for subsumption resolution is stronger than
+    // the check for subsumption.
     _subsumptionImpossible = _srImpossible || pruneSubsumption();
 
     if (_srImpossible && _subsumptionImpossible) {
       return false;
     }
-    else if (_subsumptionImpossible) {
-      // subsumption resolution is possible but subsumption is not
-      fillMatchesSR();
-      return false;
-    }
     else {
       ASS(!_srImpossible)
-      ASS(!_subsumptionImpossible)
       // both are possible
       fillMatchesSR();
     }
@@ -934,7 +932,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
     _solver.s.clear_constraints();
   }
   else {
-    setupProblem(L, M);
+    loadProblem(L, M);
     if (pruneSubsumptionResolution()) {
 #if PRINT_CLAUSES_SUBS
       cout << "SR pruned" << endl;
