@@ -27,9 +27,6 @@ In a pinch, `git grep PAT` works OK too.
 * TODO something about each directory please (even if just "unused")
 
 ### Vampire idioms and quirks
-* `CALL` macros at the start of most functions implement a call stack in debug mode, among other things (see `Debug/Tracer`).
- Every non-trivial function (i.e. probably not getters/setters, but most other things) should do this: if you find one without it's a good first patch!
- `CALL` is a no-op in release builds.
 * `ASS` and friends are debug-only assertions, defined in `Debug/Assertion`.
   No donkeys here.
 * Heavy use of "iterator" classes which can do slightly odd things. These are in the process of being re-organised somewhat by Joe.

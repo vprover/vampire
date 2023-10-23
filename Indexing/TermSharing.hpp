@@ -36,8 +36,8 @@ public:
   TermSharing();
   ~TermSharing();
 
+  // TODO we should probably inline the common path where a term already exists
   Term* insert(Term*);
-  Term* insertRecurrently(Term*);
 
   AtomicSort* insert(AtomicSort*);
 
@@ -56,7 +56,8 @@ public:
   { return t->hash(); }
   static bool equals(const Term* t1,const Term* t2);
 
-  static bool equals(const Literal* l1, const Literal* l2, bool opposite=false);
+  template<bool opposite = false>
+  static bool equals(const Literal* l1, const Literal* l2);
 
   DHSet<TermList>* getArraySorts(){
     return &_arraySorts;
@@ -67,13 +68,13 @@ public:
     Literal* l;
   };
   inline static unsigned hash(const OpLitWrapper& w)
-  { return w.l->hash(true); }
+  { return w.l->hash<true>(); }
   static bool equals(const Literal* l1,const OpLitWrapper& w) {
-    return equals(l1, w.l, true);
+    return equals<true>(l1, w.l);
   }
 
-  friend class WellSortednessCheckingLocalDisabler;
-
+  // stuff for disabling a well-sortedness check
+  // still used, but only in BlockedClauseElimination: can we eliminate that occurrence?
   class WellSortednessCheckingLocalDisabler {
     TermSharing* _tsInstance;
     bool _valueToRestore;
@@ -103,22 +104,6 @@ private:
    * Can be deleted once array axioms are made truly poltmorphic
    */  
   DHSet<TermList> _arraySorts;
-  /** Number of terms stored */
-  unsigned _totalTerms;
-  /** Number of sorts stored */
-  unsigned _totalSorts;
-  /** Number of ground terms stored */
-  // unsigned _groundTerms; // MS: unused
-  /** Number of literals stored */
-  unsigned _totalLiterals;
-  /** Number of ground literals stored */
-  // unsigned _groundLiterals; // MS: unused
-  /** Number of literal insertions */
-  unsigned _literalInsertions;
-  /** number of sort insertions */
-  unsigned _sortInsertions;
-  /** Number of term insertions */
-  unsigned _termInsertions;
 
   bool _poly;
   bool _wellSortednessCheckingDisabled;

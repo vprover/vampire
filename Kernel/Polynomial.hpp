@@ -38,9 +38,8 @@
 #include "Lib/Perfect.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include <type_traits>
-#include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -504,7 +503,7 @@ IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
 } // namespace Kernel
 
 // include needs to go here, since we need the specialization BottomUpChildIter<PolyNf> to declare Iter
-#include "Kernel/BottomUpEvaluation/PolyNf.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 namespace Kernel {
 
@@ -892,8 +891,6 @@ bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) {
 template<class Number>
 TermList MonomFactors<Number>::denormalize(TermList* results)  const
 {
-  CALL("MonomFactors::denormalize()")
-
   if (_factors.size() == 0) {
     return Number::one();
   } else {
@@ -1069,8 +1066,6 @@ typename Number::ConstantType Polynom<Number>::unwrapNumber() const&
 template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
-  CALL("Polynom::denormalize()")
-
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
     auto c = TermList(theory->representConstant(monom.numeral));
     if (monom.factors->isOne()) {
@@ -1110,7 +1105,6 @@ Stack<Monom<Number>>& Polynom<Number>::raw()
 template<class Number>
 Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
 {
-  CALL("Polynom::replaceTerms(PolyNf*)")
   int offs = 0;
   Stack<Monom> out;
   out.reserve(nSummands());

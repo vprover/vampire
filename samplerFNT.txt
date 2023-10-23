@@ -1,0 +1,333 @@
+# MACRO DEFINITIONS
+
+# set $has_z3 to false, if you want to sample without it (here it currently affects whether fmbes=smt will possibly get sampled)
+> $has_z3 ~cat true:1
+
+# PREPROCESSING
+
+# blocked_clause_elimination
+> bce ~cat off:5,on:1
+
+# equality_resolution_with_deletion
+> erd ~cat on:10,off:1
+
+# function_definition_elimination
+> fde ~cat all:5,none:1,unused:1
+
+# general_splitting
+> gsp ~cat off:8,on:1
+
+# inline_let -- this is probably irrelevant on TPTP anyway
+> ile ~cat off:10,on:1
+
+# newcnf
+> newcnf ~cat on:9,off:25
+
+# naming
+> $nm ~cat Z:1,NZ:5 
+$nm=Z > nm ~cat 0:1
+$nm=NZ > nm ~sgd 0.07,2
+
+# inequality_splitting
+> ins ~cat 0:20,1:4,2:3,3:2,4:1
+
+# random_polarities
+> rp ~cat off:3,on:1
+
+# twee_goal_transformation
+> tgt ~cat off:10,ground:6,full:5
+
+# unused_predicate_definition_removal
+> updr ~cat on:16,off:1
+
+# SATURATION
+
+# saturation_algorithms
+> sa ~cat fmb:22,otter:60,discount:28
+
+# literal selection
+> $s_pos ~cat Y:4,N:1
+$s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50
+$s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50
+
+# lookahaed_delay
+> $ls ~cat off:1
+s=11 > $ls ~cat on:1
+s=-11 > $ls ~cat on:1
+
+$ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
+
+# age_weight_ratio
+> awr ~u2r -10;4;:
+
+# random_awr
+> rawr ~cat on:4,off:1
+
+# age_weight_ratio_shape
+> awrs ~cat constant:8,decay:1,converge:1
+
+# age_weight_ratio_shape_frequency
+awrs!=constant > awrsf ~ui 1,500
+
+# nongoal_weight_coefficient
+> nwc ~cat 1:2,2:1
+nwc!=1 > nwc ~ui 2,15
+
+# restrict_nwc_to_goal_constants
+nwc!=1 > rnwc ~cat off:5,on:1
+
+# literal_maximality_aftercheck
+> lma ~cat off:500,on:83
+
+# POSITIVE LITERAL SPLIT QUEUE
+> plsq ~cat off:4,on:1
+
+# positive_literal_split_queue_layered_arrangement
+plsq=on > plsql ~cat on:66,off:162
+
+# positive_literal_split_queue_cutoffs
+plsq=on > plsqc ~cat 0:117,1:92,2:19,3:5,4:1
+
+# positive_literal_split_queue_ratios
+plsq=on > plsqr ~u2r -5;7;,
+
+# INFERENCES
+
+# simultaneous_superposition
+sup=on > sims ~cat on:50,off:1
+
+# forward_subsumption
+> fs ~cat on:500,off:31
+
+# forward_subsumption_resolution
+fs=off > fsr ~cat off:1
+fs=on  > fsr ~cat on:500,off:193
+
+# forward_subsumption_demodulation
+> fsd ~cat off:500,on:90
+
+# forward_subsumption_demodulation_max_matches
+fsd=on > fsdmm ~cat 0:10,1:3,2:2,3:1
+
+# backward_demodulation
+> bd ~cat all:500,off:245,preordered:91
+
+# backward_subsumption
+fs!=off > bs ~cat off::500,unit_only:74,on:64
+
+# backward_subsumption_resolution
+> bsr ~cat off:500,unit_only:118,on:75
+
+# backward_subsumption_demodulation
+> bsd ~cat off:500,on:74
+
+# backward_subsumption_demodulation_max_matches
+bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
+
+# condensation
+> cond ~cat off:500,on:89,fast:61
+
+# demodulation_redundancy_check
+> drc ~cat encompass:1,on:1
+
+# equational_tautology_removal
+> etr ~cat off:500,on:30
+
+# extensionality_resolution
+ins=0 > er ~cat off:500,known:25,filter:26
+
+# extensionality_allow_pos_eq
+er=filter > erape ~cat off:3,on:1
+
+# extensionality_max_length
+er!=off > erml ~cat 0:3,2:1,3:1
+
+# fool_paramodulation
+> foolp ~cat off:10,on:1
+
+# forward_demodulation
+> fd ~cat all:500,off:41,preordered:168
+
+# function_definition_introduction
+> fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
+
+# inner_rewriting
+> irw ~cat off:165,on:6
+
+# unit_resulting_resolution
+> urr ~cat off:1200,ec_only:162,on:340
+
+# binary_resolution
+urr=on > br ~cat on:10,off:1
+
+# SINE LEVELS and shit
+
+# sine_to_age
+> s2a ~cat off:2,on:1
+
+# sine_level_split_queue
+> slsq ~cat off:5,on:1
+
+# sine_level_split_queue_layered_arrangement
+slsq=on > slsql ~cat on:1,off:1
+
+# sine_level_split_queue_cutoffs
+slsq=on > slsqc ~cat 0:10,1:10,2:6,3:3,4:1
+
+# sine_level_split_queue_ratios
+slsq=on > slsqr ~u2r -5;2;,
+
+# ORDERING
+
+# term_ordering
+> to ~cat kbo:13,lpo:4
+
+# symbol_precedence
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
+# symbol_precedence_boost
+> spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
+
+# kbo_max_zero
+to=kbo > kmz ~cat off:200,on:1
+# kbo_weight_scheme
+to=kbo > kws ~cat const:50,inv_arity_squared:6,precedence:28,arity_squared:1,inv_arity:5,inv_frequency:8,frequency:2
+
+# literal_comparison_mode
+> lcm ~cat standard:500,predicate:51
+
+# sine_to_pred_levels
+lcm=standard > s2pl ~cat off:50,on:2,no:3
+
+# SINE LEVELS - configure (must come after sine_to_age & slsq & s2pl)
+
+# set $s2a as the disjunction: s2a=on | slsq=on | s2pl!=off
+> $s2a ~cat off:1
+s2a=on    > $s2a ~cat on:1
+slsq=on   > $s2a ~cat on:1
+s2pl!=off > $s2a ~cat on:1
+
+# now configure (stealing the values from sine proper, which is not ideal, but should do)
+
+# sine_to_age_generality_threshold
+$s2a=on > s2agt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
+
+# sine_to_age_tolerance
+$s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
+
+# AVATAR
+> av ~cat on:15,off:4
+
+# avatar_add_complementary
+av=on > aac ~cat none:147,ground:600
+
+# avatar_buffered_solver
+av=on > abs ~cat on:63,off:300
+
+# avatar_congruence_closure
+av=on > acc ~cat off:600,model:24,on:58
+
+# cc_unsat_cores
+acc!=off > ccuc ~cat first:1,small_ones:1,all:3
+
+# avatar_minimize_model
+av=on  acc=model > amm ~cat all:600,off:69
+av=on acc!=model > amm ~cat all:600,sco:32,off:69
+
+# avatar_eager_removal
+av=on amm=all > aer ~cat on:300,off:1
+
+# avatar_delete_deactivated
+av=on > add ~cat on:300,large:55,off:8
+
+# avatar_fast_restart
+av=on > afr ~cat off:10,on:1
+
+# avatar_literal_polarity_advice
+av=on > alpa ~cat none:300,false:13,true:6,random:4
+
+# avatar_nonsplittable_components
+av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
+
+# avatar_turn_off_time_frac
+av=on > atotf ~cat 1.0:10,0.5:1
+# careful that 1.0 becomes "1" by the ->toFloat->toStr internal transformation
+atotf!=1 > atotf ~uf 0.0,0.5
+
+# avatar_flush_period
+av=on > afp ~cat 0:15,1:1
+afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
+
+# avatar_flush_quotient
+afp!=0 > afq ~uf 1.0,3.0
+
+# nonliterals_in_clause_weight
+av=on > nicw ~cat off:600,on:76
+
+# split_at_activation
+av=on > sac ~cat off:3,on:1
+
+# TODO: consider enabling this for vampire_z3 compiles!
+# av=on > sas ~cat minisat:10,z3:1
+
+# AVATAR SPLIT QUEUE
+
+# avatar_split_queue
+av=on > avsq ~cat off:5,on:1
+
+# avatar_split_queue_layered_arrangement
+avsq=on > avsql ~cat off:4,on:1
+
+# avatar_split_queue_cutoffs
+avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+
+# avatar_split_queue_ratios
+avsq=on > avsqr ~u2r -5;3;,
+
+# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+# global_subsumption
+> gs ~cat off:5,on:1
+
+# global_subsumption_explicit_minim
+gs=on > gsem ~cat randomized:50,on:5,off:17
+
+# global_subsumption_sat_solver_power
+gs=on > gsssp ~cat propagation_only:20,full:1
+
+# global_subsumption_avatar_assumptions
+gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
+
+# MISC
+
+> uhcvi ~cat off:1,on:1
+
+# FMB options
+
+# fmb_enumeration_strategy
+$has_z3=true  sa=fmb > fmbes ~cat sbeam:1,smt:1,contour:1
+$has_z3!=true sa=fmb > fmbes ~cat sbeam:1,contour:1
+
+# fmb_size_weight_ratio
+fmbes=contour > fmbswr ~ui 0,5
+
+# fmb_adjust_sorts
+sa=fmb fmbes!=contour > fmbas ~cat group:36,predicate:4,expand:4,off:1,function:1
+sa=fmb  fmbes=contour > fmbas ~cat group:36,predicate:4,off:1,function:1
+
+# fmb_detect_sort_bounds
+sa=fmb fmbas!=predicate fmbas!=function > fmbdsb ~cat off:5,on:1
+
+# fmb_detect_sort_bounds_time_limit
+fmbdsb=on > fmbdsbt ~cat 1:5,2:2,3:1
+
+# fmb_keep_sbeam_generators
+sa=fmb fmbes=sbeam > fmbksg ~cat off:2,on:1
+
+# fmb_start_size - setting this to values > 1 is making things "finite mode incomplete" (but could save time for some problems)
+sa=fmb > fmbss ~cat 1:5,666:1
+fmbss=666 > fmbss ~sgd 0.1,1
+
+# fmb_symmetry_symbol_order
+sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1
+
+# fmb_symmetry_ratio
+sa=fmb > fmbsr ~uf 1.0,2.5

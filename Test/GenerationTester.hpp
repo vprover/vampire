@@ -79,7 +79,7 @@ public:
 class TestCase
 {
   using Clause = Kernel::Clause;
-  using OptionMap = Stack<pair<vstring,vstring>>;
+  using OptionMap = Stack<std::pair<vstring,vstring>>;
   using Condition = std::function<bool(vstring&, vstring&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
@@ -93,12 +93,12 @@ class TestCase
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
-      cout  << endl;
-      cout << "[  context ]: " << pretty(_context) << endl;
-      cout << "[  options ]: " << pretty(_options) << endl;
-      cout << "[     case ]: " << pretty(*_input) << endl;
-      cout << "[       is ]: " << pretty(is) << endl;
-      cout << "[ expected ]: " << pretty(expected) << endl;
+      std::cout  << std::endl;
+      std::cout << "[  context ]: " << pretty(_context) << std::endl;
+      std::cout << "[  options ]: " << pretty(_options) << std::endl;
+      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+      std::cout << "[       is ]: " << pretty(is) << std::endl;
+      std::cout << "[ expected ]: " << pretty(expected) << std::endl;
       exit(-1);
   }
 
@@ -130,6 +130,7 @@ public:
     auto container = PlainClauseContainer();
     Problem p;
     Options o;
+    env.setMainProblem(&p);
     for (const auto& kv : _options) {
       o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);

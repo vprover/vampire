@@ -53,8 +53,6 @@ __InitHelper initializerAuxObject;
 
 void ResourceLimits::setLimits(size_t memoryInBytes, int timeInDeciseconds)
 {
-  CALL("ResourceLimits::setLimits");
-
   env.options->setMemoryLimitOptionValue(memoryInBytes);
   Allocator::setMemoryLimit(memoryInBytes);
 

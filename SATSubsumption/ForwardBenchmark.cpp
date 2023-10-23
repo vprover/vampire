@@ -35,7 +35,6 @@ using namespace std::chrono;
 ForwardBenchmark::ForwardBenchmark(bool subsumptionResolution)
     : _subsumptionResolution(subsumptionResolution)
 {
-  CALL("ForwardBenchmark::ForwardBenchmark");
 }
 
 ForwardBenchmark::~ForwardBenchmark()
@@ -48,7 +47,6 @@ static ofstream correlationFile;
 
 void ForwardBenchmark::attach(SaturationAlgorithm *salg)
 {
-  CALL("ForwardBenchmark::attach");
   ForwardSimplificationEngine::attach(salg);
   _unitIndex = static_cast<UnitClauseLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
@@ -72,7 +70,6 @@ void ForwardBenchmark::attach(SaturationAlgorithm *salg)
 
 void ForwardBenchmark::detach()
 {
-  CALL("ForwardBenchmark::detach");
   _unitIndex = nullptr;
   _fwIndex = nullptr;
   _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
@@ -185,7 +182,6 @@ static CMStack cmStore(64);
  */
 bool ForwardBenchmark::checkSubsumption(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex)
 {
-  CALL("ForwardBenchmark::checkSubsumption");
   // Check unit clauses first
   unsigned clen = cl->length();
   if (clen == 0) {
@@ -358,7 +354,6 @@ static bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Litera
  */
 Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl, ClauseIterator &premises, LiteralMiniIndex &miniIndex)
 {
-  CALL("ForwardBenchmark::checkSubsumptionResolution");
   unsigned clen = cl->length();
   if (clen == 0) {
     return nullptr;
@@ -494,7 +489,6 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl, ClauseIterator 
  */
 static Clause *generateNSimplificationClause(Clause *cl, vvector<Literal *> litToExclude, Stack<Unit *> premises)
 {
-  CALL("generateNSimplificationClause");
   unsigned nlen = cl->length() - litToExclude.size();
   // convert premises into a list of units
   UnitList *premList = UnitList::singleton(cl);
@@ -610,7 +604,6 @@ Clause *ForwardBenchmark::checkSubsumptionResolution(Clause *cl)
 // configuration 1
 bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
-  CALL("ForwardBenchmark::perform");
   TIME_TRACE("forward subsumption");
 
   unsigned clen = cl->length();
@@ -645,7 +638,6 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
 #elif USE_SAT_SUBSUMPTION_FORWARD && !USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD                          // Configuration 2
 bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
-  CALL("ForwardBenchmark::perform");
   TIME_TRACE("forward subsumption");
 
   unsigned clen = cl->length();
@@ -680,7 +672,6 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
 #elif USE_SAT_SUBSUMPTION_FORWARD && USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD && !USE_OPTIMIZED_FORWARD // Configuration 3
 bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
-  CALL("ForwardBenchmark::perform");
   TIME_TRACE("forward subsumption");
 
   unsigned clen = cl->length();
@@ -709,7 +700,6 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
 // Configuration 4
 bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
-  CALL("ForwardBenchmark::perform");
   TIME_TRACE("forward subsumption");
 
   unsigned clen = cl->length();

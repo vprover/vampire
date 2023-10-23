@@ -20,45 +20,45 @@ using namespace std;
 using namespace SATSubsumption;
 using namespace Test;
 
-#define SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION     \
-  __ALLOW_UNUSED(                               \
-  DECL_DEFAULT_VARS                             \
-  DECL_VAR(x1, 1)                               \
-  DECL_VAR(x2, 2)                               \
-  DECL_VAR(x3, 3)                               \
-  DECL_VAR(x4, 4)                               \
-  DECL_VAR(x5, 5)                               \
-  DECL_VAR(x6, 6)                               \
-  DECL_VAR(x7, 7)                               \
-  DECL_VAR(y1, 11)                              \
-  DECL_VAR(y2, 12)                              \
-  DECL_VAR(y3, 13)                              \
-  DECL_VAR(y4, 14)                              \
-  DECL_VAR(y5, 15)                              \
-  DECL_VAR(y6, 16)                              \
-  DECL_VAR(y7, 17)                              \
-  DECL_SORT(s)                                  \
-  DECL_CONST(c, s)                              \
-  DECL_CONST(d, s)                              \
-  DECL_CONST(e, s)                              \
-  DECL_FUNC(f, {s}, s)                          \
-  DECL_FUNC(f2, {s, s}, s)                      \
-  DECL_FUNC(f3, {s, s, s}, s)                   \
-  DECL_FUNC(g, {s}, s)                          \
-  DECL_FUNC(g2, {s, s}, s)                      \
-  DECL_FUNC(h, {s}, s)                          \
-  DECL_FUNC(h2, {s, s}, s)                      \
-  DECL_FUNC(i, {s}, s)                          \
-  DECL_FUNC(i2, {s, s}, s)                      \
-  DECL_PRED(p, {s})                             \
-  DECL_PRED(p2, {s, s})                         \
-  DECL_PRED(p3, {s, s, s})                      \
-  DECL_PRED(q, {s})                             \
-  DECL_PRED(q2, {s, s})                         \
-  DECL_PRED(r, {s})                             \
-  DECL_PRED(r2, {s, s}))
+#define SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION                                                                                                                 \
+  __ALLOW_UNUSED(                                                                                                                                           \
+      DECL_DEFAULT_VARS                                                                                                                                     \
+          DECL_VAR(x1, 1)                                                                                                                                   \
+              DECL_VAR(x2, 2)                                                                                                                               \
+                  DECL_VAR(x3, 3)                                                                                                                           \
+                      DECL_VAR(x4, 4)                                                                                                                       \
+                          DECL_VAR(x5, 5)                                                                                                                   \
+                              DECL_VAR(x6, 6)                                                                                                               \
+                                  DECL_VAR(x7, 7)                                                                                                           \
+                                      DECL_VAR(y1, 11)                                                                                                      \
+                                          DECL_VAR(y2, 12)                                                                                                  \
+                                              DECL_VAR(y3, 13)                                                                                              \
+                                                  DECL_VAR(y4, 14)                                                                                          \
+                                                      DECL_VAR(y5, 15)                                                                                      \
+                                                          DECL_VAR(y6, 16)                                                                                  \
+                                                              DECL_VAR(y7, 17)                                                                              \
+                                                                  DECL_SORT(s)                                                                              \
+                                                                      DECL_CONST(c, s)                                                                      \
+                                                                          DECL_CONST(d, s)                                                                  \
+                                                                              DECL_CONST(e, s)                                                              \
+                                                                                  DECL_FUNC(f, {s}, s)                                                      \
+                                                                                      DECL_FUNC(f2, {s, s}, s)                                              \
+                                                                                          DECL_FUNC(f3, {s, s, s}, s)                                       \
+                                                                                              DECL_FUNC(g, {s}, s)                                          \
+                                                                                                  DECL_FUNC(g2, {s, s}, s)                                  \
+                                                                                                      DECL_FUNC(h, {s}, s)                                  \
+                                                                                                          DECL_FUNC(h2, {s, s}, s)                          \
+                                                                                                              DECL_FUNC(i, {s}, s)                          \
+                                                                                                                  DECL_FUNC(i2, {s, s}, s)                  \
+                                                                                                                      DECL_PRED(p, {s})                     \
+                                                                                                                          DECL_PRED(p2, {s, s})             \
+                                                                                                                              DECL_PRED(p3, {s, s, s})      \
+                                                                                                                                  DECL_PRED(q, {s})         \
+                                                                                                                                      DECL_PRED(q2, {s, s}) \
+                                                                                                                                          DECL_PRED(r, {s}) \
+                                                                                                                                              DECL_PRED(r2, {s, s}))
 
-template<typename HayStack, typename Needle>
+template <typename HayStack, typename Needle>
 static bool contains(const HayStack &haystack, const Needle &needle)
 {
   for (auto candidate : haystack)
@@ -131,10 +131,9 @@ TEST_FUN(PositiveSubsumption)
   Kernel::Clause *M5 = clause({p(f2(f(e), g2(y1, y3))), p2(f2(f(e), g2(y1, y3)), y3), f(e) == g2(y1, y3)});
   ASS(subsumption.checkSubsumption(L5, M5));
 
-  Kernel::Clause* L6 = clause({p3(y7, f(y1), x4), ~p3(y7, y1, x4)});
-  Kernel::Clause* M6 = clause({p3(x6, f(y3), d), ~p3(x6, y3, d)});
+  Kernel::Clause *L6 = clause({p3(y7, f(y1), x4), ~p3(y7, y1, x4)});
+  Kernel::Clause *M6 = clause({p3(x6, f(y3), d), ~p3(x6, y3, d)});
   ASS(subsumption.checkSubsumption(L6, M6));
-
 }
 
 TEST_FUN(NegativeSubsumption)
@@ -209,66 +208,66 @@ TEST_FUN(PositiveSubsumptionResolution)
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected4));
 
-  Kernel::Clause* L5 = clause({~p(f(x1)), q(x1)});
-  Kernel::Clause* M5 = clause({~p2(x2, x5), q(x2), p(f(x2)), ~q(g(x5))});
-  Kernel::Clause* expected5 = clause({~p2(x2, x5), q(x2), ~q(g(x5))});
+  Kernel::Clause *L5 = clause({~p(f(x1)), q(x1)});
+  Kernel::Clause *M5 = clause({~p2(x2, x5), q(x2), p(f(x2)), ~q(g(x5))});
+  Kernel::Clause *expected5 = clause({~p2(x2, x5), q(x2), ~q(g(x5))});
   conclusion = subsumption.checkSubsumptionResolution(L5, M5);
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected5));
 
-  Kernel::Clause* L6 = clause({p(f2(x1, x2)), p2(x1, x2)});
-  Kernel::Clause* M6 = clause({p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4)), ~p2(f2(f(g(x5)), y4), x5)});
+  Kernel::Clause *L6 = clause({p(f2(x1, x2)), p2(x1, x2)});
+  Kernel::Clause *M6 = clause({p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4)), ~p2(f2(f(g(x5)), y4), x5)});
   conclusion = subsumption.checkSubsumptionResolution(L6, M6);
   ASS(conclusion);
 
-  Kernel::Clause* L7 = clause({p(f2(x1, x2)),
+  Kernel::Clause *L7 = clause({p(f2(x1, x2)),
                                p2(x1, x2)});
-  Kernel::Clause* M7 = clause({p2(f(g(x5)), y4),
+  Kernel::Clause *M7 = clause({p2(f(g(x5)), y4),
                                ~p(f2(f(g(x5)), y4)),
                                ~p2(f2(f(g(x5)), y4), x5)});
   conclusion = subsumption.checkSubsumptionResolution(L7, M7);
   ASS(conclusion);
 
-  Kernel::Clause* L8 = clause({~p2(x6, d)});
-  Kernel::Clause* M8 = clause({~p(y1), ~p(x3), ~p2(f(f2(f2(x3, x3), f2(x3, y1))), y1), p2(f2(f2(x3, x3), f2(x3, y1)), d)});
+  Kernel::Clause *L8 = clause({~p2(x6, d)});
+  Kernel::Clause *M8 = clause({~p(y1), ~p(x3), ~p2(f(f2(f2(x3, x3), f2(x3, y1))), y1), p2(f2(f2(x3, x3), f2(x3, y1)), d)});
   conclusion = subsumption.checkSubsumptionResolution(L8, M8);
   ASS(conclusion);
 
-  Kernel::Clause* L9 = clause({~p3(d, y7, d), ~p3(y7, c, e)});
-  Kernel::Clause* M9 = clause({p3(d, y1, d), ~p3(y1, c, e)});
+  Kernel::Clause *L9 = clause({~p3(d, y7, d), ~p3(y7, c, e)});
+  Kernel::Clause *M9 = clause({p3(d, y1, d), ~p3(y1, c, e)});
   conclusion = subsumption.checkSubsumptionResolution(L9, M9);
   ASS(conclusion);
 
-  Kernel::Clause* L10 = clause({p2(x5, x7),
-                                f2(x5, x7)==f2(f3(y4, y5, x2), x2),
+  Kernel::Clause *L10 = clause({p2(x5, x7),
+                                f2(x5, x7) == f2(f3(y4, y5, x2), x2),
                                 p2(y5, x2)});
-  Kernel::Clause* M10 = clause({~p2(y1, x3),
-                                f2(y1, x3)==f2(f3(y6, y1, x3), x3)});
+  Kernel::Clause *M10 = clause({~p2(y1, x3),
+                                f2(y1, x3) == f2(f3(y6, y1, x3), x3)});
   conclusion = subsumption.checkSubsumptionResolution(L10, M10);
   ASS(conclusion);
 
-  Kernel::Clause* L11 = clause({p2(x5, x7),
-                                f2(x5, x7)==f2(f3(y4, y5, x2), x2),
+  Kernel::Clause *L11 = clause({p2(x5, x7),
+                                f2(x5, x7) == f2(f3(y4, y5, x2), x2),
                                 p2(y5, x2)});
-  Kernel::Clause* M11 = clause({~p2(g2(h2(x1, y1), y1), x3),
-                                f2(g2(h2(x1, y1), y1), x3)==f2(f3(y6, g2(h2(x1, y1), y1), x3), x3)});
+  Kernel::Clause *M11 = clause({~p2(g2(h2(x1, y1), y1), x3),
+                                f2(g2(h2(x1, y1), y1), x3) == f2(f3(y6, g2(h2(x1, y1), y1), x3), x3)});
   conclusion = subsumption.checkSubsumptionResolution(L11, M11);
   ASS(conclusion);
 
-  Kernel::Clause* L12 = clause({p2(y3, y5), ~q2(x7, y5), ~p2(y3, x7)});
-  Kernel::Clause* M12 = clause({p2(f2(y2, y5), y2), ~p2(y5, y3), ~r2(y2, y3), ~p2(y5, c), ~q2(y2, c), ~q2(y3, c)});
+  Kernel::Clause *L12 = clause({p2(y3, y5), ~q2(x7, y5), ~p2(y3, x7)});
+  Kernel::Clause *M12 = clause({p2(f2(y2, y5), y2), ~p2(y5, y3), ~r2(y2, y3), ~p2(y5, c), ~q2(y2, c), ~q2(y3, c)});
   conclusion = subsumption.checkSubsumptionResolution(L12, M12);
   ASS(conclusion);
 
-  Kernel::Clause* L13 = clause({p(e)});
-  Kernel::Clause* M13 = clause({q(e), ~p(e)});
+  Kernel::Clause *L13 = clause({p(e)});
+  Kernel::Clause *M13 = clause({q(e), ~p(e)});
   conclusion = subsumption.checkSubsumptionResolution(L13, M13);
-  Kernel::Clause* expected13 = clause({q(e)});
+  Kernel::Clause *expected13 = clause({q(e)});
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected13));
 }
 
-  TEST_FUN(NegativeSubsumptionResolution)
+TEST_FUN(NegativeSubsumptionResolution)
 {
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
   // Create the the L clause
@@ -336,10 +335,18 @@ TEST_FUN(PositiveSubsumptionResolution)
   }
   ASS(!conclusion);
 
-  Kernel::Clause* L11 = clause({p2(y3, c), p2(d, y3), d==y3});
-  Kernel::Clause* M11 = clause({~p2(y5, x7), ~p2(y3, y5), p2(y3, x7)});
+  Kernel::Clause *L11 = clause({p2(y3, c), p2(d, y3), d == y3});
+  Kernel::Clause *M11 = clause({~p2(y5, x7), ~p2(y3, y5), p2(y3, x7)});
   conclusion = subsumption.checkSubsumptionResolution(L11, M11);
-  if(conclusion) {
+  if (conclusion) {
+    cout << conclusion->toString() << endl;
+  }
+  ASS(!conclusion);
+
+  Kernel::Clause *L12 = clause({f2(y1, y3) == x1, ~p2(g2(x1, f2(y1, y3)), x1), ~p2(g2(x1, f2(y1, y3)), y1), ~p2(g2(x1, f2(y1, y3)), y3)});
+  Kernel::Clause *M12 = clause({p2(g2(x2, f2(y1, y3)), x2), f2(y1, y3) == x2, p2(g2(x2, f2(y1, y3)), y3)});
+  conclusion = subsumption.checkSubsumptionResolution(L12, M12);
+  if (conclusion) {
     cout << conclusion->toString() << endl;
   }
   ASS(!conclusion);
@@ -374,14 +381,14 @@ TEST_FUN(UsePreviousSettings)
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected3));
 
-  Kernel::Clause* L4 = clause({p2(y3, y5), ~q2(x7, y5), ~p2(y3, x7)});
-  Kernel::Clause* M4 = clause({p2(f2(y2, y5), y2), ~p2(y5, y3), ~r2(y2, y3), ~p2(y5, c), ~q2(y2, c), ~q2(y3, c)});
+  Kernel::Clause *L4 = clause({p2(y3, y5), ~q2(x7, y5), ~p2(y3, x7)});
+  Kernel::Clause *M4 = clause({p2(f2(y2, y5), y2), ~p2(y5, y3), ~r2(y2, y3), ~p2(y5, c), ~q2(y2, c), ~q2(y3, c)});
   ASS(!subsumption.checkSubsumption(L4, M4, true));
   conclusion = subsumption.checkSubsumptionResolution(L4, M4, true);
   ASS(conclusion);
 
-  Kernel::Clause* L5 = clause({p3(y1, y5, x7), ~p3(x2, x3, x7), ~p3(y3, y5, x3), ~p3(x2, y3, y1)});
-  Kernel::Clause* M5 = clause({p3(x1, x6, y4), ~p3(y2, x4, y4), ~p3(y6, x4, x6), ~p3(x1, y6, y2)});
+  Kernel::Clause *L5 = clause({p3(y1, y5, x7), ~p3(x2, x3, x7), ~p3(y3, y5, x3), ~p3(x2, y3, y1)});
+  Kernel::Clause *M5 = clause({p3(x1, x6, y4), ~p3(y2, x4, y4), ~p3(y6, x4, x6), ~p3(x1, y6, y2)});
   ASS(!subsumption.checkSubsumption(L5, M5, true));
   conclusion = subsumption.checkSubsumptionResolution(L5, M5, true);
   ASS(!conclusion);

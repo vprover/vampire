@@ -38,6 +38,8 @@
 namespace Kernel
 {
 
+using namespace std;
+
 /**
  * Return true if literal @b l is positive for the purpose of
  * literal selection
@@ -61,8 +63,6 @@ bool LiteralSelector::isPositiveForSelection(Literal* l) const
  */
 int LiteralSelector::getSelectionPriority(Literal* l) const
 {
-  CALL("LiteralSelector::getSelectionPriority");
-
   Signature::Symbol* psym=env.signature->getPredicate(l->functor());
   if(psym->label() || psym->answerPredicate()) {
     return -2;
@@ -81,8 +81,6 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
  */
 LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Options& options, int selectorNumber)
 {
-  CALL("LiteralSelector::getSelector");
-
   using namespace LiteralComparators;
 
   typedef Composite<ColoredFirst,
@@ -146,7 +144,7 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
     INVALID_OPERATION("Undefined selection function");
   }
   if(selectorNumber<0) {
-    res->_reversePolarity = true;
+    res->setReversePolarity(true);
   }
   return res;
 }
@@ -157,8 +155,6 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
  */
 void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
 {
-  CALL("LiteralSelector::ensureSomeColoredSelected");
-
   if(c->color()==COLOR_TRANSPARENT) {
     //if no literal is colored, do nothing
     return;
@@ -194,7 +190,6 @@ void LiteralSelector::ensureSomeColoredSelected(Clause* c, unsigned eligible)
  */
 void LiteralSelector::select(Clause* c, unsigned eligibleInp)
 {
-  CALL("LiteralSelector::select");
   ASS_LE(eligibleInp, c->length());
 
   if(eligibleInp==0) {
@@ -244,8 +239,6 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
  */
 void TotalLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
-  CALL("TotalLiteralSelector::doSelection");
-
   c->setSelected(eligible);
 }
 

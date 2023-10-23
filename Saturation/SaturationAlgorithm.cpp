@@ -69,9 +69,9 @@
 #if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
 #include "SATSubsumption/ForwardBenchmarkWrapper.hpp"
 #endif
+#include "Inferences/InvalidAnswerLiteralRemoval.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
-#include "Inferences/HyperSuperposition.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/SLQueryBackwardSubsumption.hpp"
@@ -96,6 +96,7 @@
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
+#include "Inferences/DefinitionIntroduction.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -119,6 +120,7 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -217,8 +219,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem &prb, const Options &opt)
       _generatedClauseCount(0),
       _activationLimit(0)
 {
-  CALL("SaturationAlgorithm::SaturationAlgorithm");
-  ASS_EQ(s_instance, 0); // there can be only one saturation algorithm at a time
+  ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
   _activationLimit = opt.activationLimit();
 
@@ -269,8 +270,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem &prb, const Options &opt)
  */
 SaturationAlgorithm::~SaturationAlgorithm()
 {
-  CALL("SaturationAlgorithm::~SaturationAlgorithm");
-  ASS_EQ(s_instance, this);
+  ASS_EQ(s_instance,this);
 
   s_instance = 0;
 
@@ -316,9 +316,7 @@ SaturationAlgorithm::~SaturationAlgorithm()
 
 void SaturationAlgorithm::tryUpdateFinalClauseCount()
 {
-  CALL("SaturationAlgorithm::tryUpdateFinalClauseCount");
-
-  SaturationAlgorithm *inst = tryGetInstance();
+  SaturationAlgorithm* inst = tryGetInstance();
   if (!inst) {
     return;
   }
@@ -339,8 +337,6 @@ bool SaturationAlgorithm::isComplete()
 
 ClauseIterator SaturationAlgorithm::activeClauses()
 {
-  CALL("SaturationAlgorithm::activeClauses");
-
   return _active->clauses();
 }
 
@@ -349,8 +345,6 @@ ClauseIterator SaturationAlgorithm::activeClauses()
  */
 void SaturationAlgorithm::onActiveAdded(Clause *c)
 {
-  CALL("SaturationAlgorithm::onActiveAdded");
-
   if (env.options->showActive()) {
     env.beginOutput();
     env.out() << "[SA] active: " << c->toString() << std::endl;
@@ -363,16 +357,13 @@ void SaturationAlgorithm::onActiveAdded(Clause *c)
  */
 void SaturationAlgorithm::onActiveRemoved(Clause *c)
 {
-  CALL("SaturationAlgorithm::onActiveRemoved");
-
-  ASS(c->store() == Clause::ACTIVE);
+  ASS(c->store()==Clause::ACTIVE);
   c->setStore(Clause::NONE);
   // at this point the c object may be deleted
 }
 
 void SaturationAlgorithm::onAllProcessed()
 {
-  CALL("SaturationAlgorithm::onAllProcessed");
   ASS(clausesFlushed());
 
   if (_symEl) {
@@ -411,9 +402,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause *c)
  */
 void SaturationAlgorithm::onPassiveRemoved(Clause *c)
 {
-  CALL("SaturationAlgorithm::onPassiveRemoved");
-
-  ASS(c->store() == Clause::PASSIVE);
+  ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
   // at this point the c object can be deleted
 }
@@ -452,8 +441,6 @@ void SaturationAlgorithm::onUnprocessedSelected(Clause *c)
  */
 void SaturationAlgorithm::onNewClause(Clause *cl)
 {
-  CALL("SaturationAlgorithm::onNewClause");
-
   if (_splitter) {
     _splitter->onNewClause(cl);
   }
@@ -475,7 +462,6 @@ void SaturationAlgorithm::onNewClause(Clause *cl)
 
 void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause *c)
 {
-  CALL("SaturationAlgorithm::onNewUsefulPropositionalClause");
   ASS(c->isPropositional());
 
   if (env.options->showNewPropositional()) {
@@ -497,9 +483,8 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause *c)
  */
 void SaturationAlgorithm::onClauseRetained(Clause *cl)
 {
-  CALL("SaturationAlgorithm::onClauseRetained");
+  //cout << "[SA] retained " << cl->toString() << endl;
 
-  // cout << "[SA] retained " << cl->toString() << endl;
 }
 
 /**
@@ -509,7 +494,6 @@ void SaturationAlgorithm::onClauseRetained(Clause *cl)
 void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, unsigned numOfReplacements,
                                             Clause *premise, bool forward)
 {
-  CALL("SaturationAlgorithm::onClauseReduction/5");
   ASS(cl);
 
   ClauseIterator premises;
@@ -527,7 +511,6 @@ void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, u
 void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, unsigned numOfReplacements,
                                             ClauseIterator premises, bool forward)
 {
-  CALL("SaturationAlgorithm::onClauseReduction/4");
   ASS(cl);
 
   static ClauseStack premStack;
@@ -577,8 +560,6 @@ void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, u
 
 void SaturationAlgorithm::onNonRedundantClause(Clause *c)
 {
-  CALL("SaturationAlgorithm::onNonRedundantClause");
-
   if (_symEl) {
     _symEl->onNonRedundantClause(c);
   }
@@ -594,8 +575,6 @@ void SaturationAlgorithm::onNonRedundantClause(Clause *c)
  */
 void SaturationAlgorithm::onParenthood(Clause *cl, Clause *parent)
 {
-  CALL("SaturationAlgorithm::onParenthood");
-
   if (_symEl) {
     _symEl->onParenthood(cl, parent);
   }
@@ -608,8 +587,6 @@ void SaturationAlgorithm::onParenthood(Clause *cl, Clause *parent)
  */
 void SaturationAlgorithm::activeRemovedHandler(Clause *cl)
 {
-  CALL("SaturationAlgorithm::activeRemovedHandler");
-
   onActiveRemoved(cl);
 }
 
@@ -620,8 +597,6 @@ void SaturationAlgorithm::activeRemovedHandler(Clause *cl)
  */
 void SaturationAlgorithm::passiveRemovedHandler(Clause *cl)
 {
-  CALL("SaturationAlgorithm::passiveRemovedHandler");
-
   onPassiveRemoved(cl);
 }
 
@@ -642,8 +617,7 @@ int SaturationAlgorithm::elapsedTime()
  */
 void SaturationAlgorithm::addInputClause(Clause *cl)
 {
-  CALL("SaturationAlgorithm::addInputClause");
-  ASS_LE(toNumber(cl->inputType()), toNumber(UnitInputType::CLAIM)); // larger input types should not appear in proof search
+  ASS_LE(toNumber(cl->inputType()),toNumber(UnitInputType::CLAIM)); // larger input types should not appear in proof search
 
   if (_symEl) {
     _symEl->onInputClause(cl);
@@ -684,8 +658,6 @@ void SaturationAlgorithm::addInputClause(Clause *cl)
  */
 LiteralSelector &SaturationAlgorithm::getSosLiteralSelector()
 {
-  CALL("SaturationAlgorithm::getSosLiteralSelector");
-
   if (_opt.sos() == Options::Sos::ALL || _opt.sos() == Options::Sos::THEORY) {
     if (!_sosLiteralSelector) {
       _sosLiteralSelector = new TotalLiteralSelector(getOrdering(), getOptions());
@@ -702,8 +674,7 @@ LiteralSelector &SaturationAlgorithm::getSosLiteralSelector()
  */
 void SaturationAlgorithm::addInputSOSClause(Clause *cl)
 {
-  CALL("SaturationAlgorithm::addInputSOSClause");
-  ASS_EQ(toNumber(cl->inputType()), toNumber(UnitInputType::AXIOM));
+  ASS_EQ(toNumber(cl->inputType()),toNumber(UnitInputType::AXIOM));
 
   // we add an extra reference until the clause is added to some container, so that
   // it won't get deleted during some code e.g. in the onNewClause handler
@@ -756,8 +727,6 @@ fin:
  */
 void SaturationAlgorithm::init()
 {
-  CALL("SaturationAlgorithm::init");
-
   ClauseIterator toAdd;
 
   if (env.options->randomTraversals()) {
@@ -793,7 +762,6 @@ void SaturationAlgorithm::init()
 
 Clause *SaturationAlgorithm::doImmediateSimplification(Clause *cl0)
 {
-  CALL("SaturationAlgorithm::doImmediateSimplification");
   TIME_TRACE("immediate simplification");
 
   static bool sosTheoryLimit = _opt.sos() == Options::Sos::THEORY;
@@ -849,8 +817,6 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause *cl0)
  */
 void SaturationAlgorithm::addNewClause(Clause *cl)
 {
-  CALL("SaturationAlgorithm::addNewClause");
-
   if (env.options->randomTraversals()) {
     TIME_TRACE(TimeTrace::SHUFFLING);
 
@@ -871,8 +837,6 @@ void SaturationAlgorithm::addNewClause(Clause *cl)
 
 void SaturationAlgorithm::newClausesToUnprocessed()
 {
-  CALL("SaturationAlgorithm::newClausesToUnprocessed");
-
   if (env.options->randomTraversals()) {
     TIME_TRACE(TimeTrace::SHUFFLING);
 
@@ -922,14 +886,12 @@ bool SaturationAlgorithm::clausesFlushed()
  */
 void SaturationAlgorithm::addUnprocessedClause(Clause *cl)
 {
-  CALL("SaturationAlgorithm::addUnprocessedClause");
-
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
 
   env.checkTimeSometime<64>();
 
-  cl = doImmediateSimplification(cl);
+  cl=doImmediateSimplification(cl);
   if (!cl) {
     return;
   }
@@ -953,7 +915,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause *cl)
  */
 void SaturationAlgorithm::handleEmptyClause(Clause *cl)
 {
-  CALL("SaturationAlgorithm::handleEmptyClause");
   ASS(cl->isEmpty());
 
   if (isRefutation(cl)) {
@@ -1005,7 +966,6 @@ void SaturationAlgorithm::handleEmptyClause(Clause *cl)
  */
 bool SaturationAlgorithm::forwardSimplify(Clause *cl)
 {
-  CALL("SaturationAlgorithm::forwardSimplify");
   TIME_TRACE("forward simplification");
 
   if (!_passive->fulfilsAgeLimit(cl) && !_passive->fulfilsWeightLimit(cl)) {
@@ -1058,7 +1018,26 @@ bool SaturationAlgorithm::forwardSimplify(Clause *cl)
     }
   }
 
-  // TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+
+  if (synthesis) {
+    ASS((_answerLiteralManager != nullptr));
+    Clause* ansLitCl = cl;
+    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+      ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
+    }
+    Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
+    if (reduced) {
+      ansLitCl = reduced;
+    }
+    if (ansLitCl != cl) {
+      addNewClause(ansLitCl);
+      onClauseReduction(cl, &ansLitCl, 1, 0);
+      return false;
+    }
+  }
+
+  //TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)
   cl->incRefCnt();
 
   if (_splitter && !_opt.splitAtActivation()) {
@@ -1075,7 +1054,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause *cl)
  */
 void SaturationAlgorithm::backwardSimplify(Clause *cl)
 {
-  CALL("SaturationAlgorithm::backwardSimplify");
   TIME_TRACE("backward simplification");
 
   BwSimplList::Iterator bsit(_bwSimplifiers);
@@ -1121,8 +1099,6 @@ void SaturationAlgorithm::backwardSimplify(Clause *cl)
  */
 void SaturationAlgorithm::removeActiveOrPassiveClause(Clause *cl)
 {
-  CALL("SaturationAlgorithm::removeActiveOrPassiveClause");
-
   if (_clauseActivationInProgress) {
     // we cannot remove clause now, as there indexes might be traversed now,
     // and so we cannot modify them
@@ -1150,7 +1126,6 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause *cl)
  */
 void SaturationAlgorithm::addToPassive(Clause *cl)
 {
-  CALL("SaturationAlgorithm::addToPassive");
   ASS_EQ(cl->store(), Clause::UNPROCESSED);
 
   cl->setStore(Clause::PASSIVE);
@@ -1183,8 +1158,7 @@ void SaturationAlgorithm::removeSelected(Clause *cl)
  */
 void SaturationAlgorithm::activate(Clause *cl)
 {
-  CALL("SaturationAlgorithm::activate");
-  TIME_TRACE("activation")
+      TIME_TRACE("activation")
 
   {
     TIME_TRACE("redundancy check")
@@ -1271,8 +1245,6 @@ void SaturationAlgorithm::activate(Clause *cl)
  */
 void SaturationAlgorithm::doUnprocessedLoop()
 {
-  CALL("SaturationAlgorithm::doUnprocessedLoop");
-
 start:
 
   newClausesToUnprocessed();
@@ -1324,16 +1296,12 @@ bool SaturationAlgorithm::handleClauseBeforeActivation(Clause *c)
  */
 void SaturationAlgorithm::initAlgorithmRun()
 {
-  CALL("SaturationAlgorithm::initAlgorithmRun");
-
   init();
 }
 
 UnitList *SaturationAlgorithm::collectSaturatedSet()
 {
-  CALL("SaturationAlgorithm::collectSaturatedSet");
-
-  UnitList *res = 0;
+  UnitList* res = 0;
   ClauseIterator it = _active->clauses();
   while (it.hasNext()) {
     Clause *cl = it.next();
@@ -1349,8 +1317,6 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
  */
 void SaturationAlgorithm::doOneAlgorithmStep()
 {
-  CALL("SaturationAlgorithm::doOneAlgorithmStep");
-
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {
@@ -1393,8 +1359,6 @@ void SaturationAlgorithm::doOneAlgorithmStep()
  */
 MainLoopResult SaturationAlgorithm::runImpl()
 {
-  CALL("SaturationAlgorithm::runImpl");
-
   unsigned l = 0;
   try {
     for (;; l++) {
@@ -1429,8 +1393,6 @@ MainLoopResult SaturationAlgorithm::runImpl()
  */
 void SaturationAlgorithm::setGeneratingInferenceEngine(SimplifyingGeneratingInference *generator)
 {
-  CALL("SaturationAlgorithm::setGeneratingInferenceEngine");
-
   ASS(!_generator);
   _generator = generator;
   _generator->attach(this);
@@ -1451,8 +1413,6 @@ void SaturationAlgorithm::setGeneratingInferenceEngine(SimplifyingGeneratingInfe
  */
 void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificationEngine *immediateSimplifier)
 {
-  CALL("SaturationAlgorithm::setImmediateSimplificationEngine");
-
   ASS(!_immediateSimplifier);
   _immediateSimplifier = immediateSimplifier;
   _immediateSimplifier->attach(this);
@@ -1495,21 +1455,19 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  */
 SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const Options &opt, IndexManager *indexMgr)
 {
-  CALL("SaturationAlgorithm::createFromOptions");
-
-  SaturationAlgorithm *res;
-  switch (opt.saturationAlgorithm()) {
-    case Shell::Options::SaturationAlgorithm::DISCOUNT:
-      res = new Discount(prb, opt);
-      break;
-    case Shell::Options::SaturationAlgorithm::LRS:
-      res = new LRS(prb, opt);
-      break;
-    case Shell::Options::SaturationAlgorithm::OTTER:
-      res = new Otter(prb, opt);
-      break;
-    default:
-      NOT_IMPLEMENTED;
+  SaturationAlgorithm* res;
+  switch(opt.saturationAlgorithm()) {
+  case Shell::Options::SaturationAlgorithm::DISCOUNT:
+    res=new Discount(prb, opt);
+    break;
+  case Shell::Options::SaturationAlgorithm::LRS:
+    res=new LRS(prb, opt);
+    break;
+  case Shell::Options::SaturationAlgorithm::OTTER:
+    res=new Otter(prb, opt);
+    break;
+  default:
+    NOT_IMPLEMENTED;
   }
   if (indexMgr) {
     res->_imgr = SmartPtr<IndexManager>(indexMgr, true);
@@ -1526,8 +1484,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
   // create generating inference engine
   CompositeGIE *gie = new CompositeGIE();
 
-  // TODO here induction is last, is that right?
-  if (opt.induction() != Options::Induction::NONE) {
+  if(opt.functionDefinitionIntroduction())
+    gie->addFront(new DefinitionIntroduction);
+
+  //TODO here induction is last, is that right?
+  if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
   }
 
@@ -1559,15 +1520,15 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
     }
   }
 
-  if (prb.hasFOOL() &&
-      prb.higherOrder() && env.options->booleanEqTrick()) {
-    //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
+  if(prb.hasFOOL() &&
+    prb.isHigherOrder() && env.options->booleanEqTrick()){
+  //  gie->addFront(new ProxyElimination::NOTRemovalGIE());
     gie->addFront(new BoolEqToDiseq());
   }
 
-  if (opt.complexBooleanReasoning() && prb.hasBoolVar() &&
-      prb.higherOrder() && !opt.lambdaFreeHol()) {
-    gie->addFront(new PrimitiveInstantiation()); // TODO only add in some cases
+  if(opt.complexBooleanReasoning() && prb.hasBoolVar() &&
+     prb.isHigherOrder() && !opt.lambdaFreeHol()){
+    gie->addFront(new PrimitiveInstantiation()); //TODO only add in some cases
     gie->addFront(new ElimLeibniz());
   }
 
@@ -1592,10 +1553,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
     gie->addFront(new Cases());
   }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()) {
-    if (env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF) {
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       gie->addFront(new LazyClausificationGIE());
     }
   }
@@ -1650,10 +1611,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
 
   // create simplification engine
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !prb.quantifiesOverPolymorphicVar()) {
-    if (env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF) {
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront(new LazyClausification());
     }
     // res->addSimplifierToFront(new RenamingOnTheFly());
@@ -1662,9 +1623,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
   // create forward simplification engine
   if (prb.hasEquality() && opt.innerRewriting()) {
     res->addForwardSimplifierToFront(new InnerRewriting());
-  }
-  if (opt.hyperSuperposition()) {
-    res->addForwardSimplifierToFront(new HyperSuperposition());
   }
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
@@ -1768,6 +1726,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
   }
   if (opt.questionAnswering() == Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
+  } else if (opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
+    res->_answerLiteralManager = SynthesisManager::getInstance();
   }
   return res;
 } // SaturationAlgorithm::createFromOptions
@@ -1777,9 +1737,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
  */
 ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem &prb, const Options &opt, Ordering &ordering)
 {
-  CALL("MainLoop::createImmediateSE");
-
-  CompositeISE *res = new CompositeISE();
+  CompositeISE* res=new CompositeISE();
 
   if (prb.hasEquality() && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
@@ -1805,9 +1763,9 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem &prb, cons
     res->addFront(new ChoiceDefinitionISE());
   }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.higherOrder() && !env.options->addProxyAxioms()) {
-    if (env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER) {
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+      prb.isHigherOrder() && !env.options->addProxyAxioms()){
+    if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       /*res->addFrontMany(new ProxyISE());
       res->addFront(new OrImpAndProxyISE());
       res->addFront(new NotProxyISE());
@@ -1875,5 +1833,7 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem &prb, cons
   }
   res->addFront(new DuplicateLiteralRemovalISE());
 
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)
+     res->addFront(new InvalidAnswerLiteralRemoval());
   return res;
 }

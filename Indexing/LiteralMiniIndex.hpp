@@ -64,8 +64,6 @@ private:
     : _ready(false), _hdr(complementary?query->complementaryHeader():query->header()),
     _query(query), _compl(complementary)
     {
-      CALL("LiteralMiniIndex::BaseIterator::BaseIterator");
-
       Entry const* arr=index._entries.array();
       unsigned weight=query->weight();
       if(arr[0]._header>=_hdr || index._cnt==1) {
@@ -117,8 +115,6 @@ public:
 
     bool hasNext()
     {
-      CALL("LiteralMiniIndex::InstanceIterator::hasNext/0");
-
       if(_ready) { return true; }
       while(_curr->_header==_hdr) {
         if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
@@ -133,8 +129,6 @@ public:
     template <class Binder>
     bool hasNext(Binder& binder)
     {
-      CALL("LiteralMiniIndex::InstanceIterator::hasNext/1");
-
       if (_ready) {
         return true;
       }
@@ -163,8 +157,6 @@ public:
 
     bool hasNext()
     {
-      CALL("LiteralMiniIndex::VariantIterator::hasNext");
-
       if(_ready) { return true; }
       while(_curr->_header==_hdr) {
 	if(MatchingUtils::isVariant(_query, _curr->_lit)) {

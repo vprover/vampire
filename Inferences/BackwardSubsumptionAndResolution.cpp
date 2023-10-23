@@ -58,7 +58,6 @@ using namespace std::chrono;
 /***************************************************************/
 void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
-  CALL("BackwardSubsumptionAndResolution::attach");
   BackwardSimplificationEngine::attach(salg);
   _bwIndex = static_cast<BackwardSubsumptionIndex *>(
       _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE));
@@ -70,7 +69,6 @@ void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 
 void BackwardSubsumptionAndResolution::detach()
 {
-  CALL("BackwardSubsumptionAndResolution::detach");
   _bwIndex = 0;
   _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
 #if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
@@ -84,7 +82,6 @@ void BackwardSubsumptionAndResolution::detach()
 void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
-  CALL("BackwardSubsumptionAndResolution::perform");
   ASSERT_VALID(*cl);
   ASS(_bwIndex);
   simplifications = BwSimplificationRecordIterator::getEmpty();
@@ -119,7 +116,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
 void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
-  CALL("BackwardSubsumptionAndResolution::perform");
   ASSERT_VALID(*cl)
   ASS(_bwIndex)
   simplifications = BwSimplificationRecordIterator::getEmpty();

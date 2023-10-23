@@ -350,8 +350,8 @@ class BoolTermFormula
     Term* term = ts.term();
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
-      switch (sd->getType()) {
-        case Term::SF_FORMULA:
+      switch (sd->specialFunctor()) {
+        case Term::SpecialFunctor::FORMULA:
           return sd->getFormula();
         default:
           return new BoolTermFormula(ts);
@@ -545,8 +545,8 @@ TermList Formula::getBooleanTerm()
   return static_cast<BoolTermFormula*>(this)->getTerm();
 }
 
-std::ostream& operator<< (ostream& out, const Formula& f);
-std::ostream& operator<< (ostream& out, const Formula* f);
+std::ostream& operator<< (std::ostream& out, const Formula& f);
+std::ostream& operator<< (std::ostream& out, const Formula* f);
 
 }
 

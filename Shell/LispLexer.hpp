@@ -20,7 +20,6 @@
 #include <iostream>
 #include "Lexer.hpp"
 
-using namespace std;
 
 namespace Shell {
 
@@ -32,7 +31,7 @@ class LispLexer
   : public Lexer
 {
 public:
-  LispLexer(istream& in);
+  LispLexer(std::istream& in);
   void readToken (Token&);
   ~LispLexer () {}
 

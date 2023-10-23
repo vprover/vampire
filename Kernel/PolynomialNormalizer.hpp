@@ -21,7 +21,6 @@
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "NumTraits.hpp"
-#include "Debug/Tracer.hpp"
 #include "Lib/Coproduct.hpp"
 #include <algorithm>
 #include <utility>
@@ -30,11 +29,7 @@
 #include "Lib/Hash.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Option.hpp"
-#include "Debug/Tracer.hpp"
 #include "Kernel/Polynomial.hpp"
-#include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/TermList.hpp"
-#include "Kernel/BottomUpEvaluation/PolyNf.hpp"
 #include "Inferences/InferenceEngine.hpp"
 
 

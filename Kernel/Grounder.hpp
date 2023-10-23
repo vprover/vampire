@@ -34,7 +34,7 @@ public:
   USE_ALLOCATOR(Grounder);
   
   Grounder(SATSolver* satSolver) : _satSolver(satSolver) {}
-  virtual ~Grounder() { CALL("Grounder::~Grounder"); }
+  virtual ~Grounder() {}
 
   // TODO: sort out the intended semantics and the names of these four beasts:
   SATLiteral groundLiteral(Literal* lit);

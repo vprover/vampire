@@ -24,7 +24,6 @@
 
 #include "Token.hpp"
 
-using namespace std;
 using namespace Lib;
 
 
@@ -41,7 +40,7 @@ class LexerException
 {
  public:                                
   LexerException(vstring message,const Lexer&);
-  void cry(ostream&) const;
+  void cry(std::ostream&) const;
   ~LexerException() {}
  protected:
   vstring _message;
@@ -55,7 +54,7 @@ class LexerException
 class Lexer 
 {
 public:
-  Lexer(istream& in);
+  Lexer(std::istream& in);
   /** True if the lexer is at the end of file */
   bool isAtEndOfFile () const { return _eof; }
   /** Return the last character */

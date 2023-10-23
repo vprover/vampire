@@ -31,7 +31,6 @@ using namespace Inferences;
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
     : _subsumptionResolution(subsumptionResolution)
 {
-  CALL("ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution");
 }
 
 ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
@@ -40,7 +39,6 @@ ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
-  CALL("ForwardSubsumptionAndResolution::attach");
   ForwardSimplificationEngine::attach(salg);
   _unitIndex = dynamic_cast<UnitClauseLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
@@ -50,9 +48,8 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 
 void ForwardSubsumptionAndResolution::detach()
 {
-  CALL("ForwardSubsumptionAndResolution::detach");
-  _unitIndex = nullptr;
-  _fwIndex = nullptr;
+  _unitIndex = 0;
+  _fwIndex = 0;
   _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   _salg->getIndexManager()->release(FW_SUBSUMPTION_SUBST_TREE);
   ForwardSimplificationEngine::detach();
@@ -65,7 +62,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
                                               Clause *&replacement,
                                               ClauseIterator &premises)
 {
-  CALL("ForwardSubsumptionAndResolution::perform");
   TIME_TRACE("forward subsumption");
 
   ASS(replacement == nullptr)

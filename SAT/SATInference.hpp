@@ -140,7 +140,6 @@ public:
 template <typename Filter>
 void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f)
 {
-  CALL("SATInference::collectFilteredFOPremises");
   ASS_ALLOC_TYPE(cl, "SATClause");
 
   static Stack<SATClause*> toDo;

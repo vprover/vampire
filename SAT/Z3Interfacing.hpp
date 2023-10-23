@@ -21,7 +21,7 @@
  *  so that vampire can be "factored-out" of runs which cause particular Z3
  *  behaviour. Should be useful for producing MWEs for the Z3 people.
  */
-#define PRINT_CPP(X) // cout << X << endl;
+#define PRINT_CPP(X) // std::cout << X << std::endl;
 
 #include <fstream>
 
@@ -50,7 +50,6 @@ namespace SAT{
   {
     UninterpretedForZ3Exception()
     {
-      CALL("Z3Interfacing::UninterpretedForZ3Exception::UninterpretedForZ3Exception");
     }
   };
 
@@ -98,8 +97,6 @@ public:
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
 
   void ensureVarCount(unsigned newVarCnt) override {
-    CALL("Z3Interfacing::ensureVarCnt");
-
     while (_varCnt < newVarCnt) {
       newVar();
     }
@@ -207,8 +204,8 @@ private:
   Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
-  z3::func_decl const& findConstructor(FuncId id);
-  void createTermAlgebra(Shell::TermAlgebra&);
+  z3::func_decl const& findConstructor(Term* t);
+  void createTermAlgebra(TermList sort);
 
   z3::sort getz3sort(SortId s);
 

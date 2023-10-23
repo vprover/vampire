@@ -57,6 +57,7 @@
 using namespace Indexing;
 using namespace Kernel;
 using namespace SATSubsumption;
+using namespace std;
 
 const unsigned INVALID = std::numeric_limits<unsigned>::max();
 
@@ -66,7 +67,6 @@ const unsigned INVALID = std::numeric_limits<unsigned>::max();
 
 void SATSubsumptionAndResolution::MatchSet::indexMatrix()
 {
-  CALL("SATSubsumptionAndResolution::MatchSet::indexMatrix")
   if (_matchesByJ.size())
     return;
 
@@ -120,7 +120,6 @@ bool SATSubsumptionAndResolution::MatchSet::hasNegativeMatchJ(unsigned j)
 void SATSubsumptionAndResolution::loadProblem(Clause *L,
                                               Clause *M)
 {
-  CALL("SATSubsumptionAndResolution::loadProblem");
   ASS(L)
   ASS(M)
 #if VDEBUG
@@ -172,7 +171,6 @@ static vvector<unsigned> headerMultiset;
  */
 bool SATSubsumptionAndResolution::pruneSubsumption()
 {
-  CALL("SATSubsumptionAndResolution::pruneSubsumption")
   ASS(_L)
   ASS(_M)
 
@@ -222,7 +220,6 @@ static vvector<bool> functorSet;
  */
 bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
 {
-  CALL("SATSubsumptionAndResolution::pruneSubsumptionResolution")
   ASS(_L)
   ASS(_M)
 
@@ -245,10 +242,11 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder,
                                              bool polarity,
                                              bool isNullary)
 {
-  CALL("SATSubsumptionAndResolution::addBinding");
   ASS(binder || isNullary)
   ASS(i < _m)
   ASS(j < _n)
+  ASS_EQ((*_L)[i]->functor(), (*_M)[j]->functor())
+  ASS_EQ((*_L)[i]->polarity() == (*_M)[j]->polarity(), polarity)
   subsat::Var satVar = _solver.s.new_variable();
 #if PRINT_CLAUSES_SUBS
   cout << satVar << " -> (" << (*_L)[i]->toString() << " " << (*_M)[j]->toString() << " " << (polarity ? "+" : "-") << ")" << endl;
@@ -264,7 +262,6 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *l_i,
                                                    unsigned j,
                                                    bool polarity)
 {
-  CALL("SATSubsumptionAndResolution::checkAndAddMatch")
   ASS(l_i)
   ASS(m_j)
   ASS_EQ((*_L)[i], l_i)
@@ -292,7 +289,6 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *l_i,
 
 bool SATSubsumptionAndResolution::fillMatchesS()
 {
-  CALL("SATSubsumptionAndResolution::fillMatchesS")
   ASS(_L)
   ASS(_M)
   ASS(_m > 0)
@@ -335,7 +331,6 @@ bool SATSubsumptionAndResolution::fillMatchesS()
 
 void SATSubsumptionAndResolution::fillMatchesSR()
 {
-  CALL("SATSubsumptionAndResolution::fillMatchesSR");
   ASS(_L)
   ASS(_M)
   ASS(_m > 0)
@@ -359,9 +354,8 @@ void SATSubsumptionAndResolution::fillMatchesSR()
 
     for (unsigned j = 0; j < _n; ++j) {
       Literal *m_j = _M->literals()[j];
-      if (l_i->functor() != m_j->functor()) {
+      if (l_i->functor() != m_j->functor())
         continue;
-      }
       if (l_i->arity() == 0) {
         ASS(m_j->arity() == 0)
         ASS(l_i->functor() == m_j->functor())
@@ -375,6 +369,7 @@ void SATSubsumptionAndResolution::fillMatchesSR()
         foundNegativeMatch = true;
         continue;
       }
+
       if (l_i->polarity() == m_j->polarity()) {
         // it is important that foundPositiveMatch is "or-ed" after calling the function. Otherwise the function might not be called.
         // foundPositiveMatch |= checkAndAddMatch(l_i, m_j, i, j, true); is NOT correct.
@@ -383,8 +378,8 @@ void SATSubsumptionAndResolution::fillMatchesSR()
       }
       // check negative polarity matches
       // same comment as above
-      hasNegativeMatch = checkAndAddMatch(l_i, m_j, i, j, false) | hasNegativeMatch;
-      foundNegativeMatch |= hasNegativeMatch;
+      foundNegativeMatch = checkAndAddMatch(l_i, m_j, i, j, false) || foundNegativeMatch;
+      hasNegativeMatch |= foundNegativeMatch;
     } // for (unsigned j = 0; j < _nInstanceLits; ++j)
 
     // Check whether subsumption and subsumption resolution are possible
@@ -415,7 +410,6 @@ void SATSubsumptionAndResolution::fillMatchesSR()
 
 bool SATSubsumptionAndResolution::cnfForSubsumption()
 {
-  CALL("SATSubsumptionAndResolution::cnfForSubsumption");
   ASS(_L)
   ASS(_M)
   ASS_GE(_matchSet.allMatches().size(), _L->length())
@@ -500,7 +494,6 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
  */
 bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 {
-  CALL("SATSubsumptionResolution::cnfForSubsumptionResolution");
   ASS(_L)
   ASS(_M)
   ASS_GE(_matchSet.allMatches().size(), _L->length())
@@ -651,9 +644,9 @@ static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
  */
 bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 {
-  CALL("SATSubsumptionResolution::cnfForSubsumptionResolution");
   ASS(_L)
   ASS(_M)
+  // This should be pruned when filling the match set.
   ASS_GE(_matchSet.allMatches().size(), _L->length())
 
   atMostOneVars.clear();
@@ -784,7 +777,6 @@ Clause *SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause *
                                                                         Literal *m_j,
                                                                         Clause *L)
 {
-  CALL("SATSubsumptionAndResolution::getSubsumptionResolutionConclusion");
   int mlen = M->length();
   int nlen = mlen - 1;
 
@@ -804,7 +796,6 @@ Clause *SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause *
 
 Clause *SATSubsumptionAndResolution::generateConclusion()
 {
-  CALL("SATSubsumptionResolution::generateConclusion")
   ASS(_L)
   ASS(_M)
   ASS(_m > 0)
@@ -866,7 +857,6 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause *L,
                                                    Clause *M,
                                                    bool setSR)
 {
-  CALL("SATSubsumptionAndResolution::checkSubsumption")
   ASS(L)
   ASS(M)
 
@@ -879,12 +869,10 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause *L,
     // the check for subsumption.
     _subsumptionImpossible = _srImpossible || pruneSubsumption();
 
-    if (_srImpossible && _subsumptionImpossible) {
+    if (_srImpossible && _subsumptionImpossible)
       return false;
-    }
     else {
       ASS(!_srImpossible)
-      // both are possible
       fillMatchesSR();
     }
     if (_subsumptionImpossible) {
@@ -912,7 +900,6 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
                                                                 Clause *M,
                                                                 bool usePreviousSetUp)
 {
-  CALL("SATSubsumptionAndResolution::checkSubsumptionResolution");
   ASS(L)
   ASS(M)
 #if CORRELATE_LENGTH_TIME

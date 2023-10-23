@@ -20,7 +20,6 @@
 #include <climits>
 
 #include "Int.hpp"
-#include "Debug/Tracer.hpp"
 
 using namespace Lib;
 
@@ -124,8 +123,6 @@ vstring Int::toHexString(size_t i)
  */
 bool Int::stringToLong (const char* str,long& result)
 {
-  CALL("Int::stringToLong");
-
   if (! *str) { // empty string
     return false;
   }
@@ -150,7 +147,6 @@ bool Int::stringToLong (const char* str,long& result)
  */
 bool Int::stringToInt (const vstring& str,int& result)
 {
-  CALL("Int::stringToInt");
   return stringToInt(str.c_str(),result);
 } // Int::stringToInt
 
@@ -160,7 +156,6 @@ bool Int::stringToInt (const vstring& str,int& result)
  */
 bool Int::stringToUnsignedInt (const vstring& str,unsigned& result)
 {
-  CALL("Int::stringToUnsignedInt");
   return stringToUnsignedInt(str.c_str(),result);
 } // Int::stringToUnsignedInt
 
@@ -171,8 +166,6 @@ bool Int::stringToUnsignedInt (const vstring& str,unsigned& result)
  */
 bool Int::stringToUnsignedInt (const char* str,unsigned& result)
 {
-  CALL("Int::stringToUnsignedInt");
-
   if (! *str) { // empty string
     return false;
   }
@@ -211,8 +204,6 @@ bool Int::stringToInt (const char* str,int& result)
  */
 bool Int::stringToDouble (const char* str,double& result)
 {
-  CALL("Int::stringToDouble");
-
   errno = 0;
   char* endptr = 0;
   result = strtod(str,&endptr);
@@ -288,8 +279,6 @@ bool Int::stringToUnsigned64 (const vstring& str,long long unsigned& result)
  */
 bool Int::isInteger(const char* str)
 {
-  CALL("Int::isInteger");
-
 	if (*str == '-') {
 		str++;
 	}

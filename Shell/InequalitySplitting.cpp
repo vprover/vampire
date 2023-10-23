@@ -38,6 +38,7 @@
 namespace Shell
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -50,8 +51,6 @@ InequalitySplitting::InequalitySplitting(const Options& opt)
 
 void InequalitySplitting::perform(Problem& prb)
 {
-  CALL("InequalitySplitting::perform");
-
   _appify = prb.hasApp();
   if(perform(prb.units())) {
     prb.invalidateByRemoval();
@@ -60,8 +59,6 @@ void InequalitySplitting::perform(Problem& prb)
 
 bool InequalitySplitting::perform(UnitList*& units)
 {
-  CALL("InequalitySplitting::perform");
-
   bool modified = false;
 
   UnitList::DelIterator uit(units);
@@ -84,7 +81,6 @@ bool InequalitySplitting::perform(UnitList*& units)
 
 Clause* InequalitySplitting::trySplitClause(Clause* cl)
 {
-  CALL("InequalitySplitting::trySplitClause");
   ASS(cl);
 
   unsigned clen=cl->length();
@@ -146,7 +142,6 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
 
 Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise)
 {
-  CALL("InequalitySplitting::splitLiteral");
   ASS(isSplittable(lit));
 
   TermList srt = SortHelper::getEqualityArgumentSort(lit);
@@ -202,7 +197,11 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   (*defCl)[0]=makeNameLiteral(fun, t, false, vars);
   _predDefs.push(defCl);
 
-  InferenceStore::instance()->recordIntroducedSymbol(defCl,false,fun);
+  if(_appify){
+    InferenceStore::instance()->recordIntroducedSymbol(defCl,SymbolType::FUNC,fun);
+  } else {
+    InferenceStore::instance()->recordIntroducedSymbol(defCl,SymbolType::PRED,fun);
+  }
 
   premise=defCl;
 
@@ -213,8 +212,6 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
 bool InequalitySplitting::isSplittable(Literal* lit)
 {
-  CALL("InequalitySplitting::isSplittable");
-
   return lit->isEquality() && lit->isNegative() &&
 	(isSplittableEqualitySide(*lit->nthArgument(0)) ||
 		isSplittableEqualitySide(*lit->nthArgument(1)));
@@ -227,8 +224,6 @@ bool InequalitySplitting::isSplittableEqualitySide(TermList t)
 
 Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bool polarity, TermStack vars)
 {
-  CALL("InequalitySplitting::makeNameLiteral");
- 
   if(!_appify){
     vars.push(arg);
     return Literal::create(predNum, vars.size(), polarity, false, vars.begin());

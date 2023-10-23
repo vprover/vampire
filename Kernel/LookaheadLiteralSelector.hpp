@@ -27,9 +27,9 @@ class LookaheadLiteralSelector
 public:
   CLASS_NAME(LookaheadLiteralSelector);
   USE_ALLOCATOR(LookaheadLiteralSelector);
-  
+
   LookaheadLiteralSelector(bool completeSelection, const Ordering& ordering, const Options& options)
-  : LiteralSelector(ordering, options), _completeSelection(completeSelection) 
+  : LiteralSelector(ordering, options), _completeSelection(completeSelection)
   {
     _delay = options.lookaheadDelay();
     _skipped = 0;
@@ -37,6 +37,13 @@ public:
   }
 
   bool isBGComplete() const override { return _completeSelection; }
+
+  void setReversePolarity(bool newVal) override {
+    LiteralSelector::setReversePolarity(newVal);
+    if (_startupSelector) {
+      _startupSelector->setReversePolarity(newVal);
+    }
+  }
 protected:
   void doSelection(Clause* c, unsigned eligible) override;
 private:

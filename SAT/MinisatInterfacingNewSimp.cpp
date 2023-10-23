@@ -21,6 +21,7 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Minisat/core/SolverTypes.h"
 #include <limits>
@@ -28,6 +29,7 @@
 namespace SAT
 {
 
+using namespace std;
 using namespace Shell;  
 using namespace Lib;  
   
@@ -38,8 +40,6 @@ const unsigned MinisatInterfacingNewSimp::VAR_MAX = std::numeric_limits<Minisat:
 MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts, bool generateProofs):
   _status(SATISFIABLE)
 {
-  CALL("MinisatInterfacingNewSimp::MinisatInterfacingNewSimp");
-   
   // TODO: consider tuning minisat's options to be set for _solver
   // (or even forwarding them to vampire's options)  
   //_solver.mem_lim(opts.memoryLimit()*2);
@@ -53,9 +53,7 @@ void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
   if(env.statistics) {
     env.statistics->print(env.out());
   }
-#if VDEBUG
   Debug::Tracer::printStack(env.out());
-#endif
   env.endOutput();
   System::terminateImmediately(1);
 }
@@ -66,8 +64,6 @@ void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
  */
 void MinisatInterfacingNewSimp::ensureVarCount(unsigned newVarCnt)
 {
-  CALL("MinisatInterfacingNewSimp::ensureVarCount");
-  
   try{
     while(_solver.nVars() < (int)newVarCnt) {
       _solver.newVar();
@@ -79,15 +75,11 @@ void MinisatInterfacingNewSimp::ensureVarCount(unsigned newVarCnt)
 
 unsigned MinisatInterfacingNewSimp::newVar() 
 {
-  CALL("MinisatInterfacingNewSimp::ensureVarCount");
-  
   return minisatVar2Vampire(_solver.newVar());
 }
 
 SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool)
 {
-  CALL("MinisatInterfacingNewSimp::solveUnderAssumptions");
-
   ASS(!hasAssumptions());
 
   // load assumptions:
@@ -118,8 +110,6 @@ SATSolver::Status MinisatInterfacingNewSimp::solveUnderAssumptions(const SATLite
  */
 void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit) 
 {
-  CALL("MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus");
-  
   // TODO: consider calling simplify(); or only from time to time?
    
   try{
@@ -149,8 +139,6 @@ void MinisatInterfacingNewSimp::solveModuloAssumptionsAndSetStatus(unsigned conf
  */
 void MinisatInterfacingNewSimp::addClause(SATClause* cl)
 {
-  CALL("MinisatInterfacingNewSimp::addClause");
-
   // TODO: consider measuring time
   
   ASS_EQ(_assumptions.size(),0);
@@ -175,22 +163,17 @@ void MinisatInterfacingNewSimp::addClause(SATClause* cl)
  */
 SATSolver::Status MinisatInterfacingNewSimp::solve(unsigned conflictCountLimit)
 {
-  CALL("MinisatInterfacingNewSimp::solve");
-  
   solveModuloAssumptionsAndSetStatus(conflictCountLimit);
   return _status;
 }
 
 void MinisatInterfacingNewSimp::addAssumption(SATLiteral lit) 
 {
-  CALL("MinisatInterfacingNewSimp::addAssumption");
-  
   _assumptions.push(vampireLit2Minisat(lit));
 }
 
 SATSolver::VarAssignment MinisatInterfacingNewSimp::getAssignment(unsigned var) 
 {
-  CALL("MinisatInterfacingNewSimp::getAssignment");
 	ASS_EQ(_status, SATISFIABLE);  
 	ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   lbool res;
@@ -212,7 +195,6 @@ SATSolver::VarAssignment MinisatInterfacingNewSimp::getAssignment(unsigned var)
 
 bool MinisatInterfacingNewSimp::isZeroImplied(unsigned var)
 {
-  CALL("MinisatInterfacingNewSimp::isZeroImplied");
   ASS_G(var,0); ASS_LE(var,(unsigned)_solver.nVars());
   
   /* between calls to _solver.solve*
@@ -222,8 +204,6 @@ bool MinisatInterfacingNewSimp::isZeroImplied(unsigned var)
 
 void MinisatInterfacingNewSimp::collectZeroImplied(SATLiteralStack& acc)
 {
-  CALL("MinisatInterfacingNewSimp::collectZeroImplied");
-  
   // TODO: could be made more efficient by inspecting the trail 
   // [new code would be needed in Minisat::solver, though]
   
@@ -240,8 +220,6 @@ void MinisatInterfacingNewSimp::collectZeroImplied(SATLiteralStack& acc)
 
 SATClause* MinisatInterfacingNewSimp::getZeroImpliedCertificate(unsigned)
 {
-  CALL("MinisatInterfacingNewSimp::getZeroImpliedCertificate");
-  
   // Currently unused anyway. 
   
   /* The whole SATSolver interface should be revised before

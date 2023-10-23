@@ -26,8 +26,6 @@ using namespace Kernel;
 
 bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("InnerRewriting::perform");
-
   Ordering& ordering = _salg->getOrdering();
 
   // look for the first equality which rewrites something and rewrite everything with it (check for EqTaut as you go)

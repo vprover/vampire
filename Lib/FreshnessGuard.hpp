@@ -37,7 +37,6 @@ public:
    * It makes the object non-fresh.
    */
   void use() {
-    CALL("FreshnessGuard::use");
     ASS(isFresh());
     if(!isFresh()) {
       INVALID_OPERATION("using non-fresh object");

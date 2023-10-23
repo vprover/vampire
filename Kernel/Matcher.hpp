@@ -47,8 +47,6 @@ public:
 
   static bool match(Literal* base, Literal* instance, bool complementary)
   {
-    CALL("MatchingUtils::match");
-
     static MapBinder binder;
     return match(base, instance, complementary, binder);
   }
@@ -71,18 +69,6 @@ public:
   template<class Binder>
   static bool match(Literal* base, Literal* instance, bool complementary, Binder& binder)
   {
-    bool res = matchImpl(base, instance, complementary, binder);
-    if (res) {
-      ASS_LE(base->weight(), instance->weight());  // TODO may be a useful pre-filter?
-    }
-    return res;
-  }
-
-  template<class Binder>
-  static bool matchImpl(Literal* base, Literal* instance, bool complementary, Binder& binder)
-  {
-    CALL("MatchingUtils::match(Literal*, Literal*, bool, Binder&)");
-
     if(!Literal::headersMatch(base,instance,complementary)) {
       return false;
     }
@@ -112,17 +98,6 @@ public:
   template<class Binder>
   static bool matchTerms(TermList base, TermList instance, Binder& binder)
   {
-    bool res = matchTermsImpl(base, instance, binder);
-    if (res) {
-      ASS_LE(base.weight(), instance.weight());  // TODO may be a useful pre-filter?
-    }
-    return res;
-  }
-  template<class Binder>
-  static bool matchTermsImpl(TermList base, TermList instance, Binder& binder)
-  {
-    CALL("MatchingUtils::matchTerms/3");
-
     if(base.isTerm()) {
       Term* bt=base.term();
       if(!instance.isTerm() || base.term()->functor()!=instance.term()->functor()) {
@@ -309,7 +284,6 @@ private:
 template<class Binder>
 bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance, Binder& binder)
 {
-  CALL("MatchingUtils::matchReversedArgs/3");
   ASS_EQ(base->functor(), instance->functor());
   ASS_EQ(base->arity(), 2);
   ASS_EQ(instance->arity(), 2);
@@ -332,7 +306,6 @@ bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance, Binder& 
 template<class Binder>
 bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
 {
-  CALL("MatchingUtils::matchArgs/3");
   ASS_EQ(base->functor(),instance->functor());
   if(base->shared() && instance->shared()) {
     if(base->weight() > instance->weight()) {

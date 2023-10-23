@@ -47,9 +47,10 @@ public:
 
   using PrecedenceOrdering::compare;
   VWARN_UNUSED Result compare(TermList tl1, TermList tl2) const override;
-  void showConcrete(ostream&) const override;
+  void showConcrete(std::ostream&) const override;
 protected:
   VWARN_UNUSED Result comparePredicates(Literal* l1, Literal* l2) const override;
+  VWARN_UNUSED Result comparePrecedences(Term* t1, Term* t2) const;
 
   VWARN_UNUSED Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
   VWARN_UNUSED Result cMA(Term* t, TermList* tl, unsigned arity) const;

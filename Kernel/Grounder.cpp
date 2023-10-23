@@ -33,6 +33,7 @@
 
 #include "Grounder.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 /**
@@ -41,8 +42,6 @@ using namespace Kernel;
  */
 SATClause* Grounder::ground(Clause* cl)
 {
-  CALL("Grounder::ground(Clause*)");
-
   if(!cl->noSplits()) {
     NOT_IMPLEMENTED;
   }
@@ -71,8 +70,6 @@ SATClause* Grounder::ground(Clause* cl)
  */
 void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLits)
 {
-  CALL("Grounder::groundNonProp/2");
-
   static DArray<Literal*> lits;
 
   unsigned clen = cl->length();
@@ -107,8 +104,6 @@ void Grounder::groundNonProp(Clause* cl, SATLiteralStack& acc, Literal** normLit
  */
 SATClause* Grounder::groundNonProp(Clause* cl, Literal** normLits)
 {
-  CALL("Grounder::groundNonProp(Clause*,Literal**)");
-
   static SATLiteralStack gndLits;
   gndLits.reset();
 
@@ -123,8 +118,6 @@ SATClause* Grounder::groundNonProp(Clause* cl, Literal** normLits)
  */
 SATLiteral Grounder::groundLiteral(Literal* lit)
 {
-  CALL("Grounder::ground(Literal*)");
-
   Literal* norm = lit;
   normalize(1, &norm);
   SATLiteral slit = groundNormalized(norm);
@@ -136,8 +129,6 @@ SATLiteral Grounder::groundLiteral(Literal* lit)
  */
 SATLiteral Grounder::groundNormalized(Literal* lit)
 {
-  CALL("Grounder::groundNormalized");
-
   bool isPos = lit->isPositive();
   Literal* posLit = Literal::positiveLiteral(lit);
 
@@ -150,8 +141,6 @@ SATLiteral Grounder::groundNormalized(Literal* lit)
 
 LiteralIterator Grounder::groundedLits()
 {
-  CALL("Grounder::groundedLits");
-
   return _asgn.domain();
 }
 
@@ -202,8 +191,6 @@ struct GlobalSubsumptionGrounder::OrderNormalizingComparator
 
 void GlobalSubsumptionGrounder::normalize(unsigned cnt, Literal** lits)
 {
-  CALL("GlobalSubsumptionGrounder::normalize");
-
   if(!_doNormalization) { return; }
 
   if(cnt==0) { return; }
@@ -263,16 +250,12 @@ public:
  */
 Literal* IGGrounder::collapseVars(Literal* lit)
 {
-  CALL("IGGrounder::collapseVars");
-
   CollapsingApplicator apl(_tgtTerm);
   return SubstHelper::apply(lit, apl);
 }
 
 void IGGrounder::normalize(unsigned cnt, Literal** lits)
 {
-  CALL("IGGrounder::normalize");
-
   for(unsigned i=0; i<cnt; i++) {
     lits[i] = collapseVars(lits[i]);
   }

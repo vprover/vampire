@@ -18,7 +18,6 @@ static ofstream problemFile;
 
 ForwardBenchmarkWrapper::ForwardBenchmarkWrapper(bool subsumptionResolution) : _forwardBenchmark(subsumptionResolution), _forwardOracle(subsumptionResolution), _subsumptionResolution(subsumptionResolution)
 {
-  CALL("ForwardBenchmarkWrapper::ForwardBenchmarkWrapper");
 }
 
 ForwardBenchmarkWrapper::~ForwardBenchmarkWrapper()
@@ -28,7 +27,6 @@ ForwardBenchmarkWrapper::~ForwardBenchmarkWrapper()
 
 void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
 {
-  CALL("ForwardBenchmarkWrapper::attach");
   ForwardSimplificationEngine::attach(salg);
   _unitIndex = static_cast<UnitClauseLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
@@ -75,7 +73,6 @@ void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
 
 void ForwardBenchmarkWrapper::detach()
 {
-  CALL("ForwardBenchmarkWrapper::detach");
   _forwardBenchmark.detach();
   _forwardOracle.detach();
   _unitIndex = nullptr;

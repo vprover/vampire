@@ -108,7 +108,7 @@ private:
 
     std::string toString() const
     {
-      return "Match(" + to_string(i) + ", " + to_string(j) + ", " + to_string(polarity) + ", " + to_string(var.index()) + ")";
+      return "Match(" + std::to_string(i) + ", " + std::to_string(j) + ", " + std::to_string(polarity) + ", " + std::to_string(var.index()) + ")";
     }
 
     bool operator==(const Match &other) const
@@ -225,7 +225,6 @@ private:
      * @warning the allocated matches will remain accessible but will be no longer be reserved. It would therefore be preferable to not keep the matches after calling this function.
      */
     void resize(unsigned m, unsigned n) {
-      CALL("SATSubsumptionAndResolution::MatchSet::resize");
       ASS_G(m, 0)
       ASS_G(n, 0)
 #if SAT_SR_IMPL == 2
@@ -249,7 +248,6 @@ private:
      */
     Match addMatch(unsigned i, unsigned j, bool polarity, subsat::Var var)
     {
-      CALL("SATSubsumptionAndResolution::MatchSet::addMatch")
       ASS(i < _m)
       ASS(j < _n)
       // Make sure that the variables are pushed in order.
@@ -302,7 +300,6 @@ private:
      * @return true if the variable is a match variable
      */
     bool isMatchVar(subsat::Var v) {
-      CALL("SATSubsumptionAndResolution::MatchSet::isMatchVar")
       return v.index() < _matchesByI.size();
     }
 
@@ -317,7 +314,6 @@ private:
      */
     Match getMatchForVar(subsat::Var v)
     {
-      CALL("SATSubsumptionAndResolution::MatchSet::getMatchForVar")
       ASS(isMatchVar(v))
       return _matchesByI[v.index()];
     }
@@ -329,7 +325,6 @@ private:
      */
     void clear()
     {
-      CALL("SATSubsumptionAndResolution::MatchSet::clear");
       _matchesByI.clear();
       _matchesByJ.clear();
 #if SAT_SR_IMPL == 2

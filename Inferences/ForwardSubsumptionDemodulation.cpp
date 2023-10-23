@@ -44,7 +44,6 @@ using namespace Saturation;
 
 void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardSubsumptionDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), FSD_SUBST_TREE);
@@ -60,7 +59,6 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardSubsumptionDemodulation::detach()
 {
-  CALL("ForwardSubsumptionDemodulation::detach");
   _index.release();
   ForwardSimplificationEngine::detach();
 }
@@ -68,8 +66,6 @@ void ForwardSubsumptionDemodulation::detach()
 
 bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardSubsumptionDemodulation::perform");
-
   //                        cl
   //                 vvvvvvvvvvvvvvvv
   //     mcl       matched      /-- only look for a term to demodulate in this part!
@@ -409,7 +405,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           ASS(!env.options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
-            TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+            TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
             if (!attempted.insert(lhsS)) {
               // We have already tried to demodulate the term lhsS and did not
@@ -420,17 +416,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               continue;
             }
 
-            // if (SortHelper::getTermSort(lhsS, dlit) != eqSort) {
-            //   // Why do we need this check?
-            //   // Assume we rewrite using the equality X0 = c,
-            //   // where X0 is a variable and c is a constant.
-            //   // Then lhs = X0. Now assume lhsS = f(c).
-            //   // We can match lhs to lhsS and have f(c) > c, so we would rewrite f(c) -> c.
-            //   // But matchTerms below doesn't know anything about sorts,
-            //   // so here we need to check that the return value of f(c) is of the same sort as the equality.
-            //   continue;
-            // }
-            TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
+            auto lhsSSort = lhsS.sort();
 
             ASS_LE(lhsVector.size(), 2);
             for (TermList lhs : lhsVector) {

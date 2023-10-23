@@ -28,8 +28,6 @@
 namespace Inferences {
 
 Clause* BoolSimp::simplify(Clause* premise) {
-  CALL("BoolSimp::simplify");
-
   TermList subTerm;
   TermList simpedSubTerm;
   unsigned literalPosition = 0;
@@ -40,7 +38,7 @@ Clause* BoolSimp::simplify(Clause* premise) {
     NonVariableNonTypeIterator nvi(literal);
 
     while (nvi.hasNext()) {
-      subTerm = nvi.next();
+      subTerm = TermList(nvi.next());
       if(SortHelper::getResultSort(subTerm.term()) == AtomicSort::boolSort()){
         simpedSubTerm = boolSimplify(subTerm);
         if(simpedSubTerm != subTerm){
@@ -67,8 +65,6 @@ substitution:
 }
 
 bool BoolSimp::areComplements(TermList t1, TermList t2){
-  CALL("BoolSimp::areComplements");
-
   Signature::Symbol* sym;
   static TermStack args;
   TermList head;
@@ -96,8 +92,6 @@ bool BoolSimp::areComplements(TermList t1, TermList t2){
 
 
 TermList BoolSimp::negate(TermList term){
-  CALL("BoolSimp::negate");
-  
   TermList constant, constSort;
 
   constant = TermList(Term::createConstant(env.signature->getNotProxy()));
@@ -106,8 +100,6 @@ TermList BoolSimp::negate(TermList term){
 }
 
 TermList BoolSimp::boolSimplify(TermList term){
-  CALL("BoolSimp::boolSimplify");
-
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
   static TermStack args;

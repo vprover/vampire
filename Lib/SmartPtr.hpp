@@ -20,7 +20,6 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -73,8 +72,6 @@ public:
   }
   SmartPtr& operator=(const SmartPtr& ptr)
   {
-    CALL("SmartPtr::operator=");
-
     T* oldObj=_obj;
     RefCounter* oldCnt=_refCnt;
     _obj=ptr._obj;
@@ -115,6 +112,9 @@ public:
   template<class Target>
   inline
   Target* pcast() const { return static_cast<Target*>(_obj); }
+
+  friend std::ostream& operator<<(std::ostream& out, SmartPtr const& self)
+  { return self ? out << *self : out << "NULL"; }
 private:
   template<typename U> friend class SmartPtr;
 

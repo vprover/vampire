@@ -34,6 +34,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/InferenceStore.hpp"
 
 #include "TweeGoalTransformation.hpp"
 
@@ -72,8 +73,6 @@ class Definizator : public BottomUpTermTransformer {
     // a helper function to collect terms variables and their sorts
     // all stored in the above private fields to be looked up by transformSubterm
     void scanVars(Term* t) {
-      CALL("Definizator::scanVars");
-
       static DHSet<unsigned> varSeen;
       varSeen.reset();
       _typeArity = 0;
@@ -109,8 +108,6 @@ class Definizator : public BottomUpTermTransformer {
 
   protected:
     TermList transformSubterm(TermList trm) override {
-      CALL("Definizator::transformSubterm");
-
       // cout << "tf: " << trm.toString() << endl;
       if (trm.isVar()) return trm;
       Term* t = trm.term();
@@ -151,6 +148,8 @@ class Definizator : public BottomUpTermTransformer {
           Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
           newDef = new (1) Clause(1, inference);
           newDef->literals()[0] = equation;
+
+          InferenceStore::instance()->recordIntroducedSymbol(newDef,SymbolType::FUNC,newSym);
         } else {
           // linear term, don't replace (and remember it in cache)
           symAndDef.first = 0;
@@ -185,8 +184,6 @@ class Definizator : public BottomUpTermTransformer {
 
 void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
 {
-  CALL("TweeGoalTransformation::apply");
-
   Stack<Literal*> newLits;
   Definizator df(groundOnly);
 

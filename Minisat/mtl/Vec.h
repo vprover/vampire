@@ -107,7 +107,7 @@ void vec<T,_Size>::capacity(Size min_cap) {
     Size add = max((min_cap - cap + 1) & ~1, ((cap >> 1) + 2) & ~1);   // NOTE: grow by approximately 3/2
     const Size size_max = std::numeric_limits<Size>::max();
     if ( ((size_max <= std::numeric_limits<int>::max()) && (add > size_max - cap))
-    ||   (((data = (T*) REALLOC_UNKNOWN(data, (cap += add) * sizeof(T),"Minisat::vec")) == NULL) && errno == ENOMEM) )
+    ||   (((data = (T*) REALLOC_UNKNOWN((void *)data, (cap += add) * sizeof(T),"Minisat::vec")) == NULL) && errno == ENOMEM) )
         throw OutOfMemoryException();
  }
 

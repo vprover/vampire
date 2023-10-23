@@ -82,6 +82,15 @@ public:
    */
   virtual bool isBGComplete() const = 0;
 
+  /**
+   * Should this selector treat polarity (of non-equational literals) as reversed?
+   *
+   * Preferrably do not call this once the LiteralSelector has already been used.
+   *
+   * This method is virtual as Lookahead selector with delayed function contains another selector
+   * which needs to get in sync.
+   */
+  virtual void setReversePolarity(bool newVal) { _reversePolarity = newVal; }
 protected:
   /**
    * Perform selection on the first @b eligible literals of clause @b c

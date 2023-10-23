@@ -18,7 +18,6 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 
 namespace Lib {
@@ -44,7 +43,6 @@ public:
   bool operator==(MaybeBool::Value o) const { return _value==o; }
 
   bool value() const {
-    CALL("MaybeBool::value");
     ASS(known());
     return _value==TRUE;
   }

@@ -32,7 +32,6 @@
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/NameReuse.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -65,7 +64,6 @@ Naming::Naming(int threshold, bool preserveEpr, bool appify) :
  * @since 14/07/2005 Tel-Aviv airport, changed to replace the unit
  */
 FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
-  CALL("Naming::apply(Unit*)");
   ASS(!unit->isClause());
   ASS_REP(unit->formula()->freeVariables() == 0, *unit);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
@@ -101,7 +99,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
     defs = UnitList::empty();
     return unit;
   }
-  ASS(UnitList::isNonEmpty(_defs) || env.options->definitionReuse());
+  ASS(UnitList::isNonEmpty(_defs));
   UnitList::Iterator defit(_defs);
 
   defs = _defs;
@@ -112,8 +110,6 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {
-  CALL("Naming::apply_iter");
-
   TIME_TRACE("naming");
 
   Stack<Task> todo_stack;
@@ -750,8 +746,6 @@ Formula* Naming::apply_iter(Formula* top_f) {
  * @since 11/07/2005 flight Barcelona-Tel-Aviv
  */
 Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
-  CALL("Naming::apply_sub(Formula* ...)");
-
   switch (f->connective()) {
   case LITERAL:
   case BOOL_TERM:
@@ -1078,8 +1072,6 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
  * Return true if a definition for the formula @b f may be introduced
  */
 bool Naming::canBeInDefinition(Formula* f, Where where) {
-  CALL("Naming::canBeInDefinition");
-
   if (!_preserveEpr) {
     return true;
   }
@@ -1110,21 +1102,6 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
 }
 
 Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
-  CALL("Naming::getDefinitionLiteral");
-
-  NameReuse *name_reuse = env.options->definitionReuse()
-    ? NameReuse::definitionInstance()
-    : nullptr;
-  unsigned reused_symbol = 0;
-  bool successfully_reused = false;
-  vstring reuse_key;
-  if(name_reuse) {
-    reuse_key = name_reuse->key(f);
-    successfully_reused = name_reuse->get(reuse_key, reused_symbol);
-  }
-  if(successfully_reused)
-    env.statistics->reusedFormulaNames++;
-
   unsigned arity = VList::length(freeVars);
 
   static TermStack termVarSorts;
@@ -1138,14 +1115,9 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
 
   SortHelper::collectVariableSorts(f, varSorts);
 
-  // if we re-use a symbol, we _must_ close over free variables in some fixed order
-  VirtualIterator<unsigned> keyOrderIt;
-  if(name_reuse)
-    keyOrderIt = name_reuse->freeVariablesInKeyOrder(f);
-
   VList::Iterator vit(freeVars);
-  while (name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {
-    unsigned uvar = name_reuse ? keyOrderIt.next() : vit.next();
+  while (vit.hasNext()) {
+    unsigned uvar = vit.next();
     TermList sort = varSorts.get(uvar, AtomicSort::defaultSort());
     if(sort == AtomicSort::superSort()){
       typeVars.push(TermList(uvar, false));     
@@ -1165,37 +1137,26 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   }
 
   if(!_appify){
-    unsigned pred = reused_symbol;
-    if(!successfully_reused) {
-      pred = env.signature->addNamePredicate(arity);
-      env.statistics->formulaNames++;
-      if(name_reuse)
-        name_reuse->put(reuse_key, pred);
-      Signature::Symbol* predSym = env.signature->getPredicate(pred);
+    unsigned pred = env.signature->addNamePredicate(arity);
+    Signature::Symbol* predSym = env.signature->getPredicate(pred);
 
-      if (env.colorUsed) {
-        Color fc = f->getColor();
-        if (fc != COLOR_TRANSPARENT) {
-          predSym->addColor(fc);
-        }
-        if (f->getSkip()) {
-          predSym->markSkip();
-        }
+    if (env.colorUsed) {
+      Color fc = f->getColor();
+      if (fc != COLOR_TRANSPARENT) {
+        predSym->addColor(fc);
       }
-
-      predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
+      if (f->getSkip()) {
+        predSym->markSkip();
+      }
     }
+
+    predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
     return Literal::create(pred, arity, true, false, allVars.begin());
   } else {
-    unsigned fun = reused_symbol;
-    if(!successfully_reused) {
-      fun = env.signature->addNameFunction(typeVars.size());
-      TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
-      Signature::Symbol* sym = env.signature->getFunction(fun);
-      sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
-      if(name_reuse)
-        name_reuse->put(reuse_key, fun);
-    }
+    unsigned fun = env.signature->addNameFunction(typeVars.size());
+    TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
+    Signature::Symbol* sym = env.signature->getFunction(fun);
+    sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = ApplicativeHelper::createAppTerm(
                  SortHelper::getResultSort(head.term()), head, termVars);
@@ -1215,8 +1176,6 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
  * @since 01/07/2005 Manchester
  */
 Formula* Naming::introduceDefinition(Formula* f, bool iff) {
-  CALL("Naming::introduceDefinition");
-
   ASS_NEQ(f->connective(), LITERAL);
   ASS_NEQ(f->connective(), NOT);
 
@@ -1227,28 +1186,9 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   Literal* atom = getDefinitionLiteral(f, vs);
   Formula* name = new AtomicFormula(atom);
 
-  // have we introduced this definition before?
-  // if no, already_seen is nullptr
-  // if yes, but only =>, *already_seen is false
-  // if yes and <=>, *already_seen is true
-  bool *already_seen = _already_seen.findPtr(atom);
-
-  if(already_seen) {
-    // either we don't need to "upgrade" the definition to <=>, or we already did
-    if(!iff || *already_seen)
-      return name;
-  }
-
   Formula* def;
   if (iff) {
-    // if we're upgrading a previously-seen definition, only need one direction
-    if(already_seen)
-      // this is not in ENNF, but the emitted definitions need not be
-      // (Naming is followed by a NNF transform that can handle implications)
-      def = new BinaryFormula(IMP, f, name);
-    // otherwise we need both directions
-    else
-      def = new BinaryFormula(IFF, name, f);
+    def = new BinaryFormula(IFF, name, f);
   }
   // iff = false
   else {
@@ -1263,16 +1203,11 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   }
   Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 
-  InferenceStore::instance()->recordIntroducedSymbol(definition, false,
+  InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::PRED,
       atom->functor());
 
+  env.statistics->formulaNames++;
   UnitList::push(definition, _defs);
-
-  if(already_seen)
-    // must be upgrading if we're here
-    *already_seen = true;
-  else
-    _already_seen.insert(atom, iff);
 
   if (env.options->showPreprocessing()) {
     env.beginOutput();
@@ -1297,8 +1232,6 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
  */
 FormulaList* Naming::apply_list(FormulaList* fs, Where where, int* results,
     int* negResults) {
-  CALL("Naming::apply_list(FormulaList*...)");
-
   if (FormulaList::isEmpty(fs)) {
     return fs;
   }
