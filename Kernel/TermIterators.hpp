@@ -672,6 +672,38 @@ private:
   int _added;
 }; // NonVariableIterator
 
+
+class TracedNonVariableNonTypeIterator
+  : public IteratorCore<Term*>
+{
+public:
+  TracedNonVariableNonTypeIterator(const TracedNonVariableNonTypeIterator&);
+  /**
+   * If @c includeSelf is false, then only proper subterms of @c term will be included.
+   */
+  TracedNonVariableNonTypeIterator(Term* term, bool includeSelf=false)
+  : _stack(8),
+    _added(0)
+  {
+    _stack.push(std::make_pair(term,0));
+    if (!includeSelf) {
+      TracedNonVariableNonTypeIterator::next();
+    }
+  }
+
+  /** true if there exists at least one subterm */
+  bool hasNext() { return !_stack.isEmpty(); }
+  Term* next();
+  void right();
+  const Stack<Term*>& getTrace() const { return _trace; }
+private:
+  /** available non-variable subterms */
+  Stack<std::pair<Term*,unsigned>> _stack;
+  Stack<Term*> _trace;
+  /** the number of non-variable subterms added at the last iteration, used by right() */
+  int _added;
+}; // TracedNonVariableNonTypeIterator
+
 /**
  * Iterator that iterator over disagreement set of two terms
  * or literals in DFS left to right order.

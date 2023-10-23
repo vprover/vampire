@@ -291,6 +291,10 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
+bool Ordering::isGreater(TermList t1, TermList t2) const {
+  return compare(t1,t2)==Ordering::GREATER;
+}
+
 /**
  * Return the predicate level. If @b pred is less than or equal to
  * @b _predicates, then the value is taken from the array _predicateLevels,

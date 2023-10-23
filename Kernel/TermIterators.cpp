@@ -478,6 +478,57 @@ void NonVariableNonTypeIterator::right()
   }
 } // NonVariableIterator::right
 
+Term* TracedNonVariableNonTypeIterator::next()
+{
+  std::pair<Term*,unsigned> kv = _stack.pop();
+  Term* t = kv.first;
+  unsigned d = kv.second;
+  TermList* ts;
+  _added = 0;
+  Signature::Symbol* sym;
+  if (t->isLiteral()) {
+    sym = env.signature->getPredicate(t->functor());
+  } else{
+    sym = env.signature->getFunction(t->functor());
+  }
+  unsigned taArity;
+  unsigned arity;
+
+  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+    taArity = 0;
+    arity = 2;
+  } else {
+    taArity = sym->numTypeArguments();
+    arity = sym->arity();
+  }
+
+  for(unsigned i = taArity; i < arity; i++){
+    ts = t->nthArgument(i);
+    if (ts->isTerm()) {
+      _stack.push(std::make_pair(const_cast<Term*>(ts->term()),d+1));
+      _added++;
+    }
+  }
+  while (d < _trace.size()) {
+    _trace.pop();
+  }
+  if (_added) {
+    _trace.push(t);
+  }
+  return t;
+}
+
+/**
+ * Skip all subterms of the terms returned by the last call to next()
+ */
+void TracedNonVariableNonTypeIterator::right()
+{
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
+} // TracedNonVariableNonTypeIterator::right
+
 /**
  * True if there exists next non-variable subterm
  */

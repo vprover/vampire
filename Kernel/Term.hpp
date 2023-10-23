@@ -176,6 +176,8 @@ public:
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
+  unsigned varmap() const;
+  unsigned numVarOccs() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
   bool isArrowSort();
   bool isBoolSort();
@@ -591,6 +593,16 @@ public:
     return _maxRedLen;    
   }
 
+  unsigned varmap() const
+  {
+    return _varmap;
+  }
+
+  void setVarmap(unsigned v)
+  {
+    _varmap = v;
+  }
+
   /** Mark term as shared */
   void markShared()
   {
@@ -806,6 +818,7 @@ protected:
   unsigned _weight;
   /** length of maximum reduction length */
   int _maxRedLen;
+  unsigned _varmap;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

@@ -81,7 +81,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   //the heaviest first...
 
   static DHSet<TermList> attempted;
-  attempted.reset();
+  static unsigned cacheTimestamp = 0;
+  if (cacheTimestamp != _salg->getLastActivatedClauseNumber()) {
+    attempted.reset();
+    cacheTimestamp = _salg->getLastActivatedClauseNumber();
+  }
 
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
@@ -89,9 +93,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
     if (lit->isAnswerLiteral()) {
       continue;
     }
-    typename std::conditional<!combinatorySupSupport,
-      NonVariableNonTypeIterator,
-      FirstOrderSubtermIt>::type it(lit);
+    // typename std::conditional<!combinatorySupSupport,
+    //   NonVariableNonTypeIterator,
+    //   FirstOrderSubtermIt>::type it(lit);
+    TracedNonVariableNonTypeIterator it(lit);
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
@@ -110,6 +115,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       // encompassing demodulation is always fine into negative literals or into non-units
       if (_encompassing) {
         toplevelCheck &= lit->isPositive() && (cLen == 1);
+      }
+
+      if (toplevelCheck) {
+        attempted.remove(trm);
       }
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
@@ -171,9 +180,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
   #endif
-        if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
+        // if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
+          ASS(ordering.compare(trm,rhsS)!=Ordering::GREATER);
           continue;
         }
+        ASS(ordering.compare(trm,rhsS)==Ordering::GREATER);
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (toplevelCheck && _encompassing) {
@@ -225,6 +237,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
           premises = pvi( getSingletonIterator(qr.clause));
+          for (const auto& t : it.getTrace()) {
+            attempted.remove(TermList(t));
+          }
+          attempted.remove(trm);
           return true;
         }
 
@@ -245,6 +261,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         premises = pvi( getSingletonIterator(qr.clause));
         replacement = res;
+        for (const auto& t : it.getTrace()) {
+          attempted.remove(TermList(t));
+        }
+        attempted.remove(trm);
         return true;
       }
     }

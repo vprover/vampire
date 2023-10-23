@@ -112,6 +112,7 @@ public:
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
+  unsigned getLastActivatedClauseNumber() const { return _lastActivatedClauseNumber; }
 
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
@@ -236,6 +237,7 @@ protected:
 
   /** Number of clauses that entered the unprocessed container */
   unsigned _generatedClauseCount;
+  unsigned _lastActivatedClauseNumber;
 
   unsigned _activationLimit;
 private:

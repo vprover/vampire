@@ -66,6 +66,7 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
+  virtual bool isGreater(TermList t1, TermList t2) const;
 
   virtual void show(std::ostream& out) const = 0;
 
