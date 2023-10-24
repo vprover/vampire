@@ -197,7 +197,7 @@ void NewCNF::clausifySynthesis(FormulaUnit* unit,Stack<Clause*>& output, Binding
     BindingList::Iterator bIt(gc->bindings);
       while(bIt.hasNext()) {
         Binding b = bIt.next();
-        std::pair<unsigned, Term*> currentBinding = std::pair<unsigned, Term*>(b.first, b.second);
+        Binding currentBinding = Binding(b.first, b.second);
         bindingList->push(currentBinding, bindingList);
       }
     toClauses(gc, output);
