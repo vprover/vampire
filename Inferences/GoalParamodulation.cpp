@@ -31,6 +31,8 @@ using namespace Lib;
 using namespace Kernel;
 using namespace std;
 
+#define INDUCTION_MODE
+
 void GoalParamodulation::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
@@ -130,9 +132,7 @@ vstring posToString(const Position& pos)
 
 bool isInductionTerm(Term* t)
 {
-  // uncomment to use for general reasoning
-  // return true;
-
+#ifdef INDUCTION_MODE
   static DHMap<Term*,bool> cache;
   bool* ptr;
   if (!cache.getValuePtr(t,ptr,false)) {
@@ -154,6 +154,9 @@ bool isInductionTerm(Term* t)
   }
   *ptr = false;
   return false;
+#else
+  return true;
+#endif
 }
 
 void assertPositionIn(const Position& p, Term* t) {
@@ -217,6 +220,7 @@ bool shouldChain(Literal* lit, const Ordering& ord) {
   return linear(side) && !hasTermToInductOn(side);
 }
 
+#ifdef INDUCTION_MODE
 DHSet<unsigned>* getSkolems(Literal* lit) {
   TIME_TRACE("getSkolems");
   // checking the skolems is pretty expensive, so we cache them per literal
@@ -234,6 +238,7 @@ DHSet<unsigned>* getSkolems(Literal* lit) {
   }
   return ptr;
 }
+#endif
 
 VirtualIterator<TypedTermList> sideIterator(Literal* lit)
 {
@@ -294,7 +299,10 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
     return res;
   }
 
-  auto skPtr = getSkolems(lit);
+  DHSet<unsigned>* skPtr = nullptr;
+#ifdef INDUCTION_MODE
+  skPtr = getSkolems(lit);
+#endif
 
   const auto& opt = _salg->getOptions();
 
@@ -313,13 +321,14 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
         if (SortHelper::getResultSort(arg.first) != SortHelper::getEqualityArgumentSort(qr.literal)) {
           return false;
         }
-        // TODO this check with the Skolems is extremely expensive in some cases
+#ifdef INDUCTION_MODE
         DHSet<unsigned>::Iterator skIt(*getSkolems(qr.literal));
         while (skIt.hasNext()) {
           if (!skPtr->contains(skIt.next())) {
             return false;
           }
         }
+#endif
         return true;
       })
       .flatMap([lit](pair<Term*,TermQueryResult> arg) {
@@ -356,6 +365,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
         if (SortHelper::getResultSort(qr.term.term()) != SortHelper::getEqualityArgumentSort(lit)) {
           return false;
         }
+#ifdef INDUCTION_MODE
         if (skPtr->isEmpty()) {
           return true;
         }
@@ -366,6 +376,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
             return false;
           }
         }
+#endif
         return true;
       })
       .flatMap([](pair<TypedTermList,TermQueryResult> arg) {

@@ -421,10 +421,42 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
         rhsS = subst.apply(rhsS, 0);
       }
 
-      // double check this condition
-      // if (rhsS.containsSubterm(TermList(context._indTerm))) {
-      //   continue;
-      // }
+      Ordering::Result tord=_ord.compare(rhsS, trm);
+      if (tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
+        continue;
+      }
+      return true;
+    }
+  }
+  NonVariableNonTypeIterator it2(context._indTerm,true);
+  while(it2.hasNext()) {
+    TypedTermList trm=it2.next();
+    auto git = _demLhsIndex->getGeneralizations(trm, true);
+    while(git.hasNext()) {
+      TermQueryResult qr=git.next();
+      ASS_EQ(qr.clause->length(),1);
+      if (!cl->splits() && qr.clause->splits() && !qr.clause->splits()->isSubsetOf(cl->splits())) {
+        continue;
+      }
+
+      static RobSubstitution subst;
+      bool resultTermIsVar = qr.term.isVar();
+      if(resultTermIsVar){
+        TermList querySort = trm.sort();
+        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+        subst.reset();
+        if(!subst.match(eqSort, 0, querySort, 1)){
+          continue;
+        }
+      }
+
+      TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+      TermList rhsS;
+      ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
+      rhsS=qr.substitution->applyToBoundResult(rhs);
+      if(resultTermIsVar){
+        rhsS = subst.apply(rhsS, 0);
+      }
 
       Ordering::Result tord=_ord.compare(rhsS, trm);
       if (tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
