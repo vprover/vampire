@@ -176,6 +176,17 @@ private:
   InductionFormulaIndex _formulaIndex;
 };
 
+typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
+typedef List<Binding> BindingList;
+
+struct SkolemTracker {
+  Binding binding;
+  unsigned constructorIndex; 
+  bool recursiveArg;
+};
+
+typedef List<SkolemTracker> SkolemTrackerList;
+
 class InductionClauseIterator
 {
 public:
@@ -203,6 +214,7 @@ private:
   void processIntegerComparison(Clause* premise, Literal* lit);
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
+  ClauseStack produceClausesSynth(Formula* hypothesis, InferenceRule rule, const InductionContext& context, BindingList* &bindingList);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 

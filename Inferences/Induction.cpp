@@ -659,6 +659,73 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   return hyp_clauses;
 }
 
+ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, InferenceRule rule, const InductionContext& context, BindingList* &bindingList) {
+  NewCNF cnf(0);
+  cnf.setForInduction();
+  Stack<Clause*> hyp_clauses;
+  Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
+  unsigned maxInductionDepth = 0;
+  for (const auto& kv : context._cls) {
+    maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());
+  }
+  inf.setInductionDepth(maxInductionDepth+1);
+  FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
+  if(_opt.showInduction()){
+    env.beginOutput();
+    env.out() << "[Induction] formula " << fu->toString() << endl;
+    env.endOutput();
+  }
+  cnf.clausifySynthesis(NNF::ennf(fu), hyp_clauses, bindingList);
+
+  switch (rule) {
+    case InferenceRule::STRUCT_INDUCTION_AXIOM:
+      env.statistics->structInduction++;
+      break;
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      env.statistics->intInfInduction++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      env.statistics->intFinInduction++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      env.statistics->intDBInduction++;
+      break;
+    default:
+      ;
+  }
+  switch (rule) {
+    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+      env.statistics->intInfUpInduction++;
+      break;
+    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+      env.statistics->intInfDownInduction++;
+      break;
+    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+      env.statistics->intFinUpInduction++;
+      break;
+    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+      env.statistics->intFinDownInduction++;
+      break;
+    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+      env.statistics->intDBUpInduction++;
+      break;
+    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+      env.statistics->intDBDownInduction++;
+      break;
+    default:
+      ;
+  }
+
+  return hyp_clauses;
+}
+
+
+
+
+
 // helper function to properly add bounds to integer induction contexts,
 // where the bounds are not part of the inner formula for the induction
 void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2)
@@ -1250,13 +1317,6 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 /*
 ToDo
 */
-struct SkolemMapping {
-  unsigned var;
-  Term* skolemTerm;
-  unsigned constructorIndex; 
-  bool recursiveArg;
-};
-typedef List<SkolemMapping> SkolemMappingList;
 
 void InductionClauseIterator::performStructInductionSynth(const InductionContext& context, InductionFormulaIndex::Entry* e)
 {
@@ -1358,7 +1418,18 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
 
-  auto cls = produceClauses(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context);
+  BindingList* bindingList = BindingList::empty();
+
+  auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
+
+  BindingList::Iterator bIt(bindingList);
+  while(bIt.hasNext()) {
+    Binding b = bIt.next();
+    std:: cout << "Binded X"+Int::toString(b.first)+" to "+b.second->toString() << "\n";
+  }
+
+  //ToDo: Create SkolemTrackers from bindingList and variables created inside this function
+
   std::cout << "Clausified induction formula:\n";
   for (auto cl: cls) {
     std :: cout << cl->toString() << "\n";

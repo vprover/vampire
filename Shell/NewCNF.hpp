@@ -61,11 +61,15 @@ namespace Shell {
 class NewCNF
 {
 public:
+
+  typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
+  typedef List<Binding> BindingList;
   NewCNF(unsigned namingThreshold)
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
   void clausify(FormulaUnit* unit, Stack<Clause*>& output);
+  void clausifySynthesis(FormulaUnit* unit, Stack<Clause*>& output, BindingList* &bindingList);
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;
@@ -84,9 +88,6 @@ private:
    */
   Deque<Formula*> _queue;
 
-  typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
-
-  typedef List<Binding> BindingList;
 
   // all allocations of shared BindingLists should go via BindingStore so that they get destroyed in the end
   struct BindingStore {
