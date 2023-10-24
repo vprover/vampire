@@ -1250,6 +1250,14 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 /*
 ToDo
 */
+struct SkolemMapping {
+  unsigned var;
+  Term* skolemTerm;
+  unsigned constructorIndex; 
+  bool recursiveArg;
+};
+typedef List<SkolemMapping> SkolemMappingList;
+
 void InductionClauseIterator::performStructInductionSynth(const InductionContext& context, InductionFormulaIndex::Entry* e)
 {
   TermList sort = SortHelper::getResultSort(context._indTerm);
