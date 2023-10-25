@@ -681,18 +681,21 @@ public:
   /**
    * If @c includeSelf is false, then only proper subterms of @c term will be included.
    */
-  TracedNonVariableNonTypeIterator(Term* term, bool includeSelf=false)
+  TracedNonVariableNonTypeIterator(Literal* lit)
   : _stack(8),
-    _added(0)
+    _ready(false)
   {
-    _stack.push(std::make_pair(term,0));
-    if (!includeSelf) {
-      TracedNonVariableNonTypeIterator::next();
+    for (unsigned i = 0; i <= 1; i++) {
+      auto t = lit->termArg(i);
+      if (t.isTerm()) {
+        _stack.push(std::make_pair(t.term(),0));
+      }
     }
+    _ready = true;
   }
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
+  bool hasNext();
   Term* next();
   void right();
   const Stack<Term*>& getTrace() const { return _trace; }
@@ -701,7 +704,7 @@ private:
   Stack<std::pair<Term*,unsigned>> _stack;
   Stack<Term*> _trace;
   /** the number of non-variable subterms added at the last iteration, used by right() */
-  int _added;
+  bool _ready;
 }; // TracedNonVariableNonTypeIterator
 
 /**

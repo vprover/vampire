@@ -148,7 +148,8 @@ struct BackwardDemodulation::ResultFn
       rhsS=qr.substitution->applyToBoundQuery(rhs);
     }
 
-    if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
+    if(!_ordering.isGreater(lhsS,rhsS)) {
+    // if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
     }
 

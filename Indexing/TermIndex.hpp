@@ -115,12 +115,15 @@ public:
   USE_ALLOCATOR(DemodulationLHSIndex);
 
   DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  : TermIndex(is), _ord(ord), _opt(opt), _insertionTimestamp(0) {};
+
+  unsigned insertionTimestamp() const { return _insertionTimestamp; }
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
+  unsigned _insertionTimestamp;
 };
 
 /**

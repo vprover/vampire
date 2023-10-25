@@ -224,7 +224,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0),
-    _generatedClauseCount(0), _lastActivatedClauseNumber(0),
+    _generatedClauseCount(0),
     _activationLimit(0)
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
@@ -1208,7 +1208,6 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-  _lastActivatedClauseNumber = cl->number();
     
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = timeTraceIter(TimeTrace::CLAUSE_GENERATION, generated.clauses);

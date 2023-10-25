@@ -478,44 +478,35 @@ void NonVariableNonTypeIterator::right()
   }
 } // NonVariableIterator::right
 
-Term* TracedNonVariableNonTypeIterator::next()
+bool TracedNonVariableNonTypeIterator::hasNext()
 {
+  if (_ready) {
+    return _stack.isNonEmpty();
+  }
   std::pair<Term*,unsigned> kv = _stack.pop();
   Term* t = kv.first;
   unsigned d = kv.second;
   TermList* ts;
-  _added = 0;
-  Signature::Symbol* sym;
-  if (t->isLiteral()) {
-    sym = env.signature->getPredicate(t->functor());
-  } else{
-    sym = env.signature->getFunction(t->functor());
-  }
-  unsigned taArity;
-  unsigned arity;
+  Signature::Symbol* sym = env.signature->getFunction(t->functor());
 
-  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
-    taArity = 0;
-    arity = 2;
-  } else {
-    taArity = sym->numTypeArguments();
-    arity = sym->arity();
-  }
-
-  for(unsigned i = taArity; i < arity; i++){
+  for (unsigned i = sym->numTypeArguments(); i < sym->arity(); i++) {
     ts = t->nthArgument(i);
     if (ts->isTerm()) {
       _stack.push(std::make_pair(const_cast<Term*>(ts->term()),d+1));
-      _added++;
     }
   }
   while (d < _trace.size()) {
     _trace.pop();
   }
-  if (_added) {
-    _trace.push(t);
-  }
-  return t;
+  _trace.push(t);
+  _ready = true;
+  return _stack.isNonEmpty();
+}
+
+Term* TracedNonVariableNonTypeIterator::next()
+{
+  _ready = false;
+  return _stack.top().first;
 }
 
 /**
@@ -523,10 +514,11 @@ Term* TracedNonVariableNonTypeIterator::next()
  */
 void TracedNonVariableNonTypeIterator::right()
 {
-  while (_added > 0) {
-    _added--;
-    _stack.pop();
+  if (_ready) {
+    return;
   }
+  _ready = true;
+  _stack.pop();
 } // TracedNonVariableNonTypeIterator::right
 
 /**

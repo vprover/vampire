@@ -137,6 +137,9 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 
   Literal* lit=(*c)[0];
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  if (lhsi.hasNext() && adding) {
+    _insertionTimestamp++;
+  }
   while (lhsi.hasNext()) {
     _is->handle(lhsi.next(), lit, c, adding);
   }

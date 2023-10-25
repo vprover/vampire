@@ -82,9 +82,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
   static DHSet<TermList> attempted;
   static unsigned cacheTimestamp = 0;
-  if (cacheTimestamp != _salg->getLastActivatedClauseNumber()) {
+  if (cacheTimestamp != _index->insertionTimestamp()) {
     attempted.reset();
-    cacheTimestamp = _salg->getLastActivatedClauseNumber();
+    cacheTimestamp = _index->insertionTimestamp();
   }
 
   unsigned cLen=cl->length();
