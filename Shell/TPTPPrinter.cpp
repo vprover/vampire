@@ -516,8 +516,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
   ASS(unit->isClause());
   const Clause *cl = static_cast<const Clause *>(unit);
   DHMap<unsigned, TermList> sorts;
+  bool conjecture = unit->inputType() == UnitInputType::CONJECTURE || unit->inputType() == UnitInputType::NEGATED_CONJECTURE;
   SortHelper::collectVariableSorts(const_cast<Unit *>(unit), sorts);
   vstring result = "(assert ";
+  if(conjecture)
+    result += "(|#| ";
   if(!sorts.isEmpty()) {
     result += "(forall (";
     decltype(sorts)::Iterator vars(sorts);
@@ -535,7 +538,10 @@ vstring TPTPPrinter::toString (const Unit* unit)
     result += toString((*cl)[i]);
   }
 
+
   if(!sorts.isEmpty())
+    result += ")";
+  if(conjecture)
     result += ")";
   result += "))";
   return result;

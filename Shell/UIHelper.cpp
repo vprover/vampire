@@ -679,6 +679,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   if(typeCon) {
     ASS(env.signature->isDefaultSortCon(symNumber))
     out << "(declare-sort Individual 0)" << std::endl;
+    out << "(declare-fun |#| (Bool) Bool)" << std::endl;
   }
   else {
     out << "(declare-fun ";
