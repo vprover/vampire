@@ -1357,16 +1357,18 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       argTerms.push(y);
       VList::push(y.var(), ys);
       Binding yBinding = Binding(y.var(), nullptr); 
-      SkolemTracker skolemY = SkolemTracker(yBinding, i, false);
+      SkolemTracker skolemY = SkolemTracker(yBinding, i, false, -1);
 
       if (con->argSort(j) == con->rangeSort()){
         recTerms.push(y);
         skolemY.recursiveArg = true;
+        skolemY.recursivePos = j;
+
 
         TermList w(var++, false);
         VList::push(w.var(), ws);
         Binding wBinding = Binding(w.var(), nullptr);
-        SkolemTracker skolemW = SkolemTracker(wBinding, i, false);
+        SkolemTracker skolemW = SkolemTracker(wBinding, i, false, -1);
         skolemTrackerList->push(skolemW, skolemTrackerList);
 
         TermReplacement tr(context._indTerm, y);
@@ -1441,7 +1443,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     while(bIt.hasNext()) {
       Binding b = bIt.next();
       if (st.binding.first == b.first) { 
-        mappings->push(SkolemTracker(Binding(b.first, b.second), st.constructorIndex, st.recursiveArg), mappings);
+        mappings->push(SkolemTracker(Binding(b.first, b.second), st.constructorIndex, st.recursiveArg, st.recursivePos), mappings);
         break;
       }
     }

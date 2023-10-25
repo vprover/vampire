@@ -183,7 +183,8 @@ struct SkolemTracker {
   Binding binding;
   unsigned constructorIndex; 
   bool recursiveArg;
-  SkolemTracker(Binding b, unsigned c, bool r) : binding(b), constructorIndex(c), recursiveArg(r) {}
+  int recursivePos; // -1 if not recursive, otherwise the position of the recursive argument
+  SkolemTracker(Binding b, unsigned c, bool r, int pos) : binding(b), constructorIndex(c), recursiveArg(r), recursivePos(pos) {}
   vstring toString() {
     vstring s;
     s += "SkolemTracker(";
@@ -193,7 +194,9 @@ struct SkolemTracker {
     s += ", cnstr=";
     s += Int::toString(constructorIndex);
     s += ", rec=";
-    s += recursiveArg ? "true)" : "false)";
+    s += recursiveArg ? "true" : "false";
+    s += ", recPos = ";
+    s += Int::toString(recursivePos) + ")";
     return s;
   }
 };
