@@ -180,9 +180,10 @@ typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the f
 typedef List<Binding> BindingList;
 
 struct SkolemTracker {
-  Binding binding;
+  Binding* binding;
   unsigned constructorIndex; 
   bool recursiveArg;
+  SkolemTracker(Binding* b, unsigned c, bool r) : binding(b), constructorIndex(c), recursiveArg(r) {}
 };
 
 typedef List<SkolemTracker> SkolemTrackerList;

@@ -1342,6 +1342,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   VList* ws = VList::empty(); 
   VList* ys = VList::empty(); 
 
+  SkolemTrackerList* skolemTrackerList = SkolemTrackerList::empty();
+
   for (unsigned i = 0; i < ta->nConstructors(); i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
@@ -1354,11 +1356,18 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       TermList y(var++, false);
       argTerms.push(y);
       VList::push(y.var(), ys);
+      Binding* yBinding = new Binding(y.var(), nullptr); 
+      SkolemTracker skolemY = SkolemTracker(yBinding, i, false);
 
       if (con->argSort(j) == con->rangeSort()){
         recTerms.push(y);
+        skolemY.recursiveArg = true;
+
         TermList w(var++, false);
         VList::push(w.var(), ws);
+        Binding* wBinding = new Binding(w.var(), nullptr);
+        SkolemTracker skolemW = SkolemTracker(wBinding, i, false);
+        skolemTrackerList->push(skolemW, skolemTrackerList);
 
         TermReplacement tr(context._indTerm, y);
         Literal* curLit = tr.transform(L);
@@ -1368,6 +1377,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
         FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j]
       }
+      skolemTrackerList->push(skolemY, skolemTrackerList);
     }
 
     Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps); // /\_{j ∈ P_c}  L[y_j, w_j]
@@ -1422,13 +1432,29 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
 
-  BindingList::Iterator bIt(bindingList);
-  while(bIt.hasNext()) {
-    Binding b = bIt.next();
-    std:: cout << "Binded X"+Int::toString(b.first)+" to "+b.second->toString() << "\n";
-  }
 
-  //ToDo: Create SkolemTrackers from bindingList and variables created inside this function
+  SkolemTrackerList::Iterator stIt(skolemTrackerList);
+  while (stIt.hasNext()) {
+    SkolemTracker st = stIt.next();
+
+    BindingList::Iterator bIt(bindingList);
+    while(bIt.hasNext()) {
+      Binding b = bIt.next();
+      if (st.binding->first == b.first) { 
+        st.binding = new Binding(b.first, b.second);
+        std:: cout << "Matching done for " << st.binding->first << "\n";
+        break;
+      }
+    }
+  }
+  
+  // ToDo: Verify SkolemTrackerList is constructed correctly
+  stIt.reset(skolemTrackerList);
+  while (stIt.hasNext()) {
+    SkolemTracker st = stIt.next();
+    std:: cout << "Skolemized X"+Int::toString(st.binding->first) << "\n";
+  }  
+
 
   std::cout << "Clausified induction formula:\n";
   for (auto cl: cls) {
