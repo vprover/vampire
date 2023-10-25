@@ -541,6 +541,21 @@ vstring TPTPPrinter::toString (const Unit* unit)
   return result;
 }
 
+vstring TPTPPrinter::sanitise(const vstring &name) {
+  if(name == "=")
+    return name;
+
+  bool alphanumeric = true;
+  for(char c : name)
+    if(!std::isalnum(c) && c != '_')
+      alphanumeric = false;
+
+  if(alphanumeric)
+    return name;
+
+  return "|" + name + "|";
+}
+
 vstring TPTPPrinter::toString(const Literal* l){
   vstring result;
   if(!l->polarity())
@@ -548,7 +563,7 @@ vstring TPTPPrinter::toString(const Literal* l){
   if(l->arity())
     result += '(';
 
-  result += l->predicateName();
+  result += sanitise(l->predicateName());
   for(unsigned i = 0; i < l->arity(); i++) {
     result += ' ';
     result += toString((*l)[i]);
@@ -570,7 +585,7 @@ vstring TPTPPrinter::toString(TermList tl){
   if(t->arity())
     result += '(';
 
-  result += t->functionName();
+  result += sanitise(t->functionName());
   for(unsigned i = 0; i < t->arity(); i++) {
     result += ' ';
     result += toString((*t)[i]);

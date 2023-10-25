@@ -682,7 +682,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   }
   else {
     out << "(declare-fun ";
-    out << symName << " (";
+    out << TPTPPrinter::sanitise(symName) << " (";
     for(unsigned i = 0; i < sym->arity(); i++)
       out << (i ? " " : "") << "Individual";
     out << ") " << (function ? "Individual" : "Bool") << ")" << std::endl;
