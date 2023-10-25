@@ -191,11 +191,11 @@ struct SkolemTracker {
     s += "X" + Int::toString(binding.first);
     s += ", ";
     s += binding.second->toString();
-    s += ", cnstr=";
+    s += ", cnstrID=";
     s += Int::toString(constructorIndex);
     s += ", rec=";
     s += recursiveArg ? "true" : "false";
-    s += ", recPos = ";
+    s += ", recPos=";
     s += Int::toString(recursivePos) + ")";
     return s;
   }

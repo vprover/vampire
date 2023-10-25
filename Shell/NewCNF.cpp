@@ -131,8 +131,6 @@ void NewCNF::clausifySynthesis(FormulaUnit* unit,Stack<Clause*>& output, Binding
 
   Formula* f = unit->formula();
 
-  std :: cout << "NewCNF::clausifySynthesis: " << f->toString() << std :: endl;
-
 #if LOGGING
   cout << endl << "----------------- INPUT ------------------" << endl;
   cout << f->toString() << endl;
@@ -193,7 +191,6 @@ void NewCNF::clausifySynthesis(FormulaUnit* unit,Stack<Clause*>& output, Binding
 #endif
 
   for (SPGenClause gc : _genClauses) {
-    std::cout << "gc is " << gc->toString() << std::endl;
     BindingList::Iterator bIt(gc->bindings);
       while(bIt.hasNext()) {
         Binding b = bIt.next();
