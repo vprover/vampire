@@ -42,6 +42,7 @@ public:
   static vstring toString(const Formula*);
   static vstring toString(const Literal*);
   static vstring toString(TermList);
+  static vstring sanitise(const vstring &);
 
 private:
 
