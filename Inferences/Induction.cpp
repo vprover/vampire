@@ -1356,7 +1356,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       TermList y(var++, false);
       argTerms.push(y);
       VList::push(y.var(), ys);
-      Binding* yBinding = new Binding(y.var(), nullptr); 
+      Binding yBinding = Binding(y.var(), nullptr); 
       SkolemTracker skolemY = SkolemTracker(yBinding, i, false);
 
       if (con->argSort(j) == con->rangeSort()){
@@ -1365,7 +1365,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
         TermList w(var++, false);
         VList::push(w.var(), ws);
-        Binding* wBinding = new Binding(w.var(), nullptr);
+        Binding wBinding = Binding(w.var(), nullptr);
         SkolemTracker skolemW = SkolemTracker(wBinding, i, false);
         skolemTrackerList->push(skolemW, skolemTrackerList);
 
@@ -1432,7 +1432,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
 
-
+  SkolemTrackerList* mappings = SkolemTrackerList::empty();
   SkolemTrackerList::Iterator stIt(skolemTrackerList);
   while (stIt.hasNext()) {
     SkolemTracker st = stIt.next();
@@ -1440,19 +1440,17 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     BindingList::Iterator bIt(bindingList);
     while(bIt.hasNext()) {
       Binding b = bIt.next();
-      if (st.binding->first == b.first) { 
-        st.binding = new Binding(b.first, b.second);
-        std:: cout << "Matching done for " << st.binding->first << "\n";
+      if (st.binding.first == b.first) { 
+        mappings->push(SkolemTracker(Binding(b.first, b.second), st.constructorIndex, st.recursiveArg), mappings);
         break;
       }
     }
   }
   
-  // ToDo: Verify SkolemTrackerList is constructed correctly
-  stIt.reset(skolemTrackerList);
+  stIt.reset(mappings);
   while (stIt.hasNext()) {
     SkolemTracker st = stIt.next();
-    std:: cout << "Skolemized X"+Int::toString(st.binding->first) << "\n";
+    std::cout << st.toString() << "\n";
   }  
 
 
