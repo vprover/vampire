@@ -17,6 +17,7 @@
 #define __Induction__
 
 #include <cmath>
+#include <functional>
 
 #include "Forwards.hpp"
 
@@ -40,6 +41,15 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
+struct SharedTermHash {
+  static bool equals(Term* t1, Term* t2) { return t1==t2; }
+  static unsigned hash(Term* t) { return t->getId(); }
+};
+
+struct StlClauseHash {
+  std::size_t operator()(Clause* c) const { return std::hash<unsigned>()(c->number()); }
+};
+
 Term* getPlaceholderForTerm(Term* t);
 
 class TermReplacement : public TermTransformer {
@@ -56,7 +66,7 @@ public:
   SkolemSquashingTermReplacement(Term* o, TermList r, unsigned& var)
     : TermReplacement(o, r), _v(var) {}
   TermList transformSubterm(TermList trm) override;
-  DHMap<Term*, unsigned> _tv; // maps terms to their variable replacement
+  DHMap<Term*, unsigned, SharedTermHash> _tv; // maps terms to their variable replacement
 private:
   unsigned& _v;               // fresh variable counter supported by caller
 };
@@ -100,7 +110,7 @@ struct InductionContext {
   // we only store the literals we actually induct on. An alternative
   // would be storing indices but then we need to pass around the
   // clause as well.
-  vunordered_map<Clause*, LiteralStack> _cls;
+  vunordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
 private:
   Formula* getFormula(TermReplacement& tr, bool opposite) const;
 };
