@@ -145,7 +145,7 @@ private:
  *
  * SplitRecord - records the split information for the clause component
  *
- * Let's call the SplitLevel associated with a comp its name = _compNames.get(comp)
+ * Let's call the SplitLevel associated with a comp its "name"
  * A corresponding SplitRecord is added to _db[name] 
  *
  * children - Clauses that rely on name (of comp), should be thrown away "on backtracking"
@@ -214,6 +214,14 @@ public:
 
   UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
   static bool getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle = false);
+
+  /*
+   * Clauses with answer literals cannot be split -- hence if we obtain a clause with
+   * avatar assertions that has an answer literal, we have to un-split it.
+   * This method replaces `C \/ ans(r) <- A1,...,An` with `C \/ ans(r) \/ ~A1 \/ ... \/ ~An`
+   */
+  Clause* reintroduceAvatarAssertions(Clause* cl);
+
 private:
   friend class SplittingBranchSelector;
   
@@ -275,7 +283,6 @@ private:
    * the _db record of this level is non-null.
    */
   Stack<SplitRecord*> _db;
-  DHMap<Clause*,SplitLevel> _compNames;
 
   /**
    * Definitions of ground components C and ~C are shared and placed at the slot of C.

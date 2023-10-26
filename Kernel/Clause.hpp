@@ -352,6 +352,14 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
+  Literal* getAnswerLiteral();
+
+  bool hasAnswerLiteral() {
+    return getAnswerLiteral() != nullptr;
+  }
+
+  bool computable();
+
   unsigned goalParamodulationDepth() const { return _gpDepth; }
   void setGoalParamodulationDepth(unsigned depth) { _gpDepth = depth; }
   bool reversed() const { return _posInfo.reversed; }
@@ -414,7 +422,6 @@ protected:
   static bool _auxInUse;
 #endif
 
-//#endif
 
   /** Array of literals of this unit */
   Literal* _literals[1];

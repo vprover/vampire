@@ -231,6 +231,7 @@ public:
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
+  bool hasAnswerLiteral() const { return _hasAnswerLiteral; }
   bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() ||
                                     hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
@@ -334,6 +335,7 @@ public:
   bool _hasLogicalProxy;
   bool _hasLambda;
   bool _hasPolymorphicSym;
+  bool _hasAnswerLiteral;
   bool _quantifiesOverPolymorphicVar;
 
   bool _onlyFiniteDomainDatatypes;

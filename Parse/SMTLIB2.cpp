@@ -360,6 +360,18 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("set-option")) {
+      if (ibRdr.tryAcceptAtom(":uncomputable")) {
+        LExprList* lel = ibRdr.readList();
+        LExprList::Iterator lIt(lel);
+        while (lIt.hasNext()) {
+          LExpr* exp = lIt.next();
+          ASS(exp->isAtom());
+          vstring& name = exp->str;
+          markSymbolUncomputable(name);
+        }
+        ibRdr.acceptEOL();
+        continue;
+      }
       LOG2("ignoring set-option", ibRdr.readAtom());
       continue;
     }
@@ -2896,15 +2908,7 @@ void SMTLIB2::readAssertTheory(LExpr* body)
   UnitList::push(fu, _formulas);
 }
 
-void SMTLIB2::colorSymbol(const vstring& name, Color color)
-{
-  if (!_declaredSymbols.find(name)) {
-    USER_ERROR_EXPR("'"+name+"' is not a user symbol");
-  }
-  DeclaredSymbol& s = _declaredSymbols.get(name);
-
-  env.colorUsed = true;
-
+Signature::Symbol* SMTLIB2::getSymbol(DeclaredSymbol& s) {
   Signature::Symbol* sym = nullptr;
   switch (s.second)
   {
@@ -2922,7 +2926,31 @@ void SMTLIB2::colorSymbol(const vstring& name, Color color)
   }
   }
 
+  return sym;
+}
+
+void SMTLIB2::colorSymbol(const vstring& name, Color color)
+{
+  if (!_declaredSymbols.find(name)) {
+    USER_ERROR_EXPR("'"+name+"' is not a user symbol");
+  }
+  DeclaredSymbol& s = _declaredSymbols.get(name);
+
+  env.colorUsed = true;
+
+  Signature::Symbol* sym = getSymbol(s);
   sym->addColor(color);
+}
+
+void SMTLIB2::markSymbolUncomputable(const vstring& name)
+{
+  if (!_declaredSymbols.find(name)) {
+    USER_ERROR("'"+name+"' is not a user symbol");
+  }
+  DeclaredSymbol& f = _declaredSymbols.get(name);
+
+  Signature::Symbol* sym = getSymbol(f);
+  sym->markUncomputable();
 }
 
 }

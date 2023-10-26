@@ -72,12 +72,16 @@ ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, in
  */
 bool ResultSubstitution::isRenamingOn(TermList t, bool result) 
 {
-  DHMap<TermList,TermList> renamingInMaking;
+  DHSet<TermList> renamingDomain;
+  DHSet<TermList> renamingRange;
 
   VariableIterator it(t);
   while(it.hasNext()) {
     TermList v = it.next();
     ASS(v.isVar());
+    if (!renamingDomain.insert(v)) {
+      continue;
+    }
 
     TermList vSubst;
     if (result) {
@@ -92,8 +96,7 @@ bool ResultSubstitution::isRenamingOn(TermList t, bool result)
     if (!vSubst.isVar()) {
       return false;
     }
-    TermList vStored;
-    if (!renamingInMaking.findOrInsert(v,vStored,vSubst) && vStored != vSubst) {
+    if (!renamingRange.insert(vSubst)) {
       return false;
     }
   }

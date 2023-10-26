@@ -754,6 +754,28 @@ Clause* Splitter::getComponentClause(SplitLevel name) const
   return _db[name]->component;
 }
 
+Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
+  // This method can only be called when synthesizing programs
+  ASS(env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Inference inf(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl));
+  unsigned newLen = cl->length() + cl->splits()->size();
+  Clause* newCl = new(newLen) Clause(newLen, inf);
+  unsigned i = 0;
+  while (i < cl->length()) {
+    (*newCl)[i] = (*cl)[i];
+    i++;
+  }
+  SplitSet::Iterator sit(*cl->splits());
+  while (sit.hasNext()) {
+    SplitLevel nm = sit.next();
+    Clause* compCl = getComponentClause(nm);
+    // When synthesizing programs, all components are ground and hence unit
+    ASS(compCl->length() == 1);
+    (*newCl)[i++] = Literal::complementaryLiteral((*compCl)[0]);
+  }
+  return newCl;
+}
+
 void Splitter::onAllProcessed()
 {
   bool flushing = false;
@@ -1051,6 +1073,12 @@ bool Splitter::doSplitting(Clause* cl)
   if (hasStopped) {
     return false;
   }
+  // When synthesizing programs:
+  // if this clause contains an answer literal or is not computable, don't split it
+  static bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  if (synthesis && (cl->hasAnswerLiteral() || !cl->computable())) {
+    return false;
+  }
   if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
 #ifdef __linux__
     || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
@@ -1137,7 +1165,7 @@ bool Splitter::doSplitting(Clause* cl)
  *
  * @param size number of literals in component
  * @param lits literals of component
- * @param comp the existing propositional name (SplitLevel) for this component - to be filled 
+ * @param comp the existing propositional name (SplitLevel) for this component - to be filled
  * @param compCl the existing clause for this component - to be filled
  * @return True if the component already exists
  *
@@ -1146,7 +1174,7 @@ bool Splitter::doSplitting(Clause* cl)
 bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl)
 {
   ClauseIterator existingComponents;
-  { 
+  {
     TIME_TRACE("splitting component index usage");
     existingComponents = _componentIdx->retrieveVariants(lits, size);
   }
@@ -1156,7 +1184,7 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
   }
   compCl = existingComponents.next();
   ASS(!existingComponents.hasNext());
-  comp = _compNames.get(compCl);
+  comp = compCl->splits()->sval();
   return true;
 }
 
@@ -1166,7 +1194,6 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
  * - Create a SplitRecord for the component
  * - Record the name in the splits of the clause
  * - Insert the clause into _componentIdx for variant checking later
- * - Insert the clause with the name into _compNames for lookup later
  *
  * @param name The propositional name for the component to add
  * @param size The number of literals in the component to add
@@ -1256,7 +1283,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     TIME_TRACE("splitting component index maintenance");
     _componentIdx->insert(compCl);
   }
-  _compNames.insert(compCl, name);
 
   return compCl;
 }
@@ -1406,7 +1432,8 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   ASS(cl);
 
   if(!premises.hasNext()) {
-    ASS(!replacement || cl->splits()==replacement->splits());
+    ASS(!replacement || cl->splits()==replacement->splits() ||
+        ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) && cl->hasAnswerLiteral() && (replacement->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION || replacement->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL)));
     return;
   }
 
@@ -1502,25 +1529,30 @@ void Splitter::onNewClause(Clause* cl)
   //  RSTAT_CTR_INC("New Clause is a Component");
   //}
 
-  if(!cl->splits()) {
-    SplitSet* splits=getNewClauseSplitSet(cl);
-    assignClauseSplitSet(cl, splits);
-  }
-
-  if (env.colorUsed) {
-    SplitSet* splits = cl->splits();
-
-    Color color = cl->color();
-
-    SplitSet::Iterator it(*splits);
-    while(it.hasNext()) {
-      SplitLevel lv=it.next();
-      SplitRecord* sr=_db[lv];
-
-      color = static_cast<Color>(color | sr->component->color());
+  if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
+    // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)
+    assignClauseSplitSet(cl, SplitSet::getEmpty());
+  } else {
+    if(!cl->splits()) {
+      SplitSet* splits=getNewClauseSplitSet(cl);
+      assignClauseSplitSet(cl, splits);
     }
 
-    cl->updateColor(color);
+    if (env.colorUsed) {
+      SplitSet* splits = cl->splits();
+
+      Color color = cl->color();
+
+      SplitSet::Iterator it(*splits);
+      while(it.hasNext()) {
+        SplitLevel lv=it.next();
+        SplitRecord* sr=_db[lv];
+
+        color = static_cast<Color>(color | sr->component->color());
+      }
+
+      cl->updateColor(color);
+    }
   }
 
   ASS(allSplitLevelsActive(cl->splits()));  

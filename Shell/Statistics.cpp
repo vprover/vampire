@@ -514,6 +514,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Blocked clause elimination";
   case TWEE:
     return "Twee Goal Transformation";
+  case ANSWER_LITERAL: 
+    return "Answer literal addition";
   case PREPROCESS_2:
     return "Preprocessing 2";
   case NEW_CNF:

@@ -20,10 +20,13 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
@@ -36,29 +39,41 @@
 
 #include "AnswerExtractor.hpp"
 
-
 namespace Shell
 {
 
 using namespace std;
+typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
 
 void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 {
   Stack<TermList> answer;
 
-  if(!AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
-    ConjunctionGoalAnswerExractor cge;
-    if(!cge.tryGetAnswer(refutation, answer)) {
-      return;
+  bool hasALManager = false, hasSyntManager = false;
+  if (AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
+    hasALManager = true;
+  } else {
+    if (SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) {
+      hasSyntManager = true;
+    } else {
+      ConjunctionGoalAnswerExractor cge;
+      if(!cge.tryGetAnswer(refutation, answer)) {
+        return;
+      }
     }
   }
   env.beginOutput();
+  if (hasALManager) {
+    AnswerLiteralManager::getInstance()->tryOutputInputUnits();
+  } else if (hasSyntManager) {
+    SynthesisManager::getInstance()->tryOutputInputUnits();
+  }
   env.out() << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
     TermList aLit = ait.next();
-    // try evaluating aLit
-    if(aLit.isTerm()){
+    // try evaluating aLit (only if not special)
+    if(aLit.isTerm() && !aLit.term()->isSpecial()){
       InterpretedLiteralEvaluator eval;
       unsigned p = env.signature->addFreshPredicate(1,"p"); 
       TermList sort = SortHelper::getResultSort(aLit.term());
@@ -83,18 +98,26 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   env.endOutput();
 }
 
+void AnswerExtractor::tryOutputInputUnits() {
+  if (!UnitList::isEmpty(_inputs)) {
+    env.out() << "% Inputs for question answering:" << endl;
+    UnitList::Iterator it(_inputs);
+    while (it.hasNext()) {
+      env.out() << it.next()->toString() << endl;
+    }
+  }
+}
 
-void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures)
+void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
 {
   InferenceStore& is = *InferenceStore::instance();
 
-  DHSet<Unit*> seen;
   Stack<Unit*> toDo;
   toDo.push(refutation);
 
   while(toDo.isNonEmpty()) {
     Unit* curr = toDo.pop();
-    if(!seen.insert(curr)) {
+    if(!allProofUnits.insert(curr)) {
       continue;
     }
     InferenceRule infRule;
@@ -205,7 +228,8 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 {
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
-  getNeededUnits(refutation, premiseClauses, conjectures);
+  DHSet<Unit*> all;
+  getNeededUnits(refutation, premiseClauses, conjectures, all);
 
   if(conjectures.size()!=1 || conjectures[0]->isClause()) {
     return false;
@@ -335,18 +359,11 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
 
 Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
-  if(unit->isClause() || unit->inputType()!=UnitInputType::CONJECTURE) {
+  Formula* quant = tryGetQuantifiedFormulaForAnswerLiteral(unit);
+  if (quant == nullptr) {
     return unit;
   }
 
-  FormulaUnit* fu = static_cast<FormulaUnit*>(unit);
-  Formula* form = fu->formula();
-
-  if(form->connective()!=NOT || form->uarg()->connective()!=EXISTS) {
-    return unit;
-  }
-
-  Formula* quant =form->uarg();
   VList* vars = quant->vars();
   ASS(vars);
 
@@ -356,14 +373,26 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
   Formula* conj = new JunctionFormula(AND, conjArgs);
-  Formula* newQuant = new QuantifiedFormula(EXISTS, vars, 0,conj);
-  Formula* newForm = new NegatedFormula(newQuant);
+  return createUnitFromConjunctionWithAnswerLiteral(conj, vars, unit);
+}
 
-  newForm = Flattening::flatten(newForm);
+Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
+  if (unit->isClause() || unit->inputType()!=UnitInputType::CONJECTURE) {
+    return nullptr;
+  }
 
-  Unit* res = new FormulaUnit(newForm,FormulaTransformation(InferenceRule::ANSWER_LITERAL, unit));
+  Formula* form = static_cast<FormulaUnit*>(unit)->formula();
 
-  return res;
+  if (form->connective()!=NOT || form->uarg()->connective()!=EXISTS) {
+    return nullptr;
+  }
+
+  return form->uarg();
+}
+
+Unit* AnswerLiteralManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
+  Formula* f = Flattening::flatten(new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction)));
+  return new FormulaUnit(f, FormulaTransformation(InferenceRule::ANSWER_LITERAL, originalUnit));
 }
 
 void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
@@ -392,13 +421,6 @@ bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
   return someAdded;
 }
 
-bool AnswerLiteralManager::isAnswerLiteral(Literal* lit)
-{
-  unsigned pred = lit->functor();
-  Signature::Symbol* sym = env.signature->getPredicate(pred);
-  return sym->answerPredicate();
-}
-
 void AnswerLiteralManager::onNewClause(Clause* cl)
 {
   if(!cl->noSplits()) {
@@ -407,20 +429,16 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
 
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
-    if(!isAnswerLiteral((*cl)[i])) {
+    Literal* lit = (*cl)[i];
+    if(!lit->isAnswerLiteral()) {
       return;
     }
   }
 
   _answers.push(cl);
-
+  
   Clause* refutation = getRefutation(cl);
-
   throw MainLoop::RefutationFoundException(refutation);
-
-//  env.beginOutput();
-//  env.out()<<cl->toString()<<endl;
-//  env.endOutput();
 }
 
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
@@ -461,6 +479,345 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
   Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(),
       GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premises));
   return refutation;
+}
+
+SynthesisManager* SynthesisManager::getInstance()
+{
+  static SynthesisManager instance;
+
+  return &instance;
+}
+
+bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
+{
+  if (!_lastAnsLit && AnsList::isEmpty(_answerPairs)) {
+    return false;
+  }
+  if (_lastAnsLit) {
+    AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
+  }
+
+  ClauseStack premiseClauses;
+  Stack<Unit*> conjectures;
+  DHSet<Unit*> proofUnits;
+  getNeededUnits(refutation, premiseClauses, conjectures, proofUnits);
+  DHSet<unsigned> proofNums;
+  DHSet<Unit*>::Iterator puit(proofUnits);
+  while (puit.hasNext()) proofNums.insert(puit.next()->number());
+
+  AnsList::Iterator it(_answerPairs);
+  ALWAYS(it.hasNext());
+  pair<unsigned, pair<Clause*, Literal*>> p = it.next();
+  unsigned arity = p.second.second->arity();
+  Stack<TermList> sorts(arity);
+  for (unsigned i = 0; i < arity; i++) {
+    sorts.push(env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
+    answer.push(_skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]));
+  }
+  while(it.hasNext()) {
+    p = it.next();
+    ASS(p.second.first != nullptr);
+    ASS(p.first == p.second.first->number());
+    if (!proofNums.contains(p.first)) {
+      continue;
+    }
+    // Create the condition for an if-then-else by negating the clause
+    Formula* condition = getConditionFromClause(p.second.first);
+    for (unsigned i = 0; i < arity; i++) {
+      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
+      // Construct the answer using if-then-else
+      answer[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]), answer[i], sorts[i]));
+    }
+  }
+  return true;
+}
+
+void SynthesisManager::onNewClause(Clause* cl)
+{
+  if(!cl->noSplits() || cl->isEmpty() || (cl->length() != 1) || !(*cl)[0]->isAnswerLiteral()) {
+    return;
+  }
+
+  ASS(cl->hasAnswerLiteral())
+
+  Literal* lit = cl->getAnswerLiteral();
+  if (!lit->computableOrVar())
+    return;
+  _lastAnsLit = lit;
+
+  Clause* refutation = getRefutation(cl);
+  throw MainLoop::RefutationFoundException(refutation);
+}
+
+Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
+  if (!cl->noSplits() || !cl->hasAnswerLiteral() || !cl->computable()) {
+    return nullptr;
+  }
+  // Check if the answer literal has only distinct variables as arguments.
+  // If yes, we do not need to record the clause, because the answer literal
+  // represents any answer.
+  unsigned clen = cl->length();
+  bool removeDefaultAnsLit = true;
+  Literal* ansLit = cl->getAnswerLiteral();
+  Set<unsigned> vars;
+  for (unsigned i = 0; i < ansLit->numTermArguments(); ++i) {
+    TermList* tl = ansLit->nthArgument(i);
+    if (!tl->isVar()) {
+      removeDefaultAnsLit = false;
+      break;
+    }
+    vars.insert(tl->var());
+  }
+  if (vars.size() != ansLit->numTermArguments()) {
+    removeDefaultAnsLit = false;
+  }
+
+  unsigned nonAnsLits = 0;
+  for(unsigned i=0; i<clen; i++) {
+    if((*cl)[i] != ansLit) {
+      nonAnsLits++;
+    }
+  }
+  ASS_EQ(nonAnsLits, clen-1);
+
+  Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_REMOVAL, cl));
+  Clause* newCl = new(nonAnsLits) Clause(nonAnsLits, inf);
+  unsigned idx = 0;
+  for (unsigned i = 0; i < clen; i++) {
+    if ((*cl)[i] != ansLit) {
+      (*newCl)[idx++] = (*cl)[i];
+    }
+  }
+  if (!removeDefaultAnsLit) {
+    AnsList::push(make_pair(newCl->number(), make_pair(newCl, ansLit)), _answerPairs);
+  } else {
+    _lastAnsLit = ansLit;
+  }
+  return newCl;
+}
+
+Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) {
+  ASS(Literal::headersMatch(thenLit, elseLit, /*complementary=*/false));
+
+  Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
+  Stack<TermList> litArgs;
+  Term* condTerm = translateToSynthesisConditionTerm(condition);
+  for (unsigned i = 0; i < thenLit->arity(); ++i) {
+    TermList* ttl = thenLit->nthArgument(i);
+    TermList* etl = elseLit->nthArgument(i);
+    if (ttl == etl) {
+      litArgs.push(*ttl);
+    } else {
+      litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
+    }
+  }
+  return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), /*commutative=*/false, litArgs.begin());
+}
+
+Formula* SynthesisManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
+  if(unit->isClause() || (unit->inputType()!=UnitInputType::CONJECTURE && unit->inputType()!=UnitInputType::NEGATED_CONJECTURE)) {
+    return nullptr;
+  }
+
+  Formula* form = static_cast<FormulaUnit*>(unit)->formula();
+
+  if(form->connective()!=NOT ||
+      (form->uarg()->connective()!=EXISTS &&
+        (env.options->questionAnswering() == Options::QuestionAnsweringMode::ANSWER_LITERAL ||
+         form->uarg()->connective()!=FORALL || form->uarg()->qarg()->connective()!=EXISTS))) {
+    return nullptr;
+  }
+
+
+
+  return (form->uarg()->connective()==EXISTS) ? form->uarg() : form->uarg()->qarg();
+}
+
+Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
+  Formula* form = static_cast<FormulaUnit*>(originalUnit)->formula();
+  Formula* quant = new QuantifiedFormula(FORALL, existsVars, 0, new NegatedFormula(junction));
+  bool skolemise = (form->uarg()->connective()==FORALL);
+  if (skolemise) {
+    VList::Iterator it(form->uarg()->vars());
+    Substitution subst;
+    while (it.hasNext()) {
+      unsigned var = it.next();
+      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
+      Signature::Symbol* skSym = env.signature->getFunction(skFun);
+      TermList sort;
+      if (!SortHelper::tryGetVariableSort(var, form, sort)) {
+        sort = AtomicSort::defaultSort();
+      }
+      OperatorType* ot = OperatorType::getConstantsType(sort); 
+      skSym->setType(ot);
+      Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
+      subst.bind(var, skTerm);
+      _skolemReplacement.bindSkolemToVar(skTerm, var);
+    }
+    quant = SubstHelper::apply(quant, subst);
+  }
+  quant = Flattening::flatten(quant);
+  return new FormulaUnit(quant, FormulaTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL, originalUnit));
+}
+
+Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
+  FormulaList* fl = FormulaList::empty();
+  for (unsigned i = 0; i < cl->length(); ++i) {
+    Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transform((*cl)[i]));
+    FormulaList::push(new AtomicFormula(newLit), fl);
+  }
+  return JunctionFormula::generalJunction(Connective::AND, fl);
+}
+
+/** Create a new complex term, with its top-level function symbol
+ *  created as a dummy symbol representing the predicate of @b l, and copy
+ *  from the array @b args its arguments. Insert it into the sharing
+ *  structure if all arguments are shared.
+ */
+Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
+{
+  ASS_EQ(l->getPreDataSize(), 0);
+  ASS(!l->isSpecial());
+
+  unsigned arity = l->arity();
+  vstring fnName = "cond_";
+  if (l->isNegative()) {
+    fnName.append("not_");
+  }
+  fnName.append(l->predicateName());
+  if (l->isEquality()) {
+    fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
+  }
+  bool added = false;
+  unsigned fn = env.signature->addFunction(fnName, arity, added);
+  // Store the mapping between the function and predicate symbols
+  _skolemReplacement.addCondPair(fn, l->functor());
+  if (added) {
+    Signature::Symbol* sym = env.signature->getFunction(fn);
+    Stack<TermList> argSorts;
+    if (l->isEquality()) {
+      TermList as = SortHelper::getEqualityArgumentSort(l);
+      argSorts.push(as);
+      argSorts.push(as);
+    } else {
+      OperatorType* ot = env.signature->getPredicate(l->functor())->predType();
+      for (unsigned i = 0; i < arity; ++i) {
+        argSorts.push(ot->arg(i));
+      }
+      if (!env.signature->getPredicate(l->functor())->computable()) {
+        sym->markUncomputable();
+      }
+    }
+    sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
+  }
+  
+  Stack<TermList> args;
+  for (unsigned i = 0; i < arity; ++i) {
+    args.push(*(l->nthArgument(i)));
+  }
+  return Term::create(fn, arity, args.begin());
+}
+
+/**
+ * Create a (condition ? thenBranch : elseBranch) expression
+ * and return the resulting term
+ */
+Term* SynthesisManager::createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
+{
+  unsigned itefn = getITEFunctionSymbol(branchSort);
+  return Term::create(itefn, {TermList(condition), thenBranch, elseBranch});
+}
+
+void SynthesisManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {
+  ASS(_skolemToVar.count(t) == 0);
+  _skolemToVar[t] = v;
+}
+
+TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
+  // First replace free variables by 0-like constants
+  if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
+    TermList zero(theory->representConstant(IntegerConstantType(0)));
+    if (tl.isVar()) {
+      if (sort == AtomicSort::intSort()) {
+        return zero;
+      } else {
+        vstring name = "cz_" + sort.toString();
+        unsigned czfn;
+        if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
+          czfn = env.signature->addFreshFunction(0, name.c_str());
+          env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+        } 
+        TermList res(Term::createConstant(czfn));
+        return res;
+      }
+    } else {
+      Substitution s;
+      vset<unsigned> done;
+      Kernel::VariableWithSortIterator vit(tl.term());
+      while (vit.hasNext()) {
+        pair<TermList, TermList> p = vit.next();
+        unsigned v = p.first.var();
+        TermList& vsort = p.second;
+        if (done.count(v) == 0) {
+          done.insert(v);
+          if (vsort == AtomicSort::intSort()) {
+            s.bind(v, zero);
+          } else {
+            vstring name = "cz_" + vsort.toString();
+            unsigned czfn;
+            if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
+              czfn = env.signature->addFreshFunction(0, name.c_str());
+              env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+            } 
+            TermList res(Term::createConstant(czfn));
+            s.bind(v, res);
+          }
+        }
+      }
+      tl = TermList(tl.term()->apply(s));
+    }
+  }
+  // Then replace skolems by variables
+  return transform(tl);
+}
+
+TermList SynthesisManager::ConjectureSkolemReplacement::transform(TermList tl) {
+  TermList transformed = transformSubterm(tl);
+  if (transformed != tl) {
+    return transformed;
+  } else {
+    return TermTransformer::transform(tl);
+  }
+}
+
+TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
+  if (trm.isTerm()) {
+    auto it = _skolemToVar.find(trm.term());
+    if (it != _skolemToVar.end()) {
+      return TermList(it->second, false);
+    }
+    Term* t = trm.term();
+    if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
+      TermList sort = env.signature->getFunction(t->functor())->fnType()->arg(1);
+      if (t->functor() == getITEFunctionSymbol(sort)) {
+        // Build condition
+        Term* tcond = t->nthArgument(0)->term();
+        vstring condName = tcond->functionName();
+        unsigned pred = _condFnToPred.get(tcond->functor());
+        Stack<TermList> args;
+        for (unsigned i = 0; i < tcond->arity(); ++i) args.push(transform(*(tcond->nthArgument(i))));
+        Literal* newCond;
+        if (env.signature->isEqualityPredicate(pred)) {
+          newCond = Literal::createEquality(/*polarity=*/true, args[0], args[1], sort);
+        } else {
+          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, /*commutative=*/false, args.begin());
+        }
+        // Build the whole ITE term
+        return TermList(Term::createITE(new AtomicFormula(newCond), transform(*(t->nthArgument(1))), transform(*(t->nthArgument(2))), sort));
+      }
+    }
+  }
+  return trm;
 }
 
 }
