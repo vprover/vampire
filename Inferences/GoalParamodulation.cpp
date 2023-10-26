@@ -299,11 +299,6 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
     return res;
   }
 
-  DHSet<unsigned>* skPtr = nullptr;
-#ifdef INDUCTION_MODE
-  skPtr = getSkolems(lit);
-#endif
-
   const auto& opt = _salg->getOptions();
 
   // forward
@@ -313,7 +308,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
       .flatMap([this](Term* t) {
         return pvi(pushPairIntoRightIterator(t,_lhsIndex->getGeneralizations(t, true)));
       })
-      .filter([premise,&opt,skPtr](pair<Term*,TermQueryResult> arg) {
+      .filter([premise,&opt,lit](pair<Term*,TermQueryResult> arg) {
         auto qr = arg.second;
         if (premise->goalParamodulationDepth()+qr.clause->goalParamodulationDepth()>=opt.maxGoalParamodulationDepth()) {
           return false;
@@ -322,9 +317,10 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
           return false;
         }
 #ifdef INDUCTION_MODE
+        DHSet<unsigned> sks(*getSkolems(lit));
         DHSet<unsigned>::Iterator skIt(*getSkolems(qr.literal));
         while (skIt.hasNext()) {
-          if (!skPtr->contains(skIt.next())) {
+          if (!sks.contains(skIt.next())) {
             return false;
           }
         }
@@ -357,7 +353,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
       .flatMap([this](TypedTermList lhs) {
         return pvi(pushPairIntoRightIterator(lhs,_subtermIndex->getInstances(lhs,true)));
       })
-      .filter([premise,lit,&opt,skPtr](pair<TypedTermList,TermQueryResult> arg) {
+      .filter([premise,lit,&opt](pair<TypedTermList,TermQueryResult> arg) {
         auto qr = arg.second;
         if (premise->goalParamodulationDepth()+qr.clause->goalParamodulationDepth()>=opt.maxGoalParamodulationDepth()) {
           return false;
@@ -366,11 +362,12 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
           return false;
         }
 #ifdef INDUCTION_MODE
-        if (skPtr->isEmpty()) {
+        DHSet<unsigned> sks(*getSkolems(lit));
+        if (sks.isEmpty()) {
           return true;
         }
         auto skPtrOther = getSkolems(qr.literal);
-        DHSet<unsigned>::Iterator skIt(*skPtr);
+        DHSet<unsigned>::Iterator skIt(sks);
         while (skIt.hasNext()) {
           if (!skPtrOther->contains(skIt.next())) {
             return false;
