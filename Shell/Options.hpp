@@ -140,18 +140,6 @@ public:
     bool checkGlobalOptionConstraints(bool fail_early=false);
     bool checkProblemOptionConstraints(Property*, bool before_preprocessing, bool fail_early=false);
 
-    // Randomize strategy (will only work if randomStrategy=on)
-    // should only be called after all other options are set
-    //
-    // The usage is overloaded. If prop=0 then this function will randomize
-    // options that do not require a Property (no ProblemConstraints) 
-    // (note it is possible to supress the requirement, see Options.cpp)
-    // Otherwise all other options will be randomized.
-    //
-    // This dual usage is required as the property object is created during
-    // the preprocessing stage. This means that in vampire.cpp we call this twice
-    void randomizeStrategy(Property* prop);
-
     /**
      * Sample a random strategy from a distribution described by the given file.
      *
@@ -341,13 +329,6 @@ public:
     CONTOUR
   };
 
-  enum class RandomStrategy : unsigned int {
-    ON,
-    OFF,
-    SAT,
-    NOCHECK
-  };
-
   enum class BadOption : unsigned int {
     HARD,
     FORCED,
@@ -420,7 +401,6 @@ public:
     PREPROCESS,
     PREPROCESS2,
     PROFILE,
-    RANDOM_STRATEGY,
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,
@@ -893,9 +873,6 @@ private:
           return okay;
         }
 
-        // Set to a random value
-        virtual bool randomize(Property* P) = 0;
-
         // Experimental options are not included in help
         void setExperimental(){experimental=true;}
 
@@ -964,24 +941,6 @@ private:
         typedef std::unique_ptr<DArray<vstring>> vstringDArrayUP;
 
         typedef std::pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
-
-        void setRandomChoices(std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
-        }
-        void setRandomChoices(std::initializer_list<vstring> list,
-                              std::initializer_list<vstring> list_sat){
-          rand_choices.push(RandEntry(isRandOn(),toArray(list)));
-          rand_choices.push(RandEntry(isRandSat(),toArray(list_sat)));
-        }
-        void setRandomChoices(OptionProblemConstraintUP c,
-                              std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(std::move(c),toArray(list)));
-        }
-        void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
-          supress_problemconstraints=true;
-        }
-
  
     private:
         // Tag state
@@ -997,7 +956,6 @@ private:
         }
     protected:
         // Note has LIFO semantics so use BottomFirstIterator
-        Stack<RandEntry> rand_choices;
         bool supress_problemconstraints;
     };
     
@@ -1098,10 +1056,7 @@ private:
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << getStringOfValue(defaultValue) << std::endl;
         }
-       
-        // This is where actual randomisation happens
-        bool randomize(Property* p);
- 
+
     private:
         Lib::Stack<OptionValueConstraintUP<T>> _constraints;
         Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
@@ -2085,8 +2040,6 @@ bool _hard;
   // This is how options are accessed so if you add a new option you should add a getter
 public:
   bool encodeStrategy() const{ return _encode.actualValue;}
-  RandomStrategy randomStrategy() const {return _randomStrategy.actualValue; }
-  void setRandomStrategy(RandomStrategy newVal){ _randomStrategy.actualValue=newVal;}
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
   void setBadOptionChoice(BadOption newVal) { _badOption.actualValue = newVal; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
@@ -2139,7 +2092,6 @@ public:
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
-  unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   const vstring& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
@@ -2535,7 +2487,6 @@ private:
   *
   */
 
-  ChoiceOptionValue<RandomStrategy> _randomStrategy;
   DecodeOptionValue _decode;
   BoolOptionValue _encode;
 
@@ -2709,7 +2660,6 @@ private:
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   UnsignedOptionValue _randomSeed;
-  UnsignedOptionValue _randomStrategySeed;
 
   StringOptionValue _sampleStrategy;
 

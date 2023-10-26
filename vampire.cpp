@@ -138,39 +138,15 @@ void explainException(Exception& exception)
   env.endOutput();
 } // explainException
 
-void getRandomStrategy()
-{
-  // We might have set random_strategy sat
-  if(env.options->randomStrategy()==Options::RandomStrategy::OFF){
-    env.options->setRandomStrategy(Options::RandomStrategy::ON);
-  }
-
-  // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0); 
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
-  // Then again when the property is here
-  env.options->randomizeStrategy(prb->getProperty()); 
-
-  // It is possible that the random strategy is still incorrect as we don't
-  // have access to the Property when setting preprocessing
-  env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
-}
-
 VWARN_UNUSED
 Problem *doProving()
 {
-  // a new strategy randomization mechanism independent with randomizeStrategy below
+  // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
     env.options->sampleStrategy(env.options->strategySamplerFilename());
   }
 
-  // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0);
-
   Problem *prb = getPreprocessedProblem();
-
-  // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
-  env.options->randomizeStrategy(prb->getProperty());
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -637,9 +613,6 @@ int main(int argc, char* argv[])
       break;
     case Options::Mode::SPIDER:
       spiderMode();
-      break;
-    case Options::Mode::RANDOM_STRATEGY:
-      getRandomStrategy();
       break;
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:
