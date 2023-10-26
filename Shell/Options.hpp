@@ -299,12 +299,6 @@ public:
     GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
-  enum class DemodulationRedunancyCheck : unsigned int {
-    OFF,
-    ENCOMPASS,
-    ON
-  };
-
   enum class TheoryAxiomLevel : unsigned int {
     ON,  // all of them
     OFF, // none of them
@@ -2222,7 +2216,7 @@ public:
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
-  DemodulationRedunancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -2577,7 +2571,7 @@ private:
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
 
-  ChoiceOptionValue<DemodulationRedunancyCheck> _demodulationRedundancyCheck;
+  BoolOptionValue _demodulationRedundancyCheck;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;

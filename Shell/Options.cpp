@@ -1552,23 +1552,21 @@ void Options::init()
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
     _condensation.setRandomChoices({"on","off","fast"});
 
-    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedunancyCheck>("demodulation_redundancy_check","drc",DemodulationRedunancyCheck::ON,{"off","encompass","on"});
+    _demodulationRedundancyCheck = BoolOptionValue("demodulation_redundancy_check","drc",true);
     _demodulationRedundancyCheck.description=
-       "The following cases of backward and forward demodulation do not preserve completeness:\n"
-       "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
-
-       "--------------------- \t ---------------------\n"
-       "t = t1 \\/ C \t\t t != t1 \\/ C\n"
-       "where t > t1 and s = t > C (RHS replaced)\n"
+       "The following demodulation does not preserve completeness (as defined by Duarte and Korovin in 2022's IJCAR paper):\n"
+       " sθ = t        s = t'\n"
+       "----------------------\n"
+       "        t'θ = t\n"
+       "where θ is a renaming and sθ > t'θ > t\n"
        "With `on`, we check this condition and don't demodulate if we could violate completeness.\n"
-       "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
        "With `off`, we skip the checks, save time, but become incomplete.";
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
     _demodulationRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
-    _demodulationRedundancyCheck.setRandomChoices({"on","encompass","off"});
+    _demodulationRedundancyCheck.setRandomChoices({"on","off"});
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
@@ -3669,7 +3667,7 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // URR is complete for Horn problems
   }
 
-  if (_demodulationRedundancyCheck.actualValue == DemodulationRedunancyCheck::OFF) {
+  if (!_demodulationRedundancyCheck.actualValue) {
     return false;
   }
   if (!_superpositionFromVariables.actualValue) return false;

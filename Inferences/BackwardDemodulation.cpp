@@ -96,8 +96,7 @@ struct BackwardDemodulation::ResultFn
     _eqLit=(*_cl)[0];
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
-    _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
-    _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
+    _redundancyCheck = parent.getOptions().demodulationRedundancyCheck();
   }
 
   /**
@@ -152,41 +151,15 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(_redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
-      // encompassment has issues only with positive units
-      (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1))) {
+    if(_redundancyCheck && qr.literal->isEquality() && qr.literal->isPositive() && (qr.clause->length() == 1)
+      && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)))
+    {
       TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-        if (_encompassing) {
-          if (qr.substitution->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
-            // under _encompassing, we know there are no other literals in qr.clause
-            return BwSimplificationRecord(0);
-          }
-        } else {
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-          bool isMax=true;
-          Clause::Iterator cit(*qr.clause);
-          while(cit.hasNext()) {
-            Literal* lit2=cit.next();
-            if(qr.literal==lit2) {
-              continue;
-            }
-            if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-              isMax=false;
-              break;
-            }
-          }
-          if(isMax) {
-            //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-            //The demodulation is this case which doesn't preserve completeness:
-            //s = t     s = t1 \/ C
-            //---------------------
-            //     t = t1 \/ C
-            //where t > t1 and s = t > C
-            return BwSimplificationRecord(0);
-          }
+        if (qr.substitution->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
+          // we know there are no other literals in qr.clause
+          return BwSimplificationRecord(0);
         }
       }
     }
@@ -223,7 +196,6 @@ private:
   SmartPtr<ClauseSet> _removed;
 
   bool _redundancyCheck;
-  bool _encompassing;
 
   Ordering& _ordering;
 };
