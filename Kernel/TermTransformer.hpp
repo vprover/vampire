@@ -24,17 +24,19 @@ namespace Kernel {
 /**
  * Class to allow for easy transformations of subterms in shared literals.
  *
- * The inheriting class implemets function transform(TermList)
- * and then the function transform(Literal*) uses it to transform subterms
- * of the given literal.
+ * The inheriting class implements function transformSubterm(TermList)
+ * and then the functions transform(Literal*)/transform(Term*) use it to transform subterms
+ * of the given literal/term.
  *
- * The literal and subterms returned by the transform(TermList) function have
+ * The literal and subterms returned by the transformSubterm(TermList) function have
  * to be shared.
  *
  * This class can be used to transform sort arguments as well by suitably
- * implementing the transform(TermList) function
- * 
+ * implementing the transformSubterm(TermList) function
+ *
  * TermTransformer goes top down but does no recurse into the replaced term
+ *
+ * Note that if called via transform(Term* term) the given term itself will not get transformed, only possibly its proper subterms
  */
 class TermTransformer {
 public:
