@@ -53,6 +53,7 @@
 #include <iostream>
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+#include "SATSubsumptionAndResolution.hpp"
 
 using namespace Indexing;
 using namespace Kernel;
@@ -339,18 +340,18 @@ void SATSubsumptionAndResolution::fillMatchesSR()
   ASS(_matchSet._n == _n)
 
   // stores whether on all the literals in L there is a negative match in M
-  bool hasNegativeMatch = false;
+  bool clauseHasNegativeMatch = false;
 
-  // the first negative match in L, if it exists
-  Literal *firstNegativeMatch = nullptr;
+  // the first literal in L that only has a negative match (no positive)
+  Literal *firstOnlyNegativeMatch = nullptr;
 
   for (unsigned i = 0; i < _m; ++i) {
     Literal *l_i = _L->literals()[i];
 
     // does l_i have a positive match in M?
-    bool foundPositiveMatch = false;
+    bool literalHasPositiveMatch = false;
     // does l_i have a negative match in M?
-    bool foundNegativeMatch = false;
+    bool literalHasNegativeMatch = false;
 
     for (unsigned j = 0; j < _n; ++j) {
       Literal *m_j = _M->literals()[j];
@@ -361,39 +362,39 @@ void SATSubsumptionAndResolution::fillMatchesSR()
         ASS(l_i->functor() == m_j->functor())
         if (l_i->polarity() == m_j->polarity()) {
           addBinding(nullptr, i, j, true, true);
-          foundPositiveMatch = true;
+          literalHasPositiveMatch = true;
           continue;
         }
         addBinding(nullptr, i, j, false, true);
-        hasNegativeMatch = true;
-        foundNegativeMatch = true;
+        clauseHasNegativeMatch = true;
+        literalHasNegativeMatch = true;
         continue;
       }
 
       if (l_i->polarity() == m_j->polarity()) {
         // it is important that foundPositiveMatch is "or-ed" after calling the function. Otherwise the function might not be called.
         // foundPositiveMatch |= checkAndAddMatch(l_i, m_j, i, j, true); is NOT correct.
-        foundPositiveMatch = checkAndAddMatch(l_i, m_j, i, j, true) || foundPositiveMatch;
+        literalHasPositiveMatch = checkAndAddMatch(l_i, m_j, i, j, true) || literalHasPositiveMatch;
         continue;
       }
       // check negative polarity matches
       // same comment as above
-      foundNegativeMatch = checkAndAddMatch(l_i, m_j, i, j, false) || foundNegativeMatch;
-      hasNegativeMatch |= foundNegativeMatch;
+      literalHasNegativeMatch = checkAndAddMatch(l_i, m_j, i, j, false) || literalHasNegativeMatch;
+      clauseHasNegativeMatch |= literalHasNegativeMatch;
     } // for (unsigned j = 0; j < _nInstanceLits; ++j)
 
     // Check whether subsumption and subsumption resolution are possible
-    if (!foundPositiveMatch) {
+    if (!literalHasPositiveMatch) {
       _subsumptionImpossible = true;
-      if (!foundNegativeMatch) {
+      if (!literalHasNegativeMatch) {
         // no positive nor negative matches found
         _srImpossible = true;
         return;
       }
       // TODO try matching?
-      if (!firstNegativeMatch)
-        firstNegativeMatch = l_i;
-      else if (firstNegativeMatch->header() != l_i->header()) {
+      if (!firstOnlyNegativeMatch)
+        firstOnlyNegativeMatch = l_i;
+      else if (firstOnlyNegativeMatch->header() != l_i->header()) {
         // there are two literals in L with only negative polarity matches, but they have a different functor
         // therefore, subsumption resolution is impossible
         _srImpossible = true;
@@ -403,7 +404,7 @@ void SATSubsumptionAndResolution::fillMatchesSR()
   }   // for (unsigned i = 0; i < _nBaseLits; ++i)
 
   // If there are no negative matches, then the SR is not possible
-  if (!hasNegativeMatch)
+  if (!clauseHasNegativeMatch)
     _srImpossible = true;
 
 } // SATSubsumptionAndResolution::fillMatchesSR()
@@ -452,7 +453,17 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
   return !solver.inconsistent();
 } // SATSubsumptionAndResolution::cnfForSubsumption()
 
-#if SAT_SR_IMPL == 1
+SATSubsumptionAndResolution::EncodingMethod SATSubsumption::SATSubsumptionAndResolution::chooseEncoding()
+{
+  if (forceDirectEncoding)
+    return [](SATSubsumptionAndResolution& obj) { return obj.directEncodingForSubsumptionResolution(); };
+  if (forceIndirectEncoding)
+    return [](SATSubsumptionAndResolution& obj) { return obj.indirectEncodingForSubsumptionResolution(); };
+  if (_L->length() <= 3)
+    return [](SATSubsumptionAndResolution& obj) { return obj.directEncodingForSubsumptionResolution(); };
+  return [](SATSubsumptionAndResolution& obj) { return obj.indirectEncodingForSubsumptionResolution(); };
+}
+
 /**
  * Direct encoding of the sat subsumption resolution
  *
@@ -492,7 +503,7 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
  *    (This rule is enforced by the match set)
  *
  */
-bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
+bool SATSubsumptionAndResolution::directEncodingForSubsumptionResolution()
 {
   ASS(_L)
   ASS(_M)
@@ -599,8 +610,6 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   return !solver.inconsistent();
 }
 
-#endif
-#if SAT_SR_IMPL == 2
 /// @brief a vector used to store the sat variables that are subjected to the at most one constraint (will hold the c_j)
 /// The unsigned value is the index of the literal in the instance clause
 static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
@@ -642,7 +651,7 @@ static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
  *    (This rule is enforced by the match set)
  *
  */
-bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
+bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
 {
   ASS(_L)
   ASS(_M)
@@ -771,7 +780,6 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   }   // for (auto &pair : atMostOneVars)
   return !solver.inconsistent();
 } // cnfForSubsumptionResolution
-#endif
 
 Clause *SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause *M,
                                                                         Literal *m_j,
@@ -939,8 +947,10 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
   builtSatProblem = true;
   start = chrono::high_resolution_clock::now();
 #endif
-  // First set up the clauses
-  if (!cnfForSubsumptionResolution()) {
+// set up the clauses
+EncodingMethod choosenEncoding = chooseEncoding();
+bool encodingSuccess = choosenEncoding(*this);
+if (!encodingSuccess) {
 #if PRINT_CLAUSES_SUBS
     cout << "CNF building failed" << endl;
 #endif

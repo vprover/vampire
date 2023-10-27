@@ -411,6 +411,38 @@ private:
   bool cnfForSubsumption();
 
   /**
+   * Allows to force using the direct encoding for subsumption resolution
+  */
+  bool forceDirectEncoding = false;
+  /**
+   * Allows to force using the indirect encoding for subsumption resolution
+   *
+   * @details if both forceDirectEncoding and forceIndirectEncoding are set to true, the direct encoding will be used
+  */
+  bool forceIndirectEncoding = false;
+
+  /**
+   * Function type for encoding the subsumption resolution problem to the sat solver
+   *
+   * @param checker the SATSubsumptionAndResolution object
+   * @return false if no solution is possible and true if there may exist a solution.
+   *
+   * @details The encoding must use the variables in the MatchSet. It may add new variables
+   * to the SAT solver, but the variables in the MatchSet must be used to interpret the model
+   * and build the conclusion.
+  */
+  using EncodingMethod = std::function<bool (SATSubsumptionAndResolution&)>;
+
+  /**
+   * Heuristically chooses the encoding method for the subsumption resolution problem
+   *
+   * The heuristic uses the data available in the SATSubsumptionAndResolution object
+   *
+   * @return the encoding method
+  */
+  EncodingMethod chooseEncoding();
+
+  /**
   * Adds the clauses for the subsumption resolution problem to the sat solver
    *
    * @remark The BindingsManager is not required to be set up in this method.
@@ -418,7 +450,17 @@ private:
    * @pre the Match set is already filled
    * @return false if no solution is possible and true if there may exist a solution.
    */
-  bool cnfForSubsumptionResolution();
+  bool directEncodingForSubsumptionResolution();
+
+  /**
+  * Adds the clauses for the subsumption resolution problem to the sat solver
+   *
+   * @remark The BindingsManager is not required to be set up in this method.
+   * @pre _L and _M must be set in the checker
+   * @pre the Match set is already filled
+   * @return false if no solution is possible and true if there may exist a solution.
+   */
+  bool indirectEncodingForSubsumptionResolution();
 
   /**
    * Checks whether there exists a substitution from the literals @b l_i and @b m_j.
@@ -495,6 +537,30 @@ public:
   bool checkSubsumption(Kernel::Clause *L,
                         Kernel::Clause *M,
                         bool setSR = false);
+
+  /**
+   * Forces the encoding to be direct for subsumption resolution
+  */
+  void forceDirectEncodingForSubsumptionResolution() {
+    forceDirectEncoding = true;
+    forceIndirectEncoding = false;
+  }
+
+  /**
+   * Forces the encoding to be indirect for subsumption resolution
+  */
+  void forceIndirectEncodingForSubsumptionResolution() {
+    forceDirectEncoding = false;
+    forceIndirectEncoding = true;
+  }
+
+  /**
+   * Forces to use the heuristic encoding for subsumption resolution
+  */
+  void forceHeuristicEncodingForSubsumptionResolution() {
+    forceDirectEncoding = false;
+    forceIndirectEncoding = false;
+  }
 
   /**
    * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
