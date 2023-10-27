@@ -551,6 +551,9 @@ vstring TPTPPrinter::sanitise(const vstring &name) {
   if(name == "=")
     return name;
 
+  if(name == "as")
+    return "|@" + name + "|";
+
   bool alphanumeric = true;
   for(char c : name)
     if(!std::isalnum(c) && c != '_')
