@@ -226,9 +226,17 @@ Term* TermTransformer::transformSpecial(Term* term)
 
 TermList TermTransformer::transform(TermList ts)
 {
-  if (ts.isVar()) {
-    return transformSubterm(ts);
+  // first let's try transforming ts directly
+  TermList transformed = transformSubterm(ts);
+  if (transformed != ts) {
+    // we did transform, so we are done
+    return transformed;
+  } else if (ts.isVar()) {
+    // we didn't transform, but it's a var (no way to recurse)
+    return ts;
   } else {
+    // try transform subterms
+    ASS(ts.isTerm());
     return TermList(transform(ts.term()));
   }
 }

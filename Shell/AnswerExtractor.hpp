@@ -107,14 +107,12 @@ public:
 private:
   class ConjectureSkolemReplacement : public TermTransformer {
    public:
-    using TermTransformer::transform;
     ConjectureSkolemReplacement() : _skolemToVar() {}
     void bindSkolemToVar(Term* t, unsigned v);
     TermList transformTermList(TermList tl, TermList sort);
     void addCondPair(unsigned fn, unsigned pred) { _condFnToPred.insert(fn, pred); }
    protected:
     TermList transformSubterm(TermList trm) override;
-    TermList transform(TermList ts) override;
    private:
     vmap<Term*, unsigned> _skolemToVar;
     // Map from functions to predicates they represent in answer literal conditions
