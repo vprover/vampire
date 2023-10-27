@@ -551,7 +551,31 @@ vstring TPTPPrinter::sanitise(const vstring &name) {
   if(name == "=")
     return name;
 
-  if(name == "as")
+  if(
+    name == "Int" ||
+    name == "FloatingPoint" ||
+    name == "Float32" ||
+    name == "Float64" ||
+    name == "String" ||
+    name == "BitVector" ||
+    name == "Bool" ||
+    name == "Seq" ||
+    name == "RegEx" ||
+    name == "Array" ||
+    name == "Unicode" ||
+    name == "and" ||
+    name == "or" ||
+    name == "not" ||
+    name == "forall" ||
+    name == "exists" ||
+    name == "distinct" ||
+    name == "at-least" ||
+    name == "at-most" ||
+    name == "pble" ||
+    name == "pbge" ||
+    name == "pbeq" ||
+    name == "as"
+  )
     return "|@" + name + "|";
 
   bool alphanumeric = true;
