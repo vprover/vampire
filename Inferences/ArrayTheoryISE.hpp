@@ -37,7 +37,7 @@ public:
   ~ArrayTermTransformer();
   Literal* rewriteNegEqByExtensionality(Literal* l);
 protected:
-  TermList transformSubterm(TermList trm);
+  TermList transformSubterm(TermList trm) override;
 };
 
 class ArrayTheoryISE
