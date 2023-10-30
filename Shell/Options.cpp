@@ -2992,7 +2992,7 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
         while(it.hasNext()) {
           vstring mulval = it.next();
           StringUtils::splitStr(mulval.c_str(),':',pair);
-          StringUtils::dropEmpty(pair);
+          // StringUtils::dropEmpty(pair);
           if (pair.size() != 2) {
             USER_ERROR("Sampling file parse error -- invalid mulval: "+mulval);
           }
