@@ -586,7 +586,9 @@ vstring TPTPPrinter::sanitise(const vstring &name) {
   if(alphanumeric)
     return name;
 
-  return "|" + name + "|";
+  vstring replaced(name);
+  std::replace(replaced.begin(), replaced.end(), '|', '%');
+  return "|" + replaced + "|";
 }
 
 vstring TPTPPrinter::toString(const Literal* l){
