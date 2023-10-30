@@ -58,8 +58,7 @@ class RequestedIndex final
       ASS(!_indexManager);
       _indexManager = indexManager;
       _type = type;
-      _index = dynamic_cast<Index*>(_indexManager->request(type));
-      ASS(_index != nullptr);  // if this fails, the wrong index type was requested
+      _index = static_cast<Index*>(_indexManager->request(type));
     }
 
     // NOTE: release() might be called multiple times (manually and by destructor)
