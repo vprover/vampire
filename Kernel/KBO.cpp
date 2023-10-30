@@ -61,13 +61,11 @@ public:
   USE_ALLOCATOR(State);
 
   void traverse(Term* t1, Term* t2);
-  bool traverseGreater(Term* t1, Term* t2);
   void traverse(TermList tl,int coefficient);
   Result result(Term* t1, Term* t2);
 private:
   void recordVariable(unsigned var, int coef);
   Result innerResult(TermList t1, TermList t2);
-  bool innerResultGreater(TermList t1, TermList t2);
   Result applyVariableCondition(Result res)
   {
     if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
@@ -89,6 +87,36 @@ private:
   /** The ordering used */
   KBO& _kbo;
   /** The variable counters */
+}; // class KBO::State
+
+class KBO::State2
+{
+public:
+  /** Initialise the state */
+  State2(KBO* kbo) : _kbo(*kbo) {}
+
+  void init()
+  {
+    _negNum=0;
+    _varDiffs.reset();
+  }
+
+  CLASS_NAME(KBO::State2);
+  USE_ALLOCATOR(State2);
+
+  bool traverse(Term* t1, Term* t2);
+  void traverseVars(TermList tl, int coef);
+  Result result(Term* t1, Term* t2);
+  bool checkVars() const;
+private:
+  void recordVariable(unsigned var, int coef);
+
+  /** The variable counters */
+  DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+  /** Number of variables, that occur more times in the second literal */
+  int _negNum;
+  /** The ordering used */
+  KBO& _kbo;
 }; // class KBO::State
 
 /**
@@ -163,30 +191,6 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
     }
   }
   return applyVariableCondition(res);
-}
-
-bool KBO::State::innerResultGreater(TermList tl1, TermList tl2)
-{
-  ASS_NEQ(tl1, tl2);
-  ASS_GE(_weightDiff,0);
-  ASS(tl1.isTerm());
-  if(_posNum>0 && _negNum>0) {
-    return false;
-  }
-
-  if (_weightDiff > 0) {
-    return _negNum == 0;
-  }
-
-  Result res;
-  if (tl2.isVar()) {
-    res=GREATER;
-  } else if(tl1.term()->isSort()){
-    res=_kbo.compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
-  } else {
-    res=_kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
-  }
-  return applyVariableCondition(res)==GREATER;
 }
 
 void KBO::State::recordVariable(unsigned var, int coef)
@@ -313,12 +317,69 @@ void KBO::State::traverse(Term* t1, Term* t2)
   ASS_EQ(depth,0);
 }
 
-bool KBO::State::traverseGreater(Term* t1, Term* t2)
+// State2
+
+void KBO::State2::recordVariable(unsigned var, int coef)
+{
+  ASS(coef==1 || coef==-1);
+
+  int* pnum;
+  _varDiffs.getValuePtr(var,pnum,0);
+  (*pnum)+=coef;
+  if(coef==1) {
+    if(*pnum==0) {
+      _negNum--;
+    }
+  } else {
+    if(*pnum==-1) {
+      _negNum++;
+    }
+  }
+}
+
+void KBO::State2::traverseVars(TermList tl, int coef)
+{
+  if(tl.isOrdinaryVar()) {
+    recordVariable(tl.var(), coef);
+    return;
+  }
+  ASS(tl.isTerm());
+
+  Term* t=tl.term();
+  ASSERT_VALID(*t);
+
+  if(!t->arity()) {
+    return;
+  }
+
+  TermList* ts=t->args();
+  static Stack<TermList*> stack(4);
+  for(;;) {
+    if(!ts->next()->isEmpty()) {
+      stack.push(ts->next());
+    }
+    if(ts->isTerm()) {
+      auto term = ts->term();
+      if(term->arity() && !term->ground()) {
+        stack.push(term->args());
+      }
+    } else {
+      ASS_METHOD(*ts,isOrdinaryVar());
+      recordVariable(ts->var(), coef);
+    }
+    if(stack.isEmpty()) {
+      break;
+    }
+    ts=stack.pop();
+  }
+}
+
+bool KBO::State2::traverse(Term* t1, Term* t2)
 {
   ASS_EQ(t1->functor(),t2->functor());
-  ASS_EQ(t1->weight(),t2->weight());
+  ASS_EQ(t1->kboWeight(),t2->kboWeight());
   ASS(t1->arity());
-  ASS_EQ(_lexResult, EQUAL);
+  bool stillEqual = true;
 
   static Stack<TermList*> stack(32);
   stack.reset();
@@ -331,8 +392,8 @@ bool KBO::State::traverseGreater(Term* t1, Term* t2)
     ss=stack.pop();
     if(ss->isEmpty()) {
       ASS(tt->isEmpty());
-      ASS_EQ(_lexResult,GREATER);
-      if (_negNum>0) {
+      ASS(!stillEqual); // we should have detected the difference earlier
+      if (!checkVars()) {
         return false;
       }
       continue;
@@ -344,30 +405,64 @@ bool KBO::State::traverseGreater(Term* t1, Term* t2)
       //if content is the same, neither weightDiff nor varDiffs would change
       continue;
     }
-    // if (_lexResult == EQUAL && (ss->weight()<tt->weight() || ss->numVarOccs()<tt->numVarOccs() || (~ss->varmap() & tt->varmap()))) {
-    //   return false;
-    // }
-    if(TermList::sameTopFunctor(*ss,*tt) && ss->term()->weight()==tt->term()->weight()) {
-      ASS(ss->isTerm());
-      ASS(tt->isTerm());
-      ASS(ss->term()->arity());
-      stack.push(ss->term()->args());
-      stack.push(tt->term()->args());
-    } else {
-      if (_lexResult == EQUAL && (ss->isVar() || (tt->isTerm() && ss->term()->weight()<tt->term()->weight()))) {
+    if (stillEqual) {
+      if (ss->kboWeight()<tt->kboWeight()) {
         return false;
       }
-      traverse(*ss,1);
-      traverse(*tt,-1);
-      if(_lexResult==EQUAL) {
-        if (!innerResultGreater(*ss, *tt)) {
+      if (ss->kboWeight()>tt->kboWeight()) {
+        traverseVars(*ss,1);
+        traverseVars(*tt,-1);
+        if (!checkVars()) {
           return false;
         }
-        _lexResult = GREATER;
+        stillEqual = false;
+        continue;
       }
+      // ss->kboWeight()==tt->kboWeight()
+      if (ss->isOrdinaryVar()) {
+        return false;
+      }
+      if (tt->isOrdinaryVar()) {
+        if (!ss->containsSubterm(*tt)) {
+          return false;
+        }
+        stillEqual = false;
+        continue;
+      }
+      switch (_kbo.compareFunctionPrecedences(ss->term()->functor(),tt->term()->functor()))
+      {
+        case Ordering::LESS:
+        case Ordering::LESS_EQ: {
+          return false;
+        }
+        case Ordering::GREATER:
+        case Ordering::GREATER_EQ: {
+          traverseVars(*ss,1);
+          traverseVars(*tt,-1);
+          if (!checkVars()) {
+            return false;
+          }
+          stillEqual = false;
+          break;
+        }
+        case Ordering::EQUAL: {
+          stack.push(ss->term()->args());
+          stack.push(tt->term()->args());
+          break;
+        }
+        default: ASSERTION_VIOLATION;
+      }
+    } else {
+      traverseVars(*ss,1);
+      traverseVars(*tt,-1);
     }
   }
-  return true;
+  return !stillEqual && checkVars();
+}
+
+bool KBO::State2::checkVars() const
+{
+  return _negNum <= 0;
 }
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
@@ -612,6 +707,7 @@ KBO::KBO(
   , _predWeights(predWeights)
 #endif
   , _state(new State(this))
+  , _state2(new State2(this))
 { 
   checkAdmissibility(throwError);
 }
@@ -726,6 +822,7 @@ KBO::KBO(Problem& prb, const Options& opts)
  , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
 #endif
  , _state(new State(this))
+ , _state2(new State2(this))
 {
   if (opts.kboMaxZero()) {
     zeroWeightForMaximalFunc();
@@ -829,6 +926,9 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
 bool KBO::isGreater(TermList tl1, TermList tl2) const
 {
+  TIME_TRACE("KBO:isGreater");
+  // return Ordering::isGreater(tl1,tl2);
+
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
   }
@@ -841,34 +941,37 @@ bool KBO::isGreater(TermList tl1, TermList tl2) const
 
   Term* t1=tl1.term();
   Term* t2=tl2.term();
-  if (t1->weight()<t2->weight() || t1->numVarOccs()<t2->numVarOccs() || (~t1->varmap() & t2->varmap())) {
+  if (t1->kboWeight()<t2->kboWeight()) {
     return false;
   }
 
-  ASS(_state);
-  State* state=_state;
-#if VDEBUG
-  //this is to make sure _state isn't used while we're using it
-  _state=0;
-#endif
-
-  state->init();
-  if(t1->functor()==t2->functor() && t1->weight()==t2->weight()) {
-    if (!state->traverseGreater(t1,t2)) {
-#if VDEBUG
-      _state=state;
-#endif
+  _state2->init();
+  if (t1->kboWeight()>t2->kboWeight()) {
+    // traverse variables
+    _state2->traverseVars(tl1,1);
+    _state2->traverseVars(tl2,-1);
+    return _state2->checkVars();
+  }
+  // t1->kboWeight()==t2->kboWeight()
+  switch (compareFunctionPrecedences(t1->functor(),t2->functor()))
+  {
+    case Ordering::LESS:
+    case Ordering::LESS_EQ: {
       return false;
     }
-  } else {
-    state->traverse(tl1,1);
-    state->traverse(tl2,-1);
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ: {
+      _state2->traverseVars(tl1,1);
+      _state2->traverseVars(tl2,-1);
+      return _state2->checkVars();
+    }
+    case Ordering::EQUAL: {
+      return _state2->traverse(t1,t2);
+    }
+    case Ordering::INCOMPARABLE:
+      ASSERTION_VIOLATION;
   }
-  Result res=state->result(t1,t2);
-#if VDEBUG
-  _state=state;
-#endif
-  return res==GREATER;
+  ASSERTION_VIOLATION;
 }
 
 int KBO::symbolWeight(Term* t) const

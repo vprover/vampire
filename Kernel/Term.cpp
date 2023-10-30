@@ -242,9 +242,9 @@ unsigned TermList::weight() const
   return isVar() ? 1 : term()->weight();
 }
 
-unsigned TermList::varmap() const
+unsigned TermList::kboWeight() const
 {
-  return isVar() ? (1UL << var()) : term()->varmap();
+  return isVar() ? 1 : term()->kboWeight();
 }
 
 unsigned TermList::numVarOccs() const
@@ -1634,7 +1634,7 @@ Term::Term(const Term& t) throw()
     _hasInterpretedConstants(0),
     _isTwoVarEquality(0),
     _weight(0),
-    _varmap(0),
+    _kboWeight(0),
     _vars(0)
 {
   ASS(!isSpecial()); //we do not copy special terms
@@ -1665,8 +1665,8 @@ Term::Term() throw()
    _hasInterpretedConstants(0),
    _isTwoVarEquality(0),
    _weight(0),
+   _kboWeight(0),
    _maxRedLen(0),
-   _varmap(0),
    _vars(0)
 {
   _args[0]._info.polarity = 0;

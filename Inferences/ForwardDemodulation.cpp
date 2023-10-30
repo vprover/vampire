@@ -183,9 +183,15 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
         // if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
           ASS(ordering.compare(trm,rhsS)!=Ordering::GREATER);
+          // if (ordering.compare(trm,rhsS)==Ordering::GREATER) {
+          //   std::cout << "greater " << trm.toString() << " " << rhsS << std::endl;
+          // }
           continue;
         }
         ASS(ordering.compare(trm,rhsS)==Ordering::GREATER);
+        // if (ordering.compare(trm,rhsS)!=Ordering::GREATER) {
+        //   std::cout << "not greater " << trm.toString() << " " << rhsS << std::endl;
+        // }
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (toplevelCheck && _encompassing) {

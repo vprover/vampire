@@ -359,9 +359,24 @@ TEST_FUN(kbo_test22) {
   }
 }
 
+TEST_FUN(kbo_test23) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt, srt, srt}, srt)
+  DECL_VAR(u, 3)
+
+  auto ord = kbo(1, 1, weights(make_pair(f,1u)), weights());
+  ASS(ord.isGreater(
+    f(f(y,x,z),u,f(f(u,z,y),x,f(x,f(y,x,z),z))),
+    f(x,f(y,x,z),f(f(y,x,z),u,f(f(u,z,y),x,z)))));
+  // ASS_EQ(ord.compare(
+  //   f(f(y,x,z),u,f(f(u,z,y),x,f(x,f(y,x,z),z))),
+  //   f(x,f(y,x,z),f(f(y,x,z),u,f(f(u,z,y),x,z)))),Ordering::GREATER);
+}
+
 // POLYMORPHIC TESTS START FROM HERE
 
-TEST_FUN(kbo_test23) {
+TEST_FUN(kbo_test24) {
   DECL_DEFAULT_SORT_VARS  
   DECL_TYPE_CON(list, 1)
 

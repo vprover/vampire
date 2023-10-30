@@ -176,7 +176,7 @@ public:
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
-  unsigned varmap() const;
+  unsigned kboWeight() const;
   unsigned numVarOccs() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
   bool isArrowSort();
@@ -593,14 +593,14 @@ public:
     return _maxRedLen;    
   }
 
-  unsigned varmap() const
+  unsigned kboWeight() const
   {
-    return _varmap;
+    return _kboWeight;
   }
 
-  void setVarmap(unsigned v)
+  void setKboWeight(unsigned w)
   {
-    _varmap = v;
+    _kboWeight = w;
   }
 
   /** Mark term as shared */
@@ -816,9 +816,10 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
+  /** Weight of the term if KBO is used, otherwise invalid. */
+  unsigned _kboWeight;
   /** length of maximum reduction length */
   int _maxRedLen;
-  unsigned _varmap;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */
