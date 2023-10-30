@@ -548,36 +548,207 @@ vstring TPTPPrinter::toString (const Unit* unit)
 }
 
 vstring TPTPPrinter::sanitise(const vstring &name) {
+  // known-OK names to preserve semantics of
   if(name == "=")
     return name;
 
+  // sanitise these specifically, Z3 no likey
   if(
+    name == "bv" ||
+    name == "BitVec" ||
     name == "Int" ||
+    name == "Real" ||
+    name == "bool" ||
+    name == "Bool" ||
+    name == "Proof" ||
+    name == "Unicode" ||
     name == "FloatingPoint" ||
+    name == "RoundingMode" ||
+    name == "Float16" ||
     name == "Float32" ||
     name == "Float64" ||
-    name == "String" ||
-    name == "BitVector" ||
-    name == "Bool" ||
+    name == "Float128" ||
     name == "Seq" ||
     name == "RegEx" ||
-    name == "Array" ||
-    name == "Unicode" ||
-    name == "and" ||
-    name == "or" ||
-    name == "not" ||
+    name == "RegLan" ||
+    name == "String" ||
+    name == "StringSequence" ||
+    name == "cell" ||
+    name == "List" ||
+    name == "let" ||
     name == "forall" ||
     name == "exists" ||
+    name == "lambda" ||
+    name == "as" ||
+    name == "assert" ||
+    name == "par" ||
+    name == "push" ||
+    name == "pop" ||
+    name == "reset" ||
+    name == "match" ||
+    name == "case" ||
+    name == "true" ||
+    name == "false" ||
     name == "distinct" ||
-    name == "at-least" ||
-    name == "at-most" ||
-    name == "pble" ||
-    name == "pbge" ||
-    name == "pbeq" ||
-    name == "as"
+    name == "ite" ||
+    name == "if" ||
+    name == "and" ||
+    name == "or" ||
+    name == "xor" ||
+    name == "not" ||
+    name == "implies" ||
+    name == "iff" ||
+    name == "if_then_else" ||
+    name == "equals" ||
+    name == "equiv" ||
+    name == "bit1" ||
+    name == "bit0" ||
+    name == "bvneg" ||
+    name == "bvnego" ||
+    name == "bvadd" ||
+    name == "bvuaddo" ||
+    name == "bvsaddo" ||
+    name == "bvsub" ||
+    name == "bvusubo" ||
+    name == "bvssubo" ||
+    name == "bvmul" ||
+    name == "bvumulo" ||
+    name == "bvsmulo" ||
+    name == "bvsdiv" ||
+    name == "bvsdivo" ||
+    name == "bvudiv" ||
+    name == "bvsrem" ||
+    name == "bvurem" ||
+    name == "bvsmod" ||
+    name == "bvule" ||
+    name == "bvsle" ||
+    name == "bvuge" ||
+    name == "bvsge" ||
+    name == "bvult" ||
+    name == "bvslt" ||
+    name == "bvugt" ||
+    name == "bvsgt" ||
+    name == "bvand" ||
+    name == "bvor" ||
+    name == "bvnot" ||
+    name == "bvxor" ||
+    name == "bvnand" ||
+    name == "bvnor" ||
+    name == "bvxnor" ||
+    name == "concat" ||
+    name == "sign_extend" ||
+    name == "zero_extend" ||
+    name == "extract" ||
+    name == "repeat" ||
+    name == "bvredor" ||
+    name == "bvredand" ||
+    name == "bvcomp" ||
+    name == "bvshl" ||
+    name == "bvlshr" ||
+    name == "bvashr" ||
+    name == "rotate_left" ||
+    name == "rotate_right" ||
+    name == "bit2bool" ||
+    name == "bvumul_noovfl" ||
+    name == "bvsmul_noovfl" ||
+    name == "bvsmul_noudfl" ||
+    name == "bvsdiv0" ||
+    name == "bvudiv0" ||
+    name == "bvsrem0" ||
+    name == "bvurem0" ||
+    name == "bvsmod0" ||
+    name == "bvsdiv_i" ||
+    name == "bvudiv_i" ||
+    name == "bvsrem_i" ||
+    name == "bvurem_i" ||
+    name == "bvsmod_i" ||
+    name == "ext_rotate_left" ||
+    name == "ext_rotate_right" ||
+    name == "int2bv" ||
+    name == "bv2int" ||
+    name == "bv2nat" ||
+    name == "mkbv" ||
+    name == "div" ||
+    name == "divisible" ||
+    name == "rem" ||
+    name == "mod" ||
+    name == "to_real" ||
+    name == "to_int" ||
+    name == "is_int" ||
+    name == "abs" ||
+    name == "sin" ||
+    name == "cos" ||
+    name == "tan" ||
+    name == "asin" ||
+    name == "acos" ||
+    name == "atan" ||
+    name == "sinh" ||
+    name == "cosh" ||
+    name == "tanh" ||
+    name == "asinh" ||
+    name == "acosh" ||
+    name == "atanh" ||
+    name == "pi" ||
+    name == "euler" ||
+    name == "div0" ||
+    name == "mod0" ||
+    name == "store" ||
+    name == "select" ||
+    name == "const" ||
+    name == "map" ||
+    name == "default" ||
+    name == "union" ||
+    name == "intersection" ||
+    name == "setminus" ||
+    name == "complement" ||
+    name == "subset" ||
+    name == "char" ||
+    name == "Char" ||
+    name == "is" ||
+    name == "oo" ||
+    name == "zero" ||
+    name == "NaN" ||
+    name == "roundNearestTiesToEven" ||
+    name == "roundNearestTiesToAway" ||
+    name == "roundTowardPositive" ||
+    name == "roundTowardNegative" ||
+    name == "roundTowardZero" ||
+    name == "RNE" ||
+    name == "RNA" ||
+    name == "RTP" ||
+    name == "RTN" ||
+    name == "RTZ" ||
+    name == "fp" ||
+    name == "to_fp" ||
+    name == "to_fp_unsigned" ||
+    name == "to_ieee_bv" ||
+    name == "cons" ||
+    name == "atom" ||
+    name == "nil" ||
+    name == "head" ||
+    name == "tail" ||
+    name == "nil" ||
+    name == "insert" ||
+    name == "echo" ||
+    name == "exit" ||
+    name == "labels" ||
+    name == "display" ||
+    name == "help" ||
+    name == "eufi" ||
+    name == "mbi" ||
+    name == "mbp" ||
+    name == "qel" ||
+    name == "assume" ||
+    name == "del" ||
+    name == "infer" ||
+    name == "rule" ||
+    name == "maximize" ||
+    name == "minimize" ||
+    name == "include"
   )
     return "|@" + name + "|";
 
+  // check whether it's alphanumeric and can be passed through, like "foo"
   bool alphanumeric = true;
   for(char c : name)
     if(!std::isalnum(c) && c != '_')
@@ -586,6 +757,7 @@ vstring TPTPPrinter::sanitise(const vstring &name) {
   if(alphanumeric)
     return name;
 
+  // otherwise |quote| it and replace pipes with '%' - which is a comment in TPTP
   vstring replaced(name);
   std::replace(replaced.begin(), replaced.end(), '|', '%');
   return "|" + replaced + "|";
