@@ -80,6 +80,10 @@ struct InductionContext {
   Formula* getFormulaWithSquashedSkolems(TermList r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
 
+  Clause* getPremise() const { 
+    return _cls.begin()->first;
+  }
+
   vstring toString() const {
     vstringstream str;
     str << *_indTerm << std::endl;

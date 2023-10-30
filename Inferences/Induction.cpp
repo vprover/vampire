@@ -677,6 +677,10 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   }
   cnf.clausifySynthesis(NNF::ennf(fu), hyp_clauses, bindingList);
 
+  //ToDo: Do hyperresolution here
+  Clause* premise = context.getPremise();
+  std::cout << "premise is " << premise->toString() << std::endl;
+
   switch (rule) {
     case InferenceRule::STRUCT_INDUCTION_AXIOM:
       env.statistics->structInduction++;
@@ -1317,7 +1321,6 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 /*
 ToDo
 */
-
 void InductionClauseIterator::performStructInductionSynth(const InductionContext& context, InductionFormulaIndex::Entry* e)
 {
   TermList sort = SortHelper::getResultSort(context._indTerm);
