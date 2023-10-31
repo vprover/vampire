@@ -1515,6 +1515,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   std::cout << "Clausified and resolved induction formula:\n";
   for (auto cl: cls) {
     std :: cout << cl->toString() << "\n";
+    //_clauses.push(cl);
   }
 }
 
