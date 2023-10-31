@@ -531,7 +531,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       auto st = nvi.next();
       if (env.signature->getFunction(st->functor())->skolem()) {
         InductionContext ctx(st, lit, premise);
-        performStructInductionSynth(ctx, nullptr);
+        InductionFormulaIndex::Entry* e;
+        performStructInductionSynth(ctx, e); // clauses are already resolved with the premises
         USER_ERROR("x");
       }
     }
@@ -659,6 +660,29 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   return hyp_clauses;
 }
 
+
+Literal* getWithoutAnsLit(Clause* clause) { // Clause always has two literals. One is an answerLiteral. The other is not.
+  unsigned cLen = clause->length();
+  for (unsigned i = 0; i < cLen; i++) {
+    Literal* lit = (*clause)[i];
+    if (lit->isAnswerLiteral())
+      continue;
+    return lit;
+  }
+  return nullptr; // never happens
+}
+
+Literal* extractAnsLit(Clause* clause) {
+  unsigned cLen = clause->length();
+  for (unsigned i = 0; i < cLen; i++) {
+    Literal* lit = (*clause)[i];
+    if (lit->isAnswerLiteral())
+      return Literal::complementaryLiteral(lit);
+  }
+  return nullptr; // never happens
+}
+
+
 ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, InferenceRule rule, const InductionContext& context, BindingList* &bindingList) {
   NewCNF cnf(0);
   cnf.setForInduction();
@@ -678,8 +702,37 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   cnf.clausifySynthesis(NNF::ennf(fu), hyp_clauses, bindingList);
 
   //ToDo: Do hyperresolution here
-  Clause* premise = context.getPremise();
-  std::cout << "premise is " << premise->toString() << std::endl;
+  Literal* premise = getWithoutAnsLit(context.getPremise());
+  Literal* premiseAnsLit = extractAnsLit(context.getPremise());
+
+  Stack<Clause*>::Iterator cit(hyp_clauses);
+  Stack<Clause*> resolved_clauses;
+  while(cit.hasNext()){
+    Clause* c = cit.next();
+    unsigned cLen = c->length();
+
+    Literal* lit = (*c)[cLen - 1]; // Literal to resolve: L[z, rec(bar(u),z)], ToDo: Lit may not always be the last one. It is the one including the rec function. 
+
+    RobSubstitution subst;
+    UnificationConstraintStack constraints;
+    HOMismatchHandler hndlr(constraints);
+    if (subst.unifyArgs(premise, 0, lit, 0, &hndlr)) {
+      Literal* newAnsLit = subst.apply(premiseAnsLit, 0);
+
+      Stack<Literal*> lits;
+      for (unsigned i = 0; i < cLen - 1; i++) {
+        lits.push((*c)[i]);
+      }
+      lits.push(newAnsLit);
+
+      Clause* resolvent = Clause::fromStack(lits, GeneratingInference1(InferenceRule::RESOLUTION, c));
+      // std::cout << "resolved clause is " << resolvent->toString() << std::endl;
+      resolved_clauses.push(resolvent);
+    }
+
+    std::cout << "----------\n";
+  }
+
 
   switch (rule) {
     case InferenceRule::STRUCT_INDUCTION_AXIOM:
@@ -723,7 +776,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
       ;
   }
 
-  return hyp_clauses;
+  return resolved_clauses;
 }
 
 
@@ -1459,7 +1512,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   }  
 
 
-  std::cout << "Clausified induction formula:\n";
+  std::cout << "Clausified and resolved induction formula:\n";
   for (auto cl: cls) {
     std :: cout << cl->toString() << "\n";
   }
