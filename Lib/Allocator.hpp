@@ -300,9 +300,6 @@ inline void free(void *pointer, size_t size) {
 #endif // INDIVIDUAL_ALLOCATIONS's else
 
 // legacy macros, should be removed eventually
-#define BYPASSING_ALLOCATOR
-#define START_CHECKING_FOR_ALLOCATOR_BYPASSES
-#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define USE_ALLOCATOR(C) USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
 #define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)

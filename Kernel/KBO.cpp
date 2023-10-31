@@ -394,7 +394,6 @@ template<class SigTraits>
 KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
 {
   DArray<KboWeight> weights(SigTraits::nSymbols());
-  BYPASSING_ALLOCATOR
 
   ///////////////////////// parsing helper functions ///////////////////////// 
  

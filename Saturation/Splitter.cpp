@@ -72,14 +72,14 @@ void SplittingBranchSelector::init()
       break;      
 #if VZ3
     case Options::SatSolver::Z3:
-      { BYPASSING_ALLOCATOR
+      {
         _solverIsSMT = true;
         _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
           SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
           _solver = new FallbackSolverWrapper(_solver.release(),fallback);
-        } 
+        }
       }
       break;
 #endif

@@ -254,7 +254,6 @@ void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry
     env.endOutput();
   }
 
-  BYPASSING_ALLOCATOR;
   delete static_cast<ifstream*>(input);
   input=new ifstream(inputFile.c_str());
 }
@@ -288,9 +287,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
       inputSyntax = Options::InputSyntax::TPTP;
     }
   } else {
-    // CAREFUL: this might not be enough if the ifstream (re)allocates while being operated
-    BYPASSING_ALLOCATOR; 
-    
     input=new ifstream(inputFile.c_str());
     if (input->fail()) {
       USER_ERROR("Cannot open problem file: "+inputFile);
@@ -355,8 +351,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     break;
   }
   if (inputFile!="") {
-    BYPASSING_ALLOCATOR;
-
     delete static_cast<ifstream*>(input);
     input=0;
   }
@@ -441,7 +435,6 @@ void UIHelper::outputResult(ostream& out)
     }
 
     if (env.options->latexOutput() != "off") {
-      BYPASSING_ALLOCATOR; // for ofstream 
       ofstream latexOut(env.options->latexOutput().c_str());
 
       LaTeX formatter;
