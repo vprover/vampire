@@ -246,7 +246,6 @@ struct UnitNumberComparator
 
 struct InferenceStore::ProofPrinter
 {
-  CLASS_NAME(InferenceStore::ProofPrinter);
   USE_ALLOCATOR(InferenceStore::ProofPrinter);
   
   ProofPrinter(ostream& out, InferenceStore* is)
@@ -427,7 +426,6 @@ protected:
 struct InferenceStore::ProofPropertyPrinter
 : public InferenceStore::ProofPrinter
 {
-  CLASS_NAME(InferenceStore::ProofPropertyPrinter);
   USE_ALLOCATOR(InferenceStore::ProofPropertyPrinter);
 
   ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is)
@@ -513,7 +511,6 @@ protected:
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
-  CLASS_NAME(InferenceStore::TPTPProofPrinter);
   USE_ALLOCATOR(InferenceStore::TPTPProofPrinter);
   
   TPTPProofPrinter(ostream& out, InferenceStore* is)
@@ -877,7 +874,6 @@ protected:
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
-  CLASS_NAME(InferenceStore::ProofCheckPrinter);
   USE_ALLOCATOR(InferenceStore::ProofCheckPrinter);
 
   ProofCheckPrinter(ostream& out, InferenceStore* is)

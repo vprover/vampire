@@ -38,7 +38,6 @@ using namespace Lib;
 class InferenceStore
 {
 public:
-  CLASS_NAME(InferenceStore);
   USE_ALLOCATOR(InferenceStore);
   
   static InferenceStore* instance();

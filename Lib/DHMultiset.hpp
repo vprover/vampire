@@ -52,7 +52,6 @@ template <typename Val, class Hash1, class Hash2>
 class DHMultiset
 {
 public:
-  CLASS_NAME(DHMultiset);
   USE_ALLOCATOR(DHMultiset);
   
   /** Create a new DHMultiset */

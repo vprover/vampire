@@ -35,7 +35,6 @@ using namespace Lib;
 
 class BufferedSolver : public SATSolver {
 public:
-  CLASS_NAME(BufferedSolver);
   USE_ALLOCATOR(BufferedSolver);
 
   BufferedSolver(SATSolver* inner);

@@ -57,7 +57,6 @@ public:
     _varDiffs.reset();
   }
 
-  CLASS_NAME(KBO::State);
   USE_ALLOCATOR(State);
 
   void traverse(Term* t1, Term* t2);

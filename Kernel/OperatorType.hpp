@@ -55,7 +55,6 @@ namespace Kernel {
 class OperatorType
 {
 public:
-  CLASS_NAME(OperatorType);
   USE_ALLOCATOR(OperatorType);
 
   class TypeHash {

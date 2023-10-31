@@ -27,7 +27,6 @@ class LiteralIndex
 : public Index
 {
 public:
-  CLASS_NAME(LiteralIndex);
   USE_ALLOCATOR(LiteralIndex);
 
   virtual ~LiteralIndex();
@@ -61,7 +60,6 @@ class BinaryResolutionIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(BinaryResolutionIndex);
   USE_ALLOCATOR(BinaryResolutionIndex);
 
   BinaryResolutionIndex(LiteralIndexingStructure* is)
@@ -74,7 +72,6 @@ class BackwardSubsumptionIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(BackwardSubsumptionIndex);
   USE_ALLOCATOR(BackwardSubsumptionIndex);
 
   BackwardSubsumptionIndex(LiteralIndexingStructure* is)
@@ -87,7 +84,6 @@ class FwSubsSimplifyingLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(FwSubsSimplifyingLiteralIndex);
   USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
 
   FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure* is)
@@ -102,7 +98,6 @@ class FSDLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(FSDLiteralIndex);
   USE_ALLOCATOR(FSDLiteralIndex);
 
   FSDLiteralIndex(LiteralIndexingStructure* is)
@@ -117,7 +112,6 @@ class UnitClauseLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(UnitClauseLiteralIndex);
   USE_ALLOCATOR(UnitClauseLiteralIndex);
 
   UnitClauseLiteralIndex(LiteralIndexingStructure* is)
@@ -130,7 +124,6 @@ class UnitClauseWithALLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(UnitClauseWithALLiteralIndex);
   USE_ALLOCATOR(UnitClauseWithALLiteralIndex);
 
   UnitClauseWithALLiteralIndex(LiteralIndexingStructure* is)
@@ -143,7 +136,6 @@ class NonUnitClauseLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(NonUnitClauseLiteralIndex);
   USE_ALLOCATOR(NonUnitClauseLiteralIndex);
 
   NonUnitClauseLiteralIndex(LiteralIndexingStructure* is, bool selectedOnly=false)
@@ -158,7 +150,6 @@ class NonUnitClauseWithALLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(NonUnitClauseWithALLiteralIndex);
   USE_ALLOCATOR(NonUnitClauseWithALLiteralIndex);
 
   NonUnitClauseWithALLiteralIndex(LiteralIndexingStructure* is, bool selectedOnly=false)
@@ -173,7 +164,6 @@ class RewriteRuleIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(RewriteRuleIndex);
   USE_ALLOCATOR(RewriteRuleIndex);
 
   RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering);
@@ -198,7 +188,6 @@ class DismatchingLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(DismatchingLiteralIndex);
   USE_ALLOCATOR(DismatchingLiteralIndex);
 
   DismatchingLiteralIndex(LiteralIndexingStructure* is)
@@ -211,7 +200,6 @@ class UnitIntegerComparisonLiteralIndex
 : public LiteralIndex
 {
 public:
-  CLASS_NAME(UnitIntegerComparisonLiteralIndex);
   USE_ALLOCATOR(UnitIntegerComparisonLiteralIndex);
 
   UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure* is)

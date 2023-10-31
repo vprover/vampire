@@ -171,12 +171,10 @@ private:
     Stack<ReductionRecord> reduced;
     bool active;
 
-    CLASS_NAME(Splitter::SplitRecord);
     USE_ALLOCATOR(SplitRecord);
   };
   
 public:
-  CLASS_NAME(Splitter);
   USE_ALLOCATOR(Splitter);
 
   Splitter();

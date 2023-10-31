@@ -23,7 +23,6 @@ namespace Inferences
 
 class DefinitionIntroduction: public GeneratingInferenceEngine, public Index {
 public:
-  CLASS_NAME(DefinitionIntroduction);
   USE_ALLOCATOR(DefinitionIntroduction);
 
   void attach(SaturationAlgorithm *salg) override {

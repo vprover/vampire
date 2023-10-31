@@ -304,7 +304,6 @@ inline void free(void *pointer, size_t size) {
 #define START_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define USE_ALLOCATOR(C) USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
-#define CLASS_NAME(className)
 #define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)
 #define ALLOC_UNKNOWN(size, className) Lib::deprecatedAlloc(size)

@@ -37,7 +37,6 @@ class RobSubstitution
 :public Backtrackable
 {
 public:
-  CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
   RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
@@ -285,7 +284,6 @@ private:
     }
     friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
     { return out << "(ROB backtrack object for " << self._var << ")"; }
-    CLASS_NAME(RobSubstitution::BindingBacktrackObject);
     USE_ALLOCATOR(BindingBacktrackObject);
   private:
     RobSubstitution* _subst;

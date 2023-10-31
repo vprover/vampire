@@ -67,7 +67,6 @@ private:
 class InterpretedLiteralEvaluator::Evaluator
 {
 public:
-  CLASS_NAME(InterpretedLiteralEvaluator::Evaluator);
   USE_ALLOCATOR(InterpretedLiteralEvaluator::Evaluator);
   
   virtual ~Evaluator() {}
@@ -131,7 +130,6 @@ template<class AbelianGroup>
    : public Evaluator
 {
 public:
-CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
   USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
 
   using ConstantType = typename AbelianGroup::ConstantType;

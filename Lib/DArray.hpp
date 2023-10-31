@@ -42,7 +42,6 @@ private:
   //private and undefined operator= to avoid an implicitly generated one
   DArray& operator=(const DArray&);
 public:
-  CLASS_NAME(DArray<C>);
   USE_ALLOCATOR(DArray<C>);
 
   class Iterator;
