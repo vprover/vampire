@@ -23,13 +23,14 @@ public:
   bool add_gt(unsigned x, unsigned y);
   bool add_eq(unsigned x, unsigned y);
   PoComp query(unsigned x, unsigned y) const;
-  // void iter_vars();
-  // void iter_relations();
   bool is_total(size_t n) const;
   vstring to_string() const;
   const List<Edge>* transitive_reduction() const;
   bool is_empty() const;
   size_t size() const { return _po.size(); }
+  VirtualIterator<std::tuple<const unsigned&,const unsigned&,PoComp>> iter_relations() const;
+  size_t rel_size() const;
+  bool subseteq(const VarOrder& other) const;
 
   class EqApplicator
   {

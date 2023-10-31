@@ -62,6 +62,21 @@ TermList VarOrder::EqApplicator::apply(unsigned v)
   return TermList(_vo._po.get_rep(v),false);
 }
 
+VirtualIterator<std::tuple<const unsigned&,const unsigned&,PoComp>> VarOrder::iter_relations() const
+{
+  return _po.iter_relations();
+}
+
+size_t VarOrder::rel_size() const
+{
+  return _po.size();
+}
+
+bool VarOrder::subseteq(const VarOrder& other) const
+{
+  return _po.subseteq(other._po);
+}
+
 // bool VarOrder::add_eq(unsigned x, unsigned y)
 // {
 //   ASS(hasVar(x));

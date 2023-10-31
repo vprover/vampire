@@ -316,36 +316,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  {
-    TIME_TRACE("rewrites update");
-    auto resRewrites = new DHMap<Term*,TermQueryResult>();
-    if (queryCl->rewrites()) {
-      DHMap<Term*,TermQueryResult>::Iterator queryIt(*queryCl->rewrites());
-      while (queryIt.hasNext()) {
-        Term* lhs;
-        TermQueryResult qr2;
-        queryIt.next(lhs,qr2);
-        auto lhsS = qr.substitution->applyToQuery(TermList(lhs));
-        resRewrites->insert(lhsS.term(),qr2);
-      }
-    }
-    if (qr.clause->rewrites()) {
-      DHMap<Term*,TermQueryResult>::Iterator rwIt(*qr.clause->rewrites());
-      while (rwIt.hasNext()) {
-        Term* lhs;
-        TermQueryResult qr2;
-        rwIt.next(lhs,qr2);
-        auto lhsS = qr.substitution->applyToResult(TermList(lhs));
-        resRewrites->insert(lhsS.term(),qr2);
-      }
-    }
-    if (resRewrites->isEmpty()) {
-      delete resRewrites;
-    } else {
-      res->setRewrites(resRewrites);
-    }
-  }
-
   if(withConstraints){
     env.statistics->cResolution++;
   }

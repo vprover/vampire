@@ -116,9 +116,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
-  _salg->getReducibilityChecker()->preprocessClause(premise);
-
-  //cout << "SUPERPOSITION with " << premise->toString() << endl;
+  // std::cout << "SUPERPOSITION with " << premise->toString() << std::endl;
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
@@ -409,34 +407,12 @@ Clause* Superposition::performSuperposition(
   }
 
   auto checker = _salg->getReducibilityChecker();
-
-  // TIME_TRACE("sup");
-  // if (comp == Ordering::INCOMPARABLE) {
-  //   TIME_TRACE("sup incomparable");
-  // }
-  // std::cout << std::endl << "SUPERPOSITION\nrwClause " << *rwClause << std::endl
-  //      << "eqClause " << *eqClause << std::endl << "rwTermS " << rwTermS << " tgtTermS " << tgtTermS << std::endl;
   if (checker) {
-    // checker->resetDone();
-    // if (checker->check(eqClause,eqLHS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult,comp==Ordering::LESS)) {
-    //   env.statistics->skippedSuperposition++;
-    //   return 0;
-    // }
-
-    // if (checker->check(rwClause,rwTerm,rwTermS.term(),&tgtTermS,subst.ptr(),!eqIsResult,comp==Ordering::LESS)) {
-    //   env.statistics->skippedSuperposition++;
-    //   return 0;
-    // }
-    if (checker->check(rwClause,eqClause,rwLitS,rwTermS.term(),&tgtTermS,subst.ptr(),eqIsResult)) {
-      // std::cout << "redundant" << std::endl;
+    if (checker->check(rwClause,eqClause,eqLit,eqLHS,subst.ptr(),eqIsResult)) {
       env.statistics->skippedSuperposition++;
       return 0;
     }
   }
-  if (comp == Ordering::INCOMPARABLE) {
-    TIME_TRACE("sup incomparable survived");
-  }
-  // std::cout << std::endl;
 
   unsigned newLength = rwLength+eqLength-1+conLength;
 
@@ -610,39 +586,6 @@ Clause* Superposition::performSuperposition(
       env.statistics->cForwardSuperposition++;
     } else {
       env.statistics->cBackwardSuperposition++;
-    }
-  }
-  if (false) {
-    TIME_TRACE("rewrites update");
-    auto resRewrites = new DHMap<Term*,TermQueryResult>();
-    if (eqClause->rewrites()) {
-      DHMap<Term*,TermQueryResult>::Iterator eqIt(*eqClause->rewrites());
-      while (eqIt.hasNext()) {
-        Term* lhs;
-        TermQueryResult qr;
-        eqIt.next(lhs,qr);
-        auto lhsS = subst->apply(TermList(lhs),eqIsResult);
-        resRewrites->insert(lhsS.term(),qr);
-      }
-    }
-    if (rwClause->rewrites()) {
-      DHMap<Term*,TermQueryResult>::Iterator rwIt(*rwClause->rewrites());
-      while (rwIt.hasNext()) {
-        Term* lhs;
-        TermQueryResult qr;
-        rwIt.next(lhs,qr);
-        auto lhsS = subst->apply(TermList(lhs),!eqIsResult);
-        resRewrites->insert(lhsS.term(),qr);
-      }
-    }
-    if (comp==Ordering::LESS && eqClause->length()!=1) {
-      // cout << "added rule " << rwTermS << " -> " << tgtTermS << endl;
-      resRewrites->insert(rwTermS.term(), TermQueryResult(eqLHS,eqLit,eqClause));
-    }
-    if (resRewrites->isEmpty()) {
-      delete resRewrites;
-    } else {
-      res->setRewrites(resRewrites);
     }
   }
 

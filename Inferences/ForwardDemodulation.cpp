@@ -131,67 +131,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         toplevelCheck &= lit->isPositive() && (cLen == 1);
       }
 
-      {TIME_TRACE("demodulation by rule");
-      if (!lit->isEquality() || (trm!=*lit->nthArgument(0) && trm!=*lit->nthArgument(1))) {
-        TermQueryResult* ptr = cl->rewrites() ? cl->rewrites()->findPtr(trm.term()) : nullptr;
-        if (ptr) {
-          Substitution subst;
-          Binder b(subst);
-          ALWAYS(MatchingUtils::matchTerms(ptr->term, trm, b));
-          auto eqLitS = SubstHelper::apply(ptr->literal,subst);
-          bool matching = true;
-          for (unsigned i = 0; i < ptr->clause->length(); i++) {
-            auto qrLit = SubstHelper::apply((*ptr->clause)[i],subst);
-            if (qrLit == eqLitS) {
-              continue;
-            }
-            if (iterTraits(cl->iterLits()).all([qrLit,lit](Literal* other) {
-              return other==lit || other!=qrLit;
-            })) {
-              matching = false;
-              break;
-            }
-          }
-          if (matching) {
-            ASS_GE(cl->length(),ptr->clause->length());
-            Literal* resLit = EqHelper::replace(lit,trm,EqHelper::getOtherEqualitySide(eqLitS,trm));
-            if(EqHelper::isEqTautology(resLit)) {
-              env.statistics->forwardDemodulationsToEqTaut++;
-              return true;
-            }
-
-            Clause* res = new(cLen) Clause(cLen,
-              SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION, cl, ptr->clause));
-            (*res)[0]=resLit;
-
-            unsigned next=1;
-            for(unsigned i=0;i<cLen;i++) {
-              Literal* curr=(*cl)[i];
-              if(curr!=lit) {
-                (*res)[next++] = curr;
-              }
-            }
-            ASS_EQ(next,cLen);
-            {
-              TIME_TRACE("rewrites update");
-              cl->transferRewrites(res);
-            }
-            env.statistics->forwardSubsumptionDemodulations++;
-            premises = pvi(getSingletonIterator(ptr->clause));
-            replacement = res;
-            return true;
-          } else {
-            TIME_TRACE("not matching demodulation");
-          }
-        }
-      }}
-
-      // if (_salg->getReducibilityChecker() && _salg->getReducibilityChecker()->isNonReducible(trm.term())) {
-      //   TIME_TRACE("non reducible cache");
-      //   // it.right();
-      //   continue;
-      // }
-
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
         TermQueryResult qr=git.next();
@@ -322,39 +261,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         ASS_EQ(next,cLen);
 
         env.statistics->forwardDemodulations++;
-        {
-          TIME_TRACE("rewrites update");
-          cl->transferRewrites(res);
-          if (qr.clause->rewrites()) {
-            auto resRewrites = res->rewrites();
-            if (!resRewrites) {
-              resRewrites = new DHMap<Term*,TermQueryResult>();
-            }
-            auto vit = qr.clause->getVariableIterator();
-            DHSet<unsigned> vars;
-            vars.loadFromIterator(vit);
-            DHMap<Term*,TermQueryResult>::Iterator eqIt(*qr.clause->rewrites());
-            while (eqIt.hasNext()) {
-              Term* lhs;
-              TermQueryResult qr2;
-              eqIt.next(lhs,qr2);
-              ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
-              if (iterTraits(vi(new VariableIterator(lhs)))
-                .all([&vars](TermList t) {
-                  return vars.find(t.var());
-                }))
-              {
-                resRewrites->insert(qr.substitution->applyToBoundResult(TermList(lhs)).term(),qr2);
-              }
-            }
-            if (resRewrites->isEmpty()) {
-              delete resRewrites;
-              res->setRewrites(nullptr);
-            } else {
-              res->setRewrites(resRewrites);
-            }
-          }
-        }
 
         premises = pvi( getSingletonIterator(qr.clause));
         replacement = res;

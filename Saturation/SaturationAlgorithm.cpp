@@ -1256,21 +1256,6 @@ start:
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
 
-    if (!c->rewrites()) {
-      auto it = c->inference().iterator();
-      if (c->inference().hasNext(it)) {
-        auto u = c->inference().next(it);
-        if (u->isClause()) {
-          auto p = u->asClause();
-          if (p->rewrites()) {
-            static vset<InferenceRule> rules;
-            if (rules.insert(c->inference().rule()).second) {
-              cout << "inference not covered: " << ruleName(c->inference().rule()) << endl;
-            }
-          }
-        }
-      }
-    }
     if (forwardSimplify(c)) {
       onClauseRetained(c);
       addToPassive(c);

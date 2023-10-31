@@ -14,6 +14,7 @@
 
 #include "PartialOrdering.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Metaiterators.hpp"
 
 #include "Debug/TimeProfiling.hpp"
 
@@ -554,6 +555,50 @@ vstring PartialOrdering<T>::to_string_raw() const
     str << toString(_array[i]) << " ";
   }
   return str.str();
+}
+
+template<typename T>
+VirtualIterator<std::tuple<const T&,const T&,PoComp>> PartialOrdering<T>::iter_relations() const
+{
+  auto res = VirtualIterator<std::tuple<const T&,const T&,PoComp>>::getEmpty();
+  for (size_t idx_x = 0; idx_x < _size; idx_x++) {
+    for (size_t idx_y = idx_x+1; idx_y < _size; idx_y++) {
+      auto v = idx_of(idx_x,idx_y);
+      if (v == PoComp::INC) {
+        continue;
+      }
+      res = pvi(getConcatenatedIterator(res,pvi(getSingletonIterator(make_tuple(_inverse.get(idx_x),_inverse.get(idx_y),v)))));
+    }
+  }
+  return res;
+}
+
+template<typename T>
+bool PartialOrdering<T>::subseteq(const PartialOrdering<T>& other) const
+{
+  for (size_t idx_x = 0; idx_x < _size; idx_x++) {
+    for (size_t idx_y = idx_x+1; idx_y < _size; idx_y++) {
+      auto v = idx_of(idx_x,idx_y);
+      if (v == PoComp::INC) {
+        continue;
+      }
+      auto x = _inverse.get(idx_x);
+      auto y = _inverse.get(idx_y);
+      auto ptr_x = other._nodes.findPtr(x);
+      if (!ptr_x) {
+        return false;
+      }
+      auto ptr_y = other._nodes.findPtr(y);
+      if (!ptr_y) {
+        return false;
+      }
+      auto v_o = other.idx_of(*ptr_x,*ptr_y);
+      if (v != v_o) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 template class PartialOrdering<unsigned>;

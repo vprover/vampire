@@ -397,10 +397,6 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
     (*d)[newIdx] = (*c)[origIdx];
   }
-  {
-    TIME_TRACE("rewrites update");
-    c->transferRewrites(d);
-  }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
   env.statistics->duplicateLiterals += length - newLength;
@@ -519,10 +515,6 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
   for (int i = newLength-1;i >= 0;i--) {
     (*d)[i] = lits[newLength-i-1];
-  }
-  {
-    TIME_TRACE("rewrites update");
-    c->transferRewrites(d);
   }
   env.statistics->trivialInequalities += found;
 

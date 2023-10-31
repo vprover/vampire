@@ -30,10 +30,7 @@ private:
   const Ordering& _ord;
   const Options& _opt;
 
-  // VarOrders checkTerm(Term* t, Term* tS, Term* rwTermS, const DHSet<unsigned>& vars);
-  // VarOrders checkTermReducible(Term* tS, TermList* tgtTermS, bool greater, const VarOrders& initial);
-  // bool checkSmaller(Clause* cl, TermList rwTerm, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool result, bool greater, vstringstream& exp);
-  bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+  bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 
@@ -45,8 +42,7 @@ public:
 
   ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
-  void preprocessClause(Clause* cl);
-  bool check(Clause* rwClause, Clause* eqClause, Literal* rwLitS, Term* rwTermS, TermList* tgtTermS, ResultSubstitution* subst, bool eqIsResult);
+  bool check(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult);
 };
 
 }

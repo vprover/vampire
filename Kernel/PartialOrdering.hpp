@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 namespace Kernel {
 
@@ -58,6 +59,9 @@ public:
 
   vstring to_string() const;
   vstring to_string_raw() const;
+
+  VirtualIterator<std::tuple<const T&,const T&,PoComp>> iter_relations() const;
+  bool subseteq(const PartialOrdering& other) const;
 
 private:
   size_t idx_of_elem(const T& e) const;

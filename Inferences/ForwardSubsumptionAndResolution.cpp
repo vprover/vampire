@@ -174,10 +174,6 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
       found = true;
     }
   }
-  {
-    TIME_TRACE("rewrites update");
-    cl->transferRewrites(res);
-  }
 
   return res;
 }
