@@ -479,14 +479,12 @@ void clausifyMode(Problem* problem, bool theory)
   UIHelper::outputSymbolDeclarations(std::cout);
 
   ClauseIterator cit = prb->clauseIterator();
-  bool printed_conjecture = false;
   while (cit.hasNext()) {
     Clause* cl = cit.next();
     cl = simplifier.simplify(cl);
     if (!cl) {
       continue;
     }
-    printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
     if (theory) {
       Formula* f = Formula::fromClause(cl);
 
@@ -501,13 +499,6 @@ void clausifyMode(Problem* problem, bool theory)
     } else {
       std::cout << TPTPPrinter::toString(cl) << "\n";
     }
-  }
-  if(!printed_conjecture && UIHelper::haveConjecture()){
-    unsigned p = env.signature->addFreshPredicate(0,"p");
-    Clause* c = new(2) Clause(2,NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
-    (*c)[0] = Literal::create(p, /* polarity */ true , {});
-    (*c)[1] = Literal::create(p, /* polarity */ false, {});
-    std::cout << TPTPPrinter::toString(c) << "\n";
   }
 
   if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
