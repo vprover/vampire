@@ -919,12 +919,17 @@ void PrecedenceOrdering::show(ostream& out) const
   showConcrete(out);
 }
 
-bool Ordering::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
+bool Ordering::isGreater(TermList tl1, TermList tl2) const
 {
   return compare(tl1,tl2)==GREATER;
 }
 
 bool Ordering::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
 {
-  return compare(tl1,tl2)==GREATER;
+  return isGreater(tl1,tl2);
+}
+
+bool Ordering::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
+{
+  return isGreater(tl1,tl2);
 }

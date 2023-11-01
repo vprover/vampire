@@ -28,9 +28,10 @@ public:
   const List<Edge>* transitive_reduction() const;
   bool is_empty() const;
   size_t size() const { return _po.size(); }
-  VirtualIterator<std::tuple<const unsigned&,const unsigned&,PoComp>> iter_relations() const;
+  VirtualIterator<std::tuple<unsigned,unsigned,PoComp>> iter_relations() const;
   size_t rel_size() const;
   bool subseteq(const VarOrder& other) const;
+  bool tryExtendWith(const VarOrder& other);
 
   class EqApplicator
   {

@@ -29,6 +29,15 @@ private:
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
   const Options& _opt;
+  struct VarOrders {
+    Stack<VarOrder> reduced;
+    Stack<VarOrder> rest;
+  };
+  DHMap<Term*,VarOrders> _cache;
+  TermSubstitutionTree _tis;
+
+  bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
+  VarOrders* isTermReducible(Term* t);
 
   bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
@@ -43,6 +52,7 @@ public:
   ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
   bool check(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult);
+  void clauseActivated(Clause* cl);
 };
 
 }

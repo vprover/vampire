@@ -131,6 +131,171 @@ bool ReducibilityChecker::check(Clause* rwClause, Clause* eqClause, Literal* eqL
   ASSERTION_VIOLATION;
 }
 
+bool ReducibilityChecker::getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS)
+{
+  if (!qr.clause->noSplits()) {
+    return false;
+  }
+  static RobSubstitution subst;
+  TypedTermList trm(lhsS);
+  bool resultTermIsVar = qr.term.isVar();
+  if (resultTermIsVar) {
+    TermList querySort = trm.sort();
+    TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
+    subst.reset();
+    if (!subst.match(eqSort, 0, querySort, 1)) {
+      return false;
+    }
+  }
+  TermList rhs = EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+  rhsS = qr.substitution->applyToBoundResult(rhs);
+  if (resultTermIsVar) {
+    rhsS = subst.apply(rhsS, 0);
+  }
+  return true;
+}
+
+void ReducibilityChecker::clauseActivated(Clause* cl)
+{
+  TIME_TRACE("ReducibilityChecker::clauseActivated");
+  if (cl->length()!=1) {
+    return;
+  }
+
+  Stack<pair<TypedTermList,Literal*>> pairsToInsert;
+
+  Literal* lit=(*cl)[0];
+  auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  while (lhsi.hasNext()) {
+    auto lhs = lhsi.next();
+    auto qrit = _tis.getInstances(lhs, true);
+    while (qrit.hasNext()) {
+      auto qr = qrit.next();
+      TermList rhs=EqHelper::getOtherEqualitySide(lit, lhs);
+      TermList lhsS=qr.term;
+      TermList rhsS;
+
+      if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
+        //When we apply substitution to the rhs, we get a term, that is
+        //a variant of the term we'd like to get, as new variables are
+        //produced in the substitution application.
+        //We'd rather rename variables in the rhs, than in the whole clause
+        //that we're simplifying.
+        TermList lhsSBadVars=qr.substitution->applyToQuery(lhs);
+        TermList rhsSBadVars=qr.substitution->applyToQuery(rhs);
+        Renaming rNorm, qNorm, qDenorm;
+        rNorm.normalizeVariables(lhsSBadVars);
+        qNorm.normalizeVariables(lhsS);
+        qDenorm.makeInverse(qNorm);
+        ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+        rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+      } else {
+        rhsS=qr.substitution->applyToBoundQuery(rhs);
+      }
+
+      auto t = static_cast<Term*>(qr.literal);
+      auto e = _cache.findPtr(t);
+      Stack<VarOrder> newRest; // build a new rest stack
+      for (const auto& vo : e->rest) {
+        VarOrder::EqApplicator voApp(vo);
+        auto tS = SubstHelper::apply(t, voApp);
+        VarOrder ext = vo;
+        if (qr.term.term() != tS || !_ord.makeGreater(lhsS,rhsS,ext)) {
+          newRest.push(vo);
+          continue;
+        }
+        // this is reduced
+        e->reduced.push(ext);
+        Stack<VarOrder> todo;
+        auto diff = ForwardGroundJoinability::order_diff(vo,ext);
+        for (auto&& evo : diff) {
+          todo.push(std::move(evo));
+        }
+        // reduced, add it to the reduced stack
+        while (todo.isNonEmpty()) {
+          auto vo = todo.pop();
+          VarOrder::EqApplicator voApp(vo);
+          auto tS = SubstHelper::apply(t, voApp);
+          auto it = _index->getGeneralizations(tS,true);
+          bool reduced = false;
+          while (it.hasNext()) {
+            auto qr = it.next();
+            TermList rhsS;
+            if (!getDemodulationRHSCodeTree(qr, tS, rhsS)) {
+              continue;
+            }
+            VarOrder ext = vo;
+            if (!_ord.makeGreater(TermList(tS),rhsS,ext)) {
+              continue;
+            }
+            auto diff = ForwardGroundJoinability::order_diff(vo,ext);
+            for (auto&& evo : diff) {
+              todo.push(std::move(evo));
+            }
+            // reduced, add it to the reduced stack
+            e->reduced.push(ext);
+            reduced = true;
+            break;
+          }
+          if (!reduced) {
+            // could not reduce under this vo, add it to the rest and save it into the index
+            newRest.push(vo);
+            pairsToInsert.push(make_pair(TypedTermList(tS), static_cast<Literal*>(t)));
+          }
+        }
+      }
+      e->rest = newRest;
+    }
+  }
+  while (pairsToInsert.isNonEmpty()) {
+    auto p = pairsToInsert.pop();
+    _tis.insert(p.first, p.second, nullptr);
+  }
+}
+
+ReducibilityChecker::VarOrders* ReducibilityChecker::isTermReducible(Term* t)
+{
+  TIME_TRACE("ReducibilityChecker::isTermReducible");
+
+  VarOrders* vos;
+  if (!_cache.getValuePtr(t, vos)) {
+    return vos;
+  }
+  Stack<VarOrder> todo;
+  todo.push(VarOrder());
+  while (todo.isNonEmpty()) {
+    auto vo = todo.pop();
+    VarOrder::EqApplicator voApp(vo);
+    auto tS = SubstHelper::apply(t, voApp);
+    auto it = _index->getGeneralizations(tS,true);
+    while (it.hasNext()) {
+      auto qr = it.next();
+      TermList rhsS;
+      if (!getDemodulationRHSCodeTree(qr, tS, rhsS)) {
+        continue;
+      }
+      VarOrder ext = vo;
+      if (!_ord.makeGreater(TermList(tS),rhsS,ext)) {
+        continue;
+      }
+      auto diff = ForwardGroundJoinability::order_diff(vo,ext);
+      for (auto&& evo : diff) {
+        todo.push(std::move(evo));
+      }
+      // reduced, add it to the reduced stack
+      vos->reduced.push(ext);
+      goto loop_end;
+    }
+    // could not reduce under this vo, add it to the rest and save it into the index
+    vos->rest.push(vo);
+    _tis.insert(TypedTermList(tS), static_cast<Literal*>(t), nullptr);
+loop_end:
+    continue;
+  }
+
+  return vos;
+}
+
 bool ReducibilityChecker::checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp)
 {
   Stack<Term*> toplevelTerms;
@@ -193,32 +358,42 @@ bool ReducibilityChecker::checkSmaller(const Stack<Literal*>& lits, Term* rwTerm
         stit.right();
         continue;
       }
+
+      auto ptr = isTermReducible(st);
+      for (const auto& other : ptr->reduced) {
+        VarOrder ext = vo;
+        if (ext.tryExtendWith(other)) {
+          auto vos = ForwardGroundJoinability::order_diff(vo,ext);
+          for (auto&& evo : vos) {
+            todo.push(std::move(evo));
+          }
+          goto loop_end;
+        }
+      }
+
       auto it = _index->getGeneralizations(st,true);
       while (it.hasNext()) {
         auto qr = it.next();
-        if (!qr.clause->noSplits()) {
+        TermList rhsS;
+        if (!getDemodulationRHSCodeTree(qr, st, rhsS)) {
           continue;
-        }
-        static RobSubstitution subst;
-        TypedTermList trm(st);
-        bool resultTermIsVar = qr.term.isVar();
-        if(resultTermIsVar){
-          TermList querySort = trm.sort();
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          subst.reset();
-          if(!subst.match(eqSort, 0, querySort, 1)) {
-            continue;
-          }
-        }
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-        TermList rhsS=qr.substitution->applyToBoundResult(rhs);
-        if(resultTermIsVar){
-          rhsS = subst.apply(rhsS, 0);
         }
         VarOrder ext = vo;
         if (!_ord.makeGreater(TermList(st),rhsS,ext)) {
           continue;
         }
+        // cout << "not cached for " << *st << " -> " << rhsS << endl;
+        // cout << "current " << vo.to_string() << endl;
+        // cout << "ext " << ext.to_string() << endl;
+        // cout << "reduced " << endl;
+        // for (const auto& vo : ptr->reduced) {
+        //   cout << vo.to_string() << endl;
+        // }
+        // cout << "rest " << endl;
+        // for (const auto& vo : ptr->rest) {
+        //   cout << vo.to_string() << endl;
+        // }
+        // USER_ERROR("x");
         auto vos = ForwardGroundJoinability::order_diff(vo,ext);
         for (auto&& evo : vos) {
           todo.push(std::move(evo));
@@ -246,27 +421,25 @@ bool ReducibilityChecker::checkSmaller(const Stack<Literal*>& lits, Term* rwTerm
         if (!rwTermSS->isLiteral() && !_ord.makeGreater(TermList(rwTermSS),TermList(st),ext)) {
           continue;
         }
+
+        auto ptr = isTermReducible(st);
+        for (const auto& other : ptr->reduced) {
+          VarOrder ext2 = ext;
+          if (ext2.tryExtendWith(other)) {
+            auto vos = ForwardGroundJoinability::order_diff(vo,ext2);
+            for (auto&& evo : vos) {
+              todo.push(std::move(evo));
+            }
+            goto loop_end;
+          }
+        }
+
         auto it = _index->getGeneralizations(st,true);
         while (it.hasNext()) {
           auto qr = it.next();
-          if (!qr.clause->noSplits()) {
+          TermList rhsS;
+          if (!getDemodulationRHSCodeTree(qr, st, rhsS)) {
             continue;
-          }
-          static RobSubstitution subst;
-          TypedTermList trm(st);
-          bool resultTermIsVar = qr.term.isVar();
-          if(resultTermIsVar){
-            TermList querySort = trm.sort();
-            TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-            subst.reset();
-            if(!subst.match(eqSort, 0, querySort, 1)) {
-              continue;
-            }
-          }
-          TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-          TermList rhsS=qr.substitution->applyToBoundResult(rhs);
-          if(resultTermIsVar){
-            rhsS = subst.apply(rhsS, 0);
           }
           VarOrder ext2 = ext;
           if (!_ord.makeGreater(TermList(st),rhsS,ext2)) {
@@ -286,24 +459,9 @@ bool ReducibilityChecker::checkSmaller(const Stack<Literal*>& lits, Term* rwTerm
       auto it = _index->getGeneralizations(rwTermSS,true);
       while (it.hasNext()) {
         auto qr = it.next();
-        if (!qr.clause->noSplits()) {
+        TermList rhsS;
+        if (!getDemodulationRHSCodeTree(qr, rwTermSS, rhsS)) {
           continue;
-        }
-        static RobSubstitution subst;
-        TypedTermList trm(rwTermSS);
-        bool resultTermIsVar = qr.term.isVar();
-        if(resultTermIsVar){
-          TermList querySort = trm.sort();
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          subst.reset();
-          if(!subst.match(eqSort, 0, querySort, 1)) {
-            continue;
-          }
-        }
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-        TermList rhsS=qr.substitution->applyToBoundResult(rhs);
-        if(resultTermIsVar){
-          rhsS = subst.apply(rhsS, 0);
         }
         VarOrder ext = vo;
         if (!_ord.makeGreater(tgtTermSS,rhsS,ext)) {

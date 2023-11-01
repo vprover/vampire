@@ -558,9 +558,9 @@ vstring PartialOrdering<T>::to_string_raw() const
 }
 
 template<typename T>
-VirtualIterator<std::tuple<const T&,const T&,PoComp>> PartialOrdering<T>::iter_relations() const
+VirtualIterator<std::tuple<T,T,PoComp>> PartialOrdering<T>::iter_relations() const
 {
-  auto res = VirtualIterator<std::tuple<const T&,const T&,PoComp>>::getEmpty();
+  auto res = VirtualIterator<std::tuple<T,T,PoComp>>::getEmpty();
   for (size_t idx_x = 0; idx_x < _size; idx_x++) {
     for (size_t idx_y = idx_x+1; idx_y < _size; idx_y++) {
       auto v = idx_of(idx_x,idx_y);
@@ -592,7 +592,12 @@ bool PartialOrdering<T>::subseteq(const PartialOrdering<T>& other) const
       if (!ptr_y) {
         return false;
       }
-      auto v_o = other.idx_of(*ptr_x,*ptr_y);
+      PoComp v_o;
+      if (*ptr_x < *ptr_y) {
+        v_o = other.idx_of(*ptr_x,*ptr_y);
+      } else {
+        v_o = reverse(other.idx_of(*ptr_y,*ptr_x));
+      }
       if (v != v_o) {
         return false;
       }
@@ -602,137 +607,5 @@ bool PartialOrdering<T>::subseteq(const PartialOrdering<T>& other) const
 }
 
 template class PartialOrdering<unsigned>;
-
-
-  // let set_unsafe g x y v = 
-  //   let x_idx = idx_of_elem g x in
-  //   let y_idx = idx_of_elem g y in
-  //   set' g x_idx y_idx v
-
-  // type res = Eq | Ne | Invalid
-  // let set g x y v = 
-  //   let x_idx = idx_of_elem'' g x in
-  //   let y_idx = idx_of_elem'' g y in
-  //   let old_v = get' g x_idx y_idx in
-  //   if old_v == none then (
-  //     set' g x_idx y_idx v;
-  //     set_inferred' g x_idx y_idx v;
-  //     Ne
-  //   ) else if old_v == v then (
-  //     Eq
-  //   ) else (
-  //     Invalid
-  //   )
-
-  // let mem g x = 
-  //   (* let rec loop g x_idx z_idx max_idx = 
-  //     if z_idx >= max_idx then
-  //       false
-  //     else
-  //       g.table.(idx_of x)
-  //   in
-  //   let x_idx = idx_of_elem g x in
-  //   loop g x_idx (0) (x_idx-1) || loop g x_idx (x_idx+1) (g.size-1) *)
-  //   g.nodes |> M.mem x
-
-  // let iter_elts g f = 
-  //   g.nodes |> M.iter (fun x _ -> f x)
-
-  // let iter_relations g f = 
-  //   let rec loop g f l = 
-  //     let rec loop' g f x l = 
-  //       match l with
-  //       | y::tl -> 
-  //         let (x_elt, x_idx) = x in
-  //         let (y_elt, y_idx) = y in
-  //         let res = get' g x_idx y_idx in
-  //         if res != none then f x_elt y_elt res;
-  //         loop' g f x tl
-  //       | [] -> ()
-  //     in
-  //     match l with
-  //     | x::tl -> loop' g f x tl; loop g f tl
-  //     | [] -> ()
-  //   in
-  //   loop g f (M.bindings g.nodes)
-
-
-
-  // let update' g x_idx y_idx f = 
-  //   if x_idx < y_idx then
-  //     let idx_cmp = idx_of g x_idx y_idx in
-  //     let x = g.table.(idx_cmp) in
-  //     let y = f x in
-  //     g.table.(idx_cmp) <- y
-  //   else if x_idx > y_idx then
-  //     let idx_cmp = idx_of g y_idx x_idx in
-  //     let x = PartialOrd.reverse @@ g.table.(idx_cmp) in
-  //     let y = f x in
-  //     g.table.(idx_cmp) <- PartialOrd.reverse y
-  //   else
-  //     ()
-
-  // (* Add a list of nodes which are linearly sorted *)
-  // (* Invariant: graph is empty (current) *)
-  // let add_sorted g l =
-  //   dassert (fun () -> 
-  //     g.table |> Array.for_all (fun x -> x == none)
-  //   );
-  //   let rec loop g l = 
-  //     match l with
-  //     | [_] -> ()
-  //     | hd::(_::_ as tl) -> 
-  //       tl |> List.iter (fun x -> 
-  //         set' g hd x (if hd == x then EQ else LT)  (* Here was always LT, which is incorrect and results in slightly weaker normalisation in AC *)
-  //       );
-  //       loop g tl
-  //     | [] -> (* assert false; *) ()
-  //   in
-  //   let l_idx = List.map (fun x -> idx_of_elem g x) l in
-  //   loop g l_idx
-
-  // let add_with g cmp x =
-  //   (* From list of nodes, compare with every other node *)
-  //   let x_idx = idx_of_elem g x in
-  //   g.nodes |> M.iter (fun y y_idx ->
-  //     update' g x_idx y_idx (fun res -> 
-  //       if res != none then res else (
-  //         let result = cmp x y in
-  //         set_inferred' g x_idx y_idx result;
-  //         result
-  //       )
-  //     )
-  //   )
-
-  // let add_with_many g cmp l = 
-  //   List.iter (add_with g cmp) l
-
-
-
-  // let wrap g f x y = 
-  //   let x_idx = idx_of_elem g x in
-  //   let y_idx = idx_of_elem g y in
-  //   if x_idx < y_idx then
-  //     let idx_cmp = idx_of g x_idx y_idx in
-  //     let r = g.table.(idx_cmp) in
-  //     if r != none then r else (
-  //       let r' = f x y in
-  //       g.table.(idx_cmp) <- r';
-  //       set_inferred' g x_idx y_idx r';
-  //       r'
-  //     )
-  //   else if x_idx > y_idx then
-  //     let idx_cmp = idx_of g y_idx x_idx in
-  //     let r = g.table.(idx_cmp) in
-  //     if r != none then PartialOrd.reverse r else (
-  //       let r' = f y x in
-  //       g.table.(idx_cmp) <- r';
-  //       set_inferred' g y_idx x_idx r';
-  //       PartialOrd.reverse r'
-  //     )
-  //   else
-  //     EQ
-
-
 
 }

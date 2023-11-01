@@ -60,7 +60,7 @@ public:
   vstring to_string() const;
   vstring to_string_raw() const;
 
-  VirtualIterator<std::tuple<const T&,const T&,PoComp>> iter_relations() const;
+  VirtualIterator<std::tuple<T,T,PoComp>> iter_relations() const;
   bool subseteq(const PartialOrdering& other) const;
 
 private:
