@@ -105,8 +105,6 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
   throw z3::exception(errToString(code));
 }
 
-#define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
-
 Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
   _hasSeenArrays(false),
   _varCnt(0),
@@ -115,7 +113,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
   _config(),
   _context(_config),
   _solver(_context),
-  _model((STATEMENTS_TO_EXPRESSION(_solver.check();), _solver.get_model())),
+  _model((_solver.check(), _solver.get_model())),
   _assumptions(),
   _showZ3(showZ3),
   _unsatCore(unsatCoresForAssumptions),
