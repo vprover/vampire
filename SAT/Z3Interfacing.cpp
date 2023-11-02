@@ -105,8 +105,6 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
   throw z3::exception(errToString(code));
 }
 
-#define STATEMENTS_TO_EXPRESSION(...) [&]() { __VA_ARGS__; return 0; }()
-
 Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
   _hasSeenArrays(false),
   _varCnt(0),
@@ -115,17 +113,12 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
   _config(),
   _context(_config),
   _solver(_context),
-  _model((STATEMENTS_TO_EXPRESSION(
-            BYPASSING_ALLOCATOR;
-            _solver.check();
-          ),
-         _solver.get_model())),
+  _model((_solver.check(), _solver.get_model())),
   _assumptions(),
   _showZ3(showZ3),
   _unsatCore(unsatCoresForAssumptions),
   _out()
 {
-  BYPASSING_ALLOCATOR
   _out = exportSmtlib == "" ? Option<std::ofstream>()
                             : Option<std::ofstream>(std::ofstream(exportSmtlib.c_str())) ;
   if (_out.isSome() && _out.unwrap().fail()) {
@@ -176,7 +169,6 @@ unsigned Z3Interfacing::newVar()
 
 void Z3Interfacing::addClause(SATClause* cl)
 {
-  BYPASSING_ALLOCATOR;
   ASS(cl);
 
   // store to later generate the refutation
@@ -251,7 +243,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATClause* cl)
 
 SATSolver::Status Z3Interfacing::solve()
 {
-  BYPASSING_ALLOCATOR;
   DEBUG("assumptions: ", _assumptions);
 
   output("(check-sat-assuming (");
@@ -329,8 +320,6 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
-  BYPASSING_ALLOCATOR;
-
   ASS_EQ(_status,SATISFIABLE);
   bool named = isNamedExpr(var);
   z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
@@ -506,7 +495,6 @@ SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
 
 z3::sort Z3Interfacing::getz3sort(SortId s)
 {
-  BYPASSING_ALLOCATOR;
   auto srt = _sorts.tryGet(s);
   if (srt.isSome()) {
     return srt.unwrap();
@@ -1118,9 +1106,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 {
-  BYPASSING_ALLOCATOR;
-
-
   //First, does this represent a ground literal
   Literal* lit = _sat2fo.toFO(slit);
   if(lit && lit->ground()){

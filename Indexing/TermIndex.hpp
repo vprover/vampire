@@ -28,7 +28,6 @@ class TermIndex
 : public Index
 {
 public:
-  CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
   virtual ~TermIndex();
@@ -47,7 +46,6 @@ class SuperpositionSubtermIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(SuperpositionSubtermIndex);
   USE_ALLOCATOR(SuperpositionSubtermIndex);
 
   SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
@@ -62,7 +60,6 @@ class SuperpositionLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(SuperpositionLHSIndex);
   USE_ALLOCATOR(SuperpositionLHSIndex);
 
   SuperpositionLHSIndex(TermSubstitutionTree* is, Ordering& ord, const Options& opt)
@@ -95,7 +92,6 @@ class DemodulationSubtermIndexImpl
 : public DemodulationSubtermIndex
 {
 public:
-  CLASS_NAME(DemodulationSubtermIndexImpl);
   USE_ALLOCATOR(DemodulationSubtermIndexImpl);
 
   DemodulationSubtermIndexImpl(TermIndexingStructure* is)
@@ -111,7 +107,6 @@ class DemodulationLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(DemodulationLHSIndex);
   USE_ALLOCATOR(DemodulationLHSIndex);
 
   DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
@@ -130,7 +125,6 @@ class InductionTermIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(InductionTermIndex);
   USE_ALLOCATOR(InductionTermIndex);
 
   InductionTermIndex(TermIndexingStructure* is)
@@ -147,7 +141,6 @@ class StructInductionTermIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(StructInductionTermIndex);
   USE_ALLOCATOR(StructInductionTermIndex);
 
   StructInductionTermIndex(TermIndexingStructure* is)
@@ -165,7 +158,6 @@ class PrimitiveInstantiationIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(PrimitiveInstantiationIndex);
   USE_ALLOCATOR(PrimitiveInstantiationIndex);
 
   PrimitiveInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
@@ -180,7 +172,6 @@ class SubVarSupSubtermIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(SubVarSupSubtermIndex);
   USE_ALLOCATOR(SubVarSupSubtermIndex);
 
   SubVarSupSubtermIndex(TermIndexingStructure* is, Ordering& ord)
@@ -195,7 +186,6 @@ class SubVarSupLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(SubVarSupLHSIndex);
   USE_ALLOCATOR(SubVarSupLHSIndex);
 
   SubVarSupLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
@@ -213,7 +203,6 @@ class NarrowingIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(NarrowingIndex);
   USE_ALLOCATOR(NarrowingIndex);
 
   NarrowingIndex(TermIndexingStructure* is) : TermIndex(is)
@@ -229,7 +218,6 @@ class SkolemisingFormulaIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(SkolemisingFormulaIndex);
   USE_ALLOCATOR(SkolemisingFormulaIndex);
 
   SkolemisingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
@@ -241,7 +229,6 @@ public:
 : public TermIndex
 {
 public:
-  CLASS_NAME(HeuristicInstantiationIndex);
   USE_ALLOCATOR(HeuristicInstantiationIndex);
 
   HeuristicInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
@@ -257,7 +244,6 @@ class RenamingFormulaIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(RenamingFormulaIndex);
   USE_ALLOCATOR(RenamingFormulaIndex);
 
   RenamingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)

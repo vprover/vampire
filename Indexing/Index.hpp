@@ -129,7 +129,6 @@ typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 class Index
 {
 public:
-  CLASS_NAME(Index);
   USE_ALLOCATOR(Index);
 
   virtual ~Index();
@@ -158,7 +157,6 @@ class ClauseSubsumptionIndex
 : public Index
 {
 public:
-  CLASS_NAME(ClauseSubsumptionIndex);
   USE_ALLOCATOR(ClauseSubsumptionIndex);
 
   virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 

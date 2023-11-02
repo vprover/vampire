@@ -204,8 +204,6 @@ void outputClausesToLaTeX(Problem* prb)
 {
   ASS(env.options->latexOutput()!="off");
 
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
-
   LaTeX latex;
   ofstream latexOut(env.options->latexOutput().c_str());
   latexOut << latex.header() << endl;
@@ -237,8 +235,6 @@ void outputClausesToLaTeX(Problem* prb)
 void outputProblemToLaTeX(Problem* prb)
 {
   ASS(env.options->latexOutput()!="off");
-
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
 
   LaTeX latex;
   ofstream latexOut(env.options->latexOutput().c_str());
@@ -581,8 +577,6 @@ int main(int argc, char* argv[])
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
 
-  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
-
   try {
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
@@ -748,7 +742,6 @@ int main(int argc, char* argv[])
   }
 #if VZ3
   catch (z3::exception& exception) {
-    BYPASSING_ALLOCATOR;
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     if (outputAllowed()) {
       cout << "Z3 exception:\n" << exception.msg() << endl;

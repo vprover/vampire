@@ -94,7 +94,6 @@ class RSObject
 public:
   virtual ~RSObject() {};
 
-  CLASS_NAME(RSObject);
 
   virtual void print(std::ostream& out) = 0;
 

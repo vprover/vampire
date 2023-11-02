@@ -36,7 +36,6 @@ class Timer
   ~Timer() { deinitializeTimer(); }
  
 public:
-  CLASS_NAME(Timer);
   USE_ALLOCATOR(Timer);
 
   static Timer* instance();

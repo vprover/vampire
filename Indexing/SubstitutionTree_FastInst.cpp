@@ -38,7 +38,6 @@ class SubstitutionTree::InstMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  CLASS_NAME(SubstitutionTree::InstMatcher::Substitution);
   USE_ALLOCATOR(SubstitutionTree::InstMatcher::Substitution);
   
   Substitution(InstMatcher* parent, Renaming* resultDenormalizer)

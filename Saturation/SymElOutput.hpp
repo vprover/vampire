@@ -33,7 +33,6 @@ using namespace Shell;
  */
 class SymElOutput {
 public:
-  CLASS_NAME(SymElOutput);
   USE_ALLOCATOR(SymElOutput);
   
   SymElOutput();

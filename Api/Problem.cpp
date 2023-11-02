@@ -300,7 +300,6 @@ typedef List<AnnotatedFormula> AFList;
 class Problem::PData
 {
 public:
-  CLASS_NAME(Problem::PData);
   USE_ALLOCATOR(Problem::PData);
   
   PData() : _size(0), _forms(0), _refCnt(0)

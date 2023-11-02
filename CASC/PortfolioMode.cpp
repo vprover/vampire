@@ -501,9 +501,6 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
      * the user didn't wish a proof in the file, so we printed it to the secret tmp file
      * now it's time to restore it.
      */
-
-    BYPASSING_ALLOCATOR; 
-    
     ifstream input(_tmpFileNameForProof);
 
     bool openSucceeded = !input.fail();
@@ -692,8 +689,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       fname = _tmpFileNameForProof;
     }
 
-    BYPASSING_ALLOCATOR; 
-    
     ofstream output(fname.c_str());
     if (output.fail()) {
       // fallback to old printing method
@@ -722,8 +717,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if (outputResult) {
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
-
-  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
   exit(resultValue);
 } // runSlice

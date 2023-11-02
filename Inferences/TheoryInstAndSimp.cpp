@@ -93,10 +93,7 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTauto
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
-  , _solver([&](){ 
-      BYPASSING_ALLOCATOR; 
-      return new Z3Interfacing(_naming, showZ3,   /* unsatCoresForAssumptions = */ generalisation, exportSmtlib); 
-    }())
+  , _solver(new Z3Interfacing(_naming, showZ3, /* unsatCoresForAssumptions = */ generalisation, exportSmtlib))
   , _generalisation(generalisation)
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")
@@ -604,8 +601,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals 
 
 template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp::skolemize(IterLits lits) 
 {
-
-  BYPASSING_ALLOCATOR;
   // Currently we just get the single solution from Z3
 
 
@@ -649,8 +644,6 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
 
 
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar) {
-  BYPASSING_ALLOCATOR;
-
   auto skolemized = skolemize(iterTraits(getConcatenatedIterator(
           theoryLiterals.iterFifo(),
           guards.iterFifo()
@@ -983,7 +976,6 @@ std::ostream& operator<<(std::ostream& out, Solution const& self)
 
 TheoryInstAndSimp::~TheoryInstAndSimp()
 {
-  BYPASSING_ALLOCATOR
   delete _solver;
 }
 

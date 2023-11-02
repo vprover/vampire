@@ -23,7 +23,6 @@ template <typename Index>
 class RequestedIndex final
 {
   public:
-    CLASS_NAME(RequestedIndex);
     USE_ALLOCATOR(RequestedIndex);
 
     RequestedIndex()

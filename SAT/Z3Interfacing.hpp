@@ -56,7 +56,6 @@ namespace SAT{
 class Z3Interfacing : public PrimitiveProofRecordingSATSolver
 {
 public:
-  CLASS_NAME(Z3Interfacing);
   USE_ALLOCATOR(Z3Interfacing);
 
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
