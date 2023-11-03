@@ -515,6 +515,9 @@ void PartialOrdering<T>::set_inferred(size_t idx_x, size_t idx_y, PoComp result)
 template<typename T>
 vstring PartialOrdering<T>::to_string() const
 {
+  if (_nodes.size()<2) {
+    return "{}";
+  }
   vstringstream str;
   typename DHMap<T,size_t>::Iterator vit1(_nodes);
   while (vit1.hasNext()) {

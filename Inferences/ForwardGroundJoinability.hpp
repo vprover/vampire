@@ -55,6 +55,10 @@ protected:
     TermList s;
     TermList t;
     std::pair<bool,bool> cflags;
+
+    vstring toString() const {
+      return "s: " + s.toString() + ", t: " + t.toString() + ", vo: " + vo.to_string() + ", cc: {" + Int::toString(cflags.first) + "," + Int::toString(cflags.second) + "}";
+    }
   };
 
   bool join(TermList s, TermList t, bool checkCompleteness);

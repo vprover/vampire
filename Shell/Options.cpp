@@ -1648,6 +1648,13 @@ void Options::init()
     _forwardDemodulation.tag(OptionTag::INFERENCES);
     _forwardDemodulation.setRandomChoices({"all","all","all","off","preordered"});
     
+    _forwardGroundJoinability = BoolOptionValue("forward_ground_joinability","fgj",false);
+    _forwardGroundJoinability.description="Enable forward ground joinability (see Duarte and Korovin @ IJCAR2022).";
+    _lookup.insert(&_forwardGroundJoinability);
+    _forwardGroundJoinability.onlyUsefulWith(ProperSaturationAlgorithm());
+    _forwardGroundJoinability.tag(OptionTag::INFERENCES);
+    _forwardGroundJoinability.setRandomChoices({"on","off"});
+
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
     _lookup.insert(&_forwardLiteralRewriting);

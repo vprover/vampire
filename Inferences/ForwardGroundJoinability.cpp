@@ -24,6 +24,20 @@
 
 #include "ForwardGroundJoinability.hpp"
 
+#define LOGGING 0
+
+#if LOGGING
+#define LOG1(s,arg) s << arg << endl;
+#define LOG2(s,a1,a2) s << a1 << a2 << endl;
+#define LOG3(s,a1,a2,a3) s << a1 << a2 << a3 << endl;
+#define LOG4(s,a1,a2,a3,a4) s << a1 << a2 << a3 << a4 << endl;
+#else
+#define LOG1(s,arg)
+#define LOG2(s,a1,a2)
+#define LOG3(s,a1,a2,a3)
+#define LOG4(s,a1,a2,a3,a4)
+#endif
+
 namespace Inferences {
 
 using namespace Lib;
@@ -85,6 +99,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
     if (join(s,t,checkCompleteness)) {
       env.statistics->forwardGroundJoinableEqs++;
       premises = pvi(iterTraits(_premises.iterator()).persistent());
+      // cout << "could join " << *cl << endl;
 
       if (lit->isNegative()) {
         auto clen = cl->length()-1;
@@ -151,27 +166,39 @@ bool ForwardGroundJoinability::join(TermList s, TermList t, bool checkCompletene
   while (todo.isNonEmpty()) {
     auto curr = todo.pop();
     auto& c = curr.cflags;
+    LOG2(cout,"join ",curr.toString());
     normalise(curr.s, curr.t, curr.vo, c.first, c.second);
     if (curr.s == curr.t) {
       continue;
     }
+    LOG2(cout,"normalised ",curr.toString());
     // found a total variable preorder under which the terms don't join
     if (curr.vo.is_total(vars.size())) {
+      LOG2(cout,"total ",curr.toString());
       return false;
     }
-    TermList sp = curr.s;
-    TermList tp = curr.t;
-    auto cp = c;
-    // we have to extend vo via some rewrite
+    State ext {
+      .vo = curr.vo,
+      .s = curr.s,
+      .t = curr.t,
+      .cflags = c,
+    };
+    // TermList sp = curr.s;
+    // TermList tp = curr.t;
+    // auto cp = c;
+    // // we have to extend vo via some rewrite
     bool joined = false;
-    VarOrder ext = curr.vo;
-    while (extend(sp, cp.first, ext) || extend(tp, cp.second, ext)) {
-      normalise(sp, tp, ext, cp.first, cp.second);
-      if (sp == tp) {
+    // VarOrder ext = curr.vo;
+    while (extend(ext.s, ext.cflags.first, ext.vo) || extend(ext.t, ext.cflags.second, ext.vo)) {
+      LOG2(cout,"extended ",ext.toString());
+      normalise(ext.s, ext.t, ext.vo, ext.cflags.first, ext.cflags.second);
+      LOG2(cout,"normalised ",ext.toString());
+      if (ext.s == ext.t) {
+        LOG2(cout,"joined ",ext.toString());
         joined = true;
         // cout << "removing " << ext.to_string() << endl
         //      << "from " << curr.vo.to_string() << endl;
-        auto vos = order_diff(curr.vo,ext);
+        auto vos = order_diff(curr.vo,ext.vo);
         for (const auto& evo : vos) {
           VarOrder::EqApplicator voApp(evo);
           todo.push(State {
@@ -187,6 +214,7 @@ bool ForwardGroundJoinability::join(TermList s, TermList t, bool checkCompletene
       // curr.vo = ext; // TODO this is in the pseudocode, although I think incorrectly
     }
     if (!joined) {
+      LOG2(cout,"could not join ",curr.toString());
       return false;
     }
   }
@@ -205,7 +233,7 @@ void ForwardGroundJoinability::normalise(TermList& s, TermList& t, const VarOrde
 
   do {
     reduced = false;
-    NonVariableNonTypeIterator it(s, t, false, false/* , !checkCompleteness */); // TODO top-level rewrites with completeness check
+    NonVariableNonTypeIterator it(s, t, !cc_s, !cc_t); // TODO top-level rewrites with completeness check
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       TermList* cptr;
@@ -277,7 +305,7 @@ bool ForwardGroundJoinability::extend(TermList& t, bool& checkCompleteness, VarO
   if (t.isVar()) {
     return false;
   }
-  NonVariableNonTypeIterator it(t.term()/* , !checkCompleteness */); // TODO top-level rewrites with completeness check
+  NonVariableNonTypeIterator it(t.term(), !checkCompleteness); // TODO top-level rewrites with completeness check
   while(it.hasNext()) {
     TypedTermList trm = it.next();
     if (!attempted.insert(trm.term())) {

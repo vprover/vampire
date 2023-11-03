@@ -62,4 +62,56 @@ TEST_FW_SIMPLIFY(test_3,
       .expected( clause({}) )
     )
 
+TEST_FW_SIMPLIFY(test_4,
+    ForwardSimplification::TestCase()
+      .rule(new ForwardGroundJoinability())
+      .input(    clause({ f(f(x,y),z) != f(y,f(z,x)) }))
+      .context({
+        clause({ f(x,y) == f(y,x) }),
+        clause({ f(x,f(y,z)) == f(f(x,y),z) }),
+        clause({ f(x,f(y,z)) == f(y,f(x,z)) }),
+      })
+      .indices(&getIndices)
+      .expected( clause({}) )
+    )
+
+TEST_FW_SIMPLIFY(test_5,
+    ForwardSimplification::TestCase()
+      .rule(new ForwardGroundJoinability())
+      .input(    clause({ f(f(f(x,y),z),x) != f(f(y,f(x,x)),z) }))
+      .context({
+        clause({ f(x,y) == f(y,x) }),
+        clause({ f(x,f(y,z)) == f(f(x,y),z) }),
+        clause({ f(x,f(y,z)) == f(y,f(x,z)) }),
+      })
+      .indices(&getIndices)
+      .expected( clause({}) )
+    )
+
+TEST_FW_SIMPLIFY(test_6,
+    ForwardSimplification::TestCase()
+      .rule(new ForwardGroundJoinability())
+      .input(    clause({ f(f(x,y),z) == f(y,f(z,x)) }))
+      .context({
+        clause({ f(x,y) == f(y,x) }),
+        clause({ f(x,f(y,z)) == f(f(x,y),z) }),
+        clause({ f(x,f(y,z)) == f(y,f(x,z)) }),
+      })
+      .indices(&getIndices)
+      .expected( nullptr )
+    )
+
+TEST_FW_SIMPLIFY(test_7,
+    ForwardSimplification::TestCase()
+      .rule(new ForwardGroundJoinability())
+      .input(    clause({ f(f(f(x,y),z),x) == f(f(y,f(x,x)),z) }))
+      .context({
+        clause({ f(x,y) == f(y,x) }),
+        clause({ f(x,f(y,z)) == f(f(x,y),z) }),
+        clause({ f(x,f(y,z)) == f(y,f(x,z)) }),
+      })
+      .indices(&getIndices)
+      .expected( nullptr )
+    )
+
 } // TestForwardGroundJoinability
