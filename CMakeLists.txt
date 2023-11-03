@@ -710,6 +710,9 @@ set(VAMPIRE_TESTING_SOURCES
     Test/SyntaxSugar.cpp
     Test/TestUtils.hpp
     Test/TestUtils.cpp
+    Test/GenerationTester.hpp
+    Test/SimplificationTester.hpp
+    Test/ForwardSimplificationTester.hpp
     )
 source_group(testing_files FILES ${VAMPIRE_TESTING_SOURCES})
 
@@ -717,6 +720,7 @@ set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tForwardGroundJoinability.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp

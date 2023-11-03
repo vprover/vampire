@@ -35,6 +35,9 @@ inline TermList replace(TermList t, TermList what, TermList by) {
   if (t == what) {
     return by;
   }
+  if (t.isVar()) {
+    return t;
+  }
   return TermList(EqHelper::replace(t.term(), what, by));
 }
 
@@ -73,7 +76,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
   for (unsigned i = 0; i < cl->length(); i++) {
     auto lit = (*cl)[i];
-    if (!lit->isEquality()) {
+    if (!lit->isEquality() || lit->ground()) {
       continue;
     }
     _premises.reset();
@@ -99,6 +102,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
             (*res)[j++] = curr;
           }
         }
+        replacement = res;
         ASS_EQ(j,clen);
       }
       return true;

@@ -114,12 +114,12 @@ public:
   CLASS_NAME(DemodulationLHSIndex);
   USE_ALLOCATOR(DemodulationLHSIndex);
 
-  DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
+  DemodulationLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
-  Ordering& _ord;
+  const Ordering& _ord;
   const Options& _opt;
 };
 
