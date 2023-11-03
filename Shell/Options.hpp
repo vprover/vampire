@@ -2196,6 +2196,7 @@ public:
   KboWeightGenerationScheme kboWeightGenerationScheme() const { return _kboWeightGenerationScheme.actualValue; }
   bool kboMaxZero() const { return _kboMaxZero.actualValue; }
   const KboAdmissibilityCheck kboAdmissabilityCheck() const { return _kboAdmissabilityCheck.actualValue; }
+  bool kboImprovedGreater() const { return _kboImprovedGreater.actualValue; }
   const vstring& functionWeights() const { return _functionWeights.actualValue; }
   const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
@@ -2743,6 +2744,7 @@ private:
   ChoiceOptionValue<KboWeightGenerationScheme> _kboWeightGenerationScheme;
   BoolOptionValue _kboMaxZero;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
+  BoolOptionValue _kboImprovedGreater;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
   StringOptionValue _typeConPrecedence;

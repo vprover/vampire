@@ -2166,6 +2166,13 @@ void Options::init()
     _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
 
+    _kboImprovedGreater = BoolOptionValue("kbo_improved_greater","kig",false);
+    _kboImprovedGreater.setExperimental();
+    _kboImprovedGreater.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _kboImprovedGreater.tag(OptionTag::SATURATION);
+    _kboImprovedGreater.description="Cache term weights and return early when checking t1 > t2.";
+    _lookup.insert(&_kboImprovedGreater);
+
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
                                      {"error","warning" });
