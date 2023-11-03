@@ -35,7 +35,6 @@ using namespace Kernel;
  *
  */
 class FiniteModel {
- CLASS_NAME(FiniteModel);
  USE_ALLOCATOR(FiniteModel);
 
 public:

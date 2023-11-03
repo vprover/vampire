@@ -54,7 +54,6 @@ public:
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
 
-  CLASS_NAME(Stack);
   USE_ALLOCATOR(Stack);
 
   /**
@@ -788,7 +787,6 @@ protected:
   {
     Stack* st;
   public:
-    CLASS_NAME(Stack::PushBacktrackObject);
     USE_ALLOCATOR(Stack::PushBacktrackObject);
     
     PushBacktrackObject(Stack* st) : st(st) {}

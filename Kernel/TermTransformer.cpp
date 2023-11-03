@@ -72,7 +72,7 @@ Term* TermTransformer::transform(Term* term)
       if(orig->isSort()){
         //For most applications we probably dont want to transform sorts.
         //However, we don't enforce that here, inheriting classes can decide
-        //for themselves        
+        //for themselves
         newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
       } else {
         newTrm=Term::create(orig,argLst);
@@ -226,15 +226,18 @@ Term* TermTransformer::transformSpecial(Term* term)
 
 TermList TermTransformer::transform(TermList ts)
 {
-  if (ts.isVar()) {
-    return transformSubterm(ts);
+  // first let's try transforming ts directly
+  TermList transformed = transformSubterm(ts);
+  if (transformed != ts) {
+    // we did transform, so we are done
+    return transformed;
+  } else if (ts.isVar()) {
+    // we didn't transform, but it's a var (no way to recurse)
+    return ts;
   } else {
-    Term* transformed = transform(ts.term());
-    if (transformed != ts.term()) {
-      return TermList(transformed);
-    } else {
-      return ts;
-    }
+    // try transform subterms
+    ASS(ts.isTerm());
+    return TermList(transform(ts.term()));
   }
 }
 

@@ -40,7 +40,6 @@ struct CycleQueryResult {
     clausesTheta(c)
   {}
 
-  CLASS_NAME(CycleQueryResult);
   USE_ALLOCATOR(CycleQueryResult);
 
   unsigned totalLengthClauses();
@@ -68,7 +67,6 @@ public:
 
   CycleQueryResultsIterator queryCycles(Kernel::Literal *lit, Kernel::Clause *c);
              
-  CLASS_NAME(AcyclicityIndex);
   USE_ALLOCATOR(AcyclicityIndex);
 protected:
   void handleClause(Kernel::Clause* c, bool adding);

@@ -144,7 +144,6 @@ struct PredicateDefinition::PredData
 	+ ") -(" + Int::toString(nocc) + ") 0(" + Int::toString(docc) + ")";
   }
 
-  CLASS_NAME(PredicateDefinition::PredData);  
 };
 
 PredicateDefinition::PredicateDefinition()

@@ -58,7 +58,6 @@ public:
     _varDiffs.reset();
   }
 
-  CLASS_NAME(SKIKBO::State);
   USE_ALLOCATOR(State);
 
   void traverse(ArgsIt_ptr aai1, ArgsIt_ptr aai2);

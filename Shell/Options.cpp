@@ -2472,10 +2472,6 @@ void Options::output (ostream& str) const
   }
 
   if(!explainOption().empty()){
-
-    //We bypass the allocator here because of the use of vstringstream
-    BYPASSING_ALLOCATOR;
-
      AbstractOptionValue* option;
      vstring name = explainOption();
      try{
@@ -2535,10 +2531,6 @@ void Options::output (ostream& str) const
   bool experimental = showExperimentalOptions();  
   
   if(normalshow || experimental) {
-
-    //We bypass the allocator here because of the use of vstringstream
-    BYPASSING_ALLOCATOR;
-
     Mode this_mode = _mode.actualValue;
     //str << "=========== Options ==========\n";
 
@@ -2596,7 +2588,6 @@ void Options::output (ostream& str) const
         oit.next()->output(str,lineWrapInShowOptions());
       }
       //str << (*groups[i]).str();
-      //BYPASSING_ALLOCATOR;
       //delete groups[i];
     }
 
@@ -2999,7 +2990,7 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
         while(it.hasNext()) {
           vstring mulval = it.next();
           StringUtils::splitStr(mulval.c_str(),':',pair);
-          StringUtils::dropEmpty(pair);
+          // StringUtils::dropEmpty(pair);
           if (pair.size() != 2) {
             USER_ERROR("Sampling file parse error -- invalid mulval: "+mulval);
           }
@@ -3284,7 +3275,6 @@ void Options::setForcedOptionValues()
  */
 vstring Options::generateEncodedOptions() const
 {
-  BYPASSING_ALLOCATOR;
   vostringstream res;
   //saturation algorithm
   vstring sat;

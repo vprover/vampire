@@ -31,7 +31,6 @@ namespace Lib {
 typedef std::basic_ostringstream<char,std::char_traits<char>,STLAllocator<char> > vostringstream_base;
 
 struct vostringstream : public vostringstream_base {
-  CLASS_NAME(vostringstream);
   USE_ALLOCATOR(vostringstream);
   
   // inherit parent's constructors (c++11)
@@ -42,7 +41,6 @@ struct vostringstream : public vostringstream_base {
 typedef std::basic_istringstream<char,std::char_traits<char>,STLAllocator<char> > vistringstream_base;
 
 struct vistringstream : public vistringstream_base {
-  CLASS_NAME(vistringstream);
   USE_ALLOCATOR(vistringstream);
   
   // inherit parent's constructors (c++11)
@@ -53,7 +51,6 @@ struct vistringstream : public vistringstream_base {
 typedef std::basic_stringstream<char,std::char_traits<char>,STLAllocator<char> > vstringstream_base;
 
 struct vstringstream : public vstringstream_base {
-  CLASS_NAME(vstringstream);
   USE_ALLOCATOR(vstringstream);
   
   // inherit parent's constructors (c++11)
