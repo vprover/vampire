@@ -12,6 +12,8 @@
  * Implements class EqHelper.
  */
 
+#include <cstring>
+
 #include "PartialOrdering.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Metaiterators.hpp"

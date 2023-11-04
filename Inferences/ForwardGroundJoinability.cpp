@@ -85,9 +85,10 @@ void ForwardGroundJoinability::detach()
 bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward ground joinability");
-  const bool checkCompleteness = cl->length()==1 && (*cl)[0]->isEquality() && (*cl)[0]->isPositive();
+  unsigned clen = cl->length();
+  const bool checkCompleteness = clen==1 && (*cl)[0]->isEquality() && (*cl)[0]->isPositive();
 
-  for (unsigned i = 0; i < cl->length(); i++) {
+  for (unsigned i = 0; i < clen; i++) {
     auto lit = (*cl)[i];
     if (!lit->isEquality() || lit->ground()) {
       continue;
@@ -101,12 +102,12 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
       // cout << "could join " << *cl << endl;
 
       if (lit->isNegative()) {
-        auto clen = cl->length()-1;
+        auto newLen = clen-1;
         auto prems = UnitList::empty();
         UnitList::pushFromIterator(_premises.iterator(), prems);
         UnitList::push(cl, prems);
 
-        Clause* res = new(clen) Clause(clen,
+        Clause* res = new(newLen) Clause(newLen,
           SimplifyingInferenceMany(InferenceRule::FORWARD_GROUND_JOINABILITY, prems));
 
         unsigned j = 0;
@@ -117,7 +118,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
           }
         }
         replacement = res;
-        ASS_EQ(j,clen);
+        ASS_EQ(j,newLen);
       }
       return true;
     }
@@ -354,6 +355,7 @@ bool ForwardGroundJoinability::extend(TermList& t, bool& checkCompleteness, VarO
       t = replace(t,trm,rhsS);
       // cout << "extended the order to " << temp.to_string() << " with eq " << *trm.term() << " = " << rhsS << endl;
       ext = temp;
+      _premises.insert(qr.clause);
       checkCompleteness = false;
       return true;
     }
