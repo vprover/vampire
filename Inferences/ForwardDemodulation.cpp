@@ -54,25 +54,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-struct Binder {
-  Binder(Substitution& subst) : subst(subst) {}
-
-  bool bind(unsigned var, TermList term)
-  {
-    TermList t;
-    if (subst.findBinding(var, t)) {
-      return t == term;
-    }
-    subst.bind(var,term);
-    return true;
-  }
-
-  void reset() { subst.reset(); }
-  void specVar(unsigned var, TermList term) { ASSERTION_VIOLATION; }
-
-  Substitution& subst;
-};
-
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);

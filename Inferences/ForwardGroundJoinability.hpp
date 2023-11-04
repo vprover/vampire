@@ -51,19 +51,26 @@ public:
 
 protected:
   struct State {
+    State(VarOrder&& vo, TermList s, TermList t, bool cc_s, bool cc_t, TermList orig_s, TermList orig_t)
+      : vo(std::move(vo)), s(s), t(t), cc_s(cc_s), cc_t(cc_t), orig_s(orig_s), orig_t(orig_t) {}
     VarOrder vo;
     TermList s;
     TermList t;
-    std::pair<bool,bool> cflags;
+
+    // these are for checking completeness
+    bool cc_s;
+    bool cc_t;
+    TermList orig_s;
+    TermList orig_t;
 
     vstring toString() const {
-      return "s: " + s.toString() + ", t: " + t.toString() + ", vo: " + vo.to_string() + ", cc: {" + Int::toString(cflags.first) + "," + Int::toString(cflags.second) + "}";
+      return "s: " + s.toString() + ", t: " + t.toString() + ", vo: " + vo.to_string() + ", cc: {" + Int::toString(cc_s) + "," + Int::toString(cc_t) + "}";
     }
   };
 
   bool join(TermList s, TermList t, bool checkCompleteness);
-  void normalise(TermList& s, TermList& t, const VarOrder& vo, bool& cc_s, bool& cc_t);
-  bool extend(TermList& t, bool& checkCompleteness, VarOrder& ext);
+  void normalise(State& state);
+  bool extend(TermList& t, bool& checkCompleteness, VarOrder& ext, TermList other);
 
   bool _preorderedOnly;
   bool _redundancyCheck;
