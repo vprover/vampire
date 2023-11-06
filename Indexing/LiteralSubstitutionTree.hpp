@@ -37,7 +37,6 @@ class LiteralSubstitutionTree
   using Leaf = SubstitutionTree::Leaf;
 
 public:
-  CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
   LiteralSubstitutionTree();

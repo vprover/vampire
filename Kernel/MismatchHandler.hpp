@@ -34,7 +34,6 @@ class UnificationConstraintStack
 {
   Stack<UnificationConstraint> _cont;
 public:
-  CLASS_NAME(UnificationConstraintStack)
   USE_ALLOCATOR(UnificationConstraintStack)
   UnificationConstraintStack() : _cont() {}
   UnificationConstraintStack(UnificationConstraintStack&&) = default;

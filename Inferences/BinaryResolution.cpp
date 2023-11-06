@@ -24,6 +24,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
@@ -37,6 +38,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -299,7 +301,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
   // measure time of the overall processing
-  auto it5 = timeTraceIter("resolution", it4);
+  auto it5 = TIME_TRACE_ITER("resolution", it4);
 
   return pvi(it5);
 }

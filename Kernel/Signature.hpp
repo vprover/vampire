@@ -151,8 +151,12 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
+    /** if introduced for naming a subformula */
+    unsigned _namesFormula : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
+    /** if allowed in answer literals */
+    unsigned _computable : 1;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -189,6 +193,8 @@ class Signature
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
     void markTermAlgebraDest() { _termAlgebraDest=1; }
+    /** mark the symbol as uncomputable and hence not allowed in answer literals */
+    void markUncomputable() { _computable = 0; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -237,6 +243,8 @@ class Signature
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
+    /** Return true iff symbol is considered computable */
+    inline bool computable() const { return _computable; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -256,6 +264,9 @@ class Signature
 
     inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
+
+    inline void markNamesFormula() { _namesFormula = 1; }
+    inline bool namesFormula() { return _namesFormula; }
 
     inline void markTuple(){ _tuple = 1; }
     inline bool tupleSort(){ return _tuple; }
@@ -305,7 +316,6 @@ class Signature
     OperatorType* predType() const;
     OperatorType* typeConType() const;
 
-    CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
@@ -324,7 +334,6 @@ class Signature
     {
     }
 
-    CLASS_NAME(Signature::InterpretedSymbol);
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
@@ -345,7 +354,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
-    CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
   };
 
@@ -363,7 +371,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
-    CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
   };
 
@@ -381,7 +388,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
-    CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   }; 
 
@@ -425,7 +431,7 @@ class Signature
    */
   unsigned addStringConstant(const vstring& name);
   unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
+  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0, bool computable = false);
   unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
@@ -569,7 +575,6 @@ class Signature
   Signature();
   ~Signature();
 
-  CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);
 
   bool functionExists(const vstring& name,unsigned arity) const;

@@ -24,7 +24,6 @@ class DistinctEqualitySimplifier
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(DistinctEqualitySimplifier);
   USE_ALLOCATOR(DistinctEqualitySimplifier);
 
   Clause* simplify(Clause* cl);

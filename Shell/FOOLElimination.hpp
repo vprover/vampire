@@ -46,9 +46,12 @@ private:
 
   /** A list of definitions, produced during preprocessing */
   UnitList* _defs;
+  /** A list of definitions (a sublist of the above, but not sharing memory),
+   * relevant to the currently processed unit. To become part of its premises. */
+  UnitList* _currentDefs;
   bool _higherOrder;
   bool _polymorphic;
- 
+
   /** Add a new definitions to _defs */
   void addDefinition(FormulaUnit* unit);
 

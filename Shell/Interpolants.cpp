@@ -71,7 +71,6 @@ namespace Shell
     
     void Interpolants::removeTheoryInferences(Unit* refutation)
     {
-        BYPASSING_ALLOCATOR;
         ProofIteratorPostOrder it(refutation);
         while (it.hasNext()) // traverse the proof in depth-first post order
         {
@@ -141,7 +140,6 @@ namespace Shell
      */
     Formula* Interpolants::getInterpolant(Unit *refutation, UnitWeight weightFunction)
     {
-        BYPASSING_ALLOCATOR;
         /*
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          */

@@ -269,7 +269,7 @@ public:
   template<typename T>
   static unsigned hash(Lib::Option<T> const& o) 
   { return o.isSome() ? Lib::DefaultHash::hash(*o)
-                      : Lib::DefaultHash::hash(typeid(T).hash_code()); }
+                      : Lib::DefaultHash::hash(0); }
 };
 
 // a default secondary hash for doubly-hashed containers
@@ -345,7 +345,7 @@ public:
   template<typename T>
   static unsigned hash(Lib::Option<T> const& o) 
   { return o.isSome() ? Lib::DefaultHash2::hash(*o)
-                      : Lib::DefaultHash2::hash(typeid(T).hash_code()); }
+                      : Lib::DefaultHash2::hash(0); }
 };
 
 } // namespace Lib

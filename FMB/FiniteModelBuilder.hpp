@@ -57,7 +57,6 @@ using namespace SAT;
 
 class FiniteModelBuilder : public MainLoop {
 public:
-  CLASS_NAME(FiniteModedlBuilder);
   USE_ALLOCATOR(FiniteModelBuilder);    
   
   FiniteModelBuilder(Problem& prb, const Options& opt);
@@ -252,7 +251,6 @@ private:
 
   class HackyDSAE : public DSAEnumerator {
     struct Constraint_Generator {
-      CLASS_NAME(FiniteModedlBuilder::HackyDSAE::Constraint_Generator);
       USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE::Constraint_Generator);
 
       Constraint_Generator_Vals _vals;
@@ -289,7 +287,6 @@ private:
     bool checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint);
 
   public:
-    CLASS_NAME(FiniteModedlBuilder::HackyDSAE);
     USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE);
 
     HackyDSAE(bool keepOldGenerators) : _maxWeightSoFar(0), _keepOldGenerators(keepOldGenerators) {}
@@ -318,7 +315,6 @@ private:
     void reportZ3OutOfMemory();
   public:
     // the following is not sufficient, since z3::solver and z3::context allocate internally
-    CLASS_NAME(FiniteModedlBuilder::SmtBasedDSAE);
     USE_ALLOCATOR(FiniteModelBuilder::SmtBasedDSAE);
 
     SmtBasedDSAE() : _smtSolver(_context) {}

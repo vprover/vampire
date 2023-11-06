@@ -37,14 +37,13 @@ public:
   ~ArrayTermTransformer();
   Literal* rewriteNegEqByExtensionality(Literal* l);
 protected:
-  TermList transformSubterm(TermList trm);
+  TermList transformSubterm(TermList trm) override;
 };
 
 class ArrayTheoryISE
   : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(ArrayTheoryISE);
   USE_ALLOCATOR(ArrayTheoryISE);
 
   ArrayTheoryISE();

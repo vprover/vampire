@@ -57,7 +57,6 @@ template <typename Key, typename Val, class Hash1, class Hash2>
 class DHMap
 {
 public:
-  CLASS_NAME(DHMap);
   USE_ALLOCATOR(DHMap);
   
   /** Create a new DHMap */
@@ -103,7 +102,6 @@ public:
       ASS_EQ(_afterLast-_entries,_capacity);
       array_delete(_entries, _capacity);
       DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
-//      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),typeid(Entry).name());
     }
   }
 
@@ -531,7 +529,6 @@ private:
 
     int newCapacity=DHMapTableCapacities[_capacityIndex+1];
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
-//    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),typeid(Entry).name());
 
     //std::cout << (_size+_deleted) << std::endl;
 
@@ -561,7 +558,6 @@ private:
     //std::cout << "copied" << std::endl;
     if(oldCapacity) {
       DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
-//      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),typeid(Entry).name());
     }
   }
 

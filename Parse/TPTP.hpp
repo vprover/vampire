@@ -356,7 +356,6 @@ private:
    */
   class Type {
   public:
-    CLASS_NAME(Type);
     USE_ALLOCATOR(Type);
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
@@ -371,7 +370,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(AtomicType);
     USE_ALLOCATOR(AtomicType);
     explicit AtomicType(TermList sort)
       : Type(TT_ATOMIC), _sort(sort)
@@ -388,7 +386,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(ArrowType);
     USE_ALLOCATOR(ArrowType);
     ArrowType(Type* lhs,Type* rhs)
       : Type(TT_ARROW), _lhs(lhs), _rhs(rhs)
@@ -412,7 +409,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(ProductType);
     USE_ALLOCATOR(ProductType);
     ProductType(Type* lhs,Type* rhs)
       : Type(TT_PRODUCT), _lhs(lhs), _rhs(rhs)
@@ -434,7 +430,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(QuantifiedType);
     USE_ALLOCATOR(QuantifiedType);
     QuantifiedType(Type* t, VList* vars)
       : Type(TT_QUANTIFIED), _type(t), _vars(vars)
@@ -842,6 +837,9 @@ public:
   static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
+
+  // also here, simply made public static to share the code with another use site
+  static Unit* processClaimFormula(Unit* unit, Formula* f, const vstring& nm);
 
   /**
    * Used to store the contents of the 'source' of an input formula

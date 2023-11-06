@@ -129,7 +129,6 @@
   public:
     static constexpr int QRS_QUERY_BANK = 0;
     static constexpr int QRS_RESULT_BANK = 1;
-    CLASS_NAME(SubstitutionTree);
     USE_ALLOCATOR(SubstitutionTree);
 
     SubstitutionTree();
@@ -482,7 +481,6 @@
       }
 #endif
 
-      CLASS_NAME(SubstitutionTree::UArrIntermediateNode);
       USE_ALLOCATOR(UArrIntermediateNode);
 
       int _size;
@@ -553,7 +551,6 @@
       inline void remove(TermList::Top t)
       { _nodes.remove(t); }
 
-      CLASS_NAME(SubstitutionTree::SListIntermediateNode);
       USE_ALLOCATOR(SListIntermediateNode);
 
       class NodePtrComparator
@@ -786,7 +783,6 @@
 
 
 
-      CLASS_NAME(SubstitutionTree::GenMatcher);
       USE_ALLOCATOR(GenMatcher);
 
       /**
@@ -963,7 +959,6 @@
     {
     public:
 
-      CLASS_NAME(SubstitutionTree::InstMatcher);
       USE_ALLOCATOR(InstMatcher);
 
       struct TermSpec

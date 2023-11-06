@@ -120,8 +120,16 @@ Index* IndexManager::create(IndexType t)
     res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
+  case URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
+    res=new UnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
+    isGenerating = true;
+    break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
     res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
+    isGenerating = true;
+    break;
+  case URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
+    res=new NonUnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 

@@ -470,7 +470,6 @@ class UnificationConstraint
 public:
   // TODO get rid of default constr
   UnificationConstraint() {}
-  CLASS_NAME(UnificationConstraint)
   USE_ALLOCATOR(UnificationConstraint)
   // UnificationConstraint(UnificationConstraint&&) = default;
   // UnificationConstraint& operator=(UnificationConstraint&&) = default;
@@ -517,7 +516,6 @@ class RobSubstitution
   // mutable OnlyMemorizeBigAtomic<TermList, 4> _applyMemo;
 
 public:
-  CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
   RobSubstitution() 

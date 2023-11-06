@@ -31,7 +31,6 @@ class EqualityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(EqualityResolution);
   USE_ALLOCATOR(EqualityResolution);
 
   ClauseIterator generateClauses(Clause* premise);

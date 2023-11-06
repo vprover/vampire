@@ -67,7 +67,6 @@ public:
   int _polarity;
   Element* _rest;
 
-  CLASS_NAME(SubformulaIterator::Element);
   USE_ALLOCATOR(SubformulaIterator::Element);
 };
 

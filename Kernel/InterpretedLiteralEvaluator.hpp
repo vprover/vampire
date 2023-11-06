@@ -31,7 +31,6 @@ class InterpretedLiteralEvaluator
   :  private BottomUpTermTransformer 
 {
 public:
-  CLASS_NAME(InterpretedLiteralEvaluator);
   USE_ALLOCATOR(InterpretedLiteralEvaluator);
   
   InterpretedLiteralEvaluator(bool doNormalize = true);

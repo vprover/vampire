@@ -19,7 +19,7 @@
 #include "Allocator.hpp"
 #include "Lib/Timer.hpp"
 
-#ifndef USE_SYSTEM_ALLOCATION
+#ifndef INDIVIDUAL_ALLOCATIONS
 Lib::SmallObjectAllocator Lib::GLOBAL_SMALL_OBJECT_ALLOCATOR;
 #endif
 
@@ -58,28 +58,5 @@ void operator delete(void *ptr, size_t size) noexcept {
 // TODO does cause us to slightly over-report allocated memory
 void operator delete(void *ptr) noexcept {
   Lib::TimeoutProtector tp;
-  std::free(ptr);
-}
-
-void *Lib::deprecatedAlloc(size_t size) {
-  {
-    TimeoutProtector tp;
-    if(void *ptr = std::malloc(size))
-      return ptr;
-  }
-  throw std::bad_alloc();
-}
-
-void *Lib::deprecatedRealloc(void *ptr, size_t new_size) {
-  {
-    TimeoutProtector tp;
-    if(void *new_ptr = std::realloc(ptr, new_size))
-      return new_ptr;
-  }
-  throw std::bad_alloc();
-}
-
-void Lib::deprecatedFree(void *ptr) {
-  TimeoutProtector tp;
   std::free(ptr);
 }

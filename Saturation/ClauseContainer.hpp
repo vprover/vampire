@@ -39,7 +39,6 @@ using namespace Shell;
 class ClauseContainer
 {
 public:
-  CLASS_NAME(ClauseContainer);
   USE_ALLOCATOR(ClauseContainer);
 
   virtual ~ClauseContainer() {}
@@ -67,7 +66,6 @@ class RandomAccessClauseContainer
 : public ClauseContainer
 {
 public:
-  CLASS_NAME(RandomAccessClauseContainer);
   USE_ALLOCATOR(RandomAccessClauseContainer);
 
   virtual void attach(SaturationAlgorithm* salg);
@@ -89,7 +87,6 @@ private:
 
 class PlainClauseContainer : public ClauseContainer {
 public:
-  CLASS_NAME(PlainClauseContainer);
   USE_ALLOCATOR(PlainClauseContainer);
 
   void add(Clause* c) override
@@ -103,7 +100,6 @@ class UnprocessedClauseContainer
 : public ClauseContainer
 {
 public:
-  CLASS_NAME(UnprocessedClauseContainer);
   USE_ALLOCATOR(UnprocessedClauseContainer);
 
   virtual ~UnprocessedClauseContainer();
@@ -122,7 +118,6 @@ class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
-  CLASS_NAME(PassiveClauseContainer);
   USE_ALLOCATOR(PassiveClauseContainer);
 
   PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
@@ -183,7 +178,6 @@ class ActiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
-  CLASS_NAME(ActiveClauseContainer);
   USE_ALLOCATOR(ActiveClauseContainer);
 
   ActiveClauseContainer(const Shell::Options& opt) {}

@@ -1491,12 +1491,11 @@ template<class Iter>
 auto timeTraceIter(const char* name, Iter iter) 
 { return TimeTracedIter<Iter>(name, std::move(iter)); }
 
+#define TIME_TRACE_ITER(name, iter) timeTraceIter(name, iter)
+
 #else // !VTIME_PROFILING
 
-
-template<class Iter>
-auto timeTraceIter(const char* name, Iter iter) 
-{ return std::move(iter); }
+#define TIME_TRACE_ITER(name, iter) iter
 
 #endif // VTIME_PROFILING
 
@@ -2138,10 +2137,10 @@ class BoxedIter {
   Iter* _inner;
   // unique_ptr<Iter> _inner;
 public: 
-  BoxedIter(Iter iter) : _inner([&]() { BYPASSING_ALLOCATOR; return new Iter(std::move(iter)); }()) {}
+  BoxedIter(Iter iter) : _inner([&]() { return new Iter(std::move(iter)); }()) {}
   template<class... Args> BoxedIter(Args... args) : _inner(new Iter(std::forward<Args>(args)...)) {}
-  // template<class... Args> BoxedIter(Args... args) : _inner([&]() { BYPASSING_ALLOCATOR; return make_unique<Iter>(std::forward<Args>(args)...); }()) {}
-  ~BoxedIter() { if (_inner != nullptr) { BYPASSING_ALLOCATOR; delete _inner; _inner = nullptr; } }
+  // template<class... Args> BoxedIter(Args... args) : _inner([&]() { return make_unique<Iter>(std::forward<Args>(args)...); }()) {}
+  ~BoxedIter() { if (_inner != nullptr) { delete _inner; _inner = nullptr; } }
   // BoxedIter(BoxedIter&&) = default;
   // BoxedIter& operator=(BoxedIter&&) = default;
   BoxedIter(BoxedIter&& o) : _inner(o._inner) 

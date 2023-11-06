@@ -96,7 +96,6 @@ bool operator<(const TermList& lhs, const TermList& rhs);
  */
 class TermList {
 public:
-  CLASS_NAME(TermList)
   // divide by 4 because of the tag, by 2 to split the space evenly
   static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
   /** dummy constructor, does nothing */
@@ -805,6 +804,10 @@ public:
     ASS(isSpecial());
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
+
+  virtual bool computable() const;
+  virtual bool computableOrVar() const;
+
 protected:
   vstring headToString() const;
 
@@ -1124,8 +1127,13 @@ public:
     return headersMatch(this, lit, complementary);
   }
 
+  bool isAnswerLiteral() const;
+
   vstring toString() const;
   const vstring& predicateName() const;
+
+  virtual bool computable() const;
+  virtual bool computableOrVar() const;
 
 private:
   template<class GetArg>

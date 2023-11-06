@@ -41,6 +41,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -154,7 +155,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 
   // The outer iterator ensures we update the time counter for superposition
-  auto it7 = timeTraceIter("superposition", it6);
+  auto it7 = TIME_TRACE_ITER("superposition", it6);
 
   return pvi( it7 );
 }

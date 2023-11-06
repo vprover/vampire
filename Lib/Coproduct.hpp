@@ -260,7 +260,6 @@ namespace CoproductImpl {
 
   template<class... As>
   class RawCoproduct {
-    CLASS_NAME(RawCoproduct)
 
     template<class> friend struct TrivialOperations::CopyCons::DefaultImpl;
     template<class> friend struct TrivialOperations::MoveCons::DefaultImpl;
@@ -442,8 +441,6 @@ class Coproduct
 
   inline unsigned tag() const { return _inner.tag(); }
 
-public:
-  CLASS_NAME(Coproduct)
 public:
 
   /** Returns whether this coproduct is the variant idx */

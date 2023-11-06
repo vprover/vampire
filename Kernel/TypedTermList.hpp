@@ -20,7 +20,6 @@ class TypedTermList : public TermList
 {
   SortId _sort;
 public:
-  CLASS_NAME(TypedTermList)
 
   TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) 
   { 

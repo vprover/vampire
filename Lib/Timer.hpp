@@ -36,7 +36,6 @@ class Timer
   ~Timer() { deinitializeTimer(); }
  
 public:
-  CLASS_NAME(Timer);
   USE_ALLOCATOR(Timer);
 
   static Timer* instance();
@@ -97,6 +96,7 @@ public:
   static bool instructionLimitingInPlace();
   static unsigned elapsedMegaInstructions();
   static void resetInstructionMeasuring();
+  static void updateInstructionCount();
 
   // called when a limit is reached
   [[noreturn]] static void limitReached(unsigned char whichLimit);
