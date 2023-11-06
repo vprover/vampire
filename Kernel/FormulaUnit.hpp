@@ -56,7 +56,6 @@ public:
   Color getColor();
   unsigned weight();
 
-  CLASS_NAME(FormulaUnit);
   USE_ALLOCATOR(FormulaUnit);
 
 protected:

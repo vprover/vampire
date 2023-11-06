@@ -404,8 +404,9 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  Literal* rwAnsLit = rwClause->getAnswerLiteral();
-  Literal* eqAnsLit = eqClause->getAnswerLiteral();
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Literal* rwAnsLit = synthesis ? rwClause->getAnswerLiteral() : nullptr;
+  Literal* eqAnsLit = synthesis ? eqClause->getAnswerLiteral() : nullptr;
   bool bothHaveAnsLit = (rwAnsLit != nullptr) && (eqAnsLit != nullptr);
   unsigned newLength = rwLength+eqLength-1+conLength - (bothHaveAnsLit ? 1 : 0);
 
@@ -454,7 +455,7 @@ Clause* Superposition::performSuperposition(
   }
 
   (*res)[0] = tgtLitS;
-  int next = 1;
+  unsigned next = 1;
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];

@@ -54,7 +54,6 @@ struct MainLoopResult
 
 class MainLoop {
 public:  
-  CLASS_NAME(MainLoop);
   USE_ALLOCATOR(MainLoop);
 
   MainLoop(Problem& prb, const Options& opt) : _prb(prb), _opt(opt) {}

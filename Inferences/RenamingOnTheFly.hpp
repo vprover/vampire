@@ -31,7 +31,6 @@ class RenamingOnTheFly
   : public SimplificationEngine
 {
 public:
-  CLASS_NAME(RenamingOnTheFly);
   USE_ALLOCATOR(RenamingOnTheFly);
 
   ClauseIterator perform(Clause* c);

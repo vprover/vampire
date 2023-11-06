@@ -23,9 +23,9 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-DBG_FLAGS = -g -DVTIME_PROFILING=1 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider 
+DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVTIME_PROFILING=1 -DVDEBUG=0 # no debugging
+REL_FLAGS = -O6 -DVTIME_PROFILING=0 -DVDEBUG=0 # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -138,7 +138,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -305,6 +305,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
+         Inferences/InvalidAnswerLiteralRemoval.o\
          Inferences/TheoryInstAndSimp.o
 #         Inferences/RenamingOnTheFly.o\
 

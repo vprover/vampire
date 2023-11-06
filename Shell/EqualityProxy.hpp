@@ -56,7 +56,6 @@ using namespace Kernel;
 class EqualityProxy
 {
 public:
-  CLASS_NAME(EqualityProxy);
   USE_ALLOCATOR(EqualityProxy);
 
   EqualityProxy(Options::EqualityProxy opt);

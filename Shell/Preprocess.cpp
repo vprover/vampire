@@ -202,13 +202,13 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
-    env.statistics->phase=Statistics::UNKNOWN_PHASE;
+    env.statistics->phase=Statistics::ANSWER_LITERAL;
     if (env.options->showPreprocessing())
       env.out() << "answer literal addition" << std::endl;
 
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   } else if (_options.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
-    env.statistics->phase=Statistics::UNKNOWN_PHASE;
+    env.statistics->phase=Statistics::ANSWER_LITERAL;
     if (env.options->showPreprocessing())
       env.out() << "answer literal addition for synthesis" << std::endl;
 

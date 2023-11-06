@@ -25,7 +25,6 @@ using Kernel::TermList;
 namespace Shell {
   class TermAlgebraConstructor {
   public:
-    CLASS_NAME(TermAlgebraConstructor);
     USE_ALLOCATOR(TermAlgebraConstructor);
 
     /* A term algebra constructor, described by its name, range,
@@ -88,7 +87,6 @@ namespace Shell {
 
   class TermAlgebra {
   public:
-    CLASS_NAME(TermAlgebra);
     USE_ALLOCATOR(TermAlgebra);
 
 

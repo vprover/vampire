@@ -52,7 +52,6 @@ protected:
 class SubstitutionTreeClauseVariantIndex : public ClauseVariantIndex
 {
 public:
-  CLASS_NAME(SubstitutionTreeClauseVariantIndex);
   USE_ALLOCATOR(SubstitutionTreeClauseVariantIndex);
 
   SubstitutionTreeClauseVariantIndex() : _emptyClauses(0) {}
@@ -77,7 +76,6 @@ private:
 class HashingClauseVariantIndex : public ClauseVariantIndex
 {
 public:
-  CLASS_NAME(HashingClauseVariantIndex);
   USE_ALLOCATOR(HashingClauseVariantIndex);
 
   virtual ~HashingClauseVariantIndex() override;

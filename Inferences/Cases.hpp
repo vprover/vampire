@@ -23,7 +23,6 @@ namespace Inferences {
 
 class Cases : public GeneratingInferenceEngine {
   public:
-    CLASS_NAME(Cases);
     USE_ALLOCATOR(Cases);
     
     Clause* performParamodulation(Clause* cl, Literal* lit, TermList t);

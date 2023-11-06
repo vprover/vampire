@@ -50,10 +50,12 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   Stack<TermList> answer;
 
   bool hasALManager = false, hasSyntManager = false;
-  if (AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) hasALManager = true;
-  else {
-    if (SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) hasSyntManager = true;
-    else {
+  if (AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
+    hasALManager = true;
+  } else {
+    if (SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) {
+      hasSyntManager = true;
+    } else {
       ConjunctionGoalAnswerExractor cge;
       if(!cge.tryGetAnswer(refutation, answer)) {
         return;
@@ -61,8 +63,11 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     }
   }
   env.beginOutput();
-  if (hasALManager) AnswerLiteralManager::getInstance()->tryOutputInputUnits();
-  else if (hasSyntManager) SynthesisManager::getInstance()->tryOutputInputUnits();
+  if (hasALManager) {
+    AnswerLiteralManager::getInstance()->tryOutputInputUnits();
+  } else if (hasSyntManager) {
+    SynthesisManager::getInstance()->tryOutputInputUnits();
+  }
   env.out() << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
@@ -355,7 +360,9 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
 Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
   Formula* quant = tryGetQuantifiedFormulaForAnswerLiteral(unit);
-  if (quant == nullptr) return unit;
+  if (quant == nullptr) {
+    return unit;
+  }
 
   VList* vars = quant->vars();
   ASS(vars);
@@ -426,9 +433,6 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
     if(!lit->isAnswerLiteral()) {
       return;
     }
-    if (!lit->computableOrVar()) {
-      return;
-    }
   }
 
   _answers.push(cl);
@@ -486,7 +490,9 @@ SynthesisManager* SynthesisManager::getInstance()
 
 bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
 {
-  if (!_lastAnsLit && AnsList::isEmpty(_answerPairs)) return false;
+  if (!_lastAnsLit && AnsList::isEmpty(_answerPairs)) {
+    return false;
+  }
   if (_lastAnsLit) {
     AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
   }
@@ -578,7 +584,9 @@ Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
   Clause* newCl = new(nonAnsLits) Clause(nonAnsLits, inf);
   unsigned idx = 0;
   for (unsigned i = 0; i < clen; i++) {
-    if ((*cl)[i] != ansLit) (*newCl)[idx++] = (*cl)[i];
+    if ((*cl)[i] != ansLit) {
+      (*newCl)[idx++] = (*cl)[i];
+    }
   }
   if (!removeDefaultAnsLit) {
     AnsList::push(make_pair(newCl->number(), make_pair(newCl, ansLit)), _answerPairs);
@@ -597,8 +605,9 @@ Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* the
   for (unsigned i = 0; i < thenLit->arity(); ++i) {
     TermList* ttl = thenLit->nthArgument(i);
     TermList* etl = elseLit->nthArgument(i);
-    if (ttl == etl) litArgs.push(*ttl);
-    else {
+    if (ttl == etl) {
+      litArgs.push(*ttl);
+    } else {
       litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
     }
   }
@@ -636,7 +645,9 @@ Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junc
       unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
       Signature::Symbol* skSym = env.signature->getFunction(skFun);
       TermList sort;
-      if (!SortHelper::tryGetVariableSort(var, form, sort)) sort = AtomicSort::defaultSort();
+      if (!SortHelper::tryGetVariableSort(var, form, sort)) {
+        sort = AtomicSort::defaultSort();
+      }
       OperatorType* ot = OperatorType::getConstantsType(sort); 
       skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
@@ -670,9 +681,13 @@ Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
 
   unsigned arity = l->arity();
   vstring fnName = "cond_";
-  if (l->isNegative()) fnName.append("not_");
+  if (l->isNegative()) {
+    fnName.append("not_");
+  }
   fnName.append(l->predicateName());
-  if (l->isEquality()) fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
+  if (l->isEquality()) {
+    fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
+  }
   bool added = false;
   unsigned fn = env.signature->addFunction(fnName, arity, added);
   // Store the mapping between the function and predicate symbols
@@ -689,13 +704,17 @@ Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
       for (unsigned i = 0; i < arity; ++i) {
         argSorts.push(ot->arg(i));
       }
-      if (!env.signature->getPredicate(l->functor())->computable()) sym->markUncomputable();
+      if (!env.signature->getPredicate(l->functor())->computable()) {
+        sym->markUncomputable();
+      }
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
   }
   
   Stack<TermList> args;
-  for (unsigned i = 0; i < arity; ++i) args.push(*(l->nthArgument(i)));
+  for (unsigned i = 0; i < arity; ++i) {
+    args.push(*(l->nthArgument(i)));
+  }
   return Term::create(fn, arity, args.begin());
 }
 
@@ -719,8 +738,9 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
   if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
     TermList zero(theory->representConstant(IntegerConstantType(0)));
     if (tl.isVar()) {
-      if (sort == AtomicSort::intSort()) return zero;
-      else {
+      if (sort == AtomicSort::intSort()) {
+        return zero;
+      } else {
         vstring name = "cz_" + sort.toString();
         unsigned czfn;
         if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
@@ -740,8 +760,9 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
         TermList& vsort = p.second;
         if (done.count(v) == 0) {
           done.insert(v);
-          if (vsort == AtomicSort::intSort()) s.bind(v, zero);
-          else {
+          if (vsort == AtomicSort::intSort()) {
+            s.bind(v, zero);
+          } else {
             vstring name = "cz_" + vsort.toString();
             unsigned czfn;
             if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
@@ -760,16 +781,12 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
   return transform(tl);
 }
 
-TermList SynthesisManager::ConjectureSkolemReplacement::transform(TermList tl) {
-  TermList transformed = transformSubterm(tl);
-  if (transformed != tl) return transformed;
-  else return TermTransformer::transform(tl);
-}
-
 TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
   if (trm.isTerm()) {
     auto it = _skolemToVar.find(trm.term());
-    if (it != _skolemToVar.end()) return TermList(it->second, false);
+    if (it != _skolemToVar.end()) {
+      return TermList(it->second, false);
+    }
     Term* t = trm.term();
     if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
       TermList sort = env.signature->getFunction(t->functor())->fnType()->arg(1);

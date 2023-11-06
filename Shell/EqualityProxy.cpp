@@ -196,6 +196,9 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   unsigned funs = env.signature->functions();
   for (unsigned i=0; i<funs; i++) {
     Signature::Symbol* fnSym = env.signature->getFunction(i);
+    // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
+    if(fnSym->skolem())
+      continue;
     unsigned arity = fnSym->arity();
     OperatorType* fnType = fnSym->fnType();
     if (arity == 0) {
@@ -214,8 +217,11 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   unsigned preds = env.signature->predicates();
   for (unsigned i = 1; i < preds; i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
+    // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
+    if(predSym->namesFormula() || predSym->equalityProxy() || predSym->answerPredicate())
+      continue;
     unsigned arity = predSym->arity();
-    if (predSym->equalityProxy() || predSym->answerPredicate() || predSym->arity() == 0) {
+    if (arity == 0) {
       continue;
     }
     getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType());

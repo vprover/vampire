@@ -72,14 +72,14 @@ void SplittingBranchSelector::init()
       break;      
 #if VZ3
     case Options::SatSolver::Z3:
-      { BYPASSING_ALLOCATOR
+      {
         _solverIsSMT = true;
         _solver = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem());
         if(_parent.getOptions().satFallbackForSMT()){
           // TODO make fallback minimizing?
           SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
           _solver = new FallbackSolverWrapper(_solver.release(),fallback);
-        } 
+        }
       }
       break;
 #endif
@@ -1165,7 +1165,7 @@ bool Splitter::doSplitting(Clause* cl)
  *
  * @param size number of literals in component
  * @param lits literals of component
- * @param comp the existing propositional name (SplitLevel) for this component - to be filled 
+ * @param comp the existing propositional name (SplitLevel) for this component - to be filled
  * @param compCl the existing clause for this component - to be filled
  * @return True if the component already exists
  *
@@ -1174,7 +1174,7 @@ bool Splitter::doSplitting(Clause* cl)
 bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits, SplitLevel& comp, Clause*& compCl)
 {
   ClauseIterator existingComponents;
-  { 
+  {
     TIME_TRACE("splitting component index usage");
     existingComponents = _componentIdx->retrieveVariants(lits, size);
   }
@@ -1184,7 +1184,7 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
   }
   compCl = existingComponents.next();
   ASS(!existingComponents.hasNext());
-  comp = _compNames.get(compCl);
+  comp = compCl->splits()->sval();
   return true;
 }
 
@@ -1194,7 +1194,6 @@ bool Splitter::tryGetExistingComponentName(unsigned size, Literal* const * lits,
  * - Create a SplitRecord for the component
  * - Record the name in the splits of the clause
  * - Insert the clause into _componentIdx for variant checking later
- * - Insert the clause with the name into _compNames for lookup later
  *
  * @param name The propositional name for the component to add
  * @param size The number of literals in the component to add
@@ -1284,7 +1283,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     TIME_TRACE("splitting component index maintenance");
     _componentIdx->insert(compCl);
   }
-  _compNames.insert(compCl, name);
 
   return compCl;
 }
@@ -1434,7 +1432,8 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   ASS(cl);
 
   if(!premises.hasNext()) {
-    ASS(!replacement || cl->splits()==replacement->splits() || (cl->hasAnswerLiteral() && (replacement->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION || replacement->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL)));
+    ASS(!replacement || cl->splits()==replacement->splits() ||
+        ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) && cl->hasAnswerLiteral() && (replacement->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION || replacement->inference().rule() == InferenceRule::ANSWER_LITERAL_REMOVAL)));
     return;
   }
 

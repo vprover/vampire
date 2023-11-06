@@ -72,7 +72,9 @@ size_t LiteralIndex::getUnificationCount(Literal* lit, bool complementary)
 
 void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
 {
-  if (lit->isAnswerLiteral()) return;
+  if (lit->isAnswerLiteral()) {
+    return;
+  }
   if(add) {
     _is->insert(lit, cl);
   } else {

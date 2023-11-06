@@ -35,7 +35,6 @@ class GlobalSubsumption
 : public ForwardSimplificationEngine
 {
 public:
-  CLASS_NAME(GlobalSubsumption);
   USE_ALLOCATOR(GlobalSubsumption);
 
   GlobalSubsumption(const Options& opts) : _index(0),

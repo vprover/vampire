@@ -393,12 +393,14 @@ enum class InferenceRule : unsigned char {
   BOOLEAN_TERM_ENCODING,
   /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
   FOOL_ELIMINATION,
-  /** Elimination of $ite expressions */
-  FOOL_ITE_ELIMINATION,
-  /** Elimination of $let expressions */
-  FOOL_LET_ELIMINATION,
-  /** Elimination of $match expressions */
-  FOOL_MATCH_ELIMINATION,
+  /** Definition of $ite expressions */
+  FOOL_ITE_DEFINITION,
+  /** Definition of $let expressions */
+  FOOL_LET_DEFINITION,
+  /** Definition of formulas used as terms */
+  FOOL_FORMULA_DEFINITION,
+  /** Definition for $match expressions */
+  FOOL_MATCH_DEFINITION,
   /** result of general splitting */
   GENERAL_SPLITTING,
   /** component introduced by general splitting */
@@ -708,7 +710,6 @@ class Inference
 {
 private:
   // don't construct on the heap
-  CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
 
   enum class Kind : unsigned char {

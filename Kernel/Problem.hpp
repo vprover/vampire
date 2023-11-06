@@ -50,7 +50,6 @@ private:
   Problem& operator=(const Problem&); //private and undefined assignment operator
 public:
 
-  CLASS_NAME(Problem);
   USE_ALLOCATOR(Problem);
 
   explicit Problem(UnitList* units=0);

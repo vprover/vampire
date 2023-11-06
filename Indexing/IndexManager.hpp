@@ -72,7 +72,6 @@ enum IndexType {
 class IndexManager
 {
 public:
-  CLASS_NAME(IndexManager);
   USE_ALLOCATOR(IndexManager);
 
   /** alg can be zero, then it must be set by setSaturationAlgorithm */

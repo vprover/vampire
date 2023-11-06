@@ -27,7 +27,6 @@ using namespace Kernel;
 class VectorIteratorWrapper : public IteratorCore<Clause*>
 {
 public:
-  CLASS_NAME(VectorIteratorWrapper);
   USE_ALLOCATOR(VectorIteratorWrapper);
   
   explicit VectorIteratorWrapper(const std::vector<Clause*>& v) : curr(v.begin()), end(v.end()) {}

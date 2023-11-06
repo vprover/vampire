@@ -34,7 +34,6 @@ using namespace SAT;
 
 class ShortConflictMetaDP : public DecisionProcedure {
 public:
-  CLASS_NAME(ShortConflictMetaDP);
   USE_ALLOCATOR(ShortConflictMetaDP);
 
   /**

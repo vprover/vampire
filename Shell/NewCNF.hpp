@@ -137,7 +137,6 @@ private:
 
   // generalized clause
   struct GenClause {
-    CLASS_NAME(NewCNF::GenClause);
     USE_ALLOCATOR(NewCNF::GenClause);
 
     GenClause(unsigned size, BindingList* bindings, BindingList* foolBindings)
@@ -280,7 +279,6 @@ private:
   GenClauses _genClauses;
 
   struct Occurrence {
-    CLASS_NAME(NewCNF::Occurrence);
     USE_ALLOCATOR(NewCNF::Occurrence);
 
     SPGenClause gc;
@@ -319,7 +317,6 @@ private:
     unsigned _size;
 
   public:
-    CLASS_NAME(NewCNF::Occurrences);
     USE_ALLOCATOR(NewCNF::Occurrences);
 
     Occurrences() : _occurrences(nullptr), _size(0) {}

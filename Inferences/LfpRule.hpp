@@ -21,7 +21,6 @@ class LfpRule
 {
   Rule _inner;
 public:
-  CLASS_NAME(LfpRule);
   USE_ALLOCATOR(LfpRule);
  
   LfpRule(Rule rule);

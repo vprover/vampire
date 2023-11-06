@@ -1673,19 +1673,27 @@ Literal::Literal()
 }
 
 bool Literal::computable() const {
-  if (!env.signature->getPredicate(this->functor())->computable()) return false;
+  if (!env.signature->getPredicate(this->functor())->computable()) {
+    return false;
+  }
   for (unsigned i = 0; i < arity(); ++i) {
     const TermList* t = nthArgument(i);
-    if (!t->isTerm() || !t->term()->computable()) return false;
+    if (!t->isTerm() || !t->term()->computable()) {
+      return false;
+    }
   }
   return true;
 }
 
 bool Literal::computableOrVar() const {
-  if (!env.signature->getPredicate(this->functor())->computable()) return false;
+  if (!env.signature->getPredicate(this->functor())->computable()) {
+    return false;
+  }
   for (unsigned i = 0; i < arity(); ++i) {
     const TermList* t = nthArgument(i);
-    if (t->isTerm() && !t->term()->computableOrVar()) return false;
+    if (t->isTerm() && !t->term()->computableOrVar()) {
+      return false;
+    }
   }
   return true;
 }
@@ -1819,21 +1827,29 @@ TermList Term::typeArg(unsigned n) const
 }
 
 bool Term::computable() const {
-  if (!env.signature->getFunction(this->functor())->computable()) return false;
+  if (!env.signature->getFunction(this->functor())->computable()) {
+    return false;
+  }
   SubtermIterator sit(this);
   while (sit.hasNext()) {
     TermList t = sit.next();
-    if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) return false;
+    if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) {
+      return false;
+    }
   }
   return true;
 }
 
 bool Term::computableOrVar() const {
-  if (!env.signature->getFunction(this->functor())->computable()) return false;
+  if (!env.signature->getFunction(this->functor())->computable()) {
+    return false;
+  }
   SubtermIterator sit(this);
   while (sit.hasNext()) {
     TermList t = sit.next();
-    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) return false;
+    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) {
+      return false;
+    }
   }
   return true;
 }

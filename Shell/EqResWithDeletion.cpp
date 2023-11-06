@@ -67,7 +67,9 @@ Clause* EqResWithDeletion::apply(Clause* cl)
 start_applying:
 
   unsigned clen=cl->length();
-  _ansLit = cl->getAnswerLiteral();
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+    _ansLit = cl->getAnswerLiteral();
+  }
 
   _subst.reset();
 

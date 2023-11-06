@@ -30,7 +30,6 @@ class URResolution
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(URResolution);
   USE_ALLOCATOR(URResolution);
 
   URResolution();

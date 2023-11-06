@@ -144,7 +144,7 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
     INVALID_OPERATION("Undefined selection function");
   }
   if(selectorNumber<0) {
-    res->_reversePolarity = true;
+    res->setReversePolarity(true);
   }
   return res;
 }
