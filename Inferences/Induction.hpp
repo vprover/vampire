@@ -94,6 +94,10 @@ struct InductionContext {
     return _cls.begin()->first;
   }
 
+  Literal* getInductionLiteral() const {
+    return _cls.begin()->second[0];
+  }
+
   vstring toString() const {
     vstringstream str;
     str << *_indTerm << std::endl;
