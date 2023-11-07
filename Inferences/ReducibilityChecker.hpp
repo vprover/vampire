@@ -17,12 +17,14 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
+#include "Kernel/VarOrder.hpp"
 
 #include "InferenceEngine.hpp"
 
 namespace Inferences {
 
 using namespace Indexing;
+using namespace Kernel;
 
 class ReducibilityChecker {
 private:
@@ -30,9 +32,14 @@ private:
   const Ordering& _ord;
   const Options& _opt;
   struct VarOrders {
+    VarOrders() : reducesTo(), reduced(), rest(1), superTerms(), valid(false) {
+      rest.push(VarOrder());
+    }
     Stack<TermList> reducesTo;
     Stack<VarOrder> reduced;
     Stack<VarOrder> rest;
+    Stack<Term*> superTerms;
+    bool valid;
   };
   DHMap<Term*,VarOrders> _cache;
   TermSubstitutionTree _tis;

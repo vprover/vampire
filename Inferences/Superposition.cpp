@@ -407,11 +407,9 @@ Clause* Superposition::performSuperposition(
   }
 
   auto checker = _salg->getReducibilityChecker();
-  if (checker) {
-    if (checker->check(rwClause,eqClause,eqLit,eqLHS,subst.ptr(),eqIsResult)) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
+  if (checker && checker->check(rwClause,eqClause,eqLit,eqLHS,subst.ptr(),eqIsResult)) {
+    env.statistics->skippedSuperposition++;
+    return 0;
   }
 
   unsigned newLength = rwLength+eqLength-1+conLength;

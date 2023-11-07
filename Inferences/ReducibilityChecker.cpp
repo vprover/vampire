@@ -297,11 +297,11 @@ bool ReducibilityChecker::getDemodulationRHSCodeTree(const TermQueryResult& qr, 
 void ReducibilityChecker::clauseActivated(Clause* cl)
 {
   TIME_TRACE("ReducibilityChecker::clauseActivated");
-  if (cl->length()!=1) {
+  if (cl->length()!=1 || !cl->noSplits()) {
     return;
   }
 
-  Stack<pair<TypedTermList,Literal*>> pairsToInsert;
+  Stack<Term*> toUpdate;
 
   Literal* lit=(*cl)[0];
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
@@ -337,76 +337,45 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
       if (_ord.isGreater(TermList(t),rhsS)) {
         e->reducesTo.push(rhsS);
       }
-      Stack<VarOrder> newRest; // build a new rest stack
-      for (const auto& vo : e->rest) {
-        VarOrder::EqApplicator voApp(vo);
-        auto tS = SubstHelper::apply(t, voApp);
-        VarOrder ext = vo;
-        if (qr.term.term() != tS || !_ord.makeGreater(lhsS,rhsS,ext)) {
-          newRest.push(vo);
-          continue;
-        }
-        // this is reduced
-        e->reduced.push(ext);
-        Stack<VarOrder> todo;
-        auto diff = ForwardGroundJoinability::order_diff(vo,ext);
-        for (auto&& evo : diff) {
-          todo.push(std::move(evo));
-        }
-        // reduced, add it to the reduced stack
-        while (todo.isNonEmpty()) {
-          auto vo = todo.pop();
-          VarOrder::EqApplicator voApp(vo);
-          auto tS = SubstHelper::apply(t, voApp);
-          auto it = _index->getGeneralizations(tS,true);
-          bool reduced = false;
-          while (it.hasNext()) {
-            auto qr = it.next();
-            TermList rhsS;
-            if (!getDemodulationRHSCodeTree(qr, tS, rhsS)) {
-              continue;
-            }
-            VarOrder ext = vo;
-            if (!_ord.makeGreater(TermList(tS),rhsS,ext)) {
-              continue;
-            }
-            auto diff = ForwardGroundJoinability::order_diff(vo,ext);
-            for (auto&& evo : diff) {
-              todo.push(std::move(evo));
-            }
-            // reduced, add it to the reduced stack
-            e->reduced.push(ext);
-            reduced = true;
-            break;
-          }
-          if (!reduced) {
-            // could not reduce under this vo, add it to the rest and save it into the index
-            newRest.push(vo);
-            pairsToInsert.push(make_pair(TypedTermList(tS), static_cast<Literal*>(t)));
-          }
-        }
-      }
-      e->rest = newRest;
-      if (e->rest.isEmpty()) {
-        e->reduced.reset();
-        e->reduced.push(VarOrder());
-      }
+      toUpdate.push(t);
     }
   }
-  while (pairsToInsert.isNonEmpty()) {
-    auto p = pairsToInsert.pop();
-    _tis.insert(p.first, p.second, nullptr);
+  while (toUpdate.isNonEmpty()) {
+    auto t = toUpdate.pop();
+    auto e = _cache.findPtr(t);
+    e->valid = false;
+    for (const auto& st : e->superTerms) {
+      toUpdate.push(st);
+    }
   }
 }
 
 ReducibilityChecker::VarOrders* ReducibilityChecker::isTermReducible(Term* t)
 {
+  TIME_TRACE("ReducibilityChecker::isTermReducible");
   VarOrders* vos;
-  if (!_cache.getValuePtr(t, vos)) {
+  bool firstAccess = _cache.getValuePtr(t, vos);
+  if (!firstAccess && vos->valid) {
     return vos;
   }
+  if (firstAccess) {
+    // TODO eventually clear up the index
+    _tis.insert(TypedTermList(t), static_cast<Literal*>(t), nullptr);
+    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
+      auto arg = t->nthArgument(i);
+      if (arg->isVar()) {
+        continue;
+      }
+      auto arg_vos = isTermReducible(arg->term());
+      arg_vos->superTerms.push(t);
+    }
+  }
+  vos = _cache.findPtr(t);
   Stack<VarOrder> todo;
-  todo.push(VarOrder());
+  for (const auto& vo : vos->rest) {
+    todo.push(vo);
+  }
+  vos->rest.reset();
   while (todo.isNonEmpty()) {
     auto vo = todo.pop();
     for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
@@ -416,15 +385,19 @@ ReducibilityChecker::VarOrders* ReducibilityChecker::isTermReducible(Term* t)
       }
       auto arg_vos = isTermReducible(arg->term());
       vos = _cache.findPtr(t); // update pointer after possible reallocation
-      for (const auto& other : arg_vos->reduced) {
-        if (other.subseteq(vo)) {
-          vos->reduced.push(vo);
+      for (const auto& red : arg_vos->reduced) {
+        VarOrder ext = vo;
+        if (ext.tryExtendWith(red)) {
+          auto diff = ForwardGroundJoinability::order_diff(vo,ext);
+          for (auto&& evo : diff) {
+            todo.push(std::move(evo));
+          }
+          vos->reduced.push(ext);
           goto loop_end;
         }
       }
     }
     {
-      bool found = false;
       VarOrder::EqApplicator voApp(vo);
       auto tS = SubstHelper::apply(t, voApp);
       auto it = _index->getGeneralizations(tS,true);
@@ -438,39 +411,13 @@ ReducibilityChecker::VarOrders* ReducibilityChecker::isTermReducible(Term* t)
         if (!_ord.makeGreater(TermList(tS),rhsS,ext)) {
           continue;
         }
-        if (!found) {
-          auto diff = ForwardGroundJoinability::order_diff(vo,ext);
-          for (auto&& evo : diff) {
-            todo.push(std::move(evo));
-          }
+        auto diff = ForwardGroundJoinability::order_diff(vo,ext);
+        for (auto&& evo : diff) {
+          todo.push(std::move(evo));
         }
         // reduced, add it to the reduced stack
         vos->reduced.push(ext);
-        // vos->reducesTo.push(make_pair(ext,rhsS));
-        found = true;
         goto loop_end;
-      }
-      // if (found) {
-      //   goto loop_end;
-      // }
-      for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
-        auto arg = t->nthArgument(i);
-        if (arg->isVar()) {
-          continue;
-        }
-        auto arg_vos = isTermReducible(arg->term());
-        vos = _cache.findPtr(t); // update pointer after possible reallocation
-        for (const auto& red : arg_vos->reduced) {
-          VarOrder ext = vo;
-          if (ext.tryExtendWith(red)) {
-            auto diff = ForwardGroundJoinability::order_diff(vo,ext);
-            for (auto&& evo : diff) {
-              todo.push(std::move(evo));
-            }
-            vos->reduced.push(ext);
-            goto loop_end;
-          }
-        }
       }
       // could not reduce under this vo, add it to the rest and save it into the index
       vos->rest.push(vo);
@@ -479,36 +426,29 @@ ReducibilityChecker::VarOrders* ReducibilityChecker::isTermReducible(Term* t)
 loop_end:
     continue;
   }
-  auto it = _index->getGeneralizations(t,true);
-  while (it.hasNext()) {
-    auto qr = it.next();
-    TermList rhsS;
-    if (!getDemodulationRHSCodeTree(qr, t, rhsS)) {
-      continue;
-    }
-    if (!_ord.isGreater(TermList(t),rhsS)) {
-      continue;
-    }
-    // reduced, add it to the reduced stack
-    vos->reducesTo.push(rhsS);
-  }
-  if (vos->rest.isEmpty()) {
-    vos->reduced.reset();
-    vos->reduced.push(VarOrder());
-  } else {
-    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
-      auto arg = t->nthArgument(i);
-      if (arg->isVar()) {
+  if (firstAccess) {
+    auto it = _index->getGeneralizations(t,true);
+    while (it.hasNext()) {
+      auto qr = it.next();
+      TermList rhsS;
+      if (!getDemodulationRHSCodeTree(qr, t, rhsS)) {
         continue;
       }
-      auto arg_vos = isTermReducible(arg->term());
-      vos = _cache.findPtr(t); // update pointer after possible reallocation
-      if (arg_vos->rest.isEmpty()) {
-        vos->reduced.reset();
-        vos->reduced.push(VarOrder());
-        vos->rest.reset();
+      if (!_ord.isGreater(TermList(t),rhsS)) {
+        continue;
       }
+      // reduced, add it to the reduced stack
+      vos->reducesTo.push(rhsS);
     }
+  }
+  if (vos->rest.isEmpty()) {
+    if (firstAccess) {
+      TIME_TRACE("first access rest empty");
+    } else {
+      TIME_TRACE("not first access rest empty");
+    }
+    vos->reduced.reset();
+    vos->reduced.push(VarOrder());
   }
   if (vos->rest.size()==1 && vos->rest[0].size()==2 && vos->reduced.size()>2) {
     VarOrder vo;
@@ -518,6 +458,7 @@ loop_end:
       vos->reduced.push(vo);
     }
   }
+  vos->valid = true;
   return vos;
 }
 
@@ -855,10 +796,10 @@ bool ReducibilityChecker::checkSmallerSanity(const Stack<Literal*>& lits, Term* 
             LOG2(exp, "2. rwTermS ", *rwTermS);
           }
           if (st == rwTermS && tgtTermS) {
-            LOG2(exp, " with ", *tgtTermS);
+            LOG2(exp, " tgtTermS ", *tgtTermS);
           }
           LOG3(exp, *st, " => ", rhsS);
-          LOG4(exp, " in ", t, " and ", *lit);
+          LOG4(exp, " in ", *t, " and ", *lit);
           LOG2(exp, " is reducible by ", *qr.clause);
           return true;
         }
