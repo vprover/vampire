@@ -44,6 +44,7 @@ public:
 
   static void order_diff_helper(VarOrder& vo, const List<Edge>* edges, Stack<VarOrder>& res);
   static Stack<VarOrder> order_diff(const VarOrder& vo, const VarOrder& other);
+  static Stack<VarOrder> order_diff_nonrecursive(const VarOrder& vo, const VarOrder& other);
 
 #if VDEBUG
   void setTestIndices(const Stack<Indexing::Index*>& indices) override { _index = static_cast<DemodulationLHSIndex*>(indices[0]); }

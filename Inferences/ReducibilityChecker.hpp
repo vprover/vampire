@@ -30,16 +30,20 @@ private:
   const Ordering& _ord;
   const Options& _opt;
   struct VarOrders {
+    Stack<TermList> reducesTo;
     Stack<VarOrder> reduced;
     Stack<VarOrder> rest;
   };
   DHMap<Term*,VarOrders> _cache;
   TermSubstitutionTree _tis;
+  DHMap<Clause*,Stack<VarOrder>> _demodulatorCache;
+  DHMap<std::pair<TermList,TermList>,bool> _uselessLHSCache;
 
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
   VarOrders* isTermReducible(Term* t);
 
   bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp);
+  bool checkSmaller2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 
@@ -53,6 +57,10 @@ public:
 
   bool check(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult);
   void clauseActivated(Clause* cl);
+  void preprocessClause(Clause* cl);
+  bool* isUselessLHS(TermList lhs, TermList rhs) {
+    return _uselessLHSCache.findPtr(std::make_pair(lhs,rhs));
+  }
 };
 
 }

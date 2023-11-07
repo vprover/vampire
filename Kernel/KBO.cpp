@@ -92,11 +92,11 @@ private:
   /** The variable counters */
 }; // class KBO::State
 
-class KBO::State2
+class KBO::StateGreater
 {
 public:
   /** Initialise the state */
-  State2(KBO* kbo) : _kbo(*kbo) {}
+  StateGreater(KBO* kbo) : _kbo(*kbo) {}
 
   void init()
   {
@@ -104,8 +104,7 @@ public:
     _varDiffs.reset();
   }
 
-  CLASS_NAME(KBO::State2);
-  USE_ALLOCATOR(State2);
+  USE_ALLOCATOR(StateGreater);
 
   bool traverse(Term* t1, Term* t2);
   void traverseVars(TermList tl, int coef);
@@ -320,9 +319,9 @@ void KBO::State::traverse(Term* t1, Term* t2)
   ASS_EQ(depth,0);
 }
 
-// State2
+// StateGreater
 
-void KBO::State2::recordVariable(unsigned var, int coef)
+void KBO::StateGreater::recordVariable(unsigned var, int coef)
 {
   ASS(coef==1 || coef==-1);
 
@@ -340,7 +339,7 @@ void KBO::State2::recordVariable(unsigned var, int coef)
   }
 }
 
-void KBO::State2::traverseVars(TermList tl, int coef)
+void KBO::StateGreater::traverseVars(TermList tl, int coef)
 {
   if(tl.isOrdinaryVar()) {
     recordVariable(tl.var(), coef);
@@ -377,7 +376,7 @@ void KBO::State2::traverseVars(TermList tl, int coef)
   }
 }
 
-bool KBO::State2::traverse(Term* t1, Term* t2)
+bool KBO::StateGreater::traverse(Term* t1, Term* t2)
 {
   ASS_EQ(t1->functor(),t2->functor());
   ASS_EQ(t1->weight(),t2->weight());
@@ -463,7 +462,7 @@ bool KBO::State2::traverse(Term* t1, Term* t2)
   return !stillEqual && checkVars();
 }
 
-bool KBO::State2::checkVars() const
+bool KBO::StateGreater::checkVars() const
 {
   return _negNum <= 0;
 }
@@ -710,7 +709,7 @@ KBO::KBO(
   , _predWeights(predWeights)
 #endif
   , _state(new State(this))
-  , _state2(new State2(this))
+  , _stateGt(new StateGreater(this))
 { 
   checkAdmissibility(throwError);
 }
@@ -825,7 +824,7 @@ KBO::KBO(Problem& prb, const Options& opts)
  , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
 #endif
  , _state(new State(this))
- , _state2(new State2(this))
+ , _stateGt(new StateGreater(this))
 {
   if (opts.kboMaxZero()) {
     zeroWeightForMaximalFunc();
@@ -948,12 +947,12 @@ bool KBO::isGreater(TermList tl1, TermList tl2) const
     return false;
   }
 
-  _state2->init();
+  _stateGt->init();
   if (t1->weight()>t2->weight()) {
     // traverse variables
-    _state2->traverseVars(tl1,1);
-    _state2->traverseVars(tl2,-1);
-    return _state2->checkVars();
+    _stateGt->traverseVars(tl1,1);
+    _stateGt->traverseVars(tl2,-1);
+    return _stateGt->checkVars();
   }
   // t1->weight()==t2->weight()
   switch (compareFunctionPrecedences(t1->functor(),t2->functor()))
@@ -964,12 +963,12 @@ bool KBO::isGreater(TermList tl1, TermList tl2) const
     }
     case Ordering::GREATER:
     case Ordering::GREATER_EQ: {
-      _state2->traverseVars(tl1,1);
-      _state2->traverseVars(tl2,-1);
-      return _state2->checkVars();
+      _stateGt->traverseVars(tl1,1);
+      _stateGt->traverseVars(tl2,-1);
+      return _stateGt->checkVars();
     }
     case Ordering::EQUAL: {
-      return _state2->traverse(t1,t2);
+      return _stateGt->traverse(t1,t2);
     }
     case Ordering::INCOMPARABLE:
       ASSERTION_VIOLATION;
@@ -1195,30 +1194,30 @@ bool KBO::makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const
   }
   if (pos) {
     // TODO try to find more variables
-    DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
-    while (vit2.hasNext() && pos) {
-      unsigned t2v;
-      unsigned& cnt2 = vit2.nextRef(t2v);
-      if (cnt2) {
-        DHMap<unsigned,unsigned>::Iterator vit1(varCntsExtra);
-        while (vit1.hasNext() && cnt2) {
-          unsigned t1v;
-          unsigned cnt1;
-          vit1.next(t1v,cnt1);
-          if (vo.add_gt(t1v,t2v)) {
-            if (cnt2 < cnt1) {
-              cnt2 = 0;
-              break;
-            } else {
-              cnt2 -= cnt1;
-            }
-          }
-        }
-        if (!cnt2) {
-          pos--;
-        }
-      }
-    }
+    // DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
+    // while (vit2.hasNext() && pos) {
+    //   unsigned t2v;
+    //   unsigned& cnt2 = vit2.nextRef(t2v);
+    //   if (cnt2) {
+    //     DHMap<unsigned,unsigned>::Iterator vit1(varCntsExtra);
+    //     while (vit1.hasNext() && cnt2) {
+    //       unsigned t1v;
+    //       unsigned cnt1;
+    //       vit1.next(t1v,cnt1);
+    //       if (vo.add_gt(t1v,t2v)) {
+    //         if (cnt2 < cnt1) {
+    //           cnt2 = 0;
+    //           break;
+    //         } else {
+    //           cnt2 -= cnt1;
+    //         }
+    //       }
+    //     }
+    //     if (!cnt2) {
+    //       pos--;
+    //     }
+    //   }
+    // }
     if (!pos) {
       TIME_TRACE("fixed order");
     }

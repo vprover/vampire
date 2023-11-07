@@ -194,13 +194,13 @@ Index* IndexManager::create(IndexType t)
     break;
   case DEMODULATION_LHS_CODE_TREE:
     tis=new CodeTreeTIS();
-    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions(), _alg);
     isGenerating = false;
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
     tis=new TermSubstitutionTree();
-    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions(), _alg);
     isGenerating = false;
     break;
 

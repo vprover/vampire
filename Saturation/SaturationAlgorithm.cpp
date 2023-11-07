@@ -1194,6 +1194,9 @@ void SaturationAlgorithm::activate(Clause* cl)
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
+  if (_checker) {
+    _checker->preprocessClause(cl);
+  }
   _active->add(cl);
   if (_checker) {
     _checker->clauseActivated(cl);

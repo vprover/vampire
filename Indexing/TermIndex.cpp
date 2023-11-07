@@ -16,6 +16,8 @@
 #include "Lib/DHMap.hpp"
 
 #include "Inferences/InductionHelper.hpp"
+#include "Inferences/ReducibilityChecker.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Clause.hpp"
@@ -135,7 +137,16 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   Literal* lit=(*c)[0];
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while (lhsi.hasNext()) {
-    _is->handle(lhsi.next(), lit, c, adding);
+    auto lhs = lhsi.next();
+    auto checker = _salg->getReducibilityChecker();
+    if (checker) {
+      auto ptr = checker->isUselessLHS(lhs, EqHelper::getOtherEqualitySide(lit, lhs));
+      ASS(ptr);
+      if (*ptr) {
+        // continue;
+      }
+    }
+    _is->handle(lhs, lit, c, adding);
   }
 }
 

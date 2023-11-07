@@ -167,7 +167,7 @@ protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   class State;
-  class State2;
+  class StateGreater;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
@@ -190,7 +190,7 @@ private:
    * State used for comparing terms and literals
    */
   mutable State* _state;
-  mutable State2* _state2;
+  mutable StateGreater* _stateGt;
 };
 
 }

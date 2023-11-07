@@ -224,8 +224,8 @@ void ForwardGroundJoinability::normalise(State& state)
       //     continue;
       //   }
       //   // no need to add reducing clause to premises since we have already added it
-      //   s = replace(s,trm,*cptr);
-      //   t = replace(t,trm,*cptr);
+      //   state.s = replace(state.s,trm,*cptr);
+      //   state.t = replace(state.t,trm,*cptr);
       //   reduced = true;
       //   // checkCompleteness = false;
       //   break;
@@ -400,38 +400,62 @@ void ForwardGroundJoinability::order_diff_helper(VarOrder& vo, const List<Edge>*
   }
 
   order_diff_helper(vo, edges->tail(), res);
-
-  // ignore (R.transitive_reduction var_order' |> List.fold_left (fun var_order_acc (x,ord,y) -> 
-  //   (* TODO: is it possible that there are duplicate orders here? investigate closely *)
-  //   let[@inline] get x y = VarOrder.query var_order_acc x y in
-  //   let[@inline] gt x y = VarOrder.add_gt var_order_acc x y |> Option.get in
-  //   let[@inline] eq x y = VarOrder.add_eq var_order_acc x y |> Option.get in
-  //   match ord with
-  //   | R.L_GT -> 
-  //     if get x y != GT then (
-  //       Stack.push (l, r, eq x y, complete) state.var_orders_eq; 
-  //       Stack.push (l, r, gt y x, complete) state.var_orders_gt;
-  //       gt x y
-  //     ) else var_order_acc
-  //   | R.L_EQ -> 
-  //     if get x y != EQ then (
-  //       Stack.push (l, r, gt x y, complete) state.var_orders_gt; 
-  //       Stack.push (l, r, gt y x, complete) state.var_orders_gt;
-  //       eq x y
-  //     ) else var_order_acc
-  //   (* dbg D_fw_gjoin @@ lazy (sprintf "              add: %s"  (VarOrder.to_string_dbg @@ List.nth result 0));
-  //   dbg D_fw_gjoin @@ lazy (sprintf "              add: %s"  (VarOrder.to_string_dbg @@ List.nth result 1)); *)
-  // ) var_order)
 }
 
 Stack<VarOrder> ForwardGroundJoinability::order_diff(const VarOrder& vo, const VarOrder& other)
+{
+  TIME_TRACE("order_diff");
+  return order_diff_nonrecursive(vo,other);
+  // auto tr = other.transitive_reduction();
+
+  // Stack<VarOrder> res;
+  // VarOrder temp = vo;
+  // order_diff_helper(temp, tr, res);
+  // return res;
+}
+
+Stack<VarOrder> ForwardGroundJoinability::order_diff_nonrecursive(const VarOrder& vo, const VarOrder& other)
 {
   TIME_TRACE("order_diff");
   auto tr = other.transitive_reduction();
 
   Stack<VarOrder> res;
   VarOrder temp = vo;
-  order_diff_helper(temp, tr, res);
+
+  while (List<Edge>::isNonEmpty(tr)) {
+
+    auto e = tr->head();
+
+    switch (e.c) {
+      case PoComp::GT:
+        if (temp.query(e.x,e.y) != PoComp::GT) {
+          VarOrder eq = temp;
+          VarOrder lt = temp;
+          ALWAYS(eq.add_eq(e.x,e.y));
+          ALWAYS(lt.add_gt(e.y,e.x));
+          res.push(eq);
+          res.push(lt);
+          ALWAYS(temp.add_gt(e.x,e.y));
+        }
+        break;
+      case PoComp::EQ:
+        if (temp.query(e.x,e.y) != PoComp::EQ) {
+          VarOrder gt = temp;
+          VarOrder lt = temp;
+          ALWAYS(gt.add_gt(e.x,e.y));
+          ALWAYS(lt.add_gt(e.y,e.x));
+          res.push(gt);
+          res.push(lt);
+          ALWAYS(temp.add_eq(e.x,e.y));
+        }
+        break;
+      default:
+        ASSERTION_VIOLATION;
+    }
+
+    tr = tr->tail();
+  }
+
   return res;
 }
 

@@ -61,7 +61,6 @@ template<typename T>
 PartialOrdering<T>::PartialOrdering(const PartialOrdering<T>& other)
   : _nodes(other._nodes), _inverse(other._inverse), _size(_nodes.size()), _array(nullptr), _tr()
 {
-  // TIME_TRACE("PO copy ctor");
   size_t arrSize = ((_size - 1) * _size / 2);
   if (arrSize) {
     void* mem = ALLOC_KNOWN(arrSize*sizeof(PoComp), "Kernel::PartialOrdering");
@@ -75,7 +74,6 @@ PartialOrdering<T>::PartialOrdering(const PartialOrdering<T>& other)
 template<typename T>
 PartialOrdering<T>& PartialOrdering<T>::operator=(const PartialOrdering<T>& other)
 {
-  // TIME_TRACE("PO operator=");
   auto prevSize = ((_size - 1) * _size / 2);
   if (prevSize) {
     array_delete(_array, prevSize);
@@ -96,9 +94,6 @@ PartialOrdering<T>& PartialOrdering<T>::operator=(const PartialOrdering<T>& othe
   _tr = List<Edge>::copy(other._tr);
   return *this;
 }
-
-// let copy g = 
-//   {g with table = Array.copy g.table}
 
 template<typename T>
 PartialOrdering<T>::~PartialOrdering()

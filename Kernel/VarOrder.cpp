@@ -42,7 +42,6 @@ bool VarOrder::is_total(size_t n) const
 
 vstring VarOrder::to_string() const
 {
-  // return Int::toString(_po.size()) + ": " + _po.to_string() + ", " + _po.to_string_raw();
   return _po.to_string();
 }
 
@@ -78,26 +77,24 @@ bool VarOrder::subseteq(const VarOrder& other) const
 
 bool VarOrder::tryExtendWith(const VarOrder& other)
 {
-  auto rel = other.iter_relations();
-  while (rel.hasNext()) {
-    auto t = rel.next();
-    unsigned x = get<0>(t);
-    unsigned y = get<1>(t);
-    PoComp v = get<2>(t);
-    ASS(v!=PoComp::INC);
-    if (v == PoComp::EQ) {
-      if (!add_eq(x,y)) {
+  TIME_TRACE("tryExtendWith");
+  auto tr = other.transitive_reduction();
+  while (List<Edge>::isNonEmpty(tr)) {
+    auto e = tr->head();
+    if (e.c == PoComp::EQ) {
+      if (!add_eq(e.x,e.y)) {
         return false;
       }
-    } else if (v == PoComp::GT) {
-      if (!add_gt(x,y)) {
+    } else if (e.c == PoComp::GT) {
+      if (!add_gt(e.x,e.y)) {
         return false;
       }
-    } else if (v == PoComp::LT) {
-      if (!add_gt(y,x)) {
+    } else if (e.c == PoComp::LT) {
+      if (!add_gt(e.y,e.x)) {
         return false;
       }
     }
+    tr = tr->tail();
   }
   return true;
 }
