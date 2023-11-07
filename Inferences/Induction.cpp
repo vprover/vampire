@@ -662,28 +662,6 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 }
 
 
-Literal* getWithoutAnsLit(Clause* clause) { // Clause always has two literals. One is an answerLiteral. The other is not.
-  unsigned cLen = clause->length();
-  for (unsigned i = 0; i < cLen; i++) {
-    Literal* lit = (*clause)[i];
-    if (lit->isAnswerLiteral())
-      continue;
-    return lit;
-  }
-  return nullptr; // never happens
-}
-
-Literal* extractAnsLit(Clause* clause) {
-  unsigned cLen = clause->length();
-  for (unsigned i = 0; i < cLen; i++) {
-    Literal* lit = (*clause)[i];
-    if (lit->isAnswerLiteral())
-      return Literal::complementaryLiteral(lit);
-  }
-  return nullptr; // never happens
-}
-
-
 ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, InferenceRule rule, const InductionContext& context, BindingList* &bindingList) {
   NewCNF cnf(0);
   cnf.setForInduction();
@@ -702,9 +680,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   }
   cnf.clausifySynthesis(NNF::ennf(fu), hyp_clauses, bindingList);
 
-  //ToDo: Do hyperresolution here
-  // Literal* premise = getWithoutAnsLit(context.getPremise());
-
+  // Hyperresolution 
   Literal* indLit = context.getInductionLiteral();
   Clause* premise = context.getPremise();
 
@@ -713,11 +689,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   while(cit.hasNext()){
     Clause* c = cit.next();
     unsigned cLen = c->length();
-
-    // std::cout << "clause before resolution: " << c->toString() << std::endl;
-
     Literal* resLit = (*c)[cLen - 1]; // Literal to resolve: L[z, rec(bar(u),z)], ToDo: Lit may not always be the last one. It is the one including the rec function. 
-
     RobSubstitution subst;
     UnificationConstraintStack constraints;
     HOMismatchHandler hndlr(constraints);
@@ -743,7 +715,6 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
       // std::cout << "clause after resolution is " << resolvent->toString() << std::endl;
       resolved_clauses.push(resolvent);
     }
-
     // std::cout << "----------\n";
   }
 
