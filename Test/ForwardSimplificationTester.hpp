@@ -45,7 +45,7 @@ class TestCase
   Option<ClausePattern> _expected;
   Stack<Clause*> _context;
   ForwardSimplificationEngine* _rule;
-  std::function<Stack<Indexing::Index*>(const Ordering&, const Options&)> _indices;
+  std::function<Stack<Indexing::Index*>(SaturationAlgorithm*)> _indices;
 
 public:
   TestCase() : _input(nullptr), _expected(), _context(), _rule(), _indices() {}
@@ -61,7 +61,7 @@ public:
   BUILDER_METHOD(ClausePattern, expected)
   BUILDER_METHOD(Stack<Clause*>, context)
   BUILDER_METHOD(ForwardSimplificationEngine*, rule)
-  BUILDER_METHOD(std::function<Stack<Indexing::Index*>(const Ordering&, const Options&)>, indices)
+  BUILDER_METHOD(std::function<Stack<Indexing::Index*>(SaturationAlgorithm*)>, indices)
 
   void run() {
 
@@ -76,7 +76,7 @@ public:
     KBO kbo(p,o);
     Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&kbo, true));
 
-    auto ind = _indices(kbo,o);
+    auto ind = _indices(&alg);
     _rule->setTestIndices(ind);
     _rule->InferenceEngine::attach(&alg);
     for (auto i : ind) {

@@ -106,6 +106,9 @@ void ReducibilityChecker::preprocessClause(Clause* cl)
     auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
       auto side = lhsi.next();
+      if (side.isVar()) {
+        continue;
+      }
 
       Stack<VarOrder> todo;
       Stack<VarOrder> rest;
@@ -229,7 +232,36 @@ bool ReducibilityChecker::check(Clause* rwClause, Clause* eqClause, Literal* eqL
     }
     case Options::ReducibilityCheck::SMALLER_GROUND: {
       vstringstream exp;
-      return checkSmaller2(lits, rwTermS, &tgtTermS, eqClause, eqLit, eqLHS, subst, eqIsResult, exp);
+      return checkSmaller2(lits, rwTermS, &tgtTermS, exp);
+      // return checkSmaller(lits, rwTermS, &tgtTermS, eqClause, eqLit, eqLHS, subst, eqIsResult, exp);
+    }
+    default:
+      return false;
+  }
+  ASSERTION_VIOLATION;
+}
+
+bool ReducibilityChecker::checkBR(Clause* queryClause, Clause* resultClause, ResultSubstitution* subst)
+{
+  TIME_TRACE("ReducibilityChecker::checkBR");
+  if (_opt.reducibilityCheck()==Options::ReducibilityCheck::OFF) {
+    return false;
+  }
+  Stack<Literal*> lits;
+  for (unsigned i = 0; i < queryClause->numSelected(); i++) {
+    lits.push(subst->applyToQuery((*queryClause)[i]));
+  }
+  for (unsigned i = 0; i < resultClause->numSelected(); i++) {
+    lits.push(subst->applyToResult((*resultClause)[i]));
+  }
+  switch (_opt.reducibilityCheck()) {
+    case Options::ReducibilityCheck::SMALLER: {
+      vstringstream exp;
+      return checkSmallerSanity(lits, nullptr, nullptr, exp);
+    }
+    case Options::ReducibilityCheck::SMALLER_GROUND: {
+      vstringstream exp;
+      return checkSmaller2(lits, nullptr, nullptr, exp);
       // return checkSmaller(lits, rwTermS, &tgtTermS, eqClause, eqLit, eqLHS, subst, eqIsResult, exp);
     }
     default:
@@ -302,6 +334,9 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
 
       auto t = static_cast<Term*>(qr.literal);
       auto e = _cache.findPtr(t);
+      if (_ord.isGreater(TermList(t),rhsS)) {
+        e->reducesTo.push(rhsS);
+      }
       Stack<VarOrder> newRest; // build a new rest stack
       for (const auto& vo : e->rest) {
         VarOrder::EqApplicator voApp(vo);
@@ -374,7 +409,7 @@ ReducibilityChecker::VarOrders* ReducibilityChecker::isTermReducible(Term* t)
   todo.push(VarOrder());
   while (todo.isNonEmpty()) {
     auto vo = todo.pop();
-    for (unsigned i = 0; i < t->arity(); i++) {
+    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
       auto arg = t->nthArgument(i);
       if (arg->isVar()) {
         continue;
@@ -418,7 +453,7 @@ ReducibilityChecker::VarOrders* ReducibilityChecker::isTermReducible(Term* t)
       // if (found) {
       //   goto loop_end;
       // }
-      for (unsigned i = 0; i < t->arity(); i++) {
+      for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
         auto arg = t->nthArgument(i);
         if (arg->isVar()) {
           continue;
@@ -461,7 +496,7 @@ loop_end:
     vos->reduced.reset();
     vos->reduced.push(VarOrder());
   } else {
-    for (unsigned i = 0; i < t->arity(); i++) {
+    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
       auto arg = t->nthArgument(i);
       if (arg->isVar()) {
         continue;
@@ -677,7 +712,7 @@ loop_end:
 }
 
 // cheaper but returns more false negatives
-bool ReducibilityChecker::checkSmaller2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp)
+bool ReducibilityChecker::checkSmaller2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp)
 {
   Stack<Term*> toplevelTerms;
   for (const auto& lit : lits) {
@@ -703,7 +738,11 @@ bool ReducibilityChecker::checkSmaller2(const Stack<Literal*>& lits, Term* rwTer
           toplevelTerms.push(t1.term());
           break;
         case Ordering::EQUAL:
-          ASSERTION_VIOLATION;
+          if (lit->isPositive()) {
+            return true;
+          }
+          break;
+          // ASSERTION_VIOLATION;
       }
     }
   }
@@ -717,10 +756,10 @@ bool ReducibilityChecker::checkSmaller2(const Stack<Literal*>& lits, Term* rwTer
         stit.right();
         continue;
       }
-      if (cannotBeGreater(rwTermS, st)) {
+      if (rwTermS && cannotBeGreater(rwTermS, st)) {
         continue;
       }
-      if (!_ord.isGreater(TermList(rwTermS),TermList(st))) {
+      if (rwTermS && !_ord.isGreater(TermList(rwTermS),TermList(st))) {
         continue;
       }
 
@@ -732,32 +771,26 @@ bool ReducibilityChecker::checkSmaller2(const Stack<Literal*>& lits, Term* rwTer
     }
   }
 
-  auto ptr = isTermReducible(rwTermS);
-  for (const auto& rhs : ptr->reducesTo) {
-    if (!_ord.isGreater(*tgtTermS,rhs)) {
-      continue;
+  if (rwTermS) {
+    auto ptr = isTermReducible(rwTermS);
+    for (const auto& rhs : ptr->reducesTo) {
+      if (!_ord.isGreater(*tgtTermS,rhs)) {
+        continue;
+      }
+      return true;
     }
-    return true;
   }
   return false;
 }
 
 bool ReducibilityChecker::checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp)
 {
-  ASS(rwTermS->isLiteral() || tgtTermS);
   for (const auto& lit : lits) {
     Stack<Term*> toplevelTerms;
     if (!lit->isEquality()) {
       toplevelTerms.push(lit);
     } else {
       auto comp = _ord.getEqualityArgumentOrder(lit);
-      if (comp == Ordering::EQUAL) {
-        if (lit->isPositive()) {
-          return true;
-        } else {
-          continue;
-        }
-      }
       auto t0 = lit->termArg(0);
       auto t1 = lit->termArg(1);
       switch(comp) {
@@ -776,14 +809,18 @@ bool ReducibilityChecker::checkSmallerSanity(const Stack<Literal*>& lits, Term* 
           toplevelTerms.push(t1.term());
           break;
         case Ordering::EQUAL:
-          ASSERTION_VIOLATION;
+          if (lit->isPositive()) {
+            return true;
+          }
+          break;
+          // ASSERTION_VIOLATION;
       }
     }
     for (Term* t : toplevelTerms) {
       NonVariableNonTypeIterator stit(t, !t->isLiteral());
       while (stit.hasNext()) {
         auto st = stit.next();
-        if (!rwTermS->isLiteral() && !Ordering::isGorGEorE(_ord.compare(TermList(rwTermS),TermList(st)))) {
+        if (!rwTermS || !Ordering::isGorGEorE(_ord.compare(TermList(rwTermS),TermList(st)))) {
           continue;
         }
         auto it = _index->getGeneralizations(st,true);
@@ -814,7 +851,9 @@ bool ReducibilityChecker::checkSmallerSanity(const Stack<Literal*>& lits, Term* 
           if (_ord.compare(TermList(st),rhsS)!=Ordering::GREATER) {
             continue;
           }
-          LOG2(exp, "2. rwTermS ", *rwTermS);
+          if (rwTermS) {
+            LOG2(exp, "2. rwTermS ", *rwTermS);
+          }
           if (st == rwTermS && tgtTermS) {
             LOG2(exp, " with ", *tgtTermS);
           }

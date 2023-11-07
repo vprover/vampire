@@ -176,19 +176,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  // if (checker) {
-  //   checker->resetDone();
-  //   auto litS = qr.substitution->applyToQuery(queryLit);
-  //   if (checker->check(qr.clause,TermList(qr.literal),litS,nullptr,qr.substitution.ptr(),true,false)) {
-  //     env.statistics->skippedResolution++;
-  //     return 0;
-  //   }
-
-  //   if (checker->check(queryCl,TermList(queryLit),litS,nullptr,qr.substitution.ptr(),false,false)) {
-  //     env.statistics->skippedResolution++;
-  //     return 0;
-  //   }
-  // }
+  if (checker && checker->checkBR(queryCl,qr.clause,qr.substitution.ptr())) {
+    env.statistics->skippedResolution++;
+    return 0;
+  }
 
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength;

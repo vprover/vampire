@@ -27,8 +27,8 @@ using namespace Test;
 
 namespace TestForwardGroundJoinability {
 
-Stack<Index*> getIndices(const Ordering& ord, const Options& opt) {
-  return { new DemodulationLHSIndex(new CodeTreeTIS(), ord, opt) };
+Stack<Index*> getIndices(SaturationAlgorithm* salg) {
+  return { new DemodulationLHSIndex(new CodeTreeTIS(), salg->getOrdering(), salg->getOptions(), salg) };
 }
 
 #define MY_SYNTAX_SUGAR                                                                    \

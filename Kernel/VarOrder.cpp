@@ -77,7 +77,6 @@ bool VarOrder::subseteq(const VarOrder& other) const
 
 bool VarOrder::tryExtendWith(const VarOrder& other)
 {
-  TIME_TRACE("tryExtendWith");
   auto tr = other.transitive_reduction();
   while (List<Edge>::isNonEmpty(tr)) {
     auto e = tr->head();

@@ -404,7 +404,6 @@ void ForwardGroundJoinability::order_diff_helper(VarOrder& vo, const List<Edge>*
 
 Stack<VarOrder> ForwardGroundJoinability::order_diff(const VarOrder& vo, const VarOrder& other)
 {
-  TIME_TRACE("order_diff");
   return order_diff_nonrecursive(vo,other);
   // auto tr = other.transitive_reduction();
 
@@ -416,7 +415,6 @@ Stack<VarOrder> ForwardGroundJoinability::order_diff(const VarOrder& vo, const V
 
 Stack<VarOrder> ForwardGroundJoinability::order_diff_nonrecursive(const VarOrder& vo, const VarOrder& other)
 {
-  TIME_TRACE("order_diff");
   auto tr = other.transitive_reduction();
 
   Stack<VarOrder> res;
