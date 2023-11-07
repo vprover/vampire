@@ -270,7 +270,10 @@ void InductionClauseIterator::processClause(Clause* premise)
   // or it should be an integer constant comparison we use as a bound.
   if (InductionHelper::isInductionClause(premise)) {
     for (unsigned i=0;i<premise->length();i++) {
-      processLiteral(premise,(*premise)[i]);
+      Literal* lit = (*premise)[i];
+      if (!lit->isAnswerLiteral()) {
+        processLiteral(premise,(*premise)[i]);
+      }
     }
   }
   if (InductionHelper::isIntInductionOneOn() && InductionHelper::isIntegerComparison(premise)) {

@@ -706,6 +706,7 @@ Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
       }
       if (!env.signature->getPredicate(l->functor())->computable()) {
         sym->markUncomputable();
+        cout << "creating " << sym->name() << " as uncomputable based on " << l->toString() << endl;
       }
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
