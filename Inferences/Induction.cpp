@@ -1085,7 +1085,12 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
         TermStack dargTerms(numTypeArgs+1);
         dargTerms.loadFromIterator(Term::Iterator(sort.term()));
         dargTerms.push(y);
-        TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
+        TermList djy;
+        if (con->argSort(j)==AtomicSort::boolSort()) {
+          djy = TermList(Term::createFormula(new AtomicFormula(Literal::create(dj,dargTerms.size(),true,false,dargTerms.begin()))));
+        } else {
+          djy = TermList(Term::create(dj,dargTerms.size(),dargTerms.begin()));
+        }
         argTerms.push(djy);
         if(con->argSort(j) == con->rangeSort()){
           taTerms.push(djy);
@@ -1175,7 +1180,12 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
         TermStack dargTerms(numTypeArgs+1);
         dargTerms.loadFromIterator(Term::Iterator(sort.term()));
         dargTerms.push(y);
-        TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
+        TermList djy;
+        if (con->argSort(j)==AtomicSort::boolSort()) {
+          djy = TermList(Term::createFormula(new AtomicFormula(Literal::create(dj,dargTerms.size(),true,false,dargTerms.begin()))));
+        } else {
+          djy = TermList(Term::create(dj,dargTerms.size(),dargTerms.begin()));
+        }
         argTerms.push(djy);
         TermList xj(vars,false);
         varTerms.push(xj);
