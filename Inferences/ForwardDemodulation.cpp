@@ -28,12 +28,10 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/Matcher.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"

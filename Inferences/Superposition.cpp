@@ -116,7 +116,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 {
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
-  // std::cout << "SUPERPOSITION with " << premise->toString() << std::endl;
+  //std::cout << "SUPERPOSITION with " << premise->toString() << std::endl;
 
   //TODO probably shouldn't go here!
   static bool withConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
@@ -372,14 +372,12 @@ Clause* Superposition::performSuperposition(
   }
 #endif
 
-  // cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
+  //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  auto comp = ordering.compare(tgtTermS,rwTermS);
-  if(Ordering::isGorGEorE(comp)) {
+  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
     return 0;
   }
-  // cout << "ordering " << Ordering::resultToString(comp) << endl;
 
   if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
@@ -407,7 +405,7 @@ Clause* Superposition::performSuperposition(
   }
 
   auto checker = _salg->getReducibilityChecker();
-  if (checker && checker->check(rwClause,eqClause,eqLit,eqLHS,subst.ptr(),eqIsResult)) {
+  if (checker && checker->checkSup(rwClause,eqClause,eqLit,eqLHS,subst.ptr(),eqIsResult)) {
     env.statistics->skippedSuperposition++;
     return 0;
   }

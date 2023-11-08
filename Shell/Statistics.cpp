@@ -116,7 +116,6 @@ Statistics::Statistics()
     backwardSubsumptionResolution(0),
     forwardDemodulations(0),
     forwardDemodulationsToEqTaut(0),
-    demodulationByRule(0),
     backwardDemodulations(0),
     backwardDemodulationsToEqTaut(0),
     forwardSubsumptionDemodulations(0),
@@ -321,7 +320,6 @@ void Statistics::print(ostream& out)
   COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
   COND_OUT("Fw demodulations", forwardDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
-  COND_OUT("Demodulation by rule", demodulationByRule);
   COND_OUT("Fw subsumption demodulations", forwardSubsumptionDemodulations);
   COND_OUT("Bw subsumption demodulations", backwardSubsumptionDemodulations);
   COND_OUT("Fw literal rewrites", forwardLiteralRewrites);

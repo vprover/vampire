@@ -31,8 +31,6 @@
 #include "Unit.hpp"
 #include "Kernel/Inference.hpp"
 
-#include "Indexing/Index.hpp"
-
 namespace Kernel {
 
 using namespace Lib;

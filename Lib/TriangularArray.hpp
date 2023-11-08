@@ -78,14 +78,6 @@ public:
     return _data[x + (y*(_2sideMinus1-y))/2];
   }
 
-  const T& get(size_t x, size_t y) const
-  {
-    ASS_GE(x,y);
-    ASS_L(x,(_2sideMinus1+1)/2);
-    ASS_L(x + (y*(_2sideMinus1-y))/2, _capacity);
-    return _data[x + (y*(_2sideMinus1-y))/2];
-  }
-
   void set(size_t x, size_t y, T val)
   {
     ASS_GE(x,y);
@@ -97,11 +89,6 @@ public:
   void zeroAll()
   {
     std::memset(_data, 0, _capacity * sizeof(T));
-  }
-
-  size_t size() const
-  {
-    return (_2sideMinus1+1)/2;
   }
 
 private:

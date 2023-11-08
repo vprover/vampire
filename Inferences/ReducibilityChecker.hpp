@@ -31,8 +31,8 @@ private:
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
   const Options& _opt;
-  struct VarOrders {
-    VarOrders() : reducesTo(), reduced(), rest(1), superTerms(), valid(false) {
+  struct ReducibilityEntry {
+    ReducibilityEntry() : reducesTo(), reduced(), rest(1), superTerms(), valid(false) {
       rest.push(VarOrder());
     }
     Stack<TermList> reducesTo;
@@ -41,20 +41,18 @@ private:
     Stack<Term*> superTerms;
     bool valid;
   };
-  DHMap<Term*,VarOrders> _cache;
+  DHMap<Term*,ReducibilityEntry> _cache;
   TermSubstitutionTree _tis;
   DHMap<Clause*,Stack<VarOrder>> _demodulatorCache;
   DHMap<std::pair<TermList,TermList>,bool> _uselessLHSCache;
 
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
-  VarOrders* isTermReducible(Term* t);
+  ReducibilityEntry* isTermReducible(Term* t);
 
   bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp);
   bool checkSmaller2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
-
-  // bool kboGreater(TermList tl1, TermList tl2, const VarOrder& vo, const DHSet<unsigned>& vars);
 
 public:
   CLASS_NAME(ReducibilityChecker);
@@ -62,7 +60,7 @@ public:
 
   ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
 
-  bool check(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult);
+  bool checkSup(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult);
   bool checkBR(Clause* queryClause, Clause* resultClause, ResultSubstitution* subst);
   void clauseActivated(Clause* cl);
   void preprocessClause(Clause* cl);

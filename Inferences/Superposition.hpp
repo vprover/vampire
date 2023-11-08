@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
-#include "Lib/MultiCounter.hpp"
 
 #include "InferenceEngine.hpp"
 

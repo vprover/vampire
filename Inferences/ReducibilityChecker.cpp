@@ -210,9 +210,9 @@ loop_end:
 ReducibilityChecker::ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt)
 : _index(index), _ord(ord), _opt(opt) {}
 
-bool ReducibilityChecker::check(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult)
+bool ReducibilityChecker::checkSup(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult)
 {
-  TIME_TRACE("ReducibilityChecker::check");
+  TIME_TRACE("ReducibilityChecker::checkSup");
   if (_opt.reducibilityCheck()==Options::ReducibilityCheck::OFF) {
     return false;
   }
@@ -350,10 +350,10 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
   }
 }
 
-ReducibilityChecker::VarOrders* ReducibilityChecker::isTermReducible(Term* t)
+ReducibilityChecker::ReducibilityEntry* ReducibilityChecker::isTermReducible(Term* t)
 {
   TIME_TRACE("ReducibilityChecker::isTermReducible");
-  VarOrders* vos;
+  ReducibilityEntry* vos;
   bool firstAccess = _cache.getValuePtr(t, vos);
   if (!firstAccess && vos->valid) {
     return vos;
