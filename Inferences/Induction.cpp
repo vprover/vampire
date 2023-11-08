@@ -953,6 +953,9 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
   if (hasBound2) {
     // Finite interval induction, use two bounds on both x and y.
     TermList b2(optionalBound2->term);
+    if (b1 == b2) {
+      return;
+    }
     // create X<b2 or X>b2 (which is b2<X)
     Formula* Lxcompb2 = new AtomicFormula(Literal::create2(less, true, (increasing ? x : b2), (increasing ? b2 : x)));
     const bool isBound2Equal = (optionalBound2->literal->functor() == less && optionalBound2->literal->isNegative());
