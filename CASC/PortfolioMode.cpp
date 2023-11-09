@@ -417,21 +417,11 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   Set<pid_t> processes;
   bool success = false;
   int remainingTime;
-  while(Timer::syncClock(), remainingTime = env.remainingTime() / 100, remainingTime > 0)
+  while(Timer::syncClock(), remainingTime = env.remainingTime() / 100, remainingTime > 0 && (it.hasNext() || processes.size() > 0) )
   {
     // running under capacity, wake up more tasks
-    while(processes.size() < _numWorkers)
+    while(processes.size() < _numWorkers && it.hasNext())
     {
-      // after exhaustion we replace the schedule
-      // by copies with x2 time limits and do this forever
-      if(!it.hasNext()) {
-        Schedule next;
-        rescaleScheduleLimits(schedule, next, 2.0);
-        schedule = next;
-        it = Schedule::BottomFirstIterator(schedule);
-      }
-      ALWAYS(it.hasNext());
-
       vstring code = it.next();
       pid_t process = Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
