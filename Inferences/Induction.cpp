@@ -769,6 +769,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
 Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, bool applySubst)
 {
   // first create the clause with the required size
+  RobSubstitution renaming;
   ASS(eIt.hasNext());
   auto cl = cls[eIt.next()];
   unsigned newLength = cl->length();
@@ -811,12 +812,14 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
     }
     if (!contains) {
       ASS(next < newLength);
+      Literal* resLit;
       if (applySubst) {
         TermReplacement tr(getPlaceholderForTerm(context._indTerm),TermList(context._indTerm));
-        (*res)[next] = tr.transform(SubstHelper::apply<Substitution>(curr,subst));
+        resLit = tr.transform(SubstHelper::apply<Substitution>(curr,subst));
       } else {
-        (*res)[next] = curr;
+        resLit = curr;
       }
+      (*res)[next] = renaming.apply(resLit,0);
       next++;
     }
   }
@@ -835,7 +838,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
         }
       }
       if (copyCurr) {
-        (*res)[next] = (*kv.first)[i];
+        (*res)[next] = renaming.apply((*kv.first)[i],1);
         next++;
       }
     }
