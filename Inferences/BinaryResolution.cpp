@@ -176,10 +176,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  if (checker && checker->checkBR(queryCl,qr.clause,qr.substitution.ptr())) {
-    env.statistics->skippedResolution++;
-    return 0;
-  }
+  // if (checker && checker->checkBR(queryCl,qr.clause,qr.substitution.ptr())) {
+  //   env.statistics->skippedResolution++;
+  //   return 0;
+  // }
 
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength;
@@ -263,6 +263,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
           return 0;
         }
       }
+      if (i < queryCl->numSelected() && checker && checker->checkLiteral(newLit)) {
+        env.statistics->skippedResolution++;
+        res->destroy();
+        return 0;
+      }
       ASS(next < newLength);
       (*res)[next] = newLit;
       next++;
@@ -301,9 +306,36 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
           return 0;
         }
       }
+      if (i < qr.clause->numSelected() && checker && checker->checkLiteral(newLit)) {
+        env.statistics->skippedResolution++;
+        res->destroy();
+        return 0;
+      }
 
       (*res)[next] = newLit;
       next++;
+    }
+  }
+  if (checker) {
+    if (queryLitAfter) {
+      if (checker->checkLiteral(queryLitAfter)) {
+        env.statistics->skippedResolution++;
+        res->destroy();
+        return 0;
+      }
+    } else if (qrLitAfter) {
+      if (checker->checkLiteral(qrLitAfter)) {
+        env.statistics->skippedResolution++;
+        res->destroy();
+        return 0;
+      }
+    } else {
+      auto lit = qr.substitution->applyToQuery(queryLit);
+      if (checker->checkLiteral(lit)) {
+        env.statistics->skippedResolution++;
+        res->destroy();
+        return 0;
+      }
     }
   }
 

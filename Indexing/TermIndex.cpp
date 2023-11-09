@@ -138,14 +138,14 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while (lhsi.hasNext()) {
     auto lhs = lhsi.next();
-    auto checker = _salg->getReducibilityChecker();
-    if (checker) {
-      auto ptr = checker->isUselessLHS(lhs, EqHelper::getOtherEqualitySide(lit, lhs));
-      ASS(ptr);
-      if (*ptr) {
-        // continue;
-      }
-    }
+    // auto checker = _salg->getReducibilityChecker();
+    // if (checker) {
+    //   auto ptr = checker->isUselessLHS(lhs, EqHelper::getOtherEqualitySide(lit, lhs));
+    //   ASS(ptr);
+    //   if (*ptr) {
+    //     // continue;
+    //   }
+    // }
     _is->handle(lhs, lit, c, adding);
   }
 }

@@ -645,6 +645,16 @@ public:
     _varmap = v;
   }
 
+  void* reducibilityInfo() const
+  {
+    return _reducibilityInfo;
+  }
+
+  void setReducibilityInfo(void* ptr)
+  {
+    _reducibilityInfo = ptr;
+  }
+
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
   {
@@ -813,6 +823,7 @@ protected:
   /** length of maximum reduction length */
   int _maxRedLen;
   unsigned _varmap : 32;
+  void* _reducibilityInfo;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

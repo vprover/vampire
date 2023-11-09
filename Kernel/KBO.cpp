@@ -1204,7 +1204,7 @@ bool KBO::makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const
     //       unsigned t1v;
     //       unsigned cnt1;
     //       vit1.next(t1v,cnt1);
-    //       if (vo.add_gt(t1v,t2v)) {
+    //       if (vo.query(t1v,t2v)==PoComp::INC && vo.add_gt(t1v,t2v)) {
     //         if (cnt2 < cnt1) {
     //           cnt2 = 0;
     //           break;
@@ -1218,9 +1218,9 @@ bool KBO::makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const
     //     }
     //   }
     // }
-    if (!pos) {
-      TIME_TRACE("fixed order");
-    }
+    // if (!pos) {
+    //   TIME_TRACE("fixed order");
+    // }
     return !pos;
   }
 

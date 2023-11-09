@@ -41,7 +41,6 @@ private:
     Stack<Term*> superTerms;
     bool valid;
   };
-  DHMap<Term*,ReducibilityEntry> _cache;
   TermSubstitutionTree _tis;
   DHMap<Clause*,Stack<VarOrder>> _demodulatorCache;
   DHMap<std::pair<TermList,TermList>,bool> _uselessLHSCache;
@@ -62,6 +61,7 @@ public:
 
   bool checkSup(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult);
   bool checkBR(Clause* queryClause, Clause* resultClause, ResultSubstitution* subst);
+  bool checkLiteral(Literal* lit);
   void clauseActivated(Clause* cl);
   void preprocessClause(Clause* cl);
   bool* isUselessLHS(TermList lhs, TermList rhs) {
