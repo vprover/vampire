@@ -198,7 +198,7 @@ typedef List<Binding> BindingList;
 
 struct SkolemTracker {
   Binding binding;
-  unsigned constructorIndex; 
+  unsigned constructorIndex; // a skolem constant will be considered computable in the j'th arg of rec(.), if j = constructorIndex
   bool recursiveArg;
   int recursivePos; // -1 if not recursive, otherwise the position of the recursive argument
   SkolemTracker(Binding b, unsigned c, bool r, int pos) : binding(b), constructorIndex(c), recursiveArg(r), recursivePos(pos) {}
