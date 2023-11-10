@@ -353,9 +353,9 @@ struct InductionContextFn
       lits.insert(_lit);
       while (arg.second.hasNext()) {
         auto tqr = arg.second.next();
-        // TODO: having the same literal multiple times has unwanted effects
+        // TODO: having the same literal multiple times or its complement has unwanted effects
         // in the clausification/resolution part, so avoid it for now
-        if (lits.contains(tqr.literal)) {
+        if (lits.contains(tqr.literal) || lits.contains(Literal::complementaryLiteral(tqr.literal))) {
           continue;
         }
         lits.insert(tqr.literal);
