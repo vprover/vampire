@@ -69,7 +69,7 @@ private:
   template<class Iterator>
   SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
 
-  Stack<SubstitutionTree> _trees;
+  Stack<std::unique_ptr<SubstitutionTree>> _trees;
   bool _useC;
 };
 

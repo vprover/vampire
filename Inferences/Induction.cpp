@@ -537,9 +537,9 @@ struct InductionContextFn
       lits.insert(_lit);
       while (arg.second.hasNext()) {
         auto tqr = arg.second.next();
-        // TODO: having the same literal multiple times has unwanted effects
+        // TODO: having the same literal multiple times or its complement has unwanted effects
         // in the clausification/resolution part, so avoid it for now
-        if (lits.contains(tqr.literal)) {
+        if (lits.contains(tqr.literal) || lits.contains(Literal::complementaryLiteral(tqr.literal))) {
           continue;
         }
         lits.insert(tqr.literal);
@@ -1014,6 +1014,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
 Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, bool applySubst)
 {
   // first create the clause with the required size
+  RobSubstitution renaming;
   ASS(eIt.hasNext());
   auto cl = cls[eIt.next()];
   unsigned newLength = cl->length();
@@ -1056,12 +1057,14 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
     }
     if (!contains) {
       ASS(next < newLength);
+      Literal* resLit;
       if (applySubst) {
         TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
-        (*res)[next] = tr.transform(SubstHelper::apply<Substitution>(curr,subst));
+        resLit = tr.transform(SubstHelper::apply<Substitution>(curr,subst));
       } else {
-        (*res)[next] = curr;
+        resLit = curr;
       }
+      (*res)[next] = renaming.apply(resLit,0);
       next++;
     }
   }
@@ -1080,7 +1083,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
         }
       }
       if (copyCurr) {
-        (*res)[next] = (*kv.first)[i];
+        (*res)[next] = renaming.apply((*kv.first)[i],1);
         next++;
       }
     }
@@ -1203,6 +1206,9 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
   if (hasBound2) {
     // Finite interval induction, use two bounds on both x and y.
     TermList b2(optionalBound2->term);
+    if (b1 == b2) {
+      return;
+    }
     // create X<b2 or X>b2 (which is b2<X)
     Formula* Lxcompb2 = new AtomicFormula(Literal::create2(less, true, (increasing ? x : b2), (increasing ? b2 : x)));
     const bool isBound2Equal = (optionalBound2->literal->functor() == less && optionalBound2->literal->isNegative());
@@ -1337,7 +1343,12 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
         TermStack dargTerms(numTypeArgs+1);
         dargTerms.loadFromIterator(Term::Iterator(sort.term()));
         dargTerms.push(y);
-        TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
+        TermList djy;
+        if (con->argSort(j)==AtomicSort::boolSort()) {
+          djy = TermList(Term::createFormula(new AtomicFormula(Literal::create(dj,dargTerms.size(),true,false,dargTerms.begin()))));
+        } else {
+          djy = TermList(Term::create(dj,dargTerms.size(),dargTerms.begin()));
+        }
         argTerms.push(djy);
         if(con->argSort(j) == con->rangeSort()){
           taTerms.push(djy);
@@ -1428,7 +1439,12 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
         TermStack dargTerms(numTypeArgs+1);
         dargTerms.loadFromIterator(Term::Iterator(sort.term()));
         dargTerms.push(y);
-        TermList djy(Term::create(dj,dargTerms.size(),dargTerms.begin()));
+        TermList djy;
+        if (con->argSort(j)==AtomicSort::boolSort()) {
+          djy = TermList(Term::createFormula(new AtomicFormula(Literal::create(dj,dargTerms.size(),true,false,dargTerms.begin()))));
+        } else {
+          djy = TermList(Term::create(dj,dargTerms.size(),dargTerms.begin()));
+        }
         argTerms.push(djy);
         TermList xj(vars,false);
         varTerms.push(xj);

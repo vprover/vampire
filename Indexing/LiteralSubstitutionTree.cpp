@@ -56,7 +56,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
 {
   return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-         .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
+         .flatMap([this](auto i) { return LeafIterator(_trees[i].get()); })
          .flatMap([](Leaf* l) { return l->allChildren(); })
          .map([](const LeafData& ld) { return SLQueryResult(ld.literal, ld.clause); })
       );
@@ -66,24 +66,24 @@ SubstitutionTree& LiteralSubstitutionTree::getTree(Literal* lit, bool complement
 {
   auto idx = complementary ? lit->header() : lit->complementaryHeader();
   while (idx >= _trees.size()) {
-    _trees.push(SubstitutionTree(_useC, /* rfSubs */ false));
+    _trees.push(std::make_unique<SubstitutionTree>(_useC, /* rfSubs */ false));
   }
-  return _trees[idx];
+  return *_trees[idx].get();
 }
 
 template<class Iterator>
 SLQueryResultIterator LiteralSubstitutionTree::getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints)
 {
-  auto iter = [&](bool reversed) 
+  auto iter = [&](bool reversed)
     { return iterTraits(getTree(lit, complementary).iterator<Iterator>(lit, retrieveSubstitutions, useConstraints, reversed)) ; };
 
-  auto filterResults = [=](auto it) { 
+  auto filterResults = [=](auto it) {
     return pvi(
         std::move(it)
         .map([](QueryResult qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.subst, qr.constr); })
-        ); 
+        );
   };
-  return !lit->commutative() 
+  return !lit->commutative()
     ?  filterResults(iter( /* reversed */ false))
     :  filterResults(concatIters(
         iter( /* reversed */ false),
