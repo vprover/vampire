@@ -31,6 +31,7 @@
 #include "Statistics.hpp"
 
 
+using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
@@ -168,11 +169,6 @@ Statistics::Statistics()
 
     smtFallbacks(0),
 
-    instGenGeneratedClauses(0),
-    instGenRedundantClauses(0),
-    instGenKeptClauses(0),
-    instGenIterations(0),
-
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
     refutation(0),
@@ -274,9 +270,7 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
-  COND_OUT("Reused names",reusedFormulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
-  COND_OUT("Reused skolems",reusedSkolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
@@ -441,14 +435,6 @@ void Statistics::print(ostream& out)
   COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 
-  HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
-       instGenKeptClauses+instGenIterations);
-  COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
-  COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
-  COND_OUT("InstGen kept clauses", instGenKeptClauses);
-  COND_OUT("InstGen iterations", instGenIterations);
-  SEPARATOR;
-
   //TODO record statistics for FMB
 
   //TODO record statistics for MiniSAT
@@ -461,7 +447,7 @@ void Statistics::print(ostream& out)
 
   }
 
-  COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
+  COND_OUT("Memory used [KB]", Lib::getUsedMemory()/1024);
 
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
@@ -520,6 +506,10 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Unused predicate definition removal";
   case BLOCKED_CLAUSE_ELIMINATION:
     return "Blocked clause elimination";
+  case TWEE:
+    return "Twee Goal Transformation";
+  case ANSWER_LITERAL: 
+    return "Answer literal addition";
   case PREPROCESS_2:
     return "Preprocessing 2";
   case NEW_CNF:

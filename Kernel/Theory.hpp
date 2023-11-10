@@ -57,7 +57,6 @@ public:
 class IntegerConstantType
 {
 public:
-  CLASS_NAME(IntegerConstantType)
   static TermList getSort() { return AtomicSort::intSort(); }
 
   typedef int InnerType;
@@ -122,7 +121,7 @@ private:
 };
 
 inline
-std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
+std::ostream& operator<< (std::ostream& out, const IntegerConstantType& val) {
   return out << val.toInner();
 }
 
@@ -135,7 +134,6 @@ std::ostream& operator<< (ostream& out, const IntegerConstantType& val) {
  */
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
-  CLASS_NAME(RationalConstantType)
 
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
@@ -200,7 +198,7 @@ private:
 };
 
 inline
-std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
+std::ostream& operator<< (std::ostream& out, const RationalConstantType& val) {
   return out << val.toString();
 }
 
@@ -208,7 +206,6 @@ std::ostream& operator<< (ostream& out, const RationalConstantType& val) {
 class RealConstantType : public RationalConstantType
 {
 public:
-  CLASS_NAME(RealConstantType)
   static TermList getSort() { return AtomicSort::realSort(); }
 
   RealConstantType() {}
@@ -271,7 +268,7 @@ inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs)
 }
 
 inline
-std::ostream& operator<< (ostream& out, const RealConstantType& val) {
+std::ostream& operator<< (std::ostream& out, const RealConstantType& val) {
   return out << val.toString();
 }
 
@@ -423,8 +420,6 @@ public:
 
   Interpretation interpretationFromIndexedInterpretation(IndexedInterpretation ii, unsigned index)
   {
-    CALL("inpretationFromIndexedInterpretation");
-
     ConcreteIndexedInterpretation cii = std::make_pair(ii,index);
 
     Interpretation res;
@@ -519,7 +514,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, IntegerConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,IntegerConstantType)");
     if (!trm.isTerm()) {
       return false;
     }
@@ -534,7 +528,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, RationalConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,RationalConstantType)");
     if (!trm.isTerm()) {
       return false;
     }
@@ -549,7 +542,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, RealConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,RealConstantType)");
     if (!trm.isTerm()) {
       return false;
     }

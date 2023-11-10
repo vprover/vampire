@@ -555,7 +555,6 @@ public:
   }
 
   FuncSugar dtor(unsigned i) const {
-    CALL("FuncSugar::dtor(unsigned)")
     ASS_L(i, arity())
     ASS (symbol()->termAlgebraCons()) 
     return FuncSugar(
@@ -568,7 +567,6 @@ public:
 
   template<class... As>
   TermSugar operator()(As... args) const {
-    BYPASSING_ALLOCATOR
     Stack<TermList> as { TermSugar(args).sugaredExpr()... };
     return TermList(Term::create(_functor, 
         as.size(), 
@@ -597,10 +595,8 @@ class TypeConSugar {
   unsigned _functor;
 
 public:
-  TypeConSugar(const char* name, unsigned arity) 
+  TypeConSugar(const char* name, unsigned arity)
   {
-    BYPASSING_ALLOCATOR
-
     bool added = false;
     _functor = env.signature->addTypeCon(name, arity, added);
     if (added)
@@ -636,12 +632,11 @@ class PredSugar {
 public:
   PredSugar(const char* name, Stack<SortSugar> args, unsigned taArity = 0) 
   {
-    BYPASSING_ALLOCATOR
     Stack<SortId> as;
     for (auto a : args) {
       as.push(a.sugaredExpr());
     }
-    
+
     if(taArity){
       TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};      
       SortHelper::normaliseArgSorts(vars, as);
@@ -695,7 +690,7 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
   return out;
 }
 
-inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
+inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
   // avoid redeclaration
   if (env.signature->isTermAlgebraSort(sort.sugaredExpr())) {
     return;

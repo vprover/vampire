@@ -19,7 +19,6 @@
 
 #include "Exception.hpp"
 #include "NameArray.hpp"
-#include "Debug/Tracer.hpp"
 
 namespace Lib {
 
@@ -45,8 +44,6 @@ NameArray::NameArray (const char* array[],int len)
  */
 int NameArray::find (const char* value) const
 {
-  CALL("NameArray::find");
-
   int res=tryToFind(value);
   if(res==-1) {
     throw ValueNotFoundException();
@@ -60,8 +57,6 @@ int NameArray::find (const char* value) const
  */
 int NameArray::tryToFind(const char* value) const
 {
-  CALL("NameArray::tryToFind");
-
   int from = 0;
   int to = length;
   while (from < to) {

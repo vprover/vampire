@@ -25,7 +25,6 @@ using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::N
 
 SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
 {
-  CALL("GaussianVariableElimination::simplify")
   ASS(in)
 
   auto& cl = *in;
@@ -55,7 +54,6 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
 
 SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
 {
-  CALL("GaussianVariableElimination::rewrite");
   env.statistics->gveCnt++;
 
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));

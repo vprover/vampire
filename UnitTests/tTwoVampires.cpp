@@ -35,6 +35,7 @@
 
 #include "Parse/TPTP.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 using namespace Kernel;
@@ -45,8 +46,6 @@ using namespace Shell;
 
 void runChild(UnitList* units, vstring slice)
 {
-  CALL("runChild")
-  
   int resultValue=1;
   try {    
     env.timer->reset();

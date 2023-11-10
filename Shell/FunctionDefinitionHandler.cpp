@@ -25,12 +25,12 @@
 using namespace Inferences;
 using namespace Kernel;
 using namespace Lib;
+using namespace std;
 
 namespace Shell {
 
 void FunctionDefinitionHandler::preprocess(Problem& prb)
 {
-  CALL("FunctionDefinitionHandler::preprocess(Problem&)");
   UnitList::DelIterator it(prb.units());
   while (it.hasNext()) {
     auto u = it.next();
@@ -54,7 +54,6 @@ void FunctionDefinitionHandler::preprocess(Problem& prb)
 
 bool FunctionDefinitionHandler::preprocess(Formula* f, Stack<Branch>& branches)
 {
-  CALL("FunctionDefinitionHandler::preprocess(Formula*, Stack<Branch>& branches)");
   ASS_EQ(f->connective(), LITERAL);
 
   auto l = f->literal();
@@ -65,7 +64,7 @@ bool FunctionDefinitionHandler::preprocess(Formula* f, Stack<Branch>& branches)
   auto header = l->nthArgument(0)->term();
   if (header->isSpecial()) {
     // literal headers are nicely packed into multiple layers
-    ASS_EQ(header->getSpecialData()->getType(), Term::SF_FORMULA);
+    ASS_EQ(header->getSpecialData()->specialFunctor(), Term::SpecialFunctor::FORMULA);
     auto of = header->getSpecialData()->getFormula();
     ASS_EQ(of->connective(), LITERAL);
     header = of->literal();
@@ -84,8 +83,8 @@ bool FunctionDefinitionHandler::preprocess(Formula* f, Stack<Branch>& branches)
     }
     auto t = b.body.term();
     Term::SpecialTermData *sd = t->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA: {
+    switch (sd->specialFunctor()) {
+      case Term::SpecialFunctor::FORMULA: {
         // only the atoms of formula bodies of bool
         // functions are interesting, so save them
         ASS(header->isLiteral());
@@ -102,13 +101,13 @@ bool FunctionDefinitionHandler::preprocess(Formula* f, Stack<Branch>& branches)
         branches.push(std::move(b));
         break;
       }
-      case Term::SF_LET:
-      case Term::SF_LET_TUPLE:
-      case Term::SF_TUPLE: {
+      case Term::SpecialFunctor::LET:
+      case Term::SpecialFunctor::LET_TUPLE:
+      case Term::SpecialFunctor::TUPLE: {
         return false;
       }
 
-      case Term::SF_ITE: {
+      case Term::SpecialFunctor::ITE: {
         auto cf = sd->getCondition();
         switch (cf->connective())
         {
@@ -125,7 +124,7 @@ bool FunctionDefinitionHandler::preprocess(Formula* f, Stack<Branch>& branches)
         break;
       }
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::MATCH: {
         auto matched = *t->nthArgument(0);
         for (unsigned int i = 1; i < t->arity(); i += 2) {
           todos.push(substituteBoundVariable(matched.var(), *t->nthArgument(i), b, *t->nthArgument(i+1)));
@@ -142,7 +141,6 @@ bool FunctionDefinitionHandler::preprocess(Formula* f, Stack<Branch>& branches)
 
 void FunctionDefinitionHandler::addFunction(const Stack<Branch>& branches, Unit* unit)
 {
-  CALL("FunctionDefinitionHandler::addFunction");
   ASS_REP(branches.isNonEmpty(), unit->toString());
 
   auto fn = branches[0].header->functor();
@@ -182,7 +180,7 @@ void FunctionDefinitionHandler::addFunction(const Stack<Branch>& branches, Unit*
       auto rwCl = Clause::fromStack(b.literals, FormulaTransformation(InferenceRule::CLAUSIFY,unit));
       rwCl->setSplits(SplitSet::getEmpty());
       rwCl->incRefCnt();
-      _is.insert(TermList(b.header), mainLit, rwCl);
+      _is.insert(b.header, mainLit, rwCl);
     }
   }
   if (templ->finalize()) {
@@ -228,9 +226,8 @@ FunctionDefinitionHandler::Branch FunctionDefinitionHandler::addCondition(Litera
   return bn;
 }
 
-bool InductionTemplate::finalize() {
-  CALL("InductionTemplate::finalize");
-
+bool InductionTemplate::finalize()
+{
   if (!checkWellFoundedness() || !checkUsefulness()) {
     return false;
   }
@@ -241,8 +238,6 @@ bool InductionTemplate::finalize() {
 
 void InductionTemplate::checkWellDefinedness()
 {
-  CALL("InductionTemplate::checkWellDefinedness");
-
   vvector<Term*> cases;
   for (auto& b : _branches) {
     cases.push_back(b._header);
@@ -278,7 +273,6 @@ void InductionTemplate::checkWellDefinedness()
 
 bool InductionTemplate::matchesTerm(Term* t, vvector<Term*>& inductionTerms) const
 {
-  CALL("InductionTemplate::matchesTerm");
   ASS(t->ground());
   inductionTerms.clear();
   for (unsigned i = 0; i < t->arity(); i++) {
@@ -302,8 +296,6 @@ bool InductionTemplate::matchesTerm(Term* t, vvector<Term*>& inductionTerms) con
 
 bool InductionTemplate::Branch::contains(const InductionTemplate::Branch& other) const
 {
-  CALL("InductionTemplate::Branch::contains");
-
   RobSubstitution subst;
   if (!subst.match(TermList(_header), 0, TermList(other._header), 1)) {
     return false;
@@ -335,8 +327,6 @@ bool InductionTemplate::Branch::contains(const InductionTemplate::Branch& other)
 
 bool InductionTemplate::checkUsefulness() const
 {
-  CALL("InductionTemplate::checkUsefulness");
-
   // discard templates without inductive argument positions:
   // this happens either when there are no recursive calls
   // or none of the arguments change in any recursive call
@@ -351,8 +341,6 @@ bool InductionTemplate::checkUsefulness() const
 
 bool InductionTemplate::checkWellFoundedness()
 {
-  CALL("InductionTemplate::checkWellFoundedness");
-
   // fill in bit vector of induction variables
   vvector<pair<Term*, Term*>> relatedTerms;
   for (auto& b : _branches) {
@@ -377,8 +365,6 @@ InductionTemplate::InductionTemplate(const Term* t)
 
 void InductionTemplate::addBranch(vvector<Term*>&& recursiveCalls, Term* header)
 {
-  CALL("InductionTemplate::addBranch");
-
   ASS(header->arity() == _arity && header->isLiteral() == _isLit && header->functor() == _functor);
   Branch branch(std::move(recursiveCalls), std::move(header));
   for (auto b : _branches) {
@@ -433,8 +419,6 @@ vstring InductionTemplate::toString() const
 bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
   const vset<unsigned>& indices, const vset<unsigned>& positions)
 {
-  CALL("checkWellFoundednessHelper");
-
   if (indices.empty()) {
     return true;
   }
@@ -467,8 +451,6 @@ bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
 
 bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>>& relatedTerms)
 {
-  CALL("static InductionPreprocessor::checkWellFoundedness");
-
   if (relatedTerms.empty()) {
     return true;
   }
@@ -497,7 +479,6 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>
 
 bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases)
 {
-  CALL("InductionPreprocessor::checkWellFoundedness");
   return true;
 
   // if (cases.empty()) {

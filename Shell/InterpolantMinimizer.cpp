@@ -26,13 +26,11 @@
 
 namespace Shell
 {
+    using namespace std;
     using namespace Kernel;
 
     std::unordered_map<Kernel::Unit*, Kernel::Color> InterpolantMinimizer::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)
     {
-        CALL("InterpolantMinimizer::computeSplittingFunction");
-        BYPASSING_ALLOCATOR;
-        
         using namespace z3;
         context c;
         optimize solver(c);
@@ -194,9 +192,6 @@ namespace Shell
     
     void InterpolantMinimizer::analyzeLocalProof(Kernel::Unit *refutation)
     {
-        BYPASSING_ALLOCATOR;
-        CALL("InterpolantMinimizer::analyzeLocalProof");
-
         // print statistics on grey area
         analyzeGreyAreas(refutation);
         
@@ -264,8 +259,6 @@ namespace Shell
      */
     void InterpolantMinimizer::analyzeGreyAreas(Kernel::Unit* refutation)
     {
-        CALL("InterpolantMinimizer::analyzeGreyArea");
-        
         int number_red = 0;
         int number_blue = 0;
         int number_grey = 0;

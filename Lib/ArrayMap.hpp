@@ -48,7 +48,6 @@ class ArrayMap
 {
   typedef ArrayMapEntry<T> Entry;
 public:
-  CLASS_NAME(ArrayMap<T>);
   USE_ALLOCATOR(ArrayMap<T>); 
 
   /**
@@ -110,8 +109,6 @@ public:
   inline
   void insert(size_t index, T obj=T())
   {
-    CALL("ArrayMap::insert");
-
     Entry& e=(*this)[index];
     ASS_NEQ(e._timestamp,_timestamp);
     e._obj=obj;
@@ -127,8 +124,6 @@ public:
   inline
   void set(size_t index, T obj=T())
   {
-    CALL("ArrayMap::set");
-
     Entry& e=(*this)[index];
     e._obj=obj;
     e._timestamp=_timestamp;
@@ -141,7 +136,6 @@ public:
   inline
   T get(size_t index)
   {
-    CALL("ArrayMap::get");
     ASS_EQ((*this)[index]._timestamp,_timestamp);
     return (*this)[index]._obj;
   }
@@ -152,7 +146,6 @@ public:
   inline
   T get(size_t index, T def)
   {
-    CALL("ArrayMap::get");
     if((*this)[index]._timestamp!=_timestamp) {
       return def;
     }
@@ -168,7 +161,6 @@ public:
   inline
   bool find(size_t index)
   {
-    CALL("ArrayMap::find");
     return (*this)[index]._timestamp==_timestamp;
   }
 
@@ -183,7 +175,6 @@ public:
   inline
   bool find(size_t index, T& val)
   {
-    CALL("ArrayMap::find");
     if((*this)[index]._timestamp==_timestamp) {
       val = (*this)[index]._obj;
       return true;
@@ -198,7 +189,6 @@ public:
   inline
   void remove(size_t index)
   {
-    CALL("ArrayMap::remove");
     ASS((*this)[index]._timestamp==_timestamp);
     (*this)[index]._timestamp=0;
   }
@@ -211,8 +201,6 @@ public:
   inline
   bool getValuePtr(size_t index, T*& pObj, T init)
   {
-    CALL("ArrayMap::getValuePtr");
-
     Entry& e=(*this)[index];
     pObj=&e._obj;
     if(e._timestamp!=_timestamp) {
@@ -242,7 +230,6 @@ public:
 
     size_t next()
     {
-      CALL("ArrayMap::KeyIterator::next");
       ASS_L(_idx,_parent.size());
       ASS_EQ(_parent[_idx]._timestamp,_parent._timestamp);
       return _idx++;
@@ -273,8 +260,6 @@ public:
   template<class It>
   void insertFromIterator(It it)
   {
-    CALL("ArraySet::insertFromIterator");
-
     while(it.hasNext()) {
       insert(it.next());
     }

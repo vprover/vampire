@@ -14,7 +14,6 @@
  * @since 02/06/2007 Manchester, changed to new datastructures
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/ScopedLet.hpp"
 
@@ -61,6 +60,7 @@
 
 #include "Kernel/TermIterators.hpp"
 
+using namespace std;
 using namespace Shell;
 
 /**
@@ -75,8 +75,6 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
-  CALL("Preprocess::preprocess");
-
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
@@ -144,11 +142,11 @@ void Preprocess::preprocess(Problem& prb)
   fnDefHandler->preprocess(prb);
   prb.addFunctionDefinitionHandler(fnDefHandler);
 
-  if (prb.hasFOOL() || prb.higherOrder()) {
+  if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.higherOrder()) {
+    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.isHigherOrder()) {
       if (env.options->showPreprocessing())
         env.out() << "FOOL elimination" << std::endl;
   
@@ -162,7 +160,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if(env.options->choiceAxiom()){
-    LambdaElimination::addChoiceAxiom(prb);    
+    LambdaElimination::addChoiceAxiom(prb);
   }
 
   prb.getProperty();
@@ -174,7 +172,7 @@ void Preprocess::preprocess(Problem& prb)
   if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
     LambdaElimination::addProxyAxioms(prb);
   }
-  
+
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
@@ -185,7 +183,7 @@ void Preprocess::preprocess(Problem& prb)
   if(env.signature->hasDistinctGroups()){
     if(env.options->showPreprocessing())
       env.out() << "distinct group expansion" << std::endl;
-    DistinctGroupExpansion().apply(prb);
+    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
@@ -209,11 +207,17 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
-    env.statistics->phase=Statistics::UNKNOWN_PHASE;
+    env.statistics->phase=Statistics::ANSWER_LITERAL;
     if (env.options->showPreprocessing())
       env.out() << "answer literal addition" << std::endl;
 
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
+  } else if (_options.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
+    env.statistics->phase=Statistics::ANSWER_LITERAL;
+    if (env.options->showPreprocessing())
+      env.out() << "answer literal addition for synthesis" << std::endl;
+
+    SynthesisManager::getInstance()->addAnswerLiterals(prb);
   }
 
   // stop here if clausification is not required and still simplify not set
@@ -276,14 +280,14 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.mayHaveFormulas() && _options.newCNF() && 
-     !prb.hasPolymorphicSym() && !prb.higherOrder()) {
+     !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
     if (env.options->showPreprocessing())
       env.out() << "newCnf" << std::endl;
 
     newCnf(prb);
   } else {
     if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
-      ASS(prb.hasPolymorphicSym() || prb.higherOrder());
+      ASS(prb.hasPolymorphicSym() || prb.isHigherOrder());
       if (outputAllowed()) {
         env.beginOutput();
         addCommentSignForSZS(env.out());
@@ -323,10 +327,10 @@ void Preprocess::preprocess(Problem& prb)
 
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
-      fd.removeAllDefinitions(prb);
+      fd.removeAllDefinitions(prb,env.getMainProblem()->isHigherOrder());
     }
     else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb);
+      FunctionDefinition::removeUnusedDefinitions(prb,env.getMainProblem()->isHigherOrder());
     }
   }
 
@@ -368,7 +372,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (_options.generalSplitting()) {
-     if (prb.higherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
+     if (prb.isHigherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {
          env.beginOutput();
          addCommentSignForSZS(env.out());
@@ -394,7 +398,7 @@ void Preprocess::preprocess(Problem& prb)
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
    }
 
-   if (!prb.higherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
+   if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
@@ -490,8 +494,6 @@ void Preprocess::preprocess(Problem& prb)
  */
 void Preprocess::preprocess1 (Problem& prb)
 {
-  CALL("Preprocess::preprocess1");
-
   ScopedLet<Statistics::ExecutionPhase> epLet(env.statistics->phase, Statistics::PREPROCESS_1);
 
   bool formulasSimplified = false;
@@ -511,7 +513,7 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || prb.higherOrder() || prb.hasPolymorphicSym()) {
+    if (!_options.newCNF() || prb.isHigherOrder() || prb.hasPolymorphicSym()) {
       // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
       fu = SimplifyFalseTrue::simplify(fu);
     }
@@ -543,8 +545,6 @@ void Preprocess::preprocess1 (Problem& prb)
  */
 void Preprocess::preprocess2(Problem& prb)
 {
-  CALL("Preprocess::preprocess2");
-
   env.statistics->phase=Statistics::PREPROCESS_2;
 
   UnitList::DelIterator us(prb.units());
@@ -572,13 +572,12 @@ void Preprocess::preprocess2(Problem& prb)
  */
 void Preprocess::naming(Problem& prb)
 {
-  CALL("Preprocess::naming");
   ASS(_options.naming());
 
   env.statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
   //TODO fix the below
-  Naming naming(_options.naming(),false, prb.higherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
+  Naming naming(_options.naming(),false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
@@ -588,7 +587,7 @@ void Preprocess::naming(Problem& prb)
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* v = naming.apply(fu,defs);
     if (v != fu) {
-      ASS(defs || env.options->definitionReuse());
+      ASS(defs);
       us.insert(defs);
       us.replace(v);
     }
@@ -601,8 +600,6 @@ void Preprocess::naming(Problem& prb)
  */
 void Preprocess::newCnf(Problem& prb)
 {
-  CALL("Preprocess::newCnf");
-
   env.statistics->phase=Statistics::NEW_CNF;
 
   // TODO: this is an ugly copy-paste of "Preprocess::clausify"
@@ -667,8 +664,6 @@ void Preprocess::newCnf(Problem& prb)
  */
 Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
 {
-  CALL("Preprocess::preprocess3(Unit*)");
-
   if (u->isClause()) {
     return u;
   }
@@ -700,15 +695,13 @@ Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
  */
 void Preprocess::preprocess3 (Problem& prb)
 {
-  CALL("Preprocess::preprocess3(Problem&)");
-
   bool modified = false;
 
   env.statistics->phase=Statistics::PREPROCESS_3;
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    Unit* v = preprocess3(u, prb.higherOrder());
+    Unit* v = preprocess3(u, prb.isHigherOrder());
     if (u!=v) {
       us.replace(v);
       modified = true;
@@ -722,8 +715,6 @@ void Preprocess::preprocess3 (Problem& prb)
 
 void Preprocess::clausify(Problem& prb)
 {
-  CALL("Preprocess::clausify");
-
   env.statistics->phase=Statistics::CLAUSIFICATION;
 
   //we check if we haven't discovered an empty clause during preprocessing

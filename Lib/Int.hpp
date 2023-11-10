@@ -24,7 +24,6 @@
 
 #include <iostream>
 
-using namespace std;
 
 #ifdef _MSC_VER // VC++
 #  undef max
@@ -100,8 +99,6 @@ class Int
   template<typename INT>
   static unsigned gcd(INT i,INT j)
   {
-    CALL("Int::gcd");
-
     unsigned a=safeAbs(i);
     unsigned b=safeAbs(j);
 
@@ -126,9 +123,7 @@ class Int
   template<typename INT>
   static bool safeUnaryMinus(const INT num, INT& res)
   {
-    CALL("Int::safeUnaryMinus");
-
-    if(num == numeric_limits<INT>::min()) {
+    if(num == std::numeric_limits<INT>::min()) {
       return false;
     }
     res=-num;
@@ -137,13 +132,11 @@ class Int
 
   static unsigned safeAbs(const int num)
   {
-    CALL("Int::safeAbs");
-
-    if(num == numeric_limits<int>::min()) { // = -2147483648
+    if(num == std::numeric_limits<int>::min()) { // = -2147483648
       return (unsigned)num; // = 2147483648
     }
     // abs works for all other values
-    return abs(num);
+    return std::abs(num);
   }
 
   /**
@@ -153,13 +146,11 @@ class Int
   template<typename INT>
   static bool safePlus(INT arg1, INT arg2, INT& res)
   {
-    CALL("Int::safePlus");
-
     if(arg2<0) {
-      if(numeric_limits<INT>::min() - arg2 > arg1) { return false; }
+      if(std::numeric_limits<INT>::min() - arg2 > arg1) { return false; }
     }
     else {
-      if(numeric_limits<INT>::max() - arg2 < arg1) { return false; }
+      if(std::numeric_limits<INT>::max() - arg2 < arg1) { return false; }
     }
     res=arg1+arg2;
     return true;
@@ -172,13 +163,11 @@ class Int
   template<typename INT>
   static bool safeMinus(INT num, INT sub, INT& res)
   {
-    CALL("Int::safeMinus");
-
     if(sub<0) {
-      if(numeric_limits<INT>::max() + sub < num) { return false; }
+      if(std::numeric_limits<INT>::max() + sub < num) { return false; }
     }
     else {
-      if(numeric_limits<INT>::min() + sub > num) { return false; }
+      if(std::numeric_limits<INT>::min() + sub > num) { return false; }
     }
     res=num-sub;
     return true;
@@ -186,7 +175,6 @@ class Int
 
   template <typename T>
   static int sgn(T val) {
-    CALL("Int::sgn");
     return (T(0) < val) - (val < T(0));
   }
 
@@ -197,14 +185,12 @@ class Int
   template<typename INT>
   static bool safeMultiply(INT arg1, INT arg2, INT& res)
   {
-    CALL("Int::safeMultiply");
-
     if (arg1 == 0 || arg1 == 1 || arg2 == 0 || arg2 == 1) {
       res=arg1*arg2;
       return true;
     }
 
-    if (arg1 == numeric_limits<INT>::min() || arg2 == numeric_limits<INT>::min()) {
+    if (arg1 == std::numeric_limits<INT>::min() || arg2 == std::numeric_limits<INT>::min()) {
       // cannot take abs of min() and all safe operations with min have been ruled out above
       return false;
     }
@@ -213,14 +199,14 @@ class Int
     INT arg1abs = arg1 < 0 ? -arg1 : arg1;
     INT arg2abs = arg2 < 0 ? -arg2 : arg2;
 
-    if (arg1abs > numeric_limits<INT>::max() / arg2abs) {
+    if (arg1abs > std::numeric_limits<INT>::max() / arg2abs) {
       return false;
     }
 
     INT mres = arg1*arg2;
 
     // this is perhaps obsolete and could be removed
-    if ((mres == numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
+    if ((mres == std::numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
         (sgn(arg1)*sgn(arg2) != sgn(mres)) || // 1073741824 * 2 = -2147483648 is evil, and passes the test below
         (arg1 != 0 && mres / arg1 != arg2)) {
       return false;
@@ -231,12 +217,11 @@ class Int
 
   inline static bool safeDivide(int arg1, int arg2, int& res)
   {
-    CALL("Int::safeDivide");
     if (arg2 == 0) return false;
 
     // check for 2 complement representation
-    if (numeric_limits<int>::min() != -numeric_limits<int>::max())  {
-      if (arg1 == numeric_limits<int>::min() && arg2 == -1)  {
+    if (std::numeric_limits<int>::min() != -std::numeric_limits<int>::max())  {
+      if (arg1 == std::numeric_limits<int>::min() && arg2 == -1)  {
         return false;
       }
     }

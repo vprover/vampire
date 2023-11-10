@@ -10,6 +10,8 @@
 
 namespace VariableMultiplicationGeneralizationImpl {
 
+using namespace std;
+
 /**
 *  Rule 3)
 *    generalize variable multiplication
@@ -76,8 +78,8 @@ public:
   VariableRegion meet(VariableRegion rhs) 
   {
     auto& lhs = *this;
-    if (lhs.isUninit()) return VariableRegion(move(rhs));
-    if (rhs.isUninit()) return VariableRegion(move(lhs));
+    if (lhs.isUninit()) return VariableRegion(std::move(rhs));
+    if (rhs.isUninit()) return VariableRegion(std::move(lhs));
     return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
   }
 
@@ -124,8 +126,6 @@ struct Preprocess
   template<class NumTraits> 
   void operator()(Perfect<Polynom<NumTraits>> p) 
   {
-    CALL("Preprocess::operator()")
-
     for (auto summand : p->iterSummands()) {
 
       auto varIter = summand.factors->iter()
@@ -142,7 +142,7 @@ struct Preprocess
       if (vars.hasNext())  {
         auto cur = root(vars.next());
 
-        varSet(cur) = std::move(varSet(cur)).meet(move(varStack));
+        varSet(cur) = std::move(varSet(cur)).meet(std::move(varStack));
 
         for (auto var : vars) {
           cur = joinRegions(cur, root(var));
@@ -162,7 +162,6 @@ struct Preprocess
 
   int joinRegions(int v, int w)
   {
-    CALL("Preprocess::joinRegions()")
     if (v == w) return v;
 
     components.doUnion(v,w);
@@ -185,7 +184,6 @@ struct Generalize
   template<class NumTraits>
   Monom<NumTraits> operator()(Monom<NumTraits> p, PolyNf* evaluatedArgs)  
   {
-    CALL("Generalize::operator()")
     using Pair = Monom<NumTraits>;
     return Pair(p.numeral, perfect(MonomFactors<NumTraits>(filter(p.factors, evaluatedArgs))));
   }

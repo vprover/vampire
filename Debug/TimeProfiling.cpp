@@ -17,6 +17,7 @@
 
 namespace Shell {
 
+using namespace std;
 using namespace Lib;
 
 // TODO: these should be dispensable with C++17 onwards
@@ -57,7 +58,7 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
       .map([](auto& x) { return &*x; })
       .find([&](Node* n) { return n->name == name; })
       .unwrapOrElse([&]() { 
-          children.push(Lib::make_unique<Node>(name));
+          children.push(std::make_unique<Node>(name));
           return &*children.top();
       });
     auto start = Clock::now();
@@ -191,7 +192,6 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
   if (opts.parentDuration.isSome()) {
     out << "[" << setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
   }
-  BYPASSING_ALLOCATOR
   if (opts.nameWidth.isSome()) {
     out << msetw(opts.nameWidth.unwrap()) << left;
   }

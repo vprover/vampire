@@ -15,7 +15,6 @@
  */
 
 #include <Kernel/TermIterators.hpp>
-#include "Debug/Tracer.hpp"
 
 
 #include "Lib/Environment.hpp"
@@ -32,6 +31,7 @@
 
 namespace Kernel {
 
+using namespace std;
 using namespace Lib;
 using namespace Shell;
 
@@ -58,7 +58,6 @@ public:
     _varDiffs.reset();
   }
 
-  CLASS_NAME(SKIKBO::State);
   USE_ALLOCATOR(State);
 
   void traverse(ArgsIt_ptr aai1, ArgsIt_ptr aai2);
@@ -128,8 +127,6 @@ Ordering::Result SKIKBO::State::result(ArgsIt_ptr aai1, ArgsIt_ptr aai2)
 
 Ordering::Result SKIKBO::State::innerResult(ArgsIt_ptr aai1, ArgsIt_ptr aai2)
 {
-  CALL("KBO::State::innerResult");
-
   ASS(!_kbo.sameCategoryHeads(aai1, aai2) || aai1->headNum() != aai2->headNum());
 
   if(_posNum>0 && _negNum>0) {
@@ -159,7 +156,6 @@ Ordering::Result SKIKBO::State::innerResult(ArgsIt_ptr aai1, ArgsIt_ptr aai2)
 
 void SKIKBO::State::recordVariable(unsigned var, int coef)
 {
-  CALL("KBO::State::recordVariable");
   ASS(coef==1 || coef==-1);
 
   int* pnum;
@@ -182,8 +178,6 @@ void SKIKBO::State::recordVariable(unsigned var, int coef)
 
 void SKIKBO::State::traverse(ArgsIt_ptr aai,int coef)
 {
-  CALL("KBO::State::traverse(TermList...)");
-
   if(!aai->varHead()){
     _weightDiff+=_kbo.symbolWeight(aai->head().term())*coef;
   } else {
@@ -216,7 +210,6 @@ void SKIKBO::State::traverse(ArgsIt_ptr aai,int coef)
 
 void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
 {
-  CALL("KBO::State::traverse");
   ASS(aat1->headNum()==aat2->headNum());
   ASS(aat1->hasNext() || aat2->hasNext());
   ASS_EQ(_lexResult, EQUAL);
@@ -299,8 +292,6 @@ SKIKBO::SKIKBO(Problem& prb, const Options& opt, bool basic_hol)
  : PrecedenceOrdering(prb, opt),
    _weights(KboWeightMap<FuncSigTraits>::dflt())
 {
-  CALL("SKIKBO::SKIKBO");
-
   _state=new State(this);
   _basic_hol = basic_hol;
 }
@@ -324,14 +315,11 @@ SKIKBO::SKIKBO(
 
 SKIKBO::~SKIKBO()
 {
-  CALL("SKIKBO::~SKIKBO");
   delete _state;
 }
 
 bool SKIKBO::safe(Term* t1, Term* t2) const 
 {
-  CALL("SKIKBO::safe");
-
   static TermStack toBeChecked;
   toBeChecked.push(TermList(t1));
   toBeChecked.push(TermList(t2));
@@ -388,8 +376,6 @@ bool SKIKBO::safe(Term* t1, Term* t2) const
 /** A linear time approximation of the actual variable condition from the paper */
 bool SKIKBO::varConditionHolds(DHMultiset<Term*>& tlTerms1, DHMultiset<Term*>& tlTerms2) const
 {
-  CALL("SKIKBO::varConditionHolds");
-
   DHMultiset<Term*> unmatchedTlTerms1;
   unmatchedTlTerms1.loadFromIterator(DHMultiset<Term*>::Iterator(tlTerms1));
 
@@ -416,8 +402,6 @@ bool SKIKBO::varConditionHolds(DHMultiset<Term*>& tlTerms1, DHMultiset<Term*>& t
 
 SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
 {
-  CALL("SKIKBO::compareVariables");
-
   VarCondRes vcr = BOTH;
 
   DHMultiset<Term*> tl1TopLevelVarLikeTerms;
@@ -556,8 +540,6 @@ SKIKBO::VarCondRes SKIKBO::compareVariables(TermList tl1, TermList tl2) const
 
 unsigned SKIKBO::getMaxRedLength(TermList t) const
 {
-  CALL("SKIKBO::getMaxRedLength");
-
   if(t.isVar()){ return  0; }
 
   int tRedLen = t.term()->maxRedLength();
@@ -572,8 +554,6 @@ unsigned SKIKBO::getMaxRedLength(TermList t) const
 
 Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
 {
-  CALL("SKIKBO::compare(TermList)");
-
   //bool print = false;
   if(tl1==tl2) {
     return EQUAL;
@@ -662,9 +642,7 @@ int SKIKBO::symbolWeight(Term* t) const
 
 
 unsigned SKIKBO::maximumReductionLength(Term* term)
-
-{  CALL("SKIKBO::maximumReductionLength");  
-       
+{
   static Stack<Term*> toEvaluate;
   static TermStack args;
   TermList head;
@@ -701,8 +679,6 @@ unsigned SKIKBO::maximumReductionLength(Term* term)
 
 TermList SKIKBO::reduce(TermStack& args, TermList& head)
 {
-  CALL("SKIKBO::reduce");
-  
   ASS(head.isTerm());
   Signature::Combinator c = AH::getComb(head);
   ASS(c != Signature::NOT_COMB);

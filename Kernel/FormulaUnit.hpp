@@ -21,7 +21,6 @@
 
 #include "Unit.hpp"
 
-using namespace std;
 using namespace Lib;
 
 namespace Kernel {
@@ -60,7 +59,6 @@ public:
   bool isFunctionDefinition() const
   { return _functionDefinition; }
 
-  CLASS_NAME(FormulaUnit);
   USE_ALLOCATOR(FormulaUnit);
 
 protected:

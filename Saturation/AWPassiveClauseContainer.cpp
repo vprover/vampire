@@ -39,6 +39,7 @@
 
 namespace Saturation
 {
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -62,8 +63,6 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
   _weightSelectionMaxWeight(UINT_MAX),
   _weightSelectionMaxAge(UINT_MAX)
 {
-  CALL("AWPassiveClauseContainer::AWPassiveClauseContainer");
-
   if(_opt.ageWeightRatioShape() == Options::AgeWeightRatioShape::CONVERGE) {
     _ageRatio = 1;
     _weightRatio = 1;
@@ -95,8 +94,6 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
  */
 Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
 {
-  CALL("AWPassiveClauseContainer::compareWeight");
-
   return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
 }
 
@@ -112,8 +109,6 @@ Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, con
  */
 bool WeightQueue::lessThan(Clause* c1,Clause* c2)
 {
-  CALL("WeightQueue::lessThan");
-
   if(env.options->prioritiseClausesProducedByLongReduction()){
     if(c1->inference().reductions() < c2->inference().reductions()){
       return false;
@@ -157,8 +152,6 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
  */
 bool AgeQueue::lessThan(Clause* c1,Clause* c2)
 {
-  CALL("AgeQueue::lessThan");
-
   if (c1->age() < c2->age()) {
     return true;
   }
@@ -187,7 +180,6 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
  */
 void AWPassiveClauseContainer::add(Clause* cl)
 {
-  CALL("AWPassiveClauseContainer::add");
   ASS(_ageRatio > 0 || _weightRatio > 0);
   ASS(cl->store() == Clause::PASSIVE);
 
@@ -213,7 +205,6 @@ void AWPassiveClauseContainer::add(Clause* cl)
  */
 void AWPassiveClauseContainer::remove(Clause* cl)
 {
-  CALL("AWPassiveClauseContainer::remove");
   if (_isOutermost)
   {
     ASS(cl->store()==Clause::PASSIVE);
@@ -240,8 +231,6 @@ void AWPassiveClauseContainer::remove(Clause* cl)
 
 bool AWPassiveClauseContainer::byWeight(int balance)
 {
-  CALL("AWPassiveClauseContainer::byWeight");
-
   if (! _ageRatio) {
     return true;
   }
@@ -265,7 +254,6 @@ bool AWPassiveClauseContainer::byWeight(int balance)
  */
 Clause* AWPassiveClauseContainer::popSelected()
 {
-  CALL("AWPassiveClauseContainer::popSelected");
   ASS( ! isEmpty());
 
   auto shape = _opt.ageWeightRatioShape();
@@ -322,8 +310,6 @@ Clause* AWPassiveClauseContainer::popSelected()
 
 void AWPassiveClauseContainer::onLimitsUpdated()
 {
-  CALL("AWPassiveClauseContainer::onLimitsUpdated");
-
   if ( (_ageRatio > 0 && !ageLimited()) || (_weightRatio > 0 && !weightLimited()) )
   {
     return;
@@ -361,7 +347,6 @@ void AWPassiveClauseContainer::onLimitsUpdated()
 
 void AWPassiveClauseContainer::simulationInit()
 {
-  CALL("AWPassiveClauseContainer::simulationInit");
   _simulationBalance = _balance;
 
   // initialize iterators
@@ -392,8 +377,6 @@ void AWPassiveClauseContainer::simulationInit()
 
 bool AWPassiveClauseContainer::simulationHasNext()
 {
-  CALL("AWPassiveClauseContainer::simulationHasNext");
-
   // Part 1: Return false if aw-container is empty
   if (_ageRatio == 0)
   {
@@ -474,8 +457,6 @@ bool AWPassiveClauseContainer::simulationHasNext()
 // so each iterator (if used) does point to a clause which is not deleted in the simulation
 void AWPassiveClauseContainer::simulationPopSelected()
 {
-  CALL("AWPassiveClauseContainer::simulationPopSelected");
-
   // invariants:
   // - both queues share the aux-field which denotes whether a clause was deleted during the simulation
   // - if _ageRatio > 0 and _weightRatio > 0, then both queues contain the same clauses
@@ -495,14 +476,11 @@ void AWPassiveClauseContainer::simulationPopSelected()
 
 bool AWPassiveClauseContainer::setLimitsToMax()
 {
-  CALL("AWPassiveClauseContainer::setLimitsToMax");
   return setLimits(UINT_MAX, UINT_MAX, UINT_MAX, UINT_MAX);
 }
 
 bool AWPassiveClauseContainer::setLimitsFromSimulation()
 {
-  CALL("AWPassiveClauseContainer::setLimitsFromSimulation");
-
   if (_ageRatio == 0)
   {
     if (_simulationCurrWeightCl == nullptr)
@@ -603,7 +581,6 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
 
 bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
 {
-  CALL("AWPassiveClauseContainer::childrenPotentiallyFulfilLimits");
   if (cl->age() == _ageSelectionMaxAge)
   {
     // creating a fake inference to represent our current (pessimistic) estimate potential
@@ -631,8 +608,6 @@ bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsig
 
 bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge)
 {
-  CALL("AWPassiveClauseContainer::setLimits");
-
   bool atLeastOneTightened = false;
   if(newAgeSelectionMaxAge != _ageSelectionMaxAge || newAgeSelectionMaxWeight != _ageSelectionMaxWeight) {
     if(newAgeSelectionMaxAge < _ageSelectionMaxAge) {
@@ -657,21 +632,16 @@ bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigne
 
 bool AWPassiveClauseContainer::ageLimited() const
 {
-  CALL("AWPassiveClauseContainer::ageLimited");
-
   return _ageRatio > 0 && _ageSelectionMaxAge != UINT_MAX && _ageSelectionMaxWeight != UINT_MAX;
 }
 
 bool AWPassiveClauseContainer::weightLimited() const
 {
-  CALL("AWPassiveClauseContainer::weightLimited");
   return _weightRatio > 0 && _weightSelectionMaxWeight != UINT_MAX && _weightSelectionMaxAge != UINT_MAX;
 }
 
 bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 {
-  CALL("AWPassiveClauseContainer::fulfilsAgeLimit(Clause*)");
-
   // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
   unsigned age = cl->age();
   unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
@@ -680,8 +650,6 @@ bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 
 bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
-  CALL("AWPassiveClauseContainer::fulfilsAgeLimit(unsigned, unsigned, const Inference&)");
-
   const unsigned age = inference.age();
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
@@ -697,8 +665,6 @@ bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveL
 
 bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 {
-  CALL("AWPassiveClauseContainer::fulfilsWeightLimit(Clause*)");
-
   // don't want to reuse fulfilsWeightLimit(unsigned w,..) here, since we don't want to recompute weightForClauseSelection
   unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
   unsigned age = cl->age();
@@ -707,8 +673,6 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 
 bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
-  CALL("AWPassiveClauseContainer::fulfilsWeightLimit(unsigned, unsigned, const Inference&)");
-
   const unsigned age = inference.age();
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
@@ -729,8 +693,6 @@ AWClauseContainer::AWClauseContainer(const Options& opt)
 
 bool AWClauseContainer::isEmpty() const
 {
-  CALL("AWClauseContainer::isEmpty");
-
   ASS(!_ageRatio || !_weightRatio || _ageQueue.isEmpty()==_weightQueue.isEmpty());
   return _ageQueue.isEmpty() && _weightQueue.isEmpty();
 }
@@ -741,7 +703,6 @@ bool AWClauseContainer::isEmpty() const
  */
 void AWClauseContainer::add(Clause* cl)
 {
-  CALL("AWClauseContainer::add");
   ASS(_ageRatio > 0 || _weightRatio > 0);
 
   if (_ageRatio) {
@@ -759,8 +720,6 @@ void AWClauseContainer::add(Clause* cl)
  */
 bool AWClauseContainer::remove(Clause* cl)
 {
-  CALL("AWClauseContainer::remove");
-
   bool removed;
   if (_ageRatio) {
     removed = _ageQueue.remove(cl);
@@ -785,7 +744,6 @@ bool AWClauseContainer::remove(Clause* cl)
  */
 Clause* AWClauseContainer::popSelected()
 {
-  CALL("AWClauseContainer::popSelected");
   ASS( ! isEmpty());
 
   _size--;

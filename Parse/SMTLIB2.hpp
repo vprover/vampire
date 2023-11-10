@@ -38,7 +38,7 @@ public:
   SMTLIB2(const Options& opts);
 
   /** Parse from an open stream */
-  void parse(istream& str);
+  void parse(std::istream& str);
   /** Parse a ready lisp expression */
   void parse(LExpr* bench);
 
@@ -319,7 +319,7 @@ private:
   unsigned _nextVar;
 
   /** < termlist, vampire sort id > */
-  typedef pair<TermList,TermList> SortedTerm;
+  typedef std::pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
   typedef DHMap<vstring,SortedTerm> TermLookup;
   typedef Stack<TermLookup*> Scopes;
@@ -361,7 +361,7 @@ private:
   /**
    * Main smtlib term parsing stack.
    */
-  Stack<pair<ParseOperation,LExpr*> > _todo;
+  Stack<std::pair<ParseOperation,LExpr*> > _todo;
 
   // global parsing data structures -- END
 
@@ -445,6 +445,13 @@ private:
   /**
    * Unofficial command
    *
+   * Treated analogously to the TPTP CLAIM formula role (see the TPTP parser on that).
+   */
+  void readAssertClaim(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
    * Behaves like conjecture declaration in TPTP
    */
   void readAssertNot(LExpr* body);
@@ -458,11 +465,23 @@ private:
   void readAssertTheory(LExpr* body);
 
   /**
+   * Helper method: switch on SymbolType and return corresponding Symbol.
+   */
+  Signature::Symbol* getSymbol(DeclaredSymbol& s);
+
+  /**
    * Unofficial command
    *
    * Behaves like conjecture declaration in TPTP
    */
   void colorSymbol(const vstring& name, Color color);
+
+  /**
+   * Unofficial option
+   *
+   * Disallows a symbol in synthesized program
+   */
+  void markSymbolUncomputable(const vstring& name);
 
   /**
    * Units collected during parsing.

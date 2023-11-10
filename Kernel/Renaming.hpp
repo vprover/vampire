@@ -23,6 +23,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #include "Term.hpp"
 
@@ -32,7 +33,6 @@ using namespace Lib;
 
 class Renaming {
 public:
-  CLASS_NAME(Renaming);
   USE_ALLOCATOR(Renaming);
 
   Renaming() :
@@ -81,7 +81,11 @@ public:
   { return _nextVar; }
 
   static Literal* normalize(Literal* l);
+  static TypedTermList normalize(TypedTermList l);
   static Term* normalize(Term* t);
+  static TermList normalize(TermList t);
+  friend std::ostream& operator<<(std::ostream& out, Renaming const& self)
+  { return out << self._data; }
 
 #if VDEBUG
   void assertValid() const;

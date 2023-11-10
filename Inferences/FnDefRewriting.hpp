@@ -27,7 +27,6 @@ class FnDefRewriting
   , public ForwardSimplificationEngine
   {
 public:
-  CLASS_NAME(FnDefRewriting);
   USE_ALLOCATOR(FnDefRewriting);
 
   ClauseIterator generateClauses(Clause *premise) override;

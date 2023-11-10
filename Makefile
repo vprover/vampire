@@ -23,9 +23,9 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-DBG_FLAGS = -g -DVTIME_PROFILING=1 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider 
+DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVTIME_PROFILING=1 -DVDEBUG=0 # no debugging
+REL_FLAGS = -O6 -DVTIME_PROFILING=0 -DVDEBUG=0 # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -138,7 +138,7 @@ endif
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -169,7 +169,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
         Lib/MemoryLeak.o\
-        Lib/MultiCounter.o\
         Lib/NameArray.o\
         Lib/Random.o\
         Lib/StringUtils.o\
@@ -252,11 +251,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
-         Indexing/TermSubstitutionTree.o\
-         Indexing/TypeSubstitutionTree.o
-
-VIG_OBJ = InstGen/IGAlgorithm.o\
-          InstGen/ModelPrinter.o
+         Indexing/TermSubstitutionTree.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
@@ -264,6 +259,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
          Inferences/DistinctEqualitySimplifier.o\
+         Inferences/DefinitionIntroduction.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
          Inferences/ExtensionalityResolution.o\
@@ -284,7 +280,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SubsumptionDemodulationHelper.o\
          Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
-         Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
@@ -311,6 +306,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
+         Inferences/InvalidAnswerLiteralRemoval.o\
          Inferences/TheoryInstAndSimp.o
 #         Inferences/RenamingOnTheFly.o\
 
@@ -343,7 +339,6 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
-         Shell/NameReuse.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
@@ -488,7 +483,7 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
+VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
@@ -510,7 +505,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.7
+VERSION_NUMBER = 4.8
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
@@ -573,8 +568,14 @@ VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
 LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
+ifeq ($(OS),Darwin)
+EXPORT_DYNAMIC = 
+else
+EXPORT_DYNAMIC = -Wl,--export-dynamic
+endif
+
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
+$(CXX) $(CXXFLAGS) $(EXPORT_DYNAMIC) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -ldl
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

@@ -49,13 +49,9 @@ SyncPipe::SyncPipe()
   _readDescriptor=fd[0];
   _writeDescriptor=fd[1];
 
-  {
-    BYPASSING_ALLOCATOR;
-  
-    _istream=new fdstream(_readDescriptor);
-    _ostream=new fdstream(_writeDescriptor);
-  }
-  
+  _istream=new fdstream(_readDescriptor);
+  _ostream=new fdstream(_writeDescriptor);
+
   _istream->rdbuf()->pubsetbuf(0,0);
 
   //add the privileges into the semaphore
@@ -69,8 +65,6 @@ SyncPipe::SyncPipe()
 
 SyncPipe::~SyncPipe()
 {
-  CALL("SyncPipe::~SyncPipe");
-
   releasePrivileges();
   ASS(PipeList::member(this, s_instances));
   s_instances = PipeList::remove(this, s_instances);
@@ -88,7 +82,6 @@ SyncPipe::~SyncPipe()
  */
 void SyncPipe::acquireRead()
 {
-  CALL("SyncPipe::acquireRead");
   ASS(canRead());
   ASS(!isReading());
   ASS(!isWriting()); //it does not make sense if one process would both reads and writes into a pipe
@@ -111,7 +104,6 @@ void SyncPipe::acquireRead()
  */
 void SyncPipe::releaseRead()
 {
-  CALL("SyncPipe::releaseRead");
   ASS(isReading());
 
   _isReading=false;
@@ -133,7 +125,6 @@ void SyncPipe::releaseRead()
  */
 void SyncPipe::neverRead()
 {
-  CALL("SyncPipe::neverRead");
   ASS(canRead());  //@b neverRead() can only be called once
   ASS(!isReading());
 
@@ -142,12 +133,8 @@ void SyncPipe::neverRead()
     SYSTEM_FAIL("Closing read descriptor of a pipe.", errno);
   }
   ASS_EQ(res,0);
-  {
-    BYPASSING_ALLOCATOR;
-  
-    delete _istream;
-    _istream=0;
-  }
+  delete _istream;
+  _istream=0;
 }
 
 
@@ -156,7 +143,6 @@ void SyncPipe::neverRead()
  */
 void SyncPipe::acquireWrite()
 {
-  CALL("SyncPipe::acquireWrite");
   ASS(canWrite());
   ASS(!isWriting());
   ASS(!isReading()); //it does not make sense if one process would both reads and writes into a pipe
@@ -170,7 +156,6 @@ void SyncPipe::acquireWrite()
  */
 void SyncPipe::releaseWrite()
 {
-  CALL("SyncPipe::releaseWrite");
   ASS(isWriting());
 
   _ostream->flush();
@@ -184,7 +169,6 @@ void SyncPipe::releaseWrite()
  */
 void SyncPipe::neverWrite()
 {
-  CALL("SyncPipe::neverWrite");
   ASS(canWrite());  //@b neverWrite() can only be called once
   ASS(!isWriting());
   ASS(env.getOutputPipe()!=this); //we cannot forbid writing to pipe that we use as output
@@ -195,19 +179,14 @@ void SyncPipe::neverWrite()
   }
   ASS_EQ(res,0);
 
-  {
-    BYPASSING_ALLOCATOR;
-    
-    delete _ostream;
-    _ostream=0;
-  }
+  delete _ostream;
+  _ostream=0;
 }
 /**
  * Give up all the privileges of this object
  */
 void SyncPipe::releasePrivileges()
 {
-  CALL("SyncPipe::releasePrivileges");
   ASS(_syncSemaphore.hasSemaphore());
 
   if(isReading()) {
@@ -225,8 +204,6 @@ void SyncPipe::releasePrivileges()
  */
 void SyncPipe::postForkChildHadler()
 {
-  CALL("SyncPipe::postForkChildHadler");
-
   PipeList::Iterator pit(s_instances);
   while(pit.hasNext()) {
     SyncPipe* p=pit.next();
@@ -242,8 +219,6 @@ void SyncPipe::postForkChildHadler()
  */
 void SyncPipe::terminationHadler()
 {
-  CALL("SyncPipe::terminationHadler");
-
   PipeList* listIter=s_instances;
   while(listIter) {
     if(listIter->head()) {
@@ -257,8 +232,6 @@ void SyncPipe::terminationHadler()
 
 void SyncPipe::ensureEventHandlersInstalled()
 {
-  CALL("SyncPipe::ensureEventHandlersInstalled");
-
   static bool installed=false;
   if(installed) {
     return;

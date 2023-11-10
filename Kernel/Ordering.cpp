@@ -46,6 +46,7 @@
 #define NONINTERPRETED_LEVEL_BOOST 0x1000
 #define COLORED_LEVEL_BOOST 0x10000
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -53,16 +54,12 @@ OrderingSP Ordering::s_globalOrdering;
 
 Ordering::Ordering()
 {
-  CALL("Ordering::Ordering");
-
   createEqualityComparator();
   ASS(_eqCmp);
 }
 
 Ordering::~Ordering()
 {
-  CALL("Ordering::~Ordering");
-
   destroyEqualityComparator();
 }
 
@@ -79,8 +76,6 @@ Ordering::~Ordering()
  */
 bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
 {
-  CALL("Ordering::trySetGlobalOrdering");
-
   if(s_globalOrdering) {
     return false;
   }
@@ -100,8 +95,6 @@ bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
  */
 Ordering* Ordering::tryGetGlobalOrdering()
 {
-  CALL("Ordering::tryGetGlobalOrdering");
-
   if(s_globalOrdering) {
     return s_globalOrdering.ptr();
   }
@@ -117,8 +110,6 @@ Ordering* Ordering::tryGetGlobalOrdering()
  */
 Ordering* Ordering::create(Problem& prb, const Options& opt)
 {
-  CALL("Ordering::create");
-
   if(env.options->combinatorySup() || env.options->lambdaFreeHol()){
     return new SKIKBO(prb, opt, env.options->lambdaFreeHol());
   }
@@ -162,8 +153,6 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
 
 Ordering::Result Ordering::fromComparison(Comparison c)
 {
-  CALL("Ordering::fromComparison");
-
   switch(c) {
   case Lib::GREATER:
     return GREATER;
@@ -178,8 +167,6 @@ Ordering::Result Ordering::fromComparison(Comparison c)
 
 Comparison Ordering::intoComparison(Ordering::Result r)
 {
-  CALL("Ordering::intoComparison");
-
   switch(r) {
   case Ordering::Result::GREATER: return Lib::GREATER;
   case Ordering::Result::EQUAL:   return Lib::EQUAL;
@@ -191,8 +178,6 @@ Comparison Ordering::intoComparison(Ordering::Result r)
 
 const char* Ordering::resultToString(Result r)
 {
-  CALL("Ordering::resultToString");
-
   switch(r) {
   case GREATER:
     return "GREATER";
@@ -218,8 +203,6 @@ const char* Ordering::resultToString(Result r)
  */
 void Ordering::removeNonMaximal(LiteralList*& lits) const
 {
-  CALL("Ordering::removeNonMaximal");
-
   LiteralList** ptr1 = &lits;
   while (*ptr1) {
     LiteralList** ptr2 = &(*ptr1)->tailReference();
@@ -243,7 +226,6 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
 
 Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 {
-  CALL("Ordering::getEqualityArgumentOrder");
   ASS(eq->isEquality());
 
   if(tryGetGlobalOrdering()!=this) {
@@ -269,7 +251,6 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 
 Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 {
-  CALL("PrecedenceOrdering::compare(Literal*...)");
   ASS(l1->shared());
   ASS(l2->shared());
 
@@ -357,8 +338,6 @@ int PrecedenceOrdering::predicatePrecedence (unsigned pred) const
  */ //TODO update for HOL>?
 Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, unsigned fun2) const
 {
-  CALL("PrecedenceOrdering::compareFunctionPrecedences");
-
   if (fun1 == fun2)
     return EQUAL;
 
@@ -465,8 +444,6 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
  */ 
 Ordering::Result PrecedenceOrdering::compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const
 {
-  CALL("PrecedenceOrdering::compareTypeConPrecedences");
-
   auto size = _typeConPrecedences.size();
 
   if (tyc1 == tyc2)
@@ -615,8 +592,6 @@ template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 using ConstFirstComparator = SpecAriFirstComparator<0,revert,InnerComparator>;
 
 static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
-  CALL("loadPermutationFromString");
-
   std::stringstream ss(str.c_str());
   unsigned i = 0;
   unsigned val;
@@ -638,7 +613,6 @@ static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
 }
 
 bool isPermutation(const DArray<int>& xs) {
-  CALL("isPermutation");
   DArray<int> cnts(xs.size()); 
   cnts.init(xs.size(), 0);
   for (unsigned i = 0; i < xs.size(); i++) {
@@ -668,7 +642,6 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
     _typeConPrecedences(typeConPrec),
     _reverseLCM(reverseLCM)
 {
-  CALL("PrecedenceOrdering::PrecedenceOrdering(const DArray<int>&, const DArray<int>&, const DArray<int>&, bool)");
   ASS_EQ(env.signature->predicates(), _predicates);
   ASS_EQ(env.signature->functions(), _functions);
   ASS(isPermutation(_functionPrecedences))
@@ -689,7 +662,6 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const D
     opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
     )
 {
-  CALL("PrecedenceOrdering::PrecedenceOrdering((Problem&,const Options&,const DArray<int>&)");
 }
 
 /**
@@ -703,13 +675,10 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
        prb.getProperty(),
        predPrecFromOpts(prb, opt)))
 {
-  CALL("PrecedenceOrdering::PrecedenceOrdering(Problem&,const Options&)");
   ASS_G(_predicates, 0);
 }
 
 static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType) {
-  CALL("sortAuxBySymbolPrecedence");
-
   // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
   if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
     Shuffling::shuffleArray(aux,aux.size());
@@ -763,8 +732,6 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
 
 
 DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options& opt) {
-  CALL("PrecedenceOrdering::typeConPresFromOpts");
-
   unsigned nTypeCons = env.signature->typeCons();
   DArray<unsigned> aux(nTypeCons);
 
@@ -772,8 +739,6 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
     aux.initFromIterator(getRangeIterator(0u, nTypeCons), nTypeCons);
 
     if (!opt.typeConPrecedence().empty()) {
-      BYPASSING_ALLOCATOR;
-
       vstring precedence;
       ifstream precedence_file (opt.typeConPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
@@ -793,8 +758,6 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
 }
 
 DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& opt) {
-  CALL("PrecedenceOrdering::funcPrecFromOpts");
-
   unsigned nFunctions = env.signature->functions();
   DArray<unsigned> aux(nFunctions);
 
@@ -802,8 +765,6 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
     aux.initFromIterator(getRangeIterator(0u, nFunctions), nFunctions);
 
     if (!opt.functionPrecedence().empty()) {
-      BYPASSING_ALLOCATOR;
-
       vstring precedence;
       ifstream precedence_file (opt.functionPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
@@ -823,15 +784,11 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
 }
 
 DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& opt) {
-  CALL("PrecedenceOrdering::typeConPresFromOpts");
-
   unsigned nPredicates = env.signature->predicates();
   DArray<unsigned> aux(nPredicates);
   aux.initFromIterator(getRangeIterator(0u, nPredicates), nPredicates);
 
   if (!opt.predicatePrecedence().empty()) {
-    BYPASSING_ALLOCATOR;
-
     vstring precedence;
     ifstream precedence_file (opt.predicatePrecedence().c_str());
     if (precedence_file.is_open() && getline(precedence_file, precedence)) {
@@ -900,8 +857,6 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
 
 void PrecedenceOrdering::show(ostream& out) const 
 {
-  CALL("PrecedenceOrdering::show(ostream& out)");
-
   auto _show = [&](const char* precKind, unsigned cntFunctors, auto getSymbol, auto compareFunctors)
     {
       out << "% " << precKind << " precedences, smallest symbols first (line format: `<name> <arity>`) " << std::endl;

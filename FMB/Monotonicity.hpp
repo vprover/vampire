@@ -41,7 +41,6 @@ namespace FMB {
 
 class Monotonicity{
 
-  CLASS_NAME(Monotonicity);
   USE_ALLOCATOR(Monotonicity);
 
 public:

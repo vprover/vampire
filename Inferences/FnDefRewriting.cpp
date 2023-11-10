@@ -32,11 +32,6 @@
 
 #include "FnDefRewriting.hpp"
 
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
-
 using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;
@@ -44,9 +39,8 @@ using namespace Saturation;
 
 struct FnDefRewriting::GeneralizationsFn {
   GeneralizationsFn(FunctionDefinitionHandler *index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal *, TermList>, TermQueryResult>> operator()(pair<Literal *, TermList> arg)
+  VirtualIterator<std::pair<std::pair<Literal*, Term*>, TermQueryResult>> operator()(std::pair<Literal*, Term*> arg)
   {
-    CALL("FnDefRewriting::GeneralizationsFn()");
     return pvi(pushPairIntoRightIterator(arg, _index->getGeneralizations(arg.second)));
   }
 
@@ -55,10 +49,9 @@ private:
 };
 
 struct FnDefRewriting::RewriteableSubtermsFn {
-  VirtualIterator<pair<Literal *, TermList>> operator()(Literal *lit)
+  VirtualIterator<std::pair<Literal*, Term*>> operator()(Literal *lit)
   {
-    CALL("FnDefRewriting::RewriteableSubtermsFn()");
-    NonVariableIterator nvi(lit);
+    NonVariableNonTypeIterator nvi(lit);
     return pvi(pushPairIntoRightIterator(lit,
                                          getUniquePersistentIteratorFromPtr(&nvi)));
   }
@@ -67,13 +60,11 @@ struct FnDefRewriting::RewriteableSubtermsFn {
 struct FnDefRewriting::ForwardResultFn {
   ForwardResultFn(Clause *cl) : _cl(cl) {}
 
-  Clause* operator()(pair<pair<Literal *, TermList>, TermQueryResult> arg)
+  Clause* operator()(std::pair<std::pair<Literal*, Term*>, TermQueryResult> arg)
   {
-    CALL("FnDefRewriting::ForwardResultFn()");
-
     TermQueryResult &qr = arg.second;
     bool temp;
-    return FnDefRewriting::perform(_cl, arg.first.first, arg.first.second, qr.clause,
+    return FnDefRewriting::perform(_cl, arg.first.first, TermList(arg.first.second), qr.clause,
                                    qr.literal, qr.term, qr.substitution, false, temp,
                                    Inference(GeneratingInference2(InferenceRule::FNDEF_REWRITING, _cl, qr.clause)));
   }
@@ -83,8 +74,6 @@ private:
 
 ClauseIterator FnDefRewriting::generateClauses(Clause *premise)
 {
-  CALL("FnDefRewriting::generateClauses");
-
   auto itf1 = premise->iterLits();
 
   // Get an iterator of pairs of selected literals and rewritable subterms
@@ -103,21 +92,20 @@ ClauseIterator FnDefRewriting::generateClauses(Clause *premise)
 
 bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("FnDefRewriting::perform/1");
   auto salg = ForwardSimplificationEngine::_salg;
 
   Ordering& ordering = salg->getOrdering();
 
-  static DHSet<TermList> attempted;
+  static DHSet<Term*> attempted;
   attempted.reset();
 
   unsigned cLen = cl->length();
   for (unsigned li = 0; li < cLen; li++) {
     Literal* lit = (*cl)[li];
-    NonVariableIterator it(lit);
+    NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
-      TermList trm = it.next();
-      if (!attempted.insert(trm)) {
+      TypedTermList trm = it.next();
+      if (!attempted.insert(trm.term())) {
         it.right();
         continue;
       }
@@ -159,9 +147,7 @@ Clause *FnDefRewriting::perform(
     ResultSubstitutionSP subst, bool toplevelCheck, bool& isEqTautology,
     const Inference& inf, SaturationAlgorithm* salg)
 {
-  CALL("FnDefRewriting::perform/2");
-
-  if (SortHelper::getTermSort(rwTerm, rwLit) != SortHelper::getEqualityArgumentSort(eqLit)) {
+  if (SortHelper::getResultSort(rwTerm.term()) != SortHelper::getEqualityArgumentSort(eqLit)) {
     // sorts don't match
     return 0;
   }

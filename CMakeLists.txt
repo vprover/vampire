@@ -14,6 +14,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
   # we don't use multithreading in (mainline!) Vampire
   add_compile_options(-fno-threadsafe-statics)
+  # ...or RTTI
+  add_compile_options(-fno-rtti)
+  # enable standards-compliant standard library with sized operator delete
+  add_compile_options(-fsized-deallocation)
 endif()
 
 # compile command database
@@ -41,6 +45,12 @@ if (NOT BUILD_SHARED_LIBS)
   set(CMAKE_EXE_LINKER_FLAGS -static)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
+
+# get symbol names in binary for backtraces
+set(CMAKE_ENABLE_EXPORTS ON)
+
+# link to libdl for dladdr() on POSIXy things, used for backtraces
+link_libraries(${CMAKE_DL_LIBS})
 
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -111,6 +121,7 @@ set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
+    Debug/Output.hpp
     )
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
@@ -124,7 +135,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
     Lib/MemoryLeak.cpp
-    Lib/MultiCounter.cpp
     Lib/NameArray.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
@@ -168,7 +178,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Portability.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
-    Lib/Recycler.hpp
+    Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
     Lib/ScopedLet.hpp
@@ -247,9 +257,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Signature.cpp
     Kernel/Unit.cpp
     Kernel/BottomUpEvaluation.hpp
-    Kernel/BottomUpEvaluation/TermList.hpp
-    Kernel/BottomUpEvaluation/TypedTermList.hpp
-    Kernel/BottomUpEvaluation/PolyNf.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/Clause.hpp
     Kernel/ClauseQueue.hpp
@@ -307,8 +314,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    Indexing/TypeSubstitutionTree.cpp
-    Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -408,7 +413,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
     Inferences/GlobalSubsumption.cpp
-    Inferences/HyperSuperposition.cpp
     Inferences/InnerRewriting.cpp
     Inferences/EquationalTautologyRemoval.cpp
     Inferences/Induction.cpp
@@ -416,6 +420,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
+    Inferences/InvalidAnswerLiteralRemoval.cpp
     Inferences/PushUnaryMinus.cpp
     Inferences/Cancellation.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -428,6 +433,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
+    Inferences/DefinitionIntroduction.cpp
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
@@ -443,13 +449,13 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
     Inferences/GlobalSubsumption.hpp
-    Inferences/HyperSuperposition.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp
     Inferences/InductionHelper.hpp
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
+    Inferences/InvalidAnswerLiteralRemoval.hpp
     Inferences/PushUnaryMinus.hpp
     Inferences/Cancellation.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -463,6 +469,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/TautologyDeletionISE.hpp
     Inferences/TermAlgebraReasoning.hpp
     Inferences/URResolution.hpp
+    Inferences/DefinitionIntroduction.hpp
     Inferences/TheoryInstAndSimp.hpp
     Inferences/TheoryInstAndSimp.cpp  # this is theory instantiation
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -473,14 +480,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/Cancellation.cpp
     )
 source_group(inference_source_files FILES ${VAMPIRE_INFERENCE_SOURCES})
-
-set(VAMPIRE_INSTANCEGENERATION_SOURCES
-    InstGen/IGAlgorithm.cpp
-    InstGen/ModelPrinter.cpp
-    InstGen/IGAlgorithm.hpp
-    InstGen/ModelPrinter.hpp
-    )
-source_group(instancegeneration_source_files FILES ${VAMPIRE_INSTANCEGENERATION_SOURCES})
 
 set(VAMPIRE_SAT_SOURCES
     SAT/BufferedSolver.cpp
@@ -549,7 +548,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
-    Shell/NameReuse.cpp
     Shell/DistinctProcessor.cpp
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
@@ -604,7 +602,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
-    Shell/NameReuse.hpp
     Shell/DistinctProcessor.hpp
     Shell/DistinctGroupExpansion.hpp
     Shell/EqResWithDeletion.hpp
@@ -770,7 +767,6 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_KERNEL_SOURCES}
     ${VAMPIRE_INDEXING_SOURCES}
     ${VAMPIRE_INFERENCE_SOURCES}
-    ${VAMPIRE_INSTANCEGENERATION_SOURCES}
     ${VAMPIRE_SAT_SOURCES}
     ${VAMPIRE_DECISION_PROCEDURES_SOURCES}
     ${VAMPIRE_SATURATION_SOURCES}
@@ -809,12 +805,13 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
 
-add_compile_definitions(VTIME_PROFILING=1)
+# enable for time profiling
+add_compile_definitions(VTIME_PROFILING=0)
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
-                    
+
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
@@ -924,7 +921,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.7)
+set(VAMPIRE_VERSION_NUMBER 4.8)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree

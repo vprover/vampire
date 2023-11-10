@@ -22,7 +22,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/TriangularArray.hpp"
 #include "Lib/Vector.hpp"
@@ -56,7 +56,6 @@ public:
     inline bool operator!=(const TermInfo& o)
     { return !(*this==o); }
 
-    CLASS_NAME(TermCodeTree::TermInfo);
     USE_ALLOCATOR(TermInfo);
 
     TermList t;
@@ -84,11 +83,10 @@ public:
     TermMatcher();
 
     void init(CodeTree* tree, TermList t);
-    void deinit();
+    void reset();
     
     TermInfo* next();
     
-    CLASS_NAME(TermCodeTree::TermMatcher);
     USE_ALLOCATOR(TermMatcher);
   };
 

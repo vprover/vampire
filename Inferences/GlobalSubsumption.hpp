@@ -35,7 +35,6 @@ class GlobalSubsumption
 : public ForwardSimplificationEngine
 {
 public:
-  CLASS_NAME(GlobalSubsumption);
   USE_ALLOCATOR(GlobalSubsumption);
 
   GlobalSubsumption(const Options& opts) : _index(0),
@@ -102,7 +101,6 @@ private:
       
 protected:  
   unsigned splitLevelToVar(SplitLevel lev) {        
-    CALL("GlobalSubsumption::splitLevelToVar");
     unsigned* pvar;
               
     if(_splits2vars.getValuePtr(lev, pvar)) {
@@ -115,8 +113,6 @@ protected:
   }  
   
   bool isSplitLevelVar(unsigned var, SplitLevel& lev) {
-    CALL("GlobalSubsumption::isSplitLevelVar");
-    
     return _vars2splits.find(var,lev);
   }
 };

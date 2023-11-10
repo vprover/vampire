@@ -14,7 +14,6 @@
  * @since 06/05/2007 Manchester
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Sys/SyncPipe.hpp"
 
@@ -44,27 +43,23 @@ using namespace Shell;
 Environment::Environment()
   : signature(0),
     sharing(0),
-    property(0),
     maxSineLevel(1),
     predicateSineLevels(nullptr),
     colorUsed(false),
     _outputDepth(0),
     _priorityOutput(0),
-    _pipe(0)
+    _pipe(0),
+    _problem(0)
 {
-  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
-
-
   options = new Options;
 
   // statistics calls the timer
   timer = Timer::instance();
   timer->start();
 
-  statistics = new Statistics;  
+  statistics = new Statistics;
   signature = new Signature;
   sharing = new TermSharing;
-  property = new Property;
 
   //view comment in Signature.cpp
   signature->addEquality();
@@ -82,8 +77,6 @@ Environment::Environment()
 
 Environment::~Environment()
 {
-  CALL("Environment::~Environment");
-
   Timer::setLimitEnforcement(false);
 
   //in the usual cases the _outputDepth should be zero at this point, but in case of
@@ -98,12 +91,8 @@ Environment::~Environment()
   delete sharing;
   delete signature;
   delete statistics;
-  delete property;
   if (predicateSineLevels) delete predicateSineLevels;
-  {
-    BYPASSING_ALLOCATOR; // use of std::function in options
-    delete options;
-  }
+  delete options;
 // #endif
 }
 
@@ -114,8 +103,6 @@ Environment::~Environment()
  */
 bool Environment::timeLimitReached() const
 {
-  CALL("Environment::timeLimitReached");
-
   if (options->timeLimitInDeciseconds() &&
       timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
     statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
@@ -144,7 +131,6 @@ int Environment::remainingTime() const
  */
 void Environment::beginOutput()
 {
-  CALL("Environment::beginOutput");
   ASS_GE(_outputDepth,0);
 
   _outputDepth++;
@@ -158,7 +144,6 @@ void Environment::beginOutput()
  */
 void Environment::endOutput()
 {
-  CALL("Environment::endOutput");
   ASS_G(_outputDepth,0);
 
   _outputDepth--;
@@ -178,8 +163,6 @@ void Environment::endOutput()
  */
 bool Environment::haveOutput()
 {
-  CALL("Environment::haveOutput");
-
   return _outputDepth;
 }
 
@@ -191,7 +174,6 @@ bool Environment::haveOutput()
  */
 ostream& Environment::out()
 {
-  CALL("Environment::out");
   ASS(_outputDepth);
 
   if(_priorityOutput) {
@@ -212,7 +194,6 @@ ostream& Environment::out()
  */
 void Environment::setPipeOutput(SyncPipe* pipe)
 {
-  CALL("Environment::setPipeOutput");
   ASS(!haveOutput());
 
   _pipe=pipe;
@@ -220,7 +201,6 @@ void Environment::setPipeOutput(SyncPipe* pipe)
 
 void Environment::setPriorityOutput(ostream* stm)
 {
-  CALL("Environment::setPriorityOutput");
   ASS(!_priorityOutput || !stm);
 
   _priorityOutput=stm;

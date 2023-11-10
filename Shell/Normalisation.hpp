@@ -62,6 +62,10 @@ private:
              : LESS;
   }
 
+  inline static
+  Comparison compare (unsigned i1, unsigned i2)
+  { return i1 > i2 ? GREATER : i1 == i2 ? EQUAL : LESS; }
+
   /**
    * Return the result of comparison of two booleans b1 and b2.
    * @since 30/04/2005 Manchester

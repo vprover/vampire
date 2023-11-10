@@ -14,7 +14,6 @@
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
 
-#include "Debug/Tracer.hpp"
 #include "Kernel/NumTraits.hpp"
 
 #include "Lib/Environment.hpp"
@@ -32,6 +31,7 @@
 
 namespace Kernel {
 
+using namespace std;
 using namespace Lib;
 using namespace Shell;
 
@@ -57,7 +57,6 @@ public:
     _varDiffs.reset();
   }
 
-  CLASS_NAME(KBO::State);
   USE_ALLOCATOR(State);
 
   void traverse(Term* t1, Term* t2);
@@ -98,7 +97,6 @@ private:
  */
 Ordering::Result KBO::State::result(Term* t1, Term* t2)
 {
-  CALL("KBO::State::result")
   Result res;
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
@@ -136,8 +134,6 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
 
 Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
 {
-  CALL("KBO::State::innerResult");
-
   ASS_NEQ(tl1, tl2);
   ASS(!TermList::sameTopFunctor(tl1,tl2));
 
@@ -168,7 +164,6 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
 
 void KBO::State::recordVariable(unsigned var, int coef)
 {
-  CALL("KBO::State::recordVariable");
   ASS(coef==1 || coef==-1);
 
   int* pnum;
@@ -191,8 +186,6 @@ void KBO::State::recordVariable(unsigned var, int coef)
 
 void KBO::State::traverse(TermList tl,int coef)
 {
-  CALL("KBO::State::traverse(TermList...)");
-
   if(tl.isOrdinaryVar()) {
     _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
     recordVariable(tl.var(), coef);
@@ -236,7 +229,6 @@ void KBO::State::traverse(TermList tl,int coef)
 
 void KBO::State::traverse(Term* t1, Term* t2)
 {
-  CALL("KBO::State::traverse");
   ASS(t1->functor()==t2->functor());
   ASS(t1->arity());
   ASS_EQ(_lexResult, EQUAL);
@@ -402,7 +394,6 @@ template<class SigTraits>
 KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
 {
   DArray<KboWeight> weights(SigTraits::nSymbols());
-  BYPASSING_ALLOCATOR
 
   ///////////////////////// parsing helper functions ///////////////////////// 
  
@@ -562,7 +553,6 @@ KBO KBO::testKBO()
 }
 
 void KBO::zeroWeightForMaximalFunc() {
-  CALL("KBO::zeroWeightForMaximalFunc");
   // actually, it's non-constant maximal func, as constants cannot be weight 0
 
   using FunctionSymbol = unsigned;
@@ -652,8 +642,6 @@ KBO::KBO(Problem& prb, const Options& opts)
 #endif
  , _state(new State(this))
 {
-  CALL("KBO::KBO(Prb&, Opts&)");
-
   if (opts.kboMaxZero()) {
     zeroWeightForMaximalFunc();
   }
@@ -666,8 +654,6 @@ KBO::KBO(Problem& prb, const Options& opts)
 
 KBO::~KBO()
 {
-  CALL("KBO::~KBO");
-
   delete _state;
 }
 
@@ -678,7 +664,6 @@ KBO::~KBO()
  */
 Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 {
-  CALL("KBO::comparePredicates");
   ASS(l1->shared());
   ASS(l2->shared());
   ASS(!l1->isEquality());
@@ -720,8 +705,6 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 
 Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 {
-  CALL("KBO::compare(TermList)");
-
   if(tl1==tl2) {
     return EQUAL;
   }

@@ -31,7 +31,6 @@ class Superposition
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(Superposition);
   USE_ALLOCATOR(Superposition);
 
   void attach(SaturationAlgorithm* salg);
@@ -45,7 +44,7 @@ private:
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-          UnificationConstraintStackSP constraints, bool isTypeSub);
+          UnificationConstraintStackSP constraints);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
@@ -55,8 +54,6 @@ private:
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
   struct ForwardResultFn;
-  struct RewriteableSubtermsFn;
-  struct ApplicableRewritesFn;
 
   struct LHSsFn;
   struct RewritableResultsFn;

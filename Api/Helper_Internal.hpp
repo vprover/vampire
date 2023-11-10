@@ -75,7 +75,6 @@ class FBHelperCore
 : public DefaultHelperCore
 {
 public:
-  CLASS_NAME(FBHelperCore);
   USE_ALLOCATOR(FBHelperCore);
   
   FBHelperCore() : nextVar(0), refCtr(0), varFact(*this), _unaryPredicate(0)
@@ -84,8 +83,6 @@ public:
 
   void incRef()
   {
-    CALL("ApiHelperCore::incRef");
-
     refCtr++;
   }
 
@@ -97,7 +94,6 @@ public:
    */
   void decRef()
   {
-    CALL("ApiHelperCore::decRef");
     ASS_G(refCtr,0);
 
     refCtr--;
@@ -138,12 +134,11 @@ public:
   void ensureArgumentsSortsMatch(BaseType* type, const Api::Term* args);
   void ensureEqualityArgumentsSortsMatch(const Api::Term arg1, const Api::Term arg2);
 
-  typedef pair<vstring,vstring> AttribPair;
+  typedef std::pair<vstring,vstring> AttribPair;
   typedef Stack<AttribPair> AttribStack;
 
   AttribStack& getSortAttributes(unsigned srt)
   {
-    CALL("ApiHelperCore::getSortAttributes");
     AttribStack* res;
     _sortAttributes.getValuePtr(srt, res);
     return *res;
@@ -151,7 +146,6 @@ public:
 
   AttribStack& getPredicateAttributes(unsigned pred)
   {
-    CALL("ApiHelperCore::getPredicateAttributes");
     AttribStack* res;
     _predicateAttributes.getValuePtr(pred, res);
     return *res;
@@ -159,7 +153,6 @@ public:
 
   AttribStack& getFunctionAttributes(unsigned func)
   {
-    CALL("ApiHelperCore::getFunctionAttributes");
     AttribStack* res;
     _functionAttributes.getValuePtr(func, res);
     return *res;

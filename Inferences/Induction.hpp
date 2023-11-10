@@ -17,6 +17,7 @@
 #define __Induction__
 
 #include <cmath>
+#include <functional>
 
 #include "Forwards.hpp"
 
@@ -47,7 +48,7 @@ using namespace Shell;
 using namespace Lib;
 
 class ActiveOccurrenceIterator
-  : public IteratorCore<TermList>
+  : public IteratorCore<Term*>
 {
 public:
   ActiveOccurrenceIterator(Term* term, FunctionDefinitionHandler* fnDefHandler)
@@ -59,10 +60,19 @@ public:
   }
 
   bool hasNext() override { return !_stack.isEmpty(); }
-  TermList next() override;
+  Term* next() override;
 private:
   Stack<Term*> _stack;
   FunctionDefinitionHandler* _fnDefHandler;
+};
+
+struct SharedTermHash {
+  static bool equals(Term* t1, Term* t2) { return t1==t2; }
+  static unsigned hash(Term* t) { return t->getId(); }
+};
+
+struct StlClauseHash {
+  std::size_t operator()(Clause* c) const { return std::hash<unsigned>()(c->number()); }
 };
 
 Term* getPlaceholderForTerm(const vvector<Term*>& ts, unsigned i);
@@ -80,7 +90,7 @@ public:
   SkolemSquashingTermReplacement(const vmap<Term*, TermList>& m, unsigned& var)
     : TermReplacement(m), _v(var) {}
   TermList transformSubterm(TermList trm) override;
-  DHMap<Term*, unsigned> _tv; // maps terms to their variable replacement
+  DHMap<Term*, unsigned, SharedTermHash> _tv; // maps terms to their variable replacement
 private:
   unsigned& _v;               // fresh variable counter supported by caller
 };
@@ -109,12 +119,12 @@ struct InductionContext {
   vstring toString() const {
     vstringstream str;
     for (const auto& indt : _indTerms) {
-      str << *indt << endl;
+      str << *indt << std::endl;
     }
     for (const auto& kv : _cls) {
-      str << *kv.first << endl;
+      str << *kv.first << std::endl;
       for (const auto& lit : kv.second) {
-        str << *lit << endl;
+        str << *lit << std::endl;
       }
     }
     return str.str();
@@ -128,7 +138,7 @@ struct InductionContext {
   // we only store the literals we actually induct on. An alternative
   // would be storing indices but then we need to pass around the
   // clause as well.
-  vunordered_map<Clause*, LiteralStack> _cls;
+  vunordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
 private:
   Formula* getFormula(TermReplacement& tr, bool opposite) const;
 };
@@ -194,7 +204,6 @@ class Induction
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
 
   void attach(SaturationAlgorithm* salg) override;
@@ -231,7 +240,6 @@ public:
     processClause(premise);
   }
 
-  CLASS_NAME(InductionClauseIterator);
   USE_ALLOCATOR(InductionClauseIterator);
   DECL_ELEMENT_TYPE(Clause*);
 

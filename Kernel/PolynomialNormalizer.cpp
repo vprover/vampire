@@ -14,13 +14,14 @@
 
 namespace Kernel {
 
+using namespace std;
+
 /** a struct that normalizes an object of type MonomFactors to a Monom */
 struct RenderMonom {
 
   template<class NumTraits>
   Monom<NumTraits> operator()(MonomFactors<NumTraits>&& x) const 
   { 
-    CALL("RenderMonom::operator()(MonomFactors<Numeral>&&)")
     using Numeral      = typename NumTraits::ConstantType;
     using Monom        = Monom       <NumTraits>;
     auto& raw = x.raw();
@@ -85,7 +86,6 @@ struct RenderPolyNf {
 
 template<class NumTraits>
 NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& rhs) {
-  CALL("normalizeAdd")
   using Polynom = Polynom<NumTraits>;
   using Monom = Monom<NumTraits>;
   using MonomFactors = MonomFactors<NumTraits>;
@@ -133,7 +133,6 @@ NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& 
 
 template<class NumTraits>
 NormalizationResult normalizeMul(NormalizationResult& lhs, NormalizationResult& rhs) {
-  CALL("normalizeMul")
   using Polynom = Polynom<NumTraits>;
   using MonomFactors = MonomFactors<NumTraits>;
   using MonomFactor = MonomFactor<NumTraits>;
@@ -254,7 +253,9 @@ Option<NormalizationResult> normalizeDiv(NormalizationResult& lhs, Normalization
   using Numeral = typename NumTraits::ConstantType;
 
   auto num = rhs.apply(TryNumeral<NumTraits>{});
-  if (num.isSome() && num.unwrap() != Numeral(0)) {
+  if (num.isSome() &&
+      num.unwrap() != Numeral(0) && // don't divide by zero
+      num.unwrap() != Numeral(numeric_limits<int>::min())) { // also don't divide by min_int, it also can't be inverted in a reasonable way!
     auto inv = wrapNumeral(Numeral(1) / num.unwrap());
     return Option<NormalizationResult>(normalizeMul<NumTraits>(inv, lhs)); 
   } else {
@@ -274,7 +275,6 @@ NormalizationResult normalizeMinus(NormalizationResult& x) {
 template<class NumTraits>
 NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts) 
 {
-  CALL("normalizeNumSort(TermList,NormalizationResult)")
   auto singletonProduct = [](PolyNf t) -> NormalizationResult {
     return NormalizationResult(MonomFactors<NumTraits>(t));
   };
@@ -324,7 +324,6 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
 PolyNf normalizeTerm(TypedTermList t) 
 {
-  CALL("PolyNf::normalize")
   DEBUG("normalizing ", t)
   Memo::None<TypedTermList,NormalizationResult> memo;
   struct Eval 
@@ -334,7 +333,6 @@ PolyNf normalizeTerm(TypedTermList t)
 
     NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
     { 
-      CALL("normalizeTerm(TypedTermList)::eval::operator()")
       auto sort = t.sort();
       if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
       if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
@@ -362,7 +360,6 @@ PolyNf normalizeTerm(TypedTermList t)
 
 TermList PolyNf::denormalize() const
 { 
-  CALL("PolyNf::denormalize")
   DEBUG("converting ", *this)
   struct Eval 
   {

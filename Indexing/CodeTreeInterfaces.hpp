@@ -40,13 +40,12 @@ using namespace Lib;
 class CodeTreeTIS : public TermIndexingStructure
 {
 public:
-  CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
+  void insert(TypedTermList t, Literal* lit, Clause* cls);
+  void remove(TypedTermList t, Literal* lit, Clause* cls);
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
   bool generalizationExists(TermList t);
 
 #if VDEBUG
@@ -79,7 +78,6 @@ class CodeTreeSubsumptionIndex
 : public ClauseSubsumptionIndex
 {
 public:
-  CLASS_NAME(CodeTreeSubsumptionIndex);
   USE_ALLOCATOR(CodeTreeSubsumptionIndex);
 
   ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);

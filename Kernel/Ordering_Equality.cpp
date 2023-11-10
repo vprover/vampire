@@ -24,7 +24,6 @@ namespace Kernel
 class Ordering::EqCmp
 {
 public:
-  CLASS_NAME(EqCmp);
   USE_ALLOCATOR(EqCmp);
 
   EqCmp(Ordering* ordering) : _ordering(ordering)
@@ -71,15 +70,11 @@ private:
 
 void Ordering::createEqualityComparator()
 {
-  CALL("Ordering::createEqualityComparator");
-
   _eqCmp=new EqCmp(this);
 }
 
 void Ordering::destroyEqualityComparator()
 {
-  CALL("Ordering::destroyEqualityComparator");
-
   delete _eqCmp;
 #if VDEBUG
   _eqCmp=0;
@@ -89,7 +84,6 @@ void Ordering::destroyEqualityComparator()
 
 Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2) const
 {
-  CALL("Ordering::compareEqualities");
   ASS(eq1->isEquality());
   ASS(eq2->isEquality());
 
@@ -110,7 +104,6 @@ Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2) const
 
 Ordering::Result Ordering::EqCmp::compareEqualities(Literal* eq1, Literal* eq2) const
 {
-  CALL("Ordering::EqCmp::compareEqualities");
   ASS(eq1->isEquality());
   ASS(eq2->isEquality());
 
@@ -153,7 +146,6 @@ Ordering::Result Ordering::EqCmp::compareEqualities(Literal* eq1, Literal* eq2) 
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1Gt1");
   ASS_EQ(compare(s1,t1), GREATER);
 
   switch(compare(s2,t2)) {
@@ -176,7 +168,6 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1(TermList s1,TermList s2,TermList
  */
 Ordering::Result Ordering::EqCmp::compare_s1GEt1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1GEt1");  
   ASS_EQ(compare(s1,t1), GREATER_EQ);
 
   switch(compare(s2,t2)) {
@@ -200,7 +191,6 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1(TermList s1,TermList s2,TermLis
  */
 Ordering::Result Ordering::EqCmp::compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1It1");
   ASS_EQ(compare(s1,t1), INCOMPARABLE);
 
   switch(compare(s2,t2)) {
@@ -224,7 +214,6 @@ Ordering::Result Ordering::EqCmp::compare_s1It1(TermList s1,TermList s2,TermList
  */
 Ordering::Result Ordering::EqCmp::compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1It1_s2It2");
   ASS_EQ(compare(s1,t1), INCOMPARABLE);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
 
@@ -249,7 +238,6 @@ Ordering::Result Ordering::EqCmp::compare_s1It1_s2It2(TermList s1,TermList s2,Te
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1Gt1_s2It2");
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
 
@@ -276,7 +264,6 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2It2(TermList s1,TermList s2,Te
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1Gt1_s2Lt2");
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s2,t2), LESS);
 
@@ -309,7 +296,6 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2Lt2(TermList s1,TermList s2,Te
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1Gt1_s2LEt2");
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s2,t2), LESS_EQ);
 
@@ -337,7 +323,6 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2LEt2(TermList s1,TermList s2,T
  */
 Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1GEt1_s2It2");
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
 
@@ -365,7 +350,6 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2It2(TermList s1,TermList s2,T
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1Gt1_s1It2_s2It1");
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), INCOMPARABLE);
   ASS_EQ(compare(s2,t1), INCOMPARABLE);
@@ -388,7 +372,6 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1It2_s2It1(TermList s1,TermList
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It1");
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
   ASS_EQ(compare(s2,t1), INCOMPARABLE);
@@ -415,7 +398,6 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It1(TermList s1,TermLis
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It2");
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
@@ -443,7 +425,6 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2It2(TermList s1,TermLis
  */
 Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2It1");
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
   ASS_EQ(compare(s2,t1), INCOMPARABLE);
@@ -471,7 +452,6 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2It1(TermList s1,TermLi
  */
 Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1GEt1_s1It2_s2It1");
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s1,t2), INCOMPARABLE);
   ASS_EQ(compare(s2,t1), INCOMPARABLE);
@@ -508,7 +488,6 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1It2_s2It1(TermList s1,TermLis
  */
 Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2LEt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1GEt1_s2LEt2");
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s2,t2), LESS_EQ);
 
@@ -550,7 +529,6 @@ Ordering::Result Ordering::EqCmp::compare_s1GEt1_s2LEt2(TermList s1,TermList s2,
  */
 Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2Lt2");
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
   ASS_EQ(compare(s2,t2), LESS);
@@ -580,7 +558,6 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1GEt2_s2Lt2(TermList s1,TermLis
  */
 Ordering::Result Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2LEt1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
-  CALL("Ordering::EqCmp::compare_s1GEt1_s1GEt2_s2LEt1");
   ASS_EQ(compare(s1,t1), GREATER_EQ);
   ASS_EQ(compare(s1,t2), GREATER_EQ);
   ASS_EQ(compare(s2,t1), LESS_EQ);

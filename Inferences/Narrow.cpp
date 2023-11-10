@@ -55,11 +55,10 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 void Narrow::attach(SaturationAlgorithm* salg)
 {
-  CALL("Narrow::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _index=static_cast<NarrowingIndex*> (
     _salg->getIndexManager()->request(NARROWING_INDEX) );
@@ -67,8 +66,6 @@ void Narrow::attach(SaturationAlgorithm* salg)
 
 void Narrow::detach()
 {
-  CALL("Narrow::detach");
-
   _index=0;
   _salg->getIndexManager()->release(NARROWING_INDEX);
   GeneratingInferenceEngine::detach();
@@ -79,9 +76,10 @@ struct Narrow::ApplicableNarrowsFn
   ApplicableNarrowsFn(NarrowingIndex* index) : _index(index) {}
   VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
   {
-    CALL("Narrow::ApplicableRewritesFn()");
+    ASS(arg.second.isTerm());
 
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    TypedTermList tt(arg.second.term());
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(tt, true)) );
   }
 private:
   NarrowingIndex* _index;
@@ -93,8 +91,6 @@ struct Narrow::RewriteableSubtermsFn
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
-    CALL("Narrow::RewriteableSubtermsFn()");
-
     return pvi( pushPairIntoRightIterator(lit, 
                 EqHelper::getNarrowableSubtermIterator(lit, _ord)) );
   }
@@ -109,8 +105,6 @@ struct Narrow::ResultFn
   ResultFn(Clause* cl, Narrow& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
-    CALL("Narrow::ResultFn::operator()");
-    
     TermQueryResult& qr = arg.second;
     return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, 
                                  qr.literal, qr.substitution);
@@ -122,8 +116,6 @@ private:
 
 ClauseIterator Narrow::generateClauses(Clause* premise)
 {
-  CALL("Narrow::generateClauses");
-
   //cout << "Narrow with " << premise->toString() << endl;
 
   auto it1 = premise->getSelectedLiteralIterator();
@@ -149,7 +141,6 @@ Clause* Narrow::performNarrow(
     Clause* nClause, Literal* nLiteral, TermList nTerm, 
     TermList combAxLhs, Literal* combAx, ResultSubstitutionSP subst)
 {
-  CALL("Narrow::performNarrow");
   // we want the rwClause and eqClause to be active
   ASS(nClause->store()==Clause::ACTIVE);
   ASS(nTerm.isTerm());

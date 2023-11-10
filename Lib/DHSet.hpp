@@ -38,14 +38,11 @@ template <typename Val, class Hash1, class Hash2>
 class DHSet
 {
 public:
-  CLASS_NAME(DHSet);
   USE_ALLOCATOR(DHSet);
 
   /** Empty the DHSet */
   void reset()
   {
-    CALL("DHSet::reset");
-
     _map.reset();
   }
 
@@ -55,8 +52,6 @@ public:
   inline
   bool find(Val val) const
   {
-    CALL("DHSet::find");
-
     return _map.find(val);
   }
 
@@ -68,8 +63,6 @@ public:
   inline
   bool contains(Val val) const
   {
-    CALL("DHSet::contains");
-
     return find(val);
   }
 
@@ -79,8 +72,6 @@ public:
    */
   bool insert(Val val)
   {
-    CALL("DHSet::insert");
-
     return _map.insert(val, EmptyStruct());
   }
 
@@ -91,8 +82,6 @@ public:
    */
   bool remove(Val val)
   {
-    CALL("DHSet::remove");
-
     return _map.remove(val);
   }
 
@@ -121,8 +110,6 @@ public:
    */
   template<class It>
   void loadFromIterator(It it) {
-    CALL("DHSet::loadFromIterator");
-
     while(it.hasNext()) {
       insert(it.next());
     }
@@ -135,8 +122,6 @@ public:
    */
   template<class It>
   void removeIteratorElements(It it) {
-    CALL("DHSet::removeIteratorElements");
-
     while(it.hasNext()) {
       ALWAYS(remove(it.next()));
     }

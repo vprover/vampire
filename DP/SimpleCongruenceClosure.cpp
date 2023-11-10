@@ -31,12 +31,12 @@
 namespace DP
 {
 
+using namespace std;
+
 const unsigned SimpleCongruenceClosure::NO_SIG_SYMBOL = 0xFFFFFFFF;
 
 vstring SimpleCongruenceClosure::CEq::toString() const
 {
-  CALL("SimpleCongruenceClosure::CEq::toString");
-
   vostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
@@ -55,8 +55,6 @@ vstring SimpleCongruenceClosure::CEq::toString() const
 
 vstring SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) const
 {
-  CALL("SimpleCongruenceClosure::CEq::toString");
-
   vostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
@@ -76,8 +74,6 @@ vstring SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) 
 }
 
 void SimpleCongruenceClosure::ConstInfo::init() {
-  CALL("SimpleCongruenceClosure::ConstInfo::init");
-
   sigSymbol = NO_SIG_SYMBOL;
   term.makeEmpty();
   lit = 0;
@@ -90,8 +86,6 @@ void SimpleCongruenceClosure::ConstInfo::init() {
 }
 
 void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosure& parent, unsigned selfIndex) {
-  CALL("SimpleCongruenceClosure::ConstInfo::resetEquivalences");
-
   reprConst = 0;
   proofPredecessor = 0;
   predecessorPremise = CEq(0,0);
@@ -123,8 +117,6 @@ void SimpleCongruenceClosure::ConstInfo::resetEquivalences(SimpleCongruenceClosu
 
 void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& parent, unsigned selfIndex) const
 {
-  CALL("SimpleCongruenceClosure::ConstInfo::assertValid");
-
   if(reprConst==0) {
     Stack<unsigned>::ConstIterator ulit(useList);
     while(ulit.hasNext()) {
@@ -145,8 +137,6 @@ void SimpleCongruenceClosure::ConstInfo::assertValid(SimpleCongruenceClosure& pa
 SimpleCongruenceClosure::SimpleCongruenceClosure(Ordering* ord) :
   _ord(ord)
 {
-  CALL("SimpleCongruenceClosure::SimpleCongruenceClosure");
-
   _cInfos.ensure(1); //this ensures constants will start numbered from 1, not 0
 
   _posLitConst = getFreshConst();
@@ -158,8 +148,6 @@ SimpleCongruenceClosure::SimpleCongruenceClosure(Ordering* ord) :
 
 void SimpleCongruenceClosure::reset()
 {
-  CALL("SimpleCongruenceClosure::reset");
-
   //do reset that keeps the data for converting terms to constants
   unsigned maxConst = getMaxConst();
   for(unsigned i=1; i<=maxConst; i++) {
@@ -195,8 +183,6 @@ void SimpleCongruenceClosure::reset()
 /** Introduce fresh congruence closure constant */
 unsigned SimpleCongruenceClosure::getFreshConst()
 {
-  CALL("SimpleCongruenceClosure::getFreshConst");
-
   unsigned res = _cInfos.size();
   _cInfos.expand(res+1);
   _cInfos[res].init();
@@ -206,8 +192,6 @@ unsigned SimpleCongruenceClosure::getFreshConst()
 /** Get congruence closure constant corresponding to a signature symbol number @c symbol */
 unsigned SimpleCongruenceClosure::getSignatureConst(unsigned symbol, SignatureKind kind)
 {
-  CALL("SimpleCongruenceClosure::getSignatureConst");
-
   unsigned* pRes;
   if(!_sigConsts.getValuePtr(make_pair(symbol, kind), pRes)) {
     return *pRes;
@@ -222,8 +206,6 @@ unsigned SimpleCongruenceClosure::getSignatureConst(unsigned symbol, SignatureKi
 
 unsigned SimpleCongruenceClosure::getPairName(CPair p)
 {
-  CALL("SimpleCongruenceClosure::getPairName");
-
   unsigned* pRes;
   if(!_pairNames.getValuePtr(p, pRes)) {
     return *pRes;
@@ -258,8 +240,6 @@ struct SimpleCongruenceClosure::FOConversionWorker
 
   template<class ChildCallback>
   void pre(TermList t, ChildCallback childCallbackFn) {
-    CALL("SimpleCongruenceClosure::FOConversionWorker::pre");
-
     if (t.isTerm()) {
       if(_parent._termNames.find(t)) {
         //term is in cache, we don't need to traverse it
@@ -276,8 +256,6 @@ struct SimpleCongruenceClosure::FOConversionWorker
 
   unsigned post(TermList t, size_t childCnt, unsigned* childRes)
   {
-    CALL("SimpleCongruenceClosure::FOConversionWorker::post");
-
     unsigned res;
     if(_parent._termNames.find(t, res)) {
       return res;
@@ -312,8 +290,6 @@ struct SimpleCongruenceClosure::FOConversionWorker
  */
 unsigned SimpleCongruenceClosure::convertFO(TermList trm)
 {
-  CALL("SimpleCongruenceClosure::convertFO(TermList)");
-
   unsigned cachedRes;
   if(_termNames.find(trm, cachedRes)) {
     return cachedRes;
@@ -330,7 +306,6 @@ unsigned SimpleCongruenceClosure::convertFO(TermList trm)
  */
 unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
 {
-  CALL("SimpleCongruenceClosure::convertFONonEquality");
   ASS(!lit->isEquality());
 
   unsigned res;
@@ -363,8 +338,6 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
  */
 bool SimpleCongruenceClosure::isDistinctPred(Literal* l)
 {
-  CALL("SimpleCongruenceClosure::isDistinctPred");
-
   return Shell::DistinctProcessor::isDistinctPred(l);
 }
 
@@ -373,8 +346,6 @@ bool SimpleCongruenceClosure::isDistinctPred(Literal* l)
  */
 void SimpleCongruenceClosure::readDistinct(Literal* lit)
 {
-  CALL("SimpleCongruenceClosure::readDistinct");
-
   bool pos = lit->isPositive();
   DistinctStack& tgtDStack = pos ? _distinctConstraints : _negDistinctConstraints;
   tgtDStack.push(DistinctEntry(lit));
@@ -393,7 +364,6 @@ void SimpleCongruenceClosure::readDistinct(Literal* lit)
  */
 SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal* equality)
 {
-  CALL("SimpleCongruenceClosure::convertFOEquality(Literal*)");
   ASS(equality->isEquality());
 
   unsigned arg1 = convertFO(*equality->nthArgument(0));
@@ -420,7 +390,6 @@ SimpleCongruenceClosure::CEq SimpleCongruenceClosure::convertFOEquality(Literal*
  */
 void SimpleCongruenceClosure::addLiterals(LiteralIterator lits, bool onlyEqualites)
 {
-  CALL("SimpleCongruenceClosure::addLiterals");
   ASS(!_hadPropagated);
 
   while(lits.hasNext()) {
@@ -439,8 +408,6 @@ void SimpleCongruenceClosure::addLiterals(LiteralIterator lits, bool onlyEqualit
 
 void SimpleCongruenceClosure::addLiteral(Literal* lit)
 {
-  CALL("SimpleCongruenceClosure::addLiteral");
-
   if (lit->isEquality()) {
     CEq eq = convertFOEquality(lit);
 
@@ -465,8 +432,6 @@ void SimpleCongruenceClosure::addLiteral(Literal* lit)
 }
 
 void SimpleCongruenceClosure::addPendingEquality(CEq eq) {
-  CALL("SimpleCongruenceClosure::addPendingEquality");
-
   ASS_G(eq.c1,0);
   ASS_G(eq.c2,0);
   _pendingEqualities.push_back(eq);
@@ -477,8 +442,6 @@ void SimpleCongruenceClosure::addPendingEquality(CEq eq) {
  */
 void SimpleCongruenceClosure::makeProofRepresentant(unsigned c)
 {
-  CALL("SimpleCongruenceClosure::makeProofRepresentant");
-
   if(_cInfos[c].proofPredecessor==0) {
     return;
   }
@@ -507,8 +470,6 @@ void SimpleCongruenceClosure::makeProofRepresentant(unsigned c)
  */
 void SimpleCongruenceClosure::propagate()
 {
-  CALL("SimpleCongruenceClosure::propagate");
-
   _hadPropagated = true;
 
   while(_pendingEqualities.isNonEmpty()) {
@@ -581,8 +542,6 @@ void SimpleCongruenceClosure::propagate()
 
 bool SimpleCongruenceClosure::checkPositiveDistincts(bool retrieveMultipleCores)
 {
-  CALL("SimpleCongruenceClosure::checkPositiveDistincts");
-
   //map from a representative to constant in its class present in the current distinct group
   static ArrayMap<unsigned> reprs;
   reprs.ensure(getMaxConst()+1);
@@ -655,8 +614,6 @@ DecisionProcedure::Status SimpleCongruenceClosure::checkNegativeDistincts(bool r
  */
 DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultipleCores)
 {
-  CALL("SimpleCongruenceClosure::getStatus");
-
   // Propagate any pending equalities
   propagate();
 
@@ -713,8 +670,6 @@ DecisionProcedure::Status SimpleCongruenceClosure::getStatus(bool retrieveMultip
  */
 unsigned SimpleCongruenceClosure::getProofDepth(unsigned c)
 {
-  CALL("SimpleCongruenceClosure::getProofDepth");
-
   unsigned res = 0;
   while(_cInfos[c].proofPredecessor!=0) {
     c = _cInfos[c].proofPredecessor;
@@ -729,7 +684,6 @@ unsigned SimpleCongruenceClosure::getProofDepth(unsigned c)
  */
 void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stack<unsigned>& path)
 {
-  CALL("SimpleCongruenceClosure::collectUnifyingPath");
   ASS_EQ(deref(c1), deref(c2));
 
   //this function could be probably made more efficient if we use some time-stamping of the ConstInfo object
@@ -777,7 +731,6 @@ void SimpleCongruenceClosure::collectUnifyingPath(unsigned c1, unsigned c2, Stac
  */
 void SimpleCongruenceClosure::getUnsatCore(LiteralStack& res, unsigned coreIndex)
 {
-  CALL("SimpleCongruenceClosure::getUnsatCore");
   ASS(res.isEmpty());
   ASS_L(coreIndex,_unsatEqs.size());
 
@@ -890,8 +843,6 @@ struct SimpleCongruenceClosure::ConstOrderingComparator {
  */
 void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalForms) 
 {
-  CALL("SimpleCongruenceClosure::computeConstsNormalForm");
-      
   ConstInfo& cInfo = _cInfos[c];
   if (!cInfo.term.isEmpty() && cInfo.normalForm.isEmpty()) {
     Term* t = cInfo.term.term();
@@ -926,8 +877,6 @@ void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalF
  */
 void SimpleCongruenceClosure::getModel(LiteralStack& model)
 {
-  CALL("SimpleCongruenceClosure::getModel");
-  
   // a heap of candidate constants to process
   static DynamicHeap<unsigned, ConstOrderingComparator, ArrayMap<unsigned> >
     candidates(ConstOrderingComparator(_cInfos,*_ord));
@@ -1096,7 +1045,6 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
 #if VDEBUG
 void SimpleCongruenceClosure::assertModelInfoClean() const
 {
-  CALL("SimpleCongruenceClosure::assertModelInfoClean");
   unsigned maxConst = getMaxConst();
   for (unsigned c = 0; c <= maxConst; c++) {
     const ConstInfo& cInfo = _cInfos[c];

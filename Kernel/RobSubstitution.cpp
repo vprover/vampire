@@ -27,6 +27,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 
 const int RobSubstitution::SPECIAL_INDEX=-2;
@@ -37,8 +38,6 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
  */
 bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr)
 {
-  CALL("RobSubstitution::unify/4");
-
   return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr);
 }
 
@@ -49,7 +48,6 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, Mis
  */
 bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr)
 {
-  CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
 
   TermList t1TL(t1);
@@ -61,7 +59,6 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, Misma
 bool RobSubstitution::match(TermList base,int baseIndex,
 	TermList instance, int instanceIndex)
 {
-  CALL("RobSubstitution::match(TermList...)");
   return match(TermSpec(base,baseIndex), TermSpec(instance,instanceIndex));
 }
 /**
@@ -72,7 +69,6 @@ bool RobSubstitution::match(TermList base,int baseIndex,
 bool RobSubstitution::matchArgs(Term* base,int baseIndex,
 	Term* instance, int instanceIndex)
 {
-  CALL("RobSubstitution::match(Literal*...)");
   ASS_EQ(base->functor(),instance->functor());
 
   TermList baseTL(base);
@@ -91,8 +87,6 @@ bool RobSubstitution::matchArgs(Term* base,int baseIndex,
  */
 void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
 {
-  CALL("RobSubstitution::denormalize");
-
   VirtualIterator<Renaming::Item> nit=normalizer.items();
   while(nit.hasNext()) {
     Renaming::Item itm=nit.next();
@@ -105,7 +99,6 @@ void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, i
 
 bool RobSubstitution::isUnbound(VarSpec v) const
 {
-  CALL("RobSubstitution::isUnbound");
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
@@ -146,7 +139,6 @@ TermList RobSubstitution::getSpecialVarTop(unsigned specialVar) const
  */
 RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
 {
-  CALL("RobSubstitution::derefBound");
   if(t.term.isTerm() || t.term.isVSpecialVar()) {
     return t;
   }
@@ -171,7 +163,6 @@ RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
  */
 RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
 {
-  CALL("RobSubstitution::deref");
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
@@ -190,7 +181,6 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
 
 void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
 {
-  CALL("RobSubstitution::bind");
   ASSERT_VALID(b.term);
   //Aux terms don't contain special variables, ergo
   //should be shared.
@@ -205,8 +195,6 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b)
 
 void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, MismatchHandler* hndlr)
 {
-  CALL("RobSubstitution::addToConstraints");
-
   Term* t1 = _funcSubtermMap->get(v1.var);
   Term* t2 = _funcSubtermMap->get(v2.var);
 
@@ -228,7 +216,6 @@ void RobSubstitution::addToConstraints(const VarSpec& v1, const VarSpec& v2, Mis
 
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
-  CALL("RobSubstitution::bindVar");
   ASS_NEQ(var,to);
 
   bind(var,TermSpec(to));
@@ -236,7 +223,6 @@ void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 
 RobSubstitution::VarSpec RobSubstitution::root(VarSpec v) const
 {
-  CALL("RobSubstitution::root");
   for(;;) {
     TermSpec binding;
     bool found=_bank.find(v,binding);
@@ -304,8 +290,6 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts)
 
 bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
 {
-  CALL("RobSubstitution::unify/2");
-
   if(t1.sameTermContent(t2)) {
     return true;
   }
@@ -412,7 +396,7 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
               // mechanism used by higher-order logic to pruduce constraints.
               // until then the first condition ensures that the handler is never called
               // incorrectly. HOL also uses a handler, but it shouldn't be called here.
-              if(env.property->higherOrder() || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
+              if(env.getMainProblem()->isHigherOrder() || !hndlr || !hndlr->handle(this,tsss.term,tsss.index,tstt.term,tstt.index)){
                 mismatch=true;
                 break;
               }
@@ -469,8 +453,6 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
  */
 bool RobSubstitution::match(TermSpec base, TermSpec instance)
 {
-  CALL("RobSubstitution::match(TermSpec...)");
-
   if(base.sameTermContent(instance)) {
     return true;
   }
@@ -569,7 +551,6 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 
 Literal* RobSubstitution::apply(Literal* lit, int index) const
 {
-  CALL("RobSubstitution::apply(Literal*...)");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -586,13 +567,12 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
     TermList sort = apply(lit->twoVarEqSort(),index);
     return Literal::createEquality(lit->polarity(), ts[0], ts[1], sort);
   }
+
   return Literal::create(lit,ts.array());
 }
 
 TermList RobSubstitution::apply(TermList trm, int index) const
 {
-  CALL("RobSubstitution::apply(TermList...)");
-
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);
   static Stack<Term*> terms(8);
@@ -685,8 +665,6 @@ TermList RobSubstitution::apply(TermList trm, int index) const
 
 size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) const
 {
-  CALL("RobSubstitution::getApplicationResultWeight");
-
   static Stack<TermList*> toDo(8);
   static Stack<int> toDoIndex(8);
   static Stack<Term*> terms(8);
@@ -777,7 +755,6 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
 
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
 {
-  CALL("RobSubstitution::getApplicationResultWeight");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -823,8 +800,6 @@ template<class Fn>
 SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
 	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
 {
-  CALL("RobSubstitution::getAssocIterator");
-
   if( !Literal::headersMatch(l1,l2,complementary) ) {
     return SubstIterator::getEmpty();
   }
@@ -910,7 +885,6 @@ public:
     ASS_EQ(_l1->arity(), 2);
   }
   ~AssocIterator() {
-    CALL("RobSubstitution::AssocIterator::~AssocIterator");
     if (_state != FINISHED && _state != FIRST) {
       backtrack(_bdataMain);
       backtrack(_bdataEqAssoc);
@@ -919,8 +893,6 @@ public:
     ASS(_bdataEqAssoc.isEmpty());
   }
   bool hasNext() {
-    CALL("RobSubstitution::AssocIterator::hasNext");
-
     if (_state == FINISHED) {
       return false;
     }
@@ -984,8 +956,6 @@ public:
   }
 private:
   void backtrack(BacktrackData &_bdata) {
-    CALL("RobSubstitution::AssocIterator::backtrack");
-
     ASS_EQ(&_bdata, &_subst->bdGet());
     _subst->bdDone();
     _bdata.backtrack();
@@ -1060,59 +1030,4 @@ struct RobSubstitution::UnificationFn {
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 
-
-#if VDEBUG
-vstring RobSubstitution::toString(bool deref) const
-{
-  CALL("RobSubstitution::toString");
-  vstring res;
-  BankType::Iterator bit(_bank);
-  while(bit.hasNext()) {
-    VarSpec v;
-    TermSpec binding;
-    bit.next(v,binding);
-    TermList tl;
-    if(v.index==SPECIAL_INDEX) {
-      res+="S"+Int::toString(v.var)+" -> ";
-      tl.makeSpecialVar(v.var);
-    } else {
-      res+="X"+Int::toString(v.var)+"/"+Int::toString(v.index)+ " -> ";
-      tl.makeVar(v.var);
-    }
-    if(deref) {
-      tl=apply(tl, v.index);
-      res+=tl.toString()+"\n";
-    } else {
-      res+=binding.term.toString()+"/"+Int::toString(binding.index)+"\n";
-    }
-
-  }
-  return res;
-}
-
-vstring RobSubstitution::VarSpec::toString() const
-{
-  if(index==SPECIAL_INDEX) {
-    return "S"+Int::toString(var);
-  } else {
-    return "X"+Int::toString(var)+"/"+Int::toString(index);
-  }
-}
-
-vstring RobSubstitution::TermSpec::toString() const
-{
-  return term.toString()+"/"+Int::toString(index);
-}
-
-ostream& operator<< (ostream& out, RobSubstitution::VarSpec vs )
-{
-  return out<<vs.toString();
-}
-
-ostream& operator<< (ostream& out, RobSubstitution::TermSpec ts )
-{
-  return out<<ts.toString();
-}
-
-#endif
 }

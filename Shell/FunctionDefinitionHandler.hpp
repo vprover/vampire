@@ -33,7 +33,6 @@ using namespace Lib;
  * (i.e. the changing arguments) of the function.
  */
 struct InductionTemplate {
-  CLASS_NAME(InductionTemplate);
   USE_ALLOCATOR(InductionTemplate);
   InductionTemplate(const Term* t);
 
@@ -80,7 +79,6 @@ private:
 class FunctionDefinitionHandler
 {
 public:
-  CLASS_NAME(FunctionDefinitionHandler);
   USE_ALLOCATOR(FunctionDefinitionHandler);
 
   struct Branch {
@@ -93,12 +91,12 @@ public:
   bool preprocess(Formula* f, Stack<Branch>& branches);
   void addFunction(const Stack<Branch>& branches, Unit* unit);
 
-  TermQueryResultIterator getGeneralizations(TermList t) {
+  TermQueryResultIterator getGeneralizations(TypedTermList t) {
     return _is.getGeneralizations(t, true);
   }
 
   InductionTemplate* getInductionTemplate(unsigned fn, bool trueFun) {
-    auto it = _templates.find(make_pair(fn, trueFun));
+    auto it = _templates.find(std::make_pair(fn, trueFun));
     return it == _templates.end() ? nullptr : it->second;
   }
 
@@ -107,7 +105,7 @@ private:
   Branch addCondition(Literal* lit, const Branch& b, TermList body);
 
   TermSubstitutionTree _is;
-  vmap<pair<unsigned, bool>, InductionTemplate*> _templates;
+  vmap<std::pair<unsigned, bool>, InductionTemplate*> _templates;
 };
 
 /**
@@ -115,7 +113,7 @@ private:
  * the marked recursive function definitions from the parser.
  */
 struct InductionPreprocessor {
-  static bool checkWellFoundedness(const vvector<pair<Term*,Term*>>& relatedTerms);
+  static bool checkWellFoundedness(const vvector<std::pair<Term*,Term*>>& relatedTerms);
   static bool checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases);
 };
 

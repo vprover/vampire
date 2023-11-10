@@ -19,7 +19,6 @@
 #define MACRO_EXPANSION true
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/TypeList.hpp"
 #include "Lib/Option.hpp"
@@ -49,7 +48,6 @@ namespace CoproductImpl {
    * data VariadicUnion []      = bottom type
    */
   template<> union VariadicUnion<> {
-    CLASS_NAME(VariadicUnion)
 
     inline void unwrap(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
     ~VariadicUnion() {}
@@ -77,7 +75,6 @@ namespace CoproductImpl {
    * data VariadicUnion (a::as) = union {a, Coproduct as}
    */
   template <class A, class... As> union VariadicUnion<A, As...> {
-    CLASS_NAME(VariadicUnion)
     // USE_ALLOCATOR(VariadicUnion)
     using Ts = TL::List<A,As...>;
 
@@ -279,7 +276,6 @@ class Coproduct<A, As...>
   Coproduct() : _tag(std::numeric_limits<unsigned>::max()) {}
 
 public:
-  CLASS_NAME(Coproduct)
 
   /** a type-level list of all types of this Coproduct */
   using Ts = TL::List<A, As...>;
@@ -311,7 +307,6 @@ public:
 #define REF_POLYMORPIHIC(REF, MOVE)                                                                           \
                                                                                                               \
   Coproduct(Coproduct REF other) : _tag(other._tag) {                                                         \
-    CALL("Coproduct(Coproduct " #REF " other)")                                                               \
     ASS_REP(other._tag <= size, other._tag);                                                                  \
     CoproductImpl::InitDynamicTag<0, size, Ts>{}(_content, other._tag, MOVE(other._content));                 \
   }                                                                                                           \
@@ -364,7 +359,6 @@ public:
   }                                                                                                           \
                                                                                                               \
   Coproduct &operator=(Coproduct REF other) {                                                                 \
-    CALL("Coproduct& operator=(Coproduct " #REF "other)")                                                     \
     ASS_REP(other._tag <= size, other._tag);                                                                  \
     _content.destroy(_tag);                                                                                   \
     CoproductImpl::InitDynamicTag<0, size, Ts>{}(_content, other._tag, MOVE(other._content));                 \
@@ -388,7 +382,6 @@ public:
    */                                                                                                         \
   template <unsigned idx>                                                                                     \
   inline TL::Get<idx, Ts> REF unwrap() REF {                                                                  \
-    CALL("Coproduct::unwrap() " #REF );                                                                       \
     static_assert(idx < size, "out of bounds");                                                               \
     ASS_EQ(idx, _tag);                                                                                        \
     return CoproductImpl::Unwrap<idx, Ts>{}(MOVE(_content));                                                  \
@@ -401,7 +394,7 @@ public:
    * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
   template <class B> inline Option<B REF> as() REF                                                            \
-  { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
+  { return is<B>() ? Option<B REF>(unwrap<B>()) : Option<B REF>();  }                                         \
                                                                                                               \
   /**                                                                                                         \
    * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\
@@ -462,7 +455,6 @@ template<class... Ords> struct CoproductOrdering
   template<class... As>
   bool operator()(Coproduct<As...> const& lhs, Coproduct<As...> const& rhs) const
   { 
-    CALL("CoproductOrdering::operator()(Coproduct<As...> const&, Coproduct<As...> const&)")
     if (lhs._tag < rhs._tag) return true;
     if (lhs._tag > rhs._tag) return false;
 

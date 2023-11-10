@@ -21,10 +21,10 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
-#include "Recycler.hpp"
+#include "Recycled.hpp"
 #include "VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Option.hpp"
@@ -71,7 +71,6 @@ private:
 template<class El>
 InfiniteArrayIterator<El> getInfiniteArrayIterator(const El* ptr)
 {
-  CALL("getInfiniteArrayIterator");
   return InfiniteArrayIterator<El>(ptr);
 }
 
@@ -120,7 +119,6 @@ private:
 template<template<class> class ref_t = no_ref_t, class Arr>
 ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr const& arr, size_t size)
 {
-  CALL("getArrayishObjectIterator");
   return ArrayishObjectIterator<Arr, ref_t>(arr, size);
 }
 
@@ -175,11 +173,10 @@ class InputIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
-  InputIterator(istream& inp, size_t cnt) : _inp(inp), _remaining(cnt) {}
+  InputIterator(std::istream& inp, size_t cnt) : _inp(inp), _remaining(cnt) {}
 
   bool hasNext() const { return _remaining>0; }
   T next() {
-    CALL("InputIterator::next");
     ASS_G(_remaining,0);
     _remaining--;
     T res;
@@ -188,7 +185,7 @@ public:
   }
 
 private:
-  istream& _inp;
+  std::istream& _inp;
   size_t _remaining;
 };
 
@@ -405,11 +402,10 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
   FilteredIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _next() {}
+  : _func(std::move(func)), _inn(std::move(inn)), _next() {}
 
   bool hasNext()
   {
-    CALL("FilteredIterator::hasNext")
     if(_next.isSome()) {
       return true;
     }
@@ -424,7 +420,6 @@ public:
   };
   OWN_ELEMENT_TYPE next()
   {
-    CALL("FilteredIterator::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
     auto out = std::move(_next).unwrap();
@@ -450,11 +445,10 @@ public:
   DECL_ELEMENT_TYPE(typename std::result_of<Functor(ELEMENT_TYPE(Inner))>::type::Content);
 
   FilterMapIter(Inner inn, Functor func)
-  : _func(func), _inn(std::move(inn)), _next() {}
+  : _func(std::move(func)), _inn(std::move(inn)), _next() {}
 
   bool hasNext()
   {
-    CALL("FilterMapIter::hasNext")
     if(_next.isSome()) {
       return true;
     }
@@ -469,7 +463,6 @@ public:
 
   OWN_ELEMENT_TYPE next()
   {
-    CALL("FilterMapIter::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
     auto out = std::move(_next).unwrap();
@@ -490,7 +483,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
 
   FilteredDelIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _nextStored(false) {}
+  : _func(std::move(func)), _inn(std::move(inn)), _nextStored(false) {}
   bool hasNext()
   {
     if(_nextStored) {
@@ -532,16 +525,12 @@ private:
 template<class Inner, class Functor>
 inline
 FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
-{
-  return FilteredIterator<Inner,Functor>(inn, func);
-}
+{ return FilteredIterator<Inner,Functor>(std::move(inn), std::move(func)); }
 
 template<class Inner, class Functor>
 inline
 FilteredDelIterator<Inner,Functor> getFilteredDelIterator(Inner inn, Functor func)
-{
-  return FilteredDelIterator<Inner,Functor>(inn, func);
-}
+{ return FilteredDelIterator<Inner,Functor>(std::move(inn), std::move(func)); }
 
 
 /**
@@ -611,7 +600,7 @@ public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(It1));
 
   CatIterator(It1 it1, It2 it2)
-  	:_first(true), _it1(it1), _it2(it2) {}
+  	:_first(true), _it1(std::move(it1)), _it2(std::move(it2)) {}
   bool hasNext()
   {
     if(_first) {
@@ -668,7 +657,7 @@ template<class It1,class It2>
 inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
 {
-  return CatIterator<It1,It2>(it1, it2);
+  return CatIterator<It1,It2>(std::move(it1), std::move(it2));
 }
 
 
@@ -686,8 +675,8 @@ class MappingIterator
 public:
   DECL_ELEMENT_TYPE(ResultType);
   explicit MappingIterator(Inner inner, Functor func)
-  : _func(func), _inner(std::move(inner)) {}
-  inline bool hasNext() { CALL("MappingIterator::hasNext"); return _inner.hasNext(); };
+  : _func(std::move(func)), _inner(std::move(inner)) {}
+  inline bool hasNext() { return _inner.hasNext(); };
   inline ResultType next() { return _func(_inner.next()); };
 
   /**
@@ -755,9 +744,7 @@ private:
  */
 template<typename Inner, typename Functor>
 MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>> getMappingIterator(Inner it, Functor f)
-{
-  return MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>(std::move(it), f);
-}
+{ return MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>(std::move(it), std::move(f)); }
 
 // /**
 //  * Return iterator that returns elements of @b it transformed by
@@ -842,7 +829,6 @@ public:
 
   bool hasNext()
   {
-    CALL("FlatteningIterator::hasNext");
     while (_current.isSome()) {
       if (_current.unwrap().hasNext()) {
         return true;
@@ -858,7 +844,6 @@ public:
   inline
   ELEMENT_TYPE(FlatteningIterator) next()
   {
-    CALL("FlatteningIterator::next");
     ASS(_current.isSome());
     ASS(_current.unwrap().hasNext());
     return _current.unwrap().next();
@@ -1009,12 +994,8 @@ private:
 
   static ItemList* getUniqueItemList(Inner& inn, size_t& sizeRef)
   {
-    CALL("UniquePersistentIterator::getUniqueItemList");
-
     ItemList* res=0;
-    ItemSet* iset;
-    Recycler::get(iset);
-    iset->reset();
+    Recycled<ItemSet> iset;
 
     sizeRef=0;
     while(inn.hasNext()) {
@@ -1024,8 +1005,6 @@ private:
 	sizeRef++;
       }
     }
-
-    Recycler::release(iset);
     return res;
   }
 
@@ -1080,8 +1059,6 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* i
 template<class Container>
 void makeUnique(Container& cont)
 {
-  CALL("makeUnique");
-
   VirtualIterator<ELEMENT_TYPE(Container)> uniqueIt = pvi(
       getUniquePersistentIterator(ITERATOR_TYPE(Container)(cont)) );
   cont.reset();
@@ -1094,8 +1071,6 @@ void makeUnique(Container& cont)
 template<class It>
 size_t countIteratorElements(It it)
 {
-  CALL("countIteratorElements");
-
   size_t res = 0;
   while(it.hasNext()) {
     it.next();
@@ -1144,7 +1119,7 @@ template<typename T>
 class CombinationIterator
 {
 public:
-  DECL_ELEMENT_TYPE(pair<T,T>);
+  DECL_ELEMENT_TYPE(std::pair<T,T>);
   CombinationIterator(T from, T to)
   : _first(from), _second(from), _afterLast(to)
   {
@@ -1159,10 +1134,10 @@ public:
   }
   inline bool hasNext()
   { ASS_LE(_first,_afterLast); return _second!=_afterLast; }
-  pair<T,T> next()
+  std::pair<T,T> next()
   {
     ASS(hasNext());
-    pair<T,T> res=pair<T,T>(_first,_second);
+    std::pair<T,T> res=std::pair<T,T>(_first,_second);
     moveToNext();
     return res;
   }
@@ -1199,7 +1174,7 @@ template<typename T>
 class Combination2Iterator
 {
 public:
-  DECL_ELEMENT_TYPE(pair<T,T>);
+  DECL_ELEMENT_TYPE(std::pair<T,T>);
   Combination2Iterator(T from, T to1, T to2)
   : _first(from), _second(from), _afterLast1(to1), _afterLast2(to2)
   {
@@ -1211,10 +1186,10 @@ public:
   }
   inline bool hasNext()
   { return _first!=_afterLast1 && _second!=_afterLast2; }
-  pair<T,T> next()
+  std::pair<T,T> next()
   {
     ASS(hasNext());
-    pair<T,T> res=pair<T,T>(_first,_second);
+    std::pair<T,T> res=std::pair<T,T>(_first,_second);
     ASS_LE(_first,_afterLast1);
     ASS_LE(_second,_afterLast2);
     moveToNext();
@@ -1375,8 +1350,6 @@ auto timeTraceIter(const char* name, Iter iter)
 template<class It1, class It2>
 bool iteratorsEqual(It1 it1, It2 it2)
 {
-  CALL("iteratorsEqual");
-
   while(it1.hasNext()) {
     if(!it2.hasNext()) {
       return false;
@@ -1398,8 +1371,6 @@ static bool lessThan(T a, T b) { return a<b; }
 template<class It>
 bool isSorted(It it)
 {
-  CALL("isSorted/1");
-
   if(!it.hasNext()) { return true; }
 
   ELEMENT_TYPE(It) prev = it.next();
@@ -1423,8 +1394,6 @@ bool isSorted(It it)
 template<class It, typename Pred>
 bool isSorted(It it, Pred lessThan)
 {
-  CALL("isSorted/2");
-
   if(!it.hasNext()) { return true; }
 
   ELEMENT_TYPE(It) prev = it.next();
@@ -1445,8 +1414,6 @@ bool isSorted(It it, Pred lessThan)
 template<class It, typename Pred>
 bool forAll(It it, Pred pred)
 {
-  CALL("forAll");
-
   while(it.hasNext()) {
     if(!pred(it.next())) {
       return false;
@@ -1462,8 +1429,6 @@ bool forAll(It it, Pred pred)
 template<class It, typename Pred>
 ELEMENT_TYPE(It) getFirstTrue(It it, Pred pred)
 {
-  CALL("getFirstTrue");
-
   while(it.hasNext()) {
     ELEMENT_TYPE(It) el = it.next();
     if(pred(el)) {
@@ -1481,7 +1446,6 @@ ELEMENT_TYPE(It) getFirstTrue(It it, Pred pred)
 template<class It, typename Fun, typename Res>
 Res fold(It it, Fun fn, Res init)
 {
-  CALL("fold/3");
   Res res = init;
   while(it.hasNext()) {
     res = fn(it.next(), res);
@@ -1498,8 +1462,6 @@ Res fold(It it, Fun fn, Res init)
 template<class It, typename Fun>
 ELEMENT_TYPE(It) fold(It it, Fun fn)
 {
-  CALL("fold/2");
-
   ALWAYS(it.hasNext());
   ELEMENT_TYPE(It) init = it.next();
   return fold(it,fn,init);
@@ -1511,11 +1473,11 @@ T sumFn(T a1, T a2) { return a1+a2; }
 
 /** max function, useful for fold */
 template<typename T>
-T maxFn(T a1, T a2) { return max(a1,a2); }
+T maxFn(T a1, T a2) { return std::max(a1,a2); }
 
 /** min function, useful for fold */
 template<typename T>
-T minFn(T a1, T a2) { return min(a1,a2); }
+T minFn(T a1, T a2) { return std::min(a1,a2); }
 
 
 template<class It>
@@ -1532,7 +1494,7 @@ StmJoinAuxStruct<It> join(vstring glue, It it)
   return StmJoinAuxStruct<It>(glue, it);
 }
 template<typename It>
-std::ostream& operator<< (ostream& out, const StmJoinAuxStruct<It>& info )
+std::ostream& operator<< (std::ostream& out, const StmJoinAuxStruct<It>& info )
 {
   It it = info._it;
   while(it.hasNext()) {
@@ -1555,8 +1517,6 @@ std::ostream& operator<< (ostream& out, const StmJoinAuxStruct<It>& info )
 template<class It, class Pred>
 bool splitIterator(It it, Pred edge, VirtualIterator<ELEMENT_TYPE(It)>& res1, VirtualIterator<ELEMENT_TYPE(It)>& res2)
 {
-  CALL("splitIterator");
-
   typedef ELEMENT_TYPE(It) T;
 
   bool success = false;
@@ -1622,7 +1582,6 @@ private:
 template<typename OuterFn, typename InnerFn>
 CompositionFn<OuterFn,InnerFn> getCompositionFn(OuterFn outer, InnerFn inner)
 {
-  CALL("getCompositionFn");
   return CompositionFn<OuterFn,InnerFn>(outer,inner);
 }
 
@@ -1640,14 +1599,6 @@ struct GetSecondOfPair {
   }
 };
 
-template<class I1>
-static auto concatIters(I1 i1) 
-{ return iterTraits(std::move(i1)); }
-
-template<class I1, class I2, class... Is>
-static auto concatIters(I1 i1, I2 i2, Is... is) 
-{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
-
 template<class Iter>
 class IterTraits
 {
@@ -1660,13 +1611,11 @@ public:
 
   Elem next() 
   { 
-    CALL("IterTraits::next")
     return _iter.next(); 
   }
 
   bool hasNext() 
   { 
-    CALL("IterTraits::hasNext")
     return _iter.hasNext(); 
   }
 
@@ -1681,7 +1630,6 @@ public:
   template<class P>
   bool any(P f) 
   {
-    CALL("IterTraits::any")
     while (hasNext()) {
       if (f(next())) return true;
     }
@@ -1691,7 +1639,6 @@ public:
   template<class P>
   bool all(P f) 
   {
-    CALL("IterTraits::all")
     while (hasNext()) {
       if (!f(next())) return false;
     }
@@ -1701,7 +1648,6 @@ public:
   template<class F>
   void forEach(F f) 
   {
-    CALL("IterTraits::forEach")
     while (hasNext()) {
       f(next());
     }
@@ -1710,7 +1656,6 @@ public:
   template<class P>
   Option<Elem> find(P p) 
   {
-    CALL("IterTraits::find")
     while (hasNext()) {
       Elem x = next();
       if (p(x)) {
@@ -1723,7 +1668,6 @@ public:
   template<class P>
   Option<unsigned> findPosition(P p) 
   {
-    CALL("IterTraits::findPosition")
     unsigned i = 0;
     while (hasNext()) {
       Elem x = next();
@@ -1741,19 +1685,41 @@ public:
 
   template<class F>
   IterTraits<MappingIterator<Iter, F>> map(F f)
-  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FilteredIterator<Iter, F>> filter(F f)
-  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FilterMapIter<Iter, F>> filterMap(F f)
-  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
-  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), f))); }
+  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), std::move(f)))); }
+
+  auto unique()
+  { 
+    Map<OWN_ELEMENT_TYPE, std::tuple<>> found;
+    return iterTraits(std::move(*this)
+        .filterMap([found = std::move(found)](OWN_ELEMENT_TYPE next) mutable {
+          if (found.tryGet(next).isSome()) {
+            return Option<OWN_ELEMENT_TYPE>();
+          } else {
+            found.insert(next, std::make_tuple());
+            return Option<OWN_ELEMENT_TYPE>(std::move(next));
+          }
+        })); 
+  }
+
+  auto persistent()
+  { 
+    auto stack = collect<Stack>();
+    return iterTraits(ownedArrayishIterator(std::move(stack)));
+  }
+
+
 
 
   /** 
@@ -1764,7 +1730,6 @@ public:
   template<class IsLess>
   Option<Elem> minBy(IsLess isLess)
   { 
-    CALL("IterTraits::min")
     if (hasNext()) {
       Elem min = next();
       while (hasNext()) {
@@ -1813,7 +1778,6 @@ public:
   template<class Container>
   Container collect()
   { 
-    CALL("IterTraits::collect/1")
     return Container::fromIterator(*this); 
   }
   
@@ -1821,7 +1785,6 @@ public:
   template<template<class> class Container>
   Container<Elem> collect()
   { 
-    CALL("IterTraits::collect/2")
     return Container<Elem>::fromIterator(*this); 
   }
   
@@ -1862,6 +1825,16 @@ public:
 template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) 
 { return IterTraits<Iter>(std::move(i)); }
+
+template<class I1>
+static auto concatIters(I1 i1) 
+{ return iterTraits(std::move(i1)); }
+
+template<class I1, class I2, class... Is>
+static auto concatIters(I1 i1, I2 i2, Is... is) 
+{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+
+
 
 ///@}
 

@@ -35,7 +35,6 @@ class IFFXORRewriterISE
 {
 public:
 
-  CLASS_NAME(IFFXORRewriterISE);
   USE_ALLOCATOR(IFFXORRewriterISE);
 
   Clause* simplify(Clause* c);
@@ -46,7 +45,6 @@ class EagerClausificationISE
 {
 public:
 
-  CLASS_NAME(EagerClausificationISE);
   USE_ALLOCATOR(EagerClausificationISE);
 
   ClauseIterator simplifyMany(Clause* c);
@@ -58,7 +56,6 @@ class LazyClausification
   : public SimplificationEngine
 {
 public:
-  CLASS_NAME(LazyClausification);
   USE_ALLOCATOR(LazyClausification);
 
   LazyClausification(){
@@ -79,7 +76,6 @@ class LazyClausificationGIE
 {
 public:
 
-  CLASS_NAME(LazyClausificationGIE);
   USE_ALLOCATOR(LazyClausificationGIE);
 
   LazyClausificationGIE(){
@@ -99,7 +95,6 @@ private:
   : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(NotProxyISE);
   USE_ALLOCATOR(NotProxyISE);
   
   Kernel::Clause* simplify(Kernel::Clause* c);
@@ -111,7 +106,6 @@ class EqualsProxyISE
 {
 
 public:
-  CLASS_NAME(EqualsProxyISE);
   USE_ALLOCATOR(EqualsProxyISE);
   
   Kernel::Clause* simplify(Kernel::Clause* c);        
@@ -123,7 +117,6 @@ class OrImpAndProxyISE
 {
 
 public:
-  CLASS_NAME(OrImpAndProxyISE);
   USE_ALLOCATOR(OrImpAndProxyISE);
   
   Kernel::Clause* simplify(Kernel::Clause* c);
@@ -135,7 +128,6 @@ class PiSigmaProxyISE
 {
   
 public:
-  CLASS_NAME(PiSigmaProxyISE);
   USE_ALLOCATOR(PiSigmaProxyISE);
   
   Kernel::Clause* simplify(Kernel::Clause* c);     
@@ -145,7 +137,6 @@ public:
 class ProxyISE 
   : public ImmediateSimplificationEngine {
   public:
-    CLASS_NAME(ProxyISE);
     USE_ALLOCATOR(ProxyISE);
     ClauseIterator simplifyMany(Clause* c);
     Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }

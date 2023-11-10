@@ -61,7 +61,6 @@ unsigned TermAlgebraConstructor::numTypeArguments() const { return _type->numTyp
 
 unsigned TermAlgebraConstructor::discriminator()
 {
-  CALL("TermAlgebraConstructor::discriminator");
   if (hasDiscriminator()) {
     return _discriminator;
   } else {
@@ -75,7 +74,6 @@ unsigned TermAlgebraConstructor::discriminator()
 
 Lib::Set<TermList> TermAlgebra::subSorts(TermList sort)
 {
-  CALL("TermAlgebra::subSorts");
   ASS(sort.isTerm() && sort.term()->isSort());
 
   Set<TermList> out; 
@@ -108,8 +106,6 @@ TermList TermAlgebraConstructor::rangeSort()           const { return _type->res
 
 bool TermAlgebraConstructor::recursive()
 {
-  CALL("TermAlgebraConstructor::recursive");
-
   for (unsigned i=0; i < _type->arity(); i++) {
     if (_type->arg(i) == _type->result()) {
       // this constructor has a recursive argument
@@ -121,8 +117,6 @@ bool TermAlgebraConstructor::recursive()
 
 Lib::vstring TermAlgebraConstructor::discriminatorName()
 {
-  CALL("TermAlgebraConstructor::discriminatorName");
-
   //Giles: the function name may contain quotes so we should remove them
   //       before appending $is.
   vstring name = env.signature->functionName(_functor);
@@ -172,8 +166,6 @@ TermAlgebra::TermAlgebra(TermList sort,
 
 bool TermAlgebra::emptyDomain()
 {
-  CALL("TermAlgebra::emptyDomain");
-
   if (_n == 0) {
     return true;
   }
@@ -192,8 +184,6 @@ bool TermAlgebra::emptyDomain()
 
 bool TermAlgebra::finiteDomain()
 {
-  CALL("TermAlgebra::finiteDomain");
-
   for (unsigned i = 0; i < _n; i++) {
     if (_constrs[i]->arity() > 0) {
       return false;
@@ -205,8 +195,6 @@ bool TermAlgebra::finiteDomain()
 
 bool TermAlgebra::infiniteDomain()
 {
-  CALL("TermAlgebra::infiniteDomain");
-
   for (unsigned i = 0; i < _n; i++) {
     if (_constrs[i]->recursive()) {
       return true;
@@ -221,8 +209,6 @@ Lib::vstring TermAlgebra::getSubtermPredicateName() {
 }
 
 unsigned TermAlgebra::getSubtermPredicate() {
-  CALL("TermAlgebra::getSubtermPredicate");
-
   bool added;
   unsigned s = env.signature->addPredicate(getSubtermPredicateName(), nTypeArgs()+2, added);
 
@@ -239,7 +225,6 @@ unsigned TermAlgebra::getSubtermPredicate() {
 
 void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
 {
-  CALL("TermAlgebra::getTypeSub");
   auto t = _sort.term();
   ASS_EQ(sort->functor(), t->functor());
   for (unsigned i = 0; i < sort->arity(); i++) {
