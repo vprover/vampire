@@ -146,26 +146,31 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("induction term index maintenance");
 
-  if (InductionHelper::isInductionClause(c)) {
+  if (!InductionHelper::isInductionClause(c)) {
+    return;
+  }
+
   // Iterate through literals & check if the literal is suitable for induction
-    for (unsigned i=0;i<c->length();i++) {
-      Literal* lit = (*c)[i];
-      if (InductionHelper::isInductionLiteral(lit)) {
-        SubtermIterator it(lit);
-        while (it.hasNext()) {
-          TermList tl = it.next();
-          if (!tl.term()) continue;
-          // TODO: each term (and its subterms) should be processed
-          // only once per literal, see DemodulationSubtermIndex
-          Term* t = tl.term();
-          if (InductionHelper::isInductionTermFunctor(t->functor()) &&
-              InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
-            if (adding) {
-              _is->insert(TypedTermList(t), lit, c);
-            } else {
-              _is->remove(TypedTermList(t), lit, c);
-            }
-          }
+  for (unsigned i=0;i<c->length();i++) {
+    Literal* lit = (*c)[i];
+    if (!InductionHelper::isInductionLiteral(lit)) {
+      continue;
+    }
+
+    DHSet<Term*> done;
+    NonVariableNonTypeIterator it(lit);
+    while (it.hasNext()) {
+      Term* t = it.next();
+      if (!done.insert(t)) {
+        it.right();
+        continue;
+      }
+      if (InductionHelper::isInductionTermFunctor(t->functor()) &&
+          InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
+        if (adding) {
+          _is->insert(TypedTermList(t), lit, c);
+        } else {
+          _is->remove(TypedTermList(t), lit, c);
         }
       }
     }
