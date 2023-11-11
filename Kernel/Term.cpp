@@ -1689,7 +1689,7 @@ bool Literal::computableOrVar() const {
   if (!env.signature->getPredicate(this->functor())->computable()) {
     return false;
   }
-  for (unsigned i = 0; i < arity(); ++i) {
+  for (unsigned i = 0; i < arity(); ++i) { // Looping on args of AnsLit
     const TermList* t = nthArgument(i);
     if (t->isTerm() && !t->term()->computableOrVar()) {
       return false;
@@ -1841,17 +1841,42 @@ bool Term::computable() const {
 }
 
 bool Term::computableOrVar() const {
+  std::cout << "Term::computableOrVar called on " << this->toString() << "\n";
   if (!env.signature->getFunction(this->functor())->computable()) {
     return false;
   }
+  vstring termName = env.signature->getFunction(this->functor())->name();
+  if (termName[0] == 'r' && termName[1] == 'e' && termName[2] == 'c'){
+    //ToDo
+  }
+  // else this can be an ITE and rec might appear as a subterm
   SubtermIterator sit(this);
+  bool result = true;
+  std::cout << "Subterms are :\n\n";
   while (sit.hasNext()) {
     TermList t = sit.next();
-    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) {
-      return false;
+    cout << "subterm t is " << t.toString() << "\n";
+    vstring subterm_name = t.toString();
+    if (subterm_name[0] == 'r' && subterm_name[1] == 'e' && subterm_name[2] == 'c')
+    {
+      //ToDo
+      std::cout << "We have rec subterm\n";
     }
+    if (t.isTerm()) {
+      std::cout << "Calling .computable() on " << env.signature->getFunction(t.term()->functor())->name() << "\n";
+      std::cout << "arity is " << t.term()->numTermArguments() << "\n";
+    }
+    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) {
+      result = false;
+      std::cout << "uncomputable term: " << t.toString() << "\n";
+    }
+    else
+      std::cout << "computable term: " << t.toString() << "\n";
+    cout << "----\n";
+    // t is not term => t is var
   }
-  return true;
+  cout << "--------\n";
+  return result;
 }
 
 std::ostream& Kernel::operator<<(std::ostream& out, Term::SpecialFunctor const& self)
