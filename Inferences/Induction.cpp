@@ -26,6 +26,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -1488,16 +1489,20 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       Binding b = bIt.next();
       if (st.binding.first == b.first) { 
         mappings->push(SkolemTracker(Binding(b.first, b.second), st.constructorIndex, st.recursiveArg, st.recursivePos), mappings);
+        Signature::Symbol* s = env.signature->getFunction(b.second->functor());
+        s->setConstructorId(st.constructorIndex);
+        std::cout << "Constructor id for " << s->name() << " is " << s->constructorId() << std::endl;
         break;
       }
     }
   }
   
-  // stIt.reset(mappings);
-  // while (stIt.hasNext()) {
-  //   SkolemTracker st = stIt.next();
-  //   std::cout << st.toString() << "\n";
-  // }  
+  std::cout << "Skolem mappings:\n";
+  stIt.reset(mappings);
+  while (stIt.hasNext()) {
+    SkolemTracker st = stIt.next();
+    std::cout << st.toString() << "\n";
+  }  
 
 
   std::cout << "Clausified and resolved induction formula:\n";
