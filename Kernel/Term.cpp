@@ -1867,16 +1867,17 @@ bool Term::computableOrVar() const {
           vstring symbolName = s->name();
           unsigned snLen = symbolName.length();
 
-          // skolem corresponding to input variable in spec. 
-          if (snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n') {
-            continue; // always computable
-          } else { // skolem corresponding to non-input variable
-            unsigned symbolConstructorId = s->constructorId();
-            if (symbolConstructorId != recArgIdx) {
-              result = false;
+          if (!(snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n')) { 
+            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'k') {
+              // skolem constant corresponding to non-input variable
+              unsigned symbolConstructorId = s->constructorId();
+              if (symbolConstructorId != recArgIdx) {
+                std::cout << t.toString() << " is only allowed in arg=" << symbolConstructorId << " of rec\n";
+                result = false;
+              }
             }
-            recArgIdx++;
           }
+          recArgIdx++;
         }
       } else { // t is a variable
         recArgIdx++;
@@ -1916,13 +1917,14 @@ bool Term::computableOrVar() const {
           vstring symbolName = s->name();
           unsigned snLen = symbolName.length();
 
-          // skolem corresponding to input variable in spec. 
-          if (snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n') {
-            continue; // always computable
-          } else { // skolem corresponding to non-input variable
-            unsigned symbolConstructorId = s->constructorId();
-            if (symbolConstructorId != recArgIdx) {
-              result = false;
+          if (!(snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n')) {
+            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'k') {
+              // skolem corresponding to non-input variable
+              unsigned symbolConstructorId = s->constructorId();
+              if (symbolConstructorId != recArgIdx) {
+                std::cout << t.toString() << " is only allowed in arg=" << symbolConstructorId << " of rec\n";
+                result = false;
+              }
             }
           }
           
@@ -1933,9 +1935,11 @@ bool Term::computableOrVar() const {
           }
         }
       }
-      else {
+      else { // a term not in rec. 
+        //ToDo: What happens here? This case happens in an ITE.
         if (!env.signature->getFunction(t.term()->functor())->computable()) {
-          result = false;
+          std::cout << "computable() on " << t.toString() << " is false\n";
+          result = false; 
         }
       }
     }
