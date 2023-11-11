@@ -1491,7 +1491,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
         mappings->push(SkolemTracker(Binding(b.first, b.second), st.constructorIndex, st.recursiveArg, st.recursivePos), mappings);
         Signature::Symbol* s = env.signature->getFunction(b.second->functor());
         s->setConstructorId(st.constructorIndex);
-        std::cout << "Constructor id for " << s->name() << " is " << s->constructorId() << std::endl;
+        std::cout << s->name() << " may ONLY appear in arg=" << s->constructorId() << " of a rec term\n";
         break;
       }
     }
