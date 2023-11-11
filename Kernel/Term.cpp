@@ -1847,35 +1847,93 @@ bool Term::computableOrVar() const {
   }
   vstring termName = env.signature->getFunction(this->functor())->name();
   if (termName[0] == 'r' && termName[1] == 'e' && termName[2] == 'c'){
-    //ToDo
+    bool result = true;
+    // assumes there are no nested recs. I.e. rec(...,rec(...),...) is not possible
+    unsigned recArgIdx = 0;
+    SubtermIterator sit(this);
+    while (sit.hasNext()) { 
+      TermList t = sit.next();
+      std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
+
+      if (t.isTerm()) {
+        unsigned arity = t.term()->numTermArguments();
+        if (arity > 0) {
+          if (!env.signature->getFunction(t.term()->functor())->computable()) { 
+            result = false;
+          }
+        }
+        else { // arity = 0, which means we have a skolem constant or a constructor with 0 args
+          Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
+          unsigned symbolConstructorId = s->constructorId();
+          if (symbolConstructorId != recArgIdx) {
+            result = false;
+          }
+          recArgIdx++;
+        }
+      } else { // t is a variable
+        recArgIdx++;
+      }
+    }
+    return result;
   }
-  // else this can be an ITE and rec might appear as a subterm
+  // else this can be an ITE and rec might appear as a subterm of it
   SubtermIterator sit(this);
   bool result = true;
-  std::cout << "Subterms are :\n\n";
+  unsigned recArgIdx = 0;
+  bool inRecTerm = false;
   while (sit.hasNext()) {
     TermList t = sit.next();
-    cout << "subterm t is " << t.toString() << "\n";
-    vstring subterm_name = t.toString();
-    if (subterm_name[0] == 'r' && subterm_name[1] == 'e' && subterm_name[2] == 'c')
+    vstring subtermName = t.toString();
+    if (subtermName[0] == 'r' && subtermName[1] == 'e' && subtermName[2] == 'c')
     {
-      //ToDo
-      std::cout << "We have rec subterm\n";
+      std::cout << "Entered rec term\n";
+      recArgIdx = 0;
+      inRecTerm = true;
+      continue;
     }
+    
     if (t.isTerm()) {
-      std::cout << "Calling .computable() on " << env.signature->getFunction(t.term()->functor())->name() << "\n";
-      std::cout << "arity is " << t.term()->numTermArguments() << "\n";
+
+      if (inRecTerm) {
+        std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
+        unsigned arity = t.term()->numTermArguments();
+        if (arity > 0) {
+          if (!env.signature->getFunction(t.term()->functor())->computable()) { 
+            result = false;
+          }
+        } else { // arity = 0, which means we have a skolem constant or a constructor with 0 args
+          Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
+          unsigned symbolConstructorId = s->constructorId();
+          if (symbolConstructorId != recArgIdx) {
+            result = false;
+          }
+          
+          recArgIdx++;
+          if (recArgIdx == 3) {
+            inRecTerm = false;
+            std::cout << "Exiting rec term\n";
+          }
+        }
+      }
+      else {
+        if (!env.signature->getFunction(t.term()->functor())->computable()) {
+          result = false;
+        }
+      }
     }
-    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) {
-      result = false;
-      std::cout << "uncomputable term: " << t.toString() << "\n";
+    else { // t is var
+      if (inRecTerm) {
+        std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
+        recArgIdx++;
+        if (recArgIdx == 3) {
+          inRecTerm = false;
+          std::cout << "Finishing rec term\n";
+        }
+      }
     }
-    else
-      std::cout << "computable term: " << t.toString() << "\n";
-    cout << "----\n";
-    // t is not term => t is var
   }
-  cout << "--------\n";
+  std::cout << "computableOrVar result: " << result << "\n";
+  cout << "------------------\n";
   return result;
 }
 
