@@ -1846,7 +1846,7 @@ bool Term::computableOrVar() const {
     return false;
   }
   vstring termName = env.signature->getFunction(this->functor())->name();
-  if (termName[0] == 'r' && termName[1] == 'e' && termName[2] == 'c'){
+  if (termName.length() >= 3 && termName[0] == 'r' && termName[1] == 'e' && termName[2] == 'c'){
     bool result = true;
     // assumes there are no nested recs. I.e. rec(...,rec(...),...) is not possible
     unsigned recArgIdx = 0;
@@ -1864,16 +1864,26 @@ bool Term::computableOrVar() const {
         }
         else { // arity = 0, which means we have a skolem constant or a constructor with 0 args
           Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
-          unsigned symbolConstructorId = s->constructorId();
-          if (symbolConstructorId != recArgIdx) {
-            result = false;
+          vstring symbolName = s->name();
+          unsigned snLen = symbolName.length();
+
+          // skolem corresponding to input variable in spec. 
+          if (snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n') {
+            continue; // always computable
+          } else { // skolem corresponding to non-input variable
+            unsigned symbolConstructorId = s->constructorId();
+            if (symbolConstructorId != recArgIdx) {
+              result = false;
+            }
+            recArgIdx++;
           }
-          recArgIdx++;
         }
       } else { // t is a variable
         recArgIdx++;
       }
     }
+    std::cout << "computableOrVar result: " << result << "\n";
+    cout << "------------------\n";
     return result;
   }
   // else this can be an ITE and rec might appear as a subterm of it
@@ -1884,7 +1894,7 @@ bool Term::computableOrVar() const {
   while (sit.hasNext()) {
     TermList t = sit.next();
     vstring subtermName = t.toString();
-    if (subtermName[0] == 'r' && subtermName[1] == 'e' && subtermName[2] == 'c')
+    if (subtermName.length() >= 3 && subtermName[0] == 'r' && subtermName[1] == 'e' && subtermName[2] == 'c')
     {
       std::cout << "Entered rec term\n";
       recArgIdx = 0;
@@ -1903,9 +1913,17 @@ bool Term::computableOrVar() const {
           }
         } else { // arity = 0, which means we have a skolem constant or a constructor with 0 args
           Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
-          unsigned symbolConstructorId = s->constructorId();
-          if (symbolConstructorId != recArgIdx) {
-            result = false;
+          vstring symbolName = s->name();
+          unsigned snLen = symbolName.length();
+
+          // skolem corresponding to input variable in spec. 
+          if (snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n') {
+            continue; // always computable
+          } else { // skolem corresponding to non-input variable
+            unsigned symbolConstructorId = s->constructorId();
+            if (symbolConstructorId != recArgIdx) {
+              result = false;
+            }
           }
           
           recArgIdx++;
