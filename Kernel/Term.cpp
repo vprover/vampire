@@ -1884,7 +1884,6 @@ bool Term::computableOrVar() const {
       }
     }
     std::cout << "computableOrVar result: " << result << "\n";
-    cout << "------------------\n";
     return result;
   }
   // else this can be an ITE and rec might appear as a subterm of it
@@ -1897,7 +1896,6 @@ bool Term::computableOrVar() const {
     vstring subtermName = t.toString();
     if (subtermName.length() >= 3 && subtermName[0] == 'r' && subtermName[1] == 'e' && subtermName[2] == 'c')
     {
-      std::cout << "Entered rec term\n";
       recArgIdx = 0;
       inRecTerm = true;
       continue;
@@ -1935,12 +1933,8 @@ bool Term::computableOrVar() const {
           }
         }
       }
-      else { // a term not in rec. 
-        //ToDo: What happens here? This case happens in an ITE.
-        if (!env.signature->getFunction(t.term()->functor())->computable()) {
-          std::cout << "computable() on " << t.toString() << " is false\n";
-          result = false; 
-        }
+      else { // a term that is not in an argument of rec(...)
+        //ToDo: Anything else to check here?
       }
     }
     else { // t is var
@@ -1949,13 +1943,11 @@ bool Term::computableOrVar() const {
         recArgIdx++;
         if (recArgIdx == 3) {
           inRecTerm = false;
-          std::cout << "Finishing rec term\n";
         }
       }
     }
   }
   std::cout << "computableOrVar result: " << result << "\n";
-  cout << "------------------\n";
   return result;
 }
 
