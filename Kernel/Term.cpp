@@ -1841,7 +1841,7 @@ bool Term::computable() const {
 }
 
 bool Term::computableOrVar() const {
-  std::cout << "Term::computableOrVar called on " << this->toString() << "\n";
+  // std::cout << "Term::computableOrVar called on " << this->toString() << "\n";
   if (!env.signature->getFunction(this->functor())->computable()) {
     return false;
   }
@@ -1853,7 +1853,7 @@ bool Term::computableOrVar() const {
     SubtermIterator sit(this);
     while (sit.hasNext()) { 
       TermList t = sit.next();
-      std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
+      // std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
 
       if (t.isTerm()) {
         unsigned arity = t.term()->numTermArguments();
@@ -1868,11 +1868,11 @@ bool Term::computableOrVar() const {
           unsigned snLen = symbolName.length();
 
           if (!(snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n')) { 
-            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'k') {
+            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'K') {
               // skolem constant corresponding to non-input variable
               unsigned symbolConstructorId = s->constructorId();
               if (symbolConstructorId != recArgIdx) {
-                std::cout << t.toString() << " is only allowed in arg=" << symbolConstructorId << " of rec\n";
+                // std::cout << t.toString() << " is only allowed in arg=" << symbolConstructorId << " of rec\n";
                 result = false;
               }
             }
@@ -1883,7 +1883,7 @@ bool Term::computableOrVar() const {
         recArgIdx++;
       }
     }
-    std::cout << "computableOrVar result: " << result << "\n";
+    // std::cout << "computableOrVar result: " << result << "\n";
     return result;
   }
   // else this can be an ITE and rec might appear as a subterm of it
@@ -1904,7 +1904,7 @@ bool Term::computableOrVar() const {
     if (t.isTerm()) {
 
       if (inRecTerm) {
-        std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
+        // std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
         unsigned arity = t.term()->numTermArguments();
         if (arity > 0) {
           if (!env.signature->getFunction(t.term()->functor())->computable()) { 
@@ -1916,11 +1916,11 @@ bool Term::computableOrVar() const {
           unsigned snLen = symbolName.length();
 
           if (!(snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n')) {
-            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'k') {
+            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'K') {
               // skolem corresponding to non-input variable
               unsigned symbolConstructorId = s->constructorId();
               if (symbolConstructorId != recArgIdx) {
-                std::cout << t.toString() << " is only allowed in arg=" << symbolConstructorId << " of rec\n";
+                // std::cout << t.toString() << " is only allowed in arg=" << symbolConstructorId << " of rec\n";
                 result = false;
               }
             }
@@ -1929,17 +1929,31 @@ bool Term::computableOrVar() const {
           recArgIdx++;
           if (recArgIdx == 3) {
             inRecTerm = false;
-            std::cout << "Exiting rec term\n";
+            // std::cout << "Exiting rec term\n";
+          }
+        }
+      } else { // a term that is not in an argument of rec(...)
+
+          // std::cout << t.toString() << " in corner case\n";
+
+          Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
+          vstring symbolName = s->name();
+          unsigned snLen = symbolName.length();
+
+          // std::cout << "symbol name is " << symbolName << "\n";
+
+          if (!(snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n')) {
+            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'K') {
+              // skolem corresponding to non-input variable
+              // std::cout << "uncomputable!\n";
+              result = false;
+            }
           }
         }
       }
-      else { // a term that is not in an argument of rec(...)
-        //ToDo: Anything else to check here?
-      }
-    }
     else { // t is var
       if (inRecTerm) {
-        std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
+        // std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
         recArgIdx++;
         if (recArgIdx == 3) {
           inRecTerm = false;
@@ -1947,7 +1961,7 @@ bool Term::computableOrVar() const {
       }
     }
   }
-  std::cout << "computableOrVar result: " << result << "\n";
+  // std::cout << "computableOrVar result: " << result << "\n";
   return result;
 }
 
