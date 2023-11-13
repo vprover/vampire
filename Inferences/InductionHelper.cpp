@@ -53,7 +53,10 @@ bool isIntegerComparisonLiteral(Literal* lit) {
     case Theory::INT_GREATER_EQUAL:
     case Theory::INT_GREATER:
       // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
-      ASSERTION_VIOLATION;
+
+      // Equality proxy may generate useless congruence axioms for the likes of INT_GREATER
+      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ingore)
+      ASS_EQ(env.options->equalityProxy(),Options::EqualityProxy::RSTC);
     default:
       // Not an integer comparison.
       return false;
