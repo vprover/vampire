@@ -165,6 +165,9 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
         it.right();
         continue;
       }
+      if (t->isLiteral()) {
+        continue;
+      }
       if (InductionHelper::isInductionTermFunctor(t->functor()) &&
           InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
         if (adding) {
@@ -182,7 +185,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
   if (!InductionHelper::isInductionClause(c)) {
     return;
   }
-  static DHSet<TermList> inserted;
+  static DHSet<Term*> inserted;
   // Iterate through literals & check if the literal is suitable for induction
   for (unsigned i=0;i<c->length();i++) {
     inserted.reset();
@@ -190,15 +193,16 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
     if (!lit->ground()) {
       continue;
     }
-    SubtermIterator it(lit);
+    NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
-      TermList tl = it.next();
-      if (!inserted.insert(tl)) {
+      Term* t = it.next();
+      if (!inserted.insert(t)) {
         it.right();
         continue;
       }
-      ASS(tl.isTerm());
-      Term* t = tl.term();
+      if (t->isLiteral()) {
+        continue;
+      }
       if (InductionHelper::isInductionTermFunctor(t->functor()) &&
           InductionHelper::isStructInductionTerm(t)) {
         if (adding) {

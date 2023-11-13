@@ -388,7 +388,10 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       NonVariableNonTypeIterator it(lit);
       while(it.hasNext()){
         Term* ts = it.next();
-        unsigned f = ts->functor(); 
+        if (ts->isLiteral()) {
+          continue;
+        }
+        unsigned f = ts->functor();
         if(InductionHelper::isInductionTermFunctor(f)){
           if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(ts)){
 
