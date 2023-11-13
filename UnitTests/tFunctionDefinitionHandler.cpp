@@ -11,11 +11,15 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
+#include <tuple>
+
 #include "Kernel/FormulaUnit.hpp"
 
 #include "Shell/FunctionDefinitionHandler.hpp"
 
 using namespace Shell;
+using std::get;
+using std::pair;
 
 #define MY_SYNTAX_SUGAR                                                                    \
   DECL_DEFAULT_VARS                                                                        \

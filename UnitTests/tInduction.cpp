@@ -1150,10 +1150,13 @@ auto setup = [](SaturationAlgorithm& salg) {
     Stack<FunctionDefinitionHandler::Branch> st;
     for (const auto& t : fd) {
       LiteralStack lits;
-      for (const auto& l : get<2>(t)) {
+      auto fnLits = get<2>(t);
+      for (const auto& l : fnLits) {
         lits.push(l);
       }
-      st.push({ get<0>(t).sugaredExpr().term(), get<1>(t).sugaredExpr(), lits });
+      auto header = get<0>(t);
+      auto body = get<1>(t);
+      st.push({ header.sugaredExpr().term(), body.sugaredExpr(), lits });
     }
     salg.getFunctionDefinitionHandler()->addFunction(st, fu);
   }

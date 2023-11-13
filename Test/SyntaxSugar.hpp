@@ -390,7 +390,11 @@ public:
   { 
     ASS_REP(!_sugaredExpr.isEmpty(), _sugaredExpr);
     if(!_sugaredExpr.isVar()){
-      _srt = SortHelper::getResultSort(_sugaredExpr.term());
+      if (_sugaredExpr.term()->isLiteral()) {
+        _srt = AtomicSort::boolSort();
+      } else {
+        _srt = SortHelper::getResultSort(_sugaredExpr.term());
+      }
     }
   }
 
