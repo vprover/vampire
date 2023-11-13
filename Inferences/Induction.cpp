@@ -91,21 +91,22 @@ TermList TermReplacement::transformSubterm(TermList trm)
 
 TermList SkolemSquashingTermReplacement::transformSubterm(TermList trm)
 {
-  if(trm.isTerm()) {
-    auto t = trm.term();
-    auto it = _m.find(t);
-    if (it != _m.end()){
-      return it->second;
+  if (trm.isVar() || trm.term()->isSort()) {
+    return trm;
+  }
+  auto t = trm.term();
+  auto it = _m.find(t);
+  if (it != _m.end()){
+    return it->second;
+  }
+  unsigned f = t->functor();
+  if (env.signature->getFunction(f)->skolem()) {
+    unsigned v;
+    if (!_tv.find(t,v)) {
+      v = _v++;
+      _tv.insert(t,v);
     }
-    unsigned f = t->functor();
-    if (env.signature->getFunction(f)->skolem()) {
-      unsigned v;
-      if (!_tv.find(t,v)) {
-        v = _v++;
-        _tv.insert(t,v);
-      }
-      return TermList(v,false);
-    }
+    return TermList(v,false);
   }
   return trm;
 }
