@@ -594,6 +594,9 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
       while(it.hasNext()){
         Term* t = it.next();
+        if (t->isLiteral()) {
+          continue;
+        }
         auto f = t->functor();
         if(InductionHelper::isInductionTermFunctor(f)){
           if(InductionHelper::isStructInductionOn() && InductionHelper::isStructInductionTerm(t)){
