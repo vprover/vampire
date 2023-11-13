@@ -1432,7 +1432,7 @@ void Options::init()
 
     _inductionOnActiveOccurrences = BoolOptionValue("induction_on_active_occurrences","indao",false);
     _inductionOnActiveOccurrences.description = "Only use induction terms from active occurrences, generalize over active occurrences";
-    _inductionOnActiveOccurrences.tag(OptionTag::INFERENCES);
+    _inductionOnActiveOccurrences.tag(OptionTag::INDUCTION);
     _inductionOnActiveOccurrences.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnActiveOccurrences);
 
