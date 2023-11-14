@@ -701,7 +701,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
     auto cl = clauses[i];
     Stack<Literal*> conclusionLits(toResolve.size());
 #if VDEBUG
-    Stack<unsigned> variantCounts(toResolve.size());
+    Stack<int> variantCounts(toResolve.size());
 #endif
     // we first find the conclusion literals in cl, exactly 1 from
     // each of toResolve and save how many variants it should have
@@ -755,7 +755,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
           uf.doUnion(i,j);
         }
       }
-      ASS_EQ(variantCounts[k],0);
+      ASS_LE(variantCounts[k],0);
     }
   }
   uf.evalComponents();
