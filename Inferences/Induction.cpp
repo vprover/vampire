@@ -1473,7 +1473,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
 
-  std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
+  // std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
 
   BindingList* bindingList = BindingList::empty();
 
@@ -1497,17 +1497,17 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     }
   }
   
-  std::cout << "Skolem mappings:\n";
-  stIt.reset(mappings);
-  while (stIt.hasNext()) {
-    SkolemTracker st = stIt.next();
-    std::cout << st.toString() << "\n";
-  }  
+  // std::cout << "Skolem mappings:\n";
+  // stIt.reset(mappings);
+  // while (stIt.hasNext()) {
+  //   SkolemTracker st = stIt.next();
+  //   std::cout << st.toString() << "\n";
+  // }  
 
 
-  std::cout << "Clausified and resolved induction formula:\n";
+  // std::cout << "Clausified and resolved induction formula:\n";
   for (auto cl: cls) {
-    std :: cout << cl->toString() << "\n";
+    // std :: cout << cl->toString() << "\n";
     _clauses.push(cl);
   }
 }
