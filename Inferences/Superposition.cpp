@@ -79,11 +79,14 @@ void Superposition::detach()
 struct Superposition::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TypedTermList>, TermQueryResult> arg)
+  ClauseIterator operator()(pair<pair<Literal*, TypedTermList>, TermQueryResult> arg)
   {
     TermQueryResult& qr = arg.second;
-    return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints);
+    return pvi(getConcatenatedIterator(
+      getSingletonIterator(_parent.performSuperposition(_cl, arg.first.first, arg.first.second,
+	      qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints ,true)),
+      getSingletonIterator(_parent.performSuperposition(_cl, arg.first.first, arg.first.second,
+	      qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints ,false))));
   }
 private:
   Clause* _cl;
@@ -95,15 +98,21 @@ private:
 struct Superposition::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  ClauseIterator operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     if(_cl==arg.second.clause) {
-      return 0;
+      return ClauseIterator::getEmpty();
     }
 
     TermQueryResult& qr = arg.second;
-    return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
-	    _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints);
+    return 
+      pvi(
+        getConcatenatedIterator(
+          getSingletonIterator(_parent.performSuperposition(qr.clause, qr.literal, qr.term,
+            _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints, false)),
+          getSingletonIterator(_parent.performSuperposition(qr.clause, qr.literal, qr.term,
+            _cl, arg.first.first, arg.first.second, qr.substitution, false, _passiveClauseContainer, qr.constraints, true)))
+      );
   }
 private:
   Clause* _cl;
@@ -139,7 +148,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       { return pushPairIntoRightIterator(arg, _lhsIndex->getUnifications(arg.second, /*retrieveSubstitutions*/ true, withConstraints)); });
 
   //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
+  auto itf4 = getMapAndFlattenIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
@@ -151,7 +160,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
                 /* retrieveSubstitutions */ true, withConstraints)); });
 
   //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
+  auto itb4 = getMapAndFlattenIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
 
   // Add the results of forward and backward together
   auto it5 = getConcatenatedIterator(itf4,itb4);
@@ -313,7 +322,7 @@ Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-    UnificationConstraintStackSP constraints)
+    UnificationConstraintStackSP constraints, bool ite)
 {
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
@@ -558,10 +567,42 @@ Clause* Superposition::performSuperposition(
 
   if (bothHaveAnsLit) {
     ASS_REP2(next == newLength-1, rwClause->toString(), eqClause->toString());
-    Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
-    Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
-    Literal* condLit = subst->apply(eqLit, eqIsResult);
-    (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD);
+    Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);   // ans(r.theta)
+    Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);    // ans(r'.theta)
+
+    if (ite == false) {
+      
+      RobSubstitution rSubst;
+      UnificationConstraintStack constraints;
+      HOMismatchHandler hndlr(constraints);
+      
+      if (rSubst.unifyArgs(newLitC, 0, newLitD, 1, &hndlr)) { // ToDo: nullptr instead of &hndlr?
+        Literal* newLitCS = rSubst.apply(newLitC, 0);
+
+        for (unsigned i = 0; i < next; i++) {
+          Literal* curLit = (*res)[i];
+          Literal* curLitS = rSubst.apply(curLit, 0);
+          (*res)[i] = curLitS;
+        }
+
+        (*res)[next++] = newLitCS;      
+
+        // if (newLitC->isEquality()) {
+        //   TermList lhs(0,true);
+        //   TermList rhs(1,true);
+        //   rSubst.bind(lhs, *newLitC->nthArgument(1));
+        //   rSubst.bind(rhs, *newLitC->nthArgument(0));
+          
+        // }
+
+      } else {
+        return 0;
+      }
+    } else {
+
+      Literal* condLit = subst->apply(eqLit, eqIsResult);
+      (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD);
+    }
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {
