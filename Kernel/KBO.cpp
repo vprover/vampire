@@ -379,7 +379,7 @@ void KBO::StateGreater::traverseVars(TermList tl, int coef)
 bool KBO::StateGreater::traverse(Term* t1, Term* t2)
 {
   ASS_EQ(t1->functor(),t2->functor());
-  ASS_EQ(t1->weight(),t2->weight());
+  ASS_EQ(t1->kboWeight(),t2->kboWeight());
   ASS(t1->arity());
   bool stillEqual = true;
 
@@ -408,10 +408,10 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
       continue;
     }
     if (stillEqual) {
-      if (ss->weight()<tt->weight()) {
+      if (_kbo.weight(*ss)<_kbo.weight(*tt)) {
         return false;
       }
-      if (ss->weight()>tt->weight()) {
+      if (_kbo.weight(*ss)>_kbo.weight(*tt)) {
         traverseVars(*ss,1);
         traverseVars(*tt,-1);
         if (!checkVars()) {
@@ -420,7 +420,7 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
         stillEqual = false;
         continue;
       }
-      // ss->weight()==tt->weight()
+      // weight(*ss)==weight(*tt)
       if (ss->isOrdinaryVar()) {
         return false;
       }
@@ -929,8 +929,6 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 bool KBO::isGreater(TermList tl1, TermList tl2) const
 {
   TIME_TRACE("KBO:isGreater1");
-  // return Ordering::isGreater(tl1,tl2);
-
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
   }
@@ -943,18 +941,22 @@ bool KBO::isGreater(TermList tl1, TermList tl2) const
 
   Term* t1=tl1.term();
   Term* t2=tl2.term();
-  if (t1->weight()<t2->weight()) {
+
+  computeWeight(t1);
+  computeWeight(t2);
+
+  if (t1->kboWeight()<t2->kboWeight()) {
     return false;
   }
 
   _stateGt->init();
-  if (t1->weight()>t2->weight()) {
+  if (t1->kboWeight()>t2->kboWeight()) {
     // traverse variables
     _stateGt->traverseVars(tl1,1);
     _stateGt->traverseVars(tl2,-1);
     return _stateGt->checkVars();
   }
-  // t1->weight()==t2->weight()
+  // t1->kboWeight()==t2->kboWeight()
   switch (compareFunctionPrecedences(t1->functor(),t2->functor()))
   {
     case Ordering::LESS:
@@ -1002,10 +1004,13 @@ bool KBO::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
   auto t1 = tl1.term();
   auto t2 = tl2.term();
 
-  if (t1->weight()<t2->weight()) {
+  computeWeight(t1);
+  computeWeight(t2);
+
+  if (t1->kboWeight()<t2->kboWeight()) {
     return false;
   }
-  if (t1->weight()==t2->weight()) {
+  if (t1->kboWeight()==t2->kboWeight()) {
     if (t1->functor()==t2->functor()) {
       // lexicographic case
       bool gt = false;
@@ -1121,10 +1126,13 @@ bool KBO::makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const
   auto t1 = tl1.term();
   auto t2 = tl2.term();
 
-  if (t1->weight()<t2->weight()) {
+  computeWeight(t1);
+  computeWeight(t2);
+
+  if (t1->kboWeight()<t2->kboWeight()) {
     return false;
   }
-  if (t1->weight()==t2->weight()) {
+  if (t1->kboWeight()==t2->kboWeight()) {
     if (t1->functor()==t2->functor()) {
       // lexicographic case
       bool gt = false;
@@ -1194,33 +1202,33 @@ bool KBO::makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const
   }
   if (pos) {
     // TODO try to find more variables
-    // DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
-    // while (vit2.hasNext() && pos) {
-    //   unsigned t2v;
-    //   unsigned& cnt2 = vit2.nextRef(t2v);
-    //   if (cnt2) {
-    //     DHMap<unsigned,unsigned>::Iterator vit1(varCntsExtra);
-    //     while (vit1.hasNext() && cnt2) {
-    //       unsigned t1v;
-    //       unsigned cnt1;
-    //       vit1.next(t1v,cnt1);
-    //       if (vo.query(t1v,t2v)==PoComp::INC && vo.add_gt(t1v,t2v)) {
-    //         if (cnt2 < cnt1) {
-    //           cnt2 = 0;
-    //           break;
-    //         } else {
-    //           cnt2 -= cnt1;
-    //         }
-    //       }
-    //     }
-    //     if (!cnt2) {
-    //       pos--;
-    //     }
-    //   }
-    // }
-    // if (!pos) {
-    //   TIME_TRACE("fixed order");
-    // }
+    DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
+    while (vit2.hasNext() && pos) {
+      unsigned t2v;
+      unsigned& cnt2 = vit2.nextRef(t2v);
+      if (cnt2) {
+        DHMap<unsigned,unsigned>::Iterator vit1(varCntsExtra);
+        while (vit1.hasNext() && cnt2) {
+          unsigned t1v;
+          unsigned cnt1;
+          vit1.next(t1v,cnt1);
+          if (vo.query(t1v,t2v)==PoComp::INC && vo.add_gt(t1v,t2v)) {
+            if (cnt2 < cnt1) {
+              cnt2 = 0;
+              break;
+            } else {
+              cnt2 -= cnt1;
+            }
+          }
+        }
+        if (!cnt2) {
+          pos--;
+        }
+      }
+    }
+    if (!pos) {
+      TIME_TRACE("fixed order");
+    }
     return !pos;
   }
 
@@ -1239,6 +1247,64 @@ int KBO::symbolWeight(Term* t) const
     return _funcWeights._specialWeights._variableWeight;
   }
   return _funcWeights.symbolWeight(t);
+}
+
+void KBO::computeWeight(Term* t) const
+{
+  if (t->kboWeight()!=-1) {
+    return;
+  }
+  struct Todo {
+    Term* t;
+    unsigned w;
+    TermList* args;
+  };
+  static Stack<Todo> stack(8);
+  stack.push(Todo {
+    .t = t,
+    .w = (unsigned)symbolWeight(t),
+    .args = t->args(),
+  });
+
+  while (stack.isNonEmpty()) {
+    auto& curr = stack.top();
+    if (curr.args->isEmpty()) {
+      stack.pop();
+      if (stack.isNonEmpty()) {
+        stack.top().w += curr.w;
+      }
+      curr.t->setKboWeight(curr.w);
+      continue;
+    }
+    auto arg = curr.args;
+    // update this here so reallocation won't affect it
+    curr.args = curr.args->next();
+    if (arg->isVar()) {
+      stack.top().w += _funcWeights._specialWeights._variableWeight;
+    } else {
+      auto w = arg->term()->kboWeight();
+      if (w!=-1) {
+        stack.top().w += w;
+      } else {
+        stack.push(Todo{
+          .t = arg->term(),
+          .w = (unsigned)symbolWeight(arg->term()),
+          .args = arg->term()->args()
+        });
+      }
+    }
+  }
+  ASS(stack.isEmpty());
+  ASS_NEQ(t->kboWeight(),-1);
+}
+
+unsigned KBO::weight(TermList t) const
+{
+  if (t.isVar()) {
+    return _funcWeights._specialWeights._variableWeight;
+  }
+  ASS_NEQ(t.term()->kboWeight(),-1);
+  return t.term()->kboWeight();
 }
 
 template<class SigTraits>

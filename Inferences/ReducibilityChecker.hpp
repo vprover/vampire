@@ -21,6 +21,8 @@
 
 #include "InferenceEngine.hpp"
 
+#include <bitset>
+
 namespace Inferences {
 
 using namespace Indexing;
@@ -41,15 +43,71 @@ private:
     Stack<Term*> superTerms;
     bool valid;
   };
+
+  struct BinaryVarOrder {
+    BinaryVarOrder() : _x(0), _y(0), _c(PoComp::INC) {}
+    BinaryVarOrder(unsigned x, unsigned y, PoComp c)
+      : _x(x < y ? x : y), _y(x < y ? y : x), _c(x < y ? c : reverse(c))
+    {
+      ASS_NEQ(_x,_y);
+      ASS(_c!=PoComp::INC);
+    }
+    unsigned _x;
+    unsigned _y;
+    PoComp _c;
+    vstring toString() const
+    {
+      return "X" + Int::toString(_x) + " " + Kernel::toString(_c) + " X" + Int::toString(_y);
+    }
+  };
+
+  struct ReducibilityEntry2 {
+    ReducibilityEntry2() : reducesTo(), reducesToCond(), reducedUnder(), reduced(false), superTerms(), valid(false) {}
+    void addReducedUnder(unsigned x, unsigned y, std::bitset<3> b) {
+      ASS_L(x,y);
+      std::bitset<3>* ptr;
+      reducedUnder.getValuePtr(std::make_pair(x,y), ptr);
+      (*ptr) |= b;
+    }
+    static std::bitset<3> toBitset(PoComp c) {
+      std::bitset<3> res;
+      switch (c)
+      {
+      case PoComp::GT:
+        res[0] = true;
+        break;
+      case PoComp::EQ:
+        res[1] = true;
+        break;
+      case PoComp::LT:
+        res[2] = true;
+        break;
+      default:
+        ASSERTION_VIOLATION;
+        break;
+      }
+      return res;
+    }
+
+    Stack<TermList> reducesTo;
+    Stack<std::pair<TermList,VarOrder>> reducesToCond;
+    DHMap<std::pair<unsigned,unsigned>,std::bitset<3>> reducedUnder;
+    bool reduced;
+    Stack<Term*> superTerms;
+    bool valid;
+  };
+
   TermSubstitutionTree _tis;
   DHMap<Clause*,Stack<VarOrder>> _demodulatorCache;
   DHMap<std::pair<TermList,TermList>,bool> _uselessLHSCache;
 
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
   ReducibilityEntry* isTermReducible(Term* t);
+  ReducibilityEntry2* getCacheEntryForTerm(Term* t);
 
   bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp);
   bool checkSmaller2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+  bool checkSmaller3(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 

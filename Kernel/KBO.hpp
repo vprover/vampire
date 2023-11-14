@@ -171,6 +171,8 @@ protected:
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
+  void computeWeight(Term* t) const;
+  unsigned weight(TermList t) const;
 
 private:
   bool makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const;
