@@ -1493,8 +1493,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_splitter = new Splitter();
   }
 
-  res->_checker = new ReducibilityChecker(
-    static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)), res->_ordering.ref(), opt);
+  if (prb.hasEquality()) {
+    res->_checker = new ReducibilityChecker(
+      static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)), res->_ordering.ref(), opt);
+  }
 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();

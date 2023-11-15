@@ -833,6 +833,7 @@ bool ReducibilityChecker::checkSmaller3(const Stack<Literal*>& lits, Term* rwTer
     }
   }
 
+  DHSet<Term*> attempted;
   DHMap<pair<unsigned,unsigned>,bitset<3>> binaries;
 
   auto updateBinaries = [&binaries](unsigned x, unsigned y, const bitset<3>& bv)
@@ -856,16 +857,15 @@ bool ReducibilityChecker::checkSmaller3(const Stack<Literal*>& lits, Term* rwTer
       NEVER(updateBinaries(bvo._x,bvo._y,ReducibilityEntry2::toBitset(PoComp::EQ)));
     }
   }
- 
 
   for (Term* side : toplevelTerms) {
     NonVariableNonTypeIterator stit(side, !side->isLiteral());
     while (stit.hasNext()) {
       auto st = stit.next();
-      // if (!attempted.insert(st)) {
-      //   stit.right();
-      //   continue;
-      // }
+      if (!attempted.insert(st)) {
+        stit.right();
+        continue;
+      }
       if (rwTermS && cannotBeGreater(rwTermS, st)) {
         continue;
       }
