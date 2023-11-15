@@ -476,15 +476,11 @@ ReducibilityChecker::ReducibilityEntry2* ReducibilityChecker::getCacheEntryForTe
       // cout << "reduced under " << vo.to_string() << " by " << *qr.literal << endl;
       if (vo.is_empty()) {
         e->reduced = true;
-        e->reducesTo.push(rhsS);
+        e->reducesTo.insert(rhsS);
       } else if (vo.size()==2) {
-        auto it = vo.iter_relations();
-        ALWAYS(it.hasNext());
-        auto v = it.next();
-        ALWAYS(!it.hasNext());
-        BinaryVarOrder bvo(get<0>(v),get<1>(v),get<2>(v));
+        auto bvo = getBVOFromVO(vo);
         // cout << "bvo " << bvo.toString() << endl;
-        e->reducesToCond.push(make_pair(rhsS,vo));
+        e->reducesToCond.insert(bvo,rhsS);
         e->addReducedUnder(bvo._x,bvo._y,ReducibilityEntry2::toBitset(bvo._c));
       }
     }
@@ -511,10 +507,8 @@ ReducibilityChecker::ReducibilityEntry2* ReducibilityChecker::getCacheEntryForTe
       if (!_ord.isGreater(TermList(t),rhsS)) {
         continue;
       }
-      VarOrder vo;
-      vo.add_eq(p.first,p.second);
-      // BinaryVarOrder bvo(p.first,p.second,PoComp::EQ);
-      e->reducesToCond.push(make_pair(rhsS,vo));
+      BinaryVarOrder bvo(p.first,p.second,PoComp::EQ);
+      e->reducesToCond.insert(bvo,rhsS);
       bv[1] = true;
     }
     // cout << "result " << toString(p, bv) << endl;
@@ -788,18 +782,48 @@ bool ReducibilityChecker::checkSmaller2(const Stack<Literal*>& lits, Term* rwTer
   return false;
 }
 
+ReducibilityChecker::BinaryVarOrder ReducibilityChecker::getBVOFromVO(const VarOrder& vo)
+{
+  auto it = vo.iter_relations();
+  ALWAYS(it.hasNext());
+  auto tp = it.next();
+  ALWAYS(!it.hasNext());
+  return BinaryVarOrder(get<0>(tp), get<1>(tp), get<2>(tp));
+}
+
+VarOrder ReducibilityChecker::getVOFromBVO(const BinaryVarOrder& bvo)
+{
+  VarOrder vo;
+  switch (bvo._c)
+  {
+  case PoComp::EQ:
+    ALWAYS(vo.add_eq(bvo._x,bvo._y));
+    break;
+  case PoComp::GT:
+    ALWAYS(vo.add_gt(bvo._x,bvo._y));
+    break;
+  case PoComp::LT:
+    ALWAYS(vo.add_gt(bvo._y,bvo._x));
+    break;
+  default:
+    ASSERTION_VIOLATION;
+    break;
+  }
+  return vo;
+}
+
+bool ReducibilityChecker::updateBinaries(unsigned x, unsigned y, const bitset<3>& bv)
+{
+  ASS_L(x,y);
+  bitset<3>* e;
+  _binaries.getValuePtr(make_pair(x,y),e);
+  (*e) |= bv;
+  return e->all();
+}
+
 // cheaper but returns more false negatives
 bool ReducibilityChecker::checkSmaller3(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp)
 {
-  auto getBVOFromVO = [](const VarOrder& vo)
-  {
-    auto it = vo.iter_relations();
-    ALWAYS(it.hasNext());
-    auto tp = it.next();
-    ALWAYS(!it.hasNext());
-    return BinaryVarOrder(get<0>(tp), get<1>(tp), get<2>(tp));
-  };
-
   Stack<Term*> toplevelTerms;
   for (const auto& lit : lits) {
     if (!lit->isEquality()) {
@@ -833,18 +857,6 @@ bool ReducibilityChecker::checkSmaller3(const Stack<Literal*>& lits, Term* rwTer
     }
   }
 
-  DHSet<Term*> attempted;
-  DHMap<pair<unsigned,unsigned>,bitset<3>> binaries;
-
-  auto updateBinaries = [&binaries](unsigned x, unsigned y, const bitset<3>& bv)
-  {
-    ASS_L(x,y);
-    bitset<3>* e;
-    binaries.getValuePtr(make_pair(x,y),e);
-    (*e) |= bv;
-    return e->all();
-  };
-
   VarOrder redundant;
   if (rwTermS && _ord.makeGreater(*tgtTermS,TermList(rwTermS),redundant) && redundant.size()==2)
   {
@@ -862,7 +874,7 @@ bool ReducibilityChecker::checkSmaller3(const Stack<Literal*>& lits, Term* rwTer
     NonVariableNonTypeIterator stit(side, !side->isLiteral());
     while (stit.hasNext()) {
       auto st = stit.next();
-      if (!attempted.insert(st)) {
+      if (!_attempted.insert(st)) {
         stit.right();
         continue;
       }
@@ -916,7 +928,9 @@ bool ReducibilityChecker::checkSmaller3(const Stack<Literal*>& lits, Term* rwTer
   if (rwTermS) {
     auto ptr = getCacheEntryForTerm(rwTermS);
     ASS(ptr->valid);
-    for (const auto& rhs : ptr->reducesTo) {
+    DHSet<TermList>::Iterator rIt(ptr->reducesTo);
+    while (rIt.hasNext()) {
+      auto rhs = rIt.next();
       VarOrder gt;
       if (!_ord.makeGreater(*tgtTermS,rhs,gt) || gt.size()>2) {
         continue;
@@ -930,13 +944,14 @@ bool ReducibilityChecker::checkSmaller3(const Stack<Literal*>& lits, Term* rwTer
         return true;
       }
     }
-    for (const auto& kv : ptr->reducesToCond) {
-      auto& rhs = kv.first;
-      auto& gt = kv.second;
+    DHMap<BinaryVarOrder,TermList,BinaryVarOrder::Hash,BinaryVarOrder::Hash>::Iterator rcIt(ptr->reducesToCond);
+    while (rcIt.hasNext()) {
+      BinaryVarOrder bvo;
+      auto& rhs = rcIt.nextRef(bvo);
+      auto gt = getVOFromBVO(bvo);
       if (!_ord.isGreater(*tgtTermS,rhs,gt)) {
         continue;
       }
-      auto bvo = getBVOFromVO(gt);
       if (updateBinaries(bvo._x,bvo._y,ReducibilityEntry2::toBitset(bvo._c))) {
         return true;
       }

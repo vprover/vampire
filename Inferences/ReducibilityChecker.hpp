@@ -59,6 +59,21 @@ private:
     {
       return "X" + Int::toString(_x) + " " + Kernel::toString(_c) + " X" + Int::toString(_y);
     }
+    bool operator!=(const BinaryVarOrder& other) const {
+      return _x!=other._x || _y!=other._y || _c!=other._c;
+    }
+    bool operator==(const BinaryVarOrder& other) const {
+      return _x==other._x && _y==other._y && _c==other._c;
+    }
+
+    struct Hash {
+      static unsigned hash(const BinaryVarOrder& bvo) {
+        return HashUtils::combine(bvo._x,bvo._y,static_cast<unsigned>(bvo._c));
+      }
+      static bool equals(const BinaryVarOrder& bvo1, const BinaryVarOrder& bvo2) {
+        return bvo1._x==bvo2._x && bvo1._y==bvo2._y && bvo1._c==bvo2._c;
+      }
+    };
   };
 
   struct ReducibilityEntry2 {
@@ -89,8 +104,8 @@ private:
       return res;
     }
 
-    Stack<TermList> reducesTo;
-    Stack<std::pair<TermList,VarOrder>> reducesToCond;
+    DHSet<TermList> reducesTo;
+    DHMap<BinaryVarOrder,TermList,BinaryVarOrder::Hash,BinaryVarOrder::Hash> reducesToCond;
     DHMap<std::pair<unsigned,unsigned>,std::bitset<3>> reducedUnder;
     bool reduced;
     Stack<Term*> superTerms;
@@ -101,9 +116,16 @@ private:
   DHMap<Clause*,Stack<VarOrder>> _demodulatorCache;
   DHMap<std::pair<TermList,TermList>,bool> _uselessLHSCache;
 
+  DHMap<std::pair<unsigned,unsigned>,std::bitset<3>> _binaries;
+  DHSet<Term*> _attempted;
+
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
   ReducibilityEntry* isTermReducible(Term* t);
   ReducibilityEntry2* getCacheEntryForTerm(Term* t);
+
+  static BinaryVarOrder getBVOFromVO(const VarOrder& vo);
+  static VarOrder getVOFromBVO(const BinaryVarOrder& bvo);
+  bool updateBinaries(unsigned x, unsigned y, const std::bitset<3>& bv);
 
   bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp);
   bool checkSmaller2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
@@ -116,6 +138,11 @@ public:
   USE_ALLOCATOR(ReducibilityChecker);
 
   ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt);
+
+  void reset() {
+    _binaries.reset();
+    _attempted.reset();
+  }
 
   bool checkSup(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult);
   bool checkBR(Clause* queryClause, Clause* resultClause, ResultSubstitution* subst);

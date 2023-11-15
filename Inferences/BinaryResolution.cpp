@@ -237,6 +237,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       next++;    
   }
   }
+  if (checker) {
+    checker->reset();
+  }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit) {
