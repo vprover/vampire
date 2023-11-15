@@ -1583,6 +1583,11 @@ void Options::init()
     _lookup.insert(&_termAlgebraInferences);
     _termAlgebraInferences.tag(OptionTag::THEORIES);
 
+    _termAlgebraExhaustivenessAxiom = BoolOptionValue("term_algebra_exhaustiveness_axiom","taea",true);
+    _termAlgebraExhaustivenessAxiom.description="Enable term algebra exhaustiveness axiom";
+    _lookup.insert(&_termAlgebraExhaustivenessAxiom);
+    _termAlgebraExhaustivenessAxiom.tag(OptionTag::THEORIES);
+
     _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
                                                                      TACyclicityCheck::OFF,{"off","axiom","rule","light"});
     _termAlgebraCyclicityCheck.description=

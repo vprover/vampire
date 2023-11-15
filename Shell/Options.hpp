@@ -2210,6 +2210,7 @@ public:
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
+  bool termAlgebraExhaustivenessAxiom() const { return _termAlgebraExhaustivenessAxiom.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
@@ -2508,6 +2509,7 @@ private:
 
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
+  BoolOptionValue _termAlgebraExhaustivenessAxiom;
 
   BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;
