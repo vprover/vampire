@@ -385,7 +385,6 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   }
 
   if (lit->ground()) {
-    // return;
       Set<Term*,SharedTermHash> ta_terms;
       Set<Term*,SharedTermHash> int_terms;
 
