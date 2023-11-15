@@ -644,6 +644,7 @@ Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junc
       unsigned var = it.next();
       unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
       Signature::Symbol* skSym = env.signature->getFunction(skFun);
+      skSym->markSkolemFromInput();
       TermList sort;
       if (!SortHelper::tryGetVariableSort(var, form, sort)) {
         sort = AtomicSort::defaultSort();
