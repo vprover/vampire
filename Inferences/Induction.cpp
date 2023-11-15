@@ -385,7 +385,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   }
 
   if (lit->ground()) {
-    return;
+    // return;
       Set<Term*,SharedTermHash> ta_terms;
       Set<Term*,SharedTermHash> int_terms;
 
@@ -536,8 +536,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       auto st = nvi.next();
       if (env.signature->getFunction(st->functor())->skolem()) {
         InductionContext ctx(st, lit, premise);
-        InductionFormulaIndex::Entry* e;
-        performStructInductionSynth(ctx, e); // clauses are already resolved with the premises
+        performStructInductionSynth(ctx, nullptr); // clauses get resolved in the function
         // USER_ERROR("x");
       }
     }
@@ -695,9 +694,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
     unsigned cLen = c->length();
     Literal* resLit = (*c)[cLen - 1]; // Literal to resolve: L[z, rec(bar(u),z)], ToDo: Lit may not always be the last one. It is the one including the rec function. 
     RobSubstitution subst;
-    UnificationConstraintStack constraints;
-    HOMismatchHandler hndlr(constraints);
-    if (subst.unifyArgs(indLit, 0, resLit, 1, &hndlr)) {
+    if (subst.unifyArgs(indLit, 0, resLit, 1, nullptr)) {
       Literal* indLitS = subst.apply(indLit, 0);
 
       Stack<Literal*> lits;
@@ -716,10 +713,8 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
       }
 
       Clause* resolvent = Clause::fromStack(lits, GeneratingInference2(InferenceRule::RESOLUTION, c, context.getPremise()));
-      // std::cout << "clause after resolution is " << resolvent->toString() << std::endl;
       resolved_clauses.push(resolvent);
     }
-    // std::cout << "----------\n";
   }
 
 
@@ -1361,7 +1356,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 }
 
 /*
-ToDo
+Creates the structural induction axiom for synthesis of recursive programs.
 */
 void InductionClauseIterator::performStructInductionSynth(const InductionContext& context, InductionFormulaIndex::Entry* e)
 {
@@ -1504,10 +1499,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   //   std::cout << st.toString() << "\n";
   // }  
 
-
-  // std::cout << "Clausified and resolved induction formula:\n";
   for (auto cl: cls) {
-    // std :: cout << cl->toString() << "\n";
     _clauses.push(cl);
   }
 }

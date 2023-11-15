@@ -567,16 +567,12 @@ Clause* Superposition::performSuperposition(
 
   if (bothHaveAnsLit) {
     ASS_REP2(next == newLength-1, rwClause->toString(), eqClause->toString());
-    Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);   // ans(r.theta)
-    Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);    // ans(r'.theta)
+    Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
+    Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
 
     if (ite == false) {
-      
       RobSubstitution rSubst;
-      UnificationConstraintStack constraints;
-      HOMismatchHandler hndlr(constraints);
-      
-      if (rSubst.unifyArgs(newLitC, 0, newLitD, 1, &hndlr)) { // ToDo: nullptr instead of &hndlr?
+      if (rSubst.unifyArgs(newLitC, 0, newLitD, 1, nullptr)) {
         Literal* newLitCS = rSubst.apply(newLitC, 0);
 
         for (unsigned i = 0; i < next; i++) {
@@ -586,20 +582,10 @@ Clause* Superposition::performSuperposition(
         }
 
         (*res)[next++] = newLitCS;      
-
-        // if (newLitC->isEquality()) {
-        //   TermList lhs(0,true);
-        //   TermList rhs(1,true);
-        //   rSubst.bind(lhs, *newLitC->nthArgument(1));
-        //   rSubst.bind(rhs, *newLitC->nthArgument(0));
-          
-        // }
-
       } else {
         return 0;
       }
     } else {
-
       Literal* condLit = subst->apply(eqLit, eqIsResult);
       (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD);
     }
