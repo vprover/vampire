@@ -1841,7 +1841,6 @@ bool Term::computable() const {
 }
 
 bool Term::computableOrVar() const {
-  // std::cout << "Term::computableOrVar called on " << this->toString() << "\n";
   if (!env.signature->getFunction(this->functor())->computable()) {
     return false;
   }
@@ -1853,8 +1852,6 @@ bool Term::computableOrVar() const {
     SubtermIterator sit(this);
     while (sit.hasNext()) { 
       TermList t = sit.next();
-      // std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
-
       if (t.isTerm()) {
         unsigned arity = t.term()->numTermArguments();
         if (arity > 0) {
@@ -1862,20 +1859,13 @@ bool Term::computableOrVar() const {
             result = false;
           }
         }
-        else { // arity = 0, which means we have a skolem constant or a constructor with 0 args
+        else {
           Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
-          vstring symbolName = s->name();
-          unsigned snLen = symbolName.length();
-
-          if (!(snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n')) { 
-            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'K') {
-              // skolem constant corresponding to non-input variable
+          if (s->skolemFromStructIndAxiom()) { 
               unsigned symbolConstructorId = s->constructorId();
               if (symbolConstructorId != recArgIdx) {
-                // std::cout << t.toString() << " is only allowed in arg=" << symbolConstructorId << " of rec\n";
                 result = false;
               }
-            }
           }
           recArgIdx++;
         }
@@ -1883,10 +1873,8 @@ bool Term::computableOrVar() const {
         recArgIdx++;
       }
     }
-    // std::cout << "computableOrVar result: " << result << "\n";
     return result;
   }
-  // else this can be an ITE and rec might appear as a subterm of it
   SubtermIterator sit(this);
   bool result = true;
   unsigned recArgIdx = 0;
@@ -1902,58 +1890,35 @@ bool Term::computableOrVar() const {
     }
     
     if (t.isTerm()) {
-
       if (inRecTerm) {
-        // std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
         unsigned arity = t.term()->numTermArguments();
         if (arity > 0) {
           if (!env.signature->getFunction(t.term()->functor())->computable()) { 
             result = false;
           }
-        } else { // arity = 0, which means we have a skolem constant or a constructor with 0 args
+        } else {
           Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
-          vstring symbolName = s->name();
-          unsigned snLen = symbolName.length();
-
-          if (!(snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n')) {
-            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'K') {
-              // skolem corresponding to non-input variable
+          if (s->skolemFromStructIndAxiom()) { 
               unsigned symbolConstructorId = s->constructorId();
               if (symbolConstructorId != recArgIdx) {
-                // std::cout << t.toString() << " is only allowed in arg=" << symbolConstructorId << " of rec\n";
                 result = false;
               }
-            }
           }
           
           recArgIdx++;
           if (recArgIdx == 3) {
             inRecTerm = false;
-            // std::cout << "Exiting rec term\n";
           }
         }
       } else { // a term that is not in an argument of rec(...)
-
-          // std::cout << t.toString() << " in corner case\n";
-
           Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
-          vstring symbolName = s->name();
-          unsigned snLen = symbolName.length();
-
-          // std::cout << "symbol name is " << symbolName << "\n";
-
-          if (!(snLen >= 6 && symbolName[snLen - 3] == '_' && symbolName[snLen - 2] == 'i' && symbolName[snLen - 1] == 'n')) {
-            if (snLen >= 2 && symbolName[0] == 's' && symbolName[1] == 'K') {
-              // skolem corresponding to non-input variable
-              // std::cout << "uncomputable!\n";
+          if (s->skolemFromStructIndAxiom()) {
               result = false;
-            }
-          }
+          } 
         }
       }
     else { // t is var
       if (inRecTerm) {
-        // std::cout << t.toString() << " is in arg " << recArgIdx << " of rec\n";
         recArgIdx++;
         if (recArgIdx == 3) {
           inRecTerm = false;
@@ -1961,7 +1926,6 @@ bool Term::computableOrVar() const {
       }
     }
   }
-  // std::cout << "computableOrVar result: " << result << "\n";
   return result;
 }
 

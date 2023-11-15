@@ -300,6 +300,15 @@ class Signature
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
 
+    /** return true if a skolem constant from input variable of program spec. */
+    inline bool skolemFromInput() {
+      unsigned len = _name.length();
+      return (skolem() && len >= 6 && _name[len - 3] == '_' && _name[len - 2] == 'i' && _name[len - 1] == 'n');
+    }
+    /** return true if a skolem constant from structural induction axiom */
+    inline bool skolemFromStructIndAxiom()
+    { return skolem() && !skolemFromInput() && !interpretedNumber(); }
+
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
     { ASS(integerConstant()); return static_cast<const IntegerSymbol*>(this)->_intValue; }
