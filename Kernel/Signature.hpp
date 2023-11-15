@@ -158,9 +158,7 @@ class Signature
     /** if allowed in answer literals */
     unsigned _computable : 1;
     /** Constructor id in which this Symbol appears (computability in recursive synthesis)*/
-    unsigned _constructorId;
-    /** if skolem obtained from input variables in spec of program for synthesis*/
-    int _skolemInput : 1;
+    int _constructorId;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -201,8 +199,6 @@ class Signature
     void markUncomputable() { _computable = 0; }
     /** set the constructor id in structural induction axiom in which this symbol appears */
     void setConstructorId(int cid) { _constructorId=cid; }
-    /** mark the symbol as skolem obtained from input variables in spec of program for synthesis*/
-    void markSkolemFromInput() { _skolemInput=1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -255,8 +251,6 @@ class Signature
     inline bool computable() const { return _computable; }
     /** Return the constructor id in structural induction axiom in which this symbol appears */
     inline int constructorId() const { return _constructorId; }
-    /** Return true iff symbol is a skolem for the input in program spec */
-    inline bool skolemFromInput() const { return _skolemInput; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -306,14 +300,9 @@ class Signature
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
 
-    /** return true if a skolem constant from input variable of program spec. */
-    // inline bool skolemFromInput() {
-    //   unsigned len = _name.length();
-    //   return (skolem() && len >= 6 && _name[len - 3] == '_' && _name[len - 2] == 'i' && _name[len - 1] == 'n');
-    // }
     /** return true if a skolem constant from structural induction axiom */
     inline bool skolemFromStructIndAxiom()
-    { return skolem() && !skolemFromInput() && !interpretedNumber(); }
+    { return skolem() && _constructorId != -1 && !interpretedNumber(); }
 
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
