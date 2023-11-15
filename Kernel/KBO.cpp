@@ -121,6 +121,39 @@ private:
   KBO& _kbo;
 }; // class KBO::State
 
+class KBO::StateGreaterVO
+{
+public:
+  /** Initialise the state */
+  StateGreaterVO(KBO* kbo) : _kbo(*kbo) {}
+
+  void init()
+  {
+    _negNum=0;
+    _varsLeft.reset();
+    _varsRight.reset();
+    _varDiffs.reset();
+  }
+
+  USE_ALLOCATOR(StateGreaterVO);
+
+  bool traverse(Term* t1, Term* t2, VarOrder& vo);
+  Result result(Term* t1, Term* t2);
+  bool checkVars(VarOrder& vo) const;
+  void traverseVars(TermList tl, bool left, VarOrder& vo);
+private:
+  void recordVariable(unsigned var, bool left, VarOrder& vo);
+
+  /** The variable counters */
+  DHMap<unsigned, unsigned, IdentityHash, DefaultHash> _varsLeft;
+  DHMap<unsigned, unsigned, IdentityHash, DefaultHash> _varsRight;
+  DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+  /** Number of variables, that occur more times in the second literal */
+  int _negNum;
+  /** The ordering used */
+  KBO& _kbo;
+}; // class KBO::State
+
 /**
  * Return result of comparison between @b l1 and @b l2 under
  * an assumption, that @b traverse method have been called
@@ -428,6 +461,8 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
         if (!ss->containsSubterm(*tt)) {
           return false;
         }
+        traverseVars(*ss,1);
+        traverseVars(*tt,-1);
         stillEqual = false;
         continue;
       }
@@ -465,6 +500,185 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
 bool KBO::StateGreater::checkVars() const
 {
   return _negNum <= 0;
+}
+
+// StateGreaterVO
+
+void KBO::StateGreaterVO::recordVariable(unsigned var, bool left, VarOrder& vo)
+{
+  unsigned* pnum;
+  if (left) {
+    _varsLeft.getValuePtr(var,pnum);
+  } else {
+    _varsRight.getValuePtr(var,pnum);
+  }
+  (*pnum)++;
+  int* pdiff;
+  _varDiffs.getValuePtr(var,pdiff,0);
+  (*pdiff)+=left?1:-1;
+}
+
+void KBO::StateGreaterVO::traverseVars(TermList tl, bool left, VarOrder& vo)
+{
+  TIME_TRACE("KBO::StateGreaterVO::traverseVars");
+  if(tl.isOrdinaryVar()) {
+    recordVariable(tl.var(), left, vo);
+    return;
+  }
+  ASS(tl.isTerm());
+
+  Term* t=tl.term();
+  ASSERT_VALID(*t);
+
+  if(!t->arity()) {
+    return;
+  }
+
+  TermList* ts=t->args();
+  static Stack<TermList*> stack(4);
+  for(;;) {
+    if(!ts->next()->isEmpty()) {
+      stack.push(ts->next());
+    }
+    if(ts->isTerm()) {
+      auto term = ts->term();
+      if(term->arity() && !term->ground()) {
+        stack.push(term->args());
+      }
+    } else {
+      ASS_METHOD(*ts,isOrdinaryVar());
+      recordVariable(ts->var(), left, vo);
+    }
+    if(stack.isEmpty()) {
+      break;
+    }
+    ts=stack.pop();
+  }
+}
+
+bool KBO::StateGreaterVO::traverse(Term* t1, Term* t2, VarOrder& vo)
+{
+  TIME_TRACE("KBO::StateGreaterVO::traverse");
+  ASS_EQ(t1->functor(),t2->functor());
+  ASS_EQ(t1->kboWeight(),t2->kboWeight());
+  ASS(t1->arity());
+  bool stillEqual = true;
+
+  static Stack<TermList*> stack(32);
+  stack.reset();
+  stack.push(t1->args());
+  stack.push(t2->args());
+  TermList* ss; //t1 subterms
+  TermList* tt; //t2 subterms
+  while(stack.isNonEmpty()) {
+    tt=stack.pop();
+    ss=stack.pop();
+    // cout << "ss " << ss->toString() << " tt " << tt->toString() << endl;
+    if(ss->isEmpty()) {
+      ASS(tt->isEmpty());
+      ASS(!stillEqual); // we should have detected the difference earlier
+      if (!checkVars(vo)) {
+        return false;
+      }
+      continue;
+    }
+
+    stack.push(ss->next());
+    stack.push(tt->next());
+    if(ss->sameContent(tt)) {
+      //if content is the same, neither weightDiff nor varDiffs would change
+      continue;
+    }
+    if (stillEqual) {
+      if (_kbo.weight(*ss)<_kbo.weight(*tt)) {
+        return false;
+      }
+      if (_kbo.weight(*ss)>_kbo.weight(*tt)) {
+        traverseVars(*ss,true,vo);
+        traverseVars(*tt,false,vo);
+        if (!checkVars(vo)) {
+          return false;
+        }
+        stillEqual = false;
+        continue;
+      }
+      // weight(*ss)==weight(*tt)
+      if (ss->isOrdinaryVar()) {
+        if (!tt->isOrdinaryVar() || !vo.add_gt(ss->var(),tt->var())) {
+          return false;
+        }
+        traverseVars(*ss,true,vo);
+        traverseVars(*tt,false,vo);
+        stillEqual = false;
+        continue;
+      }
+      if (tt->isOrdinaryVar()) {
+        if (!ss->containsSubterm(*tt)) {
+          return false; // TODO
+        }
+        traverseVars(*ss,true,vo);
+        traverseVars(*tt,false,vo);
+        stillEqual = false;
+        continue;
+      }
+      switch (_kbo.compareFunctionPrecedences(ss->term()->functor(),tt->term()->functor()))
+      {
+        case Ordering::LESS:
+        case Ordering::LESS_EQ: {
+          return false;
+        }
+        case Ordering::GREATER:
+        case Ordering::GREATER_EQ: {
+          traverseVars(*ss,true,vo);
+          traverseVars(*tt,false,vo);
+          if (!checkVars(vo)) {
+            return false;
+          }
+          stillEqual = false;
+          break;
+        }
+        case Ordering::EQUAL: {
+          stack.push(ss->term()->args());
+          stack.push(tt->term()->args());
+          break;
+        }
+        default: ASSERTION_VIOLATION;
+      }
+    } else {
+      traverseVars(*ss,true,vo);
+      traverseVars(*tt,false,vo);
+    }
+  }
+  return !stillEqual && checkVars(vo);
+}
+
+bool KBO::StateGreaterVO::checkVars(VarOrder& vo) const
+{
+  TIME_TRACE("check vars");
+  // DHSet<unsigned>::Iterator varIt(_vars);
+  auto varRIt = _varsRight.domain();
+  while (varRIt.hasNext()) {
+    auto vr = varRIt.next();
+    // cout << "checking " << v << endl;
+    // auto leftPtr = _varsLeft.findPtr(v);
+    unsigned lcnt = 0;
+    auto varLIt = _varsLeft.domain();
+    while (varLIt.hasNext()) {
+      auto vl = varLIt.next();
+      auto c = vo.query(vl,vr);
+      if (c == PoComp::GT || c == PoComp::EQ) {
+        lcnt += _varsLeft.get(vl);
+      } else if (c == PoComp::INC) {
+        // TODO save for later
+      }
+    }
+    auto rcnt = _varsRight.get(vr);
+    if (lcnt < rcnt) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
@@ -710,6 +924,7 @@ KBO::KBO(
 #endif
   , _state(new State(this))
   , _stateGt(new StateGreater(this))
+  , _stateGtVo(new StateGreaterVO(this))
 { 
   checkAdmissibility(throwError);
 }
@@ -825,6 +1040,7 @@ KBO::KBO(Problem& prb, const Options& opts)
 #endif
  , _state(new State(this))
  , _stateGt(new StateGreater(this))
+ , _stateGtVo(new StateGreaterVO(this))
 {
   if (opts.kboMaxZero()) {
     zeroWeightForMaximalFunc();
@@ -1085,16 +1301,83 @@ bool KBO::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
 bool KBO::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
 {
   TIME_TRACE("KBO::makeGreater");
-  if (makeGreaterHelper(tl1,tl2,vo)) {
-    ASS(isGreater(tl1,tl2,vo));
+  // cout << "makeGreater " << tl1 << " " << tl2 << " under " << vo.to_string() << endl;
+  if (makeGreaterRecursive(tl1,tl2,vo)) {
+    ASS_REP(isGreater(tl1,tl2,vo),tl1.toString()+" "+tl2.toString()+" "+vo.to_string());
     return true;
   }
   return false;
 }
 
-bool KBO::makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const
+bool KBO::makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) const
 {
-  TIME_TRACE("KBO::makeGreaterHelper");
+  TIME_TRACE("KBO::makeGreaterNonRecursive");
+  if (tl1 == tl2) {
+    return false;
+  }
+  if (tl1.isVar()) {
+    return tl2.isVar() && vo.add_gt(tl1.var(),tl2.var());
+  }
+  if (tl2.isVar()) {
+    int inc = -1;
+    VariableIterator vit(tl1.term());
+    while (vit.hasNext()) {
+      auto v = vit.next().var();
+      auto c = vo.query(v,tl2.var());
+      if (c == PoComp::EQ || c == PoComp::GT) {
+        return true;
+      } else if (c == PoComp::INC && inc == -1) {
+        inc = v;
+      }
+    }
+    if (inc != -1) {
+      ALWAYS(vo.add_gt(inc,tl2.var()));
+      return true;
+    }
+    return false;
+  }
+
+  auto t1 = tl1.term();
+  auto t2 = tl2.term();
+
+  computeWeight(t1);
+  computeWeight(t2);
+
+  if (t1->kboWeight()<t2->kboWeight()) {
+    return false;
+  }
+  _stateGtVo->init();
+  if (t1->kboWeight()>t2->kboWeight()) {
+    // traverse variables
+    _stateGtVo->traverseVars(tl1,true/*left*/,vo);
+    _stateGtVo->traverseVars(tl2,false/*left*/,vo);
+    return _stateGtVo->checkVars(vo);
+  }
+  // t1->kboWeight()==t2->kboWeight()
+  switch (compareFunctionPrecedences(t1->functor(),t2->functor()))
+  {
+    case Ordering::LESS:
+    case Ordering::LESS_EQ: {
+      return false;
+    }
+    case Ordering::GREATER:
+    case Ordering::GREATER_EQ: {
+      _stateGtVo->traverseVars(tl1,true/*left*/,vo);
+      _stateGtVo->traverseVars(tl2,false/*left*/,vo);
+      return _stateGtVo->checkVars(vo);
+    }
+    case Ordering::EQUAL: {
+      return _stateGtVo->traverse(t1,t2,vo);
+    }
+    case Ordering::INCOMPARABLE:
+      ASSERTION_VIOLATION;
+  }
+  ASSERTION_VIOLATION;
+}
+
+bool KBO::makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const
+{
+  TIME_TRACE("KBO::makeGreaterRecursive");
   if (tl1 == tl2) {
     return false;
   }
@@ -1142,7 +1425,7 @@ bool KBO::makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const
         if (arg1 == arg2) {
           continue;
         }
-        if (makeGreater(arg1,arg2,vo)) {
+        if (makeGreaterRecursive(arg1,arg2,vo)) {
           gt = true;
           break;
         } else {
@@ -1251,6 +1534,7 @@ int KBO::symbolWeight(Term* t) const
 
 void KBO::computeWeight(Term* t) const
 {
+  TIME_TRACE("KBO::computeWeight");
   if (t->kboWeight()!=-1) {
     return;
   }

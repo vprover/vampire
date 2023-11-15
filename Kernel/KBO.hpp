@@ -168,6 +168,7 @@ protected:
 
   class State;
   class StateGreater;
+  class StateGreaterVO;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
@@ -175,7 +176,8 @@ protected:
   unsigned weight(TermList t) const;
 
 private:
-  bool makeGreaterHelper(TermList tl1, TermList tl2, VarOrder& vo) const;
+  bool makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
+  bool makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;
@@ -193,6 +195,7 @@ private:
    */
   mutable State* _state;
   mutable StateGreater* _stateGt;
+  mutable StateGreaterVO* _stateGtVo;
 };
 
 }
