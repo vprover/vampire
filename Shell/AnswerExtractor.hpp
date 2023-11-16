@@ -93,16 +93,6 @@ private:
 
 class SynthesisManager : public AnswerLiteralManager
 {
-public:
-  static SynthesisManager* getInstance();
-
-  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
-
-  virtual void onNewClause(Clause* cl) override;
-
-  virtual Clause* recordAnswerAndReduce(Clause* cl) override;
-
-  Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
 
 private:
   class ConjectureSkolemReplacement : public TermTransformer {
@@ -118,6 +108,36 @@ private:
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
   };
+
+
+  typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
+  typedef List<Binding> BindingList;
+
+  struct SkolemTracker { // used for tracking skolem terms in the structural induction axiom (recursive program synthesis)
+    Binding binding;
+    unsigned constructorIndex; // a skolem constant will be considered computable in the j'th arg of rec(.), if j = constructorIndex
+    bool recursiveArg;
+    int recursivePos; // -1 if not recursive, otherwise the position of the recursive argument
+    SkolemTracker(Binding b, unsigned c, bool r, int pos) : binding(b), constructorIndex(c), recursiveArg(r), recursivePos(pos) {}
+    vstring toString() {
+      vstring s;
+      s += "SkolemTracker(";
+      s += "var=X" + Int::toString(binding.first);
+      s += ", skolem=";
+      s += binding.second->toString();
+      s += ", cnstrID=";
+      s += Int::toString(constructorIndex);
+      s += ", rec=";
+      s += recursiveArg ? "true" : "false";
+      s += ", recPos=";
+      s += Int::toString(recursivePos) + ")";
+      return s;
+    }
+  };
+  typedef List<SkolemTracker> SkolemTrackerList;
+
+
+
 
   virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
 
@@ -145,6 +165,26 @@ private:
   List<std::pair<unsigned,std::pair<Clause*, Literal*>>>* _answerPairs = nullptr;
 
   Literal* _lastAnsLit = nullptr;
+
+  SkolemTrackerList* _skolemMappings = SkolemTrackerList::empty();
+
+
+public:
+  static SynthesisManager* getInstance();
+
+  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
+
+  virtual void onNewClause(Clause* cl) override;
+
+  virtual Clause* recordAnswerAndReduce(Clause* cl) override;
+
+  Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
+
+  void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
+
+  SkolemTrackerList* getSkolemMappings() { return _skolemMappings; }
+
+  void printSkolemMappings();
 };
 
 }

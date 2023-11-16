@@ -33,6 +33,7 @@
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
+#include "Shell/AnswerExtractor.hpp"
 
 #include "Induction.hpp"
 
@@ -1472,7 +1473,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
 
-  SkolemTrackerList* mappings = SkolemTrackerList::empty();
   SkolemTrackerList::Iterator stIt(skolemTrackerList);
   while (stIt.hasNext()) {
     SkolemTracker st = stIt.next();
@@ -1481,7 +1481,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     while(bIt.hasNext()) {
       Binding b = bIt.next();
       if (st.binding.first == b.first) { 
-        mappings->push(SkolemTracker(Binding(b.first, b.second), st.constructorIndex, st.recursiveArg, st.recursivePos), mappings);
+        SynthesisManager::getInstance()->storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveArg, st.recursivePos);
         Signature::Symbol* s = env.signature->getFunction(b.second->functor());
         s->setConstructorId(st.constructorIndex);
         // std::cout << s->name() << " may ONLY appear in arg=" << s->constructorId() << " of a rec term\n";
@@ -1490,13 +1490,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     }
   }
   
-  // std::cout << "Skolem mappings:\n";
-  // stIt.reset(mappings);
-  // while (stIt.hasNext()) {
-  //   SkolemTracker st = stIt.next();
-  //   std::cout << st.toString() << "\n";
-  // }  
-
   for (auto cl: cls) {
     _clauses.push(cl);
   }

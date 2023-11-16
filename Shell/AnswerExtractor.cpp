@@ -815,10 +815,18 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
 }
 
 
+void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos) {
+  _skolemMappings->push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveArg, recursivePos), _skolemMappings);
+}
 
-
-
-
+void SynthesisManager::printSkolemMappings() {
+  cout << "Skolem mappings:" << endl;
+  SkolemTrackerList::Iterator it(_skolemMappings);
+  while (it.hasNext()) {
+    SkolemTracker st = it.next();
+    cout << st.toString() << endl;
+  }
+}
 
 
 
