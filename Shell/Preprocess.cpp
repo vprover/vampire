@@ -393,6 +393,9 @@ void Preprocess::preprocess(Problem& prb)
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
    }
 
+   // refresh symbol usage counts, can skip unused symbols for equality proxy
+   prb.getProperty();
+
    if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
