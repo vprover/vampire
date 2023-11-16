@@ -16,7 +16,7 @@
 #define __FunctionDefinitionHandler__
 
 #include "Forwards.hpp"
-#include "Indexing/TermSubstitutionTree.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "TermAlgebra.hpp"
 #include "Lib/STL.hpp"
@@ -104,7 +104,7 @@ private:
   Branch substituteBoundVariable(unsigned var, TermList t, const Branch& b, TermList body);
   Branch addCondition(Literal* lit, const Branch& b, TermList body);
 
-  TermSubstitutionTree _is;
+  CodeTreeTIS _is;
   vmap<std::pair<unsigned, bool>, InductionTemplate*> _templates;
 };
 

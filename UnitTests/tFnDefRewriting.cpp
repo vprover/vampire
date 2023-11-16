@@ -72,6 +72,7 @@ auto setup = [](SaturationAlgorithm& salg) {
 TEST_GENERATION(test_01,
     Generation::TestCase()
       .setup(setup)
+      .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  b != f(b, y), p(x) }))
       .expected(exactly(
               clause({  b != y,       p(x) })
@@ -81,6 +82,7 @@ TEST_GENERATION(test_01,
 TEST_GENERATION(test_02,
     Generation::TestCase()
       .setup(setup)
+      .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  g(b)   == g(r(x)), p(x) }))
       .expected(exactly(
               clause({  f(b,b) == g(r(x)), p(x) })
@@ -91,6 +93,7 @@ TEST_GENERATION(test_02,
 TEST_GENERATION(test_03,
     Generation::TestCase()
       .setup(setup)
+      .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  g(r(x)) == f(x, r(x)) }))
       .expected(none())
     )
@@ -99,6 +102,7 @@ TEST_GENERATION(test_03,
 TEST_GENERATION(test_04,
     Generation::TestCase()
       .setup(setup)
+      .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  f(r(b),f(b, y)) == f(y, r(y)) }))
       .expected({
               clause({  f(r(b),y)       == f(y, r(y)) }),
@@ -111,6 +115,7 @@ TEST_GENERATION(test_04,
 TEST_GENERATION(test_05,
     Generation::TestCase()
       .setup(setup)
+      .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  g(r(r(r(b))))      != b, g(b)   == b }))
       .expected({
               clause({  f(r(r(b)),g(r(b))) != b, g(b)   == b, p(r(b)), r(b) != b() }),
@@ -122,6 +127,7 @@ TEST_GENERATION(test_05,
 TEST_GENERATION(test_06,
     Generation::TestCase()
       .setup(setup)
+      .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  f(b,b) == b  }))
       .expected(none())
     )

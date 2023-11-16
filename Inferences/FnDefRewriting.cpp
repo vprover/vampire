@@ -156,23 +156,9 @@ Clause *FnDefRewriting::perform(
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
-  TermList tgtTermS;
-  if (!subst->isIdentityOnQueryWhenResultBound()) {
-    //When we apply substitution to the rhs, we get a term, that is
-    //a variant of the term we'd like to get, as new variables are
-    //produced in the substitution application.
-    TermList lhsSBadVars = subst->applyToResult(eqLHS);
-    TermList rhsSBadVars = subst->applyToResult(tgtTerm);
-    Renaming rNorm, qNorm, qDenorm;
-    rNorm.normalizeVariables(lhsSBadVars);
-    qNorm.normalizeVariables(tgtTerm);
-    qDenorm.makeInverse(qNorm);
-    ASS_EQ(rwTerm, qDenorm.apply(rNorm.apply(lhsSBadVars)));
-    tgtTermS = qDenorm.apply(rNorm.apply(rhsSBadVars));
-  }
-  else {
-    tgtTermS = subst->applyToBoundResult(tgtTerm);
-  }
+  // This should be the case for code trees
+  ASS(subst->isIdentityOnQueryWhenResultBound());
+  TermList tgtTermS = subst->applyToBoundResult(tgtTerm);
 
   // update this to latest encompassment-considering version
   if (toplevelCheck) {
@@ -209,56 +195,39 @@ Clause *FnDefRewriting::perform(
 
   Clause *res = new (newLength) Clause(newLength, inf);
 
-  static bool doSimS = env.options->simulatenousSuperposition();
   (*res)[0] = tgtLitS;
 
   unsigned next = 1;
   for (unsigned i = 0; i < rwLength; i++) {
     Literal *curr = (*rwClause)[i];
-    if (curr != rwLit) {
-      if (doSimS) {
-        curr = EqHelper::replace(curr, rwTerm, tgtTermS);
-      }
-
-      if (EqHelper::isEqTautology(curr)) {
-        isEqTautology = true;
-        res->destroy();
-        return 0;
-      }
-
-      (*res)[next++] = curr;
+    if (curr == rwLit) {
+      continue;
     }
+    curr = EqHelper::replace(curr, rwTerm, tgtTermS);
+
+    if (EqHelper::isEqTautology(curr)) {
+      isEqTautology = true;
+      res->destroy();
+      return 0;
+    }
+
+    (*res)[next++] = curr;
   }
 
-  {
-    for (unsigned i = 0; i < eqLength; i++) {
-      Literal *curr = (*eqClause)[i];
-      if (curr != eqLit) {
-        Literal *currAfter;
-        if (!subst->isIdentityOnQueryWhenResultBound()) {
-          // same as above for RHS
-          TermList lhsSBadVars = subst->applyToResult(eqLHS);
-          Literal *currSBadVars = subst->applyToResult(curr);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(curr);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(rwTerm, qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          currAfter = qDenorm.apply(rNorm.apply(currSBadVars));
-        }
-        else {
-          currAfter = subst->applyToBoundResult(curr);
-        }
-
-        if (EqHelper::isEqTautology(currAfter)) {
-          isEqTautology = true;
-          res->destroy();
-          return 0;
-        }
-
-        (*res)[next++] = currAfter;
-      }
+  for (unsigned i = 0; i < eqLength; i++) {
+    Literal* curr = (*eqClause)[i];
+    if (curr == eqLit) {
+      continue;
     }
+    Literal* currAfter = subst->applyToBoundResult(curr);
+
+    if (EqHelper::isEqTautology(currAfter)) {
+      isEqTautology = true;
+      res->destroy();
+      return 0;
+    }
+
+    (*res)[next++] = currAfter;
   }
 
   return res;
