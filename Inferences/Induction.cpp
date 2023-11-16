@@ -1381,8 +1381,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   VList* ws = VList::empty(); 
   VList* ys = VList::empty(); 
 
-  SkolemTrackerList* skolemTrackerList = SkolemTrackerList::empty();
-
   for (unsigned i = 0; i < ta->nConstructors(); i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
@@ -1395,20 +1393,16 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       TermList y(var++, false);
       argTerms.push(y);
       VList::push(y.var(), ys);
-      Binding yBinding = Binding(y.var(), nullptr); 
-      SkolemTracker skolemY = SkolemTracker(yBinding, i, false, -1);
+
+      int recursive = -1;
 
       if (con->argSort(j) == con->rangeSort()){
         recTerms.push(y);
-        skolemY.recursiveArg = true;
-        skolemY.recursivePos = j;
-
+        recursive = j;
 
         TermList w(var++, false);
         VList::push(w.var(), ws);
-        Binding wBinding = Binding(w.var(), nullptr);
-        SkolemTracker skolemW = SkolemTracker(wBinding, i, false, -1);
-        skolemTrackerList->push(skolemW, skolemTrackerList);
+        SynthesisManager::getInstance()->storeTempSkolemMapping(w.var(), i, false, -1);
 
         TermReplacement tr(context._indTerm, y);
         Literal* curLit = tr.transform(L);
@@ -1418,7 +1412,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
         FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j]
       }
-      skolemTrackerList->push(skolemY, skolemTrackerList);
+      SynthesisManager::getInstance()->storeTempSkolemMapping(y.var(), i, (recursive != -1) ? true : false, recursive);
     }
 
     Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps); // /\_{j ∈ P_c}  L[y_j, w_j]
@@ -1473,22 +1467,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
 
-  SkolemTrackerList::Iterator stIt(skolemTrackerList);
-  while (stIt.hasNext()) {
-    SkolemTracker st = stIt.next();
-
-    BindingList::Iterator bIt(bindingList);
-    while(bIt.hasNext()) {
-      Binding b = bIt.next();
-      if (st.binding.first == b.first) { 
-        SynthesisManager::getInstance()->storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveArg, st.recursivePos);
-        Signature::Symbol* s = env.signature->getFunction(b.second->functor());
-        s->setConstructorId(st.constructorIndex);
-        // std::cout << s->name() << " may ONLY appear in arg=" << s->constructorId() << " of a rec term\n";
-        break;
-      }
-    }
-  }
+  SynthesisManager::getInstance()->matchSkolemSymbols(bindingList);
   
   for (auto cl: cls) {
     _clauses.push(cl);

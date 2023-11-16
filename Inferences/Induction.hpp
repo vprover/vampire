@@ -196,29 +196,6 @@ private:
 typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
 typedef List<Binding> BindingList;
 
-struct SkolemTracker {
-  Binding binding;
-  unsigned constructorIndex; // a skolem constant will be considered computable in the j'th arg of rec(.), if j = constructorIndex
-  bool recursiveArg;
-  int recursivePos; // -1 if not recursive, otherwise the position of the recursive argument
-  SkolemTracker(Binding b, unsigned c, bool r, int pos) : binding(b), constructorIndex(c), recursiveArg(r), recursivePos(pos) {}
-  vstring toString() {
-    vstring s;
-    s += "SkolemTracker(";
-    s += "X" + Int::toString(binding.first);
-    s += ", ";
-    s += binding.second->toString();
-    s += ", cnstrID=";
-    s += Int::toString(constructorIndex);
-    s += ", rec=";
-    s += recursiveArg ? "true" : "false";
-    s += ", recPos=";
-    s += Int::toString(recursivePos) + ")";
-    return s;
-  }
-};
-
-typedef List<SkolemTracker> SkolemTrackerList;
 
 class InductionClauseIterator
 {

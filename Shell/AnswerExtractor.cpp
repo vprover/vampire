@@ -828,6 +828,28 @@ void SynthesisManager::printSkolemMappings() {
   }
 }
 
+void SynthesisManager::storeTempSkolemMapping(unsigned int var, unsigned int constructorIndex, bool recursiveArg, int recursivePos) {
+  _tempSkolemMappings->push(SkolemTracker(Binding(var, nullptr), constructorIndex, recursiveArg, recursivePos), _tempSkolemMappings);
+}
+
+void SynthesisManager::matchSkolemSymbols(BindingList* bindingList) {
+  SkolemTrackerList::Iterator stIt(_tempSkolemMappings);
+  while (stIt.hasNext()) {
+    SkolemTracker st = stIt.next();
+
+    BindingList::Iterator bIt(bindingList);
+    while(bIt.hasNext()) {
+      Binding b = bIt.next();
+      if (st.binding.first == b.first) { 
+        storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveArg, st.recursivePos);
+        Signature::Symbol* s = env.signature->getFunction(b.second->functor());
+        s->setConstructorId(st.constructorIndex);
+        break;
+      }
+    }
+  }
+}
+
 
 
 

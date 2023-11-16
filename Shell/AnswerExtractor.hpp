@@ -166,7 +166,8 @@ private:
 
   Literal* _lastAnsLit = nullptr;
 
-  SkolemTrackerList* _skolemMappings = SkolemTrackerList::empty();
+  SkolemTrackerList* _tempSkolemMappings = SkolemTrackerList::empty(); // Stores SkolemTrackers before skolemization happens
+  SkolemTrackerList* _skolemMappings = SkolemTrackerList::empty();    // Stores the final SkolemTracker mappings after skolemization 
 
 
 public:
@@ -180,7 +181,9 @@ public:
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
 
+  void storeTempSkolemMapping(unsigned int var, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
   void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
+  void matchSkolemSymbols(BindingList* bindingList); // called after skolemization has happened to fill _skolemMappings
 
   SkolemTrackerList* getSkolemMappings() { return _skolemMappings; }
 
