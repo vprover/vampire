@@ -42,17 +42,23 @@ public:
   TermQueryResultIterator getTQRsForInductionTerm(Term* inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
+  static bool isIntegerComparisonLiteral(Literal* l);
   static bool isIntInductionOn();
   static bool isIntInductionOneOn();
   static bool isIntInductionTwoOn();
   static bool isInductionForFiniteIntervalsOn();
-  static bool isInductionForInfiniteIntervalsOn(); static bool isStructInductionOn();
+  static bool isInductionForInfiniteIntervalsOn();
+  static bool isStructInductionOn();
   static bool isNonUnitStructInductionOn();
   static bool isInductionClause(Clause* c);
   static bool isInductionLiteral(Literal* l);
   static bool isInductionTermFunctor(unsigned f);
   static bool isIntInductionTermListInLiteral(Term* tl, Literal* l);
   static bool isStructInductionTerm(Term* t);
+  static bool isValidBound(Term* t, Clause* c, const TermQueryResult& b) {
+    ASS(b.term.isTerm());
+    return (b.clause != c && (t != b.term.term()));
+  }
 
 private:
   TermQueryResultIterator getComparisonMatch(bool polarity, bool termIsLeft, Term* t);

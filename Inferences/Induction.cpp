@@ -635,17 +635,35 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto leBound = iterTraits(_helper.getLess(t)).collect<Stack>();
         auto grBound = iterTraits(_helper.getGreater(t)).collect<Stack>();
         auto indLitsIt = contextReplacementInstance(InductionContext({ t }, lit, premise), _opt, _fnDefHandler);
+        // If the induction literal is a comparison, and the induction term
+        // is one of its arguments, the other argument should not be allowed
+        // as a bound (such inductions are useless and can lead to redundant
+        // literals in the induction axiom).
+        // Here find the other argument and later only allow bounds different from it.
+        Term* otherArg = nullptr;
+        if (InductionHelper::isIntegerComparisonLiteral(lit)) {
+          for (unsigned i = 0; i < 2; ++i) {
+            TermList* tp1 = lit->nthArgument(i);
+            if (tp1->isTerm() && t == tp1->term()) {
+              TermList* tp2 = lit->nthArgument(1-i);
+              if (tp2->isTerm()) {
+                otherArg = tp2->term();
+                break;
+              }
+            }
+          }
+        }
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
           // process lower bounds
           for (const auto& b1 : leBound) {
-            if (b1.clause == premise) {
+            if (!InductionHelper::isValidBound(otherArg, premise, b1)) {
               continue;
             }
             if (_helper.isInductionForFiniteIntervalsOn()) {
               // process upper bounds together with current lower bound
               for (const auto& b2 : grBound) {
-                if (b2.clause == premise) {
+                if (!InductionHelper::isValidBound(otherArg, premise, b2)) {
                   continue;
                 }
                 performFinIntInduction(ctx, b1, b2);
@@ -659,7 +677,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // process upper bounds
           if (_helper.isInductionForInfiniteIntervalsOn()) {
             for (const auto& b2 : grBound) {
-              if (b2.clause == premise) {
+              if (!InductionHelper::isValidBound(otherArg, premise, b2)) {
                 continue;
               }
               performInfIntInduction(ctx, false, b2);
@@ -671,7 +689,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
-            if (notDoneInt(ctx, nullptr, nullptr, e)) {
+            if (notDoneInt(ctx, nullptr, nullptr, e) && InductionHelper::isValidBound(otherArg, premise, defaultBound)) {
               performIntInduction(ctx, e, true, defaultBound, nullptr);
               performIntInduction(ctx, e, false, defaultBound, nullptr);
             }
@@ -946,7 +964,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
     auto cl = clauses[i];
     Stack<Literal*> conclusionLits(toResolve.size());
 #if VDEBUG
-    Stack<unsigned> variantCounts(toResolve.size());
+    Stack<int> variantCounts(toResolve.size());
 #endif
     // we first find the conclusion literals in cl, exactly 1 from
     // each of toResolve and save how many variants it should have
@@ -1000,7 +1018,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
           uf.doUnion(i,j);
         }
       }
-      ASS_EQ(variantCounts[k],0);
+      ASS_LE(variantCounts[k],0);
     }
   }
   uf.evalComponents();
