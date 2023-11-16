@@ -609,6 +609,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqualityProxyMono.hpp
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
+    Shell/FunctionDefinitionHandler.hpp
     Shell/GeneralSplitting.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
@@ -744,7 +745,6 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
-    UnitTests/tInductionGeneralization.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tFnDefRewriting.cpp
     UnitTests/tFunctionDefinitionHandler.cpp

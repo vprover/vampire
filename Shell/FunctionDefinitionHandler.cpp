@@ -353,8 +353,7 @@ bool InductionTemplate::checkWellFoundedness()
       }
     }
   }
-  return true;
-  // return InductionPreprocessor::checkWellFoundedness(relatedTerms);
+  return InductionPreprocessor::checkWellFoundedness(relatedTerms);
 }
 
 InductionTemplate::InductionTemplate(const Term* t)
@@ -479,69 +478,68 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>
 
 bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases)
 {
-  return true;
+  if (cases.empty()) {
+    return false;
+  }
+  missingCases.clear();
+  auto arity = cases[0]->arity();
+  if (arity == 0) {
+    return true;
+  }
+  Stack<Stack<TermStack>> availableTermsLists;
+  availableTermsLists.push(Stack<TermStack>(arity));
+  unsigned var = 0;
+  for (unsigned i = 0; i < arity; i++) {
+    availableTermsLists.top().push(TermStack({ TermList(var++, false) }));
+  }
 
-  // if (cases.empty()) {
-  //   return false;
-  // }
-  // missingCases.clear();
-  // auto arity = cases[0]->arity();
-  // if (arity == 0) {
-  //   return true;
-  // }
-  // vvector<vvector<TermStack>> availableTermsLists;
-  // availableTermsLists.emplace_back(arity);
-  // unsigned var = 0;
-  // for (unsigned i = 0; i < arity; i++) {
-  //   availableTermsLists.back()[i].push(TermList(var++, false));
-  // }
+  for (auto& c : cases) {
+    Stack<Stack<TermStack>> nextAvailableTermsLists;
+    for (unsigned i = 0; i < arity; i++) {
+      auto arg = *c->nthArgument(i);
+      // we check lazily for non-term algebra sort non-variables
+      if (arg.isTerm() && env.signature->isTermAlgebraSort(SortHelper::getResultSort(arg.term()))) {
+        auto tempLists = availableTermsLists;
+        for (auto& availableTerms : tempLists) {
+          TermAlgebra::excludeTermFromAvailables(availableTerms[i], arg, var);
+        }
+        for (auto&& e : tempLists) {
+          nextAvailableTermsLists.push(std::move(e));
+        }
+      } else {
+        for (const auto& availableTerms : availableTermsLists) {
+          if (!availableTerms[i].isEmpty()) {
+            break;
+          }
+        }
+      }
+    }
+    availableTermsLists = nextAvailableTermsLists;
+  }
 
-  // for (auto& c : cases) {
-  //   vvector<vvector<TermStack>> nextAvailableTermsLists;
-  //   for (unsigned i = 0; i < arity; i++) {
-  //     auto arg = *c->nthArgument(i);
-  //     // we check lazily for non-term algebra sort non-variables
-  //     if (arg.isTerm() && env.signature->isTermAlgebraSort(SortHelper::getResultSort(arg.term()))) {
-  //       auto tempLists = availableTermsLists;
-  //       for (auto& availableTerms : tempLists) {
-  //         TermAlgebra::excludeTermFromAvailables(availableTerms[i], arg, var);
-  //       }
-  //       nextAvailableTermsLists.insert(nextAvailableTermsLists.end(),
-  //         tempLists.begin(), tempLists.end());
-  //     } else {
-  //       for (const auto& availableTerms : availableTermsLists) {
-  //         if (!availableTerms[i].isEmpty()) {
-  //           break;
-  //         }
-  //       }
-  //     }
-  //   }
-  //   availableTermsLists = nextAvailableTermsLists;
-  // }
-
-  // for (const auto& availableTerms : availableTermsLists) {
-  //   bool valid = true;
-  //   vvector<vvector<TermList>> argTuples(1);
-  //   for (const auto& v : availableTerms) {
-  //     if (v.isEmpty()) {
-  //       valid = false;
-  //       break;
-  //     }
-  //     vvector<vvector<TermList>> temp;
-  //     for (const auto& e : v) {
-  //       for (auto a : argTuples) {
-  //         a.push_back(e);
-  //         temp.push_back(a);
-  //       }
-  //     }
-  //     argTuples = temp;
-  //   }
-  //   if (valid) {
-  //     missingCases.insert(missingCases.end(),
-  //       argTuples.begin(), argTuples.end());
-  //   }
-  // }
-  // return missingCases.empty();
+  for (const auto& availableTerms : availableTermsLists) {
+    bool valid = true;
+    vvector<vvector<TermList>> argTuples(1);
+    for (const auto& v : availableTerms) {
+      if (v.isEmpty()) {
+        valid = false;
+        break;
+      }
+      vvector<vvector<TermList>> temp;
+      for (const auto& e : v) {
+        for (auto a : argTuples) {
+          a.push_back(e);
+          temp.push_back(a);
+        }
+      }
+      argTuples = temp;
+    }
+    if (valid) {
+      missingCases.insert(missingCases.end(),
+        argTuples.begin(), argTuples.end());
+    }
+  }
+  return missingCases.empty();
 }
 
 } // Shell
