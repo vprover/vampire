@@ -415,19 +415,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         // as a bound (such inductions are useless and can lead to redundant
         // literals in the induction axiom).
         // Here find the other argument and later only allow bounds different from it.
-        Term* otherArg = nullptr;
-        if (InductionHelper::isIntegerComparisonLiteral(lit)) {
-          for (unsigned i = 0; i < 2; ++i) {
-            TermList* tp1 = lit->nthArgument(i);
-            if (tp1->isTerm() && t == tp1->term()) {
-              TermList* tp2 = lit->nthArgument(1-i);
-              if (tp2->isTerm()) {
-                otherArg = tp2->term();
-                break;
-              }
-            }
-          }
-        }
+        Term* otherArg = InductionHelper::getOtherTermFromComparison(lit, t);
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
           // process lower bounds
@@ -579,10 +567,19 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();
+      Formula* f = ctx.getFormula(indtl, false);
+      ASS(f->connective() == LITERAL);
+      Literal* indLit = f->literal();
+      Clause* indCl = ctx._cls.begin()->first;
+      ASS((indLit != nullptr) && (indCl != nullptr));
+      Term* otherArg = InductionHelper::getOtherTermFromComparison(indLit, indt);
+      if (!InductionHelper::isValidBound(otherArg, indCl, b)) {
+        continue;
+      }
       if (_helper.isInductionForFiniteIntervalsOn()) {
         // go over the lower/upper bounds that contain the same induction term as the current bound
         for (const auto& b2 : bound2) {
-          if (b2.clause == ctx._cls.begin()->first) {
+          if (!InductionHelper::isValidBound(otherArg, indCl, b2)) {
             ASS_EQ(ctx._cls.size(), 1);
             continue;
           }

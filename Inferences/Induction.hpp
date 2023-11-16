@@ -25,6 +25,7 @@
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
+#include "Kernel/Formula.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Theory.hpp"
 

@@ -43,6 +43,27 @@ struct SLQueryResultToTermQueryResultFn
   TermList variable;
 };
 
+bool isIntegerComparisonLiteral(Literal* lit) {
+  if (!lit->ground() || !theory->isInterpretedPredicate(lit)) return false;
+  switch (theory->interpretPredicate(lit)) {
+    case Theory::INT_LESS:
+      // The only supported integer comparison predicate is INT_LESS.
+      break;
+    case Theory::INT_LESS_EQUAL:
+    case Theory::INT_GREATER_EQUAL:
+    case Theory::INT_GREATER:
+      // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
+
+      // Equality proxy may generate useless congruence axioms for the likes of INT_GREATER
+      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ingore)
+      ASS_EQ(env.options->equalityProxy(),Options::EqualityProxy::RSTC);
+    default:
+      // Not an integer comparison.
+      return false;
+  }
+  return true;
+}
+
 };  // namespace
 
 TermQueryResultIterator InductionHelper::getComparisonMatch(
@@ -86,27 +107,6 @@ bool InductionHelper::isIntInductionOn() {
   static bool intInd = env.options->induction() == Options::Induction::BOTH ||
                         env.options->induction() == Options::Induction::INTEGER;
   return intInd;
-}
-
-bool InductionHelper::isIntegerComparisonLiteral(Literal* lit) {
-  if (!lit->ground() || !theory->isInterpretedPredicate(lit)) return false;
-  switch (theory->interpretPredicate(lit)) {
-    case Theory::INT_LESS:
-      // The only supported integer comparison predicate is INT_LESS.
-      break;
-    case Theory::INT_LESS_EQUAL:
-    case Theory::INT_GREATER_EQUAL:
-    case Theory::INT_GREATER:
-      // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
-
-      // Equality proxy may generate useless congruence axioms for the likes of INT_GREATER
-      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ingore)
-      ASS_EQ(env.options->equalityProxy(),Options::EqualityProxy::RSTC);
-    default:
-      // Not an integer comparison.
-      return false;
-  }
-  return true;
 }
 
 bool InductionHelper::isIntInductionOneOn() {
@@ -251,6 +251,21 @@ bool InductionHelper::isStructInductionTerm(Term* t) {
            // otherwise skip all constructors:
            !env.signature->getFunction(t->functor())->termAlgebraCons())
          );
+}
+
+Term* InductionHelper::getOtherTermFromComparison(Literal* l, Term* t) {
+  if (isIntegerComparisonLiteral(l)) {
+    for (unsigned i = 0; i < 2; ++i) {
+      TermList* tp1 = l->nthArgument(i);
+      if (tp1->isTerm() && t == tp1->term()) {
+        TermList* tp2 = l->nthArgument(1-i);
+        if (tp2->isTerm()) {
+          return tp2->term();
+        }
+      }
+    }
+  }
+  return nullptr;
 }
 
 }  // namespace Inferences
