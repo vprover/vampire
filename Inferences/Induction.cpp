@@ -535,8 +535,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       auto st = nvi.next();
       if (env.signature->getFunction(st->functor())->skolem()) {
         InductionContext ctx(st, lit, premise);
-        performStructInductionSynth(ctx, nullptr); // clauses get resolved in the function
-        // USER_ERROR("x");
+        performStructInductionSynth(ctx); // clauses get resolved in the function
       }
     }
   }
@@ -1357,7 +1356,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 /*
 Creates the structural induction axiom for synthesis of recursive programs.
 */
-void InductionClauseIterator::performStructInductionSynth(const InductionContext& context, InductionFormulaIndex::Entry* e)
+void InductionClauseIterator::performStructInductionSynth(const InductionContext& context)
 {
   TermList sort = SortHelper::getResultSort(context._indTerm);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
