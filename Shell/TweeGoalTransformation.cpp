@@ -202,7 +202,7 @@ void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
     for (unsigned i = 0; i < c->size(); i++) {
       Literal* l = c->literals()[i];
       // cout << "L: " << l->toString() << endl;
-      Literal* nl = df.transform(l);
+      Literal* nl = df.transformLiteral(l);
       // cout << "NL: " << nl->toString() << endl;
       newLits.push(nl);
     }

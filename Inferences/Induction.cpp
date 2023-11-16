@@ -94,7 +94,7 @@ Formula* InductionContext::getFormula(TermReplacement& tr, bool opposite) const
   for (const auto& kv : _cls) {
     auto argList = FormulaList::empty();
     for (const auto& lit : kv.second) {
-      auto tlit = tr.transform(lit);
+      auto tlit = tr.transformLiteral(lit);
       FormulaList::push(new AtomicFormula(opposite ? Literal::complementaryLiteral(tlit) : tlit), argList);
     }
     FormulaList::push(JunctionFormula::generalJunction(opposite ? Connective::AND : Connective::OR, argList), argLists);
@@ -153,7 +153,7 @@ InductionContext ContextReplacement::next()
   InductionContext context(_context._indTerm);
   for (const auto& kv : _context._cls) {
     for (const auto& lit : kv.second) {
-      auto tlit = transform(lit);
+      auto tlit = transformLiteral(lit);
       if (tlit != lit) {
         context.insert(kv.first, tlit);
       }
@@ -223,7 +223,7 @@ InductionContext ContextSubsetReplacement::next() {
   _matchCount = 0;
   for (const auto& kv : _context._cls) {
     for (const auto& lit : kv.second) {
-      auto tlit = transform(lit);
+      auto tlit = transformLiteral(lit);
       if (tlit != lit) {
         context.insert(kv.first, tlit);
       }
@@ -837,7 +837,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
       Literal* resLit;
       if (applySubst) {
         TermReplacement tr(getPlaceholderForTerm(context._indTerm),TermList(context._indTerm));
-        resLit = tr.transform(SubstHelper::apply<Substitution>(curr,subst));
+        resLit = tr.transformLiteral(SubstHelper::apply<Substitution>(curr,subst));
       } else {
         resLit = curr;
       }
