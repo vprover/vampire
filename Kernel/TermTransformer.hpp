@@ -22,6 +22,19 @@
 namespace Kernel {
 
 /**
+ * Common methods of TermTransformer and BottomUpTermTransformer extracted here.
+ */
+class TermTransformerCommon {
+public:
+  Literal* transformLiteral(Literal* lit);
+  virtual Formula* transform(Formula* f) = 0;
+  virtual Term* transform(Term* term) = 0;
+protected:
+  Term* transformSpecial(Term* specialTerm);
+  virtual TermList transform(TermList ts) = 0;
+};
+
+/**
  * Class to allow for easy transformations of subterms in shared literals.
  *
  * The inheriting class implements function transformSubterm(TermList)
@@ -38,16 +51,14 @@ namespace Kernel {
  *
  * Note that if called via transform(Term* term) the given term itself will not get transformed, only possibly its proper subterms
  */
-class TermTransformer {
+class TermTransformer : public TermTransformerCommon {
 public:
   virtual ~TermTransformer() {}
-  Term* transform(Term* term);
-  Literal* transform(Literal* lit);
+  Term* transform(Term* term) override;
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
-  Term* transformSpecial(Term* specialTerm);
-  virtual Formula* transform(Formula* f);
-  TermList transform(TermList ts);
+  Formula* transform(Formula* f) override;
+  TermList transform(TermList ts) override;
 };
 
 /**
@@ -55,22 +66,18 @@ protected:
  *  goes bottom up and so subterms of currently considered terms
  *  might already be some replacements that happened earlier, e.g.:
  *  transforming g(f(a,b)) will consider (provided transformSubterm is the identity function)
- *  the following sequence: a,b,f(a,b),g(f(a,b)) 
+ *  the following sequence: a,b,f(a,b),g(f(a,b))
  *  and if transformSubterm is the identitify everywhere except for f(a,b) for which it returns c,
  *  the considered sequence will be: a,b,f(a,b)->c,g(c)
  */
-class BottomUpTermTransformer {
+class BottomUpTermTransformer : public TermTransformerCommon {
 public:
   virtual ~BottomUpTermTransformer() {}
-  Term* transform(Term* term);
-  Literal* transform(Literal* lit);
+  Term* transform(Term* term) override;
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
-  /**
-   * TODO: these functions are similar as in TermTransformer, code duplication could be removed
-   */
-  TermList transform(TermList ts);
-  Formula* transform(Formula* f);
+  Formula* transform(Formula* f) override;
+  TermList transform(TermList ts) override;
 };
 
 
