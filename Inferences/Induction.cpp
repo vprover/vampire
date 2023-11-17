@@ -691,13 +691,19 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   while(cit.hasNext()){
     Clause* c = cit.next();
     unsigned cLen = c->length();
-    Literal* resLit = (*c)[cLen - 1]; // Literal to resolve: L[z, rec(bar(u),z)], ToDo: Lit may not always be the last one. It is the one including the rec function. 
+
+    unsigned int resLitIdx = SynthesisManager::getInstance()->getResolventLiteralIdx(c); // The literal which contains a rec(.) term should be picked for resolution
+    Literal* resLit = (*c)[resLitIdx]; 
+
     RobSubstitution subst;
     if (subst.unifyArgs(indLit, 0, resLit, 1, nullptr)) {
       Literal* indLitS = subst.apply(indLit, 0);
 
       Stack<Literal*> lits;
-      for (unsigned i = 0; i < cLen - 1; i++) {
+      for (unsigned i = 0; i < cLen; i++) { // Apply resolution on rest of the literals
+        if (i == resLitIdx) {
+          continue;
+        }
         Literal* lit = subst.apply((*c)[i], 1);
         lits.push(lit);
       }

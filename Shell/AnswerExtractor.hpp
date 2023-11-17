@@ -187,6 +187,8 @@ public:
   void storeRecTerm(unsigned int fnId) { _recTermIds->push(fnId, _recTermIds); }
   bool isRecTerm(Term* t);
   SkolemTrackerList* getSkolemMappings() { return _skolemMappings; }
+  bool hasRecTerm(Literal* lit);
+  unsigned int getResolventLiteralIdx(Clause* clause);
 
   void printSkolemMappings();
 };

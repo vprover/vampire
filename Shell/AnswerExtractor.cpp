@@ -862,5 +862,36 @@ bool SynthesisManager::isRecTerm(Term* t) {
   return false;
 }
 
+bool SynthesisManager::hasRecTerm(Literal* lit) {
+  if (!lit->isEquality()) {
+    return false;
+  }
+  unsigned arity = lit->arity();
+  for (unsigned i = 0; i < arity; i++) {
+    TermList ts = *lit->nthArgument(i);
+    if (ts.isTerm()) {
+      Term* t = ts.term();
+      SubtermIterator sit(t);
+      while (sit.hasNext()) { 
+        TermList t = sit.next();
+        if (t.isTerm()) {
+          if (SynthesisManager::getInstance()->isRecTerm(t.term())) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
 
-
+unsigned int SynthesisManager::getResolventLiteralIdx(Clause* clause) {
+  unsigned len = clause->length();
+  for (unsigned i = 0; i < len; i++) {
+    Literal* lit = (*clause)[i];
+    if (hasRecTerm(lit)) {
+      return i;
+    }
+  }
+  return -1;
+}
