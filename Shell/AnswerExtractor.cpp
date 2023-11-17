@@ -850,7 +850,7 @@ void SynthesisManager::matchSkolemSymbols(BindingList* bindingList) {
   }
 }
 
-bool SynthesisManager::isRecFunction(Term* t) {
+bool SynthesisManager::isRecTerm(Term* t) {
   unsigned int fn = t->functor();
   List<unsigned int>::Iterator it(_recTermIds);
   while (it.hasNext()) {

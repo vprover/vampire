@@ -184,8 +184,8 @@ public:
   void storeTempSkolemMapping(unsigned int var, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
   void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
   void matchSkolemSymbols(BindingList* bindingList); // called after skolemization has happened to fill _skolemMappings
-  void storeRecFunction(unsigned int fnId) { _recTermIds->push(fnId, _recTermIds); }
-  bool isRecFunction(Term* t);
+  void storeRecTerm(unsigned int fnId) { _recTermIds->push(fnId, _recTermIds); }
+  bool isRecTerm(Term* t);
   SkolemTrackerList* getSkolemMappings() { return _skolemMappings; }
 
   void printSkolemMappings();

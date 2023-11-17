@@ -1440,7 +1440,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   recFuncArgs.push(z);
 
   unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec");
-  SynthesisManager::getInstance()->storeRecFunction(rec_fn);
+  SynthesisManager::getInstance()->storeRecTerm(rec_fn);
 
   TermStack sortArgs(ta->nConstructors() + 1);
   for (unsigned i = 0; i < ta->nConstructors()+1; i++){
