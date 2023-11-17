@@ -1439,12 +1439,15 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   TermList z(var++, false);
   recFuncArgs.push(z);
 
-  auto synth_sort = SortHelper::getVariableSort(freshSynthVar, L);
   unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec");
+  SynthesisManager::getInstance()->storeRecFunction(rec_fn);
+
   TermStack sortArgs(ta->nConstructors() + 1);
   for (unsigned i = 0; i < ta->nConstructors()+1; i++){
     sortArgs.push(sort);
   }
+
+  auto synth_sort = SortHelper::getVariableSort(freshSynthVar, L);
   env.signature->getFunction(rec_fn)->setType(OperatorType::getFunctionType(sortArgs.size(), sortArgs.begin(), synth_sort));
   TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
 

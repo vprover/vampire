@@ -166,9 +166,9 @@ private:
 
   Literal* _lastAnsLit = nullptr;
 
-  SkolemTrackerList* _tempSkolemMappings = SkolemTrackerList::empty(); // Stores SkolemTrackers before skolemization happens
-  SkolemTrackerList* _skolemMappings = SkolemTrackerList::empty();    // Stores the final SkolemTracker mappings after skolemization 
-
+  SkolemTrackerList* _tempSkolemMappings = SkolemTrackerList::empty();  // Stores SkolemTrackers before skolemization happens
+  SkolemTrackerList* _skolemMappings = SkolemTrackerList::empty();      // Stores the final SkolemTracker mappings after skolemization 
+  List<unsigned int>* _recTermIds;                                      // Stores the IDs of the rec(.) terms in the structural induction axiom
 
 public:
   static SynthesisManager* getInstance();
@@ -184,7 +184,8 @@ public:
   void storeTempSkolemMapping(unsigned int var, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
   void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
   void matchSkolemSymbols(BindingList* bindingList); // called after skolemization has happened to fill _skolemMappings
-
+  void storeRecFunction(unsigned int fnId) { _recTermIds->push(fnId, _recTermIds); }
+  bool isRecFunction(Term* t);
   SkolemTrackerList* getSkolemMappings() { return _skolemMappings; }
 
   void printSkolemMappings();
