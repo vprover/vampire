@@ -11,13 +11,9 @@
 #include "FunctionDefinitionHandler.hpp"
 #include "Inferences/InductionHelper.hpp"
 
-#include "Kernel/Matcher.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 
 #include "Lib/Hash.hpp"
 #include "Lib/SharedSet.hpp"
@@ -34,196 +30,103 @@ void FunctionDefinitionHandler::preprocess(Problem& prb)
   UnitList::DelIterator it(prb.units());
   while (it.hasNext()) {
     auto u = it.next();
-    if (u->isClause()) {
+    if (!u->isClause()) {
       continue;
     }
-    auto fu = static_cast<FormulaUnit*>(u);
-    if (fu->isFunctionDefinition()) {
-      // if the definition could be processed and the function axioms
-      // will be used as rewrite rules, we remove the unit
-      Stack<Branch> branches;
-      if (preprocess(fu->formula(), branches)) {
-        addFunction(branches, u);
-        if (env.options->functionDefinitionRewriting()) {
-          it.del();
-        }
+    auto cl = u->asClause();
+    LiteralStack defLits;
+    LiteralStack condLits;
+    for (unsigned i = 0; i < cl->length(); i++) {
+      auto lit = (*cl)[i];
+      if (!env.signature->isDefPred(lit->functor())) {
+        condLits.push(lit);
+      } else {
+        defLits.push(lit);
       }
     }
-  }
-}
 
-bool FunctionDefinitionHandler::preprocess(Formula* f, Stack<Branch>& branches)
-{
-  ASS_EQ(f->connective(), LITERAL);
-
-  auto l = f->literal();
-  ASS(l->isEquality());
-
-  //TODO handle predicate definitions as well
-  ASS(l->nthArgument(0)->isTerm());
-  auto header = l->nthArgument(0)->term();
-  if (header->isSpecial()) {
-    // literal headers are nicely packed into multiple layers
-    ASS_EQ(header->getSpecialData()->specialFunctor(), Term::SpecialFunctor::FORMULA);
-    auto of = header->getSpecialData()->getFormula();
-    ASS_EQ(of->connective(), LITERAL);
-    header = of->literal();
-  }
-  Stack<Branch> todos;
-  todos.push({
-    .header = header,
-    .body = *l->nthArgument(1),
-    .literals = LiteralStack()
-  });
-  while (todos.isNonEmpty()) {
-    auto b = todos.pop();
-    if (b.body.isVar() || !b.body.term()->isSpecial()) {
-      branches.push(std::move(b));
+    // clause not from a definition
+    if (defLits.isEmpty()) {
       continue;
     }
-    auto t = b.body.term();
-    Term::SpecialTermData *sd = t->getSpecialData();
-    switch (sd->specialFunctor()) {
-      case Term::SpecialFunctor::FORMULA: {
-        // only the atoms of formula bodies of bool
-        // functions are interesting, so save them
-        ASS(header->isLiteral());
-        auto f = sd->getFormula();
-        SubformulaIterator sfit(f);
-        while(sfit.hasNext()) {
-          Formula* sf = sfit.next();
-          if(sf->connective()==LITERAL) {
-            Literal* l = sf->literal();
-            b.literals.push(Literal::positiveLiteral(l));
-          }
-        }
-        // f->collectAtoms(b.literals);
-        branches.push(std::move(b));
-        break;
-      }
-      case Term::SpecialFunctor::LET:
-      case Term::SpecialFunctor::LET_TUPLE:
-      case Term::SpecialFunctor::TUPLE: {
-        return false;
-      }
 
-      case Term::SpecialFunctor::ITE: {
-        auto cf = sd->getCondition();
-        switch (cf->connective())
-        {
-        case LITERAL: {
-          auto l = cf->literal();
-          todos.push(addCondition(Literal::complementaryLiteral(l), b, *t->nthArgument(0)));
-          todos.push(addCondition(l, b, *t->nthArgument(1)));
-          break;
-        }
-        default: {
-          return false;
-        }
-        }
-        break;
-      }
-
-      case Term::SpecialFunctor::MATCH: {
-        auto matched = *t->nthArgument(0);
-        for (unsigned int i = 1; i < t->arity(); i += 2) {
-          todos.push(substituteBoundVariable(matched.var(), *t->nthArgument(i), b, *t->nthArgument(i+1)));
-        }
-        break;
-      }
-
-      default:
-        ASSERTION_VIOLATION_REP(t->toString());
+    // clause contains definitions, we need to replace them with equalities
+    auto lits = condLits;
+    for (const auto& lit : defLits) {
+      auto lhs = lit->termArg(0);
+      ASS(lhs.isTerm());
+      lits.push(Literal::createEquality(lit->polarity(), lhs, lit->termArg(1), SortHelper::getResultSort(lhs.term())));
     }
-  }
-  return true;
-}
+    Clause* defCl = Clause::fromStack(lits, NonspecificInference1(InferenceRule::DEFINITION_UNFOLDING,u));
 
-void FunctionDefinitionHandler::addFunction(const Stack<Branch>& branches, Unit* unit)
-{
-  ASS_REP(branches.isNonEmpty(), unit->toString());
+    // multiple defining equations inside clause, skip
+    if (defLits.size()!=1) {
+      it.replace(defCl);
+      continue;
+    }
 
-  auto fn = branches[0].header->functor();
-  auto isLit = branches[0].header->isLiteral();
-  auto symb = isLit ? env.signature->getPredicate(fn) : env.signature->getFunction(fn);
-  auto sort = isLit ? symb->predType()->result() : symb->fnType()->result();
-  auto templ = new InductionTemplate(branches[0].header);
-  for (auto& b : branches) {
-    // handle for induction
-    vvector<Term*> recursiveCalls;
-    if (isLit) {
-      for(const auto& lit : b.literals) {
-        if (!lit->isEquality() && fn == lit->functor()) {
-          recursiveCalls.push_back(lit->isPositive() ? lit : Literal::complementaryLiteral(lit));
-        }
-      }
-      if (static_cast<Literal*>(b.header)->isNegative()) {
-        b.header = Literal::complementaryLiteral(static_cast<Literal*>(b.header));
-      }
+    auto lhs = defLits[0]->termArg(0);
+    auto rhs = defLits[0]->termArg(1);
+
+    // process for induction
+    addBranch(lhs.term(), rhs, condLits);
+
+    // process for rewriting
+    if (!lhs.term()->isLiteral() && env.options->functionDefinitionRewriting()) {
+      defCl->setSplits(SplitSet::getEmpty());
+      defCl->incRefCnt();
+      ASS_EQ(condLits.size()+1,lits.size());
+      _is.insert(lhs.term(), lits.top(), defCl);
+      // TODO should we store this clause anywhere else?
     } else {
-      if (b.body.isTerm()) {
-        NonVariableIterator it(b.body.term(), true);
-        while (it.hasNext()) {
-          auto st = it.next();
-          if (st.term()->functor() == fn) {
-            recursiveCalls.push_back(st.term());
-          }
-        }
-      }
-    }
-    templ->addBranch(std::move(recursiveCalls), b.header);
-
-    // handle for rewriting
-    if (!isLit && env.options->functionDefinitionRewriting()) {
-      auto mainLit = Literal::createEquality(true, TermList(b.header), b.body, sort);
-      b.literals.push(mainLit);
-      auto rwCl = Clause::fromStack(b.literals, FormulaTransformation(InferenceRule::CLAUSIFY,unit));
-      rwCl->setSplits(SplitSet::getEmpty());
-      rwCl->incRefCnt();
-      _is.insert(b.header, mainLit, rwCl);
+      it.replace(defCl);
     }
   }
-  if (templ->finalize()) {
-    if (env.options->showInduction()){
+
+  DHMap<pair<unsigned,SymbolType>,InductionTemplate>::DelIterator tIt(_templates);
+  while (tIt.hasNext()) {
+    auto k = tIt.nextKey();
+    auto ptr = _templates.findPtr(k);
+    if (!ptr->finalize()) {
+      tIt.del();
+      continue;
+    }
+    if (env.options->showInduction()) {
       env.beginOutput();
-      env.out() << "[Induction] " << (isLit ? "predicate " : "function ") << symb->name() << endl;
-      env.out() << ", with induction template: " << templ->toString() << endl;
+      env.out() << "[Induction] added induction template: " << ptr->toString() << endl;
       env.endOutput();
     }
-    ALWAYS(_templates.insert(make_pair(make_pair(fn,!isLit), templ)).second);
   }
 }
 
-FunctionDefinitionHandler::Branch FunctionDefinitionHandler::substituteBoundVariable(unsigned var, TermList t, const Branch& b, TermList body)
+void FunctionDefinitionHandler::addBranch(Term* header, TermList body, const LiteralStack& conditions)
 {
-  Substitution subst;
-  subst.bind(var, t);
+  auto fn = header->functor();
+  auto isLit = header->isLiteral();
+  InductionTemplate* templ;
+  _templates.getValuePtr(make_pair(fn,isLit?SymbolType::PRED:SymbolType::FUNC), templ, InductionTemplate(header));
 
-  auto bn = b;
-  bn.body = SubstHelper::apply(body, subst);
-  bn.header = SubstHelper::apply(bn.header, subst);
-  for (auto& lit : bn.literals) {
-    lit = SubstHelper::apply(lit, subst);
-  }
-  return bn;
-}
-
-FunctionDefinitionHandler::Branch FunctionDefinitionHandler::addCondition(Literal* lit, const Branch& b, TermList body)
-{
-  if (lit->isEquality() && lit->isNegative()) {
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
-    if (lhs.isVar() || rhs.isVar()) {
-      if (lhs.isTerm() && rhs.isVar()) {
-        swap(lhs,rhs);
+  // handle for induction
+  vvector<Term*> recursiveCalls;
+  if (isLit) {
+    ASS(static_cast<Literal*>(header)->isPositive());
+    for(const auto& lit : conditions) {
+      if (!lit->isEquality() && fn == lit->functor()) {
+        recursiveCalls.push_back(lit->isPositive() ? lit : Literal::complementaryLiteral(lit));
       }
-      return substituteBoundVariable(lhs.var(), rhs, b, body);
+    }
+  } else {
+    if (body.isTerm()) {
+      NonVariableNonTypeIterator it(body.term(), true);
+      while (it.hasNext()) {
+        auto st = it.next();
+        if (st->functor() == fn) {
+          recursiveCalls.push_back(st);
+        }
+      }
     }
   }
-  auto bn = b;
-  bn.body = body;
-  bn.literals.push(lit);
-  return bn;
+  templ->addBranch(std::move(recursiveCalls), header);
 }
 
 bool InductionTemplate::finalize()
@@ -262,7 +165,7 @@ void InductionTemplate::checkWellDefinedness()
       } else {
         t = Term::create(_functor, _arity, args.begin());
       }
-      addBranch(vvector<Term*>(), std::move(t));
+      addBranch(vvector<Term*>(), Renaming::normalize(t));
     }
     if (env.options->showInduction()) {
       env.out() << ". New template is " << toString() << endl;

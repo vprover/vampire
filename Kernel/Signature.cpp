@@ -697,6 +697,22 @@ unsigned Signature::getDiff(){
 }
 
 
+unsigned Signature::getDef(TermList sort)
+{
+  ASS(sort.isTerm() && sort.term()->ground());
+  bool added = false;
+  auto name = "$def_"+sort.toString();
+  unsigned p = addPredicate(name, 2, added);
+  if(added){
+    _defPreds.insert(p);
+    OperatorType* ot = OperatorType::getPredicateType({sort, sort});
+    Symbol* sym = getPredicate(p);
+    sym->markProtected();
+    sym->setType(ot);
+  }
+  return p;
+}
+
 unsigned Signature::getChoice(){
   bool added = false;
   unsigned choice = addFunction("vEPSILON",1, added);      

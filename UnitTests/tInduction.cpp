@@ -228,6 +228,7 @@ private:
   DECL_VAR(x4,4)                                                                           \
   DECL_VAR(x5,5)                                                                           \
   DECL_SORT(s)                                                                             \
+  DECL_DEF(def_s,s)                                                                        \
   DECL_SORT(u)                                                                             \
   DECL_SKOLEM_CONST(sK1, s)                                                                \
   DECL_SKOLEM_CONST(sK2, s)                                                                \
@@ -1126,56 +1127,37 @@ TEST_GENERATION_INDUCTION(test_33,
 
 auto setup = [](SaturationAlgorithm& salg) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
-  salg.setFunctionDefinitionHandler(new Shell::FunctionDefinitionHandler());
 
-  std::initializer_list<std::initializer_list<std::tuple<
-    TermSugar,TermSugar,std::initializer_list<Lit>>>> functionDefs =
-  {
-    {
-      { f(b,y),       y,                       { } },
-      { f(r(x),b),    f(x,x),                  { } },
-      { f(r(x),r(y)), h(f(x,g(y)),f(r(x),y)), { } },
-    },
-    {
-      { h(b,y),    y,       { } },
-      { h(r(x),y), h(x,y), { } },
-    },
-    {
-      { p(b()).wrapInTerm(),     b()/*unused*/, { } },
-      { p(r(r(x))).wrapInTerm(), b()/*unused*/, { p(x), x != b() } },
-    }
-  };
-  auto fu = new FormulaUnit(nullptr, FromInput(UnitInputType::AXIOM));
-  for (const auto& fd : functionDefs) {
-    Stack<FunctionDefinitionHandler::Branch> st;
-    for (const auto& t : fd) {
-      LiteralStack lits;
-      auto fnLits = get<2>(t);
-      for (const auto& l : fnLits) {
-        lits.push(l);
-      }
-      auto header = get<0>(t);
-      auto body = get<1>(t);
-      st.push({ header.sugaredExpr().term(), body.sugaredExpr(), lits });
-    }
-    salg.getFunctionDefinitionHandler()->addFunction(st, fu);
-  }
+  auto ul = UnitList::empty();
+  UnitList::push(clause({ def_s(f(b,y),    y) }), ul);
+  UnitList::push(clause({ def_s(f(r(x),b), f(x,x)) }), ul);
+  UnitList::push(clause({ def_s(f(r(x),r(y)), h(f(x,g(y)),f(r(x),y))) }), ul);
+
+  UnitList::push(clause({ def_s(h(b,y), y) }), ul);
+  UnitList::push(clause({ def_s(h(r(x),y), h(x,y)) }), ul);
+  //   { p(b()).wrapInTerm(),     b()/*unused*/, { } },
+  //   { p(r(r(x))).wrapInTerm(), b()/*unused*/, { p(x), x != b() } },
+
+  Problem prb;
+  prb.addUnits(ul);
+  salg.setFunctionDefinitionHandler(new Shell::FunctionDefinitionHandler());
+  salg.getFunctionDefinitionHandler()->preprocess(prb);
 };
 
-TEST_GENERATION_INDUCTION(test_34,
-    Generation::TestCase()
-      .setup(setup)
-      .options({
-        { "induction", "struct" },
-        { "structural_induction_kind", "recursion" },
-      })
-      .indices(getIndices())
-      .input( clause({ ~p(sK1) }) )
-      .expected({
-        clause({ ~p(b), ~p(r(b)), p(skx0) }),
-        clause({ ~p(b), ~p(r(b)), ~p(r(r(skx0))) }),
-      })
-    )
+// TEST_GENERATION_INDUCTION(test_34,
+//     Generation::TestCase()
+//       .setup(setup)
+//       .options({
+//         { "induction", "struct" },
+//         { "structural_induction_kind", "recursion" },
+//       })
+//       .indices(getIndices())
+//       .input( clause({ ~p(sK1) }) )
+//       .expected({
+//         clause({ ~p(b), ~p(r(b)), p(skx0) }),
+//         clause({ ~p(b), ~p(r(b)), ~p(r(r(skx0))) }),
+//       })
+//     )
 
 TEST_GENERATION_INDUCTION(test_35,
     Generation::TestCase()

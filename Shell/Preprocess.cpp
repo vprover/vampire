@@ -138,10 +138,6 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  auto fnDefHandler = new FunctionDefinitionHandler();
-  fnDefHandler->preprocess(prb);
-  prb.addFunctionDefinitionHandler(fnDefHandler);
-
   if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
@@ -317,6 +313,10 @@ void Preprocess::preprocess(Problem& prb)
       clausify(prb);
     }
   }
+
+  auto fnDefHandler = new FunctionDefinitionHandler();
+  fnDefHandler->preprocess(prb);
+  prb.addFunctionDefinitionHandler(fnDefHandler);
 
   prb.getProperty();
 

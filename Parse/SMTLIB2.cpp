@@ -835,15 +835,17 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   ASS(fun.second != SymbolType::TYPECON);
   bool isTrueFun = fun.second==SymbolType::FUNCTION;
 
-  TermList lhs;
+  Literal* lit;
   if (isTrueFun) {
-    lhs = TermList(Term::create(symbIdx,args.size(),args.begin()));
+    TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
+    auto p = env.signature->getDef(rangeSort);
+    lit = Literal::create(p, true, { lhs, rhs });
   } else {
     Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
-    lhs = TermList(Term::createFormula(frm));
+    TermList lhs(Term::createFormula(frm));
+    lit = Literal::createEquality(true, lhs, rhs, rangeSort);
   }
-
-  Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
+  Formula* fla = new AtomicFormula(lit);
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION), true /*isFunctionDefinition*/);
 

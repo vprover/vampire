@@ -47,10 +47,8 @@ using namespace Lib;
 Term* ActiveOccurrenceIterator::next()
 {
   Term* t = _stack.pop();
-  auto f = t->functor();
-  auto lit = t->isLiteral();
   InductionTemplate* templ = _fnDefHandler ?
-    _fnDefHandler->getInductionTemplate(f, !lit) : nullptr;
+    _fnDefHandler->getInductionTemplate(t) : nullptr;
   if (templ) {
     auto& actPos = templ->inductionPositions();
     for (unsigned i = 0; i < t->arity(); i++) {
@@ -250,9 +248,7 @@ InductionContext ActiveOccurrenceContextReplacement::next()
         auto kv = stack.pop();
         auto t = kv.first;
         auto active = kv.second;
-        auto f = t->functor();
-        auto lit = t->isLiteral();
-        auto templ = _fnDefHandler->getInductionTemplate(f, !lit);
+        auto templ = _fnDefHandler->getInductionTemplate(t);
         for (unsigned k = 0; k < t->arity(); k++) {
           stack.push(make_pair(t->nthArgument(k)->term(),
             active && templ ? templ->inductionPositions()[k] : active));
@@ -570,7 +566,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       vmap<vvector<Term*>,vvector<pair<const InductionTemplate*,vvector<Term*>>>> ta_terms;
 
       auto templ = _fnDefHandler ?
-        _fnDefHandler->getInductionTemplate(lit->functor(), false) : nullptr;
+        _fnDefHandler->getInductionTemplate(lit) : nullptr;
       if (templ) {
         vvector<Term*> indTerms;
         if (templ->matchesTerm(lit, indTerms)) {
@@ -611,7 +607,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           }
         }
         auto templ = _fnDefHandler ?
-          _fnDefHandler->getInductionTemplate(f, true) : nullptr;
+          _fnDefHandler->getInductionTemplate(t) : nullptr;
         if (templ) {
           vvector<Term*> indTerms;
           if (templ->matchesTerm(t, indTerms)) {

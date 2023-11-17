@@ -31,6 +31,7 @@ REGISTER_GEN_TESTER(FnDefRewriting)
 #define MY_SYNTAX_SUGAR                                                                    \
   DECL_DEFAULT_VARS                                                                        \
   DECL_SORT(s)                                                                             \
+  DECL_DEF(def_s,s)                                                                        \
   DECL_CONST(b, s)                                                                         \
   DECL_FUNC(r, {s}, s)                                                                     \
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
@@ -40,33 +41,19 @@ REGISTER_GEN_TESTER(FnDefRewriting)
 
 auto setup = [](SaturationAlgorithm& salg) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
-  salg.setFunctionDefinitionHandler(new Shell::FunctionDefinitionHandler());
 
-  std::initializer_list<std::initializer_list<std::tuple<
-    TermSugar,TermSugar,std::initializer_list<Lit>>>> functionDefs =
-  {
-    {
-      { f(b,y),    y,            { } },
-      { f(r(x),y), f(x,r(y)),    { x != b() } },
-      { f(r(x),y), f(x,y),       { x == r(b()) } },
-    },
-    {
-      { g(b()),    f(b(),b()),   { } },
-      { g(r(r(x))),f(r(x),g(x)), { p(x), x != b() } },
-    }
-  };
-  auto fu = new FormulaUnit(nullptr, FromInput(UnitInputType::AXIOM));
-  for (const auto& fd : functionDefs) {
-    Stack<FunctionDefinitionHandler::Branch> st;
-    for (const auto& t : fd) {
-      LiteralStack lits;
-      for (const auto& l : get<2>(t)) {
-        lits.push(l);
-      }
-      st.push({ get<0>(t).sugaredExpr().term(), get<1>(t).sugaredExpr(), lits });
-    }
-    salg.getFunctionDefinitionHandler()->addFunction(st, fu);
-  }
+  auto ul = UnitList::empty();
+  UnitList::push(clause({ def_s(f(b,y), y) }), ul);
+  UnitList::push(clause({ def_s(f(r(x),y), f(x,r(y))), x != b() }), ul);
+  UnitList::push(clause({ def_s(f(r(x),y), f(x,y)), x == r(b()) }), ul);
+
+  UnitList::push(clause({ def_s(g(b()), f(b(),b())) }), ul);
+  UnitList::push(clause({ def_s(g(r(r(x))), f(r(x),g(x))), p(x), x != b() }), ul);
+
+  Problem prb;
+  prb.addUnits(ul);
+  salg.setFunctionDefinitionHandler(new Shell::FunctionDefinitionHandler());
+  salg.getFunctionDefinitionHandler()->preprocess(prb);
 };
 
 TEST_GENERATION(test_01,

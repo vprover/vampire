@@ -34,6 +34,7 @@ using namespace Lib;
  */
 struct InductionTemplate {
   USE_ALLOCATOR(InductionTemplate);
+  InductionTemplate() = default;
   InductionTemplate(const Term* t);
 
   void addBranch(vvector<Term*>&& recursiveCalls, Term* header);
@@ -62,10 +63,10 @@ struct InductionTemplate {
 
   vstring toString() const;
 
-  const unsigned _functor;
-  const unsigned _arity;
-  const bool _isLit;
-  const OperatorType* _type;
+  unsigned _functor;
+  unsigned _arity;
+  bool _isLit;
+  OperatorType* _type;
 
 private:
   bool checkUsefulness() const;
@@ -81,31 +82,22 @@ class FunctionDefinitionHandler
 public:
   USE_ALLOCATOR(FunctionDefinitionHandler);
 
-  struct Branch {
-    Term* header;
-    TermList body;
-    LiteralStack literals;
-  };
-
   void preprocess(Problem& prb);
-  bool preprocess(Formula* f, Stack<Branch>& branches);
-  void addFunction(const Stack<Branch>& branches, Unit* unit);
+  void addBranch(Term* header, TermList body, const LiteralStack& conditions);
 
   TermQueryResultIterator getGeneralizations(TypedTermList t) {
     return _is.getGeneralizations(t, true);
   }
 
-  InductionTemplate* getInductionTemplate(unsigned fn, bool trueFun) {
-    auto it = _templates.find(std::make_pair(fn, trueFun));
-    return it == _templates.end() ? nullptr : it->second;
+  InductionTemplate* getInductionTemplate(Term* t) {
+    auto fn = t->functor();
+    auto st = t->isLiteral() ? SymbolType::PRED : SymbolType::FUNC;
+    return _templates.findPtr(std::make_pair(fn, st));
   }
 
 private:
-  Branch substituteBoundVariable(unsigned var, TermList t, const Branch& b, TermList body);
-  Branch addCondition(Literal* lit, const Branch& b, TermList body);
-
   CodeTreeTIS _is;
-  vmap<std::pair<unsigned, bool>, InductionTemplate*> _templates;
+  DHMap<std::pair<unsigned, SymbolType>, InductionTemplate> _templates;
 };
 
 /**
