@@ -410,23 +410,17 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto leBound = iterTraits(_helper.getLess(t)).collect<Stack>();
         auto grBound = iterTraits(_helper.getGreater(t)).collect<Stack>();
         auto indLitsIt = vi(ContextSubsetReplacement::instance(InductionContext(t, lit, premise), _opt));
-        // If the induction literal is a comparison, and the induction term
-        // is one of its arguments, the other argument should not be allowed
-        // as a bound (such inductions are useless and can lead to redundant
-        // literals in the induction axiom).
-        // Here find the other argument and later only allow bounds different from it.
-        Term* otherArg = InductionHelper::getOtherTermFromComparison(lit, t);
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
           // process lower bounds
           for (const auto& b1 : leBound) {
-            if (!InductionHelper::isValidBound(otherArg, premise, b1)) {
+            if (!isValidBound(ctx, b1)) {
               continue;
             }
             if (_helper.isInductionForFiniteIntervalsOn()) {
               // process upper bounds together with current lower bound
               for (const auto& b2 : grBound) {
-                if (!InductionHelper::isValidBound(otherArg, premise, b2)) {
+                if (!isValidBound(ctx, b2)) {
                   continue;
                 }
                 performFinIntInduction(ctx, b1, b2);
@@ -440,7 +434,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // process upper bounds
           if (_helper.isInductionForInfiniteIntervalsOn()) {
             for (const auto& b2 : grBound) {
-              if (!InductionHelper::isValidBound(otherArg, premise, b2)) {
+              if (!isValidBound(ctx, b2)) {
                 continue;
               }
               performInfIntInduction(ctx, false, b2);
@@ -452,7 +446,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
-            if (notDoneInt(ctx, nullptr, nullptr, e) && InductionHelper::isValidBound(otherArg, premise, defaultBound)) {
+            if (notDoneInt(ctx, nullptr, nullptr, e) && isValidBound(ctx, defaultBound)) {
               performIntInduction(ctx, e, true, defaultBound, nullptr);
               performIntInduction(ctx, e, false, defaultBound, nullptr);
             }
@@ -567,19 +561,13 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();
-      Formula* f = ctx.getFormula(indtl, false);
-      ASS(f->connective() == LITERAL);
-      Literal* indLit = f->literal();
-      Clause* indCl = ctx._cls.begin()->first;
-      ASS((indLit != nullptr) && (indCl != nullptr));
-      Term* otherArg = InductionHelper::getOtherTermFromComparison(indLit, indt);
-      if (!InductionHelper::isValidBound(otherArg, indCl, b)) {
+      if (!isValidBound(ctx, b)) {
         continue;
       }
       if (_helper.isInductionForFiniteIntervalsOn()) {
         // go over the lower/upper bounds that contain the same induction term as the current bound
         for (const auto& b2 : bound2) {
-          if (!InductionHelper::isValidBound(otherArg, indCl, b2)) {
+          if (!isValidBound(ctx, b2)) {
             ASS_EQ(ctx._cls.size(), 1);
             continue;
           }
@@ -1297,6 +1285,24 @@ bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* boun
       bound2->polarity() ? *bound2->nthArgument(1) : ph);
   }
   return _formulaIndex.findOrInsert(context, e, b1, b2);
+}
+
+// If the integer induction literal is a comparison, and the induction term is
+// one of its arguments, the other argument should not be allowed as a bound
+// (such inductions are useless and can lead to redundant literals in the
+// induction axiom).
+bool InductionClauseIterator::isValidBound(const InductionContext& context, const TermQueryResult& bound) {
+  Term* pt = getPlaceholderForTerm(context._indTerm);
+  for (const auto& kv : context._cls) {
+    for (const auto& lit : kv.second) {
+      ASS((lit != nullptr) && (kv.first != nullptr));
+      Term* otherArg = InductionHelper::getOtherTermFromComparison(lit, pt);
+      if (!InductionHelper::isValidBound(otherArg, kv.first, bound)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 }

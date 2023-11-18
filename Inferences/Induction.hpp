@@ -225,6 +225,8 @@ private:
 
   bool notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e);
 
+  bool isValidBound(const InductionContext& context, const TermQueryResult& bound);
+
   Stack<Clause*> _clauses;
   InductionHelper _helper;
   const Options& _opt;
