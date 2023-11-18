@@ -42,7 +42,6 @@ public:
   TermQueryResultIterator getTQRsForInductionTerm(Term* inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
-  static bool isIntegerComparisonLiteral(Literal* l);
   static bool isIntInductionOn();
   static bool isIntInductionOneOn();
   static bool isIntInductionTwoOn();
@@ -59,6 +58,7 @@ public:
     ASS(b.term.isTerm());
     return (b.clause != c && (t != b.term.term()));
   }
+  static Term* getOtherTermFromComparison(Literal* l, Term* t);
 
 private:
   TermQueryResultIterator getComparisonMatch(bool polarity, bool termIsLeft, Term* t);

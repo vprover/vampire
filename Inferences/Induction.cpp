@@ -116,7 +116,7 @@ Formula* InductionContext::getFormula(TermReplacement& tr, bool opposite) const
   for (const auto& kv : _cls) {
     auto argList = FormulaList::empty();
     for (const auto& lit : kv.second) {
-      auto tlit = tr.transform(lit);
+      auto tlit = tr.transformLiteral(lit);
       FormulaList::push(new AtomicFormula(opposite ? Literal::complementaryLiteral(tlit) : tlit), argList);
     }
     FormulaList::push(JunctionFormula::generalJunction(opposite ? Connective::AND : Connective::OR, argList), argLists);
@@ -198,7 +198,7 @@ InductionContext ContextReplacement::next()
   InductionContext context(_context._indTerms);
   for (const auto& kv : _context._cls) {
     for (const auto& lit : kv.second) {
-      auto tlit = transform(lit);
+      auto tlit = transformLiteral(lit);
       if (tlit != lit) {
         context.insert(kv.first, tlit);
       }
@@ -262,7 +262,7 @@ InductionContext ActiveOccurrenceContextReplacement::next()
           }
         }
       }
-      auto tlit = transform(lit);
+      auto tlit = transformLiteral(lit);
       if (tlit != lit) {
         context.insert(kv.first, tlit);
       }
@@ -358,7 +358,7 @@ InductionContext ContextSubsetReplacement::next() {
   }
   for (const auto& kv : _context._cls) {
     for (const auto& lit : kv.second) {
-      auto tlit = transform(lit);
+      auto tlit = transformLiteral(lit);
       // check if tlit has placeholders
       bool found = false;
       for (unsigned i = 0; i < _context._indTerms.size(); i++) {
@@ -631,35 +631,17 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         auto leBound = iterTraits(_helper.getLess(t)).collect<Stack>();
         auto grBound = iterTraits(_helper.getGreater(t)).collect<Stack>();
         auto indLitsIt = contextReplacementInstance(InductionContext({ t }, lit, premise), _opt, _fnDefHandler);
-        // If the induction literal is a comparison, and the induction term
-        // is one of its arguments, the other argument should not be allowed
-        // as a bound (such inductions are useless and can lead to redundant
-        // literals in the induction axiom).
-        // Here find the other argument and later only allow bounds different from it.
-        Term* otherArg = nullptr;
-        if (InductionHelper::isIntegerComparisonLiteral(lit)) {
-          for (unsigned i = 0; i < 2; ++i) {
-            TermList* tp1 = lit->nthArgument(i);
-            if (tp1->isTerm() && t == tp1->term()) {
-              TermList* tp2 = lit->nthArgument(1-i);
-              if (tp2->isTerm()) {
-                otherArg = tp2->term();
-                break;
-              }
-            }
-          }
-        }
         while (indLitsIt.hasNext()) {
           auto ctx = indLitsIt.next();
           // process lower bounds
           for (const auto& b1 : leBound) {
-            if (!InductionHelper::isValidBound(otherArg, premise, b1)) {
+            if (!isValidBound(ctx, b1)) {
               continue;
             }
             if (_helper.isInductionForFiniteIntervalsOn()) {
               // process upper bounds together with current lower bound
               for (const auto& b2 : grBound) {
-                if (!InductionHelper::isValidBound(otherArg, premise, b2)) {
+                if (!isValidBound(ctx, b2)) {
                   continue;
                 }
                 performFinIntInduction(ctx, b1, b2);
@@ -673,7 +655,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // process upper bounds
           if (_helper.isInductionForInfiniteIntervalsOn()) {
             for (const auto& b2 : grBound) {
-              if (!InductionHelper::isValidBound(otherArg, premise, b2)) {
+              if (!isValidBound(ctx, b2)) {
                 continue;
               }
               performInfIntInduction(ctx, false, b2);
@@ -685,7 +667,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
-            if (notDoneInt(ctx, nullptr, nullptr, e) && InductionHelper::isValidBound(otherArg, premise, defaultBound)) {
+            if (notDoneInt(ctx, nullptr, nullptr, e) && isValidBound(ctx, defaultBound)) {
               performIntInduction(ctx, e, true, defaultBound, nullptr);
               performIntInduction(ctx, e, false, defaultBound, nullptr);
             }
@@ -816,10 +798,13 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();
+      if (!isValidBound(ctx, b)) {
+        continue;
+      }
       if (_helper.isInductionForFiniteIntervalsOn()) {
         // go over the lower/upper bounds that contain the same induction term as the current bound
         for (const auto& b2 : bound2) {
-          if (b2.clause == ctx._cls.begin()->first) {
+          if (!isValidBound(ctx, b2)) {
             ASS_EQ(ctx._cls.size(), 1);
             continue;
           }
@@ -1078,7 +1063,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
       Literal* resLit;
       if (applySubst) {
         TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
-        resLit = tr.transform(SubstHelper::apply<Substitution>(curr,subst));
+        resLit = tr.transformLiteral(SubstHelper::apply<Substitution>(curr,subst));
       } else {
         resLit = curr;
       }
@@ -1094,7 +1079,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
       bool copyCurr = true;
       for (const auto& lit : kv.second) {
         TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
-        auto rlit = tr.transform(lit);
+        auto rlit = tr.transformLiteral(lit);
         if (rlit == (*kv.first)[i]) {
           copyCurr = false;
           break;
@@ -1604,6 +1589,26 @@ bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* boun
       bound2->polarity() ? *bound2->nthArgument(1) : ph);
   }
   return _formulaIndex.findOrInsert(context, e, b1, b2);
+}
+
+// If the integer induction literal is a comparison, and the induction term is
+// one of its arguments, the other argument should not be allowed as a bound
+// (such inductions are useless and can lead to redundant literals in the
+// induction axiom).
+bool InductionClauseIterator::isValidBound(const InductionContext& context, const TermQueryResult& bound)
+{
+  ASS_EQ(context._indTerms.size(), 1);
+  Term* pt = getPlaceholderForTerm(context._indTerms,0);
+  for (const auto& kv : context._cls) {
+    for (const auto& lit : kv.second) {
+      ASS((lit != nullptr) && (kv.first != nullptr));
+      Term* otherArg = InductionHelper::getOtherTermFromComparison(lit, pt);
+      if (!InductionHelper::isValidBound(otherArg, kv.first, bound)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 }

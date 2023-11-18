@@ -25,6 +25,7 @@
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
+#include "Kernel/Formula.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Theory.hpp"
 
@@ -267,6 +268,8 @@ private:
   void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const vvector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
 
   bool notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e);
+
+  bool isValidBound(const InductionContext& context, const TermQueryResult& bound);
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;
