@@ -314,10 +314,6 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  auto fnDefHandler = new FunctionDefinitionHandler();
-  fnDefHandler->preprocess(prb);
-  prb.addFunctionDefinitionHandler(fnDefHandler);
-
   prb.getProperty();
 
   if (prb.mayHaveFunctionDefinitions()) {
@@ -370,6 +366,10 @@ void Preprocess::preprocess(Problem& prb)
      EqResWithDeletion resolver;
      resolver.apply(prb);
    }
+
+  auto fnDefHandler = new FunctionDefinitionHandler();
+  fnDefHandler->preprocess(prb);
+  prb.addFunctionDefinitionHandler(fnDefHandler);
 
    if (_options.generalSplitting()) {
      if (prb.isHigherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)

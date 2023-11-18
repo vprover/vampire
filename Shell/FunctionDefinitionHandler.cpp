@@ -73,6 +73,7 @@ void FunctionDefinitionHandler::preprocess(Problem& prb)
 
     // process for rewriting
     if (!lhs.term()->isLiteral() && env.options->functionDefinitionRewriting()) {
+      it.del(); // take ownership
       defCl->setSplits(SplitSet::getEmpty());
       defCl->incRefCnt();
       ASS_EQ(condLits.size()+1,lits.size());

@@ -1275,6 +1275,8 @@ void Options::init()
     _structInduction.description="The kind of structural induction applied";
     _structInduction.tag(OptionTag::INDUCTION);
     _structInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_newCNF.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_equalityResolutionWithDeletion.is(equal(true))));
     _lookup.insert(&_structInduction);
 
     _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
@@ -1347,6 +1349,8 @@ void Options::init()
     _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
     _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
     _functionDefinitionRewriting.tag(OptionTag::INFERENCES);
+    _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_newCNF.is(equal(true))));
+    _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_equalityResolutionWithDeletion.is(equal(true))));
     _lookup.insert(&_functionDefinitionRewriting);
 
     _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);

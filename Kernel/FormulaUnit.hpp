@@ -36,10 +36,9 @@ class FormulaUnit
 {
 public:
   /** New unit of a given kind */
-  FormulaUnit(Formula* f,const Inference& inf, bool functionDefinition = false)
+  FormulaUnit(Formula* f,const Inference& inf)
     : Unit(FORMULA,inf),
-      _formula(f), _cachedColor(COLOR_INVALID), _cachedWeight(0),
-      _functionDefinition(functionDefinition)
+      _formula(f), _cachedColor(COLOR_INVALID), _cachedWeight(0)
   {}
 
   void destroy();
@@ -56,8 +55,6 @@ public:
 
   Color getColor();
   unsigned weight();
-  bool isFunctionDefinition() const
-  { return _functionDefinition; }
 
   USE_ALLOCATOR(FormulaUnit);
 
@@ -67,7 +64,6 @@ protected:
 
   Color _cachedColor;
   unsigned _cachedWeight;
-  bool _functionDefinition;
 }; // class FormulaUnit
 
 

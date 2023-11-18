@@ -847,7 +847,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   }
   Formula* fla = new AtomicFormula(lit);
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION), true /*isFunctionDefinition*/);
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
   UnitList::push(fu, _formulas);
 }
@@ -928,15 +928,18 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
     ASS(decl.sym.second != SymbolType::TYPECON);
     bool isTrueFun = decl.sym.second==SymbolType::FUNCTION;
 
-    TermList lhs;
+    Literal* lit;
     if (isTrueFun) {
-      lhs = TermList(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
+      TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
+      auto p = env.signature->getDef(decl.rangeSort);
+      lit = Literal::create(p, true, { lhs, rhs });
     } else {
       Formula* frm = new AtomicFormula(Literal::create(symbIdx,decl.args.size(),true,false,decl.args.begin()));
-      lhs = TermList(Term::createFormula(frm));
+      TermList lhs(Term::createFormula(frm));
+      lit = Literal::createEquality(true,lhs,rhs,decl.rangeSort);
     }
+    Formula* fla = new AtomicFormula(lit);
 
-    Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,decl.rangeSort));
     FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
     UnitList::push(fu, _formulas);
 
