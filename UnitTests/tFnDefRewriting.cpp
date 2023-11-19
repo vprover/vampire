@@ -31,8 +31,8 @@ REGISTER_GEN_TESTER(FnDefRewriting)
 #define MY_SYNTAX_SUGAR                                                                    \
   DECL_DEFAULT_VARS                                                                        \
   DECL_SORT(s)                                                                             \
-  DECL_DEF(def_s,s)                                                                        \
   DECL_CONST(b, s)                                                                         \
+  DECL_FUN_DEF(def_s,b())                                                                  \
   DECL_FUNC(r, {s}, s)                                                                     \
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
   DECL_FUNC(f, {s, s}, s)                                                                  \

@@ -23,23 +23,14 @@ using std::pair;
 
 #define MY_SYNTAX_SUGAR                                                                    \
   DECL_DEFAULT_VARS                                                                        \
-  DECL_VAR(x3, 3)                                                                          \
-  DECL_VAR(x4, 4)                                                                          \
-  DECL_VAR(x5, 5)                                                                          \
-  DECL_VAR(x6, 6)                                                                          \
-  DECL_VAR(x7, 7)                                                                          \
-  DECL_VAR(x8, 8)                                                                          \
-  DECL_VAR(x9, 9)                                                                          \
-  DECL_VAR(x10, 10)                                                                        \
-  DECL_VAR(x11, 11)                                                                        \
   DECL_SORT(s)                                                                             \
-  DECL_DEF(def_s, s.sugaredExpr())                                                         \
   DECL_SORT(u)                                                                             \
-  DECL_DEF(def_u, u.sugaredExpr())                                                         \
   DECL_CONST(b, s)                                                                         \
   DECL_FUNC(r, {s}, s)                                                                     \
+  DECL_FUN_DEF(def_s, r(x))                                                                \
   DECL_TERM_ALGEBRA(s, {b, r})                                                             \
   DECL_CONST(b1, u)                                                                        \
+  DECL_FUN_DEF(def_u, b1())                                                                \
   DECL_CONST(b2, u)                                                                        \
   DECL_FUNC(r1, {s, u}, u)                                                                 \
   DECL_FUNC(r2, {u, s}, u)                                                                 \
@@ -48,7 +39,9 @@ using std::pair;
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_FUNC(h, {s, s, u}, u)                                                               \
   DECL_PRED(p, {s})                                                                        \
-  DECL_PRED(q, {u, s})
+  DECL_PRED_DEF(def_p, p(x))                                                               \
+  DECL_PRED(q, {u, s})                                                                     \
+  DECL_PRED_DEF(def_q, q(x,y))
 
 inline void addFunctionDefs(FunctionDefinitionHandler& handler, std::initializer_list<Clause*> cls) {
   auto ul = UnitList::empty();
@@ -61,17 +54,17 @@ inline void addFunctionDefs(FunctionDefinitionHandler& handler, std::initializer
   handler.preprocess(prb);
 }
 
-inline void checkTemplateBranches(FunctionDefinitionHandler& handler, TermSugar t, const vvector<pair<TermSugar, vvector<TermSugar>>>& p) {
+inline void checkTemplateBranches(FunctionDefinitionHandler& handler, TermSugar t, const vvector<pair<TermSugar, vvector<TermSugar>>>& expected) {
   auto templ = handler.getInductionTemplate(t.sugaredExpr().term());
   ASS(templ);
-  auto b = templ->branches();
-  ASS_EQ(b.size(), p.size());
-  for (unsigned i = 0; i < b.size(); i++) {
-    ASS_EQ(TermList(b[i]._header), p[i].first.sugaredExpr());
-    auto r = b[i]._recursiveCalls;
-    ASS_EQ(r.size(), p[i].second.size());
+  auto actual = templ->branches();
+  ASS_EQ(actual.size(), expected.size());
+  for (unsigned i = 0; i < actual.size(); i++) {
+    ASS_EQ(TermList(actual[i]._header), expected[i].first.sugaredExpr());
+    auto r = actual[i]._recursiveCalls;
+    ASS_EQ(r.size(), expected[i].second.size());
     for (unsigned j = 0; j < r.size(); j++) {
-      ASS_EQ(TermList(r[j]), p[i].second[j].sugaredExpr());
+      ASS_EQ(TermList(r[j]), expected[i].second[j].sugaredExpr());
     }
   }
 }
@@ -85,15 +78,15 @@ TEST_FUN(test_01) {
     clause({ def_s(g(r(x)), g(f(x,x))) }),
     clause({ def_u(h(x, y, r1(x, z)), h(y, y, z)) }),
     clause({ def_u(h(r(x), y, z), h(x, x, r2(y,z))) }),
-    // clause({ def_s(p(r(r(x))).wrapInTerm(), /*unused*/b(), { p(y) } } },
-    // { { q(r1(x,y),r(z)).wrapInTerm(), /*unused*/b(), { q(y,r(z)), g(b) == b, q(z,b) } } },
+    clause({ def_p(r(r(x))), p(y) }),
+    clause({ def_q(r1(x,y),r(z)), q(y,r(z)), g(b) == b, ~q(z,b) }),
   });
 
   ASS(!handler.getInductionTemplate(f(x,y).sugaredExpr().term()));
   ASS(!handler.getInductionTemplate(g(x).sugaredExpr().term()));
   ASS(!handler.getInductionTemplate(h(x,y,z).sugaredExpr().term()));
-  // ASS(!handler.getInductionTemplate(p));
-  // ASS(!handler.getInductionTemplate(q));
+  ASS(!handler.getInductionTemplate(p(x)));
+  ASS(!handler.getInductionTemplate(q(x,y)));
 }
 
 // not useful functions (either no recursive calls or no argument changes in any recursive call)
@@ -124,11 +117,11 @@ TEST_FUN(test_03) {
     clause({ def_u(h(r(x), b, y), b2) }),
     clause({ def_u(h(r(x), b, r1(y,z)), h(x, b, z)) }),
 
-    // { { p(r(r(x))).wrapInTerm(), /*unused*/b(), { ~p(x) } },
-    //   { p(b).wrapInTerm(), /*unused*/b(), { f(b,b) == b } } },
+    clause({ def_p(r(r(x))), ~p(x) }),
+    clause({ def_p(b), f(b,b) == b }),
 
-    // { { q(y,r(r(x))).wrapInTerm(), /*unused*/b(), { ~q(y,x) } },
-    //   { (~q(r2(r1(x,y),z),b)).wrapInTerm(), /*unused*/b(), { } } }
+    clause({ def_q(y,r(r(x))), ~q(y,x) }),
+    clause({ ~def_q(r2(r1(x,y),z),b) }),
   });
 
   checkTemplateBranches(handler, f(x,y), {
@@ -150,23 +143,23 @@ TEST_FUN(test_03) {
     { h(r(x), r(y), z), { } } // added
   });
 
-  // checkTemplateBranches(handler, p, {
-  //   { p(r(r(x))), { p(x) } },
-  //   { p(b),       { } },
-  //   { p(r(b)),    { } } // added
-  // });
+  checkTemplateBranches(handler, p(x).wrapInTerm(), {
+    { p(b).wrapInTerm(),       { } },
+    { p(r(r(x))).wrapInTerm(), { p(x).wrapInTerm() } },
+    { p(r(b)).wrapInTerm(),    { } } // added
+  });
 
-  // checkTemplateBranches(handler, q, {
-  //   { q(y,r(r(x))),            { q(y,x) } },
-  //   { q(r2(r1(x,y),z),b),      { } },
-  //   { q(b1,b),                 { } }, // added
-  //   { q(b2,b),                 { } }, // added
-  //   { q(r1(x4,x5),b),          { } }, // added
-  //   { q(r2(b1,x7),b),          { } }, // added
-  //   { q(r2(b2,x7),b),          { } }, // added
-  //   { q(r2(r2(x10,x11),x7),b), { } }, // added
-  //   { q(x,r(b)),               { } }  // added
-  // });
+  checkTemplateBranches(handler, q(x,y).wrapInTerm(), {
+    { q(r2(r1(x,y),z),b).wrapInTerm(),      { } },
+    { q(y,r(r(x))).wrapInTerm(),            { q(y,x).wrapInTerm() } },
+    { q(b1,b).wrapInTerm(),                 { } }, // added
+    { q(b2,b).wrapInTerm(),                 { } }, // added
+    { q(r1(x,y),b).wrapInTerm(),            { } }, // added
+    { q(r2(b1,x),b).wrapInTerm(),           { } }, // added
+    { q(r2(b2,x),b).wrapInTerm(),           { } }, // added
+    { q(r2(r2(x,y),z),b).wrapInTerm(),      { } }, // added
+    { q(x,r(b)).wrapInTerm(),               { } }  // added
+  });
 }
 
 // correctly merges branches
@@ -188,13 +181,13 @@ TEST_FUN(test_04) {
     clause({ def_u(h(r(x), y, z), h(x, y, z)) }),
     clause({ def_u(h(r(x), z, y), h(x, z, y)) }),
 
-    // { { p(r(r(x))).wrapInTerm(), /*unused*/b(), { ~p(x) } },
-    //   { p(r(r(x))).wrapInTerm(), /*unused*/b(), { ~p(r(x)) } },
-    //   { p(b).wrapInTerm(), /*unused*/b(), { } } },
+    clause({ def_p(r(r(x))), ~p(x) }),
+    clause({ def_p(r(r(x))), ~p(r(x)) }),
+    clause({ def_p(b) }),
 
-    // { { (~q(y,r(x))).wrapInTerm(), /*unused*/b(), { ~q(y,x) } },
-    //   { (~q(y,b)).wrapInTerm(), /*unused*/b(), { } },
-    //   { q(z,r(b)).wrapInTerm(), /*unused*/b(), { q(z,b) } } }
+    clause({ ~def_q(y,r(x)), ~q(y,x) }),
+    clause({ ~def_q(y,b) }),
+    clause({ def_q(z,r(b)), q(z,b) }),
   });
 
   checkTemplateBranches(handler, f(x,y), {
@@ -215,17 +208,17 @@ TEST_FUN(test_04) {
     { h(b, x, y),    { } },
   });
 
-  // checkTemplateBranches(handler, p, {
-  //   { p(r(r(x))), { p(x) } },
-  //   { p(r(r(x))), { p(r(x)) } },
-  //   { p(b),       { } },
-  //   { p(r(b)),    { } }
-  // });
+  checkTemplateBranches(handler, p(x).wrapInTerm(), {
+    { p(b).wrapInTerm(),       { } },
+    { p(r(r(x))).wrapInTerm(), { p(r(x)).wrapInTerm() } },
+    { p(r(r(x))).wrapInTerm(), { p(x).wrapInTerm() } },
+    { p(r(b)).wrapInTerm(),    { } } // added
+  });
 
-  // checkTemplateBranches(handler, q, {
-  //   { q(y,r(x)), { q(y,x) } },
-  //   { q(y,b),    { } }
-  // });
+  checkTemplateBranches(handler, q(x,y).wrapInTerm(), {
+    { q(y,b).wrapInTerm(),    { } },
+    { q(y,r(x)).wrapInTerm(), { q(y,x).wrapInTerm() } }
+  });
 }
 
 // non-term-algebra sorts are ignored
@@ -234,16 +227,17 @@ TEST_FUN(test_05) {
   DECL_SORT(t)                     \
   DECL_FUNC(f1, {t}, t)            \
   DECL_PRED(p1, {t})               \
-  DECL_DEF(defT, t)                \
+  DECL_FUN_DEF(defT, f1(x))        \
+  DECL_PRED_DEF(def_p1, p1(x))     \
 
   FunctionDefinitionHandler handler;
   addFunctionDefs(handler, {
     clause({ defT(f1(f1(x)), f1(x)) }),
-    // clause({ p1(f1(x)).wrapInTerm(), /*unused*/b(), { p1(x) } } }
+    clause({ def_p1(f1(x)), p1(x) }),
   });
 
   ASS(!handler.getInductionTemplate(f1(x).sugaredExpr().term()));
-  // ASS(!handler.getInductionTemplate(p1.functor(), false));
+  ASS(!handler.getInductionTemplate((Literal*)p1(x)));
 }
 
 // headers with non-term-algebra arguments are not discarded
@@ -252,14 +246,14 @@ TEST_FUN(test_06) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR)
   FunctionDefinitionHandler handler;
   addFunctionDefs(handler, {
-    // { { p(g(x)).wrapInTerm(), /*unused*/b(), { p(x) } } },
+    clause({ def_p(g(x)), p(x) }),
     clause({ def_s(f(r(x),g(y)), f(x,g(y))), }),
   });
 
-  // checkTemplateBranches(handler, p, {
-  //   { p(g(x)), { p(x) } },
-  //   { p(x),    { } },
-  // });
+  checkTemplateBranches(handler, p(x).wrapInTerm(), {
+    { p(g(x)).wrapInTerm(), { p(x).wrapInTerm() } },
+    { p(x).wrapInTerm(),    { } },
+  });
 
   checkTemplateBranches(handler, f(x,y), {
     { f(r(x),g(y)), { f(x,g(y)) } },

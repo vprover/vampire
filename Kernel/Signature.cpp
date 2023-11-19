@@ -697,15 +697,36 @@ unsigned Signature::getDiff(){
 }
 
 
-unsigned Signature::getDef(TermList sort)
+unsigned Signature::getFnDef(unsigned fn)
 {
+  auto sort = getFunction(fn)->fnType()->result();
   ASS(sort.isTerm() && sort.term()->ground());
   bool added = false;
   auto name = "$def_"+sort.toString();
   unsigned p = addPredicate(name, 2, added);
-  if(added){
-    _defPreds.insert(p);
+  if (added) {
+    ALWAYS(_fnDefPreds.insert(p));
     OperatorType* ot = OperatorType::getPredicateType({sort, sort});
+    Symbol* sym = getPredicate(p);
+    sym->markProtected();
+    sym->setType(ot);
+  }
+  return p;
+}
+
+unsigned Signature::getBoolDef(unsigned fn)
+{
+  auto type = getPredicate(fn)->predType();
+  auto name = "$def_"+getPredicate(fn)->name();
+  bool added = false;
+  auto p = addPredicate(name, type->arity(), added);
+  if (added) {
+    ALWAYS(_boolDefPreds.insert(p,fn));
+    TermStack sorts;
+    for (unsigned i = type->numTypeArguments(); i < type->arity(); i++) {
+      sorts.push(type->arg(i));
+    }
+    OperatorType* ot = OperatorType::getPredicateType(sorts.size(), sorts.begin(), type->numTypeArguments());
     Symbol* sym = getPredicate(p);
     sym->markProtected();
     sym->setType(ot);

@@ -83,7 +83,8 @@ public:
   USE_ALLOCATOR(FunctionDefinitionHandler);
 
   void preprocess(Problem& prb);
-  void addBranch(Term* header, TermList body, const LiteralStack& conditions);
+  void addFunctionBranch(Term* header, TermList body);
+  void addPredicateBranch(Literal* header, const LiteralStack& conditions);
 
   TermQueryResultIterator getGeneralizations(TypedTermList t) {
     return _is.getGeneralizations(t, true);

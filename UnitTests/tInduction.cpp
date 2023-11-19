@@ -228,9 +228,9 @@ private:
   DECL_VAR(x4,4)                                                                           \
   DECL_VAR(x5,5)                                                                           \
   DECL_SORT(s)                                                                             \
-  DECL_DEF(def_s,s)                                                                        \
   DECL_SORT(u)                                                                             \
   DECL_SKOLEM_CONST(sK1, s)                                                                \
+  DECL_FUN_DEF(def_s,sK1())                                                                \
   DECL_SKOLEM_CONST(sK2, s)                                                                \
   DECL_SKOLEM_CONST(sK3, s)                                                                \
   DECL_SKOLEM_CONST(sK4, s)                                                                \
@@ -251,6 +251,7 @@ private:
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_FUNC(h, {s, s}, s)                                                                  \
   DECL_PRED(p, {s})                                                                        \
+  DECL_PRED_DEF(def_p, p(x))                                                               \
   DECL_PRED(p1, {s})                                                                       \
   DECL_PRED(q, {u})                                                                        \
   NUMBER_SUGAR(Int)                                                                        \
@@ -1135,8 +1136,9 @@ auto setup = [](SaturationAlgorithm& salg) {
 
   UnitList::push(clause({ def_s(h(b,y), y) }), ul);
   UnitList::push(clause({ def_s(h(r(x),y), h(x,y)) }), ul);
-  //   { p(b()).wrapInTerm(),     b()/*unused*/, { } },
-  //   { p(r(r(x))).wrapInTerm(), b()/*unused*/, { p(x), x != b() } },
+
+  UnitList::push(clause({ def_p(b()) }), ul);
+  UnitList::push(clause({ ~def_p(r(r(x))), p(x), x != b() }), ul);
 
   Problem prb;
   prb.addUnits(ul);
@@ -1144,20 +1146,20 @@ auto setup = [](SaturationAlgorithm& salg) {
   salg.getFunctionDefinitionHandler()->preprocess(prb);
 };
 
-// TEST_GENERATION_INDUCTION(test_34,
-//     Generation::TestCase()
-//       .setup(setup)
-//       .options({
-//         { "induction", "struct" },
-//         { "structural_induction_kind", "recursion" },
-//       })
-//       .indices(getIndices())
-//       .input( clause({ ~p(sK1) }) )
-//       .expected({
-//         clause({ ~p(b), ~p(r(b)), p(skx0) }),
-//         clause({ ~p(b), ~p(r(b)), ~p(r(r(skx0))) }),
-//       })
-//     )
+TEST_GENERATION_INDUCTION(test_34,
+    Generation::TestCase()
+      .setup(setup)
+      .options({
+        { "induction", "struct" },
+        { "structural_induction_kind", "recursion" },
+      })
+      .indices(getIndices())
+      .input( clause({ ~p(sK1) }) )
+      .expected({
+        clause({ ~p(b), ~p(r(b)), p(skx0) }),
+        clause({ ~p(b), ~p(r(b)), ~p(r(r(skx0))) }),
+      })
+    )
 
 TEST_GENERATION_INDUCTION(test_35,
     Generation::TestCase()

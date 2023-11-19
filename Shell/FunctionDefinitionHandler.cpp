@@ -25,6 +25,25 @@ using namespace std;
 
 namespace Shell {
 
+inline bool canBeUsedForRewriting(Term* lhs, Clause* cl)
+{
+  if (!env.options->functionDefinitionRewriting()) {
+    return false;
+  }
+  // TODO: we are using a codetree to get the generalizations
+  // for rewriting and it cannot handle unbound variables on
+  // the indexed side, hence we check if there are any variables
+  // that would be unbound
+  auto vIt = cl->getVariableIterator();
+  while (vIt.hasNext()) {
+    auto v = vIt.next();
+    if (!lhs->containsSubterm(TermList(v,false))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void FunctionDefinitionHandler::preprocess(Problem& prb)
 {
   UnitList::DelIterator it(prb.units());
@@ -38,10 +57,11 @@ void FunctionDefinitionHandler::preprocess(Problem& prb)
     LiteralStack condLits;
     for (unsigned i = 0; i < cl->length(); i++) {
       auto lit = (*cl)[i];
-      if (!env.signature->isDefPred(lit->functor())) {
-        condLits.push(lit);
-      } else {
+      unsigned p;
+      if (env.signature->isFnDefPred(lit->functor()) || env.signature->isBoolDefPred(lit->functor(), p)) {
         defLits.push(lit);
+      } else {
+        condLits.push(lit);
       }
     }
 
@@ -53,9 +73,19 @@ void FunctionDefinitionHandler::preprocess(Problem& prb)
     // clause contains definitions, we need to replace them with equalities
     auto lits = condLits;
     for (const auto& lit : defLits) {
-      auto lhs = lit->termArg(0);
-      ASS(lhs.isTerm());
-      lits.push(Literal::createEquality(lit->polarity(), lhs, lit->termArg(1), SortHelper::getResultSort(lhs.term())));
+      unsigned orig_fn;
+      if (env.signature->isBoolDefPred(lit->functor(), orig_fn)) {
+        TermStack args;
+        for (unsigned i = 0; i < lit->arity(); i++) {
+          args.push(*lit->nthArgument(i));
+        }
+        lits.push(Literal::create(orig_fn, lit->arity(), lit->polarity(), false, args.begin()));
+      } else {
+        ASS(env.signature->isFnDefPred(lit->functor()));
+        auto lhs = lit->termArg(0);
+        ASS(lhs.isTerm());
+        lits.push(Literal::createEquality(lit->polarity(), lhs, lit->termArg(1), SortHelper::getResultSort(lhs.term())));
+      }
     }
     Clause* defCl = Clause::fromStack(lits, NonspecificInference1(InferenceRule::DEFINITION_UNFOLDING,u));
 
@@ -65,21 +95,26 @@ void FunctionDefinitionHandler::preprocess(Problem& prb)
       continue;
     }
 
-    auto lhs = defLits[0]->termArg(0);
-    auto rhs = defLits[0]->termArg(1);
+    if (env.signature->isFnDefPred(defLits[0]->functor())) {
+      auto lhs = defLits[0]->termArg(0);
+      auto rhs = defLits[0]->termArg(1);
 
-    // process for induction
-    addBranch(lhs.term(), rhs, condLits);
+      // process for induction
+      addFunctionBranch(lhs.term(), rhs);
 
-    // process for rewriting
-    if (!lhs.term()->isLiteral() && env.options->functionDefinitionRewriting()) {
-      it.del(); // take ownership
-      defCl->setSplits(SplitSet::getEmpty());
-      defCl->incRefCnt();
-      ASS_EQ(condLits.size()+1,lits.size());
-      _is.insert(lhs.term(), lits.top(), defCl);
-      // TODO should we store this clause anywhere else?
+      // process for rewriting
+      if (canBeUsedForRewriting(lhs.term(), defCl)) {
+        it.del(); // take ownership
+        defCl->setSplits(SplitSet::getEmpty());
+        defCl->incRefCnt();
+        ASS_EQ(condLits.size()+1,lits.size());
+        _is.insert(lhs.term(), lits.top(), defCl);
+        // TODO should we store this clause anywhere else?
+      } else {
+        it.replace(defCl);
+      }
     } else {
+      addPredicateBranch(Literal::positiveLiteral(lits.top()), condLits);
       it.replace(defCl);
     }
   }
@@ -100,31 +135,38 @@ void FunctionDefinitionHandler::preprocess(Problem& prb)
   }
 }
 
-void FunctionDefinitionHandler::addBranch(Term* header, TermList body, const LiteralStack& conditions)
+void FunctionDefinitionHandler::addFunctionBranch(Term* header, TermList body)
 {
   auto fn = header->functor();
-  auto isLit = header->isLiteral();
   InductionTemplate* templ;
-  _templates.getValuePtr(make_pair(fn,isLit?SymbolType::PRED:SymbolType::FUNC), templ, InductionTemplate(header));
+  _templates.getValuePtr(make_pair(fn,SymbolType::FUNC), templ, InductionTemplate(header));
 
   // handle for induction
   vvector<Term*> recursiveCalls;
-  if (isLit) {
-    ASS(static_cast<Literal*>(header)->isPositive());
-    for(const auto& lit : conditions) {
-      if (!lit->isEquality() && fn == lit->functor()) {
-        recursiveCalls.push_back(lit->isPositive() ? lit : Literal::complementaryLiteral(lit));
+  if (body.isTerm()) {
+    NonVariableNonTypeIterator it(body.term(), true);
+    while (it.hasNext()) {
+      auto st = it.next();
+      if (st->functor() == fn) {
+        recursiveCalls.push_back(st);
       }
     }
-  } else {
-    if (body.isTerm()) {
-      NonVariableNonTypeIterator it(body.term(), true);
-      while (it.hasNext()) {
-        auto st = it.next();
-        if (st->functor() == fn) {
-          recursiveCalls.push_back(st);
-        }
-      }
+  }
+  templ->addBranch(std::move(recursiveCalls), header);
+}
+
+void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const LiteralStack& conditions)
+{
+  auto fn = header->functor();
+  InductionTemplate* templ;
+  _templates.getValuePtr(make_pair(fn,SymbolType::PRED), templ, InductionTemplate(header));
+
+  // handle for induction
+  vvector<Term*> recursiveCalls;
+  ASS(static_cast<Literal*>(header)->isPositive());
+  for(const auto& lit : conditions) {
+    if (!lit->isEquality() && fn == lit->functor()) {
+      recursiveCalls.push_back(lit->isPositive() ? lit : Literal::complementaryLiteral(lit));
     }
   }
   templ->addBranch(std::move(recursiveCalls), header);

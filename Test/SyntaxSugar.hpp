@@ -129,7 +129,8 @@
 #define DECL_B_COMB(b) auto b = FuncSugar(env.signature->getCombinator(Signature::B_COMB));
 #define DECL_C_COMB(c) auto c = FuncSugar(env.signature->getCombinator(Signature::C_COMB));
 #define DECL_S_COMB(s) auto s = FuncSugar(env.signature->getCombinator(Signature::S_COMB));
-#define DECL_DEF(d, t) auto d = PredSugar(env.signature->getDef(t));
+#define DECL_FUN_DEF(d, t) auto d = PredSugar(env.signature->getFnDef(t.sugaredExpr().term()->functor()));
+#define DECL_PRED_DEF(d, t) auto d = PredSugar(env.signature->getBoolDef(((Literal*)t)->functor()));
 
 #define DECL_DEFAULT_VARS                                                                                     \
   __ALLOW_UNUSED(                                                                                             \

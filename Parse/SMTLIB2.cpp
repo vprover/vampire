@@ -838,10 +838,11 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   Literal* lit;
   if (isTrueFun) {
     TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
-    auto p = env.signature->getDef(rangeSort);
+    auto p = env.signature->getFnDef(symbIdx);
     lit = Literal::create(p, true, { lhs, rhs });
   } else {
-    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
+    auto p = env.signature->getBoolDef(symbIdx);
+    Formula* frm = new AtomicFormula(Literal::create(p,args.size(),true,false,args.begin()));
     TermList lhs(Term::createFormula(frm));
     lit = Literal::createEquality(true, lhs, rhs, rangeSort);
   }
@@ -931,10 +932,11 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
     Literal* lit;
     if (isTrueFun) {
       TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
-      auto p = env.signature->getDef(decl.rangeSort);
+      auto p = env.signature->getFnDef(symbIdx);
       lit = Literal::create(p, true, { lhs, rhs });
     } else {
-      Formula* frm = new AtomicFormula(Literal::create(symbIdx,decl.args.size(),true,false,decl.args.begin()));
+      auto p = env.signature->getBoolDef(symbIdx);
+      Formula* frm = new AtomicFormula(Literal::create(p,decl.args.size(),true,false,decl.args.begin()));
       TermList lhs(Term::createFormula(frm));
       lit = Literal::createEquality(true,lhs,rhs,decl.rangeSort);
     }

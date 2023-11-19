@@ -563,7 +563,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 
   if (lit->ground()) {
       Set<Term*,SharedTermHash> int_terms;
-      vmap<vvector<Term*>,vvector<pair<const InductionTemplate*,vvector<Term*>>>> ta_terms;
+      vmap<vvector<Term*>,vset<pair<const InductionTemplate*,vvector<Term*>>>> ta_terms;
 
       auto templ = _fnDefHandler ?
         _fnDefHandler->getInductionTemplate(lit) : nullptr;
@@ -576,9 +576,9 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           }
           auto it = ta_terms.find(indTerms);
           if (it == ta_terms.end()) {
-            it = ta_terms.insert(make_pair(indTerms,vvector<pair<const InductionTemplate*,vvector<Term*>>>())).first;
+            it = ta_terms.insert(make_pair(indTerms,vset<pair<const InductionTemplate*,vvector<Term*>>>())).first;
           }
-          it->second.push_back(make_pair(templ,typeArgs));
+          it->second.insert(make_pair(templ,typeArgs));
         }
       }
 
@@ -599,7 +599,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             vvector<Term*> indTerms = { t };
             auto it = ta_terms.find(indTerms);
             if (it == ta_terms.end()) {
-              ta_terms.insert(make_pair(indTerms,vvector<pair<const InductionTemplate*,vvector<Term*>>>()));
+              ta_terms.insert(make_pair(indTerms,vset<pair<const InductionTemplate*,vvector<Term*>>>()));
             }
           }
           if(InductionHelper::isIntInductionOneOn() && InductionHelper::isIntInductionTermListInLiteral(t, lit)){
@@ -617,9 +617,9 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             }
             auto it = ta_terms.find(indTerms);
             if (it == ta_terms.end()) {
-              it = ta_terms.insert(make_pair(indTerms,vvector<pair<const InductionTemplate*,vvector<Term*>>>())).first;
+              it = ta_terms.insert(make_pair(indTerms,vset<pair<const InductionTemplate*,vvector<Term*>>>())).first;
             }
-            it->second.push_back(make_pair(templ,typeArgs));
+            it->second.insert(make_pair(templ,typeArgs));
           }
         }
       }
@@ -680,7 +680,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     auto sideLitsIt = VirtualIterator<pair<vvector<Term*>,TermQueryResultIterator>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(getSTLIterator(ta_terms.begin(), ta_terms.end()))
-        .map([](pair<vvector<Term*>,vvector<pair<const InductionTemplate*,vvector<Term*>>>> kv){
+        .map([](pair<vvector<Term*>,vset<pair<const InductionTemplate*,vvector<Term*>>>> kv){
           return kv.first;
         })
         .map([this](vvector<Term*> ts) {
@@ -712,7 +712,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       });
     // collect contexts for single-literal induction with given clause
     auto indCtxSingle = iterTraits(getSTLIterator(ta_terms.begin(), ta_terms.end()))
-      .map([&lit,&premise](pair<vvector<Term*>,vvector<pair<const InductionTemplate*,vvector<Term*>>>> arg) {
+      .map([&lit,&premise](pair<vvector<Term*>,vset<pair<const InductionTemplate*,vvector<Term*>>>> arg) {
         return InductionContext(arg.first, lit, premise);
       })
       // generalize all contexts if needed

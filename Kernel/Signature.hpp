@@ -442,7 +442,8 @@ class Signature
   unsigned getApp();
   unsigned getDiff();
   unsigned getChoice();
-  unsigned getDef(TermList sort);
+  unsigned getFnDef(unsigned fn);
+  unsigned getBoolDef(unsigned fn);
 
   // Interpreted symbol declarations
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
@@ -621,8 +622,12 @@ class Signature
     return (fun == _appFun && _appFun != UINT_MAX);
   }
 
-  bool isDefPred(unsigned p) const{
-    return _defPreds.contains(p);
+  bool isFnDefPred(unsigned p) const{
+    return _fnDefPreds.contains(p);
+  }
+
+  bool isBoolDefPred(unsigned p, unsigned& orig) const {
+    return _boolDefPreds.find(p, orig);
   }
 
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
@@ -966,7 +971,8 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
-  DHSet<unsigned> _defPreds;
+  DHSet<unsigned> _fnDefPreds;
+  DHMap<unsigned,unsigned> _boolDefPreds;
 
   /**
    * Map from type constructor functor to the associated term algebra, if applicable for the sort.
