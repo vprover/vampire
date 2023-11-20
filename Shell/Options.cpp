@@ -1390,7 +1390,7 @@ void Options::init()
       "  - not_in_both: t does not occur in both arguments of l\n"
       "  - always: induction on l is not allowed at all\n";
     _integerInductionStrictnessEq.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessEq.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessEq.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessEq);
 
     _integerInductionStrictnessComp = ChoiceOptionValue<IntegerInductionLiteralStrictness>(
@@ -1409,7 +1409,7 @@ void Options::init()
       "  - not_in_both: t does not occur in both arguments of l\n"
       "  - always: induction on l is not allowed at all\n";
     _integerInductionStrictnessComp.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessComp.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessComp.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessComp);
 
     _integerInductionStrictnessTerm = ChoiceOptionValue<IntegerInductionTermStrictness>(
@@ -1425,7 +1425,7 @@ void Options::init()
       "  - interpreted_constant: t is an interpreted constant\n"
       "  - no_skolems: t does not contain a skolem function";
     _integerInductionStrictnessTerm.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessTerm.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessTerm.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessTerm);
 
     _nonUnitInduction = BoolOptionValue("non_unit_induction","nui",false);
@@ -1437,7 +1437,7 @@ void Options::init()
     _inductionOnActiveOccurrences = BoolOptionValue("induction_on_active_occurrences","indao",false);
     _inductionOnActiveOccurrences.description = "Only use induction terms from active occurrences, generalize over active occurrences";
     _inductionOnActiveOccurrences.tag(OptionTag::INDUCTION);
-    _inductionOnActiveOccurrences.reliesOn(_induction.is(notEqual(Induction::NONE)));
+    _inductionOnActiveOccurrences.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnActiveOccurrences);
 
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
