@@ -162,6 +162,7 @@ Problem *doProving()
   // a new strategy randomization mechanism independent with randomizeStrategy below
   if (!env.options->strategySamplerFilename().empty()) {
     env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->checkGlobalOptionConstraints();
   }
 
   // One call to randomize before preprocessing (see Options)
