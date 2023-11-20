@@ -1846,7 +1846,6 @@ bool Term::computableOrVar() const {
   }
 
   if (SynthesisManager::getInstance()->isRecTerm(const_cast<Term*>(this))) {
-    bool result = true;
     // assumes there are no nested recs. I.e. rec(...,rec(...),...) is not possible
     unsigned recArgIdx = 0;
     SubtermIterator sit(this);
@@ -1856,7 +1855,7 @@ bool Term::computableOrVar() const {
         unsigned arity = t.term()->numTermArguments();
         if (arity > 0) {
           if (!env.signature->getFunction(t.term()->functor())->computable()) { 
-            result = false;
+            return false;
           }
         }
         else {
@@ -1864,7 +1863,7 @@ bool Term::computableOrVar() const {
           if (s->skolemFromStructIndAxiom()) { 
               unsigned symbolConstructorId = s->constructorId();
               if (symbolConstructorId != recArgIdx) {
-                result = false;
+                return false;
               }
           }
           recArgIdx++;
@@ -1873,10 +1872,9 @@ bool Term::computableOrVar() const {
         recArgIdx++;
       }
     }
-    return result;
+    return true;
   }
   SubtermIterator sit(this);
-  bool result = true;
   unsigned recArgIdx = 0;
   bool inRecTerm = false;
   while (sit.hasNext()) {
@@ -1893,14 +1891,14 @@ bool Term::computableOrVar() const {
         unsigned arity = t.term()->numTermArguments();
         if (arity > 0) {
           if (!env.signature->getFunction(t.term()->functor())->computable()) { 
-            result = false;
+            return false;
           }
         } else {
           Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
           if (s->skolemFromStructIndAxiom()) { 
               unsigned symbolConstructorId = s->constructorId();
               if (symbolConstructorId != recArgIdx) {
-                result = false;
+                return false;
               }
           }
           
@@ -1912,7 +1910,7 @@ bool Term::computableOrVar() const {
       } else { // a term that is not in an argument of rec(...)
           Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
           if (s->skolemFromStructIndAxiom()) {
-              result = false;
+              return false;
           } 
         }
       }
@@ -1925,7 +1923,7 @@ bool Term::computableOrVar() const {
       }
     }
   }
-  return result;
+  return true;
 }
 
 std::ostream& Kernel::operator<<(std::ostream& out, Term::SpecialFunctor const& self)
