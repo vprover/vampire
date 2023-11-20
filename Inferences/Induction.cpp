@@ -51,13 +51,13 @@ Term* ActiveOccurrenceIterator::next()
     _fnDefHandler->getInductionTemplate(t) : nullptr;
   if (templ) {
     auto& actPos = templ->inductionPositions();
-    for (unsigned i = 0; i < t->arity(); i++) {
+    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
       if (actPos[i]) {
         _stack.push(t->nthArgument(i)->term());
       }
     }
   } else {
-    for (unsigned i = 0; i < t->arity(); i++) {
+    for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
       _stack.push(t->nthArgument(i)->term());
     }
   }
