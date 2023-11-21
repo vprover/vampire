@@ -299,8 +299,11 @@ av=on > nicw ~cat off:600,on:76
 # split_at_activation
 av=on > sac ~cat off:3,on:1
 
-# TODO: consider enabling this for vampire_z3 compiles!
-# av=on > sas ~cat minisat:10,z3:1
+# sat_solver (NOTE: requires compiling with Z3)
+av=on > sas ~cat minisat:10,z3:3
+
+# sat_fallback_for_smt
+sas=z3 > sffsmt ~cat off:10,on:1
 
 # AVATAR SPLIT QUEUE
 
@@ -343,9 +346,6 @@ gtg!=off > gtgl ~ui 1,5
 
 # INDUCTION (focusing on structural)
 
-# function_definition_rewriting
-> fnrw ~cat off:3,on:1
-
 # induction
 > ind ~cat none:5,struct:10,int:1,both:1
 
@@ -379,11 +379,17 @@ ind!=none > indu ~cat on:5,off:1
 # non_unit_induction
 ind!=none > nui ~cat off:5,on:1
 
+# function_definition_rewriting
+newcnf=on erd=on > fnrw ~cat off:3,on:1
+
 # induction_on_active_occurrences
 ind!=none > indao ~cat off:3,on:1
 
 # structural_induction_kind
-ind!=none ind!=int > sik ~cat one:5,two:1,three:1,recursion:2,all:1
+> $recursionOK ~cat 0:1
+newcnf=on erd=on > $recursionOK ~cat 1:1
+ind!=none ind!=int $recursionOK=0 > sik ~cat one:5,two:1,three:1,all:1
+ind!=none ind!=int $recursionOK=1 > sik ~cat one:5,two:1,three:1,recursion:2,all:1
 
 # below integer induction only
 
@@ -404,4 +410,55 @@ ind!=none ind!=struct > intindsteq ~cat none:10,toplevel_not_in_other:1,only_one
 
 # int_induction_strictness_term
 ind!=none ind!=struct > intindstterm ~cat interpreted_constant:3,none:1,no_skolems:1
+
+# TERM ALGEBRA REASONINING
+
+# term_algebra_exhaustiveness_axiom
+> taea ~cat off:1,on:1
+
+# term_algebra_acyclicity
+> tac ~cat off:3,axiom:1,rule:1,light:1
+
+# term_algebra_rules
+> tar ~cat off:1,on:1
+
+# ARITHMETIC THEORIES (assume z3 will be present):
+
+# arithmetic_subterm_generalizations
+> asg ~cat force:1,cautious:1,off:3
+
+# cancellation
+> canc ~cat force:1,cautious:1,off:3
+
+# evaluation
+> ev ~cat simple:3,force:1,cautious:1
+
+# use_ac_eval
+> uace ~cat off:1,on:1
+
+# gaussian_variable_elimination
+> gve ~cat force:1,cautious:1,off:3
+
+# high_school - this only fakes an option combo for a quick access, so we will not sample it expliticly
+
+# instantiation
+> inst ~cat off:20,on:1
+
+# normalize_inequalities
+> norm_ineq ~cat off:1,on:1
+
+# push_unary_minus
+> pum ~cat off:1,on:1
+
+# theory_instantiation
+> thi ~cat off:1,all:1,strong:1,neg_eq:1,overlap:1
+
+# theory_instantiation_generalisation
+thi!=off > thigen ~cat off:1,on:1
+
+# theory_instantiation_tautology_deletion
+thi!=off > thitd ~cat off:1,on:1
+
+# unification_with_abstraction
+> uwa ~cat off:5,interpreted_only:1,one_side_interpreted:1,one_side_constant:1,all:1,ground:1
 
