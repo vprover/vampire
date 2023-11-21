@@ -1157,6 +1157,10 @@ bool KBO::isGreater(TermList tl1, TermList tl2) const
   Term* t1=tl1.term();
   Term* t2=tl2.term();
 
+  if ((~t1->varmap() & t2->varmap()) || t1->numVarOccs() < t2->numVarOccs()) {
+    return false;
+  }
+
   computeWeight(t1);
   computeWeight(t2);
 
