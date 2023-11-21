@@ -870,8 +870,10 @@ bool SynthesisManager::hasRecTerm(Literal* lit) {
   for (unsigned i = 0; i < arity; i++) {
     TermList ts = *lit->nthArgument(i);
     if (ts.isTerm()) {
-      Term* t = ts.term();
-      SubtermIterator sit(t);
+      Term* tst = ts.term();
+      if (SynthesisManager::getInstance()->isRecTerm(tst))
+        return true;
+      SubtermIterator sit(tst);
       while (sit.hasNext()) { 
         TermList t = sit.next();
         if (t.isTerm()) {
