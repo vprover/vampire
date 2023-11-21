@@ -267,7 +267,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         }
       }
       if (i < queryCl->numSelected() && checker && checker->checkLiteral(newLit)) {
-        env.statistics->skippedResolution++;
+        env.statistics->redundantResolution++;
         res->destroy();
         return 0;
       }
@@ -310,7 +310,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         }
       }
       if (i < qr.clause->numSelected() && checker && checker->checkLiteral(newLit)) {
-        env.statistics->skippedResolution++;
+        env.statistics->redundantResolution++;
         res->destroy();
         return 0;
       }
@@ -322,20 +322,20 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   if (checker) {
     if (queryLitAfter) {
       if (checker->checkLiteral(queryLitAfter)) {
-        env.statistics->skippedResolution++;
+        env.statistics->redundantResolution++;
         res->destroy();
         return 0;
       }
     } else if (qrLitAfter) {
       if (checker->checkLiteral(qrLitAfter)) {
-        env.statistics->skippedResolution++;
+        env.statistics->redundantResolution++;
         res->destroy();
         return 0;
       }
     } else {
       auto lit = qr.substitution->applyToQuery(queryLit);
       if (checker->checkLiteral(lit)) {
-        env.statistics->skippedResolution++;
+        env.statistics->redundantResolution++;
         res->destroy();
         return 0;
       }

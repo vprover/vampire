@@ -408,7 +408,7 @@ Clause* Superposition::performSuperposition(
   if (checker) {
     checker->reset();
     if (checker->checkSup(rwClause,eqClause,eqLit,eqLHS,subst.ptr(),eqIsResult)) {
-      env.statistics->skippedSuperposition++;
+      env.statistics->redundantSuperposition++;
       return 0;
     }
   }

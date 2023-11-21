@@ -33,8 +33,8 @@ private:
   DemodulationLHSIndex* _index;
   const Ordering& _ord;
   const Options& _opt;
-  struct ReducibilityEntry {
-    ReducibilityEntry() : reducesTo(), reduced(), rest(1), superTerms(), valid(false) {
+  struct ReducibilityEntryGround {
+    ReducibilityEntryGround() : reducesTo(), reduced(), rest(1), superTerms(), valid(false) {
       rest.push(VarOrder());
     }
     Stack<TermList> reducesTo;
@@ -76,8 +76,8 @@ private:
     };
   };
 
-  struct ReducibilityEntry2 {
-    ReducibilityEntry2() : reducesTo(), reducesToCond(), reducedUnder(), reduced(false), superTerms(), valid(false) {}
+  struct ReducibilityEntryGround2 {
+    ReducibilityEntryGround2() : reducesTo(), reducesToCond(), reducedUnder(), reduced(false), superTerms(), valid(false) {}
     void addReducedUnder(unsigned x, unsigned y, std::bitset<3> b) {
       ASS_L(x,y);
       std::bitset<3>* ptr;
@@ -112,6 +112,19 @@ private:
     bool valid;
   };
 
+public:
+  struct ReducibilityEntry {
+    ReducibilityEntry() : reducesTo(), reduced(false), superTerms() {}
+    bool argReduced() const {
+      return reduced && reducesTo.isEmpty();
+    }
+
+    DHSet<TermList> reducesTo;
+    bool reduced;
+    Stack<Term*> superTerms;
+  };
+private:
+
   TermSubstitutionTree _tis;
   DHMap<Clause*,Stack<VarOrder>> _demodulatorCache;
   DHMap<std::pair<TermList,TermList>,bool> _uselessLHSCache;
@@ -120,16 +133,19 @@ private:
   DHSet<Term*> _attempted;
 
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
-  ReducibilityEntry* isTermReducible(Term* t);
-  ReducibilityEntry2* getCacheEntryForTerm(Term* t);
+  ReducibilityEntryGround* isTermReducible(Term* t);
+  ReducibilityEntryGround2* getCacheEntryForTermGround(Term* t);
+  ReducibilityEntry* getCacheEntryForTerm(Term* t);
 
   static BinaryVarOrder getBVOFromVO(const VarOrder& vo);
   static VarOrder getVOFromBVO(const BinaryVarOrder& bvo);
   bool updateBinaries(unsigned x, unsigned y, const std::bitset<3>& bv);
 
-  bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult, vstringstream& exp);
-  bool checkSmaller2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
-  bool checkSmaller3(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+  bool checkSmallerGround(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+  bool checkSmallerGround2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+  bool checkSmallerGround3(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+
+  bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 

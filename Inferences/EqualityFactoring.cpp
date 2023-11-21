@@ -34,6 +34,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "EqualityFactoring.hpp"
+#include "ReducibilityChecker.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -84,8 +85,8 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck, Ordering& ordering)
-      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering) {}
+  ResultFn(Clause* cl, bool afterCheck, Ordering& ordering, ReducibilityChecker* checker)
+      : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _checker(checker) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
@@ -156,6 +157,14 @@ struct EqualityFactoring::ResultFn
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
       sLitAfter = subst.apply(sLit, 0);
     }
+    if (_checker) {
+      _checker->reset();
+      if (_checker->checkLiteral(subst.apply(sLit,0))) {
+        env.statistics->redundantEqualityFactoring++;
+        res->destroy();
+        return 0;
+      }
+    }
 
     unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
@@ -170,6 +179,11 @@ struct EqualityFactoring::ResultFn
             res->destroy();
             return 0;
           }
+        }
+        if (i < _cl->numSelected() && _checker && _checker->checkLiteral(currAfter)) {
+          env.statistics->redundantEqualityFactoring++;
+          res->destroy();
+          return 0;
         }
 
         (*res)[next++] = currAfter;
@@ -196,6 +210,7 @@ private:
   unsigned _cLen;
   bool _afterCheck;
   Ordering& _ordering;
+  ReducibilityChecker* _checker;
 };
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
@@ -214,7 +229,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
   auto it5 = getMappingIterator(it4,ResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering()));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering(), _salg->getReducibilityChecker()));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 

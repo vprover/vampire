@@ -62,9 +62,6 @@ Statistics::Statistics()
     cForwardSuperposition(0),
     cBackwardSuperposition(0),
     selfSuperposition(0),
-    skippedSuperposition(0),
-    skippedSuperpositionGround(0),
-    skippedResolution(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -126,6 +123,11 @@ Statistics::Statistics()
     condensations(0),
     globalSubsumption(0),
     interpretedSimplifications(0),
+
+    redundantSuperposition(0),
+    redundantResolution(0),
+    redundantEqualityFactoring(0),
+    redundantEqualityResolution(0),
 
     asgViolations(0),
     asgCnt(0),
@@ -373,9 +375,6 @@ void Statistics::print(ostream& out)
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);
   COND_OUT("Self superposition", selfSuperposition);
-  COND_OUT("Skipped superposition ground", skippedSuperpositionGround);
-  COND_OUT("Skipped superposition", skippedSuperposition);
-  COND_OUT("Skipped resolution", skippedResolution);
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
@@ -424,6 +423,14 @@ void Statistics::print(ostream& out)
   COND_OUT("Self sub-variable superposition", selfSubVarSup);
   SEPARATOR;
 
+  HEADING("Redundant inferences",redundantSuperposition+redundantResolution+
+      redundantEqualityFactoring+redundantEqualityResolution);
+  COND_OUT("Redundant superposition", redundantSuperposition);
+  COND_OUT("Redundant resolution", redundantResolution);
+  COND_OUT("Redundant equality factoring", redundantEqualityFactoring);
+  COND_OUT("Redundant equality resolution", redundantEqualityResolution);
+  SEPARATOR;
+
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
       taDistinctnessTautologyDeletions+taInjectivitySimplifications+
       taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications);
@@ -432,6 +439,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Injectivity simplifications",taInjectivitySimplifications);
   COND_OUT("Negative injectivity simplifications",taNegativeInjectivitySimplifications);
   COND_OUT("Disequalities generated from acyclicity",taAcyclicityGeneratedDisequalities);
+  SEPARATOR;
 
   HEADING("AVATAR",splitClauses+splitComponents+uniqueComponents+satSplits+
         satSplitRefutations);

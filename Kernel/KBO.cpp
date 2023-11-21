@@ -1144,7 +1144,6 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
 bool KBO::isGreater(TermList tl1, TermList tl2) const
 {
-  TIME_TRACE("KBO:isGreater1");
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
   }
@@ -1534,7 +1533,6 @@ int KBO::symbolWeight(Term* t) const
 
 void KBO::computeWeight(Term* t) const
 {
-  TIME_TRACE("KBO::computeWeight");
   if (t->kboWeight()!=-1) {
     return;
   }
