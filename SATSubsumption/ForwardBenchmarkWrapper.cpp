@@ -35,40 +35,38 @@ void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
 
   _forwardBenchmark.attach(salg);
   _forwardOracle.attach(salg);
-  BYPASSING_ALLOCATOR
+
+  // replace the '.' with '_' in the file name
+  vstring problemName = env.options->problemName();
+  for (unsigned i = 0; i < problemName.length(); i++)
   {
-    // replace the '.' with '_' in the file name
-    vstring problemName = env.options->problemName();
-    for (unsigned i = 0; i < problemName.length(); i++)
+    if (problemName[i] == '.')
     {
-      if (problemName[i] == '.')
-      {
-        problemName[i] = '_';
-      }
+      problemName[i] = '_';
     }
-    vstring fileName = "BenchmarkResult/" + env.options->problemName();
+  }
+  vstring fileName = "BenchmarkResult/" + env.options->problemName();
 #if USE_SAT_SUBSUMPTION_FORWARD || USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
 #if USE_SAT_SUBSUMPTION_FORWARD
-    fileName += "_s";
+  fileName += "_s";
 #endif
 #if USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-    fileName += "_sr";
+  fileName += "_sr";
 #endif
 #if SAT_SR_IMPL == 1
-    fileName += "_sat_1";
+  fileName += "_sat_1";
 #elif SAT_SR_IMPL == 2
-    fileName += "_sat_2";
+  fileName += "_sat_2";
 #endif
 #else
-    fileName += "_no_sat";
+  fileName += "_no_sat";
 #endif
 #if USE_OPTIMIZED_FORWARD
-    fileName += "_opt";
+  fileName += "_opt";
 #endif
 #if !CORRELATE_LENGTH_TIME
-    outputFile.open(fileName.c_str());
+  outputFile.open(fileName.c_str());
 #endif
-  }
 }
 
 void ForwardBenchmarkWrapper::detach()
@@ -108,11 +106,8 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
 
   if(result != resultAux || (replacement == nullptr) != (replacementAux == nullptr)) {
     if(!problemFile.is_open()) {
-      BYPASSING_ALLOCATOR
-      {
-        vstring fileName = "BenchmarkResult/_mistakes_" + env.options->problemName() + ".txt";
-        problemFile.open(fileName.c_str());
-      }
+      vstring fileName = "BenchmarkResult/_mistakes_" + env.options->problemName() + ".txt";
+      problemFile.open(fileName.c_str());
     }
     problemFile << "------------------------------------------------------------" << endl;
     problemFile << "Configuration " << CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION << endl;
@@ -147,13 +142,10 @@ void ForwardBenchmarkWrapper::printStats(std::ostream &out)
 {
   out << "**** ForwardBenchmarkWrapper ****" << endl;
   out << "Total time for perform: " << ((double)totalDuration.count() / 1000000000) << " seconds" << endl;
-  BYPASSING_ALLOCATOR
-  {
-    #if CORRELATE_LENGTH_TIME
-    outputFile.close();
-    #endif
-    if(problemFile.is_open()) {
-      problemFile.close();
-    }
+#if CORRELATE_LENGTH_TIME
+  outputFile.close();
+#endif
+  if(problemFile.is_open()) {
+    problemFile.close();
   }
 }

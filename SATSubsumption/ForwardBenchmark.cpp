@@ -53,18 +53,15 @@ void ForwardBenchmark::attach(SaturationAlgorithm *salg)
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
 #if CORRELATE_LENGTH_TIME
-  BYPASSING_ALLOCATOR
-  {
-    vstring fileName = "BenchmarkResult/correlation_";
+  vstring fileName = "BenchmarkResult/correlation_";
 #if SAT_SR_IMPL == 1
-    fileName += "sat_1_";
+  fileName += "sat_1_";
 #elif SAT_SR_IMPL == 2
-    fileName += "sat_2_";
+  fileName += "sat_2_";
 #endif
-    fileName += env.options->problemName() + ".csv";
-    correlationFile.open(fileName.c_str());
-    correlationFile << "len_mcl,len_cl,time" << endl;
-  }
+  fileName += env.options->problemName() + ".csv";
+  correlationFile.open(fileName.c_str());
+  correlationFile << "len_mcl,len_cl,time" << endl;
 #endif
 }
 
