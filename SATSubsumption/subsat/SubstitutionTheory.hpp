@@ -355,7 +355,7 @@ public:
         VampireVar const var = entry.first;
         VampireVarPos const pos = m_var_pos.get(var);
         // Go through possible other mappings for X0
-        for (auto const q : m_bindings_by_pos[pos]) {
+        for (auto const& q : m_bindings_by_pos[pos]) {
           if (q.second != entry.second) {
             // conflicting substitution constraints
             subsat::Var const conflicting_var = q.first;  // conflicting variable
