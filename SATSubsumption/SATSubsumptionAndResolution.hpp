@@ -81,8 +81,6 @@ private:
    * The binding can be either positive or negative
    */
   struct Match {
-    CLASS_NAME(SATSubsumptionAndResolution::Match);
-
     // The index of the literal in L (base clause for subsumption resolution)
     unsigned i;
     // The index of the literal in M (instance clause for subsumption resolution)
@@ -142,7 +140,6 @@ private:
    * The Match set allows to get a line or column of the matrix
    */
   struct MatchSet {
-    CLASS_NAME(SATSubsumptionAndResolution::MatchSet);
     USE_ALLOCATOR(SATSubsumptionAndResolution::MatchSet);
     friend struct Match;
 
@@ -504,7 +501,6 @@ private:
   Kernel::Clause *generateConclusion();
 
 public:
-  CLASS_NAME(SATSubsumptionAndResolution);
   USE_ALLOCATOR(SATSubsumptionAndResolution);
 
 #if CORRELATE_LENGTH_TIME

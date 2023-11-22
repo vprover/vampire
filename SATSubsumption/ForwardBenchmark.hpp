@@ -25,7 +25,6 @@ namespace Inferences {
 class ForwardBenchmark
     : public ForwardSimplificationEngine {
 public:
-  CLASS_NAME(ForwardBenchmark);
   USE_ALLOCATOR(ForwardBenchmark);
 
   ForwardBenchmark(bool subsumptionResolution = true);

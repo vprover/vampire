@@ -79,7 +79,6 @@ void ForwardBenchmark::detach()
 
 #if !USE_SAT_SUBSUMPTION_FORWARD || !USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
 struct ClauseMatches {
-  CLASS_NAME(ForwardBenchmark::ClauseMatches);
   USE_ALLOCATOR(ClauseMatches);
 
 private:
