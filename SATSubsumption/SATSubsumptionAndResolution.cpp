@@ -155,7 +155,7 @@ void SATSubsumptionAndResolution::loadProblem(Clause *L,
   _subsumptionImpossible = false;
   _srImpossible = false;
 
-  _solver.s.clear();
+  _solver.clear();
   _bindingsManager.clear();
 } // SATSubsumptionAndResolution::loadProblem
 
@@ -248,7 +248,7 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder,
   ASS(j < _n)
   ASS_EQ((*_L)[i]->functor(), (*_M)[j]->functor())
   ASS_EQ((*_L)[i]->polarity() == (*_M)[j]->polarity(), polarity)
-  subsat::Var satVar = _solver.s.new_variable();
+  subsat::Var satVar = _solver.new_variable();
 #if PRINT_CLAUSES_SUBS
   cout << satVar << " -> (" << (*_L)[i]->toString() << " " << (*_M)[j]->toString() << " " << (polarity ? "+" : "-") << ")" << endl;
 #endif
@@ -419,7 +419,7 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
 
   _matchSet.indexMatrix();
 
-  Solver &solver = _solver.s;
+  Solver &solver = _solver;
 
   /**** Completeness ****/
   // Build clauses stating that l_i must be matched to at least one corresponding m_j.
@@ -511,7 +511,7 @@ bool SATSubsumptionAndResolution::directEncodingForSubsumptionResolution()
 
   _matchSet.indexMatrix();
 
-  Solver &solver = _solver.s;
+  Solver &solver = _solver;
 
 /**** Existence ****/
 #if PRINT_CLAUSE_COMMENTS_SUBS
@@ -660,7 +660,7 @@ bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
 
   atMostOneVars.clear();
   _matchSet.indexMatrix();
-  Solver &solver = _solver.s;
+  Solver &solver = _solver;
 
   /**** Existence ****/
 #if PRINT_CLAUSES_SUBS
@@ -899,9 +899,8 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause *L,
   }
 
   // Solve the SAT problem
-  Solver &solver = _solver.s;
-  solver.theory().setBindings(&_bindingsManager);
-  return solver.solve() == subsat::Result::Sat;
+  _solver.theory().setBindings(&_bindingsManager);
+  return _solver.solve() == subsat::Result::Sat;
 } // SATSubsumptionAndResolution::checkSubsumption
 
 Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
@@ -924,7 +923,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
     }
     ASS_GE(_matchSet.allMatches().size(), _L->length())
     // do not clear the variables and bindings
-    _solver.s.clear_constraints();
+    _solver.clear_constraints();
   }
   else {
     loadProblem(L, M);
@@ -961,7 +960,7 @@ if (!encodingSuccess) {
   }
 
   // Solve the SAT problem
-  Solver &solver = _solver.s;
+  Solver &solver = _solver;
   if (solver.theory().empty()) {
     // -> b_ij implies a certain substitution is valid
     //    for each i, j : b_ij => (S(l_i) = m_j V S(l_i) = ~m_j)

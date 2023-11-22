@@ -47,12 +47,6 @@ private:
   using Solver = subsat::Solver;
   using BindingsManager = typename Solver::BindingsManager;
 
-  // just to satisfy Vampire's custom allocator
-  struct SolverWrapper {
-    USE_ALLOCATOR(SATSubsumptionAndResolution::SolverWrapper);  // TODO: probably useless now because solver is larger than the small allocator sizes. let's just get rid of SolverWrapper completely.
-    Solver s;
-  };
-
   /**
    * Slice type representing some contiguous range of memory.
    */
@@ -342,7 +336,7 @@ private:
   /// @brief the number of literals in the instance clause
   unsigned _n;
   /// @brief the SAT solver
-  SolverWrapper _solver;
+  Solver _solver;
   /// @brief the bindings manager
   BindingsManager _bindingsManager;
   /// @brief the match set used to store the matches between the base and instance clauses
