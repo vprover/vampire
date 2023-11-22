@@ -32,7 +32,6 @@ class SpassLiteralSelector
 : public LiteralSelector
 {
 public:
-  CLASS_NAME(SpassLiteralSelector);
   USE_ALLOCATOR(SpassLiteralSelector);
 
   enum Values {

@@ -25,7 +25,6 @@ class LookaheadLiteralSelector
 : public LiteralSelector
 {
 public:
-  CLASS_NAME(LookaheadLiteralSelector);
   USE_ALLOCATOR(LookaheadLiteralSelector);
 
   LookaheadLiteralSelector(bool completeSelection, const Ordering& ordering, const Options& options)

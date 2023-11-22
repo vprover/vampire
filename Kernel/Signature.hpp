@@ -316,7 +316,6 @@ class Signature
     OperatorType* predType() const;
     OperatorType* typeConType() const;
 
-    CLASS_NAME(Signature::Symbol);
     USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
@@ -335,7 +334,6 @@ class Signature
     {
     }
 
-    CLASS_NAME(Signature::InterpretedSymbol);
     USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
@@ -356,7 +354,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
-    CLASS_NAME(Signature::IntegerSymbol);
     USE_ALLOCATOR(IntegerSymbol);
   };
 
@@ -374,7 +371,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
-    CLASS_NAME(Signature::RationalSymbol);
     USE_ALLOCATOR(RationalSymbol);
   };
 
@@ -392,7 +388,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
-    CLASS_NAME(Signature::RealSymbol);
     USE_ALLOCATOR(RealSymbol);
   }; 
 
@@ -580,7 +575,6 @@ class Signature
   Signature();
   ~Signature();
 
-  CLASS_NAME(Signature);
   USE_ALLOCATOR(Signature);
 
   bool functionExists(const vstring& name,unsigned arity) const;

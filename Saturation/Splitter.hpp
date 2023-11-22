@@ -59,10 +59,7 @@ public:
   SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent), _solverIsSMT(false)  {}
   ~SplittingBranchSelector(){
 #if VZ3
-{
-BYPASSING_ALLOCATOR;
 _solver=0;
-}
 #endif
   }
 
@@ -171,12 +168,10 @@ private:
     Stack<ReductionRecord> reduced;
     bool active;
 
-    CLASS_NAME(Splitter::SplitRecord);
     USE_ALLOCATOR(SplitRecord);
   };
   
 public:
-  CLASS_NAME(Splitter);
   USE_ALLOCATOR(Splitter);
 
   Splitter();

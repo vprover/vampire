@@ -455,7 +455,7 @@ Clause* Superposition::performSuperposition(
   }
 
   (*res)[0] = tgtLitS;
-  int next = 1;
+  unsigned next = 1;
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];

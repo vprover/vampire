@@ -124,7 +124,7 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(TermList r, bool opposi
   if (subst) {
     ASS(r.isVar());
     subst->bind(r.var(), getPlaceholderForTerm(_indTerm));
-    DHMap<Term*,unsigned>::Iterator it(tr._tv);
+    DHMap<Term*,unsigned,SharedTermHash>::Iterator it(tr._tv);
     while (it.hasNext()) {
       unsigned v;
       Term* t;
@@ -349,7 +349,7 @@ struct InductionContextFn
     // heuristic 1
     } else {
       InductionContext ctx(arg.first, _lit, _premise);
-      Set<Literal*> lits;
+      Set<Literal*,SharedTermHash> lits;
       lits.insert(_lit);
       while (arg.second.hasNext()) {
         auto tqr = arg.second.next();
@@ -381,8 +381,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
   }
 
   if (lit->ground()) {
-      Set<Term*> ta_terms;
-      Set<Term*> int_terms;
+      Set<Term*,SharedTermHash> ta_terms;
+      Set<Term*,SharedTermHash> int_terms;
 
       NonVariableNonTypeIterator it(lit);
       while(it.hasNext()){
@@ -400,7 +400,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
 
     if (InductionHelper::isInductionLiteral(lit)) {
-      Set<Term*>::Iterator citer1(int_terms);
+      Set<Term*,SharedTermHash>::Iterator citer1(int_terms);
       while(citer1.hasNext()){
         Term* t = citer1.next();
         auto leBound = iterTraits(_helper.getLess(t)).collect<Stack>();
@@ -454,7 +454,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     // collect term queries for each induction term
     auto sideLitsIt = VirtualIterator<pair<Term*, TermQueryResultIterator>>::getEmpty();
     if (_opt.nonUnitInduction()) {
-      sideLitsIt = pvi(iterTraits(Set<Term*>::Iterator(ta_terms))
+      sideLitsIt = pvi(iterTraits(Set<Term*,SharedTermHash>::Iterator(ta_terms))
         .map([this](Term* arg) {
           return make_pair(arg, _structInductionTermIndex->getGeneralizations(TypedTermList(arg), true));
         }));
@@ -479,7 +479,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         return hasPremise && cnt > 1;
       });
     // collect contexts for single-literal induction with given clause
-    auto indCtxSingle = iterTraits(Set<Term*>::Iterator(ta_terms))
+    auto indCtxSingle = iterTraits(Set<Term*,SharedTermHash>::Iterator(ta_terms))
       .map([&lit,&premise](Term* arg) {
         return InductionContext(arg, lit, premise);
       })

@@ -20,7 +20,6 @@ class Cancellation
 : public SimplifyingGeneratingLiteralSimplification
 {
 public:
-  CLASS_NAME(Cancellation);
   USE_ALLOCATOR(Cancellation);
 
   Cancellation(Ordering& ordering);

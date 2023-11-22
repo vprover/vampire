@@ -43,11 +43,6 @@ size_t getMemoryLimit();
 // set the memory limit for global operator new
 void setMemoryLimit(size_t bytes);
 
-// deprecated functions invoked by *ALLOC_UNKNOWN, should not be used in new code
-void *deprecatedAlloc(size_t size);
-void *deprecatedRealloc(void *ptr, size_t new_size);
-void deprecatedFree(void *ptr);
-
 }
 
 #ifdef INDIVIDUAL_ALLOCATIONS
@@ -300,16 +295,9 @@ inline void free(void *pointer, size_t size) {
 #endif // INDIVIDUAL_ALLOCATIONS's else
 
 // legacy macros, should be removed eventually
-#define BYPASSING_ALLOCATOR
-#define START_CHECKING_FOR_ALLOCATOR_BYPASSES
-#define STOP_CHECKING_FOR_ALLOCATOR_BYPASSES
 #define USE_ALLOCATOR(C) USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
-#define CLASS_NAME(className)
 #define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)
-#define ALLOC_UNKNOWN(size, className) Lib::deprecatedAlloc(size)
-#define REALLOC_UNKNOWN(ptr, size, className) Lib::deprecatedRealloc(ptr, size)
-#define DEALLOC_UNKNOWN(ptr, className) Lib::deprecatedFree(ptr)
 
 // TODO dubious: probably a compiler lint these days?
 /**

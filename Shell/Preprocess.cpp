@@ -398,6 +398,8 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
        env.out() << "equality proxy" << std::endl;
 
+     // refresh symbol usage counts, can skip unused symbols for equality proxy
+     prb.getProperty();
      if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
        EqualityProxyMono proxy(_options.equalityProxy());
        proxy.apply(prb);

@@ -31,7 +31,6 @@ using namespace Shell;
 
 class GroundingIndex : public Index {
 public:
-  CLASS_NAME(GroundingIndex);
   USE_ALLOCATOR(GroundingIndex);
 
   GroundingIndex(const Options& opt);

@@ -146,7 +146,6 @@ public:
    */
   struct PreprocessingOptions
   {
-    CLASS_NAME(Problem::PreprocessingOptions);
     USE_ALLOCATOR_ARRAY;    
     
     PreprocessingOptions();

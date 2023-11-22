@@ -57,7 +57,6 @@ template <typename Key, typename Val, class Hash1, class Hash2>
 class DHMap
 {
 public:
-  CLASS_NAME(DHMap);
   USE_ALLOCATOR(DHMap);
   
   /** Create a new DHMap */

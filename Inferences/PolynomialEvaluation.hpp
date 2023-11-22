@@ -30,7 +30,6 @@ class PolynomialEvaluation
 : public SimplifyingGeneratingLiteralSimplification
 {
 public:
-  CLASS_NAME(PolynomialEvaluation);
   USE_ALLOCATOR(PolynomialEvaluation);
 
   PolynomialEvaluation(Ordering& ordering);

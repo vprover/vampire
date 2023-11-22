@@ -140,18 +140,6 @@ public:
     bool checkGlobalOptionConstraints(bool fail_early=false);
     bool checkProblemOptionConstraints(Property*, bool before_preprocessing, bool fail_early=false);
 
-    // Randomize strategy (will only work if randomStrategy=on)
-    // should only be called after all other options are set
-    //
-    // The usage is overloaded. If prop=0 then this function will randomize
-    // options that do not require a Property (no ProblemConstraints)
-    // (note it is possible to supress the requirement, see Options.cpp)
-    // Otherwise all other options will be randomized.
-    //
-    // This dual usage is required as the property object is created during
-    // the preprocessing stage. This means that in vampire.cpp we call this twice
-    void randomizeStrategy(Property* prop);
-
     /**
      * Sample a random strategy from a distribution described by the given file.
      *
@@ -191,7 +179,6 @@ public:
     void setInputFile(const vstring& newVal){ _inputFile.set(newVal); }
     vstring includeFileName (const vstring& relativeName);
 
-    CLASS_NAME(Options);
     USE_ALLOCATOR(Options);
 
     // standard ways of creating options
@@ -341,13 +328,6 @@ public:
     CONTOUR
   };
 
-  enum class RandomStrategy : unsigned int {
-    ON,
-    OFF,
-    SAT,
-    NOCHECK
-  };
-
   enum class BadOption : unsigned int {
     HARD,
     FORCED,
@@ -420,7 +400,6 @@ public:
     PREPROCESS,
     PREPROCESS2,
     PROFILE,
-    RANDOM_STRATEGY,
     SMTCOMP,
     SPIDER,
     TCLAUSIFY,
@@ -867,7 +846,6 @@ private:
      */
     struct AbstractOptionValue {
 
-        CLASS_NAME(AbstractOptionValue);
         USE_ALLOCATOR(AbstractOptionValue);
 
         AbstractOptionValue(){}
@@ -895,9 +873,6 @@ private:
           }
           return okay;
         }
-
-        // Set to a random value
-        virtual bool randomize(Property* P) = 0;
 
         // Experimental options are not included in help
         void setExperimental(){experimental=true;}
@@ -967,25 +942,6 @@ private:
         typedef std::unique_ptr<DArray<vstring>> vstringDArrayUP;
 
         typedef std::pair<OptionProblemConstraintUP,vstringDArrayUP> RandEntry;
-
-        void setRandomChoices(std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
-        }
-        void setRandomChoices(std::initializer_list<vstring> list,
-                              std::initializer_list<vstring> list_sat){
-          rand_choices.push(RandEntry(isRandOn(),toArray(list)));
-          rand_choices.push(RandEntry(isRandSat(),toArray(list_sat)));
-        }
-        void setRandomChoices(OptionProblemConstraintUP c,
-                              std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(std::move(c),toArray(list)));
-        }
-        void setNoPropertyRandomChoices(std::initializer_list<vstring> list){
-          rand_choices.push(RandEntry(OptionProblemConstraintUP(),toArray(list)));
-          supress_problemconstraints=true;
-        }
-
-
     private:
         // Tag state
         OptionTag _tag;
@@ -1000,7 +956,6 @@ private:
         }
     protected:
         // Note has LIFO semantics so use BottomFirstIterator
-        Stack<RandEntry> rand_choices;
         bool supress_problemconstraints;
     };
 
@@ -1021,8 +976,6 @@ private:
      */
     template<typename T>
     struct OptionValue : public AbstractOptionValue {
-
-        CLASS_NAME(OptionValue);
         USE_ALLOCATOR(OptionValue);
 
         // We need to include an empty constructor as all the OptionValue objects need to be initialized
@@ -1102,9 +1055,6 @@ private:
             out << "\tdefault: " << getStringOfValue(defaultValue) << std::endl;
         }
 
-        // This is where actual randomisation happens
-        bool randomize(Property* p);
-
     private:
         Lib::Stack<OptionValueConstraintUP<T>> _constraints;
         Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
@@ -1125,8 +1075,6 @@ private:
      */
     template<typename T >
     struct ChoiceOptionValue : public OptionValue<T> {
-
-        CLASS_NAME(ChoiceOptionValue);
         USE_ALLOCATOR(ChoiceOptionValue);
 
         ChoiceOptionValue(){}
@@ -1259,7 +1207,6 @@ vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
 */
 struct RatioOptionValue : public OptionValue<int> {
 
-CLASS_NAME(RatioOptionValue);
 USE_ALLOCATOR(RatioOptionValue);
 
 RatioOptionValue(){}
@@ -1305,7 +1252,6 @@ virtual vstring getStringOfActual() const override {
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
 
-CLASS_NAME(NonGoalWeightOptionValue);
 USE_ALLOCATOR(NonGoalWeightOptionValue);
 
 NonGoalWeightOptionValue(){}
@@ -1446,7 +1392,6 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 
 template<typename T>
 struct OptionValueConstraint{
-CLASS_NAME(OptionValueConstraint);
 USE_ALLOCATOR(OptionValueConstraint);
 OptionValueConstraint() : _hard(false) {}
 
@@ -1473,7 +1418,6 @@ bool _hard;
 
     template<typename T>
     struct WrappedConstraint : AbstractWrappedConstraint {
-        CLASS_NAME(WrappedConstraint);
         USE_ALLOCATOR(WrappedConstraint);
 
         WrappedConstraint(const OptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
@@ -1490,7 +1434,6 @@ bool _hard;
     };
 
     struct WrappedConstraintOrWrapper : public AbstractWrappedConstraint {
-        CLASS_NAME(WrappedConstraintOrWrapper);
         USE_ALLOCATOR(WrappedConstraintOrWrapper);
         WrappedConstraintOrWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
         bool check() override {
@@ -1503,7 +1446,6 @@ bool _hard;
     };
 
     struct WrappedConstraintAndWrapper : public AbstractWrappedConstraint {
-        CLASS_NAME(WrappedConstraintAndWrapper);
         USE_ALLOCATOR(WrappedConstraintAndWrapper);
         WrappedConstraintAndWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
         bool check() override {
@@ -1517,7 +1459,6 @@ bool _hard;
 
     template<typename T>
     struct OptionValueConstraintOrWrapper : public OptionValueConstraint<T>{
-        CLASS_NAME(OptionValueConstraintOrWrapper);
         USE_ALLOCATOR(OptionValueConstraintOrWrapper);
         OptionValueConstraintOrWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
         bool check(const OptionValue<T>& value){
@@ -1531,7 +1472,6 @@ bool _hard;
 
     template<typename T>
     struct OptionValueConstraintAndWrapper : public OptionValueConstraint<T>{
-        CLASS_NAME(OptionValueConstraintAndWrapper);
         USE_ALLOCATOR(OptionValueConstraintAndWrapper);
         OptionValueConstraintAndWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
         bool check(const OptionValue<T>& value){
@@ -1545,7 +1485,6 @@ bool _hard;
 
     template<typename T>
     struct UnWrappedConstraint : public OptionValueConstraint<T>{
-        CLASS_NAME(UnWrappedConstraint);
         USE_ALLOCATOR(UnWrappedConstraint);
 
         UnWrappedConstraint(AbstractWrappedConstraintUP c) : con(std::move(c)) {}
@@ -1610,7 +1549,6 @@ bool _hard;
 
     template<typename T>
     struct Equal : public OptionValueConstraint<T>{
-        CLASS_NAME(Equal);
         USE_ALLOCATOR(Equal);
         Equal(T gv) : _goodvalue(gv) {}
         bool check(const OptionValue<T>& value){
@@ -1628,7 +1566,6 @@ bool _hard;
 
     template<typename T>
     struct NotEqual : public OptionValueConstraint<T>{
-        CLASS_NAME(NotEqual);
         USE_ALLOCATOR(NotEqual);
         NotEqual(T bv) : _badvalue(bv) {}
         bool check(const OptionValue<T>& value){
@@ -1646,7 +1583,6 @@ bool _hard;
     // optionally we can allow it be equal to that value also
     template<typename T>
     struct LessThan : public OptionValueConstraint<T>{
-        CLASS_NAME(LessThan);
         USE_ALLOCATOR(LessThan);
         LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
         bool check(const OptionValue<T>& value){
@@ -1673,7 +1609,6 @@ bool _hard;
     // optionally we can allow it be equal to that value also
     template<typename T>
     struct GreaterThan : public OptionValueConstraint<T>{
-        CLASS_NAME(GreaterThan);
         USE_ALLOCATOR(GreaterThan);
         GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
         bool check(const OptionValue<T>& value){
@@ -1701,7 +1636,6 @@ bool _hard;
     // optionally we can allow it be equal to that value also
     template<typename T>
     struct SmallerThan : public OptionValueConstraint<T>{
-        CLASS_NAME(SmallerThan);
         USE_ALLOCATOR(SmallerThan);
         SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
         bool check(const OptionValue<T>& value){
@@ -1734,7 +1668,6 @@ bool _hard;
 
     template<typename T>
     struct IfThenConstraint : public OptionValueConstraint<T>{
-        CLASS_NAME(IfThenConstraint);
         USE_ALLOCATOR(IfThenConstraint);
 
         IfThenConstraint(OptionValueConstraintUP<T> ic, OptionValueConstraintUP<T> c) :
@@ -1755,7 +1688,6 @@ bool _hard;
 
     template<typename T>
     struct IfConstraint {
-        CLASS_NAME(IfConstraint);
         USE_ALLOCATOR(IfConstraint);
         IfConstraint(OptionValueConstraintUP<T> c) :if_con(std::move(c)) {}
 
@@ -1831,7 +1763,6 @@ bool _hard;
     }
 
     struct isLookAheadSelectionConstraint : public OptionValueConstraint<int>{
-        CLASS_NAME(isLookAheadSelectionConstraint);
         USE_ALLOCATOR(isLookAheadSelectionConstraint);
         isLookAheadSelectionConstraint() {}
         bool check(const OptionValue<int>& value){
@@ -1854,7 +1785,6 @@ bool _hard;
      */
 
     struct OptionProblemConstraint{
-      CLASS_NAME(OptionProblemConstraint);
       USE_ALLOCATOR(OptionProblemConstraint);
 
       virtual bool check(Property* p) = 0;
@@ -1863,7 +1793,6 @@ bool _hard;
     };
 
     struct CategoryCondition : OptionProblemConstraint{
-      CLASS_NAME(CategoryCondition);
       USE_ALLOCATOR(CategoryCondition);
 
       CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
@@ -1881,7 +1810,6 @@ bool _hard;
     };
 
     struct UsesEquality : OptionProblemConstraint{
-      CLASS_NAME(UsesEquality);
       USE_ALLOCATOR(UsesEquality);
 
       bool check(Property*p){
@@ -1894,7 +1822,6 @@ bool _hard;
     };
 
     struct HasHigherOrder : OptionProblemConstraint{
-      CLASS_NAME(HasHigherOrder);
       USE_ALLOCATOR(HasHigherOrder);
 
       bool check(Property*p){
@@ -1905,7 +1832,6 @@ bool _hard;
     };
 
     struct OnlyFirstOrder : OptionProblemConstraint{
-      CLASS_NAME(OnlyFirstOrder);
       USE_ALLOCATOR(OnlyFirstOrder);
 
       bool check(Property*p){
@@ -1916,7 +1842,6 @@ bool _hard;
     };
 
     struct MayHaveNonUnits : OptionProblemConstraint{
-      CLASS_NAME(MayHaveNonUnits);
       USE_ALLOCATOR(MayHaveNonUnits);
 
       bool check(Property*p){
@@ -1927,7 +1852,6 @@ bool _hard;
     };
 
     struct NotJustEquality : OptionProblemConstraint{
-      CLASS_NAME(NotJustEquality);
       USE_ALLOCATOR(NotJustEquality);
 
       bool check(Property*p){
@@ -1937,7 +1861,6 @@ bool _hard;
     };
 
     struct AtomConstraint : OptionProblemConstraint{
-      CLASS_NAME(AtomConstraint);
       USE_ALLOCATOR(AtomConstraint);
 
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
@@ -1955,7 +1878,6 @@ bool _hard;
     };
 
     struct HasTheories : OptionProblemConstraint {
-      CLASS_NAME(HasTheories);
       USE_ALLOCATOR(HasTheories);
 
       static bool actualCheck(Property*p);
@@ -1965,7 +1887,6 @@ bool _hard;
     };
 
     struct HasFormulas : OptionProblemConstraint {
-      CLASS_NAME(HasFormulas);
       USE_ALLOCATOR(HasFormulas);
 
       bool check(Property*p) {
@@ -1975,7 +1896,6 @@ bool _hard;
     };
 
     struct HasGoal : OptionProblemConstraint {
-      CLASS_NAME(HasGoal);
       USE_ALLOCATOR(HasGoal);
 
       bool check(Property*p){
@@ -2013,7 +1933,6 @@ bool _hard;
     // set of options will not be randomized and some will be randomized first
 
     struct OptionHasValue : OptionProblemConstraint{
-      CLASS_NAME(OptionHasValue);
       USE_ALLOCATOR(OptionHasValue);
 
       OptionHasValue(vstring ov,vstring v) : option_value(ov),value(v) {}
@@ -2024,7 +1943,6 @@ bool _hard;
     };
 
     struct ManyOptionProblemConstraints : OptionProblemConstraint {
-      CLASS_NAME(ManyOptionProblemConstraints);
       USE_ALLOCATOR(ManyOptionProblemConstraints);
 
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
@@ -2088,8 +2006,6 @@ bool _hard;
   // This is how options are accessed so if you add a new option you should add a getter
 public:
   bool encodeStrategy() const{ return _encode.actualValue;}
-  RandomStrategy randomStrategy() const {return _randomStrategy.actualValue; }
-  void setRandomStrategy(RandomStrategy newVal){ _randomStrategy.actualValue=newVal;}
   BadOption getBadOptionChoice() const { return _badOption.actualValue; }
   void setBadOptionChoice(BadOption newVal) { _badOption.actualValue = newVal; }
   vstring forcedOptions() const { return _forcedOptions.actualValue; }
@@ -2142,7 +2058,6 @@ public:
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
-  unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   const vstring& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
@@ -2537,7 +2452,6 @@ private:
   *
   */
 
-  ChoiceOptionValue<RandomStrategy> _randomStrategy;
   DecodeOptionValue _decode;
   BoolOptionValue _encode;
 
@@ -2710,7 +2624,6 @@ private:
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
   UnsignedOptionValue _randomSeed;
-  UnsignedOptionValue _randomStrategySeed;
 
   StringOptionValue _sampleStrategy;
 

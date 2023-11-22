@@ -781,15 +781,6 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
   return transform(tl);
 }
 
-TermList SynthesisManager::ConjectureSkolemReplacement::transform(TermList tl) {
-  TermList transformed = transformSubterm(tl);
-  if (transformed != tl) {
-    return transformed;
-  } else {
-    return TermTransformer::transform(tl);
-  }
-}
-
 TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
   if (trm.isTerm()) {
     auto it = _skolemToVar.find(trm.term());

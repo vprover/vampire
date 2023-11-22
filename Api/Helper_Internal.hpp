@@ -75,7 +75,6 @@ class FBHelperCore
 : public DefaultHelperCore
 {
 public:
-  CLASS_NAME(FBHelperCore);
   USE_ALLOCATOR(FBHelperCore);
   
   FBHelperCore() : nextVar(0), refCtr(0), varFact(*this), _unaryPredicate(0)
