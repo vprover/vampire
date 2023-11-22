@@ -31,7 +31,6 @@ class BackwardSubsumptionAndResolution
     : public BackwardSimplificationEngine {
 
 public:
-  CLASS_NAME(BackwardSubsumptionAndResolution);
   USE_ALLOCATOR(BackwardSubsumptionAndResolution);
 
   BackwardSubsumptionAndResolution(bool subsumption, bool subsumptionByUnitsOnly, bool subsumptionResolution, bool srByUnitsOnly) : _subsumption(subsumption), _subsumptionResolution(subsumptionResolution), _subsumptionByUnitsOnly(subsumptionByUnitsOnly), _srByUnitsOnly(srByUnitsOnly),

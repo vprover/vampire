@@ -40,7 +40,7 @@ ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _unitIndex = dynamic_cast<UnitClauseLiteralIndex *>(
+  _unitIndex = static_cast<UnitClauseLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
