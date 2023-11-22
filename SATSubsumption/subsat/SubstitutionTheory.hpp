@@ -50,27 +50,9 @@ using VampireTerm = std::uint64_t;
 static_assert(sizeof(VampireTerm) == 8, "unexpected term size");
 
 
-
-template <template <typename> class Allocator>
-class SubstitutionTheory;
-
-
-
-template <template <typename> class Allocator = std::allocator>
 class BindingsManager final
 {
 public:
-  template <typename T>
-  using allocator_type = Allocator<T>;
-
-  template <typename T>
-  using vector = std::vector<T, allocator_type<T>>;
-
-  template <typename K, typename T>
-  using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
-
-public:
-  CLASS_NAME(BindingsManager);
   USE_ALLOCATOR(BindingsManager);
 
   // empty substitution theory
@@ -163,7 +145,7 @@ public:
       m_state = State::Committed;
     }
 
-    friend class BindingsManager<Allocator>;
+    friend class BindingsManager;
 
   private:
     BindingsStorage& m_bindings_storage;
@@ -244,7 +226,7 @@ public:
     m_bindings.reserve(bool_var_count);
   }
 
-  template <template <typename> class Alloc> friend class SubstitutionTheory;
+  friend class SubstitutionTheory;
 
 private:
   // TODO: bindings in the array could be stored in a heap structure (i.e., one heap per binder).
@@ -260,21 +242,10 @@ private:
 
 
 
-template <template <typename> class Allocator = std::allocator>
 class SubstitutionTheory final
 {
 public:
-  template <typename T>
-  using allocator_type = Allocator<T>;
-
-  template <typename T>
-  using vector = std::vector<T, allocator_type<T>>;
-
-  template <typename K, typename T>
-  using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
-
-  using BindingsManager = subsat::BindingsManager<allocator_type>;
-
+  using BindingsManager = typename subsat::BindingsManager;
 private:
   using BindingsEntry = typename BindingsManager::BindingsEntry;
   using BindingsRef = typename BindingsManager::BindingsRef;

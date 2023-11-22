@@ -1,4 +1,4 @@
-#include "subsat.hpp"
+#include "./subsat.hpp"
 
 
 // TODO: move solver implementation here

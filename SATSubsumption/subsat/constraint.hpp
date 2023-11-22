@@ -95,8 +95,8 @@ private:
   Constraint& operator=(Constraint&) = delete;
   Constraint& operator=(Constraint&&) = delete;
 
-  template <template <typename> class Allocator> friend class ConstraintArena;
-  template <template <typename> class Allocator> friend class Solver;
+  friend class ConstraintArena;
+  friend class Solver;
 
 private:
   size_type m_size;   // number of literals
@@ -141,7 +141,7 @@ private:
       : m_index{index}
   { }
 
-  template <template <typename> class Allocator> friend class ConstraintArena;
+  friend class ConstraintArena;
 
 private:
   /// Index into the arena storage.
@@ -181,7 +181,7 @@ private:
     (void)capacity;
   }
 
-  template <template <typename> class Allocator> friend class ConstraintArena;
+  friend class ConstraintArena;
 
 private:
   ConstraintRef m_constraint_ref;
@@ -196,7 +196,6 @@ static_assert(std::is_trivially_destructible<AllocatedConstraintHandle>::value, 
 
 
 
-template <template <typename> class Allocator = std::allocator>
 class ConstraintArena final
 {
 private:
@@ -221,9 +220,6 @@ private:
   }
 
 public:
-  template <typename T>
-  using allocator_type = Allocator<T>;
-
   ConstraintArena()
   {
 #ifndef NDEBUG

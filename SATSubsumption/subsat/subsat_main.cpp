@@ -1,4 +1,4 @@
-#include "subsat.hpp"
+#include "./subsat.hpp"
 
 #include <fstream>
 #include <initializer_list>
@@ -18,8 +18,7 @@ static Lit from_dimacs(int dimacs_lit)
   return Lit{v, dimacs_lit > 0};
 }
 
-template <template <typename> class A>
-static void parse_dimacs(std::istream& in, Solver<A>& solver)
+static void parse_dimacs(std::istream& in, Solver& solver)
 {
   std::string buf;
 
@@ -61,8 +60,7 @@ static void parse_dimacs(std::istream& in, Solver<A>& solver)
   }
 }
 
-template <template <typename> class A>
-static void parse_input(std::string filename, Solver<A>& solver)
+static void parse_input(std::string filename, Solver& solver)
 {
     if (filename == "-") {
       parse_dimacs(std::cin, solver);
@@ -79,7 +77,7 @@ static int enumerate_models(std::string filename)
     return 2;
   }
 
-  Solver<> s;
+  Solver s;
   parse_input(filename, s);
 
   // Collect all models
@@ -119,7 +117,7 @@ static int enumerate_models(std::string filename)
 
 int main(int argc, char* argv[])
 {
-  Solver<> s;
+  Solver s;
   assert(s.empty());
 
   print_config(std::cout);

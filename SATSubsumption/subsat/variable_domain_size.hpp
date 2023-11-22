@@ -14,14 +14,8 @@ namespace subsat {
 ///
 /// A set of boolean variables representing the choices of a non-boolean variable ("value encoding")
 /// is called a "group" in this class.  (nothing to do with mathematical groups, just variables "grouped together").
-template <template <typename> class Allocator = std::allocator>
 class VariableDomainSize final {
 public:
-  template <typename T>
-  using allocator_type = Allocator<T>;
-
-  template <typename K, typename T>
-  using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
 
   /// Group indices should form a contiguous range starting at 0.
   using Group = std::uint32_t;
@@ -136,8 +130,7 @@ public:
   }
 
   /// Select variable with the smallest non-zero domain size.
-  template <typename A>
-  Var select_min_domain(subsat::vector_map<Lit, Value, A> const& values)
+  Var select_min_domain(subsat::vector_map<Lit, Value> const& values)
   {
     assert(check_invariants(values));
     // TODO: for now, we just do a simple linear search
@@ -167,8 +160,7 @@ public:
   }
 
 #ifndef NDEBUG
-  template <typename A>
-  bool check_invariants(subsat::vector_map<Lit, Value, A> const& values) const
+  bool check_invariants(subsat::vector_map<Lit, Value> const& values) const
   {
     for (InternalGroup ig = 1; ig < m_domain_sizes.size(); ++ig) {
       uint32_t unassigned_count = 0;

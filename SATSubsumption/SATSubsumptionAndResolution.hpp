@@ -42,15 +42,14 @@ public:
 #else
 private:
 #endif
-  template <typename T>
-  using allocator_type = STLAllocator<T>;
-  using Solver = subsat::Solver<allocator_type>;
+  static_assert(!SUBSAT_STANDALONE, "expecting SUBSAT_STANDALONE=0 when integrating subsat into vampire");
+  static_assert(std::is_same<subsat::allocator_type<int>, STLAllocator<int>>::value, "unexpected subsat::allocator_type");
+  using Solver = subsat::Solver;
   using BindingsManager = typename Solver::BindingsManager;
 
   // just to satisfy Vampire's custom allocator
   struct SolverWrapper {
-    CLASS_NAME(SATSubsumptionAndResolution::SolverWrapper);
-    USE_ALLOCATOR(SATSubsumptionAndResolution::SolverWrapper);
+    USE_ALLOCATOR(SATSubsumptionAndResolution::SolverWrapper);  // TODO: probably useless now because solver is larger than the small allocator sizes. let's just get rid of SolverWrapper completely.
     Solver s;
   };
 

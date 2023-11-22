@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <limits>
 #include <ostream>
+#include <set>
+#include <map>
 
 #include "./subsat_config.hpp"
 #include "./vector_map.hpp"
@@ -24,7 +26,6 @@ namespace subsat {
 using std::uint8_t;
 using std::uint32_t;
 
-// TODO: use something like this instead of templates everywhere
 #if SUBSAT_STANDALONE
 template <typename T>
 using allocator_type = ::std::allocator<T>;
@@ -35,14 +36,23 @@ using allocator_type = ::Lib::STLAllocator<T>;
 
 using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
 
-// template <typename T>
-// using vector = std::vector<T, allocator_type<T>>;
+template <typename T>
+using vector = std::vector<T, allocator_type<T>>;
 
-// template <typename K, typename T>
-// using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
+template <typename K, typename T>
+using vector_map = subsat::vector_map_t<K, T, allocator_type<T>>;
+
+#ifndef NDEBUG
+  // Note: std::set and std::map are slow, so use them only in debug mode!
+  template <typename Key, typename Compare = std::less<Key>>
+  using set = typename ::std::set<Key, Compare, allocator_type<Key>>;
+  template <typename Key, typename T, typename Compare = std::less<Key>>
+  using map = typename ::std::map<Key, T, Compare, allocator_type<std::pair<Key const, T>>>;
+#endif
 
 
 class Lit;
+class Solver;
 
 
 

@@ -6,24 +6,24 @@
 #if SUBSAT_LOGGING_ENABLED
 
 static LogLevel
-get_max_log_level(log_sat::string const& fn, log_sat::string const& pretty_fn)
+get_max_log_level(subsat::string const& fn, subsat::string const& pretty_fn)
 {
   (void)fn;
   (void)pretty_fn;
 
-  // bool const from_decision_queue = pretty_fn.find("DecisionQueue") != log_sat::string::npos;
+  // bool const from_decision_queue = pretty_fn.find("DecisionQueue") != subsat::string::npos;
   // if (from_decision_queue) {
   //   return LogLevel::Info;
   // }
 
-  // if (pretty_fn.find("add_") != log_sat::string::npos) {
+  // if (pretty_fn.find("add_") != subsat::string::npos) {
   //   return LogLevel::Info;
   // }
 
   // if (fn == "analyze") {
   //   return LogLevel::Trace;
   // }
-  // if (fn.find("minimize") != log_sat::string::npos) {
+  // if (fn.find("minimize") != subsat::string::npos) {
   //   return LogLevel::Trace;
   // }
   // if (fn == "propagate_literal") {
@@ -36,7 +36,7 @@ get_max_log_level(log_sat::string const& fn, log_sat::string const& pretty_fn)
 
 /// Filter log messages
 bool
-subsat_should_log(LogLevel msg_level, log_sat::string fn, log_sat::string pretty_fn)
+subsat_should_log(LogLevel msg_level, subsat::string fn, subsat::string pretty_fn)
 {
   LogLevel max_log_level = get_max_log_level(fn, pretty_fn);
   return msg_level <= max_log_level;
@@ -71,7 +71,7 @@ level_color(LogLevel msg_level)
 }
 
 std::pair<std::ostream&, bool>
-subsat_log(LogLevel msg_level, log_sat::string fn, log_sat::string /* pretty_fn */)
+subsat_log(LogLevel msg_level, subsat::string fn, subsat::string /* pretty_fn */)
 {
   std::ostream& os = std::cerr;
   int const fd = fileno(stderr);
@@ -83,7 +83,7 @@ subsat_log(LogLevel msg_level, log_sat::string fn, log_sat::string /* pretty_fn 
   if (color && !isatty(fd)) { color = nullptr; }
 
   if (color) { os << color; }
-  os << level_name(msg_level) << " [" << fn << "] " << log_sat::string(padding, ' ');
+  os << level_name(msg_level) << " [" << fn << "] " << subsat::string(padding, ' ');
   return {os, (bool)color};
 }
 

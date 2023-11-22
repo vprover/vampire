@@ -270,17 +270,15 @@ enum : Mark {
 
 
 #if SUBSAT_LOGGING_ENABLED
-template <template <typename> class A>
 struct ShowConstraintRef {
-  ShowConstraintRef(ConstraintArena<A> const& arena, ConstraintRef cr) noexcept
+  ShowConstraintRef(ConstraintArena const& arena, ConstraintRef cr) noexcept
     : arena(arena), cr(cr)
   { }
-  ConstraintArena<A> const& arena;
+  ConstraintArena const& arena;
   ConstraintRef cr;
 };
 
-template <template <typename> class A>
-std::ostream& operator<<(std::ostream& os, ShowConstraintRef<A> const& scr)
+inline std::ostream& operator<<(std::ostream& os, ShowConstraintRef const& scr)
 {
   if (scr.cr.is_valid()) {
     os << scr.arena.deref(scr.cr);
@@ -290,17 +288,15 @@ std::ostream& operator<<(std::ostream& os, ShowConstraintRef<A> const& scr)
   return os;
 }
 
-template <template <typename> class A>
 struct ShowReason {
-  ShowReason(ConstraintArena<A> const& arena, Reason r) noexcept
+  ShowReason(ConstraintArena const& arena, Reason r) noexcept
     : arena(arena), r(r)
   { }
-  ConstraintArena<A> const& arena;
+  ConstraintArena const& arena;
   Reason r;
 };
 
-template <template <typename> class A>
-std::ostream& operator<<(std::ostream& os, ShowReason<A> const& sr)
+inline std::ostream& operator<<(std::ostream& os, ShowReason const& sr)
 {
   Reason const& r = sr.r;
   if (r.is_valid()) {
@@ -315,24 +311,19 @@ std::ostream& operator<<(std::ostream& os, ShowReason<A> const& sr)
   return os;
 }
 
-template <template <typename> class Allocator> class Solver;
 
-template <template <typename> class A>
 struct ShowAssignment {
-  ShowAssignment(Solver<A> const& solver) : solver(solver) { }
-  Solver<A> const& solver;
+  ShowAssignment(Solver const& solver) : solver(solver) { }
+  Solver const& solver;
 };
 
-template <template <typename> class A>
-std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa);
+std::ostream& operator<<(std::ostream& os, ShowAssignment sa);
 
-#define SHOWREF(cr) (ShowConstraintRef<Allocator>{m_constraints, cr})
-#define SHOWREASON(r) (ShowReason<Allocator>{m_constraints, r})
-#define SHOWASSIGNMENT() (ShowAssignment<Allocator>{*this})
+#define SHOWREF(cr) (ShowConstraintRef{m_constraints, cr})
+#define SHOWREASON(r) (ShowReason{m_constraints, r})
+#define SHOWASSIGNMENT() (ShowAssignment{*this})
 
 #endif
-
-
 
 
 
@@ -346,33 +337,13 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa);
 /// Based on two solvers by Armin Biere:
 /// - satch, see https://github.com/arminbiere/satch
 /// - kitten, which is part of kissat, see https://github.com/arminbiere/kissat
-template <template <typename> class Allocator = std::allocator>
 class Solver {
 
 public:
-  template <typename T>
-  using allocator_type = Allocator<T>;
-
-  template <typename T>
-  using vector = std::vector<T, allocator_type<T>>;
-
-  template <typename K, typename T>
-  using vector_map = subsat::vector_map<K, T, allocator_type<T>>;
-
-  using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
-
-  using SubstitutionTheory = subsat::SubstitutionTheory<allocator_type>;
+  using SubstitutionTheory = subsat::SubstitutionTheory;
   using BindingsManager = typename SubstitutionTheory::BindingsManager;
 
-#ifndef NDEBUG
-  // Note: std::set and std::map are slow, so use them only in debug mode!
-  template <typename Key, typename Compare = std::less<Key>>
-  using set = std::set<Key, Compare, allocator_type<Key>>;
-  template <typename Key, typename T, typename Compare = std::less<Key>>
-  using map = std::map<Key, T, Compare, allocator_type<std::pair<Key const, T>>>;
-#endif
-
-  using vdom = VariableDomainSize<allocator_type>;
+  using vdom = VariableDomainSize;
   using vdom_group = typename vdom::Group;
 
   using State = Result;
@@ -557,7 +528,7 @@ public:
   class ConstraintHandle final {
     ConstraintHandle(ConstraintRef ref) : m_ref{ref} { }
     ConstraintRef m_ref;
-    friend class Solver<Allocator>;
+    friend class Solver;
   };
 
   /// Reserve space for a constraint of at most 'capacity' literals
@@ -2014,7 +1985,6 @@ public:
       os << lit;
     }
   }
-  // friend std::ostream& operator<<(std::ostream&, ShowAssignment<allocator_type>);
 private:
 #endif
 
@@ -2081,7 +2051,7 @@ private:
 #endif
 #if SUBSAT_VMTF
   /// Queue for VMTF decision heuristic
-  DecisionQueue<allocator_type> m_queue;
+  DecisionQueue m_queue;
 #endif
 
 #if SUBSAT_PHASE_SAVING
@@ -2089,7 +2059,7 @@ private:
   // vector_map<Var, > m_phases;
 #endif
 
-  ConstraintArena<Allocator> m_constraints;
+  ConstraintArena m_constraints;
   // TODO: merge these
   vector_map<Lit, vector<Watch>> m_watches;
   vector_map<Lit, vector<Watch>> m_watches_amo;
@@ -2126,8 +2096,7 @@ private:
 }; // Solver
 
 #if SUBSAT_LOGGING_ENABLED
-template <template <typename> class A>
-std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
+inline std::ostream& operator<<(std::ostream& os, ShowAssignment sa)
 {
   sa.solver.showAssignment(os);
   return os;
@@ -2157,8 +2126,8 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment<A> sa)
 #ifndef NDEBUG
 #if SUBSAT_EXPENSIVE_ASSERTIONS
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkEmpty() const
+inline
+bool Solver::checkEmpty() const
 {
   assert(m_state == State::Unknown);
   assert(!m_inconsistent);
@@ -2201,8 +2170,8 @@ bool Solver<Allocator>::checkEmpty() const
   return true;
 }
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkConstraint(Constraint const& c) const
+inline
+bool Solver::checkConstraint(Constraint const& c) const
 {
   // No duplicate variables in the constraint (this prevents duplicate literals and tautological clauses)
   set<Var> vars;
@@ -2215,8 +2184,8 @@ bool Solver<Allocator>::checkConstraint(Constraint const& c) const
   return true;
 }
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkInvariants() const
+inline
+bool Solver::checkInvariants() const
 {
   // assigned vars + unassiged vars = used vars
   assert(m_trail.size() + m_unassigned_vars == m_used_vars);
@@ -2281,8 +2250,8 @@ bool Solver<Allocator>::checkInvariants() const
   return true;
 }  // checkInvariants
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkWatches() const
+inline
+bool Solver::checkWatches() const
 {
   // Some of the checks only make sense in a fully-propagated state
   assert(m_propagate_head == m_trail.size());
@@ -2346,8 +2315,8 @@ bool Solver<Allocator>::checkWatches() const
 }
 
 /// Checks whether the current assignment satisfies all constraints
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkModel() const
+inline
+bool Solver::checkModel() const
 {
   for (ConstraintRef cr : m_clause_refs) {
     Constraint const& c = m_constraints.deref(cr);
@@ -2380,32 +2349,32 @@ bool Solver<Allocator>::checkModel() const
 
 #else
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkEmpty() const
+inline
+bool Solver::checkEmpty() const
 {
   return true;
 }
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkConstraint(Constraint const& c) const
+inline
+bool Solver::checkConstraint(Constraint const& c) const
 {
   return true;
 }
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkInvariants() const
+inline
+bool Solver::checkInvariants() const
 {
   return true;
 }
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkWatches() const
+inline
+bool Solver::checkWatches() const
 {
   return true;
 }
 
-template <template <typename> class Allocator>
-bool Solver<Allocator>::checkModel() const
+inline
+bool Solver::checkModel() const
 {
   return true;
 }

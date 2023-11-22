@@ -11,7 +11,7 @@
 #include <iostream>
 #include <vector>
 #include <typeinfo>
-#include "./vector_map.hpp"
+#include "./types.hpp"
 
 namespace numerical_chars {
 inline std::ostream &operator<<(std::ostream &os, char c) {
@@ -28,23 +28,6 @@ inline std::ostream &operator<<(std::ostream &os, unsigned char c) {
 }
 }
 
-
-#if !SUBSAT_STANDALONE
-#include "Lib/STLAllocator.hpp"
-#endif
-
-namespace log_sat {
-
-#if SUBSAT_STANDALONE
-template <typename T>
-using allocator_type = std::allocator<T>;
-#else
-template <typename T>
-using allocator_type = Lib::STLAllocator<T>;
-#endif
-
-using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
-} // namespace log_sat
 
 template <typename T, typename Allocator>
 struct ShowVecImpl {
@@ -84,7 +67,7 @@ ShowVecImpl<T, Allocator> ShowVec(std::vector<T, Allocator> const& vec)
 }
 
 template<typename Key, typename T, typename Allocator, typename Indexing>
-ShowVecImpl<T, Allocator> ShowVec(subsat::vector_map<Key, T, Allocator, Indexing> const& vecmap)
+ShowVecImpl<T, Allocator> ShowVec(subsat::vector_map_t<Key, T, Allocator, Indexing> const& vecmap)
 {
     return ShowVecImpl<T, Allocator>{vecmap.underlying()};
 }
@@ -101,10 +84,10 @@ enum class LogLevel : int {
 
 /// Filter log messages
 bool
-subsat_should_log(LogLevel msg_level, log_sat::string fn, log_sat::string pretty_fn);
+subsat_should_log(LogLevel msg_level, subsat::string fn, subsat::string pretty_fn);
 
 std::pair<std::ostream&, bool>
-subsat_log(LogLevel msg_level, log_sat::string fn, log_sat::string pretty_fn);
+subsat_log(LogLevel msg_level, subsat::string fn, subsat::string pretty_fn);
 
 #define LOG(lvl, x)                                               \
   do {                                                            \
