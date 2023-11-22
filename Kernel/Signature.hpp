@@ -302,7 +302,7 @@ class Signature
 
     /** return true if a skolem constant from structural induction axiom */
     inline bool skolemFromStructIndAxiom()
-    { return skolem() && _constructorId != -1 && !interpretedNumber(); }
+    { return skolem() && _constructorId != -1; }
 
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const
