@@ -535,6 +535,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     while (nvi.hasNext()) {
       auto st = nvi.next();
       if (env.signature->getFunction(st->functor())->skolem()) {
+        std::cout << "Inducting on " << st->toString() << std::endl;
         InductionContext ctx(st, lit, premise);
         performStructInductionSynth(ctx); // clauses get resolved in the function
       }
@@ -1379,7 +1380,9 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   TermList freshSynthVar(var++,false);
   Substitution s;
   s.bind(synth_var, freshSynthVar);
+  std::cout << "Applying " << s << " on " << L->toString() << std::endl;
   L = SubstHelper::apply(L, s);
+  std::cout << "Resulted " << L->toString() << std::endl;
 
   TermStack recFuncArgs(ta->nConstructors() + 1);
 
@@ -1387,6 +1390,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   VList* ws = VList::empty(); 
   VList* ys = VList::empty(); 
   SkolemTrackerList* tempSkolemMappings = SkolemTrackerList::empty();  // Stores SkolemTrackers before skolemization happens
+
   for (unsigned i = 0; i < ta->nConstructors(); i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
@@ -1420,7 +1424,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       }
       tempSkolemMappings->push(SkolemTracker(Binding(y.var(), nullptr), i, (recursive != -1) ? true : false, recursive), tempSkolemMappings);
     }
-
     Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps); // /\_{j ∈ P_c}  L[y_j, w_j]
 
     TermList u(var++, false);
@@ -1437,6 +1440,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     Formula* step = (VList::isEmpty(ws)) ? succedent : new BinaryFormula(Connective::IMP, antecedent, succedent); // (/\_{j ∈ P_c} L[y_j, w_j]) --> L[cons(y_1, ..., y_n), u_i]
     formulas->push(step, formulas);
   }
+
   Formula* formula = new JunctionFormula(Connective::AND, formulas);
 
 
@@ -1458,11 +1462,15 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
 
   TermReplacement tr(context._indTerm, z);
+  std::cout << "L before transform " << L->toString() << std::endl;
   Literal* curLit = tr.transform(L);
-  s.reset();
-  s.bind(freshSynthVar.var(), rec);
 
+  s.reset();
+
+  s.bind(freshSynthVar.var(), rec);
+  std::cout << "Applying " << s << " on " << curLit->toString() << std::endl;
   Formula* conclusion = new AtomicFormula(SubstHelper::apply(curLit, s));
+  std::cout << "BYE" << std::endl << "------" << std::endl;
 
   formula = new BinaryFormula(Connective::IMP, formula, conclusion);
   formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
@@ -1473,6 +1481,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   // std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
 
   BindingList* bindingList = BindingList::empty();
+
+
 
   auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
 
