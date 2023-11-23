@@ -229,6 +229,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
         vars++;
+        varmap |= 1UL << tt->var();
         weight += 1;
       }
       else 

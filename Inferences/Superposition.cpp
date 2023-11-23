@@ -375,7 +375,8 @@ Clause* Superposition::performSuperposition(
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+  auto comp = ordering.compare(tgtTermS,rwTermS);
+  if(Ordering::isGorGEorE(comp)) {
     return 0;
   }
 
@@ -407,7 +408,7 @@ Clause* Superposition::performSuperposition(
   auto checker = _salg->getReducibilityChecker();
   if (checker) {
     checker->reset();
-    if (checker->checkSup(rwClause,eqClause,eqLit,eqLHS,subst.ptr(),eqIsResult)) {
+    if (checker->checkSup(rwClause,eqClause,eqLit,rwTermS.term(),tgtTermS,subst.ptr(),eqIsResult,Ordering::reverse(comp))) {
       env.statistics->redundantSuperposition++;
       return 0;
     }

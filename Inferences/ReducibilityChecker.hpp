@@ -131,7 +131,9 @@ private:
 
   DHMap<std::pair<unsigned,unsigned>,std::bitset<3>> _binaries;
   DHSet<Term*> _attempted;
+  Stack<Term*> _sidesToCheck;
 
+  bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result);
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
   ReducibilityEntryGround* isTermReducible(Term* t);
   ReducibilityEntryGround2* getCacheEntryForTermGround(Term* t);
@@ -145,7 +147,10 @@ private:
   bool checkSmallerGround2(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerGround3(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 
-  bool checkSmaller(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+  bool checkLiteral(Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+
+  bool checkLiteralSanity(Literal* lit, Term* rwTermS, vstringstream& exp);
+  bool checkRwTermSanity(Term* rwTermS, TermList tgtTermS, vstringstream& exp);
   bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 
@@ -160,7 +165,7 @@ public:
     _attempted.reset();
   }
 
-  bool checkSup(Clause* rwClause, Clause* eqClause, Literal* eqLit, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult);
+  bool checkSup(Clause* rwClause, Clause* eqClause, Literal* eqLit, Term* rwTermS, TermList tgtTermS, ResultSubstitution* subst, bool eqIsResult, Ordering::Result rwComp);
   bool checkBR(Clause* queryClause, Clause* resultClause, ResultSubstitution* subst);
   bool checkLiteral(Literal* lit);
   void clauseActivated(Clause* cl);

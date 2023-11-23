@@ -176,6 +176,7 @@ protected:
   unsigned weight(TermList t) const;
 
 private:
+  bool isGreaterHelper(TermList tl1, TermList tl2) const;
   bool makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
   bool makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
 

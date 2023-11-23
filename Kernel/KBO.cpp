@@ -1144,6 +1144,13 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 
 bool KBO::isGreater(TermList tl1, TermList tl2) const
 {
+  auto res = isGreaterHelper(tl1,tl2);
+  ASS_REP((compare(tl1,tl2)==Ordering::GREATER)==res, tl1.toString()+" "+tl2.toString()+" false "+(res?"positive":"negative"));
+  return res;
+}
+
+bool KBO::isGreaterHelper(TermList tl1, TermList tl2) const
+{
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
   }
