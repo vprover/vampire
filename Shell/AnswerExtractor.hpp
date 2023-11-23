@@ -91,29 +91,9 @@ private:
   DHMap<unsigned, Clause*> _resolverClauses;
 };
 
-class SynthesisManager : public AnswerLiteralManager
-{
-
-private:
-  class ConjectureSkolemReplacement : public TermTransformer {
-   public:
-    ConjectureSkolemReplacement() : _skolemToVar() {}
-    void bindSkolemToVar(Term* t, unsigned v);
-    TermList transformTermList(TermList tl, TermList sort);
-    void addCondPair(unsigned fn, unsigned pred) { _condFnToPred.insert(fn, pred); }
-   protected:
-    TermList transformSubterm(TermList trm) override;
-   private:
-    vmap<Term*, unsigned> _skolemToVar;
-    // Map from functions to predicates they represent in answer literal conditions
-    DHMap<unsigned, unsigned> _condFnToPred;
-  };
-
-
-  typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
-  typedef List<Binding> BindingList;
-
-  struct SkolemTracker { // used for tracking skolem terms in the structural induction axiom (recursive program synthesis)
+typedef std::pair<unsigned, Term*> Binding; 
+typedef List<Binding> BindingList;
+struct SkolemTracker { // used for tracking skolem terms in the structural induction axiom (recursive program synthesis)
     Binding binding;
     unsigned constructorIndex; // a skolem constant will be considered computable in the j'th arg of rec(.), if j = constructorIndex
     bool recursiveArg;
@@ -137,6 +117,24 @@ private:
   typedef List<SkolemTracker> SkolemTrackerList;
 
 
+
+class SynthesisManager : public AnswerLiteralManager
+{
+
+private:
+  class ConjectureSkolemReplacement : public TermTransformer {
+   public:
+    ConjectureSkolemReplacement() : _skolemToVar() {}
+    void bindSkolemToVar(Term* t, unsigned v);
+    TermList transformTermList(TermList tl, TermList sort);
+    void addCondPair(unsigned fn, unsigned pred) { _condFnToPred.insert(fn, pred); }
+   protected:
+    TermList transformSubterm(TermList trm) override;
+   private:
+    vmap<Term*, unsigned> _skolemToVar;
+    // Map from functions to predicates they represent in answer literal conditions
+    DHMap<unsigned, unsigned> _condFnToPred;
+  };
 
 
   virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
@@ -166,7 +164,6 @@ private:
 
   Literal* _lastAnsLit = nullptr;
 
-  SkolemTrackerList* _tempSkolemMappings = SkolemTrackerList::empty();  // Stores SkolemTrackers before skolemization happens
   SkolemTrackerList* _skolemMappings = SkolemTrackerList::empty();      // Stores the final SkolemTracker mappings after skolemization 
   List<unsigned int>* _recTermIds;                                      // Stores the IDs of the rec(.) terms in the structural induction axiom
 
@@ -181,9 +178,8 @@ public:
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
 
-  void storeTempSkolemMapping(unsigned int var, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
   void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
-  void matchSkolemSymbols(BindingList* bindingList); // called after skolemization has happened to fill _skolemMappings
+  void matchSkolemSymbols(BindingList* bindingList, SkolemTrackerList* tempSkolemMappings); // called after skolemization has happened to fill _skolemMappings
   void storeRecTerm(unsigned int fnId) { _recTermIds->push(fnId, _recTermIds); }
   bool isRecTerm(Term* t);
   SkolemTrackerList* getSkolemMappings() { return _skolemMappings; }
