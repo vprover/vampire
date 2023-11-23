@@ -1844,7 +1844,6 @@ bool Term::computableOrVar() const {
   if (!env.signature->getFunction(this->functor())->computable()) {
     return false;
   }
-
   if (SynthesisManager::getInstance()->isRecTerm(const_cast<Term*>(this))) {
     // assumes there are no nested recs. I.e. rec(...,rec(...),...) is not possible
     unsigned recArgIdx = 0;
@@ -1879,6 +1878,12 @@ bool Term::computableOrVar() const {
   bool inRecTerm = false;
   while (sit.hasNext()) {
     TermList t = sit.next();
+
+    if (t.isTerm()) {
+      if (!env.signature->getFunction(t.term()->functor())->computable()) { 
+        return false;
+      }
+    }
 
     if (t.isTerm() && SynthesisManager::getInstance()->isRecTerm(t.term())) {
       recArgIdx = 0;
