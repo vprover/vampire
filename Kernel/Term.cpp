@@ -1619,6 +1619,7 @@ Term::Term(const Term& t) throw()
     _weight(0),
     _kboWeight(-1),
     _varmap(0),
+    _reduced(false),
     _reducibilityInfo(0),
     _vars(0)
 {
@@ -1653,6 +1654,7 @@ Term::Term() throw()
    _kboWeight(-1),
    _maxRedLen(0),
    _varmap(0),
+   _reduced(false),
    _reducibilityInfo(0),
    _vars(0)
 {

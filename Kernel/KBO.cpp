@@ -98,6 +98,26 @@ public:
   /** Initialise the state */
   StateGreater(KBO* kbo) : _kbo(*kbo) {}
 
+  struct LeftState {
+    Term* t;
+    DHMap<unsigned, int, IdentityHash, DefaultHash> varCnts;
+    bool ready = false;
+  };
+
+  void init(LeftState* ls)
+  {
+    _negNum=0;
+    _varDiffs.reset();
+    _varDiffs.loadFromMap(ls->varCnts);
+  }
+
+  void initState(LeftState* ls)
+  {
+    ls->varCnts.reset();
+    ls->varCnts.loadFromMap(_varDiffs);
+    ls->ready = true;
+  }
+
   void init()
   {
     _negNum=0;
@@ -1142,14 +1162,14 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-bool KBO::isGreater(TermList tl1, TermList tl2) const
+bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State) const
 {
-  auto res = isGreaterHelper(tl1,tl2);
+  auto res = isGreaterHelper(tl1,tl2, tl1State);
   ASS_REP((compare(tl1,tl2)==Ordering::GREATER)==res, tl1.toString()+" "+tl2.toString()+" false "+(res?"positive":"negative"));
   return res;
 }
 
-bool KBO::isGreaterHelper(TermList tl1, TermList tl2) const
+bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State) const
 {
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
@@ -1175,10 +1195,22 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2) const
     return false;
   }
 
+  auto s = static_cast<KBO::StateGreater::LeftState*>(tl1State);
+  ASS(!s || s->t==t1);
+
   _stateGt->init();
   if (t1->kboWeight()>t2->kboWeight()) {
     // traverse variables
-    _stateGt->traverseVars(tl1,1);
+    if (s) {
+      if (s->ready) {
+        _stateGt->init(s);
+      } else {
+        _stateGt->traverseVars(tl1,1);
+        _stateGt->initState(s);
+      }
+    } else {
+      _stateGt->traverseVars(tl1,1);
+    }
     _stateGt->traverseVars(tl2,-1);
     return _stateGt->checkVars();
   }
@@ -1191,7 +1223,16 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2) const
     }
     case Ordering::GREATER:
     case Ordering::GREATER_EQ: {
-      _stateGt->traverseVars(tl1,1);
+      if (s) {
+        if (s->ready) {
+          _stateGt->init(s);
+        } else {
+          _stateGt->traverseVars(tl1,1);
+          _stateGt->initState(s);
+        }
+      } else {
+        _stateGt->traverseVars(tl1,1);
+      }
       _stateGt->traverseVars(tl2,-1);
       return _stateGt->checkVars();
     }
@@ -1526,6 +1567,24 @@ bool KBO::makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const
   }
 
   return true;
+}
+
+void* KBO::createState() const
+{
+  return new KBO::StateGreater::LeftState;
+}
+
+void KBO::initStateForTerm(void* state, Term* t) const
+{
+  ASS(state);
+  static_cast<KBO::StateGreater::LeftState*>(state)->t = t;
+  static_cast<KBO::StateGreater::LeftState*>(state)->ready = false;
+  static_cast<KBO::StateGreater::LeftState*>(state)->varCnts.reset();
+}
+
+void KBO::destroyState(void* state) const
+{
+  delete static_cast<KBO::StateGreater::LeftState*>(state);
 }
 
 int KBO::symbolWeight(Term* t) const

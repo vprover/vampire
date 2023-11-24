@@ -114,13 +114,9 @@ private:
 
 public:
   struct ReducibilityEntry {
-    ReducibilityEntry() : reducesTo(), reduced(false), superTerms() {}
-    bool argReduced() const {
-      return reduced && reducesTo.isEmpty();
-    }
+    ReducibilityEntry() : reducesTo(), superTerms() {}
 
     DHSet<TermList> reducesTo;
-    bool reduced;
     Stack<Term*> superTerms;
   };
 private:
@@ -132,6 +128,7 @@ private:
   DHMap<std::pair<unsigned,unsigned>,std::bitset<3>> _binaries;
   DHSet<Term*> _attempted;
   Stack<Term*> _sidesToCheck;
+  void* _rwTermState;
 
   bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result);
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);

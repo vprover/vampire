@@ -103,6 +103,7 @@ Term* TermSharing::insert(Term* t)
     unsigned weight = 1;
     unsigned vars = 0;
     unsigned varmap = 0;
+    bool reduced = false;
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
@@ -174,6 +175,9 @@ Term* TermSharing::insert(Term* t)
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());
         }
+        if (r->isReduced()) {
+          reduced = true;
+        }
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
           hasInterpretedConstants=true; 
         }
@@ -183,6 +187,9 @@ Term* TermSharing::insert(Term* t)
     t->setId(_terms.size());
     t->setNumVarOccs(vars);
     t->setVarmap(varmap);
+    if (reduced) {
+      t->markReduced();
+    }
     t->setWeight(weight);
     t->setHasTermVar(hasTermVar);
     if (env.colorUsed) {

@@ -687,6 +687,16 @@ public:
     return _isTwoVarEquality;
   }
 
+  bool isReduced() const
+  {
+    return _reduced;
+  }
+
+  void markReduced()
+  {
+    _reduced = true;
+  }
+
   const vstring& functionName() const;
 
   /** True if the term is, in fact, a literal */
@@ -828,6 +838,7 @@ protected:
   unsigned _hasInterpretedConstants : 1;
   /** If true, the object is an equality literal between two variables */
   unsigned _isTwoVarEquality : 1;
+  unsigned _reduced : 1;
   /** Weight of the symbol */
   unsigned _weight;
   /** Cached weight of the term for KBO, otherwise -1 and invalid. */

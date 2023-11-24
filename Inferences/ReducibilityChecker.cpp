@@ -47,6 +47,10 @@ using namespace Indexing;
 
 namespace Inferences {
 
+bool argReduced(Term* t) {
+  return t->isReduced() && static_cast<ReducibilityChecker::ReducibilityEntry*>(t->reducibilityInfo())->reducesTo.isEmpty();
+}
+
 void ReducibilityChecker::preprocessClause(Clause* cl)
 {
   TIME_TRACE("ReducibilityChecker::preprocessClause");
@@ -127,7 +131,7 @@ loop_end:
 }
 
 ReducibilityChecker::ReducibilityChecker(DemodulationLHSIndex* index, const Ordering& ord, const Options& opt)
-: _index(index), _ord(ord), _opt(opt) {}
+: _index(index), _ord(ord), _opt(opt), _rwTermState(_ord.createState()) {}
 
 bool ReducibilityChecker::pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result)
 {
@@ -190,14 +194,15 @@ bool ReducibilityChecker::checkSup(Clause* rwClause, Clause* eqClause, Literal* 
   if (_opt.reducibilityCheck()==Options::ReducibilityCheck::OFF) {
     return false;
   }
+  _ord.initStateForTerm(_rwTermState, rwTermS);
   vstringstream exp;
   for (unsigned i = 0; i < rwClause->numSelected(); i++) {
     auto lit = (*rwClause)[i];
     if (pushSidesFromLiteral(lit, subst, !eqIsResult)) {
       return true;
     }
-    // auto s = checkLiteralSanity(subst->apply(lit,!eqIsResult), rwTermS, exp);
     auto r = checkLiteral(rwTermS, &tgtTermS, exp);
+    // auto s = checkLiteralSanity(subst->apply(lit,!eqIsResult), rwTermS, exp);
     // if (s != r) {
     //   USER_ERROR("x1 "+exp.str());
     // }
@@ -218,8 +223,8 @@ bool ReducibilityChecker::checkSup(Clause* rwClause, Clause* eqClause, Literal* 
         return true;
       }
     }
-    // auto s = checkLiteralSanity(subst->apply(lit,eqIsResult), rwTermS, exp);
     auto r = checkLiteral(rwTermS, &tgtTermS, exp);
+    // auto s = checkLiteralSanity(subst->apply(lit,eqIsResult), rwTermS, exp);
     // if (s != r) {
     //   USER_ERROR("x2 "+exp.str());
     // }
@@ -230,7 +235,7 @@ bool ReducibilityChecker::checkSup(Clause* rwClause, Clause* eqClause, Literal* 
 
   LOG1(exp,"checking rwTerm");
   auto ptr = getCacheEntryForTerm(rwTermS);
-  ASS(!ptr->argReduced());
+  ASS(!argReduced(rwTermS));
   DHSet<TermList>::Iterator rIt(ptr->reducesTo);
   while (rIt.hasNext()) {
     auto rhs = rIt.next();
@@ -242,7 +247,6 @@ bool ReducibilityChecker::checkSup(Clause* rwClause, Clause* eqClause, Literal* 
     return true;
   }
 
-  //TODO handle rwTermS here
   return false;
 }
 
@@ -469,9 +473,9 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
         LOG1(cout,"not greater");
         continue;
       }
-      ASS(!e->argReduced());
+      ASS(!argReduced(t));
       e->reducesTo.insert(rhsS);
-      e->reduced = true;
+      t->markReduced();
       // toUpdate.push(t);
       for (const auto& st : e->superTerms) {
         toUpdate.push(st);
@@ -484,11 +488,11 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
     auto e = static_cast<ReducibilityEntry*>(t->reducibilityInfo());
     ASS(e);
     // this supertree has been marked reduced already
-    if (e->argReduced()) {
+    if (argReduced(t)) {
       continue;
     }
     e->reducesTo.reset();
-    e->reduced = true;
+    t->markReduced();
     _tis.remove(TypedTermList(t), static_cast<Literal*>(t), nullptr);
     for (const auto& st : e->superTerms) {
       toUpdate.push(st);
@@ -711,6 +715,9 @@ ReducibilityChecker::ReducibilityEntry* ReducibilityChecker::getCacheEntryForTer
   LOG2(cout,"cache term ",*t);
   e = new ReducibilityEntry();
   t->setReducibilityInfo(e);
+  if (t->isReduced()) {
+    return e;
+  }
   for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
     auto arg = t->nthArgument(i);
     if (arg->isVar()) {
@@ -718,9 +725,9 @@ ReducibilityChecker::ReducibilityEntry* ReducibilityChecker::getCacheEntryForTer
     }
     auto arg_e = getCacheEntryForTerm(arg->term());
     arg_e->superTerms.push(t);
-    if (arg_e->reduced) {
+    if (arg->term()->isReduced()) {
       LOG2(cout,"arg reduced ",*arg);
-      e->reduced = true;
+      t->markReduced();
       return e;
     }
   }
@@ -738,10 +745,10 @@ ReducibilityChecker::ReducibilityEntry* ReducibilityChecker::getCacheEntryForTer
       continue;
     }
 
-    e->reduced = true;
+    t->markReduced();
     e->reducesTo.insert(rhsS);
   }
-  if (!e->argReduced()) {
+  if (!argReduced(t)) {
     LOG1(cout,"indexed");
     _tis.insert(TypedTermList(t), static_cast<Literal*>(t), nullptr);
   } else {
@@ -1210,13 +1217,13 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, vstrin
         stit.right();
         continue;
       }
-      if (rwTermS && !_ord.isGreater(TermList(rwTermS),TermList(st))) {
+      if (rwTermS && !_ord.isGreater(TermList(rwTermS),TermList(st),_rwTermState)) {
         LOG1(exp,"not greater");
         continue;
       }
 
       auto ptr = getCacheEntryForTerm(st);
-      if (ptr->reduced) {
+      if (st->isReduced()) {
         LOG1(exp,"reduced");
         return true;
       }

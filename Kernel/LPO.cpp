@@ -277,7 +277,7 @@ void LPO::showConcrete(ostream&) const
 
 // isGreater variants
 
-bool LPO::isGreater(TermList tl1, TermList tl2) const
+bool LPO::isGreater(TermList tl1, TermList tl2, void* tl1State) const
 {
   TIME_TRACE("LPO::isGreater1");
   if (tl1==tl2) {
