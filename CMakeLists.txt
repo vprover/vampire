@@ -46,12 +46,6 @@ if (NOT BUILD_SHARED_LIBS)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
-# get symbol names in binary for backtraces
-set(CMAKE_ENABLE_EXPORTS ON)
-
-# link to libdl for dladdr() on POSIXy things, used for backtraces
-link_libraries(${CMAKE_DL_LIBS})
-
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   SET(COMPILE_TESTS ON)

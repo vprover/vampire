@@ -20,19 +20,11 @@
 #define HAVE_EXECINFO
 #endif
 
-#if __has_include(<dlfcn.h>)
-#include <dlfcn.h>
-#define HAVE_DLFCN
-#endif
-
-#if __has_include(<cxxabi.h>)
-#include <cxxabi.h>
-#define HAVE_CXXABI
-#endif
-
-#endif
+#include <cstdlib>
+#include <sstream>
 
 #include "Tracer.hpp"
+#include "Lib/System.hpp"
 
 // define in version.cpp.in
 extern const char* VERSION_STRING;
@@ -51,34 +43,22 @@ void Debug::Tracer::printStack(std::ostream& str) {
 #ifdef HAVE_EXECINFO
   void *call_stack[MAX_CALLS];
   int sz = ::backtrace(call_stack, MAX_CALLS);
-  for(int i = 0; i < sz; i++) {
-    for(int j = 0; j < i; j++)
-      str << ' ';
-    void *call = call_stack[sz - (i + 1)];
-#ifdef HAVE_DLFCN
-    Dl_info info;
-    if(dladdr(call, &info) && info.dli_sname) {
-      const char *name = info.dli_sname;
-#ifdef HAVE_CXXABI
-      int status;
-      const char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
-      if(status == 0)
-        name = demangled;
-#else
-      // TODO demangling support for other platforms
-#endif
-      str << name << std::endl;
-    }
-    else {
-      str << "???" << std::endl;
-    }
-#else
-    // TODO symbol name support for other platforms
-    str << "???" << std::endl;
-#endif
-  }
+  std::cout << "call stack:";
+  for(int i = 0; i < sz; i++)
+    std::cout << ' ' << call_stack[sz - (i + 1)];
+  std::cout << std::endl;
+
+  std::cout << "invoking addr2line(1) ..." << std::endl;
+  std::stringstream out;
+  out << "addr2line -Cfe " << Lib::System::getArgv0();
+  for(int i = 0; i < sz; i++)
+    out << ' ' << call_stack[sz - (i + 1)];
+
+  std::system(out.str().c_str());
 #else
   // TODO backtrace support for other platforms
   str << "no backtrace support for this compiler/platform yet" << std::endl;
 #endif
 } // Tracer::printStack (ostream& str)
+
+#endif

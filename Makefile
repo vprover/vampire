@@ -544,14 +544,8 @@ VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
-ifeq ($(OS),Darwin)
-EXPORT_DYNAMIC = 
-else
-EXPORT_DYNAMIC = -Wl,--export-dynamic
-endif
-
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(EXPORT_DYNAMIC) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -ldl
+$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

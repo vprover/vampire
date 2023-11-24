@@ -26,6 +26,7 @@
 namespace Debug {
 
 namespace Tracer {
+  // print the current stack
   void printStack(std::ostream &out);
 };
 
