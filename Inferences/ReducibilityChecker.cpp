@@ -51,6 +51,46 @@ bool argReduced(Term* t) {
   return t->isReduced() && static_cast<ReducibilityChecker::ReducibilityEntry*>(t->reducibilityInfo())->reducesTo.isEmpty();
 }
 
+void setBits(unsigned x, unsigned y, PoComp c, uint64_t& val)
+{
+  if (x > y) {
+    swap(x,y);
+    c = reverse(c);
+  }
+  size_t idx = y*(y-1)/2 + x;
+  size_t pos;
+  switch (c) {
+    case PoComp::GT:
+      pos = 3*idx;
+      break;
+    case PoComp::EQ:
+      pos = 3*idx+1;
+      break;
+    case PoComp::LT:
+      pos = 3*idx+2;
+      break;
+    case PoComp::INC:
+      ASSERTION_VIOLATION;
+  }
+  val |= 1UL << pos;
+}
+
+// ~000 & 111 -> 111 & 111 -> 1
+// ~001 & 111 -> 110 & 111 -> 1
+// ...
+// ~111 & 111 -> 000 & 111 -> 0
+
+bool isReducedUnderAny(uint64_t val)
+{
+  for (unsigned i = 0; i < 21; i++) {
+    size_t pos = 3*i;
+    if (!(~val & (0b111 << pos))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void ReducibilityChecker::preprocessClause(Clause* cl)
 {
   TIME_TRACE("ReducibilityChecker::preprocessClause");
@@ -196,8 +236,10 @@ bool ReducibilityChecker::checkSup(Clause* rwClause, Clause* eqClause, Literal* 
   }
   _ord.initStateForTerm(_rwTermState, rwTermS);
   vstringstream exp;
+  // LiteralStack lits;
   for (unsigned i = 0; i < rwClause->numSelected(); i++) {
     auto lit = (*rwClause)[i];
+    // lits.push(subst->apply(lit, !eqIsResult));
     if (pushSidesFromLiteral(lit, subst, !eqIsResult)) {
       return true;
     }
@@ -212,11 +254,33 @@ bool ReducibilityChecker::checkSup(Clause* rwClause, Clause* eqClause, Literal* 
   }
   for (unsigned i = 0; i < eqClause->numSelected(); i++) {
     auto lit = (*eqClause)[i];
+    // lits.push(subst->apply(lit, eqIsResult));
     if (lit == eqLit) {
       _sidesToCheck.reset();
       _sidesToCheck.push(rwTermS);
       if (rwComp==Ordering::INCOMPARABLE && tgtTermS.isTerm()) {
         _sidesToCheck.push(tgtTermS.term());
+        NEVER(_ord.isGreater(tgtTermS,TermList(rwTermS),nullptr,&_constraintsFromComparison));
+        for (const auto& c : _constraintsFromComparison) {
+          auto l = get<0>(c);
+          auto r = get<1>(c);
+          auto strict = get<2>(c);
+
+          setBits(l, r, PoComp::GT, _reducedUnder);
+          if (!strict) {
+            setBits(l, r, PoComp::EQ, _reducedUnder);
+          } else {
+            Substitution subst;
+            subst.bind(l,TermList(r,false));
+            if (SubstHelper::apply(TermList(rwTermS),subst)==SubstHelper::apply(tgtTermS,subst)) {
+              setBits(l, r, PoComp::EQ, _reducedUnder);
+            }
+          }
+          if (isReducedUnderAny(_reducedUnder)) {
+            TIME_TRACE("conditionally reduced");
+            return true;
+          }
+        }
       }
     } else {
       if (pushSidesFromLiteral(lit, subst, eqIsResult)) {
@@ -240,13 +304,79 @@ bool ReducibilityChecker::checkSup(Clause* rwClause, Clause* eqClause, Literal* 
   while (rIt.hasNext()) {
     auto rhs = rIt.next();
     LOG2(exp,"rhs ",rhs.toString());
-    if (!_ord.isGreater(tgtTermS,rhs)) {
+    if (!_ord.isGreater(tgtTermS,rhs,nullptr,&_constraintsFromComparison)) {
       LOG1(exp,"not greater tgtTerm");
+      for (const auto& c : _constraintsFromComparison) {
+        auto l = get<0>(c);
+        auto r = get<1>(c);
+        auto strict = get<2>(c);
+        setBits(l, r, PoComp::GT, _reducedUnder);
+        if (!strict) {
+          setBits(l, r, PoComp::EQ, _reducedUnder);
+        }
+        if (isReducedUnderAny(_reducedUnder)) {
+          TIME_TRACE("conditionally reduced");
+          return true;
+        }
+      }
       continue;
     }
     return true;
   }
+  
+  DHMap<TermList,uint64_t>::Iterator rcIt(ptr->reducesToCond);
+  while (rcIt.hasNext()) {
+    TermList rhs;
+    uint64_t val;
+    rcIt.next(rhs,val);
+    LOG2(exp,"rhs ",rhs.toString());
+    {TIME_TRACE("tgtTerm comparison");
+    if (!_ord.isGreater(tgtTermS,rhs,nullptr,&_constraintsFromComparison)) {
+      for (const auto& c : _constraintsFromComparison) {
+        auto l = get<0>(c);
+        auto r = get<1>(c);
+        auto strict = get<2>(c);
+        bool reversed = l > r;
+        auto idx_x = std::min(l,r);
+        auto idx_y = std::max(l,r);
+        size_t idx = idx_y*(idx_y-1)/2 + idx_x;
+        size_t pos_gt = 3*idx;
+        size_t pos_eq = 3*idx+1;
+        size_t pos_lt = 3*idx+2;
 
+        if (val & (1UL << (reversed ? pos_lt : pos_gt))) {
+          _reducedUnder |= 1UL << (reversed ? pos_lt : pos_gt);
+        }
+        if (!strict && (val & (1UL << (reversed ? pos_lt : pos_gt)))) {
+          _reducedUnder |= 1UL << pos_eq;
+        }
+        if (isReducedUnderAny(_reducedUnder)) {
+          TIME_TRACE("conditionally reduced rwTerm");
+          return true;
+        }
+      }
+      continue;
+    }}
+    _reducedUnder |= val;
+    if (isReducedUnderAny(_reducedUnder)) {
+      TIME_TRACE("conditionally reduced rwTerm");
+      return true;
+    }
+  }
+  if (isReducedUnderAny(_reducedUnder)) {
+    TIME_TRACE("conditionally reduced at the end");
+    return true;
+  }
+
+  // cout << "check sanity " << endl;
+
+  // auto res2 = checkSmallerGround3(lits, rwTermS, &tgtTermS, exp);
+  // if (res2) {
+  //     TIME_TRACE("reduced by method 3");
+  // //   cout << ("problem "+rwTermS->toString()+" "+tgtTermS.toString()+" "+Int::toHexString(_reducedUnder)+" "+lits[0]->toString()+" "+lits[1]->toString()+" "+exp.str()) << endl;
+  // }
+
+  // cout << "nope " << Int::toHexString(_reducedUnder) << endl;
   return false;
 }
 
@@ -469,15 +599,47 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
       // if (_ord.makeGreater(TermList(t),rhsS)) {
       //   e->reducesTo.push(rhsS);
       // }
-      if (!_ord.isGreater(TermList(t),rhsS)) {
+      if (!_ord.isGreater(TermList(t),rhsS,nullptr,&_constraintsFromComparison)) {
         LOG1(cout,"not greater");
+        for (const auto& c : _constraintsFromComparison) {
+          auto l = get<0>(c);
+          auto r = get<1>(c);
+          auto strict = get<2>(c);
+          bool reversed = l > r;
+          auto idx_x = std::min(l,r);
+          auto idx_y = std::max(l,r);
+          size_t idx = idx_y*(idx_y-1)/2 + idx_x;
+          size_t pos_gt = 3*idx;
+          size_t pos_eq = 3*idx+1;
+          size_t pos_lt = 3*idx+2;
+
+          auto temp = t->reducesUnder();
+          t->reducesUnder() |= 1UL << (reversed ? pos_lt : pos_gt);
+          if (!strict) {
+            t->reducesUnder() |= 1UL << pos_eq;
+          }
+          uint64_t* ptr;
+          e->reducesToCond.getValuePtr(rhsS, ptr, 0);
+          (*ptr) |= 1UL << (reversed ? pos_lt : pos_gt);
+          if (!strict) {
+            (*ptr) |= 1UL << pos_eq;
+          }
+          // cout << "changed " << *t << " from " << Int::toHexString(temp) << " to " << Int::toHexString(t->reducesUnder()) << endl;
+          // TODO this may not be propagated through toUpdate
+          for (const auto& st : e->superTerms) {
+            st->reducesUnder() |= t->reducesUnder();
+            toUpdate.push(st);
+          }
+        }
         continue;
       }
+      LOG1(cout,"rhs reduces");
       ASS(!argReduced(t));
       e->reducesTo.insert(rhsS);
       t->markReduced();
       // toUpdate.push(t);
       for (const auto& st : e->superTerms) {
+        st->reducesUnder() |= t->reducesUnder();
         toUpdate.push(st);
       }
     }
@@ -495,6 +657,7 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
     t->markReduced();
     _tis.remove(TypedTermList(t), static_cast<Literal*>(t), nullptr);
     for (const auto& st : e->superTerms) {
+      st->reducesUnder() |= t->reducesUnder();
       toUpdate.push(st);
     }
   }
@@ -611,15 +774,15 @@ vstring toString(pair<unsigned,unsigned> p, bitset<3> bv)
 
 ReducibilityChecker::ReducibilityEntryGround2* ReducibilityChecker::getCacheEntryForTermGround(Term* t)
 {
-  auto e = static_cast<ReducibilityEntryGround2*>(t->reducibilityInfo());
+  auto e = static_cast<ReducibilityEntryGround2*>(t->reducibilityInfoAlt());
   TIME_TRACE(e ? "ReducibilityChecker::getCacheEntryForTerm" : "ReducibilityChecker::getCacheEntryForTermFirst");
   if (e && e->valid) {
     return e;
   }
   if (!e) {
     e = new ReducibilityEntryGround2();
-    t->setReducibilityInfo(e);
-    _tis.insert(TypedTermList(t), static_cast<Literal*>(t), nullptr);
+    t->setReducibilityInfoAlt(e);
+    // _tis.insert(TypedTermList(t), static_cast<Literal*>(t), nullptr);
     for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
       auto arg = t->nthArgument(i);
       if (arg->isVar()) {
@@ -710,6 +873,16 @@ ReducibilityChecker::ReducibilityEntry* ReducibilityChecker::getCacheEntryForTer
   // TIME_TRACE(e ? "ReducibilityChecker::getCacheEntryForTerm" : "ReducibilityChecker::getCacheEntryForTermFirst");
   if (e) {
     LOG2(cout,"cache exists ",*t);
+#if VDEBUG
+    if (!t->isReduced()) {
+      NonVariableNonTypeIterator nvi(t);
+      while (nvi.hasNext()) {
+        auto st = nvi.next();
+        ASS(!st->isReduced());
+        ASS_REP(!(~t->reducesUnder() & st->reducesUnder()),t->toString()+" "+Int::toHexString(t->reducesUnder())+" "+st->toString()+" "+Int::toHexString(st->reducesUnder()));
+      }
+    }
+#endif
     return e;
   }
   LOG2(cout,"cache term ",*t);
@@ -730,6 +903,8 @@ ReducibilityChecker::ReducibilityEntry* ReducibilityChecker::getCacheEntryForTer
       t->markReduced();
       return e;
     }
+    auto temp = t->reducesUnder();
+    t->reducesUnder() |= arg->term()->reducesUnder();
   }
 
   auto it = _index->getGeneralizations(t,true);
@@ -740,7 +915,31 @@ ReducibilityChecker::ReducibilityEntry* ReducibilityChecker::getCacheEntryForTer
       continue;
     }
     LOG2(cout,"rhs ",rhsS);
-    if (!_ord.isGreater(TermList(t),rhsS)) {
+    if (!_ord.isGreater(TermList(t),rhsS,nullptr,&_constraintsFromComparison)) {
+      for (const auto& c : _constraintsFromComparison) {
+        auto l = get<0>(c);
+        auto r = get<1>(c);
+        auto strict = get<2>(c);
+        bool reversed = l > r;
+        auto idx_x = std::min(l,r);
+        auto idx_y = std::max(l,r);
+        size_t idx = idx_y*(idx_y-1)/2 + idx_x;
+        size_t pos_gt = 3*idx;
+        size_t pos_eq = 3*idx+1;
+        size_t pos_lt = 3*idx+2;
+
+        auto temp = t->reducesUnder();
+        t->reducesUnder() |= 1UL << (reversed ? pos_lt : pos_gt);
+        if (!strict) {
+          t->reducesUnder() |= 1UL << pos_eq;
+        }
+        uint64_t* ptr;
+        e->reducesToCond.getValuePtr(rhsS, ptr, 0);
+        (*ptr) |= 1UL << (reversed ? pos_lt : pos_gt);
+        if (!strict) {
+          (*ptr) |= 1UL << pos_eq;
+        }
+      }
       LOG1(cout,"not greater");
       continue;
     }
@@ -1103,11 +1302,13 @@ bool ReducibilityChecker::checkSmallerGround3(const Stack<Literal*>& lits, Term*
   {
     auto bvo = getBVOFromVO(redundant);
     NEVER(updateBinaries(bvo._x,bvo._y,ReducibilityEntryGround2::toBitset(bvo._c)));
+    LOG2(exp,"made redundant under ",redundant.to_string());
 
     Substitution subst;
     subst.bind(bvo._x,TermList(bvo._y,false));
     if (SubstHelper::apply(*tgtTermS,subst) == SubstHelper::apply(TermList(rwTermS),subst)) {
       NEVER(updateBinaries(bvo._x,bvo._y,ReducibilityEntryGround2::toBitset(PoComp::EQ)));
+      LOG1(exp,"and under =");
     }
   }
 
@@ -1115,7 +1316,7 @@ bool ReducibilityChecker::checkSmallerGround3(const Stack<Literal*>& lits, Term*
     NonVariableNonTypeIterator stit(side, !side->isLiteral());
     while (stit.hasNext()) {
       auto st = stit.next();
-      if (!_attempted.insert(st)) {
+      if (!_attempted2.insert(st)) {
         stit.right();
         continue;
       }
@@ -1131,6 +1332,7 @@ bool ReducibilityChecker::checkSmallerGround3(const Stack<Literal*>& lits, Term*
       auto ptr = getCacheEntryForTermGround(st);
       ASS(ptr->valid);
       if (gt.is_empty() && ptr->reduced) {
+        LOG2(exp,"reduced ",*st);
         return true;
       }
       if (gt.size() > 2) {
@@ -1138,6 +1340,7 @@ bool ReducibilityChecker::checkSmallerGround3(const Stack<Literal*>& lits, Term*
       }
       if (ptr->reduced) {
         auto bvo = getBVOFromVO(gt);
+        LOG4(exp,"reduced under ",gt.to_string()," via ",*st);
         if (updateBinaries(bvo._x,bvo._y,ReducibilityEntryGround2::toBitset(bvo._c))) {
           return true;
         }
@@ -1152,10 +1355,12 @@ bool ReducibilityChecker::checkSmallerGround3(const Stack<Literal*>& lits, Term*
           if (p.first != bvo._x || p.second != bvo._y || (bv & bvo_bv).none()) {
             continue;
           }
+          LOG4(exp,"reduced under ",bvo_bv," via ",*st);
           if (updateBinaries(bvo._x,bvo._y,bvo_bv)) {
             return true;
           }
         } else {
+          LOG4(exp,"reduced under ",bv," via ",*st);
           if (updateBinaries(p.first,p.second,bv)) {
             return true;
           }
@@ -1179,10 +1384,12 @@ bool ReducibilityChecker::checkSmallerGround3(const Stack<Literal*>& lits, Term*
       }
       if (!gt.is_empty()) {
         auto bvo = getBVOFromVO(gt);
+        LOG4(exp,"reduced under ",gt.to_string()," via rhs ",rhs);
         if (updateBinaries(bvo._x,bvo._y,ReducibilityEntryGround2::toBitset(bvo._c))) {
           return true;
         }
       } else {
+        LOG4(exp,"reduced under ",gt.to_string()," via rhs ",rhs);
         return true;
       }
     }
@@ -1194,6 +1401,7 @@ bool ReducibilityChecker::checkSmallerGround3(const Stack<Literal*>& lits, Term*
       if (!_ord.isGreater(*tgtTermS,rhs,gt)) {
         continue;
       }
+      LOG4(exp,"reduced under ",gt.to_string()," via rhs ",rhs);
       if (updateBinaries(bvo._x,bvo._y,ReducibilityEntryGround2::toBitset(bvo._c))) {
         return true;
       }
@@ -1217,7 +1425,30 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, vstrin
         stit.right();
         continue;
       }
-      if (rwTermS && !_ord.isGreater(TermList(rwTermS),TermList(st),_rwTermState)) {
+      if (rwTermS && !_ord.isGreater(TermList(rwTermS),TermList(st),_rwTermState,&_constraintsFromComparison)) {
+        for (const auto& c : _constraintsFromComparison) {
+          auto l = get<0>(c);
+          auto r = get<1>(c);
+          auto strict = get<2>(c);
+          bool reversed = l > r;
+          auto idx_x = std::min(l,r);
+          auto idx_y = std::max(l,r);
+          size_t idx = idx_y*(idx_y-1)/2 + idx_x;
+          size_t pos_gt = 3*idx;
+          size_t pos_eq = 3*idx+1;
+          size_t pos_lt = 3*idx+2;
+
+          if (st->isReduced() || (st->reducesUnder() & 1UL << (reversed ? pos_lt : pos_gt))) {
+            _reducedUnder |= 1UL << (reversed ? pos_lt : pos_gt);
+          }
+          if (!strict && (st->isReduced() || (st->reducesUnder() & 1UL << pos_eq))) {
+            _reducedUnder |= 1UL << pos_eq;
+          }
+          if (isReducedUnderAny(_reducedUnder)) {
+            TIME_TRACE("conditionally reduced");
+            return true;
+          }
+        }
         LOG1(exp,"not greater");
         continue;
       }
@@ -1225,6 +1456,11 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, vstrin
       auto ptr = getCacheEntryForTerm(st);
       if (st->isReduced()) {
         LOG1(exp,"reduced");
+        return true;
+      }
+      _reducedUnder |= st->reducesUnder();
+      if (isReducedUnderAny(_reducedUnder)) {
+        TIME_TRACE("conditionally reduced");
         return true;
       }
       LOG1(exp,"not reduced");

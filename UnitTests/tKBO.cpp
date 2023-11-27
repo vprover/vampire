@@ -381,3 +381,20 @@ TEST_FUN(kbo_test23) {
   ASS_EQ(ord.compare(f(alpha), g(beta)), Ordering::Result::INCOMPARABLE)
 }
 
+TEST_FUN(kbo_test24) {
+  DECL_DEFAULT_VARS
+  DECL_VAR(u, 3)
+  DECL_VAR(v, 4)
+  DECL_SORT(srt)
+  DECL_FUNC(meet, {srt, srt}, srt)
+  DECL_FUNC(join, {srt, srt}, srt)
+
+  auto ord = kbo(
+      weights(
+        make_pair(meet,1u),
+        make_pair(join,1u)
+      ),
+      weights());
+
+  ASS(!ord.isGreater(join(meet(join(x,join(y,z)),u),meet(v,meet(join(x,y),u))), join(meet(meet(join(x,y),u),v),meet(join(x,join(y,z)),u)), nullptr, nullptr));
+}

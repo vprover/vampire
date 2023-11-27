@@ -1621,7 +1621,9 @@ Term::Term(const Term& t) throw()
     _varmap(0),
     _reduced(false),
     _reducibilityInfo(0),
-    _vars(0)
+    _reducibilityInfoAlt(0),
+    _vars(0),
+    _reducesUnder(0)
 {
   ASS(!isSpecial()); //we do not copy special terms
 
@@ -1656,7 +1658,9 @@ Term::Term() throw()
    _varmap(0),
    _reduced(false),
    _reducibilityInfo(0),
-   _vars(0)
+   _reducibilityInfoAlt(0),
+   _vars(0),
+   _reducesUnder(0)
 {
   _args[0]._info.polarity = 0;
   _args[0]._info.commutative = 0;

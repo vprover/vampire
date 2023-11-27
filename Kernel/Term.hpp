@@ -665,6 +665,16 @@ public:
     _reducibilityInfo = ptr;
   }
 
+  void* reducibilityInfoAlt() const
+  {
+    return _reducibilityInfoAlt;
+  }
+
+  void setReducibilityInfoAlt(void* ptr)
+  {
+    _reducibilityInfoAlt = ptr;
+  }
+
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
   {
@@ -695,6 +705,10 @@ public:
   void markReduced()
   {
     _reduced = true;
+  }
+
+  uint64_t& reducesUnder() {
+    return _reducesUnder;
   }
 
   const vstring& functionName() const;
@@ -847,6 +861,7 @@ protected:
   int _maxRedLen;
   unsigned _varmap : 32;
   void* _reducibilityInfo;
+  void* _reducibilityInfoAlt;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */
@@ -855,6 +870,7 @@ protected:
      * the sort of the top-level variables */
     TermList _sort;
   };
+  uint64_t _reducesUnder;
 
   /** The list of arguments of size type arity + term arity + 1. The first
    *  argument stores the term weight and the mask (the last two bits are 0).

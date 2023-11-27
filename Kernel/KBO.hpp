@@ -158,7 +158,7 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  bool isGreater(TermList tl1, TermList tl2, void* tl1State) const override;
+  bool isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const override;
   bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
   bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
 
@@ -180,7 +180,7 @@ protected:
   unsigned weight(TermList t) const;
 
 private:
-  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State) const;
+  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const;
   bool makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
   bool makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
 

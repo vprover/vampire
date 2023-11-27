@@ -43,6 +43,7 @@ protected:
   bool _redundancyCheck;
   bool _encompassing;
   DemodulationLHSIndex* _index;
+  void* _rwTermState;
 };
 
 template <bool combinatorySupSupport>

@@ -22,6 +22,7 @@
 #include "Lib/Set.hpp"
 
 #include "Shell/Options.hpp"
+#include "SubstHelper.hpp"
 #include <fstream>
 
 #include "Term.hpp"
@@ -109,6 +110,7 @@ public:
     _negNum=0;
     _varDiffs.reset();
     _varDiffs.loadFromMap(ls->varCnts);
+    _ls = ls;
   }
 
   void initState(LeftState* ls)
@@ -122,6 +124,12 @@ public:
   {
     _negNum=0;
     _varDiffs.reset();
+    _ls = nullptr;
+  }
+
+  void setConstraints(Stack<std::tuple<unsigned,unsigned,bool>>* constraints)
+  {
+    _constraints = constraints;
   }
 
   USE_ALLOCATOR(StateGreater);
@@ -139,6 +147,8 @@ private:
   int _negNum;
   /** The ordering used */
   KBO& _kbo;
+  LeftState* _ls;
+  Stack<std::tuple<unsigned,unsigned,bool>>* _constraints;
 }; // class KBO::State
 
 class KBO::StateGreaterVO
@@ -435,6 +445,7 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
   ASS_EQ(t1->kboWeight(),t2->kboWeight());
   ASS(t1->arity());
   bool stillEqual = true;
+  bool greater = true; // true if the unconstrained comparison is still greater
 
   static Stack<TermList*> stack(32);
   stack.reset();
@@ -449,7 +460,10 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
       ASS(tt->isEmpty());
       ASS(!stillEqual); // we should have detected the difference earlier
       if (!checkVars()) {
-        return false;
+        greater = false;
+        if (!_constraints || _constraints->isEmpty()) {
+          return false;
+        }
       }
       continue;
     }
@@ -468,21 +482,37 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
         traverseVars(*ss,1);
         traverseVars(*tt,-1);
         if (!checkVars()) {
-          return false;
+          if (!_constraints || _constraints->isEmpty()) {
+            return false;
+          }
+          greater = false;
         }
         stillEqual = false;
         continue;
       }
       // weight(*ss)==weight(*tt)
       if (ss->isOrdinaryVar()) {
-        return false;
-      }
-      if (tt->isOrdinaryVar()) {
-        if (!ss->containsSubterm(*tt)) {
+        if (!tt->isOrdinaryVar() || !_constraints) {
           return false;
         }
+
+        ASS(_constraints->isEmpty());
+        _constraints->push(make_tuple(ss->var(),tt->var(),true/*strict*/));
+        recordVariable(ss->var(),1);
+        recordVariable(tt->var(),-1);
+        stillEqual = false;
+        greater = false;
+        continue;
+      }
+      if (tt->isOrdinaryVar()) {
         traverseVars(*ss,1);
         traverseVars(*tt,-1);
+        if (!checkVars()) {
+          if (!_constraints || _constraints->isEmpty()) {
+            return false;
+          }
+          greater = false;
+        }
         stillEqual = false;
         continue;
       }
@@ -497,7 +527,10 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
           traverseVars(*ss,1);
           traverseVars(*tt,-1);
           if (!checkVars()) {
-            return false;
+            if (!_constraints || _constraints->isEmpty()) {
+              return false;
+            }
+            greater = false;
           }
           stillEqual = false;
           break;
@@ -514,11 +547,52 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
       traverseVars(*tt,-1);
     }
   }
-  return !stillEqual && checkVars();
+  return greater && !stillEqual && checkVars();
 }
 
 bool KBO::StateGreater::checkVars() const
 {
+  if (_constraints && (_negNum == 1 || _constraints->isNonEmpty())) {
+    decltype(_varDiffs)::Iterator it(_varDiffs);
+    while (it.hasNext()) {
+      unsigned var;
+      int val;
+      it.next(var,val);
+      if (val>=0) {
+        continue;
+      }
+      // cout << "balancing X" << var << " with value " << val << endl;
+      if (_constraints->isEmpty()) {
+        decltype(_varDiffs)::Iterator it2(_varDiffs);
+        while (it2.hasNext()) {
+          unsigned var2;
+          int val2;
+          it2.next(var2,val2);
+          if (var!=var2 && val2>=(-val)) {
+            // cout << "found X" << var2 << " with value " << val2 << endl;
+            _constraints->push(make_tuple(var2,var,false));
+          }
+          if (var>6 || var2>6) {
+            TIME_TRACE("overflown constraint");
+          }
+        }
+      } else {
+        Stack<std::tuple<unsigned,unsigned,bool>>::DelIterator it2(*_constraints);
+        while (it2.hasNext()) {
+          auto t = it2.next();
+          // cout << "checking constraint X" << get<0>(t) << " X" << get<1>(t) << endl;
+          if (get<1>(t)==var && _varDiffs.get(get<0>(t))>=(-val)) {
+            ASS(get<0>(t)!=var);
+            continue;
+          }
+          it2.del();
+        }
+      }
+      if (_constraints->isEmpty()) {
+        break;
+      }
+    }
+  }
   return _negNum <= 0;
 }
 
@@ -1162,15 +1236,42 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State) const
+bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const
 {
-  auto res = isGreaterHelper(tl1,tl2, tl1State);
+  auto res = isGreaterHelper(tl1,tl2, tl1State, constraints);
   ASS_REP((compare(tl1,tl2)==Ordering::GREATER)==res, tl1.toString()+" "+tl2.toString()+" false "+(res?"positive":"negative"));
+  // for (const auto& c : _stateGt->constraints()) {
+  //   auto x = get<0>(c);
+  //   auto y = get<1>(c);
+  //   ASS_REP(x!=y,tl1.toString()+" "+tl2.toString()+" and X"+Int::toString(x));
+  //   if (x==y) {
+  //     USER_ERROR("x==y");
+  //   }
+  //   auto strict = get<2>(c);
+  //   VarOrder vo;
+  //   vo.add_gt(x,y);
+  //   ASS_REP(isGreater(tl1,tl2,vo),tl1.toString()+" "+tl2.toString()+" under "+vo.to_string());
+  //   if (!isGreater(tl1,tl2,vo)) {
+  //     USER_ERROR("!isGreater1 "+tl1.toString()+" "+tl2.toString()+" under "+vo.to_string());
+  //   }
+  //   if (!strict) {
+  //     VarOrder eq;
+  //     Substitution subst;
+  //     subst.bind(x,TermList(y,false));
+  //     ASS_REP(isGreater(SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2,subst),eq),tl1.toString()+" "+tl2.toString()+" under "+Int::toString(x)+"="+Int::toString(y));
+  //     if (!isGreater(SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2,subst),eq)) {
+  //       USER_ERROR("!isGreater2 "+tl1.toString()+" "+tl2.toString()+" under "+Int::toString(x)+"="+Int::toString(y));
+  //     }
+  //   }
+  // }
   return res;
 }
 
-bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State) const
+bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const
 {
+  if (constraints) {
+    constraints->reset();
+  }
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
   }
@@ -1199,6 +1300,7 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State) const
   ASS(!s || s->t==t1);
 
   _stateGt->init();
+  _stateGt->setConstraints(constraints);
   if (t1->kboWeight()>t2->kboWeight()) {
     // traverse variables
     if (s) {

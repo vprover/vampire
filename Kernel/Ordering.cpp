@@ -919,7 +919,7 @@ void PrecedenceOrdering::show(ostream& out) const
   showConcrete(out);
 }
 
-bool Ordering::isGreater(TermList tl1, TermList tl2, void* tl1State) const
+bool Ordering::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const
 {
   return compare(tl1,tl2)==GREATER;
 }

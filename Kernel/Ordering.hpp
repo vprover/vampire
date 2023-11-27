@@ -24,9 +24,12 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
+
+#include <tuple>
 
 namespace Kernel {
 
@@ -68,7 +71,7 @@ public:
   virtual Result compare(TermList t1,TermList t2) const = 0;
   /** Return whether the first argument is greater than the second,
    * allowing for further optimisations. */
-  virtual bool isGreater(TermList tl1, TermList tl2, void* tl1State = nullptr) const;
+  virtual bool isGreater(TermList tl1, TermList tl2, void* tl1State = nullptr, Stack<std::tuple<unsigned,unsigned,bool>>* constraints = nullptr) const;
   /** Same as isGreater above, except w.r.t. a fixed partial order on variables. */
   virtual bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const;
   /** Same as isGreater above, except w.r.t. a partial order on variables

@@ -61,10 +61,12 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _preorderedOnly = getOptions().forwardDemodulation()== Options::Demodulation::PREORDERED;
   _redundancyCheck = getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
   _encompassing = getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
+  _rwTermState = _salg->getOrdering().createState();
 }
 
 void ForwardDemodulation::detach()
 {
+  _salg->getOrdering().destroyState(_rwTermState);
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   ForwardSimplificationEngine::detach();
@@ -109,6 +111,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       if (_encompassing) {
         toplevelCheck &= lit->isPositive() && (cLen == 1);
       }
+      ordering.initStateForTerm(_rwTermState,trm.term());
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
@@ -169,7 +172,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
   #endif
-        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS,_rwTermState)) ) {
           continue;
         }
 

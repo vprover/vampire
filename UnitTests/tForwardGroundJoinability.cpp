@@ -114,4 +114,15 @@ TEST_FW_SIMPLIFY(test_7,
       .expected( nullptr )
     )
 
+TEST_FW_SIMPLIFY(test_8,
+    ForwardSimplification::TestCase()
+      .rule(new ForwardGroundJoinability())
+      .input(    clause({ f(f(f(x,y),z),x) == f(f(f(y,x),z),x) }))
+      .context({
+        clause({ f(x,y) == f(y,x) }),
+      })
+      .indices(&getIndices)
+      .expected( nullptr )
+    )
+
 } // TestForwardGroundJoinability
