@@ -117,6 +117,7 @@ set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
+    Debug/Output.hpp
     )
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
@@ -144,8 +145,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/BacktrackIterators.hpp
     Lib/BinaryHeap.hpp
     Lib/BitUtils.hpp
-    Lib/BucketSorter.hpp
-    Lib/Cache.hpp
     Lib/Comparison.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
@@ -168,7 +167,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/MemoryLeak.hpp
-    Lib/Metaarrays.hpp
     Lib/Metaiterators.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
@@ -177,9 +175,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Portability.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
-    Lib/RCPtr.hpp
-    Lib/Recycler.hpp
-    Lib/ReferenceCounter.hpp
+    Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
     Lib/ScopedLet.hpp
@@ -250,6 +246,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SortHelper.cpp
     Kernel/OperatorType.cpp
     Kernel/SpassLiteralSelector.cpp
+    Kernel/RndLiteralSelector.cpp    
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
     Kernel/Term.cpp
@@ -301,6 +298,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SortHelper.hpp
     Kernel/OperatorType.hpp
     Kernel/SpassLiteralSelector.hpp
+    Kernel/RndLiteralSelector.hpp    
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
     Kernel/Substitution.hpp
@@ -322,7 +320,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SKIKBO.cpp
     Kernel/LASCA.hpp
     Kernel/LASCA.cpp
-    Indexing/TypeSubstitutionTree.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -605,6 +602,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Naming.cpp
     Shell/NNF.cpp
     Shell/Normalisation.cpp
+    Shell/Shuffling.cpp
+    Shell/Shuffling.hpp
     Shell/Options.cpp
     Shell/PredicateDefinition.cpp
     Shell/Preprocess.cpp
@@ -678,8 +677,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
-    Shell/UnificationWithAbstractionConfig.hpp
-    Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     Shell/Lexer.hpp
@@ -708,7 +705,6 @@ set(
     FMB/SortInference.cpp
     FMB/ClauseFlattening.hpp
     FMB/DefinitionIntroduction.hpp
-    FMB/DefinitionIntroduction.cpp
     FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.hpp
     FMB/FiniteModelMultiSorted.hpp    
@@ -857,6 +853,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
 endif()
 
 add_compile_definitions(VTIME_PROFILING=1)
+add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)

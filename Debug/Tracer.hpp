@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include "Debug/Output.hpp"
 
 using namespace std;
 
@@ -115,7 +116,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
   //   const char* str;
   //   unsigned limit;
   // }
-  unsigned width = 60;
+  unsigned width = 35;
   std::cout << "[ debug ] ";
   for (const char* c = file; *c != 0 && width > 0; c++, width--) {
     std::cout << *c;
@@ -139,12 +140,20 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 
 } // namespace Debug
 
+#ifdef ABSOLUTE_SOURCE_DIR
+#define __REL_FILE__  (&__FILE__[sizeof(ABSOLUTE_SOURCE_DIR) / sizeof(ABSOLUTE_SOURCE_DIR[0])])
+#else
+#define __REL_FILE__  __FILE__
+#endif
+
 
 #  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
 #  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
 #  define CALL(Fun) AUX_CALL(__LINE__,Fun)
-#  define WARN(...) { Debug::Tracer::printDbg(__FILENAME__, __LINE__, "WARNING: ", __VA_ARGS__); }
-#  define DBG(...) { Debug::Tracer::printDbg(__FILENAME__, __LINE__, __VA_ARGS__); }
+#  define WARN(...) { Debug::Tracer::printDbg(__REL_FILE__, __LINE__, "WARNING: ", __VA_ARGS__); }
+#  define DBG(...) { Debug::Tracer::printDbg(__REL_FILE__, __LINE__, __VA_ARGS__); }
+#  define __ECHO_DBG(...) __VA_ARGS__
+#  define DBG_RETURN(msg, ...) { auto out = [&]() __VA_ARGS__ (); DBG(__ECHO_DBG(msg), out);  return out; }
 #  define DBGE(x) DBG(#x, " = ", x)
 
 #  define WRAP_DBG(msg, ...)                                                                        \
@@ -171,6 +180,7 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 #  define WRAP_DBG(msg, ...) __VA_ARGS__
 #  define CALLC(Fun,check) 
 #  define CONTROL(description)
+#  define DBG_RETURN(msg, ...) { __VA_ARGS__ }
 #endif
 
 #ifndef CALL

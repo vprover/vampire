@@ -21,6 +21,7 @@
 #include "Kernel/LASCA.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Shell/Statistics.hpp"
 #include "Kernel/LaLpo.hpp"
 
@@ -49,6 +50,7 @@ public:
   struct Lhs : public SelectedEquality {
     Lhs(SelectedEquality self) : SelectedEquality(std::move(self)) {}
     static const char* name() { return "lasca demodulation lhs"; }
+    TypedTermList key() { return TypedTermList(SelectedEquality::biggerSide().term()); }
 
     static auto iter(LascaState& shared, Clause* simplifyWith) {
       return iterTraits(getSingletonIterator(simplifyWith))
@@ -66,7 +68,7 @@ public:
 
   struct Rhs {
     static const char* name() { return "lasca demodulation rhs"; }
-    TermList term;
+    TypedTermList term;
     bool ordOptimization;
     Clause* clause;
     auto key() const { return term; }
@@ -83,7 +85,7 @@ public:
       return iterTraits(cl->iterLits())
         .flatMap([cl](Literal* lit) {
 
-          return iterTraits(vi(new SubtermIterator(lit)))
+          return iterTraits(vi(new NonVariableNonTypeIterator(lit)))
               // TODO filter our things that can never be rewritten
             // .filter([](TermList t) {
             //   if (t.isTerm()) {
@@ -99,9 +101,8 @@ public:
             //     return false;
             //   }
             // })
-            .filter([](TermList t) { return t.isTerm(); })
             // TODO better optimizations
-            .map([=](TermList t) { return Rhs { .term = t, .ordOptimization = !(lit->isEquality() && lit->isPositive()), .clause = cl, }; })
+            .map([=](auto t) { return Rhs { .term = TypedTermList(t), .ordOptimization = !(lit->isEquality() && lit->isPositive()), .clause = cl, }; })
             // .filter([](auto& t) { return t.ordOptimization; })
             ;
         })

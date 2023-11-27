@@ -499,3 +499,20 @@ TEST_ALL(misc_03,
 #endif // SIMPL_MUL_ZERO
       .strong = false,
     })
+
+
+TEST_ALL(misc_04, 
+    TestCase {
+      .in  =      (((2 * (b * (c + (b + -c)))) + -(b * b)))  > 0,
+      .out = { {                  b * b                       > 0, } },
+      .strong = false,
+    })
+
+TEST_ALL(misc_05, 
+    TestCase {
+      .in  =     (((a * a) + ((2 * (b * (c + -(-b + c)))) + -(b * b)))) > 0,
+      //     { {    a * a  +   2*b *  c + 2*b * b + -2*b * c  + -(b * b)    > 0, } },
+      //     { {    a * a  +   2*b *  c +   b * b + -2*b * c                > 0, } },
+      .out = { {    a * a  +                b * b                           > 0, } },
+      .strong = false,
+    })

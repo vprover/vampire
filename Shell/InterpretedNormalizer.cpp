@@ -530,7 +530,8 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
       modified = true;
     }
     if (_inequalityNormalizer)  {
-      for (auto lit : _inequalityNormalizer->normalizeLiteral(newLit)){
+      auto norm = _inequalityNormalizer->normalizeLiteral(newLit);
+      for (auto lit : *norm){
         lits.push(lit);
       }
       if (lits.size() != 1 || lits[0] != orig) {

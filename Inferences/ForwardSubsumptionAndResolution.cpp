@@ -49,7 +49,7 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
   CALL("ForwardSubsumptionAndResolution::attach");
   ForwardSimplificationEngine::attach(salg);
   _unitIndex = static_cast<UnitClauseLiteralIndex *>(
-      _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE));
+      _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
   _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
 }
@@ -59,7 +59,7 @@ void ForwardSubsumptionAndResolution::detach()
   CALL("ForwardSubsumptionAndResolution::detach");
   _unitIndex = 0;
   _fwIndex = 0;
-  _salg->getIndexManager()->release(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   _salg->getIndexManager()->release(FW_SUBSUMPTION_SUBST_TREE);
   ForwardSimplificationEngine::detach();
 }
@@ -236,7 +236,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   for (unsigned li = 0; li < clen; li++) {
     SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
     while (rit.hasNext()) {
-      Clause *premise = rit.next().clause;
+      Clause *premise = rit.next().data->clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
         premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
@@ -253,7 +253,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
       SLQueryResultIterator rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
       while (rit.hasNext()) {
         SLQueryResult res = rit.next();
-        Clause *mcl = res.clause;
+        Clause *mcl = res.data->clause;
         if (mcl->hasAux()) {
           //we've already checked this clause
           continue;
@@ -289,7 +289,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         Literal *resLit = (*cl)[li];
         SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
-          Clause *mcl = rit.next().clause;
+          Clause *mcl = rit.next().data->clause;
           if (ColorHelper::compatible(cl->color(), mcl->color())) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             env.statistics->forwardSubsumptionResolution++;
@@ -326,7 +326,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
           SLQueryResult res = rit.next();
-          Clause *mcl = res.clause;
+          Clause *mcl = res.data->clause;
 
           ClauseMatches *cms = nullptr;
           if (mcl->hasAux()) {

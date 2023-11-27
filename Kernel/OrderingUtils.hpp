@@ -21,6 +21,7 @@ namespace Kernel {
   template<class T>
   class MultiSet {
     Stack<std::tuple<T, IntegerConstantType>> _elems;
+  public:
     void integrity() const {
 #if VDEBUG
       ASS(std::is_sorted(_elems.begin(), _elems.end(), [](auto l, auto r) { return std::get<0>(l) < std::get<0>(r); }))
@@ -29,10 +30,15 @@ namespace Kernel {
       }
 #endif
     }
-  public:
+
     MultiSet() : _elems() {}
     MultiSet(MultiSet&&) = default;
     MultiSet& operator=(MultiSet&&) = default;
+    MultiSet(T t1, T t2) : MultiSet() {
+      init(std::move(t1), std::move(t2));
+    }
+
+    Stack<std::tuple<T, IntegerConstantType>>& raw() { return _elems; }
 
     template<class Iter>
     static MultiSet fromIterator(Iter i) 
@@ -67,9 +73,36 @@ namespace Kernel {
     }
 
 
-    MultiSet(std::initializer_list<T> elems0) : MultiSet(Stack<T>(elems0)) {}
+    void reset() { _elems.reset(); }
+    bool keepRecycled() const { return _elems.keepRecycled(); }
+    
+    void init(T t1, T t2)
+    { 
+      ASS(_elems.isEmpty())
+       if (t1 == t2) {
+         _elems.push(make_pair(std::move(t1), IntegerConstantType(2)));
+       } else if (t1 < t2) {
+         _elems.reserve(2);
+         _elems.push(make_pair(std::move(t1), IntegerConstantType(1)));
+         _elems.push(make_pair(std::move(t2), IntegerConstantType(1)));
+       } else {
+         _elems.reserve(2);
+         _elems.push(make_pair(std::move(t1), IntegerConstantType(1)));
+         _elems.push(make_pair(std::move(t2), IntegerConstantType(1)));
+       }
+    }
 
-    static MultiSet fromSortedStack(Stack<std::tuple<T, IntegerConstantType>> elems) 
+ 
+    void init(T t)
+    { 
+      ASS(_elems.isEmpty())
+      _elems.push(make_pair(std::move(t), IntegerConstantType(1)));
+    }
+
+
+    // MultiSet(std::initializer_list<T> elems0) : MultiSet(Stack<T>(elems0)) {}
+
+    static MultiSet fromSortedStack(Stack<std::tuple<T, IntegerConstantType>> elems)
     {
       MultiSet out;
       out._elems = std::move(elems);
@@ -167,9 +200,13 @@ namespace Kernel {
   struct WeightedMultiSet {
     IntegerConstantType weight;
     MultiSet<A> elems;
+    WeightedMultiSet() : weight(1), elems() { }
     WeightedMultiSet(IntegerConstantType weight, MultiSet<A> elems) : weight(weight), elems(std::move(elems)) {
       ASS_G(weight, IntegerConstantType(0))
     }
+
+    void reset() { elems.reset(); weight = IntegerConstantType(1); }
+    bool keepRecycled() const { return elems.keepRecycled(); }
 
     friend std::ostream& operator<<(std::ostream& out, WeightedMultiSet const& self)
     { return out << "(1 / " << self.weight << ") " << self.elems; }
@@ -210,8 +247,8 @@ namespace Kernel {
            : Ordering::Result::INCOMPARABLE; 
     }
 
-    template<class Cmp>
-    static auto maxElems(unsigned nElems, Cmp cmp_, SelectionCriterion sel)
+    template<class Cmp, class GetElem>
+    static auto maxElems(unsigned nElems, Cmp cmp_, GetElem get, SelectionCriterion sel)
     {
       CALL("OrderingUtils::maxElems")
       auto cmpCache = make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
@@ -237,7 +274,7 @@ namespace Kernel {
 
             res = l < r ? res : Ordering::reverse(res);
 
-            ASS_EQ(res, cmp_(l, r))
+            ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", res ))
             return res;
           };
 

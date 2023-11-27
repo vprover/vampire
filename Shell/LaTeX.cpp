@@ -16,11 +16,6 @@
 
 #include <fstream>
 
-
-// #include "VL/Int.hpp"
-
-// #include "VS/SymbolMap.hpp"
-
 #include "Options.hpp"
 #include "LaTeX.hpp"
 
@@ -53,16 +48,6 @@ namespace Shell
 
 using namespace Lib;
 using namespace Kernel;
-
-// /**
-//  * Initialise LaTeX.
-//  * @since 26/09/2005 Bellevue
-//  */
-// LaTeX::LaTeX (const Options& options,const SymbolMap* map)
-//   : _options(options),
-//     _map(map)
-// {
-// } // LaTeX::LaTeX
 
 vstring LaTeX::header()
 {

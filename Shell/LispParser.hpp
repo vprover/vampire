@@ -116,7 +116,7 @@ typedef List<LExpr*> LExprList;
 
 class LispListReader {
 public:
-  explicit LispListReader(LExpr* e)
+  explicit LispListReader(LExpr* e) : it(nullptr)
   {
     CALL("LispListReader::LispListReader(LExpr*)");
     if(!e->isList()) {

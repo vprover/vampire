@@ -89,23 +89,22 @@ using namespace Inferences::LASCA;
   DECL_FUNC(gg, {Num}, Num)                                                                         \
   DECL_FUNC(ff, {Num}, Num)                                                                         \
   DECL_FUNC(ab, {Num}, Num)                                                                         \
-  DECL_FUNC(skx, {Num}, Num)                                                                         \
+  DECL_FUNC(skx, {Num}, Num)                                                                        \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LASCA1
+#define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
 auto idxFourierMotzkin(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<FourierMotzkin::Lhs>(uwa); },
-    [=]() { return new LascaIndex<FourierMotzkin::Rhs>(uwa); },
+    [=]() { return new LascaIndex<FourierMotzkin::Lhs>(); },
+    [=]() { return new LascaIndex<FourierMotzkin::Rhs>(); },
   }; 
 }
 
 FourierMotzkin testFourierMotzkin(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) 
 { return FourierMotzkin(testLascaState(uwa)); }
 
@@ -340,7 +339,8 @@ TEST_GENERATION(basic17b,
 
 TEST_GENERATION(uwa01,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(a + b) > 0, }) 
                        , clause({  f(x + 1) > 0  }) })
       .expected(exactly( clause({ num(0) > 0, x + 1 != a + b }) ))
@@ -349,7 +349,8 @@ TEST_GENERATION(uwa01,
 
 TEST_GENERATION(uwa02,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(a + b) > 0, }) 
                        , clause({  f(a + 1) > 0  }) })
       .expected(exactly( /* nothing */ ))
@@ -357,7 +358,8 @@ TEST_GENERATION(uwa02,
 
 TEST_GENERATION(uwa03,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
                        , clause({  f(f(y) + 1) > 0  }) })
       .expected(exactly( /* nothing */ ))
@@ -365,7 +367,8 @@ TEST_GENERATION(uwa03,
 
 TEST_GENERATION(uwa04,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
                        , clause({  f(f(y) + b) > 0  }) })
       .expected(exactly( clause({ num(0) > 0, f(x) + b != f(y) + b }) ))
@@ -373,7 +376,8 @@ TEST_GENERATION(uwa04,
 
 TEST_GENERATION(uwa05,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
                        , clause({  f(f(y) + b + a) > 0  }) })
       .expected(exactly( /* nothing */ ))
@@ -381,7 +385,8 @@ TEST_GENERATION(uwa05,
 
 TEST_GENERATION(uwa06,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(f(x) + b + a) > 0, }) 
                        , clause({  f(f(y) + b) > 0  }) })
       .expected(exactly( /* nothing */ ))
@@ -389,7 +394,8 @@ TEST_GENERATION(uwa06,
 
 TEST_GENERATION(uwa07,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(f(x) + 2 * b) > 0, }) 
                        , clause({  f(f(y) + b) > 0  }) })
       .expected(exactly( /* nothing */ ))
@@ -397,7 +403,8 @@ TEST_GENERATION(uwa07,
 
 TEST_GENERATION(uwa08,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
                        , clause({  f(f(y) + b) > 0  }) })
       .expected(exactly( /* nothing */ ))
@@ -405,7 +412,8 @@ TEST_GENERATION(uwa08,
 
 TEST_GENERATION(uwa09,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
                        , clause({  f(f(y) + b - z) > 0  }) })
       .expected(exactly( clause({ num(0) > 0, f(x) - b != f(y) + b - z }) ))
@@ -413,7 +421,8 @@ TEST_GENERATION(uwa09,
 
 TEST_GENERATION(uwa10,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
                        , clause({  f(f(y) + b - z) > 0  }) })
       .expected(exactly( clause({ num(0) > 0, f(x) - b != f(y) + b - z }) ))
@@ -421,7 +430,8 @@ TEST_GENERATION(uwa10,
 
 TEST_GENERATION(uwa11,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(fn(au)) > 0, }) 
                        , clause({  f(fn(bu)) > 0  }) })
       .expected(exactly( /* nothing */ ))
@@ -429,7 +439,8 @@ TEST_GENERATION(uwa11,
 
 TEST_GENERATION(uwa12,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ ab(ff(skx(x0)) + gg(skx(x0))) + -2 * c >= 0 })
                        , clause({-ab(gg(x0)) + c > 0 })
                       })
@@ -438,7 +449,8 @@ TEST_GENERATION(uwa12,
 
 TEST_GENERATION(uwa13,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -2 * c + ab(ff(skx(x0)) + gg(skx(x0))) >= 0 })
                        , clause({-ab(gg(x0)) + c > 0 }) })
       .expected(exactly( /* nothing */ ))
@@ -447,7 +459,8 @@ TEST_GENERATION(uwa13,
 
 TEST_GENERATION(uwa14,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin(Shell::Options::UnificationWithAbstraction::LASCA4))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs         ({ clause({ -f(2 * x) > 0, }) 
                        , clause({  f(2 * f(y)) > 0  }) })
       .expected(exactly( clause({ num(0) > 0, 2 * x != 2 * f(y) }) ))
@@ -610,8 +623,8 @@ TEST_GENERATION(abstraction1,
 
 TEST_GENERATION(abstraction2,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({         clause({ selected(-f(   f(y)       ) > 0) })  
                ,          clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(  clause({ num(0) > 0, f(a) + g(b, c) != f(y)  }) ))
@@ -619,26 +632,17 @@ TEST_GENERATION(abstraction2,
 
 TEST_GENERATION(abstraction3,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({ clause({ selected(-f(b) > 0) })  
                ,  clause({ selected( f(a) > 0) }) })
       .expected(exactly())
     )
 
-TEST_GENERATION(abstraction4,
-    Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))
-      .inputs  ({        clause({ -f(3 * a) > 0 })  
-               ,         clause({  f(7 * a) > 0 }) })
-      .expected(exactly(                           ))
-    )
-
 TEST_GENERATION(abstraction5,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({        clause({ selected(-f(a + b) > 0) })  
                ,         clause({ selected( f(7 * a) > 0) }) })
       .expected(exactly( clause({ num(0) > 0, a + b != 7 * a }) ))
@@ -646,8 +650,8 @@ TEST_GENERATION(abstraction5,
 
 TEST_GENERATION(abstraction6,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({        clause({ selected(-f(g(a,x)) > 0) })  
                ,         clause({ selected( f(7 * y)  > 0) }) })
       .expected(exactly( clause({ num(0) > 0, g(a,x) != 7 * y }) ))
@@ -655,8 +659,8 @@ TEST_GENERATION(abstraction6,
 
 TEST_GENERATION(abstraction7,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({        clause({ selected(-f(a + b) > 0) })           
                ,         clause({ selected(     f(c) > 0) })              })
       .expected(exactly( clause({ num(0) > 0, a + b != c })  ))
@@ -664,111 +668,138 @@ TEST_GENERATION(abstraction7,
 
 TEST_GENERATION(abstraction8,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA1))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({        clause({ selected(-f(c + b) > 0) })           
                ,         clause({ selected(     f(a) > 0) })              })
       .expected(exactly( clause({ num(0) > 0, a != c + b }) ))
     )
 
-TEST_GENERATION(abstraction1_irc2,
+TEST_GENERATION(abstraction1_alasca1,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({        clause({ -f(a + b) > 0 })           
                ,         clause({  f(c) > 0 })              })
       .expected(exactly( clause({ num(0) > 0, a + b != c }) ))
     )
 
-TEST_GENERATION(abstraction2_irc2,
+TEST_GENERATION(abstraction1_alasca2,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
+      .inputs  ({        clause({ -f(a + b) > 0 })           
+               ,         clause({  f(c) > 0 })              })
+      .expected(exactly( /* nothing */                      ))
+    )
+
+TEST_GENERATION(abstraction2_alasca2,
+    Generation::SymmetricTest()
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({        clause({ selected(-f(a + b) > 0) })           
                ,         clause({ selected( f(c + x) > 0) })              })
       .expected(exactly( clause({  num(0) > 0, c + x != a + b   }) ))
     )
 
-TEST_GENERATION(abstraction3_irc2,
+TEST_GENERATION(abstraction3_alasca2,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({        clause({ -f(3 * a) > 0 })           
                ,         clause({  f(4 * a) > 0 })              })
       .expected(exactly(   ))
     )
 
-TEST_GENERATION(abstraction4_irc2,
+TEST_GENERATION(abstraction4_alasca1,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+      .indices(idxFourierMotzkin())
+      .inputs  ({        clause({ -f(3 * a) > 0 })  
+               ,         clause({  f(7 * a) > 0 }) })
+      .expected(exactly( clause({    num(0) > 0, 3 * a != 7 * a  }) ))
+    )
+
+TEST_GENERATION(abstraction4_alasca2,
+    Generation::SymmetricTest()
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA2))  )
+      .indices(idxFourierMotzkin())
       .inputs  ({        clause({ -f(-a ) > 0 })           
                ,         clause({  f( a ) > 0 })              })
       .expected(exactly(   ))
     )
 
-TEST_GENERATION(abstraction5_irc2,
+
+TEST_GENERATION(abstraction5_alasca1,
     Generation::SymmetricTest()
-      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))  )
-      .indices(idxFourierMotzkin(Options::UnificationWithAbstraction::LASCA2))
-      .inputs  ({        clause({ -f( a ) > 0 })           
-               ,         clause({  f( a + f(b) ) > 0 })              })
-      .expected(exactly( clause({ num(0) > 0, a != a + f(b) })  ))
-    )
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA1))  )
+        .indices(idxFourierMotzkin())
+        .inputs  ({        clause({ -f( a ) > 0 })           
+                 ,         clause({  f( a + f(b) ) > 0 })        })
+        .expected(exactly( clause({ num(0) > 0, a != a + f(b) }) ))
+      )
 
-
-
-/////////////////////////////////////////////////////////
-// Testing normalization
-//////////////////////////////////////
-
-TEST_GENERATION(misc01,
+TEST_GENERATION(abstraction5_alasca2,
     Generation::SymmetricTest()
-      .indices(idxFourierMotzkin())
-      .inputs  ({ clause({ selected(a + -f(a) > 0    ) }) 
-               ,  clause({ selected(f(a) > 0) }) })
-      .expected(exactly(
-            clause({  a > 0  })
-      ))
-    )
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA2))  )
+        .indices(idxFourierMotzkin())
+        .inputs  ({        clause({ -f( a ) > 0 })           
+                 ,         clause({  f( a + f(b) ) > 0 })        })
+        .expected(exactly( /* nothing */                         ))
+      )
 
-TEST_GENERATION_WITH_SUGAR(misc02_INT,
-    SUGAR(Int),
-    Generation::SymmetricTest()
-      .indices(idxFourierMotzkin())
-      .inputs  ({ clause({selected(a + -f(a) + 1 > 0 )  }) 
-               ,  clause({selected(f(a) > 0) }) }) 
-      .expected(exactly(
-            clause({ -1 + a + 1 > 0  })
-      ))
-    )
 
-TEST_GENERATION_WITH_SUGAR(misc02_Rat,
-    SUGAR(Rat),
-    Generation::SymmetricTest()
-      .indices(idxFourierMotzkin())
-      .inputs  ({ clause({selected( a + -f(a) >= 0)  }) 
-               ,  clause({selected(f(a) > 0) }) })
-      .expected(exactly(
-            clause({  a > 0  })
-      ))
-    )
+  /////////////////////////////////////////////////////////
+  // Testing normalization
+  //////////////////////////////////////
 
-// only for integers (which we r using here)
-TEST_GENERATION_WITH_SUGAR(misc03,
-    SUGAR(Int),
-    Generation::SymmetricTest()
-      .indices(idxFourierMotzkin())
-      .inputs  ({ clause({selected( f(a) + 1 > 0) }) 
-               ,  clause({selected(a + -f(a) > 0) }) })
-      .expected(exactly(
-            clause({ -1 +  a + 1 > 0  })
-      ))
-    )
+  TEST_GENERATION(misc01,
+      Generation::SymmetricTest()
+        .indices(idxFourierMotzkin())
+        .inputs  ({ clause({ selected(a + -f(a) > 0    ) }) 
+                 ,  clause({ selected(f(a) > 0) }) })
+        .expected(exactly(
+              clause({  a > 0  })
+        ))
+      )
 
-TEST_GENERATION_WITH_SUGAR(bug01a,
-    SUGAR(Real),
-    Generation::SymmetricTest()
+  TEST_GENERATION_WITH_SUGAR(misc02_INT,
+      SUGAR(Int),
+      Generation::SymmetricTest()
+        .indices(idxFourierMotzkin())
+        .inputs  ({ clause({selected(a + -f(a) + 1 > 0 )  }) 
+                 ,  clause({selected(f(a) > 0) }) }) 
+        .expected(exactly(
+              clause({ -1 + a + 1 > 0  })
+        ))
+      )
+
+  TEST_GENERATION_WITH_SUGAR(misc02_Rat,
+      SUGAR(Rat),
+      Generation::SymmetricTest()
+        .indices(idxFourierMotzkin())
+        .inputs  ({ clause({selected( a + -f(a) >= 0)  }) 
+                 ,  clause({selected(f(a) > 0) }) })
+        .expected(exactly(
+              clause({  a > 0  })
+        ))
+      )
+
+  // only for integers (which we r using here)
+  TEST_GENERATION_WITH_SUGAR(misc03,
+      SUGAR(Int),
+      Generation::SymmetricTest()
+        .indices(idxFourierMotzkin())
+        .inputs  ({ clause({selected( f(a) + 1 > 0) }) 
+                 ,  clause({selected(a + -f(a) > 0) }) })
+        .expected(exactly(
+              clause({ -1 +  a + 1 > 0  })
+        ))
+      )
+
+  TEST_GENERATION_WITH_SUGAR(bug01a,
+      SUGAR(Real),
+      Generation::SymmetricTest()
       .indices(idxFourierMotzkin())
       .inputs  ({ clause({ selected(r(x, y)),  (f(x) + -f(y) > 0)  }) 
                ,  clause({ selected(f(a) >  0) }) })
@@ -816,6 +847,84 @@ TEST_GENERATION_WITH_SUGAR(bug03b,
       .inputs  ({        clause({               selected(1 + -f(a)            > 0) })  
                ,         clause({  a - 1 != 0 , selected(1 + -f(x) + f(a)     > 0) }) })
       .expected(exactly( clause({  a - 1 != 0 ,          1 + -f(x)        + 1 > 0  }) ))
+    )
+
+
+TEST_GENERATION_WITH_SUGAR(bug_uwa_01,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .selfApplications(false)
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))  )
+      .indices(idxFourierMotzkin())
+  // (not (P (+ x1 x0) (+ x2 x0))) (P x1 x2))))
+  //      (P x0 x0)
+  // ; ==================================
+  // (P x0 x1)
+      .inputs  ({ clause({ -g(x1 + x0, x2 + x0) + g(x1, x2) > 0 })  
+               ,  clause({  g(x0, x0) > 0 }) })
+      .expected(exactly(
+          clause({  g(x0, x0) > 0  })
+          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
+      ))
+    )
+
+#define LIMIT_SUGAR                                                                                 \
+  NUMBER_SUGAR(Real)                                                                                \
+  DECL_DEFAULT_VARS                                                                                 \
+  DECL_FUNC(ab, {Real}, Real)                                                                       \
+  DECL_FUNC(skx, {Real}, Real)                                                                       \
+  DECL_FUNC(gg, {Real}, Real)                                                                       \
+  DECL_CONST(delta, Real)                                                                           \
+  DECL_CONST(a, Real)                                                                               \
+
+
+TEST_GENERATION_WITH_SUGAR(bug_uwa_02,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .selfApplications(false)
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))  )
+      .indices(idxFourierMotzkin())
+// 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
+// 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
+      .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
+                , clause({ delta + -ab(x + a) >= 0 })
+               })
+      .expected(exactly(
+          clause({ -delta + delta > 0 })
+          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
+      ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug_uwa_03,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .selfApplications(false)
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))  )
+      .indices(idxFourierMotzkin())
+// 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
+// 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
+      .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
+                , clause({ c + -ab(gg(x)) > 0 })
+               })
+      .expected(exactly(
+          // clause({ -delta + delta > 0, x + a != skx(x) + a, c + -ab(gg(x)) > 0 })
+          // clause({ num(0) > 0 }) // we don't perform the rule if we overflow
+      ))
+    )
+
+TEST_GENERATION_WITH_SUGAR(bug_uwa_04,
+    SUGAR(Real),
+    Generation::SymmetricTest()
+      .selfApplications(false)
+      .rule(    new FourierMotzkin(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA3))  )
+      .indices(idxFourierMotzkin())
+// 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
+// 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
+      .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
+                , clause({ c + -ab(gg(x)) > 0, delta + -ab(x + a) >= 0 })
+               })
+      .expected(exactly(
+      ))
     )
 
 

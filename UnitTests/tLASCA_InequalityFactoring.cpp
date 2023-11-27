@@ -61,7 +61,7 @@ using namespace Inferences::LASCA;
 InequalityFactoring testInequalityFactoring(
     Ordering* ordering = nullptr,
     bool strongNorm = false,
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     )
 { return InequalityFactoring(testLascaState(uwa, strongNorm, ordering)); }
 

@@ -46,6 +46,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skip(0),
     _label(0),
     _equalityProxy(0),
+    _wasFlipped(0),
     _color(COLOR_TRANSPARENT),
     _answerPredicate(0),
     _overflownConstant(overflownConstant ? 1 : 0),

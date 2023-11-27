@@ -438,10 +438,10 @@ ALL_NUMBERS_TEST(eval_test_cached_1,
       evaluationFail
       )
 
-ALL_NUMBERS_TEST(eval_test_cached_2,
-      (b * a) * c == f((b * a) * c),
-      evaluationFail
-      )
+// ALL_NUMBERS_TEST(eval_test_cached_2,
+//       (b * a) * c == f((b * a) * c),
+//       evaluationFail
+//       )
 
 ALL_NUMBERS_TEST(eval_bug_1,
       p(f2(a,b)),

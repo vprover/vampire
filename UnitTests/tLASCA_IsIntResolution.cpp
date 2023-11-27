@@ -63,19 +63,17 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LASCA1
-
 auto idxIsIntResolution(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<IsIntResolution::Lhs>(uwa); },
-    [=]() { return new LascaIndex<IsIntResolution::Rhs>(uwa); },
+    [=]() { return new LascaIndex<IsIntResolution::Lhs>(); },
+    [=]() { return new LascaIndex<IsIntResolution::Rhs>(); },
   }; 
 }
 
 IsIntResolution testIsIntResolution(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LASCA1
+   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
     ) 
 { return IsIntResolution(testLascaState(uwa)); }
 
@@ -121,7 +119,7 @@ TEST_GENERATION(basic03,
       .inputs  ({ clause({ selected(  isInt(f(a) + frac(1,2)) ) }) 
                ,  clause({ selected(  isInt(f(x)) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected( isInt(-frac(1,2)) )  })
+                  clause({ selected( isInt(frac(1,2)) )  })
       ))
     )
 
@@ -151,7 +149,7 @@ TEST_GENERATION(factors01,
       .inputs  ({ clause({ selected(  isInt(frac(1,2) * f(a) + a) ) }) 
                ,  clause({ selected(  isInt(frac(1,2) * f(x) + 1) ) }) })
       .expected(exactly( ///////////////////////////////////////////////////////
-                  clause({ selected(  isInt(a - 1) )  })
+                  clause({ selected(  isInt(-a + 1) )  })
       ))
     )
 

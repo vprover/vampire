@@ -227,35 +227,9 @@ void Timer::ensureTimerInitialized()
 {
   CALL("Timer::ensureTimerInitialized");
   
-#ifdef __linux__ // if available, initialize the perf reading
-  { // When ensureTimerInitialized is called, env.options->instructionLimit() will not be set yet,
-    // so we do this init unconditionally
-    
-    /*
-     * NOTE: we need to do this before initializing the actual timer
-     * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
-     */
-    
-    struct perf_event_attr pe;
-  
-    memset(&pe, 0, sizeof(struct perf_event_attr));
-      pe.type = PERF_TYPE_HARDWARE;
-      pe.size = sizeof(struct perf_event_attr);
-      pe.config = PERF_COUNT_HW_INSTRUCTIONS;
-      pe.disabled = 1;
-      pe.exclude_kernel = 1;
-      pe.exclude_hv = 1;
-
-    perf_fd = perf_event_open(&pe, 0, -1, -1, 0);
-    if (perf_fd == -1) {
-      // delay reporting the error until we can check instruction limiting has been actually requested
-      error_to_report = std::strerror(errno);      
-    } else {
-      ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
-      ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
-    }
-  }
-#endif
+  // When ensureTimerInitialized is called, env.options->instructionLimit() will not be set yet,
+  // so we do this init unconditionally
+  resetInstructionMeasuring();
 
   if(timer_sigalrm_counter!=-1) {
     return;
@@ -275,6 +249,50 @@ void Timer::ensureTimerInitialized()
   s_initGuarantedMiliseconds=guaranteedMilliseconds();
 
   Sys::Multiprocessing::instance()->registerForkHandlers(suspendTimerBeforeFork, restoreTimerAfterFork, restoreTimerAfterFork);
+}
+
+void Timer::resetInstructionMeasuring()
+{
+#ifdef __linux__ // if available, initialize the perf reading
+  CALL("Timer::resetInstructionMeasuring");
+
+  /*
+   * NOTE: we need to do this before initializing the actual timer
+   * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
+   */
+  
+  last_instruction_count_read = -1;
+  error_to_report = nullptr;
+  perf_fd = -1;
+  
+  struct perf_event_attr pe;
+
+  memset(&pe, 0, sizeof(struct perf_event_attr));
+    pe.type = PERF_TYPE_HARDWARE;
+    pe.size = sizeof(struct perf_event_attr);
+    pe.config = PERF_COUNT_HW_INSTRUCTIONS;
+    pe.disabled = 1;
+    pe.exclude_kernel = 1;
+    pe.exclude_hv = 1;
+
+  perf_fd = perf_event_open(&pe, 0, -1, -1, 0);
+  if (perf_fd == -1) {
+    // delay reporting the error until we can check instruction limiting has been actually requested
+    error_to_report = std::strerror(errno);
+  } else {
+    ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
+    ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
+  }
+#endif
+}
+
+bool Timer::instructionLimitingInPlace()
+{
+#ifdef __linux__
+  return (perf_fd >= 0);
+#else
+  return false;
+#endif
 }
 
 void Timer::deinitializeTimer()

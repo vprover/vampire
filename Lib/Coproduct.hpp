@@ -280,6 +280,12 @@ class Coproduct<A, As...>
   /** unsafe default constructor, content will be uninit */
   Coproduct() : _tag(std::numeric_limits<unsigned>::max()) {}
 
+
+  Coproduct(Coproduct<As...> tail) 
+    : _tag(tail._tag + 1)
+    , _content(std::move(tail).apply([](auto x) { return decltype(_content)(std::move(x)); }))
+    {}
+
 public:
   CLASS_NAME(Coproduct)
 
@@ -292,6 +298,10 @@ public:
   unsigned tag() const { return _tag; }
 
 public:
+
+  Coproduct fromTail(Coproduct<As...> tail) 
+  { return Coproduct(std::move(tail)); }
+
 
   /** Returns whether this coproduct is the variant idx */
   template<unsigned idx> bool is() const 
@@ -403,7 +413,7 @@ public:
    * \pre B must occur exactly once in A,As...                                                                \
    */                                                                                                         \
   template <class B> inline Option<B REF> as() REF                                                            \
-  { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                                        \
+  { return is<B>() ? Option<B REF>(unwrap<B>()) : Option<B REF>();  }                                         \
                                                                                                               \
   /**                                                                                                         \
    * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\
@@ -412,7 +422,7 @@ public:
    */                                                                                                         \
   template <unsigned idx>                                                                                     \
   inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
-  { return is<idx>() ? unwrap<idx>() : Option<TL::Get<idx, Ts> REF>();  }                                     \
+  { return is<idx>() ? Option<TL::Get<idx, Ts> REF>(unwrap<idx>()) : Option<TL::Get<idx, Ts> REF>();  }                                     \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
@@ -453,6 +463,13 @@ public:
   friend bool operator>=(Coproduct const& lhs, Coproduct const& rhs) 
   { return lhs > rhs || lhs == rhs; }
 
+  unsigned defaultHash() const
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash(); })); }
+
+  unsigned defaultHash2() const
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash2(); })); }
+
+  Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<A, As...> 
 
 
@@ -491,6 +508,35 @@ template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
         self.apply([](auto const& x){ return std::hash<std::remove_const_t<std::remove_reference_t<decltype(x)>>>{}(x); }));
   }
 };
+template<class... As> struct SelectOutput;
+
+template<class Cons> struct SelectOutput<Cons> { using type = Coproduct<std::result_of_t<Cons()>>; };
+
+template<class Cond, class Cons, class... Rest>
+struct SelectOutput<Cond, Cons, Rest...> {
+  using type = TypeList::Into<Coproduct, 
+     TypeList::Concat< TypeList::List<std::result_of_t<Cons()>>
+                     , typename SelectOutput<Rest...>::type::Ts 
+                     >>;
+};
+
+// static_assert(std::is_same<sel)
+
+// template<class Cond, class Cons, class... Rest>
+// using SelectOutput = ;
+
+template<class Cons>
+auto select(Cons cons) -> Coproduct<decltype(cons())>
+{ return Coproduct<decltype(cons())>::template variant<0>(cons()); }
+
+template<class Cond, class Cons, class... Rest>
+auto select(Cond cond, Cons cons, Rest... rest) ->  SelectOutput<Cond, Cons, Rest...>
+{
+  return cond() ? SelectOutput<Cond, Cons, Rest...>::template variant<0>(cons())
+                : SelectOutput<Cond, Cons, Rest...>::fromTail(select(std::move(rest)...));
+}
+
+
 
 
 template<class... As>

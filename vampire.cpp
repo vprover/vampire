@@ -36,9 +36,6 @@
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
 
-#include "Lib/RCPtr.hpp"
-
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -50,8 +47,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-
-//#include "InstGen/IGAlgorithm.hpp"
 
 #include "CASC/PortfolioMode.hpp"
 #include "CASC/CLTBMode.hpp"
@@ -137,9 +132,22 @@ Problem* getPreprocessedProblem()
 {
   CALL("getPreprocessedProblem");
 
+#ifdef __linux__
+  unsigned saveInstrLimit = env.options->instructionLimit();
+  if (env.options->parsingDoesNotCount()) {  
+    env.options->setInstructionLimit(0);
+  }
+#endif
+
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
+#ifdef __linux__
+  if (env.options->parsingDoesNotCount()) {
+    env.options->setInstructionLimit(saveInstrLimit+Timer::elapsedMegaInstructions());
+  }
+#endif
+
+  TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -349,7 +357,7 @@ void preprocessMode(bool theory)
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-  TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
+  TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // preprocess without clausification
   Shell::Preprocess prepro(*env.options);
@@ -643,8 +651,6 @@ int main(int argc, char* argv[])
 
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-  // create random seed for the random number generation
-  Lib::Random::setSeed(123456);
 
   START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
@@ -694,6 +700,8 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
       //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
@@ -723,6 +731,8 @@ int main(int argc, char* argv[])
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
       env.options->setOutputAxiomNames(true);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
       //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
@@ -738,6 +748,9 @@ int main(int argc, char* argv[])
       }
       env.options->setSchedule(Options::Schedule::SMTCOMP);
       env.options->setProof(Options::Proof::OFF);
+      env.options->setNormalize(true);
+      env.options->setRandomizeSeedForPortfolioWorkers(false);
+
       env.options->setMulticore(0); // use all available cores
       env.options->setTimeLimitInSeconds(1800);
       env.options->setStatistics(Options::Statistics::NONE);

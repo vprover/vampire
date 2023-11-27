@@ -690,24 +690,21 @@ TermList Monom<Number>::denormalize()  const
   return PolyNf(AnyPoly(perfect(Polynom<Number>(*this)))).denormalize(); 
 }
 
-// } // namespace Kernel
-
-
 
 template<class Number>
-bool operator<(Monom<Number> const& l, Monom<Number> const& r)
+bool operator<(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
 { return std::tie(l.factors, l.numeral) < std::tie(r.factors, r.numeral); }
 
 template<class Number>
-bool operator==(Monom<Number> const& l, Monom<Number> const& r)
+bool operator==(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
 { return std::tie(l.factors, l.numeral) == std::tie(r.factors, r.numeral); }
 
 template<class Number>
-bool operator!=(Monom<Number> const& l, Monom<Number> const& r)
+bool operator!=(Kernel::Monom<Number> const& l, Kernel::Monom<Number> const& r)
 { return !(l == r); }
 
 template<class Number>
-std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
+std::ostream& operator<<(std::ostream& out, const Kernel::Monom<Number>& self)
 { 
 #if !OUTPUT_NICE 
   out << "mon(";
@@ -725,10 +722,10 @@ std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
   return out;
 }
 
-
-
-
 } // namespace Kernel
+
+
+
 
 
 /////////////////////////////////////////////////////////
@@ -990,10 +987,10 @@ struct std::hash<Kernel::MonomFactor<NumTraits>>
 {
   size_t operator()(Kernel::MonomFactor<NumTraits> const& x) const noexcept 
   {
-    using namespace Lib;
-    using namespace Kernel;
-
-    return HashUtils::combine(stlHash(x.term), stlHash(x.power));
+    return HashUtils::combine(
+      StlHash::hash(x.term),
+      StlHash::hash(x.power)
+    );
   }
 };
 
@@ -1220,14 +1217,7 @@ struct std::hash<Kernel::MonomFactors<NumTraits>>
 {
   size_t operator()(Kernel::MonomFactors<NumTraits> const& x) const noexcept 
   {
-    using namespace Lib;
-    using namespace Kernel;
-
-    unsigned out = HashUtils::combine(84586,10);
-    for (auto f : x._factors) {
-      out = HashUtils::combine(stlHash(f), out);
-    }
-    return out;
+    return StackHash<StlHash>::hash(x._factors);
   }
 };
 
@@ -1436,13 +1426,7 @@ void Polynom<Number>::integrity() const {
 
 template<class Number>
 Option<Monom<Number>> Polynom<Number>::tryMonom() const
-{
-  if (_summands.size() == 1) {
-    return Option<Monom>(summandAt(0));
-  } else {
-    return Option<Monom>();
-  }
-}
+{ return someIf(_summands.size() == 1, [&](){ return summandAt(0); }); }
 
 template<class Number>
 typename Polynom<Number>::SummandIter Polynom<Number>::iterSummands() const&
@@ -1466,9 +1450,10 @@ struct std::hash<Kernel::Polynom<NumTraits>>
     unsigned out = HashUtils::combine(0,0);
     for (auto c : x._summands) {
       out = HashUtils::combine(
-              stlHash(c.factors),
-              stlHash(c.numeral),
-              out);
+        StlHash::hash(c.factors),
+        StlHash::hash(c.numeral),
+        out
+      );
     }
     return out;
   }

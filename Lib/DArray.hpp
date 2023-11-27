@@ -76,29 +76,20 @@ public:
     void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
     _array = static_cast<C*>(mem);
     for(size_t i=0; i<_size; i++) {
-      new(&_array[i]) C(o[i]);
+      ::new (&_array[i]) C(o[i]);
     }
   }
 
-
-  DArray(DArray&& o)
-    : _size(o._size), _capacity(o._capacity), _array(o._array)
-  {
-    CALL("DArray::DArray(const DArray&)");
-
-    o._size = o._capacity = 0;
-    o._array = nullptr;
+  void swap(DArray& other) {
+    std::swap(other._size, _size);
+    std::swap(other._capacity, _capacity);
+    std::swap(other._array, _array);
   }
 
-  DArray& operator=(const DArray&) = delete;
-  DArray& operator=(DArray&& o)
-  {
-    CALL("DArray::DArray(const DArray&)");
-    this->~DArray();
-    ::new(this) DArray(std::move(o));
-    return *this;
-  }
+  bool keepRecycled() const { return _capacity > 0; }
 
+  DArray(DArray&& other) : DArray() { swap(other); }
+  DArray& operator=(DArray&& other) { swap(other); return *this; }
 
   /** Delete array */
   inline ~DArray()
@@ -195,6 +186,7 @@ public:
     return false;
   } // ensure
 
+
   /**
    * Set array's size to @b s and that its capacity is at least @b s.
    * If the capacity is smaller, the array will expand, and all old
@@ -225,10 +217,12 @@ public:
     C* afterLast=_array+_capacity;
 
     while(nptr!=firstEmpty) {
-      Relocator<C>::relocate(optr++, nptr++);
+      C *oldAddr = optr++, *newAddr = nptr++;
+      ::new (newAddr) C(std::move(*oldAddr));
+      oldAddr->~C();
     }
     while(nptr!=afterLast) {
-      new(nptr++) C();
+      ::new (nptr++) C();
     }
     _size = s;
 

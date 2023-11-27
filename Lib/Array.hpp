@@ -73,7 +73,7 @@ public:
       void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Array<>");
       _array = static_cast<C*>(mem);
       for(size_t i=0; i<_capacity; i++) {
-        new(&_array[i]) C(o._array[i]);
+        ::new (&_array[i]) C(o._array[i]);
       }
     } else {
       _array = 0;

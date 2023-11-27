@@ -33,6 +33,7 @@ class EqualityFactoring
 public:
   CLASS_NAME(EqualityFactoring);
   USE_ALLOCATOR(EqualityFactoring);
+  EqualityFactoring();
 
   ClauseIterator generateClauses(Clause* premise);
 private:
@@ -40,7 +41,10 @@ private:
   struct IsDifferentPositiveEqualityFn;
   struct FactorablePairsFn;
   struct ResultFn;
+  friend struct ResultFn;
 
+  MismatchHandler _mismatchHandler;
+  bool _uwaFixedPointIteration;
 };
 
 

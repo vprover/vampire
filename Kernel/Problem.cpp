@@ -30,10 +30,6 @@
 #undef LOGGING
 #define LOGGING 0
 
-#if VTIME_PROFILING
-static const char* PROPERTY_EVALUATION = "property evaluation";
-#endif // VTIME_PROFILING
-
 using namespace Kernel;
 
 /**
@@ -123,7 +119,7 @@ void Problem::addUnits(UnitList* newUnits)
   }
   _units = UnitList::concat(newUnits, _units);
   if(_propertyValid) {
-    TIME_TRACE(PROPERTY_EVALUATION);
+    TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
     _property->add(newUnits);
     readDetailsFromProperty();
   }
@@ -229,13 +225,6 @@ void Problem::addTrivialPredicate(unsigned pred, bool assignment)
   ALWAYS(_trivialPredicates.insert(pred, assignment));
 }
 
-void Problem::addBDDVarMeaning(unsigned var, BDDMeaningSpec spec) {
-  CALL("Problem::addBDDVarMeaning");
-  ASS(!spec.first || spec.first->ground());
-
-  ALWAYS(_bddVarSpecs.insert(var, spec));
-}
-
 /**
  * Register a function that has been eliminated from the problem
  *
@@ -280,14 +269,15 @@ void Problem::refreshProperty() const
 {
   CALL("Problem::refreshProperty");
 
-  TIME_TRACE(PROPERTY_EVALUATION);
+  TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
-  if(_property) {
-    delete _property;
-  }
+  auto oldProp = _property;
   _propertyValid = true;
   _property = Property::scan(_units);
+  if(oldProp) {
+    delete oldProp;
+  }
   env.property = _property;
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
@@ -491,28 +481,6 @@ bool Problem::higherOrder() const
 
   if(!_higherOrder.known()) { refreshProperty(); }
   return _higherOrder.value();
-}
-
-
-///////////////////////
-// utility functions
-//
-
-/**
- * Put predicate numbers present in the problem into @c acc
- *
- * The numbers added to acc are not unique.
- *
- */
-void Problem::collectPredicates(Stack<unsigned>& acc) const
-{
-  CALL("Problem::collectPredicates");
-
-  UnitList::Iterator uit(units());
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    u->collectPredicates(acc);
-  }
 }
 
 #if VDEBUG

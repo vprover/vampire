@@ -36,9 +36,13 @@ public:
   unsigned sizeEstimate() const override;
 
 private:
+  bool _randomize;
+  Lib::vvector<unsigned> _ratios;
+  unsigned _ratioSum;
+
   Lib::vvector<std::unique_ptr<PassiveClauseContainer>> _queues;
   Lib::vvector<float> _cutoffs;
-  Lib::vvector<unsigned> _ratios;  
+  Lib::vvector<unsigned> _invertedRatios;  
   Lib::vvector<unsigned> _balances;
   bool _layeredArrangement; // if set to true, queues are arranged as multi-split-queues. if false, queues use a tammet-style arrangement.
 

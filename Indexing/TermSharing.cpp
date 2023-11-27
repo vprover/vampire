@@ -34,10 +34,6 @@ using namespace Indexing;
 
 typedef ApplicativeHelper AH;
 
-#if VTIME_PROFILING
-static const char* TERM_SHARING = "term sharing";
-#endif // VTIME_PROFILING
-
 /**
  * Initialise the term sharing structure.
  * @since 29/12/2007 Manchester
@@ -102,7 +98,7 @@ Term* TermSharing::insert(Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isSort());
 
-  TIME_TRACE(TERM_SHARING);
+  TIME_TRACE(TimeTrace::TERM_SHARING);
 
   // normalise commutative terms
   if (t->commutative()) {
@@ -293,7 +289,7 @@ Literal* TermSharing::insert(Literal* t)
   //equalities between variables must be inserted using insertVariableEquality() function
   ASS_REP(!t->isEquality() || !t->nthArgument(0)->isVar() || !t->nthArgument(1)->isVar(), t->toString());
 
-  TIME_TRACE(TERM_SHARING);
+  TIME_TRACE(TimeTrace::TERM_SHARING);
 
   if (t->commutative()) {
     ASS(t->arity() == 2);
@@ -377,7 +373,7 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
   ASS(t->nthArgument(1)->isVar());
   ASS(!t->isSpecial());
 
-  TIME_TRACE(TERM_SHARING);
+  TIME_TRACE(TimeTrace::TERM_SHARING);
 
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
@@ -425,7 +421,7 @@ Term* TermSharing::insertRecurrently(Term* t)
 {
   CALL("TermSharing::insert");
 
-  TIME_TRACE(TERM_SHARING);
+  TIME_TRACE(TimeTrace::TERM_SHARING);
 
   TermList tRef;
   tRef.setTerm(t);

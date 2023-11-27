@@ -67,7 +67,7 @@ void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   CALL("BackwardSubsumptionDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
 
-  _index.request(salg->getIndexManager(), SIMPLIFYING_SUBST_TREE);
+  _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
 }
 
 
@@ -195,7 +195,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
   SLQueryResultIterator rit = _index->getInstances(candidateQueryLit, false, false);
   while (rit.hasNext()) {
     SLQueryResult qr = rit.next();
-    Clause* candidate = qr.clause;
+    Clause* candidate = qr.data->clause;
 
     // not enough literals to fit match and rewritten literal (performance)
     if (sideCl->length() > candidate->length()) {
@@ -273,7 +273,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
       bool haveMustPred = false;
       for (unsigned ii = 0; ii < candidate->length(); ++ii) {
         Literal* lit = (*candidate)[ii];
-        if (lit == qr.literal) {
+        if (lit == qr.data->literal) {
           continue;
         }
         unsigned pred = lit->header();
@@ -493,7 +493,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     ASS(!env.options->combinatorySup());
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
-      TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+      TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
 
       if (!attempted.insert(lhsS)) {
         // We have already tried to demodulate the term lhsS and did not

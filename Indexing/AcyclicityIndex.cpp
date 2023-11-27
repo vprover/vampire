@@ -199,6 +199,8 @@ namespace Indexing
                         AcyclicityIndex& aindex)
       :
       _queryLit(queryLit),
+      _index(nullptr),
+      _tis(nullptr),
       _nextResult(nullptr),
       _stack(0),
       _subst(new RobSubstitution()),
@@ -280,17 +282,17 @@ namespace Indexing
       int index;
       while (tqrIt.hasNext()) {
         auto tqr = tqrIt.next();
-        if (tqr.literal == _queryLit || notInAncestors(parent, tqr.literal)) {
-          if (tqr.literal == _queryLit) {
+        if (tqr.data->literal == _queryLit || notInAncestors(parent, tqr.data->literal)) {
+          if (tqr.data->literal == _queryLit) {
             index = 0;
-          } else if (parent && tqr.clause == parent->clause) {
+          } else if (parent && tqr.data->clause == parent->clause) {
             index = parent->substIndex;
           } else {
             index = _nextAvailableIndex++;
           }
-          _stack.push(CycleSearchTreeNode::unificationNode(tqr.term,
-                                                           tqr.literal,
-                                                           tqr.clause,
+          _stack.push(CycleSearchTreeNode::unificationNode(tqr.data->term,
+                                                           tqr.data->literal,
+                                                           tqr.data->clause,
                                                            parent,
                                                            index));
         }
@@ -386,7 +388,7 @@ namespace Indexing
   private:
     Literal *_queryLit;
     SIndex *_index;
-    TermIndexingStructure *_tis;    
+    TermIndexingStructure *_tis;
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
     RobSubstitution *_subst;
@@ -432,7 +434,7 @@ namespace Indexing
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, *t, getSubterms(fs->term())));
-        _tis->insert(DefaultTermLeafData(*t, lit, c));
+        _tis->insert(TermLiteralClause(*t, lit, c));
       }
     }
   }
@@ -451,7 +453,7 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-      _tis->remove(DefaultTermLeafData(*t, lit, c));
+      _tis->remove(TermLiteralClause(*t, lit, c));
     }
   }
 

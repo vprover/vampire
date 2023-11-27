@@ -20,12 +20,12 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Shell/Options.hpp"
+#include "Debug/Output.hpp"
 
 namespace Inferences {
 namespace LASCA {

@@ -21,7 +21,6 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "Shell/Options.hpp"
 #include "FourierMotzkin.hpp"
@@ -83,14 +82,14 @@ private:
   Option<Clause*> applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
-      UwaResult& uwa
+      AbstractingUnifier& uwa
       ) const;
 
 
   Option<Clause*> applyRule(IntTraits,
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
-      UwaResult& uwa
+      AbstractingUnifier& uwa
       ) const { ASSERTION_VIOLATION }
 
 
@@ -98,7 +97,7 @@ private:
   Option<Clause*> applyRule(NumTraits,
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
-      UwaResult& uwa
+      AbstractingUnifier& uwa
       ) const;
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, LascaLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const;

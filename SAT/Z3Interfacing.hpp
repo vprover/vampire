@@ -369,13 +369,11 @@ private:
   const bool _unsatCore;
   Stack<z3::expr> _assumptions;
 
-  volatile char buffer[1024];
   std::unique_ptr<z3::context, DeleteBypassingAllocator> _context;
-  volatile char buffer2[1024];
   z3::solver _solver;
   z3::model _model;
-
-  BiMap<SATLiteral, z3::expr, Hash, Z3Hash> _assumptionLookup;
+  BiMap<SATLiteral, z3::expr, DefaultHash, Z3Hash> _assumptionLookup;
+  Option<std::ofstream> _out;
   Map<unsigned, z3::expr> _varNames;
   Map<TermList, z3::expr> _termIndexedConstants;
   Map<Signature::Symbol*, z3::expr> _constantNames;

@@ -14,6 +14,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Indexing/IndexManager.hpp"
@@ -45,7 +46,7 @@ using namespace Saturation;
  */
 struct LookaheadLiteralSelector::GenIteratorIterator
 {
-  using TermIndex = Indexing::TermIndex<DefaultTermLeafData>;
+  using TermIndex = Indexing::TermIndex<TermLiteralClause>;
   DECL_ELEMENT_TYPE(VirtualIterator<std::tuple<>>);
 
   GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}
@@ -78,10 +79,11 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     switch(stage) {
     case 0:  //resolution
     {
-      LiteralIndexingStructure* gli=imgr->getGeneratingLiteralIndexingStructure();
-      if(!gli) { stage++; goto start; }
+      if(!imgr->contains(BINARY_RESOLUTION_SUBST_TREE)) { stage++; goto start; }
+      BinaryResolutionIndex* gli=static_cast<BinaryResolutionIndex*>(imgr->get(BINARY_RESOLUTION_SUBST_TREE));
+      ASS(gli);
 
-      nextIt=pvi( getMappingIterator(gli->getUnifications(lit,true,false), [](auto _) { return make_tuple(); }) );
+      nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );
       break;
     }
     case 1:  //backward superposition
@@ -102,7 +104,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
+	       getMappingIterator(EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
+           [](Term* t) { return TermList(t); }),
 	       TermUnificationRetriever(fsi)) );
       break;
     }
@@ -113,7 +116,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 	RobSubstitution rs;
 	if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0)) {
 	  haveEqRes=true;
-	  nextIt=pvi( getSingletonIterator(make_tuple()) );
+	  nextIt=pvi( dropElementType(getSingletonIterator(0)) );
 	}
       }
       if(!haveEqRes) {
@@ -152,7 +155,7 @@ private:
     TermUnificationRetriever(TermIndex* index) : _index(index) {}
     VirtualIterator<std::tuple<>> operator()(TermList trm)
     {
-      return pvi( getMappingIterator(_index->getUnifications(trm,false), [](auto _) { return make_tuple(); }) );
+      return pvi( dropElementType(_index->getUnifications(trm,false)) );
     }
   private:
     TermIndex* _index;

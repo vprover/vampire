@@ -35,35 +35,17 @@ public:
   CLASS_NAME(LascaIndex);
   USE_ALLOCATOR(LascaIndex);
 
-  LascaIndex(Options::UnificationWithAbstraction uwa)
-    : _index(uwa, /* use constraints */  true)
-    , _uwa(uwa)
+  LascaIndex()
+    : _index()
     , _shared()
   {}
 
   void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
 
-  auto find(TermList key)
+  auto find(TypedTermList key)
   {
     CALL("LascaIndex::find")
-    return iterTraits(_index.getUnificationsWithConstraints(key, /* retrieveSubstitutions */ true))
-      .map([](TermQueryResult<T> r)
-           { return std::tuple<T, UwaResult>( std::move(r.data()), UwaResult(r));  })
-      .filter([=](auto& x) {
-          Stack<UnificationConstraint> c;
-          UWAMismatchHandler hndlr(_uwa, c);
-          auto& uwa = get<1>(x);
-          auto result = uwa.cnstLiterals()
-            .all([&](auto lit) {
-                ASS(lit->isEquality() && lit->isNegative())
-                auto l = lit->termArg(0);
-                auto r = lit->termArg(1);
-                return l == r || hndlr.checkUWA(l,r);
-            });
-          if (!result) { DEBUG("skipping wrong constraints: ", uwa) }
-          ASS(c.isEmpty());
-          return result;
-      })
+    return iterTraits(_index.getUwa(key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
       .timeTraced(_lookupStr.c_str()); }
 
 
@@ -79,9 +61,11 @@ public:
     TIME_TRACE(_maintainanceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
+#if VDEBUG
         auto k = appl.key();
+#endif
         _index.insert(std::move(appl));
-        ASS_REP(find(k).hasNext(), k)
+        ASS_REP(find(k).hasNext(), outputToString("key: ", k, "\nindex: ", multiline(_index)))
       } else {
         _index.remove(std::move(appl));
       }
@@ -90,7 +74,6 @@ public:
 
 private:
   TermSubstitutionTree<T> _index;
-  Options::UnificationWithAbstraction _uwa;
   shared_ptr<Kernel::LascaState> _shared;
   static vstring _lookupStr;
   static vstring _maintainanceStr;

@@ -9,6 +9,8 @@
  */
 
 #include "LASCA.hpp"
+#include "Kernel/MismatchHandler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/QKbo.hpp"
@@ -93,8 +95,6 @@ bool LascaState::hasSubstitutionProperty(SignedAtoms const& l)
       auto& same  = sign == Sign::Pos ? pos : neg;
       auto& other = sign == Sign::Pos ? neg : pos;
 
-
-
       if (iterTraits(other.iterFifo())
         .any([&](auto& s) { return maybeEquiv(s, term); })) 
       {
@@ -129,16 +129,23 @@ Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const
   return out;
 }
 
-Stack<Literal*> InequalityNormalizer::normalizeLiteral(Literal* lit) const 
+Recycled<Stack<Literal*>> InequalityNormalizer::normalizeLiteral(Literal* lit) const 
 {
-  auto out = tryNumTraits([&](auto numTraits)  -> Option<Stack<Literal*>> { 
-      return normalizeLasca<decltype(numTraits)>(lit)
-              .map([](auto lits) { 
-                  return iterTraits(lits.value.iterFifo())
-                        .map([](auto lit) { return lit.denormalize(); })
-                        .template collect<Stack>(); 
-                }); 
-    }) || [&]() { return Stack<Literal*>{normalizeUninterpreted(lit)}; };
+  Recycled<Stack<Literal*>> out;
+  auto num = forAnyNumTraits([&](auto numTraits) { 
+      auto norm = normalizeLasca<decltype(numTraits)>(lit);
+      if (norm.isSome()) {
+        out->loadFromIterator(
+          arrayIter(norm->value)
+            .map([](auto lit) { return lit.denormalize(); }));
+        return true;
+      } else {
+        return false;
+      }
+    }); 
+  if (!num) {
+    out->push(normalizeUninterpreted(lit));
+  }
   DEBUG(*lit, " ==> ", out)
   return out;
 }
@@ -148,7 +155,7 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
   for (unsigned i = 0; i < cl->size(); i++) {
     auto lit = (*cl)[i];
     auto norm = normalizeLiteral(lit);
-    if(norm.size() != 1 || lit != norm[0]) {
+    if(norm->size() != 1 || lit != (*norm)[0]) {
       return false;
     }
   }
@@ -156,11 +163,11 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 }
 
 #if VDEBUG
-shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering) {
+shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering, bool uwaFixedPointIteration) {
 
   auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/*rand*/ false, /*qkbo*/ true)) : nullptr;
   auto& ord = ordering == nullptr ? *qkbo : *ordering;
-  auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord, uwa);
+  auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord, uwa, uwaFixedPointIteration);
   if (qkbo)
         qkbo->setState(state);
   return state;
@@ -273,18 +280,8 @@ PolyNf LascaState::normalize(TypedTermList term)
   return out.value || norm;
 }
 
-Option<UwaResult> LascaState::unify(TermList lhs, TermList rhs) const 
-{
-  RobSubstitution sigma;
-  Stack<UnificationConstraint> cnst;
-  Kernel::UWAMismatchHandler hndlr(uwa, cnst);
-  if (sigma.unify(lhs, /* var bank: */ 0, 
-                  rhs, /* var bank: */ 0, &hndlr)) {
-    return Option<UwaResult>(UwaResult(std::move(sigma), std::move(cnst)));
-  } else {
-    return Option<UwaResult>();
-  }
-}
+Option<AbstractingUnifier> LascaState::unify(TermList lhs, TermList rhs) const 
+{ return AbstractingUnifier::unify(lhs, 0, rhs, 0, uwaMode(), uwaFixedPointIteration); }
 
 IntegerConstantType normalizeFactors_divide(IntegerConstantType gcd, IntegerConstantType toCorrect)
 { return toCorrect.intDivide(gcd); }

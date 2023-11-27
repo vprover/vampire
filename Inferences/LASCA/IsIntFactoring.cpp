@@ -68,8 +68,8 @@ Option<Clause*> IsIntFactoring::applyRule(NumTraits,
                   uwa_.isSome())
   auto& uwa = uwa_.unwrap();
 
-  auto sigma = [&](auto x){ return uwa.sigma(x, /* varbank */ 0); };
-  auto& cnst  = uwa.cnst();
+  auto sigma = [&](auto x){ return uwa.subs().apply(x, /* varbank */ 0); };
+  auto cnst  = uwa.constraintLiterals();
   auto s1 = l1.monom();
   auto s2 = l2.monom();
   auto premise = l1.clause();
@@ -100,7 +100,7 @@ Option<Clause*> IsIntFactoring::applyRule(NumTraits,
         }));
 
                                   //
-  Stack<Literal*> concl(premise->size() + cnst.size());
+  Stack<Literal*> concl(premise->size() + cnst->size());
 
   // adding `Cσ`
   { 
@@ -130,7 +130,7 @@ Option<Clause*> IsIntFactoring::applyRule(NumTraits,
       cond1 || cond2);
 
   // adding `Cnst`
-  concl.loadFromIterator(uwa.cnstLiterals());
+  concl.loadFromIterator(cnst->iterFifo());
 
   // adding `isInt(js1 + t1) σ`
   concl.push(L1σ);

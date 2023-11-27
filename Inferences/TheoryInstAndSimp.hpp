@@ -25,6 +25,8 @@
 #include "Shell/Options.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
+namespace Saturation { class Splitter; }
+
 namespace Inferences
 {
 

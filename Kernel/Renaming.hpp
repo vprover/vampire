@@ -23,6 +23,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #include "Term.hpp"
 
@@ -52,6 +53,7 @@ public:
     _nextVar = 0;
     _identity = true;
   }
+  bool keepRecycled() const { return _data.keepRecycled() > 0; }
 
   unsigned getOrBind(unsigned v)
   {
@@ -74,12 +76,26 @@ public:
   TermList apply(TermList l);
   bool identity() const;
 
+  void normalizeVariables(const Literal* t);
   void normalizeVariables(const Term* t);
   void normalizeVariables(TermList t);
+  void normalizeVariables(TypedTermList t);
+  template<class A, class B>
+  void normalizeVariables(Coproduct<A, B> t) 
+  { return t.apply([&](auto& t){ return normalizeVariables(t); }); }
   void makeInverse(const Renaming& orig);
 
+
+  template<class A, class B>
+  static Coproduct<A,B> normalize(Coproduct<A, B> t)
+  { return t.apply([&](auto& t){ return Coproduct<A,B>(normalize(t)); }); }
+
   static Literal* normalize(Literal* l);
+  static TypedTermList normalize(TypedTermList l);
   static Term* normalize(Term* t);
+  static TermList normalize(TermList t);
+  friend std::ostream& operator<<(std::ostream& out, Renaming const& self)
+  { return out << self._data; }
 
 #if VDEBUG
   void assertValid() const;
@@ -97,7 +113,7 @@ private:
     Renaming* _parent;
   };
 
-  typedef DHMap<unsigned, unsigned, IdentityHash, Hash> VariableMap;
+  typedef DHMap<unsigned, unsigned, IdentityHash, DefaultHash> VariableMap;
   VariableMap _data;
   unsigned _nextVar;
   bool _identity;

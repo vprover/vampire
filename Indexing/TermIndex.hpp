@@ -19,6 +19,7 @@
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
 
+#include "Indexing/TermSubstitutionTree.hpp"
 #include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
 
@@ -29,43 +30,40 @@ class TermIndex
 : public Index
 {
   using TermIndexingStructure   = Indexing::TermIndexingStructure<Data>;
-  using TermQueryResultIterator = Indexing::TermQueryResultIterator<Data>;
 public:
   CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
-  virtual ~TermIndex() 
-  { delete _is; }
+  virtual ~TermIndex() {}
 
-  TermQueryResultIterator getUnifications(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsUsingSorts(t, sort, retrieveSubstitutions); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t, bool retrieveSubstitutions = true)
-  { return _is->getUnificationsWithConstraints(t, retrieveSubstitutions); }
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnificationsUsingSorts(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnificationsUsingSorts(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getInstances(TermList t, bool retrieveSubstitutions = true)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
 
-  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self) 
-  { return out << "TermIndex(" << *self._is << ")"; }
-
+  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
+  { return out << *self._is; }
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
-  TermIndexingStructure* _is;
+  unique_ptr<TermIndexingStructure> _is;
 };
 
 class SuperpositionSubtermIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(SuperpositionSubtermIndex);
   USE_ALLOCATOR(SuperpositionSubtermIndex);
@@ -79,31 +77,32 @@ private:
 };
 
 class SuperpositionLHSIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(SuperpositionLHSIndex);
   USE_ALLOCATOR(SuperpositionLHSIndex);
 
-  SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  SuperpositionLHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
+  TermSubstitutionTree<TermLiteralClause>* _tree;
 };
 
 /**
  * Term index for backward demodulation
  */
 class DemodulationSubtermIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   // people seemed to like the class, although it add's no interface on top of TermIndex
   DemodulationSubtermIndex(TermIndexingStructure* is)
@@ -117,8 +116,8 @@ template <bool combinatorySupSupport>
 class DemodulationSubtermIndexImpl
 : public DemodulationSubtermIndex
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(DemodulationSubtermIndexImpl);
   USE_ALLOCATOR(DemodulationSubtermIndexImpl);
@@ -133,10 +132,10 @@ protected:
  * Term index for forward demodulation
  */
 class DemodulationLHSIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(DemodulationLHSIndex);
   USE_ALLOCATOR(DemodulationLHSIndex);
@@ -154,10 +153,10 @@ private:
  * Term index for induction
  */
 class InductionTermIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(InductionTermIndex);
   USE_ALLOCATOR(InductionTermIndex);
@@ -173,10 +172,10 @@ protected:
  * Term index for structural induction
  */
 class StructInductionTermIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(StructInductionTermIndex);
   USE_ALLOCATOR(StructInductionTermIndex);
@@ -193,10 +192,10 @@ protected:
 /////////////////////////////////////////////////////
 
 class PrimitiveInstantiationIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(PrimitiveInstantiationIndex);
   USE_ALLOCATOR(PrimitiveInstantiationIndex);
@@ -210,10 +209,10 @@ protected:
 };
 
 class SubVarSupSubtermIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(SubVarSupSubtermIndex);
   USE_ALLOCATOR(SubVarSupSubtermIndex);
@@ -227,10 +226,10 @@ private:
 };
 
 class SubVarSupLHSIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(SubVarSupLHSIndex);
   USE_ALLOCATOR(SubVarSupLHSIndex);
@@ -247,10 +246,10 @@ private:
  * Index used for narrowing with combinator axioms
  */
 class NarrowingIndex
-: public TermIndex<DefaultTermLeafData>
+: public TermIndex<TermLiteralClause>
 {
-  using TermIndex             = Indexing::TermIndex<DefaultTermLeafData>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<DefaultTermLeafData>;
+  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
+  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   CLASS_NAME(NarrowingIndex);
   USE_ALLOCATOR(NarrowingIndex);

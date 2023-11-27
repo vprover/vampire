@@ -222,10 +222,10 @@ unsigned TermAlgebra::getSubtermPredicate() {
   return s;
 }
 
+} // namespace Shell
+
 std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self) 
 { return out << "ctor " << env.signature->getFunction(self.functor())->name(); }
 
 std::ostream& operator<<(std::ostream& out, TermAlgebra const& self) 
 { return out << "term_algebra " << self.sort().toString(); }
-
-}

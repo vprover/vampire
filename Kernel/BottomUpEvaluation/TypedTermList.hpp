@@ -12,37 +12,10 @@
 #define __BOTTOM_UP_EVALUATION__TYPED_TERM_LIST_HPP__
 
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Term.hpp"
-#include "Lib/Hash.hpp"
-
-using SortId = TermList;
-
-namespace Kernel {
-// TODO move to other class
-class TypedTermList : public TermList
-{
-  SortId _sort;
-public:
-  CLASS_NAME(TypedTermList)
-  TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) { ASS_NEQ(sort, AtomicSort::superSort()) }
-  TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
-  TypedTermList(Literal* t) = delete;
-  SortId sort() const { return _sort; }
-  void content() {}
-  friend bool operator==(TypedTermList const& l, TypedTermList const& r) 
-  { return (TermList)l == (TermList) r && l.sort() == r.sort(); }
-  friend bool operator!=(TypedTermList const& l, TypedTermList const& r) 
-  { return !(l == r); }
-};
-
-} // namespace Kernel 
-
-template<>
-struct std::hash<Kernel::TypedTermList> {
-  size_t operator()(Kernel::TypedTermList const& t) 
-  { return Lib::HashUtils::combine(Lib::stlHash((Kernel::TermList) t), Lib::stlHash(t.sort())); }
-};
+#include "Forwards.hpp"
 
 namespace Lib {
 
