@@ -25,8 +25,6 @@ using Kernel::TermList;
 namespace Shell {
   class TermAlgebraConstructor {
   public:
-    USE_ALLOCATOR(TermAlgebraConstructor);
-
     /* A term algebra constructor, described by its name, range,
        arity, and for each argument: the name of its destructor and
        its sort*/
@@ -87,9 +85,6 @@ namespace Shell {
 
   class TermAlgebra {
   public:
-    USE_ALLOCATOR(TermAlgebra);
-
-
     /* An algebra described by its name, sort, number of constructors,
        the constructors themselves (whose range must be the algebra
        sort), and their cyclicity. If allowsCyclicTerms is false, and

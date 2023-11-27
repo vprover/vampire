@@ -355,7 +355,6 @@ private:
    */
   class Type {
   public:
-    USE_ALLOCATOR(Type);
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
     TypeTag tag() const {return _tag;}
@@ -369,7 +368,6 @@ private:
     : public Type
   {
   public:
-    USE_ALLOCATOR(AtomicType);
     explicit AtomicType(TermList sort)
       : Type(TT_ATOMIC), _sort(sort)
     {}
@@ -385,7 +383,6 @@ private:
     : public Type
   {
   public:
-    USE_ALLOCATOR(ArrowType);
     ArrowType(Type* lhs,Type* rhs)
       : Type(TT_ARROW), _lhs(lhs), _rhs(rhs)
     {}
@@ -408,7 +405,6 @@ private:
     : public Type
   {
   public:
-    USE_ALLOCATOR(ProductType);
     ProductType(Type* lhs,Type* rhs)
       : Type(TT_PRODUCT), _lhs(lhs), _rhs(rhs)
     {}
@@ -429,7 +425,6 @@ private:
     : public Type
   {
   public:
-    USE_ALLOCATOR(QuantifiedType);
     QuantifiedType(Type* t, VList* vars)
       : Type(TT_QUANTIFIED), _type(t), _vars(vars)
     {}

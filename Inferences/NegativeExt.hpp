@@ -31,8 +31,6 @@ class NegativeExt
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(NegativeExt);
-
   ClauseIterator generateClauses(Clause* premise);
 private:
   struct ResultFn;

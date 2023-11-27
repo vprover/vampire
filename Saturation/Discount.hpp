@@ -28,8 +28,6 @@ class Discount
 : public SaturationAlgorithm
 {
 public:
-  USE_ALLOCATOR(Discount);
-
   Discount(Problem& prb, const Options& opt)
     : SaturationAlgorithm(prb, opt) {}
 

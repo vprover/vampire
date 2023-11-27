@@ -36,8 +36,6 @@ class Timer
   ~Timer() { deinitializeTimer(); }
  
 public:
-  USE_ALLOCATOR(Timer);
-
   static Timer* instance();
   
   /** stop the timer and reset the clock */

@@ -246,8 +246,6 @@ struct UnitNumberComparator
 
 struct InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::ProofPrinter);
-  
   ProofPrinter(ostream& out, InferenceStore* is)
   : _is(is), out(out)
   {
@@ -426,8 +424,6 @@ protected:
 struct InferenceStore::ProofPropertyPrinter
 : public InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::ProofPropertyPrinter);
-
   ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is)
   {
     max_theory_clause_depth = 0;
@@ -511,8 +507,6 @@ protected:
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::TPTPProofPrinter);
-  
   TPTPProofPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {
     splitPrefix = Saturation::Splitter::splPrefix; 
@@ -874,8 +868,6 @@ protected:
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::ProofCheckPrinter);
-
   ProofCheckPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 

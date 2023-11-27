@@ -48,8 +48,6 @@ class TheoryInstAndSimp
 {
 public:
   using SortId = SAT::Z3Interfacing::SortId;
-  USE_ALLOCATOR(TheoryInstAndSimp);
-
   ~TheoryInstAndSimp();
   TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
 

@@ -31,8 +31,6 @@ class Narrow
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(Narrow);
-
   ClauseIterator generateClauses(Clause* premise);
 
   void attach(SaturationAlgorithm* salg);

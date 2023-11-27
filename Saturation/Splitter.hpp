@@ -172,8 +172,6 @@ private:
   };
   
 public:
-  USE_ALLOCATOR(Splitter);
-
   Splitter();
   ~Splitter();
 

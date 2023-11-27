@@ -26,8 +26,6 @@ class SLQueryBackwardSubsumption
 : public BackwardSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(SLQueryBackwardSubsumption);
-
   SLQueryBackwardSubsumption(bool byUnitsOnly) : _byUnitsOnly(byUnitsOnly), _index(0) {}
 
   /**

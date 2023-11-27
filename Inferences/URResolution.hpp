@@ -30,8 +30,6 @@ class URResolution
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(URResolution);
-
   URResolution();
   URResolution(bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
       NonUnitClauseLiteralIndex* nonUnitIndex);
