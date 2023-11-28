@@ -137,7 +137,6 @@ private:
     USE_ALLOCATOR(SATSubsumptionAndResolution::MatchSet);
     friend struct Match;
 
-#if SAT_SR_IMPL == 2
     /// @brief Metadata remembering whether some positive match or negative match was found for each literal in M
     /// @remark
     /// This information only needs 2 bits
@@ -158,7 +157,6 @@ private:
     /// 0b 00 00 00 10
     /// We know that m_2 does not have a positive match, but has a negative match
     Lib::vvector<uint8_t> _jStates;
-#endif
 
     /// @brief number of literals in L
     unsigned _m;
@@ -217,9 +215,7 @@ private:
     void resize(unsigned m, unsigned n) {
       ASS_G(m, 0)
       ASS_G(n, 0)
-#if SAT_SR_IMPL == 2
       _jStates.resize(n / 4 + 1, 0);
-#endif
       _m = m;
       _n = n;
     }
@@ -248,11 +244,9 @@ private:
       Match match(i, j, polarity, var);
       _matchesByI.push_back(match);
 
-#if SAT_SR_IMPL == 2
       // update the match state
       // the wizardry is explained in the header file
       _jStates[j / 4] |= 1 << (2 * (j % 4) + !polarity);
-#endif
       return match;
     }
 
@@ -262,7 +256,6 @@ private:
      */
     void indexMatrix();
 
-#if SAT_SR_IMPL == 2
     /**
      * Returns true if the j-th literal in M has a positive match in the set
      *
@@ -278,7 +271,6 @@ private:
      * @return whether m_j has a negative match in the set
      */
     bool hasNegativeMatchJ(unsigned j);
-#endif
 
     /**
      * Checks whether the sat variable @b v is linked to a match
@@ -317,12 +309,15 @@ private:
     {
       _matchesByI.clear();
       _matchesByJ.clear();
-#if SAT_SR_IMPL == 2
       _jStates.clear();
-#endif
       _indexI.clear();
       _indexJ.clear();
     }
+  };
+
+  enum EncodingMethod {
+    DIRECT,
+    INDIRECT
   };
 
   /* Variables */
@@ -391,6 +386,12 @@ private:
                   bool polarity,
                   bool isNullary);
 
+#if CORRELATE_LENGTH_TIME
+  public:
+  double getSparsity();
+  private:
+#endif
+
   /**
    * Adds the clauses for the subsumption problem to the sat solver
    *
@@ -421,7 +422,7 @@ private:
    * to the SAT solver, but the variables in the MatchSet must be used to interpret the model
    * and build the conclusion.
   */
-  using EncodingMethod = std::function<bool (SATSubsumptionAndResolution&)>;
+  // using EncodingMethod = std::function<bool ()>;
 
   /**
    * Heuristically chooses the encoding method for the subsumption resolution problem
@@ -495,8 +496,6 @@ private:
   Kernel::Clause *generateConclusion();
 
 public:
-  USE_ALLOCATOR(SATSubsumptionAndResolution);
-
 #if CORRELATE_LENGTH_TIME
   std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
   std::chrono::high_resolution_clock::time_point stop = start;
@@ -531,6 +530,7 @@ public:
    * Forces the encoding to be direct for subsumption resolution
   */
   void forceDirectEncodingForSubsumptionResolution() {
+    std::cout << "Forcing direct encoding for subsumption resolution" << std::endl;
     forceDirectEncoding = true;
     forceIndirectEncoding = false;
   }
@@ -539,6 +539,7 @@ public:
    * Forces the encoding to be indirect for subsumption resolution
   */
   void forceIndirectEncodingForSubsumptionResolution() {
+    std::cout << "Forcing indirect encoding for subsumption resolution" << std::endl;
     forceDirectEncoding = false;
     forceIndirectEncoding = true;
   }

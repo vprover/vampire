@@ -34,7 +34,6 @@ namespace Inferences {
 class ForwardBenchmarkWrapper
     : public ForwardSimplificationEngine {
 public:
-  USE_ALLOCATOR(ForwardBenchmarkWrapper);
 
   ForwardBenchmarkWrapper(bool subsumptionResolution = true);
   ~ForwardBenchmarkWrapper();

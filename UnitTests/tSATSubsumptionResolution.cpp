@@ -246,7 +246,6 @@ TEST_FUN(PositiveSubsumptionResolution)
   M.push_back(clause({p2(f(g(x5)), y4), ~p(f2(f(g(x5)), y4)), ~p2(f2(f(g(x5)), y4), x5)}));
   expected.push_back(nullptr);
 
-
   // Test 8
   L.push_back(clause({~p2(y7, d)}));
   M.push_back(clause({~p(x6), ~p(x5), ~p2(f(f2(f2(x5, x5), f2(x5, x6))), x6), p2(f2(f2(x5, x5), f2(x5, x6)), d)}));

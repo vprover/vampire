@@ -50,10 +50,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
-#include "Inferences/BackwardSubsumptionResolution.hpp"
-#if USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD
 #include "Inferences/BackwardSubsumptionAndResolution.hpp"
-#endif
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/EqualityFactoring.hpp"
@@ -74,7 +71,6 @@
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
-#include "Inferences/SLQueryBackwardSubsumption.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/ArgCong.hpp"
 #include "Inferences/NegativeExt.hpp"
@@ -1662,8 +1658,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
     if (opt.forwardSubsumptionResolution()) {
       // res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
 #if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
+      cout << "Using wrapped forward subsumption and resolution" << endl;
       res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(true));
 #else
+      cout << "Using forward subsumption and resolution" << endl;
       res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
 #endif
     }
