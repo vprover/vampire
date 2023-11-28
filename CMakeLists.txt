@@ -455,6 +455,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/LASCA/IsIntResolution.hpp
     Inferences/LASCA/FourierMotzkin.cpp
     Inferences/LASCA/FourierMotzkin.hpp
+    Inferences/LASCA/FloorTightening.cpp
+    Inferences/LASCA/FloorTightening.hpp
     Inferences/LASCA/TermFactoring.cpp
     Inferences/LASCA/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
@@ -762,6 +764,7 @@ set(UNIT_TESTS
     UnitTests/tLASCA_Superposition.cpp
     UnitTests/tLASCA_EqFactoring.cpp
     UnitTests/tLASCA_VariableElimination.cpp
+    UnitTests/tLASCA_FloorTightening.cpp
     UnitTests/tLASCA_TermFactoring.cpp
     UnitTests/tLASCA_Demodulation.cpp
     UnitTests/tPushUnaryMinus.cpp

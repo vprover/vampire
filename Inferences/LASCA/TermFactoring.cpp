@@ -83,15 +83,6 @@ void TermFactoring::setTestIndices(Stack<Indexing::Index*> const& indices)
 {  }
 #endif
 
-#define OVERFLOW_SAFE 1
-
-#define ASSERT_NO_OVERFLOW(...)                                                                     \
-  [&]() { try { return __VA_ARGS__; }                                                               \
-          catch (MachineArithmeticException&) { ASSERTION_VIOLATION } }()                           \
-
-auto rng(unsigned from, unsigned to)
-{ return iterTraits(getRangeIterator(from,to)); }
-
 //   C ∨ k₁ s₁ + k₂ s₂  + t <> 0
 // ---------------------------------------
 // ( C ∨  (k₁ + k₂) s₁ + t <> 0 )σ ∨ Cnst

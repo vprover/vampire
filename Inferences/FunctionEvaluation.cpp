@@ -8,6 +8,7 @@
  * and in the source directory
  */
 
+#include "Inferences/PolynomialEvaluation.hpp"
 template<Interpretation i>
 struct FunctionEvaluator; 
 
@@ -137,3 +138,67 @@ IMPL_DIVISION(RatTraits)
 IMPL_DIVISION(RealTraits)
 
 #undef IMPL_DIVISION
+
+template<class NumTraits>
+MaybeOverflow<Option<PolyNf>> simplifyFloor(MaybeOverflow<PolyNf>* evalArgs)
+{
+  using Numeral = typename NumTraits::ConstantType;
+
+  Perfect<Polynom<NumTraits>> inner = evalArgs[0].value.template wrapPoly<NumTraits>();
+
+  auto overflowOccurred = evalArgs[0].overflowOccurred;
+  if (inner->isNumber()) {
+    return maybeOverflow(some(PolyNf(AnyPoly(perfect(Polynom<NumTraits>(inner->unwrapNumber().floor()))))), overflowOccurred);
+  } else {
+    Stack<Monom<NumTraits>> inside;
+    Stack<Monom<NumTraits>> outside;
+    for (auto m : inner->iterSummands()) {
+      if (m.factors->isOne() || m.factors->isFloor()) {
+        auto c = m.numeral;
+        if (Numeral(0) != c.floor()) {
+          outside.push(Monom<NumTraits>(c.floor(), m.factors));
+        }
+        if (c != c.floor()) {
+          inside.push(Monom<NumTraits>(c - c.floor(), m.factors));
+        }
+      } else {
+        inside.push(m);
+      }
+    }
+    auto toPoly = [](auto inside) { return PolyNf(AnyPoly(perfect(Polynom<NumTraits>(std::move(inside))))); };
+    if (inside.size() != 0) {
+      auto fInside = Monom<NumTraits>(MonomFactors<NumTraits>(PolyNf(perfect(FuncTerm(FuncId::fromFunctor(NumTraits::floorF(), Stack<TermList>{}), { toPoly(std::move(inside)) })))));
+      outside.push(fInside);
+      outside.sort();
+    }
+    return maybeOverflow(some(toPoly(std::move(outside))), overflowOccurred);
+  // } else {
+  //   return maybeOverflow(none<PolyNf>(), false);
+  }
+  // auto lhs = evalArgs[0].value.tryNumeral<NumTraits>();
+  // auto rhs = evalArgs[1].value.tryNumeral<NumTraits>();
+  // if (rhs == some(Numeral(1))) {
+  //   return maybeOverflow(some(evalArgs[0].value), evalArgs[0].overflowOccurred);
+  // } else if (lhs.isSome() && rhs.isSome() && rhs.unwrap() != Numeral(0)) {
+  //   return catchOverflow(
+  //       [&](){ return some(PolyNf(AnyPoly(perfect(Polynom<NumTraits>(lhs.unwrap() / rhs.unwrap()))))); },
+  //       none<PolyNf>());
+  // } else {
+  //   return maybeOverflow(none<PolyNf>(), evalArgs[0].overflowOccurred || evalArgs[1].overflowOccurred);
+  // }
+};
+
+template<>
+struct FunctionEvaluator<RatTraits::floorI>
+{
+  static MaybeOverflow<Option<PolyNf>> simplify(MaybeOverflow<PolyNf>* evalArgs)
+  { return simplifyFloor<RatTraits>(evalArgs); }
+};
+
+template<>
+struct FunctionEvaluator<RealTraits::floorI>
+{
+  static MaybeOverflow<Option<PolyNf>> simplify(MaybeOverflow<PolyNf>* evalArgs)
+  { return simplifyFloor<RealTraits>(evalArgs); }
+};
+

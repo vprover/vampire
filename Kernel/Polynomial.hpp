@@ -10,6 +10,7 @@
 #ifndef __POLYNOMIAL__H__
 #define __POLYNOMIAL__H__
 
+#include "Kernel/NumTraits.hpp"
 /**
  * @file Kernel/Polynomial.hpp
  * This file mainly provides POLYnomial Normal Forms for terms PolyNf. In this normal form a term is defined as follows:
@@ -84,6 +85,7 @@ class FuncId
   explicit FuncId(unsigned num, Stack<TermList> typeArgs);
 public: 
   static FuncId symbolOf(Term* term);
+  static FuncId fromFunctor(unsigned num, Stack<TermList> typeArgs) { return FuncId(num, std::move(typeArgs)); }
   unsigned numTermArguments() const;
   unsigned numTypeArguments() const;
   TermList typeArg(unsigned i) const;
@@ -429,6 +431,9 @@ public:
 
   /** returns whether this is an empty product */
   bool isOne() const;
+
+  /** returns whether this is a FuncTerm with the floor function as top symbol */
+  bool isFloor() const;
 
 
   /** if this MonomFactors consist of a single variable if will be returnd  */
@@ -1080,6 +1085,14 @@ MonomFactors<Number> MonomFactors<Number>::one()
 template<class Number>
 bool MonomFactors<Number>::isOne() const 
 { return _factors.begin() == _factors.end(); }
+
+template<class Number>
+bool MonomFactors<Number>::isFloor() const 
+{ return _factors.size() == 1 
+  && _factors[0].power == 1
+  && _factors[0].term.template as<Perfect<FuncTerm>>().isSome()
+  && _factors[0].term.template as<Perfect<FuncTerm>>().unwrap()->function().tryInterpret() == some(Number::floorItp())
+    ; }
 
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const MonomFactors<Number>& self) 

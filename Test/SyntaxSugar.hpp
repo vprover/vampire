@@ -213,6 +213,7 @@ class SyntaxSugarGlobals
     add = NumTraits::add;
     mul = NumTraits::mul;
 
+    floor = NumTraits::floor;
     minus = NumTraits::minus;
 
     less = NumTraits::less;
@@ -244,6 +245,7 @@ public:
   {
     setAllNumTraits<IntTraits>();
 
+    floor = IntTraits::floor;
     quotientT = IntTraits::quotientT;
     remainderT = IntTraits::remainderT;
     quotientF = IntTraits::quotientF;
@@ -274,6 +276,7 @@ public:
   std::function<TermList(TermList, TermList)> remainderE;
 
   std::function<TermList(TermList)> minus;
+  std::function<TermList(TermList)> floor;
 
 
   std::function<Literal*(bool, TermList, TermList)> less;
@@ -429,6 +432,7 @@ inline TermSugar fool(bool b)
 ////////////////////////// operators to create terms ////////////////////////// 
 
 inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); }
+inline TermSugar floor(TermSugar x) { return syntaxSugarGlobals().floor(x); }
 
 inline TermSugar ap(SortSugar sort, TermSugar lhs, TermSugar rhs) 
 { return ApplicativeHelper::createAppTerm(sort, lhs, rhs); }  

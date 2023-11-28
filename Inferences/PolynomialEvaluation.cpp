@@ -166,7 +166,8 @@ MaybeOverflow<Option<PolyNf>> trySimplify(FuncTerm const& orig, Theory::Interpre
     CASE(Theory::INT_REMAINDER_ ## X)
 
 #define FRAC_CASE(Num)                                                                                        \
-    CASE(Num##Traits::divI)
+    CASE(Num##Traits::floorI) \
+    CASE(Num##Traits::divI) \
 
 #define NUM_CASE(Num)                                                                                         \
     case Num ## Traits::minusI: return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
