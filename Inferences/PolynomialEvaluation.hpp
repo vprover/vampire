@@ -21,46 +21,6 @@
 
 #include "InferenceEngine.hpp"
 
-template<class C>
-struct MaybeOverflow
-{
-  C value;
-  bool overflowOccurred;
-
-  MaybeOverflow(C value, bool overflowOccurred) : value(std::move(value)), overflowOccurred(overflowOccurred) {}
-  explicit MaybeOverflow(MaybeOverflow const&) = default;
-  MaybeOverflow(MaybeOverflow&&) = default;
-  MaybeOverflow& operator=(MaybeOverflow&&) = default;
-
-  template<class F>
-  auto map(F f)  -> MaybeOverflow<decltype(f(value))>
-  { return MaybeOverflow<decltype(f(value))>(f(std::move(value)), overflowOccurred); }
-};
-
-template<class C>
-std::ostream& operator<<(std::ostream& out, MaybeOverflow<C> const& self) 
-{
-  out << self.value;
-  if (self.overflowOccurred) {
-    out << "(overflowed)";
-  }
-  return out;
-}
-
-template<class C>
-static MaybeOverflow<C> maybeOverflow(C simplified, bool overflowOccurred) 
-{ return MaybeOverflow<C>(std::move(simplified), overflowOccurred); }
-
-template<class A, class F>
-MaybeOverflow<A> catchOverflow(F fun, A alternative)
-{
-  try {
-    return maybeOverflow(fun(), false);
-  } catch (Kernel::MachineArithmeticException&) {
-    return maybeOverflow(std::move(alternative), true);
-  }
-}
-
 namespace Inferences 
 {
 
@@ -78,9 +38,9 @@ public:
     : _removeZeros(removeZeros) 
   {  }
 
-  MaybeOverflow<Option<PolyNf>> evaluate(PolyNf in) const;
+  Option<PolyNf> evaluate(PolyNf in) const;
   template<class NumTraits>
-  MaybeOverflow<Option<Perfect<Polynom<NumTraits>>>> evaluate(Perfect<Polynom<NumTraits>> in) const
+  Option<Perfect<Polynom<NumTraits>>> evaluate(Perfect<Polynom<NumTraits>> in) const
   { return evaluate(PolyNf(in))
       .map([](auto overf) 
           { return overf.map([](PolyNf p) 
@@ -88,20 +48,20 @@ public:
   }
 
   template<class NumTraits>
-  static MaybeOverflow<PolyNf> simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
+  static PolyNf simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
   TermList evaluateToTerm(Term* in) const;
   TermList evaluateToTerm(TermList in) const { return in.isVar() ? in : evaluateToTerm(in.term()); }
   Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 private:
 
-  MaybeOverflow<Option<PolyNf>> evaluate(TermList in, SortId sortNumber) const;
-  MaybeOverflow<Option<PolyNf>> evaluate(Term* in) const;
-  MaybeOverflow<Option<PolyNf>> evaluate(TypedTermList in) const;
+  Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
+  Option<PolyNf> evaluate(Term* in) const;
+  Option<PolyNf> evaluate(TypedTermList in) const;
 
 
-  MaybeOverflow<PolyNf> evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
+  PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 
-  mutable Memo::Hashed<PolyNf, MaybeOverflow<PolyNf>, StlHash> _memo;
+  mutable Memo::Hashed<PolyNf, PolyNf, StlHash> _memo;
   bool _removeZeros;
 };
 

@@ -119,7 +119,7 @@ Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const
       auto norm = PolyNf::normalize(TypedTermList(orig.term()));
       auto eval = evaluator()
         .evaluate(norm)
-        .value.map([](auto t) { return t.denormalize(); }) 
+        .map([](auto t) { return t.denormalize(); }) 
         || norm.denormalize();  // <- nothing was done during evaluation
       args.push(eval);
     }
@@ -136,7 +136,7 @@ Recycled<Stack<Literal*>> InequalityNormalizer::normalizeLiteral(Literal* lit) c
       auto norm = normalizeLasca<decltype(numTraits)>(lit);
       if (norm.isSome()) {
         out->loadFromIterator(
-          arrayIter(norm->value)
+          arrayIter(*norm)
             .map([](auto lit) { return lit.denormalize(); }));
         return true;
       } else {
@@ -191,16 +191,16 @@ std::ostream& operator<<(std::ostream& out, SelectedSummand const& self)
   return out; 
 }
 
-Option<MaybeOverflow<AnyLascaLiteral>> InequalityNormalizer::renormalize(Literal* lit) const
+Option<AnyLascaLiteral> InequalityNormalizer::renormalize(Literal* lit) const
 {
   using Out = AnyLascaLiteral;
   auto wrapCoproduct = [](auto&& norm) {
-    return std::move(norm).map([](auto overflown) { return overflown.map([](auto x) { return Out(x); }); });
+    return std::move(norm).map([](auto x) { return Out(x); });
   };
   return             wrapCoproduct(renormalizeLasca< IntTraits>(lit))
     || [&](){ return wrapCoproduct(renormalizeLasca< RatTraits>(lit)); } 
     || [&](){ return wrapCoproduct(renormalizeLasca<RealTraits>(lit)); } 
-    || Option<MaybeOverflow<Out>>();
+    || Option<Out>();
 }
 
 // Stack<std::pair<Literal*, unsigned>> LascaState::selectedLiteralsWithIdx(Clause* cl, bool strictlyMax)
@@ -250,11 +250,8 @@ Option<AnyLascaLiteral> LascaState::renormalize(Literal* lit)
 {
   return this->normalizer.renormalize(lit)
     .andThen([](auto res) {
-        // TODO overflow statistic
-        return res.overflowOccurred 
-          ? Option<AnyLascaLiteral>()
-          : Option<AnyLascaLiteral>(res.value);
-        });
+        return Option<AnyLascaLiteral>(res);
+    });
 }
 
 
@@ -273,11 +270,7 @@ PolyNf LascaState::normalize(TypedTermList term)
   TIME_TRACE("lasca normalize term")
   auto norm = PolyNf::normalize(term);
   auto out = this->normalizer.evaluator().evaluate(norm); 
-  if (out.overflowOccurred)  {
-    WARN("failed to normalize: ", out.value)
-    throw MachineArithmeticException("overflow while normalizing irc term");
-  }
-  return out.value || norm;
+  return out || norm;
 }
 
 Option<AbstractingUnifier> LascaState::unify(TermList lhs, TermList rhs) const 

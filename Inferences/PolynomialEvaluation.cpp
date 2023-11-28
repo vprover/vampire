@@ -70,8 +70,8 @@ PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Liter
     auto term = lit->termArg(i);
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
     auto ev = _inner.evaluate(norm);
-    anyChange = anyChange || ev.value.isSome();
-    terms.push(std::move(ev).value || norm);
+    anyChange = anyChange || ev.isSome();
+    terms.push(std::move(ev) || norm);
   }
   auto simplified = _inner.tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
@@ -137,16 +137,7 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 #include "Inferences/FunctionEvaluation.cpp"
 
 
-bool anyOverflow(MaybeOverflow<PolyNf>* polys, unsigned cnt) 
-{ 
-  for (unsigned i = 0; i < cnt; i++) 
-    if (polys[i].overflowOccurred) 
-      return true;  
-
-  return false;
-}
-
-MaybeOverflow<Option<PolyNf>> trySimplify(FuncTerm const& orig, Theory::Interpretation i, MaybeOverflow<PolyNf>* evalArgs) 
+Option<PolyNf> trySimplify(FuncTerm const& orig, Theory::Interpretation i, PolyNf* evalArgs) 
 {
   CALL("trySimplify(FuncTerm orig, Theory::Interpretation i, PolyNf* evalArgs) ")
   switch (i) {
@@ -194,31 +185,31 @@ MaybeOverflow<Option<PolyNf>> trySimplify(FuncTerm const& orig, Theory::Interpre
 #undef CONSTANT_CASE
 
     default:
-      return maybeOverflow( none<PolyNf>(), anyOverflow(evalArgs, orig.numTermArguments()));
+      return none<PolyNf>();
   }
 }
 
 
-MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
+Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
 { return evaluate(TypedTermList(term, sort)); }
 
-MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(Term* term) const 
+Option<PolyNf> PolynomialEvaluation::evaluate(Term* term) const 
 { return evaluate(TypedTermList(term)); }
 
-MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(TypedTermList term) const 
+Option<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const 
 { return evaluate(PolyNf::normalize(term)); }
 
 template<class Number>
-MaybeOverflow<PolyNf> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs, bool removeZeros);
+PolyNf simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros);
 
 template<class Number>
-MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs, bool removeZeros);
+Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros);
 
-MaybeOverflow<PolyNf> simplifyPoly(AnyPoly const& p, MaybeOverflow<PolyNf>* ts, bool removeZeros)
+PolyNf simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
 { return p.apply([&](auto& p) {
     return simplifyPoly(*p, ts, removeZeros); }); }
 
-MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) const 
+Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
   CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
   TIME_TRACE("evaluating polynomial")
@@ -229,30 +220,28 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
     const PolynomialEvaluation& norm;
     bool _removeZeros;
 
-    using Result = MaybeOverflow<PolyNf>;
+    using Result = PolyNf;
     using Arg    = PolyNf;
 
-    MaybeOverflow<PolyNf> operator()(PolyNf orig, MaybeOverflow<PolyNf>* ts) 
+    PolyNf operator()(PolyNf orig, PolyNf* ts) 
     { 
       return orig.match(
-          [&](Perfect<FuncTerm> f)  -> MaybeOverflow<PolyNf>
+          [&](Perfect<FuncTerm> f)  -> PolyNf
           { 
             auto itp = f->function().tryInterpret();
             auto simpl = itp.isSome() ?  trySimplify(*f, itp.unwrap(), ts)
-                                      : maybeOverflow(none<PolyNf>(), anyOverflow(ts, f->numTermArguments()));
+                                      : none<PolyNf>();
 
-            return simpl.map([&](Option<PolyNf> x) -> PolyNf { 
-                return x || [&]() {
-                  Stack<PolyNf> args(f->numTermArguments());
-                  for (unsigned i = 0; i < f->numTermArguments(); i++)
-                    args.push(std::move(ts[i].value));
-                  return PolyNf(perfect(FuncTerm(f->function(), std::move(args))));
-                };
-            });
+            return simpl || [&]() {
+              Stack<PolyNf> args(f->numTermArguments());
+              for (unsigned i = 0; i < f->numTermArguments(); i++)
+                args.push(std::move(ts[i]));
+              return PolyNf(perfect(FuncTerm(f->function(), std::move(args))));
+            };
           }, 
 
           [&](Variable v) 
-          { return maybeOverflow(PolyNf(v), false); },
+          { return PolyNf(v); },
 
           [&](AnyPoly p) 
           { return simplifyPoly(p, ts, _removeZeros); }
@@ -260,24 +249,17 @@ MaybeOverflow<Option<PolyNf>> PolynomialEvaluation::evaluate(PolyNf normalized) 
     }
   };
   auto out = evaluateBottomUp(normalized, Eval{ *this, _removeZeros, }, _memo);
-  return out.map([&normalized](PolyNf out) {
-      return out == normalized ? Option<PolyNf>()
-                               : Option<PolyNf>(std::move(out));
-      });
+  return out == normalized ? Option<PolyNf>()
+                           : Option<PolyNf>(std::move(out));
 }
 
-// template<class Config>
-// PolyNf createTerm(unsigned fun, PolyNf* evaluatedArgs) 
-// { return perfect(FuncTerm(FuncId(fun), evaluatedArgs)); }
-
 template<class Number>
-MaybeOverflow<PolyNf> PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bool removeZeros)
+PolyNf PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bool removeZeros)
 { 
   CALL("simplifySummation(Stack<Monom<Number>>, bool removeZeros)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
 
-  bool overflow = false;
   // then we sort them by their monom, in order to add up the coefficients efficiently
   std::sort(summands.begin(), summands.end());
 
@@ -289,22 +271,7 @@ MaybeOverflow<PolyNf> PolynomialEvaluation::simplifySummation(Stack<Monom<Number
       auto numeral = monom.numeral;
       auto factors = monom.factors;
       while ( i + 1 < summands.size() && summands[i+1].factors == factors ) {
-        try {
-          numeral = numeral + summands[i+1].numeral;
-        } catch (MachineArithmeticException&) {
-          overflow = true;
-          auto max = numeral;//std::max(numeral, summands[i+1].numeral);
-          auto min = summands[i+1].numeral;
-          try {
-            if (min.abs() > max.abs()) {
-              std::swap(min, max);
-            }
-          } catch (Kernel::MachineArithmeticException&) { 
-            /* do nothing */
-          }
-          summands[offs++] = Monom(max, factors);
-          numeral = min;
-        }
+        numeral = numeral + summands[i+1].numeral;
         i++;
       }
       if (!removeZeros || numeral != Number::constant(0)) 
@@ -318,55 +285,43 @@ MaybeOverflow<PolyNf> PolynomialEvaluation::simplifySummation(Stack<Monom<Number
       && summands[0].factors->nFactors() == 1
       && summands[0].factors->factorAt(0).power == 1
       ) {
-    return maybeOverflow(summands[0].factors->factorAt(0).term, overflow);
+    return summands[0].factors->factorAt(0).term;
   } else {
     auto poly = Polynom(std::move(summands));
     poly.integrity();
-    return maybeOverflow(PolyNf(AnyPoly(perfect(std::move(poly)))), overflow);
+    return PolyNf(AnyPoly(perfect(std::move(poly))));
   }
 }
 
-template MaybeOverflow<PolyNf> PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands, bool removeZeros);
-template MaybeOverflow<PolyNf> PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands, bool removeZeros);
-template MaybeOverflow<PolyNf> PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands, bool removeZeros);
+template PolyNf PolynomialEvaluation::simplifySummation< IntTraits>(Stack<Monom< IntTraits>> summands, bool removeZeros);
+template PolyNf PolynomialEvaluation::simplifySummation< RatTraits>(Stack<Monom< RatTraits>> summands, bool removeZeros);
+template PolyNf PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<RealTraits>> summands, bool removeZeros);
 
 
 
 template<class Number>
-MaybeOverflow<PolyNf> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs, bool removeZeros)
+PolyNf simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros)
 {
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
 
   // first we simplify all the monoms containted in this polynom
-  bool overflow = false;
   Stack<Monom> sum;
   {
     auto offs = 0;
     for (unsigned i = 0; i < in.nSummands(); i++) {
       auto monom  = in.summandAt(i);
-      auto simpl_ = simplifyMonom(monom, &simplifiedArgs[offs], removeZeros);
-      auto simpl = simpl_.value;
-      // ASS(!simpl_.overflowOccurred || !simpl.isZero())
-      if (simpl_.overflowOccurred)
-        overflow = true;
+      auto simpl = simplifyMonom(monom, &simplifiedArgs[offs], removeZeros);
 
       if (simpl.isZeroMul() && removeZeros) {
         /* we don't add it */
       } else if (simpl.factors->nFactors() == 1 && simpl.factors->factorAt(0).tryPolynom().isSome()) {
         /* k * (t1 + ... tn) ==> k * t1 + ... k * tn */
-        auto origSize = sum.size(); 
-        try {
-          auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
-          for (auto fac : poly->iterSummands()) {
-            fac.numeral = fac.numeral * simpl.numeral;
-            ASS(!removeZeros || fac.numeral != Number::constant(0))
-            sum.push(fac);
-          }
-        } catch (MachineArithmeticException&) {
-          overflow = true;
-          sum.truncate(origSize);
-          sum.push(simpl);
+        auto poly = simpl.factors->factorAt(0).tryPolynom().unwrap();
+        for (auto fac : poly->iterSummands()) {
+          fac.numeral = fac.numeral * simpl.numeral;
+          ASS(!removeZeros || fac.numeral != Number::constant(0))
+          sum.push(fac);
         }
       } else {
         sum.push(simpl);
@@ -375,11 +330,7 @@ MaybeOverflow<PolyNf> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<Poly
     }
   }
 
-  auto res = PolynomialEvaluation::simplifySummation(std::move(sum), removeZeros);
-  if (overflow) {
-    res.overflowOccurred = true;
-  }
-  return res;
+  return PolynomialEvaluation::simplifySummation(std::move(sum), removeZeros);
 }
 
 
@@ -387,12 +338,11 @@ MaybeOverflow<PolyNf> simplifyPoly(Polynom<Number> const& in, MaybeOverflow<Poly
  * In exact this means, that all the numeral factors are collapsed into one numeral (e.g. 3*4*3*x ==> 36*x)
  */
 template<class Number>
-MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflow<PolyNf>* simplifiedArgs, bool removeZeros)
+Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros)
 { 
 
   using Numeral      = typename Number::ConstantType;
   using Monom        = Monom<Number>;
-  using Polynom      = Polynom<Number>;
   using MonomFactor  = MonomFactor<Number>;
   using MonomFactors = MonomFactors<Number>;
 
@@ -405,14 +355,10 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
     return out;
   };
 
-  bool overflow = false;
-
   auto& facs = *in.factors;
   Stack<MonomFactor> args(facs.nFactors());
   for (unsigned i = 0; i < facs.nFactors(); i++) {
-    if (simplifiedArgs[i].overflowOccurred) 
-      overflow = true; // TODO it might happen that the overflowed term is simplified away later on. we do not yet make up for this yet
-    args.push(MonomFactor(simplifiedArgs[i].value, facs.factorAt(i).power));
+    args.push(MonomFactor(simplifiedArgs[i], facs.factorAt(i).power));
   }
 
   std::sort(args.begin(), args.end());
@@ -426,22 +372,8 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
     auto c = arg.term.template tryNumeral<Number>();
     if (c.isSome()) {
       // arg is a number constant
-      try {
-        auto num2 = pow(c.unwrap(), arg.power);
-        try {
-          numeral = numeral * num2;
-        } catch (MachineArithmeticException&) {
-          overflow = true;
-          needsSorting = true;
-          auto min = std::min(numeral, num2);
-          auto max = std::max(numeral, num2);
-          args[offs++] = MonomFactor(PolyNf(AnyPoly(perfect(Polynom(max)))), 1);
-          numeral = min;
-        }
-      } catch (MachineArithmeticException&) {
-        overflow = true;
-        args[offs++] = arg;
-      }
+      auto num2 = pow(c.unwrap(), arg.power);
+      numeral = numeral * num2;
     } else {
       // arg is a non-number term
       auto term  = arg.term;
@@ -461,9 +393,9 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
   }
 
   if (numeral == Numeral(0) && removeZeros) {
-    return maybeOverflow(Monom::zero(), false);
+    return Monom::zero();
   } else {
-    return maybeOverflow(Monom(numeral, perfect(MonomFactors(std::move(args)))), overflow); 
+    return Monom(numeral, perfect(MonomFactors(std::move(args))));
   }
 }
 
@@ -471,7 +403,7 @@ MaybeOverflow<Monom<Number>> simplifyMonom(Monom<Number> const& in, MaybeOverflo
 TermList PolynomialEvaluation::evaluateToTerm(Term* in) const
 {
   auto norm = PolyNf::normalize(in);
-  auto eval = evaluate(in).value || norm;
+  auto eval = evaluate(in) || norm;
   return eval.denormalize();
 }
 
