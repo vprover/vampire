@@ -144,6 +144,7 @@ Problem *doProving()
   // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
     env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->checkGlobalOptionConstraints();
   }
 
   Problem *prb = getPreprocessedProblem();

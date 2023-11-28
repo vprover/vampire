@@ -203,7 +203,7 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
   for (unsigned i=0; i<funs; i++) {
     Signature::Symbol* fnSym = env.signature->getFunction(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(fnSym->skolem())
+    if(!fnSym->usageCnt() || fnSym->skolem())
       continue;
     unsigned arity = fnSym->arity();
     if (arity == 0) {
@@ -223,7 +223,7 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
   for (unsigned i = 1; i < preds; i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(predSym->namesFormula() || predSym->equalityProxy() || predSym->answerPredicate())
+    if(!predSym->usageCnt() || predSym->namesFormula() || predSym->equalityProxy() || predSym->answerPredicate())
       continue;
     unsigned arity = predSym->arity();
     if (arity == 0) {
