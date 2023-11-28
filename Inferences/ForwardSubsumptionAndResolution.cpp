@@ -26,7 +26,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using namespace Inferences;
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
     : _subsumptionResolution(subsumptionResolution)
@@ -119,9 +118,14 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       if (!checkedClauses.insert(mcl)) {
         continue;
       }
-
+#if USE_OPTIMIZED_FORWARD
       bool checkSR = _subsumptionResolution && !conclusion &&
           (_checkLongerClauses || mcl->length() <= clen);
+#else
+      // If USE_OPTIMIZED_FORWARD is disabled, the compiler will remove the dead code in
+      // the if statement, and the variable checkSR will not be used
+      const bool checkSR = false;
+#endif
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
       bool checkS = mcl->length() <= clen;
       if (checkS) {
@@ -177,10 +181,36 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     }
   }
 
+#if !USE_OPTIMIZED_FORWARD
   /*******************************************************/
   /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
   /*******************************************************/
-  // Check for the last clauses that are negatively matched in th index.
+  // Check for the clauses positively matched in the index.
+  checkedClauses.reset();
+  for (unsigned li = 0; li < clen; li++) {
+    Literal *lit = (*cl)[li];
+    auto it = _fwIndex->getGeneralizations(lit, false, false);
+    while (it.hasNext()) {
+      mcl = it.next().clause;
+      if (!checkedClauses.insert(mcl) || (!_checkLongerClauses && mcl->length() > clen)) {
+        continue;
+      }
+      conclusion = satSubs.checkSubsumptionResolution(mcl, cl, false);
+      if (conclusion) {
+        ASS(premise == nullptr)
+        premise = mcl;
+        replacement = conclusion;
+        premises = pvi(getSingletonIterator(premise));
+        return true;
+      }
+    }
+  }
+#endif
+
+  /*******************************************************/
+  /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
+  /*******************************************************/
+  // Check for the last clauses that are negatively matched in the index.
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _fwIndex->getGeneralizations(lit, true, false);

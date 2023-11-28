@@ -73,25 +73,37 @@ else()
   endif()
 endif()
 
-set(SUBSUMPTION_TEST "0" CACHE STRING "Choose the version of testing of subsumption resolution.")
-message(STATUS "SUBSUMPTION_TEST=${SUBSUMPTION_TEST}")
-if(${SUBSUMPTION_TEST} STREQUAL "0")
-  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=0)
+set(BENCHMARK_S_SR "0" CACHE STRING "If set to 1, then will benmark the specified version of subsumption and subsumption resolution.")
+message(STATUS "BENCHMARK_S_SR=${BENCHMARK_S_SR}")
+if(${BENCHMARK_S_SR} STREQUAL "0")
   add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=0)
-elseif(${SUBSUMPTION_TEST} STREQUAL "1")
+elseif(${BENCHMARK_S_SR} STREQUAL "1")
   add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
-  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
-elseif(${SUBSUMPTION_TEST} STREQUAL "2")
-  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
-  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=2)
-elseif(${SUBSUMPTION_TEST} STREQUAL "3")
-  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
-  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=3)
-elseif(${SUBSUMPTION_TEST} STREQUAL "4")
-  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
-  add_compile_definitions(CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION=4)
 else()
-  message(FATAL_ERROR "Wrong option (should be between 0 and 4)")
+  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
+endif()
+
+set(S_SR_IMPL "3" CACHE STRING "Choose the implementation of S&SR. 0 is the old version, 1 is the direct encoding and 2 is the indirect encoding, 3 is with dynamically determined encoding.")
+message(STATUS "S_SR_IMPL=${S_SR_IMPL}")
+if(${S_SR_IMPL} STREQUAL "0")
+  add_compile_definitions(SAT_SR_IMPL=0)
+elseif(${S_SR_IMPL} STREQUAL "1")
+  add_compile_definitions(SAT_SR_IMPL=1)
+elseif(${S_SR_IMPL} STREQUAL "2")
+  add_compile_definitions(SAT_SR_IMPL=2)
+elseif(${S_SR_IMPL} STREQUAL "3")
+  add_compile_definitions(SAT_SR_IMPL=3)
+else()
+  message(FATAL_ERROR "Wrong option value (should be between 0 and 3)")
+endif()
+
+set(OPTIMIZE_S_SR "0" CACHE STRING "Choose the implementation of S&SR. 0 is the old version, 1 is the direct encoding and 2 is the indirect encoding, 3 is with dynamically determined encoding.")
+if(${OPTIMIZE_S_SR} STREQUAL "0")
+  add_compile_definitions(USE_OPTIMIZED_FORWARD=0)
+elseif(${OPTIMIZE_S_SR} STREQUAL "1")
+  add_compile_definitions(USE_OPTIMIZED_FORWARD=1)
+else()
+  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
 endif()
 
 ################################################################
@@ -416,7 +428,6 @@ source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.cpp
     Inferences/BackwardSubsumptionDemodulation.cpp
-    Inferences/BackwardSubsumptionResolution.cpp
     Inferences/BackwardSubsumptionAndResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
@@ -447,14 +458,12 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GaussianVariableElimination.cpp
     Kernel/Rebalancing.cpp
     Kernel/Rebalancing/Inverters.cpp
-    Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
     Inferences/DefinitionIntroduction.cpp
     Inferences/BackwardDemodulation.hpp
-    Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BackwardSubsumptionAndResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
@@ -483,7 +492,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GaussianVariableElimination.hpp
     Kernel/Rebalancing.hpp
     Kernel/Rebalancing/Inverters.hpp
-    Inferences/SLQueryBackwardSubsumption.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp

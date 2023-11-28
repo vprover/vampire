@@ -58,6 +58,14 @@ public:
                Kernel::Clause *&replacement,
                Kernel::ClauseIterator &premises) override;
 
+  void forceDirectEncodingForSubsumptionResolution() {
+    satSubs.forceDirectEncodingForSubsumptionResolution();
+  }
+
+  void forceIndirectEncodingForSubsumptionResolution() {
+    satSubs.forceIndirectEncodingForSubsumptionResolution();
+  }
+
 private:
   /// @brief Unit index of the saturation algorithm
   Indexing::UnitClauseLiteralIndex *_unitIndex;

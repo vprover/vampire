@@ -14,17 +14,6 @@
 #ifndef SAT_SUBSUMPTION_AND_RESOLUTION_CONFIG_HPP_
 #define SAT_SUBSUMPTION_AND_RESOLUTION_CONFIG_HPP_
 
-/// Choose the global configuration of the Forward Subsumption and Resolution
-/// Inference Engine
-/// 0 - No configuration (manual)
-/// 1 - No SAT (old implementation)
-/// 2 - SAT Subsumption
-/// 3 - SAT Subsumption + SAT Subsumption Resolution + Optimized Forward (fastest) first encoding
-/// 4 - SAT Subsumption + SAT Subsumption Resolution + Optimized Forward (fastest)
-/// This options should be defined in the cMakeList.txt file
-#ifndef CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION
-#define CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION 4
-#endif
 
 /*****************************************************************************/
 /*                          SATURATION ALGORITHM                             */
@@ -53,7 +42,7 @@
 /// 2 : Without c_j
 /// This options should be defined in the cMakeList.txt file
 #ifndef SAT_SR_IMPL
-#define SAT_SR_IMPL 2
+#define SAT_SR_IMPL 3
 #endif
 /// If 1, prints the clauses added to the solver on the standard output
 #define PRINT_CLAUSES_SUBS 0
@@ -81,18 +70,12 @@
 #endif
 
 /// If 1, use the best implementation of the forward subsumption
+#ifndef USE_OPTIMIZED_FORWARD
 #define USE_OPTIMIZED_FORWARD 1
+#endif
 
+/// If 1, then use the optimized forward subsumption
 #if USE_OPTIMIZED_FORWARD
-/// If 1, then use the sat subsumption for forward subsumption
-/// If 0, then use the old implementation
-#define USE_SAT_SUBSUMPTION_FORWARD 1
-/// If 1, then use the sat subsumption for forward subsumption resolution
-/// If 0, then use the old implementation
-#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
-/// If 1, then use the unoptimized loop with sat subsumption for forward subsumption
-/// If 0, then use the optimized loop with sat subsumption for forward subsumption
-#define SEPARATE_LOOPS_FORWARD 0
 #endif
 
 /*****************************************************************************/
@@ -118,61 +101,5 @@
 /// If 0, then use the optimized loop with sat subsumption for backward subsumption
 #define SEPARATE_LOOPS_BACKWARD 0
 
-/*****************************************************************************/
-/*                           FULL CONFIGURATION                              */
-/*****************************************************************************/
-// the full configuration overrides the above configurations (use 0 to do nothing)
-#if CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 0
-// Old configuration
-#undef USE_SAT_SUBSUMPTION_FORWARD
-#define USE_SAT_SUBSUMPTION_FORWARD 1
-#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
-#undef USE_OPTIMIZED_FORWARD
-#define USE_OPTIMIZED_FORWARD 1
-#undef USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
-#define USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION 0
-#undef SAT_SR_IMPL
-#define SAT_SR_IMPL 2
-
-#elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 1
-// Old configuration
-#undef USE_SAT_SUBSUMPTION_FORWARD
-#define USE_SAT_SUBSUMPTION_FORWARD 0
-#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 0
-#undef USE_OPTIMIZED_FORWARD
-#define USE_OPTIMIZED_FORWARD 0
-
-#elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 2
-// SAT subsumption but no SAT subsumption resolution
-#undef USE_SAT_SUBSUMPTION_FORWARD
-#define USE_SAT_SUBSUMPTION_FORWARD 1
-#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
-#undef USE_OPTIMIZED_FORWARD
-#define USE_OPTIMIZED_FORWARD 0
-
-#elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 3
-// SAT subsumption and SAT subsumption resolution but no optimized forward
-#undef USE_SAT_SUBSUMPTION_FORWARD
-#define USE_SAT_SUBSUMPTION_FORWARD 1
-#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
-#undef USE_OPTIMIZED_FORWARD
-#define USE_OPTIMIZED_FORWARD 1
-#undef SAT_SR_IMPL
-#define SAT_SR_IMPL 1
-
-#elif CONFIGURATION_FORWARD_SUBSUMPTION_AND_RESOLUTION == 4
-// SAT subsumption and SAT subsumption resolution and optimized forward
-#undef USE_SAT_SUBSUMPTION_FORWARD
-#define USE_SAT_SUBSUMPTION_FORWARD 1
-#undef USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-#define USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD 1
-#undef USE_OPTIMIZED_FORWARD
-#define USE_OPTIMIZED_FORWARD 1
-
-#endif
 
 #endif /* SAT_SUBSUMPTION_AND_RESOLUTION_CONFIG_HPP_ */

@@ -19,11 +19,8 @@
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
+#include "Indexing/LiteralIndex.hpp"
 
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
-#include "BackwardSubsumptionResolution.hpp"
-#include "SLQueryBackwardSubsumption.hpp"
-#endif
 
 namespace Inferences {
 

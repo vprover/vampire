@@ -16,6 +16,7 @@
 #define __Forward_Benchmark_HPP__
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "SATSubsumption/SATSubsumptionConfig.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
@@ -24,12 +25,27 @@
 namespace Inferences {
 class ForwardBenchmark
     : public ForwardSimplificationEngine {
-public:
-  CLASS_NAME(ForwardBenchmark);
-  USE_ALLOCATOR(ForwardBenchmark);
+  friend class ForwardBenchmarkWrapper;
 
-  ForwardBenchmark(bool subsumptionResolution = true);
-  ~ForwardBenchmark();
+private:
+  bool _subsumptionResolution;
+
+#if SAT_SR_IMPL != 0
+  Inferences::ForwardSubsumptionAndResolution _forward;
+#else
+  /** Simplification unit index */
+  Indexing::UnitClauseLiteralIndex *_unitIndex;
+  Indexing::FwSubsSimplifyingLiteralIndex *_fwIndex;
+  static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
+#endif
+
+public:
+  ForwardBenchmark(bool subsumptionResolution = true)
+      : _subsumptionResolution(subsumptionResolution)
+#if SAT_SR_IMPL != 0
+      , _forward(subsumptionResolution)
+#endif
+  { }
 
   void attach(Saturation::SaturationAlgorithm *salg) override;
   void detach() override;
@@ -46,40 +62,6 @@ public:
    * @return true if the clause is subsumed or resolved and subsumed, false otherwise
    */
   bool perform(Kernel::Clause *cl, Kernel::Clause *&replacement, Kernel::ClauseIterator &premises) override;
-
-private:
-  /** Simplification unit index */
-  Indexing::UnitClauseLiteralIndex *_unitIndex;
-  Indexing::FwSubsSimplifyingLiteralIndex *_fwIndex;
-
-  bool _subsumptionResolution;
-
-#if USE_SAT_SUBSUMPTION_FORWARD || USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-  SATSubsumption::SATSubsumptionAndResolution satSubs;
-
-#if USE_OPTIMIZED_FORWARD
-  Lib::DHSet<Clause *> _checked;
-#endif
-  Kernel::Clause *_conclusion = nullptr;
-  bool _subsumes = false;
-  Kernel::Clause *_premise = nullptr;
-#endif
-
-#if !USE_SAT_SUBSUMPTION_FORWARD
-  bool checkSubsumption(Kernel::Clause *mcl,
-                        Kernel::ClauseIterator &premises,
-                        Indexing::LiteralMiniIndex &miniIndex);
-#elif !USE_OPTIMIZED_FORWARD
-  bool checkSubsumption(Kernel::Clause *cl);
-#endif
-
-#if !USE_SAT_SUBSUMPTION_RESOLUTION_FORWARD
-  Clause *checkSubsumptionResolution(Kernel::Clause *cl,
-                                     Kernel::ClauseIterator &premises,
-                                     Indexing::LiteralMiniIndex &miniIndex);
-#elif !USE_OPTIMIZED_FORWARD
-  Clause *checkSubsumptionResolution(Kernel::Clause *cl);
-#endif
 };
 
 }; // namespace Inferences

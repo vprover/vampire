@@ -98,7 +98,6 @@ void SATSubsumptionAndResolution::MatchSet::indexMatrix()
   _indexJ.push_back(_matchesByJ.size());
 }
 
-#if SAT_SR_IMPL == 2
 bool SATSubsumptionAndResolution::MatchSet::hasPositiveMatchJ(unsigned j)
 {
   // the wizardry is explained in the header file
@@ -112,7 +111,6 @@ bool SATSubsumptionAndResolution::MatchSet::hasNegativeMatchJ(unsigned j)
   ASS(j < _n)
   return (_jStates[j / 4] & (2 << (2 * (j % 4)))) != 0;
 }
-#endif
 
 /****************************************************************************/
 /*       SATSubsumptionAndResolution::SATSubsumptionAndResolution           */
@@ -167,6 +165,9 @@ static vvector<unsigned> headerMultiset;
  * The idea is to check whether the multiset of predicates in _L is a subset of
  * the multiset of predicates in _M. If it is not, then it is impossible to find
  * a subsumption.
+ *
+ * @note If the number of predicates is high, clearing the multiset is expensive.
+ * It might be worth remembering which elements are non zero and clear them manually.
  *
  * @return true if subsumption is impossible, false if we don't know
  */
@@ -256,6 +257,13 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder,
   if (!isNullary)
     _bindingsManager.commit_bindings(*binder, satVar, i, j);
 } // SATSubsumptionAndResolution::addBinding
+
+#if CORRELATE_LENGTH_TIME
+double SATSubsumption::SATSubsumptionAndResolution::getSparsity()
+{
+  return (double) _matchSet._matchesByI.size() / (double) (_n * _m);
+}
+#endif
 
 bool SATSubsumptionAndResolution::checkAndAddMatch(Literal *l_i,
                                                    Literal *m_j,
@@ -456,12 +464,12 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
 SATSubsumptionAndResolution::EncodingMethod SATSubsumption::SATSubsumptionAndResolution::chooseEncoding()
 {
   if (forceDirectEncoding)
-    return [](SATSubsumptionAndResolution& obj) { return obj.directEncodingForSubsumptionResolution(); };
+    return DIRECT;
   if (forceIndirectEncoding)
-    return [](SATSubsumptionAndResolution& obj) { return obj.indirectEncodingForSubsumptionResolution(); };
+    return INDIRECT;
   if (_L->length() <= 3)
-    return [](SATSubsumptionAndResolution& obj) { return obj.directEncodingForSubsumptionResolution(); };
-  return [](SATSubsumptionAndResolution& obj) { return obj.indirectEncodingForSubsumptionResolution(); };
+    return DIRECT;
+  return INDIRECT;
 }
 
 /**
@@ -948,8 +956,18 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
   start = chrono::high_resolution_clock::now();
 #endif
 // set up the clauses
-EncodingMethod choosenEncoding = chooseEncoding();
-bool encodingSuccess = choosenEncoding(*this);
+bool encodingSuccess;
+switch (chooseEncoding()) {
+  case EncodingMethod::DIRECT:
+    encodingSuccess = directEncodingForSubsumptionResolution();
+    break;
+  case EncodingMethod::INDIRECT:
+    encodingSuccess = indirectEncodingForSubsumptionResolution();
+    break;
+  default:
+    ASS(false);
+}
+
 if (!encodingSuccess) {
 #if PRINT_CLAUSES_SUBS
     cout << "CNF building failed" << endl;
