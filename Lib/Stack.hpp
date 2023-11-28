@@ -865,6 +865,10 @@ public:
     }
   }
 
+  template<class Less = std::less<C>>
+  void sort(Less less = std::less<C>{})
+  { std::sort(begin(), end(), less); }
+
   friend bool operator<(Stack const& l, Stack const& r) 
   {
     if (l.size() < r.size()) 

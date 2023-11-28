@@ -23,9 +23,9 @@ PolyNf PolyNf::normalize(TypedTermList t, bool& evaluated)
 // impl Variable
 /////////////////////////////////////////////////////////
 
-Variable::Variable() : _num() {}
+Variable::Variable() : _num(), _sort() {}
 
-Variable::Variable(unsigned num) : _num(num) {}
+Variable::Variable(unsigned num, TermList sort) : _num(num), _sort(sort) {}
 
 unsigned Variable::id() const 
 { return _num; }
@@ -170,7 +170,7 @@ PolyNf PolyNf::fromNormalized(TypedTermList t)
         });
     return poly || [&]() { return PolyNf(FuncTerm::fromNormalized(term)); };
   } else {
-    return PolyNf(Variable(t.var()));
+    return PolyNf(Variable(t.var(), t.sort()));
   }
 }
 
@@ -180,7 +180,7 @@ std::ostream& operator<<(std::ostream& out, const PolyNf& self)
 IterTraits<PolyNf::SubtermIter> PolyNf::iterSubterms() const 
 { return iterTraits(SubtermIter(*this)); }
 
-PolyNf::SubtermIter::SubtermIter(PolyNf p) 
+PolyNf::SubtermIter::SubtermIter(PolyNf p)
   : _stack(decltype(_stack){ BottomUpChildIter<PolyNf>(p) }) 
 {  }
 

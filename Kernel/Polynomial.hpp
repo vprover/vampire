@@ -88,6 +88,7 @@ public:
 class Variable 
 {
   unsigned _num;
+  TermList _sort;
 
 public: 
   MAKE_DERIVABLE(Variable, _num)
@@ -96,8 +97,10 @@ public:
     DERIVE_HASH
 
   Variable();
-  explicit Variable(unsigned num);
+  explicit Variable(unsigned num, TermList sort);
   unsigned id() const;
+
+  TermList sort() const { return _sort; }
 
   friend std::ostream& operator<<(std::ostream& out, const Variable& self);
   TermList denormalize() const { return TermList::var(_num); }
@@ -458,9 +461,11 @@ public:
   FuncId function() const;
   PolyNf arg(unsigned i) const;
 
+  TermList sort() const 
+  { return SortHelper::getResultSort(_self); }
+
   template<class Number> 
   Option<typename Number::ConstantType> tryNumeral() const;
-
   static FuncTerm fromNormalized(Term* t) { return FuncTerm(t); }
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   TermList denormalize() const { return TermList(_self); }
@@ -499,6 +504,8 @@ public:
   {}
 
   Polynom(Polynom const& summands)  = default;
+
+  TermList sort() const { return Number::sort(); }
 
   template<class Iter>
   static Polynom fromIterator(Iter iter)
@@ -620,6 +627,9 @@ public:
     : _self(std::move(self)) 
   {}
 
+  TermList sort() const
+  { return _self.apply([](auto& x) { return x.sort(); }); }
+
   /** tries to turn this polynom into a polynom of the given NumTraits. */
   template<class NumTraits> Option<Polynom<NumTraits> const&> downcast() const;
   template<class NumTraits> Option<Polynom<NumTraits>      &> downcast();
@@ -682,8 +692,8 @@ public:
   friend struct ImmediateSubterms;
 
   PolyNf(FuncTerm t);
-  PolyNf(Variable          t);
-  PolyNf(AnyPoly           t);
+  PolyNf(Variable t);
+  PolyNf(AnyPoly  t);
 
   static PolyNf normalize(TypedTermList t, bool& evaluated);
   static PolyNf normalize(TypedTermList t) 
@@ -718,6 +728,18 @@ public:
    */
   template<class Number> 
   Polynom<Number> wrapPoly() const;
+
+  TermList sort() const
+  { return _self.apply([](auto& x) { return x.sort(); }); }
+
+  Option<AnyPoly> wrapAnyPoly() const { 
+    return sort() ==  IntTraits::sort() ? some(AnyPoly(wrapPoly< IntTraits>()))
+         : sort() == RealTraits::sort() ? some(AnyPoly(wrapPoly<RealTraits>()))
+         : sort() ==  RatTraits::sort() ? some(AnyPoly(wrapPoly< RatTraits>()))
+         : none<AnyPoly>()
+    ;
+  }
+
 
   /** if this PolyNf is a numeral, the numeral is returned */
   template<class Number>
@@ -1415,7 +1437,7 @@ MonomFactor<NumTraits> MonomFactor<NumTraits>::fromNormalized(TermList t)
   }
   // TODO sorted assertions
   return MonomFactor(inner.isVar() 
-      ? PolyNf(Variable(inner.var())) 
+      ? PolyNf(Variable(inner.var(), NumTraits::sort())) 
       : PolyNf(FuncTerm(inner.term())), cnt);
 }
 

@@ -701,14 +701,14 @@ template<class It1,class It2>
 inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
 {
-  return CatIterator<It1,It2>(it1, it2);
+  return CatIterator<It1,It2>(std::move(it1), std::move(it2));
 }
 
 template<class I1, class I2, class I3, class... Is>
 inline
 auto getConcatenatedIterator(I1 i1, I2 i2, I3 i3, Is... is)
 {
-  return getConcatenatedIterator(getConcatenatedIterator(i1, i2), i3, is...);
+  return getConcatenatedIterator(getConcatenatedIterator(std::move(i1), std::move(i2)), std::move(i3), std::move(is)...);
 }
 
 

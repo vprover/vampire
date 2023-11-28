@@ -27,7 +27,8 @@ static const auto iterTerms = [](Clause* cl)
 {
   return iterTraits(cl->iterLits())
     .flatMap([](Literal* lit) { return iterArgsPnf(lit); }) 
-    .flatMap([](PolyNf arg) { return arg.iterSubterms(/* singleton monoms */ true);  });
+    .flatMap([](PolyNf arg) { return arg.iterSubterms();  });
+  // TODO remove arg singleton monoms which does not do anything
 };
 
 /**
@@ -64,9 +65,23 @@ public:
 
 /** iterator over all subterms of a clause that are polynoms */
 static const auto iterPolynoms = [](Clause* cl) {
-  return iterTerms(cl)
-    .filterMap([](PolyNf subterm) 
-        { return subterm.asPoly(); });
+  return concatIters(
+      iterTerms(cl)
+        .filterMap([](PolyNf subterm) 
+            { return subterm.asPoly(); }),
+      iterTerms(cl)
+        .filterMap([](PolyNf subterm) 
+            { return subterm.match(
+                [](FuncTerm f) { return some(f); },
+                [](Variable f) { return Option<FuncTerm>(); },
+                [](AnyPoly f) { return Option<FuncTerm>(); }
+                ); })
+        .flatMap([](FuncTerm t) { 
+            return range(0, t.numTermArguments())
+                   .filterMap([=](auto i) { return t.arg(i).wrapAnyPoly(); }); 
+          })
+    )
+  ;
 };
 
 /** iterator over all subterms of a clause that are variables */
@@ -236,16 +251,16 @@ struct EvaluateMonom
     using Monom  = Kernel::Monom<NumTraits>;
 
     unsigned offs = 0;
-    return Polynom(
-                poly.iterSummands()
+    auto simpl = poly.iterSummands()
                  .map([&](Monom m) -> Monom { 
                    CALL("EvaluateMonom::clsr01")
 
                    auto result = eval(m, &evaluatedArgs[offs]);
                    offs += m.factors.cntFactors();
                    return result;
-               })
-            .template collect<Stack>());
+               }).template collect<Stack>();
+    simpl.sort();
+    return Polynom(std::move(simpl));
   }
 
   PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs, unsigned nEvaluatedChildren)

@@ -435,7 +435,7 @@ PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
       // ASSERTION_VIOLATION_REP("unimplemented")
       auto t = t_._self;
       if (t.isVar()) {
-        return PolyNf(Variable(t.var()));
+        return PolyNf(Variable(t.var(), t.sort()));
       } else {
         auto term = t.term();
         auto f = term->functor();
