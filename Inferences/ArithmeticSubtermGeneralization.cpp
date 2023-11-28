@@ -43,15 +43,15 @@ public:
 
   AnyNumber(NumberObject<IntTraits> &self) : Super(self) {}
   AnyNumber(NumberObject<IntTraits> const& self) : Super(self) {}
-  AnyNumber(NumberObject<IntTraits> && self) : Super(move(self)) {}
+  AnyNumber(NumberObject<IntTraits> && self) : Super(std::move(self)) {}
 
   AnyNumber(NumberObject<RatTraits> &self) : Super(self) {}
   AnyNumber(NumberObject<RatTraits> const& self) : Super(self) {}
-  AnyNumber(NumberObject<RatTraits> && self) : Super(move(self)) {}
+  AnyNumber(NumberObject<RatTraits> && self) : Super(std::move(self)) {}
 
   AnyNumber(NumberObject<RealTraits> &self) : Super(self) {}
   AnyNumber(NumberObject<RealTraits> const& self) : Super(self) {}
-  AnyNumber(NumberObject<RealTraits> && self) : Super(move(self)) {}
+  AnyNumber(NumberObject<RealTraits> && self) : Super(std::move(self)) {}
 
   template<class NumTraits> Option<NumberObject<NumTraits> const&> downcast() const& { return Super::template as<NumberObject<NumTraits>>(); }
   template<class NumTraits> Option<NumberObject<NumTraits>      &> downcast()      & { return Super::template as<NumberObject<NumTraits>>(); }
