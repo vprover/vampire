@@ -693,7 +693,14 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
     Clause* c = cit.next();
     unsigned cLen = c->length();
 
-    unsigned int resLitIdx = SynthesisManager::getInstance()->getResolventLiteralIdx(c); // The literal which contains a rec(.) term should be picked for resolution
+    int resLitIdx = SynthesisManager::getInstance()->getResolventLiteralIdx(c); // The literal which contains a rec(.) term should be picked for resolution
+
+    if (resLitIdx == -1){ //ToDo: check why not finding correct literal in cut-off subtract
+      resLitIdx = cLen - 1;
+      // std::cout << "clause to resolve is " << c->toString() << std::endl;
+      // USER_ERROR("No literal with rec(.) term found in the clause to resolve");
+    }
+
     Literal* resLit = (*c)[resLitIdx]; 
 
     RobSubstitution subst;
@@ -1462,7 +1469,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
 
   TermReplacement tr(context._indTerm, z);
-  std::cout << "L before transform " << L->toString() << std::endl;
   Literal* curLit = tr.transform(L);
 
   s.reset();
@@ -1470,8 +1476,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   s.bind(freshSynthVar.var(), rec);
   std::cout << "Applying " << s << " on " << curLit->toString() << std::endl;
   Formula* conclusion = new AtomicFormula(SubstHelper::apply(curLit, s));
-  std::cout << "BYE" << std::endl << "------" << std::endl;
-
+  std::cout << "Applied!" << std::endl;
   formula = new BinaryFormula(Connective::IMP, formula, conclusion);
   formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::FORALL, us, SList::empty(), formula); 
@@ -1488,9 +1493,13 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   SynthesisManager::getInstance()->matchSkolemSymbols(bindingList, tempSkolemMappings);
   
+  std::cout << "Clauses obtained from structural induction axiom: " << std::endl;
   for (auto cl: cls) {
+    std::cout << cl->toString() << std::endl;
     _clauses.push(cl);
   }
+  std::cout << "------" << std::endl;
+
 }
 
 
