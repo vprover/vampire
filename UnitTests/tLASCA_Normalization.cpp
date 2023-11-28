@@ -67,7 +67,7 @@ struct TestCase
     auto norm = InequalityNormalizer(strong);
     auto results_ = norm.normalizeLasca<NumTraits>(in).unwrap();
     auto results = Stack<Literal*>();
-    for (auto& r : results_.value) {
+    for (auto& r : results_) {
       results.push(r.denormalize());
     }
     if (!iterTraits(out.iterFifo()).any([&](auto const& out){ return TestUtils::eqModACRect(out, results); })) {

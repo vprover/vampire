@@ -266,12 +266,12 @@ namespace Kernel {
       : _eval(/* removeZero */ true)
       , _strong(strong) {  }
 
-    template<class NumTraits> Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>> normalizeLasca(Literal* lit) const;
-    template<class NumTraits> Option<MaybeOverflow<LascaLiteral<NumTraits>>> renormalizeLasca(Literal* lit) const;
+    template<class NumTraits> Option<Stack<LascaLiteral<NumTraits>>> normalizeLasca(Literal* lit) const;
+    template<class NumTraits> Option<LascaLiteral<NumTraits>> renormalizeLasca(Literal* lit) const;
 
-    Option<MaybeOverflow<AnyLascaLiteral>> renormalize(Literal* lit) const;
+    Option<AnyLascaLiteral> renormalize(Literal* lit) const;
 
-    template<class NumTraits> Option<MaybeOverflow<InequalityLiteral<NumTraits>>> renormalizeIneq(Literal* lit) const;
+    template<class NumTraits> Option<InequalityLiteral<NumTraits>> renormalizeIneq(Literal* lit) const;
 
     // Literal* renormalizeLiteral(Literal* lit) const;
     Recycled<Stack<Literal*>> normalizeLiteral(Literal* lit) const;
@@ -1105,10 +1105,10 @@ namespace Kernel {
     Option<LascaLiteral<NumTraits>> renormalize(Literal* l)
     {
       auto norm = this->normalizer.renormalizeLasca<NumTraits>(l);
-      if (norm.isNone() || norm.unwrap().overflowOccurred) {
+      if (norm.isNone()) {
         return Option<LascaLiteral<NumTraits>>();
       } else {
-        return Option<LascaLiteral<NumTraits>>(norm.unwrap().value);
+        return Option<LascaLiteral<NumTraits>>(norm.unwrap());
       }
     }
 
@@ -1132,15 +1132,15 @@ namespace Kernel {
 namespace Kernel {
 
 template<class NumTraits>
-Option<MaybeOverflow<InequalityLiteral<NumTraits>>> InequalityNormalizer::renormalizeIneq(Literal* lit) const
+Option<InequalityLiteral<NumTraits>> InequalityNormalizer::renormalizeIneq(Literal* lit) const
 {
-  using Opt = Option<MaybeOverflow<InequalityLiteral<NumTraits>>>;
+  using Opt = Option<InequalityLiteral<NumTraits>>;
   return normalizeLasca<NumTraits>(lit)
-    .andThen([](auto overflown) {
+    .andThen([](auto lit) {
       // The literal must have been normalized before, hence normalizing again can't produce more than one literal
-      ASS_EQ(overflown.value.size(), 1) 
-      if (overflown.value[0].isInequality()) {
-        return Opt(overflown.map([](auto lit) { return InequalityLiteral<NumTraits>(std::move(lit)); }));
+      ASS_EQ(lit.size(), 1) 
+      if (lit[0].isInequality()) {
+        return Opt(InequalityLiteral<NumTraits>(std::move(lit)));
       } else {
         return Opt();
       }
@@ -1166,43 +1166,38 @@ Numeral normalizeFactors_gcd(Numeral l, Numeral r)
 IntegerConstantType normalizeFactors_gcd(IntegerConstantType l, IntegerConstantType r);
 
 template<class NumTraits>
-auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> MaybeOverflow<Perfect<Polynom<NumTraits>>>
+auto normalizeFactors(Perfect<Polynom<NumTraits>> in) -> Perfect<Polynom<NumTraits>>
 {
-  return catchOverflow([&](){
-
-    if (in->nSummands() == 0) {
-      return in;
-    }
-    auto gcd = fold(in->iterSummands()
-      .map([](auto s) { return s.numeral.abs(); }),
-      [](auto l, auto r) { return normalizeFactors_gcd(l,r); }
-    );
-    ASS_REP(gcd >= NumTraits::constant(0), gcd)
-    if (gcd == NumTraits::constant(1) || gcd == NumTraits::constant(0)) {
-      return in;
-    } else {
-      auto  out = perfect(Polynom<NumTraits>(in->iterSummands()
-            .map([=](auto s) { return Monom<NumTraits>(normalizeFactors_divide(gcd, s.numeral), s.factors); })
-            .template collect<Stack>()));
-      return out;
-    }
-  }, in);
+  if (in->nSummands() == 0) {
+    return in;
+  }
+  auto gcd = fold(in->iterSummands()
+    .map([](auto s) { return s.numeral.abs(); }),
+    [](auto l, auto r) { return normalizeFactors_gcd(l,r); }
+  );
+  ASS_REP(gcd >= NumTraits::constant(0), gcd)
+  if (gcd == NumTraits::constant(1) || gcd == NumTraits::constant(0)) {
+    return in;
+  } else {
+    auto  out = perfect(Polynom<NumTraits>(in->iterSummands()
+          .map([=](auto s) { return Monom<NumTraits>(normalizeFactors_divide(gcd, s.numeral), s.factors); })
+          .template collect<Stack>()));
+    return out;
+  }
 }
 
 template<class NumTraits>
-Option<MaybeOverflow<LascaLiteral<NumTraits>>> InequalityNormalizer::renormalizeLasca(Literal* lit) const
+Option<LascaLiteral<NumTraits>> InequalityNormalizer::renormalizeLasca(Literal* lit) const
 {
   return normalizeLasca<NumTraits>(lit)
-    .map([](auto&& lits) -> MaybeOverflow<LascaLiteral<NumTraits>> { 
-        return lits.map([](auto&& lits) -> LascaLiteral<NumTraits> { 
-          ASS_REP(lits.size() == 1, "literal has not been normalized before.");
-          return std::move(lits[0]);
-        });
-    });
+    .map([](auto&& lits) -> LascaLiteral<NumTraits> { 
+        ASS_REP(lits.size() == 1, "literal has not been normalized before.");
+        return std::move(lits[0]);
+      });
 }
 
 template<class NumTraits>
-Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>> InequalityNormalizer::normalizeLasca(Literal* lit) const
+Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Literal* lit) const
 {
   CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
   DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
@@ -1211,7 +1206,7 @@ Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>> InequalityNormalizer::norm
 
     constexpr bool isInt = std::is_same<NumTraits, IntTraits>::value;
 
-    using Opt = Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>>;
+    using Opt = Option<Stack<LascaLiteral<NumTraits>>>;
 
     auto f = lit->functor();
     if (!theory->isInterpretedPredicate(f))
@@ -1226,10 +1221,10 @@ Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>> InequalityNormalizer::norm
 
         auto norm = Kernel::normalizeTerm(TypedTermList(*lit->nthArgument(0), NumTraits::sort()));
         auto simpl = _eval.evaluate(norm);
-        auto simplValue = (simpl.value || norm).wrapPoly<NumTraits>();
+        auto simplValue = (simpl || norm).wrapPoly<NumTraits>();
         auto llit = LascaLiteral<NumTraits>(simplValue, lit->isPositive() ? LascaPredicate::IS_INT_POS
                                                                           : LascaPredicate::IS_INT_NEG);
-        return Opt(maybeOverflow(Stack<LascaLiteral<NumTraits>>{llit}, simpl.overflowOccurred));
+        return Opt(Stack<LascaLiteral<NumTraits>>{llit});
       }
 
       case Interpretation::EQUAL:/* l == r or l != r */
@@ -1295,24 +1290,24 @@ Option<MaybeOverflow<Stack<LascaLiteral<NumTraits>>>> InequalityNormalizer::norm
     auto tt = TypedTermList(t, NumTraits::sort());
     auto norm = Kernel::normalizeTerm(tt);
     auto simpl = _eval.evaluate(norm);
-    auto simplValue = (simpl.value || norm).wrapPoly<NumTraits>();
+    auto simplValue = (simpl || norm).wrapPoly<NumTraits>();
     simplValue->integrity();
     auto factorsNormalized = normalizeFactors(simplValue);
 
     Stack<LascaLiteral<NumTraits>> out;
     if (_strong && pred == LascaPredicate::GREATER_EQ) {
       // t >= 0 ==> t > 0 \/ t == 0
-      out = { LascaLiteral<NumTraits>(factorsNormalized.value, LascaPredicate::GREATER)
-            , LascaLiteral<NumTraits>(factorsNormalized.value, LascaPredicate::EQ     ) };
+      out = { LascaLiteral<NumTraits>(factorsNormalized, LascaPredicate::GREATER)
+            , LascaLiteral<NumTraits>(factorsNormalized, LascaPredicate::EQ     ) };
     } else if (_strong && pred == LascaPredicate::NEQ) {
       // t != 0 ==> t > 0 \/ -t > 0
-      out = { LascaLiteral<NumTraits>( factorsNormalized.value, LascaPredicate::GREATER)
-            , LascaLiteral<NumTraits>(-factorsNormalized.value, LascaPredicate::GREATER) };
+      out = { LascaLiteral<NumTraits>( factorsNormalized, LascaPredicate::GREATER)
+            , LascaLiteral<NumTraits>(-factorsNormalized, LascaPredicate::GREATER) };
     } else {
-      out = { LascaLiteral<NumTraits>(factorsNormalized.value, pred) };
+      out = { LascaLiteral<NumTraits>(factorsNormalized, pred) };
     }
 
-    return Opt(maybeOverflow(std::move(out), simpl.overflowOccurred || factorsNormalized.overflowOccurred));
+    return Opt(std::move(out));
   };
   auto out = impl();
   DEBUG("out: ", out);
@@ -1416,7 +1411,7 @@ auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) 
 //           .andThen([&](auto norm) -> Option<LascaLiteral<NumTraits>> {
 //               return norm.overflowOccurred 
 //                 ? Option<LascaLiteral<NumTraits>>()
-//                 : Option<LascaLiteral<NumTraits>>(norm.value);
+//                 : Option<LascaLiteral<NumTraits>>(norm);
 //               })
 //           .map([&](auto irc) { 
 //               return pvi(iterSelectedTerms(
