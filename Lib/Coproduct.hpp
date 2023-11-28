@@ -228,6 +228,7 @@ namespace CoproductImpl {
         DefaultImpl& operator=(DefaultImpl OTHER_REF other) = default;                    \
         DefaultImpl& operator=(DefaultImpl       REF other)                               \
         {                                                                                 \
+          if (this == &other) return *this;                                               \
           this->switchN([&](auto N) {                                                     \
               using A = TL::Get<N.value, typename T::Ts>;                                 \
               this->template cast<A>().~A();                                              \

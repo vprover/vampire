@@ -59,6 +59,9 @@ void* Term::operator new(size_t,unsigned arity, size_t preData)
 } // Term::operator new
 
 
+inline bool argSafeToShare(TermList t)
+{ return t.isSafe() && !t.isSpecialVar(); }
+
 /**
  * Destroy the term.
  * @since 01/05/2006 Bellevue
@@ -868,7 +871,7 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
 {
   ASS_EQ(env.signature->functionArity(function), arity);
 
-  bool share = range(0, arity).all([&](auto i) { return args[i].isSafe(); });
+  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(args[i]); });
 
   auto allocTerm = [&]() {
     Term* s = new(arity) Term;
@@ -1358,7 +1361,7 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
 {
   ASS_EQ(env.signature->typeConArity(typeCon), arity);
 
-  bool share = range(0, arity).all([&](auto i) { return args[i].isSafe(); });
+  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(args[i]); });
 
   auto allocTerm = [&]() {
     AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
@@ -1459,7 +1462,7 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
     return l;
   };
 
-  bool share = range(0, arity).all([&](auto i) { return getArg(i).isSafe(); });
+  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(getArg(i)); });
   if (share) {
     bool created = false;
     auto shared = 

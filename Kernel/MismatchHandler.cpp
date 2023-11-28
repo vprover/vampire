@@ -136,7 +136,6 @@ Option<MismatchHandler::AbstractionResult> funcExt(
   ASS(!t1.isSpecialVar())
   ASS(!t2.isSpecialVar())
 
-
   // auto sortIsBoolOrVar = [](auto& t) {
   //   if (t.isVar()) return false;
   //   return t.sortIsBoolOrVar();
@@ -157,6 +156,8 @@ Option<MismatchHandler::AbstractionResult> funcExt(
       if (t1.isVar() || t2.isVar()
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
+       || env.signature->isBoolCon(argSort1.functor())
+       || env.signature->isBoolCon(argSort2.functor())
        ) {
         auto& arg1 = au->subs().derefBound(t1.termArg(1));
         auto& arg2 = au->subs().derefBound(t2.termArg(1));
@@ -166,11 +167,12 @@ Option<MismatchHandler::AbstractionResult> funcExt(
                       UnificationConstraint(t1.termArg(0), t2.termArg(0)));
 
         auto argsEq = UnificationConstraint(arg1.clone(), arg2.clone());
-        return some(MismatchHandler::AbstractionResult(
+        auto res = some(MismatchHandler::AbstractionResult(
               // if both are variables we don't want to introduce a constraint
               arg1.isVar() && arg2.isVar()
                 ? std::move(out).unify(std::move(argsEq))
                 : std::move(out).constr(std::move(argsEq)))) ;
+        return res;
       }
     }
   }
@@ -205,11 +207,21 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       auto& diff2 = *diff2_;
       diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
       diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
-      auto sum = [](auto& diff) {
+      auto sum = [&](auto& diff) {
           return arrayIter(diff)
             .map([](auto& x) { return x.clone(); })
-            .fold([](auto l, auto r) 
-              { return TermSpec(IntTraits::addF(), std::move(l), std::move(r)); })
+            .fold([&](auto l, auto r) 
+              // { return TermSpec(IntTraits::addF(), std::move(l), std::move(r)); })
+              { 
+                if (l.index != r.index) {
+                  if (l.index != GLUE_INDEX) 
+                    l = TermSpec(au->subs().introGlueVar(l));
+                  if (r.index != GLUE_INDEX) 
+                    r = TermSpec(au->subs().introGlueVar(r));
+                }
+                ASS_EQ(l.index, r.index)
+                return TermSpec(IntTraits::add(l.term,r.term), l.index); 
+              })
             .unwrap(); };
       auto diffConstr = [&]() 
       { return UnificationConstraint(sum(diff1), sum(diff2)); };

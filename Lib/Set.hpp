@@ -227,7 +227,7 @@ public:
    * @since 09/12/2006 Manchester, reimplemented
    */
   Val insert(Val val, unsigned code)
-  { bool dummy; return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { DBGE(v); DBGE(val)return Hash::equals(v, val); }, dummy); } // Set::insert
+  { bool dummy; return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { return Hash::equals(v, val); }, dummy); } // Set::insert
 
   /** Insert all elements from @b it iterator in the set */
   template<class It>

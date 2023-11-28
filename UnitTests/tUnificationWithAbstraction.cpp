@@ -748,64 +748,30 @@ RUN_TEST(hol_06,
     HOL_SUGAR(
       DECL_SORT_BOOL;
       DECL_SORT(A)
-      DECL_FUNC(f, {Bool}, A)
-      DECL_CONST(a, A)
-      DECL_CONST(b, A)
+      DECL_CONST(f, arrow(Bool, A))
+      DECL_CONST(a, Bool)
+      DECL_CONST(b, Bool)
     ),
     IndexTest {
       .index = getTermIndexHOL(),
       .uwa = Options::UnificationWithAbstraction::FUNC_EXT,
       .insert = {
-               f(a),
-               f(b),
+               ap(f, a),
+               ap(f, b),
                a,
                b
       },
-      .query = f(a),
+      .query = ap(f,a),
       .expected =  {
 
         TermUnificationResultSpec 
-        { .querySigma  = f(a),
-          .resultSigma = f(a),
+        { .querySigma  = ap(f,a),
+          .resultSigma = ap(f,a),
           .constraints = Stack<Literal*>{ } }, 
 
         TermUnificationResultSpec 
-        { .querySigma  = f(a),
-          .resultSigma = f(b),
-          .constraints = { a != b } }, 
-
-      }
-    })
-
-
-RUN_TEST(hol_07,
-    HOL_SUGAR(
-      DECL_SORT_BOOL;
-      DECL_SORT(A)
-      DECL_FUNC(f, {Bool}, A)
-      DECL_CONST(a, A)
-      DECL_CONST(b, A)
-    ),
-    IndexTest {
-      .index = getTermIndexHOL(),
-      .uwa = Options::UnificationWithAbstraction::FUNC_EXT,
-      .insert = {
-               f(a),
-               f(b),
-               a,
-               b
-      },
-      .query = a,
-      .expected =  {
-
-        TermUnificationResultSpec 
-        { .querySigma  = a,
-          .resultSigma = a,
-          .constraints = Stack<Literal*>{ } }, 
-
-        TermUnificationResultSpec 
-        { .querySigma  = a,
-          .resultSigma = b,
+        { .querySigma  = ap(f,a),
+          .resultSigma = ap(f,b),
           .constraints = { a != b } }, 
 
       }
@@ -832,9 +798,9 @@ RUN_TEST(term_indexing_poly_uwa_01,
           .constraints = { a(Int) != a(Int) + x } }, 
 
         TermUnificationResultSpec 
-        { .querySigma  = f(Int, a(Int) + y),
+        { .querySigma  = f(Int, a(Int) + x),
           .resultSigma = f(Int, b(Int)),
-          .constraints = { b(Int) != a(Int) + y } }, 
+          .constraints = { b(Int) != a(Int) + x } }, 
 
       }
     })
@@ -1363,9 +1329,9 @@ RUN_TEST(top_level_constraints_2_with_fixedPointIteration,
             .constraints = Stack<Literal*>{ b + c != x1 + x0 } }, 
 
           TermUnificationResultSpec 
-          { .querySigma  = a + x2 + x3,
+          { .querySigma  = a + x0 + x1,
             .resultSigma = a + b + f(a) + c,
-            .constraints = Stack<Literal*>{ b + f(a) + c != x3 + x2 } }, 
+            .constraints = Stack<Literal*>{ b + f(a) + c != x1 + x0 } }, 
 
       },
     })
@@ -1393,9 +1359,9 @@ RUN_TEST(top_level_constraints_2,
             .constraints = Stack<Literal*>{ a + b + c != a + x1 + x0 } }, 
 
           TermUnificationResultSpec 
-          { .querySigma  = a + x2 + x3,
+          { .querySigma  = a + x0 + x1,
             .resultSigma = a + b + a + c,
-            .constraints = Stack<Literal*>{ a + b + a + c != a + x3 + x2 } }, 
+            .constraints = Stack<Literal*>{ a + b + a + c != a + x1 + x0 } }, 
 
       },
     })
