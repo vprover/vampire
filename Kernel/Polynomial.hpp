@@ -704,6 +704,7 @@ public:
   { return _self.match(unint, var, poly); }
 
   Option<Variable> asVar() const { return _self.as<Variable>().toOwned(); }
+  Option<FuncTerm> asFuncTerm() const { return _self.as<FuncTerm>().toOwned(); }
   Option<AnyPoly>  asPoly() const { return _self.as<AnyPoly>().toOwned(); }
 
   Variable unwrapVar() const { return asVar().unwrap(); }
@@ -814,6 +815,12 @@ struct ImmediateSubterms {
   {
     return iterTraits(self._self.apply([](auto& poly) 
           { return pvi(ImmediateSubterms{}(poly)); }));
+  }
+
+  auto operator()(FuncTerm self) const 
+  {
+    return range(0, self.numTermArguments())
+      .map([=](auto i) { return self.arg(i); });
   }
 
 };

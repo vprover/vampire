@@ -14,6 +14,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Set.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
@@ -65,23 +66,23 @@ public:
 
 /** iterator over all subterms of a clause that are polynoms */
 static const auto iterPolynoms = [](Clause* cl) {
+
+  auto litArgs = [cl]() {
+    return iterTraits(cl->iterLits())
+      .flatMap([](Literal* lit) { return iterArgsPnf(lit); });
+  };
+
   return concatIters(
-      iterTerms(cl)
-        .filterMap([](PolyNf subterm) 
-            { return subterm.asPoly(); }),
-      iterTerms(cl)
-        .filterMap([](PolyNf subterm) 
-            { return subterm.match(
-                [](FuncTerm f) { return some(f); },
-                [](Variable f) { return Option<FuncTerm>(); },
-                [](AnyPoly f) { return Option<FuncTerm>(); }
-                ); })
-        .flatMap([](FuncTerm t) { 
-            return range(0, t.numTermArguments())
-                   .filterMap([=](auto i) { return t.arg(i).wrapAnyPoly(); }); 
-          })
-    )
-  ;
+      litArgs(),
+      litArgs()
+        .flatMap([](auto t) { 
+          return t.iterSubterms()
+                  .filterMap([](auto subterm) { return subterm.asFuncTerm(); })
+                  .flatMap([](auto subterm) { return ImmediateSubterms{}(subterm); });
+        })
+      )
+      .filterMap([](auto t) { return t.wrapAnyPoly(); })
+    ;
 };
 
 /** iterator over all subterms of a clause that are variables */

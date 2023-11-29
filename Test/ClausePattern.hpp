@@ -57,7 +57,7 @@ inline ostream& operator<<(ostream& out, ClausePattern const& self)
       { return out << pretty(self); },
 
       [&](AnyOf const& self)  -> ostream&
-      { return out << pretty(self.lhs) << " or " << pretty(self.rhs); });
+      { return out << pretty(*self.lhs) << " or " << pretty(*self.rhs); });
 }
 
 template<class EqualityOperator>
