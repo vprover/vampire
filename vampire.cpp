@@ -117,6 +117,12 @@ Problem* getPreprocessedProblem()
   }
 #endif
 
+  // Here officially starts preprocessing of vampireMode
+  // and that's the moment we want to set the random seed (no randomness in parsing, for the peace of mind)
+  // the main reason being that we want to stay in sync with what profolio mode will do
+  // cf ProvingHelper::runVampire
+  Lib::Random::setSeed(env.options->randomSeed());
+
   TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
@@ -599,7 +605,6 @@ int main(int argc, char* argv[])
     }
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
-    Lib::Random::setSeed(env.options->randomSeed());
 
     switch (env.options->mode())
     {
