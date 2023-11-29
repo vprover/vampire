@@ -24,11 +24,11 @@
 ///@{
 
 
-#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
-  Class(Class const&) = default;                                                                    \
-  Class(Class     &&) = default;                                                                    \
-  Class& operator=(Class const&) = default;                                                         \
-  Class& operator=(Class     &&) = default;                                                         \
+#define DEFAULT_CONSTRUCTORS(Class)                                                       \
+  Class(Class const&) = default;                                                          \
+  Class(Class     &&) = default;                                                          \
+  Class& operator=(Class const&) = default;                                               \
+  Class& operator=(Class     &&) = default;                                               \
 
 /** 
  * utility to quickly implement standard operations like 
@@ -52,10 +52,10 @@
  *
  * then the class will have an operator== and operator!= defined
  */
-#define MAKE_DERIVABLE(Class, ...)                                                                  \
-  using Self = Class;                                                                               \
-  auto asTuple()       { return std::tie(__VA_ARGS__); }                                            \
-  auto asTuple() const { return std::tie(__VA_ARGS__); }                                            \
+#define MAKE_DERIVABLE(Class, ...)                                                        \
+  using Self = Class;                                                                     \
+  auto asTuple()       { return std::tie(__VA_ARGS__); }                                  \
+  auto asTuple() const { return std::tie(__VA_ARGS__); }                                  \
 
 /** automatically implements 
  * - operator==
@@ -64,12 +64,12 @@
  * Must be called within a class, that is derivable. 
  * \see MAKE_DERIVABLE
  */
-#define DERIVE_EQ                                                                                   \
-  friend bool operator==(Self const& l, Self const& r)                                              \
-  { return l.asTuple() == r.asTuple(); }                                                            \
-                                                                                                    \
-  friend bool operator!=(Self const& l, Self const& r)                                              \
-  { return !(l == r); }                                                                             \
+#define DERIVE_EQ                                                                         \
+  friend bool operator==(Self const& l, Self const& r)                                    \
+  { return l.asTuple() == r.asTuple(); }                                                  \
+                                                                                          \
+  friend bool operator!=(Self const& l, Self const& r)                                    \
+  { return !(l == r); }                                                                   \
 
 /** automatically implements 
  * - operator<
@@ -80,13 +80,19 @@
  * Must be called within a class, that is derivable. 
  * \see MAKE_DERIVABLE
  */
-#define DERIVE_CMP                                                                                  \
-  friend bool operator<(Self const& l, Self const& r)                                               \
-  { return l.asTuple() < r.asTuple(); }                                                             \
-                                                                                                    \
-  friend bool operator> (Self const& l, Self const& r) { return r < l; }                            \
-  friend bool operator<=(Self const& l, Self const& r) { return l == r || l < r; }                  \
-  friend bool operator>=(Self const& l, Self const& r) { return l == r || l > r; }                  \
+#define DERIVE_CMP                                                                        \
+  friend bool operator<(Self const& l, Self const& r)                                     \
+  { return l.asTuple() < r.asTuple(); }                                                   \
+                                                                                          \
+  DERIVE_CMP_OPERATORS_FROM_LESS
+
+/** automatically implements {<=, >, >=}
+ * by appropriately calling the operators {<,==}
+ */
+#define DERIVE_CMP_OPERATORS_FROM_LESS                                                    \
+  friend bool operator> (Self const& l, Self const& r) { return r < l; }                  \
+  friend bool operator<=(Self const& l, Self const& r) { return l == r || l < r; }        \
+  friend bool operator>=(Self const& l, Self const& r) { return l == r || l > r; }        \
  
 /** automatically implementes a function 
  * template<class Hash = Lib::StlHash>
@@ -96,25 +102,25 @@
  * Must be called within a class, that is derivable. 
  * \see MAKE_DERIVABLE
  */
-#define DERIVE_HASH                                                                                 \
-  template<class Hash = Lib::StlHash>                                                               \
-  size_t hash() const                                                                               \
+#define DERIVE_HASH                                                                       \
+  template<class Hash = Lib::StlHash>                                                     \
+  size_t hash() const                                                                     \
   { return Lib::HashUtils::hashTuple<Hash>(asTuple()); }
 
-#define DERIVE_MOVE_SEMANTICS                                                                       \
-  explicit Self(Self const&) = default;                                                             \
-  Self(Self     &&) = default;                                                                      \
-  Self& operator=(Self const&) = default;                                                           \
-  Self& operator=(Self     &&) = default;                                                           \
+#define DERIVE_MOVE_SEMANTICS                                                             \
+  explicit Self(Self const&) = default;                                                   \
+  Self(Self     &&) = default;                                                            \
+  Self& operator=(Self const&) = default;                                                 \
+  Self& operator=(Self     &&) = default;                                                 \
 
-#define TEMPLATE_DERIVE_STD_HASH(Class)                                                                        \
-  struct std::hash<Class>                                                                           \
-  { size_t operator()(Class const& self)                                                            \
+#define TEMPLATE_DERIVE_STD_HASH(Class)                                                   \
+  struct std::hash<Class>                                                                 \
+  { size_t operator()(Class const& self)                                                  \
     { return self.hash<Lib::StlHash>(); } };
 
 
-#define DERIVE_STD_HASH(Class)                                                                        \
-  template<>                                                                                        \
+#define DERIVE_STD_HASH(Class)                                                            \
+  template<>                                                                              \
   TEMPLATE_DERIVE_STD_HASH(Class)
 
 /**

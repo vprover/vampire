@@ -28,6 +28,7 @@
  * MonomFactor     ::= PolyNf int                   // the term of the factor, and its power
  */
 
+#include "Lib/Reflection.hpp"
 #include "Lib/STLAllocator.hpp"
 #include "Kernel/NumTraits.hpp"
 #include <cassert>
@@ -257,7 +258,31 @@ public:
   MAKE_DERIVABLE(MonomFactors, _inner)
     DERIVE_EQ
     DERIVE_CMP
+    // DERIVE_CMP_OPERATORS_FROM_LESS
     DERIVE_HASH
+
+  // friend bool operator<(MonomFactors const& l, MonomFactors const& r)
+  // {
+  //   if (l == r) return false;
+  //   auto li = l.iter();
+  //   auto ri = l.iter();
+  //   auto le = li.tryNext();
+  //   auto re = ri.tryNext();
+  //   while (le.isSome() && re.isSome()) {
+  //     if (le.unwrap() < re.unwrap()) {
+  //       return true;
+  //     } else if (re.unwrap() < le.unwrap()) {
+  //       return false;
+  //     }
+  //     ASS_EQ(le,re)
+  //     le = li.tryNext();
+  //     re = ri.tryNext();
+  //   }
+  //   if (le.isSome()) return false;
+  //   if (re.isSome()) return true;
+  //   ASS_EQ(l, r)
+  //   return false;
+  // }
 
   friend struct ImmediateSubterms;
 
@@ -353,30 +378,50 @@ public:
   // auto iter() const -> IterTraits<VirtualIterator<MonomFactor>>;
   // { return iterTraits(_factors.iter()); }
 
-  auto iter() const 
-  { 
-    // check whether the inner term is a singleton factor x * (x * x)
-    // in this case we generate a monomfactor x^3 instead of iterating over all individual x^1
-    bool isSingleton = false;
-    if (_inner.isTerm()) {
-      auto term = _inner.term();
-      if (term->functor() == Number::mulF()) {
-        auto t0 = term->termArg(0);
-        auto t1 = term->termArg(1);
-        if (t1 == t0) {
-          /* _inner = t^2 */ 
-          isSingleton = true;
-        } else if (t1.isTerm() && t1.term()->termArg(0) == t0) {
-          /* _inner = t^i with i > 2 */ 
-          isSingleton = true;
+  struct Iter {
+    Option<TermList> _rest;
+  public:
+    Iter(TermList self) 
+      : _rest(some(self))
+    {}
+
+    DECL_ELEMENT_TYPE(MonomFactor);
+
+    bool hasNext() const
+    { return  _rest.isSome(); }
+
+    OWN_ELEMENT_TYPE next() 
+    {
+      ASS(_rest.isSome())
+      TermList t = _rest.take().unwrap();
+      if (!theory->isInterpretedFunction(t, Number::mulI)) {
+        // singleton monom t^1
+        return MonomFactor::fromNormalized(t);
+      } else {
+        // multiplication lhs * rhs
+        TermList lhs = t.term()->termArg(0);
+        TermList rhs = t.term()->termArg(1);
+        if (theory->isInterpretedFunction(lhs, Number::mulI)) {
+          // (( x * x * ... ) * rhs)
+          //  ^^^^^^^^^^^^^^^ <- lhs
+          _rest = some(rhs);
+          return MonomFactor::fromNormalized(lhs);
+        } else if (rhs == lhs 
+            // t = (lhs * lhs)
+            || (theory->isInterpretedFunction(rhs, Number::mulI) && lhs == rhs.term()->termArg(0))) {
+            // t = (lhs * ( lhs * ... ))
+          return MonomFactor::fromNormalized(t);
+        } else {
+          // (lhs * rhs)
+          _rest = some(rhs);
+          return MonomFactor::fromNormalized(lhs);
         }
       }
     }
-    return iterTraits(ifElseIter(
-        isSingleton, [&] () { return getSingletonIterator(_inner); }
-                   , [&] () { return AcChainIter(_inner, Number::mulF()); }))
-       .map([](auto t) { return MonomFactor::fromNormalized(t); }); 
-  }
+  };
+
+  auto iter() const 
+  { return iterTraits(Iter(this->_inner)); }
 
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
 
@@ -1443,9 +1488,7 @@ MonomFactor<NumTraits> MonomFactor<NumTraits>::fromNormalized(TermList t)
     cnt = 1;
   }
   // TODO sorted assertions
-  return MonomFactor(inner.isVar() 
-      ? PolyNf(Variable(inner.var(), NumTraits::sort())) 
-      : PolyNf(FuncTerm(inner.term())), cnt);
+  return MonomFactor(PolyNf::fromNormalized(TypedTermList(inner, NumTraits::sort())), cnt);
 }
 
 

@@ -10,6 +10,7 @@
 
 
 #include "Kernel/Polynomial.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -81,17 +82,27 @@ namespace Kernel {
 
 FuncTerm::FuncTerm(Term* t) 
   : _self(t)
-{  }
+{  
+  forEachNumTraits([&](auto n) {
+      using Numeral = typename decltype(n)::ConstantType;
+      ASS_REP(!theory->isInterpretedFunction(t, n.addI), *t)
+      ASS_REP(!theory->isInterpretedFunction(t, n.minusI), *t)
+      ASS_REP(!theory->isInterpretedFunction(t, n.mulI), *t)
+      ASS_REP(n.tryNumeral(t).isNone() || n.tryNumeral(t).unwrap() == Numeral(1), *t)
+      // ASS(theory->interpretFunction())
+  });
+}
 
 FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
-  : _self(Term::create(f.id(), 
+  : FuncTerm(Term::create(f.id(), 
         concatIters(
           f.iterTypeArgs(),
           range(0, f.numTermArguments())
              .map([=](auto i) { return args[i].denormalize(); })
           ).collect <Stack>()
         ))
-{ }
+{ 
+}
 
 
 void FuncTerm::integrity() const
@@ -164,7 +175,10 @@ PolyNf PolyNf::fromNormalized(TypedTermList t)
     auto term = t.term();
     auto f = term->functor();
     auto poly = tryNumTraits([&](auto numTraits) {
-        return numTraits.addF() == f || numTraits.mulF() == f
+        using Numeral = typename decltype(numTraits)::ConstantType;
+        Numeral dummyRes;
+        return numTraits.addF() == f || numTraits.mulF() == f || numTraits.minusF() == f 
+             || (theory->tryInterpretConstant(term, dummyRes) && dummyRes != Numeral(1))
                 ? some(PolyNf(AnyPoly(Polynom<decltype(numTraits)>::fromNormalized(t))))
                 : none<PolyNf>();
         });

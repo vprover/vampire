@@ -191,13 +191,14 @@ struct Generalize
   {
     Stack<MonomFactor<NumTraits>> out;
     auto facIter = factors.iter();
+    
     auto rmIter = iterTraits(toRem.iter())
       .map([](auto x) { return x.template downcast<NumTraits>().unwrap(); });
     // unsigned rmI = 0;
     unsigned offs = 0;
 
     auto cur = facIter.tryNext();
-    auto rm = facIter.tryNext(); 
+    auto rm = rmIter.tryNext(); 
 
     auto push = [&]() { 
       out.push(MonomFactor<NumTraits>(evaluatedArgs[offs], cur.unwrap().power())); 

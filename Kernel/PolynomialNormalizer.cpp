@@ -495,12 +495,24 @@ PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
                               .map([&](auto i) { return MonomFactor<NumTraits>(facs[i].first, facs[i].second); })
                             )
                           ))));
+
               return some(out);
+            } else if (NumTraits::minusF() == f) {
+              return some(PolyNf(AnyPoly(Polynom<NumTraits>(Monom<NumTraits>(
+                          Numeral(-1), 
+                          MonomFactors<NumTraits>(ts[0])
+                          )))));
+            } else if (n.tryNumeral(term).isSome()) {
+              auto num = n.tryNumeral(term).unwrap();
+              return some(PolyNf(AnyPoly(Polynom<NumTraits>(Monom<NumTraits>(
+                          num, 
+                          MonomFactors<NumTraits>::one()
+                          )))));
             } else {
               return Option<PolyNf>();
             }
         });
-        return poly || PolyNf(FuncTerm(FuncId::symbolOf(t.term()), ts));
+        return poly || [&]() { return PolyNf(FuncTerm(FuncId::symbolOf(t.term()), ts)); };
       }
     }
   };

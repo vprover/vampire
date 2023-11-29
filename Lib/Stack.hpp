@@ -361,6 +361,37 @@ public:
     _cursor++;
   } // Stack::push()
 
+  template<class Equal = std::equal_to<C>>
+  void dedup(Equal eq = std::equal_to<C>{})
+  {
+    auto& self = *this;
+    if (self.size() == 0) return;
+    unsigned offs = 0;
+    for (unsigned i = 1;  i < self.size(); i++) {
+      if (eq(self[offs], self[i])) {
+        /* skip */
+      } else {
+        self[offs++ + 1] = std::move(self[i]);
+      }
+    }
+    self.pop(self.size() - (offs + 1));
+  }
+
+  /** like Stack::dedup but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this  */
+  template<class Equal = std::equal_to<C>>
+  Stack deduped(Equal eq = std::equal_to<C>{})
+  { dedup(); return std::move(*this); }
+
+  template<class Less = std::less<C>>
+  void sort(Less less = std::less<C>{})
+  { std::sort(begin(), end(), less); }
+
+  /** like Stack::sort but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this */
+  template<class Equal = std::equal_to<C>>
+  Stack sorted(Equal eq = std::equal_to<C>{})
+  { sort(); return std::move(*this); }
+
+
   /**
    * Pop the stack and return the popped element.
    * @since 11/03/2006 Bellevue
@@ -864,10 +895,6 @@ public:
       push(x);
     }
   }
-
-  template<class Less = std::less<C>>
-  void sort(Less less = std::less<C>{})
-  { std::sort(begin(), end(), less); }
 
   friend bool operator<(Stack const& l, Stack const& r) 
   {

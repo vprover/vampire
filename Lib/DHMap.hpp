@@ -369,7 +369,7 @@ public:
       e->_info.deleted=0;
       e->_key=key;
       e->_val.~Val();
-      new(&e->_val) Val();
+      ::new(&e->_val) Val();
       _size++;
     }
     pval=&e->_val;

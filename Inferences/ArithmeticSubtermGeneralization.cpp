@@ -78,7 +78,9 @@ static const auto iterPolynoms = [](Clause* cl) {
         .flatMap([](auto t) { 
           return t.iterSubterms()
                   .filterMap([](auto subterm) { return subterm.asFuncTerm(); })
-                  .flatMap([](auto subterm) { return ImmediateSubterms{}(subterm); });
+                  .flatMap([](auto subterm) { 
+                      DBG("checking immediate subterms of ", subterm);
+                      return ImmediateSubterms{}(subterm); });
         })
       )
       .filterMap([](auto t) { return t.wrapAnyPoly(); })

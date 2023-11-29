@@ -16,6 +16,7 @@
 
 
 #include "Lib/List.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
@@ -51,10 +52,13 @@ SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
   return SATClause::fromStack(lits);
 }
 
-std::ostream& printOp(std::ostream& out, const Term* t, const char* op) {
+std::ostream& printOp(std::ostream& out, const Term* t, const char* op, bool par = true) {
   auto l = *t->nthArgument(0);
   auto r = *t->nthArgument(1);
-  return out << "(" << pretty(l) << " " << op << " " << pretty(r) << ")";
+  if (par) out << "(";
+  out << pretty(l) << " " << op << " " << pretty(r);
+  if (par) out << ")";
+  return out;
 }
 
 template<>
@@ -68,25 +72,31 @@ std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
   } else {
     auto term = t.term();
     auto func = term->functor();
-    if (theory->isInterpretedFunction(func)) {
-      switch(theory->interpretFunction(func)) {
+    Signature::Symbol* sym;
+    if (term->isSort()) {
+      sym = env.signature->getTypeCon(func);
+    } else {
+      if (theory->isInterpretedFunction(func)) {
+        switch(theory->interpretFunction(func)) {
 #define NUM_CASE(oper) \
-        case Kernel::Theory::INT_  ## oper: \
-        case Kernel::Theory::REAL_ ## oper: \
-        case Kernel::Theory::RAT_  ## oper
+          case Kernel::Theory::INT_  ## oper: \
+          case Kernel::Theory::REAL_ ## oper: \
+          case Kernel::Theory::RAT_  ## oper
 
-        NUM_CASE(PLUS):     
-          return printOp(out, term, "+");
-        NUM_CASE(MULTIPLY):
-          return printOp(out, term, "*");
-        // case Kernel::Theory::EQUAL:
-        //   return printOp("=")
-        default: {}
+          NUM_CASE(PLUS):     
+            return printOp(out, term, "+");
+          NUM_CASE(MULTIPLY):
+            return printOp(out, term, "*");
+          // case Kernel::Theory::EQUAL:
+          //   return printOp("=")
+          default: {}
 #undef NUM_CASE
+        }
       }
+      sym = env.signature->getFunction(func);
     }
 
-    Signature::Symbol* sym = env.signature->getFunction(func);
+
     out << sym->name();
     if (sym->arity() > 0) {
       out << "(" << pretty(*term->nthArgument(0));
@@ -107,15 +117,20 @@ std::ostream& Pretty<Literal*>::prettyPrint(std::ostream& out) const
 template<>
 std::ostream& Pretty<Clause>::prettyPrint(std::ostream& out) const
 { 
+  if (_self.isEmpty()) {
+    return out << "_|_";
+  }
   auto iter = _self.iterLits();
+    out << "{ ";
   if (iter.hasNext()) {
     out << pretty(*iter.next());
     while(iter.hasNext()) {
-      out << " \\/ " << pretty(*iter.next());
+      out << " | " << pretty(*iter.next());
     }
   } else {
-    out << "bot";
+    // out << "[]";
   }
+    out << " }";
   return out;
 }
 
@@ -133,10 +148,14 @@ std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
         case Kernel::Theory::REAL_ ## oper: \
         case Kernel::Theory::RAT_  ## oper
 
+        NUM_CASE(GREATER):
+          return printOp(out, &lit, ">", /* par = */ false);
+        NUM_CASE(GREATER_EQUAL):
+          return printOp(out, &lit, ">=", /* par = */ false);
         NUM_CASE(LESS_EQUAL):
-          return printOp(out, &lit, "<=");
+          return printOp(out, &lit, "<=", /* par = */ false);
         case Kernel::Theory::EQUAL:
-          return printOp(out, &lit, "=");
+          return printOp(out, &lit, "=", /* par = */ false);
         default: 
         {
         }
@@ -172,6 +191,8 @@ bool TestUtils::isAC(Term* t)
   auto f = t->functor();
   if (t->isLiteral()) {
     return theory->isInterpretedPredicate(f) && isAC(theory->interpretPredicate(f));
+  } else if (t->isSort()) {
+    return false;
   } else {
     return theory->isInterpretedFunction(f) && isAC(theory->interpretFunction(f));
   }
@@ -195,14 +216,19 @@ bool TestUtils::isAC(Theory::Interpretation i)
   }
 }
 
+// bool TestUtils::eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
+// { 
+//   RectMap map;
+//   return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) -> bool { return TestUtils::eqModACVar(l, r, map); }); 
+// }
+
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
 { return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
 
 bool TestUtils::eqModAC(Kernel::Literal* lhs, Kernel::Literal* rhs)
-{ return TestUtils::eqModAC(TermList(lhs), TermList(rhs)); }
+{ return lhs->isPositive() == rhs->isPositive() 
+      && TestUtils::eqModAC(TermList(lhs), TermList(rhs)); }
 
-// bool TestUtils::eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& map)
-// { return TestUtils::eqModACVar(TermList(lhs), TermList(rhs), map); }
 
 void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
   ASS_EQ(t->functor(), functor);
@@ -270,5 +296,82 @@ bool TestUtils::eqModAC(TermList lhs, TermList rhs)
 
   return eqModAC_(lhs, rhs, c);
 }
+
+struct AcRectComp {
+  Stack<TermList> const& vl;
+  Stack<TermList> const& vr;
+  DArray<unsigned>& perm;
+
+  bool var(unsigned lhs, unsigned rhs) const 
+  { 
+    auto l = iterTraits(getRangeIterator<unsigned>(0, vl.size()))
+              .find([&](auto i) { return vl[i].var() == lhs; })
+              .unwrap();
+    auto r = iterTraits(getRangeIterator<unsigned>(0, vr.size()))
+              .find([&](auto i) { return vr[perm[i]].var() == rhs; })
+              .unwrap();
+    return l == r;
+  }
+
+  bool subterm(TermList lhs, TermList rhs) const 
+  { return TestUtils::eqModAC_(lhs, rhs, *this); }
+};
+
+bool TestUtils::eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs)
+{ 
+  auto vl = iterTraits(vi(new VariableIterator(lhs))).collect<Stack>();
+  vl.sort();
+  vl.dedup();
+  auto vr = iterTraits(vi(new VariableIterator(lhs))).collect<Stack>();
+  vr.sort();
+  vr.dedup();
+
+  if (vl.size() != vr.size()) return false;
+
+  return anyPerm(vl.size(), [&](DArray<unsigned> perm) {
+    AcRectComp c {vl, vr, perm};
+    return eqModAC_(lhs, rhs, c);
+  });
+}
+
+
+template<class Lits>
+bool TestUtils::_eqModACRect(Lits const& lhs, Lits const& rhs)
+{ 
+  auto vars = [](Lits const& lits) {
+    auto vs = iterTraits(getRangeIterator(0u, (unsigned) lits.size()))
+      .map([&](auto i) { return lits[i]; })
+      .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
+      .template collect<Stack>();
+    vs.sort();
+    vs.dedup();
+    return vs;
+  };
+  auto vl = vars(lhs);
+  auto vr = vars(rhs);
+
+  if (vl.size() != vr.size()) return false;
+
+  return anyPerm(vl.size(), [&](auto& perm) {
+     AcRectComp c {vl, vr, perm};
+      return permEq(lhs, rhs, [&](Literal* l, Literal* r) {
+        return l->isPositive() == r->isPositive() 
+            && eqModAC_(TermList(l), TermList(r), c); 
+      });
+  });
+}
+
+
+bool TestUtils::eqModACRect(const Clause* lhs, const Clause* rhs)
+{ return _eqModACRect(*lhs, *rhs); }
+
+bool TestUtils::eqModACRect(Stack<Literal*> const& lhs, Stack<Literal*> const& rhs)
+{ return _eqModACRect(lhs, rhs); }
+
+
+bool TestUtils::eqModACRect(Literal* lhs, Literal* rhs)
+{ return lhs->isPositive() == rhs->isPositive() 
+      && TestUtils::eqModACRect(TermList(lhs), TermList(rhs)); }
+
 
 } // namespace Test
