@@ -85,6 +85,26 @@ namespace Shell {
  */
 class TimeTrace
 {
+public:
+  // Let's fake a big enum like the one we used to have using a bunch of constexpr's
+  // (NB: TimeTrace can only group TIME_TRACE calls with identical identifiers as pointers
+  //  so always going through one place to declare a TIME_TRACE-able call site sounds like a nice routine)
+  // Also: don't forget to add definition to the cpp file (until we swith to C++17)
+  static constexpr const char* const CLAUSE_GENERATION = "clause generation";
+  static constexpr const char* const CONSEQUENCE_FINDING = "consequence finding";
+  static constexpr const char* const FMB_DEFINITION_INTRODUCTION = "fmb definition introduction";
+  static constexpr const char* const HYPER_SUP = "hyper superposition";
+  static constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
+  static constexpr const char* const PARSING = "parsing";
+  static constexpr const char* const PASSIVE_CONTAINER_MAINTENANCE = "passive container maintenance";
+  static constexpr const char* const PREPROCESSING = "preprocessing";
+  static constexpr const char* const PROPERTY_EVALUATION = "property evaluation";
+  static constexpr const char* const AVATAR_SAT_SOLVER = "SAT solver";
+  static constexpr const char* const SHUFFLING = "shuffling things";
+  static constexpr const char* const SINE_SELECTION = "sine selection";
+  static constexpr const char* const TERM_SHARING = "term sharing";
+  
+private:
   using Clock = std::chrono::steady_clock;
   using Duration = typename Clock::duration;
   using TimePoint = typename Clock::time_point;
@@ -128,7 +148,12 @@ class TimeTrace
     void serialize(std::ostream& out);
     Duration totalDuration() const;
 
+    Node clone() const;
+
     Node flatten();
+    void _focus(const char* name, Node& newRoot);
+    Node focus(const char* name);
+    void extendWith(Node const& n);
     struct FlattenState;
     void flatten_(FlattenState&);
   };
@@ -164,12 +189,6 @@ public:
   void printPretty(std::ostream& out);
   void serialize(std::ostream& out);
   void setEnabled(bool);
-
-  struct Groups {
-    static const char* PREPROCESSING;
-    static const char* PARSING;
-    static const char* LITERAL_ORDER_AFTERCHECK;
-  };
 private:
 
   Node _root;

@@ -12,17 +12,6 @@
 #include <climits>
 
 //////////////////////////////////////////////////////
-// Detect compiler
-
-#ifndef __APPLE__
-# define __APPLE__ 0
-#endif
-
-#ifndef __CYGWIN__
-# define __CYGWIN__ 0
-#endif
-
-//////////////////////////////////////////////////////
 // architecture sanity check
 
 static_assert(

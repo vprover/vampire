@@ -90,6 +90,7 @@ private:
 
   struct ProofPrinter;
   struct TPTPProofPrinter;
+  struct Smt2ProofCheckPrinter;
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
 

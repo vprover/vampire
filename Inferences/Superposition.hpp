@@ -20,6 +20,7 @@
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
 
@@ -34,6 +35,7 @@ public:
   CLASS_NAME(Superposition);
   USE_ALLOCATOR(Superposition);
 
+
   void attach(SaturationAlgorithm* salg);
   void detach();
 
@@ -41,11 +43,11 @@ public:
 
 
 private:
+
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-          UnificationConstraintStackSP constraints, bool isTypeSub);
+    AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
@@ -53,10 +55,15 @@ private:
       ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
+  { 
+    _lhsIndex = static_cast<decltype(_lhsIndex)>(is[0]);
+    _subtermIndex = static_cast<decltype(_subtermIndex)>(is[1]);
+  }
+#endif
 
   struct ForwardResultFn;
-  struct RewriteableSubtermsFn;
-  struct ApplicableRewritesFn;
 
   struct LHSsFn;
   struct RewritableResultsFn;

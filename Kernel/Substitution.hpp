@@ -41,7 +41,6 @@ class Substitution
 public:
   CLASS_NAME(Substitution);
   USE_ALLOCATOR(Substitution);
-  DECLARE_PLACEMENT_NEW;
 
   Substitution() {}
 
@@ -62,6 +61,7 @@ public:
 
 #if VDEBUG
   vstring toString() const;
+  unsigned size() const { return _map.size(); }
 #endif
   friend std::ostream& operator<<(std::ostream& out, Substitution const&);
 private:

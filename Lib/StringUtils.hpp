@@ -53,7 +53,19 @@ template<> struct StringParser<float>
   { return atof(str.c_str()); }
 };
 
+template<class C>
+vstring outputToString(C const& x) {
+  vstringstream out;
+  out << x;
+  return out.str();
+}
 
+template<class A>
+vstring toString(A const& a) {
+  vstringstream out;
+  out << a;
+  return out.str();
+}
 
 }
 

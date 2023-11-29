@@ -79,7 +79,7 @@ struct NumTraits;
 #define IMPL_NUM_TRAITS__ARG_DECL(Type, arity) IMPL_NUM_TRAITS__ARG_DECL_ ## arity (Type)
 #define IMPL_NUM_TRAITS__ARG_EXPR(arity) IMPL_NUM_TRAITS__ARG_DECL_ ## arity ()
 
-#define IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION)                      \
+#define IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, Name, SORT_SHORT, _INTERPRETATION)                \
     static constexpr Theory::Interpretation name ## I = Theory::SORT_SHORT ## _INTERPRETATION;      \
                                                                                                     \
     static unsigned name ## F() {                                                                   \
@@ -88,8 +88,11 @@ struct NumTraits;
     }                                                                                               \
 
 
-#define IMPL_NUM_TRAITS__INTERPRETED_PRED(name, SORT_SHORT, _INTERPRETATION, arity)                 \
-    IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION)                          \
+#define IMPL_NUM_TRAITS__INTERPRETED_PRED(name, Name, SORT_SHORT, _INTERPRETATION, arity)           \
+    IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, Name, SORT_SHORT, _INTERPRETATION)                    \
+                                                                                                    \
+    static bool is ## Name(unsigned f)                                                              \
+    { return theory->isInterpretedPredicate(f, name ## I); }                                        \
                                                                                                     \
     static Literal* name(bool polarity, IMPL_NUM_TRAITS__ARG_DECL(TermList, arity)) {               \
       return Literal::create(                                                                       \
@@ -100,8 +103,11 @@ struct NumTraits;
 
 
 
-#define IMPL_NUM_TRAITS__INTERPRETED_FUN(name, SORT_SHORT, _INTERPRETATION, arity)                  \
-    IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, SORT_SHORT, _INTERPRETATION)                          \
+#define IMPL_NUM_TRAITS__INTERPRETED_FUN(name, Name, SORT_SHORT, _INTERPRETATION, arity)            \
+    IMPL_NUM_TRAITS__INTERPRETED_SYMBOL(name, Name, SORT_SHORT, _INTERPRETATION)                    \
+                                                                                                    \
+    static bool is ## Name(unsigned f)                                                              \
+    { return theory->isInterpretedFunction(f, name ## I); }                                         \
                                                                                                     \
     static TermList name(IMPL_NUM_TRAITS__ARG_DECL(TermList, arity)) {                              \
       return TermList(                                                                              \
@@ -110,7 +116,7 @@ struct NumTraits;
             { IMPL_NUM_TRAITS__ARG_EXPR(arity) }));                                                 \
     }                                                                                               \
 
-#define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, value, isName)                                      \
+#define IMPL_NUM_TRAITS__SPECIAL_CONSTANT(name, Name, value)                                        \
     static ConstantType name ## C() {                                                               \
       return ConstantType(value);                                                                   \
     }                                                                                               \
@@ -125,12 +131,12 @@ struct NumTraits;
     static TermList name()                                                                          \
     { return TermList(name ## T()); }                                                               \
                                                                                                     \
-    static bool isName(const TermList& l)                                                           \
+    static bool is ## Name(const TermList& l)                                                       \
     { return l == name(); }                                                                         \
 
 #define IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, X)                                               \
-    IMPL_NUM_TRAITS__INTERPRETED_FUN( quotient ## X, SHORT,  _QUOTIENT_ ## X, 2)                    \
-    IMPL_NUM_TRAITS__INTERPRETED_FUN(remainder ## X, SHORT, _REMAINDER_ ## X, 2)                    \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN( quotient ## X,  Quotient ## X, SHORT,  _QUOTIENT_ ## X, 2)    \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(remainder ## X, Remainder ## X, SHORT, _REMAINDER_ ## X, 2)    \
     
 
 #define IMPL_NUM_TRAITS(CamelCase, lowerCase, LONG, SHORT)                                          \
@@ -151,7 +157,7 @@ struct NumTraits;
                                                                                                     \
     static TermList mulSimpl(ConstantType c, TermList t)                                            \
     { return c == ConstantType(1) ? t                                                               \
-           : c == ConstantType(-1) ? minus(t)                                                       \
+           : c == ConstantType(-1) ? (t == zero() ? t : minus(t))                                   \
            : t == zero() ? zero()                                                                   \
            : t == one() ? constantTl(c)                                                             \
            : NumTraits::mul(constantTl(c), t); }                                                    \
@@ -182,27 +188,27 @@ struct NumTraits;
       }                                                                                             \
     };                                                                                              \
                                                                                                     \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    SHORT, _LESS,          2)                            \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     SHORT, _LESS_EQUAL,    2)                            \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(greater, SHORT, _GREATER,       2)                            \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(geq,     SHORT, _GREATER_EQUAL, 2)                            \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    Less,    SHORT, _LESS,          2)                   \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     Leq,     SHORT, _LESS_EQUAL,    2)                   \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(greater, Greater, SHORT, _GREATER,       2)                   \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(geq,     Geq,     SHORT, _GREATER_EQUAL, 2)                   \
                                                                                                     \
     static Literal* eq(bool polarity, TermList lhs, TermList rhs)                                   \
     { return Literal::createEquality(polarity, lhs, rhs, sort()); }                                 \
                                                                                                     \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(isInt,   SHORT, _IS_INT       , 1)                            \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(isRat,   SHORT, _IS_RAT       , 1)                            \
-    IMPL_NUM_TRAITS__INTERPRETED_PRED(isReal,  SHORT, _IS_REAL      , 1)                            \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(isInt,   IsInt,   SHORT, _IS_INT       , 1)                   \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(isRat,   IsRat,   SHORT, _IS_RAT       , 1)                   \
+    IMPL_NUM_TRAITS__INTERPRETED_PRED(isReal,  IsReal,  SHORT, _IS_REAL      , 1)                   \
                                                                                                     \
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, E)                                                   \
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, T)                                                   \
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, F)                                                   \
                                                                                                     \
-    IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, SHORT, _UNARY_MINUS, 1)                                 \
-    IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , SHORT, _PLUS       , 2)                                 \
-    IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , SHORT, _MULTIPLY   , 2)                                 \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, Minus, SHORT, _UNARY_MINUS, 1)                          \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , Add  , SHORT, _PLUS       , 2)                          \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , Mul  , SHORT, _MULTIPLY   , 2)                          \
     __NUM_TRAITS_IF_FRAC(SHORT,                                                                     \
-        IMPL_NUM_TRAITS__INTERPRETED_FUN(div, SHORT, _QUOTIENT, 2)                                  \
+        IMPL_NUM_TRAITS__INTERPRETED_FUN(div, Div, SHORT, _QUOTIENT, 2)                             \
         static ConstantType constant(int num, int den) { return ConstantType(num, den); }           \
         static Term* constantT(int num, int den) { return theory->representConstant(constant(num, den)); }    \
         static TermList constantTl(int num, int den) { return TermList(constantT(num, den)); }      \
@@ -213,8 +219,8 @@ struct NumTraits;
         static bool isFractional() { return false; }                                                \
     )                                                                                               \
                                                                                                     \
-    IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , 1, isOne )                                              \
-    IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, 0, isZero)                                              \
+    IMPL_NUM_TRAITS__SPECIAL_CONSTANT(one , One , 1)                                                \
+    IMPL_NUM_TRAITS__SPECIAL_CONSTANT(zero, Zero, 0)                                                \
                                                                                                     \
                                                                                                     \
     static ConstantType constant(int i) { return ConstantType(i); }                                 \
@@ -222,7 +228,8 @@ struct NumTraits;
     static Term* constantT(ConstantType i) { return theory->representConstant(i); }                 \
     static TermList constantTl(int i) { return TermList(constantT(i)); }                            \
     static TermList constantTl(ConstantType i) { return TermList(constantT(i)); }                   \
-    static Option<ConstantType> tryNumeral(TermList t) {                                            \
+    template<class TermOrFunctor>                                                                   \
+    static Option<ConstantType> tryNumeral(TermOrFunctor t) {                                       \
       ConstantType out;                                                                             \
       if (theory->tryInterpretConstant(t,out)) {                                                    \
         return Option<ConstantType>(out);                                                           \
@@ -230,9 +237,9 @@ struct NumTraits;
         return Option<ConstantType>();                                                              \
       }                                                                                             \
     }                                                                                               \
-    static Option<ConstantType> tryNumeral(Term* t) { return tryNumeral(TermList(t)); }             \
-    static bool isNumeral(Term*    t) { return tryNumeral(t).isSome(); }                            \
-    static bool isNumeral(TermList t) { return tryNumeral(t).isSome(); }                            \
+    template<class TermOrFunctor>                                                                   \
+    static bool isNumeral(TermOrFunctor t) { return tryNumeral(t).isSome(); }                       \
+    static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }                    \
                                                                                                     \
     static const char* name() {return #CamelCase;}                                                  \
   };                                                                                                \

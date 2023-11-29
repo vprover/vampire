@@ -143,8 +143,8 @@ vstring OperatorType::argsToString() const
 {
   CALL("OperatorType::argsToString");
 
-  vstring res = "(";
   unsigned ar = arity();
+  vstring res = ar != 1 ? "(" : "";
   ASS(ar);
   for (unsigned i = _typeArgsArity; i < ar; i++) {
     res += arg(i).toString();
@@ -152,7 +152,8 @@ vstring OperatorType::argsToString() const
       res += " * ";
     }
   }
-  res += ')';
+  if (ar != 1)
+    res += ')';
   return res;
 } // OperatorType::argsToString()
 

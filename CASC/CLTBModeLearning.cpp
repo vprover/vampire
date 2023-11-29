@@ -276,7 +276,7 @@ void CLTBModeLearning::loadIncludes()
 
   UnitList* theoryAxioms=0;
   {
-    TIME_TRACE(TimeTrace::Groups::PARSING);
+    TIME_TRACE(TimeTrace::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     StringList::Iterator iit(_theoryIncludes);
@@ -834,7 +834,7 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   // this local scope will delete a potentially large parser
   {
-    TIME_TRACE(TimeTrace::Groups::PARSING);
+    TIME_TRACE(TimeTrace::PARSING);
     env.statistics->phase=Statistics::PARSING;
 
     ifstream inp(problemFile.c_str());
@@ -857,7 +857,7 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
 
   Shell::Property* property = prb.getProperty();
   if (property->atoms()<=1000000) {
-    TIME_TRACE(TimeTrace::Groups::PREPROCESSING);
+    TIME_TRACE(TimeTrace::PREPROCESSING);
     env.statistics->phase=Statistics::NORMALIZATION;
     Normalisation norm;
     norm.normalise(prb);
@@ -1071,6 +1071,7 @@ void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMillis
     if(parent->probRecords.find(env.options->problemName(),rec)){
       if(rec->suc.contains(sliceCode) || rec->fail.contains(sliceCode)){
         CLTBModeLearning::coutLineOutput() << " GaveUp as tried before (in learning)" << endl;
+        STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
         exit(1); // GaveUp
       }
       rec->fail.insert(sliceCode); // insert this here in child in case the same slice is in the schedule multiple times
@@ -1172,6 +1173,7 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
   parent->stratSem.incp(0);
   CLTBModeLearning::lineOutput() << "sent" << endl;
 
+  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
   exit(resultValue);
 } // CLTBProblemLearning::runSlice
 

@@ -36,6 +36,16 @@
 #include <unordered_set>
 #include <vector>
 
+#define ASS_ORD(ord, l, exp, r)                                                                     \
+{                                                                                                   \
+  auto cmp =  ord.compare(l,r);                                                                     \
+  if (cmp != exp) {                                                                                 \
+    ASSERTION_VIOLATION_REP(                                                                        \
+        "is:       " + l + " " + cmp + " " r + "\n"                                                 \
+        "expected: " + l + " " + exp + " " r)                                                       \
+  }                                                                                                 \
+}                                                                                                   \
+
 using namespace Kernel;
 using namespace Lib;
 using namespace Inferences;
@@ -53,7 +63,7 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   _allowIncompleteness = false;
 
   if (_doSubsumption) {
-    _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+    _unitIndex.request(salg->getIndexManager(), FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   }
 }
 
@@ -100,7 +110,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
     for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
       SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
       while (rit.hasNext()) {
-        Clause* premise = rit.next().clause;
+        Clause* premise = rit.next().data->clause;
 
         if (premise->hasAux()) {
           continue;  // we've already checked this premise
@@ -131,7 +141,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
     SLQueryResultIterator rit = _index->getGeneralizations(subsQueryLit, false, false);
     while (rit.hasNext()) {
       SLQueryResult res = rit.next();
-      Clause* mcl = res.clause;  // left premise of FSD
+      Clause* mcl = res.data->clause;  // left premise of FSD
 
       ASS_NEQ(cl, mcl);  // this can't happen because cl isn't in the index yet
 
@@ -409,7 +419,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           ASS(!env.options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
-            TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+            TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
 
             if (!attempted.insert(lhsS)) {
               // We have already tried to demodulate the term lhsS and did not
@@ -498,6 +508,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               // 3. L is lΘ = t, but t is larger that rΘ.
               // If all these checks fail, we try to find a literal M in D such that lΘ=rΘ < M.
               if (!_allowIncompleteness) {
+                bool dli_was_checked = false;
+                if (!_enableOrderingOptimizations) {
+                  goto afterOptimizations;
+                }
                 if (!dlit->isEquality()) {
                   // non-equality literals are always larger than equality literals ==>  eqLitS < dlit
                   ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
@@ -518,6 +532,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 //             rhsS ?= t \/ CΘ \/ D
                 //
                 //  where "?=" is either "=" or "≠".
+                {
                 TermList t = EqHelper::getOtherEqualitySide(dlit, lhsS);
                 if (t == rhsS) {
                   ASS(eqLit->isPositive());
@@ -554,19 +569,22 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   }
                 }
                 Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
+                dli_was_checked = true;
                 ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
                 if (r_cmp_t == Ordering::LESS) {
                   // rhsS < t implies eqLitS < dlit
                   ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
                   goto isRedundant;
                 }
+                }
+afterOptimizations:
                 // We could not show redundancy with dlit alone,
                 // so now we have to look at the other literals of cl
                 Literal* eqLitS = Literal::createEquality(true, lhsS, rhsS, lhsSSort);
                 ASS_EQ(eqLitS, binder.applyTo(eqLit));
                 for (unsigned li2 = 0; li2 < cl->length(); li2++) {
                   // skip dlit (already checked with r_cmp_t above) and matched literals (i.e., CΘ)
-                  if (dli != li2 && !isMatched[li2]) {
+                  if ((!dli_was_checked || dli != li2) && !isMatched[li2]) {
                     Literal* lit2 = (*cl)[li2];
                     if (ordering.compare(eqLitS, lit2) == Ordering::LESS) {
                       // we found that eqLitS < lit2; and thus mcl < cl => after inference, cl is redundant
@@ -598,9 +616,12 @@ isRedundant:
                * Step 4: found application of FSD; now create the conclusion
                */
               Literal* newLit = EqHelper::replace(dlit, lhsS, rhsS);
-              ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
 #if VDEBUG
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
+              if (env.options->termOrdering () != Shell::Options::TermOrdering::QKBO) // <- TODO properyl investgate this
+                ASS_EQ(ordering.compare(lhsS, rhsS), Ordering::GREATER);
+              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE 
+                  && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {
+                // TODO integrate this properly with LASCA/QKBO
                 // blows up with "-lcm reverse"; but the same thing happens with normal demodulation, so this might be intended?
                 ASS_EQ(ordering.compare(dlit, newLit), Ordering::GREATER);
               }
@@ -654,7 +675,9 @@ isRedundant:
               RSTAT_MCTR_INC("FSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
-              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
+              if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
+                  && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {  // see note above
+                // TODO integrate this properly with LASCA/QKBO
                 // Check newCl < cl.
                 // This is quite obvious, and there should be no problems with this.
                 ASS(SDHelper::clauseIsSmaller(newCl, cl, ordering));

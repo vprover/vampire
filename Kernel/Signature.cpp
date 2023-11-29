@@ -17,6 +17,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Debug/Tracer.hpp"
 
 #include "Signature.hpp"
 
@@ -31,8 +32,7 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * @since 03/05/2013 train London-Manchester, argument numericConstant added
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool stringConstant,bool numericConstant,
-                          bool overflownConstant)
+Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, bool preventQuoting, bool overflownConstant, bool super)
   : _name(nm),
     _arity(arity),
     _typeArgsArity(0),
@@ -46,9 +46,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _skip(0),
     _label(0),
     _equalityProxy(0),
+    _wasFlipped(0),
     _color(COLOR_TRANSPARENT),
-    _stringConstant(stringConstant ? 1: 0),
-    _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
     _overflownConstant(overflownConstant ? 1 : 0),
     _termAlgebraCons(0),
@@ -62,10 +61,8 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _comb(NOT_COMB)
 {
   CALL("Signature::Symbol::Symbol");
-  ASS(!stringConstant || arity==0);
 
-  if (!stringConstant && !numericConstant && !overflownConstant &&
-       symbolNeedsQuoting(_name, interpreted,arity)) {
+  if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -97,6 +94,16 @@ void Signature::Symbol::destroyFnSymbol()
   }
 }
 
+const unsigned Signature::functionArity(int number)
+{
+  CALL("Signature::functionArity");
+  return _funs[number]->arity();
+}
+const unsigned Signature::predicateArity(int number)
+{
+  CALL("Signature::predicateArity");
+  return _preds[number]->arity();
+}
 /**
  * Deallocate predicate Symbol object
  */
@@ -310,7 +317,13 @@ unsigned Signature::addIntegerConstant(const vstring& number,bool defaultSort)
   }
 
   result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
+  Symbol* sym = new Symbol(name,
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ true, 
+        /* overflownConstant */ false, 
+        /*             super */ false);
+ 
   /*
   sym->addToDistinctGroup(INTEGER_DISTINCT_GROUP,result);
   if(defaultSort){ 
@@ -368,7 +381,12 @@ unsigned Signature::addRationalConstant(const vstring& numerator, const vstring&
     return result;
   }
   result = _funs.length();
-  Symbol* sym = new Symbol(name,0,false,false,true);
+  Symbol* sym = new Symbol(name,
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ true, 
+        /* overflownConstant */ false, 
+        /*             super */ false);
   /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
@@ -416,7 +434,12 @@ unsigned Signature::addRealConstant(const vstring& number,bool defaultSort)
     return result;
   }
   result = _funs.length();
-  Symbol* sym = new Symbol(value.toNiceString(),0,false,false,true);
+  Symbol* sym = new Symbol(value.toNiceString(),
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ true, 
+        /* overflownConstant */ false, 
+        /*             super */ false);
   /*
   if(defaultSort){ 
     sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result); // numbers are distinct from strings
@@ -690,7 +713,12 @@ unsigned Signature::addFunction (const vstring& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, arity, false, false, false, overflowConstant));
+  bool super = (name == "$tType");
+  _funs.push(new Symbol(name, arity, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ overflowConstant || super, 
+                                overflowConstant, 
+                                super));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -714,7 +742,12 @@ unsigned Signature::addStringConstant(const vstring& name)
   _strings++;
   vstring quotedName = "\"" + name + "\"";
   result = _funs.length();
-  Symbol* sym = new Symbol(quotedName,0,false,true);
+  Symbol* sym = new Symbol(quotedName,
+        /*             arity */ 0, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ true, 
+        /* overflownConstant */ false, 
+        /*             super */ false);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
@@ -833,7 +866,7 @@ unsigned Signature::addTypeCon (const vstring& name,
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  _typeCons.push(new Symbol(name,arity));
+  _typeCons.push(new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* overflownConstant */ false, /* super */ false));
   _typeConNames.insert(symbolKey,result);
   added = true;
   return result;
@@ -879,7 +912,11 @@ unsigned Signature::addPredicate (const vstring& name,
   }
 
   result = _preds.length();
-  _preds.push(new Symbol(name,arity));
+  _preds.push(new Symbol(name, arity, 
+        /*       interpreted */ false, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false));
   _predNames.insert(symbolKey,result);
   added = true;
   return result;

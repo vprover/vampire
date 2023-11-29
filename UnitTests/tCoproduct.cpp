@@ -112,6 +112,20 @@ TEST_FUN(examples__compare) {
 }
 
 
+
+// TEST_FUN(examples__zip_variants) {
+//   // Coproducts are orderd first by tag, then by value.
+//   using Co = Coproduct<int, double>;
+//   std::tuple<int&&> x = std::make_tuple<int&&>(1);
+//
+//   ASS(Co(1).zipVariant(Co(1.0)).isNone())
+//   ASS(Co(1.0).zipVariant(Co(1)).isNone())
+//   // ASS(Co(2) < Co(1.0))
+//   // ASS(Co(2) < Co(3))
+//   // ASS(Co(1.0) < Co(2.0))
+// }
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // MISC TESTS
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -168,13 +182,12 @@ TEST_FUN(move_01) {
   ASS((y != Coproduct<int,NonCopy>::variant<0>(0)));
 }
 
-// TEST_FUN(move_02) {
-//
-//   auto x = Coproduct<int, NonCopy>::variant<1>(NonCopy( true ));
-//
-//   auto y = x;
-//
-//   ASS(!x.unwrap<NonCopy>().wasMoved)
-//   ASS(!y.unwrap<NonCopy>().wasMoved)
-//
-// }
+
+TEST_FUN(constness_bug_01) {
+  struct Inner 
+  { void mutate() {} };
+
+  auto co = Lib::Coproduct<Inner>(Inner{});
+  // did not compile due to bug
+  co.apply([&](auto& inner) { inner.mutate(); });
+}

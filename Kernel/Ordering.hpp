@@ -24,10 +24,18 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
+#include "Kernel/Term.hpp"
 
 #include "Lib/Allocator.hpp"
 
 namespace Kernel {
+
+
+namespace PredLevels {
+  constexpr static int MIN_USER_DEF = 1; // equality has level 0, inequalities have level 1
+  constexpr static int EQ = 0;
+  constexpr static int INEQ = 0;
+};
 
 using namespace Shell;
 
@@ -57,7 +65,23 @@ public:
     INCOMPARABLE=6
   };
 
+  friend ostream& operator<<(ostream& out, Kernel::Ordering::Result const& r)
+  {
+    switch (r) {
+      case Kernel::Ordering::Result::GREATER: return out << "GREATER";
+      case Kernel::Ordering::Result::LESS: return out << "LESS";
+      case Kernel::Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
+      case Kernel::Ordering::Result::LESS_EQ: return out << "LESS_EQ";
+      case Kernel::Ordering::Result::EQUAL: return out << "EQUAL";
+      case Kernel::Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
+    }
+    ASSERTION_VIOLATION
+    return out << "UNKNOWN";
+  }
+
   Ordering();
+  Ordering(Ordering&&) = default;
+  Ordering& operator=(Ordering&&) = default;
   virtual ~Ordering();
 
   /** Return the result of comparing @b l1 and @b l2 */
@@ -108,12 +132,79 @@ protected:
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 private:
+
+  // enum ArgumentOrderVals {
+  //   /**
+  //    * Values representing order of arguments in equality,
+  //    * to be stores in the term sharing structure.
+  //    *
+  //    * The important thing is that the UNKNOWN value is
+  //    * equal to 0, as this will be the default value inside
+  //    * the term objects
+  //    *
+  //    * Values of elements must be equal to values of corresponding elements
+  //    * in the @c Result enum, so that one can convert between the
+  //    * enums using static_cast.
+  //    */
+  //   AO_UNKNOWN=0,
+  //   AO_GREATER=1,
+  //   AO_LESS=2,
+  //   AO_GREATER_EQ=3,
+  //   AO_LESS_EQ=4,
+  //   AO_EQUAL=5,
+  //   AO_INCOMPARABLE=6
+  // };
+
+
+  class EqCmp
+  {
+  public:
+    CLASS_NAME(EqCmp);
+    USE_ALLOCATOR(EqCmp);
+
+#define BUF_SIZE 128
+
+    EqCmp()
+    {
+#if VDEBUG
+    inUse=false;
+#endif
+    }
+
+    Result compareEqualities(Ordering const& ord, Literal* eq1, Literal* eq2) const;
+
+
+#if VDEBUG
+    mutable bool inUse;
+#endif
+
+  private:
+
+    Result compare_s1Gt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1It1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s2Lt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s2LEt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s1It2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s1GEt2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s1GEt2_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s1GEt2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s1It2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s2LEt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1Gt1_s1GEt2_s2Lt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+    Result compare_s1GEt1_s1GEt2_s2LEt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
+
+    mutable TermList s1,s2,t1,t2;
+   
+  };
   void createEqualityComparator();
   void destroyEqualityComparator();
 
-  class EqCmp;
   /** Object used to compare equalities */
-  EqCmp* _eqCmp;
+  unique_ptr<EqCmp> _eqCmp;
 
   /**
    * We store orientation of equalities in this ordering inside
@@ -130,23 +221,31 @@ class PrecedenceOrdering
 : public Ordering
 {
 public:
+  PrecedenceOrdering(PrecedenceOrdering&&) = default;
+  PrecedenceOrdering& operator=(PrecedenceOrdering&&) = default;
   Result compare(Literal* l1, Literal* l2) const override;
   void show(ostream&) const override;
   virtual void showConcrete(ostream&) const = 0;
 
+  static DArray<int> testLevels();
+
+#ifdef VDEBUG
+  bool usesQkboPrecedence() const { return _qkboPrecedence; }
+#endif
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
-
   PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
-                     const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
-  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
-  PrecedenceOrdering(Problem& prb, const Options& opt);
+                     const DArray<int>& predPrec, const DArray<int>& predLevels, 
+                     bool reverseLCM, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence = false);
 
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
@@ -168,25 +267,13 @@ protected:
   /** Array of type con precedences */
   DArray<int> _typeConPrecedences;
 
+  static void checkLevelAssumptions(DArray<int> const&);
+
   bool _reverseLCM;
+  bool _qkboPrecedence;
 };
 
+} // namespace Kernel
 
-inline ostream& operator<<(ostream& out, Ordering::Result const& r) 
-{
-  switch (r) {
-    case Ordering::Result::GREATER: return out << "GREATER";
-    case Ordering::Result::LESS: return out << "LESS";
-    case Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
-    case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
-    case Ordering::Result::EQUAL: return out << "EQUAL";
-    case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
-    default:
-      return out << "UNKNOWN";
-  }
-  ASSERTION_VIOLATION
-}
-
-}
 
 #endif

@@ -18,7 +18,6 @@
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
-#define CALL_DBG(...) CALL(__VA_ARGS__)
 
 namespace Kernel {
   namespace Rebalancing {
@@ -135,7 +134,7 @@ template<class C> BalanceIter<C>::BalanceIter(const Balancer<C>& balancer, bool 
   , _litIndex(end ? 2 : 0)
   , _balancer(balancer)
 {
-  CALL_DBG("BalanceIter()")
+  CALL("BalanceIter()")
   if (end) {
     DEBUG("end")
   } else {
@@ -188,7 +187,7 @@ template<class C> bool BalanceIter<C>::canInvert() const
 /** moves to the next invertible point in the term */
 template<class C> void BalanceIter<C>::incrementPath() 
 { 
-  CALL_DBG("BalanceIter::incrementPath")
+  CALL("BalanceIter::incrementPath")
 
   auto peak = [&]() -> Node& { return _path.top(); };
   auto incPeak = [&]() {
@@ -241,7 +240,7 @@ template<class C> void BalanceIter<C>::incrementPath()
 
 template<class C> void BalanceIter<C>::findNextVar() 
 { 
-  CALL_DBG("BalanceIter::findNextVar")
+  CALL("BalanceIter::findNextVar")
 
   while(inBounds() && !derefPath().isVar() ) {
     incrementPath();
@@ -249,7 +248,7 @@ template<class C> void BalanceIter<C>::findNextVar()
 }
 
 template<class C> void BalanceIter<C>::operator++() { 
-  CALL_DBG("BalanceIter::operator++")
+  CALL("BalanceIter::operator++")
   incrementPath();
   if (inBounds())
     findNextVar();
@@ -258,14 +257,14 @@ template<class C> void BalanceIter<C>::operator++() {
 
 template<class C> 
 const BalanceIter<C>& BalanceIter<C>::operator*() const { 
-  CALL_DBG("BalanceIter::operator*")
+  CALL("BalanceIter::operator*")
   DEBUG(lhs())
   return *this;
 }
 
 template<class C> 
 bool operator!=(const BalanceIter<C>& lhs, const BalanceIter<C>& rhs) { 
-  CALL_DBG("BalanceIter::operator!=")
+  CALL("BalanceIter::operator!=")
   ASS(rhs._path.isEmpty());
   auto out = lhs.inBounds();//!lhs._path.isEmpty() || lhs._litIndex != 2;
   return out;
@@ -275,10 +274,9 @@ bool operator!=(const BalanceIter<C>& lhs, const BalanceIter<C>& rhs) {
 template<class C> 
 TermList BalanceIter<C>::lhs() const 
 {
-  // CALL_DBG("BalanceIter::lhs")
+  CALL("BalanceIter::lhs")
   auto out = derefPath();
   ASS_REP(out.isVar(), out);
-  // DEBUG(out)
   return out;
 }
    

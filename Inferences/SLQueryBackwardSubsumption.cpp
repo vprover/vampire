@@ -57,24 +57,25 @@ void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
   ASS(!_index);
 
   BackwardSimplificationEngine::attach(salg);
-  _index=static_cast<SimplifyingLiteralIndex*>(
-	  _salg->getIndexManager()->request(SIMPLIFYING_SUBST_TREE) );
+  _index=static_cast<BackwardSubsumptionIndex*>(
+	  _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE) );
 }
 
 void SLQueryBackwardSubsumption::detach()
 {
   CALL("SLQueryBackwardSubsumption::detach");
   _index=0;
-  _salg->getIndexManager()->release(SIMPLIFYING_SUBST_TREE);
+  _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
   BackwardSimplificationEngine::detach();
 }
 
 struct SLQueryBackwardSubsumption::ClauseExtractorFn
 {
-  Clause* operator()(const SLQueryResult& res)
-  {
-    return res.clause;
-  }
+  Clause* operator()(LiteralClause const& res)
+  { return res.clause; }  
+  template<class T>
+  Clause* operator()(QueryRes<T, LiteralClause> const& res)
+  { return res.data->clause; }
 };
 
 struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
@@ -101,7 +102,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   unsigned clen=cl->length();
 
   if(clen==0) {
-    SLQueryResultIterator rit=_index->getAll();
+    auto rit = _index->getAll();
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),
@@ -160,8 +161,8 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
   while(rit.hasNext()) {
     SLQueryResult qr=rit.next();
-    Clause* icl=qr.clause;
-    Literal* ilit=qr.literal;
+    Clause* icl=qr.data->clause;
+    Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();
     if(ilen<clen || icl==cl) {
       continue;
@@ -244,10 +245,10 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
 
 
 
-    LiteralList::push(qr.literal, matchedLits[lmIndex]);
+    LiteralList::push(qr.data->literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-	if(bi==lmIndex && (*icl)[ii]==qr.literal) {
+	if(bi==lmIndex && (*icl)[ii]==qr.data->literal) {
 	  continue;
 	}
 	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {

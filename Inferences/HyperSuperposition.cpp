@@ -48,10 +48,6 @@
 
 namespace Inferences
 {
-#if VTIME_PROFILING
-static const char* HYPER_SUP = "hyper superposition";
-#endif // VTIME_PROFILING
-
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -65,7 +61,7 @@ void HyperSuperposition::attach(SaturationAlgorithm* salg)
 //  GeneratingInferenceEngine::attach(salg);
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<UnitClauseLiteralIndex*> (
-	  _salg->getIndexManager()->request(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE) );
+	  _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE) );
 }
 
 void HyperSuperposition::detach()
@@ -74,7 +70,7 @@ void HyperSuperposition::detach()
   ASS(_salg);
 
   _index=0;
-  _salg->getIndexManager()->release(SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+  _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
 //  GeneratingInferenceEngine::detach();
   ForwardSimplificationEngine::detach();
 }
@@ -149,13 +145,13 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
   }
   //for now we just get the first result
   SLQueryResult qr = srqi.next();
-  Color clr = ColorHelper::combine(infClr, qr.clause->color());
+  Color clr = ColorHelper::combine(infClr, qr.data->clause->color());
   if(clr==COLOR_INVALID) {
     return false;
   }
   infClr = clr;
 
-  Literal* rwrLit = qr.literal;
+  Literal* rwrLit = qr.data->literal;
 
   TermList rwrT1 = *rwrLit->nthArgument(0);
   TermList rwrT2 = *rwrLit->nthArgument(1);
@@ -167,7 +163,7 @@ bool HyperSuperposition::tryMakeTopUnifiableByRewriter(TermList t1, TermList t2,
   }
 
   rewriters.push(make_pair(TermPair(rwrT1,rwrT2), rwrBankIdx));
-  premises.push(qr.clause);
+  premises.push(qr.data->clause);
   return true;
 }
 
@@ -365,10 +361,11 @@ void HyperSuperposition::resolveFixedLiteral(Clause* cl, unsigned litIndex, Clau
   CALL("HyperSuperposition::resolveFixedLiteral");
 
   Literal* lit = (*cl)[litIndex];
-  SLQueryResultIterator unifs = _index->getUnifications(lit, true, true);
+  SLQueryResultIterator unifs = _index->getUnifications(lit, /* complementary = */ true, /* retrieveSubstitutions */ true);
   while(unifs.hasNext()) {
     SLQueryResult qr = unifs.next();
-    Clause* genCl = BinaryResolution::generateClause(cl, lit, qr, getOptions());
+    Stack<Literal*> constraints;
+    Clause* genCl = BinaryResolution::generateClause(cl, lit, qr.data->clause, qr.data->literal, qr.unifier, constraints, getOptions());
     acc.push(ClausePair(cl, genCl));
   }
 }
@@ -390,7 +387,7 @@ void HyperSuperposition::tryUnifyingToResolveWithUnit(Clause* cl, unsigned liter
   while(unifIt.hasNext()) {
     SLQueryResult unifRes = unifIt.next();
     localRes.reset();
-    tryUnifyingSuperpositioins(cl, literalIndex, lit, unifRes.literal, true, localRes);
+    tryUnifyingSuperpositioins(cl, literalIndex, lit, unifRes.data->literal, true, localRes);
     while(localRes.isNonEmpty()) {
       Clause* resolvableCl = localRes.pop();
       resolveFixedLiteral(resolvableCl, literalIndex, acc);
@@ -406,7 +403,7 @@ ClauseIterator HyperSuperposition::generateClauses(Clause* cl)
 {
   CALL("HyperSuperposition::generateClauses");
 
-  TIME_TRACE(HYPER_SUP);
+  TIME_TRACE(TimeTrace::HYPER_SUP);
 
   static ClausePairStack res;
   res.reset();
@@ -540,9 +537,9 @@ bool HyperSuperposition::tryUnifyingToResolveSimpl(Clause* cl, Clause*& replacem
   while(unifIt.hasNext()) {
     SLQueryResult unifRes = unifIt.next();
     prems.reset();
-    prems.push(unifRes.clause);
+    prems.push(unifRes.data->clause);
 
-    if(trySimplifyingFromUnification(cl, lit, unifRes.literal, true, prems, replacement, premises)) {
+    if(trySimplifyingFromUnification(cl, lit, unifRes.data->literal, true, prems, replacement, premises)) {
       return true;
     }
   }
@@ -559,7 +556,7 @@ bool HyperSuperposition::perform(Clause* cl, Clause*& replacement, ClauseIterato
     return false;
   }
 
-  TIME_TRACE(HYPER_SUP);
+  TIME_TRACE(TimeTrace::HYPER_SUP);
 
   Literal* lit = (*cl)[0];
 

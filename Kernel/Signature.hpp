@@ -44,6 +44,7 @@ namespace Kernel {
 
 using namespace std;
 using namespace Lib;
+typedef Map<vstring, unsigned> SymbolMap;
 
 /**
  * Class implementing signatures
@@ -127,12 +128,10 @@ class Signature
     unsigned _label : 1;
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
+    /** was flipped **/ 
+    unsigned _wasFlipped : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
-    /** marks distinct string constants */
-    unsigned _stringConstant : 1;
-    /** marks numeric constants, they are only used in TPTP's fof declarations */
-    unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
     /** marks numbers too large to represent natively */
@@ -158,7 +157,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const vstring& nm,unsigned arity, bool interpreted=false, bool stringConstant=false,bool numericConstant=false,bool overflownConstant=false);
+    Symbol(const vstring& name, unsigned arity, bool interpreted, bool preventQuoting, bool overflownConstant, bool super);
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
@@ -179,6 +178,8 @@ class Signature
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
+    /** mark predicate as (polarity) flipped */
+    void markFlipped() { _wasFlipped=1; }
     /** mark constant as overflown */
     void markOverflownConstant() { _overflownConstant=1; }
     /** mark symbol as a term algebra constructor */
@@ -202,6 +203,7 @@ class Signature
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
     inline unsigned numTypeArguments() const 
     { 
+      // DBGE(name())
       if(name() == "="){ 
         //for some reason, equality is never assigned a type (probably because it is poly)
         return 0; 
@@ -217,14 +219,12 @@ class Signature
     inline bool introduced() const { return _introduced; }
     /** Return true iff the symbol is must not be eliminated by proprocessing */
     inline bool protectedSymbol() const { return _protected; }
-    /** Return true iff symbol is a distinct string constant */
-    inline bool stringConstant() const { return _stringConstant; }
-    /** Return true iff symbol is a numeric constant */
-    inline bool numericConstant() const { return _numericConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
+    /** Return true iff symbol was polarity flipped */
+    inline bool wasFlipped() const { return _wasFlipped; }
     /** Return true iff symbol is an overflown constant */
     inline bool overflownConstant() const { return _overflownConstant; }
     /** Return true iff symbol is a term algebra constructor */
@@ -313,8 +313,14 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const vstring& nm, Interpretation interp)
-    : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
+    InterpretedSymbol(const vstring& name, Interpretation interp)
+    : Symbol(name, 
+        /* arity */ Theory::getArity(interp), 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+      _interp(interp)
     {
       CALL("InterpretedSymbol");
     }
@@ -336,7 +342,13 @@ class Signature
 
   public:
     IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(val.toString(), 0, true), _intValue(val)
+    : Symbol(val.toString(), 
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+      _intValue(val)
     {
       CALL("IntegerSymbol");
 
@@ -356,7 +368,13 @@ class Signature
 
   public:
     RationalSymbol(const RationalConstantType& val)
-    : Symbol(val.toString(), 0, true), _ratValue(val)
+    : Symbol(val.toString(), 
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+       _ratValue(val)
     {
       CALL("RationalSymbol");
 
@@ -376,7 +394,13 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(),
+        /*             arity */ 0, 
+        /*       interpreted */ true, 
+        /*    preventQuoting */ false, 
+        /* overflownConstant */ false, 
+        /*             super */ false),
+       _realValue(val)
     {
       CALL("RealSymbol");
 
@@ -496,17 +520,11 @@ class Signature
     return _typeCons[number]->name();
   }  
   /** return the arity of a function with a given number */
-  const unsigned functionArity(int number)
-  {
-    CALL("Signature::functionArity");
-    return _funs[number]->arity();
-  }
+  const unsigned functionArity(int number);
+  
   /** return the arity of a predicate with a given number */
-  const unsigned predicateArity(int number)
-  {
-    CALL("Signature::predicateArity");
-    return _preds[number]->arity();
-  }
+  const unsigned predicateArity(int number);
+  
 
   const unsigned typeConArity(int number)
   {

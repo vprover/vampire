@@ -433,7 +433,7 @@ Inference::Inference(const FormulaTransformation& ft) {
   init1(ft.rule,ft.premise);
 
   ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
-  ASS(!ft.premise->isClause());
+  // ASS(!ft.premise->isClause()); // TODO: should this assertion be here? it would keeps us from preprocessing clauses in InterpretedNormalizer
 
   _included = ft.premise->included();
 }
@@ -727,6 +727,7 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "predicate definition unfolding";
   case InferenceRule::PREDICATE_DEFINITION_MERGING:
     return "predicate definition merging";
+
   case InferenceRule::REDUCE_FALSE_TRUE:
     return "true and false elimination";
 
@@ -763,6 +764,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "condensation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
+  case InferenceRule::POLARITY_FLIPPING:
+    return "consistent polarity flipping";
   case InferenceRule::EVALUATION:
     return "evaluation";
   case InferenceRule::CANCELLATION:
@@ -903,6 +906,30 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "add sort functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
+  case InferenceRule::LASCA_VARIABLE_ELIMINATION:
+    return "lasca variable elimination";
+  case InferenceRule::LASCA_SUPERPOSITION:
+    return "lasca superposition";
+  case InferenceRule::LASCA_LITERAL_FACTORING:
+    return "lasca inequality literal factoring";
+  case InferenceRule::LASCA_EQ_FACTORING:
+    return "lasca equality factoring";
+  case InferenceRule::LASCA_TERM_FACTORING:
+    return "lasca term factoring";
+  case InferenceRule::LASCA_FOURIER_MOTZKIN:
+    return "lasca fourier motzkin";
+  case InferenceRule::LASCA_IS_INT_FACTORING:
+    return "isInt factoring";
+  case InferenceRule::LASCA_INEQUALITY_STRENGTHENING:
+    return "inequality strengthening";
+  case InferenceRule::LASCA_IS_INT_RESOLUTION:
+    return "isInt resolution";
+  case InferenceRule::LASCA_NORMALIZATION:
+    return "lasca normalization";
+  case InferenceRule::LASCA_FWD_DEMODULATION:
+    return "lasca forward demodulation";
+  case InferenceRule::LASCA_BWD_DEMODULATION:
+    return "lascsa backward demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
     return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:

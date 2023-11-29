@@ -8,7 +8,6 @@
  * and in the source directory
  */
 
-
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
@@ -31,9 +30,6 @@ Variable::Variable(unsigned num, TermList sort) : _num(num), _sort(sort) {}
 unsigned Variable::id() const 
 { return _num; }
 
-std::ostream& operator<<(std::ostream& out, const Variable& self) 
-{ return out << "X" << self._num; }
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // impl FuncId
 /////////////////////////////////////////////////////////
@@ -42,6 +38,7 @@ FuncId::FuncId(unsigned num, TermList const* typeArgs) : _num(num), _typeArgs(st
 
 FuncId FuncId::symbolOf(Term* term) 
 { return FuncId(term->functor(), term->typeArgs()); }
+// { return FuncId(term->functor(), typeArgIter(term).template collect<Stack>()); }
 
 unsigned FuncId::numTermArguments() const
 { return symbol()->numTermArguments(); }
@@ -51,9 +48,6 @@ unsigned FuncId::numTypeArguments() const
 
 TermList FuncId::typeArg(unsigned i) const
 { return _typeArgs[i]; }
-
-std::ostream& operator<<(std::ostream& out, const FuncId& self) 
-{ return out << self.symbol()->name(); }
 
 Signature::Symbol* FuncId::symbol() const 
 { return env.signature->getFunction(_num); }
@@ -72,6 +66,39 @@ Option<Theory::Interpretation> FuncId::tryInterpret() const
   return isInterpreted() ? some<Theory::Interpretation>(interpretation())
                          : none<Theory::Interpretation>();
 }
+
+///////////////////// output operators
+
+std::ostream& operator<<(std::ostream& out, const Kernel::Variable& self) 
+{ return out << "X" << self._num; }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::FuncId& self) 
+{ return out << self.symbol()->name(); }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::PolyNf& self)
+{ return self._self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
+
+std::ostream& operator<<(std::ostream& out, const Kernel::FuncTerm& self) 
+{ 
+  out << self.function();
+  auto iter = ImmediateSubterms{}(self);
+
+  if (iter.hasNext()) {
+    out << "(" << iter.next();
+    while (iter.hasNext()) {
+      out << ", " << iter.next();
+    }
+    out << ")";
+  }
+
+  return out;
+}
+
+
+std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
+{ return self._self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
+
+
 } // namespace Kernel
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -108,34 +135,14 @@ FuncTerm::FuncTerm(FuncId f, PolyNf* args)
 void FuncTerm::integrity() const
 { for (unsigned i = 0; i < numTermArguments(); i++) arg(i).integrity(); }
 
-
-
 unsigned FuncTerm::numTermArguments() const 
 { return _self->numTermArguments(); }
 
 FuncId FuncTerm::function() const 
-{ return FuncId(_self->functor(), _self->typeArgs()); }
+{ return FuncId::symbolOf(_self); }
 
 PolyNf FuncTerm::arg(unsigned i) const 
 { return PolyNf::fromNormalized(TypedTermList(_self->termArg(i), SortHelper::getTermArgSort(_self, i))); }
-
-std::ostream& operator<<(std::ostream& out, const FuncTerm& self) 
-{ 
-  out << self.function();
-  auto iter = iterTraits(getRangeIterator((unsigned)0, self.numTermArguments()))
-    .map([&](auto i) { return self.arg(i); });
-
-  if (iter.hasNext()) {
-    out << "(";
-    out << iter.next();
-    while (iter.hasNext()) {
-      out << ", " << iter.next();
-    }
-    out << ")";
-  }
-  return out;
-}
-
 
 /////////////////////////////////////////////////////////
 // impl AnyPoly 
@@ -156,10 +163,6 @@ AnyPoly AnyPoly::replaceTerms(PolyNf* newTs) const
 //
 // unsigned AnyPoly::nFactors(unsigned i) const 
 // { return _self.apply([&](auto& t) -> decltype(auto) { return t.nFactors(i); }); }
-
-std::ostream& operator<<(std::ostream& out, const AnyPoly& self) 
-{ return self._self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
-
 
 /////////////////////////////////////////////////////////
 // impl PolyNf 
@@ -188,9 +191,6 @@ PolyNf PolyNf::fromNormalized(TypedTermList t)
   }
 }
 
-std::ostream& operator<<(std::ostream& out, const PolyNf& self)
-{ return self._self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }
-
 IterTraits<PolyNf::SubtermIter> PolyNf::iterSubterms() const 
 { return iterTraits(SubtermIter(*this)); }
 
@@ -215,7 +215,6 @@ bool PolyNf::SubtermIter::hasNext() const
   CALL("PolyNf::SubtermIter::hasNext")
   return !_stack.isEmpty(); 
 }
-
 
 /////////////////////////////////////////////////////////
 // impl IterArgsPnf

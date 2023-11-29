@@ -13,11 +13,8 @@
  * @date 2020-04-29
  */
 
-#include "Kernel/KBO.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Test/UnitTesting.hpp"
-#include "Test/SyntaxSugar.hpp"
 #include "tKBO.hpp"
+
 
 //////////////////////////////////////////////////////////////////////////////// 
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
@@ -38,20 +35,23 @@ KBO kbo(unsigned introducedSymbolWeight,
         }, funcs, env.signature->functions()), 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
              toWeightMap<PredSigTraits>(introducedSymbolWeight,
-               KboSpecialWeights<PredSigTraits>::dflt(), 
+               KboSpecialWeights<PredSigTraits>::dflt(/* qkbo */ false), 
                preds,
                env.signature->predicates()), 
 #endif
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
-             predLevels(),
+             PrecedenceOrdering::testLevels(),
              /*revereseLCM*/ false);
 }
+
 
 KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
   return kbo(1, 1, funcs, preds);
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// TEST CASES //////////////////////////////////
@@ -170,7 +170,7 @@ TEST_FUN(kbo_test09) {
   try {
     auto ord = kbo(weights(make_pair(g, 1u), make_pair(f, 0u)), weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException&) {
+  } catch (UserErrorException& e) {
     /* f is not maximal wrt precedence but has weight 0 */
   }
 }
@@ -184,7 +184,7 @@ TEST_FUN(kbo_test10) {
   try {
     auto ord = kbo(weights(make_pair(a, 0u)), weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException&) {
+  } catch (UserErrorException& e) {
     /* constant must be greater or equal to variable weight */
   }
 }
@@ -353,7 +353,7 @@ TEST_FUN(kbo_test22) {
         ), 
         weights());
     ASSERTION_VIOLATION
-  } catch (UserErrorException&) {
+  } catch (UserErrorException& e) {
     /* introduced symbol weight must be greater or equal to the variable weight */
   }
 }

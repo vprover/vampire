@@ -38,4 +38,5 @@ cmake-build
 .lldbinit
 
 # vim swap files
-**/.*.swp
+.*.swo
+.*.swp

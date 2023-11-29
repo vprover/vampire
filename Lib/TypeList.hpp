@@ -80,6 +80,27 @@ namespace TypeList {
   template<unsigned i, class A, class... As> struct GetImpl<i, List<A, As...>>
   { using type = Get<i - 1, List<As...>>; };
 
+  /* Meta level type function. 
+   * zip : List [class] -> List [class] ->  List [List [class]]
+   *
+   * Zipps two lists of types
+   *
+   * E.g. Zip<List<A, B, A>, List<B, A, B>> ==> List<List<A, B>, Indexed<B, A>, Indexed<A, B>>
+   */  
+  template<class As, class Bs> struct ZipImpl;
+
+  template<class As, class Bs> using Zip = typename ZipImpl<As, Bs>::type;
+
+  template<> struct ZipImpl<List<>, List<>> 
+  { 
+    using type = List<>;
+  };
+
+  template<class A, class... As, class B, class... Bs> struct ZipImpl<List<A, As...>, List<B, Bs...>> 
+  { 
+    using type = Concat<List<List<A,B>>, Zip<List<As...>, List<Bs...>>>; //Concat<List<Indexed<acc, A>>, typename WithIndicesImpl<acc + 1, List<As...>>::type>;
+  };
+
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////// FUNTIONS RETURNING VALUES 
@@ -166,7 +187,8 @@ namespace TypeList {
 
 
   template<unsigned idx, class A>
-  struct Indexed {};
+  struct Indexed 
+  { static unsigned constexpr index = idx; };
 
   /* 
    * Zipps the list of types terms with indices.
@@ -188,7 +210,22 @@ namespace TypeList {
     using type = Concat<List<Indexed<acc, A>>, typename WithIndicesImpl<acc + 1, List<As...>>::type>;
   };
 
+  /* 
+   * Zipps the list of types terms with indices.
+   *
+   * E.g. WithIndices<List<A, B, A>> ==> List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>
+   */  
+  template<class A> struct IndicesImpl;
 
+  template<class As> using Indices = typename IndicesImpl<WithIndices<As>>::type;
+
+  template<int...>
+  struct UnsignedList {};
+
+
+  template<class ...As> struct IndicesImpl<List<As...>>
+  { using type = UnsignedList<As::index...>; };
+  ///
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////// COMPILE TIME TESTS
   ////////////////////////////////
@@ -265,6 +302,20 @@ namespace TypeList {
     STATIC_TEST_TYPE_EQ(
        WithIndices<List<A, B, A>>,
        List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>)
+
+    STATIC_TEST_TYPE_EQ(
+       Indices<List<A, B, A>>,
+       UnsignedList<0, 1, 2>)
+
+    STATIC_TEST_TYPE_EQ(
+       Zip<List<A, B>, List<C, D>>  ,
+       List<List<A, C>, List<B, D>> )
+
+    STATIC_TEST_TYPE_EQ(
+       Zip<List<A, B, A>, List<B, A, B>>,
+       List<List<A, B>, List<B, A>, List<A, B>>)
+
+
   }
 
 } // namespace TypeList

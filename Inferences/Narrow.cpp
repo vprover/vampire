@@ -112,8 +112,7 @@ struct Narrow::ResultFn
     CALL("Narrow::ResultFn::operator()");
     
     TermQueryResult& qr = arg.second;
-    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, 
-                                 qr.literal, qr.substitution);
+    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.data->term, qr.data->literal, qr.unifier);
   }
 private:
   Clause* _cl;
@@ -267,7 +266,7 @@ Clause* Narrow::performNarrow(
       }
 
       if (afterCheck) {
-        TIME_TRACE(TimeTrace::Groups::LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
         if (i < nClause->numSelected() && ordering.compare(currAfter,nLiteralS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           goto construction_fail;

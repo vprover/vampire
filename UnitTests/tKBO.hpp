@@ -8,9 +8,17 @@
  * and in the source directory
  */
 
+#ifndef __T_KBO__
+#define __T_KBO__
+
+#include "Kernel/KBO.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
+
 inline DArray<int> predLevels() {
   DArray<int> out(env.signature->predicates());
-  out.init(out.size(), 1);
+  out.init(out.size(), PredLevels::EQ);
   return out;
 }
 
@@ -19,7 +27,7 @@ using namespace Kernel;
 template<class SigTraits>
 inline KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
 {
-  auto df = KboWeightMap<SigTraits>::dflt();
+  auto df = KboWeightMap<SigTraits>::dflt(/* qkbo */ false);
   df._specialWeights = ws;
 
   DArray<KboWeight> out(sz);
@@ -49,3 +57,5 @@ inline Map<unsigned, KboWeight> weights(pair<As, KboWeight>... as) {
   __weights(out, as...);
   return out;
 }
+
+#endif // __T_KBO__

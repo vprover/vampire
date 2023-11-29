@@ -12,24 +12,10 @@
 #define __BOTTOM_UP_EVALUATION__TYPED_TERM_LIST_HPP__
 
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Term.hpp"
-
-using SortId = TermList;
-
-namespace Kernel {
-// TODO move to other class
-class TypedTermList : public TermList
-{
-  SortId _sort;
-public:
-  CLASS_NAME(TypedTermList)
-  TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) { ASS_NEQ(sort, AtomicSort::superSort()) }
-  TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
-  SortId sort() const { return _sort; }
-};
-
-} // namespace Kernel 
+#include "Forwards.hpp"
 
 namespace Lib {
 

@@ -21,35 +21,67 @@
 
 #include "InferenceEngine.hpp"
 
-
 namespace Inferences 
 {
 
 using SortId = TermList;
+
+// TODO clean up the  messy work split between PolynomialEvaluation, PolynomialEvaluationRule, PolynomialNormalizer and InequalityNormalizer
 class PolynomialEvaluation
-: public SimplifyingGeneratingLiteralSimplification
 {
 public:
+  using Result = SimplifyingGeneratingLiteralSimplification::Result;
   CLASS_NAME(PolynomialEvaluation);
   USE_ALLOCATOR(PolynomialEvaluation);
+  PolynomialEvaluation() = delete;
+  explicit PolynomialEvaluation(bool removeZeros) 
+    : _removeZeros(removeZeros) 
+  {  }
 
-  PolynomialEvaluation(Ordering& ordering);
-  virtual ~PolynomialEvaluation();
+  Option<PolyNf> evaluate(PolyNf in) const;
+  template<class NumTraits>
+  Option<Polynom<NumTraits>> evaluate(Polynom<NumTraits> in) const
+  { return evaluate(PolyNf(in))
+      .map([](auto overf) 
+          { return overf.map([](PolyNf p) 
+              { return p.template downcast<NumTraits>().unwrap(); }); });
+  }
 
+  template<class NumTraits>
+  static PolyNf simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
+  TermList evaluateToTerm(Term* in) const;
+  TermList evaluateToTerm(TermList in) const { return in.isVar() ? in : evaluateToTerm(in.term()); }
+  Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 private:
-
-  Result simplifyLiteral(Literal*) override;
 
   Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
   Option<PolyNf> evaluate(Term* in) const;
-  Option<PolyNf> evaluate(PolyNf in) const;
   Option<PolyNf> evaluate(TypedTermList in) const;
 
-  Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
+
+  mutable Memo::Hashed<PolyNf, PolyNf, StlHash> _memo;
+  bool _removeZeros;
 };
 
+
+class PolynomialEvaluationRule
+: public SimplifyingGeneratingLiteralSimplification
+{
+public:
+  CLASS_NAME(PolynomialEvaluationRule);
+  USE_ALLOCATOR(PolynomialEvaluationRule);
+
+  PolynomialEvaluationRule(Ordering& ordering);
+  virtual ~PolynomialEvaluationRule();
+
+private:
+  Result simplifyLiteral(Literal*) override;
+  // TODO make this one the same as in LascaState
+  PolynomialEvaluation _inner;
+  const bool _alwaysEvaluate;
+};
 
 } // namespace Inferences 
 

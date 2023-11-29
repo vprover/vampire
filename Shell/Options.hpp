@@ -222,7 +222,16 @@ public:
     ONE_INTERP,
     CONSTANT,
     ALL,
-    GROUND
+    GROUND,
+    FUNC_EXT,
+    AC1,
+    AC2,
+    ALASCA1,
+    ALASCA2,
+    ALASCA3,
+    LPAR_ONE_INTERP,
+    LPAR_CAN_ABSTRACT,
+    LPAR_MAIN,
   };
 
   enum class Induction : unsigned int {
@@ -413,6 +422,8 @@ public:
     LTB_MZR_2017,
     SMTCOMP,
     SMTCOMP_2018,
+    SNAKE_TPTP_UNS,
+    SNAKE_TPTP_SAT,
     STRUCT_INDUCTION
   };
 
@@ -524,7 +535,9 @@ public:
 
   enum class TermOrdering : unsigned int {
     KBO = 0,
-    LPO = 1
+    LPO = 1,
+    LALPO = 2,
+    QKBO = 3,
   };
 
   enum class SymbolPrecedence : unsigned int {
@@ -566,7 +579,8 @@ public:
     ON = 1,
     PROOFCHECK = 2,
     TPTP = 3,
-    PROPERTY = 4
+    PROPERTY = 4,
+    SMT2_PROOFCHECK = 5,
   };
 
   /** Values for --equality_proxy */
@@ -589,7 +603,8 @@ public:
   enum class SplittingLiteralPolarityAdvice : unsigned int {
     FALSE,
     TRUE,
-    NONE
+    NONE,
+    RANDOM
   };
 
   enum class SplittingMinimizeModel : unsigned int {
@@ -747,6 +762,11 @@ public:
     SK = 1,
     SKI = 2,
     OFF = 3
+  };
+
+  enum class ProblemExportSyntax : unsigned int {
+    SMTLIB = 0,
+    API_CALLS = 1,
   };
 
 
@@ -1850,10 +1870,41 @@ bool _hard;
       bool check(Property*p){
         CALL("Options::UsesEquality::check");
         ASS(p)
-        return (p->equalityAtoms() != 0);
+        return (p->equalityAtoms() != 0) ||
+          // theories may introduce equality at various places of the pipeline!
+          HasTheories::actualCheck(p);
       }
       vstring msg(){ return " only useful with equality"; }
     };
+
+    struct NegatedOptionProblemConstraint : OptionProblemConstraint {
+      OptionProblemConstraintUP  _inner;
+      CLASS_NAME(NegatedOptionProblemConstraint);
+      USE_ALLOCATOR(NegatedOptionProblemConstraint);
+
+      bool check(Property*p){
+        return !_inner->check(p);
+      }
+      vstring msg(){ return "not (" + _inner->msg() + ")"; }
+    };
+      
+    friend OptionProblemConstraintUP operator~(OptionProblemConstraintUP x) {
+      return OptionProblemConstraintUP({std::move(x)});
+    }
+
+
+    struct HasPolymorphism : OptionProblemConstraint{
+      CLASS_NAME(HasHigherOrder);
+      USE_ALLOCATOR(HasHigherOrder);
+
+      bool check(Property*p){
+        CALL("Options::HasPolymorphism::check");
+        ASS(p)
+        return (p->hasPolymorphicSym());
+      }
+      vstring msg(){ return " only useful with higher-order problems"; }
+    };
+
 
     struct HasHigherOrder : OptionProblemConstraint{
       CLASS_NAME(HasHigherOrder);
@@ -1925,6 +1976,8 @@ bool _hard;
       CLASS_NAME(HasTheories);
       USE_ALLOCATOR(HasTheories);
 
+      static bool actualCheck(Property*p);
+
       bool check(Property*p);
       vstring msg(){ return " only useful with theories"; }
     };
@@ -1959,6 +2012,7 @@ bool _hard;
       return OptionProblemConstraintUP(new CategoryCondition(c,true));
     }
     static OptionProblemConstraintUP hasEquality(){ return OptionProblemConstraintUP(new UsesEquality); }
+    static OptionProblemConstraintUP hasPolymorphism(){ return OptionProblemConstraintUP(new HasPolymorphism); }
     static OptionProblemConstraintUP hasHigherOrder(){ return OptionProblemConstraintUP(new HasHigherOrder); }
     static OptionProblemConstraintUP onlyFirstOrder(){ return OptionProblemConstraintUP(new OnlyFirstOrder); }
     static OptionProblemConstraintUP mayHaveNonUnits(){ return OptionProblemConstraintUP(new MayHaveNonUnits); }
@@ -2083,6 +2137,7 @@ public:
   unsigned fmbDetectSortBoundsTimeLimit() const { return _fmbDetectSortBoundsTimeLimit.actualValue; }
   unsigned fmbSizeWeightRatio() const { return _fmbSizeWeightRatio.actualValue; }
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
+  bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
@@ -2108,8 +2163,9 @@ public:
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring inputFile() const { return _inputFile.actualValue; }
   int activationLimit() const { return _activationLimit.actualValue; }
-  int randomSeed() const { return _randomSeed.actualValue; }
-  int randomStrategySeed() const { return _randomStrategySeed.actualValue; }
+  unsigned randomSeed() const { return _randomSeed.actualValue; }
+  void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
+  unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2135,6 +2191,7 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  ProblemExportSyntax problemExportSyntax() const { return _problemExportSyntax.actualValue; }
   vstring const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
   vstring const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
@@ -2160,9 +2217,11 @@ public:
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
+  bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
   bool fixUWA() const { return _fixUWA.actualValue; }
-  bool useACeval() const { return _useACeval.actualValue;}
+  // TODO make lasca independent of normal eveluation
+  bool useACeval() const { return lasca() ? false : _useACeval.actualValue;}
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
@@ -2193,6 +2252,7 @@ public:
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   bool demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  bool demodulationEncompassment() const { return _demodulationEncompassment.actualValue; }
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -2206,6 +2266,7 @@ public:
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
+  float lrsEstimateCorrectionCoef() const { return _lrsEstimateCorrectionCoef.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
   SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
@@ -2224,6 +2285,8 @@ public:
   void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #ifdef __linux__
   unsigned instructionLimit() const { return _instructionLimit.actualValue; }
+  void setInstructionLimit(unsigned newVal) { _instructionLimit.actualValue = newVal; }
+  bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
@@ -2267,6 +2330,13 @@ public:
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
 
+  bool shuffleInput() const { return _shuffleInput.actualValue; }
+  bool randomPolarities() const { return _randomPolarities.actualValue; }
+  bool randomAWR() const { return _randomAWR.actualValue; }
+  bool randomTraversals() const { return _randomTraversals.actualValue; }
+  bool randomizeSeedForPortfolioWorkers() const { return _randomizSeedForPortfolioWorkers.actualValue; }
+  void setRandomizeSeedForPortfolioWorkers(bool val) { _randomizSeedForPortfolioWorkers.actualValue = val; }
+
   bool ignoreConjectureInPreprocessing() const {return _ignoreConjectureInPreprocessing.actualValue;}
 
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
@@ -2296,6 +2366,7 @@ public:
   bool generalSplitting() const { return _generalSplitting.actualValue; }
 #if VTIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
+  vstring const& timeStatisticsFocus() const { return _timeStatisticsFocus.actualValue; }
 #endif // VTIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2312,6 +2383,7 @@ public:
 
   Instantiation instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
+  bool ignoreUnrecognizedLogic() const { return _ignoreUnrecognizedLogic.actualValue; }
 
   Induction induction() const { return _induction.actualValue; }
   StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
@@ -2366,8 +2438,11 @@ public:
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
-  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_CAUTIOUS : _evaluationMode.actualValue; }
+  EvaluationMode evaluationMode() const { return _highSchool.actualValue ? EvaluationMode::POLYNOMIAL_FORCE : _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _gaussianVariableElimination.actualValue; }
+  bool lasca() const { return _lasca.actualValue; }
+  bool lascaDemodulation() const { return _lascaDemodulation.actualValue; }
+  bool lascaStrongNormalization() const { return _lascaStrongNormalization.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
@@ -2511,6 +2586,7 @@ private:
   RatioOptionValue _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
 	UnsignedOptionValue _ageWeightRatioShapeFrequency;
+
   BoolOptionValue _useTheorySplitQueues;
   StringOptionValue _theorySplitQueueRatios;
   StringOptionValue _theorySplitQueueCutoffs;
@@ -2528,9 +2604,12 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
   
+  BoolOptionValue _randomTraversals;
+
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
@@ -2543,6 +2622,7 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   BoolOptionValue _demodulationRedundancyCheck;
+  BoolOptionValue _demodulationEncompassment;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
@@ -2567,6 +2647,7 @@ private:
   UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
+  BoolOptionValue _fmbKeepSbeamGenerators;
 
   BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
@@ -2651,6 +2732,7 @@ private:
 
 #ifdef __linux__
   UnsignedOptionValue _instructionLimit; 
+  BoolOptionValue _parsingDoesNotCount;
 #endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
@@ -2659,10 +2741,13 @@ private:
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;
   FloatOptionValue _slowness;
+  BoolOptionValue _randomizSeedForPortfolioWorkers;
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _normalize;
+  BoolOptionValue _shuffleInput;
+  BoolOptionValue _randomPolarities;
 
   BoolOptionValue _outputAxiomNames;
 
@@ -2677,8 +2762,8 @@ private:
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
 
-  IntOptionValue _randomSeed;
-  IntOptionValue _randomStrategySeed;
+  UnsignedOptionValue _randomSeed;
+  UnsignedOptionValue _randomStrategySeed;
 
   IntOptionValue _activationLimit;
 
@@ -2713,6 +2798,7 @@ private:
   BoolOptionValue _showSimplOrdering;
 #if VZ3
   BoolOptionValue _showZ3;
+  ChoiceOptionValue<ProblemExportSyntax> _problemExportSyntax;
   StringOptionValue _exportAvatarProblem;
   StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
@@ -2722,9 +2808,11 @@ private:
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
+  BoolOptionValue _unificationWithAbstractionFixedPointIteration; 
   BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
+  FloatOptionValue _lrsEstimateCorrectionCoef;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
   UnsignedOptionValue _sineToAgeGeneralityThreshold;
@@ -2771,10 +2859,12 @@ private:
   StringOptionValue _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
   BoolOptionValue _theoryFlattening;
+  BoolOptionValue _ignoreUnrecognizedLogic;
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
   BoolOptionValue _timeStatistics;
+  StringOptionValue _timeStatisticsFocus;
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
@@ -2800,6 +2890,9 @@ private:
   BoolOptionValue _pushUnaryMinus;
   BoolOptionValue _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
+  BoolOptionValue _lasca;
+  BoolOptionValue _lascaDemodulation;
+  BoolOptionValue _lascaStrongNormalization;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 

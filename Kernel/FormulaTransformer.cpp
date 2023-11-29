@@ -13,7 +13,6 @@
  */
 
 #include "Lib/DHMap.hpp"
-#include "Lib/Recycler.hpp"
 #include "Lib/ScopedLet.hpp"
 
 #include "Clause.hpp"
@@ -22,6 +21,7 @@
 #include "Problem.hpp"
 #include "SortHelper.hpp"
 #include "TermTransformer.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "FormulaTransformer.hpp"
 
@@ -253,20 +253,6 @@ Formula* BottomUpTermTransformerFormulaTransformer::applyLiteral(Formula* f)
 ////////////////////////////////////
 // PolarityAwareFormulaTransformer
 //
-
-PolarityAwareFormulaTransformer::PolarityAwareFormulaTransformer()
-{
-  CALL("PolarityAwareFormulaTransformer::PolarityAwareFormulaTransformer");
-
-  Recycler::get(_varSorts); //_varSorts is reset in the transform() function
-}
-
-PolarityAwareFormulaTransformer::~PolarityAwareFormulaTransformer()
-{
-  CALL("PolarityAwareFormulaTransformer::~PolarityAwareFormulaTransformer");
-
-  Recycler::release(_varSorts);
-}
 
 TermList PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
 {

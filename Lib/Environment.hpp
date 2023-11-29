@@ -25,6 +25,10 @@
 
 namespace Lib {
 
+namespace Sys {
+  class SyncPipe;
+}
+
 using namespace std;
 using namespace Sys;
 
@@ -57,7 +61,7 @@ public:
 
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
-  DHMap<void*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
+  DHMap<const Kernel::Unit*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
 
   bool haveOutput();
   void beginOutput();

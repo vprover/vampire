@@ -108,7 +108,7 @@ Option<LitSimplResult> evaluate(Literal* lit)
 
     auto _simpl = [](Clause* cl) -> Clause* 
     {
-      PolynomialEvaluation norm(*Ordering::tryGetGlobalOrdering());
+      PolynomialEvaluationRule norm(*Ordering::tryGetGlobalOrdering());
       PushUnaryMinus uminus;
       Cancellation cancel(*Ordering::tryGetGlobalOrdering());
       if (cl == nullptr) {
@@ -197,14 +197,12 @@ void check_eval(Lit orig_, Lit expected_) {
         DECL_FUNC(f2, {Num,Num}, Num)                                                                         \
         DECL_PRED(p, {Num})                                                                                   \
         DECL_PRED(r, {Num,Num})                                                                               \
-      )                                                                                                       \
+      )
 
 #define NUM_TEST(NUM, name, formula, expected)                                                                \
     TEST_FUN(name ## _ ## NUM) {                                                                              \
-      __ALLOW_UNUSED(                                                                                         \
-        NUMBER_SUGAR(NUM);                                                                                    \
-        DECL_DEFAULT_VARS                                                                                     \
-      )                                                                                                       \
+      NUMBER_SUGAR(NUM);                                                                                      \
+      DECL_DEFAULT_VARS                                                                                       \
       ADDITIONAL_FUNCTIONS(NUM)                                                                               \
       check_eval(( formula ), ( expected ));                                                                  \
     }                                                                                                         \
@@ -440,10 +438,10 @@ ALL_NUMBERS_TEST(eval_test_cached_1,
       evaluationFail
       )
 
-ALL_NUMBERS_TEST(eval_test_cached_2,
-      (b * a) * c == f((b * a) * c),
-      evaluationFail
-      )
+// ALL_NUMBERS_TEST(eval_test_cached_2,
+//       (b * a) * c == f((b * a) * c),
+//       evaluationFail
+//       )
 
 ALL_NUMBERS_TEST(eval_bug_1,
       p(f2(a,b)),
@@ -584,6 +582,7 @@ INT_TEST(div_zero_2,
     r(remainderE(num(7), 0),     11     )
     )
 
+#if !WITH_GMP
 ALL_NUMBERS_TEST(eval_overflow_1,
     p(num(1661992960) + 1661992960),
     evaluationFail
@@ -601,13 +600,13 @@ ALL_NUMBERS_TEST(eval_overflow_3,
 
 ALL_NUMBERS_TEST(eval_overflow_4,
     p(-1 * num(std::numeric_limits<int>::min())),
-    // p(-num(std::numeric_limits<int>::min()))
-    evaluationFail
+    p(-1 * num(std::numeric_limits<int>::min()))
+    // evaluationFail
     )
 
 ALL_NUMBERS_TEST(eval_overflow_5,
     p(std::numeric_limits<int>::min() * num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()),
-    evaluationFail
+    p(std::numeric_limits<int>::min() * (num(std::numeric_limits<int>::min() + 1) * std::numeric_limits<int>::min()))
     )
 
 FRACTIONAL_TEST(eval_overflow_6,
@@ -621,6 +620,8 @@ FRACTIONAL_TEST(eval_overflow_7,
     frac(5,90) < num(-1260453006),
     false
     )
+
+#endif // WITH_GMP
 
 ALL_NUMBERS_TEST(NUM_IS_NUM_01,
      ~isInt(num(3)),

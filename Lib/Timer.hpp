@@ -32,7 +32,6 @@ class Timer
 {
   Timer() : _running(false), _elapsed(0) { ensureTimerInitialized(); }
   ~Timer() { deinitializeTimer(); }
-  friend void ::checked_delete<Timer>(Timer*);
  
 public:
   CLASS_NAME(Timer);
@@ -93,7 +92,9 @@ public:
 
   // only returns non-zero, if actually measuring
   // (when instruction counting is supported and an instruction limit is set)
+  static bool instructionLimitingInPlace();
   static unsigned elapsedMegaInstructions();
+  static void resetInstructionMeasuring();
 
   static std::atomic<bool> s_limitEnforcement;
 private:

@@ -63,6 +63,7 @@ using namespace Shell;
 // to transform equations
 
 class IGAlgorithm : public MainLoop {
+  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 public:
   CLASS_NAME(IGAlgorithm);
   USE_ALLOCATOR(IGAlgorithm);  

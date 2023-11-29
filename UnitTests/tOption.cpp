@@ -63,9 +63,9 @@ TEST_FUN(examples__unwrapOrInit) {
 
 TEST_FUN(examples__toOwned) {
   // an option of a reference type can be turned into an option of the corresponding value, by coping it:
-  vstring str ("lala");
+  vstring str ("some string");
   auto opt = Option<vstring&>(str);
-  auto opt2 = Option<vstring>("lala");
+  auto opt2 = Option<vstring>("some string");
   // ASS_NEQ(opt, opt2) // <- does not compile. different types!!
   ASS_EQ(opt.toOwned(), opt2);
 }

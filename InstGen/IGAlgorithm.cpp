@@ -41,6 +41,7 @@
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "IGAlgorithm.hpp"
 #include "ModelPrinter.hpp"
@@ -60,8 +61,7 @@ static const int LOOKAHEAD_SELECTION = 1011;
 
 IGAlgorithm::IGAlgorithm(Problem& prb,const Options& opt)
 : MainLoop(prb, opt),
-    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),
-	opt.instGenResolutionRatioResolution(), 50),
+    _instGenResolutionRatio(opt.instGenResolutionRatioInstGen(),opt.instGenResolutionRatioResolution(), 50),
     _passive(opt),
     _tautologyDeletion(false),
     _equalityProxy(0)
@@ -191,6 +191,11 @@ void IGAlgorithm::init()
     ASS(cl->isClause());
     _inputClauses.push(cl);
   }
+
+  if (env.options->randomTraversals()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    Shuffling::shuffleArray(_inputClauses.naked(),_inputClauses.size());
+  }
 }
 
 bool IGAlgorithm::addClause(Clause* cl)
@@ -244,6 +249,11 @@ redundancy_check:
     }
   }
 
+  if (env.options->randomTraversals()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    Shuffling::shuffle(cl);
+  }
+
   cl->incRefCnt();
   _variantIdx->insert(cl);
 
@@ -272,6 +282,11 @@ void IGAlgorithm::processUnprocessed()
   CALL("IGAlgorithm::processUnprocessed");
 
   TIME_TRACE("inst gen SAT solving");
+
+  if (env.options->randomTraversals()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    Shuffling::shuffleArray(_unprocessed.naked().begin(),_unprocessed.size());
+  }
 
   while(_unprocessed.isNonEmpty()) {
     Clause* cl = _unprocessed.popWithoutDec();
@@ -430,8 +445,8 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
   SLQueryResultIterator unifs = _selected->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
-    if(!isSelected(unif.literal)) {
-      deactivate(unif.clause);
+    if(!isSelected(unif.data->literal)) {
+      deactivate(unif.data->clause);
       continue;//literal is no longer selected
     }
 
@@ -439,27 +454,28 @@ void IGAlgorithm::tryGeneratingInstances(Clause* cl, unsigned litIdx)
     static LiteralStack genLits2;
     bool properInstance1;
     bool properInstance2;
+    auto subs = unif.unifier;
 
-    if (startGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1,properInstance1) &&
-        startGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2,properInstance2)) {
+    if (startGeneratingClause(cl, *subs, true, unif.data->clause,lit,genLits1,properInstance1) &&
+        startGeneratingClause(unif.data->clause, *subs, false, cl,unif.data->literal,genLits2,properInstance2)) {
 
       // dismatching test passed for both
 
-      if(unif.clause->length()==1) {
+      if(unif.data->clause->length()==1) {
         //we make sure the unit is added first, so that it can be used to shorten the
         //second clause by global subsumption
         if (properInstance2) {
-          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+          finishGeneratingClause(unif.data->clause, *subs, false, cl,unif.data->literal,genLits2);
         }
         if (properInstance1) {
-          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+          finishGeneratingClause(cl, *subs, true, unif.data->clause,lit,genLits1);
         }
       } else {
         if (properInstance1) {
-          finishGeneratingClause(cl, *unif.substitution, true, unif.clause,lit,genLits1);
+          finishGeneratingClause(cl, *subs, true, unif.data->clause,lit,genLits1);
         }
         if (properInstance2) {
-          finishGeneratingClause(unif.clause, *unif.substitution, false, cl,unif.literal,genLits2);
+          finishGeneratingClause(unif.data->clause, *subs, false, cl,unif.data->literal,genLits2);
         }
       }
     }
@@ -501,7 +517,7 @@ unsigned IGAlgorithm::lookaheadSelection(Clause* cl, unsigned selCnt)
   for(unsigned i=0; i<selCnt; i++) {
     iters[i] = pvi(getFilteredIterator(_selected->getUnifications((*cl)[i], true, false),
         // only count partner literals which are also semantically selected
-        [this](SLQueryResult& unif) { return isSelected(unif.literal); }));
+        [this](SLQueryResult& unif) { return isSelected(unif.data->literal); }));
   }
 
   static Stack<unsigned> candidates; // just to make sure we break the ties in a fair way
@@ -575,7 +591,7 @@ void IGAlgorithm::selectAndAddToIndex(Clause* cl)
   unsigned selCnt = cl->numSelected();
   ASS_GE(selCnt,1);
   for(unsigned i=0; i<selCnt; i++) {
-    _selected->insert((*cl)[i], cl);
+    _selected->insert(LiteralClause((*cl)[i], cl));
   }
 }
 
@@ -585,7 +601,7 @@ void IGAlgorithm::removeFromIndex(Clause* cl)
 
   unsigned selCnt = cl->numSelected();
   for(unsigned i=0; i<selCnt; i++) {
-    _selected->remove((*cl)[i], cl);
+    _selected->remove(LiteralClause((*cl)[i], cl));
   }
 }
 

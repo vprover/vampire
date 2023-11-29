@@ -118,7 +118,7 @@ TermList SortHelper::getResultSortMono(const Term* t)
 bool SortHelper::tryGetResultSort(const Term* t, TermList& result)
 {
   CALL("tryGetResultSort(Term*,unsigned&)");
-  ASS(!t->isLiteral());
+  ASS_REP(!t->isLiteral(), *t);
 
   TermList masterVar;
   return getResultSortOrMasterVariable(t, result, masterVar);
@@ -916,16 +916,6 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     TermList argSort = getResultSort(ta);
     TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
     if (instantiatedTypeSort != argSort) {
-/*
-#if VDEBUG
-      cout << "the term is " + t->toString() << endl;
-      cout << "the type of function " + env.signature->getFunction(t->functor())->name() + " is: " + type->toString() << endl;
-      //cout << "function name : "+ env.signature->getFunction(t->functor())->name() << endl;
-      //cout << "function name 2 :" + t->functionName() << endl;
-      cout << "error with expected " << instantiatedTypeSort.toString() << " and actual " << argSort.toString() << " when functor is " << t->functor() << " and arg is " << arg << endl;
-      ASSERTION_VIOLATION;
-#endif
-*/
       return false;
     }
   }
@@ -1078,3 +1068,8 @@ bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
   return true;
 } // areSortsValid 
 
+// TermList SortHelper::sortTerm(unsigned sortNum)
+// { return env.sorts->getSortTerm(sortNum); }
+//
+// unsigned SortHelper::sortNum(TermList sort)
+// { return env.sorts->getSortNum(sort); }

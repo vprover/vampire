@@ -12,6 +12,7 @@
  * Implements class Induction.
  */
 
+#include "Forwards.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 
@@ -36,8 +37,8 @@ namespace {
 struct SLQueryResultToTermQueryResultFn
 {
   SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
-  TermQueryResult operator() (const SLQueryResult slqr) {
-    return TermQueryResult(slqr.substitution->applyToQuery(variable), slqr.literal, slqr.clause);
+  TermLiteralClause operator() (const SLQueryResult slqr) {
+    return TermLiteralClause(slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause);
   }
 
   TermList variable;
@@ -65,7 +66,7 @@ bool isIntegerComparisonLiteral(Literal* lit) {
 
 };  // namespace
 
-TermQueryResultIterator InductionHelper::getComparisonMatch(
+VirtualIterator<TermLiteralClause> InductionHelper::getComparisonMatch(
     bool polarity, bool termIsLeft, Term* t) {
   CALL("InductionHelper::getComparisonMatch");
 
@@ -76,7 +77,7 @@ TermQueryResultIterator InductionHelper::getComparisonMatch(
                                 SLQueryResultToTermQueryResultFn(var)));
 }
 
-TermQueryResultIterator InductionHelper::getLess(Term* t)
+VirtualIterator<TermLiteralClause> InductionHelper::getLess(Term* t)
 {
   CALL("InductionHelper::getLess");
   return pvi(getConcatenatedIterator(
@@ -86,7 +87,7 @@ TermQueryResultIterator InductionHelper::getLess(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/false, t)));
 }
 
-TermQueryResultIterator InductionHelper::getGreater(Term* t)
+VirtualIterator<TermLiteralClause> InductionHelper::getGreater(Term* t)
 {
   CALL("InductionHelper::getGreater");
   return pvi(getConcatenatedIterator(
@@ -223,7 +224,7 @@ static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, Opti
   }
 }
 
-bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) {
+bool InductionHelper::isIntInductionTermListInLiteral(Term* tl, Literal* l) {
   CALL("InductionHelper::isIntInductionTermInLiteral");
 
   // Term tl has to be an integer term.
@@ -237,8 +238,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
   //   2: tl has only one occurrence in l
   //   3: tl does not occur in both arguments of l
   //   4: comparisons or equalities are not allowed
-  ASS(tl.isTerm());
-  unsigned f = tl.term()->functor();
+  unsigned f = tl->functor();
   if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort())
     return false;
 
@@ -251,15 +251,15 @@ bool InductionHelper::isIntInductionTermListInLiteral(TermList& tl, Literal* l) 
       return false;
     break;
   case TS::NO_SKOLEMS:
-    if(!containsSkolem(tl.term()))
+    if(!containsSkolem(tl))
       return false;
     break;
   }
 
   return (l->isEquality()
-    ? termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessEq())
+    ? termAndLiteralSatisfyStrictness(TermList(tl), l, env.options->integerInductionStrictnessEq())
     : !isIntegerComparisonLiteral(l) ||
-      termAndLiteralSatisfyStrictness(tl, l, env.options->integerInductionStrictnessComp()));
+      termAndLiteralSatisfyStrictness(TermList(tl), l, env.options->integerInductionStrictnessComp()));
 }
 
 bool InductionHelper::isStructInductionFunctor(unsigned f) {

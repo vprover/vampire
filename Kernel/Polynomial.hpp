@@ -4,8 +4,7 @@
  * copyright laws.
  *
  * This source code is distributed under the licence found here
- * https://vprover.github.io/license.html
- * and in the source directory
+ * https://vprover.github.io/license.html and in the source directory
  */
 
 #ifndef __POLYNOMIAL__H__
@@ -44,6 +43,7 @@
 #include "Lib/Metaiterators.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
+#define OUTPUT_NICE 1
 
 #define POLYNF_NICE_OUTPUT 1
 #if VDEBUG
@@ -103,9 +103,10 @@ public:
 
   TermList sort() const { return _sort; }
 
+  void integrity() const {  }
+  friend struct std::hash<Variable>;
   friend std::ostream& operator<<(std::ostream& out, const Variable& self);
   TermList denormalize() const { return TermList::var(_num); }
-  void integrity() const {}
 };
 
 // TODO use this newtype in Term.hpp
@@ -115,13 +116,13 @@ class FuncId
   unsigned _num;
   const TermList* _typeArgs; // private field not used
   
+  explicit FuncId(unsigned num, const TermList* typeArgs);
 public: 
   MAKE_DERIVABLE(FuncId, _num, _typeArgs)
     DERIVE_EQ
     DERIVE_CMP
     DERIVE_HASH
 
-  explicit FuncId(unsigned num, const TermList* typeArgs);
   static FuncId symbolOf(Term* term);
   unsigned numTermArguments() const;
   unsigned numTypeArguments() const;
@@ -163,7 +164,6 @@ class AnyPoly;
 // class declartions for PolyNf
 /////////////////////////////////////////////////////////
 
-
 struct ImmediateSubterms;
 
 /** 
@@ -180,6 +180,7 @@ class MonomFactor
   int _power;
 public:
 
+  using Numeral = typename Number::ConstantType;
   CLASS_NAME(MonomFactor)
   MAKE_DERIVABLE(MonomFactor, _term, _power)
     DERIVE_EQ
@@ -213,6 +214,10 @@ public:
     term().integrity(); 
 #endif
   }
+  // Option<Polynom<Number>> tryPolynom() const;
+  // bool isPolynom() const { return tryPolynom().isSome(); }
+  //
+  // PolyNf::SubtermIter iterSubterms() const;
 };
 
 template<class Add, class Zero, class Iter>
@@ -293,13 +298,6 @@ public:
   MonomFactors(Stack<MonomFactor> const& factors);
   MonomFactors(MonomFactor const& f) : MonomFactors(Stack<MonomFactor>{f}) {}
 
-  explicit MonomFactors(const MonomFactors&) = default;
-  explicit MonomFactors(MonomFactors&) = default;
-
-  MonomFactors& operator=(MonomFactors&&) = default;
-  MonomFactors(MonomFactors&&) = default;
-
-
   // \pre iter must be sorted
   template<class Iter>
   static MonomFactors fromIterator(Iter iter)
@@ -330,17 +328,6 @@ public:
   /** returns the number of factors */
   PolyNf const& termAt(unsigned i) const;
 
-  Option<Polynom> tryPolynom() const;
-  Option<MonomFactor> tryMonomFactor() const;
-
-  /** returns whether this monom is a polynom, i.e. if its only factor is a polynom */
-  bool isPolynom() const { return tryPolynom().isSome(); }
-
-  /** turns this monom into a polynom. 
-   * \pre isPolynom  must be true
-   */
-  Polynom asPolynom() const { return tryPolynom().unwrap(); }
-
   /** returns the (empty) product one */
   static MonomFactors one();
 
@@ -362,6 +349,8 @@ public:
   //       }
   //   }
   // }
+  /** if this MonomFactors consist of a single variable if will be returnd  */
+  Option<MonomFactor> tryMonomFactor() const;
   /** if this MonomFactors consist of a single variable if will be returnd  */
   Option<Variable> tryVar() const;
 
@@ -419,6 +408,13 @@ public:
       }
     }
   };
+  
+  // auto iterSubterms() const
+  // { return concatIters(
+  //     getSingletonIterator(PolyNf(*this)),
+  //     ImmediateSubterms{}(*this).flatMap([](auto t) { return t.iterSubterms(); })
+  //   ); 
+  // }
 
   auto iter() const 
   { return iterTraits(Iter(this->_inner)); }
@@ -426,7 +422,6 @@ public:
   template<class N> friend std::ostream& operator<<(std::ostream& out, const MonomFactors<N>& self);
 
   TermList denormalize() const;
-
   Stack<MonomFactor>& raw();
   static MonomFactors fromNormalized(TermList);
 };
@@ -469,6 +464,12 @@ struct Monom
 
   friend Monom operator*(Numeral k, Monom const& self)
   { return Monom(self.numeral * k, MonomFactors<Number>(self.factors)); }
+
+  friend Monom operator/(Monom const& self, Numeral k)
+  { 
+    ASS_NEQ(k, Numeral(0))
+    return (Numeral(1) / k) * self;
+  }
 
   friend Monom operator-(Monom const& self)
   { return Numeral(-1) * self; }
@@ -516,6 +517,8 @@ public:
   TermList denormalize() const { return TermList(_self); }
   void integrity() const;
 };
+
+template<class N> bool operator!=(const MonomFactors<N>& l, const MonomFactors<N>& r) { return !(l == r); }
 
 template<class Number>
 class Polynom 
@@ -625,6 +628,8 @@ public:
   // /** returns the summand with the given index */
   // Monom      & summandAt(unsigned summand);
 
+  Option<Monom> tryMonom() const;
+
   /** integrity check of the data structure. does noly have an effect in debug mode */
   void integrity() const;
 
@@ -632,6 +637,23 @@ public:
   auto iterSummands() const 
   { return iterTraits(AcChainIter(_inner, Number::addF()))
         .map([](auto t) { return Monom::fromNormalized(t); }); }
+
+
+  friend Polynom operator*(Numeral const& k, Polynom const& self)
+  {
+    return Polynom::fromIterator(
+        self.iterSummands()
+                .map([&](auto m) { return k * m; }));
+  }
+
+  friend Polynom operator/(Polynom const& self, Numeral const& k)
+  { return (Numeral(1) / k) * self; }
+
+  friend Polynom operator*(Polynom const& self, Numeral const& k)
+  { return k * self; }
+
+  friend Polynom operator-(Polynom const& self)
+  { return Numeral(-1) * self; }
 
   static Option<Polynom> tryFromNormalized(TypedTermList t);
   static Polynom fromNormalized(TermList t)
@@ -812,6 +834,7 @@ public:
 };
 
 
+template<class N> bool operator!=(const Polynom<N>& l, const Polynom<N>& r) { return !(l == r); }
 
 /** an iterator over a literal's arguments. The arguments are mapped to their corresponding PolNf s */
 class IterArgsPnf
@@ -870,7 +893,6 @@ struct ImmediateSubterms {
 
 };
 
-
 } // namespace Kernel
 
 // include needs to go here, since we need the specialization BottomUpChildIter<PolyNf> to declare Iter
@@ -921,12 +943,24 @@ Monom<Number>::Monom(Monom<Number>::Numeral numeral, MonomFactors<Number> factor
   : numeral(numeral), factors(factors)
 { }
 
+
 template<class Number>
 Monom<Number> Monom<Number>::zero() 
 { 
   static Monom p = Monom(Numeral(0), MonomFactors<Number>());
   return p; 
 }
+
+// template<class Number>
+// Option<typename Monom<Number>::Numeral> Monom<Number>::tryNumeral() const 
+// {
+//   using Opt = Option<Numeral>;
+//   if (this->factors->isOne()) {
+//     return Opt(numeral);
+//   } else {
+//     return Opt();
+//   }
+// }
 
 template<class Number>
 Option<Variable> Monom<Number>::tryVar() const 
@@ -946,8 +980,6 @@ void Monom<Number>::integrity() const
   this->factors.integrity();
 #endif // VDEBUG
 }
-
-
 template<class Number>
 bool operator<(Monom<Number> const& l, Monom<Number> const& r)
 { return std::tie(l.factors, l.numeral) < std::tie(r.factors, r.numeral); }
@@ -964,7 +996,6 @@ std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
   }
   return out << self.factors; 
 }
-
 
 
 template<class Number>
@@ -992,8 +1023,10 @@ TermList MonomFactors<Number>::denormalize() const
 { return _inner; }
 
 
-
 } // namespace Kernel
+
+
+
 
 
 /////////////////////////////////////////////////////////
@@ -1023,6 +1056,17 @@ Option<typename Number::ConstantType> FuncId::tryNumeral() const
 
 
 namespace Kernel {
+
+// template<class Args> FuncTerm::FuncTerm(FuncId f, Args const& args) 
+//   : _fun(f)
+//   , _args(f.arity())
+// {
+//   static_assert(std::is_same< typename std::remove_const<typename std::remove_reference<decltype(args[0u])>::type>::type
+//                             , PolyNf
+//                             >::value, "args must return a PolyNf on a call  operator[](unsigned)");
+//   for (unsigned i = 0; i < f.arity(); i++) 
+//     _args.push(args[i]);
+// }
 
 template<class Number>
 Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
@@ -1107,6 +1151,12 @@ Polynom<Number> PolyNf::wrapPoly() const
   }
 }
 
+// template<class Number> 
+// Monom<Number> PolyNf::wrapMonom() const
+// {
+//   return this->wrapPoly<Number>()->tryMonom() || [&]() -> Monom<Number> { return Monom<Number>(*this); };
+// }
+
 template<class Number>
 Option<typename Number::ConstantType> PolyNf::tryNumeral() const
 { 
@@ -1132,6 +1182,11 @@ MonomFactor<Number>::MonomFactor(PolyNf term, int power)
   , _power(power == 0 ? 1             : power)
 {}
 
+
+// template<class Number>
+// PolyNf::SubtermIter MonomFactor<Number>::iterSubterms() const
+// { return term.iterSubterms(); }
+
 template<class Number>
 std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
   // out << self._term;
@@ -1145,9 +1200,14 @@ std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
 #endif
 }
 
+
 template<class Number>
 Option<Variable> MonomFactor<Number>::tryVar() const 
 { return _power == 1 ? term().tryVar() : none<Variable>(); }
+
+// template<class Number>
+// Option<Polynom<Number>> MonomFactor<Number>::tryPolynom() const 
+// { return power == 1 ? term.downcast<Number>() : none<Polynom<Number>>(); }
 
 } // namespace Kernel
 
@@ -1199,6 +1259,7 @@ unsigned MonomFactors<Number>::cntFactors() const
 // template<class Number>
 // Stack<MonomFactor<Number>> & MonomFactors<Number>::raw()
 // { return _factors; }
+//
 
 template<class Number>
 Option<MonomFactor<Number>> MonomFactors<Number>::tryMonomFactor() const
@@ -1217,10 +1278,10 @@ Option<MonomFactor<Number>> MonomFactors<Number>::tryMonomFactor() const
 }
 
 
-template<class Number>
-Option<Polynom<Number>> MonomFactors<Number>::tryPolynom() const
-{ return tryMonomFactor()
-    .andThen([](auto f) { return f.tryPolynom(); }); }
+// template<class Number>
+// Option<Polynom<Number>> MonomFactors<Number>::tryPolynom() const
+// { return tryMonomFactor()
+//     .andThen([](auto f) { return f.tryPolynom(); }); }
 
 template<class Number>
 MonomFactors<Number> MonomFactors<Number>::one()
@@ -1302,15 +1363,6 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms,
 namespace Kernel {
 
 
-// template<class Number>
-// Polynom<Number>::Polynom(Stack<Monom> const& summands) 
-//   : _inner(
-//       Number::sum(iterTraits(summands.iter())
-//         .map([](auto& s) { return s.denormalize(); })))
-//       // summands.isEmpty() 
-//       //   ? Stack<Monom>{Monom::zero()} 
-//       //   : std::move(summands)) 
-// { }
 
 template<class Number>
 Polynom<Number>::Polynom(Monom m) 
@@ -1326,7 +1378,7 @@ Polynom<Number>::Polynom(Numeral numeral, PolyNf term)
 template<class Number>
 Polynom<Number>::Polynom(PolyNf t) 
   : Polynom(Numeral(1), t) 
-{  }
+{ integrity();  }
 
 template<class Number>
 Polynom<Number>::Polynom(Numeral constant) 
@@ -1358,7 +1410,9 @@ std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
       out << " + " << iter.next();
     }
   }
+#if !OUTPUT_NICE 
   out << ")";
+#endif 
   return out;
 #endif
 }
@@ -1400,18 +1454,6 @@ Option<Polynom<NumTraits>> Polynom<NumTraits>::tryFromNormalized(TypedTermList t
     // { return t.isTerm() && t.term()->functor() == NumTraits::mulF(); };
 
     return some(Polynom(t));
-    // if (isMul(t)) {
-    //   return some(Polynom::fromNormalized(t))
-    // } else if (isMul){}
-    // Stack<Monom> summands(1);
-    // TermList curr = t;
-    // while (isAdd(curr)) {
-    //   ASS(!isAdd(curr.term()->termArg(0)))
-    //   summands.push(Monom::fromNormalized(curr.term()->termArg(0)));
-    //   curr = curr.term()->termArg(1);
-    // }
-  // // TODO sorted assertions
-  //   return Option<Polynom>(Polynom(std::move(summands)));
   }
 }
 

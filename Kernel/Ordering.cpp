@@ -26,6 +26,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Random.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -37,6 +38,9 @@
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
+#include "Kernel/LaLpo.hpp"
+#include "Kernel/QKbo.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "Ordering.hpp"
 
@@ -50,19 +54,14 @@ using namespace Kernel;
 
 OrderingSP Ordering::s_globalOrdering;
 
-Ordering::Ordering()
+Ordering::Ordering() : _eqCmp(unique_ptr<EqCmp>(new  EqCmp()))
 {
   CALL("Ordering::Ordering");
-
-  createEqualityComparator();
-  ASS(_eqCmp);
 }
 
 Ordering::~Ordering()
 {
   CALL("Ordering::~Ordering");
-
-  destroyEqualityComparator();
 }
 
 
@@ -109,6 +108,19 @@ Ordering* Ordering::tryGetGlobalOrdering()
   }
 }
 
+#define TIME_TRACING_ORD 1
+
+#if TIME_TRACING_ORD
+#  define NEW_ORD(Ord, ...) \
+      new TimeTraceOrdering<Ord>(#Ord " (literal)", #Ord "(term)", Ord(__VA_ARGS__))
+
+#else // !TIME_TRACING_ORD
+#  define NEW_ORD(Ord, ...) \
+      new Ord(__VA_ARGS__)
+
+#endif // TIME_TRACING_ORD
+
+
 /**
  * Creates the ordering
  *
@@ -138,10 +150,16 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
         && !env.options->kboMaxZero()
         && !prb.hasInterpretedOperations()
         ) {
-      out = new KBOForEPR(prb, opt);
+      out = NEW_ORD(KBOForEPR, prb, opt);
     } else {
-      out = new KBO(prb, opt);
+      out = NEW_ORD(KBO, prb, opt);
     }
+    break;
+  case Options::TermOrdering::LALPO:
+    out = NEW_ORD(LaLpo, prb, opt);
+    break;
+  case Options::TermOrdering::QKBO:
+    out = NEW_ORD(QKbo, prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
@@ -219,25 +237,25 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
 {
   CALL("Ordering::removeNonMaximal");
 
-  LiteralList** ptr1=&lits;
-  while(*ptr1) {
-    LiteralList** ptr2=&(*ptr1)->tailReference();
-    while(*ptr2 && *ptr1) {
-      Ordering::Result res=compare((*ptr1)->head(), (*ptr2)->head());
+  LiteralList** ptr1 = &lits;
+  while (*ptr1) {
+    LiteralList** ptr2 = &(*ptr1)->tailReference();
+    while (*ptr2 && *ptr1) {
+      Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
-      if(res==Ordering::GREATER || res==Ordering::GREATER_EQ || res==Ordering::EQUAL) {
-	LiteralList::pop(*ptr2);
-	continue;
-      } else if(res==Ordering::LESS || res==Ordering::LESS_EQ) {
-	LiteralList::pop(*ptr1);
-	goto topLevelContinue;
+      if (res == Ordering::GREATER || res == Ordering::GREATER_EQ
+          || res == Ordering::EQUAL) {
+        LiteralList::pop(*ptr2);
+        continue;
+      } else if (res == Ordering::LESS || res == Ordering::LESS_EQ) {
+        LiteralList::pop(*ptr1);
+        goto topLevelContinue;
       }
-      ptr2=&(*ptr2)->tailReference();
+      ptr2 = &(*ptr2)->tailReference();
     }
-    ptr1=&(*ptr1)->tailReference();
-topLevelContinue: ;
+    ptr1 = &(*ptr1)->tailReference();
+    topLevelContinue: ;
   }
-
 }
 
 Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
@@ -269,6 +287,7 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
 Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 {
   CALL("PrecedenceOrdering::compare(Literal*...)");
+
   ASS(l1->shared());
   ASS(l2->shared());
 
@@ -293,10 +312,9 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   }
 
   if(l1->isEquality()) {
-    ASS(l2->isEquality());
+    ASS(l2->isEquality())
     return compareEqualities(l1, l2);
   }
-  ASS(!l1->isEquality());
 
   if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
     if(l1->isNegative() && l2->isNegative()) {
@@ -361,13 +379,30 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
-  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
-  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
+  if (_qkboPrecedence) {
 
-  if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
-  if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
-  if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
+    // one is less than everything else
+    if (fun1 == IntTraits::oneF()) { return LESS; }
+    if (fun1 == RatTraits::oneF()) { return LESS; }
+    if (fun1 == RealTraits::oneF()) { return LESS; }
+
+    if (fun2 == IntTraits::oneF()) { return GREATER; } 
+    if (fun2 == RatTraits::oneF()) { return GREATER; }
+    if (fun2 == RealTraits::oneF()) { return GREATER; }
+
+
+  } else {
+
+    // unary minus is the biggest
+    if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
+    if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
+    if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
+
+    if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+    if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+    if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
+
+  }
 
   // $$false is the smallest
   if (env.signature->isFoolConstantSymbol(false,fun1)) {
@@ -421,7 +456,7 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   }
   //two interpreted constants
 
-  if (!s1->numericConstant() || !s2->numericConstant()) {
+  if (!s1->interpretedNumber() || !s2->interpretedNumber()) {
     return fromComparison(Int::compare(fun1, fun2));
   }
 
@@ -664,20 +699,23 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
                                        const DArray<int>& typeConPrec,   
                                        const DArray<int>& predPrec, 
                                        const DArray<int>& predLevels, 
-                                       bool reverseLCM)
+                                       bool reverseLCM,
+                                       bool qkboPrecedence)
   : _predicates(predPrec.size()),
     _functions(funcPrec.size()),
     _predicateLevels(predLevels),
     _predicatePrecedences(predPrec),
     _functionPrecedences(funcPrec),
     _typeConPrecedences(typeConPrec),
-    _reverseLCM(reverseLCM)
+    _reverseLCM(reverseLCM),
+    _qkboPrecedence(qkboPrecedence)
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(const DArray<int>&, const DArray<int>&, const DArray<int>&, bool)");
   ASS_EQ(env.signature->predicates(), _predicates);
   ASS_EQ(env.signature->functions(), _functions);
   ASS(isPermutation(_functionPrecedences))
   ASS(isPermutation(_predicatePrecedences))
+  checkLevelAssumptions(predLevels);
 }
 
 /**
@@ -685,13 +723,14 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
  *
  * "Intermediate" constructor; this is needed so that we only call predPrecFromOpts once (and use it here twice).
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence)
 : PrecedenceOrdering(
     funcPrecFromOpts(prb,opt),
     typeConPrecFromOpts(prb,opt),    
     predPrec,
     predLevelsFromOptsAndPrec(prb,opt,predPrec),
-    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE
+    opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE,
+    qkboPrecedence
     )
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering((Problem&,const Options&,const DArray<int>&)");
@@ -700,13 +739,15 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const D
 /**
  * Create a PrecedenceOrdering object.
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence)
 : PrecedenceOrdering(prb,opt,
-    (
+    [&]() {
        // Make sure we (re-)compute usageCnt's for all the symbols;
        // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
-       prb.getProperty(),
-       predPrecFromOpts(prb, opt)))
+       prb.getProperty();
+       return predPrecFromOpts(prb, opt);
+   }(),
+   qkboPrecedence)
 {
   CALL("PrecedenceOrdering::PrecedenceOrdering(Problem&,const Options&)");
   ASS_G(_predicates, 0);
@@ -714,6 +755,12 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt)
 
 static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType) {
   CALL("sortAuxBySymbolPrecedence");
+
+  // since the below sorts are stable, a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
+  if (opt.shuffleInput() && opt.symbolPrecedence() != Shell::Options::SymbolPrecedence::SCRAMBLE) {
+    Shuffling::shuffleArray(aux,aux.size());
+    // in particular shuffleInput causes OCCURRENCE to be also random
+  }
 
   switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
@@ -848,24 +895,25 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   return predicatePrecedences;
 }
 
-DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences) {
 
+DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences) {
   unsigned nPredicates = env.signature->predicates();
+
   DArray<int> predicateLevels(nPredicates);
 
   switch(opt.literalComparisonMode()) {
   case Shell::Options::LiteralComparisonMode::STANDARD:
-    predicateLevels.init(nPredicates, 1);
+    predicateLevels.init(nPredicates, PredLevels::MIN_USER_DEF);
     break;
   case Shell::Options::LiteralComparisonMode::PREDICATE:
   case Shell::Options::LiteralComparisonMode::REVERSE:
     for(unsigned i=1;i<nPredicates;i++) {
-      predicateLevels[i]=predicatePrecedences[i]+1;
+      predicateLevels[i] = predicatePrecedences[i] + PredLevels::MIN_USER_DEF;
     }
     break;
   }
   //equality is on the lowest level
-  predicateLevels[0]=0;
+  predicateLevels[0] = PredLevels::EQ;
 
   if (env.predicateSineLevels) {
     // predicateSineLevels start from zero
@@ -877,7 +925,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
       if (!env.predicateSineLevels->find(i,level)) {
         level = bound;
       }
-      predicateLevels[i] = reverse ? (bound - level + 1) : level;
+      predicateLevels[i] = (reverse ? (bound - level) : level) + PredLevels::MIN_USER_DEF;
       // cout << "setting predicate level of " << env.signature->predicateName(i) << " to " << predicateLevels[i] << endl;
     }
   }
@@ -890,11 +938,35 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
     }
     else if(predSym->equalityProxy()) {
       //equality proxy predicates have the highest level (lower than colored predicates)
-      predicateLevels[i]=nPredicates+2;
+      predicateLevels[i] = nPredicates + PredLevels::MIN_USER_DEF+ 1;
     }
-
+    else if (predSym->interpreted()) {
+      if (theory->isInequality(theory->interpretPredicate(i)) && env.options->termOrdering() == Options::TermOrdering::LALPO) {
+        predicateLevels[i] = PredLevels::INEQ;
+      }
+    }
   }
+
+  checkLevelAssumptions(predicateLevels);
   return predicateLevels;
+}
+
+void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
+{
+#if VDEBUG
+  for (unsigned i = 0; i < levels.size(); i++) {
+    if (theory->isInterpretedPredicate(i)) {
+      auto itp = theory->interpretPredicate(i);
+      if (itp == Kernel::Theory::EQUAL) {
+        ASS(levels[i] == PredLevels::EQ);
+      } else if (theory->isInequality(itp)) {
+        ASS(env.options->termOrdering() != Options::TermOrdering::LALPO || levels[i] == PredLevels::INEQ);
+      } else {
+        ASS(levels[i] >= PredLevels::MIN_USER_DEF || levels[i] < 0)
+      }
+    }
+  }
+#endif // VDEBUG
 }
 
 void PrecedenceOrdering::show(ostream& out) const 
@@ -955,4 +1027,22 @@ void PrecedenceOrdering::show(ostream& out) const
   out << "%" << std::endl;
 
   showConcrete(out);
+}
+
+DArray<int> PrecedenceOrdering::testLevels() 
+{
+  DArray<int> levels(env.signature->predicates());
+  for (unsigned i = 0; i < levels.size(); i++) {
+    if (theory->isInterpretedPredicate(i)) {
+      auto itp = theory->interpretPredicate(i);
+      if (itp == Kernel::Theory::EQUAL) {
+        levels[i] = PredLevels::EQ;
+      } else if (theory->isInequality(itp)) {
+        levels[i] = PredLevels::INEQ;
+      } else {
+        levels[i] = PredLevels::MIN_USER_DEF;
+      }
+    }
+  }
+  return levels;
 }

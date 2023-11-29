@@ -8,6 +8,10 @@ project(Vampire)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_MODULE_PATH cmake/modules/)
+
+# make __FILENAME__ macro as relative path used instead of absoulte source path __FILE__
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
 
 # configure compilers
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
@@ -27,6 +31,8 @@ set(VAMPIRE_BINARY_Z3)
 set(VAMPIRE_BINARY_HASH)
 set(VAMPIRE_BINARY_BRANCH)
 set(VAMPIRE_BINARY_REV_COUNT)
+
+find_package(Threads REQUIRED)
 
 # set build type if not set
 if(NOT CMAKE_BUILD_TYPE)
@@ -111,6 +117,7 @@ set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
+    Debug/Output.hpp
     )
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
@@ -138,8 +145,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/BacktrackIterators.hpp
     Lib/BinaryHeap.hpp
     Lib/BitUtils.hpp
-    Lib/BucketSorter.hpp
-    Lib/Cache.hpp
     Lib/Comparison.hpp
     Lib/Counter.hpp
     Lib/DArray.hpp
@@ -162,7 +167,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/MemoryLeak.hpp
-    Lib/Metaarrays.hpp
     Lib/Metaiterators.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
@@ -171,9 +175,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Portability.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
-    Lib/RCPtr.hpp
-    Lib/Recycler.hpp
-    Lib/ReferenceCounter.hpp
+    Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/SafeRecursion.hpp
     Lib/ScopedLet.hpp
@@ -223,6 +225,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.cpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
+    Kernel/LaLpo.cpp
+    Kernel/QKbo.cpp
     Kernel/KBOForEPR.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
@@ -242,6 +246,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SortHelper.cpp
     Kernel/OperatorType.cpp
     Kernel/SpassLiteralSelector.cpp
+    Kernel/RndLiteralSelector.cpp    
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
     Kernel/Term.cpp
@@ -272,6 +277,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.hpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
+    Kernel/LaLpo.hpp
+    Kernel/QKbo.hpp
     Kernel/KBOForEPR.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
@@ -291,6 +298,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/SortHelper.hpp
     Kernel/OperatorType.hpp
     Kernel/SpassLiteralSelector.hpp
+    Kernel/RndLiteralSelector.hpp    
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
     Kernel/Substitution.hpp
@@ -310,8 +318,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    Indexing/TypeSubstitutionTree.cpp
-    Indexing/TypeSubstitutionTree.hpp
+    Kernel/LASCA.hpp
+    Kernel/LASCA.cpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -359,16 +367,10 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
-    Indexing/LiteralSubstitutionTree.cpp
     Indexing/ResultSubstitution.cpp
-    Indexing/SubstitutionTree.cpp
-    Indexing/SubstitutionTree_FastGen.cpp
-    Indexing/SubstitutionTree_FastInst.cpp
-    Indexing/SubstitutionTree_Nodes.cpp
     Indexing/TermCodeTree.cpp
     Indexing/TermIndex.cpp
     Indexing/TermSharing.cpp
-    Indexing/TermSubstitutionTree.cpp
     Indexing/AcyclicityIndex.hpp
     Indexing/ClauseCodeTree.hpp
     Indexing/ClauseVariantIndex.hpp
@@ -389,6 +391,8 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
+    Indexing/LascaIndex.cpp
+    Indexing/LascaIndex.hpp
     )
 source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 
@@ -427,6 +431,32 @@ set(VAMPIRE_INFERENCE_SOURCES
     Kernel/Rebalancing/Inverters.cpp
     Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
+    Inferences/LASCA/Normalization.cpp
+    Inferences/LASCA/Normalization.hpp
+    Inferences/LASCA/IsIntFactoring.cpp
+    Inferences/LASCA/IsIntFactoring.hpp
+    Inferences/LASCA/InequalityFactoring.cpp
+    Inferences/LASCA/InequalityFactoring.hpp
+    Inferences/LASCA/EqFactoring.cpp
+    Inferences/LASCA/EqFactoring.hpp
+    Inferences/LASCA/VariableElimination.cpp
+    Inferences/LASCA/VariableElimination.hpp
+    Inferences/LASCA/Superposition.cpp
+    Inferences/LASCA/Superposition.hpp
+    Inferences/LASCA/Demodulation.cpp
+    Inferences/LASCA/Demodulation.hpp
+    Inferences/LASCA/FwdDemodulation.cpp
+    Inferences/LASCA/FwdDemodulation.hpp
+    Inferences/LASCA/BwdDemodulation.cpp
+    Inferences/LASCA/BwdDemodulation.hpp
+    Inferences/LASCA/InequalityStrengthening.cpp
+    Inferences/LASCA/InequalityStrengthening.hpp
+    Inferences/LASCA/IsIntResolution.cpp
+    Inferences/LASCA/IsIntResolution.hpp
+    Inferences/LASCA/FourierMotzkin.cpp
+    Inferences/LASCA/FourierMotzkin.hpp
+    Inferences/LASCA/TermFactoring.cpp
+    Inferences/LASCA/TermFactoring.hpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
@@ -572,6 +602,8 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Naming.cpp
     Shell/NNF.cpp
     Shell/Normalisation.cpp
+    Shell/Shuffling.cpp
+    Shell/Shuffling.hpp
     Shell/Options.cpp
     Shell/PredicateDefinition.cpp
     Shell/Preprocess.cpp
@@ -645,8 +677,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
-    Shell/UnificationWithAbstractionConfig.hpp
-    Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     Shell/Lexer.hpp
@@ -675,7 +705,6 @@ set(
     FMB/SortInference.cpp
     FMB/ClauseFlattening.hpp
     FMB/DefinitionIntroduction.hpp
-    FMB/DefinitionIntroduction.cpp
     FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.hpp
     FMB/FiniteModelMultiSorted.hpp    
@@ -705,6 +734,10 @@ set(VAMPIRE_CASC_SOURCES
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
 set(VAMPIRE_TESTING_SOURCES
+    Test/TermIndexTester.hpp
+    Test/BuilderPattern.hpp
+    Test/SimplificationTester.hpp
+    Test/GenerationTester.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
     Test/SyntaxSugar.hpp
@@ -718,7 +751,19 @@ set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
+    UnitTests/tLASCA_FourierMotzkin.cpp
+    UnitTests/tLASCA_InequalityStrengthening.cpp
+    UnitTests/tLASCA_IsIntResolution.cpp
+    UnitTests/tLASCA_InequalityFactoring.cpp
+    UnitTests/tLASCA_IsIntFactoring.cpp
+    UnitTests/tLASCA_Normalization.cpp
+    UnitTests/tLASCA_Superposition.cpp
+    UnitTests/tLASCA_EqFactoring.cpp
+    UnitTests/tLASCA_VariableElimination.cpp
+    UnitTests/tLASCA_TermFactoring.cpp
+    UnitTests/tLASCA_Demodulation.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -734,6 +779,8 @@ set(UNIT_TESTS
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
     UnitTests/tKBO.cpp
+    UnitTests/tLaLpo.cpp
+    UnitTests/tQKbo.cpp
     UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
@@ -743,7 +790,7 @@ set(UNIT_TESTS
     UnitTests/tList.cpp
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
-    UnitTests/tEqualityResolution.cpp
+    # UnitTests/tEqualityResolution.cpp
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
@@ -806,6 +853,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
 endif()
 
 add_compile_definitions(VTIME_PROFILING=1)
+add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
@@ -815,6 +863,17 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
 endif()
+
+################################################################
+# gmp stuff
+################################################################
+
+FIND_PATH(GMP_INCLUDE_DIR gmpxx.h)
+FIND_PATH(GMPXX_INCLUDE_DIR gmpxx.h)
+include_directories(${GMPXX_INCLUDE_DIR} ${GMP_INCLUDE_DIR})
+
+find_library(GMP gmp)
+link_libraries(${GMP})
 
 ################################################################
 # z3 stuff

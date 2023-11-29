@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Theory.hpp"
+#include "Kernel/LASCA.hpp"
 
 
 
@@ -27,7 +28,7 @@ using namespace Kernel;
 
 class InterpretedNormalizer {
 public:
-  InterpretedNormalizer();
+  InterpretedNormalizer(InequalityNormalizer*);
   ~InterpretedNormalizer();
 
   void apply(Problem& prb);
@@ -50,6 +51,7 @@ private:
   static bool isTrivialInterpretation(Interpretation itp);
 
   NLiteralTransformer* _litTransf;
+  InequalityNormalizer* _inequalityNormalizer;
 };
 
 }

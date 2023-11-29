@@ -23,6 +23,7 @@
 ///@addtogroup Reflection
 ///@{
 
+// TODO remove FROM_TUPLE in favor of DERIVEBLE
 
 #define DEFAULT_CONSTRUCTORS(Class)                                                       \
   Class(Class const&) = default;                                                          \
@@ -122,6 +123,38 @@
 #define DERIVE_STD_HASH(Class)                                                            \
   template<>                                                                              \
   TEMPLATE_DERIVE_STD_HASH(Class)
+
+#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
+  Class(Class const&) = default;                                                                    \
+  Class(Class     &&) = default;                                                                    \
+  Class& operator=(Class const&) = default;                                                         \
+  Class& operator=(Class     &&) = default;                                                         \
+
+#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                          \
+  friend bool operator==(Class const& l, Class const& r)                                            \
+  { return l.asTuple() == r.asTuple(); }                                                            \
+                                                                                                    \
+  friend bool operator<(Class const& l, Class const& r)                                             \
+  { return l.asTuple() < r.asTuple(); }                                                             \
+                                                                                                    \
+  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                      \
+
+#define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                \
+  friend bool operator> (Class const& l, Class const& r) { return r < l; }                          \
+  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }                \
+  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }                \
+  friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }                      \
+
+#define IMPL_HASH_FROM_TUPLE(Class)                                                                 \
+  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                             \
+  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                           \
+
+//The obvious way to define this macro would be
+//#define DECL_ELEMENT_TYPE(T) typedef T _ElementType
+//but the preprocessor understands for example
+//M(pair<A,B>)
+//as an instantiation of  macro M with two arguments --
+//pair<A is first and B> second.
 
 /**
  * Declare type returned by an iterator

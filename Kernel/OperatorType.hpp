@@ -9,11 +9,11 @@
  */
 /**
  * @file OperatorType.hpp
- * Defines class Sorts.
+ * Defines class OperatorType.
  */
 
-#ifndef __Sorts__
-#define __Sorts__
+#ifndef __OperatorType__
+#define __OperatorType__
 
 #include "Forwards.hpp"
 
@@ -67,7 +67,10 @@ public:
     { 
       OperatorKey& key = *ot->key();
       unsigned typeArgsArity = ot->numTypeArguments();
-      return HashUtils::combine(Hash::hash(key), Hash::hash(typeArgsArity)); 
+      return HashUtils::combine(
+        DefaultHash::hash(key),
+        DefaultHash::hash(typeArgsArity)
+      );
     }
   };
 
@@ -218,4 +221,4 @@ private:
 
 }
 
-#endif // __Sorts__
+#endif // __OperatorType__

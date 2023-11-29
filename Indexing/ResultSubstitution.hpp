@@ -61,12 +61,15 @@ public:
   template<typename T>
   T apply(T t, bool result)
   {
+    CALL("ResultSubstitution::apply")
     if(result) {
       return applyToResult(t);
     } else {
       return applyToQuery(t);
     }
   }
+
+  bool isRenamingOn(TermList t, bool result);
 
   /** if implementation cannot easily give result for this, zero is returned */
   template<typename T>
@@ -130,67 +133,17 @@ public:
    */
   virtual bool isIdentityOnResultWhenQueryBound() {return false;}
 
-  virtual RobSubstitution* tryGetRobSubstitution() { return 0; }
   //extend of literals with a matching of their sorts if possible
   virtual bool matchSorts(TermList base, TermList instance) { 
     NOT_IMPLEMENTED; 
   }
 
-  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s,
-	  int queryBank, int resultBank);
-#if VDEBUG
-  virtual vstring toString(){ NOT_IMPLEMENTED; }
-#endif
+  static ResultSubstitutionSP fromSubstitution(RobSubstitution* s, int queryBank, int resultBank);
+  virtual void output(std::ostream& ) const = 0;
+  friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
+  { self.output(out); return out; }
 };
 
-
-class IdentitySubstitution
-: public ResultSubstitution
-{
-public:
-  CLASS_NAME(IdentitySubstitution);
-  USE_ALLOCATOR(IdentitySubstitution);
-  
-  static ResultSubstitutionSP instance();
-
-  TermList applyToQuery(TermList t) { return t; }
-  Literal* applyToQuery(Literal* l) { return l; }
-  TermList applyToResult(TermList t) { return t; }
-  Literal* applyToResult(Literal* l) { return l; }
-  TermList applyTo(TermList t, unsigned index) { return t; }
-  Literal* applyTo(Literal* l,unsigned index) { return l; }
-  bool isIdentityOnQueryWhenResultBound() {return true;}
-#if VDEBUG
-  virtual vstring toString(){ return "identity"; }
-#endif
-};
-
-class DisjunctQueryAndResultVariablesSubstitution
-: public ResultSubstitution
-{
-public:
-  CLASS_NAME(DisjunctQueryAndResultVariablesSubstitution);
-  USE_ALLOCATOR(DisjunctQueryAndResultVariablesSubstitution);
-  
-  TermList applyToQuery(TermList t);
-  Literal* applyToQuery(Literal* l);
-  TermList applyToResult(TermList t);
-  Literal* applyToResult(Literal* l);
-  TermList applyTo(TermList t, unsigned index) { NOT_IMPLEMENTED; }
-  Literal* applyTo(Literal* l,unsigned index) { NOT_IMPLEMENTED; }
-
-  /**
-   * we can return true because nothing is bound to the result
-   */
-  bool isIdentityOnQueryWhenResultBound() {return true;}
-#if VDEBUG
-  virtual vstring toString(){ return "DisjunctQueryAndResultVariablesSubstitution"; }
-#endif
-private:
-  struct Applicator;
-  Renaming _renaming;
-};
-
-};
+}; // namepace Indexing
 
 #endif /* __ResultSubstitution__ */

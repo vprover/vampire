@@ -27,6 +27,7 @@ namespace InstGen {
 
 using namespace Kernel;
 using namespace SAT;
+class IGAlgorithm;
 
 class ModelPrinter {
 public:

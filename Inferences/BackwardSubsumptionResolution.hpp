@@ -18,6 +18,8 @@
 
 #include "InferenceEngine.hpp"
 
+namespace Indexing { class BackwardSubsumptionIndex; }
+
 namespace Inferences {
 
 using namespace Indexing;
@@ -40,7 +42,7 @@ private:
   struct ClauseToBwSimplRecordFn;
 
   bool _byUnitsOnly;
-  SimplifyingLiteralIndex* _index;
+  BackwardSubsumptionIndex* _index;
 };
 
 };

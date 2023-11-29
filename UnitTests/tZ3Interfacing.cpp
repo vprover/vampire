@@ -16,7 +16,13 @@
 
 #if VZ3
 
-#define DBG_ON 1
+#define DBG_ON 0
+#if 0
+#define EXPORT_FILE   "exported.bla"
+#else
+#define EXPORT_FILE   ""
+#endif
+#define EXPORT_SYNTAX Shell::Options::ProblemExportSyntax::API_CALLS
 // #if DBG_ON
 // #define DEBUG(...)
 // #else
@@ -64,9 +70,105 @@ void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, SATSolver::Status expected
 void checkStatus(SATSolver::Status expected, Stack<Literal*> assumptions) 
 {
   SAT2FO s2f;
-  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, /* export smtlib */ "");
+  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, EXPORT_FILE, EXPORT_SYNTAX);
   checkStatus(z3, s2f, expected, assumptions);
 }
+
+
+
+
+#if WITH_GMP
+///////////////////////////
+// GMP TEST
+//
+TEST_FUN(gmp_numeral_translation) {
+
+  SAT2FO s2f;
+  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, EXPORT_FILE, EXPORT_SYNTAX);
+
+
+  auto check = [&](auto num) {
+    auto orig = theory->representConstant(num);
+    auto ev = z3.evaluateInModel(orig);
+    if (ev != orig) {
+      std::cout << "[ fail ] evaluating numeral in model " << std::endl;
+      std::cout << "[  is  ] " << *ev << std::endl;
+      std::cout << "[  exp ] " << *orig << std::endl;
+      ASSERTION_VIOLATION
+    } else {
+      std::cout << "[  ok  ] " << *orig << std::endl;
+    }
+  };
+
+  for (int i = -10; i <= 10; i++ )
+    check(IntegerConstantType(i));
+
+  // checking the limits around maximal value of uint64_t
+  check(IntegerConstantType("18446744073709551615"));
+  check(IntegerConstantType("18446744073709551616"));
+  check(IntegerConstantType("18446744073709551617"));
+
+  // some random value that caused a bug
+  check(IntegerConstantType("23058430092136939515"));
+
+  // some very very big values
+  check(IntegerConstantType("184467440737095516118446744073709551617718446744073709551617"));
+  check(IntegerConstantType("18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777"));
+  check(IntegerConstantType("-18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777"));
+
+  check(RealConstantType(
+        IntegerConstantType("-18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777"), 
+        IntegerConstantType("42")));
+
+  check(RealConstantType(
+        IntegerConstantType("-42"),
+        IntegerConstantType("18446744073709551611844674407370955161771844674407370955161611844674407370955161771844674407370955161611844674407370955161771844674407370955161777")
+        ));
+
+  check(RealConstantType(7, 4));
+  check(RealConstantType(7, 1));
+
+}
+
+TEST_FUN(gmp_numeral_translation_memory_leak) {
+
+  SAT2FO s2f;
+  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, EXPORT_FILE, EXPORT_SYNTAX);
+
+  // struct PrintingInt {
+  //   int i;
+  //   PrintingInt& operator=(PrintingInt&& other) { 
+  //     i = other.i;
+  //     other.i = -1;
+  //     return *this;
+  //   }
+  //   PrintingInt(int i) : i(i) { }
+  //   PrintingInt(PrintingInt&& other) : i(other.i) {
+  //     other.i = -1;
+  //   }
+  //   ~PrintingInt() {
+  //     std::cout << "destroyed " << i << std::endl;
+  //   }
+  // };
+  //
+  // {
+  //   Stack<PrintingInt> stack;
+  //   stack.push(1);
+  //   stack.push(2);
+  //   stack.push(3);
+  //   std::cout << "finished init. popping" << std::endl;
+  //   std::cout << "pop: 1" << std::endl;
+  //   stack.pop();
+  //   std::cout << "pop: 2" << std::endl;
+  //   stack.pop();
+  //   // std::cout << "pop: 3" << std::endl;
+  //   // stack.pop();
+  // }
+
+  // TODO figure out how we get a memory leak here
+  z3.getRepresentation(theory->representConstant(IntegerConstantType("18446744073709551616")));
+}
+#endif // WITH_GMP
 
 
 ////////////////////////////////////
@@ -242,7 +344,7 @@ void checkInstantiation(SAT::Z3Interfacing& z3, SAT2FO& s2f, Stack<Literal*> ass
 void checkInstantiation(Stack<Literal*> assumptions, TermList toInstantiate, TermList expected)
 {
   SAT2FO s2f;
-  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, /* export smtlib */ "");
+  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, EXPORT_FILE, EXPORT_SYNTAX);
   return checkInstantiation(z3, s2f, assumptions, toInstantiate, expected);
 }
 
@@ -352,7 +454,7 @@ TEST_FUN(segfault02) {
 
 
   SAT2FO s2f;
-  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, /* export smtlib */ "");
+  SAT::Z3Interfacing z3(s2f, /* show z3 */ DBG_ON == 1, /* unsat core */ false, EXPORT_FILE, EXPORT_SYNTAX);
 
   checkStatus(z3, s2f, SATSolver::SATISFIABLE, { inst159 == inst160 });
   z3.solve();

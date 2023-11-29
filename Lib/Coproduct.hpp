@@ -91,27 +91,27 @@ namespace CoproductImpl {
                                                                                                     \
     /** applies the `idx`th function of `F,Fs...` to the contents of this union, interpreting them as the     \
      * `idx`th type of `A,As...`. This is only memory safe if that very type  has indeed been stored in this  \
-     * union. */                                                                                    \
-    template <class R, class F, class... Fs>                                                        \
-    inline R match(unsigned idx, F f, Fs... fs) REF {                                               \
-      if (idx == 0) {                                                                               \
-        return f(MOVE(_head));                                                                      \
-      } else {                                                                                      \
-        return MOVE(_tail).template match<R>(idx - 1, fs...);                                       \
-      }                                                                                             \
-    }                                                                                               \
-                                                                                                    \
-    /** same as `match`, but using the same function for every type.*/                              \
-    template <class R, class F> inline R apply(unsigned idx, F f) REF {                             \
-      if (idx == 0) {                                                                               \
-        static_assert(std::is_same<decltype(MOVE(_head)), A REF>::value, "unexpected head type");   \
-        A REF head = MOVE(_head);                                                                   \
-        return f(MOVE(head));                                                                       \
-      } else {                                                                                      \
-        return MOVE(_tail).template apply<R>(idx - 1, f);                                           \
-      }                                                                                             \
-    }                                                                                               \
-                                                                                                    \
+     * union. */                                                                                              \
+    template <class R, class F, class... Fs>                                                                  \
+    inline R match(unsigned idx, F f, Fs... fs) REF {                                                         \
+      if (idx == 0) {                                                                                         \
+        return f(MOVE(_head));                                                                                \
+      } else {                                                                                                \
+        return MOVE(_tail).template match<R>(idx - 1, fs...);                                                 \
+      }                                                                                                       \
+    }                                                                                                         \
+                                                                                                              \
+    /** same as `match`, but using the same function for every type.*/                                        \
+    template <class R, class F> inline R apply(unsigned idx, F f) REF {                                       \
+      if (idx == 0) {                                                                                         \
+        static_assert(std::is_same<decltype(MOVE(_head)), A REF>::value, "unexpected head type");             \
+        A REF head = MOVE(_head);                                                                             \
+        return f(MOVE(head));                                                                                 \
+      } else {                                                                                                \
+        return MOVE(_tail).template apply<R>(idx - 1, f);                                                     \
+      }                                                                                                       \
+    }                                                                                                         \
+                                                                                                              \
     /** same as `match`, but using applying th function to the contents of two unions at once. both must have \
      * the `idx`th type of `A,As...` stored in them. */                                             \
     template <class R, class F, class... Fs>                                                        \
@@ -280,6 +280,12 @@ class Coproduct<A, As...>
   /** unsafe default constructor, content will be uninit */
   Coproduct() : _tag(std::numeric_limits<unsigned>::max()) {}
 
+
+  Coproduct(Coproduct<As...> tail) 
+    : _tag(tail._tag + 1)
+    , _content(std::move(tail).apply([](auto x) { return decltype(_content)(std::move(x)); }))
+    {}
+
 public:
   CLASS_NAME(Coproduct)
 
@@ -292,6 +298,10 @@ public:
   unsigned tag() const { return _tag; }
 
 public:
+
+  Coproduct fromTail(Coproduct<As...> tail) 
+  { return Coproduct(std::move(tail)); }
+
 
   /** Returns whether this coproduct is the variant idx */
   template<unsigned idx> bool is() const 
@@ -357,24 +367,24 @@ public:
    * transforms all variants of this Coproduct to the same type and retuns the result               \
    *                                                                                                \
    * This function works basically in the same way as match, but takes one polymorphic function object that   \
-   * can transform any variant instead of multiple functions per variant.                           \
-   */                                                                                               \
-  template <class F>                                                                                \
-  inline auto apply(F f) REF -> decltype(auto) {                                                    \
-    ASS_REP(_tag <= size, _tag);                                                                    \
-    return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                               \
-  }                                                                                                 \
-                                                                                                    \
-  Coproduct &operator=(Coproduct REF other) {                                                       \
-    CALL("Coproduct& operator=(Coproduct " #REF "other)")                                           \
-    ASS_REP(other._tag <= size, other._tag);                                                        \
-    _content.destroy(_tag);                                                                         \
-    CoproductImpl::InitDynamicTag<0, size, Ts>{}(_content, other._tag, MOVE(other._content));       \
-    _tag = other._tag;                                                                              \
-    return *this;                                                                                   \
-  }                                                                                                 \
-                                                                                                    \
-  /**                                                                                               \
+   * can transform any variant instead of multiple functions per variant.                                     \
+   */                                                                                                         \
+  template <class F>                                                                                          \
+  inline auto apply(F f) REF -> decltype(auto) {                                                              \
+    ASS_REP(_tag <= size, _tag);                                                                              \
+    return MOVE(_content).template apply<ResultOf<F, A REF>>(_tag,f);                                         \
+  }                                                                                                           \
+                                                                                                              \
+  Coproduct &operator=(Coproduct REF other) {                                                                 \
+    CALL("Coproduct& operator=(Coproduct " #REF "other)")                                                     \
+    ASS_REP(other._tag <= size, other._tag);                                                                  \
+    _content.destroy(_tag);                                                                                   \
+    CoproductImpl::InitDynamicTag<0, size, Ts>{}(_content, other._tag, MOVE(other._content));                 \
+    _tag = other._tag;                                                                                        \
+    return *this;                                                                                             \
+  }                                                                                                           \
+                                                                                                              \
+  /**                                                                                                         \
    * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type       \
    * the result is undefined.                                                                       \
    *                                                                                                \
@@ -398,21 +408,21 @@ public:
                                                                                                     \
   /**                                                                                               \
    * returns the value of this Coproduct if its variant is of type B. If ifs variant is of another type       \
-   * an empty Option is returned.                                                                   \
-   *                                                                                                \
-   * \pre B must occur exactly once in A,As...                                                      \
-   */                                                                                               \
-  template <class B> inline Option<B REF> as() REF                                                  \
-  { return is<B>() ? unwrap<B>() : Option<B REF>();  }                                              \
-                                                                                                    \
-  /**                                                                                               \
+   * an empty Option is returned.                                                                             \
+   *                                                                                                          \
+   * \pre B must occur exactly once in A,As...                                                                \
+   */                                                                                                         \
+  template <class B> inline Option<B REF> as() REF                                                            \
+  { return is<B>() ? Option<B REF>(unwrap<B>()) : Option<B REF>();  }                                         \
+                                                                                                              \
+  /**                                                                                                         \
    * returns the value of this Coproduct if its variant's index is idx. otherwise an empty Option is returned.\
-   *                                                                                                \
-   * \pre idx must be less than the number of variants of this Coproduct                            \
-   */                                                                                               \
-  template <unsigned idx>                                                                           \
-  inline Option<TL::Get<idx, Ts> REF> as() REF                                                      \
-  { return is<idx>() ? unwrap<idx>() : Option<TL::Get<idx, Ts> REF>();  }                           \
+   *                                                                                                          \
+   * \pre idx must be less than the number of variants of this Coproduct                                      \
+   */                                                                                                         \
+  template <unsigned idx>                                                                                     \
+  inline Option<TL::Get<idx, Ts> REF> as() REF                                                                \
+  { return is<idx>() ? Option<TL::Get<idx, Ts> REF>(unwrap<idx>()) : Option<TL::Get<idx, Ts> REF>();  }                                     \
 
   FOR_REF_QUALIFIER(REF_POLYMORPIHIC)
 #undef REF_POLYMORPIHIC
@@ -453,6 +463,13 @@ public:
   friend bool operator>=(Coproduct const& lhs, Coproduct const& rhs) 
   { return lhs > rhs || lhs == rhs; }
 
+  unsigned defaultHash() const
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash(); })); }
+
+  unsigned defaultHash2() const
+  { return Lib::HashUtils::combine( std::hash<unsigned>{}(_tag), apply([](auto const& x){ return x.defaultHash2(); })); }
+
+  Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<A, As...> 
 
 
@@ -491,6 +508,35 @@ template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
         self.apply([](auto const& x){ return std::hash<std::remove_const_t<std::remove_reference_t<decltype(x)>>>{}(x); }));
   }
 };
+template<class... As> struct SelectOutput;
+
+template<class Cons> struct SelectOutput<Cons> { using type = Coproduct<std::result_of_t<Cons()>>; };
+
+template<class Cond, class Cons, class... Rest>
+struct SelectOutput<Cond, Cons, Rest...> {
+  using type = TypeList::Into<Coproduct, 
+     TypeList::Concat< TypeList::List<std::result_of_t<Cons()>>
+                     , typename SelectOutput<Rest...>::type::Ts 
+                     >>;
+};
+
+// static_assert(std::is_same<sel)
+
+// template<class Cond, class Cons, class... Rest>
+// using SelectOutput = ;
+
+template<class Cons>
+auto select(Cons cons) -> Coproduct<decltype(cons())>
+{ return Coproduct<decltype(cons())>::template variant<0>(cons()); }
+
+template<class Cond, class Cons, class... Rest>
+auto select(Cond cond, Cons cons, Rest... rest) ->  SelectOutput<Cond, Cons, Rest...>
+{
+  return cond() ? SelectOutput<Cond, Cons, Rest...>::template variant<0>(cons())
+                : SelectOutput<Cond, Cons, Rest...>::fromTail(select(std::move(rest)...));
+}
+
+
 
 
 template<class... As>

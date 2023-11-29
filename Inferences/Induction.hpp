@@ -151,6 +151,7 @@ private:
 class Induction
 : public GeneratingInferenceEngine
 {
+  using TermIndex = Indexing::TermIndex<TermLiteralClause>;
 public:
   CLASS_NAME(Induction);
   USE_ALLOCATOR(Induction);
@@ -162,7 +163,7 @@ public:
 
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {
-    _comparisonIndex = static_cast<LiteralIndex*>(indices[0]);
+    _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(indices[0]);
     _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
     _structInductionTermIndex = static_cast<TermIndex*>(indices[2]);
   }
@@ -170,7 +171,7 @@ public:
 
 private:
   // The following pointers can be null if int induction is off.
-  LiteralIndex* _comparisonIndex = nullptr;
+  LiteralIndex<LiteralClause>* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
   InductionFormulaIndex _formulaIndex;
@@ -178,6 +179,7 @@ private:
 
 class InductionClauseIterator
 {
+  using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const Options& opt,
@@ -203,12 +205,12 @@ private:
   void processIntegerComparison(Clause* premise, Literal* lit);
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
-  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
+  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
-  void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
-  void performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound);
-  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermQueryResult& bound1, const TermQueryResult* optionalBound2);
+  void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
+  void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermLiteralClause& bound1, const TermLiteralClause* optionalBound2);
 
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);

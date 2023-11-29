@@ -78,7 +78,7 @@ private:
   }
 
   int _weightDiff;
-  DHMap<unsigned, int, IdentityHash, Hash> _varDiffs;
+  DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
   /** Number of variables, that occur more times in the first literal */
   int _posNum;
   /** Number of variables, that occur more times in the second literal */
@@ -297,7 +297,7 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
  */
 SKIKBO::SKIKBO(Problem& prb, const Options& opt, bool basic_hol)
  : PrecedenceOrdering(prb, opt),
-   _weights(KboWeightMap<FuncSigTraits>::dflt())
+   _weights(KboWeightMap<FuncSigTraits>::dflt(/* qkbo */ false))
 {
   CALL("SKIKBO::SKIKBO");
 

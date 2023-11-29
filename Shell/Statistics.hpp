@@ -20,8 +20,8 @@
 #include <ostream>
 
 #include "Forwards.hpp"
+#include "Lib/Timer.hpp"
 
-#include "Lib/RCPtr.hpp"
 #include "Lib/ScopedPtr.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -36,7 +36,6 @@ namespace Kernel {
 namespace Shell {
 
 using namespace Kernel;
-using namespace Solving;
 
 /**
  * Class Statistics
@@ -50,8 +49,8 @@ public:
 
   Statistics();
 
-  void print(ostream& out);
-  void explainRefutationNotFound(ostream& out);
+  void print(std::ostream& out);
+  void explainRefutationNotFound(std::ostream& out);
 
   // Input
   /** number of input clauses */
@@ -162,8 +161,7 @@ public:
   unsigned primitiveInstantiations;
   unsigned choiceInstances;
   unsigned proxyEliminations;
-  unsigned leibnizElims;
-  unsigned booleanSimps;
+  unsigned leibnizElims; unsigned booleanSimps;
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
@@ -216,6 +214,11 @@ public:
   /** number of simplifications by PolynomialNormalizer */
   unsigned evaluationCnt;
 
+  /** number of machine arithmetic overflows within the inequality resolution calculus specific rules */
+  unsigned ircVarElimKNonZeroCnt;
+  unsigned ircVarElimKSum;
+  unsigned ircVarElimKMax;
+
   /** number of (proper) inner rewrites */
   unsigned innerRewrites;
   /** number of inner rewrites into equational tautologies */
@@ -241,6 +244,7 @@ public:
   unsigned taAcyclicityGeneratedDisequalities;
 
   // Saturation
+  unsigned activations;
   /** all clauses ever occurring in the unprocessed queue */
   unsigned generatedClauses;
   /** all passive clauses */
@@ -265,6 +269,8 @@ public:
   unsigned finalActiveClauses;
   /** extensionality clauses at the end of the saturation algorithm run */
   unsigned finalExtensionalityClauses;
+  /** max number of literals of a generated clause  */
+  unsigned biggestGeneratedClause;
 
   unsigned splitClauses;
   unsigned splitComponents;
@@ -346,6 +352,7 @@ public:
     /** Scanning for properties to be passed to preprocessing */
     PROPERTY_SCANNING,
     NORMALIZATION,
+    SHUFFLING,
     SINE_SELECTION,
     INCLUDING_THEORY_AXIOMS,
     PREPROCESS_1,

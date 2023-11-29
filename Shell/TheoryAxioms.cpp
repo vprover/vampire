@@ -27,6 +27,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Indexing/TermSharing.hpp"
 
@@ -357,10 +358,13 @@ void TheoryAxioms::addPlusOneGreater(Interpretation plus, TermList oneElement,
 /**
  * Add axioms for addition, unary minus and ordering
  */
-void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
+void TheoryAxioms::addAdditionAndOrderingAxioms(TermList sort, Interpretation plus, Interpretation unaryMinus,
     TermList zeroElement, TermList oneElement, Interpretation less)
 {
   CALL("TheoryAxioms::addAdditionAndOrderingAxioms");
+
+  if(env.options->lasca())
+    return;
 
   addCommutativeGroupAxioms(plus, unaryMinus, zeroElement);
   addTotalOrderAxioms(less);
@@ -393,21 +397,23 @@ void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plu
     TermList zeroElement, TermList oneElement, Interpretation less, Interpretation multiply)
 {
   CALL("TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms");
+  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
+  auto srt = theory->getOperationSort(plus);
+  TermList x(0,false);
+  if (!env.options->lasca()) {
 
-  TermList srt = theory->getOperationSort(plus);
-  ASS_EQ(srt, theory->getOperationSort(unaryMinus));
-  ASS_EQ(srt, theory->getOperationSort(less));
-  ASS_EQ(srt, theory->getOperationSort(multiply));
+    ASS_EQ(srt, theory->getOperationSort(unaryMinus));
+    ASS_EQ(srt, theory->getOperationSort(less));
+    ASS_EQ(srt, theory->getOperationSort(multiply));
 
-  addAdditionAndOrderingAxioms(plus, unaryMinus, zeroElement, oneElement, less);
+    addAdditionAndOrderingAxioms(srt, plus, unaryMinus, zeroElement, oneElement, less);
 
-  addCommutativity(multiply);
-  addAssociativity(multiply);
-  addRightIdentity(multiply, oneElement);
+    addCommutativity(multiply);
+    addAssociativity(multiply);
+    addRightIdentity(multiply, oneElement);
+  }
 
   //axiom( X0*zero==zero );
-  unsigned mulFun = env.signature->getInterpretingSymbol(multiply);
-  TermList x(0,false);
   TermList xMulZero(Term::create2(mulFun, x, zeroElement));
   Literal* xEqXMulZero = Literal::createEquality(true, xMulZero, zeroElement, srt);
   addTheoryClauseFromLits({xEqXMulZero}, InferenceRule::THA_TIMES_ZERO, EXPENSIVE);
@@ -981,7 +987,7 @@ void TheoryAxioms::apply()
       }
     }
     else {
-      addAdditionAndOrderingAxioms(Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
+      addAdditionAndOrderingAxioms(IntTraits::sort(), Theory::INT_PLUS, Theory::INT_UNARY_MINUS, zero, one,
 				   Theory::INT_LESS);
     }
     addExtraIntegerOrderingAxiom(Theory::INT_PLUS, one, Theory::INT_LESS);
@@ -1016,7 +1022,7 @@ void TheoryAxioms::apply()
       }
     }
     else {
-      addAdditionAndOrderingAxioms(Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
+      addAdditionAndOrderingAxioms(RatTraits::sort(), Theory::RAT_PLUS, Theory::RAT_UNARY_MINUS, zero, one,
 				   Theory::RAT_LESS);
     }
     if(haveRatFloor || haveRatRound){
@@ -1063,7 +1069,7 @@ void TheoryAxioms::apply()
       }
     }
     else {
-      addAdditionAndOrderingAxioms(Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
+      addAdditionAndOrderingAxioms(RealTraits::sort(), Theory::REAL_PLUS, Theory::REAL_UNARY_MINUS, zero, one,
 				   Theory::REAL_LESS);
     }
     if(haveRealFloor || haveRealRound){

@@ -193,7 +193,7 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
         if(sort == AtomicSort::intSort()){
               IntegerConstantType constant;
               if(theory->tryInterpretConstant(t,constant)){
-                return theory->representConstant(constant+1);
+                return theory->representConstant(constant+IntegerConstantType(1));
               }
         } else if(sort == AtomicSort::rationalSort()){
               RationalConstantType constant;
@@ -235,10 +235,10 @@ public:
     CALL("Instantiation::AllSubstitutionsIterator");
     DHMap<unsigned,TermList> sortedVars;
     SortHelper::collectVariableSorts(cl,sortedVars);
-    VirtualIterator<std::pair<unsigned,TermList>> it = sortedVars.items();
+    auto it = sortedVars.items();
 
     while(it.hasNext()){
-       std::pair<unsigned,TermList> item = it.next();
+       auto item = it.next();
        DArray<Term*>* array = new DArray<Term*>();
        array->initFromIterator(ins->getCandidateTerms(cl,item.first,item.second));
        candidates.insert(item.first,array);

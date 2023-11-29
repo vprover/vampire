@@ -16,75 +16,216 @@
 #define __Indexing_Index__
 
 #include "Forwards.hpp"
+#include "Debug/Output.hpp"
 
 #include "Lib/Event.hpp"
+#include "Kernel/Clause.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
+#include "Kernel/Clause.hpp"
 #include "ResultSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Lib/Reflection.hpp"
 
 #include "Lib/Allocator.hpp"
 
 namespace Indexing
 {
-
 using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
 
-/**
- * Class of objects which contain results of single literal queries.
- */
-struct SLQueryResult
+struct LiteralClause 
 {
-  SLQueryResult() {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s)
-  : literal(l), clause(c), substitution(s) {}
-  SLQueryResult(Literal* l, Clause* c)
-  : literal(l), clause(c) {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
-  : literal(l), clause(c), substitution(s), constraints(con) {}
+  CLASS_NAME(LiteralClause);
+
+  LiteralClause() {}
+  using Key = Literal*;
+
+  Key const& key() const
+  { return literal; }
 
 
-  Literal* literal;
+  LiteralClause(Clause* cls, Literal* literal)
+    : clause(cls), literal(literal) {  }
+
+  LiteralClause(Literal* lit, Clause* cl)
+    : LiteralClause(cl, lit) {}
+
+private:
+  auto asTuple() const
+  { return make_tuple(
+      clause == nullptr, 
+      clause == nullptr ? 0 : clause->number(), 
+      literal == nullptr,
+      literal == nullptr ? 0 : literal->getId()); }
+public:
+
+  IMPL_COMPARISONS_FROM_TUPLE(LiteralClause)
+
   Clause* clause;
-  ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
+  Literal* literal;
+  TermList sort() { return key()->isEquality() ? SortHelper::getEqualityArgumentSort(key()) : TermList::empty();  };
 
-  struct ClauseExtractFn
-  {
-    Clause* operator()(const SLQueryResult& res)
-    {
-      return res.clause;
-    }
-  };
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
+  { return out << "{ " << outputPtr(self.clause)
+               << ", " << outputPtr(self.literal)
+               << " }"; }
+
 };
+
+template<class Value>
+class TermIndexData {
+  TermList _key;
+  // TODO rename to _extra (?)
+  Value _value;
+public:
+  CLASS_NAME(TermIndexData);
+
+  TermIndexData() {}
+
+  TermIndexData(Term* key, Value v)
+    : _key(TermList(key))
+    , _value(std::move(v))
+  {}
+
+  TermList const& key() const 
+  { return _key; }
+
+  TermList sort() const 
+  { return SortHelper::getResultSort(_key.term()); }
+
+  Value const& value() const 
+  { return _value; }
+
+private:
+  auto asTuple() const
+  { return std::tie(key(), value()); }
+public:
+
+  IMPL_COMPARISONS_FROM_TUPLE(TermIndexData)
+
+  friend std::ostream& operator<<(std::ostream& out, TermIndexData const& self)
+  { return out << "TermIndexData" << self.asTuple(); }
+};
+
+struct ClauseLiteralPair 
+{
+  CLASS_NAME(ClauseLiteralPair);
+
+  ClauseLiteralPair() {}
+
+  ClauseLiteralPair(Clause* c, Literal* l)
+    : clause(c), literal(l) {}
+
+protected:
+  auto  asTuple() const
+  { return make_tuple(
+      clause == nullptr, 
+      clause == nullptr ? 0 : clause->number(), 
+      literal == nullptr,
+      literal == nullptr ? 0 : literal->getId()); }
+public:
+
+  IMPL_COMPARISONS_FROM_TUPLE(ClauseLiteralPair)
+
+  Clause* clause;
+  Literal* literal;
+
+  friend std::ostream& operator<<(std::ostream& out, ClauseLiteralPair const& self)
+  { 
+    out << "(";
+    if (self.literal) out << *self.literal;
+    else              out << "null";
+    out << ", ";
+    if (self.clause) out << *self.clause;
+    else             out << "null";
+    out << ")";
+    return out;
+  }
+};
+
+struct TermLiteralClause 
+{
+  CLASS_NAME(TermLiteralClause);
+  USE_ALLOCATOR(TermLiteralClause);
+
+  Clause* clause;
+  Literal* literal;
+  TermList term;
+  TermList _sort;
+
+
+  using Key = TermList;
+
+  TermLiteralClause() {}
+
+  TermLiteralClause(TypedTermList t, Literal* l, Clause* c)
+    : clause(c), literal(l), term(t), _sort(t.sort()) {}
+
+  TermLiteralClause(TermList t, Literal* l, Clause* c)
+    : clause(c), literal(l), term(t), _sort(TermList::empty()) {}
+
+  explicit TermLiteralClause(Term* t)
+    : TermLiteralClause(TypedTermList(t), nullptr, nullptr)
+  {}
+
+  Coproduct<TypedTermList, TermList> key() const { return _sort.isEmpty() ? Coproduct<TypedTermList, TermList>(term)
+                                                                          : Coproduct<TypedTermList, TermList>(TypedTermList(term, _sort)); }
+  TermList sort() const { return _sort; }
+
+private:
+  auto  asTuple() const
+  { return make_tuple(
+      clause  == nullptr, clause  == nullptr ? 0 : clause->number(), 
+      literal == nullptr, literal == nullptr ? 0 : literal->getId(), 
+      term,
+      _sort); }
+public:
+
+  IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
+
+  friend std::ostream& operator<<(std::ostream& out, TermLiteralClause const& self)
+  { return out << "TermLiteralClause("
+               << self.term << ", "
+               << outputPtr(self.literal)
+               << outputPtr(self.clause)
+               << ")"; }
+
+};
+
 
 /**
  * Class of objects which contain results of term queries.
  */
-struct TermQueryResult
+template<class Unifier, class Data>
+struct QueryRes
 {
-  TermQueryResult() : literal(nullptr), clause(nullptr) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  : term(t), literal(l), clause(c), substitution(s) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-  : term(t), literal(l), clause(c), substitution(s), isTypeSub(b) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c)
-  : term(t), literal(l), clause(c) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con), isTypeSub(b) {}
+  Unifier unifier;
+  Data const* data;
 
-  TermList term;
-  Literal* literal;
-  Clause* clause;
-  ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
-  bool isTypeSub = false; //true if the substitution only unifies the types of the terms
+  QueryRes() {}
+  QueryRes(Unifier unifier, Data const* data) 
+    : unifier(std::move(unifier))
+    , data(std::move(data)) {}
+
+
+
+  friend std::ostream& operator<<(std::ostream& out, QueryRes const& self)
+  { 
+    return out 
+      << "{ data: " << self.data()
+      << ", unifier: " << self.unifier
+      << "}";
+  }
 };
+
+template<class Unifier, class Data>
+QueryRes<Unifier, Data> queryRes(Unifier unifier, Data const* d) 
+{ return QueryRes<Unifier, Data>(std::move(unifier), std::move(d)); }
 
 struct ClauseSResQueryResult
 {
@@ -110,8 +251,11 @@ struct FormulaQueryResult
   ResultSubstitutionSP substitution;
 };
 
-typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
-typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
+using TermQueryResult = QueryRes<ResultSubstitutionSP ,   TermLiteralClause>;
+using SLQueryResult   = QueryRes<ResultSubstitutionSP, LiteralClause>;
+
+using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
+using SLQueryResultIterator   = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 
@@ -119,7 +263,6 @@ class Index
 {
 public:
   CLASS_NAME(Index);
-  USE_ALLOCATOR(Index);
 
   virtual ~Index();
 
@@ -148,7 +291,6 @@ class ClauseSubsumptionIndex
 {
 public:
   CLASS_NAME(ClauseSubsumptionIndex);
-  USE_ALLOCATOR(ClauseSubsumptionIndex);
 
   virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 
     bool subsumptionResolution)

@@ -44,7 +44,6 @@
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
 
-#include "Lib/RCPtr.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -242,7 +241,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
 {
   CALL("UIHelper::getInputProblem");
     
-  TIME_TRACE(TimeTrace::Groups::PARSING);
+  TIME_TRACE(TimeTrace::PARSING);
   env.statistics->phase = Statistics::PARSING;
 
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;

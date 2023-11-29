@@ -90,7 +90,6 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
 TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
   CALL("NumberTheoryInverter::invertTop")
   ASS(canInvertTop(ctxt))
-  // DBG("inverting: ", ctxt.topTerm().toString())
   auto &t = ctxt.topTerm();
   auto index = ctxt.topIdx();
   auto toWrap = ctxt.toWrap();
@@ -190,7 +189,7 @@ bool canInvertMulInt(const InversionContext &ctxt) {
 
 template <class Number> bool nonZero(const TermList &t) {
   typename Number::ConstantType c;
-  return theory->tryInterpretConstant(t, c) && Number::zeroC() != c;
+  return theory->tryInterpretConstant(t, c) && Number::constant(0) != c;
 }
 
 

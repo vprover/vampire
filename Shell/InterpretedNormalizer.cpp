@@ -440,13 +440,10 @@ Formula* InterpretedNormalizer::NLiteralTransformer::transform(Formula* f)
 // InterpretedNormalizer
 //
 
-InterpretedNormalizer::InterpretedNormalizer()
+InterpretedNormalizer::InterpretedNormalizer(InequalityNormalizer* norm)
 : _litTransf(new NLiteralTransformer())
-{
-  CALL("InterpretedNormalizer::InterpretedNormalizer");
-
-
-}
+, _inequalityNormalizer(norm)
+{ }
 
 InterpretedNormalizer::~InterpretedNormalizer()
 {
@@ -515,12 +512,12 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
   bool modified = false;
 
   for(unsigned i=0; i<clen; i++) {
-    Literal* lit = (*cl)[i];
+    Literal* orig = (*cl)[i];
 
     bool isConst;
     Literal* newLit;
     bool newConst;
-    _litTransf->apply(lit, isConst, newLit, newConst);
+    _litTransf->apply(orig, isConst, newLit, newConst);
 
     if(isConst) {
       modified = true;
@@ -529,10 +526,21 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
       }
       continue;
     }
-    if(newLit!=lit) {
+    if(newLit != orig) {
       modified = true;
     }
-    lits.push(newLit);
+    if (_inequalityNormalizer)  {
+      auto norm = _inequalityNormalizer->normalizeLiteral(newLit);
+      for (auto lit : *norm){
+        lits.push(lit);
+      }
+      if (lits.size() != 1 || lits[0] != orig) {
+        modified = true;
+      }
+    } else {
+      lits.push(newLit);
+    }
+
   }
   if(!modified) {
     return cl;
@@ -540,6 +548,7 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
 
   Clause* res = Clause::fromStack(lits,
       FormulaTransformation(InferenceRule::THEORY_NORMALIZATION, cl));
+  // DBG(*cl, " ==> ", *res)
   return res;
 }
 

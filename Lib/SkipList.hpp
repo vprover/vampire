@@ -26,6 +26,7 @@
 #include "Comparison.hpp"
 #include "List.hpp"
 #include "Random.hpp"
+#include "Lib/Option.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
 
@@ -63,8 +64,8 @@ public:
   void insert(Value val)
   {
     CALL("SkipList::insert");
-    Value* pval = insertPosition(val);
-    *pval = val;
+    void* pval = insertPositionRaw(val);
+    ::new(pval) Value(std::move(val));
   } // SkipList::insert
 
   template<class Iterator>
@@ -87,8 +88,8 @@ public:
   {
     CALL("SkipList::ensurePresent");
     Value* pval;
-    if(!getPosition(val, pval, true)) {
-      *pval = val;
+    if(!getPosition(val, pval, /* canCreate */ true)) {
+      new(pval) Value(std::move(val));
       return false;
     }
     return true;
@@ -108,6 +109,7 @@ public:
   bool getPosition(Key key, Value*& pvalue, bool canCreate)
   {
     CALL("SkipList::getPosition");
+    pvalue = nullptr;
 
     if(_top==0) {
       if(canCreate) {
@@ -164,6 +166,7 @@ public:
     }
   } // SkipList::getPosition
 
+
   /**
    * Create Node where a value with given key could be
    * stored, and assign pointer to value in that Node into @b pvalue.
@@ -173,6 +176,14 @@ public:
    */
   template<typename Key>
   Value* insertPosition(Key key)
+  {
+    void* p = insertPositionRaw(key);
+    new(p) Value();
+    return (Value*) p;
+  }
+
+  template<typename Key>
+  void* insertPositionRaw(Key key)
   {
     CALL("SkipList::insertPosition");
 
@@ -192,7 +203,6 @@ public:
       }
     }
     Node* newNode = allocate(nodeHeight);
-    new(&newNode->value) Value();
 
 
     unsigned h = _top - 1;
@@ -483,7 +493,7 @@ public:
   bool find(Key key)
   {
     Value* pval;
-    return getPosition(key,pval,false);
+    return getPosition(key, pval, /* canCreate */ false);
   }
 
   template<typename Key>
@@ -491,8 +501,9 @@ public:
   bool find(Key key, Value& val)
   {
     Value* pval;
-    bool res=getPosition(key,pval,false);
-    val=*pval;
+    bool res = getPosition(key, pval, /* canCreate */ false);
+    if (res)
+      val = *pval;
     return res;
   }
 
@@ -684,6 +695,20 @@ public:
     /** the node we're now pointing to */
     Node* _cur;
   };
+
+  friend std::ostream& operator<<(std::ostream& out, SkipList const& self)
+  { 
+    PtrIterator iter(self);
+    out << "[";
+    if (iter.hasNext()) {
+      out << " " << *iter.next();
+      while (iter.hasNext()) {
+        out << ", " << *iter.next();
+      }
+    }
+    out << " ]";
+    return out; 
+  }
 
 
 }; // class SkipList

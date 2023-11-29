@@ -29,6 +29,7 @@
 
 #include "Options.hpp"
 #include "Statistics.hpp"
+#include <chrono>
 
 
 using namespace Lib;
@@ -132,7 +133,9 @@ Statistics::Statistics()
     evaluationIncomp(0),
     evaluationGreater(0),
     evaluationCnt(0),
-
+    ircVarElimKNonZeroCnt(0),
+    ircVarElimKSum(0),
+    ircVarElimKMax(0),
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -210,7 +213,7 @@ void Statistics::print(ostream& out)
 
   bool separable=false;
 #define HEADING(text,num) if (num) { addCommentSignForSZS(out); out << ">>> " << (text) << endl;}
-#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << (text) << ": " << (num) << endl; separable = true; }
+#define COND_OUT(text, num) if (num) { addCommentSignForSZS(out); out << text << ": " << (num) << endl; separable = true; }
 #define SEPARATOR if (separable) { addCommentSignForSZS(out); out << endl; separable = false; }
 
   addCommentSignForSZS(out);
@@ -292,9 +295,11 @@ void Statistics::print(ostream& out)
       discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
+  COND_OUT("Activations started", activations);
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
+  COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Blocked clauses", blockedClauses);
   COND_OUT("Final active clauses", finalActiveClauses);
   COND_OUT("Final passive clauses", finalPassiveClauses);
@@ -302,6 +307,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Discarded non-redundant clauses", discardedNonRedundantClauses);
   COND_OUT("Inferences skipped due to colors", inferencesSkippedDueToColors);
   COND_OUT("Inferences blocked due to ordering aftercheck", inferencesBlockedForOrderingAftercheck);
+  COND_OUT("Biggest generated clause", biggestGeneratedClause);
   SEPARATOR;
 
 
@@ -441,12 +447,22 @@ void Statistics::print(ostream& out)
   COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 
+
   HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
        instGenKeptClauses+instGenIterations);
   COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
   COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
   COND_OUT("InstGen kept clauses", instGenKeptClauses);
   COND_OUT("InstGen iterations", instGenIterations);
+  SEPARATOR;
+
+  HEADING("Inequality Resolution Calculus", ircVarElimKNonZeroCnt || ircVarElimKSum || ircVarElimKMax
+                                          );
+
+  COND_OUT("ircVarElimKNonZeroCnt" , ircVarElimKNonZeroCnt);
+  COND_OUT("ircVarElimKSum" , ircVarElimKSum);
+  COND_OUT("ircVarElimKMax", ircVarElimKMax);
+
   SEPARATOR;
 
   //TODO record statistics for FMB
@@ -504,6 +520,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Property scanning";
   case NORMALIZATION:
     return "Normalization";
+  case SHUFFLING:
+    return "shuffling";
   case SINE_SELECTION:
     return "SInE selection";
   case INCLUDING_THEORY_AXIOMS:
@@ -561,5 +579,3 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Invalid ExecutionPhase value";
   }
 }
-
-

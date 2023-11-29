@@ -43,6 +43,8 @@ public:
   CLASS_NAME(SKIKBO);
   USE_ALLOCATOR(SKIKBO);
 
+  SKIKBO(SKIKBO&&) = default;
+  SKIKBO& operator=(SKIKBO&&) = default;
   SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
   SKIKBO(
         // KBO params

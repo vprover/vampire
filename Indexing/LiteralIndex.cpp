@@ -20,70 +20,22 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Lib/Environment.hpp"
 
 #include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"
 
 #include "LiteralIndex.hpp"
+#include "IndexManager.hpp"
 
 namespace Indexing
 {
 
 using namespace Kernel;
 
-LiteralIndex::~LiteralIndex()
+void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
 {
-  delete _is;
-}
-
-SLQueryResultIterator LiteralIndex::getAll()
-{
-  return _is->getAll();
-}
-
-SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnifications(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getGeneralizations(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getInstances(lit, complementary, retrieveSubstitutions);
-}
-
-size_t LiteralIndex::getUnificationCount(Literal* lit, bool complementary)
-{
-  return _is->getUnificationCount(lit, complementary);
-}
-
-void LiteralIndex::handleLiteral(Literal* lit, Clause* cl, bool add)
-{
-  CALL("LiteralIndex::handleLiteral");
-
-  if(add) {
-    _is->insert(lit, cl);
-  } else {
-    _is->remove(lit, cl);
-  }
-}
-
-void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("GeneratingLiteralIndex::handleClause");
+  CALL("BinaryResolutionIndex::handleClause");
 
   TIME_TRACE("binary resolution index maintenance");
 
@@ -96,9 +48,9 @@ void GeneratingLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void SimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
+void BackwardSubsumptionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SimplifyingLiteralIndex::handleClause");
+  CALL("BackwardSubsumptionIndex::handleClause");
 
   TIME_TRACE("backward subsumption index maintenance");
 
@@ -166,7 +118,7 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 
   if(c->length()==1) {
     TIME_TRACE("unit clause index maintenance");
-
+    
     handleLiteral((*c)[0], c, adding);
   }
 }
@@ -186,10 +138,10 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering)
+RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure<LiteralClause>* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex=new LiteralSubstitutionTree();
+  _partialIndex = new LiteralSubstitutionTree<LiteralClause>();
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()
@@ -254,16 +206,16 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         SLQueryResult qr=vit.next();
 
         // true here means complementary
-        if(!MLVariant::isVariant(c ,qr.clause, true)) {
+        if(!MLVariant::isVariant(c, qr.data->clause, true)) {
           continue;
         }
 
         //we have found a counterpart
-        handleEquivalence(c, greater, qr.clause, qr.literal, true);
+        handleEquivalence(c, greater, qr.data->clause, qr.data->literal, true);
         return;
       }
       //there is no counterpart, so insert the clause into the partial index
-      _partialIndex->insert(greater, c);
+      _partialIndex->insert(LiteralClause(greater, c));
     }
     else {
       Clause* d;
@@ -273,7 +225,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 	handleEquivalence(c, greater, d, dgr, false);
       }
       else {
-	_partialIndex->remove(greater, c);
+	_partialIndex->remove(LiteralClause(greater, c));
       }
     }
   }
@@ -367,14 +319,14 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
     ALWAYS(_counterparts.insert(d, c));
 
     //we can remove the literal from the index of partial definitions
-    _partialIndex->remove(dgr, d);
+    _partialIndex->remove(LiteralClause(dgr, d));
   }
   else {
     _counterparts.remove(c);
     _counterparts.remove(d);
 
     //we put the remaining counterpart into the index of partial definitions
-    _partialIndex->insert(dgr, d);
+    _partialIndex->insert(LiteralClause(dgr, d));
   }
 
 }
@@ -421,11 +373,7 @@ void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
   Literal* lit = (*c)[0];
   ASS(lit != nullptr);
 
-  if (adding) {
-    _is->insert(lit, c);
-  } else {
-    _is->remove(lit, c);
-  }
+  _is->handle(LiteralClause(lit, c), adding);
 }
 
 }

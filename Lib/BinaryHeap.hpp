@@ -96,7 +96,7 @@ public:
     CALL("BinaryHeap::insert");
     ensureAvaiablePosition();
     _size++;
-    new(&_data1[_size]) T(obj);
+    ::new (&_data1[_size]) T(obj);
     bubbleUp(_size);
   }
 
@@ -168,7 +168,7 @@ public:
     CALL("BinaryHeap::backtrackableInsert(T,unsigned&)");
     ensureAvaiablePosition();
     _size++;
-    new(&_data1[_size]) T(obj);
+    ::new (&_data1[_size]) T(obj);
     return bubbleUp(_size);
   }
   inline
@@ -204,7 +204,7 @@ public:
     //_lastBubbleIndex is the current index of the formerly last
     //element.
     _size++;
-    new(&_data1[_size]) T(val);
+    ::new (&_data1[_size]) T(val);
     std::swap(_data1[_size], _data1[lastBubbleIndex]);
     //Now at the position _lastBubbleIndex is the smallest element
     //of the heap, so we know that it will bubble up to the first
@@ -226,6 +226,21 @@ public:
     Iterator(const BinaryHeap& obj)
     : PointerIterator<T>(obj._data, obj._data+obj._size) {}
   };
+
+  friend std::ostream& operator<<(std::ostream& out, BinaryHeap const& self) 
+  { 
+    out << "[";
+    Iterator iter(self);
+    if (iter.hasNext()) {
+      out << iter.next();
+      while (iter.hasNext()) {
+        out << ", " << iter.next();
+      }
+    }
+    return out << "]";
+  }
+
+
 
 private:
   class BHPopBacktrackObject
@@ -346,7 +361,7 @@ private:
       T* otp = oldData+_size;
       T* ntp = _data+_size;
       do {
-	new(--ntp) T(*(--otp));
+	::new (--ntp) T(*(--otp));
 	//because oldCapacity==_size, we destroy all elements of oldData array here
 	otp->~T();
       } while(ntp!=_data);

@@ -25,12 +25,6 @@ Option<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
                      .map([](auto monom) { return -monom; })
                      .template collect<Stack>()
             ))));
-  // auto out = Polynom(evalArgs[0].template wrapPoly<Number>());
-  //
-  // for (unsigned i = 0; i < out.nSummands(); i++) {
-  //    out.summandAt(i).numeral = out.summandAt(i).numeral * Numeral(-1);
-  // }
-  // return some<PolyNf>(PolyNf(AnyPoly(std::move(out))));
 }
 
 template<class Number, class Clsr>
@@ -49,6 +43,7 @@ Option<PolyNf> trySimplifyConst2(PolyNf* evalArgs, Clsr f)
 // INT_QUOTIENT_X & INT_REMAINDER_X
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 template<class Number, class NumEval>
 Option<PolyNf> trySimplifyQuotient(PolyNf* evalArgs, NumEval f) 
 {
@@ -56,9 +51,9 @@ Option<PolyNf> trySimplifyQuotient(PolyNf* evalArgs, NumEval f)
   auto lhs = evalArgs[0].template tryNumeral<Number>();
   auto rhs = evalArgs[1].template tryNumeral<Number>();
   if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
-    return some<PolyNf>(evalArgs[0]);
+    return some(evalArgs[0]);
   } else if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
+    return some(PolyNf(AnyPoly(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
   } else {
     return none<PolyNf>();
   }
@@ -73,32 +68,32 @@ Option<PolyNf> trySimplifyRemainder(PolyNf* evalArgs, NumEval f)
   if (rhs.isSome() && rhs.unwrap() == Numeral(1)) {
     return some<PolyNf>(PolyNf(AnyPoly(Polynom<Number>(Numeral(0)))));
   } else if (lhs.isSome() && rhs.isSome()) {
-    return some<PolyNf>(PolyNf(AnyPoly(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
+    return some(PolyNf(AnyPoly(Polynom<Number>(f(lhs.unwrap(), rhs.unwrap())))));
   } else {
     return none<PolyNf>();
   }
 }
 
-#define IMPL_QUOTIENT_REMAINDER(X)                                                                            \
-  template<>                                                                                                  \
-  struct FunctionEvaluator<Interpretation::INT_QUOTIENT_ ## X>                                                \
-  {                                                                                                           \
-    static Option<PolyNf> simplify(PolyNf* evalArgs)                                                          \
-    { return trySimplifyQuotient<IntTraits>(evalArgs,                                                         \
-        [](IntegerConstantType lhs, IntegerConstantType rhs)                                                  \
-        { return lhs.quotient ## X(rhs); });                                                                  \
-    }                                                                                                         \
-  };                                                                                                          \
-                                                                                                              \
-  template<>                                                                                                  \
-  struct FunctionEvaluator<Interpretation::INT_REMAINDER_ ## X>                                               \
-  {                                                                                                           \
-    static Option<PolyNf> simplify(PolyNf* evalArgs)                                                          \
-    { return trySimplifyRemainder<IntTraits>(evalArgs,                                                        \
-        [](IntegerConstantType lhs, IntegerConstantType rhs)                                                  \
-        { return lhs.remainder ## X(rhs); });                                                                 \
-    }                                                                                                         \
-  };                                                                                                          \
+#define IMPL_QUOTIENT_REMAINDER(X)                                                        \
+  template<>                                                                              \
+  struct FunctionEvaluator<Interpretation::INT_QUOTIENT_ ## X>                            \
+  {                                                                                       \
+    static Option<PolyNf> simplify(PolyNf* evalArgs)                                      \
+    { return trySimplifyQuotient<IntTraits>(evalArgs,                                     \
+        [](IntegerConstantType lhs, IntegerConstantType rhs)                              \
+        { return lhs.quotient ## X(rhs); });                                              \
+    }                                                                                     \
+  };                                                                                      \
+                                                                                          \
+  template<>                                                                              \
+  struct FunctionEvaluator<Interpretation::INT_REMAINDER_ ## X>                           \
+  {                                                                                       \
+    static Option<PolyNf> simplify(PolyNf* evalArgs)                                      \
+    { return trySimplifyRemainder<IntTraits>(evalArgs,                                    \
+        [](IntegerConstantType lhs, IntegerConstantType rhs)                              \
+        { return lhs.remainder ## X(rhs); });                                             \
+    }                                                                                     \
+  };                                                                                      \
 
 IMPL_QUOTIENT_REMAINDER(T)
 IMPL_QUOTIENT_REMAINDER(F)

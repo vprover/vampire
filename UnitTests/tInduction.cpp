@@ -30,20 +30,24 @@ using namespace Test::Generation;
 #define SKOLEM_VAR_MIN 100
 #define DECL_SKOLEM_VAR(x, i) DECL_VAR(x, i+SKOLEM_VAR_MIN)
 
-LiteralIndex* comparisonIndex() {
-  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
+LiteralIndex<LiteralClause>* comparisonIndex() {
+  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree<LiteralClause>());
 }
 
-TermIndex* intInductionIndex() {
-  return new InductionTermIndex(new TermSubstitutionTree());
+TermIndex<TermLiteralClause>* intInductionIndex() {
+  return new InductionTermIndex(new TermSubstitutionTree<TermLiteralClause>());
 }
 
-TermIndex* structInductionIndex() {
-  return new StructInductionTermIndex(new TermSubstitutionTree());
+TermIndex<TermLiteralClause>* structInductionIndex() {
+  return new StructInductionTermIndex(new TermSubstitutionTree<TermLiteralClause>());
 }
 
-Stack<Index*> getIndices() {
-  return { comparisonIndex(), intInductionIndex(), structInductionIndex() };
+auto getIndices() {
+  return Stack<std::function<Index*()>> { 
+    std::function<Index*()>([]() { return comparisonIndex(); }), 
+    std::function<Index*()>([]() { return intInductionIndex(); }), 
+    std::function<Index*()>([]() { return structInductionIndex(); }), 
+  };
 }
 
 inline Clause* fromInduction(Clause* cl) {
@@ -84,7 +88,7 @@ class GenerationTesterInduction
 {
 public:
   GenerationTesterInduction()
-    : GenerationTester<Induction>(), _subst()
+    : GenerationTester<Induction>(Induction()), _subst()
   {}
 
   ~GenerationTesterInduction() {
@@ -97,7 +101,7 @@ public:
    * of the constants we cannot predefine, and require that these variables
    * are mapped bijectively to the new Skolem constants, hence this override.
    */
-  bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
+  bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
   {
     // there can be false positive matches which later (in a different literal
     // or clause) can turn out to be the wrong ones and we have to backtrack
@@ -295,7 +299,7 @@ TEST_FUN(test_tester4) {
 
 // positive literals are not considered 1
 TEST_GENERATION_INDUCTION(test_01,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({  p(f(sK1,sK2)) }))
@@ -306,7 +310,7 @@ TEST_GENERATION_INDUCTION(test_01,
 
 // positive literals are not considered 2
 TEST_GENERATION_INDUCTION(test_02,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({  f(sK1,sK2) == g(sK1) }))
@@ -317,7 +321,7 @@ TEST_GENERATION_INDUCTION(test_02,
 
 // non-ground literals are not considered
 TEST_GENERATION_INDUCTION(test_03,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({  f(sK1,skx0) != g(sK1) }))
@@ -328,7 +332,7 @@ TEST_GENERATION_INDUCTION(test_03,
 
 // normal case sik=one
 TEST_GENERATION_INDUCTION(test_04,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({  ~p(f(sK1,sK2)) }))
@@ -346,7 +350,7 @@ TEST_GENERATION_INDUCTION(test_04,
 
 // normal case sik=two
 TEST_GENERATION_INDUCTION(test_05,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" }, { "structural_induction_kind", "two" } })
       .indices(getIndices())
       .input( clause({  ~p(f(sK1,sK2)) }))
@@ -369,7 +373,7 @@ TEST_GENERATION_INDUCTION(test_05,
 // the effort worthwhile.
 // // normal case sik=three
 // TEST_GENERATION_INDUCTION(test_06,
-//     Generation::TestCase()
+//     Generation::AsymmetricTest()
 //       .options({ { "induction", "struct" }, { "structural_induction_kind", "three" } })
 //       .indices(getIndices())
 //       .input( clause({  f(sK1,sK2) != g(sK1) }))
@@ -378,7 +382,7 @@ TEST_GENERATION_INDUCTION(test_05,
 
 // generalizations
 TEST_GENERATION_INDUCTION(test_07,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction_gen", "on" }, { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({ f(f(g(sK1),f(sK2,sK4)),sK1) != g(f(sK1,f(sK2,sK3))) }) )
@@ -441,7 +445,7 @@ TEST_GENERATION_INDUCTION(test_07,
 
 // complex terms
 TEST_GENERATION_INDUCTION(test_08,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction_on_complex_terms", "on" }, { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({ f(f(g(sK1),f(sK2,sK3)),sK1) != g(f(sK1,f(sK2,g(sK1)))) }) )
@@ -494,7 +498,7 @@ TEST_GENERATION_INDUCTION(test_08,
 
 // positive literals are considered 1
 TEST_GENERATION_INDUCTION(test_09,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction_neg_only", "off" }, { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({  p(sK1) }))
@@ -510,7 +514,7 @@ TEST_GENERATION_INDUCTION(test_09,
 
 // positive literals are considered 2
 TEST_GENERATION_INDUCTION(test_10,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction_neg_only", "off" }, { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({  sK1 == g(sK1) }))
@@ -526,7 +530,7 @@ TEST_GENERATION_INDUCTION(test_10,
 
 // non-unit clauses are considered
 TEST_GENERATION_INDUCTION(test_11,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction_unit_only", "off" }, { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({  sK1 != g(sK1), p(g(sK2)), ~p(f(sK3,sK4)) }))
@@ -554,7 +558,7 @@ TEST_GENERATION_INDUCTION(test_11,
 //
 // TODO: this should be done with two inputs rather than with a non-unit clause
 TEST_GENERATION_INDUCTION(test_12,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction_unit_only", "off" }, { "induction", "struct" } })
       .indices(getIndices())
       .input( clause({  sK1 != g(sK1), sK2 != g(sK2) }))
@@ -573,7 +577,7 @@ TEST_GENERATION_INDUCTION(test_12,
 
 // upward infinite interval integer induction
 TEST_GENERATION_INDUCTION(test_13,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices(getIndices())
@@ -591,7 +595,7 @@ TEST_GENERATION_INDUCTION(test_13,
 
 // use bounds for upward+downward infinite interval integer induction
 TEST_GENERATION_INDUCTION(test_14,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" }, { "int_induction_interval", "infinite" } })
       .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
       .indices(getIndices())
@@ -617,7 +621,7 @@ TEST_GENERATION_INDUCTION(test_14,
 
 // use bounds for upward+downward finite interval integer induction
 TEST_GENERATION_INDUCTION(test_15,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" }, { "int_induction_interval", "finite" } })
       .context({ clause({ ~(sK6 < num(1)) }), clause({ ~(bi < sK6) }) })
       .indices(getIndices())
@@ -646,7 +650,7 @@ TEST_GENERATION_INDUCTION(test_15,
 // use default bound for downward integer induction,
 // but for upward use the bound from index
 TEST_GENERATION_INDUCTION(test_16,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" },
                  { "int_induction_interval", "infinite" },
                  { "int_induction_default_bound", "on" } })
@@ -681,7 +685,7 @@ TEST_GENERATION_INDUCTION(test_16,
 
 // upward infinite interval induction triggered by the comparison literal
 TEST_GENERATION_INDUCTION(test_17,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~pi(sK6) }) })
       .indices(getIndices())
@@ -699,7 +703,7 @@ TEST_GENERATION_INDUCTION(test_17,
 
 // infinite+finite downward interval induction triggered by the comparison literal
 TEST_GENERATION_INDUCTION(test_18,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~pi(sK6) }), clause({ ~(sK6 < num(1)) }) })
       .indices(getIndices())
@@ -727,7 +731,7 @@ TEST_GENERATION_INDUCTION(test_18,
 // given the default strictness, induction is not applied on an interpreted constant
 // (any strictness with term strictness != none works the same)
 TEST_GENERATION_INDUCTION(test_19,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices(getIndices())
@@ -740,7 +744,7 @@ TEST_GENERATION_INDUCTION(test_19,
 // given a suitable strictness, induction is applied on an interpreted constant
 // (any strictness with term strictness = none works the same)
 TEST_GENERATION_INDUCTION(test_20,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({
         { "induction", "int" },
         { "int_induction_strictness_eq",   "always" },
@@ -765,7 +769,7 @@ TEST_GENERATION_INDUCTION(test_20,
 // as one of the top-level arguments of "<"
 // (any strictness with comparison strictness = none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(test_21,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({
         { "induction", "int" },
         { "int_induction_strictness_eq",   "always" },
@@ -797,7 +801,7 @@ TEST_GENERATION_INDUCTION(test_21,
 // argument of "<" (the "sK6" in context)
 // (any strictness with comparison strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(test_22,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices(getIndices())
@@ -817,7 +821,7 @@ TEST_GENERATION_INDUCTION(test_22,
 // as one of the top-level arguments of "<"
 // (any strictness with comparison strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(test_23,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices(getIndices())
@@ -831,7 +835,7 @@ TEST_GENERATION_INDUCTION(test_23,
 // as one of the top-level arguments of "="
 // (any strictness with equality strictness != none, term strictness in {none, interpreted_constant} works the same)
 TEST_GENERATION_INDUCTION(test_24,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "int" } })
       .context({ clause({ ~(sK6 < num(1)) }) })
       .indices(getIndices())
@@ -851,7 +855,7 @@ TEST_GENERATION_INDUCTION(test_24,
 // as one of the top-level arguments of "="
 // (any strictness with equality strictness != none works the same)
 TEST_GENERATION_INDUCTION(test_25,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({
         { "induction", "int" },
         { "int_induction_strictness_eq",   "toplevel_not_in_other" },
@@ -868,7 +872,7 @@ TEST_GENERATION_INDUCTION(test_25,
 
 // all skolems are replaced when the hypothesis strengthening options is on, sik=one
 TEST_GENERATION_INDUCTION(test_26,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" },
                  { "induction_strengthen_hypothesis", "on" } })
       .indices(getIndices())
@@ -890,7 +894,7 @@ TEST_GENERATION_INDUCTION(test_26,
 
 // all skolems are replaced when the hypothesis strengthening options is on, sik=two
 TEST_GENERATION_INDUCTION(test_27,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" }, { "structural_induction_kind", "two" },
                  { "induction_strengthen_hypothesis", "on" } })
       .indices(getIndices())
@@ -912,7 +916,7 @@ TEST_GENERATION_INDUCTION(test_27,
 
 // multi-clause use case 1 (induction depth 0)
 TEST_GENERATION_INDUCTION(test_28,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" }, { "non_unit_induction", "on" } })
       .context({ clause({ p(sK1) })})
       .indices(getIndices())
@@ -938,7 +942,7 @@ TEST_GENERATION_INDUCTION(test_28,
 
 // multi-clause use case 2 (induction depth non-0)
 TEST_GENERATION_INDUCTION(test_29,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({
         { "induction_on_complex_terms", "on" },
         { "induction", "struct" },
@@ -991,7 +995,7 @@ TEST_GENERATION_INDUCTION(test_29,
 
 // multi-clause use case 2 (main literal is from index)
 TEST_GENERATION_INDUCTION(test_30,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({
         { "induction_on_complex_terms", "on" },
         { "induction", "struct" },
@@ -1023,7 +1027,7 @@ TEST_GENERATION_INDUCTION(test_30,
 
 // multi-clause use case 1 (induction depth 0), non-unit
 TEST_GENERATION_INDUCTION(test_31,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({
         { "induction_unit_only", "off" },
         { "induction", "struct" },
@@ -1054,7 +1058,7 @@ TEST_GENERATION_INDUCTION(test_31,
 // multi-clause does not add tautological clauses
 TEST_GENERATION_INDUCTION(test_32,
     // TODO enable multi-clause option when there is one
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({ { "induction", "struct" }, { "non_unit_induction", "on" } })
       .context({ clause({ p(sK1) }) })
       .indices(getIndices())
@@ -1068,7 +1072,7 @@ TEST_GENERATION_INDUCTION(test_32,
 
 // multi-clause generalized occurrences
 TEST_GENERATION_INDUCTION(test_33,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .options({
         { "induction", "struct" },
         { "induction_gen", "on" },

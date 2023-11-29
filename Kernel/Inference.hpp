@@ -30,6 +30,8 @@ using namespace Lib;
 
 namespace Kernel {
 
+class Unit;
+
 /** Kind of input. The integers should not be changed, they are used in
  *  Compare. */
 enum class UnitInputType : unsigned char {
@@ -87,7 +89,7 @@ UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
  *
  *  Further notes on creating inferences:
  *  - Immediate simplification inferences cannot be linked to an index
- *  - For an infernce that works at subterms, please consider carefully
+ *  - For an inference that works at subterms, please consider carefully
  *    which iterator to use to return these subterms. In Vampire, terms are
  *    of the form f(type_args, term_args). In most cases, inferences should NOT
  *    be working on type arguments. Please view TermIterators.hpp for a list of
@@ -194,7 +196,6 @@ enum class InferenceRule : unsigned char {
 //     MINISCOPE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
-
   /** skolemization */
   SKOLEMIZE,
   /** obtain clause from a formula */
@@ -221,6 +222,10 @@ enum class InferenceRule : unsigned char {
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
   BACKWARD_DEMODULATION,
+  /** forward demodulation modulo LA of the Inequality Resolution Calculus */
+  LASCA_FWD_DEMODULATION,
+  /** backward demodulation modulo LA of the Inequality Resolution Calculus */
+  LASCA_BWD_DEMODULATION,
   /** forward subsumption demodulation inference */
   FORWARD_SUBSUMPTION_DEMODULATION,
   /** backward subsumption demodulation inference */
@@ -233,6 +238,8 @@ enum class InferenceRule : unsigned char {
   CONDENSATION,
   /** evaluation inference */
   EVALUATION,
+  /** normalization rule of the Inequality Resolution Calculus */
+  LASCA_NORMALIZATION,
   CANCELLATION,
   /** interpreted simplification inference */
   INTERPRETED_SIMPLIFICATION,
@@ -305,6 +312,19 @@ enum class InferenceRule : unsigned char {
   INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
+  /* inequality factoring rule of the ALASCA Calculs */
+  LASCA_FOURIER_MOTZKIN,
+  LASCA_IS_INT_RESOLUTION,
+  LASCA_INEQUALITY_STRENGTHENING,
+  /* factoring rules of the Inequality Resolution Calculs */
+  LASCA_TERM_FACTORING,
+  LASCA_EQ_FACTORING,
+  LASCA_LITERAL_FACTORING,
+  LASCA_IS_INT_FACTORING,
+  /** superposition rule of the Inequality Resolution Calculus */
+  LASCA_SUPERPOSITION,
+  /** variable elimination rule of the Inequality Resolution Calculus */
+  LASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
@@ -378,6 +398,8 @@ enum class InferenceRule : unsigned char {
   /** merging predicate definitions */
   PREDICATE_DEFINITION_MERGING,
 
+  /** (consistent) polarity flipping of (some selected) predicates **/
+  POLARITY_FLIPPING,
 
   /** unused predicate definition removal */
   UNUSED_PREDICATE_DEFINITION_REMOVAL,

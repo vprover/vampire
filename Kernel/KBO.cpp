@@ -27,6 +27,7 @@
 #include "Term.hpp"
 #include "KBO.hpp"
 #include "Signature.hpp"
+#include <random>
 
 #define COLORED_WEIGHT_BOOST 0x10000
 
@@ -35,59 +36,15 @@ namespace Kernel {
 using namespace Lib;
 using namespace Shell;
 
-
-/**
- * Class to represent the current state of the KBO comparison.
- * @since 30/04/2008 flight Brussels-Tel Aviv
- */
-class KBO::State
+KBO::Result KBO::State::applyVariableCondition(Result res) 
 {
-public:
-  /** Initialise the state */
-  State(KBO* kbo)
-    : _kbo(*kbo)
-  {}
-
-  void init()
-  {
-    _weightDiff=0;
-    _posNum=0;
-    _negNum=0;
-    _lexResult=EQUAL;
-    _varDiffs.reset();
+  if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+    res=INCOMPARABLE;
+  } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+    res=INCOMPARABLE;
   }
-
-  CLASS_NAME(KBO::State);
-  USE_ALLOCATOR(State);
-
-  void traverse(Term* t1, Term* t2);
-  void traverse(TermList tl,int coefficient);
-  Result result(Term* t1, Term* t2);
-private:
-  void recordVariable(unsigned var, int coef);
-  Result innerResult(TermList t1, TermList t2);
-  Result applyVariableCondition(Result res)
-  {
-    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
-      res=INCOMPARABLE;
-    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
-      res=INCOMPARABLE;
-    }
-    return res;
-  }
-
-  int _weightDiff;
-  DHMap<unsigned, int, IdentityHash, Hash> _varDiffs;
-  /** Number of variables, that occur more times in the first literal */
-  int _posNum;
-  /** Number of variables, that occur more times in the second literal */
-  int _negNum;
-  /** First comparison result */
-  Result _lexResult;
-  /** The ordering used */
-  KBO& _kbo;
-  /** The variable counters */
-}; // class KBO::State
+  return res;
+}
 
 /**
  * Return result of comparison between @b l1 and @b l2 under
@@ -96,7 +53,7 @@ private:
  * traverse(Term*,int) for both terms/literals in case their
  * top functors are different.)
  */
-Ordering::Result KBO::State::result(Term* t1, Term* t2)
+Ordering::Result KBO::State::result(KBO const& kbo, Term* t1, Term* t2)
 {
   CALL("KBO::State::result")
   Result res;
@@ -105,16 +62,16 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
   } else if(t1->functor()!=t2->functor()) {
     if(t1->isLiteral()) {
       int prec1, prec2;
-      prec1=_kbo.predicatePrecedence(t1->functor());
-      prec2=_kbo.predicatePrecedence(t2->functor());
+      prec1=kbo.predicatePrecedence(t1->functor());
+      prec2=kbo.predicatePrecedence(t2->functor());
       ASS_NEQ(prec1,prec2);//precedence ordering must be total
       res=(prec1>prec2)?GREATER:LESS;
     } else if(t1->isSort()){
       ASS(t2->isSort()); //should only compare sorts with sorts
-      res=_kbo.compareTypeConPrecedences(t1->functor(), t2->functor());
+      res=kbo.compareTypeConPrecedences(t1->functor(), t2->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
-      res=_kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
+      res=kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
   } else {
@@ -134,7 +91,7 @@ Ordering::Result KBO::State::result(Term* t1, Term* t2)
   return res;
 }
 
-Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
+Ordering::Result KBO::State::innerResult(KBO const& kbo, TermList tl1, TermList tl2)
 {
   CALL("KBO::State::innerResult");
 
@@ -156,10 +113,10 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
       ASS_EQ(_posNum,0);
       res=GREATER;
     } else if(tl1.term()->isSort()){
-      res=_kbo.compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      res=kbo.compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
-      res=_kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      res=kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     }
   }
@@ -189,12 +146,12 @@ void KBO::State::recordVariable(unsigned var, int coef)
   }
 }
 
-void KBO::State::traverse(TermList tl,int coef)
+void KBO::State::traverse(KBO const& kbo, TermList tl,int coef)
 {
   CALL("KBO::State::traverse(TermList...)");
 
   if(tl.isOrdinaryVar()) {
-    _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+    _weightDiff += kbo.variableWeight() * coef;
     recordVariable(tl.var(), coef);
     return;
   }
@@ -203,7 +160,7 @@ void KBO::State::traverse(TermList tl,int coef)
   Term* t=tl.term();
   ASSERT_VALID(*t);
 
-  _weightDiff+=_kbo.symbolWeight(t)*coef;
+  _weightDiff+=kbo.symbolWeight(t)*coef;
 
   if(!t->arity()) {
     return;
@@ -217,14 +174,14 @@ void KBO::State::traverse(TermList tl,int coef)
     }
     if(ts->isTerm()) {
       auto term = ts->term();
-      _weightDiff+=_kbo.symbolWeight(term)*coef;
+      _weightDiff+=kbo.symbolWeight(term)*coef;
       if(term->arity()) {
 	stack.push(term->args());
       }
     } else {
       ASS_METHOD(*ts,isOrdinaryVar());
       auto var = ts->var();
-      _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+      _weightDiff += kbo.variableWeight() * coef;
       recordVariable(var, coef);
     }
     if(stack.isEmpty()) {
@@ -234,7 +191,7 @@ void KBO::State::traverse(TermList tl,int coef)
   }
 }
 
-void KBO::State::traverse(Term* t1, Term* t2)
+void KBO::State::traverse(KBO const& kbo, Term* t1, Term* t2)
 {
   CALL("KBO::State::traverse");
   ASS(t1->functor()==t2->functor());
@@ -280,10 +237,10 @@ void KBO::State::traverse(Term* t1, Term* t2)
       stack.push(tt->term()->args());
       depth++;
     } else {
-      traverse(*ss,1);
-      traverse(*tt,-1);
+      traverse(kbo, *ss,1);
+      traverse(kbo, *tt,-1);
       if(_lexResult==EQUAL) {
-	_lexResult=innerResult(*ss, *tt);
+	_lexResult=innerResult(kbo, *ss, *tt);
 	lexValidDepth=depth;
 	ASS(_lexResult!=EQUAL);
 	ASS(_lexResult!=GREATER_EQ);
@@ -351,7 +308,7 @@ struct FuncSigTraits {
 
 
 template<class SigTraits> 
-KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const
+KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence, bool qkbo)
 {
   auto& str = SigTraits::weightFileName(opts);
 
@@ -359,37 +316,40 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<i
   auto precedenceExtractor = [&](unsigned i) { return rawPrecedence[i]; };
   auto frequencyExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->usageCnt(); };
 
+  auto fromSomeUnsigned = [&](auto extr, auto transf) 
+        { return KboWeightMap<SigTraits>::fromSomeUnsigned(extr, transf, qkbo); };
+
   if (!str.empty()) {
-    return weightsFromFile<SigTraits>(opts);
+    return weightsFromFile<SigTraits>(opts, qkbo);
   } else {
     switch (opts.kboWeightGenerationScheme()) {
     case Options::KboWeightGenerationScheme::CONST:
-      return KboWeightMap<SigTraits>::dflt();
+      return KboWeightMap<SigTraits>::dflt(qkbo);
     case Options::KboWeightGenerationScheme::RANDOM:
-      return KboWeightMap<SigTraits>::randomized();
+      return KboWeightMap<SigTraits>::randomized(qkbo);
     case Options::KboWeightGenerationScheme::ARITY:
-      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
+      return fromSomeUnsigned(arityExtractor,
         [](auto _, auto arity) { return arity+1; });
     case Options::KboWeightGenerationScheme::INV_ARITY:
-      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
+      return fromSomeUnsigned(arityExtractor,
         [](auto max, auto arity) { return max-arity+1; });
     case Options::KboWeightGenerationScheme::ARITY_SQUARED:
-      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
+      return fromSomeUnsigned(arityExtractor,
         [](auto _, auto arity) { return arity*arity+1; });
     case Options::KboWeightGenerationScheme::INV_ARITY_SQUARED:
-      return KboWeightMap<SigTraits>::fromSomeUnsigned(arityExtractor,
+      return fromSomeUnsigned(arityExtractor,
         [](auto max, auto arity) { return max*max-arity*arity+1; });
     case Options::KboWeightGenerationScheme::PRECEDENCE:
-      return KboWeightMap<SigTraits>::fromSomeUnsigned(precedenceExtractor,
+      return fromSomeUnsigned(precedenceExtractor,
         [](auto _, auto prec) { return prec + 1; });
     case Options::KboWeightGenerationScheme::INV_PRECEDENCE:
-      return KboWeightMap<SigTraits>::fromSomeUnsigned(precedenceExtractor,
+      return fromSomeUnsigned(precedenceExtractor,
         [](auto max, auto prec) { return max-prec+1; });
     case Options::KboWeightGenerationScheme::FREQUENCY:
-      return KboWeightMap<SigTraits>::fromSomeUnsigned(frequencyExtractor,
+      return fromSomeUnsigned(frequencyExtractor,
         [](auto _, auto freq) { return freq > 0 ? freq : 1; });
     case Options::KboWeightGenerationScheme::INV_FREQUENCY:
-      return KboWeightMap<SigTraits>::fromSomeUnsigned(frequencyExtractor,
+      return fromSomeUnsigned(frequencyExtractor,
         [](auto max, auto freq) { return max > 0 ? max - freq + 1 : 1; });
 
     default:
@@ -399,7 +359,7 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<i
 }
 
 template<class SigTraits> 
-KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
+KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts, bool qkbo)
 {
   DArray<KboWeight> weights(SigTraits::nSymbols());
   BYPASSING_ALLOCATOR
@@ -481,7 +441,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   }
 
   unsigned introducedWeight = defaultSymbolWeight;
-  auto specialWeights = KboSpecialWeights<SigTraits>::dflt();
+  auto specialWeights = KboSpecialWeights<SigTraits>::dflt(qkbo);
 
   ASS(!filename.empty());
 
@@ -499,6 +459,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
     } 
   }
 
+
   return KboWeightMap<SigTraits> {
     ._weights                = weights,
     ._introducedSymbolWeight = introducedWeight,
@@ -514,7 +475,6 @@ void warnError(UserErrorException e) {
   env.endOutput();
 }
 
-
 KBO::KBO(
     // KBO params
     KboWeightMap<FuncSigTraits> funcWeights, 
@@ -529,36 +489,43 @@ KBO::KBO(
     DArray<int> predLevels, 
 
     // other
-    bool reverseLCM
-  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
+    bool reverseLCM,
+    bool qkboPrecedence
+  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM, qkboPrecedence)
   , _funcWeights(funcWeights)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
 #endif
-  , _state(new State(this))
+  , _state(unique_ptr<State>(new State()))
 { 
   checkAdmissibility(throwError);
+  ASS_EQ(_funcWeights._specialWeights._qkbo, _qkboPrecedence)
 }
 
-KBO KBO::testKBO() 
+KBO KBO::testKBO(bool randomized, bool qkboPrecedence)
 {
+  auto rng = std::minstd_rand(Random::getInteger( /* arbitrary modulus .. change it as u please */ 65536));
 
-  auto predLevels = []() -> DArray<int>{
-    DArray<int> out(env.signature->predicates());
-    out.init(out.size(), 1);
-    return out;
+  auto shuffle = [&](auto xs) { 
+    if (randomized) 
+      std::shuffle(xs.begin(), xs.end(), rng);
+    return xs;
   };
 
+  auto predLevels = []() -> DArray<int>
+    { return PrecedenceOrdering::testLevels(); };
+
   return KBO(
-      KboWeightMap<FuncSigTraits>::randomized(),
+      randomized ? KboWeightMap<FuncSigTraits>::randomized(qkboPrecedence) : KboWeightMap<FuncSigTraits>::dflt(qkboPrecedence),
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-      KboWeightMap<PredSigTraits>::randomized(), 
+      randomized ? KboWeightMap<PredSigTraits>::randomized(qkboPrecedence) : KboWeightMap<PredSigTraits>::dflt(qkboPrecedence),
 #endif
-      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->functions())),
-      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons())),
-      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates())),
+      shuffle(DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->functions() ))),
+      shuffle(DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons()  ))),
+      shuffle(DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates()))),
       predLevels(),
-      false);
+      /* reverseLCM */ false,
+      qkboPrecedence);
 }
 
 void KBO::zeroWeightForMaximalFunc() {
@@ -587,6 +554,22 @@ void KBO::zeroWeightForMaximalFunc() {
   }
 }
 
+Ordering::Result KBO::comparePrecedence(Term* t1, Term* t2) const
+{
+  if (t1->isSort()) {
+    ASS(t2->isSort())
+    return compareTypeConPrecedences(t1->functor(), t2->functor());
+  } else if (t1->isLiteral()) {
+    ASS(t2->isLiteral())
+    int prec1 = predicatePrecedence(t1->functor());
+    int prec2 = predicatePrecedence(t2->functor());
+    return prec1 == prec2 ? Result::EQUAL 
+          : (prec1>prec2) ? Result::GREATER 
+          : Result::LESS;
+  } else {
+    return compareFunctionPrecedences(t1->functor(), t2->functor());
+  }
+}
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
@@ -609,7 +592,7 @@ void KBO::checkAdmissibility(HandleError handle) const
   };
 
   ////////////////// check kbo-releated constraints //////////////////
-  unsigned varWght = _funcWeights._specialWeights._variableWeight;
+  unsigned varWght = variableWeight();
 
   for (unsigned i = 0; i < nFunctions; i++) {
     auto arity = env.signature->getFunction(i)->numTermArguments();
@@ -644,13 +627,13 @@ void KBO::checkAdmissibility(HandleError handle) const
 /**
  * Create a KBO object.
  */
-KBO::KBO(Problem& prb, const Options& opts)
- : PrecedenceOrdering(prb, opts)
- , _funcWeights(weightsFromOpts<FuncSigTraits>(opts,_functionPrecedences))
+KBO::KBO(Problem& prb, const Options& opts, bool qkboPrecedence)
+ : PrecedenceOrdering(prb, opts, qkboPrecedence)
+ , _funcWeights(weightsFromOpts<FuncSigTraits>(opts,_functionPrecedences, qkboPrecedence))
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
- , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
+ , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences, qkboPrecedence))
 #endif
- , _state(new State(this))
+ , _state(unique_ptr<State>(new State()))
 {
   CALL("KBO::KBO(Prb&, Opts&)");
 
@@ -664,12 +647,7 @@ KBO::KBO(Problem& prb, const Options& opts)
     checkAdmissibility(warnError);
 }
 
-KBO::~KBO()
-{
-  CALL("KBO::~KBO");
-
-  delete _state;
-}
+KBO::~KBO() { }
 
 /**
  * Compare arguments of literals l1 and l2 and return the result
@@ -689,31 +667,32 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 
   Result res;
   ASS(_state);
-  State* state=_state;
 #if VDEBUG
   //this is to make sure _state isn't used while we're using it
-  _state=0;
+  auto state = std::move(_state);
+#else 
+  auto& state = _state;
 #endif
   state->init();
   if(p1!=p2) {
     TermList* ts;
     ts=l1->args();
     while(!ts->isEmpty()) {
-      state->traverse(*ts,1);
+      state->traverse(*this, *ts,1);
       ts=ts->next();
     }
     ts=l2->args();
     while(!ts->isEmpty()) {
-      state->traverse(*ts,-1);
+      state->traverse(*this, *ts,-1);
       ts=ts->next();
     }
   } else {
-    state->traverse(l1,l2);
+    state->traverse(*this, l1,l2);
   }
 
-  res=state->result(l1,l2);
+  res=state->result(*this, l1,l2);
 #if VDEBUG
-  _state=state;
+  _state=std::move(state);
 #endif
   return res;
 } // KBO::comparePredicates()
@@ -739,32 +718,46 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   Term* t2=tl2.term();
 
   ASS(_state);
-  State* state=_state;
 #if VDEBUG
   //this is to make sure _state isn't used while we're using it
-  _state=0;
+  auto state = std::move(_state);
+#else 
+  auto& state = _state;
 #endif
+
 
   state->init();
   if(t1->functor()==t2->functor()) {
-    state->traverse(t1,t2);
+    state->traverse(*this, t1,t2);
   } else {
-    state->traverse(tl1,1);
-    state->traverse(tl2,-1);
+    state->traverse(*this, tl1,1);
+    state->traverse(*this,tl2,-1);
   }
-  Result res=state->result(t1,t2);
+  Result res=state->result(*this,t1,t2);
 #if VDEBUG
-  _state=state;
+  _state = std::move(state);
 #endif
   return res;
 }
 
+int KBO::variableWeight() const 
+{ return _funcWeights._specialWeights._variableWeight; }
+
+int KBO::functionWeight(unsigned t) const
+{ return _funcWeights.symbolWeight(t); }
+
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+int KBO::predicateWeight(unsigned t) const
+{ return _predWeights.symbolWeight(t); }
+#endif
+
 int KBO::symbolWeight(Term* t) const
 {
-#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   if (t->isLiteral()) 
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
     return _predWeights.symbolWeight(t);
-  else 
+#else 
+    return 1;
 #endif
   if (t->isSort()){
     //For now just give all type constructors minimal weight
@@ -774,18 +767,18 @@ int KBO::symbolWeight(Term* t) const
 }
 
 template<class SigTraits>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt()
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::dflt(bool qkboPrec)
 {
   return KboWeightMap {
     ._weights                = DArray<KboWeight>::initialized(SigTraits::nSymbols(), 1),
     ._introducedSymbolWeight = 1,
-    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
+    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(qkboPrec),
   };
 }
 
 template<class SigTraits>
 template<class Extractor, class Fml>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, Fml fml)
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, Fml fml, bool qkboPrec)
 {
   auto nSym = SigTraits::nSymbols();
   DArray<KboWeight> weights(nSym);
@@ -805,14 +798,14 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, 
   return KboWeightMap {
     ._weights                = weights,
     ._introducedSymbolWeight = 1,
-    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(),
+    ._specialWeights         = KboSpecialWeights<SigTraits>::dflt(qkboPrec),
   };
 }
 
 
 template<>
 template<class Random>
-KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned maxWeight, Random random)
+KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned maxWeight, Random random, bool qkbo)
 {
   using SigTraits = FuncSigTraits;
   auto nSym = SigTraits::nSymbols();
@@ -843,18 +836,19 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
       ._numInt     =  numInt,
       ._numRat     =  numRat,
       ._numReal    =  numReal,
+      ._qkbo = qkbo,
     },
   };
 }
 
 template<class SigTraits>
-KboWeightMap<SigTraits> KboWeightMap<SigTraits>::randomized()
-{ return randomized(1 << 16, [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); }); }
+KboWeightMap<SigTraits> KboWeightMap<SigTraits>::randomized(bool qkbo)
+{ return randomized(1 << 16, [](unsigned min, unsigned max) { return min + Random::getInteger(max - min); }, qkbo); }
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 template<>
 template<class Random>
-KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::randomized(unsigned maxWeight, Random random)
+KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::randomized(unsigned maxWeight, Random random, bool qkbo)
 {
   using SigTraits = FuncSigTraits;
   auto nSym = SigTraits::nSymbols();
@@ -956,15 +950,28 @@ bool KboSpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& 
 bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {
   auto sym = env.signature->getFunction(functor);
-  if (sym->integerConstant())  { weight = _numInt;  return true; }
-  if (sym->rationalConstant()) { weight = _numRat;  return true; }
-  if (sym->realConstant())     { weight = _numReal; return true; }
-  if (env.options->pushUnaryMinus()) {
-    if (theory->isInterpretedFunction(functor, IntTraits ::minusI)) { weight = 0; return true; }
-    if (theory->isInterpretedFunction(functor, RatTraits ::minusI)) { weight = 0; return true; }
-    if (theory->isInterpretedFunction(functor, RealTraits::minusI)) { weight = 0; return true; }
+  if (_qkbo) {
+    // we need to make sure that one (the only numeral that will compared using kbo in qkbo)
+    // is the least constant
+    if ( sym->integerConstant()
+      || sym->rationalConstant()
+      || sym->realConstant()) { 
+      weight = _variableWeight; 
+      return true; 
+    } else {
+      return false;
+    }
+  } else {
+    if (sym->integerConstant())  { weight = _numInt;  return true; }
+    if (sym->rationalConstant()) { weight = _numRat;  return true; }
+    if (sym->realConstant())     { weight = _numReal; return true; }
+    if (env.options->pushUnaryMinus()) {
+      if (theory->isInterpretedFunction(functor, IntTraits ::minusI)) { weight = 0; return true; }
+      if (theory->isInterpretedFunction(functor, RatTraits ::minusI)) { weight = 0; return true; }
+      if (theory->isInterpretedFunction(functor, RealTraits::minusI)) { weight = 0; return true; }
+    }
+    return false;
   }
-  return false;
 }
 template struct KboWeightMap<FuncSigTraits>;
 

@@ -21,10 +21,10 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
+#include "Lib/Reflection.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
-#include "Recycler.hpp"
 #include "VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Option.hpp"
@@ -111,7 +111,9 @@ public:
   ArrayishObjectIterator(Cont arr, size_t size) : _arr(arr),
   _index(0), _size(size) {}
   inline bool hasNext() { return _index<_size; }
-  inline ELEMENT_TYPE(ArrayishObjectIterator) next() { ASS(_index<_size); return _arr[_index++]; }
+  inline OWN_ELEMENT_TYPE next() 
+  { ASS(_index<_size); 
+    return move_if_value<OWN_ELEMENT_TYPE>(_arr[_index++]); }
   inline bool knowsSize() { return true;}
   inline bool size() { return _size;}
 private:
@@ -467,6 +469,112 @@ private:
   Option<OWN_ELEMENT_TYPE> _next;
 };
 
+template<class Iter, class Pred>
+class TakeWhileIter
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  DEFAULT_CONSTRUCTORS(TakeWhileIter)
+
+  TakeWhileIter(Iter iter, Pred pred)
+  : _pred(std::move(pred)), _iter(std::move(iter)), _next(), _break(false) {}
+
+  bool hasNext()
+  {
+    if (_break) return false;
+    if(_next.isSome()) return true;
+    
+    while(_iter.hasNext()) {
+      OWN_ELEMENT_TYPE next = move_if_value<OWN_ELEMENT_TYPE>(_iter.next());
+      if(_pred(next)) {
+        _next = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(next));
+        return true;
+      } else {
+        _break = true;
+        return false;
+      }
+    }
+    return false;
+  }
+
+  OWN_ELEMENT_TYPE next()
+  {
+    ASS(!_break)
+    ALWAYS(hasNext());
+    ASS(_next.isSome());
+    OWN_ELEMENT_TYPE out = move_if_value<OWN_ELEMENT_TYPE>(_next.unwrap());
+    _next = Option<OWN_ELEMENT_TYPE>();
+    return out;
+  }
+
+private:
+  
+  Pred _pred;
+  Iter _iter;
+  Option<OWN_ELEMENT_TYPE> _next;
+  bool _break;
+};
+
+template<class I1, class I2, class Cmp>
+class SortedIterDiff {
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(I1));
+  DEFAULT_CONSTRUCTORS(SortedIterDiff)
+
+  SortedIterDiff(I1 i1, I2 i2, Cmp cmp)
+    : _i1(std::move(i1))
+    , _i2(std::move(i2))
+    , _curr1()
+    , _curr2(someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); })) 
+    , _cmp(std::move(cmp))
+    {}
+
+  void moveToNext() 
+  {
+#   if VDEBUG
+    Option<OWN_ELEMENT_TYPE> old1;
+#   endif
+    while (_curr1.isNone() && _i1.hasNext()) {
+      _curr1 = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(_i1.next()));
+      ASS_REP(!_curr1.isSome() || !old1.isSome() || _cmp(*old1, *_curr1) <= 0, "iterator I1 must be sorted");
+      while (_curr2.isSome() && _cmp(*_curr2, *_curr1) < 0) {
+#       if VDEBUG
+        Option<OWN_ELEMENT_TYPE> old2 = _curr2.take();
+#       endif
+        _curr2 = someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE 
+            { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); });
+        ASS_REP(!_curr2.isSome() || !old2.isSome() || _cmp(*old2, *_curr2) <= 0, "iterator I2 must be sorted");
+      }
+      if (( _curr1.isSome() && _curr2.isSome() && _cmp(*_curr1, *_curr2) == 0 )
+          || (_curr1.isNone() && _curr2.isNone())) {
+#   if VDEBUG
+    old1 = _curr1.take();
+#   endif
+        _curr1 = Option<OWN_ELEMENT_TYPE>();
+        _curr2 = someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE 
+            { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); });
+      }
+    }
+  }
+
+  bool hasNext()
+  {
+    moveToNext();
+    return _curr1.isSome();
+  }
+
+  OWN_ELEMENT_TYPE next()
+  {
+    moveToNext();
+    return move_if_value<OWN_ELEMENT_TYPE>(_curr1.take().unwrap());
+  }
+private:
+  I1 _i1;
+  I2 _i2;
+  Option<OWN_ELEMENT_TYPE> _curr1;
+  Option<OWN_ELEMENT_TYPE> _curr2;
+  Cmp _cmp;
+};
 
 /**
  * Iterator that maps the contents of another iterator by a function. Whenever the function retuns a non-empty Option
@@ -700,16 +808,12 @@ private:
 template<class It1,class It2>
 inline
 CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
-{
-  return CatIterator<It1,It2>(std::move(it1), std::move(it2));
-}
+{ return CatIterator<It1,It2>(std::move(it1), std::move(it2)); }
 
 template<class I1, class I2, class I3, class... Is>
 inline
 auto getConcatenatedIterator(I1 i1, I2 i2, I3 i3, Is... is)
-{
-  return getConcatenatedIterator(getConcatenatedIterator(std::move(i1), std::move(i2)), std::move(i3), std::move(is)...);
-}
+{ return getConcatenatedIterator(getConcatenatedIterator(std::move(i1), std::move(i2)), std::move(i3), std::move(is)...); }
 
 
 
@@ -745,6 +849,9 @@ public:
    * the @b size() function, and if the @b knowsSize() function returns true.
    */
   inline size_t size() const { return _inner.size(); }
+
+  auto reverse() && 
+  { return MappingIterator<decltype(std::move(_inner).reverse()), Functor, ResultType>(std::move(_inner).reverse(), std::move(_func)); }
 private:
   Functor _func;
   Inner _inner;
@@ -1055,9 +1162,7 @@ private:
     CALL("UniquePersistentIterator::getUniqueItemList");
 
     ItemList* res=0;
-    ItemSet* iset;
-    Recycler::get(iset);
-    iset->reset();
+    Recycled<ItemSet> iset;
 
     sizeRef=0;
     while(inn.hasNext()) {
@@ -1068,7 +1173,6 @@ private:
       }
     }
 
-    Recycler::release(iset);
     return res;
   }
 
@@ -1095,6 +1199,7 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIterator(Inner it)
   }
   return vi( new UniquePersistentIterator<Inner>(it) );
 }
+
 
 /**
  * Return iterator that stores values of the iterator pointed to by @b it
@@ -1164,6 +1269,11 @@ public:
   inline T next() { return _next++; };
   inline bool knowsSize() const { return true; }
   inline size_t size() const { return (_to>_from) ? (_to-_from) : 0; }
+  auto reverse() &&
+  { 
+    auto to = _to;
+    return getMappingIterator(std::move(*this), [to](auto i) { return to - 1 - i; }); 
+  }
 private:
   T _next;
   T _from;
@@ -1696,6 +1806,10 @@ public:
 
   CoproductIter(Coproduct<Is...> i) : _inner(Coproduct<Is...>(std::move(i))) {}
 
+  bool hasNext() const
+  { Coproduct<Is...>& inner = _inner;
+    return inner.apply([](auto& x) { return x.hasNext();}); }
+
   bool hasNext()
   { Coproduct<Is...>& inner = _inner;
     return inner.apply([](auto& x) { return x.hasNext();}); }
@@ -1727,7 +1841,7 @@ static auto ifElseIter(ElseIter elseIter)
 
 template<class IfIter, class... ElseIters>
 static auto ifElseIter(bool cond, IfIter ifIter, ElseIters... elseIters) 
-{ return _ifElseIter(cond, ifIter, [&]() { return ifElseIter(elseIters...); }); }
+{ return _ifElseIter(cond, std::move(ifIter), [&]() { return ifElseIter(std::move(elseIters)...); }); }
 
 
 template<class I1>
@@ -1852,6 +1966,10 @@ public:
   auto flatten()
   { return iterTraits(getFlattenedIterator(std::move(_iter))); }
 
+  template<class Pred>
+  auto takeWhile(Pred p)
+  { return iterTraits(TakeWhileIter<Iter, Pred>(std::move(_iter), std::move(p))); }
+
   /** 
    * returns the first minimal element wrt the function `less` 
    * less takes two arguments of this iterators element type and 
@@ -1910,11 +2028,21 @@ public:
   }
 
   template<class F> 
-  auto fold(F fun)
-  { return fold(next(), std::move(fun)); }
+  auto fold(F fun) -> Option<Elem>
+  { return someIf(hasNext(), [&]() { return fold(next(), std::move(fun)); }); }
+
+  template<class OtherIter>
+  auto zip(OtherIter other)
+  { return map([other = std::move(other)](Elem x) mutable { return make_pair(std::move(x), other.next()); }); }
+
+  auto zipWithIndex()
+  { return map([idx = 0](Elem x) mutable { return make_pair(std::move(x), idx++); }); }
+
+  auto reverse() &&
+  { return iterTraits(std::move(_iter).reverse()); }
 
   auto sum()
-  { return fold(Elem(0), [](Elem l, Elem r) { return l + r; }); }
+  { return fold([](Elem l, Elem r) { return l + r; }) || []() { return Elem(0); }; }
 
   template<class Container>
   Container collect()
@@ -1923,22 +2051,11 @@ public:
     return Container::fromIterator(*this); 
   }
   
-
-
-  template<class F>
-  auto fold(F f) -> Elem
-  { 
-    CALL("IterTraits::fold/2")
-    ASS(hasNext())
-    return fold(next(), f);
-  }
-
-
   template<template<class> class Container>
   Container<Elem> collect()
   { 
     CALL("IterTraits::collect/2")
-    return Container<Elem>::fromIterator(*this); 
+    return Container<Elem>::fromIterator(std::move(*this)); 
   }
 
   IterTraits clone() 
@@ -1986,8 +2103,63 @@ IterTraits<Iter> iterTraits(Iter i)
 static const auto range = [](auto from, auto to) 
   { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
 
+template<class I1, class I2, class Cmp>
+auto iterSortedDiff(I1 i1, I2 i2, Cmp cmp) 
+{ return iterTraits(SortedIterDiff<I1,I2, Cmp>(std::move(i1), std::move(i2), std::move(cmp))); }
+
+template<class I1, class I2>
+auto iterSortedDiff(I1 i1, I2 i2) 
+{ return iterSortedDiff(std::move(i1), std::move(i2), [&](auto& l, auto& r) { return l == r ? 0 : l < r ? -1 : 1;  }); }
+
 ///@}
 
+template<class Iterator>
+auto dropElementType(Iterator iter) 
+{ return iterTraits(std::move(iter)).map([](auto _) { return make_tuple(); }); }
+
+template<class Array>
+auto arrayIter(Array const& x) 
+{ return range(0, x.size())
+     .map([&x](auto i) -> decltype(auto) { return x[i]; }); }
+
+
+template<class Array>
+auto arrayIter(Array& x) 
+{ return range(0, x.size())
+     .map([&x](auto i) -> decltype(auto) { return x[i]; }); }
+
+
+template<class Array>
+auto arrayIter(Array&& x) 
+{ return range(0, x.size())
+     .map([x = std::move(x)](auto i) { return std::move(x[i]); }); }
+
+// template<class Array>
+// auto arrayIter(Array const& x) 
+// { return iterTraits(getArrayishObjectIterator<const_ref_t>(x)); }
+//
+// template<class Array>
+// auto arrayIter(Array      & x) 
+// { return iterTraits(getArrayishObjectIterator<mut_ref_t>(x)); }
+//
+// template<class Array>
+// auto arrayIter(Array     && x) 
+// { return iterTraits(ownedArrayishIterator(std::move(x))); }
+
+// template<class CreateIer>
+// class IterAsData {
+//   CreateIter _iter;
+// public:
+//   friend bool operator<(IterAsData const&l, IterAsData const&r)
+//   { 
+//     auto i1 = iterTraits(l._iter());
+//     auto i2 = iterTraits(l._iter());
+//     while (i1.hasNext() && i2.hasNext>())
+//   }
+// };
+//
+// template<class Iter>
+// auto iterAsData(Iter iter) { return IterAsData<Iter>(std::move(iter)); }
 }
 
 #endif /* __Metaiterators__ */

@@ -43,6 +43,12 @@ namespace Kernel {
 using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
 PolyNf normalizeTerm(TypedTermList t, bool& evaluated);
 
+template<class T>
+PolyNf normalizeTerm(T t)
+{ bool dummy; return normalizeTerm(t, dummy); }
+
+inline PolyNf normalizeTerm(Term* t, bool& evaluated)
+{ return normalizeTerm(TypedTermList(t), evaluated); }
 } // namespace Kernel
 
 #endif // __POLYNOMIAL_NORMALIZER_HPP__

@@ -110,8 +110,7 @@ CancelAddResult<Number> cancelAdd(Polynom<Number> const& oldl, Polynom<Number> c
   { 
     try {
       return Option<Numeral>(l - r);
-    } catch (MachineArithmeticException&)
-    {
+    } catch (MachineArithmeticException&) {
       return Option<Numeral>();
     }
   };

@@ -14,6 +14,7 @@
  */
 
 #include "Index.hpp"
+#include "Forwards.hpp"
 
 
 namespace Indexing
@@ -44,5 +45,6 @@ void Index::attachContainer(ClauseContainer* cc)
   _addedSD = cc->addedEvent.subscribe(this,&Index::onAddedToContainer);
   _removedSD = cc->removedEvent.subscribe(this,&Index::onRemovedFromContainer);
 }
+
 
 }

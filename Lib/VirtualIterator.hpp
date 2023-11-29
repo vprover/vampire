@@ -50,11 +50,12 @@ template<typename T>
  */
 template<typename T>
 class IteratorCore {
-private:
-  //private and undefined operator= and copy constructor to avoid implicitly generated ones
-  IteratorCore(const IteratorCore&);
-  IteratorCore& operator=(const IteratorCore&);
 public:
+  IteratorCore(const IteratorCore&) = delete;
+  IteratorCore& operator=(const IteratorCore&) = delete;
+  IteratorCore(IteratorCore&&) = default;
+  IteratorCore& operator=(IteratorCore&&) = default;
+
   DECL_ELEMENT_TYPE(T);
   /** Create new IteratorCore object */
   IteratorCore() : _refCnt(0) {}
@@ -130,8 +131,7 @@ class VirtualIterator {
 public:
   CLASS_NAME(VirtualIterator);
   USE_ALLOCATOR(VirtualIterator);
-  DECLARE_PLACEMENT_NEW;
-  
+
   DECL_ELEMENT_TYPE(T);
 
   /** Return an empty iterator */
@@ -313,8 +313,9 @@ class ProxyIterator
 public:
   CLASS_NAME(ProxyIterator);
   USE_ALLOCATOR(ProxyIterator);
+  DEFAULT_CONSTRUCTORS(ProxyIterator)
   
-  explicit ProxyIterator(Inner inn) :_inn(inn) {}
+  explicit ProxyIterator(Inner inn) : _inn(std::move(inn)) {}
   bool hasNext() { return _inn.hasNext(); };
   T next() { return _inn.next(); };
 private:
@@ -335,7 +336,7 @@ template<class Inner>
 inline
 VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
 {
-  return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(it));
+  return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(std::move(it)));
 }
 
 

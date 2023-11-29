@@ -15,6 +15,19 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
+#include <ostream>
+#include "Kernel/NumTraits.hpp"
+
+#include "Debug/Tracer.hpp"
+
+#include "Lib/Allocator.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Portability.hpp"
+#include "Lib/Stack.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/STL.hpp"
+
 #include "Indexing/TermSharing.hpp"
 
 #include "SubstHelper.hpp"
@@ -25,6 +38,14 @@
 #include "Term.hpp"
 #include "FormulaVarIterator.hpp"
 
+/** If non-zero, term ite functors will be always expanded to
+ * the ( p ? x : y ) notation on output */
+#define ALWAYS_OUTPUT_TERM_ITE 0
+
+// changes whether theory terms are nicely formatted ($plus($uminus(s),t) vs (-(s) + t) )
+#define NICE_THEORY_OUTPUT 1
+
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -33,6 +54,15 @@ const unsigned Term::SF_LET;
 const unsigned Term::SF_FORMULA;
 const unsigned Term::SF_LAMBDA;
 const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
+
+void Term::setId(unsigned id)
+{
+  CALL("Term::setId");
+  if (env.options->randomTraversals()) {
+    id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
+  }
+   _args[0]._info.id = id;
+}
 
 /**
  * Allocate enough bytes to fit a term of a given arity.
@@ -114,6 +144,9 @@ bool TermList::isSafe() const
   return isVar() || term()->shared();
 }
 
+bool TermList::ground() const 
+{ return !isVar() && term()->ground(); }
+
 /**
  * Return the list of all free variables of the term.
  * The result is only non-empty when there are quantified
@@ -137,7 +170,7 @@ VList* TermList::freeVariables() const
   VList* result = VList::empty();
   VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push(fvi.next());
+    stack.pushBack(fvi.next());
   }
   return result;
 } // TermList::freeVariables
@@ -224,6 +257,10 @@ bool TermList::equals(TermList t1, TermList t2)
   }
   return true;
 }
+
+TermList::Top TermList::top() const
+{ return isTerm() ? TermList::Top::functor(term()->functor()) 
+                  : TermList::Top::var(var());            }
 
 /**
  * Return true if all proper terms in the @ args list are shared
@@ -736,7 +773,50 @@ vstring Term::toString(bool topLevel) const
     printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
+#if NICE_THEORY_OUTPUT
+  auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
+    auto unary = [&](auto sym)  {
+      vstringstream out;
+      // out << sym << "(" << termArg(0) << ")";
+      out << sym << termArg(0);
+      return Option<vstring>(out.str());
+    };
+    auto binary = [&](auto sym)  {
+      vstringstream out;
+      out << "(" << termArg(0) 
+          << " " << sym << " " << termArg(1)
+          << ")";
+      return Option<vstring>(out.str());
+    };
+    using NumTraits = decltype(numTraits);
+    if (isLiteral()) {
+      if (_functor == NumTraits::greaterF()) {
+        return binary(">");
+      } else if (_functor == NumTraits::geqF()) {
+        return binary(">=");
+      }
+      /* nothing */
+    } else if (isSort()) {
+      /* nothing */
+    } else {
+      if (_functor == NumTraits::addF()) {
+        return binary("+");
+      } else if (_functor == NumTraits::mulF()) {
+        return binary("*");
+      } else if (_functor == NumTraits::minusF()) {
+        return unary("-");
+      }
+    }
+    return Option<vstring>();
+  });
+
+  if (theoryTerm.isSome()) {
+    return theoryTerm.unwrap();
+  }
+#endif // NICE_THEORY_OUTPUT
+
   vstring s = headToString();
+  
 
   if (_arity && printArgs) {
     s += args()->asArgsToString(); // will also print the ')'
@@ -773,6 +853,29 @@ vstring Literal::toString() const
 
     return res;
   }
+
+#if NICE_THEORY_OUTPUT
+  auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
+    auto binary = [&](auto sym)  {
+      vstringstream out;
+      if (!polarity()) out << "~(" ;
+      out << *nthArgument(0) << " " << sym << " " << *nthArgument(1) ;
+      if (!polarity()) out << ")" ;
+      return Option<vstring>(out.str());
+    };
+    using NumTraits = decltype(numTraits);
+    if (_functor == NumTraits::greaterF()) {
+      return binary(">");
+    } else if (_functor == NumTraits::geqF()) {
+      return binary(">=");
+    }
+    return Option<vstring>();
+  });
+  if (theoryTerm.isSome()) {
+    return theoryTerm.unwrap();
+  }
+#endif // NICE_THEORY_OUTPUT
+
 
   Stack<const TermList*> stack(64);
   vstring s = polarity() ? "" : "~";
@@ -868,57 +971,6 @@ Literal* Literal::apply(Substitution& subst)
 } // Literal::apply
 
 /**
- * Return the hash function of the top-level of a complex term.
- * @pre The term must be non-variable
- * @since 28/12/2007 Manchester
- */
-unsigned Term::hash() const
-{
-  CALL("Term::hash");
-
-  unsigned hash = Hash::hash(_functor);
-  if (_arity == 0) {
-    return hash;
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
-
-/**
- * Return the hash function of the top-level of a literal.
- * @since 30/03/2008 Flight Murcia-Manchester
- */
-unsigned Literal::hash() const
-{
-  CALL("Literal::hash");
-
-  unsigned hash = Hash::hash(isPositive() ? (2*_functor) : (2*_functor+1));
-  if (_arity == 0) {
-    return hash;
-  }
-  if (isTwoVarEquality()) {
-    hash ^= Hash::hash(twoVarEqSort());
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
-
-/**
- * Return the hash function of the top-level of a literal with opposite polarity.
- */
-unsigned Literal::oppositeHash() const
-{
-  CALL("Literal::hash");
-
-  unsigned hash = Hash::hash( (!isPositive()) ? (2*_functor) : (2*_functor+1));
-  if (_arity == 0) {
-    return hash;
-  }
-  return Hash::hash(reinterpret_cast<const unsigned char*>(_args+1),
- 		       _arity*sizeof(TermList),hash);
-} // Term::hash
-
-/**
  * Return literal opposite to @b l.
  */
 Literal* Literal::complementaryLiteral(Literal* l)
@@ -957,11 +1009,6 @@ Term* Term::create(Term* t,TermList* args)
   }
   return s;
 }
-
-
-/** \see Term::create(unsigned function, unsigned arity, const TermList* args) */
-Term* Term::create(unsigned function, Stack<TermList> const& args)
-{ return Term::create(function, args.size(), args.begin()); }
 
 /** Create a new complex term, and insert it into the sharing
  *  structure if all arguments are shared.
@@ -1401,7 +1448,7 @@ VList* Term::freeVariables() const
   VList* result = VList::empty();
   VList::FIFO stack(result);
   while (fvi.hasNext()) {
-    stack.push(fvi.next());
+    stack.pushBack(fvi.next());
   }
   return result;
 } // Term::freeVariables
@@ -1539,7 +1586,7 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
  *  structure if all arguments are shared.
  * @since 07/01/2008 Torrevieja
  */
-AtomicSort* AtomicSort::create(AtomicSort* sort,TermList* args)
+AtomicSort* AtomicSort::create(AtomicSort const* sort,TermList* args)
 {
   CALL("AtomicSort::create/2");
 
@@ -1909,16 +1956,17 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   if (lhs.isTerm()) {
     ASS(rhs.isTerm())
     return lhs.term()->getId() < rhs.term()->getId();
+  } else if (lhs.isEmpty() || rhs.isEmpty()) {
+    auto cmp = lhs.isEmpty() - rhs.isEmpty();
+    if (cmp != 0) return cmp < 0;
+    else return false;
+    
   } else {
     ASS(lhs.isVar())
     ASS(rhs.isVar())
     return lhs.var() < rhs.var();
   }
 }
-
-
-bool ::operator<(const TermList& lhs, const TermList& rhs) 
-{ return Kernel::operator<(lhs,rhs); }
 
 bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
 {

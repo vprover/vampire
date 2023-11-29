@@ -37,23 +37,28 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-class CodeTreeTIS : public TermIndexingStructure
+class CodeTreeTIS : public TermIndexingStructure<TermLiteralClause>
 {
 public:
+
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
+  virtual void handle(TermLiteralClause data, bool insert) final override
+  { if (insert) { _insert(data.term, data.literal, data.clause); }
+    else        { _remove(data.term, data.literal, data.clause); } }
 
-  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true);
-  bool generalizationExists(TermList t);
+  TermQueryResultIterator getGeneralizations(TermList t, bool retrieveSubstitutions = true) final override;
+  bool generalizationExists(TermList t) final override;
+  // TODO: get rid of NOT_IMPLEMENTED
+  VirtualIterator<QueryRes<AbstractingUnifier*, TermLiteralClause>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
-#if VDEBUG
-  virtual void markTagged(){ NOT_IMPLEMENTED; } 
-#endif
+  virtual void output(std::ostream& out) const final override { out << _ct; }
 
 private:
+  void _insert(TermList t, Literal* lit, Clause* cls);
+  void _remove(TermList t, Literal* lit, Clause* cls);
+
   class ResultIterator;
 
   TermCodeTree _ct;

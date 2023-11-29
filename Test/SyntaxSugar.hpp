@@ -32,7 +32,6 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
@@ -43,19 +42,19 @@
 #define __CONSTANT_TYPE_REAL RealConstantType
 #define __CONSTANT_TYPE_RAT  RationalConstantType
 #if defined(__clang__)
-#  define __ALLOW_UNUSED(...)                                                                                 \
-    _Pragma("GCC diagnostic push")                                                                            \
-    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                            \
-    __VA_ARGS__                                                                                               \
-    _Pragma("GCC diagnostic pop")                                                                             \
+#  define __ALLOW_UNUSED(...)                                                                       \
+    _Pragma("GCC diagnostic push")                                                                  \
+    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                  \
+    __VA_ARGS__                                                                                     \
+    _Pragma("GCC diagnostic pop")                                                                   \
 
 #elif defined(__GNUC__) || defined(__GNUG__)
 
-#  define __ALLOW_UNUSED(...)                                                                                 \
-    _Pragma("GCC diagnostic push")                                                                            \
-    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                           \
-    __VA_ARGS__                                                                                               \
-    _Pragma("GCC diagnostic pop")                                                                             \
+#  define __ALLOW_UNUSED(...)                                                                       \
+    _Pragma("GCC diagnostic push")                                                                  \
+    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                 \
+    __VA_ARGS__                                                                                     \
+    _Pragma("GCC diagnostic pop")                                                                   \
 
 #else
 #  define __ALLOW_UNUSED(...) __VA_ARGS__             
@@ -68,34 +67,6 @@
 #define __ARGS_EXPR(Type, arity) __ARGS_EXPR_ ## arity(Type)
 #define __ARGS_EXPR_1(Type) arg0_
 #define __ARGS_EXPR_2(Type) arg0_, arg1_
-
-#if defined(__clang__)
-#  define __ALLOW_UNUSED(...)                                                                                 \
-    _Pragma("GCC diagnostic push")                                                                            \
-    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                                            \
-    __VA_ARGS__                                                                                               \
-    _Pragma("GCC diagnostic pop")                                                                             \
-
-#elif defined(__GNUC__) || defined(__GNUG__)
-
-#  define __ALLOW_UNUSED(...)                                                                                 \
-    _Pragma("GCC diagnostic push")                                                                            \
-    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                                           \
-    __VA_ARGS__                                                                                               \
-    _Pragma("GCC diagnostic pop")                                                                             \
-
-#else
-#  define __ALLOW_UNUSED(...) __VA_ARGS__             
-#endif
- 
-
-#define __CLSR_FUN_INTERPRETED(arity, mul, INT, _MULTIPLY)                                                    \
-    auto mul = [](__ARGS_DECL(TermSugar, arity)) -> TermSugar {                                               \
-      return TermList(Term::create ## arity(                                                                  \
-            env.signature->getInterpretingSymbol(Theory::Interpretation:: INT ## _MULTIPLY),                  \
-            __ARGS_EXPR(Type, arity))                                                                         \
-          );                                                                                                  \
-    };                                                                                                        \
 
 #define __REPEAT_1(sort) sort
 #define __REPEAT_2(sort) sort, __REPEAT_1(sort)
@@ -113,27 +84,25 @@
 #define DECL_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
 #define DECL_POLY_FUNC(f, i, ...)   auto f = FuncSugar(#f, __VA_ARGS__, i); 
-#define DECL_POLY_CONST(f, i, sort)   auto f = FuncSugar(#f, Stack<SortSugar>(0), sort, i);    
+#define DECL_POLY_CONST(f, i, sort)   auto f = FuncSugar(#f, {}, sort, i);    
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
-#define DECL_POLY_PRED(f, i, ...)   auto f = PredSugar(#f, __VA_ARGS__, i);    
 #define DECL_TYPE_CON(f, arity) auto f = TypeConSugar(#f, arity);    
 #define DECL_SORT(s)        auto s = TypeConstSugar(#s);
-#define DECL_ARROW_SORT(s, ...)        auto s = SortSugar(#s, __VA_ARGS__);
 #define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 #define DECL_SORT_VAR(x, i) auto x = SortSugar(TermList::var(i));    
-#define DECL_HOL_VAR(x, i, s) auto x = TermSugar(TermList::var(i), s);
+#define DECL_VAR_SORTED(x, i, s) auto x = TermSugar(TermList::var(i), s);
 #define DECL_I_COMB(i) auto i = FuncSugar(env.signature->getCombinator(Signature::I_COMB));
 #define DECL_K_COMB(k) auto k = FuncSugar(env.signature->getCombinator(Signature::K_COMB));
 #define DECL_B_COMB(b) auto b = FuncSugar(env.signature->getCombinator(Signature::B_COMB));
 #define DECL_C_COMB(c) auto c = FuncSugar(env.signature->getCombinator(Signature::C_COMB));
 #define DECL_S_COMB(s) auto s = FuncSugar(env.signature->getCombinator(Signature::S_COMB));
 
-#define DECL_DEFAULT_VARS                                                                                     \
-  __ALLOW_UNUSED(                                                                                             \
-    DECL_VAR(x, 0)                                                                                            \
-    DECL_VAR(y, 1)                                                                                            \
-    DECL_VAR(z, 2)                                                                                            \
-  )                                                                                                           \
+#define DECL_DEFAULT_VARS                                                                           \
+  __ALLOW_UNUSED(                                                                                   \
+    DECL_VAR(x, 0)                                                                                  \
+    DECL_VAR(y, 1)                                                                                  \
+    DECL_VAR(z, 2)                                                                                  \
+  )                                                                                                 \
 
 // Sort variables are just variables 
 // numbers chosen to make a clash with term variables unlikely
@@ -207,19 +176,28 @@
  *
  * For examples see UnitTesting/tSyntaxSugar.cpp.
  */
-#define NUMBER_SUGAR(Sort)                                                                                    \
-  __ALLOW_UNUSED(                                                                                             \
-    using NumTraits = Sort##Traits;                                                                           \
-    syntaxSugarGlobals().setNumTraits(NumTraits{});                                            \
-    auto Sort = SortSugar(NumTraits::sort());                                                                 \
-  )
+#define NUMBER_SUGAR(Sort)                                                                          \
+  __ALLOW_UNUSED(                                                                                   \
+    using NumTraits = Sort##Traits;                                                                 \
+    syntaxSugarGlobals().setNumTraits(NumTraits{});                                                 \
+    auto add = FuncSugar(NumTraits::addF());                                                        \
+    auto mul = FuncSugar(NumTraits::mulF());                                                        \
+    auto minus = FuncSugar(NumTraits::minusF());                                                    \
+    auto Sort = SortSugar(NumTraits::sort());                                                       \
+  )                                                                                                 \
 
 #define DECL_TERM_ALGEBRA(...) createTermAlgebra(__VA_ARGS__);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // implementation
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-using SortId = TermList;
+
+class SyntaxSugar {
+public:
+  static void reset() {
+    env.signature = new Signature();
+  }
+};
 
 class TermSugar;
 
@@ -258,19 +236,9 @@ class SyntaxSugarGlobals
   }
 
 public:
-  static SyntaxSugarGlobals& instance() {
-    _instance.setApply();
-    return _instance;
-  }
+  static SyntaxSugarGlobals& instance() 
+  { return _instance; }
 
-
-  void setApply()
-  {
-    apply = [](TermList sort, TermList t1, TermList t2) {
-      TermList app = ApplicativeHelper::createAppTerm(sort, t1, t2);
-      return app;
-    };
-  }
 
   void setNumTraits(IntTraits)
   {
@@ -290,8 +258,6 @@ public:
 
   void setNumTraits(RealTraits)
   { setFracTraits<RealTraits>(); }
-
-  std::function<TermList(TermList, TermList, TermList)> apply;
 
   std::function<TermList(int, int)> createFraction;
   std::function<TermList(int)> createNumeral;
@@ -324,10 +290,10 @@ public:
 inline SyntaxSugarGlobals& syntaxSugarGlobals() 
 { return SyntaxSugarGlobals::instance(); }
 
-
 class ExpressionSugar
 {
 public: 
+  // TODO get rid of this default constructor. we never want to create uninitialized instances
   ExpressionSugar(){
     _sugaredExpr.makeEmpty();
   }
@@ -336,6 +302,7 @@ public:
     _sugaredExpr(sugaredExpr){}
 
   /** explicit conversion */ 
+  // TODO rename to what it actually is (an explicit concersion) toTermList
   TermList sugaredExpr() const { return _sugaredExpr;} 
 
   /** implicit conversion */ 
@@ -376,31 +343,34 @@ class TermSugar : public ExpressionSugar
 
 public:
   TermSugar(bool foolConst) 
-    : ExpressionSugar(TermList(foolConst ? Term::foolTrue() : Term::foolFalse()))
-  { _srt.makeEmpty(); }
+    : TermSugar(TermList(foolConst ? Term::foolTrue() : Term::foolFalse()))
+  {}
 
   TermSugar(int trm) 
-    : ExpressionSugar(TermList(syntaxSugarGlobals().createNumeral(trm)))
-  { _srt.makeEmpty(); }
+    : TermSugar(TermList(syntaxSugarGlobals().createNumeral(trm)))
+  {}
 
   TermSugar(TermList trm) 
     : ExpressionSugar(trm)
   { 
     ASS_REP(!_sugaredExpr.isEmpty(), _sugaredExpr);
-    if(!_sugaredExpr.isVar()){
+    if (_sugaredExpr.isVar()) {
+      _srt.makeEmpty();
+    } else {
       _srt = SortHelper::getResultSort(_sugaredExpr.term());
     }
   }
 
   TermSugar(TermList trm, SortSugar sort)
-    : ExpressionSugar(trm)
+    : TermSugar(trm)
   {
     ASS(_sugaredExpr.isVar());
     _srt = sort.sugaredExpr();
   }
 
-  /** explicit conversion */ 
   SortId sort() const { return _srt; }
+
+  TermSugar sort(SortId s) { _srt = s; return *this; }
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     unsigned f = env.signature->addFunction(name,0);                                                                
@@ -412,6 +382,17 @@ public:
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
 };
+
+class SortedTermSugar : public TermSugar
+{
+  SortSugar _sort;
+public:
+  SortedTermSugar(TermList term, SortSugar sort) : TermSugar(term), _sort(sort) 
+  {}
+
+  SortSugar sort() const { return _sort; }
+};
+
 
 class Lit
 {
@@ -433,6 +414,9 @@ public:
   }
 };
 
+inline SortedTermSugar sorted(TermList var, SortSugar sort) 
+{ return SortedTermSugar(var, sort); }
+
 inline TermSugar frac(int a, int b) 
 { return syntaxSugarGlobals().createFraction(a,b); }
 
@@ -444,28 +428,33 @@ inline TermSugar fool(bool b)
 
 ////////////////////////// operators to create terms ////////////////////////// 
 
-inline TermSugar ap(TermSugar lhs, TermSugar rhs)  { 
-  return syntaxSugarGlobals().apply(lhs.sort(), lhs, rhs); 
-}  
+inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); }
+
+inline TermSugar ap(SortSugar sort, TermSugar lhs, TermSugar rhs) 
+{ return ApplicativeHelper::createAppTerm(sort, lhs, rhs); }  
+
+inline TermSugar ap(TermSugar lhs, TermSugar rhs) 
+{ return ap(lhs.sort(), lhs, rhs); }  
 
 inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }  
+inline TermSugar operator-(TermSugar lhs, TermSugar rhs)  { return lhs + -rhs; }  
 inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().mul(lhs, rhs); }  
 inline TermSugar operator/(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().div(lhs, rhs); }  
 
-#define __IMPL_NUMBER_BIN_FUN(op, result_t)                                                                   \
-  inline result_t op(int lhs, TermSugar rhs) { return op(TermSugar(lhs), rhs); }                              \
-  inline result_t op(TermSugar lhs, int rhs) { return op(lhs, TermSugar(rhs)); }                              \
+#define __IMPL_NUMBER_BIN_FUN(op, result_t)                                                         \
+  inline result_t op(int lhs, TermSugar rhs) { return op(TermSugar(lhs), rhs); }                    \
+  inline result_t op(TermSugar lhs, int rhs) { return op(lhs, TermSugar(rhs)); }                    \
 
 __IMPL_NUMBER_BIN_FUN(operator+, TermSugar)
 __IMPL_NUMBER_BIN_FUN(operator*, TermSugar)
 __IMPL_NUMBER_BIN_FUN(operator/, TermSugar)
 
-#define __BIN_FUNC_QUOTIENT_REMAINDER(X)                                                                      \
+#define __BIN_FUNC_QUOTIENT_REMAINDER(X)                                                            \
   inline TermSugar  quotient##X(TermSugar lhs, TermSugar rhs){ return syntaxSugarGlobals(). quotient##X(lhs, rhs); }   \
   inline TermSugar remainder##X(TermSugar lhs, TermSugar rhs){ return syntaxSugarGlobals().remainder##X(lhs, rhs); }   \
-                                                                                                              \
-  __IMPL_NUMBER_BIN_FUN( quotient##X, TermSugar)                                                              \
-  __IMPL_NUMBER_BIN_FUN(remainder##X, TermSugar)                                                              \
+                                                                                                    \
+  __IMPL_NUMBER_BIN_FUN( quotient##X, TermSugar)                                                    \
+  __IMPL_NUMBER_BIN_FUN(remainder##X, TermSugar)                                                    \
 
 __BIN_FUNC_QUOTIENT_REMAINDER(E)
 __BIN_FUNC_QUOTIENT_REMAINDER(T)
@@ -474,15 +463,19 @@ __BIN_FUNC_QUOTIENT_REMAINDER(F)
 #undef __BIN_FUNC_QUOTIENT_REMAINDER
 
 
-inline TermSugar operator-(TermSugar x) { return syntaxSugarGlobals().minus(x); }
 
 ////////////////////////// operators to create literals ////////////////////////// 
 
 
+inline Lit operator==(SortedTermSugar lhs, TermSugar rhs) 
+{ return Literal::createEquality(true, lhs, rhs, lhs.sort().sugaredExpr()); }
+
+inline Lit operator==(TermSugar lhs, SortedTermSugar rhs) 
+{ return Literal::createEquality(true, lhs, rhs, rhs.sort().sugaredExpr()); }
+
 inline Lit operator==(TermSugar lhs, TermSugar rhs) 
 {
-  SortId sort;
-  ALWAYS(SortHelper::tryGetResultSort(lhs, sort) || SortHelper::tryGetResultSort(rhs, sort));
+  SortId sort = lhs.sort().isNonEmpty() ? lhs.sort() : rhs.sort();
   return Literal::createEquality(true, lhs, rhs, sort);
 }
 
@@ -502,8 +495,9 @@ inline Lit operator~(Lit lit)
   return Literal::create(l, !l->polarity());
 }
 
-inline Lit operator!=(TermSugar lhs, TermSugar rhs) 
-{ return ~(lhs == rhs); }
+inline Lit operator!=(SortedTermSugar lhs, TermSugar rhs)  { return ~(lhs == rhs); }
+inline Lit operator!=(TermSugar lhs, SortedTermSugar rhs)  { return ~(lhs == rhs); }
+inline Lit operator!=(TermSugar lhs, TermSugar rhs) { return ~(lhs == rhs); }
 
 __IMPL_NUMBER_BIN_FUN(operator==, Lit)
 __IMPL_NUMBER_BIN_FUN(operator!=, Lit)
@@ -513,6 +507,12 @@ __IMPL_NUMBER_BIN_FUN(operator> , Lit)
 __IMPL_NUMBER_BIN_FUN(operator>=, Lit)
 
 
+inline SortSugar arrow(TermList args, TermList res) 
+{ return AtomicSort::arrowSort({ args }, res);      }
+
+inline SortSugar arrow(Stack<TermList> args, TermList res) 
+{ return AtomicSort::arrowSort(args, res);      }
+  
 class FuncSugar {
   unsigned _functor;
   unsigned _arity;
@@ -522,7 +522,7 @@ public:
     : _functor(functor)
     , _arity(env.signature->getFunction(functor)->arity()) {}
 
-  FuncSugar(vstring const& name, Stack<SortSugar> as_, 
+  FuncSugar(vstring const& name, std::initializer_list<SortSugar> as_, 
     ExpressionSugar result, unsigned taArity = 0) 
   {
     Stack<SortId> as;
@@ -557,7 +557,7 @@ public:
   }
 
   auto result()        const { return symbol()->fnType()->result(); }
-  auto arg(unsigned i) const { return symbol()->fnType()->arg(i);   }
+  auto arg(unsigned i) const { return symbol()->fnType()->arg(i); }
 
   template<class... As>
   TermSugar operator()(As... args) const {
@@ -627,7 +627,7 @@ class PredSugar {
   unsigned _functor;
 
 public:
-  PredSugar(const char* name, Stack<SortSugar> args, unsigned taArity = 0) 
+  PredSugar(const char* name, std::initializer_list<SortSugar> args, unsigned taArity = 0) 
   {
     BYPASSING_ALLOCATOR
     Stack<SortId> as;
@@ -635,7 +635,9 @@ public:
       as.push(a.sugaredExpr());
     }
     
+    // TODO rename taArity to something more descriptfy like nTypeArgs
     if(taArity){
+      // TODO don't haredcode these varible numbers?!
       TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};      
       SortHelper::normaliseArgSorts(vars, as);
     }
@@ -643,7 +645,7 @@ public:
     _functor = env.signature->addPredicate(name, as.size() + taArity);
     env.signature
       ->getPredicate(_functor)
-      ->setType(OperatorType::getPredicateType(as.size(), &as[0], taArity));    
+      ->setType(OperatorType::getPredicateType(as.size(), as.begin(), taArity));    
   }
 
   template<class... As>
@@ -658,10 +660,9 @@ public:
   unsigned functor() const { return _functor; }
 };
 
-inline Clause* clause(std::initializer_list<Lit> ls_) { 
+inline Clause* clause(Stack<Lit> ls) { 
   static Inference testInf = Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT); 
 
-  Stack<Lit> ls(ls_);
   std::stable_sort(ls.begin(), ls.end(), [](Lit const& l1, Lit const& l2){ return l1.selected() > l2.selected(); });
   auto nSelected = iterTraits(ls.iterFifo())
     .findPosition([](Lit const& l) 
@@ -679,6 +680,9 @@ inline Clause* clause(std::initializer_list<Lit> ls_) {
   out.setSelected(nSelected);
   return &out; 
 }
+
+inline Clause* clause(std::initializer_list<Lit> ls) 
+{ return clause(Stack<Lit>(ls)); }
 
 inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
   auto out = Stack<Clause*>();
@@ -698,6 +702,7 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
   for (auto f : funcs) {
     env.signature->getFunction(f.functor())
       ->markTermAlgebraCons();
+
     auto dtor = [&](unsigned i) {
       vstringstream name;
       name << f << "@" << i;
@@ -714,8 +719,7 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
 
     cons.push(new TermAlgebraConstructor(f.functor(), dtors));
   }
-  auto ta = new TermAlgebra(sort.sugaredExpr(), cons.size(), cons.begin());
-  env.signature->addTermAlgebra(ta);
+  env.signature->addTermAlgebra(new TermAlgebra(sort.sugaredExpr(), cons.size(), cons.begin()));
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

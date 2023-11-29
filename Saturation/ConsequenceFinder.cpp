@@ -51,13 +51,11 @@ ConsequenceFinder::~ConsequenceFinder()
   _sdRemoval->unsubscribe();
 }
 
-static const char* CONSEQUENCE_FINDING = "consequence finding";
-
 void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
 {
   CALL("ConsequenceFinder::onNewPropositionalClause");
 
-  TIME_TRACE(CONSEQUENCE_FINDING);
+  TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   //remove duplicate literals (necessary for tautology deletion)
   Clause* dlrCl=_dlr.simplify(cl);
@@ -119,7 +117,7 @@ void ConsequenceFinder::onAllProcessed()
 {
   CALL("ConsequenceFinder::onAllProcessed");
 
-  TIME_TRACE(CONSEQUENCE_FINDING);
+  TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   while(_redundantsToHandle.isNonEmpty()) {
     unsigned red=_redundantsToHandle.pop();
@@ -170,7 +168,7 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
 {
   CALL("ConsequenceFinder::onClauseInserted");
 
-  TIME_TRACE(CONSEQUENCE_FINDING);
+  TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   bool red=false;
   Clause::Iterator it(*cl);
@@ -201,7 +199,7 @@ void ConsequenceFinder::onClauseRemoved(Clause* cl)
 {
   CALL("ConsequenceFinder::onClauseRemoved");
 
-  TIME_TRACE(CONSEQUENCE_FINDING);
+  TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
