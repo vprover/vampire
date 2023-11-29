@@ -531,7 +531,8 @@ public:
   enum class URResolution : unsigned int {
     EC_ONLY = 0,
     OFF = 1,
-    ON = 2
+    ON = 2,
+    FULL = 3
   };
 
   enum class TermOrdering : unsigned int {
