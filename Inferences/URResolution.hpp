@@ -33,8 +33,8 @@ public:
   CLASS_NAME(URResolution);
   USE_ALLOCATOR(URResolution);
 
-  URResolution();
-  URResolution(bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
+  URResolution(bool full);
+  URResolution(bool full, bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
       NonUnitClauseLiteralIndex* nonUnitIndex);
 
   void attach(SaturationAlgorithm* salg);
@@ -52,7 +52,7 @@ private:
 
   void doBackwardInferences(Clause* cl, ClauseList*& acc);
 
-
+  bool _full;
   bool _emptyClauseOnly;
   bool _selectedOnly;
   UnitClauseLiteralIndex* _unitIndex;
