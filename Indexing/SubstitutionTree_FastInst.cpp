@@ -190,27 +190,6 @@ void SubstitutionTree::InstMatcher::backtrack()
   }
 }
 
-/**
- * Try to undo one call to the @b matchNext method with separate param
- * set to @b true and all other @b matchNext calls that were joined to it.
- * Return true iff successful. (The failure can be due to the fact there
- * is no separated @b matchNext call to be undone. In this case every binding
- * on the @b _boundVars stack would be undone.)
- */
-bool SubstitutionTree::InstMatcher::tryBacktrack()
-{
-
-  while(_boundVars->isNonEmpty()) {
-    TermList boundVar=_boundVars->pop();
-    if(boundVar.isEmpty()) {
-      return true;
-    }
-    _bindings->remove(boundVar);
-  }
-  return false;
-}
-
-
 bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   if(separate) {

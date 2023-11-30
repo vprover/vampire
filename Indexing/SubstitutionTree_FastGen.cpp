@@ -219,25 +219,6 @@ void SubstitutionTree::GenMatcher::backtrack()
   }
 }
 
-/**
- * Try to undo one call to the @b matchNext method with separate param
- * set to @b true and all other @b matchNext calls that were joined to it.
- * Return true iff successful. (The failure can be due to the fact there
- * is no separated @b matchNext call to be undone. In this case every binding
- * on the @b _boundVars stack would be undone.)
- */
-bool SubstitutionTree::GenMatcher::tryBacktrack()
-{
-  while(_boundVars->isNonEmpty()) {
-    unsigned boundVar = _boundVars->pop();
-    if(boundVar==BACKTRACK_SEPARATOR) {
-      return true;
-    }
-    _bindings->remove(boundVar);
-  }
-  return false;
-}
-
 
 ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
 	Renaming* resultNormalizer)

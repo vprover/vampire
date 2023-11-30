@@ -760,7 +760,6 @@
       bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
       bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
       void backtrack();
-      bool tryBacktrack();
 
       ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
 
@@ -987,7 +986,6 @@
       bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
 
       void backtrack();
-      bool tryBacktrack();
       ResultSubstitutionSP getSubstitution(Renaming* resultDenormalizer);
 
       int getBSCnt()
