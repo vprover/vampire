@@ -270,24 +270,6 @@ public:
   void reset() { _memo.reset(); }
 };
 
-// template<class Result>
-// class OnlyMemorizeVars {
-//   Map<VarSpec, Result> _memo;
-// public:
-//   OnlyMemorizeVars(OnlyMemorizeVars &&) = default;
-//   OnlyMemorizeVars& operator=(OnlyMemorizeVars &&) = default;
-//   OnlyMemorizeVars() : _memo() {}
-//
-//   Option<Result> get(AutoDerefTermSpec const& arg)
-//   { return arg.term.isVar()
-//        ? _memo.tryGet(arg.term.varSpec()).toOwned()
-//        : Option<Result>(); }
-//
-//   template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
-//   { return orig.term.isVar() ? _memo.getOrInit(orig.term.varSpec(), init)
-//                              : init(); }
-//   void reset() { _memo.reset(); }
-// };
 class UnificationConstraint
 {
   TermSpec _t1;
@@ -296,8 +278,6 @@ public:
   // TODO get rid of default constr
   UnificationConstraint() {}
   USE_ALLOCATOR(UnificationConstraint)
-  // UnificationConstraint(UnificationConstraint&&) = default;
-  // UnificationConstraint& operator=(UnificationConstraint&&) = default;
   auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2); }
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
   IMPL_HASH_FROM_TUPLE(UnificationConstraint);
@@ -480,7 +460,6 @@ namespace Lib {
 
   // TODO optimize to use TermList iterator
   template<>
-  // struct BottomUpChildIter<pair<Kernel::TermSpec, Kernel::RobSubstitution const*>>
   struct BottomUpChildIter<Kernel::AutoDerefTermSpec>
   {
     using Item = Kernel::AutoDerefTermSpec;

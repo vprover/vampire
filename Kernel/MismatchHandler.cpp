@@ -92,9 +92,6 @@ public:
   }
 };
 
-// auto acIter(unsigned f, TermSpec t)
-// { return iterTraits(AcIter(f, t)); }
-
 bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const 
 {
 
@@ -135,16 +132,6 @@ Option<MismatchHandler::AbstractionResult> funcExt(
   ASS(t1.isTerm() || t2.isTerm())
   ASS(!t1.isSpecialVar())
   ASS(!t2.isSpecialVar())
-
-  // auto sortIsBoolOrVar = [](auto& t) {
-  //   if (t.isVar()) return false;
-  //   return t.sortIsBoolOrVar();
-  // };
-  // if (sortIsBoolOrVar(t1) || sortIsBoolOrVar(t2)) 
-  //   return some(MismatchHandler::AbstractionResult(
-  //         MismatchHandler::EqualIf()
-  //         .constr(UnificationConstraint(t1.clone(), t2.clone()))));
-
 
   auto isApp = [](auto& t) { return env.signature->isAppFun(t.functor()); };
   if ( (t1.isTerm() && t1.isSort()) 
@@ -198,8 +185,6 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       auto less = [&](TermSpec const& lhs, TermSpec const& rhs) { return cmp(lhs, rhs) < 0; };
       a1.sort(less);
       a2.sort(less);
-      // a1.sort();
-      // a2.sort();
 
       Recycled<Stack<TermSpec>> diff1_;
       Recycled<Stack<TermSpec>> diff2_;

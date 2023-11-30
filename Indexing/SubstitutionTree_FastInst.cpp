@@ -491,7 +491,6 @@ main_loop_start:
       unsigned specVar=static_cast<UArrIntermediateNode*>(curr)->childVar;
       curr=static_cast<UArrIntermediateNode*>(curr)->_nodes[0];
       ASS(curr);
-      ASSERT_VALID(*curr);
       if(!_subst.matchNext(specVar, curr->term(), false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst.backtrack();
@@ -536,7 +535,6 @@ main_loop_start:
  */
 bool SubstitutionTree::FastInstancesIterator::enterNode(Node*& curr)
 {
-  ASSERT_VALID(*curr);
   ASS(!curr->isLeaf());
 
   IntermediateNode* inode=static_cast<IntermediateNode*>(curr);

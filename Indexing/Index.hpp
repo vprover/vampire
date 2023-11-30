@@ -48,15 +48,8 @@ struct LQueryRes
   Literal* literal;
   Clause* clause;
   Unifier unifier;
-
-  struct ClauseExtractFn
-  {
-    Clause* operator()(const LQueryRes& res)
-    {
-      return res.clause;
-    }
-  };
 };
+
 template<class Unifier>
 LQueryRes<Unifier> lQueryRes(Literal* l, Clause* c, Unifier unifier)
 { return LQueryRes<Unifier>(l,c,std::move(unifier)); }

@@ -58,7 +58,7 @@ SLQueryResultIterator LiteralSubstitutionTree::getAll()
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
          .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
          .flatMap([](Leaf* l) { return l->allChildren(); })
-         .map([](auto ld) { return SLQueryResult(ld->literal, ld->clause, ResultSubstitutionSP()); })
+         .map([](auto* ld) { return SLQueryResult(ld->literal, ld->clause, ResultSubstitutionSP()); })
       );
 }
 

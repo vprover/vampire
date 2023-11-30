@@ -40,8 +40,6 @@ std::ostream& operator<<(std::ostream& out, TermSpec const& self)
 { return out << self.term << "/" << self.index; }
 
 
-// TermSpec const& TermSpec::deref(RobSubstitution const* s) const&
-//  { return s->derefBound(*this); };
 
 TermList TermSpec::toTerm(RobSubstitution& s) const
 { return s.apply(this->term, this->index); }
@@ -278,41 +276,6 @@ bool RobSubstitution::occurs(VarSpec const& toFind, TermSpec const& ts)
 
    return false;
 }
-// bool RobSubstitution::occurs(VarSpec const& toFind_, TermSpec const& ts_)
-// {
-//   VarSpec toFind = root(toFind_);
-//   ASS_EQ(toFind, toFind_)
-//   TermSpec ts = derefBound(ts_);
-//   if(ts.isVar()) {
-//     return false;
-//   }
-//   typedef DHSet<VarSpec, VarSpec::Hash1, VarSpec::Hash2> EncounterStore;
-//   Recycled<EncounterStore> encountered;
-//   Recycled<Stack<TermSpec>> todo;
-//   todo->push(std::move(ts));
-//
-//   while (todo->isNonEmpty()){
-//     auto ts = todo->pop();
-//     if (ts.isVar()) {
-//       VarSpec tvar = root(ts.varSpec());
-//       if(tvar == toFind) {
-//         return true;
-//
-//       } else if(!encountered->find(tvar)) {
-//         TermSpec dtvar = derefBound(TermSpec(tvar)).clone();
-//         if(!dtvar.isVar()) {
-//           encountered->insert(tvar);
-//           todo->push(dtvar);
-//         }
-//       }
-//
-//     } else {
-//       todo->loadFromIterator(ts.allArgs());
-//     }
-//   }
-//
-//   return false;
-// }
 
 bool RobSubstitution::unify(TermSpec s, TermSpec t)
 {

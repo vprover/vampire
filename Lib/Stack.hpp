@@ -27,7 +27,6 @@
 
 #include "Allocator.hpp"
 #include "Lib/Reflection.hpp"
-// #include "Backtrackable.hpp"
 
 namespace std
 {
@@ -36,9 +35,6 @@ void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2);
 }
 
 namespace Lib {
-
-// template<typename C>
-// struct Relocator<Stack<C> >;
 
 /**
  * Class of flexible-size generic stacks.
@@ -926,17 +922,6 @@ public:
   }
 
 };
-
-// template<typename C>
-// struct Relocator<Stack<C> >
-// {
-//   static void relocate(Stack<C>* oldStack, void* newAddr)
-//   {
-//     ::new(newAddr) Stack<C>(std::move(*oldStack));
-//     oldStack->~Stack<C>();
-//   }
-// };
-
 
 } // namespace Lib
 

@@ -848,43 +848,6 @@ private:
 };
 
 
-// /**
-//  * Iterator that transforms elements of its inner iterator by
-//  * a specified functor, that returns either a value or nothing. If nothing is returned 
-//  * the iterator skips over the element
-//  *
-//  * The @b knowsSize() and @b size() functions of this iterator can be
-//  * called only if the underlying iterator contains these functions.
-//  */
-// template<typename Inner, typename Functor>
-// class FilterMappingIterator
-// {
-// public:
-//   DECL_ELEMENT_TYPE(RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))::Inner);
-//   explicit FilterMappingIterator(Inner inner, Functor func)
-//   : _func(func), _inner(inner) {}
-//   inline bool hasNext() { ASSERTION_VIOLATION };
-//   inline ELEMENT_TYPE(FilterMappingIterator) next() { ASSERTION_VIOLATION };
-//
-//   /**
-//    * Return true the size of the iterator can be obtained
-//    *
-//    * This function can be called only if the underlying iterator contains
-//    * the @b knowsSize() function.
-//    */
-//   inline bool knowsSize() const { return _inner.knowsSize(); }
-//   /**
-//    * Return the initial number of elements of this iterator
-//    *
-//    * This function can be called only if the underlying iterator contains
-//    * the @b size() function, and if the @b knowsSize() function returns true.
-//    */
-//   inline size_t size() const { return _inner.size(); }
-// private:
-//   Functor _func;
-//   Inner _inner;
-// };
-
 /**
  * Return iterator that returns elements of @b it transformed by
  * the functor @b f
@@ -896,18 +859,6 @@ MappingIterator<Inner,Functor,ResultOf<Functor, ELEMENT_TYPE(Inner)>> getMapping
 {
   return MappingIterator<Inner,Functor, ResultOf<Functor, ELEMENT_TYPE(Inner)>>(std::move(it), std::move(f));
 }
-
-// /**
-//  * Return iterator that returns elements of @b it transformed by
-//  * the lambda @b f
-//  *
-//  * @see MappingIterator
-//  */
-// template<typename Inner, typename Functor,typename ResultType>
-// MappingIterator<Inner,Functor,ResultType> getMappingIterator(Inner it, std::function<ResultType(Inner)> f)
-// {
-//   return MappingIterator<Inner,Functor,ResultType>(it, f);
-// }
 
 /**
  * Return iterator that returns elements of @b it transformed by
@@ -1797,20 +1748,6 @@ auto coproductIter(Coproduct<Is...> is)
 { return iterTraits(CoproductIter<Is...>(std::move(is))); }
 
 
-// template<class IfIter, class ElseIter>
-// static auto _ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
-// { return iterTraits(
-//          cond ? coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(ifIter()))
-//               : coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(elseIter()))); }
-//
-// template<class ElseIter>
-// static auto ifElseIter(ElseIter elseIter) 
-// { return elseIter(); }
-//
-// template<class IfIter, class... ElseIters>
-// static auto ifElseIter(bool cond, IfIter ifIter, ElseIters... elseIters) 
-// { return _ifElseIter(cond, std::move(ifIter), [&]() { return ifElseIter(std::move(elseIters)...); }); }
-
 template<class IfIterCons, class ElseIterCons>
 static auto ifElseIter(bool cond, IfIterCons ifCons, ElseIterCons elseCons) 
 { 
@@ -2161,20 +2098,6 @@ auto boxedIter(Iter iter) { return iterTraits(BoxedIter<Iter>(std::move(iter)));
 template<class Iter, class... Args> 
 auto mkBoxedIter(Args... args) { return iterTraits(BoxedIter<Iter>(std::forward<Args>(args)...)); }
 
-// template<class CreateIer>
-// class IterAsData {
-//   CreateIter _iter;
-// public:
-//   friend bool operator<(IterAsData const&l, IterAsData const&r)
-//   { 
-//     auto i1 = iterTraits(l._iter());
-//     auto i2 = iterTraits(l._iter());
-//     while (i1.hasNext() && i2.hasNext>())
-//   }
-// };
-//
-// template<class Iter>
-// auto iterAsData(Iter iter) { return IterAsData<Iter>(std::move(iter)); }
 }
 
 #endif /* __Metaiterators__ */

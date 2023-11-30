@@ -125,10 +125,7 @@
    */
   class SubstitutionTree
   {
-
   public:
-    static constexpr int QRS_QUERY_BANK = 0;
-    static constexpr int QRS_RESULT_BANK = 1;
     USE_ALLOCATOR(SubstitutionTree);
 
     SubstitutionTree();
@@ -290,10 +287,6 @@
        */
       virtual void makeEmpty() { _term.makeEmpty(); }
       static void split(Node** pnode, TermList* where, int var);
-
-#if VDEBUG
-      virtual void assertValid() const {};
-#endif
 
       void setTerm(TermList t) { 
         _term = t; 
@@ -474,13 +467,6 @@
       virtual Node** childByTop(TermList::Top t, bool canCreate);
       void remove(TermList::Top t);
 
-#if VDEBUG
-      virtual void assertValid() const
-      {
-        ASS_ALLOC_TYPE(this,"SubstitutionTree::UArrIntermediateNode");
-      }
-#endif
-
       USE_ALLOCATOR(UArrIntermediateNode);
 
       int _size;
@@ -515,12 +501,6 @@
       inline
       bool isEmpty() const { return _nodes.isEmpty(); }
       int size() const { return _nodes.size(); }
-#if VDEBUG
-      virtual void assertValid() const
-      {
-        ASS_ALLOC_TYPE(this,"SubstitutionTree::SListIntermediateNode");
-      }
-#endif
       inline
       NodeIterator allChildren()
       {

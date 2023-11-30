@@ -151,7 +151,6 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
   }
 
   TermList queryTerm=(*_specVars)[specVar];
-  ASSERT_VALID(queryTerm);
 
   return matchNextAux(queryTerm, nodeTerm, separate);
 }
@@ -385,7 +384,6 @@ main_loop_start:
       unsigned specVar=static_cast<UArrIntermediateNode*>(curr)->childVar;
       curr=static_cast<UArrIntermediateNode*>(curr)->_nodes[0];
       ASS(curr);
-      ASSERT_VALID(*curr);
       if(!_subst.matchNext(specVar, curr->term(), false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst->backtrack();

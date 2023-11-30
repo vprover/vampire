@@ -188,41 +188,6 @@ private:
   bool _enabled;
 };
 
-
-// Commented out due to circular dependency 
-// Term.hpp -> Metaiterator.hpp -> TimeTrace.hpp -> Ordering -> Term.hpp
-// can be broken by putting TimeTraceOrdering into its own file
-//
-// template<class Ord>
-// class TimeTraceOrdering : public Kernel::Ordering
-// {
-//   const char* _nameLit;
-//   const char* _nameTerm;
-//   Ord _ord;
-// public:
-//   USE_ALLOCATOR(TimeTraceOrdering);
-//
-//   TimeTraceOrdering(const char* nameLit, const char* nameTerm, Ord ord)
-//   : _nameLit(nameLit)
-//   , _nameTerm(nameTerm)
-//   , _ord(std::move(ord))
-//   { }
-//
-//   ~TimeTraceOrdering() override {  }
-//
-//   Result compare(Kernel::Literal* l1, Kernel::Literal* l2) const final override
-//   { TIME_TRACE(_nameLit); return _ord.compare(l1,l2); }
-//
-//   Result compare(Kernel::TermList l1, Kernel::TermList l2) const final override
-//   { TIME_TRACE(_nameTerm); return _ord.compare(l1,l2); }
-//
-//   void show(std::ostream& out) const final override
-//   { _ord.show(out); }
-//
-//   Ord      & inner()       { return _ord; }
-//   Ord const& inner() const { return _ord; }
-// };
-
 #endif // VTIME_PROFILING
 
 } // namespace Shell
