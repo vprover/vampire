@@ -60,7 +60,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   ClauseList* checkingClauses = getCheckingClauses();
 
-  ClauseIterator cit = pvi(getConcatenatedIterator(clauses,pvi(ClauseList::Iterator(checkingClauses))));
+  ClauseIterator cit = pvi(concatIters(clauses,ClauseList::Iterator(checkingClauses)));
 
   Problem prb(cit,false);
   Options opt; // default saturation algorithm options

@@ -306,17 +306,10 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
     tryMakeLiteralFalse(lit,subs);
   }
 
-  return pvi(getConcatenatedIterator(
-  //return pvi(
-               getMappingIterator(
-                  getPersistentIterator(Stack<Substitution>::Iterator(subs)),
-                  ResultFn(premise)
-               ),
-               getMappingIterator(
-                 AllSubstitutionsIterator(premise,this),
-                 ResultFn(premise)
-              )
-         ));
+  return pvi(concatIters(
+                 getPersistentIterator(Stack<Substitution>::Iterator(subs)),
+                 AllSubstitutionsIterator(premise,this))
+            .map(ResultFn(premise)));
 
 }
 

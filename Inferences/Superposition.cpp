@@ -149,7 +149,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
 
   // Add the results of forward and backward together
-  auto it5 = getConcatenatedIterator(itf4,itb4);
+  auto it5 = concatIters(itf4,itb4);
 
   // Remove null elements - these can come from performSuperposition
   auto it6 = getFilteredIterator(it5,NonzeroFn());

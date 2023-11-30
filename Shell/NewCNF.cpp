@@ -1020,9 +1020,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
     BindingList::Iterator bIt(bindings);
     BindingList::Iterator fbIt(foolBindings);
 
-    auto it = getConcatenatedIterator(bIt,fbIt);
-    while(it.hasNext()) {
-      Binding b = it.next();
+    for (Binding b : concatIters(bIt, fbIt)) {
       if (frees->member(b.first)) {
         toSubtract.push(b.first);      // because it's, in fact, bound
         VariableIterator vit(b.second);

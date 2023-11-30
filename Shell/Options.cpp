@@ -2491,7 +2491,7 @@ void Options::output (ostream& str) const
        str << name << " not a known option" << endl;
        Stack<vstring> sim_s = getSimilarOptionNames(name,true);
        Stack<vstring> sim_l = getSimilarOptionNames(name,false);
-       VirtualIterator<vstring> sit = pvi(getConcatenatedIterator(
+       VirtualIterator<vstring> sit = pvi(concatIters(
            Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l))); 
         if(sit.hasNext()){
           vstring first = sit.next();

@@ -74,7 +74,7 @@ TermQueryResultIterator InductionHelper::getComparisonMatch(
 
 TermQueryResultIterator InductionHelper::getLess(Term* t)
 {
-  return pvi(getConcatenatedIterator(
+  return pvi(concatIters(
     // x <= t  iff  ~ t < x
     getComparisonMatch(/*polarity=*/false, /*termIsLeft=*/true, t),
     // x < t
@@ -83,7 +83,7 @@ TermQueryResultIterator InductionHelper::getLess(Term* t)
 
 TermQueryResultIterator InductionHelper::getGreater(Term* t)
 {
-  return pvi(getConcatenatedIterator(
+  return pvi(concatIters(
     // x >= t  iff  ~ x < t
     getComparisonMatch(/*polarity=*/false, /*termIsLeft=*/false, t),
     // x > t  iff  t < x

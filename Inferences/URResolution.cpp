@@ -206,7 +206,7 @@ struct URResolution::Item
       if (!_ansLit || _ansLit->ground()) {
         single = Renaming::normalize(single);
       }
-      res = Clause::fromIterator(pvi(getConcatenatedIterator(getSingletonIterator(single), it)), inf);
+      res = Clause::fromIterator(concatIters(getSingletonIterator(single), it), inf);
     }
     else {
       res = Clause::fromIterator(it, inf);

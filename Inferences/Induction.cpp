@@ -345,7 +345,7 @@ struct InductionContextFn
         }
         InductionContext ctx(arg.first, _lit, _premise);
         ctx.insert(tqr.clause, tqr.literal);
-        res = pvi(getConcatenatedIterator(res, getSingletonIterator(ctx)));
+        res = pvi(concatIters(res, getSingletonIterator(ctx)));
       }
       return res;
     // heuristic 1
@@ -489,7 +489,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
-    auto indCtxIt = iterTraits(getConcatenatedIterator(sideLitsIt2, indCtxSingle))
+    auto indCtxIt = concatIters(sideLitsIt2, indCtxSingle)
       // filter out the ones without an induction literal
       .filter([](const InductionContext& arg) {
         for (const auto& kv : arg._cls) {

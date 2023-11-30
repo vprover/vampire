@@ -587,24 +587,6 @@ private:
 };
 
 /**
- * Return iterators @b it1 and @b it2 contatenated using object of
- * the @b CatIterator class
- *
- * @see CatIterator
- */
-template<class It1,class It2>
-inline
-CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
-{ return CatIterator<It1,It2>(std::move(it1), std::move(it2)); }
-
-template<class I1, class I2, class I3, class... Is>
-inline
-auto getConcatenatedIterator(I1 i1, I2 i2, I3 i3, Is... is)
-{ return getConcatenatedIterator(getConcatenatedIterator(std::move(i1), std::move(i2)), std::move(i3), std::move(is)...); }
-
-
-
-/**
  * Iterator that transforms elements of its inner iterator by
  * a specified functor
  *
@@ -1559,12 +1541,16 @@ struct EmptyIter
   bool knownSize() { return true; }
 };
 
+/** If Pointer references a type that can be used as an iterator, then this wrapper type makes Pointer an Iterator.
+ * This is useful for example if you want to have IterTraits methods for some `shared_pointer<I> ptr` where `I` is an iterator.
+ */
 template<class Pointer>
 class IterPointer
 {
   Pointer _p;
 public:
   IterPointer(Pointer p) : _p(std::move(p)) {}
+  DEFAULT_CONSTRUCTORS(IterPointer);
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(std::remove_reference_t<decltype(*_p)>));
   bool hasNext()       { return (*_p).hasNext(); }
   bool hasNext() const { return (*_p).hasNext(); }
@@ -1572,18 +1558,6 @@ public:
   unsigned size() { return (*_p).size(); }
   bool knownSize() { return (*_p).knownSize(); }
 };
-
-template<class P>
-IterPointer<P> iterPointer(P p) { return IterPointer<P>(std::move(p)); }
-
-
-template<class I1>
-static auto concatIters(I1 i1) 
-{ return iterTraits(std::move(i1)); }
-
-template<class I1, class I2, class... Is>
-static auto concatIters(I1 i1, I2 i2, Is... is) 
-{ return iterTraits(CatIterator<I2, decltype(concatIters(std::move(i2), std::move(is)...))>(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
 
 template<class Iter>
 class IterTraits
@@ -1833,6 +1807,20 @@ template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) 
 { return IterTraits<Iter>(std::move(i)); }
 
+template<class I1>
+static auto concatIters(I1 i1) 
+{ return iterTraits(std::move(i1)); }
+
+template<class I1, class I2, class... Is>
+static auto concatIters(I1 i1, I2 i2, Is... is) 
+{ return iterTraits(CatIterator<I1, decltype(concatIters(std::move(i2), std::move(is)...))>(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+
+// TODO optimize (?)
+/** returns an itertor that returns exatly `items` as elements */
+template<class... Items>
+auto iterItems(Items... items)
+{ return concatIters(getSingletonIterator(items)...); }
+
 static const auto range = [](auto from, auto to) 
   { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
 
@@ -1844,6 +1832,9 @@ template<class I1, class I2>
 auto iterSortedDiff(I1 i1, I2 i2) 
 { return iterSortedDiff(std::move(i1), std::move(i2), [&](auto& l, auto& r) { return l == r ? 0 : l < r ? -1 : 1;  }); }
 
+
+template<class P>
+auto iterPointer(P p) { return iterTraits(IterPointer<P>(std::move(p))); }
 
 ///@}
 
@@ -1863,35 +1854,6 @@ auto arrayIter(Array     && a, Size s) { return range(0, s).map([a = std::move(a
 template<class Array> auto arrayIter(Array const& a) { return arrayIter(          a , a.size()); }
 template<class Array> auto arrayIter(Array     && a) { return arrayIter(std::move(a), a.size()); }
 template<class Array> auto arrayIter(Array      & a) { return arrayIter(          a , a.size()); }
-
-template<class Iter> 
-class BoxedIter {
-  Iter* _inner;
-  // unique_ptr<Iter> _inner;
-public: 
-  BoxedIter(Iter iter) : _inner([&]() { return new Iter(std::move(iter)); }()) {}
-  template<class... Args> BoxedIter(Args... args) : _inner(new Iter(std::forward<Args>(args)...)) {}
-  // template<class... Args> BoxedIter(Args... args) : _inner([&]() { return make_unique<Iter>(std::forward<Args>(args)...); }()) {}
-  ~BoxedIter() { if (_inner != nullptr) { delete _inner; _inner = nullptr; } }
-  // BoxedIter(BoxedIter&&) = default;
-  // BoxedIter& operator=(BoxedIter&&) = default;
-  BoxedIter(BoxedIter&& o) : _inner(o._inner) 
-  { o._inner = nullptr; }
-  BoxedIter& operator=(BoxedIter&& o) 
-  {
-    _inner = o._inner;
-    o._innner = nullptr;
-    return *this;
-  }
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
-  bool hasNext() const { return _inner->hasNext(); }
-  ELEMENT_TYPE(Iter) next() { return _inner->next(); }
-};
-
-template<class Iter> 
-auto boxedIter(Iter iter) { return iterTraits(BoxedIter<Iter>(std::move(iter))); }
-template<class Iter, class... Args> 
-auto mkBoxedIter(Args... args) { return iterTraits(BoxedIter<Iter>(std::forward<Args>(args)...)); }
 
 }
 

@@ -308,7 +308,7 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
 
   // Concatenate results from forward extensionality and (above constructed)
   // backward extensionality.
-  auto it5 = getConcatenatedIterator(it4,backwardIterator);
+  auto it5 = concatIters(it4,backwardIterator);
 
   return pvi(it5);
 }

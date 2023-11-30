@@ -644,10 +644,10 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
 
 
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar) {
-  auto skolemized = skolemize(iterTraits(getConcatenatedIterator(
-          theoryLiterals.iterFifo(),
-          guards.iterFifo()
-        )));
+  auto skolemized = skolemize(concatIters(
+        theoryLiterals.iterFifo(),
+        guards.iterFifo()
+        ));
   DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
