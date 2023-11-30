@@ -560,32 +560,9 @@
       TermList term;
       /** Create new binding */
       Binding(int v,TermList t) : var(v), term(t) {}
-
-      struct Comparator
-      {
-        inline
-        static Comparison compare(Binding& b1, Binding& b2)
-        {
-          return Int::compare(b2.var, b1.var);
-        }
-      };
     }; // class SubstitutionTree::Binding
 
-    struct SpecVarComparator
-    {
-      inline
-      static Comparison compare(unsigned v1, unsigned v2)
-      { return Int::compare(v2, v1); }
-      inline
-      static unsigned max()
-      { return 0u; }
-    };
-
     typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
-    //Using BinaryHeap as a BindingQueue leads to about 30% faster insertion,
-    //that when SkipList is used.
-    typedef BinaryHeap<Binding,Binding::Comparator> BindingQueue;
-    typedef BinaryHeap<unsigned,SpecVarComparator> SpecVarQueue;
     typedef Stack<unsigned> VarStack;
 
     void getBindingsArgBindings(Term* t, BindingMap& binding);

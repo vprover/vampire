@@ -29,7 +29,6 @@ class LiteralSubstitutionTree
 : public LiteralIndexingStructure
 {
   using FastInstancesIterator = SubstitutionTree::FastInstancesIterator;
-  using BindingMap = SubstitutionTree::BindingMap;
   using LDIterator = SubstitutionTree::LDIterator;
   using FastGeneralizationsIterator = SubstitutionTree::FastGeneralizationsIterator;
   using LeafData = SubstitutionTree::LeafData;
