@@ -229,40 +229,6 @@ SingletonIterator<T> getSingletonIterator(T el)
   return SingletonIterator<T>(el);
 }
 
-/**
- * Iterator that can casts objects of its inner iterator to the target type
- * @b To with the static_cast operator
- *
- * @tparam To target type of the iterator
- * @tparam Inner type of the inner iterator
- */
-template<typename To, class Inner>
-class StaticCastIterator
-{
-public:
-  DECL_ELEMENT_TYPE(To);
-  DEFAULT_CONSTRUCTORS(StaticCastIterator)
-  explicit StaticCastIterator(Inner inn) :_inn(std::move(inn)) {}
-  inline bool hasNext() { return _inn.hasNext(); };
-  inline To next() { return static_cast<To>(_inn.next()); };
-private:
-  Inner _inn;
-};
-
-/**
- * Return an iterator that can casts objects of the iterator @b it to the target type
- * @b To
- *
- * @see StaticCastIterator
- */
-template<typename To, class Inner>
-inline
-StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
-{
-  return StaticCastIterator<To,Inner>(it);
-}
-
-
 template <typename T>
 struct identity
 {

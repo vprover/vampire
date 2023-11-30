@@ -129,7 +129,7 @@ ClauseIterator Problem::clauseIterator() const
   //no formulas. otherwise we call hasFormulas() which may cause rescanning
   //the problem property
   ASS(!mayHaveFormulas() || !hasFormulas());
-  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units())) );
+  return pvi( iterTraits(UnitList::Iterator(units())).map([](Unit* u) { return (Clause*)u; }) );
 }
 
 /**
