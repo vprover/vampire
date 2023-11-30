@@ -197,29 +197,6 @@ private:
 };
 
 /**
- * Iterator class for pointers
- *
- * The constructor takes two arguments - a pointer to the first element,
- * and a pointer to the element after the last element to be returned.
- *
- * Consecutive elements are being obtained by the postfix @b operator++().
- */
-template<typename T>
-class PointerIterator
-{
-public:
-  DECL_ELEMENT_TYPE(T);
-  DEFAULT_CONSTRUCTORS(PointerIterator)
-  inline PointerIterator(const T* first, const T* afterLast) :
-    _curr(first), _afterLast(afterLast) {}
-  inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
-  inline T next() { ASS(hasNext()); return *(_curr++); }
-private:
-  const T* _curr;
-  const T* _afterLast;
-};
-
-/**
  * Iterator returning a single element
  *
  * The single element is being passed to the constructor of the iterator.

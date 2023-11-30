@@ -2375,7 +2375,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
 
       // test 2a -- generator constraints
       {
-        Constraint_Generator_Heap::Iterator it(_constraints_generators);
+        auto it = _constraints_generators.iter();
         while (it.hasNext()) {
           if (checkConstriant(newSortSizes,it.next()->_vals)) {
             goto next_candidate;

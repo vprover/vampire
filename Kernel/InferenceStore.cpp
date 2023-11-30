@@ -575,7 +575,7 @@ protected:
     if (splits->size()==1) {
       return Saturation::Splitter::getFormulaStringFromName(splits->sval(),true /*negated*/);
     }
-    SplitSet::Iterator sit(*splits);
+    auto sit = splits->iter();
     vstring res("(");
     while(sit.hasNext()) {
       res+= Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/);

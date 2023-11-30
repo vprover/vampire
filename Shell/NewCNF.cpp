@@ -200,7 +200,7 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&elseBranch)));
 
       VList* vars = VList::singleton(variable);
-      VList::pushFromIterator(VarSet::Iterator(*fv), vars);
+      VList::pushFromIterator(fv->iter(), vars);
 
       /* TODO: createNamingLiteral needs a formula to mark the colors correctly.
        * I'm not sure if it is the condition that should go here, but let's have that for now.
@@ -961,7 +961,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   ASS(domainSorts.isEmpty());
   ASS(fnArgs.isEmpty());
 
-  VarSet::Iterator vit(*free);
+  auto vit = free->iter();
   while(vit.hasNext()) {
     unsigned uvar = vit.next();
     domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
@@ -1228,7 +1228,8 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
   LOG2("occurrences", occurrences.size());
 
   VList* fv = VList::empty();
-  VList::pushFromIterator(VarSet::Iterator(*freeVars(g)), fv);
+  auto vars = freeVars(g);
+  VList::pushFromIterator(vars->iter(), fv);
 
   Literal* naming = createNamingLiteral(g, fv);
   Formula* name = new AtomicFormula(naming);
