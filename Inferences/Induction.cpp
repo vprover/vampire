@@ -1382,14 +1382,17 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   Literal* L = Literal::complementaryLiteral(context._cls.begin()->second[0]);
   
   VList* free_vars = L->freeVariables();
+
+  if (free_vars->length(free_vars) > 1) // ToDo: Do we need this?
+    return;
+
   ASS(free_vars);
   int synth_var = free_vars->head();
   TermList freshSynthVar(var++,false);
   Substitution s;
   s.bind(synth_var, freshSynthVar);
-  std::cout << "Applying " << s << " on " << L->toString() << std::endl;
   L = SubstHelper::apply(L, s);
-  std::cout << "Resulted " << L->toString() << std::endl;
+
 
   TermStack recFuncArgs(ta->nConstructors() + 1);
 
@@ -1459,12 +1462,13 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec");
   SynthesisManager::getInstance()->storeRecTerm(rec_fn);
 
-  TermStack sortArgs(ta->nConstructors() + 1);
-  for (unsigned i = 0; i < ta->nConstructors()+1; i++){
-    sortArgs.push(sort);
-  }
-
   auto synth_sort = SortHelper::getVariableSort(freshSynthVar, L);
+  TermStack sortArgs(ta->nConstructors() + 1);
+  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+    sortArgs.push(synth_sort);
+  }
+  sortArgs.push(sort);
+
   env.signature->getFunction(rec_fn)->setType(OperatorType::getFunctionType(sortArgs.size(), sortArgs.begin(), synth_sort));
   TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
 
@@ -1474,9 +1478,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   s.reset();
 
   s.bind(freshSynthVar.var(), rec);
-  std::cout << "Applying " << s << " on " << curLit->toString() << std::endl;
   Formula* conclusion = new AtomicFormula(SubstHelper::apply(curLit, s));
-  std::cout << "Applied!" << std::endl;
   formula = new BinaryFormula(Connective::IMP, formula, conclusion);
   formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::FORALL, us, SList::empty(), formula); 
@@ -1493,13 +1495,9 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   SynthesisManager::getInstance()->matchSkolemSymbols(bindingList, tempSkolemMappings);
   
-  std::cout << "Clauses obtained from structural induction axiom: " << std::endl;
   for (auto cl: cls) {
-    std::cout << cl->toString() << std::endl;
     _clauses.push(cl);
   }
-  std::cout << "------" << std::endl;
-
 }
 
 
