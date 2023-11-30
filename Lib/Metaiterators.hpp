@@ -229,12 +229,6 @@ SingletonIterator<T> getSingletonIterator(T el)
   return SingletonIterator<T>(el);
 }
 
-// template <typename T>
-// struct identity
-// {
-//   typedef T type;
-// };
-
 /**
  * A functor class that returns true if the argument is non-zero
  *
@@ -248,38 +242,6 @@ struct NonzeroFn
     return obj!=0;
   }
 };
-
-/**
- * A functor class that returns true if the argument is not equal
- * to a specified object
- *
- * The forbidded object is specified by the argument of the
- * object constructor.
- *
- * The nonequality is tested by the @b operator!=() .
- */
-template<typename T>
-struct NonequalFn
-{
-  NonequalFn(T forbidden) : _forbidden(forbidden) {}
-  bool operator()(T obj)
-  {
-    return obj!=_forbidden;
-  }
-  T _forbidden;
-};
-
-/**
- * Return a functor object that checks for non-equality to the
- * @b forbidden object
- *
- * @see NonequalFn
- */
-template<typename T>
-NonequalFn<T> getNonequalFn(T forbidden)
-{
-  return NonequalFn<T>(forbidden);
-}
 
 /**
  * Iterator class that returns elements of the inner iterator

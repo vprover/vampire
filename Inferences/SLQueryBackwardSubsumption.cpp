@@ -102,7 +102,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),
-		    getNonequalFn(cl)));
+		    [=](auto c) { return c != cl; }));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();
     simplifications=pvi( getMappingIterator(
@@ -116,7 +116,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),
-		    getNonequalFn(cl)));
+		    [=](auto c) { return c != cl; }));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();
     simplifications=pvi( getMappingIterator(
