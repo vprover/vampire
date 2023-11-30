@@ -251,15 +251,22 @@ struct NonzeroFn
  * @tparam Functor type of the functor used for filtering the
  *   elements returned by the inner iterator
  */
-template<class Inner, class Functor>
+template<class Inner, class Functor, bool deleteFilteredOut = false>
 class FilteredIterator
 {
+  template<bool cond> struct __doDeletion
+  { template<class Iter> void operator()(Iter& iter) { } };
+
+  template<> struct __doDeletion<true>
+  { template<class Iter> void operator()(Iter& iter) { iter.del(); } };
+
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
   DEFAULT_CONSTRUCTORS(FilteredIterator)
 
   FilteredIterator(Inner inn, Functor func)
   : _func(std::move(func)), _inn(std::move(inn)), _next() {}
+
 
   bool hasNext()
   {
@@ -271,6 +278,8 @@ public:
       if(_func(next)) {
         _next = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(next));
         return true;
+      } else {
+        __doDeletion<deleteFilteredOut>{}(_inn);
       }
     }
     return false;
@@ -421,7 +430,7 @@ public:
     while(_inn.hasNext()) {
       _next = _func(move_if_value<ELEMENT_TYPE(Inner)>(_inn.next()));
       if(_next.isSome()) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -442,47 +451,6 @@ private:
   Option<OWN_ELEMENT_TYPE> _next;
 };
 
-template<class Inner, class Functor>
-class FilteredDelIterator
-{
-public:
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
-  DEFAULT_CONSTRUCTORS(FilteredDelIterator)
-
-  FilteredDelIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _nextStored(false) {}
-  bool hasNext()
-  {
-    if(_nextStored) {
-      return true;
-    }
-    while(_inn.hasNext()) {
-      _next=_inn.next();
-      if(_func(_next)) {
-	_nextStored=true;
-	return true;
-      } else {
-        _inn.del();
-      }
-    }
-    return false;
-  };
-  OWN_ELEMENT_TYPE next()
-  {
-    if(!_nextStored) {
-      ALWAYS(hasNext());
-      ASS(_nextStored);
-    }
-    _nextStored=false;
-    return _next;
-  };
-private:
-  Functor _func;
-  Inner _inn;
-  OWN_ELEMENT_TYPE _next;
-  bool _nextStored;
-};
-
 /**
  * Return an iterator object that returns elements of the @b inn iterator
  * for which the functor @b func returns true
@@ -498,10 +466,8 @@ FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
 
 template<class Inner, class Functor>
 inline
-FilteredDelIterator<Inner,Functor> getFilteredDelIterator(Inner inn, Functor func)
-{
-  return FilteredDelIterator<Inner,Functor>(inn, func);
-}
+auto getFilteredDelIterator(Inner inn, Functor func)
+{ return FilteredIterator<Inner, Functor, /*deleteFilteredOut=*/true>(inn, func); }
 
 
 /**
