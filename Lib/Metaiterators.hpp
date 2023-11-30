@@ -230,28 +230,6 @@ SingletonIterator<T> getSingletonIterator(T el)
 }
 
 /**
- * sequence of functions for creating tuple iterators
- */
-template<typename T>
-VirtualIterator<T> ti(T el)
-{
-  return pvi( getSingletonIterator(el) );
-}
-
-template<typename T>
-VirtualIterator<T> ti(T el1, T el2)
-{
-  return pvi( getConcatenatedIterator(getSingletonIterator(el1),getSingletonIterator(el2)) );
-}
-
-template<typename T>
-VirtualIterator<T> ti(T el1, T el2, T el3)
-{
-  return pvi( getConcatenatedIterator(getSingletonIterator(el1),
-      getConcatenatedIterator(getSingletonIterator(el2),getSingletonIterator(el3))) );
-}
-
-/**
  * Iterator that can casts objects of its inner iterator to the target type
  * @b To with the static_cast operator
  *
