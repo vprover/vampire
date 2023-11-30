@@ -310,7 +310,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
     return singletonProduct(PolyNf(perfect(FuncTerm(
         fn, 
         Stack<PolyNf>::fromIterator(
-            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
+            iterTraits(arrayIter(ts, fn.numTermArguments()))
             .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
       )
     )));
@@ -342,7 +342,7 @@ PolyNf normalizeTerm(TypedTermList t)
               return NormalizationResult(PolyNf(perfect(FuncTerm(
                   fn, 
                   Stack<PolyNf>::fromIterator(
-                      iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
+                      iterTraits(arrayIter(ts, fn.numTermArguments()))
                       .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
                 )
               )));

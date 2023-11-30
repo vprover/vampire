@@ -167,9 +167,7 @@ struct BackwardDemodulation::ResultFn
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
           Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
           bool isMax=true;
-          Clause::Iterator cit(*qr.clause);
-          while(cit.hasNext()) {
-            Literal* lit2=cit.next();
+          for (Literal* lit2 : qr.clause->iterLits()) {
             if(qr.literal==lit2) {
               continue;
             }

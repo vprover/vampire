@@ -297,7 +297,7 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
     }
   }
   else {
-    selectable.loadFromIterator(ArrayishObjectIterator<Clause>(*c, eligible));
+    selectable.loadFromIterator(arrayIter(*c, eligible));
     removeVariants(selectable);
   }
 

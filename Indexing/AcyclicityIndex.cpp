@@ -379,7 +379,7 @@ namespace Indexing
 
   void AcyclicityIndex::handleClause(Clause* c, bool adding)
   {
-    ArrayishObjectIterator<Clause> it = c->getSelectedLiteralIterator();
+    auto it = c->getSelectedLiteralIterator();
     while (it.hasNext()) {
       if (adding) {
         insert(it.next(), c);

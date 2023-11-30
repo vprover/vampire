@@ -299,7 +299,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
   cout << "selecting trivial literals in " << cl->toString() << endl ;
 #endif
   /* find trivial candidates of the form x != t (x not occurring in t) */
-  Clause::Iterator it(*cl);
+  auto it = cl->iterLits();
   /* invariants:
        triv_candidates \cup nontriv_pure \cup impure = cl
        triv_candidates \cap nontriv_pure = 0
@@ -407,9 +407,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
   Stack<Literal*> trivial_lits = selectTrivialLiterals(cl);
   Stack<Literal*> out;
 
-  Clause::Iterator cl_it(*cl);
-  while (cl_it.hasNext()) {
-    auto lit = cl_it.next();
+  for (auto lit : cl->iterLits()) {
     // TODO this is O(n^2) runtime
     if (isPure(lit) && !trivial_lits.find(lit))
       out.push(lit);

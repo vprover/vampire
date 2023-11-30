@@ -279,9 +279,9 @@ void Problem::PreprocessingOptions::restrictPredicateEquivalenceDiscovery(size_t
 {
   _predicateEquivalenceDiscoveryRestricted = true;
   _ods.pedSet1->reset();
-  _ods.pedSet1->loadFromIterator(getMappingIterator(getArrayishObjectIterator(set1, set1Sz),Atom2LitFn()));
+  _ods.pedSet1->loadFromIterator(arrayIter(set1, set1Sz).map(Atom2LitFn()));
   _ods.pedSet2->reset();
-  _ods.pedSet2->loadFromIterator(getMappingIterator(getArrayishObjectIterator(set2, set2Sz),Atom2LitFn()));
+  _ods.pedSet2->loadFromIterator(arrayIter(set2, set2Sz).map(Atom2LitFn()));
 }
 
 void Problem::PreprocessingOptions::validate() const

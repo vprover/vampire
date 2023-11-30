@@ -745,7 +745,7 @@ void SaturationAlgorithm::init()
     Stack<Clause*> aux;
     aux.loadFromIterator(_prb.clauseIterator());
     Shuffling::shuffleArray(aux,aux.size());
-    toAdd = pvi(ownedArrayishIterator(std::move(aux)));
+    toAdd = pvi(arrayIter(std::move(aux)));
   } else {
     toAdd = _prb.clauseIterator();
   }

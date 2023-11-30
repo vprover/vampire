@@ -53,12 +53,10 @@ MainLoopResult Z3MainLoop::runImpl()
      continue;
    }
 
-   Clause::Iterator lit(*cl);
    unsigned len = cl->size();
    SATClause* sc = new(len) SATClause(len);
    unsigned i=0;
-   while(lit.hasNext()){
-     Literal* l = lit.next();
+   for (auto l : cl->iterLits()) {
      SATLiteral sl = s2f.toSAT(l);
      (*sc)[i++] = sl;
    }

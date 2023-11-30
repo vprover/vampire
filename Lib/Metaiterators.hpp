@@ -53,99 +53,6 @@ ITERATOR_TYPE(C) getContentIterator(C& c)
   return ITERATOR_TYPE(C)(c);
 }
 
-template<class A> struct const_ref { using type = A const&; };
-template<class A> struct mut_ref   { using type = A &; };
-template<class A> struct no_ref    { using type = A; };
-template<class A> using  const_ref_t = typename const_ref<A>::type; 
-template<class A> using  mut_ref_t   = typename mut_ref<A>::type; 
-template<class A> using  no_ref_t    = typename no_ref<A>::type; 
-
-template<class Arr, template<class> class ref_t>
-struct ArrayishContent { using type = ref_t<Arr>; };
-template<class Arr> struct ArrayishContent<Arr, no_ref_t> { using type = Arr const&; };
-template<class A, template<class> class ref_t> using  ArrayishContentType = typename ArrayishContent<A,ref_t>::type;
-
-/** Iterator class for types whose elements are accessible by
- * @b operator[](size_t) with the first element at the index 0
- * and the others at consecutive indexes
- *
- * If the iterated object has a @b size() function, the single
- * argument constructor can be used. Otherwise the two parameter
- * constructor must be used, the second parameter being the size
- * of the container (so that the elements are at indexes 0, ...,
- * size-1) const.
- */
-template<class Arr, template<class> class ref_t = no_ref_t>
-class ArrayishObjectIterator
-{
-public:
-  using Cont = ArrayishContentType<Arr, ref_t>;
-  DECL_ELEMENT_TYPE(ref_t<ELEMENT_TYPE(Arr)>);
-  DEFAULT_CONSTRUCTORS(ArrayishObjectIterator)
-  ArrayishObjectIterator(Cont arr) : _arr(arr),
-  _index(0), _size(_arr.size()) {}
-  ArrayishObjectIterator(Cont arr, size_t size) : _arr(arr),
-  _index(0), _size(size) {}
-  inline bool hasNext() { return _index<_size; }
-  inline OWN_ELEMENT_TYPE next() 
-  { ASS(_index<_size); 
-    return move_if_value<OWN_ELEMENT_TYPE>(_arr[_index++]); }
-  inline bool knowsSize() { return true;}
-  inline bool size() { return _size;}
-private:
-  Cont _arr;
-  size_t _index;
-  size_t _size;
-};
-
-template<template<class> class ref_t = no_ref_t, class Arr>
-ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr const& arr, size_t size)
-{
-  return ArrayishObjectIterator<Arr, ref_t>(arr, size);
-}
-
-template<template<class> class ref_t = no_ref_t, class Arr>
-ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr const& arr)
-{ return ArrayishObjectIterator<Arr, ref_t>(arr); }
-
-
-template<template<class> class ref_t = no_ref_t, class Arr>
-ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr& arr)
-{ return ArrayishObjectIterator<Arr, ref_t>(arr); }
-
-template<template<class> class ref_t = no_ref_t, class Arr>
-ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr& arr, size_t size)
-{ return ArrayishObjectIterator<Arr, ref_t>(arr, size); }
-
-template<class Arr>
-class OwnedArrayishIterator
-{
-public:
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Arr));
-  DEFAULT_CONSTRUCTORS(OwnedArrayishIterator)
-  OwnedArrayishIterator(Arr&& arr) : _arr(std::move(arr)),
-  _index(0), _size(_arr.size()) {}
-  OwnedArrayishIterator(Arr&& arr, size_t size) : _arr(std::move(arr)),
-  _index(0), _size(size) {}
-  inline bool hasNext() { return _index<_size; }
-  inline ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
-  inline bool knowsSize() { return true;}
-  inline bool size() { return _size;}
-private:
-  Arr _arr;
-  size_t _index;
-  size_t _size;
-};
-
-template<class Arr>
-OwnedArrayishIterator<Arr> ownedArrayishIterator(Arr&& arr, size_t size)
-{ return OwnedArrayishIterator<Arr>(std::move(arr), size); }
-
-template<class Arr>
-OwnedArrayishIterator<Arr> ownedArrayishIterator(Arr&& arr)
-{ return OwnedArrayishIterator<Arr>(std::move(arr)); }
-
-
 /**
  * Reads given number of values from an input stream.
  *
@@ -1661,7 +1568,7 @@ public:
   auto persistent()
   { 
     auto stack = collect<Stack>();
-    return iterTraits(ownedArrayishIterator(std::move(stack)));
+    return iterTraits(arrayIter(std::move(stack)));
   }
 
   /** 

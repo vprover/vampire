@@ -102,9 +102,7 @@ void Instantiation::registerClause(Clause* cl)
 
   //cout << "register " << cl->toString() << endl;
 
-  Clause::Iterator cit(*cl);
-  while(cit.hasNext()){
-    Literal* lit = cit.next();
+  for (Literal* lit : cl->iterLits()) {
     SubtermIterator it(lit);
     while(it.hasNext()){
       TermList t = it.next();

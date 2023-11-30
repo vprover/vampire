@@ -75,7 +75,7 @@ struct EqualityFactoring::FactorablePairsFn
   FactorablePairsFn(Clause* cl) : _cl(cl) {}
   VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > > operator() (pair<Literal*,TermList> arg)
   {
-    auto it1 = getContentIterator(*_cl);
+    auto it1 = _cl->iterLits();
 
     auto it2 = getFilteredIterator(it1,IsDifferentPositiveEqualityFn(arg.first));
 

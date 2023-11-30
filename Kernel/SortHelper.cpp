@@ -670,9 +670,7 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
   }
 
   Clause* cl = static_cast<Clause*>(u);
-  Clause::Iterator cit(*cl);
-  while (cit.hasNext()) {
-    Literal* l = cit.next();
+  for (Literal* l : cl->iterLits()) {
 
     CollectTask task(COLLECT_TERM);
     task.t = l;

@@ -268,7 +268,7 @@ vstring DefaultHelperCore::toString(const Kernel::Formula* f0) const
 vstring DefaultHelperCore::toString(const Kernel::Clause* clause) const
 {
   vstring res;
-  Kernel::Clause::Iterator lits(*const_cast<Kernel::Clause*>(clause));
+  auto lits = clause->iterLits();
   if(lits.hasNext()) {
     while(lits.hasNext()) {
       res+=toString(lits.next());

@@ -100,7 +100,7 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
   unsigned clen = c->length();
   static LiteralStack resStack;
   resStack.reset();
-  resStack.loadFromIterator(Clause::Iterator(*c));
+  resStack.loadFromIterator(c->iterLits());
 
   ASS_EQ(resStack.size(), clen);
 

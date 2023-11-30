@@ -139,11 +139,9 @@ struct ExtensionalityResolution::BackwardPairingFn
   BackwardPairingFn (TermList sort) : _sort(sort) {}
   VirtualIterator<pair<Clause*, Literal*> > operator()(Clause* cl)
   {
-    return pvi(pushPairIntoRightIterator(
-        cl,
-        getFilteredIterator(
-          cl->getSelectedLiteralIterator(),
-          NegEqSortFn(_sort))));
+    return pvi(cl->getSelectedLiteralIterator()
+      .filter(NegEqSortFn(_sort))
+      .map([=](auto lit) { return make_pair(cl, lit); }));
   }
 private:
   TermList _sort;

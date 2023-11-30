@@ -1226,7 +1226,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     }
 
     vstring formula_name = getFormulaStringFromName(posName);
-    Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size),
+    Clause* temp = Clause::fromIterator(arrayIter(possibly_flipped_lits, size),
         NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,
                  new NamedFormula(formula_name),
@@ -1243,7 +1243,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     ALWAYS(_defs.insert(posName,def_u));
   }
 
-  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size),
+  Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
           NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
 
   // propagate running sums:
@@ -1291,7 +1291,7 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
 {
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  ASS(forAll(getArrayishObjectIterator(lits, size), 
+  ASS(forAll(arrayIter(lits, size), 
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);

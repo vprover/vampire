@@ -116,7 +116,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     }
 
     Clause* cl = static_cast<Clause*>(u);
-    Clause::Iterator cit(*cl);
+    auto cit = cl->iterLits();
     if(!cit.hasNext()) {
       res << "$false";
     }

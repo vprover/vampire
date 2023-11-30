@@ -23,7 +23,6 @@ struct EmptyStruct {};
 typedef void (*VoidFunc)();
 
 template<typename T> class VirtualIterator;
-template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 
 template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;

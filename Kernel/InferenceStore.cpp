@@ -801,11 +801,9 @@ protected:
 
     vstring compStr;
     List<unsigned>* compOnlyVars=0;
-    Clause::Iterator lits(*us->asClause());
     bool first=true;
     bool multiple=false;
-    while(lits.hasNext()) {
-      Literal* lit=lits.next();
+    for (Literal* lit : us->asClause()->iterLits()) {
       if (lit==nameLit) {
 	      continue;
       }

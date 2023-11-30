@@ -61,13 +61,10 @@ Literal* SAT2FO::toFO(SATLiteral sl) const
  */
 SATClause* SAT2FO::toSAT(Clause* cl)
 {
-  Clause::Iterator cit(*cl);
-
   static SATLiteralStack satLits;
   satLits.reset();
 
-  while (cit.hasNext()) {
-    Literal* lit = cit.next();
+  for (auto lit : cl->iterLits()) {
     //check if it is already in the map and/or add it
     SATLiteral slit = toSAT(lit);
     satLits.push(slit);

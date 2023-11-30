@@ -249,7 +249,7 @@ SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
   DHSet<SymId>::Iterator iter(itms);
   ids.loadFromIterator(iter);
   std::sort(ids.begin(), ids.end()); // <- make order deterministic
-  return pvi(ownedArrayishIterator(std::move(ids)));
+  return pvi(arrayIter(std::move(ids)));
 }
 
 void SineBase::initGeneralityFunction(UnitList* units)
