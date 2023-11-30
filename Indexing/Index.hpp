@@ -112,7 +112,6 @@ using TermQueryResult = TQueryRes<ResultSubstitutionSP>;
 using SLQueryResult   = LQueryRes<ResultSubstitutionSP>;
 
 using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
-using SLQueryResultIterator = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 

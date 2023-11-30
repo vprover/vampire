@@ -52,7 +52,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    SLQueryResultIterator git=_index->getGeneralizations(lit, lit->isNegative(), true);
+    auto git = _index->getGeneralizations(lit, lit->isNegative(), true);
     while(git.hasNext()) {
       SLQueryResult qr=git.next();
       Clause* counterpart=_index->getCounterpart(qr.clause);

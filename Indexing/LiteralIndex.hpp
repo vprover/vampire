@@ -32,18 +32,18 @@ public:
 
   virtual ~LiteralIndex();
 
-  SLQueryResultIterator getAll();
+  VirtualIterator<SLQueryResult> getAll();
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  VirtualIterator<SLQueryResult> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
   VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
 
-  SLQueryResultIterator getGeneralizations(Literal* lit,
+  VirtualIterator<SLQueryResult> getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 
-  SLQueryResultIterator getInstances(Literal* lit,
+  VirtualIterator<SLQueryResult> getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
 
   size_t getUnificationCount(Literal* lit, bool complementary);
