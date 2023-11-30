@@ -130,8 +130,8 @@ Option<MismatchHandler::AbstractionResult> funcExt(
     TermSpec const& t1, TermSpec const& t2)
 {
   ASS(t1.isTerm() || t2.isTerm())
-  ASS(!t1.isSpecialVar())
-  ASS(!t2.isSpecialVar())
+  ASS(!t1.term.isSpecialVar())
+  ASS(!t2.term.isSpecialVar())
 
   auto isApp = [](auto& t) { return env.signature->isAppFun(t.functor()); };
   if ( (t1.isTerm() && t1.isSort()) 

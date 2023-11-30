@@ -44,16 +44,6 @@ std::ostream& operator<<(std::ostream& out, TermSpec const& self)
 TermList TermSpec::toTerm(RobSubstitution& s) const
 { return s.apply(this->term, this->index); }
 
-bool TermSpec::sortIsBoolOrVar() const
-{ 
-  if (!isTerm()) return false;
-  auto fun = env.signature->getFunction(functor());
-  auto op = fun->fnType();
-  TermList res = op->result();
-  return res.isVar() || res == AtomicSort::boolSort();
-}
-
-
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */

@@ -110,16 +110,23 @@ struct TermSpec {
   auto termArgs() const { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
   auto allArgs()  const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
 
+
+  TermList::Top top() const { return this->term.top(); }
+  unsigned functor() const { return term.term()->functor(); }
+
   TermList toTerm(Kernel::RobSubstitution& s) const;
 
   bool isSort() const
   { return this->term.term()->isSort(); }
 
-  bool sortIsBoolOrVar() const;
-
-  TermList::Top top() const { return this->term.top(); }
-
-  unsigned functor() const { return term.term()->functor(); }
+  bool sortIsBoolOrVar() const
+  { 
+    if (!isTerm()) return false;
+    auto fun = env.signature->getFunction(functor());
+    auto op = fun->fnType();
+    TermList res = op->result();
+    return res.isVar() || res == AtomicSort::boolSort();
+  }
 
   bool isNumeral() const { return theory->isInterpretedNumber(this->term); }
 
@@ -134,13 +141,10 @@ struct TermSpec {
     return this->term.weight();
   }
 
-  bool isSpecialVar() const { return this->term.isSpecialVar(); }
-
   template<class Deref>
   static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
     Recycled<Stack<std::pair<TermSpec, TermSpec>>> todo;
     todo->push(std::make_pair(lhs,rhs));
-    // DBG("compare: ", lhs, " <> ", rhs)
     while (todo->isNonEmpty()) {
       auto lhs_ = std::move(todo->top().first);
       auto rhs_ =           todo->pop().second;
@@ -186,49 +190,13 @@ struct AutoDerefTermSpecContext
   RobSubstitution const* subs;
 };
 
-template<class Result, unsigned SIZE>
-class OnlyMemorizeBigAtomic {
-  Map<TermSpec, Result> _memo;
-public:
-  OnlyMemorizeBigAtomic(OnlyMemorizeBigAtomic &&) = default;
-  OnlyMemorizeBigAtomic& operator=(OnlyMemorizeBigAtomic &&) = default;
-  OnlyMemorizeBigAtomic() : _memo() {}
-
-  auto memoKey(AutoDerefTermSpec const& arg) -> Option<TermSpec>
-  { 
-    if (arg.term.term.isTerm()) {
-      auto term = arg.term.term.term();
-      return !term->shared() || term->weight() > SIZE ? Option<TermSpec>(arg.term) : Option<TermSpec>{};
-    } else {
-      return {};
-    }
-  }
-
-  Option<Result> get(AutoDerefTermSpec const& arg)
-  { 
-    auto key = memoKey(arg);
-    return key.isSome()
-       ? _memo.tryGet(*key).toOwned()
-       : Option<Result>(); 
-  }
-
-  template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
-  { 
-    auto key = memoKey(orig);
-    return key.isSome() ? _memo.getOrInit(*key, init)
-                        : init(); 
-  }
-  void reset() { _memo.reset(); }
-};
-
-
 template<class Result>
-class OnlyMemorizeAtomicNonVar {
+class OnlyMemorizeNonVar {
   Map<TermSpec, Result> _memo;
 public:
-  OnlyMemorizeAtomicNonVar(OnlyMemorizeAtomicNonVar &&) = default;
-  OnlyMemorizeAtomicNonVar& operator=(OnlyMemorizeAtomicNonVar &&) = default;
-  OnlyMemorizeAtomicNonVar() : _memo() {}
+  OnlyMemorizeNonVar(OnlyMemorizeNonVar &&) = default;
+  OnlyMemorizeNonVar& operator=(OnlyMemorizeNonVar &&) = default;
+  OnlyMemorizeNonVar() : _memo() {}
 
   auto memoKey(AutoDerefTermSpec const& arg) -> Option<TermSpec>
   { 
@@ -301,9 +269,7 @@ class RobSubstitution
   mutable bool _startedBindingOutputVars;
   mutable unsigned _nextUnboundAvailable;
   mutable unsigned _nextGlueAvailable;
-  mutable OnlyMemorizeAtomicNonVar<TermList> _applyMemo;
-  // mutable OnlyMemorizeAtomic<TermList> _applyMemo;
-  // mutable OnlyMemorizeBigAtomic<TermList, 4> _applyMemo;
+  mutable OnlyMemorizeNonVar<TermList> _applyMemo;
 
 public:
   USE_ALLOCATOR(RobSubstitution);
@@ -436,8 +402,8 @@ private:
 
 };
 
-
 inline AutoDerefTermSpec::AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s) : term(s->derefBound(t)) {}
+
 };
 
 namespace Lib {
