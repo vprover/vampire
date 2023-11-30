@@ -7,11 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
- *
- * @autor Johannes Schoisswohl
- * @date 2020-04-29
- */
 
 #include "Kernel/KBO.hpp"
 #include "Kernel/Ordering.hpp"

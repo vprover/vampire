@@ -42,7 +42,6 @@ Shell::Options::UnificationWithAbstraction MismatchHandler::create()
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
     return env.options->unificationWithAbstraction();
   } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) { 
-    // TODO  ask ahmed: are this the corret options for higher order abstraction
     return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
@@ -52,7 +51,6 @@ Shell::Options::UnificationWithAbstraction MismatchHandler::create()
 Shell::Options::UnificationWithAbstraction MismatchHandler::createOnlyHigherOrder()
 {
   if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) { 
-    // TODO  ask ahmed: are this the corret options for higher order abstraction
     return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
@@ -71,6 +69,7 @@ class AcIter {
   Recycled<Stack<TermSpec>> _todo;
   RobSubstitution const* _subs;
 public:
+
   AcIter(unsigned function, TermSpec t, RobSubstitution const* subs) : _function(function), _todo(), _subs(subs) 
   { _todo->push(std::move(t)); }
 
@@ -94,7 +93,6 @@ public:
 
 bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const 
 {
-
   if(!(t1.isTerm() && t2.isTerm())) return false;
   if(t1.isSort() || t2.isSort()) return false;
 
@@ -173,7 +171,6 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
   ASS(_mode != Uwa::OFF)
 
 
-  // TODO add parameter instead of reading from options
   if (_mode == Uwa::AC1 || _mode == Uwa::AC2) {
       if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
        || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
@@ -190,8 +187,6 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       Recycled<Stack<TermSpec>> diff2_;
       auto& diff1 = *diff1_;
       auto& diff2 = *diff2_;
-      // diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
-      // diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
       diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp));
       diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp));
       auto sum = [&](auto& diff) {
@@ -286,7 +281,6 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 { 
   auto t1 = _t1.toTerm(s);
   auto t2 = _t2.toTerm(s);
-  // return Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term()));
   return t1 == t2 
     ? Option<Literal*>()
     : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));

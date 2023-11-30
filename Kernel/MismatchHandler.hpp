@@ -64,10 +64,6 @@ public:
   UnificationConstraint pop(Option<BacktrackData&> bd);
 };
 
-using Action = std::function<bool(unsigned, TermSpec)>;
-using SpecialVar = unsigned;
-using WaitingMap = DHMap<SpecialVar, Action>;
-
 class MismatchHandler final
 {
   Shell::Options::UnificationWithAbstraction _mode;
@@ -80,7 +76,6 @@ public:
     Recycled<Stack<UnificationConstraint>> _constr; 
 
     EqualIf() : _unify(), _constr() {}
-
 
     auto unify()  -> decltype(auto) { return *_unify; }
     auto constr() -> decltype(auto) { return *_constr; }
@@ -98,7 +93,6 @@ public:
       _constr->pushMany(std::move(constr), std::move(constrs)...);
       return std::move(*this); 
     }
-
 
     template<class... As>
     EqualIf unify(UnificationConstraint unify, As... unifys) &&
@@ -124,9 +118,6 @@ public:
       TermSpec const& t1,
       TermSpec const& t2) const;
 
-  // /** TODO document */
-  // virtual bool recheck(TermSpec l, TermSpec r) const = 0;
-
   static Shell::Options::UnificationWithAbstraction create();
   static Shell::Options::UnificationWithAbstraction createOnlyHigherOrder();
 
@@ -139,17 +130,17 @@ private:
       TermSpec const& t2) const;
 };
 
-class AbstractingUnifier {
+class AbstractingUnifier 
+{
   Recycled<RobSubstitution> _subs;
   Recycled<UnificationConstraintStack> _constr;
   Option<BacktrackData&> _bd;
   MismatchHandler _uwa;
+
   friend class RobSubstitution;
   AbstractingUnifier(MismatchHandler uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
-  // DEFAULT_CONSTRUCTORS(AbstractingUnifier)
-  static AbstractingUnifier empty(MismatchHandler uwa) 
-  { return AbstractingUnifier(uwa); }
+  static AbstractingUnifier empty(MismatchHandler uwa) { return AbstractingUnifier(uwa); }
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
@@ -157,7 +148,7 @@ public:
   bool unify(TermSpec l, TermSpec r, bool& progress);
   bool fixedPointIteration();
 
-        // TODO document
+  // TODO document
   Option<Recycled<Stack<unsigned>>> unifiableSymbols(unsigned f);
 
 

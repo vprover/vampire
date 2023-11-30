@@ -229,7 +229,6 @@ class UnificationConstraint
   TermSpec _t1;
   TermSpec _t2;
 public:
-  // TODO get rid of default constr
   UnificationConstraint() {}
   USE_ALLOCATOR(UnificationConstraint)
   auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2); }
@@ -247,7 +246,6 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
   { return out << self._t1 << " != " << self._t2; }
-
 };
 
 
@@ -366,7 +364,6 @@ public:
   RobSubstitution(RobSubstitution&& obj) = default;
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
   TermSpec const& derefBound(TermSpec const& v) const;
-  // TermSpec const& derefIntroducingNewVariables(VarSpec v) const;
   unsigned findOrIntroduceOutputVariable(VarSpec v) const;
   VarSpec root(VarSpec v) const;
 private:
@@ -407,8 +404,6 @@ inline AutoDerefTermSpec::AutoDerefTermSpec(TermSpec const& t, RobSubstitution c
 };
 
 namespace Lib {
-
-  // TODO optimize to use TermList iterator
   template<>
   struct BottomUpChildIter<Kernel::AutoDerefTermSpec>
   {
