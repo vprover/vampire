@@ -53,29 +53,6 @@ ITERATOR_TYPE(C) getContentIterator(C& c)
   return ITERATOR_TYPE(C)(c);
 }
 
-/**
- * Iterator class that iterates an array and never stops. This iterator
- * needs to be used e.g. inside a WhileLimitedIterator.
- */
-template<class El>
-class InfiniteArrayIterator
-{
-public:
-  DECL_ELEMENT_TYPE(El);
-  DEFAULT_CONSTRUCTORS(InfiniteArrayIterator)
-  InfiniteArrayIterator(const El* ptr) : _nextPtr(ptr) {}
-  inline bool hasNext() { return true; }
-  inline OWN_ELEMENT_TYPE next() { return *(_nextPtr++); }
-private:
-  const El* _nextPtr;
-};
-
-template<class El>
-InfiniteArrayIterator<El> getInfiniteArrayIterator(const El* ptr)
-{
-  return InfiniteArrayIterator<El>(ptr);
-}
-
 template<class A> struct const_ref { using type = A const&; };
 template<class A> struct mut_ref   { using type = A &; };
 template<class A> struct no_ref    { using type = A; };
@@ -1794,18 +1771,15 @@ public:
       ASS(lhs._iter.isSome()); 
       return lhs._cur.isNone(); 
     }
-
   };
 
 public:
   StlIter begin() { return StlIter(*this); }
   StlIter end() { return StlIter(); }
-
 };
 
-template<class Iter>
-IterTraits<Iter> iterTraits(Iter i) 
-{ return IterTraits<Iter>(std::move(i)); }
+template<class Iter> 
+IterTraits<Iter> iterTraits(Iter i) { return IterTraits<Iter>(std::move(i)); }
 
 template<class I1>
 static auto concatIters(I1 i1) 
