@@ -220,47 +220,6 @@ private:
 };
 
 /**
- * Iterator class for pointers returning pointers to elements
- *
- * The constructor takes two arguments - a pointer to the first element,
- * and a pointer to the element after the last element to be returned.
- *
- * Consecutive elements are being obtained by the postfix @b operator++().
- */
-template<typename T>
-class PointerPtrIterator
-{
-public:
-  DECL_ELEMENT_TYPE(T*);
-  DEFAULT_CONSTRUCTORS(PointerPtrIterator)
-  inline PointerPtrIterator(T* first, T* afterLast) :
-    _curr(first), _afterLast(afterLast) {}
-  inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
-  inline T* next() { ASS(hasNext()); return _curr++; }
-private:
-  T* _curr;
-  T* _afterLast;
-};
-
-template<typename T>
-class ConstPointerPtrIterator
-{
-public:
-  DECL_ELEMENT_TYPE(const T*);
-  DEFAULT_CONSTRUCTORS(ConstPointerPtrIterator)
-  inline ConstPointerPtrIterator(T const* first, T const* afterLast) :
-    _curr(first), _afterLast(afterLast) {}
-  inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
-  inline const T* next() { ASS(hasNext()); return _curr++; }
-private:
-  const T *_curr;
-  const T *_afterLast;
-};
-
-
-
-
-/**
  * Iterator returning a single element
  *
  * The single element is being passed to the constructor of the iterator.
@@ -2057,17 +2016,18 @@ template<class Iterator>
 auto dropElementType(Iterator iter) 
 { return iterTraits(std::move(iter)).map([](auto _) { return std::make_tuple(); }); }
 
-template<class Array>
-auto arrayIter(Array const& a) 
-{ return range(0, a.size()).map([&](auto i) -> decltype(auto) { return a[i]; }); }
+template<class Array, class Size>
+auto arrayIter(Array const& a, Size s) { return range(0, s).map([&](auto i) -> decltype(auto) { return a[i]; }); }
 
-template<class Array>
-auto arrayIter(Array      & a) 
-{ return range(0, a.size()).map([&](auto i) -> decltype(auto) { return a[i]; }); }
+template<class Array, class Size>
+auto arrayIter(Array      & a, Size s) { return range(0, s).map([&](auto i) -> decltype(auto) { return a[i]; }); }
 
-template<class Array>
-auto arrayIter(Array     && a) 
-{ return range(0, a.size()).map([a = std::move(a)](auto i) { return std::move(a[i]); }); }
+template<class Array, class Size>
+auto arrayIter(Array     && a, Size s) { return range(0, s).map([a = std::move(a)](auto i) { return std::move(a[i]); }); }
+
+template<class Array> auto arrayIter(Array const& a) { return arrayIter(          a , a.size()); }
+template<class Array> auto arrayIter(Array     && a) { return arrayIter(std::move(a), a.size()); }
+template<class Array> auto arrayIter(Array      & a) { return arrayIter(          a , a.size()); }
 
 template<class Iter> 
 class BoxedIter {

@@ -450,11 +450,11 @@ using namespace Kernel;
       bool isEmpty() const { return !_size; }
       int size() const { return _size; }
       NodeIterator allChildren()
-      { return pvi( PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]) ); }
+      { return pvi( arrayIter(_nodes,_size).map([](Node *& n) { return &n; }) ); }
 
       NodeIterator variableChildren()
       {
-        return pvi( getFilteredIterator(PointerPtrIterator<Node*>(&_nodes[0],&_nodes[_size]),
+        return pvi( getFilteredIterator(arrayIter(_nodes, _size).map([](Node *& n) { return &n; }),
               IsPtrToVarNodeFn()) );
       }
       virtual Node** childByTop(TermList::Top t, bool canCreate);
