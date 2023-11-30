@@ -1583,7 +1583,7 @@ static auto concatIters(I1 i1)
 
 template<class I1, class I2, class... Is>
 static auto concatIters(I1 i1, I2 i2, Is... is) 
-{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+{ return iterTraits(CatIterator<I2, decltype(concatIters(std::move(i2), std::move(is)...))>(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
 
 template<class Iter>
 class IterTraits
