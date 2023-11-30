@@ -235,7 +235,7 @@ bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
   return _ldIterator.hasNext();
 }
 
-SubstitutionTree::RSQueryResult SubstitutionTree::FastGeneralizationsIterator::next()
+SubstitutionTree::QueryResult<ResultSubstitutionSP> SubstitutionTree::FastGeneralizationsIterator::next()
 {
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());

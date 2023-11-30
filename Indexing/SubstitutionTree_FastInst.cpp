@@ -337,7 +337,7 @@ bool SubstitutionTree::FastInstancesIterator::hasNext()
 #undef LOGGING
 #define LOGGING 0
 
-SubstitutionTree::RSQueryResult SubstitutionTree::FastInstancesIterator::next()
+SubstitutionTree::QueryResult<ResultSubstitutionSP> SubstitutionTree::FastInstancesIterator::next()
 {
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());

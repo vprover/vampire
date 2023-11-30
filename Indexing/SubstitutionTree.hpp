@@ -185,11 +185,6 @@
     static QueryResult<Unifier>  queryResult(LeafData const* ld, Unifier unif) 
     { return QueryResult<Unifier>(ld, std::move(unif)); }
 
-    template<class I> using QueryResultIter = VirtualIterator<QueryResult<typename I::Unifier>>;
-    // TODO get rid of me
-    using RSQueryResult = QueryResult<ResultSubstitutionSP>;
-    // TODO get rid of me
-    using RSQueryResultIter = VirtualIterator<QueryResult<ResultSubstitutionSP>>;
     // TODO make const function
     template<class I, class TermOrLit, class... Args> 
     inline auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
@@ -655,7 +650,7 @@
     }
 
     template<class Query>
-    RSQueryResultIter getVariants(Query query, bool retrieveSubstitutions)
+    VirtualIterator<QueryResult<ResultSubstitutionSP>> getVariants(Query query, bool retrieveSubstitutions)
     {
       auto renaming = retrieveSubstitutions ? std::make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
       ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(&*renaming) : ResultSubstitutionSP();
@@ -671,12 +666,12 @@
       Recycled<BindingMap> svBindings;
       createBindings(normQuery, /* reversed */ false,
           [&](auto v, auto t) { {
-            _nextVar = std::max<int>(_nextVar, v + 1); // TODO do we need this line?
+            _nextVar = std::max<int>(_nextVar, v + 1);
             svBindings->insert(v, t);
           } });
       Leaf* leaf = findLeaf(*svBindings);
       if(leaf==0) {
-        return RSQueryResultIter::getEmpty();
+        return VirtualIterator<QueryResult<ResultSubstitutionSP>>::getEmpty();
       } else {
         return pvi(iterTraits(leaf->allChildren())
           .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData* ld) 
@@ -850,7 +845,7 @@
 
       FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
       FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
-      DECL_ELEMENT_TYPE(RSQueryResult);
+      DECL_ELEMENT_TYPE(QueryResult<ResultSubstitutionSP>);
       using Unifier = ResultSubstitutionSP;
       /**
        * If @b reversed If true, parameters of supplied binary literal are
@@ -876,7 +871,7 @@
             [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
       }
 
-      RSQueryResult next();
+      QueryResult<ResultSubstitutionSP> next();
       bool hasNext();
     protected:
 
@@ -971,11 +966,7 @@
 
       /** Return term bound to special variable @b specVar */
       TermSpec getSpecVarBinding(unsigned specVar)
-      {
-        TermSpec res=_bindings->get(TermList(specVar,true));
-
-        return res;
-      }
+      { return _bindings->get(TermList(specVar,true)); }
 
       bool findSpecVarBinding(unsigned specVar, TermSpec& res)
       {
@@ -1084,7 +1075,7 @@
     public:
       FastInstancesIterator(FastInstancesIterator&&) = default;
       FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
-      DECL_ELEMENT_TYPE(RSQueryResult);
+      DECL_ELEMENT_TYPE(QueryResult<ResultSubstitutionSP>);
       using Unifier = ResultSubstitutionSP;
 
       /**
@@ -1114,7 +1105,7 @@
       }
 
       bool hasNext();
-      RSQueryResult next();
+      QueryResult<ResultSubstitutionSP> next();
     protected:
       bool findNextLeaf();
 
@@ -1223,7 +1214,6 @@
         ASS(!_clientBDRecording);
 
         auto ld = _ldIterator.next();
-        // TODO resolve this kinda messy bit
         if (_retrieveSubstitution) {
             Renaming normalizer;
             if(_literalRetrieval) {
@@ -1545,6 +1535,7 @@
         SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
         { return UnificationWithAbstraction::selectPotentiallyUnifiableChildren(n, _unif); }
       };
+
     };
 
 
