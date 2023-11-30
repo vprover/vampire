@@ -218,7 +218,7 @@ private:
 
   unsigned _goalCnt;
   DArray<BacktrackData> _btData;
-  DArray<VirtualIterator<SLQueryResult>> _unifIts;
+  DArray<SLQueryResultIterator> _unifIts;
   DArray<bool> _triedEqUnif;
 
   unsigned _depth;
@@ -281,7 +281,7 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
   RobSubstitution subst;
 
-  auto alit = lemmas.getAll();
+  SLQueryResultIterator alit = lemmas.getAll();
   while(alit.hasNext()) {
     SLQueryResult aqr = alit.next();
   }

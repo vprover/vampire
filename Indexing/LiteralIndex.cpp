@@ -37,19 +37,19 @@ LiteralIndex::~LiteralIndex()
   delete _is;
 }
 
-VirtualIterator<SLQueryResult> LiteralIndex::getAll()
+SLQueryResultIterator LiteralIndex::getAll()
 {
   return _is->getAll();
 }
 
 
-VirtualIterator<SLQueryResult> LiteralIndex::getGeneralizations(Literal* lit,
+SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   return _is->getGeneralizations(lit, complementary, retrieveSubstitutions);
 }
 
-VirtualIterator<SLQueryResult> LiteralIndex::getInstances(Literal* lit,
+SLQueryResultIterator LiteralIndex::getInstances(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
 {
   return _is->getInstances(lit, complementary, retrieveSubstitutions);
@@ -248,7 +248,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
   if(greater) {
     if(adding) {
       // true here means get complementary, false means do not get subs
-      auto vit = _partialIndex->getVariants(greater,true,false);
+      SLQueryResultIterator vit=_partialIndex->getVariants(greater,true,false);
       while(vit.hasNext()) {
         SLQueryResult qr=vit.next();
 

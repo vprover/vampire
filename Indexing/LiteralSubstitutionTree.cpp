@@ -35,24 +35,24 @@ LiteralSubstitutionTree::LiteralSubstitutionTree()
 : _trees(env.signature->predicates() * 2)
 { }
 
-VirtualIterator<SLQueryResult> LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
+SLQueryResultIterator LiteralSubstitutionTree::getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return pvi(getResultIterator<SubstitutionTree::Iterator<RetrievalAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions)); }
 
-VirtualIterator<SLQueryResult> LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
+SLQueryResultIterator LiteralSubstitutionTree::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
 
-VirtualIterator<SLQueryResult> LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
+SLQueryResultIterator LiteralSubstitutionTree::getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
 { return pvi(getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions)); }
 
 
-VirtualIterator<SLQueryResult> LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
+SLQueryResultIterator LiteralSubstitutionTree::getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
 {
   return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
         .map([](auto qr) { return SLQueryResult(qr.data->literal, qr.data->clause, qr.unif); }));
 }
 
 // TODO no substitution in this resultIterator
-VirtualIterator<SLQueryResult> LiteralSubstitutionTree::getAll()
+SLQueryResultIterator LiteralSubstitutionTree::getAll()
 {
   return pvi(
         iterTraits(getRangeIterator((unsigned long)0, _trees.size()))

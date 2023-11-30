@@ -44,15 +44,15 @@ public:
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
   void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
 
-  VirtualIterator<SLQueryResult> getAll() final override;
+  SLQueryResultIterator getAll() final override;
   void handleLiteral(Literal* lit, Clause* cls, bool insert)
   { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
-  VirtualIterator<SLQueryResult> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
-  VirtualIterator<SLQueryResult> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
-  VirtualIterator<SLQueryResult> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
-  VirtualIterator<SLQueryResult> getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
 private:
   static unsigned idxToFunctor(unsigned idx) { return idx / 2; }

@@ -98,7 +98,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   unsigned clen=cl->length();
 
   if(clen==0) {
-    auto rit=_index->getAll();
+    SLQueryResultIterator rit=_index->getAll();
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),
@@ -112,7 +112,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   }
 
   if(clen==1) {
-    auto rit=_index->getInstances( (*cl)[0], false, false);
+    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),
@@ -154,7 +154,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
-  auto rit=_index->getInstances( (*cl)[lmIndex], false, false);
+  SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
   while(rit.hasNext()) {
     SLQueryResult qr=rit.next();
     Clause* icl=qr.clause;

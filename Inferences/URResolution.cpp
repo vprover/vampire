@@ -299,7 +299,7 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
     }
 
-    auto unifs = _unitIndex->getUnifications(lit, true, true);
+    SLQueryResultIterator unifs = _unitIndex->getUnifications(lit, true, true);
     while(unifs.hasNext()) {
       SLQueryResult unif = unifs.next();
 
@@ -365,7 +365,7 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     lit = (*cl)[1];
   }
 
-  auto unifs = _nonUnitIndex->getUnifications(lit, true, true);
+  SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
     SLQueryResult unif = unifs.next();
     Clause* ucl = unif.clause;

@@ -188,7 +188,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
   bool mustPredActive = false;
   unsigned mustPred;
 
-  auto rit = _index->getInstances(candidateQueryLit, false, false);
+  SLQueryResultIterator rit = _index->getInstances(candidateQueryLit, false, false);
   while (rit.hasNext()) {
     SLQueryResult qr = rit.next();
     Clause* candidate = qr.clause;
