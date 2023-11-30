@@ -57,12 +57,11 @@
 #endif
 
 
-  // TODO where should these go?
-  static constexpr int QUERY_BANK=0;
-  static constexpr int RESULT_BANK=1;
-  static constexpr int NORM_RESULT_BANK=3;
-  using namespace Lib;
-  using namespace Kernel;
+static constexpr int QUERY_BANK=0;
+static constexpr int RESULT_BANK=1;
+static constexpr int NORM_RESULT_BANK=3;
+using namespace Lib;
+using namespace Kernel;
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
 
@@ -185,7 +184,6 @@
     static QueryResult<Unifier>  queryResult(LeafData const* ld, Unifier unif) 
     { return QueryResult<Unifier>(ld, std::move(unif)); }
 
-    // TODO make const function
     template<class I, class TermOrLit, class... Args> 
     inline auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
     { return ifElseIter(_root == nullptr, 
@@ -794,7 +792,12 @@
       Recycled<ArrayMap<TermList>> _bindings;
     };
 
-    // TODO document
+    /**
+     * creates the bindings that need to be set for querying the given `term` from a substitution tree.
+     * This means the root speical variables of the substitution tree need to be set to the right values.
+     * In the case of a term this means { S0 -> term, S0 -> sortOfTerm  }
+     * In the case of a literal this means { S0 -> arg0, ..., SN -> argN  }
+     */
     template<class BindingFunction>
     void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
     {
@@ -802,6 +805,7 @@
       bindSpecialVar(1, term.sort());
     }
 
+    /** see createBindings(TypedTermList,...) */
     template<class BindingFunction>
     void createBindings(Literal* lit, bool reversed, BindingFunction bindSpecialVar)
     {
@@ -1446,7 +1450,6 @@
         void denormalize(Renaming& norm)
         { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
-        // TODO document
         static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n, AbstractingUnifier& unif)
         {
           if (unif.usesUwa()) {
