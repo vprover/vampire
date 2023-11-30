@@ -88,7 +88,7 @@ public:
       t = dt->termArg(0);
       dt = &_subs->derefBound(t);
     }
-    return dt->clone();
+    return *dt;
   }
 };
 
@@ -138,8 +138,8 @@ Option<MismatchHandler::AbstractionResult> funcExt(
     || (t2.isTerm() && t2.isSort()) ) return Option<MismatchHandler::AbstractionResult>();
   if (t1.isTerm() && t2.isTerm()) {
     if (isApp(t1) && isApp(t2)) {
-      auto argSort1 = au->subs().derefBound(t1.typeArg(0)).clone();
-      auto argSort2 = au->subs().derefBound(t2.typeArg(0)).clone();
+      auto argSort1 = au->subs().derefBound(t1.typeArg(0));
+      auto argSort2 = au->subs().derefBound(t2.typeArg(0));
       if (t1.isVar() || t2.isVar()
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
@@ -153,7 +153,7 @@ Option<MismatchHandler::AbstractionResult> funcExt(
                       UnificationConstraint(t1.typeArg(1), t2.typeArg(1)),
                       UnificationConstraint(t1.termArg(0), t2.termArg(0)));
 
-        auto argsEq = UnificationConstraint(arg1.clone(), arg2.clone());
+        auto argsEq = UnificationConstraint(arg1, arg2);
         auto res = some(MismatchHandler::AbstractionResult(
               // if both are variables we don't want to introduce a constraint
               arg1.isVar() && arg2.isVar()
@@ -179,8 +179,8 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
        || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
         return Option<AbstractionResult>();
       }
-      auto a1 = iterTraits(AcIter(IntTraits::addF(), t1.clone(), &au->subs())).template collect<Stack>();
-      auto a2 = iterTraits(AcIter(IntTraits::addF(), t2.clone(), &au->subs())).template collect<Stack>();
+      auto a1 = iterTraits(AcIter(IntTraits::addF(), t1, &au->subs())).template collect<Stack>();
+      auto a2 = iterTraits(AcIter(IntTraits::addF(), t2, &au->subs())).template collect<Stack>();
       auto cmp = [&](TermSpec const& lhs, TermSpec const& rhs) { return TermSpec::compare(lhs, rhs, [&](auto& t) -> TermSpec const& { return au->subs().derefBound(t); }); };
       auto less = [&](TermSpec const& lhs, TermSpec const& rhs) { return cmp(lhs, rhs) < 0; };
       a1.sort(less);
@@ -190,12 +190,14 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       Recycled<Stack<TermSpec>> diff2_;
       auto& diff1 = *diff1_;
       auto& diff2 = *diff2_;
-      diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
-      diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
+      // diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
+      // diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
+      diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp));
+      diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp));
       auto sum = [&](auto& diff) {
           return arrayIter(diff)
-            .map([](auto& x) { return x.clone(); })
-            .fold([&](auto l, auto r) 
+            .map([](TermSpec& t) -> TermSpec { return t; })
+            .fold([&](TermSpec l, TermSpec r) -> TermSpec
               // { return TermSpec(IntTraits::addF(), std::move(l), std::move(r)); })
               { 
                 if (l.index != r.index) {
@@ -246,7 +248,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
     auto abs = canAbstract(au, t1, t2);
     DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
-        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1.clone(), t2.clone())));
+        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2)));
     });
   }
 }
@@ -266,7 +268,7 @@ UnificationConstraint UnificationConstraintStack::pop(Option<BacktrackData&> bd)
 { 
   auto old = _cont.pop();
   if (bd) {
-    bd->addClosure([this, old = old.clone()]() mutable { _cont.push(std::move(old)); });
+    bd->addClosure([this, old]() mutable { _cont.push(std::move(old)); });
   }
   return old;
 }
@@ -305,7 +307,7 @@ bool AbstractingUnifier::fixedPointIteration()
     auto c = todo->pop();
     DEBUG_FINALIZE(2, "popped: ", c);
     bool progress;
-    auto res = unify(c.lhs().clone(), c.rhs().clone(), progress);
+    auto res = unify(c.lhs(), c.rhs(), progress);
     if (!res) {
       DEBUG_FINALIZE(1, "finalizing failed");
       return false;
@@ -363,7 +365,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
   auto impl = [&]() -> bool {
 
     Recycled<Stack<UnificationConstraint>> toDo;
-    toDo->push(UnificationConstraint(t1.clone(), t2.clone()));
+    toDo->push(UnificationConstraint(t1, t2));
     
     // Save encountered unification pairs to avoid
     // recomputing their unification
@@ -391,14 +393,14 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         //   toDo.push(pair);
         // } else 
         if (!encountered->find(pair)) {
-          encountered->insert(pair.clone());
+          encountered->insert(pair);
           toDo->push(std::move(pair));
         }
     };
 
     auto occurs = [this](auto& var, auto& term) {
       Recycled<Stack<TermSpec>> todo;
-      todo->push(term.clone());
+      todo->push(term);
       while (todo->isNonEmpty()) {
         auto t = todo->pop();
         auto& dt = subs().derefBound(t);
@@ -424,11 +426,11 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
       } else if(dt1.isVar() && !occurs(dt1, dt2)) {
         progress = true;
-        subs().bind(dt1.varSpec(), dt2.clone());
+        subs().bind(dt1.varSpec(), dt2);
 
       } else if(dt2.isVar() && !occurs(dt2, dt1)) {
         progress = true;
-        subs().bind(dt2.varSpec(), dt1.clone());
+        subs().bind(dt2.varSpec(), dt1);
 
       } else if(doAbstract(dt1, dt2)) {
 

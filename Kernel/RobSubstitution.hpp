@@ -42,9 +42,7 @@ namespace Kernel
 {
 struct VarSpec
 {
-  /** Create a new VarSpec struct */
   VarSpec() {}
-  /** Create a new VarSpec struct */
   VarSpec(unsigned var, int index) : var(var), index(index) {}
 
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
@@ -56,28 +54,17 @@ struct VarSpec
 
   auto asTuple() const { return std::tie(var, index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
-  IMPL_HASH_FROM_TUPLE(VarSpec)
 
-  /** struct containing first hash function for DHMap object storing variable banks */
-  struct Hash1
-  {
-   static unsigned hash(VarSpec const& o) {
-     return HashUtils::combine(o.var, o.index);
-   }
-  };
-  /** struct containing second hash function for DHMap object storing variable banks */
-  struct Hash2
-  {
-    static unsigned hash(VarSpec const& o) {
-      return HashUtils::combine(o.index, o.var);
-    }
-  };
+  unsigned defaultHash () const { return HashUtils::combine(var  , index); }
+  unsigned defaultHash2() const { return HashUtils::combine(index, var  ); }
 };
 
 struct TermSpec {
   TermSpec() {}
+
   TermSpec(TermList t, int i) : term(t), index(i) {}
   TermSpec(VarSpec v) : term(TermList::var(v.var)), index(v.index) {}
+
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
   IMPL_HASH_FROM_TUPLE(TermSpec)
@@ -106,7 +93,7 @@ struct TermSpec {
   }
 
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
-  TermSpec clone() const { return *this; }
+
   bool isVar() const { return term.isVar(); }
   VarSpec varSpec() const { return VarSpec(term.var(), term.isSpecialVar() ? SPECIAL_INDEX : index); }
   bool isTerm() const { return term.isTerm(); }
@@ -152,7 +139,7 @@ struct TermSpec {
   template<class Deref>
   static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
     Recycled<Stack<std::pair<TermSpec, TermSpec>>> todo;
-    todo->push(std::make_pair(lhs.clone(),rhs.clone()));
+    todo->push(std::make_pair(lhs,rhs));
     // DBG("compare: ", lhs, " <> ", rhs)
     while (todo->isNonEmpty()) {
       auto lhs_ = std::move(todo->top().first);
@@ -189,8 +176,7 @@ struct AutoDerefTermSpec
   TermSpec term;
 
   AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s);
-  explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term.clone()) {}
-  AutoDerefTermSpec clone() const { return AutoDerefTermSpec(*this); }
+  explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term) {}
   AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
   friend std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self);
 };
@@ -282,8 +268,6 @@ public:
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
   IMPL_HASH_FROM_TUPLE(UnificationConstraint);
 
-  UnificationConstraint clone() const { return UnificationConstraint(lhs().clone(), rhs().clone()); }
-
   UnificationConstraint(TermSpec t1, TermSpec t2)
   : _t1(std::move(t1)), _t2(std::move(t2))
   {}
@@ -312,8 +296,8 @@ class RobSubstitution
   friend class AbstractingUnifier;
   friend class UnificationConstraint;
  
-  DHMap<VarSpec, TermSpec, VarSpec::Hash1, VarSpec::Hash2> _bindings;
-  mutable DHMap<VarSpec, unsigned , VarSpec::Hash1, VarSpec::Hash2> _outputVarBindings;
+  DHMap<VarSpec, TermSpec> _bindings;
+  mutable DHMap<VarSpec, unsigned> _outputVarBindings;
   mutable bool _startedBindingOutputVars;
   mutable unsigned _nextUnboundAvailable;
   mutable unsigned _nextGlueAvailable;
@@ -453,7 +437,7 @@ private:
 };
 
 
-inline AutoDerefTermSpec::AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s) : term(s->derefBound(t).clone()) {}
+inline AutoDerefTermSpec::AutoDerefTermSpec(TermSpec const& t, RobSubstitution const* s) : term(s->derefBound(t)) {}
 };
 
 namespace Lib {

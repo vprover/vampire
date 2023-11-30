@@ -332,10 +332,10 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
     } else if(dt1.isVar() && !occurs(dt1.varSpec(), dt2)) {
-      bind(dt1.varSpec(), dt2.clone());
+      bind(dt1.varSpec(), dt2);
 
     } else if(dt2.isVar() && !occurs(dt2.varSpec(), dt1)) {
-      bind(dt2.varSpec(), dt1.clone());
+      bind(dt2.varSpec(), dt1);
 
     } else if(dt1.isTerm() && dt2.isTerm() 
            && dt1.functor() == dt2.functor()) {
@@ -423,7 +423,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	    bt=&binding1.term;
 	    continue;
 	  } else {
-	    bind(bvs,its.clone());
+	    bind(bvs,its);
 	  }
 	} else if(its.term.isSpecialVar()) {
 	  VarSpec ivs(its.term.var(), SPECIAL_INDEX);
@@ -434,7 +434,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	    it=&binding2.term;
 	    continue;
 	  } else {
-	    bind(ivs,bts.clone());
+	    bind(ivs,bts);
 	  }
 	} else if(bts.term.isOrdinaryVar()) {
 	  VarSpec bvs(bts.term.var(), bts.index);
@@ -448,7 +448,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	      break;
 	    }
 	  } else {
-	    bind(bvs,its.clone());
+	    bind(bvs,its);
 	  }
 	} else {
 	  mismatch=true;
