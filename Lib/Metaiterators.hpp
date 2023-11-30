@@ -54,33 +54,6 @@ ITERATOR_TYPE(C) getContentIterator(C& c)
 }
 
 /**
- * Reads given number of values from an input stream.
- *
- * Assumes that the input stream has enough values for that!
- */
-template<typename T>
-class InputIterator
-{
-public:
-  DECL_ELEMENT_TYPE(T);
-  DEFAULT_CONSTRUCTORS(InputIterator)
-  InputIterator(std::istream& inp, size_t cnt) : _inp(inp), _remaining(cnt) {}
-
-  bool hasNext() const { return _remaining>0; }
-  T next() {
-    ASS_G(_remaining,0);
-    _remaining--;
-    T res;
-    _inp >> res;
-    return res;
-  }
-
-private:
-  std::istream& _inp;
-  size_t _remaining;
-};
-
-/**
  * Iterator returning a single element
  *
  * The single element is being passed to the constructor of the iterator.
