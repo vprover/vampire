@@ -173,6 +173,16 @@ public:
    * When checking whether the is already in the map the closure `isCorrectVal` is used to 
    * compare the value in the map to the one to be inserted. This funciton can be used 
    * in order to avoid allocating a new value when it is already present in the map.
+   * a pseudo-code use case for this:
+   *
+   * ```
+   * Set<Stack<char>> set;
+   * ...
+   * set.rawFindOrInsert(
+   *   [](){ return Stack<char>{'a','c'}; },  // <- allocates new stack
+   *   computeHashCode({'a','c'}), 
+   *   [](auto& stack other) { return other.size() == 2 && other[0] == 'a' && other[1] == 'c' });
+   * ```
    */
   template<class Create, class IsCorrectVal>
   Val& rawFindOrInsert(Create create, unsigned hashCode, IsCorrectVal isCorrectVal, bool& inserted)

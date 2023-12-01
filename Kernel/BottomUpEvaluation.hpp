@@ -138,16 +138,18 @@ struct ReturnNone {
 template<class Arg, class Result>
 using NoMemo = Memo::None<Arg, Result>;
 
-// this macro defines all the fields for BottomUpEvaluation class. 
-// This class uses the builder-pattern, which is implemented using macros for all the fields regiestered 
-// below
-// TODO better explanation
+/**
+ * this macro defines all the fields for BottomUpEvaluation class. 
+ * This class uses the builder-pattern, which is implemented using macros for all the fields
+ * regiestered below. 
+ * For how to use `BottomUpEvaluation` have a look at the file `tBottomUpEvaluation`, and the 
+ * documentation of the function `apply`
+ */
 #define FOR_FIELD(MACRO)                                                                  \
   MACRO(0, Function , function      , (std::tuple<>())           )                        \
   MACRO(1, EvNonRec , evNonRec      , (ReturnNone<Result>{})     )                        \
   MACRO(2, Memo     , memo          , (NoMemo<Arg, Result>()))                            \
   MACRO(3, Context  , context       , (std::tuple<>())           )                        \
-  MACRO(4, Int      , memoThreshold , (unsigned(0))              )                        \
   /*    ^  ^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^----> default value */
   /*    |      |         +--------------------------------------------> field name */
   /*    |      +------------------------------------------------------> type param name */
@@ -260,25 +262,52 @@ public:
 
 
   /**
-   * TODO update documentation
+   * Evaluates a term-like datastructure (i.e.: a Directed Acyclic Graph (DAG)) bottom up without using 
+   * recursion, but an explicit Stack.
    *
-   * Evaluates a term-like datastructure (i.e.: a Directed Acyclic Graph (DAG)), without using recursion.
+   * The term to be evaluated will be traversed using a BottomUpChildIter<Arg>, which needs to be 
+   * specialized for whatever structure you want to evalute. Implementations for `Kernel::TermList`, and 
+   * `Kernel::PolyNf` are provided below and for `z3::expr` is provided in `Z3Interfacing`. 
    *
-   * Optionly a memoization method (i.e. a class from Kernel::Memo) can be specified. The memo can be a static,
-   * variable, in order to keep cached results for multiple runs of the funcion.
+   * It is to be used as follows (this example computes the weight of a term):
+   * ```
+   *  Memo::Hashed<TermList, size_t> memo;
+   *  ...
+   *  return BottomUpEvaluation<TermList, size_t>()
+   *                         // ^^^^^^^^  ^^^^^^--> result type
+   *                         //    +--> type to evaluate
+   *    // sets the function that will be used to evalute recursively
+   *    .function(
+   *      [](auto const& orig, size_t* sizes) -> size_t
+   *         //          ^^^^  ^^^^^-> results of evaluating its arguments recursively
+   *         //           +-> original term that needs to be evaluate
+   *      { return !orig.isTerm() ? 1 
+   *                              : (1 + range(0, orig.nAllArgs())
+   *                                       .map([&](auto i) { return sizes[i]; })
+   *                                       .sum()); })
    *
-   * The term-ish structure is evaluated according to the structure EvalFn. It is expected to have the following structure:
-   * class EvalFn {
-   *    using Arg    = ...; // <- the term-ish structure that will be evaluated.
-   *                        //    A specialization template<> BottomUpChildIter<Arg> must exist
-   *    using Result = ...; // <- the type the structure will be evaluated to
+   *    // (optional)
+   *    // this can be set to define for which terms recursing can be skipped. 
+   *    // In this case we do it for shared terms if the function returns a value (non-empty Option) 
+   *    // the evalution does not recurse but just use the result. If the returned option is empty 
+   *    // the term is recursively evaluated as usual.
+   *    .evNonRec([](auto& t) { return t.shared() ? Option<size_t>(t.weight) : Option<size_t>()); })
    *
-   *    // The actual evaluation function. It will be called once for each node in the directed acyclic graph, together with
-   *    // the already recursively evaluated children.
-   *    Result operator()(Arg const& orig, Result* evaluatedChildren);
-   * }
+   *    // (optional)
+   *    // a memo can be used cache evaluated sub result. We need to explicitly specify to pass it as 
+   *    // reference as otherwise the memo is copied each time this function is called and the cached
+   *    // values will not be shared among different evaluation calls
+   *    .memo<decltype(memo)&>(memo)
    *
-   * The term to be evaluated will be traversed using a BottomUpChildIter<Arg>.
+   *    // (optional)
+   *    // some term sutructures (like AutoDerefTermSpec in RobSubstition) need a context to be traversed
+   *    // with BottomUpChildIter. this context needs to be passed here.
+   *    // .context(AutoDerefTermSpec::Context { .subs = this, })
+   *
+   *    // applys the evaluation
+   *    .apply(someTerm)
+   *    ;
+   * ```
    */
   Result apply(Arg const& toEval) 
   {

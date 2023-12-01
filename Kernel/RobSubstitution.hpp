@@ -28,6 +28,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/TypedTermList.hpp"
+#include <initializer_list>
 
 #if VDEBUG
 #include <iostream>
@@ -110,7 +111,6 @@ struct TermSpec {
   auto termArgs() const { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
   auto allArgs()  const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
 
-
   TermList::Top top() const { return this->term.top(); }
   unsigned functor() const { return term.term()->functor(); }
 
@@ -175,6 +175,9 @@ struct TermSpec {
   }
 };
 
+/** A wrapper around TermSpec that automatically dereferences the TermSpec with respect to some RobSubstition when 
+ * used with BottomUpEvaluation.  This means for example if we evaluate some TermSpec * `g(X, Y)` in a context 
+ * `{ X -> a, Y -> f(X) }` it behaves as if we would evaluate `g(a,f(a))`.  */
 struct AutoDerefTermSpec
 {
   TermSpec term;
@@ -183,15 +186,15 @@ struct AutoDerefTermSpec
   explicit AutoDerefTermSpec(AutoDerefTermSpec const& other) : term(other.term) {}
   AutoDerefTermSpec(AutoDerefTermSpec && other) = default;
   friend std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self);
+
+  struct Context 
+  { RobSubstitution const* subs; };
 };
 
-struct AutoDerefTermSpecContext 
-{
-  RobSubstitution const* subs;
-};
-
+/* a Memo to be used with BottomUpEvaluation and AutoDerefTermSpec that only memorizes the result for non-variable subterms. */
 template<class Result>
-class OnlyMemorizeNonVar {
+class OnlyMemorizeNonVar 
+{
   Map<TermSpec, Result> _memo;
 public:
   OnlyMemorizeNonVar(OnlyMemorizeNonVar &&) = default;
@@ -248,9 +251,6 @@ public:
   { return out << self._t1 << " != " << self._t2; }
 };
 
-
-
-
 using namespace Lib;
 
 class AbstractingUnifier;
@@ -301,8 +301,8 @@ public:
    * f(y)        <- var bank 1
    *
    * Then an mgu is x -> -f(y/0) + f(y/1)
-   * This cannot be represented in vampire as our TermSpec can only hold 1 variable bank per term, and not multiple per subterm. So what we want to do instead is introduce two 
-   * new glue variables varibles G0, G1
+   * This cannot be directly represented in vampire as our TermSpec can only hold 1 variable bank per term, and not multiple per subterm. So what we want to do instead 
+   * is introduce two new "glue" variables varibles G0, G1
    *
    * G0 -> -f(y)/0
    * G1 ->  f(y)/1
@@ -311,6 +311,25 @@ public:
    * {x -> G0 + G1, G0 -> -f(y)/0, G1 -> f(y)/1}
    */
   VarSpec introGlueVar(TermSpec forTerm);
+
+  /* creates a new TermSpec with the given arguments `args` which all need to be of type `TermSpec`. If any of the argumetns have different variable banks "glue" variable are introduced. See the function `introGlueVar` for that. */
+  template<class... Args>
+  TermSpec createTerm(unsigned functor, Args... args)
+  {
+    TermSpec out;
+    if (iterItems(args...).count() == 0) {
+      return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0);
+    }
+    auto firstIndex = iterItems(args...).tryNext().unwrap().index;
+    if (iterItems(args...).all([&](auto a) { return a.index == firstIndex; })) {
+      return TermSpec(TermList(Term::create(functor, {args.term...})), firstIndex);
+    } else {
+      return TermSpec(TermList(Term::create(functor, { 
+              (args.index == GLUE_INDEX ? args.term 
+                                        : TermList::var(introGlueVar(args).var))... 
+              })), GLUE_INDEX);
+    }
+  }
 
   void reset()
   {
@@ -407,17 +426,17 @@ namespace Lib {
     Item _self;
     unsigned _arg;
 
-    BottomUpChildIter(Item const& self, Kernel::AutoDerefTermSpecContext c) : _self(Item(self)), _arg(0) {}
+    BottomUpChildIter(Item const& self, Kernel::AutoDerefTermSpec::Context c) : _self(Item(self)), _arg(0) {}
  
     Item const& self() { return _self; }
 
-    Item next(Kernel::AutoDerefTermSpecContext c)
+    Item next(Kernel::AutoDerefTermSpec::Context c)
     { return Kernel::AutoDerefTermSpec(_self.term.anyArg(_arg++), c.subs); }
 
-    bool hasNext(Kernel::AutoDerefTermSpecContext c)
+    bool hasNext(Kernel::AutoDerefTermSpec::Context c)
     { return _self.term.isTerm() && _arg < _self.term.nAllArgs(); }
 
-    unsigned nChildren(Kernel::AutoDerefTermSpecContext c)
+    unsigned nChildren(Kernel::AutoDerefTermSpec::Context c)
     { return _self.term.isTerm() ? _self.term.nAllArgs() : 0; }
   };
 

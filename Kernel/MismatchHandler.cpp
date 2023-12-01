@@ -193,17 +193,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
           return arrayIter(diff)
             .map([](TermSpec& t) -> TermSpec { return t; })
             .fold([&](TermSpec l, TermSpec r) -> TermSpec
-              // { return TermSpec(IntTraits::addF(), std::move(l), std::move(r)); })
-              { 
-                if (l.index != r.index) {
-                  if (l.index != GLUE_INDEX) 
-                    l = TermSpec(au->subs().introGlueVar(l));
-                  if (r.index != GLUE_INDEX) 
-                    r = TermSpec(au->subs().introGlueVar(r));
-                }
-                ASS_EQ(l.index, r.index)
-                return TermSpec(IntTraits::add(l.term,r.term), l.index); 
-              })
+              { return au->subs().createTerm(IntTraits::addF(), l, r); })
             .unwrap(); };
       auto diffConstr = [&]() 
       { return UnificationConstraint(sum(diff1), sum(diff2)); };

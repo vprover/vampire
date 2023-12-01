@@ -511,7 +511,7 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
                                           [&]() { return t.term.term; }); })
     .memo<decltype(_applyMemo)&>(_applyMemo)
-    .context(AutoDerefTermSpecContext { .subs = this, })
+    .context(AutoDerefTermSpec::Context { .subs = this, })
     .apply(AutoDerefTermSpec(TermSpec(trm, index), this));
 }
 
@@ -530,7 +530,7 @@ size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) cons
     .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
                                           [&]() -> size_t { return t.term.groundWeight(); }); })
     // .memo<decltype(_applyMemo)&>(_applyMemo)
-    .context(AutoDerefTermSpecContext { .subs = this, })
+    .context(AutoDerefTermSpec::Context { .subs = this, })
     .apply(AutoDerefTermSpec(TermSpec(trm, index), this))
     ;
 }
