@@ -86,10 +86,11 @@ $ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
 sa=lrs > lwlo ~cat off:5,on:1
 
 # lrs_estimate_correction_coef
-> $lecc ~cat 1:1
-sa=lrs > $lecc ~cat 1:10,666:1
-sa=lrs $lecc=1 > lecc ~cat 1.0:1
-sa=lrs $lecc!=1 > lecc ~uf 0.5,2.0
+# > $lecc ~cat 1:1
+# sa=lrs > $lecc ~cat 1:10,666:1
+# sa=lrs $lecc=1 > lecc ~cat 1.0:1
+# sa=lrs $lecc!=1 > lecc ~uf 0.5,2.0
+# TODO: leaving out weird timing dependent options
 
 # age_weight_ratio_shape
 > awrs ~cat constant:8,decay:1,converge:1
@@ -288,9 +289,10 @@ av=on > alpa ~cat none:300,false:13,true:6,random:4
 av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 
 # avatar_turn_off_time_frac
-av=on > $atotf ~cat 1:10,666:1
-av=on $atotf=1 > atotf ~cat 1:1
-av=on $atotf!=1 > atotf ~uf 0.0,0.7
+# av=on > $atotf ~cat 1:10,666:1
+# av=on $atotf=1 > atotf ~cat 1:1
+# av=on $atotf!=1 > atotf ~uf 0.0,0.7
+# TODO: leaving out weird timing dependent options
 
 # avatar_flush_period
 av=on > $afp ~cat 0:15,666:1
