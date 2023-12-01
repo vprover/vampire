@@ -365,15 +365,11 @@ public:
   RobSubstitution& operator=(RobSubstitution&& obj) = default;
   TermSpec const& derefBound(TermSpec const& v) const;
   unsigned findOrIntroduceOutputVariable(VarSpec v) const;
-  VarSpec root(VarSpec v) const;
 private:
   TermList apply(TermSpec);
-  friend struct TermSpec;
   RobSubstitution(const RobSubstitution& obj) = delete;
   RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
-
-  void addToConstraints(const VarSpec& v1, const VarSpec& v2);
   template<class T, class H1, class H2>
   void bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b);
   void bind(const VarSpec& v, TermSpec b);

@@ -227,18 +227,6 @@ void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
   bind(var,TermSpec(to));
 }
 
-VarSpec RobSubstitution::root(VarSpec v) const
-{
-  for(;;) {
-    auto binding = _bindings.find(v);
-    if(binding.isNone() || binding->isTerm()) {
-      return v;
-    }
-    v = binding->varSpec();
-  }
-}
-
-
 bool RobSubstitution::occurs(VarSpec const& toFind, TermSpec const& ts) 
 {
 
