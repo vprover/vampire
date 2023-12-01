@@ -1446,14 +1446,18 @@ template<class GetArg>
 Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg getArg, Option<TermList> twoVarEqSort)
 {
   ASS(!twoVarEqSort || (predicate == 0 && arity == 2 && getArg(0).isVar() && getArg(1).isVar()))
-  ASS(predicate != 0 || (commutative && arity == 2 && rightArgOrder(getArg(0), getArg(1))))
+  ASS(predicate != 0 || commutative)
+  ASS(!commutative || arity == 2)
   ASS_EQ(env.signature->predicateArity(predicate), arity);
 
+  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(getArg(i)); });
+  bool swapArgs = share && commutative && Indexing::TermSharing::argNormGt(getArg(0), getArg(1));
+  auto normArg = [&](auto i) { return swapArgs ? getArg(1 - i) : getArg(i); };
 
   auto allocLiteral = [&]() {
     Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
     for (auto i : range(0, arity)) {
-      *l->nthArgument(i) = getArg(i);
+      *l->nthArgument(i) = normArg(i);
     }
     if (twoVarEqSort) {
       l->markTwoVarEquality();
@@ -1462,13 +1466,12 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
     return l;
   };
 
-  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(getArg(i)); });
   if (share) {
     bool created = false;
     auto shared = 
       env.sharing->_literals.rawFindOrInsert(allocLiteral, 
-        Literal::literalHash(predicate, polarity, getArg, arity, twoVarEqSort, commutative), 
-        [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, getArg, arity, twoVarEqSort, commutative); },
+        Literal::literalHash(predicate, polarity, normArg, arity, twoVarEqSort, commutative), 
+        [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, normArg, arity, twoVarEqSort, commutative); },
         created);
 
     if (created) {
@@ -1547,9 +1550,6 @@ Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, T
    }
 #endif // VDEBUG
 
-   if (Indexing::TermSharing::argNormGt(arg1, arg2)) {
-     swap(arg1, arg2);
-   }
    auto getArg = [&](auto i) { ASS_L(i, 2); return i == 0 ? arg1 : arg2; };
    return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, /* commutative */ true, getArg, someIf(arg1.isVar() && arg2.isVar(), [&](){ return sort; }));
 }
