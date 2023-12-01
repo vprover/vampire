@@ -123,18 +123,6 @@ XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
-
-################################################################
-# Specific build options for some targets
-#
-
-ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -fPIC
-endif
-ifneq (,$(filter libvapi_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC 
-endif
-
 ################################################################
 
 CXX = g++
@@ -149,12 +137,6 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/utils/System.o\
   SAT/MinisatInterfacing.o\
   SAT/MinisatInterfacingNewSimp.o
-
-API_OBJ = Api/FormulaBuilder.o\
-	  Api/Helper.o\
-	  Api/ResourceLimits.o\
-	  Api/Tracing.o
-#	  Api/Problem.o\	  
 
 VD_OBJ = Debug/Assertion.o\
          Debug/RuntimeStatistics.o\
@@ -481,7 +463,7 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
+VAMP_DIRS := Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
@@ -489,8 +471,6 @@ VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) vampire.o
 VSAT_DEP = $(VSAT_BASIC)
 VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) vtest.o
-LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ)
-VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 
 all: #default make disabled
 	@echo "The make(1)-based build is no longer supported: use the CMake build instead."
@@ -562,8 +542,6 @@ VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
 VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
-VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
-LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 ifeq ($(OS),Darwin)
@@ -606,15 +584,6 @@ vampire: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 vtest vtest_z3: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
-vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
-	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,libvapi.so -o libvapi.so $(filter %.o, $^) -lc
-
-test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
-	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
-
 compile_commands:
 	mkdir compile_commands
 
@@ -635,16 +604,6 @@ compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '  }'>> $@
 	echo ']' >> $@
 
-api_src:
-	rm -rf $@
-	mkdir $@
-	mkdir $(patsubst %, $@/%, $(VAMP_DIRS))
-	tar cf - $(sort $(patsubst %.o,%.cpp, $(VAPI_DEP) test_libvapi.o)) | (cd $@ ; tar xvf -) 2>/dev/null
-	cp Makefile Makefile_depend test_vapi.cpp $@
-	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp, $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
-	rm -f $@.tgz
-	tar -czf $@.tgz $@
-
 clean:
 	rm -rf obj version.cpp
 
@@ -652,7 +611,7 @@ doc:
 	rm -fr doc/html
 	doxygen config.doc
 
-.PHONY: doc clean api_src
+.PHONY: doc clean
 
 ###########################
 # include header dependencies
