@@ -166,8 +166,16 @@ public:
     return false;
   } // Set::contains
 
-  template<class Create, class CorrectVal>
-  Val& rawFindOrInsert(Create create, unsigned hashCode, CorrectVal cval, bool& inserted)
+  /**
+   * Checks whether a value with a given hashCode is in the map. 
+   * If the value is not present, a new value will be inserted. The new value will be 
+   * created using the closure `create`. If a new value has been inserted the bool `inserted` will be set to true, or to false otherwise.
+   * When checking whether the is already in the map the closure `isCorrectVal` is used to 
+   * compare the value in the map to the one to be inserted. This funciton can be used 
+   * in order to avoid allocating a new value when it is already present in the map.
+   */
+  template<class Create, class IsCorrectVal>
+  Val& rawFindOrInsert(Create create, unsigned hashCode, IsCorrectVal isCorrectVal, bool& inserted)
   {
     inserted = false;
 
@@ -187,7 +195,7 @@ public:
         cell = nextCell(cell);
         continue;
       }
-      if (cell->code == hashCode && cval(cell->value)) {
+      if (cell->code == hashCode && isCorrectVal(cell->value)) {
         return cell->value;
       }
       cell = nextCell(cell);
@@ -206,9 +214,9 @@ public:
     return cell->value;
   } // Set::insert
 
-  template<class Create, class CorrectVal>
-  Val& rawFindOrInsert(Create create, unsigned hashCode, CorrectVal cval)
-  { bool b; return rawFindOrInsert(std::move(create), hashCode, std::move(cval), b); }
+  template<class Create, class IsCorrectVal>
+  Val& rawFindOrInsert(Create create, unsigned hashCode, IsCorrectVal isCorrectVal)
+  { bool b; return rawFindOrInsert(std::move(create), hashCode, std::move(isCorrectVal), b); }
 
 
   /**
