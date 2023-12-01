@@ -23,7 +23,7 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
@@ -978,7 +978,7 @@ TEST_FUN(higher_order2)
 }
 
 Option<TermUnificationResultSpec> runRobUnify(TypedTermList a, TypedTermList b, Options::UnificationWithAbstraction opt, bool fixedPointIteration) {
-  auto au = AbstractingUnifier::unify(a, 0, b, 0, MismatchHandler(opt), fixedPointIteration);
+  auto au = AbstractingUnifier::unify(a, 0, b, 0, AbstractionOracle(opt), fixedPointIteration);
 
   if (au) {
     return some(TermUnificationResultSpec { 

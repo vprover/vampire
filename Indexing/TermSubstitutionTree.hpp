@@ -18,7 +18,7 @@
 
 
 #include "Forwards.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/SkipList.hpp"
@@ -109,7 +109,7 @@ public:
 
 
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return pvi(getResultIterator<Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa), fixedPointIteration)); }
+  { return pvi(getResultIterator<Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }

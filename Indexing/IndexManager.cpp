@@ -35,7 +35,7 @@ using namespace Indexing;
 
 IndexManager::IndexManager(SaturationAlgorithm* alg) 
   : _alg(alg) 
-  , _uwa(MismatchHandler::create())
+  , _uwa(AbstractionOracle::create())
   , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 { }
 

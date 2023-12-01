@@ -67,8 +67,8 @@ struct EqualityResolution::ResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static MismatchHandler _mismatchHandler = MismatchHandler::create();
-    auto handler = _mismatchHandler;
+    static AbstractionOracle _abstractionOracle = AbstractionOracle::create();
+    auto abstractionOracle = _abstractionOracle;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
@@ -77,10 +77,10 @@ struct EqualityResolution::ResultFn
     // and therefore a constraint can be created between arguments
     if(arg0.isTerm() && arg1.isTerm() &&
        arg0.term()->functor() != arg1.term()->functor()){
-      handler = MismatchHandler(Shell::Options::UnificationWithAbstraction::OFF);
+      abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
-    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, handler, env.options->unificationWithAbstractionFixedPointIteration());
+    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration());
 
     if(absUnif.isNone()){ 
       return 0; 

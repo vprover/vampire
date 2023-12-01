@@ -21,7 +21,7 @@
 
 #include "Forwards.hpp"
 
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -1438,8 +1438,8 @@ using namespace Kernel;
         AbstractingUnifier _unif;
         const bool _fixedPointIteration;
       public:
-        UnificationWithAbstraction(MismatchHandler handler, bool fixedPointIteration) 
-          : _unif(AbstractingUnifier::empty(handler)) 
+        UnificationWithAbstraction(AbstractionOracle ao, bool fixedPointIteration) 
+          : _unif(AbstractingUnifier::empty(ao)) 
           , _fixedPointIteration(fixedPointIteration) 
         {}
 

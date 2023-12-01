@@ -15,7 +15,7 @@
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Indexing/ResultSubstitution.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"

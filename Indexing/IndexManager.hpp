@@ -21,7 +21,7 @@
 #include "Index.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 
 namespace Indexing

@@ -50,7 +50,7 @@ using namespace Saturation;
 using std::pair;
 
 EqualityFactoring::EqualityFactoring()
-  : _mismatchHandler(MismatchHandler::createOnlyHigherOrder())
+  : _abstractionOracle(AbstractionOracle::createOnlyHigherOrder())
   , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 {
 
@@ -95,7 +95,7 @@ struct EqualityFactoring::ResultFn
       : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
-    auto absUnif = AbstractingUnifier::empty(_self._mismatchHandler);
+    auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle);
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());

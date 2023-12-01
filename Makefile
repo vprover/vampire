@@ -211,7 +211,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
-        Kernel/MismatchHandler.o\
+        Kernel/UnificationWithAbstraction.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/ApplicativeHelper.o\

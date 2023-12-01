@@ -42,7 +42,7 @@ private:
   struct ResultFn;
   friend struct ResultFn;
 
-  MismatchHandler _mismatchHandler;
+  AbstractionOracle _abstractionOracle;
   bool _uwaFixedPointIteration;
 };
 

@@ -18,7 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Index.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Shell/Options.hpp"
 

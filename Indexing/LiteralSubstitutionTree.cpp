@@ -14,7 +14,7 @@
 
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 
