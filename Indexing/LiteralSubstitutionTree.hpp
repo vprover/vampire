@@ -79,21 +79,10 @@ private:
   }
 
 
-  auto nopostproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  { return getResultIterator<SubstitutionTree::Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
-
-  auto postproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  { return pvi(iterTraits(getResultIterator<SubstitutionTree::Iterator<RetrievalAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-    .filterMap([](LQueryRes<RetrievalAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
-        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return lQueryRes(r.literal, r.clause, unif); }); })); }
-
-
 public:
 
-
   VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return fixedPointIteration ? pvi(  postproUwa(lit, complementary, uwa))
-                               : pvi(nopostproUwa(lit, complementary, uwa)); }
+  { return pvi(getResultIterator<SubstitutionTree::Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa), fixedPointIteration)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 

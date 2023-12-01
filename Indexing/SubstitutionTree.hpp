@@ -1179,9 +1179,7 @@ using namespace Kernel;
         DEBUG_QUERY("query: ", _abstractingUnifier.subs())
 
 
-        BacktrackData bd;
-        enter(root, bd);
-        bd.drop();
+        prepareChildren(root, /* backtrackable */ false);
       }
 
 
@@ -1241,6 +1239,18 @@ using namespace Kernel;
 
     private:
 
+      template<class F>
+      bool runBacktracking(F f) 
+      {
+        _algo.bdRecord(_bdStack->top());
+        bool success = f();
+        _algo.bdDone();
+        if (!success) {
+          _bdStack->pop().backtrack();
+        }
+        return success;
+      }
+
       bool findNextLeaf()
       {
         if(_nodeIterators->isEmpty()) {
@@ -1265,7 +1275,7 @@ using namespace Kernel;
 
         do {
           while(!_nodeIterators->top().hasNext() && !_bdStack->isEmpty()) {
-            //backtrack undos everything that enter(...) method has done,
+            //backtrack undos everything that something wrapped in runBacktracking(...) method has done,
             //so it also pops one item out of the nodeIterators stack
             _bdStack->pop().backtrack();
             _svStack->pop();
@@ -1275,47 +1285,33 @@ using namespace Kernel;
           }
           Node* n=*_nodeIterators->top().next();
 
-          BacktrackData bd;
-          bool success=enter(n,bd);
-          if(!success) {
-            bd.backtrack();
-            continue;
+          _bdStack->push(BacktrackData());
+          if (runBacktracking([&]() { return _algo.associate(_svStack->top(), n->term()); })) {
+            prepareChildren(n, /* backtrackable */ true);
           } else {
-            _bdStack->push(bd);
+            continue;
           }
-        } while(!_inLeaf);
+        } while(!(_inLeaf && runBacktracking([&](){ return _algo.doFinalLeafCheck(); })));
         return true;
       }
 
-      bool enter(Node* n, BacktrackData& bd)
-      {
-        bool success=true;
-        bool recording=false;
-        if(!n->term().isEmpty()) {
-          //n is proper node, not a root
-
-          recording=true;
-          _algo.bdRecord(bd);
-          success = _algo.associate(_svStack->top(),n->term());
+      /** if `n` is a leaf _ldIterator is prepared 
+       * if `n` is internal, the next special variable is put on svStack and the children it should be unified with are being put on _nodeIterators
+       */
+      void prepareChildren(Node* n, bool backtrackable) {
+        if(n->isLeaf()) {
+          _ldIterator=static_cast<Leaf*>(n)->allChildren();
+          _inLeaf=true;
+        } else {
+          IntermediateNode* inode=static_cast<IntermediateNode*>(n);
+          _svStack->push(inode->childVar);
           
-        }
-        if(success) {
-          if(n->isLeaf()) {
-            _ldIterator=static_cast<Leaf*>(n)->allChildren();
-            _inLeaf=true;
-          } else {
-            IntermediateNode* inode=static_cast<IntermediateNode*>(n);
-            _svStack->push(inode->childVar);
-            
-            backtrackablePush(*_nodeIterators, _algo.selectPotentiallyUnifiableChildren(inode), bd);
+          _nodeIterators->push(_algo.selectPotentiallyUnifiableChildren(inode));
+          if (backtrackable) {
+            _bdStack->top().addClosure([&]() { _nodeIterators->pop(); });
           }
         }
-        if(recording) {
-          _algo.bdDone();
-        }
-        return success;
       }
-
 
       RetrievalAlgorithm _algo;
       Recycled<VarStack> _svStack;
@@ -1397,6 +1393,18 @@ using namespace Kernel;
         /** same as in @Backtrackable */
         void bdDone() { _subs->bdDone(); }
 
+
+        /** This function is called once when the iterator arrives at a leaf. 
+         * The function can do a final check whether the current state of the retrieved witness (e.g. substitution) 
+         * is really unifying or not. 
+         * If it returns true the leaf is returned, if it returns false the leaf is filtered out.
+         * This is useful in the case of unificaiton with abstraction, where we overapproximate the 
+         * set of potential unifiers. With this function we can filter out unnecessary unifiers that would be 
+         * sound but are not needed. For examples and a bit more of an explanation have a look at the paper
+         * Refining Unification with Abstraction from LPAR2023
+         */
+        bool doFinalLeafCheck() { return true; }
+
         /** 
          * Returns an iterator over all child nodes of n that should be attempted for unification.
          * This is only an optimization. One could allways return n->allChildren(), but in the case 
@@ -1428,8 +1436,13 @@ using namespace Kernel;
 
       class UnificationWithAbstraction { 
         AbstractingUnifier _unif;
+        const bool _fixedPointIteration;
       public:
-        UnificationWithAbstraction(MismatchHandler handler) : _unif(AbstractingUnifier::empty(handler)) {}
+        UnificationWithAbstraction(MismatchHandler handler, bool fixedPointIteration) 
+          : _unif(AbstractingUnifier::empty(handler)) 
+          , _fixedPointIteration(fixedPointIteration) 
+        {}
+
         using Unifier = AbstractingUnifier*;
 
         bool associate(unsigned specialVar, TermList node)
@@ -1449,6 +1462,9 @@ using namespace Kernel;
 
         void denormalize(Renaming& norm)
         { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+
+        bool doFinalLeafCheck()
+        { return !_fixedPointIteration || _unif.fixedPointIteration(); }
 
         static SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n, AbstractingUnifier& unif)
         {
@@ -1479,66 +1495,6 @@ using namespace Kernel;
         SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
         { return selectPotentiallyUnifiableChildren(n, _unif); }
       };
-
-      class UnificationWithAbstractionWithPostprocessing 
-      { 
-        AbstractingUnifier _unif;
-        Option<bool> _fpRes;
-      public:
-        class NotFinalized { 
-          AbstractingUnifier* _unif; 
-          Option<bool>* _result;
-        public:
-          explicit NotFinalized(AbstractingUnifier* unif, Option<bool>* result) 
-            : _unif(unif)
-            , _result(result) 
-          { }
-
-          Option<AbstractingUnifier*> fixedPointIteration() 
-          {
-            if (_result->isNone()) {
-              *_result = some(bool(_unif->fixedPointIteration()));
-              if (_unif->isRecording()) {
-                _unif->bdGet().addClosure([res = _result]() { *res = {}; });
-              }
-            }
-            return someIf(**_result, [&](){ return _unif;  });
-          }
-
-          friend std::ostream& operator<<(std::ostream& out, NotFinalized const& self)
-          { return out << *self._unif << " (fixedPointIteration: " << *self._result << " )"; }
-        };
-
-        using Unifier = NotFinalized;
-
-        UnificationWithAbstractionWithPostprocessing(MismatchHandler handler) 
-          : _unif(AbstractingUnifier::empty(handler)) 
-          , _fpRes()
-        {}
-
-        bool associate(unsigned specialVar, TermList node)
-        { return _unif.unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
-
-        Unifier unifier()
-        { return NotFinalized(&_unif, &_fpRes); }
-
-        void bindQuerySpecialVar(unsigned var, TermList term)
-        { _unif.subs().bindSpecialVar(var, term, QUERY_BANK); }
-
-        void bdRecord(BacktrackData& bd)
-        { _unif.subs().bdRecord(bd); }
-
-        void bdDone()
-        { _unif.subs().bdDone(); }
-
-        void denormalize(Renaming& norm)
-        { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
-
-
-        SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
-        { return UnificationWithAbstraction::selectPotentiallyUnifiableChildren(n, _unif); }
-      };
-
     };
 
 

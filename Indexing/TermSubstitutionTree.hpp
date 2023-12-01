@@ -100,14 +100,6 @@ private:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
 
-  auto nopostproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  { return getResultIterator<Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
-
-  auto postproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  { return iterTraits(getResultIterator<Iterator<RetrievalAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-    .filterMap([](TQueryRes<RetrievalAlgorithms::UnificationWithAbstractionWithPostprocessing::NotFinalized> r)
-        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return tQueryRes(r.term, r.literal, r.clause, unif); }); }); }
-
 public:
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
@@ -117,8 +109,7 @@ public:
 
 
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return fixedPointIteration ? pvi(  postproUwa(t, uwa))
-                               : pvi(nopostproUwa(t, uwa)); }
+  { return pvi(getResultIterator<Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa), fixedPointIteration)); }
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }

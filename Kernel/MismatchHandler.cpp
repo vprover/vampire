@@ -251,10 +251,9 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
 void UnificationConstraintStack::add(UnificationConstraint c, Option<BacktrackData&> bd)
 { 
   DEBUG("introduced constraint: ", c)
+  _cont.push(c);
   if (bd) {
-    backtrackablePush(_cont, std::move(c), *bd); 
-  } else {
-    _cont.push(std::move(c));
+    bd->addClosure([this]() { _cont.pop(); });
   }
 }
 

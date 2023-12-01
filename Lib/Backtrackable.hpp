@@ -369,13 +369,6 @@ private:
   Stack<BacktrackData*> _bdStack;
 };
 
-template<class C>
-void backtrackablePush(Stack<C>& s, C v, BacktrackData& bd)
-{
-  s.push(std::move(v));
-  bd.addClosure([&](){ s.pop(); });
-}
-
 };
 
 #endif // __Backtrackable__
