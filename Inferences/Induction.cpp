@@ -535,7 +535,6 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
     while (nvi.hasNext()) {
       auto st = nvi.next();
       if (env.signature->getFunction(st->functor())->skolem()) {
-        std::cout << "Inducting on " << st->toString() << std::endl;
         InductionContext ctx(st, lit, premise);
         performStructInductionSynth(ctx); // clauses get resolved in the function
       }
