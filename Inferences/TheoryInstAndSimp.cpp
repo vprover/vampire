@@ -902,7 +902,6 @@ unsigned getFreshVar(Clause& clause)
   }
   return freshVar;
 }
-static const char* THEORY_INST_SIMP = "theory instantiation and simplification";
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
