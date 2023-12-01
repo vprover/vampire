@@ -100,6 +100,13 @@ struct NonzeroFn
   }
 };
 
+template<bool cond> struct __doDeletion
+{ template<class Iter> void operator()(Iter& iter) { } };
+
+template<> struct __doDeletion<true>
+{ template<class Iter> void operator()(Iter& iter) { iter.del(); } };
+
+
 /**
  * Iterator class that returns elements of the inner iterator
  * for which the functor returns true
@@ -111,12 +118,6 @@ struct NonzeroFn
 template<class Inner, class Functor, bool deleteFilteredOut = false>
 class FilteredIterator
 {
-  template<bool cond> struct __doDeletion
-  { template<class Iter> void operator()(Iter& iter) { } };
-
-  template<> struct __doDeletion<true>
-  { template<class Iter> void operator()(Iter& iter) { iter.del(); } };
-
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
   DEFAULT_CONSTRUCTORS(FilteredIterator)
