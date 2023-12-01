@@ -689,6 +689,9 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
 
   Stack<Clause*>::Iterator cit(hyp_clauses);
   Stack<Clause*> resolved_clauses;
+  #if VDEBUG
+    bool flag = false;
+  #endif
   while(cit.hasNext()){
     Clause* c = cit.next();
     unsigned cLen = c->length();
@@ -705,6 +708,9 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
 
     RobSubstitution subst;
     if (subst.unifyArgs(indLit, 0, resLit, 1, nullptr)) {
+      #if VDEBUG
+        flag = true;
+      #endif
       Literal* indLitS = subst.apply(indLit, 0);
 
       Stack<Literal*> lits;
@@ -729,6 +735,12 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
       resolved_clauses.push(resolvent);
     }
   }
+
+  #if VDEBUG
+    if (!flag) {
+      cout << "No resolution found for " << hypothesis->toString() << endl;
+    }
+  #endif
 
 
   switch (rule) {
@@ -1495,7 +1507,13 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   SynthesisManager::getInstance()->matchSkolemSymbols(bindingList, tempSkolemMappings);
   
+  #if VDEBUG
+    cout << "Clauses produced by structural induction axiom: " << endl;
+  #endif
   for (auto cl: cls) {
+    #if VDEBUG
+      cout << cl->toString() << endl;
+    #endif
     _clauses.push(cl);
   }
 }
