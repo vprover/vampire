@@ -268,6 +268,8 @@ InductionContext ActiveOccurrenceContextReplacement::next()
       }
     }
   }
+  // TODO enforce this
+  // ASS(!context._cls.empty());
   return context;
 }
 
@@ -278,10 +280,14 @@ VirtualIterator<InductionContext> contextReplacementInstance(const InductionCont
   if (opt.inductionOnActiveOccurrences()) {
     ActiveOccurrenceContextReplacement aor(context, fnDefHandler);
     ASS(aor.hasNext());
-    ctx = aor.next();
-    res = pvi(getSingletonIterator(ctx));
-    if (!aor.hasNonActive()) {
-      return res;
+    auto ao_ctx = aor.next();
+    // TODO do this filtering inside ActiveOccurrenceContextReplacement
+    if (!ao_ctx._cls.empty()) {
+      ctx = ao_ctx;
+      res = pvi(getSingletonIterator(ctx));
+      if (!aor.hasNonActive()) {
+        return res;
+      }
     }
   }
   return pvi(getConcatenatedIterator(res, vi(opt.inductionGen()
