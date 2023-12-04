@@ -511,7 +511,6 @@ TEST_FUN(term_indexing_poly_01)
   DECL_DEFAULT_VARS
   DECL_DEFAULT_SORT_VARS  
   NUMBER_SUGAR(Int)
-  DECL_PRED(p, {Int})
   DECL_CONST(a, Int) 
   DECL_POLY_CONST(h, 1, alpha)
   DECL_SORT(A)
@@ -808,7 +807,6 @@ TEST_FUN(term_indexing_interp_only)
 
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
-  DECL_PRED(p, {Int})
 
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
