@@ -179,14 +179,14 @@ TEST_FUN(custom_data_02) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<TermIndexData<vstring>> tree;
-  auto dat = [](TermList t,vstring s) { return TermIndexData<vstring>(t.term(), std::move(s)); };
+  TermSubstitutionTree<TermWithValue<vstring>> tree;
+  auto dat = [](TermList t,vstring s) { return TermWithValue<vstring>(t.term(), std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
 
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
-  check_unify(tree, f(b), Stack<TermIndexData<vstring>>{});
+  check_unify(tree, f(b), Stack<TermWithValue<vstring>>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
 

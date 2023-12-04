@@ -248,11 +248,10 @@ protected:
   void populateIndex();
 };
 
-
 class SkolemisingFormulaIndex
-: public TermIndex<TermIndexData<TermList>>
+: public TermIndex<TermWithValue<TermList>>
 {
-  using LeafData = TermIndexData<TermList>;
+  using LeafData = TermWithValue<TermList>;
   using TermIndex             = Indexing::TermIndex<LeafData>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData>;
 public:

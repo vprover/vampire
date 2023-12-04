@@ -74,17 +74,15 @@ public:
 
 };
 
-// TODO: is this used?
 template<class Value>
-class TermIndexData {
+class TermWithValue {
   TypedTermList _key;
-  // TODO rename to _extra (?)
   Value _value;
 public:
 
-  TermIndexData() {}
+  TermWithValue() {}
 
-  TermIndexData(TypedTermList key, Value v)
+  TermWithValue(TypedTermList key, Value v)
     : _key(key)
     , _value(std::move(v))
   {}
@@ -104,10 +102,10 @@ private:
   { return std::tie(key(), value()); }
 public:
 
-  IMPL_COMPARISONS_FROM_TUPLE(TermIndexData)
+  IMPL_COMPARISONS_FROM_TUPLE(TermWithValue)
 
-  friend std::ostream& operator<<(std::ostream& out, TermIndexData const& self)
-  { return out << "TermIndexData" << self.asTuple(); }
+  friend std::ostream& operator<<(std::ostream& out, TermWithValue const& self)
+  { return out << "TermWithValue" << self.asTuple(); }
 };
 
 struct ClauseLiteralPair 

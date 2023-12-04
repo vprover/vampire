@@ -38,7 +38,6 @@
 using namespace std;
 using namespace Kernel;
 using namespace Indexing;
-#define TODO ASSERTION_VIOLATION_REP("TODO")
 
 Clause* unit(Literal* lit)
 {

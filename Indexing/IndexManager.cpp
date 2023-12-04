@@ -156,7 +156,7 @@ Index* IndexManager::create(IndexType t)
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<Kernel::TermList>>());
+    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
     isGenerating = false;
     break;
 
