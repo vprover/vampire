@@ -37,13 +37,9 @@ using namespace Saturation;
 
 struct LiteralClause 
 {
-
   LiteralClause() {}
-  using Key = Literal*;
-
-  Key const& key() const
+  Literal* const& key() const
   { return literal; }
-
 
   LiteralClause(Clause* cls, Literal* literal)
     : clause(cls), literal(literal) {  }
@@ -64,8 +60,6 @@ public:
 
   Clause* clause;
   Literal* literal;
-  TermList sort() { return key()->isEquality() ? SortHelper::getEqualityArgumentSort(key()) : TermList::empty();  };
-
 
   friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
   { return out << "{ " << outputPtr(self.clause)
@@ -75,39 +69,26 @@ public:
 };
 
 template<class Value>
-class TermWithValue {
-  TypedTermList _key;
-  Value _value;
-public:
+struct TermWithValue {
+  TypedTermList term;
+  Value value;
 
   TermWithValue() {}
 
-  TermWithValue(TypedTermList key, Value v)
-    : _key(key)
-    , _value(std::move(v))
+  TermWithValue(TypedTermList term, Value v)
+    : term(term)
+    , value(std::move(v))
   {}
 
-  using Key = TypedTermList;
-  Key const& key() const 
-  { return _key; }
+  TypedTermList const& key() const { return term; }
 
-  TypedTermList term() const { return _key; }
-
-  TermList sort() const 
-  { return SortHelper::getResultSort(_key.term()); }
-
-  Value const& value() const 
-  { return _value; }
-
-private:
   auto asTuple() const
-  { return std::tie(key(), value()); }
-public:
+  { return std::tie(term, value); }
 
   IMPL_COMPARISONS_FROM_TUPLE(TermWithValue)
 
   friend std::ostream& operator<<(std::ostream& out, TermWithValue const& self)
-  { return out << "TermWithValue" << self.asTuple(); }
+  { return out << self.asTuple(); }
 };
 
 class TermWithoutValue : public TermWithValue<std::tuple<>> 
@@ -118,51 +99,11 @@ public:
   { }
 };
 
-
-struct ClauseLiteralPair 
-{
-
-  ClauseLiteralPair() {}
-
-  ClauseLiteralPair(Clause* c, Literal* l)
-    : clause(c), literal(l) {}
-
-protected:
-  auto  asTuple() const
-  { return std::make_tuple(
-      clause == nullptr, 
-      clause == nullptr ? 0 : clause->number(), 
-      literal == nullptr,
-      literal == nullptr ? 0 : literal->getId()); }
-public:
-
-  IMPL_COMPARISONS_FROM_TUPLE(ClauseLiteralPair)
-
-  Clause* clause;
-  Literal* literal;
-
-  friend std::ostream& operator<<(std::ostream& out, ClauseLiteralPair const& self)
-  { 
-    out << "(";
-    if (self.literal) out << *self.literal;
-    else              out << "null";
-    out << ", ";
-    if (self.clause) out << *self.clause;
-    else             out << "null";
-    out << ")";
-    return out;
-  }
-};
-
 struct TermLiteralClause 
 {
-
   Clause* clause;
   Literal* literal;
   TypedTermList term;
-
-
-  using Key = TypedTermList;
 
   TermLiteralClause() : clause(nullptr), literal(nullptr), term() {}
 
@@ -170,19 +111,17 @@ struct TermLiteralClause
     : clause(c), literal(l), term(t) 
   { ASS(l); ASS(c) }
 
-  Key const& key() const { return term; }
+  TypedTermList const& key() const { return term; }
 
-private:
   auto  asTuple() const
   { return std::make_tuple(clause->number(), literal->getId(), term); }
-public:
 
   IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
 
   friend std::ostream& operator<<(std::ostream& out, TermLiteralClause const& self)
-  { return out << "TermLiteralClause("
+  { return out << "("
                << self.term << ", "
-               << outputPtr(self.literal)
+               << self.literal
                << outputPtr(self.clause)
                << ")"; }
 };
