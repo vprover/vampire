@@ -96,14 +96,14 @@ TEST_FUN(basic01) {
   DECL_FUNC(f, {srt}, srt)
   DECL_PRED(g, {srt})
   
-  TermSubstitutionTree<TermLiteralClause> tree;
-  auto dat = [](TypedTermList k, Literal* v)  { return TermLiteralClause(k, v, nullptr); };
+  TermSubstitutionTree<TermWithValue<Literal*>> tree;
+  auto dat = [](TypedTermList k, Literal* v)  { return TermWithValue<Literal*>(k, v); };
   tree.insert(dat(f(a), g(a)));
   tree.insert(dat(f(a), g(b)));
   tree.insert(dat(f(a), g(c)));
 
   check_unify(tree, f(a), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
-  check_unify(tree, f(b), Stack<TermLiteralClause>{});
+  check_unify(tree, f(b), Stack<TermWithValue<Literal*>>{});
   check_unify(tree, f(x), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
 }
 
@@ -253,7 +253,6 @@ TEST_FUN(zero_arity_predicate) {
   DECL_SORT(srt)
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
-  DECL_FUNC(f, {srt}, srt)
   DECL_PRED(p0, {})
   DECL_PRED(p1, {srt})
 

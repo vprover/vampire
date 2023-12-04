@@ -218,7 +218,13 @@ private:
 
   void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
-  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermLiteralClause& bound1, const TermLiteralClause* optionalBound2);
+
+  struct DefaultBound { TypedTermList term; };
+  using Bound = Coproduct<TermLiteralClause, DefaultBound>;
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, Bound bound1, const TermLiteralClause* optionalBound2);
+
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, TermLiteralClause const& bound1, const TermLiteralClause* optionalBound2)
+  { performIntInduction(context, e, increasing, Bound::variant<0>(bound1), optionalBound2); }
 
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);

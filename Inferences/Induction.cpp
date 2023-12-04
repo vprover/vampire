@@ -443,7 +443,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // add formula with default bound
           if (_opt.integerInductionDefaultBound()) {
             InductionFormulaIndex::Entry* e = nullptr;
-            static TermLiteralClause defaultBound(theory->representConstant(IntegerConstantType(0)), nullptr, nullptr);
+            static Bound defaultBound = Bound(DefaultBound{ .term = TypedTermList(theory->representConstant(IntegerConstantType(0))) });
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
             if (notDoneInt(ctx, nullptr, nullptr, e)) {
@@ -903,6 +903,7 @@ void InductionClauseIterator::performInfIntInduction(const InductionContext& con
   resolveClauses(context, e, increasing ? &bound : nullptr, increasing ? nullptr : &bound);
 }
 
+
 // Given a literal ~L[term], where 'term' is of the integer sort,
 // introduce and induction hypothesis for integers, for example:
 //   (L[b1] & (![X] : (b1 <= X & X < b2 & L[X]) -> L[x+1])) -> (![Y] : (b1 <= Y & Y <= b2) -> L[Y])
@@ -916,9 +917,9 @@ void InductionClauseIterator::performInfIntInduction(const InductionContext& con
 // either infinity or -infinity. (The intervals are set such that the hypothesis
 // is valid: if interval_y(Y) holds for some Y, then either interval_x(Y) holds,
 // or depending on 'increasing' either interval_x(Y-1) or interval_x(Y+1) holds.)
-void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermLiteralClause& bound1, const TermLiteralClause* optionalBound2)
+void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, Coproduct<TermLiteralClause, DefaultBound> bound1, const TermLiteralClause* optionalBound2)
 {
-  TermList b1(bound1.term);
+  TermList b1(bound1.apply([](auto x) { return x.term; }));
   TermList one(theory->representConstant(IntegerConstantType(increasing ? 1 : -1)));
 
   TermList x(0,false);
@@ -944,14 +945,16 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
   // create Y>=b1 (which is ~Y<b1), or Y>b1, or Y<=b1 (which is ~b1<Y), or Y<b1
   // This comparison is mirroring the structure of bound1.literal, which is "b1 <comparison> inductionTerm".
   // If bound1.literal is nullptr, we are using the default bound with the comparison sign >= or <=.
-  const bool isBound1Equal = (!bound1.literal || (bound1.literal->functor() == less && bound1.literal->isNegative()));
+  const bool isBound1Equal = bound1.match(
+      [](TermLiteralClause const& bound1) { return (bound1.literal->functor() == less && bound1.literal->isNegative()); },
+      [](DefaultBound) { return true; });
   const bool isBound1FirstArg = (increasing != isBound1Equal);
   Formula* Lycompb1 = new AtomicFormula(Literal::create2(
         less, !isBound1Equal, (isBound1FirstArg ? b1 : y), (isBound1FirstArg ? y : b1)));
 
   Formula* FxInterval;
   Formula* FyInterval;
-  const bool isDefaultBound = ((bound1.clause == nullptr) || (bound1.literal == nullptr));
+  const bool isDefaultBound = bound1.template is<DefaultBound>();
   const bool hasBound2 = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
   // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
   if (hasBound2) {

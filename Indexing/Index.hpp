@@ -91,6 +91,8 @@ public:
   Key const& key() const 
   { return _key; }
 
+  TypedTermList term() const { return _key; }
+
   TermList sort() const 
   { return SortHelper::getResultSort(_key.term()); }
 
@@ -165,20 +167,14 @@ struct TermLiteralClause
   TermLiteralClause() : clause(nullptr), literal(nullptr), term() {}
 
   TermLiteralClause(TypedTermList t, Literal* l, Clause* c)
-    : clause(c), literal(l), term(t) {}
-
-  explicit TermLiteralClause(Term* t)
-    : TermLiteralClause(TypedTermList(t), nullptr, nullptr)
-  {}
+    : clause(c), literal(l), term(t) 
+  { ASS(l); ASS(c) }
 
   Key const& key() const { return term; }
 
 private:
   auto  asTuple() const
-  { return std::make_tuple(
-      clause  == nullptr, clause  == nullptr ? 0 : clause->number(), 
-      literal == nullptr, literal == nullptr ? 0 : literal->getId(), 
-      term); }
+  { return std::make_tuple(clause->number(), literal->getId(), term); }
 public:
 
   IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
@@ -189,7 +185,6 @@ public:
                << outputPtr(self.literal)
                << outputPtr(self.clause)
                << ")"; }
-
 };
 
 /**
@@ -205,8 +200,6 @@ struct QueryRes
   QueryRes(Unifier unifier, Data const* data) 
     : unifier(std::move(unifier))
     , data(std::move(data)) {}
-
-
 
   friend std::ostream& operator<<(std::ostream& out, QueryRes const& self)
   { 
