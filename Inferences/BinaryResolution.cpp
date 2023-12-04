@@ -53,9 +53,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-// TODO remove after refactor
-using BRQueryRes = QueryRes<AbstractingUnifier*, LiteralClause>;
-
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
   ASS(!_index);
@@ -73,46 +70,6 @@ void BinaryResolution::detach()
   _salg->getIndexManager()->release(BINARY_RESOLUTION_SUBST_TREE);
   GeneratingInferenceEngine::detach();
 }
-
-
-struct BinaryResolution::UnificationsFn
-{
-  UnificationsFn(BinaryResolutionIndex* index)
-  : _index(index) {}
-  VirtualIterator<pair<Literal*, BRQueryRes> > operator()(Literal* lit)
-  {
-    if(lit->isEquality()) {
-      //Binary resolution is not performed with equality literals
-      return VirtualIterator<pair<Literal*, BRQueryRes> >::getEmpty();
-    }
-    return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())));
-  }
-private:
-  BinaryResolutionIndex* _index;
-};
-
-struct BinaryResolution::ResultFn
-{
-  ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
-  : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  Clause* operator()(pair<Literal*, BRQueryRes> arg)
-  {
-    BRQueryRes& qr = arg.second;
-    Literal* resLit = arg.first;
-
-    auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
-    return BinaryResolution::generateClause(_cl, resLit, qr.data->clause, qr.data->literal, subs, 
-        [&](){ return qr.unifier->computeConstraintLiterals(); }, 
-        _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
-  }
-private:
-  Clause* _cl;
-  PassiveClauseContainer* _passiveClauseContainer;
-  bool _afterCheck;
-  Ordering* _ord;
-  LiteralSelector& _selector;
-  BinaryResolution& _parent;
-};
 
 /**
  * Ordering aftercheck is performed iff ord is not 0,
@@ -287,23 +244,28 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
-  //cout << "BinaryResolution for " << premise->toString() << endl;
+  return pvi(TIME_TRACE_ITER("resolution", 
+      premise->getSelectedLiteralIterator()
+        .filter([](auto l) { return !l->isEquality(); })
+        .flatMap([this,premise](auto lit) { 
+            // find query results for literal `lit`
+            return iterTraits(_index->getUwa(lit, /* complementary */ true, 
+                                             env.options->unificationWithAbstraction(), 
+                                             env.options->unificationWithAbstractionFixedPointIteration()))
+                     .map([this,lit,premise](auto qr) {
+                        // perform binary resolution on query results
+                        auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
+                        bool doAfterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+                        return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, subs, 
+                            [&](){ return qr.unifier->computeConstraintLiterals(); }, 
+                            this->getOptions(), _salg->getPassiveClauseContainer(), 
+                            doAfterCheck ? &_salg->getOrdering() : nullptr, 
+                            &_salg->getLiteralSelector());
 
-  PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
-
-  // generate pairs of the form (literal selected in premise, unifying object in index)
-  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index));
-  // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
-  auto it2 = getFlattenedIterator(it1);
-  // perform binary resolution on these pairs
-  auto it3 = getMappingIterator(it2,ResultFn(premise, passiveClauseContainer,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
-  // filter out only non-zero results
-  auto it4 = getFilteredIterator(it3, NonzeroFn());
-  // measure time of the overall processing
-  auto it5 = TIME_TRACE_ITER("resolution", it4);
-
-  return pvi(it5);
+                     });
+        })
+        .filter([](auto c) { return c != nullptr; })
+  ));
 }
 
 }
