@@ -347,18 +347,18 @@ void NarrowingIndex::populateIndex()
   Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
 
   if(set == Options::Narrow::ALL){
-    _is->insert(TermLiteralClause(lhsS.term(), sLit, 0));
-    _is->insert(TermLiteralClause(lhsC.term(), cLit, 0));
-    _is->insert(TermLiteralClause(lhsB.term(), bLit, 0));
-    _is->insert(TermLiteralClause(lhsK.term(), kLit, 0));
-    _is->insert(TermLiteralClause(lhsI.term(), iLit, 0));
+    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
+    _is->insert(TermWithValue<Literal*>(lhsC.term(), cLit));
+    _is->insert(TermWithValue<Literal*>(lhsB.term(), bLit));
+    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
+    _is->insert(TermWithValue<Literal*>(lhsI.term(), iLit));
   } else if (set == Options::Narrow::SKI) {
-    _is->insert(TermLiteralClause(lhsS.term(), sLit, 0));
-    _is->insert(TermLiteralClause(lhsK.term(), kLit, 0));
-    _is->insert(TermLiteralClause(lhsI.term(), iLit, 0));
+    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
+    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
+    _is->insert(TermWithValue<Literal*>(lhsI.term(), iLit));
   } else if (set == Options::Narrow::SK){
-    _is->insert(TermLiteralClause(lhsS.term(), sLit, 0));
-    _is->insert(TermLiteralClause(lhsK.term(), kLit, 0));
+    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
+    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
   }
 }
 

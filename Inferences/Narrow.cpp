@@ -14,6 +14,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Forwards.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -71,20 +72,6 @@ void Narrow::detach()
   GeneratingInferenceEngine::detach();
 }
 
-struct Narrow::ApplicableNarrowsFn
-{
-  ApplicableNarrowsFn(NarrowingIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
-  {
-    ASS(arg.second.isTerm());
-
-    TypedTermList tt(arg.second.term());
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(tt, true)) );
-  }
-private:
-  NarrowingIndex* _index;
-};
-
 struct Narrow::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
@@ -103,10 +90,10 @@ private:
 struct Narrow::ResultFn
 {
   ResultFn(Clause* cl, Narrow& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermWithValue<Literal*>>> arg)
   {
-    TermQueryResult& qr = arg.second;
-    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.data->term, qr.data->literal, qr.unifier);
+    auto& qr = arg.second;
+    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.data->key(), qr.data->value(), qr.unifier);
   }
 private:
   Clause* _cl;
@@ -120,7 +107,7 @@ ClauseIterator Narrow::generateClauses(Clause* premise)
   auto it1 = premise->getSelectedLiteralIterator();
 
   auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));
-  auto it3 = getMapAndFlattenIterator(it2,ApplicableNarrowsFn(_index));
+  auto it3 = getMapAndFlattenIterator(it2,[this](auto arg) { return pushPairIntoRightIterator(arg, _index->getUnifications(TypedTermList(arg.second.term()), /* retrieveSubstitutions */ true)); });
 
   //Perform  Narrow
   auto it4 = getMappingIterator(it3,ResultFn(premise, *this));

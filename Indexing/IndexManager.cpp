@@ -162,7 +162,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case NARROWING_INDEX:
-    res = new NarrowingIndex(new TermSubstitutionTree()); 
+    res = new NarrowingIndex(new Indexing::TermSubstitutionTree<TermWithValue<Literal*>>()); 
     isGenerating = true;
     break; 
 

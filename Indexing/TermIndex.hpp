@@ -231,14 +231,12 @@ private:
  * Index used for narrowing with combinator axioms
  */
 class NarrowingIndex
-: public TermIndex<TermLiteralClause>
+: public TermIndex<TermWithValue<Literal*>>
 {
-  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   USE_ALLOCATOR(NarrowingIndex);
 
-  NarrowingIndex(TermIndexingStructure* is) : TermIndex(is)
+  NarrowingIndex(Indexing::TermIndexingStructure<TermWithValue<Literal*>>* is) : TermIndex(is)
   {
     populateIndex();
   }
