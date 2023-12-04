@@ -561,8 +561,7 @@ using namespace Kernel;
     void getBindingsArgBindings(Term* t, BindingMap& binding);
 
     Leaf* findLeaf(BindingMap& svBindings)
-    { ASS(!_root || !_root->isLeaf() )
-      return _root ? findLeaf(_root, svBindings) : nullptr; }
+    { return _root ? findLeaf(_root, svBindings) : nullptr; }
 
     Leaf* findLeaf(Node* root, BindingMap& svBindings);
 
