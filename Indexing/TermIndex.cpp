@@ -271,32 +271,32 @@ void PrimitiveInstantiationIndex::populateIndex()
   notEqualsTerm = AH::createAppTerm3(srtOf(notEqualsTerm), notEqualsTerm, x, y);
 
   if(set == Options::PISet::ALL){
-    _is->insert(TermLiteralClause(kTerm1.term(), 0, 0));
-    _is->insert(TermLiteralClause(kTerm2.term(), 0, 0));
-    _is->insert(TermLiteralClause(andTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(orTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(impTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(notTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(equalsTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(notEqualsTerm.term(), 0, 0));
+    _is->insert(TermWithoutValue(kTerm1.term()));
+    _is->insert(TermWithoutValue(kTerm2.term()));
+    _is->insert(TermWithoutValue(andTerm.term()));
+    _is->insert(TermWithoutValue(orTerm.term()));
+    _is->insert(TermWithoutValue(impTerm.term()));
+    _is->insert(TermWithoutValue(notTerm.term()));
+    _is->insert(TermWithoutValue(equalsTerm.term()));
+    _is->insert(TermWithoutValue(notEqualsTerm.term()));
   } else if (set == Options::PISet::ALL_EXCEPT_NOT_EQ){
-    _is->insert(TermLiteralClause(kTerm1.term(), 0, 0));
-    _is->insert(TermLiteralClause(kTerm2.term(), 0, 0));
-    _is->insert(TermLiteralClause(andTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(orTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(impTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(notTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(equalsTerm.term(), 0, 0));
+    _is->insert(TermWithoutValue(kTerm1.term()));
+    _is->insert(TermWithoutValue(kTerm2.term()));
+    _is->insert(TermWithoutValue(andTerm.term()));
+    _is->insert(TermWithoutValue(orTerm.term()));
+    _is->insert(TermWithoutValue(impTerm.term()));
+    _is->insert(TermWithoutValue(notTerm.term()));
+    _is->insert(TermWithoutValue(equalsTerm.term()));
   } else if (set == Options::PISet::FALSE_TRUE_NOT){
-    _is->insert(TermLiteralClause(kTerm1.term(), 0, 0));
-    _is->insert(TermLiteralClause(kTerm2.term(), 0, 0));
-    _is->insert(TermLiteralClause(notTerm.term(), 0, 0));
+    _is->insert(TermWithoutValue(kTerm1.term()));
+    _is->insert(TermWithoutValue(kTerm2.term()));
+    _is->insert(TermWithoutValue(notTerm.term()));
   } else if (set == Options::PISet::FALSE_TRUE_NOT_EQ_NOT_EQ){
-    _is->insert(TermLiteralClause(kTerm1.term(), 0, 0));
-    _is->insert(TermLiteralClause(kTerm2.term(), 0, 0));
-    _is->insert(TermLiteralClause(notTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(equalsTerm.term(), 0, 0));
-    _is->insert(TermLiteralClause(notEqualsTerm.term(), 0, 0));
+    _is->insert(TermWithoutValue(kTerm1.term()));
+    _is->insert(TermWithoutValue(kTerm2.term()));
+    _is->insert(TermWithoutValue(notTerm.term()));
+    _is->insert(TermWithoutValue(equalsTerm.term()));
+    _is->insert(TermWithoutValue(notEqualsTerm.term()));
   }
 }
 

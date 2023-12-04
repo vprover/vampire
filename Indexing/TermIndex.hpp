@@ -182,14 +182,12 @@ protected:
 /////////////////////////////////////////////////////
 
 class PrimitiveInstantiationIndex
-: public TermIndex<TermLiteralClause>
+: public TermIndex<TermWithoutValue>
 {
-  using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
-  using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
   USE_ALLOCATOR(PrimitiveInstantiationIndex);
 
-  PrimitiveInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
+  PrimitiveInstantiationIndex(Indexing::TermIndexingStructure<TermWithoutValue>* is) : TermIndex(is)
   {
     populateIndex();
   }

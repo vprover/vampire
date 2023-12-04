@@ -108,6 +108,15 @@ public:
   { return out << "TermWithValue" << self.asTuple(); }
 };
 
+class TermWithoutValue : public TermWithValue<std::tuple<>> 
+{
+public:
+  TermWithoutValue(TypedTermList t) 
+    : TermWithValue(t, std::make_tuple()) 
+  { }
+};
+
+
 struct ClauseLiteralPair 
 {
 

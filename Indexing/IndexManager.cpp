@@ -12,6 +12,7 @@
  * Implements class IndexManager.
  */
 
+#include "Indexing/Index.hpp"
 #include "Lib/Exception.hpp"
 
 #include "Kernel/Grounder.hpp"
@@ -166,7 +167,7 @@ Index* IndexManager::create(IndexType t)
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree()); 
+    res = new PrimitiveInstantiationIndex(new Indexing::TermSubstitutionTree<TermWithoutValue>()); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
